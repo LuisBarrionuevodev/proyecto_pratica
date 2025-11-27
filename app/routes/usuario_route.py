@@ -23,8 +23,8 @@ def crear():
 
     usuario_validado = UsuarioCreate(**data)
 
-    nuevo = crear_usuario(usuario_validado.dict())
-    return UsuarioResponse(**nuevo.to_dict).dict(), 200
+    nuevo = crear_usuario(usuario_validado.model_dump())
+    return UsuarioResponse(**nuevo.to_dict()).model_dump(), 200
 
 
 eliminar_usuario

@@ -1,1 +1,1 @@
-from app.routes.usuario_route import usuario
+from .usuario_route import usuario
