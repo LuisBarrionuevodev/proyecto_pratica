@@ -66,3 +66,10 @@ class Actuaciones(db.Model):
         "acta_comprobacion", back_populates="actuaciones"
     )
     domicilio = db.relationship("domicilio", back_populates="actuaciones")
+    clasura = db.relationship(
+        "clausura",
+        back_populate="actuaciones",
+        useList=False,
+        cascade="all, delete-orphan",  ##si borro la actuacion se borra la clausura
+    )
+    decomiso = db.relationship("decomiso", back_populate="actuaciones", useList=False)
