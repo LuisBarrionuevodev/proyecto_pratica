@@ -5,6 +5,7 @@ from .clausura import Clausura
 from .comprobacion import Comprobacion
 from .contribuyente import Contribuyente
 from .decomiso import Decomiso
+from .distrito import Distrito
 from .domicilio import Domicilio
 from .expediente import Expediente
 from .inspeccion import Inspeccion
