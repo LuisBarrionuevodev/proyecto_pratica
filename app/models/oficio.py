@@ -28,6 +28,7 @@ class Oficio(db.Model):
         db.Integer,
         db.ForeignKey("comprobacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
         index=True,
+        nullable=True,
     )
 
     comprobacion = db.relationship("Comprobacion", back_populates="oficio")
@@ -36,3 +37,21 @@ class Oficio(db.Model):
         db.UniqueConstraint("numero_oficio", "anio", name="uq_of_numero_anio"),
         db.Index("idx_oficio_anio", "anio"),
     )
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "numero_oficio": self.numero_oficio,
+            "anio": self.anio,
+            "causa": self.causa,
+            "comprobacion_id": self.comprobacion_id,
+        }
+
+        if include_relations:
+            data["comprobacion"] = (
+                self.comprobacion.to_dict() if self.comprobacion else None
+            )
+
+            data["expediente"] = self.expediente.to_dict() if self.expediente else None
+
+        return data

@@ -1,4 +1,4 @@
-from sqlalchemy import event
+from datetime import datetime
 
 from app.database import db
 
@@ -11,8 +11,12 @@ class Notificacion(db.Model):
         nullable=False,
         index=True,
     )
-    anio = db.Column(db.Integer, nullable=False)
-    mes = db.Column(db.Integer, nullable=False)
+    anio = db.Column(
+        db.Integer, nullable=False, index=True, default=lambda: datetime.now().year
+    )
+    mes = db.Column(
+        db.Integer, nullable=False, index=True, default=lambda: datetime.now().month
+    )
     created_at = db.Column(
         db.DateTime,
         nullable=False,
@@ -24,16 +28,28 @@ class Notificacion(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    actuaciones = db.relationship("Actuaciones", back_populates="notificacion")
+    actuacion = db.relationship("Actuaciones", back_populates="notificacion")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_an_numero_anio"),
         db.Index("idx_notificacion_mes", "mes"),
         db.Index("idx_notificacion_anio", "anio"),
     )
 
+    def to_dict(self, include_relations=False, include_actuaciones=False):
+        data = {
+            "id": self.id,
+            "numero_acta": self.numero_acta,
+            "anio": self.anio,
+            "mes": self.mes,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
 
-@event.listens_for(Notificacion, "before_insert")
-def set_notificacion_anio(mapper, connection, target):
-    if target.actuaciones:
-        target.anio = target.actuaciones.anio
-        target.mes = target.actuaciones.mes
+        if include_actuaciones:
+            acts = []
+            if self.actuaciones:
+                for a in self.actuaciones:
+                    acts.append(a.to_dict())
+            data["actuaciones"] = acts
+
+        return data

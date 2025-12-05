@@ -38,3 +38,22 @@ class Expediente(db.Model):
         db.UniqueConstraint("numero_expediente", "anio", name="uq_ex_numero_anio"),
         db.Index("idx_expediente_anio", "anio"),
     )
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "numero_expediente": self.numero_expediente,
+            "anio": self.anio,
+            "comprobacion_id": self.comprobacion_id,
+            "oficio_id": self.oficio_id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            data["comprobacion"] = (
+                self.comprobacion.to_dict() if self.comprobacion else None
+            )
+            data["oficio"] = self.oficio.to_dict() if self.oficio else None
+
+        return data

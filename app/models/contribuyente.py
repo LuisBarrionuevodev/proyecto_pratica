@@ -30,3 +30,22 @@ class Contribuyente(db.Model):
         onupdate=db.func.current_timestamp(),
     )
     domicilio = db.relationship("Domicilio", back_populates="contribuyente")
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "apellido": self.apellido,
+            "nombre": self.nombre,
+            "documento": self.documento,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            domicilios = []
+            if self.domicilio:
+                for d in self.domicilio:
+                    domicilios.append(d.to_dict())
+            data["domicilios"] = domicilios
+
+        return data

@@ -1,4 +1,4 @@
-from sqlalchemy import event
+from datetime import datetime
 
 from app.database import db
 
@@ -11,8 +11,12 @@ class Comprobacion(db.Model):
         nullable=False,
         index=True,
     )
-    anio = db.Column(db.Integer, nullable=False)
-    mes = db.Column(db.Integer, nullable=False, index=True)
+    anio = db.Column(
+        db.Integer, nullable=False, index=True, default=lambda: datetime.now().year
+    )
+    mes = db.Column(
+        db.Integer, nullable=False, index=True, default=lambda: datetime.now().month
+    )
     motivo = db.Column(
         db.Text,
         nullable=False,
@@ -36,9 +40,30 @@ class Comprobacion(db.Model):
         db.Index("idx_comprobacion_anio", "anio"),
     )
 
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "numero_acta": self.numero_acta,
+            "anio": self.anio,
+            "mes": self.mes,
+            "motivo": self.motivo,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
 
-@event.listens_for(Comprobacion, "before_insert")
-def set_comprobacion_anio(mapper, connection, target):
-    if target.actuaciones:
-        target.anio = target.actuaciones.anio
-        target.mes = target.actuaciones.mes
+        if include_relations:
+            data["actuacion"] = self.actuacion.to_dict() if self.actuacion else None
+
+            oficios = []
+            if self.oficio:
+                for o in self.oficio:
+                    oficios.append(o.to_dict())
+            data["oficios"] = oficios
+
+            expedientes = []
+            if self.expediente:
+                for e in self.expediente:
+                    expedientes.append(e.to_dict())
+            data["expedientes"] = expedientes
+
+        return data

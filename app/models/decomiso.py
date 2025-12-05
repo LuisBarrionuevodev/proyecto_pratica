@@ -39,9 +39,26 @@ class Decomiso(db.Model):
         db.Index("idx_decomiso_anio", "anio"),
     )
 
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "numero_acta": self.numero_acta,
+            "anio": self.anio,
+            "mes": self.mes,
+            "actuacion_id": self.actuacion_id,
+            "cantidad": str(self.cantidad) if self.cantidad is not None else None,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            data["actuacion"] = self.actuacion.to_dict() if self.actuacion else None
+
+        return data
+
 
 @event.listens_for(Decomiso, "before_insert")
 def set_decomiso_anio(mapper, connection, target):
-    if target.actuaciones:
-        target.anio = target.actuaciones.anio
-        target.mes = target.actuaciones.mes
+    if target.actuacion:
+        target.anio = target.actuacion.anio
+        target.mes = target.actuacion.mes

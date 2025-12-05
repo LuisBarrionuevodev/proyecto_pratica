@@ -1,4 +1,5 @@
 from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
 
 from app.database import db
 
@@ -15,3 +16,28 @@ class Distrito(db.Model):
     barrio = db.relationship("Barrio", back_populates="distrito")
 
     __table_args__ = (db.Index("idx_distrito_geom", "geom", mysql_prefix="SPATIAL"),)
+
+    def to_dict(self, include_relations=False, include_geom=False):
+        data = {
+            "id": self.id,
+            "nombre": self.nombre,
+        }
+
+        # Geometría en WKT
+        if include_geom:
+            if self.geom:
+                try:
+                    data["geom_wkt"] = to_shape(self.geom).wkt
+                except Exception:
+                    data["geom_wkt"] = None
+            else:
+                data["geom_wkt"] = None
+
+        if include_relations:
+            barrios = []
+            if self.barrio:
+                for b in self.barrio:
+                    barrios.append(b.to_dict())
+            data["barrios"] = barrios
+
+        return data

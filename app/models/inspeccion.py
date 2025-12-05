@@ -29,16 +29,32 @@ class Inspeccion(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    db.relationship("Actuaciones", back_populates="inspeccion")
+    actuacion = db.relationship("Actuaciones", back_populates="inspeccion")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_ai_numero_anio"),
         db.Index("idx_inspeccion_mes", "mes"),
         db.Index("idx_inspeccion_anio", "anio"),
     )
 
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "numero_acta": self.numero_acta,
+            "anio": self.anio,
+            "mes": self.mes,
+            "actuacion_id": self.actuacion_id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            data["actuacion"] = self.actuacion.to_dict() if self.actuacion else None
+
+        return data
+
 
 @event.listens_for(Inspeccion, "before_insert")
 def set_inspeccion_anio(mapper, connection, target):
-    if target.actuaciones:
-        target.anio = target.actuaciones.anio
-        target.mes = target.actuaciones.mes
+    if target.actuacion:
+        target.anio = target.actuacion.anio
+        target.mes = target.actuacion.mes

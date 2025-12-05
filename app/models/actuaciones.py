@@ -28,14 +28,20 @@ class Actuaciones(db.Model):
     __tablename__ = "actuaciones"
 
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.Date, nullable=False, default=datetime.now())
+    fecha = db.Column(db.Date, nullable=False, default=datetime.now)
     mes = db.Column(db.Integer, nullable=False, index=True)
     anio = db.Column(db.Integer, nullable=False, index=True)
 
     tipo = db.Column(
         Enum(Tipo, name="tipo", native_enum=False),
-        nullable=True,
+        nullable=False,
         default=Tipo.INSPECCION,
+        index=True,
+    )
+    contraproducencia = db.Column(
+        Enum(ContraEnum, name="contra_enum", native_enum=False),
+        nullable=True,
+        default=ContraEnum.NO_HUBO,
         index=True,
     )
 
@@ -68,12 +74,6 @@ class Actuaciones(db.Model):
         index=True,
     )
 
-    contraproducencia = db.Column(
-        Enum(ContraEnum, name="contra_enum", native_enum=False),
-        nullable=True,
-        default=ContraEnum.NO_HUBO,
-        index=True,
-    )
     created_at = db.Column(
         db.DateTime, nullable=False, server_default=db.func.current_timestamp()
     )
@@ -85,7 +85,7 @@ class Actuaciones(db.Model):
     )
     notificacion = db.relationship("Notificacion", back_populates="actuaciones")
     orden_trabajo = db.relationship("OrdenTrabajo", back_populates="actuaciones")
-    acta_comprobacion = db.relationship("Comprobacion", back_populates="actuaciones")
+    comprobacion = db.relationship("Comprobacion", back_populates="actuaciones")
     domicilio = db.relationship("Domicilio", back_populates="actuaciones")
     clausura = db.relationship(
         "Clausura",
@@ -114,6 +114,39 @@ class Actuaciones(db.Model):
         db.Index("idx_actuacion_mes", "mes"),
         db.Index("idx_actuacion_anio", "anio"),
     )
+
+    def to_dict(self, incluir_relaciones=False):
+        data = {
+            "id": self.id,
+            "fecha": self.fecha,
+            "mes": self.mes,
+            "anio": self.anio,
+            "tipo": self.tipo,
+            "contraproducencia": self.contraproducencia.value
+            if self.contraproducencia
+            else None,
+            "orden_trabajo_id": self.orden_trabajo_id,
+            "notificacion_id": self.notificacion_id,
+            "comprobacion_id": self.comprobacion_id,
+            "domicilio_id": self.domicilio_id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+        if incluir_relaciones:
+            data["orden_trabajo"] = (
+                self.orden_trabajo.to_dict() if self.orden_trabajo else None
+            )
+            data["notificacion"] = (
+                self.notificacion.to_dict() if self.notificacion else None
+            )
+            data["comprobacion"] = (
+                self.comprobacion.to_dict() if self.comprobacion else None
+            )
+            data["domicilio"] = self.domicilio.to_dict() if self.domicilio else None
+            data["clausura"] = self.clausura.to_dict() if self.clausura else None
+            data["decomiso"] = self.decomiso.to_dict() if self.decomiso else None
+            data["inspeccion"] = self.inspeccion.to_dict() if self.inspeccion else None
+        return data
 
 
 @event.listens_for(Actuaciones, "before_insert")

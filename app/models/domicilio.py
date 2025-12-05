@@ -23,14 +23,14 @@ class Domicilio(db.Model):
         unique=False,
         index=True,
     )
-    contribuyente = db.Column(
+    contribuyente_id = db.Column(
         db.Integer,
         db.ForeignKey("contribuyete.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
         unique=False,
         index=True,
     )
-    rubro = db.Column(
+    rubro_id = db.Column(
         db.Integer,
         db.ForeignKey("rubro.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
@@ -50,8 +50,44 @@ class Domicilio(db.Model):
         onupdate=db.func.current_timestamp(),
         nullable=False,
     )
-
+    rubro = db.relationship("Rubro", back_populates="domicilio")
     actuaciones = db.relationship("Actuaciones", back_populates="domicilio")
     barrio = db.relationship("Barrio", back_populates="domicilio")
     contribuyente = db.relationship("Contribuyente", back_populates="domicilio")
     relevamiento = db.relationship("Relevamiento", back_populates="domicilio")
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "calle": self.calle,
+            "numero": self.numero,
+            "cp": self.cp,
+            "barrio_id": self.barrio_id,
+            "contribuyente_id": self.contribuyente_id,
+            "rubro_id": self.rubro_id,
+            "lat": str(self.lat) if self.lat is not None else None,
+            "long": str(self.long) if self.long is not None else None,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            data["barrio"] = self.barrio.to_dict() if self.barrio else None
+            data["contribuyente"] = (
+                self.contribuyente.to_dict() if self.contribuyente else None
+            )
+            data["rubro"] = self.rubro.to_dict() if self.rubro else None
+
+            relevs = []
+            if self.relevamiento:
+                for r in self.relevamiento:
+                    relevs.append(r.to_dict())
+            data["relevamientos"] = relevs
+
+            acts = []
+            if self.actuaciones:
+                for a in self.actuaciones:
+                    acts.append(a.to_dict())
+            data["actuaciones"] = acts
+
+        return data
