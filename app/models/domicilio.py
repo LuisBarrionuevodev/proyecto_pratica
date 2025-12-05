@@ -5,26 +5,37 @@ class Domicilio(db.Model):
     __tablename__ = "domicilio"
     id = db.Column(db.Integer, primary_key=True)
 
-    calle = db.Column(db.String(128), nullable=False)
-    numero = db.Column(db.String(20), nullable=False)
+    calle = db.Column(
+        db.String(128),
+        nullable=False,
+        index=True,
+    )
+    numero = db.Column(
+        db.String(20),
+        nullable=False,
+        index=True,
+    )
     cp = db.Column(db.String(10), nullable=True, default="4000")
     barrio_id = db.Column(
         db.Integer,
-        db.ForeignKey(ondelete="SET NULL", onupdate="CASCADE"),
+        db.ForeignKey("barrio.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=True,
         unique=False,
+        index=True,
     )
     contribuyente = db.Column(
         db.Integer,
-        db.ForeignKey(ondelete="SET NULL", onupdate="CASCADE"),
+        db.ForeignKey("contribuyete.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
         unique=False,
+        index=True,
     )
     rubro = db.Column(
         db.Integer,
-        db.Foreignkey(ondelete="SET NULL", onupdate="CASCADE"),
+        db.ForeignKey("rubro.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
         unique=False,
+        index=True,
     )
     lat = db.Column(db.Numeric(9, 6), nullable=True)
     long = db.Column(db.Numeric(9, 6), nullable=True)
@@ -40,6 +51,7 @@ class Domicilio(db.Model):
         nullable=False,
     )
 
-    actuaciones = db.relationship("actuaciones", back_populates="domicilio")
-    barrio = db.relationship("barrio", back_populates="domicilio")
-    contribuyente = db.relationship("contribuyente", back_populates="domicilio")
+    actuaciones = db.relationship("Actuaciones", back_populates="domicilio")
+    barrio = db.relationship("Barrio", back_populates="domicilio")
+    contribuyente = db.relationship("Contribuyente", back_populates="domicilio")
+    relevamiento = db.relationship("Relevamiento", back_populates="domicilio")

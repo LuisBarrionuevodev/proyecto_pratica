@@ -1,4 +1,4 @@
-from datetime import datetime
+from sqlalchemy import event
 
 from app.database import db
 
@@ -6,17 +6,25 @@ from app.database import db
 class Decomiso(db.Model):
     __tablename__ = "decomiso"
     id = db.Column(db.Integer, primary_key=True)
-    numero_acta = db.Column(db.String(6), nullable=False)
-    anio = db.Column(db.Integer, default=lambda: datetime.now().year, nullable=False)
+    numero_acta = db.Column(
+        db.String(6),
+        nullable=False,
+        index=True,
+    )
+    anio = db.Column(db.Integer, nullable=False)
+    mes = db.Column(db.Integer, nullable=False)
     actuacion_id = db.Column(
         db.Integer,
-        db.Foreignkey("actuaciones.id", ondelete="CASCADE", onupdate="CASCADE"),
+        db.ForeignKey("actuaciones.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
         unique=True,
+        index=True,
     )
     cantidad = db.Column(db.Numeric(12, 3), nullable=False)
     created_at = db.Column(
-        db.DateTime, nullable=False, server_default=db.func.current_timestamp()
+        db.DateTime,
+        nullable=False,
+        server_default=db.func.current_timestamp(),
     )
     updated_at = db.Column(
         db.DateTime,
@@ -24,4 +32,16 @@ class Decomiso(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    actuacion = db.relationship("actuaciones", back_populates="decomiso")
+    actuacion = db.relationship("Actuaciones", back_populates="decomiso")
+    __table_args__ = (
+        db.UniqueConstraint("numero_acta", "anio", name="uq_ad_numero_anio"),
+        db.Index("idx_decomiso_mes", "mes"),
+        db.Index("idx_decomiso_anio", "anio"),
+    )
+
+
+@event.listens_for(Decomiso, "before_insert")
+def set_decomiso_anio(mapper, connection, target):
+    if target.actuaciones:
+        target.anio = target.actuaciones.anio
+        target.mes = target.actuaciones.mes
