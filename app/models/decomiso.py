@@ -11,8 +11,8 @@ class Decomiso(db.Model):
         nullable=False,
         index=True,
     )
-    anio = db.Column(db.Integer, nullable=False)
-    mes = db.Column(db.Integer, nullable=False)
+    anio = db.Column(db.Integer, nullable=False, index=True)
+    mes = db.Column(db.Integer, nullable=False, index=True)
     actuacion_id = db.Column(
         db.Integer,
         db.ForeignKey("actuaciones.id", ondelete="CASCADE", onupdate="CASCADE"),
@@ -35,8 +35,6 @@ class Decomiso(db.Model):
     actuacion = db.relationship("Actuaciones", back_populates="decomiso")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_ad_numero_anio"),
-        db.Index("idx_decomiso_mes", "mes"),
-        db.Index("idx_decomiso_anio", "anio"),
     )
 
     def to_dict(self, include_relations=False):

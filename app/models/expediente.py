@@ -9,7 +9,7 @@ class Expediente(db.Model):
         nullable=False,
         index=True,
     )
-    anio = db.Column(db.String(4), nullable=False)
+    anio = db.Column(db.String(4), nullable=False, index=True)
     comprobacion_id = db.Column(
         db.Integer,
         db.ForeignKey("comprobacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -36,7 +36,6 @@ class Expediente(db.Model):
     oficio = db.relationship("Oficio", back_populates="expediente")
     __table_args__ = (
         db.UniqueConstraint("numero_expediente", "anio", name="uq_ex_numero_anio"),
-        db.Index("idx_expediente_anio", "anio"),
     )
 
     def to_dict(self, include_relations=False):

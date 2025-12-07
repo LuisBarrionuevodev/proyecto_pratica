@@ -17,11 +17,7 @@ class Comprobacion(db.Model):
     mes = db.Column(
         db.Integer, nullable=False, index=True, default=lambda: datetime.now().month
     )
-    motivo = db.Column(
-        db.Text,
-        nullable=False,
-        index=True,
-    )
+    motivo = db.Column(db.String(255), nullable=False, index=True)
     created_at = db.Column(
         db.DateTime, nullable=False, server_default=db.func.current_timestamp()
     )
@@ -31,13 +27,11 @@ class Comprobacion(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    actuacion = db.relationship("Actuaciones", back_populates="acta_comprobacion")
+    actuaciones = db.relationship("Actuaciones", back_populates="comprobacion")
     oficio = db.relationship("Oficio", back_populates="comprobacion")
     expediente = db.relationship("Expediente", back_populates="comprobacion")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_acomp_numero_anio"),
-        db.Index("idx_comprobacion_mes", "mes"),
-        db.Index("idx_comprobacion_anio", "anio"),
     )
 
     def to_dict(self, include_relations=False):

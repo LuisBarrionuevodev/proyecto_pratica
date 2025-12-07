@@ -29,11 +29,9 @@ class Clausura(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    actuacion = db.relationship("Actuaciones", back_populates="clausura")
+    actuaciones = db.relationship("Actuaciones", back_populates="clausura")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_ac_numero_anio"),
-        db.Index("idx_clausura_mes", "mes"),
-        db.Index("idx_clausura_anio", "anio"),
     )
 
     def to_dict(self, include_relations=False):

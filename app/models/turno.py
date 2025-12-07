@@ -20,5 +20,18 @@ class Turno(db.Model):
         index=True,
     )
 
+    inspector = db.relationship("Inspector", back_populates="turno")
 
-db.relationship("Inspector", back_populates="turno")
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "turno": self.turno,
+        }
+        if include_relations:
+            insp = []
+            if self.inspector:
+                for i in self.inspector:
+                    insp.append(i.to_dict())
+                data["inspectores"] = insp
+            else:
+                None

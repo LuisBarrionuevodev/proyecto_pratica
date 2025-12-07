@@ -17,10 +17,12 @@ class OrdenTrabajo(db.Model):
     anio = db.Column(
         db.Integer,
         nullable=False,
+        index=True,
     )
     mes = db.Column(
         db.Integer,
         nullable=False,
+        index=True,
     )
     created_at = db.Column(
         db.DateTime,
@@ -33,12 +35,25 @@ class OrdenTrabajo(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    actuacion = db.relationship("Actuaciones", back_populates="orden_trabajo")
+    actuaciones = db.relationship("Actuaciones", back_populates="orden_trabajo")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_ot_numero_anio"),
-        db.Index("idx_orden_mes", "mes"),
-        db.Index("idx_orden_anio", "anio"),
     )
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "numero_acta": self.numero_acta,
+            "anio": self.anio,
+            "mes": self.mes,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            data["actuacion"] = self.actuacion.to_dict() if self.actuacion else None
+
+        return data
 
 
 @event.listens_for(OrdenTrabajo, "before_insert")

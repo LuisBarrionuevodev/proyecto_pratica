@@ -25,7 +25,7 @@ class Domicilio(db.Model):
     )
     contribuyente_id = db.Column(
         db.Integer,
-        db.ForeignKey("contribuyete.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        db.ForeignKey("contribuyente.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
         unique=False,
         index=True,

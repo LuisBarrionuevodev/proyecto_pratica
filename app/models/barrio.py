@@ -34,7 +34,7 @@ class Barrio(db.Model):
     )
     distrito = db.relationship("Distrito", back_populates="barrio")
     domicilio = db.relationship("Domicilio", back_populates="barrio")
-    __table_args__ = (db.Index("idx_barrio_geom", "geom", mysql_prefix="SPATIAL"),)
+    
 
     def to_dict(self, include_relations=False, include_geom=False):
         data = {

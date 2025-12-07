@@ -1,5 +1,5 @@
 from app.database import db
-from app.models import actuaciones_inspector
+
 
 
 class Inspector(db.Model):
@@ -25,7 +25,7 @@ class Inspector(db.Model):
     )
 
     actuaciones = db.relationship(
-        "Actuaciones", secondary=actuaciones_inspector, back_populates="inspector"
+        "Actuaciones", secondary="actuaciones_inspector", back_populates="inspector"
     )
     turno = db.relationship("Turno", back_populates="inspector")
 

@@ -28,11 +28,9 @@ class Notificacion(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
-    actuacion = db.relationship("Actuaciones", back_populates="notificacion")
+    actuaciones = db.relationship("Actuaciones", back_populates="notificacion")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_an_numero_anio"),
-        db.Index("idx_notificacion_mes", "mes"),
-        db.Index("idx_notificacion_anio", "anio"),
     )
 
     def to_dict(self, include_relations=False, include_actuaciones=False):

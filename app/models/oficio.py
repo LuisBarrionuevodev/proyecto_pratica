@@ -35,7 +35,6 @@ class Oficio(db.Model):
     expediente = db.relationship("Expediente", back_populates="oficio")
     __table_args__ = (
         db.UniqueConstraint("numero_oficio", "anio", name="uq_of_numero_anio"),
-        db.Index("idx_oficio_anio", "anio"),
     )
 
     def to_dict(self, include_relations=False):

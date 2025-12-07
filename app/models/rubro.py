@@ -19,3 +19,28 @@ class Rubro(db.Model):
     )
     domicilio = db.relationship("Domicilio", back_populates="rubro")
     relevamiento = db.relationship("Relevamiento", back_populates="rubro")
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "nombre": self.nombre,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+        if include_relations:
+            dom = []
+            if self.domicilio:
+                for d in self.domicilio:
+                    dom.append(d.to_dict())
+            else:
+                None
+            data["domicilios"] = dom
+        if include_relations:
+            rele = []
+            if self.relevamiento:
+                for r in self.relevamiento:
+                    rele.append(r.to_dict())
+            else:
+                None
+            data["relevamientos"] = rele
+        return data

@@ -8,8 +8,8 @@ class Relevamiento(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     fecha = db.Column(db.Date, nullable=False)
-    anio = db.Column(db.Date, nullable=False)
-    mes = db.Column(db.Date, nullable=False)
+    anio = db.Column(db.Integer, nullable=False, index=True)
+    mes = db.Column(db.Integer, nullable=False, index=True)
 
     domicilio_id = db.Column(
         db.Integer,
@@ -39,10 +39,23 @@ class Relevamiento(db.Model):
 
     domicilio = db.relationship("Domicilio", back_populates="relevamiento")
     rubro = db.relationship("Rubro", back_populates="relevamiento")
-    __table_args__ = (
-        db.Index("idx_relevamiento_mes", "mes"),
-        db.Index("idx_relevamiento_anio", "anio"),
-    )
+
+    def to_dict(self, include_relations=False):
+        data = {
+            "id": self.id,
+            "fecha": self.fecha,
+            "anio": self.anio,
+            "mes": self.mes,
+            "domicilio_id": self.domicilio_id,
+            "rubro_id": self.rubro_id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+        if include_relations:
+            data["domicilio"] = self.domicilio.to_dict() if self.domicilio else None
+            data["rubro"] = self.rubro.to_dict() if self.rubro else None
+        return data
 
 
 @event.listens_for(Relevamiento, "before_insert")

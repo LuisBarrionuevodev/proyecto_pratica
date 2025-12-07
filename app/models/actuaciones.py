@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import Enum, event
 
 from app.database import db
-from app.models import actuaciones_inspector
+
 
 
 class ContraEnum(enum.Enum):
@@ -107,21 +107,19 @@ class Actuaciones(db.Model):
         cascade="all, delete-orphan",
     )
     inspector = db.relationship(
-        "Inspector", secondary=actuaciones_inspector, back_populates="actuaciones"
-    )
-    _table_args__ = (
-        db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),
-        db.Index("idx_actuacion_mes", "mes"),
-        db.Index("idx_actuacion_anio", "anio"),
-    )
+    "Inspector",
+    secondary="actuaciones_inspector",
+    back_populates="actuaciones"
+)
+    __table_args__ = (db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),)
 
-    def to_dict(self, incluir_relaciones=False):
+    def to_dict(self, include_relations=False):
         data = {
             "id": self.id,
-            "fecha": self.fecha,
+            "fecha": self.fecha.isoformat() if self.fecha else None,
             "mes": self.mes,
             "anio": self.anio,
-            "tipo": self.tipo,
+            "tipo": self.tipo.value if self.tipo else None,
             "contraproducencia": self.contraproducencia.value
             if self.contraproducencia
             else None,
@@ -129,10 +127,10 @@ class Actuaciones(db.Model):
             "notificacion_id": self.notificacion_id,
             "comprobacion_id": self.comprobacion_id,
             "domicilio_id": self.domicilio_id,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-        if incluir_relaciones:
+        if include_relations:
             data["orden_trabajo"] = (
                 self.orden_trabajo.to_dict() if self.orden_trabajo else None
             )
