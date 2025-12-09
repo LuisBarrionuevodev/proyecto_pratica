@@ -71,12 +71,17 @@ class ActuacionGridRowIn(BaseModel):
         if not s:
             raise ValueError("La fecha es obligatoria")
 
+    # acepta YYYY-MM-DD o DD/MM/YYYY
         try:
-            datetime.strptime(s, "%d/%m/%Y")
+            if "-" in s:
+                datetime.strptime(s, "%Y-%m-%d")
+            else:
+                datetime.strptime(s, "%d/%m/%Y")
         except ValueError:
-            raise ValueError("Formato inválido. Usá DD/MM/AAAA")
+            raise ValueError("Formato inválido. Usá DD/MM/AAAA o YYYY-MM-DD")
 
         return s
+
 
     @field_validator(
         "orden_trabajo_numero",
@@ -243,4 +248,8 @@ class ActuacionGridRowIn(BaseModel):
         return self
 
     def fecha_as_date(self):
-        return datetime.strptime(self.fecha_actuacion, "%d/%m/%Y").date()
+        s = self.fecha_actuacion
+        if "-" in s:
+            return datetime.strptime(s, "%Y-%m-%d").date()
+        return datetime.strptime(s, "%d/%m/%Y").date()
+
