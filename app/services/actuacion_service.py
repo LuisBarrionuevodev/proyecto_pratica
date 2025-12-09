@@ -118,8 +118,24 @@ def actualizar_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     - si viene un dato en el payload, lo aplicamos.
     - no borramos cosas si no vienen.
     """
+    """"
+    borrar si no anda
+    
+    """""
+    act_id = payload.get("id")
+    if not act_id:
+        raise ValueError("ID de actuación requerido para actualizar.")
 
-    fecha_str = payload["fecha_actuacion"]
+    actuacion = Actuaciones.query.get(act_id)
+    if not actuacion:
+        raise ValueError("Actuación no encontrada.")
+    
+    fecha_str = payload.get("fecha_actuacion")
+    if fecha_str:
+        mes, anio, fecha_date = parse_fecha_grid(fecha_str)
+        actuacion.fecha = fecha_date
+        actuacion.mes = mes
+        actuacion.anio = anio
 
     # 1) OT (si no existe, la creamos igual)
     ot = get_or_create_orden_trabajo(payload["orden_trabajo_numero"], fecha_str)

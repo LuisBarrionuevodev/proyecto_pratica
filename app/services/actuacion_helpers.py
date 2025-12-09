@@ -41,13 +41,23 @@ def acta_6(valor: Any) -> Optional[str]:
     return s.zfill(6) if s.isdigit() else s
 
 
-def parse_fecha_grid(fecha_str: str) -> Tuple[int, int, datetime.date]:
-    """
-    Recibe fecha en formato DD/MM/YYYY y devuelve:
-    mes, año y date()
-    """
-    d = datetime.strptime(fecha_str, "%d/%m/%Y").date()
-    return d.month, d.year, d
+
+
+def parse_fecha_grid(fecha_str: str):
+    s = (fecha_str or "").strip()
+    if not s:
+        raise ValueError("La fecha es obligatoria")
+
+    try:
+        if "-" in s:
+            fecha_date = datetime.strptime(s, "%Y-%m-%d").date()
+        else:
+            fecha_date = datetime.strptime(s, "%d/%m/%Y").date()
+    except ValueError:
+        raise ValueError("Formato inválido. Usá DD/MM/AAAA o YYYY-MM-DD")
+
+    return fecha_date.month, fecha_date.year, fecha_date
+
 
 
 # =========================================================

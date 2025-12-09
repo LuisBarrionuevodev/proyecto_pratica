@@ -58,9 +58,4 @@ class Relevamiento(db.Model):
         return data
 
 
-@event.listens_for(Relevamiento, "before_insert")
-@event.listens_for(Relevamiento, "before_update")
-def sync_mes_anio(mapper, connection, target):
-    if target.fecha:
-        target.mes = target.fecha.month
-        target.anio = target.fecha.year
+

@@ -10,6 +10,9 @@ class ActuacionGridRowIn(BaseModel):
     """
     Esta es la fila de carga de actuaciones
     """
+    
+    id: Optional[int] = None
+    # ... el resto igual
 
     # campos base
     orden_trabajo_numero: str = Field(..., min_length=1)

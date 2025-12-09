@@ -8,10 +8,11 @@ from app.services.actuacion_service import crear_actuacion_desde_payload
 from app.services.actuacion_service import actualizar_actuacion_desde_payload
 from app.services.actuacion_service import eliminar_actuacion
 from app.presenters.actuacion_presenters import actuacion_to_grid_row
+
 actuacion = Blueprint("actuaciones", __name__)
 
 
-@actuacion.post("/")
+@actuacion.post("")
 def crear_actuacion():
     """
     Recibe JSON PLANO desde la tabla del front.
@@ -33,7 +34,8 @@ def crear_actuacion():
         actuacion = crear_actuacion_desde_payload(payload)
 
         # respuesta simple (ajustá según tu to_dict real)
-        return jsonify(actuacion.to_dict()), 201
+        return jsonify(actuacion_to_grid_row(actuacion)), 201
+
 
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
@@ -44,11 +46,14 @@ def crear_actuacion():
     
 
 
-@actuacion.put("/")
-def actualizar_actuacion():
+@actuacion.put("/<int:actuacion_id>")
+def actualizar_actuacion(actuacion_id: int):
     data = request.get_json(silent=True) or {}
 
     try:
+        # opcional: meter el id al body para que el mapper/service lo use
+        data["id"] = actuacion_id
+
         row = ActuacionGridRowIn(**data)
         payload = map_actuacion_row(row)
 
@@ -64,6 +69,7 @@ def actualizar_actuacion():
 
 
 
+
 @actuacion.delete("/<int:actuacion_id>")
 def borrar_actuacion(actuacion_id: int):
     try:
@@ -76,7 +82,7 @@ def borrar_actuacion(actuacion_id: int):
     except Exception as e:
         return jsonify({"detail": "Error interno", "error": str(e)}), 500    
     
-@actuacion.get("/")
+@actuacion.get("")
 def listar_actuaciones():
     acts = Actuaciones.query.order_by(Actuaciones.id.desc()).all()
     return jsonify([actuacion_to_grid_row(a) for a in acts]), 200    

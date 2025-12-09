@@ -5,6 +5,73 @@ from typing import Any, Dict, Optional
 from app.schemas.grid.actuacion_row import ActuacionGridRowIn
 
 
+def _clean_str(v: Any) -> Optional[str]:
+    """
+    Normaliza strings sueltos.
+    - None -> None
+    - "   " -> None
+    - cualquier cosa -> str limpio
+    """
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s if s else None
+
+
+def _normalizar_tipo_actuacion(v: Any) -> Optional[str]:
+    """
+    El front puede mandar:
+    - "INSPECCION"
+    - "REINSPECCION"
+    - "RATIFICACION"
+    - "VERIFICAR E INFORMAR"
+
+    La DB/Enum espera:
+    - "INSPECCION"
+    - "REINSPECCION"
+    - "RATIFICACION"
+    - "VERIFICAR_E_INFORMAR"
+
+    Además limpiamos el problema histórico:
+    - "Tipo.INSPECCION" -> "INSPECCION"
+    """
+    s = _clean_str(v)
+    if not s:
+        return None
+
+    # arregla el error histórico si llegó desde DB/algún lado raro
+    if s.startswith("Tipo."):
+        s = s.replace("Tipo.", "").strip()
+
+    s = s.upper().replace(" ", "_")
+
+    # normalización puntual por si te llega con otra forma
+    if s == "VERIFICAR_E_INFORMAR":
+        return s
+    if s == "VERIFICAR_E" or s == "VERIFICAR_E_":
+        # por seguridad, aunque no debería pasar
+        return "VERIFICAR_E_INFORMAR"
+
+    return s
+
+
+def _normalizar_contraproducencia(v: Any) -> Optional[str]:
+    """
+    Contraproducencia es enum en DB.
+    Aseguramos formato constante:
+    - mayúsculas
+    - espacios -> _
+    """
+    s = _clean_str(v)
+    if not s:
+        return None
+
+    if s.startswith("Contra.") or s.startswith("contraproducencia."):
+        # por si alguna vez llega con prefijo raro
+        s = s.split(".", 1)[-1]
+
+    return s.upper().replace(" ", "_")
+
 def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     """
     recibe y mapea todo e
@@ -86,11 +153,11 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         }
 
     payload: Dict[str, Any] = {
+        "id": row.id,
         "orden_trabajo_numero": row.orden_trabajo_numero,
         "fecha_actuacion": row.fecha_actuacion,
-        "tipo_actuacion": row.tipo_actuacion,
-        "contraproducencia": row.contraproducencia,
-
+        "tipo_actuacion": _normalizar_tipo_actuacion(row.tipo_actuacion),
+        "contraproducencia": _normalizar_contraproducencia(row.contraproducencia),
         "rubro_nombre": row.rubro_nombre,
         "inspectores": inspectores,
 

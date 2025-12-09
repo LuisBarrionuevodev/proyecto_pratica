@@ -79,7 +79,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     return {
         "id": act.id,
         "orden_trabajo_numero": ot_num,
-        "fecha_actuacion": fecha_str,
+        "fecha_actuacion": act.fecha.isoformat() if act.fecha else None,
 
         "rubro_nombre": rubro_nombre,
 
@@ -90,8 +90,8 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "calle": calle,
         "numero": numero,
 
-        "tipo_actuacion": str(act.tipo) if act.tipo else None,
-        "contraproducencia": str(act.contraproducencia) if act.contraproducencia else None,
+        "tipo_actuacion": act.tipo.name if act.tipo else None,
+        "contraproducencia": act.contraproducencia.name if act.contraproducencia else None,
 
         "doc_nro": doc_nro,
         "contrib_apellido": contrib_apellido,

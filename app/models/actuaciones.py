@@ -33,13 +33,13 @@ class Actuaciones(db.Model):
     anio = db.Column(db.Integer, nullable=False, index=True)
 
     tipo = db.Column(
-        Enum(Tipo, name="tipo", native_enum=False),
+        db.Enum(Tipo, name="tipo", native_enum=False),
         nullable=True,
         default=None,
         index=True,
     )
     contraproducencia = db.Column(
-        Enum(ContraEnum, name="contra_enum", native_enum=False),
+        db.Enum(ContraEnum, name="tipo", native_enum=False),
         nullable=True,
         default=ContraEnum.NO_HUBO,
         index=True,
