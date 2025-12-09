@@ -7,12 +7,12 @@ class Contribuyente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     apellido = db.Column(
         db.String(128),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     nombre = db.Column(
         db.String(128),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     documento = db.Column(

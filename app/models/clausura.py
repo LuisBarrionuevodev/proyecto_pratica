@@ -51,8 +51,3 @@ class Clausura(db.Model):
         return data
 
 
-@event.listens_for(Clausura, "before_insert")
-def set_clausura_anio(mapper, connection, target):
-    if target.actuacion:
-        target.anio = target.actuacion.anio
-        target.mes = target.actuacion.mes

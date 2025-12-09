@@ -51,8 +51,3 @@ class Inspeccion(db.Model):
         return data
 
 
-@event.listens_for(Inspeccion, "before_insert")
-def set_inspeccion_anio(mapper, connection, target):
-    if target.actuacion:
-        target.anio = target.actuacion.anio
-        target.mes = target.actuacion.mes

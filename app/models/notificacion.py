@@ -29,6 +29,9 @@ class Notificacion(db.Model):
         onupdate=db.func.current_timestamp(),
     )
     actuaciones = db.relationship("Actuaciones", back_populates="notificacion")
+    motivo = db.relationship(
+        "Motivo", secondary="notificacion_motivo", back_populates="notificacion"
+    )
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_an_numero_anio"),
     )
@@ -42,6 +45,12 @@ class Notificacion(db.Model):
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+        if include_relations:
+            mot=[]
+            if self.motivo:
+                for m in self.motivo:
+                    mot.append(m.to_dict())
+            data["motivos"] = mot        
 
         if include_actuaciones:
             acts = []

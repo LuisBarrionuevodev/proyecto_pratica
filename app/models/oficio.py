@@ -21,7 +21,7 @@ class Oficio(db.Model):
     )
     causa = db.Column(
         db.String(10),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     comprobacion_id = db.Column(

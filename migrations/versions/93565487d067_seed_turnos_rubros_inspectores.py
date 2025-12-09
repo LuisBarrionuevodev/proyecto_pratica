@@ -1,0 +1,120 @@
+"""seed turnos rubros inspectores
+
+Revision ID: 93565487d067
+Revises: de784a1a0d07
+Create Date: 2025-12-09 02:01:19.602566
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision = "93565487d067"
+down_revision = 'de784a1a0d07'
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    conn = op.get_bind()
+
+    # -------------------------
+    # TURNOS (IDs fijos)
+    # -------------------------
+    conn.execute(sa.text("""
+        INSERT INTO turno (id, turno)
+        VALUES
+            (1, 'Mañana'),
+            (2, 'Tarde')
+        ON DUPLICATE KEY UPDATE turno = VALUES(turno);
+    """))
+
+    # -------------------------
+    # RUBROS (12)
+    # -------------------------
+    rubros = [
+        "Comestibles",
+        "Carnicería",
+        "Drugstore",
+        "Kiosco",
+        "Supermercado",
+        "Pollería",
+        "Pescadería",
+        "Bar",
+        "Cervecería",
+        "Rotisería",
+        "Cafetería",
+        "Verdulería",
+    ]
+
+    for r in rubros:
+        conn.execute(sa.text("""
+            INSERT INTO rubro (nombre)
+            VALUES (:nombre)
+            ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
+        """), {"nombre": r})
+
+    # -------------------------
+    # INSPECTORES (20)
+    # Campos: nombre, legajo, turno_id
+    # Legajo 4 dígitos
+    # -------------------------
+    inspectores = [
+        ("Gómez", "0001", 1),
+        ("Luna", "0002", 1),
+        ("Pérez", "0003", 1),
+        ("Sosa", "0004", 1),
+        ("Díaz", "0005", 1),
+        ("Romero", "0006", 1),
+        ("Torres", "0007", 1),
+        ("Rojas", "0008", 1),
+        ("Fernández", "0009", 1),
+        ("Gutiérrez", "0010", 1),
+
+        ("Martínez", "0011", 2),
+        ("Acosta", "0012", 2),
+        ("Benítez", "0013", 2),
+        ("Herrera", "0014", 2),
+        ("Silva", "0015", 2),
+        ("Molina", "0016", 2),
+        ("Castro", "0017", 2),
+        ("Vera", "0018", 2),
+        ("Navarro", "0019", 2),
+        ("Ibarra", "0020", 2),
+    ]
+
+    for nombre, legajo, turno_id in inspectores:
+        conn.execute(sa.text("""
+            INSERT INTO inspector (nombre, legajo, turno_id)
+            VALUES (:nombre, :legajo, :turno_id)
+            ON DUPLICATE KEY UPDATE
+                nombre = VALUES(nombre),
+                turno_id = VALUES(turno_id);
+        """), {"nombre": nombre, "legajo": legajo, "turno_id": turno_id})
+
+
+def downgrade():
+    conn = op.get_bind()
+
+    # borrar inspectores por legajo
+    conn.execute(sa.text("""
+        DELETE FROM inspector
+        WHERE legajo BETWEEN '0001' AND '0020';
+    """))
+
+    # borrar rubros por nombre
+    conn.execute(sa.text("""
+        DELETE FROM rubro
+        WHERE nombre IN (
+            'Comestibles','Carnicería','Drugstore','Kiosco','Supermercado',
+            'Pollería','Pescadería','Bar','Cervecería','Rotisería',
+            'Cafetería','Verdulería'
+        );
+    """))
+
+    # borrar turnos por id
+    conn.execute(sa.text("""
+        DELETE FROM turno WHERE id IN (1,2);
+    """))
+

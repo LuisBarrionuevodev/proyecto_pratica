@@ -54,9 +54,3 @@ class Decomiso(db.Model):
 
         return data
 
-
-@event.listens_for(Decomiso, "before_insert")
-def set_decomiso_anio(mapper, connection, target):
-    if target.actuacion:
-        target.anio = target.actuacion.anio
-        target.mes = target.actuacion.mes

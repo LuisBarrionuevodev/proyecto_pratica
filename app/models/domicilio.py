@@ -15,7 +15,10 @@ class Domicilio(db.Model):
         nullable=False,
         index=True,
     )
-    cp = db.Column(db.String(10), nullable=True, default="4000")
+    cp = db.Column(db.String(4), nullable=True, default="4000")
+    ciudad = db.Column(db.String(110), nullable=True, default="San Miguel de Tucuman")
+    provincia = db.Column(db.String(8), nullable=True, default="Tucuman")
+    pais = db.Column(db.String(25), nullable=True, default="Argentina")
     barrio_id = db.Column(
         db.Integer,
         db.ForeignKey("barrio.id", ondelete="RESTRICT", onupdate="CASCADE"),

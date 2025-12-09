@@ -56,8 +56,3 @@ class OrdenTrabajo(db.Model):
         return data
 
 
-@event.listens_for(OrdenTrabajo, "before_insert")
-def set_orden_anio(mapper, connection, target):
-    if target.actuacion:
-        target.anio = target.actuacion.anio
-        target.mes = target.actuacion.mes

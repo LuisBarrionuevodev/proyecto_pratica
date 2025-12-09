@@ -34,8 +34,8 @@ class Actuaciones(db.Model):
 
     tipo = db.Column(
         Enum(Tipo, name="tipo", native_enum=False),
-        nullable=False,
-        default=Tipo.INSPECCION,
+        nullable=True,
+        default=None,
         index=True,
     )
     contraproducencia = db.Column(
@@ -147,9 +147,4 @@ class Actuaciones(db.Model):
         return data
 
 
-@event.listens_for(Actuaciones, "before_insert")
-@event.listens_for(Actuaciones, "before_update")
-def sync_mes_anio(mapper, connection, target):
-    if target.fecha:
-        target.mes = target.fecha.month
-        target.anio = target.fecha.year
+
