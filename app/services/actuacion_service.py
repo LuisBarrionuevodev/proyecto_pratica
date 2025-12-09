@@ -108,6 +108,75 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
 # =========================================================
 
 def actualizar_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
+    act_id = payload.get("id")
+    if not act_id:
+        raise ValueError("ID de actuación requerido para actualizar.")
+
+    actuacion = Actuaciones.query.get(act_id)
+    if not actuacion:
+        raise ValueError("Actuación no encontrada.")
+
+    fecha_str = payload.get("fecha_actuacion")
+    if fecha_str:
+        mes, anio, fecha_date = parse_fecha_grid(fecha_str)
+        actuacion.fecha = fecha_date
+        actuacion.mes = mes
+        actuacion.anio = anio
+
+    # OT: si querés permitir cambiarla
+    ot = get_or_create_orden_trabajo(payload["orden_trabajo_numero"], fecha_str or payload.get("fecha_actuacion") or "")
+    db.session.flush()
+
+    # si esa OT está usada por otra actuación
+    otra = Actuaciones.query.filter_by(orden_trabajo_id=ot.id).first()
+    if otra and otra.id != actuacion.id:
+        raise ValueError("Esa Orden de Trabajo ya está asociada a otra actuación.")
+
+    actuacion.orden_trabajo_id = ot.id
+
+    # Campos simples
+    if payload.get("tipo_actuacion") is not None:
+        actuacion.tipo = payload["tipo_actuacion"]
+
+    if payload.get("contraproducencia") is not None:
+        actuacion.contraproducencia = payload["contraproducencia"]
+
+    # Rubro + contrib + domicilio
+    rubro = get_or_create_rubro(payload.get("rubro_nombre"))
+    contrib = resolve_contribuyente(payload.get("contribuyente"))
+    db.session.flush()
+
+    domicilio = get_or_create_domicilio(payload.get("domicilio"), contrib, rubro)
+    db.session.flush()
+
+    if domicilio:
+        actuacion.domicilio_id = domicilio.id
+
+    # Inspectores
+    nombres = payload.get("inspectores") or []
+    if nombres:
+        actuacion.inspector = get_inspectores_o_falla(nombres)
+
+    # ✅ Actas: ahora EDITAN la asociada
+    attach_inspeccion(actuacion, payload.get("acta_inspeccion_num"), fecha_str, crear=False)
+    attach_notificacion(actuacion, payload.get("notificacion"))
+    attach_comprobacion(actuacion, payload.get("comprobacion"))
+    attach_clausura(actuacion, payload.get("clausura"), crear=False)
+    attach_decomiso(actuacion, payload.get("decomiso"), crear=False)
+
+    db.session.flush()
+
+    # Oficio + Expediente
+    oficio = attach_oficio(payload.get("oficio"))
+    db.session.flush()
+
+    comprobacion_id = actuacion.comprobacion_id
+    oficio_id = oficio.id if oficio else None
+
+    attach_expediente(payload.get("expediente"), comprobacion_id, oficio_id)
+
+    db.session.commit()
+    return actuacion
     """
     Actualiza una actuación a partir del payload del mapper.
 
