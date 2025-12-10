@@ -33,17 +33,19 @@ class Actuaciones(db.Model):
     anio = db.Column(db.Integer, nullable=False, index=True)
 
     tipo = db.Column(
-        db.Enum(Tipo, name="tipo", native_enum=False),
-        nullable=True,
-        default=None,
-        index=True,
+    db.Enum(Tipo, name="tipo_actuacion", native_enum=False),
+    nullable=True,
+    default=None,
+    index=True,
     )
+
     contraproducencia = db.Column(
-        db.Enum(ContraEnum, name="tipo", native_enum=False),
-        nullable=True,
-        default=ContraEnum.NO_HUBO,
-        index=True,
+    db.Enum(ContraEnum, name="contraproducencia", native_enum=False),
+    nullable=True,
+    default=ContraEnum.NO_HUBO,
+    index=True,
     )
+
 
     orden_trabajo_id = db.Column(
         db.Integer,

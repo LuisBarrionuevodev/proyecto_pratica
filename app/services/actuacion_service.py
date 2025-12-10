@@ -265,6 +265,43 @@ def actualizar_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
 # Service DELETE
 # =========================================================
 
+def vincular_expediente_desde_actuacion(actuacion_id: int, data: Dict[str, Any]) -> Actuaciones:
+    """
+    Endpoint micro:
+    Vincula/crea expediente asociado a la comprobación de la actuación.
+
+    Espera:
+    {
+      "expediente_numero": "...",
+      "expediente_anio": 2025
+    }
+    """
+
+    actuacion = Actuaciones.query.get(actuacion_id)
+    if not actuacion:
+        raise ValueError("Actuación no encontrada.")
+
+    # debe existir comprobación para poder colgar expediente
+    if not actuacion.comprobacion_id:
+        raise ValueError("Esta actuación no tiene acta de comprobación vinculada.")
+
+    numero = data.get("expediente_numero")
+    anio = data.get("expediente_anio")
+
+    if not numero or anio is None:
+        raise ValueError("expediente_numero y expediente_anio son obligatorios.")
+
+    # reutilizamos tu helper existente
+    attach_expediente(
+        {"numero": numero, "anio": anio},
+        comprobacion_id=actuacion.comprobacion_id,
+        oficio_id=None,  # en esta etapa no tocamos oficio
+    )
+
+    db.session.commit()
+    return actuacion
+
+
 def eliminar_actuacion(actuacion_id: int) -> None:
     """
     Elimina una actuación por ID.

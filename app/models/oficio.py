@@ -51,6 +51,8 @@ class Oficio(db.Model):
                 self.comprobacion.to_dict() if self.comprobacion else None
             )
 
-            data["expediente"] = self.expediente.to_dict() if self.expediente else None
+        if include_relations:
+            data["expedientes"] = [e.to_dict() for e in self.expediente] if self.expediente else []
+
 
         return data

@@ -9,6 +9,7 @@ from app.database import db
 from app.routes import usuario as usuario_bp
 from app.routes import actuacion as actuacion_bp
 from app.routes.catalogos import catalogos
+from app.routes.analytics_actuaciones import dashboard
 migrate = Migrate()
 
 
@@ -35,4 +36,5 @@ def create_app():
     app.register_blueprint(catalogos, url_prefix="/catalogos")
     app.register_blueprint(usuario_bp, url_prefix="/usuarios")
     app.register_blueprint(actuacion_bp, url_prefix="/actuaciones")
+    app.register_blueprint(dashboard)
     return app

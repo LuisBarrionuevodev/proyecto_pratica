@@ -46,7 +46,7 @@ class Comprobacion(db.Model):
         }
 
         if include_relations:
-            data["actuacion"] = self.actuacion.to_dict() if self.actuacion else None
+            data["actuacion"] = self.actuaciones.to_dict() if self.actuaciones else None
 
             oficios = []
             if self.oficio:

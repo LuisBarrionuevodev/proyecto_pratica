@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, List
 
-from app.models import Actuaciones
+from app.models import Actuaciones, Expediente, Oficio
 
+from app.models import Expediente
 
 def _enum_to_str(value: Any) -> Optional[str]:
     """
@@ -18,17 +19,14 @@ def _enum_to_str(value: Any) -> Optional[str]:
     if value is None:
         return None
 
-    # Si es un Enum de Python (tiene atributo name)
     name = getattr(value, "name", None)
     if name:
         return str(name)
 
-    # Si es string guardado
     s = str(value).strip()
     if not s:
         return None
 
-    # Limpia prefijos tipo "Tipo.INSPECCION"
     if "." in s:
         s = s.split(".")[-1].strip()
 
@@ -50,8 +48,10 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     # -------------------------
     ot_num: Optional[str] = None
     if getattr(act, "orden_trabajo", None):
-        # Ajustá el nombre real del campo si en tu modelo es distinto
-        ot_num = getattr(act.orden_trabajo, "numero_acta", None) or getattr(act.orden_trabajo, "numero", None)
+        ot_num = (
+            getattr(act.orden_trabajo, "numero_acta", None)
+            or getattr(act.orden_trabajo, "numero", None)
+        )
 
     # -------------------------
     # Fecha para el grid (input date)
@@ -80,7 +80,6 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
         contrib = getattr(dom, "contribuyente", None)
         if contrib:
-            # Ajustá estos nombres si en tu modelo real difieren
             doc_nro = getattr(contrib, "documento", None) or getattr(contrib, "doc_nro", None)
             contrib_apellido = getattr(contrib, "apellido", None)
             contrib_nombre = getattr(contrib, "nombre", None)
@@ -130,9 +129,11 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     comprobacion_motivo = getattr(comp, "motivo", None) if comp else None
 
     # Motivos de notificación (M2M)
+    # Tu modelo real usa "motivo", pero dejamos compatibilidad con "motivos"
     motivos: List[str] = []
-    if noti and getattr(noti, "motivos", None):
-        for m in noti.motivos:
+    if noti:
+        rel = getattr(noti, "motivo", None) or getattr(noti, "motivos", None) or []
+        for m in rel:
             mn = getattr(m, "nombre", None)
             if mn:
                 motivos.append(mn)
@@ -142,28 +143,37 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     notificacion_motivo_3 = motivos[2] if len(motivos) > 2 else None
 
     # -------------------------
+    # Expediente / Oficio (NUEVO)
+    # Tu DB los cuelga de comprobacion_id
+    # -------------------------
+        # -------------------------
     # Expediente / Oficio
     # -------------------------
-    # Si en tu modelo ya tenés relación directa, completamos.
-    # Si no, quedan en None como hasta ahora.
     expediente_numero = None
     expediente_anio = None
     oficio_numero = None
     oficio_anio = None
     oficio_causa = None
 
-    # Ejemplo defensivo si existieran relaciones:
-    # exp = getattr(act, "expediente", None)
-    # if exp:
-    #     expediente_numero = getattr(exp, "numero", None)
-    #     expediente_anio = getattr(exp, "anio", None)
-    #
-    # of = getattr(exp, "oficio", None) if exp else None
-    # if of:
-    #     oficio_numero = getattr(of, "numero", None)
-    #     oficio_anio = getattr(of, "anio", None)
-    #     oficio_causa = getattr(of, "causa", None)
+    exp = None
+    if getattr(act, "comprobacion_id", None):
+        exp = (
+            Expediente.query
+            .filter_by(comprobacion_id=act.comprobacion_id)
+            .first()
+        )
 
+    if exp:
+        expediente_numero = getattr(exp, "numero_expediente", None)
+        expediente_anio = getattr(exp, "anio", None)
+
+        of = getattr(exp, "oficio", None)
+        if of:
+            oficio_numero = getattr(of, "numero_oficio", None)
+            oficio_anio = getattr(of, "anio", None)
+            oficio_causa = getattr(of, "causa", None)
+
+    
     return {
         "id": act.id,
         "orden_trabajo_numero": ot_num,
@@ -178,7 +188,6 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "calle": calle,
         "numero": numero,
 
-        # enums limpios
         "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
         "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),
 
@@ -208,7 +217,6 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "oficio_anio": oficio_anio,
         "oficio_causa": oficio_causa,
 
-        # previas (si más adelante las querés exponer de verdad)
         "notificacion_previa_num": None,
         "comprobacion_previa_num": None,
     }
