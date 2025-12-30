@@ -256,3 +256,10 @@ class ActuacionGridRowIn(BaseModel):
             return datetime.strptime(s, "%Y-%m-%d").date()
         return datetime.strptime(s, "%d/%m/%Y").date()
 
+{
+
+
+
+
+    
+}
