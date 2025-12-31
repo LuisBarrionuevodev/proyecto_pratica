@@ -255,11 +255,3 @@ class ActuacionGridRowIn(BaseModel):
         if "-" in s:
             return datetime.strptime(s, "%Y-%m-%d").date()
         return datetime.strptime(s, "%d/%m/%Y").date()
-
-{
-
-
-
-
-    
-}

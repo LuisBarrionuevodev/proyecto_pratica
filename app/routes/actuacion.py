@@ -8,7 +8,7 @@ from sqlalchemy.orm import aliased
 from app.database import db
 from app.models import Actuaciones, Expediente
 from app.models import Notificacion
-from app.schemas.grid.actuacion_row import ActuacionGridRowIn
+from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.services.actuacion_service import (

@@ -2,180 +2,99 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from app.schemas.grid.actuacion_row import ActuacionGridRowIn
+from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 
 
 def _clean_str(v: Any) -> Optional[str]:
-    """
-    Normaliza strings sueltos.
-    - None -> None
-    - "   " -> None
-    - cualquier cosa -> str limpio
-    """
     if v is None:
         return None
     s = str(v).strip()
-    return s if s else None
+    return s or None
 
 
-def _normalizar_tipo_actuacion(v: Any) -> Optional[str]:
+def _zfill6_if_digit(s: Optional[str]) -> Optional[str]:
+    if not s:
+        return s
+    return s.zfill(6) if s.isdigit() else s
+
+
+def _tipo_actuacion_value(v: Any) -> Optional[str]:
     """
-    El front puede mandar:
-    - "INSPECCION"
-    - "REINSPECCION"
-    - "RATIFICACION"
-    - "VERIFICAR E INFORMAR"
-
-    La DB/Enum espera:
-    - "INSPECCION"
-    - "REINSPECCION"
-    - "RATIFICACION"
-    - "VERIFICAR_E_INFORMAR"
-
-    Además limpiamos el problema histórico:
-    - "Tipo.INSPECCION" -> "INSPECCION"
+    Acepta:
+    - str ("INSPECCION", "Tipo.INSPECCION", etc.)
+    - Enum con .value
     """
+    if v is None:
+        return None
+    if hasattr(v, "value"):
+        v = v.value
     s = _clean_str(v)
     if not s:
         return None
-
-    # arregla el error histórico si llegó desde DB/algún lado raro
-    if s.startswith("Tipo."):
-        s = s.replace("Tipo.", "").strip()
-
-    s = s.upper().replace(" ", "_")
-
-    # normalización puntual por si te llega con otra forma
-    if s == "VERIFICAR_E_INFORMAR":
-        return s
-    if s == "VERIFICAR_E" or s == "VERIFICAR_E_":
-        # por seguridad, aunque no debería pasar
-        return "VERIFICAR_E_INFORMAR"
-
+    s = s.upper().strip()
+    if s.startswith("TIPO."):
+        s = s.split(".", 1)[1].strip()
     return s
 
 
-def _normalizar_contraproducencia(v: Any) -> Optional[str]:
-    """
-    Contraproducencia es enum en DB.
-    Aseguramos formato constante:
-    - mayúsculas
-    - espacios -> _
-    """
-    s = _clean_str(v)
-    if not s:
-        return None
-
-    if s.startswith("Contra.") or s.startswith("contraproducencia."):
-        # por si alguna vez llega con prefijo raro
-        s = s.split(".", 1)[-1]
-
-    return s.upper().replace(" ", "_")
-
 def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     """
-    recibe y mapea todo e
+    Mapper UI -> Payload limpio para services (sin DB).
     """
-
-    inspectores = [x for x in (row.inspector1, row.inspector2, row.inspector3) if x]
-
-    motivos_notificacion = [
-        x for x in (row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3)
-        if x
-    ]
-
-    domicilio: Optional[Dict[str, Any]] = None
-    if row.calle and row.numero:
-        domicilio = {
-            "calle": row.calle,
-            "numero": row.numero,
-        }
-
-    contribuyente: Optional[Dict[str, Any]] = None
-    if row.doc_nro or row.contrib_apellido or row.contrib_nombre:
-        contribuyente = {
-            "doc_nro": row.doc_nro,
-            "apellido": row.contrib_apellido,
-            "nombre": row.contrib_nombre,
-        }
-
-    #  solo armamos notificación si hay número de acta
-    notificacion: Optional[Dict[str, Any]] = None
-    if row.acta_notificacion_num:
-        notificacion = {
-            "acta_num": row.acta_notificacion_num,
-            "motivos": motivos_notificacion,
-        }
-
-    # solo armamos comprobación si hay número de acta
-    comprobacion: Optional[Dict[str, Any]] = None
-    if row.acta_comprobacion_num:
-        comprobacion = {
-            "acta_num": row.acta_comprobacion_num,
-            "motivo": row.comprobacion_motivo,
-        }
-
-    clausura: Optional[Dict[str, Any]] = None
-    if row.acta_clausura_num:
-        clausura = {
-            "acta_num": row.acta_clausura_num,
-        }
-
-    decomiso: Optional[Dict[str, Any]] = None
-    if row.acta_decomiso_num:
-        decomiso = {
-            "acta_num": row.acta_decomiso_num,
-            "kilos_total": row.decomiso_kilos_total,
-        }
-
-    expediente: Optional[Dict[str, Any]] = None
-    if row.expediente_numero and row.expediente_anio is not None:
-        expediente = {
-            "numero": row.expediente_numero,
-            "anio": row.expediente_anio,
-        }
-
-    oficio: Optional[Dict[str, Any]] = None
-    hay_oficio = row.oficio_numero or (row.oficio_anio is not None) or row.oficio_causa
-    if hay_oficio:
-        oficio = {
-            "numero": row.oficio_numero,
-            "anio": row.oficio_anio,
-            "causa": row.oficio_causa,  # opcional
-            "comprobacion_previa_num": row.comprobacion_previa_num,
-        }
-
-    previas: Optional[Dict[str, Any]] = None
-    if row.notificacion_previa_num or row.comprobacion_previa_num:
-        previas = {
-            "notificacion_previa_num": row.notificacion_previa_num,
-            "comprobacion_previa_num": row.comprobacion_previa_num,
-        }
+    # fecha_as_date() existe en tu schema :contentReference[oaicite:0]{index=0}
+    fecha_iso = row.fecha_as_date().isoformat()
 
     payload: Dict[str, Any] = {
         "id": row.id,
-        "orden_trabajo_numero": row.orden_trabajo_numero,
-        "fecha_actuacion": row.fecha_actuacion,
-        "tipo_actuacion": _normalizar_tipo_actuacion(row.tipo_actuacion),
-        "contraproducencia": _normalizar_contraproducencia(row.contraproducencia),
-        "rubro_nombre": row.rubro_nombre,
-        "inspectores": inspectores,
-
-        "domicilio": domicilio,
-        "contribuyente": contribuyente,
-
-        "acta_inspeccion_num": row.acta_inspeccion_num,
-
-        "notificacion": notificacion,
-        "comprobacion": comprobacion,
-
-        "clausura": clausura,
-        "decomiso": decomiso,
-
-        "expediente": expediente,
-        "oficio": oficio,
-
-        "previas": previas,
+        "orden_trabajo_numero": _zfill6_if_digit(_clean_str(row.orden_trabajo_numero)),
+        "fecha_actuacion": fecha_iso,
+        "tipo_actuacion": _tipo_actuacion_value(row.tipo_actuacion),
+        "contraproducencia": _clean_str(row.contraproducencia),
+        "rubro_nombre": _clean_str(row.rubro_nombre),
+        "inspectores": [x for x in [row.inspector1, row.inspector2, row.inspector3] if x],
     }
+
+    # Domicilio (tu regla exige calle+numero juntos) :contentReference[oaicite:1]{index=1}
+    if row.calle or row.numero:
+        payload["domicilio"] = {"calle": _clean_str(row.calle), "numero": _clean_str(row.numero)}
+
+    # Contribuyente (tu regla exige doc_nro si hay apellido/nombre) :contentReference[oaicite:2]{index=2}
+    if row.doc_nro or row.contrib_apellido or row.contrib_nombre:
+        payload["contribuyente"] = {
+            "doc_nro": _clean_str(row.doc_nro),
+            "apellido": _clean_str(row.contrib_apellido),
+            "nombre": _clean_str(row.contrib_nombre),
+        }
+
+    # Actas
+    if row.acta_inspeccion_num:
+        payload["acta_inspeccion_num"] = _clean_str(row.acta_inspeccion_num)
+
+    if row.acta_notificacion_num:
+        payload["acta_notificacion"] = {
+            "num": _clean_str(row.acta_notificacion_num),
+            "motivos": [m for m in [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3] if m],
+            "previa_num": _clean_str(row.notificacion_previa_num),
+        }
+
+    if row.acta_comprobacion_num:
+        payload["acta_comprobacion"] = {
+            "num": _clean_str(row.acta_comprobacion_num),
+            "motivo": _clean_str(row.comprobacion_motivo),
+            "previa_num": _clean_str(row.comprobacion_previa_num),
+        }
+
+    if row.acta_clausura_num:
+        payload["acta_clausura_num"] = _clean_str(row.acta_clausura_num)
+
+    if row.acta_decomiso_num:
+        payload["acta_decomiso"] = {"num": _clean_str(row.acta_decomiso_num), "kilos_total": row.decomiso_kilos_total}
+
+    # Expediente / Oficio
+    if row.expediente_numero or row.expediente_anio is not None:
+        payload["expediente"] = {"numero": _clean_str(row.expediente_numero), "anio": row.expediente_anio}
+
+    if row.oficio_numero or row.oficio_anio is not None or row.oficio_causa:
+        payload["oficio"] = {"numero": _clean_str(row.oficio_numero), "anio": row.oficio_anio, "causa": _clean_str(row.oficio_causa)}
 
     return payload
