@@ -1,17 +1,16 @@
-"""init
+"""init sandbox
 
-Revision ID: de784a1a0d07
+Revision ID: 138475164002
 Revises: 
-Create Date: 2025-12-09 00:50:03.914709
+Create Date: 2025-12-31 12:01:15.107471
 
 """
 from alembic import op
 import sqlalchemy as sa
-import geoalchemy2 
-
+import geoalchemy2
 
 # revision identifiers, used by Alembic.
-revision = 'de784a1a0d07'
+revision = '138475164002'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -230,8 +229,8 @@ def upgrade():
     sa.Column('fecha', sa.Date(), nullable=False),
     sa.Column('mes', sa.Integer(), nullable=False),
     sa.Column('anio', sa.Integer(), nullable=False),
-    sa.Column('tipo', sa.Enum('INSPECCION', 'REINSPECCION', 'RATIFICACION_CLAUSURA', 'RATIFICACION_DECOMISO', 'VERIFICAR_E_IFORMAR', name='tipo', native_enum=False), nullable=True),
-    sa.Column('contraproducencia', sa.Enum('LOCAL_CERRADO', 'NO_EXISTE', 'INCLEMENCIA_TIEMPO', 'ZONA_ROJA', 'NO_HUBO', 'OTROS', name='contra_enum', native_enum=False), nullable=True),
+    sa.Column('tipo', sa.Enum('INSPECCION', 'REINSPECCION', 'RATIFICACION_CLAUSURA', 'RATIFICACION_DECOMISO', 'VERIFICAR_E_IFORMAR', 'TRANSPORTE', name='tipo_actuacion', native_enum=False), nullable=True),
+    sa.Column('contraproducencia', sa.Enum('LOCAL_CERRADO', 'NO_EXISTE', 'INCLEMENCIA_TIEMPO', 'ZONA_ROJA', 'NO_HUBO', 'OTROS', name='contraproducencia', native_enum=False), nullable=True),
     sa.Column('orden_trabajo_id', sa.Integer(), nullable=False),
     sa.Column('notificacion_id', sa.Integer(), nullable=True),
     sa.Column('comprobacion_id', sa.Integer(), nullable=True),

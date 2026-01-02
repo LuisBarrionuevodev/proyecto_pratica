@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
+from pydantic import ValidationError
 
-from app.schemas.grid.batch import StartBatchResponse, ValidateRowRequest
+from app.schemas.grid.batch import (
+    StartBatchResponse,
+    ValidateRowRequest,
+    ValidateBatchRequest,
+    ValidateBatchResponse,
+)
+from app.schemas.grid.errors import pydantic_errors_to_cell_map
 from app.services.grid.batch_store import InMemoryBatchStore
 from app.services.grid.validate_service import GridValidateService
 
@@ -21,8 +28,13 @@ def start_batch():
 
 @bp.post("/batch/validate-row")
 def validate_row():
-    data = request.get_json(force=True)
-    req = ValidateRowRequest.model_validate(data)
+    try:
+        data = request.get_json(force=True)
+        req = ValidateRowRequest.model_validate(data)
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except Exception as e:
+        return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
     resp = svc.validate_row(req.batch_id, req.row_id, req.row)
     return jsonify(resp.model_dump()), 200
@@ -30,14 +42,19 @@ def validate_row():
 
 @bp.post("/batch/validate-batch")
 def validate_batch():
-    data = request.get_json(force=True)
-    batch_id = data["batch_id"]
-    rows = data.get("rows", [])
+    try:
+        data = request.get_json(force=True)
+        req = ValidateBatchRequest.model_validate(data)
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except Exception as e:
+        return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
     results = []
-    for item in rows:
+    for item in req.rows:
         row_id = item["row_id"]
         row = item["row"]
-        results.append(svc.validate_row(batch_id, row_id, row).model_dump())
+        results.append(svc.validate_row(req.batch_id, row_id, row))
 
-    return jsonify({"batch_id": str(batch_id), "results": results}), 200
+    resp = ValidateBatchResponse(batch_id=req.batch_id, results=results)
+    return jsonify(resp.model_dump()), 200

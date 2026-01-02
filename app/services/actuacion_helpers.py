@@ -41,38 +41,40 @@ def acta_6(valor: Any) -> Optional[str]:
     return s.zfill(6) if s.isdigit() else s
 
 
+def parse_fecha_grid(fecha_str: Any) -> Tuple[int, int, datetime.date]:
+    """
+    Acepta:
+      - "DD/MM/YYYY"
+      - "YYYY-MM-DD"
+    Devuelve: (mes, anio, date)
+    """
+    if fecha_str is None:
+        raise ValueError("La fecha es obligatoria")
 
-
-def parse_fecha_grid(fecha_str: str):
-    s = (fecha_str or "").strip()
+    s = str(fecha_str).strip()
     if not s:
         raise ValueError("La fecha es obligatoria")
 
     try:
-        if "-" in s:
-            fecha_date = datetime.strptime(s, "%Y-%m-%d").date()
+        if "/" in s:
+            dt = datetime.strptime(s, "%d/%m/%Y").date()
         else:
-            fecha_date = datetime.strptime(s, "%d/%m/%Y").date()
-    except ValueError:
-        raise ValueError("Formato inválido. Usá DD/MM/AAAA o YYYY-MM-DD")
+            dt = datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        raise ValueError("Formato de fecha inválido. Usá DD/MM/YYYY o YYYY-MM-DD")
 
-    return fecha_date.month, fecha_date.year, fecha_date
-
+    return dt.month, dt.year, dt
 
 
 # =========================================================
-# Catálogos base
+# Catálogos estrictos
 # =========================================================
 
-def get_or_create_rubro(nombre: Optional[str]) -> Optional[Rubro]:
+def get_rubro_o_falla(nombre: Optional[str]) -> Optional[Rubro]:
     """
-    Rubro viene como nombre.
-
-    Reglas:
-    - Si no viene nombre -> None
-    - Normalizamos espacios
-    - Si existe -> devolvemos
-    - Si no existe -> creamos
+    Rubro es catálogo:
+    - si no viene -> None
+    - si viene y no existe -> ValueError
     """
     if nombre is None:
         return None
@@ -81,29 +83,42 @@ def get_or_create_rubro(nombre: Optional[str]) -> Optional[Rubro]:
     if not s:
         return None
 
-    # normalización mínima
     s = " ".join(s.split())
-
     rubro = Rubro.query.filter_by(nombre=s).first()
-    if rubro:
-        return rubro
-
-    rubro = Rubro(nombre=s)
-    db.session.add(rubro)
+    if not rubro:
+        raise ValueError(f"Rubro no existe en catálogo: {s}")
     return rubro
+
+
+def get_motivo_o_falla(nombre: str) -> Motivo:
+    """
+    Motivo es catálogo:
+    - si no existe -> ValueError
+    """
+    s = (nombre or "").strip()
+    if not s:
+        raise ValueError("Motivo inválido (vacío).")
+
+    m = Motivo.query.filter_by(nombre=s).first()
+    if not m:
+        raise ValueError(f"Motivo no existe en catálogo: {s}")
+    return m
 
 
 def get_inspectores_o_falla(nombres: List[str]) -> List[Inspector]:
     """
-    En tu negocio: los inspectores SON catálogo.
+    Inspectores SON catálogo.
     Si un nombre no existe, rechazamos duro.
     """
     encontrados: List[Inspector] = []
 
     for n in nombres:
-        ins = Inspector.query.filter_by(nombre=n).first()
+        s = (n or "").strip()
+        if not s:
+            continue
+        ins = Inspector.query.filter_by(nombre=s).first()
         if not ins:
-            raise ValueError(f"Inspector no existe en catálogo: {n}")
+            raise ValueError(f"Inspector no existe en catálogo: {s}")
         encontrados.append(ins)
 
     return encontrados
@@ -116,48 +131,47 @@ def get_inspectores_o_falla(nombres: List[str]) -> List[Inspector]:
 def resolve_contribuyente(data: Optional[Dict[str, Any]]) -> Optional[Contribuyente]:
     """
     Contribuyente se identifica por documento.
-
-    Reglas nuevas:
     - Si no hay data -> None
-    - Si no hay doc -> None
-    - Si existe -> SI actualizamos apellido/nombre si el payload los trae
-    - Si no existe -> creamos
+    - Si hay apellido/nombre -> documento obligatorio
+    - Si existe -> actualiza campos si cambiaron
+    - Si no existe -> crea
     """
     if not data:
         return None
 
     doc = data.get("doc_nro")
-    if not doc:
-        return None
-
     apellido = data.get("apellido")
     nombre = data.get("nombre")
 
+    # coherencia: si hay datos de persona, doc obligatorio
+    if (apellido or nombre) and not doc:
+        raise ValueError("Documento del contribuyente es obligatorio.")
+
+    if not doc:
+        return None
+
+    doc = str(doc).strip()
+
     c = Contribuyente.query.filter_by(documento=doc).first()
     if c:
-        # ✅ Update suave: solo si llega algo válido
         changed = False
-
         if apellido is not None and apellido != "" and apellido != c.apellido:
             c.apellido = apellido
             changed = True
-
         if nombre is not None and nombre != "" and nombre != c.nombre:
             c.nombre = nombre
             changed = True
-
         if changed:
             db.session.add(c)
-
         return c
 
-    # ✅ Si no existe, creamos
     c = Contribuyente(
         documento=doc,
         apellido=apellido,
         nombre=nombre,
     )
     db.session.add(c)
+    db.session.flush()
     return c
 
 
@@ -169,44 +183,42 @@ def get_or_create_domicilio(
     """
     Domicilio se identifica por calle + numero.
 
-    Reglas nuevas:
+    Reglas:
     - Si no hay data -> None
-    - Si falta contribuyente o rubro -> error claro
-    - Si existe por calle+numero -> ACTUALIZAMOS contribuyente_id y rubro_id si cambian
-    - Si no existe -> creamos con contribuyente + rubro
+    - Si viene calle+numero, exige contribuyente y rubro
+    - Si existe -> re-asocia contribuyente/rubro si cambian
+    - Si no existe -> crea
     """
     if not data:
         return None
-
-    if not contribuyente or not rubro:
-        raise ValueError("Domicilio requiere contribuyente y rubro.")
 
     calle = data.get("calle")
     numero = data.get("numero")
 
     if not calle or not numero:
-        return None  # coherencia con tu esquema: domicilio se arma solo si vienen ambos
+        return None
+
+    if contribuyente is None:
+        raise ValueError("Si cargás domicilio, debés cargar contribuyente.")
+    if rubro is None:
+        raise ValueError("Si cargás domicilio, debés cargar rubro.")
+
+    calle = str(calle).strip()
+    numero = str(numero).strip()
 
     dom = Domicilio.query.filter_by(calle=calle, numero=numero).first()
     if dom:
         changed = False
-
-        # ✅ re-asociar contribuyente si cambió
         if dom.contribuyente_id != contribuyente.id:
             dom.contribuyente_id = contribuyente.id
             changed = True
-
-        # ✅ re-asociar rubro si cambió
         if dom.rubro_id != rubro.id:
             dom.rubro_id = rubro.id
             changed = True
-
         if changed:
             db.session.add(dom)
-
         return dom
 
-    # ✅ Si no existe, creamos
     dom = Domicilio(
         calle=calle,
         numero=numero,
@@ -214,23 +226,24 @@ def get_or_create_domicilio(
         rubro_id=rubro.id,
     )
     db.session.add(dom)
+    db.session.flush()
     return dom
 
 
 # =========================================================
-# Orden de Trabajo (base de la actuación)
+# Orden de trabajo
 # =========================================================
 
-def get_or_create_orden_trabajo(numero_ot: str, fecha_str: str) -> OrdenTrabajo:
+def get_or_create_orden_trabajo(numero_ot: Any, fecha_str: Any) -> OrdenTrabajo:
     """
-    En tu modelo:
-    - OrdenTrabajo es única por (numero_acta, anio)
-    - No hay precargadas, así que se crean si no existen
-
-    Usamos la fecha de la grid para setear mes/año.
+    OT:
+    - Se identifica por numero_acta + anio
+    - mes/anio salen de fecha
     """
     mes, anio, _ = parse_fecha_grid(fecha_str)
     numero = acta_6(numero_ot)
+    if not numero:
+        raise ValueError("Orden de trabajo es obligatoria.")
 
     ot = OrdenTrabajo.query.filter_by(numero_acta=numero, anio=anio).first()
     if ot:
@@ -238,25 +251,8 @@ def get_or_create_orden_trabajo(numero_ot: str, fecha_str: str) -> OrdenTrabajo:
 
     ot = OrdenTrabajo(numero_acta=numero, anio=anio, mes=mes)
     db.session.add(ot)
+    db.session.flush()
     return ot
-
-
-# =========================================================
-# Motivos (catálogo simple)
-# =========================================================
-
-def get_or_create_motivo(nombre: str) -> Motivo:
-    """
-    Motivo usado por notificación (M2M).
-    Si no existe, lo crea.
-    """
-    m = Motivo.query.filter_by(nombre=nombre).first()
-    if m:
-        return m
-
-    m = Motivo(nombre=nombre)
-    db.session.add(m)
-    return m
 
 
 # =========================================================
@@ -269,32 +265,32 @@ def asegurar_acta_no_usada_en_otra(model_cls, numero_acta: str, anio: int, actua
     - En creación, si esa acta ya pertenece a otra actuación -> rechazo duro.
     """
     existente = model_cls.query.filter_by(numero_acta=numero_acta, anio=anio).first()
-    if existente and existente.actuacion_id != actuacion_id:
-        raise ValueError(f"El acta {numero_acta}/{anio} ya está cargada en otra actuación.")
+    if existente and getattr(existente, "actuacion_id", None) != actuacion_id:
+        raise ValueError("Acta ya asociada a otra actuación.")
 
-
-# =========================================================
-# Attach de actas (pensados para ser fáciles de leer)
-# =========================================================
 
 def asegurar_acta_libre_para_actuacion(model_cls, numero_acta: str, anio: int, actuacion_id: int):
     """
-    Para UPDATE:
-    - Permite usar el número si:
-        a) no existe
-        b) existe pero ya pertenece a esta misma actuación
-    - Rechaza si pertenece a otra.
+    En update:
+    - Si existe la acta pero está asociada a OTRA actuación -> error
     """
     existente = model_cls.query.filter_by(numero_acta=numero_acta, anio=anio).first()
-    if existente and existente.actuacion_id != actuacion_id:
-        raise ValueError(f"El acta {numero_acta}/{anio} ya está cargada en otra actuación.")
+    if existente and getattr(existente, "actuacion_id", None) not in (None, actuacion_id):
+        raise ValueError("Acta ya asociada a otra actuación.")
 
 
-def attach_inspeccion(actuacion: Actuaciones, acta_num: Optional[str], fecha_str: str, crear: bool):
+# =========================================================
+# Attach actas
+# =========================================================
+
+def attach_inspeccion(actuacion: Actuaciones, acta_num: Optional[Any], crear: bool = True):
     if not acta_num:
         return
 
     numero = acta_6(acta_num)
+    if not numero:
+        return
+
     anio = actuacion.anio
     mes = actuacion.mes
 
@@ -303,35 +299,31 @@ def attach_inspeccion(actuacion: Actuaciones, acta_num: Optional[str], fecha_str
     else:
         asegurar_acta_libre_para_actuacion(Inspeccion, numero, anio, actuacion.id)
 
-    # ✅ BUSCAMOS LA INSPECCIÓN YA ASOCIADA A ESTA ACTUACIÓN
     actual = Inspeccion.query.filter_by(actuacion_id=actuacion.id).first()
-
     if actual:
-        # ✅ UPDATE IN-PLACE
         actual.numero_acta = numero
         actual.anio = anio
         actual.mes = mes
         db.session.add(actual)
         return
 
-    # Si no existía una inspección para esta actuación,
-    # caemos al comportamiento clásico
     ins = Inspeccion.query.filter_by(numero_acta=numero, anio=anio).first()
     if ins:
-        if ins.actuacion_id != actuacion.id:
-            raise ValueError("Acta de inspección ya asociada a otra actuación.")
+        # si existe pero era de otra actuación, asegurar_* ya lo frenó
+        ins.actuacion_id = actuacion.id
+        db.session.add(ins)
         return
 
-    ins = Inspeccion(
-        numero_acta=numero,
-        anio=anio,
-        mes=mes,
-        actuacion_id=actuacion.id,
-    )
+    ins = Inspeccion(numero_acta=numero, anio=anio, mes=mes, actuacion_id=actuacion.id)
     db.session.add(ins)
 
 
 def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
+    """
+    Notificación:
+    - Se identifica por numero_acta + anio
+    - Motivos vienen como lista y SON catálogo (tabla Motivo)
+    """
     if not data:
         return
 
@@ -342,13 +334,10 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
     anio = actuacion.anio
     mes = actuacion.mes
 
-    motivos = data.get("motivos") or []
-
-    # ✅ si la actuación ya tiene notificación, actualizamos ESA
+    # 1) si ya tiene notificación asociada, actualizamos esa
     if actuacion.notificacion_id:
         noti = Notificacion.query.get(actuacion.notificacion_id)
         if noti:
-            # check unicidad global
             existente = Notificacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
             if existente and existente.id != noti.id:
                 raise ValueError("Acta de notificación ya asociada a otra actuación.")
@@ -357,39 +346,51 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
             noti.anio = anio
             noti.mes = mes
 
-            if motivos:
-                noti.motivos = [get_or_create_motivo(m) for m in motivos]
+            # 👇 clave: si viene el campo (aunque sea []), lo reflejamos
+            if "motivos" in data:
+                motivos = data.get("motivos") or []
+                noti.motivos = [get_motivo_o_falla(m) for m in motivos]
 
             db.session.add(noti)
             return
 
-    # ✅ si no había una notificación asociada, usamos comportamiento clásico
+    # 2) si no tenía, buscamos por acta+anio
     noti = Notificacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
     if not noti:
         noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
         db.session.add(noti)
         db.session.flush()
 
-    actuacion.notificacion_id = noti.id
+    if "motivos" in data:
+        motivos = data.get("motivos") or []
+        noti.motivos = [get_motivo_o_falla(m) for m in motivos]
+        db.session.flush()  # 👈 útil para ver inserts antes del commit
 
-    if motivos:
-        noti.motivos = [get_or_create_motivo(m) for m in motivos]
+    actuacion.notificacion_id = noti.id
 
 
 def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
+    """
+    Comprobación:
+    - Se identifica por numero_acta + anio
+    - motivo se guarda como string en Comprobacion, pero lo validamos contra catálogo Motivo
+    """
     if not data:
         return
 
     acta_num = acta_6(data.get("acta_num"))
-    motivo = data.get("motivo")
-
     if not acta_num:
         return
 
+    motivo = (data.get("motivo") or "").strip()
+    if not motivo:
+        raise ValueError("Motivo de comprobación es obligatorio.")
+
+    # Validación estricta contra catálogo
     anio = actuacion.anio
     mes = actuacion.mes
 
-    # ✅ si la actuación ya tiene comprobación, actualizamos ESA
+    # si ya hay comprobación asociada a la actuación, actualizamos esa
     if actuacion.comprobacion_id:
         comp = Comprobacion.query.get(actuacion.comprobacion_id)
         if comp:
@@ -400,62 +401,31 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
             comp.numero_acta = acta_num
             comp.anio = anio
             comp.mes = mes
-            if motivo:
-                comp.motivo = motivo
-
+            comp.motivo = motivo
             db.session.add(comp)
             return
 
-    # ✅ si no había una comprobación asociada, usamos comportamiento clásico
     comp = Comprobacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
     if not comp:
-        comp = Comprobacion(
-            numero_acta=acta_num,
-            anio=anio,
-            mes=mes,
-            motivo=motivo,
-        )
+        comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
         db.session.add(comp)
         db.session.flush()
-
-    actuacion.comprobacion_id = comp.id
-
-    """
-    Comprobación:
-    - Se crea por numero_acta + anio
-    - Motivo es obligatorio (Pydantic ya lo garantiza)
-    """
-    if not data:
-        return
-
-    acta_num = acta_6(data.get("acta_num"))
-    motivo = data.get("motivo")
-
-    if not acta_num:
-        return
-
-    anio = actuacion.anio
-    mes = actuacion.mes
-
-    comp = Comprobacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
-    if not comp:
-        comp = Comprobacion(
-            numero_acta=acta_num,
-            anio=anio,
-            mes=mes,
-            motivo=motivo,
-        )
+    else:
+        comp.mes = mes
+        comp.motivo = motivo
         db.session.add(comp)
-        db.session.flush()
 
     actuacion.comprobacion_id = comp.id
 
 
-def attach_clausura(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crear: bool):
+def attach_clausura(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crear: bool = True):
     if not data or not data.get("acta_num"):
         return
 
     numero = acta_6(data["acta_num"])
+    if not numero:
+        return
+
     anio = actuacion.anio
     mes = actuacion.mes
 
@@ -464,7 +434,6 @@ def attach_clausura(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crea
     else:
         asegurar_acta_libre_para_actuacion(Clausura, numero, anio, actuacion.id)
 
-    # ✅ clausura actual de la actuación
     actual = Clausura.query.filter_by(actuacion_id=actuacion.id).first()
     if actual:
         actual.numero_acta = numero
@@ -475,28 +444,31 @@ def attach_clausura(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crea
 
     cl = Clausura.query.filter_by(numero_acta=numero, anio=anio).first()
     if cl:
-        if cl.actuacion_id != actuacion.id:
-            raise ValueError("Acta de clausura ya asociada a otra actuación.")
+        cl.actuacion_id = actuacion.id
+        db.session.add(cl)
         return
 
-    cl = Clausura(
-        numero_acta=numero,
-        anio=anio,
-        mes=mes,
-        actuacion_id=actuacion.id,
-    )
+    cl = Clausura(numero_acta=numero, anio=anio, mes=mes, actuacion_id=actuacion.id)
     db.session.add(cl)
 
 
-def attach_decomiso(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crear: bool):
+def attach_decomiso(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crear: bool = True):
     if not data or not data.get("acta_num"):
         return
 
     numero = acta_6(data["acta_num"])
-    kilos = data.get("kilos_total")
+    if not numero:
+        return
 
+    kilos = data.get("kilos_total")
     if kilos is None:
-        raise ValueError("Si cargás decomiso, kilos_total es obligatorio.")
+        raise ValueError("Kilos de decomiso es obligatorio.")
+    try:
+        kilos = float(kilos)
+    except Exception:
+        raise ValueError("Kilos de decomiso inválido.")
+    if kilos <= 0:
+        raise ValueError("Kilos de decomiso debe ser > 0.")
 
     anio = actuacion.anio
     mes = actuacion.mes
@@ -506,7 +478,6 @@ def attach_decomiso(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crea
     else:
         asegurar_acta_libre_para_actuacion(Decomiso, numero, anio, actuacion.id)
 
-    # ✅ decomiso actual de la actuación
     actual = Decomiso.query.filter_by(actuacion_id=actuacion.id).first()
     if actual:
         actual.numero_acta = numero
@@ -518,30 +489,24 @@ def attach_decomiso(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crea
 
     dec = Decomiso.query.filter_by(numero_acta=numero, anio=anio).first()
     if dec:
-        if dec.actuacion_id != actuacion.id:
-            raise ValueError("Acta de decomiso ya asociada a otra actuación.")
+        dec.actuacion_id = actuacion.id
+        dec.mes = mes
         dec.cantidad = kilos
+        db.session.add(dec)
         return
 
-    dec = Decomiso(
-        numero_acta=numero,
-        anio=anio,
-        mes=mes,
-        cantidad=kilos,
-        actuacion_id=actuacion.id,
-    )
+    dec = Decomiso(numero_acta=numero, anio=anio, mes=mes, cantidad=kilos, actuacion_id=actuacion.id)
     db.session.add(dec)
 
 
 # =========================================================
-# Expediente / Oficio (simple)
+# Oficio / Expediente
 # =========================================================
 
-def attach_oficio(data: Optional[Dict[str, Any]]) -> Optional[Oficio]:
+def attach_oficio(data: Optional[Dict[str, Any]],comprobacion_id: Optional[int]) -> Optional[Oficio]:
     """
     Oficio:
-    - Se identifica por numero + anio.
-    - causa la dejás nullable en DB, así que no la exigimos acá.
+    - Se identifica por numero + anio
     """
     if not data:
         return None
@@ -560,6 +525,7 @@ def attach_oficio(data: Optional[Dict[str, Any]]) -> Optional[Oficio]:
         numero_oficio=str(numero).strip(),
         anio=int(anio),
         causa=data.get("causa"),
+        comprobacion_id=comprobacion_id,
     )
     db.session.add(of)
     db.session.flush()
@@ -573,8 +539,7 @@ def attach_expediente(
 ) -> Optional[Expediente]:
     """
     Expediente:
-    - Se identifica por numero + anio.
-    - Tu DB lo modela con anio varchar, por eso lo casteamos.
+    - Se identifica por numero + anio (anio en DB es varchar)
     """
     if not data:
         return None
@@ -598,4 +563,5 @@ def attach_expediente(
         oficio_id=oficio_id,
     )
     db.session.add(ex)
+    db.session.flush()
     return ex

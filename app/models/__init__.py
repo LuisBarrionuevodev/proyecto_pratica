@@ -19,6 +19,8 @@ from .clausura import Clausura
 from .decomiso import Decomiso
 from .inspector import Inspector
 from .relevamiento import Relevamiento
+from .enums import ContraEnum 
+from .enums import Tipo
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -41,4 +43,6 @@ __all__ = [
     "Decomiso",
     "Inspector",
     "Relevamiento",
+    "ContraEnum",
+    "Tipo"
 ]

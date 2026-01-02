@@ -12,7 +12,9 @@ def pydantic_errors_to_cell_map(e: ValidationError) -> Dict[str, str]:
     out: Dict[str, str] = {}
     for err in e.errors():
         loc = err.get("loc", ())
-        msg = err.get("msg", "Error")
+        ctx = err.get("ctx") or {}
+        msg = ctx.get("error") or err.get("msg", "Error")
+
 
         # Si viene anidado como ('row','campo'), nos quedamos con 'campo'
         if loc and loc[0] == "row" and len(loc) >= 2:

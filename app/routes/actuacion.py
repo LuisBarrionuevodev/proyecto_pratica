@@ -1,47 +1,55 @@
+# app/routes/actuacion.py
 from __future__ import annotations
 
 from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy import exists, and_
+from pydantic import ValidationError
+from sqlalchemy import and_, exists
 from sqlalchemy.orm import aliased
+
 from app.database import db
-from app.models import Actuaciones, Expediente
-from app.models import Notificacion
-from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.mappers.grid.actuacion_row_mapper import map_actuacion_row
+from app.models import Actuaciones, Expediente
 from app.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
+from app.schemas.grid.errors import pydantic_errors_to_cell_map
+from app.services.actuacion_helpers import acta_6
 from app.services.actuacion_service import (
+    actualizar_actuacion,
     crear_actuacion_desde_payload,
-    actualizar_actuacion_desde_payload,
     eliminar_actuacion,
 )
-from app.services.actuacion_helpers import acta_6
-
 
 actuacion = Blueprint("actuaciones", __name__)
 
 
 # =========================================================
-# CREATE
+# CREATE  (POST /actuaciones/)
 # =========================================================
-@actuacion.post("")
+@actuacion.post("/")
 def crear_actuacion():
     """
     Recibe JSON PLANO desde la tabla del front.
-    1) valida fila (Pydantic)
-    2) mapea a payload estructurado
-    3) crea la actuación con el service
-    4) devuelve fila plana para el grid
+
+    Pipeline:
+      1) valida fila (Pydantic)
+      2) mapea a payload estructurado (mapper)
+      3) crea la actuación (service)
+      4) devuelve fila plana para el grid (presenter)
     """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
 
     try:
-        row = ActuacionGridRowIn(**data)
+        row = ActuacionGridRowIn.model_validate(data)
         payload = map_actuacion_row(row)
-        act = crear_actuacion_desde_payload(payload)
 
+        act = crear_actuacion_desde_payload(payload)
         return jsonify(actuacion_to_grid_row(act)), 201
+
+    except ValidationError as e:
+        # errores por celda -> ideal para mostrar en grilla
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
 
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
@@ -57,22 +65,25 @@ def crear_actuacion():
 def actualizar_actuacion(actuacion_id: int):
     """
     Actualiza usando la misma lógica de grid:
-    1) validación pydantic de fila
-    2) mapper
-    3) service update
-    4) presenter plano
+      1) validación pydantic de fila
+      2) mapper
+      3) service update
+      4) presenter plano
     """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
 
     try:
-        # metemos id al body para coherencia con mapper/service
+        # coherencia con mapper/service (service update requiere payload con id)
         data["id"] = actuacion_id
 
-        row = ActuacionGridRowIn(**data)
+        row = ActuacionGridRowIn.model_validate(data)
         payload = map_actuacion_row(row)
-        act = actualizar_actuacion_desde_payload(payload)
 
+        act = actualizar_actuacion(payload)
         return jsonify(actuacion_to_grid_row(act)), 200
+
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
 
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
@@ -82,7 +93,7 @@ def actualizar_actuacion(actuacion_id: int):
 
 
 # =========================================================
-# DELETE
+# DELETE (DELETE /actuaciones/<id>)
 # =========================================================
 @actuacion.delete("/<int:actuacion_id>")
 def borrar_actuacion(actuacion_id: int):
@@ -98,9 +109,9 @@ def borrar_actuacion(actuacion_id: int):
 
 
 # =========================================================
-# LISTAR ACTUACIONES
+# LIST (GET /actuaciones/)
 # =========================================================
-@actuacion.get("")
+@actuacion.get("/")
 def listar_actuaciones():
     acts = Actuaciones.query.order_by(Actuaciones.id.desc()).all()
     return jsonify([actuacion_to_grid_row(a) for a in acts]), 200
@@ -113,30 +124,21 @@ def listar_actuaciones():
 # =========================================================
 @actuacion.get("/pendientes-vinc-acta")
 def get_pendientes_vinc_acta():
-    # existe expediente con misma comprobacion_id
-    subq = exists().where(
-        Expediente.comprobacion_id == Actuaciones.comprobacion_id
-    )
+    subq = exists().where(Expediente.comprobacion_id == Actuaciones.comprobacion_id)
 
     acts = (
-        Actuaciones.query
-        .filter(Actuaciones.comprobacion_id.isnot(None))
+        Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
         .filter(~subq)
         .order_by(Actuaciones.id.desc())
         .all()
     )
-
     return jsonify([actuacion_to_grid_row(a) for a in acts]), 200
 
 
 # =========================================================
 # CREAR EXPEDIENTE DESDE ACTA (POST)
-#   - Esta ruta NO es PUT de actuación
-#   - Es un POST puntual porque el expediente "nace" acá
-#
 #   POST /actuaciones/<id>/expediente
-#   body:
-#     { "expediente_numero": "...", "expediente_anio": 2025 }
+#   body: { "expediente_numero": "...", "expediente_anio": 2025 }
 # =========================================================
 @actuacion.post("/<int:actuacion_id>/expediente")
 def crear_expediente_desde_acta(actuacion_id: int):
@@ -156,12 +158,10 @@ def crear_expediente_desde_acta(actuacion_id: int):
 
     anio_str = str(anio)
 
-    # ya existe expediente para esa comprobación
     existente = Expediente.query.filter_by(comprobacion_id=act.comprobacion_id).first()
     if existente:
         return jsonify({"detail": "Ya existe un expediente vinculado a esta comprobación"}), 409
 
-    # unicidad por numero+anio
     dup = Expediente.query.filter_by(numero_expediente=numero, anio=anio_str).first()
     if dup:
         return jsonify({"detail": "Ese expediente ya existe"}), 409
@@ -175,11 +175,11 @@ def crear_expediente_desde_acta(actuacion_id: int):
 
     db.session.add(ex)
     db.session.commit()
-
-    # refrescamos act por si el presenter en el futuro usa relaciones nuevas
     db.session.refresh(act)
 
     return jsonify(actuacion_to_grid_row(act)), 201
+
+
 # =========================================================
 # PENDIENTES VINCULACIÓN OFICIO
 #   - Tiene acta de comprobación
@@ -188,21 +188,24 @@ def crear_expediente_desde_acta(actuacion_id: int):
 # =========================================================
 @actuacion.get("/pendientes-vinc-oficio")
 def get_pendientes_vinc_oficio():
-    # existe expediente para la comprobación y sin oficio
     subq = exists().where(
-        (Expediente.comprobacion_id == Actuaciones.comprobacion_id)
-        & (Expediente.oficio_id.is_(None))
+        (Expediente.comprobacion_id == Actuaciones.comprobacion_id) & (Expediente.oficio_id.is_(None))
     )
 
     acts = (
-        Actuaciones.query
-        .filter(Actuaciones.comprobacion_id.isnot(None))
-        .filter(subq)  # ✅ acá sí queremos que exista ese expediente sin oficio
+        Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
+        .filter(subq)
         .order_by(Actuaciones.id.desc())
         .all()
     )
-
     return jsonify([actuacion_to_grid_row(a) for a in acts]), 200
+
+
+# =========================================================
+# PENDIENTES NOTIFICACIÓN
+#   - INSPECCION con notificación cargada
+#   - y todavía NO existe REINSPECCION para esa notificación
+# =========================================================
 @actuacion.get("/pendientes-notificacion")
 def get_pendientes_notificacion():
     A2 = aliased(Actuaciones)
@@ -215,8 +218,7 @@ def get_pendientes_notificacion():
     )
 
     acts = (
-        Actuaciones.query
-        .filter(Actuaciones.tipo == "INSPECCION")
+        Actuaciones.query.filter(Actuaciones.tipo == "INSPECCION")
         .filter(Actuaciones.notificacion_id.isnot(None))
         .filter(~subq)
         .all()

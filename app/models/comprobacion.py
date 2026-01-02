@@ -17,7 +17,7 @@ class Comprobacion(db.Model):
     mes = db.Column(
         db.Integer, nullable=False, index=True, default=lambda: datetime.now().month
     )
-    motivo = db.Column(db.String(255), nullable=False, index=True)
+    motivo = db.Column(db.String(255), nullable=True, index=True)
     created_at = db.Column(
         db.DateTime, nullable=False, server_default=db.func.current_timestamp()
     )

@@ -8,8 +8,7 @@ from pydantic import ValidationError
 from app.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.schemas.grid.errors import pydantic_errors_to_cell_map
 from app.schemas.grid.batch import ValidateRowResponse
-from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
-from app.services.grid.batch_store import InMemoryBatchStore, DupKey
+from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn, Tipo
 
 
 def _normalize_ot(numero_ot: Any) -> str:
@@ -17,18 +16,18 @@ def _normalize_ot(numero_ot: Any) -> str:
     return s.zfill(6) if s.isdigit() else s
 
 
-def build_dup_key(row_validada: ActuacionGridRowIn) -> DupKey:
+def build_dup_key(row_validada: ActuacionGridRowIn) -> tuple[str, str]:
     """
     Regla de duplicado dentro del lote:
-      orden_trabajo_numero + fecha_actuacion
+      orden_trabajo_numero + fecha_actuacion (ISO)
     """
     ot = _normalize_ot(row_validada.orden_trabajo_numero)
-    fecha_iso = row_validada.fecha_as_date().isoformat()  # ✅ FIX (sin duplicar variable)
+    fecha_iso = row_validada.fecha_as_date().isoformat()
     return (ot, fecha_iso)
 
 
 class GridValidateService:
-    def __init__(self, store: InMemoryBatchStore) -> None:
+    def __init__(self, store) -> None:
         self.store = store
 
     def validate_row(self, batch_id: UUID, row_id: str, raw_row: Dict[str, Any]) -> ValidateRowResponse:
@@ -44,53 +43,42 @@ class GridValidateService:
                 normalized=None,
             )
 
-        # ✅ 1.5) Reglas UI por tipo_actuacion (errores por CELDA para Glide)
-        tipo = (row.tipo_actuacion or "").strip().upper()
+        
 
-        if tipo == "NOTIFICACION":
-            cell_errors = {}
-            if not row.acta_notificacion_num:
-                cell_errors["acta_notificacion_num"] = "Obligatorio para NOTIFICACION."
-            if not any([row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]):
-                cell_errors["notificacion_motivo_1"] = "Cargá al menos 1 motivo."
-            if cell_errors:
-                return ValidateRowResponse(
-                    batch_id=batch_id,
-                    row_id=row_id,
-                    ok=False,
-                    errors=cell_errors,
-                    normalized=None,
-                )
+# ...
 
-        if tipo == "COMPROBACION":
-            cell_errors = {}
-            if not row.acta_comprobacion_num:
-                cell_errors["acta_comprobacion_num"] = "Obligatorio para COMPROBACION."
-            if not row.comprobacion_motivo:
-                cell_errors["comprobacion_motivo"] = "Motivo obligatorio en COMPROBACION."
-            if cell_errors:
-                return ValidateRowResponse(
-                    batch_id=batch_id,
-                    row_id=row_id,
-                    ok=False,
-                    errors=cell_errors,
-                    normalized=None,
-                )
+        # 1.5) Reglas UI por Tipo (errores por celda)
+        if row.tipo_actuacion == Tipo.REINSPECCION and not row.notificacion_previa_num:
+            return ValidateRowResponse(
+                batch_id=batch_id,
+                row_id=row_id,
+                ok=False,
+                errors={"notificacion_previa_num": "Obligatorio para REINSPECCIÓN."},
+                normalized=None,
+            )
 
-        if tipo == "DECOMISO":
-            cell_errors = {}
-            if not row.acta_decomiso_num:
-                cell_errors["acta_decomiso_num"] = "Obligatorio para DECOMISO."
-            if row.decomiso_kilos_total is None or row.decomiso_kilos_total <= 0:
-                cell_errors["decomiso_kilos_total"] = "Kilos debe ser > 0."
-            if cell_errors:
-                return ValidateRowResponse(
-                    batch_id=batch_id,
-                    row_id=row_id,
-                    ok=False,
-                    errors=cell_errors,
-                    normalized=None,
-                )
+        if row.tipo_actuacion in (
+            Tipo.RATIFICACION_CLAUSURA,
+            Tipo.RATIFICACION_DECOMISO,
+            Tipo.VERIFICAR_E_INFORMAR,
+        ) and not row.comprobacion_previa_num:
+            return ValidateRowResponse(
+                batch_id=batch_id,
+                row_id=row_id,
+                ok=False,
+                errors={"comprobacion_previa_num": "Obligatorio para este tipo (requiere comprobación previa)."},
+                normalized=None,
+            )
+
+        # (se mantiene) Si se cargan kilos, que sea > 0
+        if row.decomiso_kilos_total is not None and row.decomiso_kilos_total <= 0:
+            return ValidateRowResponse(
+                batch_id=batch_id,
+                row_id=row_id,
+                ok=False,
+                errors={"decomiso_kilos_total": "Kilos debe ser > 0."},
+                normalized=None,
+            )
 
         # 2) Mapper (sin DB)
         payload = map_actuacion_row(row)
