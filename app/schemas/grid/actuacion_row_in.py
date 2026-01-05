@@ -271,7 +271,17 @@ class ActuacionGridRowIn(BaseModel):
     # ---------- Reglas de negocio (after, errores por celda) ----------
     @model_validator(mode="after")
     def reglas_negocio_base(self) -> "ActuacionGridRowIn":
+
+
         field_errors: Dict[str, str] = {}
+        # 1.b) Si contraproducencia == NO_HUBO => domicilio obligatorio
+        if self.contraproducencia == ContraEnum.NO_HUBO:
+            if not self.calle:
+                field_errors["calle"] = "Domicilio obligatorio cuando contraproducencia es NO_HUBO."
+            if not self.numero:
+                field_errors["numero"] = "Domicilio obligatorio cuando contraproducencia es NO_HUBO."
+
+
 
         def has_any_actuation_data() -> bool:
             # datos “relevantes” distintos a OT+fecha+id
