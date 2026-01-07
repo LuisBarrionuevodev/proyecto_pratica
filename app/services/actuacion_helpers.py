@@ -370,11 +370,6 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
 
 
 def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
-    """
-    Comprobación:
-    - Se identifica por numero_acta + anio
-    - motivo se guarda como string en Comprobacion, pero lo validamos contra catálogo Motivo
-    """
     if not data:
         return
 
@@ -382,29 +377,14 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
     if not acta_num:
         return
 
+    anio = actuacion.anio
+    mes = actuacion.mes
+
     motivo = (data.get("motivo") or "").strip()
     if not motivo:
         raise ValueError("Motivo de comprobación es obligatorio.")
 
-    # Validación estricta contra catálogo
-    anio = actuacion.anio
-    mes = actuacion.mes
-
-    # si ya hay comprobación asociada a la actuación, actualizamos esa
-    if actuacion.comprobacion_id:
-        comp = Comprobacion.query.get(actuacion.comprobacion_id)
-        if comp:
-            existente = Comprobacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
-            if existente and existente.id != comp.id:
-                raise ValueError("Acta de comprobación ya asociada a otra actuación.")
-
-            comp.numero_acta = acta_num
-            comp.anio = anio
-            comp.mes = mes
-            comp.motivo = motivo
-            db.session.add(comp)
-            return
-
+    # 1) Conseguir/crear Comprobacion por (numero_acta, anio)
     comp = Comprobacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
     if not comp:
         comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
@@ -414,6 +394,25 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
         comp.mes = mes
         comp.motivo = motivo
         db.session.add(comp)
+
+    db.session.flush()
+
+    # 2) Regla negocio: misma comprobación NO puede repetirse en (anio,tipo)
+    if actuacion.tipo is not None:
+        existe_mismo_tipo = (
+            Actuaciones.query
+            .filter(
+                Actuaciones.id != actuacion.id,
+                Actuaciones.anio == anio,
+                Actuaciones.tipo == actuacion.tipo,
+                Actuaciones.comprobacion_id == comp.id,
+            )
+            .first()
+        )
+        if existe_mismo_tipo:
+            raise ValueError(
+                f"La Comprobación {acta_num}/{anio} ya está asociada a otra actuación del mismo tipo ({actuacion.tipo})."
+            )
 
     actuacion.comprobacion_id = comp.id
 

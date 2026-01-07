@@ -65,7 +65,7 @@ def _resolver_previas(act, payload: Dict[str, Any]) -> None:
         if not comp:
             # crear previa mínima (sin motivo)
             # ⚠️ si tu modelo Comprobacion tiene campos NOT NULL extra, agregalos acá con defaults
-            comp = Comprobacion(numero_acta=prev_comp_num, anio=anio, mes=mes)
+            comp = Comprobacion(numero_acta=prev_comp_num, anio=anio, mes=mes, motivo= "default")
             db.session.add(comp)
             db.session.flush()
         act.comprobacion_id = comp.id

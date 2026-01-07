@@ -114,7 +114,20 @@ class Actuaciones(db.Model):
         back_populates="actuaciones",
     )
 
-    __table_args__ = (db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),)
+    
+    __table_args__ = (
+    db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),
+
+    db.UniqueConstraint(
+        "anio", "tipo", "notificacion_id",
+        name="uq_act_anio_tipo_notificacion"
+    ),
+    db.UniqueConstraint(
+        "anio", "tipo", "comprobacion_id",
+        name="uq_act_anio_tipo_comprobacion"
+    ),
+)
+
 
     def to_dict(self, include_relations=False):
         data = {
