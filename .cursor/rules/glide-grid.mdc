@@ -1,0 +1,19 @@
+---
+alwaysApply: false
+---
+
+# Tabla editable (Glide Data Grid) - Project Rule
+
+## Objetivo
+Implementar grilla editable y rápida para carga masiva, con validación por celda y commit al backend.
+
+## Reglas de implementación
+- Estado local de grilla: rows[] (inmutable).
+- Edición: actualizar state en `onCellEdited` / `onCellsEdited`.
+- Validación: por columna (tipo, required, rango). Mostrar error visual por celda.
+- Guardado:
+  - modo 1: "Guardar cambios" (batch)
+  - modo 2: autosave con debounce (opcional)
+- API:
+  - endpoint batch: POST /grid/actuaciones (lista de filas validadas)
+  - backend valida con Pydantic y devuelve resultado por fila (ok/error + mensaje).

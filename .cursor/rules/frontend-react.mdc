@@ -1,0 +1,89 @@
+# Frontend React (Digitaliza) - Project Rule
+
+## Alcance
+Aplica a: Frontend/** y/o Digitaliza-Frontend/** (según tu repo)
+
+## Stack
+React 19 + TypeScript + Vite + React Router + MUI.
+
+---
+
+## Estructura del proyecto (OBLIGATORIA)
+src/
+- api/: cliente HTTP y funciones por recurso (actuaciones, catálogos, etc.)
+- hooks/: hooks reutilizables (useActuaciones, useCatalogos, useGrid)
+- Containers/: lógica de pantalla/página (data fetching + state + handlers)
+- Compoents/: UI pura (presentational), sin fetch
+- types/: tipos TS (DTOs, modelos de grilla, responses)
+- utils/: helpers puros (formatos, normalizadores, etc.)
+- constants/: enums, strings, rutas, keys
+- configs/: configuración (env, rutas base, settings)
+- styles/: estilos globales/tema
+- assets/: imágenes
+
+Regla clave:
+- **Compoents = UI**, **Containers = lógica**, **api = red**, **types = contratos**
+
+---
+
+## Networking / API (regla más importante)
+- TODO fetch/axios (si existiera) vive en `src/api/`.
+- Ningún componente UI debe hacer fetch directo.
+- Los Containers llaman a `api/*` y pasan data a Compoents.
+
+Convención:
+- `src/api/client.ts`: wrapper fetch con:
+  - baseURL desde `import.meta.env.VITE_API_URL`
+  - manejo estándar de errores (throw con status + mensaje)
+  - parse JSON
+- `src/api/actuaciones.ts`: funciones:
+  - listActuaciones()
+  - createActuacion(row)
+  - updateActuacion(id,row)
+  - deleteActuacion(id)
+  - pendientesVincActa(), pendientesVincOficio(), pendientesNotificacion()
+
+---
+
+## TypeScript / Tipos
+- Evitar `any`. Preferir `unknown` + parse o tipos explícitos.
+- Tipos de request/response en `src/types/`.
+- DTOs alineados al backend:
+  - ActuacionGridRow (fila plana)
+  - ApiError (detail + errors opcional)
+  - CellErrorMap (errores por celda para la grilla)
+
+---
+
+## Estado y lógica
+- Si una pantalla maneja data + filtros + acciones: va en `Containers/`.
+- `hooks/` encapsula lógica reutilizable (ej: useActuacionesGrid).
+- `utils/` solo helpers puros (sin estado global, sin fetch).
+
+---
+
+## Validación / Errores (muy importante para grilla)
+- Si backend devuelve `422` con `errors` por celda:
+  - mapearlo a estado local de errores (por row/col)
+  - mostrar feedback por celda (no alert genérico)
+
+---
+
+## Nomenclatura / Estilo
+- Carpeta `Compoents` está con typo (debería ser `Components`).
+  - No renombrar masivamente sin plan, pero mantener consistencia interna.
+- Componentes: PascalCase.
+- Hooks: useX.
+- Funciones API: verbo + recurso.
+
+---
+
+## Routing
+- App.tsx solo define rutas y layout general.
+- Las páginas principales viven en `Containers/` (o `pages/` si se crea).
+
+---
+
+## Performance
+- Evitar recomputar data de grilla: usar `useMemo` y `useCallback`.
+- Mantener data normalizada si la grilla crece.

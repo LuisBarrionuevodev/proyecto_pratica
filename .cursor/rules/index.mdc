@@ -1,0 +1,91 @@
+---
+alwaysApply: true
+---
+## Arquitectura (criterio de código)
+
+**Objetivo:** separar responsabilidades para que el sistema sea escalable y fácil de testear.
+
+- `routes/` (o `api/`): Blueprints / endpoints HTTP. No lógica pesada.
+- `schemas/`: Pydantic (entradas/salidas), validaciones.
+- `mappers/`: transforma inputs validados a payloads limpios para services (sin DB).
+- `services/`: reglas de negocio + orquestación (puede usar repos).
+- `repositories/` (opcional): acceso DB / queries reutilizables.
+- `models/`: modelos SQLAlchemy.
+- `utils/`: normalizadores/validadores pequeños, helpers, constantes.
+
+Reglas clave:
+- Las rutas NO tocan directamente modelos complejos (solo llaman services).
+- Pydantic valida entradas; services aplican reglas de negocio.
+- Alembic maneja cambios de esquema (nunca “a mano” en prod).
+- Todo cambio relevante: test mínimo (pytest).
+
+---
+
+## Modelo de datos (resumen desde el dump)
+
+Entidades principales:
+
+### Operación / núcleo
+- `orden_trabajo`  
+  Orden base (número, mes, año).
+- `actuaciones`  
+  Registro principal por fecha/mes/año con tipo (enum) y referencia a:
+  - `orden_trabajo` (obligatorio)
+  - `notificacion` (opcional)
+  - `comprobacion` (opcional)
+  - `domicilio` (opcional)
+
+### Actas relacionadas
+- `inspeccion` (FK a `actuaciones`)
+- `clausura` (FK a `actuaciones`)
+- `decomiso` (FK a `actuaciones`, incluye `cantidad`)
+- `notificacion` (tabla propia; motivos por relación)
+- `comprobacion` (tabla propia)
+
+### Inspectoría
+- `inspector` (incluye `turno_id`)
+- `turno`
+- `actuaciones_inspector` (N:N entre actuaciones e inspectores)
+
+### Contribuyentes / lugares
+- `contribuyente` (apellido, nombre, documento)
+- `domicilio` (calle, número, cp, ciudad, provincia, país, lat/long)
+  - FK a `contribuyente`
+  - FK a `rubro`
+  - FK opcional a `barrio`
+- `rubro`
+
+### Geografía
+- `distrito` (geom)
+- `barrio` (geom, FK a distrito)
+
+### Flujos administrativos
+- `expediente` (FK a `comprobacion`, FK opcional a `oficio`)
+- `oficio` (FK a `comprobacion`)
+
+### Catálogos / otros
+- `motivo`
+- `notificacion_motivo` (tabla puente: notificación ↔ motivo)
+- `usuario`
+- `alembic_version`
+
+---
+
+## API (criterios de endpoints)
+- JSON siempre.
+- Validación de entrada con Pydantic.
+- Respuestas: schema de salida (Pydantic) o dict serializable.
+- Errores: status codes correctos + mensaje claro (sin stacktrace).
+
+---
+
+## Dev Setup
+
+### Front
+```bash
+cd frontend
+npm install
+npm run dev
+---
+alwaysApply: true
+---
