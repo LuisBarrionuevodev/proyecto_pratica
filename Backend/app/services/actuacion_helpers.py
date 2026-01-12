@@ -26,53 +26,6 @@ from app.services.actuaciones.catalogs.motivo import get_motivo_o_falla
 # Contribuyente + Domicilio
 # =========================================================
 
-def resolve_contribuyente(data: Optional[Dict[str, Any]]) -> Optional[Contribuyente]:
-    """
-    Contribuyente se identifica por documento.
-    - Si no hay data -> None
-    - Si hay apellido/nombre -> documento obligatorio
-    - Si existe -> actualiza campos si cambiaron
-    - Si no existe -> crea
-    """
-    if not data:
-        return None
-
-    doc = data.get("doc_nro")
-    apellido = data.get("apellido")
-    nombre = data.get("nombre")
-
-    # coherencia: si hay datos de persona, doc obligatorio
-    if (apellido or nombre) and not doc:
-        raise ValueError("Documento del contribuyente es obligatorio.")
-
-    if not doc:
-        return None
-
-    doc = str(doc).strip()
-
-    c = Contribuyente.query.filter_by(documento=doc).first()
-    if c:
-        changed = False
-        if apellido is not None and apellido != "" and apellido != c.apellido:
-            c.apellido = apellido
-            changed = True
-        if nombre is not None and nombre != "" and nombre != c.nombre:
-            c.nombre = nombre
-            changed = True
-        if changed:
-            db.session.add(c)
-        return c
-
-    c = Contribuyente(
-        documento=doc,
-        apellido=apellido,
-        nombre=nombre,
-    )
-    db.session.add(c)
-    db.session.flush()
-    return c
-
-
 def get_or_create_domicilio(
     data: Optional[Dict[str, Any]],
     contribuyente: Optional[Contribuyente],
