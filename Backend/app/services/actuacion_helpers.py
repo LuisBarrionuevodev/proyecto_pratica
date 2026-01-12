@@ -16,30 +16,15 @@ from app.models import (
 
 from app.utils.actas import acta_6
 from app.services.actuaciones.catalogs.motivo import get_motivo_o_falla
+from app.services.actuaciones.attach.uniqueness import (
+    asegurar_acta_libre_para_actuacion,
+    asegurar_acta_no_usada_en_otra,
+)
 
 
 # =========================================================
 # Reglas de unicidad de actas principales
 # =========================================================
-
-def asegurar_acta_no_usada_en_otra(model_cls, numero_acta: str, anio: int, actuacion_id: int):
-    """
-    Regla para INSPECCION / CLAUSURA / DECOMISO:
-    - En creación, si esa acta ya pertenece a otra actuación -> rechazo duro.
-    """
-    existente = model_cls.query.filter_by(numero_acta=numero_acta, anio=anio).first()
-    if existente and getattr(existente, "actuacion_id", None) != actuacion_id:
-        raise ValueError("Acta ya asociada a otra actuación.")
-
-
-def asegurar_acta_libre_para_actuacion(model_cls, numero_acta: str, anio: int, actuacion_id: int):
-    """
-    En update:
-    - Si existe la acta pero está asociada a OTRA actuación -> error
-    """
-    existente = model_cls.query.filter_by(numero_acta=numero_acta, anio=anio).first()
-    if existente and getattr(existente, "actuacion_id", None) not in (None, actuacion_id):
-        raise ValueError("Acta ya asociada a otra actuación.")
 
 
 # =========================================================
