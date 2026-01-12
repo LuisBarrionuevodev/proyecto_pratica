@@ -7,7 +7,6 @@ from app.models import (
     Actuaciones,
     Notificacion,
     Comprobacion,
-    Clausura,
     Decomiso,
     Expediente,
     Oficio,
@@ -137,41 +136,6 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
             )
 
     actuacion.comprobacion_id = comp.id
-
-
-def attach_clausura(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crear: bool = True):
-    if not data or not data.get("acta_num"):
-        return
-
-    numero = acta_6(data["acta_num"])
-    if not numero:
-        return
-
-    anio = actuacion.anio
-    mes = actuacion.mes
-
-    if crear:
-        asegurar_acta_no_usada_en_otra(Clausura, numero, anio, actuacion.id)
-    else:
-        asegurar_acta_libre_para_actuacion(Clausura, numero, anio, actuacion.id)
-
-    actual = Clausura.query.filter_by(actuacion_id=actuacion.id).first()
-    if actual:
-        actual.numero_acta = numero
-        actual.anio = anio
-        actual.mes = mes
-        db.session.add(actual)
-        return
-
-    cl = Clausura.query.filter_by(numero_acta=numero, anio=anio).first()
-    if cl:
-        cl.actuacion_id = actuacion.id
-        db.session.add(cl)
-        return
-
-    cl = Clausura(numero_acta=numero, anio=anio, mes=mes, actuacion_id=actuacion.id)
-    db.session.add(cl)
-
 
 def attach_decomiso(actuacion: Actuaciones, data: Optional[Dict[str, Any]], crear: bool = True):
     if not data or not data.get("acta_num"):
