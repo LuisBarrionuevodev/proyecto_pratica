@@ -85,7 +85,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         payload["comprobacion"] = {
             "acta_num": _clean_str(row.acta_comprobacion_num),
             "motivo": _clean_str(row.comprobacion_motivo),
-            # previa no va acá porque vos resolvés previas en _resolver_previas()
+            # previa no va acá porque las previas se resuelven en resolver_previas()
         }
 
     # Clausura: service llama attach_clausura(act, payload.get("clausura"), crear=True)

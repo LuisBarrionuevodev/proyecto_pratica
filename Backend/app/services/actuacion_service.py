@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from app.database import db
-from app.models import Actuaciones, Notificacion, Comprobacion
-from app.utils.actas import acta_6
+from app.models import Actuaciones
 from app.utils.fechas import parse_fecha_grid
 
+from app.services.actuaciones.previas_service import resolver_previas
 from app.services.actuacion_helpers import (
     get_rubro_o_falla,
     get_inspectores_o_falla,
@@ -28,84 +28,6 @@ def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
     if not act:
         raise ValueError("Actuación no encontrada.")
     return act
-
-
-def _resolver_previas(act, payload: Dict[str, Any]) -> None:
-    anio = act.anio
-    mes = act.mes
-
-    # NOTIFICACION PREVIA (mínima, sin motivos)
-    prev_noti_num = acta_6(payload.get("notificacion_previa_num") or payload.get("acta_notificacion_previa_num"))
-    if prev_noti_num:
-        noti = Notificacion.query.filter_by(numero_acta=prev_noti_num, anio=anio).first()
-        if not noti:
-            noti = Notificacion(numero_acta=prev_noti_num, anio=anio, mes=mes)
-            db.session.add(noti)
-            db.session.flush()
-        act.notificacion_id = noti.id
-
-    # COMPROBACION PREVIA (mínima; motivo opcional)
-    prev_comp_num = acta_6(payload.get("comprobacion_previa_num") or payload.get("acta_comprobacion_previa_num"))
-    if prev_comp_num:
-        comp = Comprobacion.query.filter_by(numero_acta=prev_comp_num, anio=anio).first()
-
-        # Si querés permitir mandar un motivo para la previa (opcional):
-        motivo_prev = (payload.get("comprobacion_previa_motivo") or "").strip()
-
-        if not comp:
-            # ⚠️ si motivo es NOT NULL en DB, usá un placeholder explícito
-            # mejor "PENDIENTE" o "SIN_DATO" que "default"
-            motivo_inicial = motivo_prev if motivo_prev else "PENDIENTE"
-            comp = Comprobacion(numero_acta=prev_comp_num, anio=anio, mes=mes, motivo=motivo_inicial)
-            db.session.add(comp)
-            db.session.flush()
-        else:
-            # si existe y me pasaron motivo_prev, actualizo; si no, no toco
-            if motivo_prev:
-                comp.motivo = motivo_prev
-                comp.mes = mes
-                db.session.add(comp)
-
-        act.comprobacion_id = comp.id
-
-    """
-    Previas (modo upsert):
-    - Si viene previa y NO existe en DB, se CREA con numero_acta+anio+mes.
-    - NO exige motivos (ni en notificación ni en comprobación).
-    - Se asocia a la actuación (act.notificacion_id / act.comprobacion_id).
-
-    Importante: acá NO tocamos la lógica de "acta del día" (attach_notificacion/attach_comprobacion),
-    esto solo resuelve las *previas* cuando el usuario carga un número de referencia.
-    """
-    anio = act.anio
-    mes = act.mes
-
-    # -------------------------
-    # NOTIFICACION PREVIA
-    # -------------------------
-    prev_noti_num = acta_6(payload.get("notificacion_previa_num") or payload.get("acta_notificacion_previa_num"))
-    if prev_noti_num:
-        noti = Notificacion.query.filter_by(numero_acta=prev_noti_num, anio=anio).first()
-        if not noti:
-            # crear previa mínima (sin motivos)
-            noti = Notificacion(numero_acta=prev_noti_num, anio=anio, mes=mes)
-            db.session.add(noti)
-            db.session.flush()
-        act.notificacion_id = noti.id
-
-    # -------------------------
-    # COMPROBACION PREVIA
-    # -------------------------
-    prev_comp_num = acta_6(payload.get("comprobacion_previa_num") or payload.get("acta_comprobacion_previa_num"))
-    if prev_comp_num:
-        comp = Comprobacion.query.filter_by(numero_acta=prev_comp_num, anio=anio).first()
-        if not comp:
-            # crear previa mínima (sin motivo)
-            # ⚠️ si tu modelo Comprobacion tiene campos NOT NULL extra, agregalos acá con defaults
-            comp = Comprobacion(numero_acta=prev_comp_num, anio=anio, mes=mes, motivo= "default")
-            db.session.add(comp)
-            db.session.flush()
-        act.comprobacion_id = comp.id
 
 
 
@@ -149,7 +71,7 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
         act.inspector = get_inspectores_o_falla(nombres)
 
     # Previas (si aplica)
-    _resolver_previas(act, payload)
+    resolver_previas(act, payload)
 
     # Actas (si vienen)
     attach_inspeccion(act, payload.get("acta_inspeccion_num"), crear=True)
@@ -220,7 +142,7 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         act.inspector = get_inspectores_o_falla(nombres) if nombres else []
 
     # Previas
-    _resolver_previas(act, payload)
+    resolver_previas(act, payload)
 
     # Actas (update)
     if "acta_inspeccion_num" in payload:
