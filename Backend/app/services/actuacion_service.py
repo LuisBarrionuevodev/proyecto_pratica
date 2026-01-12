@@ -7,13 +7,13 @@ from app.models import Actuaciones
 from app.utils.fechas import parse_fecha_grid
 
 from app.services.actuaciones.previas_service import resolver_previas
+from app.services.actuaciones.attach.inspeccion import attach_inspeccion
 from app.services.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.services.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.services.actuaciones.domains.contribuyente import resolve_contribuyente
 from app.services.actuaciones.domains.domicilio import get_or_create_domicilio
 from app.services.actuaciones.domains.orden_trabajo import get_or_create_orden_trabajo
 from app.services.actuacion_helpers import (
-    attach_inspeccion,
     attach_notificacion,
     attach_comprobacion,
     attach_clausura,

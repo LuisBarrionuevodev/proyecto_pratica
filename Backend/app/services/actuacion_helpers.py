@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional
 from app.database import db
 from app.models import (
     Actuaciones,
-    Inspeccion,
     Notificacion,
     Comprobacion,
     Clausura,
@@ -23,48 +22,8 @@ from app.services.actuaciones.attach.uniqueness import (
 
 
 # =========================================================
-# Reglas de unicidad de actas principales
-# =========================================================
-
-
-# =========================================================
 # Attach actas
 # =========================================================
-
-def attach_inspeccion(actuacion: Actuaciones, acta_num: Optional[Any], crear: bool = True):
-    if not acta_num:
-        return
-
-    numero = acta_6(acta_num)
-    if not numero:
-        return
-
-    anio = actuacion.anio
-    mes = actuacion.mes
-
-    if crear:
-        asegurar_acta_no_usada_en_otra(Inspeccion, numero, anio, actuacion.id)
-    else:
-        asegurar_acta_libre_para_actuacion(Inspeccion, numero, anio, actuacion.id)
-
-    actual = Inspeccion.query.filter_by(actuacion_id=actuacion.id).first()
-    if actual:
-        actual.numero_acta = numero
-        actual.anio = anio
-        actual.mes = mes
-        db.session.add(actual)
-        return
-
-    ins = Inspeccion.query.filter_by(numero_acta=numero, anio=anio).first()
-    if ins:
-        # si existe pero era de otra actuación, asegurar_* ya lo frenó
-        ins.actuacion_id = actuacion.id
-        db.session.add(ins)
-        return
-
-    ins = Inspeccion(numero_acta=numero, anio=anio, mes=mes, actuacion_id=actuacion.id)
-    db.session.add(ins)
-
 
 def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
     """
