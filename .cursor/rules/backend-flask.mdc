@@ -1,41 +1,6 @@
-# Backend Flask - Digitaliza (Project Rule)
-
-## Alcance
-Aplica a: Backend/** y/o app/** (según estructura del repo)
-
-## Objetivo
-Mantener código escalable: **sin mega-helpers**, sin routes gigantes, y con services por caso de uso.
-
 ---
-
-## Arquitectura obligatoria (capas)
-1) Routes (Blueprints):
-   - SOLO request/response + validación + llamada a service
-   - No accede a DB directamente salvo casos muy chicos (ideal: nunca)
-
-2) Schemas (Pydantic v2):
-   - Contratos In/Out (grid row in, batch in, result out)
-   - Validaciones livianas: tipos, required, formatos.
-
-3) Mappers:
-   - Transforman schemas validados → payload canon para services.
-   - No hacen DB, no aplican reglas complejas.
-
-4) Services (negocio):
-   - Reglas de negocio + orquestación.
-   - Usan helpers *pequeños* o repos.
-   - Manejan transacciones (commit/rollback).
-
-5) Repositories (opcional pero recomendado):
-   - Queries reutilizables (get_or_create, lookups, etc.)
-   - No lógica de HTTP.
-
-6) Helpers / utils:
-   - SOLO funciones puras o utilidades puntuales (ej: acta_6, parse_fecha_grid).
-   - Prohibido: meter acá lógica de negocio “attach_*” gigante.
-
+alwaysApply: true
 ---
-
 ## Política anti "mega-helper"
 Está prohibido que un archivo tipo `actuacion_helpers.py` contenga:
 - resolución/creación de múltiples entidades (OT, domicilio, contribuyente, motivos, inspectores, actas)
@@ -120,3 +85,11 @@ Prohibido: un solo archivo con 500 líneas y 10 endpoints.
 - Transacciones:
   - commit solo en el service de “acción”
   - helpers/repos nunca hacen commit (solo flush si es necesario)
+## Documentación obligatoria
+- Toda función pública en services, routes, repos y attach debe tener docstring.
+- El docstring mínimo debe incluir:
+  - Qué hace
+  - Parámetros (qué espera)
+  - Retorno
+  - Errores esperados (ValueError/ValidationError/409 etc.)
+- Helpers puros (utils) pueden tener docstring corto.

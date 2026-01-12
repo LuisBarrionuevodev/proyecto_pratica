@@ -14,7 +14,7 @@ from app.models import Actuaciones, Expediente
 from app.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.schemas.grid.errors import pydantic_errors_to_cell_map
-from app.services.actuacion_helpers import acta_6
+from app.utils.actas import acta_6
 from app.services.actuacion_service import (
     actualizar_actuacion as actualizar_actuacion_service,
     crear_actuacion_desde_payload,

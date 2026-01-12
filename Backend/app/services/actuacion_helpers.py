@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from app.database import db
 from app.models import (
@@ -21,50 +20,8 @@ from app.models import (
     Oficio,
 )
 
-
-# =========================================================
-# Helpers de formato / fecha
-# =========================================================
-
-def acta_6(valor: Any) -> Optional[str]:
-    """
-    Normaliza numeros de acta/OT a 6 dígitos si son numéricos.
-    Si viene vacío o None, devuelve None.
-    """
-    if valor is None:
-        return None
-
-    s = str(valor).strip()
-    if not s:
-        return None
-
-    return s.zfill(6) if s.isdigit() else s
-
-
-def parse_fecha_grid(fecha_str: Any) -> Tuple[int, int, datetime.date]:
-    """
-    Acepta:
-      - "DD/MM/YYYY"
-      - "YYYY-MM-DD"
-    Devuelve: (mes, anio, date)
-    """
-    if fecha_str is None:
-        raise ValueError("La fecha es obligatoria")
-
-    s = str(fecha_str).strip()
-    if not s:
-        raise ValueError("La fecha es obligatoria")
-
-    try:
-        if "/" in s:
-            dt = datetime.strptime(s, "%d/%m/%Y").date()
-        else:
-            dt = datetime.strptime(s, "%Y-%m-%d").date()
-    except Exception:
-        raise ValueError("Formato de fecha inválido. Usá DD/MM/YYYY o YYYY-MM-DD")
-
-    return dt.month, dt.year, dt
-
+from app.utils.actas import acta_6
+from app.utils.fechas import parse_fecha_grid
 
 # =========================================================
 # Catálogos estrictos

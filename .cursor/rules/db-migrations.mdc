@@ -1,0 +1,15 @@
+---
+alwaysApply: false
+---
+
+# DB & Migraciones (Project Rule)
+
+## Reglas
+- Cualquier cambio de modelo -> migración Alembic.
+- No editar `alembic_version` a mano.
+- Documentar migraciones con mensaje claro.
+- Para enums / cambios peligrosos: proponer plan backward-compatible.
+
+## Verificación mínima
+- `flask db upgrade` funciona desde cero.
+- Tests/seed básico si aplica.
