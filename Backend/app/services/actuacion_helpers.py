@@ -5,84 +5,12 @@ from typing import Any, Dict, Optional
 from app.database import db
 from app.models import (
     Actuaciones,
-    Notificacion,
     Comprobacion,
     Expediente,
     Oficio,
 )
 
 from app.utils.actas import acta_6
-from app.services.actuaciones.catalogs.motivo import get_motivo_o_falla
-
-
-# =========================================================
-# Attach actas
-# =========================================================
-
-def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
-    """
-    Notificación:
-    - Se identifica por numero_acta + anio
-    - Motivos vienen como lista y SON catálogo (tabla Motivo)
-    """
-    if not data:
-        return
-
-    acta_num = acta_6(data.get("acta_num"))
-    if not acta_num:
-        return
-
-    anio = actuacion.anio
-    mes = actuacion.mes
-
-    # 1) si ya tiene notificación asociada, actualizamos esa
-    if actuacion.notificacion_id:
-        noti = Notificacion.query.get(actuacion.notificacion_id)
-        if noti:
-            existente = Notificacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
-            if existente and existente.id != noti.id:
-                raise ValueError("Acta de notificación ya asociada a otra actuación.")
-
-            noti.numero_acta = acta_num
-            noti.anio = anio
-            noti.mes = mes
-
-            # 👇 clave: si viene el campo (aunque sea []), lo reflejamos
-            if "motivos" in data:
-                motivos = data.get("motivos") or []
-                noti.motivos = [get_motivo_o_falla(m) for m in motivos]
-
-            db.session.add(noti)
-            return
-
-    # 2) si no tenía, buscamos por acta+anio
-    noti = Notificacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
-    if not noti:
-        noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
-        db.session.add(noti)
-        db.session.flush()
-
-    if "motivos" in data:
-        motivos = data.get("motivos") or []
-        noti.motivos = [get_motivo_o_falla(m) for m in motivos]
-        db.session.flush()  # 👈 útil para ver inserts antes del commit
-
-    if actuacion.tipo is not None:
-        existe_mismo_tipo = (
-            Actuaciones.query
-            .filter(
-            Actuaciones.id != actuacion.id,
-            Actuaciones.anio == anio,
-            Actuaciones.tipo == actuacion.tipo,
-            Actuaciones.notificacion_id == noti.id,
-            )
-            .first()
-    )
-    if existe_mismo_tipo:
-        raise ValueError(
-            f"La Notificación {acta_num}/{anio} ya está asociada a otra actuación del mismo tipo ({actuacion.tipo})."
-        )
-    actuacion.notificacion_id = noti.id
 
 
 def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
