@@ -239,7 +239,7 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         attach_decomiso(act, payload.get("decomiso"), crear=False)
 
     # Oficio / Expediente
-    oficio = attach_oficio(payload.get("oficio")) if "oficio" in payload else None
+    oficio = attach_oficio(payload.get("oficio"),act.comprobacion_id  if "oficio" in payload else None)
     expediente = attach_expediente(payload.get("expediente"), act.comprobacion_id, oficio.id if oficio else None) if "expediente" in payload else None
     if expediente and hasattr(act, "expediente_id"):
         act.expediente_id = expediente.id

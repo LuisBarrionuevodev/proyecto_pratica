@@ -366,6 +366,21 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]):
         noti.motivos = [get_motivo_o_falla(m) for m in motivos]
         db.session.flush()  # 👈 útil para ver inserts antes del commit
 
+    if actuacion.tipo is not None:
+        existe_mismo_tipo = (
+            Actuaciones.query
+            .filter(
+            Actuaciones.id != actuacion.id,
+            Actuaciones.anio == anio,
+            Actuaciones.tipo == actuacion.tipo,
+            Actuaciones.notificacion_id == noti.id,
+            )
+            .first()
+    )
+    if existe_mismo_tipo:
+        raise ValueError(
+            f"La Notificación {acta_num}/{anio} ya está asociada a otra actuación del mismo tipo ({actuacion.tipo})."
+        )
     actuacion.notificacion_id = noti.id
 
 

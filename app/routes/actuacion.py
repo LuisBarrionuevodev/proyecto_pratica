@@ -16,7 +16,7 @@ from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.schemas.grid.errors import pydantic_errors_to_cell_map
 from app.services.actuacion_helpers import acta_6
 from app.services.actuacion_service import (
-    actualizar_actuacion,
+    actualizar_actuacion as actualizar_actuacion_service,
     crear_actuacion_desde_payload,
     eliminar_actuacion,
 )
@@ -62,35 +62,24 @@ def crear_actuacion():
 # UPDATE (PUT /actuaciones/<id>)
 # =========================================================
 @actuacion.put("/<int:actuacion_id>")
-def actualizar_actuacion(actuacion_id: int):
-    """
-    Actualiza usando la misma lógica de grid:
-      1) validación pydantic de fila
-      2) mapper
-      3) service update
-      4) presenter plano
-    """
+def actualizar_actuacion_route(actuacion_id: int):
     data: Dict[str, Any] = request.get_json(silent=True) or {}
 
     try:
-        # coherencia con mapper/service (service update requiere payload con id)
-        data["id"] = actuacion_id
+        data["id"] = actuacion_id  # ok si tu schema lo acepta
 
         row = ActuacionGridRowIn.model_validate(data)
         payload = map_actuacion_row(row)
 
-        act = actualizar_actuacion(payload)
+        act = actualizar_actuacion_service(actuacion_id, payload)
         return jsonify(actuacion_to_grid_row(act)), 200
 
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
-
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
-
     except Exception as e:
         return jsonify({"detail": "Error interno", "error": str(e)}), 500
-
 
 # =========================================================
 # DELETE (DELETE /actuaciones/<id>)
