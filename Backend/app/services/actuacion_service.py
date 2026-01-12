@@ -13,14 +13,12 @@ from app.services.actuaciones.attach.comprobacion import attach_comprobacion
 from app.services.actuaciones.attach.decomiso import attach_decomiso
 from app.services.actuaciones.attach.notificacion import attach_notificacion
 from app.services.actuaciones.attach.oficio import attach_oficio
+from app.services.actuaciones.attach.expediente import attach_expediente
 from app.services.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.services.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.services.actuaciones.domains.contribuyente import resolve_contribuyente
 from app.services.actuaciones.domains.domicilio import get_or_create_domicilio
 from app.services.actuaciones.domains.orden_trabajo import get_or_create_orden_trabajo
-from app.services.actuacion_helpers import (
-    attach_expediente,
-)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
