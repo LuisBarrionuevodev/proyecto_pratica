@@ -6,9 +6,6 @@ from app.database import db
 from app.models import (
     Actuaciones,
     OrdenTrabajo,
-    Rubro,
-    Contribuyente,
-    Domicilio,
     Inspeccion,
     Notificacion,
     Comprobacion,
@@ -21,64 +18,6 @@ from app.models import (
 from app.utils.actas import acta_6
 from app.utils.fechas import parse_fecha_grid
 from app.services.actuaciones.catalogs.motivo import get_motivo_o_falla
-
-# =========================================================
-# Contribuyente + Domicilio
-# =========================================================
-
-def get_or_create_domicilio(
-    data: Optional[Dict[str, Any]],
-    contribuyente: Optional[Contribuyente],
-    rubro: Optional[Rubro],
-) -> Optional[Domicilio]:
-    """
-    Domicilio se identifica por calle + numero.
-
-    Reglas:
-    - Si no hay data -> None
-    - Si viene calle+numero, exige contribuyente y rubro
-    - Si existe -> re-asocia contribuyente/rubro si cambian
-    - Si no existe -> crea
-    """
-    if not data:
-        return None
-
-    calle = data.get("calle")
-    numero = data.get("numero")
-
-    if not calle or not numero:
-        return None
-
-    if contribuyente is None:
-        raise ValueError("Si cargás domicilio, debés cargar contribuyente.")
-    if rubro is None:
-        raise ValueError("Si cargás domicilio, debés cargar rubro.")
-
-    calle = str(calle).strip()
-    numero = str(numero).strip()
-
-    dom = Domicilio.query.filter_by(calle=calle, numero=numero).first()
-    if dom:
-        changed = False
-        if dom.contribuyente_id != contribuyente.id:
-            dom.contribuyente_id = contribuyente.id
-            changed = True
-        if dom.rubro_id != rubro.id:
-            dom.rubro_id = rubro.id
-            changed = True
-        if changed:
-            db.session.add(dom)
-        return dom
-
-    dom = Domicilio(
-        calle=calle,
-        numero=numero,
-        contribuyente_id=contribuyente.id,
-        rubro_id=rubro.id,
-    )
-    db.session.add(dom)
-    db.session.flush()
-    return dom
 
 
 # =========================================================
