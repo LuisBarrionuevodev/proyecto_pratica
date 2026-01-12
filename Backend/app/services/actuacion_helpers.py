@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from app.database import db
 from app.models import (
@@ -9,77 +9,18 @@ from app.models import (
     Rubro,
     Contribuyente,
     Domicilio,
-    Inspector,
     Inspeccion,
     Notificacion,
     Comprobacion,
     Clausura,
     Decomiso,
-    Motivo,
     Expediente,
     Oficio,
 )
 
 from app.utils.actas import acta_6
 from app.utils.fechas import parse_fecha_grid
-
-# =========================================================
-# Catálogos estrictos
-# =========================================================
-
-def get_rubro_o_falla(nombre: Optional[str]) -> Optional[Rubro]:
-    """
-    Rubro es catálogo:
-    - si no viene -> None
-    - si viene y no existe -> ValueError
-    """
-    if nombre is None:
-        return None
-
-    s = str(nombre).strip()
-    if not s:
-        return None
-
-    s = " ".join(s.split())
-    rubro = Rubro.query.filter_by(nombre=s).first()
-    if not rubro:
-        raise ValueError(f"Rubro no existe en catálogo: {s}")
-    return rubro
-
-
-def get_motivo_o_falla(nombre: str) -> Motivo:
-    """
-    Motivo es catálogo:
-    - si no existe -> ValueError
-    """
-    s = (nombre or "").strip()
-    if not s:
-        raise ValueError("Motivo inválido (vacío).")
-
-    m = Motivo.query.filter_by(nombre=s).first()
-    if not m:
-        raise ValueError(f"Motivo no existe en catálogo: {s}")
-    return m
-
-
-def get_inspectores_o_falla(nombres: List[str]) -> List[Inspector]:
-    """
-    Inspectores SON catálogo.
-    Si un nombre no existe, rechazamos duro.
-    """
-    encontrados: List[Inspector] = []
-
-    for n in nombres:
-        s = (n or "").strip()
-        if not s:
-            continue
-        ins = Inspector.query.filter_by(nombre=s).first()
-        if not ins:
-            raise ValueError(f"Inspector no existe en catálogo: {s}")
-        encontrados.append(ins)
-
-    return encontrados
-
+from app.services.actuaciones.catalogs.motivo import get_motivo_o_falla
 
 # =========================================================
 # Contribuyente + Domicilio

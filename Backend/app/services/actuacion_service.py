@@ -7,9 +7,9 @@ from app.models import Actuaciones
 from app.utils.fechas import parse_fecha_grid
 
 from app.services.actuaciones.previas_service import resolver_previas
+from app.services.actuaciones.catalogs.inspector import get_inspectores_o_falla
+from app.services.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.services.actuacion_helpers import (
-    get_rubro_o_falla,
-    get_inspectores_o_falla,
     resolve_contribuyente,
     get_or_create_domicilio,
     get_or_create_orden_trabajo,
