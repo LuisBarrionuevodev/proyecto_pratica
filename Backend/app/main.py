@@ -7,7 +7,7 @@ from flask_cors import CORS
 
 from app.database import db
 from app.routes import usuario as usuario_bp
-from app.routes import actuacion as actuacion_bp
+from app.routes.actuaciones import actuacion as actuacion_bp
 from app.routes.grid_batch import bp as grid_bp
 
 migrate = Migrate()
