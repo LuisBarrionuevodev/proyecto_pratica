@@ -1,0 +1,39 @@
+# Diseño de Services (Project Rule)
+
+## Objetivo
+Evitar acoplamiento y mantener el backend escalable.
+
+## Reglas
+- Service = caso de uso (create/update/delete/batch).
+- Cada service importa:
+  - schemas/mappers
+  - repos y/o helpers por dominio
+  - NO importa routes.
+
+## Prohibiciones
+- No meter lógica de negocio en helpers "globales".
+- No hacer queries complejas en routes.
+- No tener archivos service de 400+ líneas.
+
+## Recomendación de estructura
+Backend/app/services/actuaciones/
+  create_service.py
+  update_service.py
+  delete_service.py
+  previas_service.py
+  pendientes_service.py
+  attach/
+    inspeccion.py
+    notificacion.py
+    comprobacion.py
+    clausura.py
+    decomiso.py
+  catalogs/
+    rubro.py
+    motivo.py
+    inspector.py
+  contribuyentes/
+    contribuyente.py
+    domicilio.py
+  orden_trabajo/
+    orden_trabajo.py

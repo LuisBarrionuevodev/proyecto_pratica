@@ -1,0 +1,122 @@
+# Backend Flask - Digitaliza (Project Rule)
+
+## Alcance
+Aplica a: Backend/** y/o app/** (según estructura del repo)
+
+## Objetivo
+Mantener código escalable: **sin mega-helpers**, sin routes gigantes, y con services por caso de uso.
+
+---
+
+## Arquitectura obligatoria (capas)
+1) Routes (Blueprints):
+   - SOLO request/response + validación + llamada a service
+   - No accede a DB directamente salvo casos muy chicos (ideal: nunca)
+
+2) Schemas (Pydantic v2):
+   - Contratos In/Out (grid row in, batch in, result out)
+   - Validaciones livianas: tipos, required, formatos.
+
+3) Mappers:
+   - Transforman schemas validados → payload canon para services.
+   - No hacen DB, no aplican reglas complejas.
+
+4) Services (negocio):
+   - Reglas de negocio + orquestación.
+   - Usan helpers *pequeños* o repos.
+   - Manejan transacciones (commit/rollback).
+
+5) Repositories (opcional pero recomendado):
+   - Queries reutilizables (get_or_create, lookups, etc.)
+   - No lógica de HTTP.
+
+6) Helpers / utils:
+   - SOLO funciones puras o utilidades puntuales (ej: acta_6, parse_fecha_grid).
+   - Prohibido: meter acá lógica de negocio “attach_*” gigante.
+
+---
+
+## Política anti "mega-helper"
+Está prohibido que un archivo tipo `actuacion_helpers.py` contenga:
+- resolución/creación de múltiples entidades (OT, domicilio, contribuyente, motivos, inspectores, actas)
+- reglas de unicidad / consistencia
+- lógica de attach con DB para 5+ entidades
+Eso debe dividirse por dominio.
+
+---
+
+## Modularización por dominio (entidad)
+Cuando el código toque estas entidades, debe vivir en módulos separados:
+
+### Catálogos (solo lookup/validación)
+- rubro_catalog.py: get_rubro_o_falla
+- motivo_catalog.py: get_motivo_o_falla
+- inspector_catalog.py: get_inspectores_o_falla
+
+### Contribuyente/Domicilio
+- contribuyente_service.py (o contribuyente_repo.py): resolve_contribuyente
+- domicilio_service.py (o domicilio_repo.py): get_or_create_domicilio
+
+### Orden de Trabajo
+- orden_trabajo_service.py: get_or_create_orden_trabajo
+
+### Attach de actas (separar por entidad)
+- attach_inspeccion.py
+- attach_notificacion.py
+- attach_comprobacion.py
+- attach_clausura.py
+- attach_decomiso.py
+
+### Flujos administrativos
+- attach_oficio.py
+- attach_expediente.py
+
+### Previas (SIEMPRE aparte)
+- previas_service.py: resolver_previas()
+Regla: "previas" NO debe mezclarse con attach_notificacion/attach_comprobacion del "acta del día".
+
+---
+
+## Services por acción (casos de uso)
+Un solo `actuacion_service.py` enorme no es ideal.
+Crear services por acción/caso de uso:
+
+- actuaciones_create_service.py
+- actuaciones_update_service.py
+- actuaciones_delete_service.py
+- actuaciones_list_service.py (si aplica)
+- actuaciones_pendientes_service.py (consultas pendientes-vinc-*)
+
+Cada service:
+- expone 1-2 funciones máximas
+- recibe payload canon (mapper)
+- retorna entidad o DTO
+
+---
+
+## Routes modularizadas
+Blueprint por dominio: `routes/actuaciones/__init__.py` crea el blueprint.
+Cada endpoint en su archivo:
+
+routes/actuaciones/create.py
+routes/actuaciones/update.py
+routes/actuaciones/delete.py
+routes/actuaciones/list.py
+routes/actuaciones/pendientes_vinc_acta.py
+routes/actuaciones/pendientes_vinc_oficio.py
+routes/actuaciones/pendientes_notificacion.py
+routes/actuaciones/expediente_from_acta.py
+
+Prohibido: un solo archivo con 500 líneas y 10 endpoints.
+
+---
+
+## Estilo y calidad
+- Typing en params y returns.
+- Docstrings: qué hace, inputs, outputs, errores esperados.
+- Errores:
+  - ValidationError → 422 con mapa por celda
+  - ValueError de negocio → 400/409/404 según corresponda
+- Transacciones:
+  - commit solo en el service de “acción”
+  - helpers/repos nunca hacen commit (solo flush si es necesario)

@@ -1,0 +1,16 @@
+# Front - Grid Editable (Project Rule)
+
+## Objetivo
+Tabla editable para carga masiva y edición rápida.
+
+## Reglas
+- Estado principal: `rows: ActuacionGridRow[]` en Container o hook.
+- Edición:
+  - actualizar inmutablemente
+  - validar por columna (tipo/required)
+- Guardado:
+  - botón "Guardar" => batch POST
+  - manejar respuesta por fila: ok/error
+- No mezclar UI con lógica:
+  - DataEditor/tabla en Compoents
+  - state + handlers en Containers/hooks

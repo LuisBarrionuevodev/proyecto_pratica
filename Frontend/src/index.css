@@ -1,0 +1,59 @@
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-draw/dist/leaflet.draw.css";
+
+.pie-label {
+  user-select: none;
+  pointer-events: none;
+  stroke: none !important;
+  outline: none !important;
+}
+
+
+
+
+@font-face {
+  font-family: 'Tactic Sans';
+  src: url('./assets/fonts/TacticSansExd-Reg.otf') format('opentype');
+  font-weight: 400; /* Regular */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Tactic Sans';
+  src: url('./assets/fonts/TacticSansExd-Med.otf') format('opentype');
+  font-weight: 500; /* Medium */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Tactic Sans';
+  src: url('./assets/fonts/TacticSans-Bld.otf') format('opentype');
+  font-weight: 700; /* Bold */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Tactic Sans';
+  src: url('./assets/fonts/TacticSansExd-Ult.otf') format('opentype');
+  font-weight: 800; /* Ultra Bold o Extra Bold */
+  font-style: normal;
+}
+
+@font-face {
+    font-family: 'Tactic Sans';
+    src: url('./assets/fonts/TacticSansExd-Lgt.otf') format('opentype');
+    font-weight: 200;
+    font-style: normal;
+}
+
+:root {
+  font-family: "Tactic Sans";
+}
+
+body {
+  margin: 0;
+}
+
+a{
+  text-decoration: none;
+}
