@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional
 from app.database import db
 from app.models import (
     Actuaciones,
-    OrdenTrabajo,
     Inspeccion,
     Notificacion,
     Comprobacion,
@@ -16,33 +15,7 @@ from app.models import (
 )
 
 from app.utils.actas import acta_6
-from app.utils.fechas import parse_fecha_grid
 from app.services.actuaciones.catalogs.motivo import get_motivo_o_falla
-
-
-# =========================================================
-# Orden de trabajo
-# =========================================================
-
-def get_or_create_orden_trabajo(numero_ot: Any, fecha_str: Any) -> OrdenTrabajo:
-    """
-    OT:
-    - Se identifica por numero_acta + anio
-    - mes/anio salen de fecha
-    """
-    mes, anio, _ = parse_fecha_grid(fecha_str)
-    numero = acta_6(numero_ot)
-    if not numero:
-        raise ValueError("Orden de trabajo es obligatoria.")
-
-    ot = OrdenTrabajo.query.filter_by(numero_acta=numero, anio=anio).first()
-    if ot:
-        return ot
-
-    ot = OrdenTrabajo(numero_acta=numero, anio=anio, mes=mes)
-    db.session.add(ot)
-    db.session.flush()
-    return ot
 
 
 # =========================================================
