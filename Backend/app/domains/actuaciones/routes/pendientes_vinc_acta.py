@@ -4,7 +4,7 @@ from flask import jsonify
 from sqlalchemy import exists
 
 from app.models import Actuaciones, Expediente
-from app.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 
 from . import actuacion
 

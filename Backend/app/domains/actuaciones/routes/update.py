@@ -5,11 +5,11 @@ from typing import Any, Dict
 from flask import jsonify, request
 from pydantic import ValidationError
 
-from app.mappers.grid.actuacion_row_mapper import map_actuacion_row
-from app.presenters.actuacion_presenters import actuacion_to_grid_row
-from app.schemas.grid.actuacion_row_in import ActuacionGridRowIn
+from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.schemas.grid.errors import pydantic_errors_to_cell_map
-from app.services.actuaciones.update_service import actualizar_actuacion as actualizar_actuacion_service
+from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
 
 from . import actuacion
 

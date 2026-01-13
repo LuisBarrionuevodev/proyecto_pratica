@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask import jsonify
 
-from app.services.actuaciones.delete_service import eliminar_actuacion
+from app.domains.actuaciones.services.delete_service import eliminar_actuacion
 
 from . import actuacion
 

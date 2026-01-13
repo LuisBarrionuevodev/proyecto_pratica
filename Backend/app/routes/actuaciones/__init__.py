@@ -1,16 +1,8 @@
+"""Compat: mantiene el import histórico `app.routes.actuaciones.actuacion`."""
+
 from __future__ import annotations
 
-from flask import Blueprint
+from app.domains.actuaciones.routes import actuacion  # noqa: F401
 
-actuacion = Blueprint("actuaciones", __name__)
-
-# Registrar endpoints (side-effect imports)
-from . import create  # noqa: E402,F401
-from . import update  # noqa: E402,F401
-from . import delete  # noqa: E402,F401
-from . import list  # noqa: E402,F401
-from . import pendientes_vinc_acta  # noqa: E402,F401
-from . import expediente_from_acta  # noqa: E402,F401
-from . import pendientes_vinc_oficio  # noqa: E402,F401
-from . import pendientes_notificacion  # noqa: E402,F401
+__all__ = ["actuacion"]
 

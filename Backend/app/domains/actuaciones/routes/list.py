@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask import jsonify
 
 from app.models import Actuaciones
-from app.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 
 from . import actuacion
 

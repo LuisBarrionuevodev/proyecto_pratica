@@ -6,7 +6,7 @@ from flask import jsonify, request
 
 from app.database import db
 from app.models import Actuaciones, Expediente
-from app.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.utils.actas import acta_6
 
 from . import actuacion
