@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from app.database import db
-from app.models import Actuaciones
+from app.models import Actuaciones, Domicilio
 from app.utils.fechas import parse_fecha_grid
 
 from .previas_service import resolver_previas
@@ -19,6 +19,10 @@ from app.domains.actuaciones.domains.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.domains.contribuyente import resolve_contribuyente
 from app.domains.actuaciones.domains.domicilio import get_or_create_domicilio
 from app.domains.actuaciones.domains.orden_trabajo import get_or_create_orden_trabajo
+from app.domains.actuaciones.cleanup.garbage_collector import (
+    soft_delete_contribuyente_if_orphan,
+    soft_delete_domicilio_if_orphan,
+)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -40,6 +44,12 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     - Adjunta oficio/expediente si vienen en payload.
     - Persiste con `db.session.commit()` al final.
 
+    Cleanup post-update (soft delete):
+    - Antes de modificar la actuación, guarda `old_domicilio_id` y el `old_contribuyente_id`
+      (derivado del domicilio viejo si existe).
+    - Luego del primer commit, si cambió `domicilio_id`, intenta soft-delete de huérfanos
+      (domicilio/contribuyente) y hace un segundo commit.
+
     Args:
         actuacion_id: id de la actuación a actualizar.
         payload: dict canon del mapper (sin DB).
@@ -51,6 +61,14 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         ValueError: si la actuación no existe o si se violan reglas de negocio/validaciones.
     """
     act = _get_actuacion_or_404(actuacion_id)
+
+    # Snapshot pre-update para cleanup post-commit.
+    old_domicilio_id: int | None = act.domicilio_id
+    old_contribuyente_id: int | None = None
+    if old_domicilio_id is not None:
+        old_dom: Domicilio | None = db.session.get(Domicilio, old_domicilio_id)
+        if old_dom is not None:
+            old_contribuyente_id = old_dom.contribuyente_id
 
     # Fecha
     if payload.get("fecha_actuacion"):
@@ -125,4 +143,13 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
 
     db.session.add(act)
     db.session.commit()
+
+    # Garbage collector post-update: si cambió el domicilio, intentar soft-delete de huérfanos.
+    if old_domicilio_id != act.domicilio_id:
+        if old_domicilio_id is not None:
+            soft_delete_domicilio_if_orphan(old_domicilio_id)
+        if old_contribuyente_id is not None:
+            soft_delete_contribuyente_if_orphan(old_contribuyente_id)
+        db.session.commit()
+
     return act
