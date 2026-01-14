@@ -53,6 +53,7 @@ class Domicilio(db.Model):
         onupdate=db.func.current_timestamp(),
         nullable=False,
     )
+    deleted_at = db.Column(db.DateTime, nullable=True)
     rubro = db.relationship("Rubro", back_populates="domicilio")
     actuaciones = db.relationship("Actuaciones", back_populates="domicilio")
     barrio = db.relationship("Barrio", back_populates="domicilio")

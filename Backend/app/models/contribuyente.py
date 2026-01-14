@@ -29,6 +29,7 @@ class Contribuyente(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
+    deleted_at = db.Column(db.DateTime, nullable=True)
     domicilio = db.relationship("Domicilio", back_populates="contribuyente")
 
     def to_dict(self, include_relations=False):

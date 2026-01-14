@@ -1,10 +1,18 @@
 import logging
 from logging.config import fileConfig
+import os
 
 from flask import current_app
-import app.models
+
+# Import models if available so metadata is populated for autogenerate.
+# For explicit (manual) migrations, metadata is not strictly required.
+try:
+    import app.models  # noqa: F401
+except Exception:  # pragma: no cover
+    app = None
 
 from alembic import context
+from sqlalchemy import create_engine
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,21 +24,45 @@ fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
 
-def get_engine():
+def _get_db_url_fallback() -> str:
+    """Obtener URL de DB cuando no existe un contexto Flask activo.
+
+    Prioridad:
+    1) env var `SQLALCHEMY_DATABASE_URI`
+    2) `sqlalchemy.url` desde `migrations/alembic.ini`
+    """
+    return os.getenv("SQLALCHEMY_DATABASE_URI") or config.get_main_option(
+        "sqlalchemy.url"
+    )
+
+
+def _has_flask_app_context() -> bool:
+    """Detecta si `current_app` es accesible (hay app context)."""
     try:
-        # this works with Flask-SQLAlchemy<3 and Alchemical
-        return current_app.extensions['migrate'].db.get_engine()
-    except (TypeError, AttributeError):
-        # this works with Flask-SQLAlchemy>=3
-        return current_app.extensions['migrate'].db.engine
+        _ = current_app.name  # noqa: F841
+        return True
+    except Exception:
+        return False
+
+
+def get_engine():
+    """Devuelve un Engine, con o sin Flask app context."""
+    if _has_flask_app_context():
+        try:
+            # this works with Flask-SQLAlchemy<3 and Alchemical
+            return current_app.extensions["migrate"].db.get_engine()
+        except (TypeError, AttributeError):
+            # this works with Flask-SQLAlchemy>=3
+            return current_app.extensions["migrate"].db.engine
+
+    return create_engine(_get_db_url_fallback())
 
 
 def get_engine_url():
     try:
-        return get_engine().url.render_as_string(hide_password=False).replace(
-            '%', '%%')
+        return get_engine().url.render_as_string(hide_password=False).replace("%", "%%")
     except AttributeError:
-        return str(get_engine().url).replace('%', '%%')
+        return str(get_engine().url).replace("%", "%%")
 
 
 # add your model's MetaData object here
@@ -38,7 +70,10 @@ def get_engine_url():
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 config.set_main_option('sqlalchemy.url', get_engine_url())
-target_db = current_app.extensions['migrate'].db
+if _has_flask_app_context():
+    target_db = current_app.extensions["migrate"].db
+else:
+    from app.database import db as target_db  # type: ignore
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -91,9 +126,12 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
-    conf_args = current_app.extensions['migrate'].configure_args
-    if conf_args.get("process_revision_directives") is None:
-        conf_args["process_revision_directives"] = process_revision_directives
+    if _has_flask_app_context():
+        conf_args = current_app.extensions["migrate"].configure_args
+        if conf_args.get("process_revision_directives") is None:
+            conf_args["process_revision_directives"] = process_revision_directives
+    else:
+        conf_args = {}
 
     connectable = get_engine()
 

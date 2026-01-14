@@ -3,15 +3,15 @@ from __future__ import annotations
 from flask import request, jsonify
 from pydantic import ValidationError
 
-from app.schemas.grid.batch import (
+from app.domains.grid.schemas.batch import (
     StartBatchResponse,
     ValidateRowRequest,
     ValidateBatchRequest,
     ValidateBatchResponse,
 )
-from app.schemas.grid.errors import pydantic_errors_to_cell_map
-from app.services.grid.batch_store import InMemoryBatchStore
-from app.services.grid.validate_service import GridValidateService
+from app.shared.errors import pydantic_errors_to_cell_map
+from app.domains.grid.services.batch_store import InMemoryBatchStore
+from app.domains.grid.services.validate_service import GridValidateService
 
 from . import grid
 

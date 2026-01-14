@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
-from app.schemas.grid.errors import pydantic_errors_to_cell_map
+from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.services.create_service import crear_actuacion_desde_payload
 
 from . import actuacion
