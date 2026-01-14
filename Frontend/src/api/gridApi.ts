@@ -6,8 +6,9 @@ export interface GridRow {
   // Metadata
   _rowId?: string;
   _state?: "PENDIENTE" | "OK" | "ERROR";
-  _errors?: string;
+  _cellErrors?: Record<string, string>; // Errores por celda: { "columnId": "mensaje de error" }
   _normalized?: GridRow;
+  _validation_history?: number[]; // Para gráficos sparkline (demo)
 
   // Data columns (with spaces, as backend expects)
   "ID"?: number | null;

@@ -1,6 +1,6 @@
 import { ThemeProvider } from "@emotion/react";
 import NavLeft from "../../Componets/NavLeft";
-import TablaCargarActuaciones from "./Components/TablaCargarActuaciones";
+import TablaCargarActuacionesGlideStyled from "./Components/TablaCargarActuacionesGlideStyled";
 import { darkTheme } from "../../configs/theme";
 
 const CargarActuaciones = () => {
@@ -10,7 +10,7 @@ const CargarActuaciones = () => {
         <NavLeft/>
 
         <ThemeProvider theme={darkTheme}>
-        <TablaCargarActuaciones/>
+        <TablaCargarActuacionesGlideStyled/>
         </ThemeProvider>
         </>
     )
