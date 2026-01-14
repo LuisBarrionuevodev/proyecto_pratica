@@ -47,8 +47,11 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     Cleanup post-update (soft delete):
     - Antes de modificar la actuación, guarda `old_domicilio_id` y el `old_contribuyente_id`
       (derivado del domicilio viejo si existe).
-    - Luego del primer commit, si cambió `domicilio_id`, intenta soft-delete de huérfanos
-      (domicilio/contribuyente) y hace un segundo commit.
+    - Luego del primer commit:
+      - Si cambió `domicilio_id`, intenta soft-delete del domicilio viejo si quedó huérfano.
+      - Siempre evalúa soft-delete del contribuyente viejo (si existe) para cubrir reasignaciones
+        por cambio de DNI, aun cuando no cambie `domicilio_id`.
+      - Hace un segundo commit para persistir `deleted_at`.
 
     Args:
         actuacion_id: id de la actuación a actualizar.
@@ -144,12 +147,18 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     db.session.add(act)
     db.session.commit()
 
-    # Garbage collector post-update: si cambió el domicilio, intentar soft-delete de huérfanos.
-    if old_domicilio_id != act.domicilio_id:
-        if old_domicilio_id is not None:
-            soft_delete_domicilio_if_orphan(old_domicilio_id)
-        if old_contribuyente_id is not None:
-            soft_delete_contribuyente_if_orphan(old_contribuyente_id)
+    # Garbage collector post-update:
+    # - si cambió el domicilio, intentar soft-delete del domicilio viejo si quedó huérfano.
+    # - siempre evaluar el contribuyente viejo (si existe) para cubrir reasignaciones por DNI.
+    ran_cleanup = False
+    if old_domicilio_id is not None and old_domicilio_id != act.domicilio_id:
+        soft_delete_domicilio_if_orphan(old_domicilio_id)
+        ran_cleanup = True
+    if old_contribuyente_id is not None:
+        soft_delete_contribuyente_if_orphan(old_contribuyente_id)
+        ran_cleanup = True
+
+    if ran_cleanup:
         db.session.commit()
 
     return act
