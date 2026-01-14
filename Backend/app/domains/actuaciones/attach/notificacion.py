@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from app.database import db
 from app.models import Actuaciones, Notificacion
 from app.utils.actas import acta_6
-from app.domains.actuaciones.domains.catalogs.motivo import get_motivo_o_falla
+from app.domains.actuaciones.catalogs.motivo import get_motivo_o_falla
 
 
 def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:

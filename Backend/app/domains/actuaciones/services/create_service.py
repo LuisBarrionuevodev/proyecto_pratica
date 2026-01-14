@@ -14,11 +14,11 @@ from app.domains.actuaciones.attach.clausura import attach_clausura
 from app.domains.actuaciones.attach.decomiso import attach_decomiso
 from app.domains.actuaciones.attach.oficio import attach_oficio
 from app.domains.actuaciones.attach.expediente import attach_expediente
-from app.domains.actuaciones.domains.catalogs.inspector import get_inspectores_o_falla
-from app.domains.actuaciones.domains.catalogs.rubro import get_rubro_o_falla
-from app.domains.actuaciones.domains.contribuyente import resolve_contribuyente
-from app.domains.actuaciones.domains.domicilio import get_or_create_domicilio
-from app.domains.actuaciones.domains.orden_trabajo import get_or_create_orden_trabajo
+from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
+from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
+from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
+from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
+from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
 
 
 def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
