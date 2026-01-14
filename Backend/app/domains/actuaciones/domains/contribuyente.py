@@ -52,7 +52,12 @@ def resolve_contribuyente(data: Optional[Dict[str, Any]]) -> Optional[Contribuye
 
     doc = str(doc).strip()
 
-    c = Contribuyente.query.filter_by(documento=doc).first()
+    c = (
+        Contribuyente.query.filter(
+            Contribuyente.documento == doc,
+            Contribuyente.deleted_at.is_(None),
+        ).first()
+    )
     if c:
         changed = False
         if apellido is not None and apellido != "" and apellido != c.apellido:

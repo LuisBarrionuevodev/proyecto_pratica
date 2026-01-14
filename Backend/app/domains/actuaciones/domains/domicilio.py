@@ -59,7 +59,13 @@ def get_or_create_domicilio(
     calle = str(calle).strip()
     numero = str(numero).strip()
 
-    dom = Domicilio.query.filter_by(calle=calle, numero=numero).first()
+    dom = (
+        Domicilio.query.filter(
+            Domicilio.calle == calle,
+            Domicilio.numero == numero,
+            Domicilio.deleted_at.is_(None),
+        ).first()
+    )
     if dom:
         changed = False
         if dom.contribuyente_id != contribuyente.id:
