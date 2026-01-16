@@ -1,19 +1,22 @@
+/**
+ * Página de Carga de Actuaciones
+ * Usa el componente modularizado TablaCargarActuaciones
+ */
+
 import { ThemeProvider } from "@emotion/react";
 import NavLeft from "../../Componets/NavLeft";
-import TablaCargarActuacionesGlideStyled from "./Components/TablaCargarActuacionesGlideStyled";
+import { TablaCargarActuaciones } from "./Components/TablaCargarActuaciones";
 import { darkTheme } from "../../configs/theme";
 
 const CargarActuaciones = () => {
-    return(
+    return (
         <>
-
-        <NavLeft/>
-
-        <ThemeProvider theme={darkTheme}>
-        <TablaCargarActuacionesGlideStyled/>
-        </ThemeProvider>
+            <NavLeft />
+            <ThemeProvider theme={darkTheme}>
+                <TablaCargarActuaciones />
+            </ThemeProvider>
         </>
-    )
-}
+    );
+};
 
 export default CargarActuaciones;

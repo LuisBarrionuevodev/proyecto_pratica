@@ -25,6 +25,18 @@ class Tipo(str, Enum):
     VERIFICAR_E_INFORMAR = "VERIFICAR E INFORMAR"
     TRANSPORTE = "TRANSPORTE"
 
+# ===== Enums motivo comprobación (UI dropdown)
+class MotivoComprobacion(str, Enum):
+    FALTA_HIGIENE = "Falta de Higiene"
+    CONDICIONES_EDILICIAS = "Condiciones Edilicias Inadecuadas"
+    NO_PERMITE_INSPECCION = "No Permite la Inspección"
+    INCUMPLIMIENTO = "Incumplimiento"
+    INCUMPLIMIENTO_NOTIF = "Incumplimiento de Notificación"
+    SIN_CERT_DESINF = "Sin Certificado de Desinfección"
+    SIN_CARNET_SANIDAD = "Sin Carnet de Sanidad"
+    SIN_CERT_SANIDAD = "Sin Certificado de Sanidad"
+    MERCADERIA_VENCIDA = "Mercadería Vencida"
+    PRODUCTOS_SIN_ROT = "Productos Sin Rotulación"
 
 # ===== Helpers de normalización =====
 _SPACE_RE = re.compile(r"\s+")
@@ -252,6 +264,11 @@ class ActuacionGridRowIn(BaseModel):
     def parse_contra(cls, v: Any) -> Any:
         return _coerce_enum(v, ContraEnum)
 
+    @field_validator("comprobacion_motivo", mode="before")
+    @classmethod
+    def parse_motivo_comprobacion(cls, v: Any) -> Any:
+        # Normaliza y valida motivos de comprobación como enum (UI dropdown)
+        return _coerce_enum(v, MotivoComprobacion)
     @field_validator("calle")
     @classmethod
     def normalize_calle(cls, v: Optional[str]) -> Optional[str]:

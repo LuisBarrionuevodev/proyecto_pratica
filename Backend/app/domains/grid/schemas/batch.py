@@ -55,3 +55,25 @@ class CommitRowResponse(BaseModel):
     ok: bool
     errors: Dict[str, str] = Field(default_factory=dict)
     persisted: Optional[Dict[str, Any]] = None
+
+
+# === Commit batch (nuevo endpoint) ===
+class CommitRowItem(BaseModel):
+    """Item para commit batch: row_id y normalized payload."""
+
+    row_id: str = Field(..., min_length=1)
+    normalized: Dict[str, Any]
+
+
+class CommitBatchRequest(BaseModel):
+    """Commit/persistencia de múltiples filas ya validadas."""
+
+    batch_id: UUID
+    rows: List[CommitRowItem]
+
+
+class CommitBatchResponse(BaseModel):
+    """Response con resultados por fila en commit batch."""
+
+    batch_id: UUID
+    results: List[CommitRowResponse]

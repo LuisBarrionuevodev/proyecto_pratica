@@ -536,14 +536,6 @@ const TablaCargarActuacionesGlide = () => {
                     >
                         Confirmar Carga
                     </Button>
-
-                    <Button
-                        variant="outlined"
-                        onClick={handleAddRow}
-                        disabled={!batchId}
-                    >
-                        + Agregar Fila
-                    </Button>
                 </Stack>
 
                 {/* Data Grid */}
@@ -572,7 +564,7 @@ const TablaCargarActuacionesGlide = () => {
                         trailingRowOptions={{
                             sticky: true,
                             tint: true,
-                            hint: "Nueva fila...",
+                            hint: "Presiona Enter o haz clic para agregar fila...",
                         }}
                         getCellsForSelection={true}
                         freezeColumns={3}

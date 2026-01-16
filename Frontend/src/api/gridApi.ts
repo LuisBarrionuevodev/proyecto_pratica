@@ -9,6 +9,7 @@ export interface GridRow {
   _cellErrors?: Record<string, string>; // Errores por celda: { "columnId": "mensaje de error" }
   _normalized?: GridRow;
   _validation_history?: number[]; // Para gráficos sparkline (demo)
+  _rowError?: string | null; // Error de fila completa (ej: duplicado)
 
   // Data columns (with spaces, as backend expects)
   "ID"?: number | null;
@@ -75,6 +76,17 @@ export interface CommitRowResponse {
 export interface CommitBatchResponse {
   batch_id: string;
   results: CommitRowResponse[];
+}
+
+// === Catálogos para dropdowns (backend) ===
+export interface CatalogItem {
+  id: number;
+  nombre: string;
+  legajo?: string;
+}
+
+export interface CatalogResponse {
+  items: CatalogItem[];
 }
 
 export interface ValidateRowRequest {
@@ -168,4 +180,28 @@ export const commitBatch = async (
     }
     throw error;
   }
+};
+
+/**
+ * Catálogo de inspectores (para dropdowns)
+ */
+export const fetchInspectores = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/inspectores");
+  return data;
+};
+
+/**
+ * Catálogo de motivos (para dropdowns)
+ */
+export const fetchMotivos = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/motivos");
+  return data;
+};
+
+/**
+ * Catálogo de rubros (para dropdowns)
+ */
+export const fetchRubros = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/rubros");
+  return data;
 };
