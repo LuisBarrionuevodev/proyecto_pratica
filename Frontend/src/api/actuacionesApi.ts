@@ -11,8 +11,9 @@ export const createActuacion = async (body: IActuacion): Promise<IActuacion> => 
   return data;
 };
 
-export const updateActuacion = async (id: Number, body: IActuacion): Promise<IActuacion> => {
-  const { data } = await apiClient.patch(`/actuaciones/${id}`, body);
+// 👇 OJO: id: number (no Number) y PUT (no PATCH)
+export const updateActuacion = async (id: number, body: IActuacion): Promise<IActuacion> => {
+  const { data } = await apiClient.put(`/actuaciones/${id}`, body);
   return data;
 };
 
