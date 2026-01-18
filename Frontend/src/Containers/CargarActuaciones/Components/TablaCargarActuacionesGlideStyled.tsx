@@ -5,8 +5,6 @@ import DataEditor, {
     type GridColumn,
     type Item,
     type EditableGridCell,
-    type Theme,
-    GridColumnIcon,
 } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 import { allCells } from "@glideapps/glide-data-grid-cells";
@@ -24,244 +22,39 @@ import {
     fetchRubros,
 } from "../../../api/gridApi";
 
-// =============================================================================
-// ESTILOS NEO-BRUTALISTAS - Paleta de colores y constantes de diseño
-// =============================================================================
-
-const COLORS = {
-    primary: "#0166FF",
-    black: "#000000",
-    white: "#FFFFFF",
-    grayDark: "#2B2E34",
-    grayMedium: "#353535",
-    grayLight: "#D9D9D9",
-    grayLighter: "#F5F5F5",
-    success: "#2D9F4B",
-    successLight: "#1E3D2F",
-    successText: "#6BFF6B",
-    error: "#E53935",
-    errorLight: "#5C2323",
-    errorText: "#FF6B6B",
-    warning: "#FF9800",
-    warningLight: "#3D2E1E",
-    warningText: "#FFD700",
-    rowEven: "#2B2E34",
-    rowOdd: "#1E2127",
-    border: "#3a3d44",
-};
-
-// Removidas las sombras - usando solo bordes como en Actuaciones
-
-// Estilos del contenedor principal
-const containerStyles = {
-    width: "100%",
-    height: "100%",
-    fontFamily: '"Tactic Sans", sans-serif',
-};
-
-// Estilos del wrapper
-const wrapperStyles = {
-    width: { xs: "280px", sm: "520px", md: "920px", lg: "920px", xl: "1220px" },
-    display: "flex",
-    position: "absolute" as const,
-    top: { xs: "10px", sm: "1%", md: "5%", lg: "5%", xl: "8%" },
-    marginLeft: { xs: "90px", sm: "100px", md: "100px", lg: "120px", xl: "100px" },
-    textAlign: "center" as const,
-    justifySelf: "center",
-    flexDirection: "column" as const,
-};
-
-// Título con sombra sutil
-const titleStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 800,
-    fontSize: { xs: "22px", sm: "38px", md: "52px" },
-    color: COLORS.white,
-    textShadow: `2px 2px 4px rgba(0, 0, 0, 0.5)`,
-    letterSpacing: "2px",
-    marginBottom: "16px",
-};
-
-// Alertas con borde y sombra sutil (igual que Actuaciones)
-const alertBaseStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "8px",
-    marginBottom: "16px",
-    backgroundColor: COLORS.grayDark,
-    color: COLORS.white,
-    boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
-    "& .MuiAlert-icon": { color: COLORS.white },
-    "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
-};
-
-// Contenedor de la grilla - con borde y sombra sutil (igual que Actuaciones)
-const gridContainerStyles = {
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "8px",
-    overflow: "hidden",
-    boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
-    backgroundImage: "linear-gradient(rgba(255, 255, 255, 0.069), rgba(255, 255, 255, 0.069))",
-    backgroundColor: COLORS.grayDark,
-};
-
-// Leyenda con borde y sombra sutil (igual que Actuaciones)
-const legendStyles = {
-    marginTop: "16px",
-    marginBottom: "8px",
-    padding: "20px",
-    backgroundColor: COLORS.grayDark,
-    borderRadius: "8px",
-    border: `1px solid #1A1C20`,
-    boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
-};
-
-const legendTitleStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 700,
-    fontSize: "16px",
-    marginBottom: "12px",
-    color: COLORS.white,
-};
-
-const legendTextStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 400,
-    fontSize: "14px",
-    color: COLORS.white,
-    lineHeight: 1.8,
-};
-
-const kbdStyles: React.CSSProperties = {
-    padding: "3px 8px",
-    backgroundColor: "#1A1C20",
-    border: `1px solid #555`,
-    borderRadius: "4px",
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 500,
-    fontSize: "12px",
-    boxShadow: "1px 1px 0 #000",
-    display: "inline-block",
-    marginLeft: "4px",
-    marginRight: "4px",
-    color: COLORS.white,
-};
-
-const getStatusBadgeStyles = (bgColor: string, textColor: string): React.CSSProperties => ({
-    display: "inline-block",
-    padding: "2px 8px",
-    backgroundColor: bgColor,
-    color: textColor,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "4px",
-    marginRight: "8px",
-    fontWeight: 600,
-});
-
-// =============================================================================
-// GENERADOR DE IDs ÚNICOS
-// =============================================================================
-const generateRowId = (() => {
-    let counter = 0;
-    return () => `row_${Date.now()}_${counter++}`;
-})();
-
-// =============================================================================
-// OPCIONES DE DROPDOWNS
-// =============================================================================
-const DROPDOWN_ENUMS = {
-    "Tipo actuación": [
-        "INSPECCION",
-        "REINSPECCION",
-        "RATIFICACION DE CLAUSURA",
-        "RATIFICACION DE DECOMISO",
-        "VERIFICAR E INFORMAR",
-        "TRANSPORTE",
-    ],
-    "Contraproducencia": [
-        "LOCAL CERRADO",
-        "NO EXISTE/NO ES EL RUBRO",
-        "CLIMA",
-        "ZONA ROJA",
-        "NO_HUBO",
-        "OTROS",
-    ],
-};
-
-const COMPROBACION_MOTIVOS = [
-    "Falta de Higiene",
-    "Condiciones Edilicias Inadecuadas",
-    "No Permite la Inspección",
-    "Incumplimiento",
-    "Incumplimiento de Notificación",
-    "Sin Certificado de Desinfección",
-    "Sin Carnet de Sanidad",
-    "Sin Certificado de Sanidad",
-    "Mercadería Vencida",
-    "Productos Sin Rotulación",
-];
-
-// =============================================================================
-// CONFIGURACIÓN DE GRUPOS
-// =============================================================================
-const GROUP_CONFIG = {
-    "Actuación": { icon: GridColumnIcon.HeaderArray, color: COLORS.grayDark },
-    "Inspectores": { icon: GridColumnIcon.HeaderCode, color: COLORS.grayDark },
-    "Establecimiento": { icon: GridColumnIcon.HeaderUri, color: COLORS.grayDark },
-    "Actas": { icon: GridColumnIcon.HeaderString, color: COLORS.grayDark },
-    "Reinspección": { icon: GridColumnIcon.HeaderReference, color: COLORS.grayDark },
-    "Expediente": { icon: GridColumnIcon.HeaderMarkdown, color: COLORS.grayDark },
-};
-
-// =============================================================================
-// DEFINICIÓN DE COLUMNAS
-// =============================================================================
-const COLUMN_DEFINITIONS = [
-    { id: "_rowError", title: "Errores fila", width: 260, editable: false, group: "Actuación", icon: GridColumnIcon.HeaderString, cellType: "rowError" },
-    { id: "Fecha actuación", title: "Fecha actuación", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderDate, cellType: "date" },
-    { id: "Tipo actuación", title: "Tipo actuación", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Contraproducencia", title: "Contraproducencia", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Orden de trabajo", title: "Orden de trabajo", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Inspector 1", title: "Inspector 1", width: 150, editable: true, group: "Inspectores", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Inspector 2", title: "Inspector 2", width: 150, editable: true, group: "Inspectores", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Inspector 3", title: "Inspector 3", width: 150, editable: true, group: "Inspectores", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Calle", title: "Calle", width: 200, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderString, cellType: "text" },
-    { id: "Número", title: "Número", width: 100, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Rubro", title: "Rubro", width: 150, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Apellido", title: "Apellido", width: 150, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderString, cellType: "text" },
-    { id: "Nombre", title: "Nombre", width: 150, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderString, cellType: "text" },
-    { id: "DNI", title: "DNI", width: 120, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Acta inspección", title: "Acta inspección", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Acta notificación", title: "Acta notificación", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Motivo notif 1", title: "Motivo notif 1", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Motivo notif 2", title: "Motivo notif 2", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Motivo notif 3", title: "Motivo notif 3", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Acta comprobación", title: "Acta comprobación", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Motivo comprobación", title: "Motivo comprobación", width: 180, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Acta clausura", title: "Acta clausura", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Acta decomiso", title: "Acta decomiso", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Kilos decomiso", title: "Kilos decomiso", width: 120, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Acta notificación previa", title: "Acta notificación previa", width: 180, editable: true, group: "Reinspección", icon: GridColumnIcon.HeaderReference, cellType: "text" },
-    { id: "Acta comprobación previa", title: "Acta comprobación previa", width: 180, editable: true, group: "Expediente", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Expediente año", title: "Expediente año", width: 130, editable: true, group: "Expediente", icon: GridColumnIcon.HeaderDate, cellType: "text" },
-    { id: "Expediente número", title: "Expediente número", width: 150, editable: true, group: "Expediente", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Oficio año", title: "Oficio año", width: 120, editable: true, group: "Expediente", icon: GridColumnIcon.HeaderDate, cellType: "text" },
-    { id: "Oficio número", title: "Oficio número", width: 130, editable: true, group: "Expediente", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Oficio causa", title: "Oficio causa", width: 120, editable: true, group: "Expediente", icon: GridColumnIcon.HeaderString, cellType: "text" },
-];
+// Imports modulares
+import {
+    COLORS,
+    containerStyles,
+    wrapperStyles,
+    titleStyles,
+    alertBaseStyles,
+    gridContainerStyles,
+    legendStyles,
+    legendTitleStyles,
+    legendTextStyles,
+    kbdStyles,
+    getStatusBadgeStyles,
+} from "../styles/cargarActuacionesStyles";
+import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
+import { getDropdownOptions } from "../config/dropdownOptions";
+import { gridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
+import {
+    generateRowId,
+    extractDataColumns,
+    rowHasData,
+    createEmptyRow,
+    createEmptyRows,
+    parseDateValue,
+    formatDateToISO,
+} from "../utils/gridHelpers";
 
 // =============================================================================
 // COMPONENTE PRINCIPAL
 // =============================================================================
 const TablaCargarActuacionesGlideStyled = () => {
     // Estado inicial con 5 filas vacías
-    const initialRows = useMemo(() => {
-        return Array.from({ length: 5 }, () => ({
-            _rowId: generateRowId(),
-            _state: "PENDIENTE" as const,
-            _cellErrors: {},
-        }));
-    }, []);
+    const initialRows = useMemo(() => createEmptyRows(5), []);
 
     // Estados
     const [batchId, setBatchId] = useState<string | null>(null);
@@ -279,6 +72,13 @@ const TablaCargarActuacionesGlideStyled = () => {
     const dataRef = useRef<GridRow[]>(initialRows);
     const batchValidateRef = useRef<number | undefined>(undefined);
     const startingBatchRef = useRef<boolean>(false);
+
+    // Catálogos combinados para dropdowns
+    const catalogs = useMemo(() => ({
+        inspectores: catalogInspectores,
+        motivos: catalogMotivos,
+        rubros: catalogRubros,
+    }), [catalogInspectores, catalogMotivos, catalogRubros]);
 
     // Auto-iniciar batch
     const ensureBatchStarted = useCallback(async () => {
@@ -323,55 +123,66 @@ const TablaCargarActuacionesGlideStyled = () => {
         loadCatalogs();
     }, []);
 
-    // Validar batch de filas
+    // Validar batch de filas - SOLO las que tienen datos
     const validateBatchRows = useCallback(async (rows: GridRow[]) => {
         if (!batchId) return;
         
-        const rowsToValidate = rows.map((row) => ({
+        // Solo validar filas que tienen datos cargados
+        const rowsWithData = rows.filter(row => rowHasData(row));
+        if (rowsWithData.length === 0) return;
+
+        const rowsToValidate = rowsWithData.map((row) => ({
             row_id: row._rowId!,
             row: extractDataColumns(row),
         }));
 
-        const response = await validateBatch({
-            batch_id: batchId,
-            rows: rowsToValidate,
-        });
+        try {
+            const response = await validateBatch({
+                batch_id: batchId,
+                rows: rowsToValidate,
+            });
 
-        setData((prev) =>
-            prev.map((row) => {
-                const result = response.results.find((r) => r.row_id === row._rowId);
-                if (!result) return row;
-                return {
-                    ...row,
-                    _state: result.ok ? "OK" : "ERROR",
-                    _cellErrors: result.errors || {},
-                    _rowError: result.errors?._row || result.errors?.detail || null,
-                    _normalized: result.normalized,
-                };
-            })
-        );
+            setData((prev) =>
+                prev.map((row) => {
+                    const result = response.results.find((r) => r.row_id === row._rowId);
+                    if (!result) return row;
+                    return {
+                        ...row,
+                        _state: result.ok ? "OK" : "ERROR",
+                        _cellErrors: result.errors || {},
+                        _rowError: result.errors?._row || result.errors?.detail || null,
+                        _normalized: result.normalized,
+                    };
+                })
+            );
 
-        // Auto-confirmar filas OK
-        const okRows = response.results
-            .filter((r) => r.ok && r.normalized)
-            .map((r) => ({ row_id: r.row_id, normalized: r.normalized! }));
+            // Auto-confirmar filas OK
+            const okRows = response.results
+                .filter((r) => r.ok && r.normalized)
+                .map((r) => ({ row_id: r.row_id, normalized: r.normalized! }));
 
-        if (okRows.length > 0) {
-            try {
-                setIsCommitting(true);
-                const commitResp = await commitBatch({ batch_id: batchId, rows: okRows });
-                processCommitResults(commitResp.results);
-            } catch (error: any) {
-                console.error("❌ Error en commit batch automático:", error);
-            } finally {
-                setIsCommitting(false);
+            if (okRows.length > 0) {
+                try {
+                    setIsCommitting(true);
+                    const commitResp = await commitBatch({ batch_id: batchId, rows: okRows });
+                    processCommitResults(commitResp.results);
+                } catch (error: any) {
+                    console.error("❌ Error en commit batch automático:", error);
+                } finally {
+                    setIsCommitting(false);
+                }
             }
+        } catch (error: any) {
+            console.error("❌ Error en validación batch:", error);
         }
     }, [batchId]);
 
     // Validar fila individual
     const handleValidateRow = useCallback(async (row: GridRow) => {
         if (!batchId) return;
+        
+        // Solo validar si la fila tiene datos
+        if (!rowHasData(row)) return;
 
         try {
             const dataColumns = extractDataColumns(row);
@@ -472,10 +283,13 @@ const TablaCargarActuacionesGlideStyled = () => {
             if (newValue.kind === GridCellKind.Custom) {
                 const customData = (newValue as any).data;
                 if (customData?.kind === "date-picker-cell") {
-                    const date = customData.date;
-                    value = date && !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : null;
+                    value = formatDateToISO(customData.date);
                 } else if (customData?.kind === "dropdown-cell") {
-                    value = customData.value ?? null;
+                    // Permitir borrar dropdown: valor vacío o null
+                    const dropdownVal = customData.value;
+                    value = (dropdownVal === "" || dropdownVal === null || dropdownVal === undefined) 
+                        ? null 
+                        : dropdownVal;
                 } else {
                     value = customData?.value ?? customData;
                 }
@@ -487,7 +301,13 @@ const TablaCargarActuacionesGlideStyled = () => {
                 value = (newValue as any).data;
             }
 
-            const updatedRow = { ...rowData, [columnId]: value, _rowError: null };
+            // Marcar fila como tocada y actualizar valor
+            const updatedRow = { 
+                ...rowData, 
+                [columnId]: value, 
+                _rowError: null,
+                _touched: true, // Marcar que la fila ha sido editada
+            };
 
             setData((prev) => {
                 const newData = [...prev];
@@ -495,7 +315,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                 return newData;
             });
 
-            // Debounce validación
+            // Debounce validación - solo si la fila tiene datos
             const rowId = rowData._rowId;
             if (rowId && debounceRef.current[rowId] !== undefined) {
                 clearTimeout(debounceRef.current[rowId]);
@@ -517,18 +337,11 @@ const TablaCargarActuacionesGlideStyled = () => {
         [data, batchId, ensureBatchStarted, handleValidateRow, validateBatchRows]
     );
 
-    // Helpers
-    const extractDataColumns = (row: GridRow): GridRow => {
-        const { _rowId, _state, _cellErrors, _rowError, _normalized, _validation_history, ...dataColumns } = row;
-        return dataColumns;
-    };
-
     const handleAddRow = () => {
-        const rowId = generateRowId();
-        setData((prev) => [...prev, { _rowId: rowId, _state: "PENDIENTE", _cellErrors: {} }]);
+        setData((prev) => [...prev, createEmptyRow()]);
     };
 
-    // Columnas con estilos Neo-Brutalistas
+    // Columnas con estilos Neo-Brutalistas - iconos blancos
     const columns = useMemo<GridColumn[]>(
         () =>
             COLUMN_DEFINITIONS.map((col) => {
@@ -566,27 +379,30 @@ const TablaCargarActuacionesGlideStyled = () => {
             const cellErrors = (rowData._cellErrors || {}) as Record<string, string>;
             const hasError = cellErrors[columnId] !== undefined;
             const rowState = rowData._state;
+            const hasData = rowHasData(rowData);
 
-            // Colores según estado
+            // Colores según estado - solo mostrar errores si la fila tiene datos
             let bgColor = COLORS.grayDark;
             let textColor = COLORS.white;
             
-            if (hasError) {
-                bgColor = COLORS.errorLight;
-                textColor = COLORS.errorText;
-            } else if (rowState === "OK") {
-                bgColor = COLORS.successLight;
-                textColor = COLORS.successText;
-            } else if (rowState === "ERROR") {
-                bgColor = COLORS.warningLight;
-                textColor = COLORS.warningText;
+            if (hasData) {
+                if (hasError) {
+                    bgColor = COLORS.errorLight;
+                    textColor = COLORS.errorText;
+                } else if (rowState === "OK") {
+                    bgColor = COLORS.successLight;
+                    textColor = COLORS.successText;
+                } else if (rowState === "ERROR") {
+                    bgColor = COLORS.warningLight;
+                    textColor = COLORS.warningText;
+                }
             }
 
             const themeOverride = { bgCell: bgColor, textDark: textColor };
 
-            // Columna de error de fila
+            // Columna de error de fila - solo mostrar si tiene datos
             if (columnId === "_rowError") {
-                const rowError = rowData._rowError || "";
+                const rowError = hasData ? (rowData._rowError || "") : "";
                 return {
                     kind: GridCellKind.Text,
                     data: rowError,
@@ -601,60 +417,31 @@ const TablaCargarActuacionesGlideStyled = () => {
 
             // Celda tipo DATE
             if (cellType === "date") {
-                let dateValue: Date | null = null;
-                let displayDate = "";
-                
-                if (value) {
-                    try {
-                        dateValue = new Date(value as string);
-                        if (!isNaN(dateValue.getTime())) {
-                            displayDate = dateValue.toISOString().split('T')[0];
-                        } else {
-                            dateValue = null;
-                            displayDate = value.toString();
-                        }
-                    } catch {
-                        dateValue = null;
-                        displayDate = value.toString();
-                    }
-                }
+                const { date, displayDate } = parseDateValue(value);
                 
                 return {
                     kind: GridCellKind.Custom,
                     allowOverlay: true,
                     copyData: displayDate,
-                    data: { kind: "date-picker-cell", date: dateValue, displayDate, format: "date" as const },
+                    data: { kind: "date-picker-cell", date, displayDate, format: "date" as const },
                     themeOverride,
                 } as any;
             }
 
-            // Celda tipo DROPDOWN
+            // Celda tipo DROPDOWN - opciones sin duplicados y con opción vacía
             if (cellType === "dropdown") {
-                const enumOptions = (DROPDOWN_ENUMS as any)[columnId] || [];
-                const isInspector = columnId.startsWith("Inspector");
-                const isMotivoNotif = columnId.startsWith("Motivo notif");
-                const isMotivoComprobacion = columnId === "Motivo comprobación";
-                const isRubro = columnId === "Rubro";
-
-                const options = enumOptions.length > 0
-                    ? enumOptions
-                    : isMotivoComprobacion
-                        ? COMPROBACION_MOTIVOS
-                        : isInspector
-                            ? catalogInspectores
-                            : isMotivoNotif
-                                ? catalogMotivos
-                                : isRubro
-                                    ? catalogRubros
-                                    : [];
-                                    
+                const options = getDropdownOptions(columnId, catalogs);
                 const dropdownValue = value ? value.toString() : null;
                 
                 return {
                     kind: GridCellKind.Custom,
                     allowOverlay: true,
                     copyData: dropdownValue || "",
-                    data: { kind: "dropdown-cell", allowedValues: options, value: dropdownValue },
+                    data: { 
+                        kind: "dropdown-cell", 
+                        allowedValues: options, 
+                        value: dropdownValue,
+                    },
                     themeOverride,
                 } as any;
             }
@@ -669,7 +456,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                 themeOverride,
             };
         },
-        [data, catalogInspectores, catalogMotivos, catalogRubros]
+        [data, catalogs]
     );
 
     const handleCellClicked = useCallback(() => {
@@ -687,63 +474,14 @@ const TablaCargarActuacionesGlideStyled = () => {
 
     const onRowAppended = useCallback(() => handleAddRow(), []);
 
-    // Tema Neo-Brutalista oscuro
-    const customTheme = useMemo<Partial<Theme>>(
-        () => ({
-            accentColor: COLORS.primary,
-            accentLight: "#4D94FF",
-            textDark: COLORS.white,
-            textMedium: "#CCCCCC",
-            textLight: "#999999",
-            textBubble: COLORS.white,
-            textHeader: COLORS.white,
-            textGroupHeader: COLORS.white,
-            bgIconHeader: COLORS.primary,
-            fgIconHeader: COLORS.white,
-            textHeaderSelected: COLORS.primary,
-            bgCell: COLORS.grayDark,
-            bgCellMedium: COLORS.rowOdd,
-            bgHeader: COLORS.grayDark,
-            bgHeaderHasFocus: "#3a3d44",
-            bgHeaderHovered: "#3a3d44",
-            bgBubble: COLORS.grayDark,
-            bgBubbleSelected: COLORS.primary,
-            bgSearchResult: COLORS.warningLight,
-            borderColor: COLORS.border,
-            horizontalBorderColor: COLORS.border,
-            drilldownBorder: COLORS.primary,
-            linkColor: COLORS.primary,
-            headerFontStyle: "600 12px",
-            baseFontStyle: "11px",
-            fontFamily: '"Tactic Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        }),
-        []
-    );
+    // Contadores - solo contar filas con datos
+    const rowsWithData = data.filter(rowHasData);
+    const okCount = rowsWithData.filter((r) => r._state === "OK").length;
+    const errorCount = rowsWithData.filter((r) => r._state === "ERROR").length;
+    const pendingCount = rowsWithData.filter((r) => r._state === "PENDIENTE").length;
 
-    // Contadores
-    const okCount = data.filter((r) => r._state === "OK").length;
-    const errorCount = data.filter((r) => r._state === "ERROR").length;
-    const pendingCount = data.filter((r) => r._state === "PENDIENTE").length;
-
-    // Altura dinámica - ajustada al contenido real sin espacio extra
-    const tableHeight = useMemo(() => {
-        const rowHeight = 36;
-        const headerHeight = 42;
-        const groupHeaderHeight = 36;
-        const trailingRowHeight = 36; // Fila para agregar nueva
-        
-        // Altura exacta del contenido visible
-        const contentHeight = 
-            groupHeaderHeight + 
-            headerHeight + 
-            (data.length * rowHeight) + 
-            trailingRowHeight;
-        
-        const minHeight = 400;
-        const maxHeight = window.innerHeight - 280;
-        
-        return Math.min(Math.max(contentHeight, minHeight), maxHeight);
-    }, [data.length]);
+    // Altura dinámica
+    const tableHeight = useMemo(() => calculateTableHeight(data.length), [data.length]);
 
     return (
         <Box sx={containerStyles}>
@@ -786,33 +524,48 @@ const TablaCargarActuacionesGlideStyled = () => {
                         onFinishedEditing={handleFinishedEditing}
                         onRowAppended={onRowAppended}
                         customRenderers={allCells}
-                        theme={customTheme}
+                        theme={gridTheme}
                         smoothScrollX={true}
                         smoothScrollY={true}
                         rowMarkers="both"
-                        rowHeight={36}
-                        headerHeight={42}
+                        rowHeight={GRID_DIMENSIONS.rowHeight}
+                        headerHeight={GRID_DIMENSIONS.headerHeight}
                         overscrollY={0}
                         overscrollX={0}
                         trailingRowOptions={{
                             sticky: false,
                             tint: true,
                             hint: "Presiona Enter o haz clic para agregar fila...",
+                            // Tema específico para la fila trailing con icono azul
+                            themeOverride: {
+                                bgCell: "#1A1C20",
+                                textDark: COLORS.primary,
+                                accentColor: COLORS.primary,
+                            },
                         }}
                         getCellsForSelection={true}
                         freezeColumns={0}
                         keybindings={{ search: true }}
                         getGroupDetails={(groupName) => {
                             const config = GROUP_CONFIG[groupName as keyof typeof GROUP_CONFIG];
-                            return config ? { name: groupName, icon: config.icon } : { name: groupName };
+                            return config ? { 
+                                name: groupName, 
+                                icon: config.icon,
+                                // Iconos de grupo blancos
+                                overrideTheme: {
+                                    bgIconHeader: "transparent",
+                                    fgIconHeader: COLORS.white,
+                                    textGroupHeader: COLORS.white,
+                                },
+                            } : { name: groupName };
                         }}
-                        groupHeaderHeight={36}
+                        groupHeaderHeight={GRID_DIMENSIONS.groupHeaderHeight}
                     />
                 </Box>
 
                 <Box sx={legendStyles}>
                     <Typography sx={legendTitleStyles}>
-                        📝 CÓMO USAR:
+                         CÓMO USAR:
                     </Typography>
                     <Typography sx={legendTextStyles} component="div">
                         <strong>1.</strong> Empieza a cargar datos: <strong>DOBLE CLICK</strong> en cualquier celda o presiona 
@@ -820,6 +573,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                         <strong>2.</strong> Presiona <span style={kbdStyles}>Tab</span> para moverte entre celdas<br/>
                         <strong>3.</strong> Para agregar filas: presiona <span style={kbdStyles}>Enter</span> o haz clic en la fila inferior<br/>
                         <strong>4.</strong> La validación y guardado es <strong>automático</strong> al editar<br/>
+                        <strong>5.</strong> Para borrar un dropdown: selecciona la opción vacía al inicio de la lista<br/>
                         <br/>
                         <strong>COLORES:</strong>{" "}
                         <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>

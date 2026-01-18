@@ -1,39 +1,37 @@
 /**
- * Opciones de dropdowns para la grilla de actuaciones
- * Enums alineados con el backend
+ * Opciones de dropdowns para la grilla de CargarActuaciones
+ * NOTA: Se incluye opción vacía al inicio para permitir borrar la selección
  */
 
 // =============================================================================
-// TIPOS DE ACTUACIÓN
+// ENUMS ESTÁTICOS (definidos en el frontend)
 // =============================================================================
-
-export const TIPO_ACTUACION_OPTIONS = [
-    "INSPECCION",
-    "REINSPECCION",
-    "RATIFICACION DE CLAUSURA",
-    "RATIFICACION DE DECOMISO",
-    "VERIFICAR E INFORMAR",
-    "TRANSPORTE",
-] as const;
-
-// =============================================================================
-// TIPOS DE CONTRAPRODUCENCIA
-// =============================================================================
-
-export const CONTRAPRODUCENCIA_OPTIONS = [
-    "LOCAL CERRADO",
-    "NO EXISTE/NO ES EL RUBRO",
-    "CLIMA",
-    "ZONA ROJA",
-    "NO_HUBO",
-    "OTROS",
-] as const;
+export const DROPDOWN_ENUMS: Record<string, string[]> = {
+    "Tipo actuación": [
+        "", // Opción vacía para poder borrar
+        "INSPECCION",
+        "REINSPECCION",
+        "RATIFICACION DE CLAUSURA",
+        "RATIFICACION DE DECOMISO",
+        "VERIFICAR E INFORMAR",
+        "TRANSPORTE",
+    ],
+    "Contraproducencia": [
+        "", // Opción vacía para poder borrar
+        "LOCAL CERRADO",
+        "NO EXISTE/NO ES EL RUBRO",
+        "CLIMA",
+        "ZONA ROJA",
+        "NO_HUBO",
+        "OTROS",
+    ],
+};
 
 // =============================================================================
-// MOTIVOS DE COMPROBACIÓN
+// MOTIVOS DE COMPROBACIÓN (definidos en el frontend)
 // =============================================================================
-
 export const COMPROBACION_MOTIVOS = [
+    "", // Opción vacía para poder borrar
     "Falta de Higiene",
     "Condiciones Edilicias Inadecuadas",
     "No Permite la Inspección",
@@ -44,53 +42,47 @@ export const COMPROBACION_MOTIVOS = [
     "Sin Certificado de Sanidad",
     "Mercadería Vencida",
     "Productos Sin Rotulación",
-] as const;
-
-// =============================================================================
-// MAPA DE ENUMS POR COLUMNA
-// =============================================================================
-
-/** Mapea columnas a sus opciones de dropdown fijas */
-export const DROPDOWN_ENUMS: Record<string, readonly string[]> = {
-    "Tipo actuación": TIPO_ACTUACION_OPTIONS,
-    "Contraproducencia": CONTRAPRODUCENCIA_OPTIONS,
-    "Motivo comprobación": COMPROBACION_MOTIVOS,
-};
-
-// =============================================================================
-// HELPERS
-// =============================================================================
+];
 
 /**
- * Obtiene las opciones de dropdown para una columna
+ * Obtiene las opciones para un dropdown según la columna
  * @param columnId - ID de la columna
- * @param catalogs - Catálogos del backend (inspectores, motivos, rubros)
- * @returns Array de opciones para el dropdown
+ * @param catalogs - Catálogos cargados desde el backend
+ * @returns Array de opciones (siempre incluye opción vacía al inicio)
  */
-export function getDropdownOptions(
+export const getDropdownOptions = (
     columnId: string,
     catalogs: {
         inspectores: string[];
         motivos: string[];
         rubros: string[];
     }
-): string[] {
-    // Primero verificar enums fijos
+): string[] => {
+    // Primero verificar si es un enum estático
     const enumOptions = DROPDOWN_ENUMS[columnId];
-    if (enumOptions) {
-        return [...enumOptions];
+    if (enumOptions && enumOptions.length > 0) {
+        return enumOptions;
     }
 
-    // Luego verificar catálogos del backend
-    if (columnId.startsWith("Inspector")) {
-        return catalogs.inspectores;
+    // Detectar tipo de columna
+    const isInspector = columnId.startsWith("Inspector");
+    const isMotivoNotif = columnId.startsWith("Motivo notif");
+    const isMotivoComprobacion = columnId === "Motivo comprobación";
+    const isRubro = columnId === "Rubro";
+
+    // Retornar opciones del catálogo con opción vacía al inicio
+    if (isMotivoComprobacion) {
+        return COMPROBACION_MOTIVOS;
     }
-    if (columnId.startsWith("Motivo notif")) {
-        return catalogs.motivos;
+    if (isInspector) {
+        return ["", ...catalogs.inspectores];
     }
-    if (columnId === "Rubro") {
-        return catalogs.rubros;
+    if (isMotivoNotif) {
+        return ["", ...catalogs.motivos];
+    }
+    if (isRubro) {
+        return ["", ...catalogs.rubros];
     }
 
-    return [];
-}
+    return [""];
+};

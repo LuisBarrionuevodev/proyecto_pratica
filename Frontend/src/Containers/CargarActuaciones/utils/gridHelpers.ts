@@ -1,109 +1,70 @@
 /**
- * Funciones auxiliares para la grilla de actuaciones
+ * Funciones auxiliares para la grilla de CargarActuaciones
  */
-
-import type { GridRow } from "../types";
+import type { GridRow } from "../../../api/gridApi";
 
 // =============================================================================
 // GENERADOR DE IDs ÚNICOS
 // =============================================================================
+const generateRowIdCounter = { value: 0 };
 
-/** Contador interno para IDs únicos */
-let rowIdCounter = 0;
-
-/**
- * Genera un ID único para una fila
- * Formato: row_<timestamp>_<counter>
- */
-export function generateRowId(): string {
-    return `row_${Date.now()}_${rowIdCounter++}`;
-}
-
-/**
- * Resetea el contador de IDs (útil para tests)
- */
-export function resetRowIdCounter(): void {
-    rowIdCounter = 0;
-}
+export const generateRowId = (): string => {
+    return `row_${Date.now()}_${generateRowIdCounter.value++}`;
+};
 
 // =============================================================================
-// EXTRACCIÓN DE DATOS
+// HELPERS PARA FILAS
 // =============================================================================
 
 /**
  * Extrae solo las columnas de datos de una fila (sin metadatos internos)
- * Elimina: _rowId, _state, _cellErrors, _rowError, _normalized, _validation_history
  */
-export function extractDataColumns(row: GridRow): GridRow {
-    const { 
-        _rowId, 
-        _state, 
-        _cellErrors, 
-        _rowError, 
-        _normalized, 
-        _validation_history, 
-        ...dataColumns 
-    } = row;
+export const extractDataColumns = (row: GridRow): Partial<GridRow> => {
+    const { _rowId, _state, _cellErrors, _rowError, _normalized, _validation_history, _touched, ...dataColumns } = row as any;
     return dataColumns;
-}
-
-// =============================================================================
-// CREACIÓN DE FILAS
-// =============================================================================
+};
 
 /**
- * Crea una nueva fila vacía con estado PENDIENTE
+ * Verifica si una fila tiene datos cargados (ha sido tocada)
+ * Una fila se considera "tocada" si tiene algún valor en sus columnas de datos
  */
-export function createEmptyRow(): GridRow {
-    return {
-        _rowId: generateRowId(),
-        _state: "PENDIENTE",
-        _cellErrors: {},
-    };
-}
+export const rowHasData = (row: GridRow): boolean => {
+    // Si tiene flag _touched explícito, usar eso
+    if ((row as any)._touched) return true;
+    
+    // Verificar si hay algún valor en las columnas de datos
+    const dataColumns = extractDataColumns(row);
+    return Object.values(dataColumns).some(value => 
+        value !== null && value !== undefined && value !== ""
+    );
+};
+
+/**
+ * Crea una nueva fila vacía con los valores por defecto
+ */
+export const createEmptyRow = (): GridRow => ({
+    _rowId: generateRowId(),
+    _state: "PENDIENTE",
+    _cellErrors: {},
+} as GridRow);
 
 /**
  * Crea múltiples filas vacías
  */
-export function createEmptyRows(count: number): GridRow[] {
+export const createEmptyRows = (count: number): GridRow[] => {
     return Array.from({ length: count }, () => createEmptyRow());
-}
+};
 
 // =============================================================================
-// CONTADORES
-// =============================================================================
-
-/**
- * Cuenta filas por estado
- */
-export function countRowsByState(rows: GridRow[]): {
-    ok: number;
-    error: number;
-    pending: number;
-    total: number;
-} {
-    const ok = rows.filter(r => r._state === "OK").length;
-    const error = rows.filter(r => r._state === "ERROR").length;
-    const pending = rows.filter(r => r._state === "PENDIENTE").length;
-    
-    return {
-        ok,
-        error,
-        pending,
-        total: rows.length,
-    };
-}
-
-// =============================================================================
-// PARSEO DE VALORES
+// HELPERS PARA FECHAS
 // =============================================================================
 
 /**
- * Parsea el valor de una fecha para mostrar
+ * Parsea un valor de fecha y retorna un objeto Date o null
  */
-export function parseDateValue(value: unknown): { date: Date | null; display: string } {
+export const parseDateValue = (value: any): { date: Date | null; displayDate: string } => {
     if (!value) {
-        return { date: null, display: "" };
+        return { date: null, displayDate: "" };
     }
 
     try {
@@ -111,22 +72,20 @@ export function parseDateValue(value: unknown): { date: Date | null; display: st
         if (!isNaN(dateValue.getTime())) {
             return {
                 date: dateValue,
-                display: dateValue.toISOString().split('T')[0],
+                displayDate: dateValue.toISOString().split('T')[0],
             };
         }
     } catch {
-        // Ignorar error de parseo
+        // Ignorar errores de parseo
     }
 
-    return { date: null, display: String(value) };
-}
+    return { date: null, displayDate: value.toString() };
+};
 
 /**
- * Formatea una fecha Date a string ISO (YYYY-MM-DD)
+ * Formatea una fecha para enviar al backend
  */
-export function formatDateToISO(date: Date | null | undefined): string | null {
-    if (!date || isNaN(date.getTime())) {
-        return null;
-    }
+export const formatDateToISO = (date: Date | null): string | null => {
+    if (!date || isNaN(date.getTime())) return null;
     return date.toISOString().split('T')[0];
-}
+};

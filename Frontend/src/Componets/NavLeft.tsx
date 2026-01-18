@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, Avatar, Divider, Tooltip, } from "@mui/material";
+import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, Divider, Tooltip, } from "@mui/material";
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import { Link, useNavigate } from "react-router-dom";
-import { StyleDivider, StyleDrawer, StyleListItems, StyleListItemsIcon, StyleLogo } from "../styles/NavBarStyles";
+import { 
+    StyleDivider, 
+    StyleDrawer, 
+    StyleListItems, 
+    StyleListItemsIcon, 
+    StyleLogo,
+    StyleListItem,
+    StyleListItemButton,
+    StyleListItemText,
+    StyleExpandButton,
+} from "../styles/NavBarStyles";
 import { menuItems } from "../constants/menuItems";
 import LogoSMT from "../assets/LogoSMT.svg"
 import TextDigitaliza from "../assets/TextDigitaliza.svg"
-import FotoAvatar from "../assets/FotoAvatar.png"
 
 const NavLeft = () => {
 
@@ -35,21 +44,21 @@ const NavLeft = () => {
 
                 <Divider sx={StyleDivider} />
 
-                {/* Lista de ítems */}
+                {/* Lista de ítems con alineación profesional */}
                 <List sx={StyleListItems}>
                     {menuItems.map(({ text, icon, path }) => (
-                        <Tooltip key={text} title={!open ? text : ""} placement="right">
-                            <ListItem disablePadding>
-                                <ListItemButton onClick={() => navigate(path)}>
+                        <Tooltip key={text} title={!open ? text : ""} placement="right" arrow>
+                            <ListItem disablePadding sx={StyleListItem(open)}>
+                                <ListItemButton 
+                                    onClick={() => navigate(path)}
+                                    sx={StyleListItemButton(open)}
+                                >
                                     <ListItemIcon sx={StyleListItemsIcon(open)}>
                                         {icon}
                                     </ListItemIcon>
                                     <ListItemText
                                         primary={text}
-                                        slotProps={{primary: {
-                                            fontFamily:"Tactic Sans",
-                                        }}}
-                                        sx={{ opacity: open ? 1 : 0,  whiteSpace: "wrap"  }}
+                                        sx={StyleListItemText(open)}
                                     />
                                 </ListItemButton>
                             </ListItem>
@@ -59,17 +68,12 @@ const NavLeft = () => {
 
                 <Divider sx={StyleDivider} />
 
-                {/* Avatar de usuario abajo */}
-                <Box sx={{ padding: 2 }}>
-                    <Avatar src={FotoAvatar} alt="Usuario"/>
-                </Box>
-
                 {/* Botón de expansión */}
                 <IconButton
                     onClick={() => setOpen(!open)}
-                    sx={{ color: "white", marginBottom: 2 }}
+                    sx={StyleExpandButton}
                 >
-                    { open ? <KeyboardDoubleArrowLeftIcon /> : <KeyboardDoubleArrowRightIcon /> }
+                    {open ? <KeyboardDoubleArrowLeftIcon /> : <KeyboardDoubleArrowRightIcon />}
                 </IconButton>
             </Drawer>
         </Box>

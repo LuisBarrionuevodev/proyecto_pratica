@@ -1,27 +1,18 @@
-/**
- * Botones de exportación para la tabla de Actuaciones
- * Estilo Neo-Brutalista oscuro
- */
-
 import { Box, Button } from "@mui/material";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../../styles/TablasStyle";
 import { exportVisibleRows, exportAllData } from "../../../utils/exportToCsv";
-import { exportBoxStyles, exportButtonStyles } from "../styles/actuacionesTableStyles";
 
 export const TablaExportButtons = ({ data, table }: { data: any[], table: any }) => (
-    <Box sx={exportBoxStyles}>
-        <Button
-            onClick={() => exportAllData(data)}
-            startIcon={<FileDownloadIcon />}
-            sx={exportButtonStyles}
-        >
+    <Box sx={TableExportBoxStyles}>
+        <Button onClick={() => exportAllData(data)} startIcon={<FileDownloadIcon />} sx={TableExportButtonStyles}>
             Exportar todo
         </Button>
         <Button
             disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
             onClick={() => exportVisibleRows(table.getSelectedRowModel().rows, table)}
             startIcon={<FileDownloadIcon />}
-            sx={exportButtonStyles}
+            sx={TableExportButtonStyles}
         >
             Exportar seleccionados
         </Button>
@@ -29,7 +20,7 @@ export const TablaExportButtons = ({ data, table }: { data: any[], table: any })
             disabled={table.getRowModel().rows.length === 0}
             onClick={() => exportVisibleRows(table.getRowModel().rows, table)}
             startIcon={<FileDownloadIcon />}
-            sx={exportButtonStyles}
+            sx={TableExportButtonStyles}
         >
             Exportar página
         </Button>

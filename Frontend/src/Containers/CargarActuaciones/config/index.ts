@@ -1,24 +1,6 @@
 /**
- * Exportaciones de configuración del módulo CargarActuaciones
+ * Configuraciones para la grilla de CargarActuaciones
  */
-
-export { 
-    COLUMN_DEFINITIONS, 
-    getGridColumns, 
-    getColumnByIndex, 
-    getColumnById 
-} from "./columnDefinitions";
-
-export { 
-    TIPO_ACTUACION_OPTIONS,
-    CONTRAPRODUCENCIA_OPTIONS,
-    COMPROBACION_MOTIVOS,
-    DROPDOWN_ENUMS,
-    getDropdownOptions,
-} from "./dropdownOptions";
-
-export { 
-    GROUP_CONFIG, 
-    getGroupConfig, 
-    getGroupDetails 
-} from "./groupConfig";
+export { COLUMN_DEFINITIONS, GROUP_CONFIG, DATA_COLUMN_IDS } from "./columnDefinitions";
+export { DROPDOWN_ENUMS, COMPROBACION_MOTIVOS, getDropdownOptions } from "./dropdownOptions";
+export { gridTheme, GRID_DIMENSIONS, calculateTableHeight } from "./gridTheme";

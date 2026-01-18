@@ -8,55 +8,6 @@
   outline: none !important;
 }
 
-/* =============================================================================
-   MATERIAL REACT TABLE - OPTIMIZACIÓN DE RENDIMIENTO
-   Deshabilitar animaciones lentas para selección/búsqueda instantánea
-   ============================================================================= */
-
-/* Deshabilitar TODAS las transiciones en la tabla MRT */
-.MuiTableRow-root,
-.MuiTableCell-root,
-.MuiCheckbox-root,
-.MuiTableRow-root.Mui-selected,
-.MuiTableRow-root.Mui-selected .MuiTableCell-root {
-  transition: none !important;
-  animation: none !important;
-}
-
-/* Banner de alerta (X rows selected) - Fondo oscuro sin azul */
-.MuiAlert-root.MuiAlert-standardInfo {
-  background-color: #2B2E34 !important;
-  color: #FFFFFF !important;
-  border: 1px solid #3a3d44 !important;
-}
-
-.MuiAlert-root.MuiAlert-standardInfo .MuiAlert-icon {
-  color: #FFFFFF !important;
-}
-
-.MuiAlert-root.MuiAlert-standardInfo .MuiAlert-message {
-  color: #FFFFFF !important;
-}
-
-/* Checkbox animación instantánea */
-.MuiCheckbox-root .MuiSvgIcon-root {
-  transition: none !important;
-}
-
-/* Input de búsqueda - respuesta instantánea */
-.MuiInputBase-root input {
-  transition: none !important;
-}
-
-/* Ripple effect más rápido */
-.MuiTouchRipple-root {
-  transition-duration: 0.1s !important;
-}
-
-.MuiTouchRipple-ripple {
-  animation-duration: 0.2s !important;
-}
-
 
 
 
@@ -108,182 +59,156 @@ a{
 }
 
 /* =============================================================================
-   GLIDE DATA GRID - TEMA OSCURO PARA CELDAS CUSTOM
-   Override estilos del date-picker y dropdown cells
+   ESTILOS GLOBALES PARA GLIDE DATA GRID - Neo-Brutalismo
    ============================================================================= */
 
-/* Date Picker Cell - Icono del calendario */
-.gdg-date-picker-cell button,
-.gdg-date-picker-cell .calendar-icon,
-[data-kind="date-picker-cell"] button {
-  background-color: transparent !important;
-  border: 1px solid #3a3d44 !important;
-  border-radius: 4px !important;
-  color: #FFFFFF !important;
-  cursor: pointer;
+/* Estilos para el Date Picker de Glide Data Grid */
+.gdg-date-picker-overlay {
+    background-color: #2B2E34 !important;
+    border: 2px solid #000000 !important;
+    box-shadow: 6px 6px 0px #000000 !important;
+    color: #FFFFFF !important;
 }
 
-[data-kind="date-picker-cell"] button:hover {
-  background-color: #3a3d44 !important;
+.gdg-date-picker-overlay input {
+    background-color: #1A1C20 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #3a3d44 !important;
 }
 
-/* Dropdown Cell - Flecha del dropdown */
-.gdg-dropdown-cell button,
-[data-kind="dropdown-cell"] button {
-  background-color: transparent !important;
-  border: none !important;
-  color: #FFFFFF !important;
+.gdg-date-picker-overlay button {
+    background-color: #0166FF !important;
+    color: #FFFFFF !important;
+    border: 1px solid #000000 !important;
 }
 
-/* Overlays (popups) de celdas custom - Fondo oscuro */
-.gdg-overlay,
-.gdg-cell-overlay,
-.glide-data-grid-overlay {
-  background-color: #2B2E34 !important;
-  border: 1px solid #3a3d44 !important;
-  color: #FFFFFF !important;
+.gdg-date-picker-overlay button:hover {
+    background-color: #0055DD !important;
 }
 
-/* Date Picker Popup */
-.gdg-date-picker-popup,
-.react-datepicker,
-.react-datepicker__header,
-.react-datepicker__month-container {
-  background-color: #2B2E34 !important;
-  color: #FFFFFF !important;
-  border-color: #3a3d44 !important;
+/* Botón del calendario dentro de la celda */
+.gdg-date-picker-cell-button {
+    background-color: transparent !important;
+    border: 1px solid #3a3d44 !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
 }
 
-.react-datepicker__day-name,
-.react-datepicker__day,
-.react-datepicker__time-name,
-.react-datepicker__current-month,
-.react-datepicker__navigation-icon::before {
-  color: #FFFFFF !important;
+/* Estilos para el Dropdown de Glide Data Grid */
+.gdg-dropdown-overlay {
+    background-color: #2B2E34 !important;
+    border: 2px solid #000000 !important;
+    box-shadow: 6px 6px 0px #000000 !important;
+    color: #FFFFFF !important;
 }
 
-.react-datepicker__day:hover {
-  background-color: #0166FF !important;
+.gdg-dropdown-overlay .gdg-dropdown-item {
+    color: #FFFFFF !important;
 }
 
-.react-datepicker__day--selected,
-.react-datepicker__day--keyboard-selected {
-  background-color: #0166FF !important;
-  color: #FFFFFF !important;
+.gdg-dropdown-overlay .gdg-dropdown-item:hover {
+    background-color: #3a3d44 !important;
 }
 
-.react-datepicker__day--outside-month {
-  color: #666666 !important;
+.gdg-dropdown-overlay .gdg-dropdown-item.selected {
+    background-color: #0166FF !important;
 }
 
-/* Dropdown Popup */
-.gdg-dropdown-popup,
-.gdg-dropdown-menu {
-  background-color: #2B2E34 !important;
-  border: 1px solid #3a3d44 !important;
+/* Estilos para el input de edición de celda */
+.gdg-input {
+    background-color: #1A1C20 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #3a3d44 !important;
 }
 
-.gdg-dropdown-option,
-.gdg-dropdown-item {
-  color: #FFFFFF !important;
-}
-
-.gdg-dropdown-option:hover,
-.gdg-dropdown-item:hover {
-  background-color: #3a3d44 !important;
-}
-
-/* Canvas overlay styles - Input en edición */
-.gdg-text-editor,
-.gdg-growing-entry textarea,
-.gdg-growing-entry input {
-  background-color: #1E2127 !important;
-  color: #FFFFFF !important;
-  border: 1px solid #0166FF !important;
-  caret-color: #FFFFFF !important;
-}
-
-/* Scrollbar oscuro para la grilla */
+/* Estilos para el scrollbar de Glide */
 .dvn-scroller::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+    width: 12px;
+    height: 12px;
 }
 
 .dvn-scroller::-webkit-scrollbar-track {
-  background: #1A1C20;
+    background: #1E2127;
 }
 
 .dvn-scroller::-webkit-scrollbar-thumb {
-  background-color: #3a3d44;
-  border-radius: 4px;
+    background-color: #3a3d44;
+    border-radius: 6px;
+    border: 2px solid #1E2127;
 }
 
 .dvn-scroller::-webkit-scrollbar-thumb:hover {
-  background-color: #4a4d54;
+    background-color: #4a4d54;
 }
 
-/* =============================================================================
-   GLIDE DATA GRID - ICONOS BLANCOS CON HOVER AZUL
-   El botón + de agregar fila debe ser AZUL
-   ============================================================================= */
-
-/* Iconos de header - Blancos */
+/* Estilos para iconos de Glide Data Grid (CargarActuaciones) */
 .gdg-header-icon,
-.dvn-header-icon {
-  color: #FFFFFF !important;
-  transition: color 0.2s ease;
+.gdg-row-marker-icon,
+.gdg-column-menu-button {
+    color: #FFFFFF !important;
+    transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .gdg-header-icon:hover,
-.dvn-header-icon:hover {
-  color: #0166FF !important;
+.gdg-column-menu-button:hover {
+    color: #0166FF !important;
+    background-color: rgba(1, 102, 255, 0.15) !important;
 }
 
-/* Row markers (checkbox, números de fila) - Blancos */
-.dvn-row-marker {
-  color: #FFFFFF !important;
+/* Icono de la fila trailing (agregar fila) siempre azul */
+.gdg-trailing-row-indicator {
+    color: #0166FF !important;
 }
 
-/* Trailing row (fila para agregar) - Icono + AZUL */
-.dvn-trailing-row,
-.gdg-trailing-row {
-  background-color: #1E2127 !important;
+/* Iconos de grupos de columnas - color blanco */
+.gdg-group-header-icon,
+.dvn-group-header svg,
+[data-testid="group-header"] svg {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
 }
 
-.dvn-trailing-row-icon,
-.gdg-trailing-row-icon,
+/* Texto de hints en trailing row */
+.gdg-trailing-hint,
+.gdg-trailing-row .gdg-cell {
+    color: #0166FF !important;
+}
+
+/* Botón de agregar (+) en trailing row - azul */
 .dvn-trailing-row svg,
-.gdg-trailing-row svg {
-  color: #0166FF !important;
-  fill: #0166FF !important;
+.gdg-add-row-icon {
+    color: #0166FF !important;
+    fill: #0166FF !important;
 }
 
-/* Hint text de trailing row */
-.dvn-trailing-row-hint {
-  color: #999999 !important;
-  font-family: "Tactic Sans", sans-serif !important;
+/* Fix para el padding extra en el scroll */
+.dvn-scroller {
+    padding-bottom: 0 !important;
 }
 
-/* Icono de menú de columna - Blanco con hover azul */
-.gdg-column-menu-icon,
-.dvn-column-menu-icon {
-  color: #FFFFFF !important;
-  transition: color 0.2s ease;
+/* Fix para el overscroll en Glide */
+.gdg-data-editor-container {
+    overflow: hidden !important;
 }
 
-.gdg-column-menu-icon:hover,
-.dvn-column-menu-icon:hover {
-  color: #0166FF !important;
+/* =============================================================================
+   ESTILOS GLOBALES PARA MATERIAL REACT TABLE - Optimización
+   ============================================================================= */
+
+/* Deshabilitar TODAS las transiciones en la tabla MRT */
+.MuiTableRow-root,
+.MuiTableCell-root,
+.MuiCheckbox-root {
+    transition: none !important;
+    animation: none !important;
 }
 
-/* Iconos de ordenamiento - Blancos */
-.gdg-sort-icon,
-.dvn-sort-icon {
-  color: #FFFFFF !important;
+/* Banner de alerta - Fondo oscuro sin azul */
+.MuiAlert-root.MuiAlert-standardInfo {
+    background-color: #2B2E34 !important;
+    color: #FFFFFF !important;
 }
 
-/* Resize handle de columnas */
-.gdg-resize-handle,
-.dvn-resize-handle {
-  background-color: #0166FF !important;
+.MuiAlert-root.MuiAlert-standardInfo .MuiAlert-icon {
+    color: #FFFFFF !important;
 }

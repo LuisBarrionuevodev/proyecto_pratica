@@ -1,0 +1,58 @@
+import { useState, useCallback } from "react";
+import type {
+    IActuacionListItem,
+    IActuacionesListMeta,
+    IActuacionesListFilters,
+} from "../../../api/actuacionesListApi";
+import { getActuacionesFiltered } from "../../../api/actuacionesListApi";
+
+interface UseActuacionesFiltradas {
+    actuaciones: IActuacionListItem[];
+    meta: IActuacionesListMeta | null;
+    loading: boolean;
+    error: string | null;
+    hasSearched: boolean;
+    buscar: (filters: IActuacionesListFilters) => Promise<void>;
+}
+
+/**
+ * Hook para cargar actuaciones con filtros.
+ * 
+ * NO carga automáticamente - solo cuando se llama a `buscar()`
+ * 
+ * @returns Estado de actuaciones, metadata, loading y función buscar
+ */
+export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
+    const [actuaciones, setActuaciones] = useState<IActuacionListItem[]>([]);
+    const [meta, setMeta] = useState<IActuacionesListMeta | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [hasSearched, setHasSearched] = useState(false);
+
+    const buscar = useCallback(async (filters: IActuacionesListFilters) => {
+        setLoading(true);
+        setError(null);
+        setHasSearched(true);
+        try {
+            const response = await getActuacionesFiltered(filters);
+            setActuaciones(response.items);
+            setMeta(response.meta);
+        } catch (err: any) {
+            console.error("Error al cargar actuaciones:", err);
+            setError(err?.response?.data?.detail || "Error al cargar actuaciones");
+            setActuaciones([]);
+            setMeta(null);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    return {
+        actuaciones,
+        meta,
+        loading,
+        error,
+        hasSearched,
+        buscar,
+    };
+};

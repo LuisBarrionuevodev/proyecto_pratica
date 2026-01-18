@@ -12,7 +12,7 @@ export const createActuacion = async (body: IActuacion): Promise<IActuacion> => 
 };
 
 export const updateActuacion = async (id: Number, body: IActuacion): Promise<IActuacion> => {
-  const { data } = await apiClient.put(`/actuaciones/${id}`, body);
+  const { data } = await apiClient.patch(`/actuaciones/${id}`, body);
   return data;
 };
 
