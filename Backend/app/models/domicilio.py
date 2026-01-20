@@ -29,14 +29,14 @@ class Domicilio(db.Model):
     contribuyente_id = db.Column(
         db.Integer,
         db.ForeignKey("contribuyente.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False,
+        nullable=True,  # permite domicilio sin contribuyente (contraproducencia)
         unique=False,
         index=True,
     )
     rubro_id = db.Column(
         db.Integer,
         db.ForeignKey("rubro.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False,
+        nullable=True,  # permite domicilio sin rubro (contraproducencia)
         unique=False,
         index=True,
     )

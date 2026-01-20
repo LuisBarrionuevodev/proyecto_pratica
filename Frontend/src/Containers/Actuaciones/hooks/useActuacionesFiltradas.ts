@@ -37,6 +37,9 @@ export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
             const response = await getActuacionesFiltered(filters);
             setActuaciones(response.items);
             setMeta(response.meta);
+            if (filters?.orden_trabajo && response.items.length === 0) {
+                setError(`No se encontró la Orden de Trabajo: ${filters.orden_trabajo}`);
+            }
         } catch (err: any) {
             console.error("Error al cargar actuaciones:", err);
             setError(err?.response?.data?.detail || "Error al cargar actuaciones");

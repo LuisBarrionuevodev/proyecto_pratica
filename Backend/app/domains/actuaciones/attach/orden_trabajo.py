@@ -38,7 +38,7 @@ def get_or_create_orden_trabajo(numero_ot: Any, fecha_str: Any) -> OrdenTrabajo:
     if not numero:
         raise ValueError("Orden de trabajo es obligatoria.")
 
-    ot = OrdenTrabajo.query.filter_by(numero_acta=numero, anio=anio).first()
+    ot = OrdenTrabajo.query.filter_by(numero_acta=numero, anio=anio, deleted_at=None).first()
     if ot:
         return ot
 

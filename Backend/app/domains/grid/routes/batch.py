@@ -19,7 +19,14 @@ from app.domains.grid.services.validate_service import GridValidateService
 from app.domains.actuaciones.services.create_service import crear_actuacion_desde_payload
 from app.domains.actuaciones.services.update_service import actualizar_actuacion
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
-from app.models import Inspector, Motivo, Rubro  # nuevo: catálogos para dropdowns
+from app.models import (
+    Inspector,
+    Motivo,
+    Rubro,
+    CatalogTipoActuacion,
+    CatalogContraproducencia,
+    CatalogMotivoComprobacion,
+)  # catálogos para dropdowns
 
 from . import grid
 
@@ -145,6 +152,36 @@ def list_motivos():
     """
     # Orden por nombre para UX consistente en frontend
     motivos = Motivo.query.order_by(Motivo.nombre.asc()).all()
+    payload = [{"id": m.id, "nombre": m.nombre} for m in motivos]
+    return jsonify({"items": payload}), 200
+
+
+@grid.get("/catalogs/tipos")
+def list_tipos_actuacion():
+    """
+    Devuelve catálogo de tipos de actuación para dropdowns del grid.
+    """
+    tipos = CatalogTipoActuacion.query.order_by(CatalogTipoActuacion.nombre.asc()).all()
+    payload = [{"id": t.id, "nombre": t.nombre} for t in tipos]
+    return jsonify({"items": payload}), 200
+
+
+@grid.get("/catalogs/contraproducencias")
+def list_contraproducencias():
+    """
+    Devuelve catálogo de contraproducencias para dropdowns del grid.
+    """
+    contras = CatalogContraproducencia.query.order_by(CatalogContraproducencia.nombre.asc()).all()
+    payload = [{"id": c.id, "nombre": c.nombre} for c in contras]
+    return jsonify({"items": payload}), 200
+
+
+@grid.get("/catalogs/motivos-comprobacion")
+def list_motivos_comprobacion():
+    """
+    Devuelve catálogo de motivos de comprobación para dropdowns del grid.
+    """
+    motivos = CatalogMotivoComprobacion.query.order_by(CatalogMotivoComprobacion.nombre.asc()).all()
     payload = [{"id": m.id, "nombre": m.nombre} for m in motivos]
     return jsonify({"items": payload}), 200
 

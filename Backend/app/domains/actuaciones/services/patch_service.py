@@ -158,8 +158,18 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
             elif act.domicilio:
                 dom_payload["numero"] = act.domicilio.numero
             
-            if dom_payload and rubro and contrib:
-                dom = get_or_create_domicilio(dom_payload, contrib, rubro)
+            if dom_payload:
+                # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
+                allow_missing_catalogs = (
+                    payload.get("tipo_actuacion") is None
+                    and payload.get("contraproducencia") is not None
+                )
+                dom = get_or_create_domicilio(
+                    dom_payload,
+                    contrib,
+                    rubro,
+                    allow_missing_catalogs=allow_missing_catalogs,
+                )
                 act.domicilio_id = dom.id if dom else None
         
         # Actas (actualizaciones simples)

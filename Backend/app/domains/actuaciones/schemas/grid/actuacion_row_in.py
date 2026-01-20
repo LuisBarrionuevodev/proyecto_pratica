@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, date
 from enum import Enum
-from typing import Any, Optional, Dict, List
+from typing import Any, Optional, Dict
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
@@ -112,7 +112,20 @@ def _zfill6_if_digit(v: Any) -> Optional[str]:
     s = _clean_str(v)
     if not s:
         return None
-    return s.zfill(6) if s.isdigit() else s
+    # Regla: actas/OT deben ser solo números (no letras)
+    if not s.isdigit():
+        raise ValueError("Debe ser numérico.")
+    return s.zfill(6)
+
+
+def _only_digits(v: Any) -> Optional[str]:
+    """Valida que el valor contenga solo dígitos (si viene vacío, retorna None)."""
+    s = _clean_str(v)
+    if not s:
+        return None
+    if not s.isdigit():
+        raise ValueError("Debe ser numérico.")
+    return s
 
 
 def _raise_field_errors(model_name: str, field_errors: Dict[str, str]) -> None:
@@ -174,7 +187,7 @@ class ActuacionGridRowIn(BaseModel):
 
     # Domicilio
     calle: Optional[str] = None
-    numero: Optional[str] = None
+    numero: Optional[str] = None  # permite str libre (ej: esquina, s/n)
 
     # Contribuyente
     doc_nro: Optional[str] = None
@@ -223,7 +236,7 @@ class ActuacionGridRowIn(BaseModel):
     )
     @classmethod
     def normalize_num6(cls, v: Any) -> Any:
-        # zfill(6) si es todo dígitos, sino deja como está
+        # Regla: actas/OT solo numéricas + zfill(6)
         return _zfill6_if_digit(v)
 
     @field_validator(
@@ -249,6 +262,18 @@ class ActuacionGridRowIn(BaseModel):
     def strip_empty_to_none(cls, v: Any) -> Any:
         return _clean_str(v)
 
+    @field_validator(
+        "doc_nro",
+        "expediente_numero",
+        "oficio_numero",
+        "oficio_causa",
+        mode="before",
+    )
+    @classmethod
+    def only_digits_fields(cls, v: Any) -> Any:
+        # Regla: campos numéricos deben contener solo dígitos
+        return _only_digits(v)
+
     @field_validator("fecha_actuacion", mode="before")
     @classmethod
     def parse_fecha(cls, v: Any) -> date:
@@ -262,6 +287,9 @@ class ActuacionGridRowIn(BaseModel):
     @field_validator("contraproducencia", mode="before")
     @classmethod
     def parse_contra(cls, v: Any) -> Any:
+        # Regla: si no se carga contraproducencia, por default NO_HUBO
+        if v is None or v == "":
+            return ContraEnum.NO_HUBO
         return _coerce_enum(v, ContraEnum)
 
     @field_validator("comprobacion_motivo", mode="before")
@@ -331,6 +359,7 @@ class ActuacionGridRowIn(BaseModel):
             )
 
         # 1) Si la fila está “vacía” (solo OT+fecha), exigir contraproducencia
+        # Nota: contraproducencia tiene default NO_HUBO, pero dejamos la regla explícita
         if self.orden_trabajo_numero and not has_any_actuation_data():
             if self.contraproducencia is None:
                 field_errors["contraproducencia"] = (
@@ -348,12 +377,26 @@ class ActuacionGridRowIn(BaseModel):
             if not self.numero:
                 field_errors["numero"] = "Número obligatorio si cargás calle."
 
-        # 4) Si hay domicilio, exigir rubro + doc (como venías haciendo)
-        if (self.calle or self.numero):
+        # 4) Reglas según tipo/contraproducencia
+        if self.tipo_actuacion:
+            # Si hay tipo: exigir domicilio completo + inspectores
+            if not self.calle or not self.numero:
+                field_errors["calle"] = "Calle obligatoria cuando hay tipo de actuación."
+                field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
+            # Debe haber al menos un inspector cargado
+            if not (self.inspector1 or self.inspector2 or self.inspector3):
+                field_errors["inspector1"] = "Debe cargar al menos un inspector."
+            # Si hay domicilio con tipo, exigir rubro + doc
             if not self.rubro_nombre:
                 field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
             if not self.doc_nro:
                 field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
+        else:
+            # Si NO hay tipo pero hay contraproducencia + fecha: permitir con calle y número sin contribuyente
+            if self.contraproducencia and self.fecha_actuacion:
+                if not self.calle or not self.numero:
+                    field_errors["calle"] = "Calle obligatoria si cargás contraproducencia."
+                    field_errors["numero"] = "Número obligatorio si cargás contraproducencia."
 
         if field_errors:
             _raise_field_errors(self.__class__.__name__, field_errors)

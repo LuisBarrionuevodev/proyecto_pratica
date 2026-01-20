@@ -9,7 +9,15 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { deleteActuacion, updateActuacion } from "../../../api/actuacionesApi";
-import { fetchInspectores, fetchMotivos, fetchRubros, validateRow } from "../../../api/gridApi";
+import {
+  fetchInspectores,
+  fetchMotivos,
+  fetchRubros,
+  fetchTiposActuacion,
+  fetchContraproducencias,
+  fetchMotivosComprobacion,
+  validateRow,
+} from "../../../api/gridApi";
 import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
@@ -20,7 +28,7 @@ import {
   COLORS,
 } from "../styles/actuacionesTableStyles";
 
-import { DROPDOWN_ENUMS, COMPROBACION_MOTIVOS } from "../../CargarActuaciones/config/dropdownOptions";
+import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 
 interface TablaActuacionesProps {
   data?: IActuacionListItem[];
@@ -31,6 +39,50 @@ interface TablaActuacionesProps {
 // ✅ UUID fijo válido para validar filas desde esta vista
 const UI_BATCH_ID = "00000000-0000-0000-0000-000000000001";
 
+// Mapeo de errores (backend -> snake_case de esta tabla)
+const ERROR_KEY_MAP: Record<string, string> = {
+  "Orden de trabajo": "orden_trabajo_numero",
+  "Fecha actuación": "fecha_actuacion",
+  "Tipo actuación": "tipo_actuacion",
+  "Contraproducencia": "contraproducencia",
+  "Inspector 1": "inspector1",
+  "Inspector 2": "inspector2",
+  "Inspector 3": "inspector3",
+  "Calle": "calle",
+  "Número": "numero",
+  "Rubro": "rubro_nombre",
+  "Apellido": "contrib_apellido",
+  "Nombre": "contrib_nombre",
+  "DNI": "doc_nro",
+  "Acta inspección": "acta_inspeccion_num",
+  "Acta notificación": "acta_notificacion_num",
+  "Motivo notif 1": "notificacion_motivo_1",
+  "Motivo notif 2": "notificacion_motivo_2",
+  "Motivo notif 3": "notificacion_motivo_3",
+  "Acta comprobación": "acta_comprobacion_num",
+  "Motivo comprobación": "comprobacion_motivo",
+  "Acta clausura": "acta_clausura_num",
+  "Acta decomiso": "acta_decomiso_num",
+  "Kilos decomiso": "decomiso_kilos_total",
+  "Acta notificación previa": "notificacion_previa_num",
+  "Acta comprobación previa": "comprobacion_previa_num",
+  "Expediente año": "expediente_anio",
+  "Expediente número": "expediente_numero",
+  "Oficio año": "oficio_anio",
+  "Oficio número": "oficio_numero",
+  "Oficio causa": "oficio_causa",
+};
+
+const normalizeErrors = (errors?: Record<string, string>) => {
+  if (!errors) return {};
+  const mapped: Record<string, string> = {};
+  Object.entries(errors).forEach(([key, msg]) => {
+    const targetKey = ERROR_KEY_MAP[key] || key;
+    mapped[targetKey] = msg;
+  });
+  return mapped;
+};
+
 const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefresh }: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -40,6 +92,9 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogMotivos, setCatalogMotivos] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
+  const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
+  const [catalogContras, setCatalogContras] = useState<string[]>([]);
+  const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
 
   // ✅ errores por celda por idActuacion
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
@@ -51,20 +106,37 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectores, motivos, rubros] = await Promise.all([
+        const [inspectores, motivos, rubros, tipos, contras, motivosComp] = await Promise.all([
           fetchInspectores(),
           fetchMotivos(),
           fetchRubros(),
+          fetchTiposActuacion(),
+          fetchContraproducencias(),
+          fetchMotivosComprobacion(),
         ]);
-        setCatalogInspectores(inspectores.items.map((i: any) => i.nombre));
-        setCatalogMotivos(motivos.items.map((m: any) => m.nombre));
-        setCatalogRubros(rubros.items.map((r: any) => r.nombre));
+        // Deduplicar catálogos para evitar nombres repetidos
+        setCatalogInspectores([...new Set(inspectores.items.map((i: any) => i.nombre))]);
+        setCatalogMotivos([...new Set(motivos.items.map((m: any) => m.nombre))]);
+        setCatalogRubros([...new Set(rubros.items.map((r: any) => r.nombre))]);
+        setCatalogTipos([...new Set(tipos.items.map((t: any) => t.nombre))]);
+        setCatalogContras([...new Set(contras.items.map((c: any) => c.nombre))]);
+        setCatalogMotivosComprobacion([...new Set(motivosComp.items.map((m: any) => m.nombre))]);
       } catch (error) {
         console.error("Error cargando catálogos:", error);
       }
     };
     loadCatalogs();
   }, []);
+
+  // Catálogos combinados (reusa helper del grid)
+  const catalogs = useMemo(() => ({
+    inspectores: catalogInspectores,
+    motivos: catalogMotivos,
+    rubros: catalogRubros,
+    tipos: catalogTipos,
+    contraproducencias: catalogContras,
+    motivosComprobacion: catalogMotivosComprobacion,
+  }), [catalogInspectores, catalogMotivos, catalogRubros, catalogTipos, catalogContras, catalogMotivosComprobacion]);
 
   const handleDeleteRow = useCallback(async (id: number) => {
     if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
@@ -97,7 +169,7 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       });
 
       if (!v.ok) {
-        setRowErrors(prev => ({ ...prev, [id]: v.errors || {} }));
+        setRowErrors(prev => ({ ...prev, [id]: normalizeErrors(v.errors || {}) }));
         return; // NO salimos del modo edición
       }
 
@@ -117,7 +189,7 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       // Si el backend devuelve 422 con errors por campo, podés mapearlos también:
       const backendErrors = error?.response?.data?.errors;
       if (backendErrors && typeof backendErrors === "object") {
-        setRowErrors(prev => ({ ...prev, [id]: backendErrors }));
+        setRowErrors(prev => ({ ...prev, [id]: normalizeErrors(backendErrors) }));
         return;
       }
 
@@ -156,7 +228,8 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       header: "Tipo",
       size: 180,
       editVariant: "select",
-      editSelectOptions: DROPDOWN_ENUMS["Tipo actuación"],
+      // Opciones desde catálogo (backend)
+      editSelectOptions: getDropdownOptions("Tipo actuación", catalogs),
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["tipo_actuacion"];
@@ -169,7 +242,8 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       header: "Contraproducencia",
       size: 180,
       editVariant: "select",
-      editSelectOptions: DROPDOWN_ENUMS["Contraproducencia"],
+      // Opciones desde catálogo (backend)
+      editSelectOptions: getDropdownOptions("Contraproducencia", catalogs),
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["contraproducencia"];
@@ -280,7 +354,8 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       header: "Motivo Comprob.",
       size: 180,
       editVariant: "select",
-      editSelectOptions: COMPROBACION_MOTIVOS,
+      // Opciones desde catálogo (backend)
+      editSelectOptions: getDropdownOptions("Motivo comprobación", catalogs),
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["comprobacion_motivo"];
@@ -302,7 +377,13 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
     { accessorKey: "notificacion_previa_num", header: "Notificación Previa", size: 150 },
     { accessorKey: "comprobacion_previa_num", header: "Comprobación Previa", size: 150 },
 
-  ], [catalogInspectores, catalogMotivos, catalogRubros, rowErrors]);
+  ], [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors]);
+
+  const columnOrder = useMemo(() => ([
+    "mrt-row-select",
+    "mrt-row-actions",
+    ...columns.map((col) => col.accessorKey as string),
+  ]), [columns]);
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
@@ -314,7 +395,8 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
     enableColumnFilters: true,
     enableGlobalFilter: true,
     enableRowActions: true,
-    positionActionsColumn: "last",
+    // Acciones al inicio (después del checkbox de selección)
+    positionActionsColumn: "first",
     enableHiding: true,
 
     // ✅ pintar celdas con error incluso fuera de edición
@@ -325,6 +407,7 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
     },
 
     initialState: {
+      columnOrder,
       columnVisibility: {
         id: false,
         inspector2: false,

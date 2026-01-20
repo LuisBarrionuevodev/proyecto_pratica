@@ -10,6 +10,7 @@ def get_or_create_domicilio(
     data: Optional[Dict[str, Any]],
     contribuyente: Optional[Contribuyente],
     rubro: Optional[Rubro],
+    allow_missing_catalogs: bool = False,
 ) -> Optional[Domicilio]:
     """
     Resuelve (get o create) un `Domicilio` identificándolo por `calle` + `numero`.
@@ -18,8 +19,8 @@ def get_or_create_domicilio(
     - Si `data` es `None` o vacío -> devuelve `None`.
     - Si faltan `calle` o `numero` -> devuelve `None` (no intenta crear/buscar).
     - Si viene `calle+numero`:
-        - `contribuyente` es obligatorio, si no -> `ValueError`.
-        - `rubro` es obligatorio, si no -> `ValueError`.
+        - Por defecto exige `contribuyente` y `rubro`.
+        - Si `allow_missing_catalogs=True`, permite crear domicilio sin rubro/contribuyente.
     - Si ya existe un domicilio con esa `calle` y `numero`:
         - Re-asocia `contribuyente_id` y/o `rubro_id` si cambiaron.
         - Hace `db.session.add(dom)` solo si hubo cambios.
@@ -51,10 +52,11 @@ def get_or_create_domicilio(
     if not calle or not numero:
         return None
 
-    if contribuyente is None:
-        raise ValueError("Si cargás domicilio, debés cargar contribuyente.")
-    if rubro is None:
-        raise ValueError("Si cargás domicilio, debés cargar rubro.")
+    if not allow_missing_catalogs:
+        if contribuyente is None:
+            raise ValueError("Si cargás domicilio, debés cargar contribuyente.")
+        if rubro is None:
+            raise ValueError("Si cargás domicilio, debés cargar rubro.")
 
     calle = str(calle).strip()
     numero = str(numero).strip()
@@ -68,10 +70,10 @@ def get_or_create_domicilio(
     )
     if dom:
         changed = False
-        if dom.contribuyente_id != contribuyente.id:
+        if contribuyente is not None and dom.contribuyente_id != contribuyente.id:
             dom.contribuyente_id = contribuyente.id
             changed = True
-        if dom.rubro_id != rubro.id:
+        if rubro is not None and dom.rubro_id != rubro.id:
             dom.rubro_id = rubro.id
             changed = True
         if changed:
@@ -81,8 +83,8 @@ def get_or_create_domicilio(
     dom = Domicilio(
         calle=calle,
         numero=numero,
-        contribuyente_id=contribuyente.id,
-        rubro_id=rubro.id,
+        contribuyente_id=contribuyente.id if contribuyente is not None else None,
+        rubro_id=rubro.id if rubro is not None else None,
     )
     db.session.add(dom)
     db.session.flush()

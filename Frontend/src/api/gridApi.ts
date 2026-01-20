@@ -5,7 +5,7 @@ import { apiClient } from "./apiClient";
 export interface GridRow {
   // Metadata
   _rowId?: string;
-  _state?: "PENDIENTE" | "OK" | "ERROR";
+  _state?: "PENDIENTE" | "OK" | "ERROR" | "VALIDANDO";
   _cellErrors?: Record<string, string>; // Errores por celda: { "columnId": "mensaje de error" }
   _normalized?: GridRow;
   _validation_history?: number[]; // Para gráficos sparkline (demo)
@@ -203,5 +203,29 @@ export const fetchMotivos = async (): Promise<CatalogResponse> => {
  */
 export const fetchRubros = async (): Promise<CatalogResponse> => {
   const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/rubros");
+  return data;
+};
+
+/**
+ * Catálogo de tipos de actuación (para dropdowns)
+ */
+export const fetchTiposActuacion = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/tipos");
+  return data;
+};
+
+/**
+ * Catálogo de contraproducencias (para dropdowns)
+ */
+export const fetchContraproducencias = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/contraproducencias");
+  return data;
+};
+
+/**
+ * Catálogo de motivos de comprobación (para dropdowns)
+ */
+export const fetchMotivosComprobacion = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/motivos-comprobacion");
   return data;
 };

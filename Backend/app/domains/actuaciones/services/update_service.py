@@ -68,6 +68,7 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     # Snapshot pre-update para cleanup post-commit.
     old_domicilio_id: int | None = act.domicilio_id
     old_contribuyente_id: int | None = None
+    old_orden_trabajo_id: int | None = act.orden_trabajo_id  # nuevo: para soft delete OT
     if old_domicilio_id is not None:
         old_dom: Domicilio | None = db.session.get(Domicilio, old_domicilio_id)
         if old_dom is not None:
@@ -107,7 +108,14 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         if contrib is None:
             contrib = resolve_contribuyente(payload.get("contribuyente"))
 
-        dom = get_or_create_domicilio(payload.get("domicilio"), contrib, rubro)
+        # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
+        allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
+        dom = get_or_create_domicilio(
+            payload.get("domicilio"),
+            contrib,
+            rubro,
+            allow_missing_catalogs=allow_missing_catalogs,
+        )
         act.domicilio_id = dom.id if dom else None
 
     # Inspectores
@@ -156,6 +164,11 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         ran_cleanup = True
     if old_contribuyente_id is not None:
         soft_delete_contribuyente_if_orphan(old_contribuyente_id)
+        ran_cleanup = True
+    if old_orden_trabajo_id is not None and old_orden_trabajo_id != act.orden_trabajo_id:
+        # soft delete de OT viejo si quedó huérfano
+        from app.domains.actuaciones.cleanup.garbage_collector import soft_delete_orden_id_orphan
+        soft_delete_orden_id_orphan(old_orden_trabajo_id)
         ran_cleanup = True
 
     if ran_cleanup:

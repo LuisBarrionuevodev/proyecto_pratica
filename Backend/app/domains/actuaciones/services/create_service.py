@@ -65,9 +65,16 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     db.session.flush()  # necesitamos act.id para attach_* que dependen de actuacion_id
 
     # Catálogos / entidades base
+    # Si no hay tipo y hay contraproducencia, permitimos domicilio sin rubro/contribuyente
+    allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
     rubro = get_rubro_o_falla(payload.get("rubro_nombre"))
     contrib = resolve_contribuyente(payload.get("contribuyente"))
-    dom = get_or_create_domicilio(payload.get("domicilio"), contrib, rubro)
+    dom = get_or_create_domicilio(
+        payload.get("domicilio"),
+        contrib,
+        rubro,
+        allow_missing_catalogs=allow_missing_catalogs,
+    )
     if dom:
         act.domicilio_id = dom.id
 

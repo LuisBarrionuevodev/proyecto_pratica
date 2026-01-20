@@ -9,17 +9,19 @@ import DataEditor, {
 import "@glideapps/glide-data-grid/dist/index.css";
 import { allCells } from "@glideapps/glide-data-grid-cells";
 import "@glideapps/glide-data-grid-cells/dist/index.css";
-import { Box, Typography, Alert } from "@mui/material";
+import { Box, Typography, Alert, Button, CircularProgress } from "@mui/material";
 import {
     startBatch,
     validateRow,
     validateBatch,
-    commitRow,
     commitBatch,
     type GridRow,
     fetchInspectores,
     fetchMotivos,
     fetchRubros,
+    fetchTiposActuacion,
+    fetchContraproducencias,
+    fetchMotivosComprobacion,
 } from "../../../api/gridApi";
 
 // Imports modulares
@@ -40,7 +42,6 @@ import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../config/dropdownOptions";
 import { gridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
 import {
-    generateRowId,
     extractDataColumns,
     rowHasData,
     createEmptyRow,
@@ -60,11 +61,15 @@ const TablaCargarActuacionesGlideStyled = () => {
     const [batchId, setBatchId] = useState<string | null>(null);
     const [data, setData] = useState<GridRow[]>(initialRows);
     const [isLoadingBatch, setIsLoadingBatch] = useState(false);
+    const [isValidatingAll, setIsValidatingAll] = useState(false); // estado para validar/mandar todo
     const [isCommitting, setIsCommitting] = useState(false);
     const [globalError, setGlobalError] = useState<string | null>(null);
     const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
     const [catalogMotivos, setCatalogMotivos] = useState<string[]>([]);
     const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
+    const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
+    const [catalogContras, setCatalogContras] = useState<string[]>([]);
+    const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
 
     // Referencias
     const gridRef = useRef<any>(null);
@@ -78,11 +83,15 @@ const TablaCargarActuacionesGlideStyled = () => {
         inspectores: catalogInspectores,
         motivos: catalogMotivos,
         rubros: catalogRubros,
-    }), [catalogInspectores, catalogMotivos, catalogRubros]);
+        tipos: catalogTipos,
+        contraproducencias: catalogContras,
+        motivosComprobacion: catalogMotivosComprobacion,
+    }), [catalogInspectores, catalogMotivos, catalogRubros, catalogTipos, catalogContras, catalogMotivosComprobacion]);
 
     // Auto-iniciar batch
-    const ensureBatchStarted = useCallback(async () => {
-        if (batchId || startingBatchRef.current) return;
+    const ensureBatchStarted = useCallback(async (): Promise<string | null> => {
+        if (batchId) return batchId;
+        if (startingBatchRef.current) return null;
         startingBatchRef.current = true;
         try {
             setIsLoadingBatch(true);
@@ -90,9 +99,11 @@ const TablaCargarActuacionesGlideStyled = () => {
             const response = await startBatch();
             setBatchId(response.batch_id);
             console.log("✅ Batch iniciado (auto):", response.batch_id);
+            return response.batch_id;
         } catch (error: any) {
             console.error("❌ Error al iniciar batch:", error);
             setGlobalError(error?.response?.data?.message || error?.message || "Error al iniciar batch");
+            return null;
         } finally {
             setIsLoadingBatch(false);
             startingBatchRef.current = false;
@@ -107,29 +118,53 @@ const TablaCargarActuacionesGlideStyled = () => {
     useEffect(() => {
         const loadCatalogs = async () => {
             try {
-                const [inspectoresResp, motivosResp, rubrosResp] = await Promise.all([
+                const [inspectoresResp, motivosResp, rubrosResp, tiposResp, contrasResp, motivosCompResp] = await Promise.all([
                     fetchInspectores(),
                     fetchMotivos(),
                     fetchRubros(),
+                    fetchTiposActuacion(),
+                    fetchContraproducencias(),
+                    fetchMotivosComprobacion(),
                 ]);
-                setCatalogInspectores(inspectoresResp.items.map((i) => i.nombre));
-                setCatalogMotivos(motivosResp.items.map((m) => m.nombre));
-                setCatalogRubros(rubrosResp.items.map((r) => r.nombre));
+                // Deduplicar catálogos para evitar nombres repetidos
+                setCatalogInspectores([...new Set(inspectoresResp.items.map((i) => i.nombre))]);
+                setCatalogMotivos([...new Set(motivosResp.items.map((m) => m.nombre))]);
+                setCatalogRubros([...new Set(rubrosResp.items.map((r) => r.nombre))]);
+                setCatalogTipos([...new Set(tiposResp.items.map((t) => t.nombre))]);
+                setCatalogContras([...new Set(contrasResp.items.map((c) => c.nombre))]);
+                setCatalogMotivosComprobacion([...new Set(motivosCompResp.items.map((m) => m.nombre))]);
             } catch (error: any) {
                 console.error("❌ Error cargando catálogos:", error);
-                setGlobalError("Error cargando catálogos (inspectores/motivos/rubros).");
+                setGlobalError("Error cargando catálogos (inspectores/motivos/rubros/tipos/contraproducencia).");
             }
         };
         loadCatalogs();
     }, []);
 
+    const buildRowErrorSummary = (errors?: Record<string, string>) => {
+        if (!errors) return null;
+        if (errors._row || errors.detail) return errors._row || errors.detail || null;
+        const first = Object.entries(errors).find(([key]) => !["_row", "detail", "_global"].includes(key));
+        return first ? `${first[0]}: ${first[1]}` : null;
+    };
+
     // Validar batch de filas - SOLO las que tienen datos
-    const validateBatchRows = useCallback(async (rows: GridRow[]) => {
-        if (!batchId) return;
+    const validateBatchRows = useCallback(async (rows: GridRow[], batchIdValue?: string) => {
+        const effectiveBatchId = batchIdValue || batchId;
+        if (!effectiveBatchId) return null;
         
         // Solo validar filas que tienen datos cargados
         const rowsWithData = rows.filter(row => rowHasData(row));
-        if (rowsWithData.length === 0) return;
+        if (rowsWithData.length === 0) return null;
+
+        // Marcar filas como VALIDANDO mientras se ejecuta la validación
+        setData((prev) =>
+            prev.map((row) =>
+                rowsWithData.some((r) => r._rowId === row._rowId)
+                    ? { ...row, _state: "VALIDANDO" }
+                    : row
+            )
+        );
 
         const rowsToValidate = rowsWithData.map((row) => ({
             row_id: row._rowId!,
@@ -138,7 +173,7 @@ const TablaCargarActuacionesGlideStyled = () => {
 
         try {
             const response = await validateBatch({
-                batch_id: batchId,
+                batch_id: effectiveBatchId,
                 rows: rowsToValidate,
             });
 
@@ -148,32 +183,18 @@ const TablaCargarActuacionesGlideStyled = () => {
                     if (!result) return row;
                     return {
                         ...row,
-                        _state: result.ok ? "OK" : "ERROR",
+                        _state: result.ok ? "PENDIENTE" : "ERROR",
                         _cellErrors: result.errors || {},
-                        _rowError: result.errors?._row || result.errors?.detail || null,
+                        _rowError: buildRowErrorSummary(result.errors),
                         _normalized: result.normalized,
                     };
                 })
             );
 
-            // Auto-confirmar filas OK
-            const okRows = response.results
-                .filter((r) => r.ok && r.normalized)
-                .map((r) => ({ row_id: r.row_id, normalized: r.normalized! }));
-
-            if (okRows.length > 0) {
-                try {
-                    setIsCommitting(true);
-                    const commitResp = await commitBatch({ batch_id: batchId, rows: okRows });
-                    processCommitResults(commitResp.results);
-                } catch (error: any) {
-                    console.error("❌ Error en commit batch automático:", error);
-                } finally {
-                    setIsCommitting(false);
-                }
-            }
+            return response;
         } catch (error: any) {
             console.error("❌ Error en validación batch:", error);
+            return null;
         }
     }, [batchId]);
 
@@ -183,6 +204,13 @@ const TablaCargarActuacionesGlideStyled = () => {
         
         // Solo validar si la fila tiene datos
         if (!rowHasData(row)) return;
+
+        // Marcar fila como VALIDANDO mientras se valida
+        setData((prev) =>
+            prev.map((r) =>
+                r._rowId === row._rowId ? { ...r, _state: "VALIDANDO" } : r
+            )
+        );
 
         try {
             const dataColumns = extractDataColumns(row);
@@ -197,31 +225,16 @@ const TablaCargarActuacionesGlideStyled = () => {
                     r._rowId === row._rowId
                         ? {
                               ...r,
-                              _state: response.ok ? "OK" : "ERROR",
+                              _state: response.ok ? "PENDIENTE" : "ERROR",
                               _cellErrors: response.errors || {},
-                              _rowError: response.errors?._row || response.errors?.detail || null,
+                              _rowError: buildRowErrorSummary(response.errors),
                               _normalized: response.normalized,
                           }
                         : r
                 )
             );
 
-            // Auto-confirmar si OK
-            if (response.ok && response.normalized) {
-                try {
-                    setIsCommitting(true);
-                    const commitResp = await commitRow({
-                        batch_id: batchId,
-                        row_id: row._rowId!,
-                        normalized: response.normalized,
-                    });
-                    processCommitResults([commitResp]);
-                } catch (error: any) {
-                    console.error("❌ Error en commit automático:", error);
-                } finally {
-                    setIsCommitting(false);
-                }
-            }
+            // Nota: no se hace commit automático por fila (solo validate)
         } catch (error: any) {
             console.error("❌ Error validando fila:", error);
             setData((prev) =>
@@ -238,6 +251,42 @@ const TablaCargarActuacionesGlideStyled = () => {
             );
         }
     }, [batchId]);
+
+    const handleCommitBatch = useCallback(async () => {
+        // Botón único: valida batch y luego confirma (commit batch)
+        const startedBatchId = await ensureBatchStarted();
+        if (!startedBatchId) return;
+
+        try {
+            setIsValidatingAll(true);
+            setGlobalError(null);
+
+            const response = await validateBatchRows(dataRef.current, startedBatchId);
+            if (!response) {
+                setGlobalError("No hay filas para validar.");
+                return;
+            }
+
+            const okRows = response.results
+                .filter((r) => r.ok && r.normalized)
+                .map((r) => ({ row_id: r.row_id, normalized: r.normalized! }));
+
+            if (okRows.length === 0) {
+                setGlobalError("No hay filas válidas para confirmar.");
+                return;
+            }
+
+            setIsCommitting(true);
+            const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
+            processCommitResults(commitResp.results);
+        } catch (error: any) {
+            console.error("❌ Error en commit batch:", error);
+            setGlobalError(error?.response?.data?.message || "Error en commit batch");
+        } finally {
+            setIsValidatingAll(false);
+            setIsCommitting(false);
+        }
+    }, [ensureBatchStarted, validateBatchRows]);
 
     // Procesar resultados de commit
     const processCommitResults = (results: Array<any>) => {
@@ -386,16 +435,20 @@ const TablaCargarActuacionesGlideStyled = () => {
             let textColor = COLORS.white;
             
             if (hasData) {
-                if (hasError) {
-                    bgColor = COLORS.errorLight;
-                    textColor = COLORS.errorText;
-                } else if (rowState === "OK") {
-                    bgColor = COLORS.successLight;
-                    textColor = COLORS.successText;
-                } else if (rowState === "ERROR") {
-                    bgColor = COLORS.warningLight;
-                    textColor = COLORS.warningText;
-                }
+            if (hasError) {
+                bgColor = COLORS.errorLight;
+                textColor = COLORS.errorText;
+            } else if (rowState === "OK") {
+                bgColor = COLORS.successLight;
+                textColor = COLORS.successText;
+            } else if (rowState === "PENDIENTE") {
+                bgColor = COLORS.warningLight;
+                textColor = COLORS.warningText;
+            } else if (rowState === "VALIDANDO") {
+                // Estado visual: validando (neutral, sin azul)
+                bgColor = COLORS.grayMedium;
+                textColor = COLORS.white;
+            }
             }
 
             const themeOverride = { bgCell: bgColor, textDark: textColor };
@@ -448,10 +501,14 @@ const TablaCargarActuacionesGlideStyled = () => {
 
             // Celda tipo TEXT
             const strValue = value?.toString() || "";
+            const errorMsg = hasError ? (cellErrors[columnId] || "") : "";
+            const displayData = errorMsg
+                ? (strValue ? `${strValue} (${errorMsg})` : errorMsg)
+                : strValue;
             return {
                 kind: GridCellKind.Text,
                 data: strValue,
-                displayData: strValue,
+                displayData: displayData,
                 allowOverlay: true,
                 themeOverride,
             };
@@ -479,6 +536,7 @@ const TablaCargarActuacionesGlideStyled = () => {
     const okCount = rowsWithData.filter((r) => r._state === "OK").length;
     const errorCount = rowsWithData.filter((r) => r._state === "ERROR").length;
     const pendingCount = rowsWithData.filter((r) => r._state === "PENDIENTE").length;
+    const validatingCount = rowsWithData.filter((r) => r._state === "VALIDANDO").length;
 
     // Altura dinámica
     const tableHeight = useMemo(() => calculateTableHeight(data.length), [data.length]);
@@ -508,10 +566,23 @@ const TablaCargarActuacionesGlideStyled = () => {
                         <span style={{ color: COLORS.successText, fontWeight: 700, marginLeft: 8 }}>{okCount} OK</span> | 
                         <span style={{ color: COLORS.errorText, fontWeight: 700, marginLeft: 8 }}>{errorCount} ERROR</span> | 
                         <span style={{ color: COLORS.warningText, fontWeight: 700, marginLeft: 8 }}>{pendingCount} PENDIENTE</span>
+                        <span style={{ color: COLORS.white, fontWeight: 700, marginLeft: 8 }}>{validatingCount} VALIDANDO</span>
                         {isLoadingBatch && <span style={{ marginLeft: 8 }}>⏳ Iniciando...</span>}
                         {isCommitting && <span style={{ marginLeft: 8 }}>💾 Guardando...</span>}
                     </Alert>
                 )}
+
+                <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                    <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleCommitBatch}
+                        disabled={isValidatingAll || isCommitting || rowsWithData.length === 0}
+                        startIcon={(isValidatingAll || isCommitting) ? <CircularProgress size={16} /> : undefined}
+                    >
+                        Mandar todo (validar + confirmar)
+                    </Button>
+                </Box>
 
                 <Box sx={{ ...gridContainerStyles, height: tableHeight }}>
                     <DataEditor
@@ -536,12 +607,6 @@ const TablaCargarActuacionesGlideStyled = () => {
                             sticky: false,
                             tint: true,
                             hint: "Presiona Enter o haz clic para agregar fila...",
-                            // Tema específico para la fila trailing con icono azul
-                            themeOverride: {
-                                bgCell: "#1A1C20",
-                                textDark: COLORS.primary,
-                                accentColor: COLORS.primary,
-                            },
                         }}
                         getCellsForSelection={true}
                         freezeColumns={0}
@@ -572,14 +637,16 @@ const TablaCargarActuacionesGlideStyled = () => {
                         <span style={kbdStyles}>Enter</span> para editarla<br/>
                         <strong>2.</strong> Presiona <span style={kbdStyles}>Tab</span> para moverte entre celdas<br/>
                         <strong>3.</strong> Para agregar filas: presiona <span style={kbdStyles}>Enter</span> o haz clic en la fila inferior<br/>
-                        <strong>4.</strong> La validación y guardado es <strong>automático</strong> al editar<br/>
-                        <strong>5.</strong> Para borrar un dropdown: selecciona la opción vacía al inicio de la lista<br/>
+                        <strong>4.</strong> La validación por fila es <strong>automática</strong> al editar<br/>
+                        <strong>5.</strong> Para confirmar todo: usa el botón <strong>“Mandar todo”</strong><br/>
+                        <strong>6.</strong> Para borrar un dropdown: selecciona la opción vacía al inicio de la lista<br/>
                         <br/>
                         <strong>COLORES:</strong>{" "}
                         <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>
                         <span style={getStatusBadgeStyles(COLORS.successLight, COLORS.successText)}>OK</span>
                         <span style={getStatusBadgeStyles(COLORS.warningLight, COLORS.warningText)}>ADVERTENCIA</span>
                         <span style={getStatusBadgeStyles("#1E2127", COLORS.white)}>PENDIENTE</span>
+                        <span style={getStatusBadgeStyles(COLORS.primary, COLORS.white)}>VALIDANDO</span>
                     </Typography>
                 </Box>
             </Box>

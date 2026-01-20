@@ -35,6 +35,10 @@ class OrdenTrabajo(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
+    deleted_at = db.Column(
+        db.DateTime,
+        nullable=True,
+    )
     actuaciones = db.relationship("Actuaciones", back_populates="orden_trabajo")
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_ot_numero_anio"),
@@ -48,6 +52,7 @@ class OrdenTrabajo(db.Model):
             "mes": self.mes,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "deleted_at": self.deleted_at,
         }
 
         if include_relations:

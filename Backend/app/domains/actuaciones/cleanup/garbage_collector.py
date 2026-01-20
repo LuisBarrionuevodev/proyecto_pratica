@@ -14,6 +14,7 @@ from app.database import db
 from app.models.actuaciones import Actuaciones
 from app.models.contribuyente import Contribuyente
 from app.models.domicilio import Domicilio
+from app.models.orden_de_trabajo import OrdenTrabajo
 
 
 def soft_delete_domicilio_if_orphan(domicilio_id: int) -> None:
@@ -87,4 +88,34 @@ def soft_delete_contribuyente_if_orphan(contribuyente_id: int) -> None:
 
     contribuyente.deleted_at = datetime.utcnow()
     db.session.add(contribuyente)
+
+
+def soft_delete_orden_id_orphan(orden_trabajo_id: int) -> None:
+    """Soft delete de `OrdenTrabajo` si quedó huérfana de `Actuaciones`.
+
+    Qué hace:
+    - Si la OT no existe, no hace nada.
+    - Si ya está soft-deleted (`deleted_at` no es NULL), no hace nada.
+    - Si **ninguna** fila de `Actuaciones` la referencia, setea `deleted_at = utcnow()`.
+
+    Parámetros:
+    - orden_trabajo_id: id de la OT a evaluar.
+    """
+    ot: OrdenTrabajo | None = db.session.get(OrdenTrabajo, orden_trabajo_id)
+    if ot is None:
+        return
+    if ot.deleted_at is not None:
+        return
+
+    any_act = (
+        db.session.query(Actuaciones.id)
+        .filter(Actuaciones.orden_trabajo_id == orden_trabajo_id)
+        .limit(1)
+        .first()
+    )
+    if any_act is not None:
+        return
+
+    ot.deleted_at = datetime.utcnow()
+    db.session.add(ot)
 

@@ -21,6 +21,9 @@ from .inspector import Inspector
 from .relevamiento import Relevamiento
 from .enums import ContraEnum 
 from .enums import Tipo
+from .catalog_tipo_actuacion import CatalogTipoActuacion
+from .catalog_contraproducencia import CatalogContraproducencia
+from .catalog_motivo_comprobacion import CatalogMotivoComprobacion
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -44,5 +47,8 @@ __all__ = [
     "Inspector",
     "Relevamiento",
     "ContraEnum",
-    "Tipo"
+    "Tipo",
+    "CatalogTipoActuacion",
+    "CatalogContraproducencia",
+    "CatalogMotivoComprobacion",
 ]
