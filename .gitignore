@@ -13,7 +13,7 @@ __pycache__/
 *.pyo
 *.pyd
 
-
+migrations
 node_modules
 dist
 dist-ssr
@@ -27,7 +27,7 @@ venv/
 .idea
 .DS_Store
 *.suo
-*.ntvs*
+*.ntvs*git
 *.njsproj
 *.sln
 *.sw?
