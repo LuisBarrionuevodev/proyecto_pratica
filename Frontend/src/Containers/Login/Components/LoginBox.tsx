@@ -2,7 +2,7 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
 import Logo from "../assets-login/Logo.svg";
 import type { JSX } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 const LoginBox = (): JSX.Element => {
@@ -60,6 +60,10 @@ const LoginBox = (): JSX.Element => {
                     <Button sx={ButtonStyle} onClick={handleLogin}>
                         Ingresar
                     </Button>
+
+                    <Typography mt={2} textAlign={"center"} fontSize={14}  color="#0166FF" fontWeight={500}>¿Has olvidado tu contraseña? 
+                        <Link to={"/recuperarCuenta"} style={{fontWeight:800, textDecoration: "none", color: "#0166FF", }}> Haz click aqui</Link>
+                    </Typography>
                 </Box>
             </Box>
         </Box>

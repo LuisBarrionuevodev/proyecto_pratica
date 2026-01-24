@@ -1,54 +1,22 @@
-"""add catalogs and soft delete OT
+"""Seed 2
 
-Revision ID: c8a0f1d2b9a1
-Revises: f3a1c12d9b0e
-Create Date: 2026-01-15
+Revision ID: 53f2de2664e3
+Revises: c7286fc9ae79
+Create Date: 2026-01-22 23:23:59.164270
+
 """
-
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "c8a0f1d2b9a1"
-down_revision = "f3a1c12d9b0e"
+revision = '53f2de2664e3'
+down_revision = 'c7286fc9ae79'
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    # === Soft delete en orden_trabajo ===
-    op.add_column("orden_trabajo", sa.Column("deleted_at", sa.DateTime(), nullable=True))
-
-    # === Domicilio: permitir null en contribuyente_id y rubro_id ===
-    op.alter_column("domicilio", "contribuyente_id", existing_type=sa.Integer(), nullable=True)
-    op.alter_column("domicilio", "rubro_id", existing_type=sa.Integer(), nullable=True)
-
-    # === Catálogos: tipo, contraproducencia, motivo comprobación ===
-    op.create_table(
-        "catalog_tipo_actuacion",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("nombre", sa.String(length=128), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.func.current_timestamp(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.func.current_timestamp(), nullable=False),
-        sa.UniqueConstraint("nombre"),
-    )
-    op.create_table(
-        "catalog_contraproducencia",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("nombre", sa.String(length=128), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.func.current_timestamp(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.func.current_timestamp(), nullable=False),
-        sa.UniqueConstraint("nombre"),
-    )
-    op.create_table(
-        "catalog_motivo_comprobacion",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("nombre", sa.String(length=160), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.func.current_timestamp(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.func.current_timestamp(), nullable=False),
-        sa.UniqueConstraint("nombre"),
-    )
 
     # === Seed inicial de catálogos ===
     catalog_tipo = sa.table(

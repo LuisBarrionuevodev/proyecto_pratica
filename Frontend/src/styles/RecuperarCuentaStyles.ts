@@ -1,39 +1,7 @@
-export const LoginBoxGlobalStyle = {
-    display: "flex",
-    justifyContent: "center",
-    alignContent: "center"
-}
-export const LoginBoxStyle = {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    width: "450px",
-    height: "500px",
-    borderRadius: "10px",
-    background: "#FFFFFF",
-    border: "1px solid #353535",
-    boxShadow: "10px 10px 0px #000000",
-    gap: "20px"
-}
-
-export const LoginLogoStyle = {
-    display: "flex", 
-    justifySelf: "center", 
-    flexDirection: "column"
-}
-
-export const LoginBoxInputStyles = {
-    display: "flex",
-    alignItems: "center",
-    justifyItems: "center",
-    flexDirection: "column",
-    gap: "20px",
-
-}
-export const InputStyles = {
+export const InputRecuperarStyles = {
     position: "relative",
     backgroundColor: "#D9D9D9",
-    width: "350px",
+    width: "450px",
     fontSize: "22px",
     borderRadius: "10px",
     "& .MuiInputBase-input": {
@@ -66,17 +34,50 @@ export const InputStyles = {
     },
 };
 
+export const BoxRecuperarContenidoStyles = {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "600px",
+    height: "300px",
+    borderRadius: "10px",
+    background: "#FFFFFF",
+    border: "1px solid #353535",
+    boxShadow: "10px 10px 0px #000000",
+    gap: 3,
+    mt: "50px",
+}
 
-export const ButtonStyle = {
+export const BoxNuevaContraseñaStyles = {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "600px",
+    height: "300px",
+    borderRadius: "10px",
+    background: "#FFFFFF",
+    border: "1px solid #353535",
+    boxShadow: "10px 10px 0px #000000",
+    gap: 3,
+    p: 2,
+    mt: "40px",
+}
+
+export const ErrorTextRecuperarStyles = {
+    color: "red", 
+    fontSize: 14, 
+    fontWeight: 500
+}
+
+export const ButtonRecuperarStyles = {
     backgroundColor: "#0166FF",
-    width: "350px",
-    height: "25px",
-    fontFamily: "Tactic Sans",
-    fontWeight: 200,
     color: "white",
-    zIndex: 1,
+    height: "40px",
+    width: "500px",
     borderRadius: "5px",
-    transition: "transform 0.4s ease-in-out",
+    position: "relative",
     "&::after": {
         content: '""',
         position: "absolute",
@@ -84,14 +85,10 @@ export const ButtonStyle = {
         height: "100%",
         boxShadow: "6px 6px 3px #000000",
         opacity: 0,
-        transition: "opacity 0.4s ease-in-out",
-        zIndex: -1,
+        transition: "opacity 0.3s",
         borderRadius: "5px",
     },
-
-    ':hover': {
-        "&::after": {
-            opacity: 1,
-        },
+    "&:hover::after": {
+        opacity: 1,
     },
-};
+}
