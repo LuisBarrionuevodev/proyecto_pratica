@@ -24,6 +24,7 @@ class Oficio(db.Model):
         nullable=True,
         index=True,
     )
+    deleted_at = db.Column(db.DateTime, nullable=True)
     comprobacion_id = db.Column(
         db.Integer,
         db.ForeignKey("comprobacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -44,6 +45,7 @@ class Oficio(db.Model):
             "anio": self.anio,
             "causa": self.causa,
             "comprobacion_id": self.comprobacion_id,
+            "deleted_at": self.deleted_at,
         }
 
         if include_relations:

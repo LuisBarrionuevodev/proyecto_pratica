@@ -44,12 +44,14 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
 
     # 1) si ya tiene notificación asociada, actualizamos esa
     if actuacion.notificacion_id:
-        noti = Notificacion.query.get(actuacion.notificacion_id)
+        noti = db.session.get(Notificacion, actuacion.notificacion_id)
         if noti:
-            existente = Notificacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
+            existente = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
             if existente and existente.id != noti.id:
                 raise ValueError("Acta de notificación ya asociada a otra actuación.")
 
+            if noti.deleted_at is not None:
+                noti.deleted_at = None
             noti.numero_acta = acta_num
             noti.anio = anio
             noti.mes = mes
@@ -63,11 +65,16 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             return
 
     # 2) si no tenía, buscamos por acta+anio
-    noti = Notificacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
+    noti = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
     if not noti:
         noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
         db.session.add(noti)
         db.session.flush()
+    else:
+        # restore si estaba soft-deleted
+        if noti.deleted_at is not None:
+            noti.deleted_at = None
+            db.session.add(noti)
 
     if "motivos" in data:
         motivos = data.get("motivos") or []

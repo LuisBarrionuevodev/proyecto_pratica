@@ -1,9 +1,55 @@
 from __future__ import annotations
 
-from datetime import date, datetime
-from typing import Optional
+from datetime import date
+from typing import Optional, Any
 
+from sqlalchemy import func
 from pydantic import BaseModel, field_validator, model_validator
+
+from app.database import db
+from app.models import CatalogTipoActuacion, CatalogContraproducencia
+
+
+def _clean_str(v: Any) -> Optional[str]:
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
+def _upper_norm(s: str) -> str:
+    s = s.strip().upper().replace("_", " ")
+    return " ".join(s.split())
+
+
+def _normalize_catalog_input(value: Any, strip_prefix: Optional[str] = None) -> Optional[str]:
+    s = _clean_str(value)
+    if not s:
+        return None
+    s = _upper_norm(s)
+    if strip_prefix and s.startswith(strip_prefix):
+        s = s.split(".", 1)[1].strip()
+    return s
+
+
+def _coerce_catalog_value(
+    value: Any,
+    model_cls: type[db.Model],
+    field_label: str,
+    strip_prefix: Optional[str] = None,
+) -> Optional[str]:
+    normalized = _normalize_catalog_input(value, strip_prefix=strip_prefix)
+    if not normalized:
+        return None
+    row = (
+        db.session.query(model_cls.nombre)
+        .filter(func.replace(func.upper(model_cls.nombre), "_", " ") == normalized)
+        .limit(1)
+        .first()
+    )
+    if row is None:
+        raise ValueError(f"{field_label} debe ser un valor válido del catálogo.")
+    return row[0]
 
 
 def get_current_month_range() -> tuple[date, date]:
@@ -62,20 +108,12 @@ class ActuacionesListFilters(BaseModel):
         if v is None or v == "":
             return None
         
-        valid_tipos = [
-            "INSPECCION",
-            "REINSPECCION",
-            "RATIFICACION DE CLAUSURA",
-            "RATIFICACION DE DECOMISO",
-            "VERIFICAR E INFORMAR",
-            "TRANSPORTE",
-        ]
-        
-        v_upper = v.upper().strip()
-        if v_upper not in valid_tipos:
-            raise ValueError(f"tipo debe ser uno de: {', '.join(valid_tipos)}")
-        
-        return v_upper
+        return _coerce_catalog_value(
+            v,
+            CatalogTipoActuacion,
+            "tipo",
+            strip_prefix="TIPO.",
+        )
 
     @field_validator("contraproducencia")
     @classmethod
@@ -84,20 +122,11 @@ class ActuacionesListFilters(BaseModel):
         if v is None or v == "":
             return None
         
-        valid_contras = [
-            "LOCAL CERRADO",
-            "NO EXISTE/NO ES EL RUBRO",
-            "CLIMA",
-            "ZONA ROJA",
-            "NO_HUBO",
-            "OTROS",
-        ]
-        
-        v_upper = v.upper().strip()
-        if v_upper not in valid_contras:
-            raise ValueError(f"contraproducencia debe ser uno de: {', '.join(valid_contras)}")
-        
-        return v_upper
+        return _coerce_catalog_value(
+            v,
+            CatalogContraproducencia,
+            "contraproducencia",
+        )
 
     @field_validator("page")
     @classmethod

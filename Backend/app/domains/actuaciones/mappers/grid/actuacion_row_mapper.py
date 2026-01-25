@@ -35,7 +35,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     Mapper UI -> Payload limpio para services (sin DB).
     Alineado al nuevo schema:
     - fecha_actuacion ya es date
-    - tipo_actuacion y contraproducencia son Enums (str Enum)
+    - tipo_actuacion y contraproducencia son strings validadas por catálogo
     """
     fecha_iso = row.fecha_as_date().isoformat()
 

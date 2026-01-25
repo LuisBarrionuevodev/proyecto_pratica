@@ -20,7 +20,6 @@ export const GROUP_CONFIG = {
 // DEFINICIÓN DE COLUMNAS
 // =============================================================================
 export const COLUMN_DEFINITIONS = [
-    { id: "_rowError", title: "Errores fila", width: 260, editable: false, group: "Actuación", icon: GridColumnIcon.HeaderString, cellType: "rowError" },
     { id: "Fecha actuación", title: "Fecha actuación", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderDate, cellType: "date" },
     { id: "Tipo actuación", title: "Tipo actuación", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
     { id: "Contraproducencia", title: "Contraproducencia", width: 150, editable: true, group: "Actuación", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },

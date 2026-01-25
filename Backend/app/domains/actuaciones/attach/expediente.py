@@ -53,8 +53,14 @@ def attach_expediente(
 
     anio_str = str(anio)
 
-    ex = Expediente.query.filter_by(numero_expediente=numero, anio=anio_str).first()
+    ex = db.session.query(Expediente).filter_by(numero_expediente=numero, anio=anio_str).first()
     if ex:
+        # restore si estaba soft-deleted y reasociar
+        if ex.deleted_at is not None:
+            ex.deleted_at = None
+        ex.comprobacion_id = comprobacion_id
+        ex.oficio_id = oficio_id
+        db.session.add(ex)
         return ex
 
     ex = Expediente(

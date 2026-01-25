@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-import sqlalchemy as sa
 
 from app.database import db
-from app.models.enums import Tipo, ContraEnum
 
 
 class Actuaciones(db.Model):
@@ -16,29 +14,10 @@ class Actuaciones(db.Model):
     anio = db.Column(db.Integer, nullable=False, index=True)
 
     # ✅ Guardar/leer por .value (ej "RATIFICACION DE CLAUSURA")
-    tipo = db.Column(
-        sa.Enum(
-            Tipo,
-            name="tipo_actuacion",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-            native_enum=True,   # MySQL ENUM real (como tu tabla ya tiene)
-        ),
-        nullable=True,
-        default=None,
-        index=True,
-    )
+    tipo = db.Column(db.String(255), nullable=True, index=True)
 
-    contraproducencia = db.Column(
-        sa.Enum(
-            ContraEnum,
-            name="contraproducencia",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-            native_enum=True,
-        ),
-        nullable=True,
-        default=ContraEnum.NO_HUBO,
-        index=True,
-    )
+    contraproducencia = db.Column(db.String(255), nullable=True, index=True)
+    
 
     # --- FKs (tal cual tu modelo) ---
     orden_trabajo_id = db.Column(

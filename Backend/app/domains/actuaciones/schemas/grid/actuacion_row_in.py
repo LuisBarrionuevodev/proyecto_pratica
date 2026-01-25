@@ -2,42 +2,19 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, date
-from enum import Enum
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Type
 
+from sqlalchemy import func
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
-# ===== Enums tipo
-class ContraEnum(str, Enum):
-    LOCAL_CERRADO = "LOCAL CERRADO"
-    NO_EXISTE = "NO EXISTE/NO ES EL RUBRO"
-    INCLEMENCIA_TIEMPO = "CLIMA"
-    ZONA_ROJA = "ZONA ROJA"
-    NO_HUBO = "NO_HUBO"
-    OTROS = "OTROS"
+from app.database import db
+from app.models import (
+    CatalogTipoActuacion,
+    CatalogContraproducencia,
+    CatalogMotivoComprobacion,
+)
 
-
-class Tipo(str, Enum):
-    INSPECCION = "INSPECCION"
-    REINSPECCION = "REINSPECCION"
-    RATIFICACION_CLAUSURA = "RATIFICACION DE CLAUSURA"
-    RATIFICACION_DECOMISO = "RATIFICACION DE DECOMISO"
-    VERIFICAR_E_INFORMAR = "VERIFICAR E INFORMAR"
-    TRANSPORTE = "TRANSPORTE"
-
-# ===== Enums motivo comprobación (UI dropdown)
-class MotivoComprobacion(str, Enum):
-    FALTA_HIGIENE = "Falta de Higiene"
-    CONDICIONES_EDILICIAS = "Condiciones Edilicias Inadecuadas"
-    NO_PERMITE_INSPECCION = "No Permite la Inspección"
-    INCUMPLIMIENTO = "Incumplimiento"
-    INCUMPLIMIENTO_NOTIF = "Incumplimiento de Notificación"
-    SIN_CERT_DESINF = "Sin Certificado de Desinfección"
-    SIN_CARNET_SANIDAD = "Sin Carnet de Sanidad"
-    SIN_CERT_SANIDAD = "Sin Certificado de Sanidad"
-    MERCADERIA_VENCIDA = "Mercadería Vencida"
-    PRODUCTOS_SIN_ROT = "Productos Sin Rotulación"
-
+# ===== En
 # ===== Helpers de normalización =====
 _SPACE_RE = re.compile(r"\s+")
 
@@ -57,37 +34,43 @@ def _upper_norm(s: str) -> str:
     return s
 
 
-def _coerce_enum(value: Any, enum_cls: type[Enum]) -> Any:
-    """
-    Acepta:
-    - Enum ya parseado
-    - string flexible ("local_cerrado", "LOCAL CERRADO", "Tipo.INSPECCION")
-    Devuelve el Enum correspondiente o deja que pydantic falle.
-    """
-    if value is None:
-        return None
-    if isinstance(value, enum_cls):
-        return value
-
+def _normalize_catalog_input(value: Any, strip_prefix: Optional[str] = None) -> Optional[str]:
     s = _clean_str(value)
     if not s:
         return None
-
     s = _upper_norm(s)
-    if s.startswith("TIPO."):
+    if strip_prefix and s.startswith(strip_prefix):
         s = s.split(".", 1)[1].strip()
+    return s
 
-    # match por value exacto
-    for member in enum_cls:  # type: ignore
-        if _upper_norm(str(member.value)) == s:
-            return member
 
-    # match por nombre del enum (ej: LOCAL_CERRADO)
-    for member in enum_cls:  # type: ignore
-        if _upper_norm(member.name) == s:
-            return member
+def _coerce_catalog_value(
+    value: Any,
+    model_cls: Type[db.Model],
+    field_label: str,
+    strip_prefix: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Normaliza y valida contra catálogo DB. Devuelve el nombre canónico de la DB.
+    """
+    normalized = _normalize_catalog_input(value, strip_prefix=strip_prefix)
+    if not normalized:
+        return None
+    row = (
+        db.session.query(model_cls.nombre)
+        .filter(func.replace(func.upper(model_cls.nombre), "_", " ") == normalized)
+        .limit(1)
+        .first()
+    )
+    if row is None:
+        raise ValueError(f"{field_label} inválido.")
+    return row[0]
 
-    return value  # pydantic terminará fallando con mensaje estándar
+
+def _matches_catalog(value: Optional[str], expected: str) -> bool:
+    if not value:
+        return False
+    return _upper_norm(value) == _upper_norm(expected)
 
 
 def _parse_fecha(v: Any) -> date:
@@ -153,7 +136,7 @@ class ActuacionGridRowIn(BaseModel):
     Enfoque:
     - Normalizar strings
     - Parsear fecha a date
-    - Tipar enums reales
+    - Validar catálogos en DB
     - Validar reglas de negocio base con errores por CELDA
     """
 
@@ -177,8 +160,8 @@ class ActuacionGridRowIn(BaseModel):
 
     # Catálogos / clasificación
     rubro_nombre: Optional[str] = None
-    tipo_actuacion: Optional[Tipo] = None
-    contraproducencia: Optional[ContraEnum] = None
+    tipo_actuacion: Optional[str] = None
+    contraproducencia: Optional[str] = None
 
     # Inspectores (catálogo DB)
     inspector1: Optional[str] = None
@@ -282,21 +265,30 @@ class ActuacionGridRowIn(BaseModel):
     @field_validator("tipo_actuacion", mode="before")
     @classmethod
     def parse_tipo(cls, v: Any) -> Any:
-        return _coerce_enum(v, Tipo)
+        return _coerce_catalog_value(
+            v,
+            CatalogTipoActuacion,
+            "tipo",
+            strip_prefix="TIPO.",
+        )
 
     @field_validator("contraproducencia", mode="before")
     @classmethod
     def parse_contra(cls, v: Any) -> Any:
         # Regla: si no se carga contraproducencia, por default NO_HUBO
         if v is None or v == "":
-            return ContraEnum.NO_HUBO
-        return _coerce_enum(v, ContraEnum)
+            return _coerce_catalog_value(
+                "NO_HUBO",
+                CatalogContraproducencia,
+                "contraproducencia",
+            )
+        return _coerce_catalog_value(v, CatalogContraproducencia, "contraproducencia")
 
     @field_validator("comprobacion_motivo", mode="before")
     @classmethod
     def parse_motivo_comprobacion(cls, v: Any) -> Any:
         # Normaliza y valida motivos de comprobación como enum (UI dropdown)
-        return _coerce_enum(v, MotivoComprobacion)
+        return _coerce_catalog_value(v, CatalogMotivoComprobacion, "motivo de comprobación")
     @field_validator("calle")
     @classmethod
     def normalize_calle(cls, v: Optional[str]) -> Optional[str]:
@@ -320,7 +312,7 @@ class ActuacionGridRowIn(BaseModel):
 
         field_errors: Dict[str, str] = {}
         # 1.b) Si contraproducencia == NO_HUBO => domicilio obligatorio
-        if self.contraproducencia == ContraEnum.NO_HUBO:
+        if _matches_catalog(self.contraproducencia, "NO_HUBO"):
             if not self.calle:
                 field_errors["calle"] = "Domicilio obligatorio cuando contraproducencia es NO_HUBO."
             if not self.numero:

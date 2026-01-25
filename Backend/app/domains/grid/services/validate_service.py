@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.grid.schemas.batch import ValidateRowResponse
-from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn, Tipo
+from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.domains.grid.services.column_map_actuaciones import COLUMN_MAP_ACTUACIONES
 from app.domains.grid.services.row_normalizer import normalize_row_keys, reverse_map_errors
 
@@ -16,6 +16,13 @@ from app.domains.grid.services.row_normalizer import normalize_row_keys, reverse
 def _normalize_ot(numero_ot: Any) -> str:
     s = ("" if numero_ot is None else str(numero_ot)).strip()
     return s.zfill(6) if s.isdigit() else s
+
+
+def _normalize_tipo(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    s = str(value).strip().upper().replace("_", " ")
+    return " ".join(s.split())
 
 
 def build_dup_key(row_validada: ActuacionGridRowIn) -> tuple[str, str]:
@@ -58,7 +65,9 @@ class GridValidateService:
             )
 
         # 1.5) Reglas UI por Tipo (errores por celda)
-        if row.tipo_actuacion == Tipo.REINSPECCION and not row.notificacion_previa_num:
+        tipo_norm = _normalize_tipo(row.tipo_actuacion)
+
+        if tipo_norm == "REINSPECCION" and not row.notificacion_previa_num:
             return ValidateRowResponse(
                 batch_id=batch_id,
                 row_id=row_id,
@@ -67,10 +76,10 @@ class GridValidateService:
                 normalized=None,
             )
 
-        if row.tipo_actuacion in (
-            Tipo.RATIFICACION_CLAUSURA,
-            Tipo.RATIFICACION_DECOMISO,
-            Tipo.VERIFICAR_E_INFORMAR,
+        if tipo_norm in (
+            "RATIFICACION DE CLAUSURA",
+            "RATIFICACION DE DECOMISO",
+            "VERIFICAR E INFORMAR",
         ) and not row.comprobacion_previa_num:
             return ValidateRowResponse(
                 batch_id=batch_id,

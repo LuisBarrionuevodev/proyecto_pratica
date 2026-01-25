@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from app.database import db
-from app.models import Actuaciones, Domicilio
+from app.models import Actuaciones, Domicilio, Oficio, Expediente
 from app.utils.fechas import parse_fecha_grid
 
 from .previas_service import resolver_previas
@@ -22,6 +22,10 @@ from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_tra
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_contribuyente_if_orphan,
     soft_delete_domicilio_if_orphan,
+    soft_delete_notificacion_if_orphan,
+    soft_delete_comprobacion_if_orphan,
+    soft_delete_oficio_if_orphan,
+    soft_delete_expediente_if_orphan,
 )
 
 
@@ -69,6 +73,13 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     old_domicilio_id: int | None = act.domicilio_id
     old_contribuyente_id: int | None = None
     old_orden_trabajo_id: int | None = act.orden_trabajo_id  # nuevo: para soft delete OT
+    old_notificacion_id: int | None = act.notificacion_id
+    old_comprobacion_id: int | None = act.comprobacion_id
+    old_oficios_ids: list[int] = []
+    old_expedientes_ids: list[int] = []
+    if old_comprobacion_id:
+        old_oficios_ids = [o.id for o in Oficio.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
+        old_expedientes_ids = [e.id for e in Expediente.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
     if old_domicilio_id is not None:
         old_dom: Domicilio | None = db.session.get(Domicilio, old_domicilio_id)
         if old_dom is not None:
@@ -169,6 +180,16 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         # soft delete de OT viejo si quedó huérfano
         from app.domains.actuaciones.cleanup.garbage_collector import soft_delete_orden_id_orphan
         soft_delete_orden_id_orphan(old_orden_trabajo_id)
+        ran_cleanup = True
+    if old_notificacion_id is not None and old_notificacion_id != act.notificacion_id:
+        soft_delete_notificacion_if_orphan(old_notificacion_id)
+        ran_cleanup = True
+    if old_comprobacion_id is not None and old_comprobacion_id != act.comprobacion_id:
+        soft_delete_comprobacion_if_orphan(old_comprobacion_id)
+        for oid in old_oficios_ids:
+            soft_delete_oficio_if_orphan(oid)
+        for eid in old_expedientes_ids:
+            soft_delete_expediente_if_orphan(eid)
         ran_cleanup = True
 
     if ran_cleanup:

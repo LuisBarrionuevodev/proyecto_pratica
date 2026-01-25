@@ -15,6 +15,10 @@ from app.models.actuaciones import Actuaciones
 from app.models.contribuyente import Contribuyente
 from app.models.domicilio import Domicilio
 from app.models.orden_de_trabajo import OrdenTrabajo
+from app.models.notificacion import Notificacion
+from app.models.comprobacion import Comprobacion
+from app.models.oficio import Oficio
+from app.models.expediente import Expediente
 
 
 def soft_delete_domicilio_if_orphan(domicilio_id: int) -> None:
@@ -118,4 +122,101 @@ def soft_delete_orden_id_orphan(orden_trabajo_id: int) -> None:
 
     ot.deleted_at = datetime.utcnow()
     db.session.add(ot)
+
+
+def soft_delete_notificacion_if_orphan(notificacion_id: int) -> None:
+    """Soft delete de `Notificacion` si quedó huérfana de `Actuaciones`."""
+    noti: Notificacion | None = db.session.get(Notificacion, notificacion_id)
+    if noti is None or noti.deleted_at is not None:
+        return
+
+    any_act = (
+        db.session.query(Actuaciones.id)
+        .filter(Actuaciones.notificacion_id == notificacion_id)
+        .limit(1)
+        .first()
+    )
+    if any_act is not None:
+        return
+
+    noti.deleted_at = datetime.utcnow()
+    db.session.add(noti)
+
+
+def soft_delete_comprobacion_if_orphan(comprobacion_id: int) -> None:
+    """Soft delete de `Comprobacion` si quedó huérfana de `Actuaciones`."""
+    comp: Comprobacion | None = db.session.get(Comprobacion, comprobacion_id)
+    if comp is None or comp.deleted_at is not None:
+        return
+
+    any_act = (
+        db.session.query(Actuaciones.id)
+        .filter(Actuaciones.comprobacion_id == comprobacion_id)
+        .limit(1)
+        .first()
+    )
+    if any_act is not None:
+        return
+
+    comp.deleted_at = datetime.utcnow()
+    db.session.add(comp)
+
+
+def soft_delete_oficio_if_orphan(oficio_id: int) -> None:
+    """Soft delete de `Oficio` si quedó huérfano de comprobación/expediente."""
+    ofi: Oficio | None = db.session.get(Oficio, oficio_id)
+    if ofi is None or ofi.deleted_at is not None:
+        return
+
+    comp_active = (
+        db.session.query(Comprobacion.id)
+        .filter(
+            Comprobacion.id == ofi.comprobacion_id,
+            Comprobacion.deleted_at.is_(None),
+        )
+        .first()
+    )
+    exp_active = (
+        db.session.query(Expediente.id)
+        .filter(
+            Expediente.oficio_id == oficio_id,
+            Expediente.deleted_at.is_(None),
+        )
+        .limit(1)
+        .first()
+    )
+    if comp_active is not None or exp_active is not None:
+        return
+
+    ofi.deleted_at = datetime.utcnow()
+    db.session.add(ofi)
+
+
+def soft_delete_expediente_if_orphan(expediente_id: int) -> None:
+    """Soft delete de `Expediente` si quedó huérfano de comprobación/oficio."""
+    exp: Expediente | None = db.session.get(Expediente, expediente_id)
+    if exp is None or exp.deleted_at is not None:
+        return
+
+    comp_active = (
+        db.session.query(Comprobacion.id)
+        .filter(
+            Comprobacion.id == exp.comprobacion_id,
+            Comprobacion.deleted_at.is_(None),
+        )
+        .first()
+    )
+    ofi_active = (
+        db.session.query(Oficio.id)
+        .filter(
+            Oficio.id == exp.oficio_id,
+            Oficio.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if comp_active is not None or ofi_active is not None:
+        return
+
+    exp.deleted_at = datetime.utcnow()
+    db.session.add(exp)
 

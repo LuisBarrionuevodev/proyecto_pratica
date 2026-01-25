@@ -1,7 +1,9 @@
 import { Box, TextField, Button, MenuItem, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+
+import { fetchTiposActuacion, fetchContraproducencias } from "../../../api/gridApi";
 
 import {
     filtroContainerStyles,
@@ -38,6 +40,24 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
     const [tipo, setTipo] = useState<string>("");
     const [contraproducencia, setContraproducencia] = useState<string>("");
     const [ordenTrabajo, setOrdenTrabajo] = useState<string>("");
+    const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
+    const [catalogContras, setCatalogContras] = useState<string[]>([]);
+
+    useEffect(() => {
+        const loadCatalogs = async () => {
+            try {
+                const [tipos, contras] = await Promise.all([
+                    fetchTiposActuacion(),
+                    fetchContraproducencias(),
+                ]);
+                setCatalogTipos([...new Set(tipos.items.map((t: any) => t.nombre))]);
+                setCatalogContras([...new Set(contras.items.map((c: any) => c.nombre))]);
+            } catch (error) {
+                console.error("Error cargando catálogos de filtros:", error);
+            }
+        };
+        loadCatalogs();
+    }, []);
 
     const handleFiltrar = () => {
         onFiltrar({
@@ -112,12 +132,9 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
                         variant="outlined"
                     >
                         <MenuItem value="">Todos</MenuItem>
-                        <MenuItem value="INSPECCION">Inspección</MenuItem>
-                        <MenuItem value="REINSPECCION">Reinspección</MenuItem>
-                        <MenuItem value="RATIFICACION DE CLAUSURA">Ratificación de Clausura</MenuItem>
-                        <MenuItem value="RATIFICACION DE DECOMISO">Ratificación de Decomiso</MenuItem>
-                        <MenuItem value="VERIFICAR E INFORMAR">Verificar e Informar</MenuItem>
-                        <MenuItem value="TRANSPORTE">Transporte</MenuItem>
+                        {catalogTipos.map((t) => (
+                            <MenuItem key={t} value={t}>{t}</MenuItem>
+                        ))}
                     </TextField>
                 </Box>
 
@@ -132,11 +149,9 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
                         variant="outlined"
                     >
                         <MenuItem value="">Todas</MenuItem>
-                        <MenuItem value="LOCAL CERRADO">Local Cerrado</MenuItem>
-                        <MenuItem value="NO EXISTE/NO ES EL RUBRO">No Existe/No es el Rubro</MenuItem>
-                        <MenuItem value="CLIMA">Clima</MenuItem>
-                        <MenuItem value="ZONA ROJA">Zona Roja</MenuItem>
-                        <MenuItem value="OTROS">Otros</MenuItem>
+                        {catalogContras.map((c) => (
+                            <MenuItem key={c} value={c}>{c}</MenuItem>
+                        ))}
                     </TextField>
                 </Box>
             </Box>

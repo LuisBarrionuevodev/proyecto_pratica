@@ -12,6 +12,7 @@ class Notificacion(db.Model):
 
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
 
     actuaciones = db.relationship("Actuaciones", back_populates="notificacion")
 
@@ -34,6 +35,7 @@ class Notificacion(db.Model):
             "mes": self.mes,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "deleted_at": self.deleted_at,
         }
 
         if include_relations:

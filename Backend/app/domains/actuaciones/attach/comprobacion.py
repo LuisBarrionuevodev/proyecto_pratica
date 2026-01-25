@@ -66,12 +66,14 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
 
     # Caso 1: la actuación ya tiene una comprobación asociada -> actualizar esa
     if actuacion.comprobacion_id:
-        comp = Comprobacion.query.get(actuacion.comprobacion_id)
+        comp = db.session.get(Comprobacion, actuacion.comprobacion_id)
         if comp:
-            existente = Comprobacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
+            existente = db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first()
             if existente and existente.id != comp.id:
                 raise ValueError("Acta de comprobación ya asociada a otra actuación")
 
+            if comp.deleted_at is not None:
+                comp.deleted_at = None
             comp.numero_acta = acta_num
             comp.anio = anio
             comp.mes = mes
@@ -80,12 +82,15 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
 
     # Caso 2: no hay comprobación asociada (o no se pudo cargar) -> buscar/crear por acta+anio
     if not comp:
-        comp = Comprobacion.query.filter_by(numero_acta=acta_num, anio=anio).first()
+        comp = db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first()
         if not comp:
             comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
             db.session.add(comp)
             db.session.flush()
         else:
+            # restore si estaba soft-deleted
+            if comp.deleted_at is not None:
+                comp.deleted_at = None
             comp.mes = mes
             comp.motivo = motivo
             db.session.add(comp)

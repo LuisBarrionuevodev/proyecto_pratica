@@ -44,8 +44,13 @@ def attach_oficio(data: Optional[Dict[str, Any]], comprobacion_id: Optional[int]
     if not numero or anio is None:
         raise ValueError("Si cargás oficio, número y año son obligatorios.")
 
-    of = Oficio.query.filter_by(numero_oficio=str(numero).strip(), anio=int(anio)).first()
+    of = db.session.query(Oficio).filter_by(numero_oficio=str(numero).strip(), anio=int(anio)).first()
     if of:
+        # restore si estaba soft-deleted y reasociar
+        if of.deleted_at is not None:
+            of.deleted_at = None
+        of.comprobacion_id = comprobacion_id
+        db.session.add(of)
         return of
 
     of = Oficio(

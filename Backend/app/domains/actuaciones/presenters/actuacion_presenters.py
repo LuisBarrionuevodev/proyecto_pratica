@@ -11,13 +11,17 @@ def _enum_to_str(value: Any) -> Optional[str]:
     Convierte un Enum o string a un string limpio para el front.
 
     Caso normal:
-      - Enum -> "INSPECCION"
+      - Enum -> "INSPECCION" (usa .value si existe)
     Casos defensivos:
       - "Tipo.INSPECCION" -> "INSPECCION"
       - None -> None
     """
     if value is None:
         return None
+
+    enum_value = getattr(value, "value", None)
+    if enum_value:
+        return str(enum_value)
 
     name = getattr(value, "name", None)
     if name:

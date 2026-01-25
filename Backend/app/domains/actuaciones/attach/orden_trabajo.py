@@ -38,8 +38,12 @@ def get_or_create_orden_trabajo(numero_ot: Any, fecha_str: Any) -> OrdenTrabajo:
     if not numero:
         raise ValueError("Orden de trabajo es obligatoria.")
 
-    ot = OrdenTrabajo.query.filter_by(numero_acta=numero, anio=anio, deleted_at=None).first()
+    ot = db.session.query(OrdenTrabajo).filter_by(numero_acta=numero, anio=anio).first()
     if ot:
+        # restore si estaba soft-deleted
+        if ot.deleted_at is not None:
+            ot.deleted_at = None
+            db.session.add(ot)
         return ot
 
     ot = OrdenTrabajo(numero_acta=numero, anio=anio, mes=mes)

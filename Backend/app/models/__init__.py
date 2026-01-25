@@ -19,11 +19,14 @@ from .clausura import Clausura
 from .decomiso import Decomiso
 from .inspector import Inspector
 from .relevamiento import Relevamiento
-from .enums import ContraEnum 
-from .enums import Tipo
 from .catalog_tipo_actuacion import CatalogTipoActuacion
 from .catalog_contraproducencia import CatalogContraproducencia
 from .catalog_motivo_comprobacion import CatalogMotivoComprobacion
+from .lugar_trabajo import LugarTrabajo
+from .participante import Participante
+from .establecimiento import Establecimiento
+from .evento import Evento
+from .evento_participante import EventoParticipante
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -51,4 +54,9 @@ __all__ = [
     "CatalogTipoActuacion",
     "CatalogContraproducencia",
     "CatalogMotivoComprobacion",
+    "LugarTrabajo",
+    "Participante",
+    "Establecimiento",
+    "Evento",
+    "EventoParticipante",
 ]

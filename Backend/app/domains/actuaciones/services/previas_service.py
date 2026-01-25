@@ -45,12 +45,33 @@ def resolver_previas(act: Actuaciones, payload: Dict[str, Any]) -> None:
     # -------------------------
     prev_noti_num = acta_6(payload.get("notificacion_previa_num") or payload.get("acta_notificacion_previa_num"))
     if prev_noti_num:
-        noti = Notificacion.query.filter_by(numero_acta=prev_noti_num, anio=anio).first()
+        noti = db.session.query(Notificacion).filter_by(numero_acta=prev_noti_num, anio=anio).first()
         if not noti:
             # crear previa mínima (sin motivos)
             noti = Notificacion(numero_acta=prev_noti_num, anio=anio, mes=mes)
             db.session.add(noti)
             db.session.flush()
+        else:
+            # restore si estaba soft-deleted
+            if noti.deleted_at is not None:
+                noti.deleted_at = None
+                noti.updated_at = db.func.current_timestamp()
+                db.session.add(noti)
+
+        # validar que no exista actuación activa con mismo tipo para esta notificación
+        if act.tipo is not None:
+            existe_mismo_tipo = (
+                Actuaciones.query.filter(
+                    Actuaciones.id != act.id,
+                    Actuaciones.anio == anio,
+                    Actuaciones.tipo == act.tipo,
+                    Actuaciones.notificacion_id == noti.id,
+                ).first()
+            )
+            if existe_mismo_tipo:
+                raise ValueError(
+                    f"La Notificación {prev_noti_num}/{anio} ya está asociada a otra actuación del mismo tipo ({act.tipo})."
+                )
         act.notificacion_id = noti.id
 
     # -------------------------
@@ -58,7 +79,7 @@ def resolver_previas(act: Actuaciones, payload: Dict[str, Any]) -> None:
     # -------------------------
     prev_comp_num = acta_6(payload.get("comprobacion_previa_num") or payload.get("acta_comprobacion_previa_num"))
     if prev_comp_num:
-        comp = Comprobacion.query.filter_by(numero_acta=prev_comp_num, anio=anio).first()
+        comp = db.session.query(Comprobacion).filter_by(numero_acta=prev_comp_num, anio=anio).first()
 
         motivo_prev = (payload.get("comprobacion_previa_motivo") or "").strip()
 
@@ -70,10 +91,30 @@ def resolver_previas(act: Actuaciones, payload: Dict[str, Any]) -> None:
             db.session.add(comp)
             db.session.flush()
         else:
+            # restore si estaba soft-deleted
+            if comp.deleted_at is not None:
+                comp.deleted_at = None
+                comp.updated_at = db.func.current_timestamp()
+                db.session.add(comp)
             # si existe y me pasaron motivo_prev, actualizo; si no, no toco
             if motivo_prev:
                 comp.motivo = motivo_prev
                 comp.mes = mes
                 db.session.add(comp)
+
+        # validar que no exista actuación activa con mismo tipo para esta comprobación
+        if act.tipo is not None:
+            existe_mismo_tipo = (
+                Actuaciones.query.filter(
+                    Actuaciones.id != act.id,
+                    Actuaciones.anio == anio,
+                    Actuaciones.tipo == act.tipo,
+                    Actuaciones.comprobacion_id == comp.id,
+                ).first()
+            )
+            if existe_mismo_tipo:
+                raise ValueError(
+                    f"La Comprobación {prev_comp_num}/{anio} ya está asociada a otra actuación del mismo tipo ({act.tipo})."
+                )
 
         act.comprobacion_id = comp.id

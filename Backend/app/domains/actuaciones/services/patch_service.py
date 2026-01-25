@@ -22,6 +22,16 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
         ValueError: Si la actuación no existe
     """
     from app.database import db
+    from app.models import Domicilio, Oficio, Expediente
+    from app.domains.actuaciones.cleanup.garbage_collector import (
+        soft_delete_contribuyente_if_orphan,
+        soft_delete_domicilio_if_orphan,
+        soft_delete_orden_id_orphan,
+        soft_delete_notificacion_if_orphan,
+        soft_delete_comprobacion_if_orphan,
+        soft_delete_oficio_if_orphan,
+        soft_delete_expediente_if_orphan,
+    )
     import traceback
     
     try:
@@ -33,6 +43,22 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
             raise ValueError(f"Actuación {actuacion_id} no encontrada")
         
         print(f"[PATCH] Actuación encontrada: ID={act.id}, OT actual={act.orden_trabajo_id}")
+
+        # Snapshot pre-update para cleanup post-commit.
+        old_domicilio_id = act.domicilio_id
+        old_notificacion_id = act.notificacion_id
+        old_comprobacion_id = act.comprobacion_id
+        old_orden_trabajo_id = act.orden_trabajo_id
+        old_contribuyente_id = None
+        old_oficios_ids = []
+        old_expedientes_ids = []
+        if old_domicilio_id:
+            dom = db.session.get(Domicilio, old_domicilio_id)
+            if dom:
+                old_contribuyente_id = dom.contribuyente_id
+        if old_comprobacion_id:
+            old_oficios_ids = [o.id for o in Oficio.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
+            old_expedientes_ids = [e.id for e in Expediente.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
         
         # Actualizar solo los campos que vienen en el patch (no None)
         patch_dict = patch.model_dump(exclude_unset=True, exclude_none=True)
@@ -161,8 +187,8 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
             if dom_payload:
                 # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
                 allow_missing_catalogs = (
-                    payload.get("tipo_actuacion") is None
-                    and payload.get("contraproducencia") is not None
+                    (patch_dict.get("tipo_actuacion", act.tipo) is None)
+                    and (patch_dict.get("contraproducencia", act.contraproducencia) is not None)
                 )
                 dom = get_or_create_domicilio(
                     dom_payload,
@@ -218,6 +244,30 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
         print(f"[PATCH] Commit a DB...")
         db.session.add(act)
         db.session.commit()
+
+        # Garbage collector post-update para huérfanos
+        ran_cleanup = False
+        if old_domicilio_id and old_domicilio_id != act.domicilio_id:
+            soft_delete_domicilio_if_orphan(old_domicilio_id)
+            ran_cleanup = True
+        if old_contribuyente_id:
+            soft_delete_contribuyente_if_orphan(old_contribuyente_id)
+            ran_cleanup = True
+        if old_orden_trabajo_id and old_orden_trabajo_id != act.orden_trabajo_id:
+            soft_delete_orden_id_orphan(old_orden_trabajo_id)
+            ran_cleanup = True
+        if old_notificacion_id and old_notificacion_id != act.notificacion_id:
+            soft_delete_notificacion_if_orphan(old_notificacion_id)
+            ran_cleanup = True
+        if old_comprobacion_id and old_comprobacion_id != act.comprobacion_id:
+            soft_delete_comprobacion_if_orphan(old_comprobacion_id)
+            for oid in old_oficios_ids:
+                soft_delete_oficio_if_orphan(oid)
+            for eid in old_expedientes_ids:
+                soft_delete_expediente_if_orphan(eid)
+            ran_cleanup = True
+        if ran_cleanup:
+            db.session.commit()
         
         print(f"[PATCH] Actualización exitosa!")
         return act

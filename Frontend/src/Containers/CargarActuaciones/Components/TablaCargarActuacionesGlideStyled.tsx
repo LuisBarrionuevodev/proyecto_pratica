@@ -143,9 +143,23 @@ const TablaCargarActuacionesGlideStyled = () => {
 
     const buildRowErrorSummary = (errors?: Record<string, string>) => {
         if (!errors) return null;
-        if (errors._row || errors.detail) return errors._row || errors.detail || null;
-        const first = Object.entries(errors).find(([key]) => !["_row", "detail", "_global"].includes(key));
-        return first ? `${first[0]}: ${first[1]}` : null;
+        const messages: string[] = [];
+
+        const topLevel = errors._row || errors.detail || errors._global;
+        if (topLevel) {
+            messages.push(topLevel);
+        }
+
+        Object.entries(errors)
+            .filter(([key]) => !["_row", "detail", "_global"].includes(key))
+            .forEach(([key, value]) => {
+                if (value) {
+                    messages.push(`${key}: ${value}`);
+                }
+            });
+
+        if (messages.length === 0) return null;
+        return messages.join(" | ");
     };
 
     // Validar batch de filas - SOLO las que tienen datos
@@ -308,7 +322,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                         ...row,
                         _state: "ERROR",
                         _cellErrors: result.errors || {},
-                        _rowError: result.errors?.detail || result.errors?._row || "Error en commit",
+                        _rowError: buildRowErrorSummary(result.errors) || "Error en commit",
                     };
                 }
                 return row;
@@ -537,6 +551,14 @@ const TablaCargarActuacionesGlideStyled = () => {
     const errorCount = rowsWithData.filter((r) => r._state === "ERROR").length;
     const pendingCount = rowsWithData.filter((r) => r._state === "PENDIENTE").length;
     const validatingCount = rowsWithData.filter((r) => r._state === "VALIDANDO").length;
+    const rowErrorText = data
+        .map((row, index) => {
+            if (!rowHasData(row) || !row._rowError) return null;
+            return `Fila ${index + 1}: ${row._rowError}`;
+        })
+        .filter(Boolean)
+        .filter((value, idx, arr) => arr.indexOf(value) === idx)
+        .join(" | ") || null;
 
     // Altura dinámica
     const tableHeight = useMemo(() => calculateTableHeight(data.length), [data.length]);
@@ -562,13 +584,34 @@ const TablaCargarActuacionesGlideStyled = () => {
 
                 {batchId && (
                     <Alert severity="success" sx={alertBaseStyles}>
-                        <strong>BATCH ACTIVO:</strong> {batchId.slice(0, 13)}... | 
-                        <span style={{ color: COLORS.successText, fontWeight: 700, marginLeft: 8 }}>{okCount} OK</span> | 
-                        <span style={{ color: COLORS.errorText, fontWeight: 700, marginLeft: 8 }}>{errorCount} ERROR</span> | 
-                        <span style={{ color: COLORS.warningText, fontWeight: 700, marginLeft: 8 }}>{pendingCount} PENDIENTE</span>
-                        <span style={{ color: COLORS.white, fontWeight: 700, marginLeft: 8 }}>{validatingCount} VALIDANDO</span>
+                        <strong>BATCH ACTIVO:</strong> {batchId.slice(0, 13)}...
+                        {okCount > 0 && (
+                            <span style={{ color: COLORS.successText, fontWeight: 700, marginLeft: 8 }}>
+                                {okCount} OK
+                            </span>
+                        )}
+                        {errorCount > 0 && (
+                            <span style={{ color: COLORS.errorText, fontWeight: 700, marginLeft: 8 }}>
+                                {errorCount} ERROR
+                            </span>
+                        )}
+                        {validatingCount > 0 && (
+                            <span style={{ color: COLORS.white, fontWeight: 700, marginLeft: 8 }}>
+                                {validatingCount} Validando...
+                            </span>
+                        )}
+                        {pendingCount > 0 && (
+                            <span style={{ color: COLORS.warningText, fontWeight: 700, marginLeft: 8 }}>
+                                {pendingCount} Pendiente
+                            </span>
+                        )}
                         {isLoadingBatch && <span style={{ marginLeft: 8 }}>⏳ Iniciando...</span>}
                         {isCommitting && <span style={{ marginLeft: 8 }}>💾 Guardando...</span>}
+                        {rowErrorText && (
+                            <div style={{ color: COLORS.errorText, textAlign: "center", marginTop: 8 }}>
+                                {rowErrorText}
+                            </div>
+                        )}
                     </Alert>
                 )}
 
