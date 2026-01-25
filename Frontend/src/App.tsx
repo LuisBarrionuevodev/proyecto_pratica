@@ -12,6 +12,7 @@ import PendientesVinculacionActa from "./Containers/Actuaciones/Containers/Pendi
 import PendientesVinculacionOficio from "./Containers/Actuaciones/Containers/PendientesVinculacionOficio";
 import Mapa from "./Containers/Mapa";
 import TopBar from "./Componets/TopBar";
+import Perfil from "./Containers/Perfil";
 
 // Componente wrapper que muestra TopBar solo en rutas permitidas
 const AppLayout = () => {
@@ -38,6 +39,7 @@ const AppLayout = () => {
         <Route path="/cargarActuacion" element={<CargarActuaciones />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/mapa" element={<Mapa />} />
+        <Route path="/perfil" element={<Perfil />} />
       </Routes>
     </>
   );

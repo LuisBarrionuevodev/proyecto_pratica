@@ -7,6 +7,7 @@ import {
     MenuItem,
     Divider,
     Chip,
+    Link,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
@@ -36,6 +37,7 @@ import {
 
 // Avatar del usuario
 import FotoAvatar from "../assets/FotoAvatar.png";
+import { useNavigate } from "react-router-dom";
 
 // Datos del usuario (temporales - luego vendrán de contexto/auth)
 const USER_DATA = {
@@ -49,6 +51,8 @@ const TopBar = () => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
+    const navigate = useNavigate();
+
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
     };
@@ -57,20 +61,20 @@ const TopBar = () => {
         setAnchorEl(null);
     };
 
-    const handleViewProfile = () => {
-        console.log("Ver perfil");
+   const handleViewProfile = () => {
         handleClose();
+        navigate("/perfil"); // <-- Redirige a /perfil
     };
 
     const handleAboutUs = () => {
-        console.log("Nosotros");
         handleClose();
+        navigate("/nosotros"); // <-- Redirige a /nosotros
     };
 
     const handleLogout = () => {
-        console.log("Cerrar sesión");
         handleClose();
-        // TODO: Implementar lógica de logout y redirección a /login
+        // TODO: implementar logout real
+        navigate("/login"); // <-- Redirige a login
     };
 
     return (
@@ -121,10 +125,12 @@ const TopBar = () => {
                 }}
             >
                 {/* Opciones del menú */}
+                
                 <MenuItem onClick={handleViewProfile} sx={MenuItemStyles}>
                     <PersonOutlineIcon fontSize="small" />
                     Ver perfil
                 </MenuItem>
+                
 
                 <MenuItem onClick={handleAboutUs} sx={MenuItemStyles}>
                     <InfoOutlinedIcon fontSize="small" />
