@@ -3,7 +3,7 @@ import FotoAvatar from "../../../assets/FotoAvatar.png"
 
 const BoxNombreUsuario = () => {
 
-    const nombreUsuario = localStorage.getItem("Nombre de Usuario")
+    // const nombreUsuario = localStorage.getItem("Nombre de Usuario")
 
     return (
         <Box sx={{ bgcolor: "#1955CD", height: { xs: "220px", sm: "230px", md: "260px", lg: "270px", xl:"310px" }, boxShadow: "0px 4px 4px black" }}>

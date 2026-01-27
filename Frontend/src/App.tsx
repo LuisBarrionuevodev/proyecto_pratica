@@ -19,7 +19,7 @@ const AppLayout = () => {
   const location = useLocation();
   
   // Rutas donde NO se muestra el TopBar
-  const hideTopBarRoutes = ["/", "/login"];
+  const hideTopBarRoutes = ["/", "/login", "/perfil"];
   const showTopBar = !hideTopBarRoutes.includes(location.pathname);
 
   return (

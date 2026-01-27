@@ -1,6 +1,7 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
-import Logo from "../assets-login/Logo.svg";
+import LogoSMT from "../../../assets/LogoSMT.svg"
+import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
 import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -26,7 +27,8 @@ const LoginBox = (): JSX.Element => {
         <Box sx={LoginBoxGlobalStyle}>
             <Box sx={LoginBoxStyle}>
                 <Box sx={LoginLogoStyle}>
-                    <img src={Logo} alt="" style={{ width: "100px" }} />
+                    <img src={LogoSMT} alt="" style={{width:"120px"}} />
+                    <img src={TextDigitaliza} alt="" style={{ width: "200px" }} />
                 </Box>
 
                 <Box sx={LoginLogoStyle}>

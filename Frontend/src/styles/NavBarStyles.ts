@@ -2,7 +2,7 @@ import type { SxProps, Theme } from "@mui/material";
 
 // Estilos del logo superior
 export const StyleLogo = {
-    padding: 2,
+    padding: 1,
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",
@@ -12,8 +12,6 @@ export const StyleLogo = {
 // Divisor con espaciado consistente
 export const StyleDivider = {
     width: "85%",
-    marginTop: 1,
-    marginBottom: 1,
     borderColor: "rgba(255, 255, 255, 0.15)",
 };
 
@@ -30,16 +28,16 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
     width: open ? 240 : 70,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
-        width: open ? 240 : 70,
+        width: open ? 240 : 80,
         transition: "width 0.3s ease-in-out",
         overflowX: "hidden",
         backgroundColor: "#2B2E34",
         color: "white",
         borderRadius: "20px",
         position: "fixed",
-        height: "97vh",
+        height: "85vh",
         marginLeft: "15px",
-        marginTop: "10px",
+        marginTop: "90px",
         marginBottom: "10px",
         alignItems: "center",
         display: "flex",
@@ -98,7 +96,7 @@ export const StyleListItemText = (open: boolean): SxProps<Theme> => ({
 // Botón de expansión
 export const StyleExpandButton: SxProps<Theme> = {
     color: "white",
-    marginBottom: 2,
+    mt: 2,
     padding: 1,
     transition: "all 0.2s ease",
     "&:hover": {

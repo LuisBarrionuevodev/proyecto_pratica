@@ -18,8 +18,10 @@ export const LoginBoxStyle = {
 
 export const LoginLogoStyle = {
     display: "flex", 
+    alignItems:"center",
     justifySelf: "center", 
     flexDirection: "column"
+    
 }
 
 export const LoginBoxInputStyles = {

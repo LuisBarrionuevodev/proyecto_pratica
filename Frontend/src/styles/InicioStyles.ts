@@ -1,11 +1,16 @@
+import BackgroundInicio from "../assets/BackgroundInicio.png"
+
 export const BoxInicio = {
     display: "flex",
-    flexDirection: "column",
-    backgroundColor: "#2B2E34",
-    boxShadow: "0px 4px 4 px #000000",
-    gap: 5,
+    backgroundImage: `url(${BackgroundInicio})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    gap: 1,
+    alignItems:"center",
+    justifyContent:"center",
     paddingTop: "15px",
     paddingBottom: "15px",
+    height: "350px"
 }
 
 export const BoxTitulo = {
@@ -40,7 +45,7 @@ export const ButtonStylesInicio = {
     textTransform: 'none',
     transition: "box-shadow 0.4s ease, transform 0.4s ease",
     '&:hover': {
-        boxShadow: {xs:"6px 4px 0px #000000", sm: "8px 6px 0px #000000" ,md:" 8px 6px 0px #000000"},
+        boxShadow: { xs: "6px 4px 0px #000000", sm: "8px 6px 0px #000000", md: " 8px 6px 0px #000000" },
         transform: "scale(1.05)"
     }
 }
@@ -61,13 +66,13 @@ export const CardStyle = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    height: "250px",
+    height: "150px",
     backgroundColor: "#DADADA",
-    border: "4px solid black",
     borderRadius: "12px",
+    gap: 1,
     transition: "box-shadow 0.4s ease, transform 0.4s ease",
     "&:hover": {
-        boxShadow: " 8px 6px 0px #000000",
+        boxShadow: " 0px 0.5px 10px #000000",
         transform: "scale(1.05)"
     },
 }
@@ -78,12 +83,17 @@ export const StyleBoxTextCard = {
 }
 
 export const StyleTextCard = {
-    WebkitTextStroke: '1px black',
-    textShadow: "2px 2px 0 #000000",
-    color: "#E6E6E6",
+    color: "#000000",
     fontFamily: "Tactic Sans",
     fontWeight: 600,
     fontSize: "20px",
+}
+
+export const StyleTextCardSecondary = {
+    color: "#9c9c9c",
+    fontFamily: "Tactic Sans",
+    fontWeight: 400,
+    fontSize: "15px",
 }
 
 

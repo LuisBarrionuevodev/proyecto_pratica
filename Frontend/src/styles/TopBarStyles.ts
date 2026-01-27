@@ -20,13 +20,14 @@ export const BORDER_COLOR = "#3a3d44";
 
 // Contenedor fijo en la esquina superior derecha
 export const TopBarContainerStyles: SxProps<Theme> = {
-    position: "fixed",
-    top: 16,
-    right: 24,
-    zIndex: 1200,
+    width:"100%",
+    bgcolor:"transparent",
+    zIndex:10,
+    height:"70px",
+    position:"fixed",
     display: "flex",
+    justifyContent:"space-between",
     alignItems: "center",
-    gap: 1.5,
 };
 
 // Botón del avatar (trigger del menú) - sin caja por defecto
@@ -64,7 +65,7 @@ export const UserNameStyles: SxProps<Theme> = {
     fontFamily: '"Tactic Sans", sans-serif',
     fontWeight: 600,
     fontSize: "14px",
-    color: COLORS.white,
+    color: COLORS.black,
     lineHeight: 1.2,
 };
 

@@ -6,14 +6,13 @@ import {
     Menu,
     MenuItem,
     Divider,
-    Chip,
-    Link,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
-
+import TextDigitaliza from "../assets/TextDigitaliza.svg"
+import LogoSMT from "../assets/LogoSMT.svg"
 // Estilos Neo-Brutalistas
 import {
     TopBarContainerStyles,
@@ -24,12 +23,6 @@ import {
     RoleBadgeSmallStyles,
     ArrowIconStyles,
     MenuPaperStyles,
-    MenuHeaderStyles,
-    MenuAvatarStyles,
-    MenuUserInfoStyles,
-    MenuUserNameStyles,
-    RoleChipStyles,
-    MenuEmailStyles,
     MenuItemStyles,
     MenuDividerStyles,
     MenuItemLogoutStyles,
@@ -61,10 +54,14 @@ const TopBar = () => {
         setAnchorEl(null);
     };
 
-   const handleViewProfile = () => {
+    const handleViewProfile = () => {
         handleClose();
         navigate("/perfil"); // <-- Redirige a /perfil
     };
+
+    const handleInicio = () => {
+        navigate("/inicio")
+    }
 
     const handleAboutUs = () => {
         handleClose();
@@ -79,6 +76,17 @@ const TopBar = () => {
 
     return (
         <Box sx={TopBarContainerStyles}>
+            <Box ml={1} display={"flex"} onClick={handleInicio} sx={{ cursor: "pointer" }}>
+                <Box
+                    component={"img"}
+                    src={LogoSMT}
+                    sx={{ width: "100px", }} />
+
+                <Box
+                    component={"img"}
+                    src={TextDigitaliza}
+                    sx={{ width: "250px" }} />
+            </Box>
             {/* Botón del Avatar (trigger del menú) - sin caja */}
             <Box
                 onClick={handleClick}
@@ -125,12 +133,12 @@ const TopBar = () => {
                 }}
             >
                 {/* Opciones del menú */}
-                
+
                 <MenuItem onClick={handleViewProfile} sx={MenuItemStyles}>
                     <PersonOutlineIcon fontSize="small" />
                     Ver perfil
                 </MenuItem>
-                
+
 
                 <MenuItem onClick={handleAboutUs} sx={MenuItemStyles}>
                     <InfoOutlinedIcon fontSize="small" />
