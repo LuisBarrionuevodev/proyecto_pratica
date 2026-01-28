@@ -15,7 +15,11 @@ import {
 } from "../styles/NavBarStyles";
 import { menuItems } from "../constants/menuItems";
 
-const NavLeft = () => {
+interface NavLeftProps {
+    onToggle?: (open: boolean) => void;
+}
+
+const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
 
     const navigate = useNavigate()
 
@@ -32,13 +36,17 @@ const NavLeft = () => {
 
                 {/* Botón de expansión */}
                 <IconButton
-                    onClick={() => setOpen(!open)}
+                    onClick={() => {
+                        const next = !open;
+                        setOpen(next);
+                        onToggle?.(next);
+                    }}
                     sx={StyleExpandButton}
                 >
                     {open ? <KeyboardDoubleArrowLeftIcon /> : <KeyboardDoubleArrowRightIcon />}
                 </IconButton>
                 {/* Logo arriba */}
-                
+
                 {/* <Divider sx={StyleDivider} /> */}
 
                 {/* Lista de ítems con alineación profesional */}

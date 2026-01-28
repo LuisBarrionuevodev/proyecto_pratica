@@ -3,7 +3,7 @@ import { ButtonGuardarInfoStyle, InputCambiarInfoStyle } from "../../../styles/P
 
 const BoxCambiarInfo = () => {
     return (
-        <Box sx={{ border: "1px solid black", borderRadius: "20px",boxShadow:"6px 6px 2px black" , display: "flex",  height: "450px", flexDirection: "column", alignItems: "center", width: {md:"500px"}, gap: 3, m: 8, p: 3 }}>
+        <Box sx={{ border: "1px solid black", borderRadius: "20px",boxShadow:"6px 6px 2px black" , display: "flex",  height: "450px", flexDirection: "column", alignItems: "center", width: {md:"500px"}, gap: 3, m: 8,p: 3, bgcolor:"#d2d2d2"}}>
             <Box sx={{ display: "flex", alignSelf: "start" }}>
                 <Typography sx={{ fontSize: 20, fontWeight: 500, }}>
                     Datos del Perfil

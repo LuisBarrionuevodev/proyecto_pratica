@@ -21,14 +21,19 @@ export const COLORS = {
 // =============================================================================
 
 export const wrapperStyles: SxProps<Theme> = {
-    width: { xs: "280px", sm: "520px", md: "920px", lg: "920px", xl: "1220px" },
-    display: "flex",
-    position: "absolute",
-    top: { xs: "10px", sm: "1%", md: "5%", lg: "5%", xl: "8%" },
-    marginLeft: { xs: "90px", sm: "100px", md: "100px", lg: "120px", xl: "100px" },
-    textAlign: "center",
-    justifySelf: "center",
-    flexDirection: "column",
+  width: "100%",
+  maxWidth: {
+    xs: "280px",
+    sm: "520px",
+    md: "920px",
+    xl: "1220px",
+  },
+  margin: "0 auto",          // centra horizontalmente
+  display: "flex",
+  flexDirection: "column",
+  textAlign: "center",
+  boxSizing: "border-box",
+  padding:3
 };
 
 export const titleStyles: SxProps<Theme> = {
@@ -39,7 +44,7 @@ export const titleStyles: SxProps<Theme> = {
     textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
     letterSpacing: "2px",
     marginBottom: "24px",
-    textAlign: "left",
+    textAlign: "center",
 };
 
 // =============================================================================
@@ -47,7 +52,7 @@ export const titleStyles: SxProps<Theme> = {
 // =============================================================================
 
 export const filtroContainerStyles: SxProps<Theme> = {
-    marginBottom: "24px",
+    marginBottom: "20px",
     padding: "24px",
     backgroundColor: COLORS.grayDark,
     borderRadius: "8px",

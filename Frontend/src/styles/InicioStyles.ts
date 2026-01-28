@@ -4,7 +4,7 @@ export const BoxInicio = {
     display: "flex",
     backgroundImage: `url(${BackgroundInicio})`,
     backgroundSize: "cover",
-    backgroundPosition: "center",
+    backgroundPosition: "end",
     gap: 1,
     alignItems:"center",
     justifyContent:"center",

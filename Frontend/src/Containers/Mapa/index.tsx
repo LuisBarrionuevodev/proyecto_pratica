@@ -4,8 +4,6 @@ import MapView from "./Components/MapView";
 const Mapa = () => {
     return(
         <>
-        <NavLeft/>
-
         <MapView/>
         </>
     )

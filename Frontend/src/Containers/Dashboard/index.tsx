@@ -6,8 +6,6 @@ const Dashboard = () => {
 
     return (
         <>
-            <NavLeft />
-
             <Panel />
         </>
 

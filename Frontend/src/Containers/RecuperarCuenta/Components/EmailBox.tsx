@@ -30,7 +30,7 @@ const EmailBox = ({ onSuccess, setEmailGlobal }: EmailBoxProps) => {
       alignItems="center"
       flexDirection="column"
     >
-      <Typography sx={{ fontWeight: 500, fontSize: 40 }}>
+      <Typography sx={{ fontWeight: 500, fontSize: 40, color:"white" }}>
         Recuperar Contraseña
       </Typography>
 

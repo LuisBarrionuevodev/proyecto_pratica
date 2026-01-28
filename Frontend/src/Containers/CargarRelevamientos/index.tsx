@@ -6,13 +6,9 @@ import { darkTheme } from "../../configs/theme";
 const CargarRelevamientos = () => {
     return (
     <>
-
-    <NavLeft/>
-
     <ThemeProvider theme={darkTheme}>
     <TablaCargaRelevamientos/>
     </ThemeProvider>
-
     </>
     );
 }

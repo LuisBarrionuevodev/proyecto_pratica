@@ -3,6 +3,8 @@
  * Paleta de colores y constantes de diseño
  */
 
+import { m } from "framer-motion";
+
 // =============================================================================
 // PALETA DE COLORES
 // =============================================================================
@@ -38,12 +40,14 @@ export const containerStyles = {
 };
 
 export const wrapperStyles = {
-    width: { xs: "280px", sm: "520px", md: "920px", lg: "920px", xl: "1220px" },
+    maxWidth: { xs: "280px", sm: "520px", md: "920px", lg: "920px", xl: "1220px" },
     display: "flex",
-    position: "absolute" as const,
+    pl: "20px",
+    pr: "20px",
     top: { xs: "10px", sm: "1%", md: "5%", lg: "5%", xl: "8%" },
-    marginLeft: { xs: "90px", sm: "100px", md: "100px", lg: "120px", xl: "100px" },
     textAlign: "center" as const,
+    margin: "0 auto",          // centra horizontalmente
+    boxSizing: "border-box",
     justifySelf: "center",
     flexDirection: "column" as const,
 };
