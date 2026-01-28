@@ -96,7 +96,7 @@ const TablaCargarActuacionesGlideStyled = () => {
         try {
             setIsLoadingBatch(true);
             setGlobalError(null);
-            const response = await startBatch();
+            const response = await startBatch("actuaciones");
             setBatchId(response.batch_id);
             console.log("✅ Batch iniciado (auto):", response.batch_id);
             return response.batch_id;

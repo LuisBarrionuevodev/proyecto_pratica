@@ -1,0 +1,176 @@
+from __future__ import annotations
+
+import re
+from datetime import date, datetime
+from typing import Any, Dict, Optional, Type
+
+from sqlalchemy import func
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+
+from app.database import db
+from app.models import Inspector, Rubro, CatalogContraproducencia
+
+_SPACE_RE = re.compile(r"\s+")
+
+
+def _clean_str(v: Any) -> Optional[str]:
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
+def _upper_norm(s: str) -> str:
+    s = s.strip().upper()
+    s = s.replace("_", " ")
+    s = _SPACE_RE.sub(" ", s)
+    return s
+
+
+def _parse_fecha(v: Any) -> date:
+    if isinstance(v, date) and not isinstance(v, datetime):
+        return v
+    s = _clean_str(v)
+    if not s:
+        raise ValueError("Fecha requerida.")
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(s, "%d/%m/%Y").date()
+    except ValueError as e:
+        raise ValueError("Formato de fecha inválido. Use DD/MM/YYYY o YYYY-MM-DD.") from e
+
+
+def _coerce_catalog_value(
+    value: Any,
+    model_cls: Type[db.Model],
+    field_label: str,
+) -> Optional[str]:
+    s = _clean_str(value)
+    if not s:
+        return None
+    s_norm = _upper_norm(s)
+    row = (
+        db.session.query(model_cls.nombre)
+        .filter(func.replace(func.upper(model_cls.nombre), "_", " ") == s_norm)
+        .limit(1)
+        .first()
+    )
+    if row is None:
+        raise ValueError(f"{field_label} inválido.")
+    return row[0]
+
+
+def _raise_field_errors(model_name: str, field_errors: Dict[str, str]) -> None:
+    """
+    Genera errores por campo (celda-friendly) usando ValidationError.from_exception_data.
+    Compatible con Pydantic v2 (requiere ctx para value_error).
+    """
+    errs = []
+    for field, msg in field_errors.items():
+        errs.append(
+            {
+                "type": "value_error",
+                "loc": (field,),
+                "msg": "Value error",
+                "input": None,
+                "ctx": {"error": msg},
+            }
+        )
+    raise ValidationError.from_exception_data(model_name, errs)
+
+
+class RelevamientoGridRowIn(BaseModel):
+    """
+    Fila proveniente de la grilla de Relevamientos.
+
+    Reglas:
+    - Fecha, Inspector, Calle y Número son obligatorios.
+    - Rubro XOR Contraproducencia (exactamente uno).
+    - Catálogos validados contra DB.
+    """
+
+    id: Optional[int] = Field(default=None, ge=1)
+    fecha: date
+    inspector: str
+    calle: str
+    numero: str
+    rubro: Optional[str] = None
+    contraproducencia: Optional[str] = None
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def parse_id(cls, v: Any):
+        if v is None or v == "":
+            return None
+        if isinstance(v, int):
+            return v
+        s = str(v).strip()
+        if s.isdigit():
+            return int(s)
+        raise ValueError("id inválido")
+
+    @field_validator("fecha", mode="before")
+    @classmethod
+    def parse_fecha(cls, v: Any) -> date:
+        return _parse_fecha(v)
+
+    @field_validator("inspector", "calle", "numero", "rubro", "contraproducencia", mode="before")
+    @classmethod
+    def strip_empty_to_none(cls, v: Any) -> Any:
+        return _clean_str(v)
+
+    @field_validator("inspector")
+    @classmethod
+    def validate_inspector(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        s_norm = _upper_norm(v)
+        row = (
+            db.session.query(Inspector.nombre)
+            .filter(func.replace(func.upper(Inspector.nombre), "_", " ") == s_norm)
+            .limit(1)
+            .first()
+        )
+        if row is None:
+            raise ValueError("Inspector inválido.")
+        return row[0]
+
+    @field_validator("rubro")
+    @classmethod
+    def validate_rubro(cls, v: Optional[str]) -> Optional[str]:
+        return _coerce_catalog_value(v, Rubro, "Rubro")
+
+    @field_validator("contraproducencia")
+    @classmethod
+    def validate_contra(cls, v: Optional[str]) -> Optional[str]:
+        return _coerce_catalog_value(v, CatalogContraproducencia, "Contraproducencia")
+
+    @model_validator(mode="after")
+    def reglas_negocio_base(self) -> "RelevamientoGridRowIn":
+        field_errors: Dict[str, str] = {}
+
+        if not self.fecha:
+            field_errors["fecha"] = "Fecha obligatoria."
+        if not self.inspector:
+            field_errors["inspector"] = "Inspector obligatorio."
+        if not self.calle:
+            field_errors["calle"] = "Calle obligatoria."
+        if not self.numero:
+            field_errors["numero"] = "Número obligatorio."
+
+        tiene_rubro = bool(self.rubro)
+        tiene_contra = bool(self.contraproducencia)
+        if tiene_rubro and tiene_contra:
+            field_errors["rubro"] = "No puede cargar Rubro y Contraproducencia a la vez."
+            field_errors["contraproducencia"] = "No puede cargar Rubro y Contraproducencia a la vez."
+        if not tiene_rubro and not tiene_contra:
+            field_errors["rubro"] = "Debe cargar Rubro o Contraproducencia."
+            field_errors["contraproducencia"] = "Debe cargar Rubro o Contraproducencia."
+
+        if field_errors:
+            _raise_field_errors(self.__class__.__name__, field_errors)
+
+        return self

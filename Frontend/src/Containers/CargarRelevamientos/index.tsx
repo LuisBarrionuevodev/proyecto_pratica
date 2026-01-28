@@ -1,16 +1,17 @@
-import { ThemeProvider } from "@mui/material";
+import { ThemeProvider } from "@emotion/react";
 import NavLeft from "../../Componets/NavLeft";
-import TablaCargaRelevamientos from "./Components/TablaCargaRelevamientos";
 import { darkTheme } from "../../configs/theme";
+import TablaCargarRelevamientosGlideStyled from "./Components/TablaCargarRelevamientosGlideStyled";
 
 const CargarRelevamientos = () => {
-    return (
+  return (
     <>
-    <ThemeProvider theme={darkTheme}>
-    <TablaCargaRelevamientos/>
-    </ThemeProvider>
+      <NavLeft />
+      <ThemeProvider theme={darkTheme}>
+        <TablaCargarRelevamientosGlideStyled />
+      </ThemeProvider>
     </>
-    );
-}
+  );
+};
 
 export default CargarRelevamientos;

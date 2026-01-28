@@ -10,6 +10,11 @@ class StartBatchResponse(BaseModel):
     batch_id: UUID
 
 
+class StartBatchRequest(BaseModel):
+    """Inicio de batch con kind opcional."""
+    kind: str = "actuaciones"
+
+
 class ValidateRowRequest(BaseModel):
     batch_id: UUID
     row_id: str = Field(..., min_length=1)

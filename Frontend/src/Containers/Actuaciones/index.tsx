@@ -41,6 +41,7 @@ const Actuaciones = (): JSX.Element => {
 
     return (
         <>
+            <NavLeft />
             <ThemeProvider theme={darkTheme}>
                 <Box sx={wrapperStyles}>
                     {/* Título */}

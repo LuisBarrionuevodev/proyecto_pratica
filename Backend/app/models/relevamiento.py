@@ -10,7 +10,15 @@ class Relevamiento(db.Model):
     fecha = db.Column(db.Date, nullable=False)
     anio = db.Column(db.Integer, nullable=False, index=True)
     mes = db.Column(db.Integer, nullable=False, index=True)
+    contraproducencia = db.Column(db.String(128), nullable=True, index=True)
 
+    inspector_id = db.Column(
+        db.Integer,
+        db.ForeignKey("inspector.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
     domicilio_id = db.Column(
         db.Integer,
         db.ForeignKey("domicilio.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -37,6 +45,7 @@ class Relevamiento(db.Model):
         onupdate=db.func.current_timestamp(),
     )
 
+    inspector = db.relationship("Inspector", back_populates="relevamientos")
     domicilio = db.relationship("Domicilio", back_populates="relevamiento")
     rubro = db.relationship("Rubro", back_populates="relevamiento")
 
@@ -46,6 +55,8 @@ class Relevamiento(db.Model):
             "fecha": self.fecha,
             "anio": self.anio,
             "mes": self.mes,
+            "contraproducencia": self.contraproducencia,
+            "inspector_id": self.inspector_id,
             "domicilio_id": self.domicilio_id,
             "rubro_id": self.rubro_id,
             "created_at": self.created_at,
@@ -53,6 +64,7 @@ class Relevamiento(db.Model):
         }
 
         if include_relations:
+            data["inspector"] = self.inspector.to_dict() if self.inspector else None
             data["domicilio"] = self.domicilio.to_dict() if self.domicilio else None
             data["rubro"] = self.rubro.to_dict() if self.rubro else None
         return data

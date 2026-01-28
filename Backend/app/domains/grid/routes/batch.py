@@ -4,6 +4,7 @@ from flask import request, jsonify
 from pydantic import ValidationError
 
 from app.domains.grid.schemas.batch import (
+    StartBatchRequest,
     StartBatchResponse,
     ValidateRowRequest,
     ValidateBatchRequest,
@@ -16,9 +17,6 @@ from app.domains.grid.schemas.batch import (
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.grid.services.batch_store import InMemoryBatchStore
 from app.domains.grid.services.validate_service import GridValidateService
-from app.domains.actuaciones.services.create_service import crear_actuacion_desde_payload
-from app.domains.actuaciones.services.update_service import actualizar_actuacion
-from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.models import (
     Inspector,
     Motivo,
@@ -37,7 +35,16 @@ svc = GridValidateService(store)
 @grid.post("/start")
 @grid.post("/batch/start")  # compat: path anterior
 def start_batch():
-    batch_id = store.start_batch()
+    try:
+        data = request.get_json(silent=True) or {}
+        req = StartBatchRequest.model_validate(data)
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except Exception as e:
+        return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
+
+    kind = (req.kind or "actuaciones").strip().lower()
+    batch_id = store.start_batch(kind=kind)
     resp = StartBatchResponse(batch_id=batch_id)
     return jsonify(resp.model_dump()), 200
 
@@ -53,7 +60,8 @@ def validate_row():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
-    resp = svc.validate_row(req.batch_id, req.row_id, req.row)
+    batch = store.get(req.batch_id)
+    resp = svc.validate_row(req.batch_id, req.row_id, req.row, batch.kind)
     return jsonify(resp.model_dump()), 200
 
 
@@ -69,8 +77,9 @@ def validate_batch():
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
     results = []
+    batch = store.get(req.batch_id)
     for item in req.rows:
-        results.append(svc.validate_row(req.batch_id, item.row_id, item.row))
+        results.append(svc.validate_row(req.batch_id, item.row_id, item.row, batch.kind))
 
     resp = ValidateBatchResponse(batch_id=req.batch_id, results=results)
     return jsonify(resp.model_dump()), 200
@@ -97,14 +106,17 @@ def commit_batch():
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
     results = []
+    batch = store.get(req.batch_id)
+    from app.domains.grid.services.registry import get_handler
+    handler = get_handler(batch.kind)
     for item in req.rows:
         normalized = item.normalized or {}
         act_id = normalized.get("id")
         try:
             if act_id is None:
-                act = crear_actuacion_desde_payload(normalized)
+                act = handler.create_fn(normalized)
             else:
-                act = actualizar_actuacion(int(act_id), normalized)
+                act = handler.update_fn(int(act_id), normalized)
 
             results.append(
                 CommitRowResponse(
@@ -112,7 +124,7 @@ def commit_batch():
                     row_id=item.row_id,
                     ok=True,
                     errors={},
-                    persisted=actuacion_to_grid_row(act),
+                    persisted=handler.presenter(act),
                 )
             )
         except ValueError as e:
@@ -218,21 +230,25 @@ def commit_row():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
+    batch = store.get(req.batch_id)
+    from app.domains.grid.services.registry import get_handler
+    handler = get_handler(batch.kind)
+
     normalized = req.normalized or {}
     act_id = normalized.get("id")
 
     try:
         if act_id is None:
-            act = crear_actuacion_desde_payload(normalized)
+            act = handler.create_fn(normalized)
         else:
-            act = actualizar_actuacion(int(act_id), normalized)
+            act = handler.update_fn(int(act_id), normalized)
 
         resp = CommitRowResponse(
             batch_id=req.batch_id,
             row_id=req.row_id,
             ok=True,
             errors={},
-            persisted=actuacion_to_grid_row(act),
+            persisted=handler.presenter(act),
         )
         return jsonify(resp.model_dump()), 200
     except ValueError as e:

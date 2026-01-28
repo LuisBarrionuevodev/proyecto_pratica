@@ -6,6 +6,7 @@ import { darkTheme } from "../../configs/theme";
 const CargarActuaciones = () => {
     return(
         <>
+        <NavLeft />
         <ThemeProvider theme={darkTheme}>
         <TablaCargarActuacionesGlideStyled/>
         </ThemeProvider>

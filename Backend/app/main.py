@@ -8,6 +8,7 @@ from flask_cors import CORS
 from app.database import db
 from app.domains.actuaciones.routes import actuacion as actuacion_bp
 from app.domains.grid.routes import grid as grid_bp
+from app.domains.relevamientos.routes import relevamiento as relevamiento_bp
 
 migrate = Migrate()
 
@@ -38,6 +39,7 @@ def create_app(config_override: dict | None = None):
     app.url_map.strict_slashes = False
   
     app.register_blueprint(actuacion_bp, url_prefix="/actuaciones")
+    app.register_blueprint(relevamiento_bp, url_prefix="/relevamientos")
     
     app.register_blueprint(grid_bp)
     print(app.url_map)

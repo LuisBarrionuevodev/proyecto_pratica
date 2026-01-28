@@ -15,14 +15,17 @@ export interface GridRow {
   // Data columns (with spaces, as backend expects)
   "ID"?: number | null;
   "Fecha actuación"?: string | null;
+  "Fecha"?: string | null;
   "Tipo actuación"?: string | null;
   "Contraproducencia"?: string | null;
   "Orden de trabajo"?: string | null;
+  "Inspector"?: string | null;
   "Inspector 1"?: string | null;
   "Inspector 2"?: string | null;
   "Inspector 3"?: string | null;
   "Calle"?: string | null;
   "Número"?: string | null;
+  "Numero"?: string | null;
   "Rubro"?: string | null;
   "Apellido"?: string | null;
   "Nombre"?: string | null;
@@ -48,6 +51,10 @@ export interface GridRow {
 
 export interface StartBatchResponse {
   batch_id: string;
+}
+
+export interface StartBatchRequest {
+  kind?: string;
 }
 
 export interface ValidateRowResponse {
@@ -117,8 +124,11 @@ export interface CommitBatchRequest {
 /**
  * Inicia un nuevo batch de carga
  */
-export const startBatch = async (): Promise<StartBatchResponse> => {
-  const { data } = await apiClient.post<StartBatchResponse>("/grid/start");
+export const startBatch = async (
+  kind: string = "actuaciones"
+): Promise<StartBatchResponse> => {
+  const payload: StartBatchRequest = { kind };
+  const { data } = await apiClient.post<StartBatchResponse>("/grid/start", payload);
   return data;
 };
 

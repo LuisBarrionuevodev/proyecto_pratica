@@ -12,6 +12,7 @@ DupKey = Tuple[str, str]  # (orden_trabajo_norm, fecha_iso)
 @dataclass
 class BatchState:
     created_at: float = field(default_factory=lambda: time.time())
+    kind: str = "actuaciones"
     # row_id -> dup_key (para recalcular cuando editan una fila)
     row_keys: Dict[str, DupKey] = field(default_factory=dict)
     # dup_key -> row_id (índice rápido para detectar duplicados)
@@ -29,9 +30,9 @@ class InMemoryBatchStore:
         self._ttl = ttl_seconds
         self._batches: Dict[UUID, BatchState] = {}
 
-    def start_batch(self) -> UUID:
+    def start_batch(self, kind: str = "actuaciones") -> UUID:
         batch_id = uuid4()
-        self._batches[batch_id] = BatchState()
+        self._batches[batch_id] = BatchState(kind=kind)
         return batch_id
 
     def _purge_if_needed(self) -> None:
