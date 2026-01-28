@@ -10,6 +10,7 @@ export interface GridRow {
   _normalized?: GridRow;
   _validation_history?: number[]; // Para gráficos sparkline (demo)
   _rowError?: string | null; // Error de fila completa (ej: duplicado)
+  _touched?: boolean;
 
   // Data columns (with spaces, as backend expects)
   "ID"?: number | null;

@@ -147,10 +147,21 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     notificacion_motivo_3 = motivos[2] if len(motivos) > 2 else None
 
     # -------------------------
-    # Expediente / Oficio (NUEVO)
-    # Tu DB los cuelga de comprobacion_id
+    # Previas (según tipo)
     # -------------------------
-        # -------------------------
+    tipo_val = _enum_to_str(getattr(act, "tipo", None))
+    notificacion_previa_num = None
+    comprobacion_previa_num = None
+    if tipo_val == "REINSPECCION" and acta_notificacion_num:
+        notificacion_previa_num = acta_notificacion_num
+    if tipo_val in (
+        "RATIFICACION DE CLAUSURA",
+        "RATIFICACION DE DECOMISO",
+        "VERIFICAR E INFORMAR",
+    ) and acta_comprobacion_num:
+        comprobacion_previa_num = acta_comprobacion_num
+
+    # -------------------------
     # Expediente / Oficio
     # -------------------------
     expediente_numero = None
@@ -221,6 +232,6 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "oficio_anio": oficio_anio,
         "oficio_causa": oficio_causa,
 
-        "notificacion_previa_num": None,
-        "comprobacion_previa_num": None,
+        "notificacion_previa_num": notificacion_previa_num,
+        "comprobacion_previa_num": comprobacion_previa_num,
     }

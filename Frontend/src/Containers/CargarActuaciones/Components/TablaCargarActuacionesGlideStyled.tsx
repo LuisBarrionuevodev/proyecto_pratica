@@ -167,18 +167,20 @@ const TablaCargarActuacionesGlideStyled = () => {
         const effectiveBatchId = batchIdValue || batchId;
         if (!effectiveBatchId) return null;
         
-        // Solo validar filas que tienen datos cargados
-        const rowsWithData = rows.filter(row => rowHasData(row));
+        // Solo validar filas que tienen datos cargados y fueron editadas o no están OK
+        const rowsWithData = rows.filter(
+            (row) => rowHasData(row) && (row._touched || row._state !== "OK")
+        );
         if (rowsWithData.length === 0) return null;
 
         // Marcar filas como VALIDANDO mientras se ejecuta la validación
-        setData((prev) =>
-            prev.map((row) =>
-                rowsWithData.some((r) => r._rowId === row._rowId)
-                    ? { ...row, _state: "VALIDANDO" }
-                    : row
-            )
-        );
+            setData((prev) =>
+                prev.map((row) =>
+                    rowsWithData.some((r) => r._rowId === row._rowId)
+                        ? { ...row, _state: "VALIDANDO" }
+                        : row
+                )
+            );
 
         const rowsToValidate = rowsWithData.map((row) => ({
             row_id: row._rowId!,
@@ -197,10 +199,11 @@ const TablaCargarActuacionesGlideStyled = () => {
                     if (!result) return row;
                     return {
                         ...row,
-                        _state: result.ok ? "PENDIENTE" : "ERROR",
+                        _state: result.ok ? "OK" : "ERROR",
                         _cellErrors: result.errors || {},
                         _rowError: buildRowErrorSummary(result.errors),
                         _normalized: result.normalized,
+                        _touched: result.ok ? false : row._touched,
                     };
                 })
             );
@@ -239,10 +242,11 @@ const TablaCargarActuacionesGlideStyled = () => {
                     r._rowId === row._rowId
                         ? {
                               ...r,
-                              _state: response.ok ? "PENDIENTE" : "ERROR",
+                              _state: response.ok ? "OK" : "ERROR",
                               _cellErrors: response.errors || {},
                               _rowError: buildRowErrorSummary(response.errors),
                               _normalized: response.normalized,
+                              _touched: response.ok ? false : r._touched,
                           }
                         : r
                 )
@@ -276,17 +280,20 @@ const TablaCargarActuacionesGlideStyled = () => {
             setGlobalError(null);
 
             const response = await validateBatchRows(dataRef.current, startedBatchId);
+
+            let okRows =
+                response?.results
+                    .filter((r) => r.ok && r.normalized)
+                    .map((r) => ({ row_id: r.row_id, normalized: r.normalized! })) || [];
+
             if (!response) {
-                setGlobalError("No hay filas para validar.");
-                return;
+                okRows = dataRef.current
+                    .filter((row) => rowHasData(row) && row._state === "OK" && row._normalized)
+                    .map((row) => ({ row_id: row._rowId!, normalized: row._normalized! }));
             }
 
-            const okRows = response.results
-                .filter((r) => r.ok && r.normalized)
-                .map((r) => ({ row_id: r.row_id, normalized: r.normalized! }));
-
             if (okRows.length === 0) {
-                setGlobalError("No hay filas válidas para confirmar.");
+                setGlobalError(response ? "No hay filas válidas para confirmar." : "No hay filas para validar.");
                 return;
             }
 
@@ -365,12 +372,31 @@ const TablaCargarActuacionesGlideStyled = () => {
             }
 
             // Marcar fila como tocada y actualizar valor
-            const updatedRow = { 
+            let updatedRow = { 
                 ...rowData, 
                 [columnId]: value, 
                 _rowError: null,
                 _touched: true, // Marcar que la fila ha sido editada
             };
+
+            // Si la fila quedó vacía, limpiar errores/estado y pedir limpieza de batch
+            if (!rowHasData(updatedRow)) {
+                updatedRow = {
+                    ...updatedRow,
+                    _state: undefined,
+                    _cellErrors: {},
+                    _rowError: null,
+                    _normalized: undefined,
+                    _touched: false,
+                };
+            } else if (updatedRow._state === "OK") {
+                // Si estaba OK y se edita, volver a pendiente
+                updatedRow = {
+                    ...updatedRow,
+                    _state: "PENDIENTE",
+                    _normalized: undefined,
+                };
+            }
 
             setData((prev) => {
                 const newData = [...prev];
@@ -386,7 +412,19 @@ const TablaCargarActuacionesGlideStyled = () => {
 
             if (rowId) {
                 debounceRef.current[rowId] = window.setTimeout(() => {
-                    if (batchId) handleValidateRow(updatedRow);
+                    if (batchId) {
+                        if (rowHasData(updatedRow)) {
+                            handleValidateRow(updatedRow);
+                        } else {
+                            validateRow({
+                                batch_id: batchId,
+                                row_id: rowId,
+                                row: {},
+                            }).catch(() => {
+                                // no-op: limpieza de batch
+                            });
+                        }
+                    }
                 }, 500);
             }
 

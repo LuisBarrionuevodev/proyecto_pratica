@@ -25,6 +25,16 @@ def _normalize_tipo(value: Any) -> Optional[str]:
     return " ".join(s.split())
 
 
+def _row_has_any_data(row_internal: Dict[str, Any]) -> bool:
+    for value in row_internal.values():
+        if value is None:
+            continue
+        if isinstance(value, str) and value.strip() == "":
+            continue
+        return True
+    return False
+
+
 def build_dup_key(row_validada: ActuacionGridRowIn) -> tuple[str, str]:
     """
     Regla de duplicado dentro del lote:
@@ -49,6 +59,17 @@ class GridValidateService:
         """
         # 0) Normalización de headers Glide -> snake_case interno
         row_internal = normalize_row_keys(raw_row, COLUMN_MAP_ACTUACIONES)
+
+        # Si la fila quedó vacía, limpiar la dup_key y no validar
+        if not _row_has_any_data(row_internal):
+            self.store.clear_row_key(batch_id=batch_id, row_id=row_id)
+            return ValidateRowResponse(
+                batch_id=batch_id,
+                row_id=row_id,
+                ok=True,
+                errors={},
+                normalized=None,
+            )
 
         # 1) Pydantic (fase 1)
         try:

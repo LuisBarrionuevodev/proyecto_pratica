@@ -74,3 +74,14 @@ class InMemoryBatchStore:
         st.row_keys[row_id] = dup_key
         st.key_index[dup_key] = row_id
         return None
+
+    def clear_row_key(self, batch_id: UUID, row_id: str) -> None:
+        """
+        Elimina la fila del índice de duplicados (cuando queda vacía).
+        """
+        st = self.get(batch_id)
+        old_key = st.row_keys.pop(row_id, None)
+        if old_key is None:
+            return
+        if st.key_index.get(old_key) == row_id:
+            del st.key_index[old_key]
