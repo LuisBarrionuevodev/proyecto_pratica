@@ -51,7 +51,7 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
         color: "white",
         borderRadius: "16px",
         position: "relative",
-        height: "100%", // Ocupa toda la altura del contenedor padre
+        height: "50%", // Ocupa toda la altura del contenedor padre
         alignItems: "center",
         display: "flex",
         flexDirection: "column",
@@ -81,6 +81,8 @@ export const StyleListItem = (open: boolean): SxProps<Theme> => ({
     display: "block",
     paddingX: open ? 1 : 0.5,
     paddingY: 0.25,
+    //aca se cambia la altura de la nav left
+    height: open ? "5.9vh" : "6.6vh" ,
 });
 
 // Botón de cada item con glassmorphism
@@ -161,6 +163,7 @@ export const StyleExpandButton: SxProps<Theme> = {
 // Contenedor del logout (sticky bottom)
 export const StyleLogoutContainer = (open: boolean): SxProps<Theme> => ({
     width: "100%",
+    height: "44px",
     paddingX: open ? 1 : 0.5,
     paddingY: 1,
     marginTop: "auto",
