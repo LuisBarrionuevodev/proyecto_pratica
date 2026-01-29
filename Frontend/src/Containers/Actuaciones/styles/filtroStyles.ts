@@ -1,7 +1,8 @@
 import type { SxProps, Theme } from "@mui/material";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 // =============================================================================
-// ESTILOS NEO-BRUTALISTAS PARA FILTROS DE ACTUACIONES
+// ESTILOS GLASSMORPHISM PARA FILTROS DE ACTUACIONES
 // =============================================================================
 
 export const COLORS = {
@@ -25,33 +26,25 @@ export const wrapperStyles: SxProps<Theme> = {
   height: "100%",
   display: "flex",
   flexDirection: "column",
-  textAlign: "center",
   boxSizing: "border-box",
   padding: { xs: 2, sm: 3 },
 };
 
+// Título oculto (ahora en el breadcrumb del AppLayout)
 export const titleStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 800,
-    fontSize: { xs: "22px", sm: "38px", md: "52px" },
-    color: COLORS.white,
-    textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-    letterSpacing: "2px",
-    marginBottom: "24px",
-    textAlign: "center",
+    display: "none",
 };
 
 // =============================================================================
-// CONTENEDOR DE FILTROS
+// CONTENEDOR DE FILTROS - Sin blur para rendimiento
 // =============================================================================
 
 export const filtroContainerStyles: SxProps<Theme> = {
     marginBottom: "20px",
     padding: "24px",
-    backgroundColor: COLORS.grayDark,
-    borderRadius: "8px",
-    border: `1px solid ${COLORS.border}`,
-    boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
+    backgroundColor: GLASS_COLORS.cardBg,
+    borderRadius: "12px",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
 };
 
 export const filtroTitleStyles: SxProps<Theme> = {
@@ -150,15 +143,15 @@ export const filtroButtonSecondaryStyles: SxProps<Theme> = {
 };
 
 // =============================================================================
-// METADATA E INFO
+// METADATA E INFO - Sin blur para rendimiento
 // =============================================================================
 
 export const metaInfoStyles: SxProps<Theme> = {
     marginBottom: "16px",
     padding: "12px 16px",
-    backgroundColor: COLORS.rowOdd,
-    borderRadius: "6px",
-    border: `1px solid ${COLORS.border}`,
+    backgroundColor: GLASS_COLORS.cardBg,
+    borderRadius: "10px",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
     display: "flex",
     alignItems: "center",
     gap: "16px",
@@ -168,7 +161,7 @@ export const metaInfoStyles: SxProps<Theme> = {
 export const metaItemStyles: SxProps<Theme> = {
     fontFamily: '"Tactic Sans", sans-serif',
     fontSize: "13px",
-    color: COLORS.white,
+    color: GLASS_COLORS.textSecondary,
     "& strong": {
         color: COLORS.primary,
         fontWeight: 600,
@@ -181,10 +174,10 @@ export const metaItemStyles: SxProps<Theme> = {
 
 export const errorAlertStyles: SxProps<Theme> = {
     marginBottom: "16px",
-    backgroundColor: "#5C2323",
+    backgroundColor: "rgba(92, 35, 35, 0.9)",
     color: COLORS.white,
     border: `1px solid ${COLORS.error}`,
-    borderRadius: "6px",
+    borderRadius: "10px",
     "& .MuiAlert-icon": {
         color: COLORS.error,
     },

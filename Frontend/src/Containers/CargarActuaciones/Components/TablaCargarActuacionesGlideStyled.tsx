@@ -37,6 +37,7 @@ import {
     legendTextStyles,
     kbdStyles,
     getStatusBadgeStyles,
+    buttonMandarTodoStyles,
 } from "../styles/cargarActuacionesStyles";
 import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../config/dropdownOptions";
@@ -656,12 +657,12 @@ const TablaCargarActuacionesGlideStyled = () => {
                 <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <Button
                         variant="contained"
-                        color="success"
                         onClick={handleCommitBatch}
                         disabled={isValidatingAll || isCommitting || rowsWithData.length === 0}
                         startIcon={(isValidatingAll || isCommitting) ? <CircularProgress size={16} /> : undefined}
+                        sx={buttonMandarTodoStyles}
                     >
-                        Mandar todo (validar + confirmar)
+                        MANDAR TODO (VALIDAR + CONFIRMAR)
                     </Button>
                 </Box>
 
@@ -684,11 +685,11 @@ const TablaCargarActuacionesGlideStyled = () => {
                         headerHeight={GRID_DIMENSIONS.headerHeight}
                         overscrollY={0}
                         overscrollX={0}
-                        trailingRowOptions={{
-                            sticky: false,
-                            tint: true,
-                            hint: "Presiona Enter o haz clic para agregar fila...",
-                        }}
+                            trailingRowOptions={{
+                                sticky: false,
+                                tint: true,
+                                hint: "+ Presiona Enter o haz clic para agregar fila…",
+                            }}
                         getCellsForSelection={true}
                         freezeColumns={0}
                         keybindings={{ search: true }}

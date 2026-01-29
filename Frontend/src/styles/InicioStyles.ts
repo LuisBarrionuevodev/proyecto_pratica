@@ -1,54 +1,55 @@
-import BackgroundInicio from "../assets/BackgroundInicio.png"
+import { GLASS_COLORS } from "./GlassStyles";
 
+// =============================================================================
+// ESTILOS GLASSMORPHISM PARA INICIO
+// =============================================================================
+
+// Contenedor principal - glass oscuro
 export const BoxInicio = {
     display: "flex",
-    backgroundImage: `url(${BackgroundInicio})`,
-    backgroundSize: "cover",
-    backgroundPosition: "end",
+    backgroundColor: "transparent",
     gap: 1,
-    alignItems:"center",
-    justifyContent:"center",
-    paddingTop: "15px",
-    paddingBottom: "15px",
-    height: "350px"
-}
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: "20px",
+    paddingBottom: "20px",
+};
 
 export const BoxTitulo = {
     marginLeft: "10%",
     width: { xs: "300px", sm: "500px", md: "600px" },
-}
+};
 
 export const TitleStyle = {
-    color: "white",
-    textShadow: '8px 8px 0px rgba(0, 0, 0, 1)',
+    color: GLASS_COLORS.textPrimary,
+    textShadow: "2px 2px 8px rgba(0, 0, 0, 0.5)",
     fontFamily: "Tactic Sans",
     fontWeight: 800,
-    fontSize: { xs: "38px", sm: "60px", md: "65px", xl: "70px" }
-}
+    fontSize: { xs: "28px", sm: "36px", md: "42px" },
+};
 
 export const BoxInputInicio = {
     justifyContent: { md: "space-evenly" },
     alignContent: "center",
-}
+};
 
 export const ButtonStylesInicio = {
     width: { xs: "350px", sm: "500px", md: "500px" },
     height: "60px",
-    borderRadius: "16px",
-    backgroundColor: "white",
-    fontFamily: "tactic sans",
+    borderRadius: "12px",
+    backgroundColor: GLASS_COLORS.cardBg,
+    fontFamily: "Tactic Sans",
     fontWeight: 600,
-    fontSize: { xs: "20px", sm: "25px", md: "25px" },
-    color: "#E6E6E6",
-    WebkitTextStroke: '1px black',
-    textShadow: "2px 2px 0 #000000",
-    textTransform: 'none',
-    transition: "box-shadow 0.4s ease, transform 0.4s ease",
-    '&:hover': {
-        boxShadow: { xs: "6px 4px 0px #000000", sm: "8px 6px 0px #000000", md: " 8px 6px 0px #000000" },
-        transform: "scale(1.05)"
-    }
-}
+    fontSize: { xs: "16px", sm: "18px" },
+    color: GLASS_COLORS.textPrimary,
+    textTransform: "none",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
+    transition: "all 0.2s ease",
+    "&:hover": {
+        backgroundColor: GLASS_COLORS.hoverBg,
+        transform: "scale(1.02)",
+    },
+};
 
 export const LogoSumaStyle = {
     display: "flex",
@@ -56,45 +57,90 @@ export const LogoSumaStyle = {
     width: { xs: "30px", sm: "40px", md: "40px" },
     marginRight: { xs: "300px", sm: "440px", md: "440px" },
     borderRadius: "12px",
-    border: "3px solid black"
-}
+    border: `2px solid ${GLASS_COLORS.borderLight}`,
+};
 
-
-// Estilos de CARDS
+// =============================================================================
+// ESTILOS DE CARDS - Glass oscuro
+// =============================================================================
 
 export const CardStyle = {
     display: "flex",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
-    height: "150px",
-    backgroundColor: "#DADADA",
-    borderRadius: "12px",
-    gap: 1,
-    transition: "box-shadow 0.4s ease, transform 0.4s ease",
+    height: "120px",
+    backgroundColor: GLASS_COLORS.cardBg,
+    borderRadius: "14px",
+    padding: "16px 20px",
+    gap: 2,
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
+    transition: "all 0.2s ease",
     "&:hover": {
-        boxShadow: " 0px 0.5px 10px #000000",
-        transform: "scale(1.05)"
+        backgroundColor: GLASS_COLORS.hoverBg,
+        borderColor: GLASS_COLORS.borderMedium,
+        transform: "translateY(-2px)",
     },
-}
+};
 
 export const StyleBoxTextCard = {
     textAlign: "center",
-    marginTop: "20px"
-}
+    marginTop: "20px",
+};
 
 export const StyleTextCard = {
-    color: "#000000",
+    color: GLASS_COLORS.textPrimary,
     fontFamily: "Tactic Sans",
     fontWeight: 600,
-    fontSize: "20px",
-}
+    fontSize: "16px",
+    lineHeight: 1.3,
+};
 
 export const StyleTextCardSecondary = {
-    color: "#9c9c9c",
+    color: GLASS_COLORS.textMuted,
     fontFamily: "Tactic Sans",
     fontWeight: 400,
-    fontSize: "15px",
-}
+    fontSize: "13px",
+    lineHeight: 1.4,
+};
+
+// =============================================================================
+// BUSCADOR - Estilo prominente sobre fondo transparente (como Early Bird)
+// =============================================================================
+
+export const SearchFieldStyles = {
+    width: { xs: "90%", sm: "500px", md: "650px", lg: "750px" },
+    "& .MuiInputBase-root": {
+        backgroundColor: GLASS_COLORS.cardBg,
+        borderRadius: "50px", // Pill shape como Early Bird
+        color: GLASS_COLORS.textPrimary,
+        border:`1px solid ${GLASS_COLORS.borderLight}`,
+        fontFamily: "Tactic Sans",
+        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+        transition: "all 0.2s ease",
+        "&:hover": {
+            boxShadow: "0 6px 25px rgba(0, 0, 0, 0.2)",
+        },
+        "&.Mui-focused": {
+            boxShadow: "0 6px 30px rgba(0, 0, 0, 0.25)",
+        },
+    },
+    "& .MuiInputBase-input": {
+        fontFamily: "Tactic Sans",
+        fontWeight: 500,
+        padding: "16px 24px",
+        fontSize: "16px",
+        "&::placeholder": {
+            color: GLASS_COLORS.textPrimary,
+            opacity: 1,
+        },
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+        border: "none",
+    },
+    "& .MuiInputAdornment-root": {
+        marginLeft: "12px",
+    },
+};
 
 
 

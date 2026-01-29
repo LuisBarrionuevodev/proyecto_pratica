@@ -1,4 +1,9 @@
 import type { SxProps, Theme } from "@mui/material";
+import { TRANSITION, GLASS_COLORS } from "./GlassStyles";
+
+// =============================================================================
+// ESTILOS GLASSMORPHISM PARA NAVLEFT
+// =============================================================================
 
 // Estilos del logo superior
 export const StyleLogo = {
@@ -9,81 +14,122 @@ export const StyleLogo = {
     alignItems: "center",
 };
 
-// Divisor con espaciado consistente
+// Divisor glass sutil
 export const StyleDivider = {
     width: "85%",
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: GLASS_COLORS.borderLight,
+    opacity: 0.6,
+    marginY: 1,
 };
 
 // Contenedor de la lista con espaciado interno
 export const StyleListItems = {
     flexGrow: 1,
     width: "100%",
-    paddingTop: 1,
+    paddingTop: 0,
     paddingBottom: 1,
+    overflowY: "auto",
+    overflowX: "hidden",
+    "&::-webkit-scrollbar": {
+        width: "4px",
+    },
+    "&::-webkit-scrollbar-thumb": {
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        borderRadius: "4px",
+    },
 };
 
-// Drawer principal estilo Spotify
-// Color igual al ContentShell para armonía visual
+// Drawer principal - misma altura que ContentShell
 export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
-    width: open ? 240 : 70,
+    width: open ? 260 : 72,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
-        width: open ? 240 : 80,
-        transition: "width 0.2s ease-out", // Más rápido como Spotify
+        width: open ? 260 : 72,
+        transition: TRANSITION.css,
         overflowX: "hidden",
-        backgroundColor: "#1A1C20", // Mismo color que ContentShell
+        backgroundColor: GLASS_COLORS.sidebarBg,
         color: "white",
         borderRadius: "16px",
         position: "relative",
-        height: "calc(100% - 24px)",
-        marginLeft: "12px",
-        marginTop: "12px",
-        marginBottom: "12px",
+        height: "100%", // Ocupa toda la altura del contenedor padre
         alignItems: "center",
         display: "flex",
         flexDirection: "column",
-        border: "1px solid #3a3d44",
-        boxShadow: "0 4px 24px rgba(0, 0, 0, 0.2)",
+        border: `1px solid ${GLASS_COLORS.borderLight}`,
     },
+});
+
+// Header de sección (CARGA, GESTIÓN, etc.)
+export const StyleSectionHeader = (open: boolean): SxProps<Theme> => ({
+    fontFamily: '"Tactic Sans", sans-serif',
+    fontSize: "10px",
+    fontWeight: 600,
+    letterSpacing: "1.5px",
+    textTransform: "uppercase",
+    color: GLASS_COLORS.textMuted,
+    paddingX: 2,
+    paddingY: 0.75,
+    marginTop: 1.5,
+    opacity: open ? 1 : 0,
+    height: open ? "auto" : 0,
+    overflow: "hidden",
+    transition: "opacity 0.15s ease, height 0.2s ease",
 });
 
 // Estilos para cada item del menú
 export const StyleListItem = (open: boolean): SxProps<Theme> => ({
     display: "block",
-    paddingX: open ? 1.5 : 0,
-    paddingY: 0.5,
+    paddingX: open ? 1 : 0.5,
+    paddingY: 0.25,
 });
 
-// Botón de cada item con alineación profesional
-export const StyleListItemButton = (open: boolean): SxProps<Theme> => ({
-    minHeight: open ? 48 : 44,
+// Botón de cada item con glassmorphism
+export const StyleListItemButton = (open: boolean, isActive: boolean = false): SxProps<Theme> => ({
+    minHeight: 44,
     justifyContent: open ? "flex-start" : "center",
-    paddingX: open ? 2 : 2.5,
-    paddingY: open ? 1.25 : 1,
+    paddingX: open ? 2 : 1.5,
+    paddingY: 1,
     borderRadius: "12px",
-    marginX: open ? 0 : 0.5,
+    marginX: open ? 0 : 0.25,
     transition: "all 0.2s ease",
+    position: "relative",
+    // Estado activo
+    ...(isActive && {
+        backgroundColor: GLASS_COLORS.activeBg,
+        "&::before": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "3px",
+            height: "60%",
+            backgroundColor: GLASS_COLORS.primary,
+            borderRadius: "0 2px 2px 0",
+            boxShadow: `0 0 8px ${GLASS_COLORS.primaryGlow}`,
+        },
+    }),
     "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: isActive ? GLASS_COLORS.activeBg : GLASS_COLORS.hoverBg,
     },
 });
 
 // Iconos centrados y alineados
-export const StyleListItemsIcon = (open: boolean): SxProps<Theme> => ({
-    color: "white",
+export const StyleListItemsIcon = (open: boolean, isActive: boolean = false): SxProps<Theme> => ({
+    color: isActive ? GLASS_COLORS.primary : GLASS_COLORS.textSecondary,
     minWidth: 0,
-    marginRight: open ? 2 : 0,
+    marginRight: open ? 1.5 : 0,
     justifyContent: "center",
     display: "flex",
     alignItems: "center",
+    transition: "color 0.2s ease",
     "& .MuiSvgIcon-root": {
-        fontSize: "1.4rem",
+        fontSize: "1.3rem",
     },
 });
 
-// Texto del item: animación estilo Spotify (aparece rápido hacia la derecha)
-export const StyleListItemText = (open: boolean): SxProps<Theme> => ({
+// Texto del item con animación horizontal
+export const StyleListItemText = (open: boolean, isActive: boolean = false): SxProps<Theme> => ({
     opacity: open ? 1 : 0,
     width: open ? "auto" : 0,
     overflow: "hidden",
@@ -92,19 +138,46 @@ export const StyleListItemText = (open: boolean): SxProps<Theme> => ({
     "& .MuiTypography-root": {
         fontFamily: '"Tactic Sans", sans-serif',
         fontSize: "13px",
-        fontWeight: 500,
-        letterSpacing: "0.3px",
+        fontWeight: isActive ? 600 : 500,
+        letterSpacing: "0.2px",
         lineHeight: 1.3,
+        color: isActive ? GLASS_COLORS.textPrimary : GLASS_COLORS.textSecondary,
     },
 });
 
 // Botón de expansión
 export const StyleExpandButton: SxProps<Theme> = {
-    color: "white",
-    mt: 2,
+    color: GLASS_COLORS.textSecondary,
+    mt: 1.5,
+    mb: 0.5,
     padding: 1,
     transition: "all 0.2s ease",
     "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: GLASS_COLORS.hoverBg,
+        color: GLASS_COLORS.textPrimary,
     },
 };
+
+// Contenedor del logout (sticky bottom)
+export const StyleLogoutContainer = (open: boolean): SxProps<Theme> => ({
+    width: "100%",
+    paddingX: open ? 1 : 0.5,
+    paddingY: 1,
+    marginTop: "auto",
+    borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
+});
+
+// Botón de logout
+export const StyleLogoutButton = (open: boolean): SxProps<Theme> => ({
+    minHeight: 44,
+    justifyContent: open ? "flex-start" : "center",
+    paddingX: open ? 2 : 1.5,
+    paddingY: 1,
+    borderRadius: "12px",
+    marginX: open ? 0 : 0.25,
+    transition: "all 0.2s ease",
+    color: "#FF6B6B",
+    "&:hover": {
+        backgroundColor: "rgba(255, 107, 107, 0.12)",
+    },
+});

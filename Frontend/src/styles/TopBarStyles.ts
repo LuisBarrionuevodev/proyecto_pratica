@@ -1,37 +1,38 @@
 import type { SxProps, Theme } from "@mui/material";
+import { GLASS_COLORS } from "./GlassStyles";
 
 // =============================================================================
-// ESTILOS NEO-BRUTALISTAS PARA TOPBAR - Menú de Usuario
+// ESTILOS GLASSMORPHISM PARA TOPBAR
 // =============================================================================
 
-// Paleta de colores Neo-Brutalista (consistente con el proyecto)
+// Paleta de colores (armonizada con NavLeft)
 export const COLORS = {
     primary: "#0166FF",
     black: "#000000",
     white: "#FFFFFF",
-    grayDark: "#2B2E34",
+    grayDark: GLASS_COLORS.sidebarBg,
     grayMedium: "#666666",
     grayLight: "#F5F5F5",
     success: "#2D9F4B",
 };
 
-// Color de borde consistente con el resto de la app
-export const BORDER_COLOR = "#3a3d44";
+// Color de borde consistente con glass
+export const BORDER_COLOR = GLASS_COLORS.borderMedium;
 
-// Contenedor TopBar - Estilo Spotify (color armonizado con NavLeft)
+// Contenedor TopBar - Fijo arriba, transparente
 export const TopBarContainerStyles: SxProps<Theme> = {
     width: "100%",
-    bgcolor: "transparent", // Transparente para mostrar el background
+    bgcolor: "transparent",
     zIndex: 1200,
-    height: "70px",
-    position: "relative", // Cambiado para integración con AppLayout
+    height: "56px",
+    position: "relative",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingX: 1,
+    paddingX: 0,
+    paddingRight: 1.5,
 };
 
-// Botón del avatar (trigger del menú) - sin caja por defecto
+// Botón del avatar (trigger del menú) - completamente transparente
 export const AvatarButtonStyles: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
@@ -41,17 +42,17 @@ export const AvatarButtonStyles: SxProps<Theme> = {
     border: "none",
     borderRadius: "12px",
     cursor: "pointer",
-    transition: "all 0.2s ease-in-out",
+    transition: "all 0.15s ease",
     "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)",
     },
 };
 
-// Avatar con borde simple
+// Avatar sin borde
 export const AvatarStyles: SxProps<Theme> = {
-    width: 40,
-    height: 40,
-    border: `1px solid ${BORDER_COLOR}`,
+    width: 36,
+    height: 36,
+    border: "none",
 };
 
 // Contenedor de info del usuario (nombre + rol)
@@ -66,7 +67,7 @@ export const UserNameStyles: SxProps<Theme> = {
     fontFamily: '"Tactic Sans", sans-serif',
     fontWeight: 600,
     fontSize: "14px",
-    color: COLORS.black,
+    color: GLASS_COLORS.textPrimary,
     lineHeight: 1.2,
 };
 
@@ -91,15 +92,16 @@ export const ArrowIconStyles: SxProps<Theme> = {
 // ESTILOS DEL MENÚ DESPLEGABLE
 // =============================================================================
 
-// Paper del menú - fondo gris oscuro con borde y sombra sutil
+// Paper del menú - alineado con el layout, mismo estilo glass
 export const MenuPaperStyles = {
-    backgroundColor: COLORS.grayDark,
-    border: `1px solid ${BORDER_COLOR}`,
-    borderRadius: "8px",
-    boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
-    marginTop: "12px",
-    minWidth: "220px",
-    overflow: "visible",
+    backgroundColor: GLASS_COLORS.sidebarBg,
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
+    borderRadius: "12px",
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+    marginTop: "4px",
+    marginRight: "4px",
+    minWidth: "180px",
+    overflow: "hidden",
 };
 
 // Header del menú (avatar + info)

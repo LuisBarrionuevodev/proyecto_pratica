@@ -1,36 +1,32 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
-import { Box } from "@mui/material";
+import { Outlet, useLocation } from "react-router-dom";
+import { Box, Typography } from "@mui/material";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
+import { TRANSITION, GLASS_COLORS } from "../styles/GlassStyles";
+import { routeLabels } from "../constants/menuItems";
 
-// Constantes de dimensiones (estilo Spotify)
-const TOPBAR_HEIGHT = 70;
-const SIDEBAR_COLLAPSED = 80;
-const SIDEBAR_EXPANDED = 240;
-
-// Colores base estilo Spotify (NavLeft y ContentShell mismo color)
-const COLORS = {
-    // Fondo compartido entre sidebar y content
-    baseBg: "#1A1C20",
-    // Borde sutil
-    border: "#3a3d44",
-};
+// Constantes de dimensiones
+const TOPBAR_HEIGHT = 56;
+const SIDEBAR_COLLAPSED = 72;
+const SIDEBAR_EXPANDED = 260;
+const OUTER_MARGIN = 12; // Margen exterior uniforme
+// Altura del layout en desktop: 95vh (deja margen abajo como "app window")
+const LAYOUT_HEIGHT = "calc(100vh - 24px)"; // 100vh menos margen arriba y abajo
 
 /**
- * AppLayout - Layout principal estilo Spotify
+ * AppLayout - Layout principal estilo "app window"
  * 
- * Estructura:
- * - TopBar fijo arriba
- * - NavLeft (sidebar) fijo a la izquierda
- * - ContentShell (main) con scroll interno
- * 
- * El body NO scrollea, solo el ContentShell.
+ * En desktop: altura fija ~95vh, centrado con margen exterior
+ * NavLeft y ContentShell tienen la misma altura y color
  */
 const AppLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const location = useLocation();
 
     const currentSidebarWidth = sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED;
+    const currentLabel = routeLabels[location.pathname] || "Vista";
 
     return (
         <Box
@@ -56,28 +52,28 @@ const AppLayout = () => {
                     bgcolor: "transparent",
                 }}
             >
-                <TopBar />
+                <TopBar sidebarWidth={SIDEBAR_COLLAPSED} />
             </Box>
 
-            {/* Contenedor principal (sidebar + content) */}
+            {/* Contenedor principal con altura fija "app window" */}
             <Box
                 sx={{
                     display: "flex",
-                    flex: 1,
                     marginTop: `${TOPBAR_HEIGHT}px`,
-                    height: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
+                    height: LAYOUT_HEIGHT,
                     overflow: "hidden",
+                    padding: `${OUTER_MARGIN}px`,
+                    paddingTop: 0,
                 }}
             >
                 {/* Sidebar - NavLeft */}
                 <Box
                     component="nav"
                     sx={{
-                        position: "fixed",
-                        top: TOPBAR_HEIGHT,
-                        left: 0,
-                        height: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
-                        zIndex: 1100,
+                        height: "100%",
+                        flexShrink: 0,
+                        width: currentSidebarWidth,
+                        transition: TRANSITION.css,
                     }}
                 >
                     <NavLeft onToggle={(open) => setSidebarOpen(open)} />
@@ -88,47 +84,72 @@ const AppLayout = () => {
                     component="main"
                     sx={{
                         flex: 1,
-                        marginLeft: `${currentSidebarWidth + 15}px`, // +15 para el margin del drawer
-                        transition: "margin-left 0.3s ease-in-out",
+                        marginLeft: "4px",
                         height: "100%",
                         overflow: "hidden",
-                        padding: "12px 16px 16px 8px",
                     }}
                 >
                     {/* ContentShell - mismo color que NavLeft */}
                     <Box
                         sx={{
                             height: "100%",
-                            bgcolor: COLORS.baseBg,
+                            backgroundColor: GLASS_COLORS.contentBg,
                             borderRadius: "16px",
-                            border: `1px solid ${COLORS.border}`,
-                            boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
+                            border: `1px solid ${GLASS_COLORS.borderLight}`,
                             overflow: "hidden",
                             display: "flex",
                             flexDirection: "column",
                         }}
                     >
+                        {/* Header breadcrumb "> Vista" */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                paddingX: 2.5,
+                                paddingY: 1.25,
+                                borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+                                flexShrink: 0,
+                            }}
+                        >
+                            <ChevronRightIcon 
+                                sx={{ 
+                                    fontSize: 14, 
+                                    color: GLASS_COLORS.textMuted,
+                                }} 
+                            />
+                            <Typography
+                                sx={{
+                                    fontFamily: '"Tactic Sans", sans-serif',
+                                    fontSize: "12px",
+                                    fontWeight: 500,
+                                    color: GLASS_COLORS.textSecondary,
+                                    letterSpacing: "0.3px",
+                                }}
+                            >
+                                {currentLabel}
+                            </Typography>
+                        </Box>
+
                         {/* Área scrolleable */}
                         <Box
                             sx={{
                                 flex: 1,
                                 overflowY: "auto",
                                 overflowX: "hidden",
-                                // Scrollbar estilo Spotify
                                 "&::-webkit-scrollbar": {
-                                    width: "12px",
+                                    width: "6px",
                                 },
                                 "&::-webkit-scrollbar-track": {
-                                    background: "#121212",
-                                    borderRadius: "6px",
+                                    background: "transparent",
                                 },
                                 "&::-webkit-scrollbar-thumb": {
-                                    backgroundColor: "#3a3d44",
-                                    borderRadius: "6px",
-                                    border: "3px solid #121212",
+                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                    borderRadius: "3px",
                                 },
                                 "&::-webkit-scrollbar-thumb:hover": {
-                                    backgroundColor: "#535353",
+                                    backgroundColor: "rgba(255, 255, 255, 0.18)",
                                 },
                             }}
                         >

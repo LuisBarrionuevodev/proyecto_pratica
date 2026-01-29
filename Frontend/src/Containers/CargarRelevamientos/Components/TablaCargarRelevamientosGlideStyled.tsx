@@ -23,17 +23,20 @@ import {
 
 import {
   COLORS,
-  containerStyles,
-  wrapperStyles,
   titleStyles,
   alertBaseStyles,
-  gridContainerStyles,
   legendStyles,
   legendTitleStyles,
   legendTextStyles,
   kbdStyles,
   getStatusBadgeStyles,
 } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+import {
+  containerStyles,
+  wrapperStyles,
+  gridContainerStyles,
+  buttonMandarTodoStyles,
+} from "../styles/cargarRelevamientosStyles";
 import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { gridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
@@ -551,12 +554,12 @@ const TablaCargarRelevamientosGlideStyled = () => {
         <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
           <Button
             variant="contained"
-            color="success"
             onClick={handleCommitBatch}
             disabled={isValidatingAll || isCommitting || rowsWithData.length === 0}
             startIcon={(isValidatingAll || isCommitting) ? <CircularProgress size={16} /> : undefined}
+            sx={buttonMandarTodoStyles}
           >
-            Mandar todo (validar + confirmar)
+            MANDAR TODO (VALIDAR + CONFIRMAR)
           </Button>
         </Box>
 

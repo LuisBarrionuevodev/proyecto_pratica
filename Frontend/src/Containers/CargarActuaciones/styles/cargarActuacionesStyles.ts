@@ -1,12 +1,12 @@
 /**
- * Estilos Neo-Brutalistas para CargarActuaciones
+ * Estilos Glassmorphism para CargarActuaciones
  * Paleta de colores y constantes de diseño
  */
 
-import { m } from "framer-motion";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 // =============================================================================
-// PALETA DE COLORES
+// PALETA DE COLORES (mantiene compatibilidad + glass)
 // =============================================================================
 export const COLORS = {
     primary: "#0166FF",
@@ -31,7 +31,7 @@ export const COLORS = {
 };
 
 // =============================================================================
-// ESTILOS DE CONTENEDORES
+// ESTILOS DE CONTENEDORES - Glassmorphism
 // =============================================================================
 export const containerStyles = {
     width: "100%",
@@ -40,48 +40,37 @@ export const containerStyles = {
 };
 
 export const wrapperStyles = {
-    maxWidth: { xs: "280px", sm: "520px", md: "920px", lg: "920px", xl: "1220px" },
+    width: "100%",
+    height: "96%",
     display: "flex",
-    pl: "20px",
-    pr: "20px",
-    top: { xs: "10px", sm: "1%", md: "5%", lg: "5%", xl: "8%" },
-    textAlign: "center" as const,
-    margin: "0 auto",          // centra horizontalmente
+    padding: { xs: 2, sm: 3 },
     boxSizing: "border-box",
-    justifySelf: "center",
     flexDirection: "column" as const,
 };
 
 // =============================================================================
-// ESTILOS DE TÍTULO
+// ESTILOS DE TÍTULO (removido - ahora en breadcrumb del AppLayout)
 // =============================================================================
 export const titleStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 800,
-    fontSize: { xs: "22px", sm: "38px", md: "52px" },
-    color: COLORS.white,
-    textShadow: `2px 2px 4px rgba(0, 0, 0, 0.5)`,
-    letterSpacing: "2px",
-    marginBottom: "16px",
+    display: "none", // Oculto - el título ahora está en el header del AppLayout
 };
 
 // =============================================================================
-// ESTILOS DE ALERTAS
+// ESTILOS DE ALERTAS - Sin blur para rendimiento
 // =============================================================================
 export const alertBaseStyles = {
     fontFamily: '"Tactic Sans", sans-serif',
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "8px",
+    border: `1px solid ${GLASS_COLORS.borderMedium}`,
+    borderRadius: "10px",
     marginBottom: "16px",
-    backgroundColor: COLORS.grayDark,
+    backgroundColor: GLASS_COLORS.cardBg,
     color: COLORS.white,
-    boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
     "& .MuiAlert-icon": { color: COLORS.white },
     "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
 };
 
 // =============================================================================
-// ESTILOS DEL CONTENEDOR DE GRILLA
+// ESTILOS DEL CONTENEDOR DE GRILLA (mantiene estilo original para Glide)
 // =============================================================================
 export const gridContainerStyles = {
     border: `1px solid ${COLORS.border}`,
@@ -93,16 +82,15 @@ export const gridContainerStyles = {
 };
 
 // =============================================================================
-// ESTILOS DE LEYENDA
+// ESTILOS DE LEYENDA - Sin blur para rendimiento
 // =============================================================================
 export const legendStyles = {
     marginTop: "16px",
     marginBottom: "8px",
     padding: "20px",
-    backgroundColor: COLORS.grayDark,
-    borderRadius: "8px",
-    border: `1px solid #1A1C20`,
-    boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
+    backgroundColor: GLASS_COLORS.cardBg,
+    borderRadius: "12px",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
 };
 
 export const legendTitleStyles = {
@@ -117,19 +105,19 @@ export const legendTextStyles = {
     fontFamily: '"Tactic Sans", sans-serif',
     fontWeight: 400,
     fontSize: "14px",
-    color: COLORS.white,
+    color: GLASS_COLORS.textSecondary,
     lineHeight: 1.8,
 };
 
 export const kbdStyles: React.CSSProperties = {
     padding: "3px 8px",
-    backgroundColor: "#1A1C20",
-    border: `1px solid #555`,
-    borderRadius: "4px",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    border: `1px solid ${GLASS_COLORS.borderMedium}`,
+    borderRadius: "6px",
     fontFamily: '"Tactic Sans", sans-serif',
     fontWeight: 500,
     fontSize: "12px",
-    boxShadow: "1px 1px 0 #000",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
     display: "inline-block",
     marginLeft: "4px",
     marginRight: "4px",
@@ -141,8 +129,34 @@ export const getStatusBadgeStyles = (bgColor: string, textColor: string): React.
     padding: "2px 8px",
     backgroundColor: bgColor,
     color: textColor,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "4px",
+    border: `1px solid ${GLASS_COLORS.borderMedium}`,
+    borderRadius: "6px",
     marginRight: "8px",
     fontWeight: 600,
 });
+
+// =============================================================================
+// BOTÓN MANDAR TODO - Azul cuando activo
+// =============================================================================
+export const buttonMandarTodoStyles = {
+    fontFamily: '"Tactic Sans", sans-serif',
+    fontWeight: 600,
+    fontSize: "14px",
+    textTransform: "none" as const,
+    borderRadius: "8px",
+    padding: "10px 24px",
+    transition: "all 0.2s ease",
+    // Estilo activo (enabled)
+    backgroundColor: COLORS.primary,
+    color: COLORS.white,
+    border: `1px solid ${COLORS.primary}`,
+    "&:hover": {
+        backgroundColor: "#0155DD",
+    },
+    // Estilo disabled
+    "&.Mui-disabled": {
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        color: "rgba(255, 255, 255, 0.3)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+    },
+};

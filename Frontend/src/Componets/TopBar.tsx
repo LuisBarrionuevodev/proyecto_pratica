@@ -39,7 +39,11 @@ const USER_DATA = {
     avatar: FotoAvatar,
 };
 
-const TopBar = () => {
+interface TopBarProps {
+    sidebarWidth?: number;
+}
+
+const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -55,33 +59,53 @@ const TopBar = () => {
 
     const handleViewProfile = () => {
         handleClose();
-        navigate("/perfil"); // <-- Redirige a /perfil
+        navigate("/perfil");
     };
 
     const handleInicio = () => {
-        navigate("/inicio")
-    }
-
+        navigate("/inicio");
+    };
 
     const handleLogout = () => {
         handleClose();
-        // TODO: implementar logout real
-        navigate("/login"); // <-- Redirige a login
+        navigate("/login");
     };
 
     return (
         <Box sx={TopBarContainerStyles}>
-            <Box ml={1} display={"flex"} onClick={handleInicio} sx={{ cursor: "pointer" }}>
+            {/* Logo alineado con el centro del sidebar colapsado */}
+            <Box 
+                display="flex" 
+                alignItems="center"
+                onClick={handleInicio} 
+                sx={{ 
+                    cursor: "pointer",
+                    width: sidebarWidth + 10, // Ancho del sidebar + margen
+                    justifyContent: "center",
+                    flexShrink: 0,
+                }}
+            >
                 <Box
-                    component={"img"}
+                    component="img"
                     src={LogoSMT}
-                    sx={{ width: "100px", }} />
-
-                <Box
-                    component={"img"}
-                    src={TextDigitaliza}
-                    sx={{ width: "250px" }} />
+                    sx={{ width: "48px", height: "48px" }}
+                />
             </Box>
+            
+            {/* Texto Digitaliza */}
+            <Box 
+                component="img"
+                src={TextDigitaliza}
+                onClick={handleInicio}
+                sx={{ 
+                    width: "200px", 
+                    cursor: "pointer",
+                    marginLeft: 1,
+                }} 
+            />
+            
+            {/* Spacer */}
+            <Box sx={{ flex: 1 }} />
             {/* Botón del Avatar (trigger del menú) - sin caja */}
             <Box
                 onClick={handleClick}

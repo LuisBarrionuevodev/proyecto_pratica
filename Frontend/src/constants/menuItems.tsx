@@ -7,15 +7,79 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import BadgeIcon from '@mui/icons-material/Badge';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
+import HomeIcon from '@mui/icons-material/Home';
 
-export const menuItems = [
-  { text: "Cargar Actuación", icon: <CreateNewFolderIcon/>, path: "/cargarActuacion" },
-  { text: "Cargar Relevamiento", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
-  { text: "Gestionar Expedientes", icon: <DashboardIcon />, path: "/actuaciones" },
-  { text: "Gestión Relevamientos", icon: <ListAltIcon />, path: "/relevamientos" },
-  { text: "Cargar Personas Capacitadas", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
-  { text: "Gestión Personas BPM", icon: <BadgeIcon />, path: "/gestionPersonasBpm" },
-  { text: "Dashboard", icon: <BarChartIcon />, path: "/dashboard" },
-  { text: "Mapa", icon: <MapIcon />, path: "/mapa" },
-  { text: "Gestión del Sistema", icon: <SettingsIcon />, path: "/gestionSistema" },
+// Definición de secciones del menú (agrupadas)
+export interface MenuItem {
+  text: string;
+  icon: JSX.Element;
+  path: string;
+}
+
+export interface MenuSection {
+  label: string;
+  items: MenuItem[];
+}
+
+// Secciones del menú lateral (estilo Spotify)
+export const menuSections: MenuSection[] = [
+  {
+    label: "MAIN",
+    items: [
+      { text: "Inicio", icon: <HomeIcon />, path: "/inicio" },
+    ],
+  },
+  {
+    label: "CARGA",
+    items: [
+      { text: "Cargar Actuación", icon: <CreateNewFolderIcon />, path: "/cargarActuacion" },
+      { text: "Cargar Relevamiento", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
+      { text: "Cargar Personas", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
+    ],
+  },
+  {
+    label: "GESTIÓN",
+    items: [
+      { text: "Expedientes", icon: <DashboardIcon />, path: "/actuaciones" },
+      { text: "Relevamientos", icon: <ListAltIcon />, path: "/relevamientos" },
+      { text: "Personas BPM", icon: <BadgeIcon />, path: "/gestionPersonasBpm" },
+      { text: "Dashboard", icon: <BarChartIcon />, path: "/dashboard" },
+      { text: "Mapa", icon: <MapIcon />, path: "/mapa" },
+    ],
+  },
+  {
+    label: "CONFIGURACIÓN",
+    items: [
+      { text: "Sistema", icon: <SettingsIcon />, path: "/gestionSistema" },
+    ],
+  },
 ];
+
+// Item de logout (separado, al final)
+export const logoutItem: MenuItem = {
+  text: "Cerrar Sesión",
+  icon: <LogoutIcon />,
+  path: "/login",
+};
+
+// Mapeo de rutas a labels para el breadcrumb
+export const routeLabels: Record<string, string> = {
+  "/inicio": "Inicio",
+  "/cargarActuacion": "Carga de Actuaciones",
+  "/cargarRelevamiento": "Carga de Relevamientos",
+  "/cargarPersonasCapacitadas": "Carga de Personas Capacitadas",
+  "/actuaciones": "Gestión de Expedientes",
+  "/relevamientos": "Gestión de Relevamientos",
+  "/gestionPersonasBpm": "Gestión Personas BPM",
+  "/dashboard": "Dashboard",
+  "/mapa": "Mapa",
+  "/gestionSistema": "Configuración del Sistema",
+  "/perfil": "Mi Perfil",
+  "/pendientes": "Pendientes",
+  "/pendientesVinculacionActa": "Pendientes Vinculación Acta",
+  "/pendientesVinculacionOficio": "Pendientes Vinculación Oficio",
+};
+
+// Mantener compatibilidad con código existente (flat list)
+export const menuItems = menuSections.flatMap(section => section.items);
