@@ -50,13 +50,26 @@
   font-family: "Tactic Sans";
 }
 
-body {
+/* Reset para layout Spotify - el body NO scrollea */
+html, body, #root {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
   background-image: url("./assets/BackgroundInicio.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+/* Para rutas públicas que necesitan scroll (login, inicio, etc.) */
+body.public-route {
+  overflow: auto;
 }
 
 a{

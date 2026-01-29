@@ -17,23 +17,17 @@ export const COLORS = {
 };
 
 // =============================================================================
-// LAYOUT PRINCIPAL
+// LAYOUT PRINCIPAL - Aprovecha todo el espacio del ContentShell
 // =============================================================================
 
 export const wrapperStyles: SxProps<Theme> = {
   width: "100%",
-  maxWidth: {
-    xs: "280px",
-    sm: "520px",
-    md: "920px",
-    xl: "1220px",
-  },
-  margin: "0 auto",          // centra horizontalmente
+  height: "100%",
   display: "flex",
   flexDirection: "column",
   textAlign: "center",
   boxSizing: "border-box",
-  padding:3
+  padding: { xs: 2, sm: 3 },
 };
 
 export const titleStyles: SxProps<Theme> = {

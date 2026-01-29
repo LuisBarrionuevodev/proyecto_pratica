@@ -18,16 +18,17 @@ export const COLORS = {
 // Color de borde consistente con el resto de la app
 export const BORDER_COLOR = "#3a3d44";
 
-// Contenedor fijo en la esquina superior derecha
+// Contenedor TopBar - Estilo Spotify (color armonizado con NavLeft)
 export const TopBarContainerStyles: SxProps<Theme> = {
-    width:"100%",
-    bgcolor:"transparent",
-    zIndex:10,
-    height:"70px",
-    position:"fixed",
+    width: "100%",
+    bgcolor: "transparent", // Transparente para mostrar el background
+    zIndex: 1200,
+    height: "70px",
+    position: "relative", // Cambiado para integración con AppLayout
     display: "flex",
-    justifyContent:"space-between",
+    justifyContent: "space-between",
     alignItems: "center",
+    paddingX: 1,
 };
 
 // Botón del avatar (trigger del menú) - sin caja por defecto

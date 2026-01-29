@@ -1,5 +1,4 @@
 import type { JSX } from "react";
-import NavLeft from "../../Componets/NavLeft";
 import TablaActuaciones from "./Components/TableActuaciones";
 import FiltroFechas from "./Components/FiltroFechas";
 import { ThemeProvider, Box, Alert, Typography, CircularProgress } from "@mui/material";
@@ -40,9 +39,7 @@ const Actuaciones = (): JSX.Element => {
     };
 
     return (
-        <>
-            <NavLeft />
-            <ThemeProvider theme={darkTheme}>
+        <ThemeProvider theme={darkTheme}>
                 <Box sx={wrapperStyles}>
                     {/* Título */}
                     <Typography sx={titleStyles}>Actuaciones</Typography>
@@ -115,7 +112,6 @@ const Actuaciones = (): JSX.Element => {
                     )}
                 </Box>
             </ThemeProvider>
-        </>
     );
 };
 

@@ -9,8 +9,8 @@ import {
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TextDigitaliza from "../assets/TextDigitaliza.svg"
 import LogoSMT from "../assets/LogoSMT.svg"
 // Estilos Neo-Brutalistas
@@ -25,7 +25,6 @@ import {
     MenuPaperStyles,
     MenuItemStyles,
     MenuDividerStyles,
-    MenuItemLogoutStyles,
 } from "../styles/TopBarStyles";
 
 // Avatar del usuario
@@ -63,10 +62,6 @@ const TopBar = () => {
         navigate("/inicio")
     }
 
-    const handleAboutUs = () => {
-        handleClose();
-        navigate("/nosotros"); // <-- Redirige a /nosotros
-    };
 
     const handleLogout = () => {
         handleClose();
@@ -113,7 +108,7 @@ const TopBar = () => {
                 />
             </Box>
 
-            {/* Menú desplegable - solo opciones, sin duplicar foto */}
+            {/* Menú desplegable estilo Spotify */}
             <Menu
                 anchorEl={anchorEl}
                 open={open}
@@ -128,26 +123,35 @@ const TopBar = () => {
                 }}
                 slotProps={{
                     paper: {
-                        sx: MenuPaperStyles,
+                        sx: {
+                            ...MenuPaperStyles,
+                            minWidth: "180px",
+                            padding: "4px",
+                        },
                     },
                 }}
             >
-                {/* Opciones del menú */}
-
-                <MenuItem onClick={handleViewProfile} sx={MenuItemStyles}>
-                    <PersonOutlineIcon fontSize="small" />
-                    Ver perfil
-                </MenuItem>
-
-
-                <MenuItem onClick={handleAboutUs} sx={MenuItemStyles}>
-                    <InfoOutlinedIcon fontSize="small" />
-                    Nosotros
+                {/* Perfil - estilo Spotify */}
+                <MenuItem 
+                    onClick={handleViewProfile} 
+                    sx={{
+                        ...MenuItemStyles,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                    }}
+                >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <PersonOutlineIcon fontSize="small" />
+                        Perfil
+                    </Box>
+                    <OpenInNewIcon sx={{ fontSize: 14, opacity: 0.7 }} />
                 </MenuItem>
 
                 <Divider sx={MenuDividerStyles} />
 
-                <MenuItem onClick={handleLogout} sx={MenuItemLogoutStyles}>
+                {/* Cerrar sesión */}
+                <MenuItem onClick={handleLogout} sx={MenuItemStyles}>
                     <LogoutIcon fontSize="small" />
                     Cerrar sesión
                 </MenuItem>

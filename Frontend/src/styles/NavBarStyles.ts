@@ -23,25 +23,28 @@ export const StyleListItems = {
     paddingBottom: 1,
 };
 
-// Drawer principal con transición suave
+// Drawer principal estilo Spotify
+// Color igual al ContentShell para armonía visual
 export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
     width: open ? 240 : 70,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
         width: open ? 240 : 80,
-        transition: "width 0.3s ease-in-out",
+        transition: "width 0.2s ease-out", // Más rápido como Spotify
         overflowX: "hidden",
-        backgroundColor: "#2B2E34",
+        backgroundColor: "#1A1C20", // Mismo color que ContentShell
         color: "white",
-        borderRadius: "20px",
-        position: "fixed",
-        height: "85vh",
-        marginLeft: "15px",
-        marginTop: "90px",
-        marginBottom: "10px",
+        borderRadius: "16px",
+        position: "relative",
+        height: "calc(100% - 24px)",
+        marginLeft: "12px",
+        marginTop: "12px",
+        marginBottom: "12px",
         alignItems: "center",
         display: "flex",
         flexDirection: "column",
+        border: "1px solid #3a3d44",
+        boxShadow: "0 4px 24px rgba(0, 0, 0, 0.2)",
     },
 });
 
@@ -79,11 +82,13 @@ export const StyleListItemsIcon = (open: boolean): SxProps<Theme> => ({
     },
 });
 
-// Texto del item: oculto completamente cuando cerrado, wrap cuando abierto
+// Texto del item: animación estilo Spotify (aparece rápido hacia la derecha)
 export const StyleListItemText = (open: boolean): SxProps<Theme> => ({
-    display: open ? "block" : "none",
-    whiteSpace: "normal",
-    wordWrap: "break-word",
+    opacity: open ? 1 : 0,
+    width: open ? "auto" : 0,
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    transition: "opacity 0.15s ease-out, width 0.2s ease-out",
     "& .MuiTypography-root": {
         fontFamily: '"Tactic Sans", sans-serif',
         fontSize: "13px",

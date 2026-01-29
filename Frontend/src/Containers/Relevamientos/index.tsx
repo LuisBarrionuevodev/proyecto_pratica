@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 import { ThemeProvider, Box, Alert, Typography, CircularProgress } from "@mui/material";
-import NavLeft from "../../Componets/NavLeft";
 import { darkTheme } from "../../configs/theme";
 import { useRelevamientosFiltradas } from "./hooks/useRelevamientosFiltradas";
 import FiltroRelevamientos from "./Components/FiltroRelevamientos";
@@ -27,8 +26,6 @@ const Relevamientos = (): JSX.Element => {
   };
 
   return (
-    <>
-      <NavLeft />
       <ThemeProvider theme={darkTheme}>
         <Box sx={wrapperStyles}>
         <Typography sx={titleStyles}>Relevamientos</Typography>
@@ -98,7 +95,6 @@ const Relevamientos = (): JSX.Element => {
         )}
         </Box>
       </ThemeProvider>
-    </>
   );
 };
 
