@@ -29,10 +29,9 @@ const Inicio = (): JSX.Element => {
                     height: "56px",
                     flexShrink: 0,
                     bgcolor: "transparent",
-                    paddingLeft: 2,
                 }}
             >
-                <TopBar sidebarWidth={40} />
+                <TopBar  />
             </Box>
 
             {/* Hero Section - Transparente con buscador */}

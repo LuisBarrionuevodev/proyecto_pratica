@@ -24,7 +24,7 @@ export const TopBarContainerStyles: SxProps<Theme> = {
     width: "100%",
     bgcolor: "transparent",
     zIndex: 1200,
-    height: "56px",
+    height: "55px",
     position: "relative",
     display: "flex",
     alignItems: "center",

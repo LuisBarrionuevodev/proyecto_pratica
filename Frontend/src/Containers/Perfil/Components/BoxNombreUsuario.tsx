@@ -24,7 +24,6 @@ const BoxNombreUsuario = () => {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: { xs: 2, sm: 3 },
-                borderRadius: "16px 16px 0 0",
             }}
         >
             {/* Avatar grande - estilo Spotify */}

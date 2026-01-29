@@ -80,15 +80,16 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                 onClick={handleInicio} 
                 sx={{ 
                     cursor: "pointer",
-                    width: sidebarWidth + 10, // Ancho del sidebar + margen
-                    justifyContent: "center",
+                    width: sidebarWidth, // Ancho del sidebar + margen
+                    justifyContent: "start",
                     flexShrink: 0,
+                    ml:"15px"
                 }}
             >
                 <Box
                     component="img"
                     src={LogoSMT}
-                    sx={{ width: "48px", height: "48px" }}
+                    sx={{ width: "60px" }}
                 />
             </Box>
             
@@ -98,9 +99,10 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                 src={TextDigitaliza}
                 onClick={handleInicio}
                 sx={{ 
-                    width: "200px", 
+                    width: {lg:"200px", xl:"230px"}, 
                     cursor: "pointer",
-                    marginLeft: 1,
+                    marginLeft: -2.5,
+                    mt:1
                 }} 
             />
             

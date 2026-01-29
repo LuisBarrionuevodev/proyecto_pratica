@@ -41,18 +41,20 @@ export const StyleListItems = {
 
 // Drawer principal - misma altura que ContentShell
 export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
-    width: open ? 260 : 72,
+    width: open ? 250 : 72,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
-        width: open ? 260 : 72,
+        width: open ? 250 : 72,
         transition: TRANSITION.css,
         overflowX: "hidden",
         backgroundColor: GLASS_COLORS.sidebarBg,
         color: "white",
         borderRadius: "16px",
-        position: "relative",
-        height: "50%", // Ocupa toda la altura del contenedor padre
-        alignItems: "center",
+        position: "fixed",
+        mt:7,
+        ml:1,
+        height: {xs:"92%" ,md:"92%",lg:"89%", xl: "92.5%"},
+        alignItems:"center",
         display: "flex",
         flexDirection: "column",
         border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -79,8 +81,10 @@ export const StyleSectionHeader = (open: boolean): SxProps<Theme> => ({
 // Estilos para cada item del menú
 export const StyleListItem = (open: boolean): SxProps<Theme> => ({
     display: "block",
-    paddingX: open ? 1 : 0.5,
+    paddingX: open ? 1 : 1.3,
     paddingY: 0.25,
+    alignItems:"center",
+    justifyContent:"center",
     //aca se cambia la altura de la nav left
     height: open ? "5.9vh" : "6.6vh" ,
 });
@@ -89,7 +93,6 @@ export const StyleListItem = (open: boolean): SxProps<Theme> => ({
 export const StyleListItemButton = (open: boolean, isActive: boolean = false): SxProps<Theme> => ({
     minHeight: 44,
     justifyContent: open ? "flex-start" : "center",
-    paddingX: open ? 2 : 1.5,
     paddingY: 1,
     borderRadius: "12px",
     marginX: open ? 0 : 0.25,
@@ -139,7 +142,7 @@ export const StyleListItemText = (open: boolean, isActive: boolean = false): SxP
     transition: "opacity 0.15s ease-out, width 0.2s ease-out",
     "& .MuiTypography-root": {
         fontFamily: '"Tactic Sans", sans-serif',
-        fontSize: "13px",
+        fontSize: "12px",
         fontWeight: isActive ? 600 : 500,
         letterSpacing: "0.2px",
         lineHeight: 1.3,
@@ -164,7 +167,6 @@ export const StyleExpandButton: SxProps<Theme> = {
 export const StyleLogoutContainer = (open: boolean): SxProps<Theme> => ({
     width: "100%",
     height: "44px",
-    paddingX: open ? 1 : 0.5,
     paddingY: 1,
     marginTop: "auto",
     borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -174,7 +176,7 @@ export const StyleLogoutContainer = (open: boolean): SxProps<Theme> => ({
 export const StyleLogoutButton = (open: boolean): SxProps<Theme> => ({
     minHeight: 44,
     justifyContent: open ? "flex-start" : "center",
-    paddingX: open ? 2 : 1.5,
+    paddingX: open ? 2 : 3,
     paddingY: 1,
     borderRadius: "12px",
     marginX: open ? 0 : 0.25,
