@@ -85,7 +85,7 @@ export const StyleListItem = (open: boolean): SxProps<Theme> => ({
     height: open ? "5.9vh" : "6.6vh" ,
 });
 
-// Botón de cada item con glassmorphism
+// Botón de cada item con glassmorphismo
 export const StyleListItemButton = (open: boolean, isActive: boolean = false): SxProps<Theme> => ({
     minHeight: 44,
     justifyContent: open ? "flex-start" : "center",
