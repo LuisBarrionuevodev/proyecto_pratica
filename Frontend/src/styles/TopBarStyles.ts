@@ -28,7 +28,7 @@ export const TopBarContainerStyles: SxProps<Theme> = {
     position: "relative",
     display: "flex",
     alignItems: "center",
-    paddingX: 0,
+    paddingX:0,
     paddingRight: 1.5,
 };
 

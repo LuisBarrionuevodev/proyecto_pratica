@@ -3,6 +3,7 @@
  * Paleta de colores y constantes de diseño
  */
 
+import { m } from "framer-motion";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 // =============================================================================
@@ -40,11 +41,10 @@ export const containerStyles = {
 };
 
 export const wrapperStyles = {
-    width: "100%",
-    height: "96%",
+    width: "99%",
+    height: "91%",
     display: "flex",
-    padding: { xs: 2, sm: 3 },
-    boxSizing: "border-box",
+    padding: { xs: 2, sm: 1 },
     flexDirection: "column" as const,
 };
 
@@ -75,7 +75,6 @@ export const alertBaseStyles = {
 export const gridContainerStyles = {
     border: `1px solid ${COLORS.border}`,
     borderRadius: "8px",
-    overflow: "hidden",
     boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
     backgroundImage: "linear-gradient(rgba(255, 255, 255, 0.069), rgba(255, 255, 255, 0.069))",
     backgroundColor: COLORS.grayDark,
@@ -85,8 +84,7 @@ export const gridContainerStyles = {
 // ESTILOS DE LEYENDA - Sin blur para rendimiento
 // =============================================================================
 export const legendStyles = {
-    marginTop: "16px",
-    marginBottom: "8px",
+    marginTop: "20px",
     padding: "20px",
     backgroundColor: GLASS_COLORS.cardBg,
     borderRadius: "12px",

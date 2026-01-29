@@ -8,7 +8,7 @@ export const LoginBoxStyle = {
     flexDirection: "column",
     alignItems: "center",
     width: "450px",
-    height: "500px",
+    height: "520px",
     borderRadius: "10px",
     background: "#FFFFFF",
     border: "1px solid #353535",

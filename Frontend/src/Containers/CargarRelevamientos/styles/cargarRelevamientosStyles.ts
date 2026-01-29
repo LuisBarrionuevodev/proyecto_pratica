@@ -24,7 +24,7 @@ const TABLE_WIDTH = 1100;
 // CONTENEDORES
 // =============================================================================
 export const containerStyles = {
-    width: "100%",
+    width: "98%",
     height: "100%",
     fontFamily: '"Tactic Sans", sans-serif',
 };
@@ -32,10 +32,9 @@ export const containerStyles = {
 // Wrapper sin centrar - contenido alineado a la izquierda
 export const wrapperStyles = {
     width: "100%",
-    height: "89%",
+    height: {xs:"120%", sm:"85%"},
     display: "flex",
-    padding: { xs: 2, sm: 3 },
-    boxSizing: "border-box",
+    padding: { xs: 2, sm: 1 },
     flexDirection: "column" as const,
 };
 

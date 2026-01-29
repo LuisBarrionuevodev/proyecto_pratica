@@ -83,7 +83,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                     width: sidebarWidth, // Ancho del sidebar + margen
                     justifyContent: "start",
                     flexShrink: 0,
-                    ml:"15px"
+                    ml:{xs:"-5px", sm:"15px"}
                 }}
             >
                 <Box
@@ -101,7 +101,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                 sx={{ 
                     width: {lg:"200px", xl:"230px"}, 
                     cursor: "pointer",
-                    marginLeft: -2.5,
+                    ml:{xs:-3, sm:-2.5},
                     mt:1
                 }} 
             />
