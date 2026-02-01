@@ -138,7 +138,9 @@ const TablaCargarRelevamientosGlideStyled = () => {
       const effectiveBatchId = batchIdValue || batchId;
       if (!effectiveBatchId) return null;
 
-      const rowsWithData = rows.filter((row) => rowHasData(row) && (row._touched || row._state !== "OK"));
+      const rowsWithData = rows.filter(
+        (row) => rowHasData(row) && (row._touched || (row._state !== "OK" && !row.ID))
+      );
       if (rowsWithData.length === 0) return null;
 
       setData((prev) =>
@@ -233,7 +235,14 @@ const TablaCargarRelevamientosGlideStyled = () => {
       setIsValidatingAll(true);
       setGlobalError(null);
 
+      setData((prev) =>
+        prev.map((row) =>
+          row.ID && !row._touched ? { ...row, _cellErrors: {}, _rowError: null } : row
+        )
+      );
+
       const response = await validateBatchRows(dataRef.current, startedBatchId);
+      const touchedRows = dataRef.current.filter((row) => rowHasData(row) && row._touched);
       let okRows =
         response?.results
           .filter((r) => r.ok && r.normalized)
@@ -246,6 +255,10 @@ const TablaCargarRelevamientosGlideStyled = () => {
       }
 
       if (okRows.length === 0) {
+        if (!response && touchedRows.length === 0) {
+          setGlobalError(null);
+          return;
+        }
         setGlobalError(response ? "No hay filas válidas para confirmar." : "No hay filas para validar.");
         return;
       }
@@ -263,6 +276,7 @@ const TablaCargarRelevamientosGlideStyled = () => {
               _state: "OK",
               _cellErrors: {},
               _rowError: null,
+              _touched: false,
             };
           }
           return {

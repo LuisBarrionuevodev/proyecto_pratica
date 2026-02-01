@@ -9,6 +9,7 @@ from app.database import db
 from app.domains.actuaciones.routes import actuacion as actuacion_bp
 from app.domains.grid.routes import grid as grid_bp
 from app.domains.relevamientos.routes import relevamiento as relevamiento_bp
+from app.domains.geolocalizacion.normalizacion_calles.routes import geolocalizacion_calles as geoloc_calles_bp
 
 migrate = Migrate()
 
@@ -42,6 +43,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(relevamiento_bp, url_prefix="/relevamientos")
     
     app.register_blueprint(grid_bp)
+    app.register_blueprint(geoloc_calles_bp)
     print(app.url_map)
 
     return app

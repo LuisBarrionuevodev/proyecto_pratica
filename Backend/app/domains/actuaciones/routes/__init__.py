@@ -13,5 +13,6 @@ from . import pendientes_vinc_acta  # noqa: E402,F401
 from . import expediente_from_acta  # noqa: E402,F401
 from . import pendientes_vinc_oficio  # noqa: E402,F401
 from . import pendientes_notificacion  # noqa: E402,F401
+from . import pendientes  # noqa: E402,F401
 
 __all__ = ["actuacion"]

@@ -37,6 +37,13 @@ export interface IActuacionListItem {
     oficio_causa: string | null;
     notificacion_previa_num: string | null;
     comprobacion_previa_num: string | null;
+    domicilio_id?: number | null;
+    calle_normalizada?: string | null;
+    calle_estado?: string | null;
+    calle_score?: number | null;
+    calle_sugerida?: string | null;
+    calle_mostrar?: string | null;
+    calle_catalogo_id?: number | null;
 }
 
 export interface IActuacionesListMeta {

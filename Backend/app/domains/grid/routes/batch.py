@@ -127,6 +127,7 @@ def commit_batch():
                     persisted=handler.presenter(act),
                 )
             )
+            store.clear_row_key(req.batch_id, item.row_id)
         except ValueError as e:
             results.append(
                 CommitRowResponse(
@@ -250,6 +251,7 @@ def commit_row():
             errors={},
             persisted=handler.presenter(act),
         )
+        store.clear_row_key(req.batch_id, req.row_id)
         return jsonify(resp.model_dump()), 200
     except ValueError as e:
         resp = CommitRowResponse(

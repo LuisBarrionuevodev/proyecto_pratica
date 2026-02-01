@@ -170,7 +170,9 @@ const TablaCargarActuacionesGlideStyled = () => {
         
         // Solo validar filas que tienen datos cargados y fueron editadas o no están OK
         const rowsWithData = rows.filter(
-            (row) => rowHasData(row) && (row._touched || row._state !== "OK")
+            (row) =>
+                rowHasData(row) &&
+                (row._touched || (row._state !== "OK" && !row.ID))
         );
         if (rowsWithData.length === 0) return null;
 
@@ -280,7 +282,16 @@ const TablaCargarActuacionesGlideStyled = () => {
             setIsValidatingAll(true);
             setGlobalError(null);
 
+            setData((prev) =>
+                prev.map((row) =>
+                    row.ID && !row._touched
+                        ? { ...row, _cellErrors: {}, _rowError: null }
+                        : row
+                )
+            );
+
             const response = await validateBatchRows(dataRef.current, startedBatchId);
+            const touchedRows = dataRef.current.filter((row) => rowHasData(row) && row._touched);
 
             let okRows =
                 response?.results
@@ -294,6 +305,10 @@ const TablaCargarActuacionesGlideStyled = () => {
             }
 
             if (okRows.length === 0) {
+                if (!response && touchedRows.length === 0) {
+                    setGlobalError(null);
+                    return;
+                }
                 setGlobalError(response ? "No hay filas válidas para confirmar." : "No hay filas para validar.");
                 return;
             }
@@ -324,6 +339,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                         _state: "OK",
                         _cellErrors: {},
                         _rowError: null,
+                        _touched: false,
                     };
                 } else if (!result.ok) {
                     return {

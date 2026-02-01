@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, List
 
-from app.models import Actuaciones, Expediente, Oficio
-
-from app.models import Expediente
+from app.models import Actuaciones, Expediente
 
 def _enum_to_str(value: Any) -> Optional[str]:
     """
@@ -68,6 +66,11 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     rubro_nombre: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    calle_normalizada: Optional[str] = None
+    calle_estado: Optional[str] = None
+    calle_score: Optional[float] = None
+    calle_catalogo_id: Optional[int] = None
+    domicilio_id: Optional[int] = None
 
     doc_nro: Optional[str] = None
     contrib_apellido: Optional[str] = None
@@ -75,8 +78,13 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
     dom = getattr(act, "domicilio", None)
     if dom:
+        domicilio_id = getattr(dom, "id", None)
         calle = getattr(dom, "calle", None)
         numero = getattr(dom, "numero", None)
+        calle_normalizada = getattr(dom, "calle_normalizada", None)
+        calle_estado = getattr(dom, "calle_norm_status", None)
+        calle_score = getattr(dom, "calle_norm_score", None)
+        calle_catalogo_id = getattr(dom, "calle_catalogo_id", None)
 
         rub = getattr(dom, "rubro", None)
         if rub:
@@ -189,6 +197,9 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
             oficio_causa = getattr(of, "causa", None)
 
     
+    calle_mostrar = calle_normalizada if calle_estado == "OK" and calle_normalizada else calle
+    calle_sugerida = calle_normalizada if calle_normalizada else None
+
     return {
         "id": act.id,
         "orden_trabajo_numero": ot_num,
@@ -202,6 +213,13 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
         "calle": calle,
         "numero": numero,
+        "domicilio_id": domicilio_id,
+        "calle_normalizada": calle_normalizada,
+        "calle_estado": calle_estado,
+        "calle_score": calle_score,
+        "calle_catalogo_id": calle_catalogo_id,
+        "calle_sugerida": calle_sugerida,
+        "calle_mostrar": calle_mostrar,
 
         "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
         "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),

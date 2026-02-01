@@ -20,6 +20,11 @@ interface TablaRelevamientosProps {
   data?: IRelevamientoListItem[];
   loading?: boolean;
   onRefresh?: () => void;
+  initialColumnVisibility?: Record<string, boolean>;
+  enableEditing?: boolean;
+  hideRowActions?: boolean;
+  extraColumns?: MRT_ColumnDef<IRelevamientoListItem>[];
+  onBeforeSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
 }
 
 const ERROR_KEY_MAP: Record<string, string> = {
@@ -41,7 +46,16 @@ const normalizeErrors = (errors?: Record<string, string>) => {
   return mapped;
 };
 
-const TablaRelevamientos = ({ data: externalData, loading: externalLoading, onRefresh }: TablaRelevamientosProps) => {
+const TablaRelevamientos = ({
+  data: externalData,
+  loading: externalLoading,
+  onRefresh,
+  initialColumnVisibility,
+  enableEditing = true,
+  hideRowActions = false,
+  extraColumns = [],
+  onBeforeSave,
+}: TablaRelevamientosProps) => {
   const [data, setData] = useState<IRelevamientoListItem[]>(externalData || []);
   const loading = externalLoading || false;
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
@@ -129,6 +143,9 @@ const TablaRelevamientos = ({ data: externalData, loading: externalLoading, onRe
       setRowErrors((prev) => ({ ...prev, [id]: {} }));
 
       try {
+        if (onBeforeSave) {
+          await onBeforeSave(fullRow as IRelevamientoListItem);
+        }
         await updateRelevamiento(id, fullRow as IRelevamientoListItem);
         exitEditingMode();
         onRefresh?.();
@@ -143,11 +160,12 @@ const TablaRelevamientos = ({ data: externalData, loading: externalLoading, onRe
         alert(msg);
       }
     },
-    [batchId, onRefresh]
+    [batchId, onRefresh, onBeforeSave]
   );
 
-  const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => [
-    { accessorKey: "id", header: "ID", enableHiding: true, enableEditing: false, size: 80 },
+  const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => {
+    const baseColumns: MRT_ColumnDef<IRelevamientoListItem>[] = [
+      { accessorKey: "id", header: "ID", enableHiding: true, enableEditing: false, size: 80 },
     {
       accessorKey: "fecha",
       header: "Fecha",
@@ -202,7 +220,7 @@ const TablaRelevamientos = ({ data: externalData, loading: externalLoading, onRe
         return { select: true, error: !!err, helperText: err ?? "" };
       },
     },
-    {
+      {
       accessorKey: "contraproducencia",
       header: "Contraproducencia",
       size: 200,
@@ -213,24 +231,26 @@ const TablaRelevamientos = ({ data: externalData, loading: externalLoading, onRe
         const err = rowErrors[rid]?.["contraproducencia"];
         return { select: true, error: !!err, helperText: err ?? "" };
       },
-    },
-  ], [rowErrors, catalogInspectores, catalogRubros, catalogContras]);
+      },
+    ];
+    return [...baseColumns, ...extraColumns];
+  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns]);
 
   const columnOrder = useMemo(() => ([
-    "mrt-row-actions",
+    ...(hideRowActions ? [] : ["mrt-row-actions"]),
     ...columns.map((col) => col.accessorKey as string),
-  ]), [columns]);
+  ]), [columns, hideRowActions]);
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     columns,
     data,
-    enableEditing: true,
+    enableEditing,
     editDisplayMode: "row",
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
-    enableRowActions: true,
+    enableRowActions: !hideRowActions,
     positionActionsColumn: "first",
     enableHiding: true,
     muiTableBodyCellProps: ({ row, column }) => {
@@ -238,9 +258,18 @@ const TablaRelevamientos = ({ data: externalData, loading: externalLoading, onRe
       const err = rowErrors[rid]?.[column.id];
       return err ? { sx: { backgroundColor: "rgba(255, 68, 68, 0.15)" } } : {};
     },
-    initialState: { columnOrder, density: "compact", columnVisibility: { id: false } },
+    initialState: {
+      columnOrder,
+      density: "compact",
+      columnVisibility: {
+        id: false,
+        rubro: false,
+        contraproducencia: false,
+        ...initialColumnVisibility,
+      },
+    },
     onEditingRowSave: handleSaveRow,
-    renderRowActions: ({ row, table }) => (
+    renderRowActions: hideRowActions ? undefined : ({ row, table }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
         <Tooltip title="Editar">
           <IconButton

@@ -4,6 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { fetchInspectores } from "../../../api/gridApi";
+import { getCurrentMonthRange } from "../../../utils/dateRange";
 import {
   filtroContainerStyles,
   filtroTitleStyles,
@@ -45,6 +46,19 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
   }, []);
 
   const handleFiltrar = () => {
+    if (!desde && !hasta) {
+      const range = getCurrentMonthRange();
+      setDesde(range.desde);
+      setHasta(range.hasta);
+      onFiltrar({
+        desde: range.desde,
+        hasta: range.hasta,
+        inspector: inspector || null,
+        calle: calle || null,
+        numero: numero || null,
+      });
+      return;
+    }
     onFiltrar({
       desde: desde || null,
       hasta: hasta || null,

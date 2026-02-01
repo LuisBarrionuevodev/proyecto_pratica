@@ -39,6 +39,13 @@ export interface IActuacion {
     oficio_causa?: number | null;
     notificacion_previa_num?: string | null;
     comprobacion_previa_num?: string | null;
+    domicilio_id?: number | null;
+    calle_normalizada?: string | null;
+    calle_estado?: string | null;
+    calle_score?: number | null;
+    calle_sugerida?: string | null;
+    calle_mostrar?: string | null;
+    calle_catalogo_id?: number | null;
     [key: string]: string | number | null | undefined;
 }
 
@@ -76,6 +83,13 @@ export interface IActuacionListado {
     oficio_causa?: number | null;
     notificacion_previa_num?: string | null;
     comprobacion_previa_num?: string | null;
+    domicilio_id?: number | null;
+    calle_normalizada?: string | null;
+    calle_estado?: string | null;
+    calle_score?: number | null;
+    calle_sugerida?: string | null;
+    calle_mostrar?: string | null;
+    calle_catalogo_id?: number | null;
     establecimiento_domicilio_id?: number | null;
     created_at: string | null;
     updated_at: string | null;

@@ -34,6 +34,11 @@ interface TablaActuacionesProps {
   data?: IActuacionListItem[];
   loading?: boolean;
   onRefresh?: () => void;
+  initialColumnVisibility?: Record<string, boolean>;
+  enableEditing?: boolean;
+  hideRowActions?: boolean;
+  extraColumns?: MRT_ColumnDef<IActuacionListItem>[];
+  onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
 }
 
 // ✅ UUID fijo válido para validar filas desde esta vista
@@ -83,7 +88,16 @@ const normalizeErrors = (errors?: Record<string, string>) => {
   return mapped;
 };
 
-const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefresh }: TablaActuacionesProps) => {
+const TablaActuaciones = ({
+  data: externalData,
+  loading: externalLoading,
+  onRefresh,
+  initialColumnVisibility,
+  enableEditing = true,
+  hideRowActions = false,
+  extraColumns = [],
+  onBeforeSave,
+}: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
 
@@ -176,6 +190,10 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       // ✅ si OK, limpiar errores de esa fila
       setRowErrors(prev => ({ ...prev, [id]: {} }));
 
+      if (onBeforeSave) {
+        await onBeforeSave(fullRow as IActuacionListItem);
+      }
+
       // ✅ guardar con PUT (tu api ya debe usar put, no patch)
       await updateActuacion(id, fullRow as any);
 
@@ -196,9 +214,10 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
       const msg = error?.response?.data?.detail || "No se pudo actualizar el registro.";
       alert(msg);
     }
-  }, [onRefresh, triggerRefresh]);
+  }, [onRefresh, triggerRefresh, onBeforeSave]);
 
-  const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => [
+  const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
+    const baseColumns: MRT_ColumnDef<IActuacionListItem>[] = [
     { accessorKey: "id", header: "ID", enableHiding: true, enableEditing: false, size: 80 },
 
     {
@@ -377,24 +396,26 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
     { accessorKey: "notificacion_previa_num", header: "Notificación Previa", size: 150 },
     { accessorKey: "comprobacion_previa_num", header: "Comprobación Previa", size: 150 },
 
-  ], [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors]);
+    ];
+    return [...baseColumns, ...extraColumns];
+  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns]);
 
   const columnOrder = useMemo(() => ([
     "mrt-row-select",
-    "mrt-row-actions",
+    ...(hideRowActions ? [] : ["mrt-row-actions"]),
     ...columns.map((col) => col.accessorKey as string),
-  ]), [columns]);
+  ]), [columns, hideRowActions]);
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     columns,
     data,
-    enableEditing: true,
+    enableEditing,
     editDisplayMode: "row",
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
-    enableRowActions: true,
+    enableRowActions: !hideRowActions,
     // Acciones al inicio (después del checkbox de selección)
     positionActionsColumn: "first",
     enableHiding: true,
@@ -428,13 +449,14 @@ const TablaActuaciones = ({ data: externalData, loading: externalLoading, onRefr
         oficio_causa: false,
         notificacion_previa_num: false,
         comprobacion_previa_num: false,
+        ...initialColumnVisibility,
       },
       density: "compact",
     },
 
     onEditingRowSave: handleSaveRow,
 
-    renderRowActions: ({ row, table }) => (
+    renderRowActions: hideRowActions ? undefined : ({ row, table }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
         <Tooltip title="Editar">
           <IconButton

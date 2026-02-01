@@ -40,6 +40,25 @@ class Domicilio(db.Model):
         unique=False,
         index=True,
     )
+    calle_raw = db.Column(db.String(128), nullable=True)
+    calle_normalizada = db.Column(db.String(128), nullable=True)
+    calle_key = db.Column(db.String(128), nullable=True, index=True)
+    calle_catalogo_id = db.Column(
+        db.Integer,
+        db.ForeignKey("calle_catalogo.id", ondelete="SET NULL", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
+    calle_norm_status = db.Column(
+        db.String(32),
+        nullable=False,
+        default="PENDIENTE",
+        index=True,
+    )
+    calle_norm_score = db.Column(db.Float, nullable=True)
+    calle_norm_error = db.Column(db.String(255), nullable=True)
+    calle_norm_updated_at = db.Column(db.DateTime, nullable=True)
     lat = db.Column(db.Numeric(9, 6), nullable=True)
     long = db.Column(db.Numeric(9, 6), nullable=True)
     created_at = db.Column(
@@ -55,6 +74,7 @@ class Domicilio(db.Model):
     )
     deleted_at = db.Column(db.DateTime, nullable=True)
     rubro = db.relationship("Rubro", back_populates="domicilio")
+    calle_catalogo = db.relationship("CalleCatalogo")
     actuaciones = db.relationship("Actuaciones", back_populates="domicilio")
     barrio = db.relationship("Barrio", back_populates="domicilio")
     contribuyente = db.relationship("Contribuyente", back_populates="domicilio")
