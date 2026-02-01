@@ -138,15 +138,22 @@ const TablaCargarRelevamientosGlideStyled = () => {
       const effectiveBatchId = batchIdValue || batchId;
       if (!effectiveBatchId) return null;
 
-      const rowsWithData = rows.filter(
-        (row) => rowHasData(row) && (row._touched || (row._state !== "OK" && !row.ID))
-      );
+      const rowsWithData = rows.filter((row) => {
+        const isCommitted = row.ID !== undefined && row.ID !== null;
+        return rowHasData(row) && (row._touched || (!isCommitted && row._state !== "OK"));
+      });
       if (rowsWithData.length === 0) return null;
 
       setData((prev) =>
-        prev.map((row) =>
-          rowsWithData.some((r) => r._rowId === row._rowId) ? { ...row, _state: "VALIDANDO" } : row
-        )
+        prev.map((row) => {
+          const isCommitted = row.ID !== undefined && row.ID !== null;
+          if (isCommitted && !row._touched) {
+            return { ...row, _cellErrors: {}, _rowError: null };
+          }
+          return rowsWithData.some((r) => r._rowId === row._rowId)
+            ? { ...row, _state: "VALIDANDO" }
+            : row;
+        })
       );
 
       const rowsToValidate = rowsWithData.map((row) => ({
@@ -241,17 +248,32 @@ const TablaCargarRelevamientosGlideStyled = () => {
         )
       );
 
-      const response = await validateBatchRows(dataRef.current, startedBatchId);
-      const touchedRows = dataRef.current.filter((row) => rowHasData(row) && row._touched);
+      const rowsToValidate = dataRef.current.filter((row) => {
+        const isCommitted = row.ID !== undefined && row.ID !== null;
+        return rowHasData(row) && (row._needsCommit || (!isCommitted && row._state !== "OK"));
+      });
+
+      const response = await validateBatchRows(rowsToValidate, startedBatchId);
+      const touchedRows = dataRef.current.filter((row) => rowHasData(row) && row._needsCommit);
+
       let okRows =
         response?.results
           .filter((r) => r.ok && r.normalized)
           .map((r) => ({ row_id: r.row_id, normalized: r.normalized! })) || [];
 
+      const localOkRows = rowsToValidate
+        .filter((row) => row._state === "OK" && row._normalized)
+        .map((row) => ({ row_id: row._rowId!, normalized: row._normalized! }));
+
+      if (localOkRows.length > 0) {
+        const existing = new Set(okRows.map((r) => r.row_id));
+        localOkRows.forEach((row) => {
+          if (!existing.has(row.row_id)) okRows.push(row);
+        });
+      }
+
       if (!response) {
-        okRows = dataRef.current
-          .filter((row) => rowHasData(row) && row._state === "OK" && row._normalized)
-          .map((row) => ({ row_id: row._rowId!, normalized: row._normalized! }));
+        okRows = localOkRows;
       }
 
       if (okRows.length === 0) {
@@ -277,6 +299,7 @@ const TablaCargarRelevamientosGlideStyled = () => {
               _cellErrors: {},
               _rowError: null,
               _touched: false,
+              _needsCommit: false,
             };
           }
           return {
@@ -326,6 +349,7 @@ const TablaCargarRelevamientosGlideStyled = () => {
         [columnId]: value,
         _rowError: null,
         _touched: true,
+        _needsCommit: true,
       };
 
       if (!rowHasData(updatedRow)) {
@@ -336,6 +360,7 @@ const TablaCargarRelevamientosGlideStyled = () => {
           _rowError: null,
           _normalized: undefined,
           _touched: false,
+          _needsCommit: false,
         };
       } else if (updatedRow._state === "OK") {
         updatedRow = { ...updatedRow, _state: "PENDIENTE", _normalized: undefined };
