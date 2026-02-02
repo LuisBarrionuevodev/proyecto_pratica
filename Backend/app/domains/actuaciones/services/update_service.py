@@ -19,6 +19,9 @@ from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
 from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
+from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
+    normalizar_domicilio_en_sesion,
+)
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_contribuyente_if_orphan,
     soft_delete_domicilio_if_orphan,
@@ -128,6 +131,9 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
             allow_missing_catalogs=allow_missing_catalogs,
         )
         act.domicilio_id = dom.id if dom else None
+        if dom:
+            numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
+            normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
 
     # Inspectores
     if "inspectores" in payload:

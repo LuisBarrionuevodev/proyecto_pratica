@@ -16,7 +16,8 @@ def normalize_pending():
     """
     try:
         limit = int(request.args.get("limit", 200))
-        result = normalizar_pendientes(limit=limit)
+        only = request.args.get("only")
+        result = normalizar_pendientes(limit=limit, only=only)
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400

@@ -24,6 +24,7 @@ def map_relevamiento_row(row: RelevamientoGridRowIn) -> Dict[str, Any]:
         "domicilio": {
             "calle": _clean_str(row.calle),
             "numero": _clean_str(row.numero),
+            "numero_tipo": _clean_str(row.numero_tipo),
         },
         "rubro_nombre": _clean_str(row.rubro),
         "contraproducencia": _clean_str(row.contraproducencia),

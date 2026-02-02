@@ -171,6 +171,7 @@ class ActuacionGridRowIn(BaseModel):
     # Domicilio
     calle: Optional[str] = None
     numero: Optional[str] = None  # permite str libre (ej: esquina, s/n)
+    numero_tipo: Optional[str] = None
 
     # Contribuyente
     doc_nro: Optional[str] = None
@@ -304,6 +305,17 @@ class ActuacionGridRowIn(BaseModel):
     def fecha_as_date(self) -> date:
         # compat: antes era str + helper; ahora ya es date
         return self.fecha_actuacion
+
+    @field_validator("numero_tipo", mode="before")
+    @classmethod
+    def normalize_numero_tipo(cls, v: Any) -> Optional[str]:
+        s = _clean_str(v)
+        if not s:
+            return None
+        s = s.strip().upper()
+        if s in ("NUMERO", "ESQUINA", "OTRO"):
+            return s
+        raise ValueError("numero_tipo inválido.")
 
     # ---------- Reglas de negocio (after, errores por celda) ----------
     @model_validator(mode="after")

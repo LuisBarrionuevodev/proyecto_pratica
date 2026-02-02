@@ -54,6 +54,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         payload["domicilio"] = {
             "calle": _clean_str(row.calle),
             "numero": _clean_str(row.numero),
+            "numero_tipo": _clean_str(row.numero_tipo),
         }
 
     # Contribuyente

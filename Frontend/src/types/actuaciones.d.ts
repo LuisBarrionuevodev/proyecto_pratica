@@ -15,6 +15,7 @@ export interface IActuacion {
     inspector3: string;
     calle: string;
     numero: string;
+    numero_tipo?: string | null;
     tipo_actuacion: TipoActuacion;
     contraproducencia?: string | null;
     doc_tipo_codigo: string;
@@ -41,6 +42,10 @@ export interface IActuacion {
     comprobacion_previa_num?: string | null;
     domicilio_id?: number | null;
     calle_normalizada?: string | null;
+    esquina_normalizada?: string | null;
+    esquina_catalogo_id?: number | null;
+    esquina_status?: string | null;
+    esquina_score?: number | null;
     calle_estado?: string | null;
     calle_score?: number | null;
     calle_sugerida?: string | null;
@@ -59,6 +64,7 @@ export interface IActuacionListado {
     inspector3: string;
     calle: string | null;
     numero: string | null;
+    numero_tipo?: string | null;
     tipo_actuacion: TipoActuacion;
     contraproducencia?: string | null;
     doc_tipo_codigo: string | null;
@@ -85,6 +91,10 @@ export interface IActuacionListado {
     comprobacion_previa_num?: string | null;
     domicilio_id?: number | null;
     calle_normalizada?: string | null;
+    esquina_normalizada?: string | null;
+    esquina_catalogo_id?: number | null;
+    esquina_status?: string | null;
+    esquina_score?: number | null;
     calle_estado?: string | null;
     calle_score?: number | null;
     calle_sugerida?: string | null;

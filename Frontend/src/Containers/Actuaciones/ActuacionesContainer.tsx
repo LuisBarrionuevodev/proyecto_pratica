@@ -28,7 +28,11 @@ import {
   type IActuacionesPendientesItem,
   type IActuacionesPendientesSummary,
 } from "../../api/actuacionesPendientesApi";
-import { fetchCallesCatalogo, setCalleCanon, type CalleCatalogoItem } from "../../api/geolocalizacionApi";
+import {
+  fetchCallesCatalogo,
+  setCalleCanon,
+  type CalleCatalogoItem,
+} from "../../api/geolocalizacionApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import type { MRT_ColumnDef } from "material-react-table";
 import type { IActuacionListItem } from "../../api/actuacionesListApi";
@@ -57,6 +61,7 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const [callesCatalogo, setCallesCatalogo] = useState<CalleCatalogoItem[]>([]);
   const [callesLoading, setCallesLoading] = useState(false);
+
 
   const handleFiltrarTodos = (filtros: {
     desde: string | null;
@@ -182,6 +187,7 @@ const ActuacionesContainer = (): JSX.Element => {
               (row as any)._valuesCache = {
                 ...(row as any)._valuesCache,
                 calle_catalogo_id: newValue?.id ?? null,
+                calle: newValue?.nombre ?? row.original.calle ?? "",
               };
             }}
             renderInput={(params) => (
@@ -210,8 +216,9 @@ const ActuacionesContainer = (): JSX.Element => {
     if (pendingType !== "domicilios") return;
     const domicilioId = fullRow.domicilio_id;
     const calleCatalogoId = fullRow.calle_catalogo_id;
-    if (!domicilioId || !calleCatalogoId) return;
-    await setCalleCanon(domicilioId, Number(calleCatalogoId));
+    if (domicilioId && calleCatalogoId) {
+      await setCalleCanon(domicilioId, Number(calleCatalogoId));
+    }
   }, [pendingType]);
 
   const totalPendientes = pendingSummary?.total ?? 0;

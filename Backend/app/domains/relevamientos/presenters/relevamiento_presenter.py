@@ -28,10 +28,21 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
     calle_estado = getattr(dom, "calle_norm_status", None)
     calle_score = getattr(dom, "calle_norm_score", None)
     calle_catalogo_id = getattr(dom, "calle_catalogo_id", None)
+    numero_tipo = getattr(dom, "numero_tipo", None)
+    esquina_raw = getattr(dom, "esquina_raw", None)
+    esquina_normalizada = getattr(dom, "esquina_normalizada", None)
+    esquina_catalogo_id = getattr(dom, "esquina_catalogo_id", None)
+    esquina_status = getattr(dom, "esquina_norm_status", None)
+    esquina_score = getattr(dom, "esquina_norm_score", None)
     domicilio_id = getattr(dom, "id", None)
 
     calle_mostrar = calle_normalizada if calle_estado == "OK" and calle_normalizada else calle
     calle_sugerida = calle_normalizada if calle_normalizada else None
+    numero_mostrar = (
+        f"ESQ: {esquina_normalizada}"
+        if numero_tipo == "ESQUINA" and esquina_status == "OK" and esquina_normalizada
+        else numero
+    )
 
     return {
         "id": rel.id,
@@ -39,6 +50,13 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
         "inspector": inspector_nombre,
         "calle": calle,
         "numero": numero,
+        "numero_tipo": numero_tipo,
+        "numero_mostrar": numero_mostrar,
+        "esquina_raw": esquina_raw,
+        "esquina_normalizada": esquina_normalizada,
+        "esquina_catalogo_id": esquina_catalogo_id,
+        "esquina_status": esquina_status,
+        "esquina_score": esquina_score,
         "domicilio_id": domicilio_id,
         "calle_normalizada": calle_normalizada,
         "calle_estado": calle_estado,

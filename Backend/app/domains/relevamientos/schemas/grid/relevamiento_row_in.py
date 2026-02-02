@@ -97,6 +97,7 @@ class RelevamientoGridRowIn(BaseModel):
     inspector: str
     calle: str
     numero: str
+    numero_tipo: Optional[str] = None
     rubro: Optional[str] = None
     contraproducencia: Optional[str] = None
 
@@ -121,6 +122,17 @@ class RelevamientoGridRowIn(BaseModel):
     @classmethod
     def strip_empty_to_none(cls, v: Any) -> Any:
         return _clean_str(v)
+
+    @field_validator("numero_tipo", mode="before")
+    @classmethod
+    def normalize_numero_tipo(cls, v: Any) -> Optional[str]:
+        s = _clean_str(v)
+        if not s:
+            return None
+        s = s.strip().upper()
+        if s in ("NUMERO", "ESQUINA", "OTRO"):
+            return s
+        raise ValueError("numero_tipo inválido.")
 
     @field_validator("inspector")
     @classmethod

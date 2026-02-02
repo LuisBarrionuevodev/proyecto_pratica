@@ -70,6 +70,12 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     calle_estado: Optional[str] = None
     calle_score: Optional[float] = None
     calle_catalogo_id: Optional[int] = None
+    numero_tipo: Optional[str] = None
+    esquina_raw: Optional[str] = None
+    esquina_normalizada: Optional[str] = None
+    esquina_catalogo_id: Optional[int] = None
+    esquina_status: Optional[str] = None
+    esquina_score: Optional[float] = None
     domicilio_id: Optional[int] = None
 
     doc_nro: Optional[str] = None
@@ -85,6 +91,12 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         calle_estado = getattr(dom, "calle_norm_status", None)
         calle_score = getattr(dom, "calle_norm_score", None)
         calle_catalogo_id = getattr(dom, "calle_catalogo_id", None)
+        numero_tipo = getattr(dom, "numero_tipo", None)
+        esquina_raw = getattr(dom, "esquina_raw", None)
+        esquina_normalizada = getattr(dom, "esquina_normalizada", None)
+        esquina_catalogo_id = getattr(dom, "esquina_catalogo_id", None)
+        esquina_status = getattr(dom, "esquina_norm_status", None)
+        esquina_score = getattr(dom, "esquina_norm_score", None)
 
         rub = getattr(dom, "rubro", None)
         if rub:
@@ -198,6 +210,11 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
     
     calle_mostrar = calle_normalizada if calle_estado == "OK" and calle_normalizada else calle
+    numero_mostrar = (
+        f"ESQ: {esquina_normalizada}"
+        if numero_tipo == "ESQUINA" and esquina_status == "OK" and esquina_normalizada
+        else numero
+    )
     calle_sugerida = calle_normalizada if calle_normalizada else None
 
     return {
@@ -213,6 +230,13 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
         "calle": calle,
         "numero": numero,
+        "numero_tipo": numero_tipo,
+        "numero_mostrar": numero_mostrar,
+        "esquina_raw": esquina_raw,
+        "esquina_normalizada": esquina_normalizada,
+        "esquina_catalogo_id": esquina_catalogo_id,
+        "esquina_status": esquina_status,
+        "esquina_score": esquina_score,
         "domicilio_id": domicilio_id,
         "calle_normalizada": calle_normalizada,
         "calle_estado": calle_estado,

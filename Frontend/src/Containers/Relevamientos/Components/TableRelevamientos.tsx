@@ -10,6 +10,8 @@ import {
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { updateRelevamiento, deleteRelevamiento } from "../../../api/relevamientosApi";
 import { validateRow, startBatch, fetchInspectores, fetchRubros, fetchContraproducencias } from "../../../api/gridApi";
+import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
+import { useCallesCatalogo } from "../../../hooks/useCallesCatalogo";
 import {
   loadingStyles,
   DARK_TABLE_CONFIG,
@@ -25,6 +27,7 @@ interface TablaRelevamientosProps {
   hideRowActions?: boolean;
   extraColumns?: MRT_ColumnDef<IRelevamientoListItem>[];
   onBeforeSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
+  onAfterSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
 }
 
 const ERROR_KEY_MAP: Record<string, string> = {
@@ -55,6 +58,7 @@ const TablaRelevamientos = ({
   hideRowActions = false,
   extraColumns = [],
   onBeforeSave,
+  onAfterSave,
 }: TablaRelevamientosProps) => {
   const [data, setData] = useState<IRelevamientoListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -63,6 +67,7 @@ const TablaRelevamientos = ({
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
+  const { calles: callesCatalogo } = useCallesCatalogo();
 
   useEffect(() => {
     if (externalData) setData(externalData);
@@ -147,6 +152,11 @@ const TablaRelevamientos = ({
           await onBeforeSave(fullRow as IRelevamientoListItem);
         }
         await updateRelevamiento(id, fullRow as IRelevamientoListItem);
+
+        if (onAfterSave) {
+          await onAfterSave(fullRow as IRelevamientoListItem);
+        }
+
         exitEditingMode();
         onRefresh?.();
       } catch (error: any) {
@@ -160,7 +170,7 @@ const TablaRelevamientos = ({
         alert(msg);
       }
     },
-    [batchId, onRefresh, onBeforeSave]
+    [batchId, onRefresh, onBeforeSave, onAfterSave]
   );
 
   const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => {
@@ -192,6 +202,12 @@ const TablaRelevamientos = ({
       accessorKey: "calle",
       header: "Calle",
       size: 200,
+      Cell: ({ row }) => {
+        if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
+          return row.original.calle_normalizada;
+        }
+        return row.original.calle ?? "";
+      },
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["calle"];
@@ -201,11 +217,44 @@ const TablaRelevamientos = ({
     {
       accessorKey: "numero",
       header: "Numero",
-      size: 100,
-      muiEditTextFieldProps: ({ row }) => {
+      size: 400,
+      Cell: ({ row }) => {
+        if (
+          row.original.numero_tipo === "ESQUINA" &&
+          row.original.esquina_status === "OK" &&
+          row.original.esquina_normalizada
+        ) {
+          return row.original.esquina_normalizada;
+        }
+        return row.original.numero ?? "";
+      },
+      Edit: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["numero"];
-        return { required: true, error: !!err, helperText: err ?? "" };
+        const currentValue =
+          (row as any)?._valuesCache?.numero ?? row.original.numero ?? null;
+
+        return (
+          <NumeroEsquinaEditor
+            value={currentValue}
+            onChange={(newValue) => {
+              (row as any)._valuesCache = {
+                ...(row as any)._valuesCache,
+                numero: newValue,
+              };
+            }}
+            onModeChange={(mode) => {
+              (row as any)._valuesCache = {
+                ...(row as any)._valuesCache,
+                numero_tipo: mode,
+              };
+            }}
+            calles={callesCatalogo}
+            label="Número"
+            error={!!err}
+            helperText={err ?? ""}
+          />
+        );
       },
     },
     {
@@ -234,7 +283,7 @@ const TablaRelevamientos = ({
       },
     ];
     return [...baseColumns, ...extraColumns];
-  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns]);
+  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns, callesCatalogo]);
 
   const columnOrder = useMemo(() => ([
     ...(hideRowActions ? [] : ["mrt-row-actions"]),

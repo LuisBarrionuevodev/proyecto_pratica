@@ -15,6 +15,7 @@ export interface IActuacionListItem {
     inspector3: string | null;
     calle: string | null;
     numero: string | null;
+    numero_tipo?: string | null;
     tipo_actuacion: string | null;
     contraproducencia: string | null;
     doc_nro: string | null;
@@ -39,6 +40,10 @@ export interface IActuacionListItem {
     comprobacion_previa_num: string | null;
     domicilio_id?: number | null;
     calle_normalizada?: string | null;
+    esquina_normalizada?: string | null;
+    esquina_catalogo_id?: number | null;
+    esquina_status?: string | null;
+    esquina_score?: number | null;
     calle_estado?: string | null;
     calle_score?: number | null;
     calle_sugerida?: string | null;

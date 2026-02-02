@@ -8,6 +8,9 @@ from app.utils.fechas import parse_fecha_grid
 from app.shared.services.domicilio_repo import get_or_create_domicilio_basico
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
+from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
+    normalizar_domicilio_en_sesion,
+)
 
 
 def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
@@ -45,6 +48,8 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     inspector = get_inspectores_o_falla([inspector_nombre])[0]
     rubro = get_rubro_o_falla(rubro_nombre)
     dom = get_or_create_domicilio_basico(calle, numero)
+    numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
+    normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
 
     rel = Relevamiento(
         fecha=fecha,

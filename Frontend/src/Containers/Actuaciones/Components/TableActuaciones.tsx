@@ -18,6 +18,8 @@ import {
   fetchMotivosComprobacion,
   validateRow,
 } from "../../../api/gridApi";
+import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
+import { useCallesCatalogo } from "../../../hooks/useCallesCatalogo";
 import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
@@ -39,6 +41,7 @@ interface TablaActuacionesProps {
   hideRowActions?: boolean;
   extraColumns?: MRT_ColumnDef<IActuacionListItem>[];
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
+  onAfterSave?: (fullRow: IActuacionListItem) => Promise<void>;
 }
 
 // ✅ UUID fijo válido para validar filas desde esta vista
@@ -97,6 +100,7 @@ const TablaActuaciones = ({
   hideRowActions = false,
   extraColumns = [],
   onBeforeSave,
+  onAfterSave,
 }: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -109,6 +113,7 @@ const TablaActuaciones = ({
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
   const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
+  const { calles: callesCatalogo } = useCallesCatalogo();
 
   // ✅ errores por celda por idActuacion
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
@@ -197,6 +202,10 @@ const TablaActuaciones = ({
       // ✅ guardar con PUT (tu api ya debe usar put, no patch)
       await updateActuacion(id, fullRow as any);
 
+      if (onAfterSave) {
+        await onAfterSave(fullRow as IActuacionListItem);
+      }
+
       exitEditingMode();
 
       triggerRefresh();
@@ -214,7 +223,7 @@ const TablaActuaciones = ({
       const msg = error?.response?.data?.detail || "No se pudo actualizar el registro.";
       alert(msg);
     }
-  }, [onRefresh, triggerRefresh, onBeforeSave]);
+  }, [onRefresh, triggerRefresh, onBeforeSave, onAfterSave]);
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
     const baseColumns: MRT_ColumnDef<IActuacionListItem>[] = [
@@ -320,8 +329,60 @@ const TablaActuaciones = ({
       },
     },
 
-    { accessorKey: "calle", header: "Calle", size: 200 },
-    { accessorKey: "numero", header: "Número", size: 100 },
+    {
+      accessorKey: "calle",
+      header: "Calle",
+      size: 200,
+      Cell: ({ row }) => {
+        if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
+          return row.original.calle_normalizada;
+        }
+        return row.original.calle ?? "";
+      },
+    },
+    {
+      accessorKey: "numero",
+      header: "Número",
+      size: 400,
+      Cell: ({ row }) => {
+        if (
+          row.original.numero_tipo === "ESQUINA" &&
+          row.original.esquina_status === "OK" &&
+          row.original.esquina_normalizada
+        ) {
+          return row.original.esquina_normalizada;
+        }
+        return row.original.numero ?? "";
+      },
+      Edit: ({ row }) => {
+        const rid = Number(row.original.id);
+        const err = rowErrors[rid]?.["numero"];
+        const currentValue =
+          (row as any)?._valuesCache?.numero ?? row.original.numero ?? null;
+
+        return (
+          <NumeroEsquinaEditor
+            value={currentValue}
+            onChange={(newValue) => {
+              (row as any)._valuesCache = {
+                ...(row as any)._valuesCache,
+                numero: newValue,
+              };
+            }}
+            onModeChange={(mode) => {
+              (row as any)._valuesCache = {
+                ...(row as any)._valuesCache,
+                numero_tipo: mode,
+              };
+            }}
+            calles={callesCatalogo}
+            label="Número"
+            error={!!err}
+            helperText={err ?? ""}
+          />
+        );
+      },
+    },
 
     { accessorKey: "doc_nro", header: "Doc. Nro", size: 120 },
     { accessorKey: "contrib_apellido", header: "Contribuyente Apellido", size: 180 },
@@ -398,7 +459,7 @@ const TablaActuaciones = ({
 
     ];
     return [...baseColumns, ...extraColumns];
-  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns]);
+  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns, callesCatalogo]);
 
   const columnOrder = useMemo(() => ([
     "mrt-row-select",

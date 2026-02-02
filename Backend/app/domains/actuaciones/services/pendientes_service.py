@@ -20,7 +20,14 @@ def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
     query = (
         Actuaciones.query.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
         .filter(Domicilio.deleted_at.is_(None))
-        .filter(or_(Domicilio.calle_norm_status.is_(None), Domicilio.calle_norm_status != "OK"))
+        .filter(
+            or_(
+                Domicilio.calle_norm_status.is_(None),
+                Domicilio.calle_norm_status != "OK",
+                Domicilio.esquina_norm_status.is_(None),
+                Domicilio.esquina_norm_status != "OK",
+            )
+        )
     )
     return _apply_fecha(query, filters.desde, filters.hasta)
 

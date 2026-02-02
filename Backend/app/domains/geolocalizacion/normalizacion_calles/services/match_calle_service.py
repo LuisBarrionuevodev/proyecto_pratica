@@ -18,9 +18,9 @@ def _score(a: str, b: str) -> float:
 def match_calle(
     nombre_input: str,
     *,
-    min_ratio: float = 0.60,
-    review_ratio: float = 0.63,
-    ok_ratio: float = 0.64,
+    min_ratio: float = 0.85,
+    review_ratio: float = 0.70,
+    ok_ratio: float = 0.84,
     ambiguity_delta: float = 0.05,
 ) -> Dict[str, Any]:
     """

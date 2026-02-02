@@ -29,3 +29,14 @@ export const setCalleCanon = async (
   );
   return data;
 };
+
+export const setEsquinaCanon = async (
+  domicilioId: number,
+  esquinaCatalogoId: number
+): Promise<{ ok: boolean }> => {
+  const { data } = await apiClient.post<{ ok: boolean }>(
+    `/geolocalizacion/calles/set-esquina/${domicilioId}`,
+    { esquina_catalogo_id: esquinaCatalogoId }
+  );
+  return data;
+};

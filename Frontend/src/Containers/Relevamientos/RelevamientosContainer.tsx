@@ -27,7 +27,11 @@ import {
   type IRelevamientosPendientesItem,
   type IRelevamientosPendientesSummary,
 } from "../../api/relevamientosPendientesApi";
-import { fetchCallesCatalogo, setCalleCanon, type CalleCatalogoItem } from "../../api/geolocalizacionApi";
+import {
+  fetchCallesCatalogo,
+  setCalleCanon,
+  type CalleCatalogoItem,
+} from "../../api/geolocalizacionApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import type { MRT_ColumnDef } from "material-react-table";
 import type { IRelevamientoListItem } from "../../api/relevamientosListApi";
@@ -55,6 +59,7 @@ const RelevamientosContainer = (): JSX.Element => {
 
   const [callesCatalogo, setCallesCatalogo] = useState<CalleCatalogoItem[]>([]);
   const [callesLoading, setCallesLoading] = useState(false);
+
 
   const handleFiltrarTodos = (filtros: {
     desde: string | null;
@@ -175,6 +180,7 @@ const RelevamientosContainer = (): JSX.Element => {
               (row as any)._valuesCache = {
                 ...(row as any)._valuesCache,
                 calle_catalogo_id: newValue?.id ?? null,
+                calle: newValue?.nombre ?? row.original.calle ?? "",
               };
             }}
             renderInput={(params) => (
@@ -202,8 +208,9 @@ const RelevamientosContainer = (): JSX.Element => {
   const handleBeforeSavePendiente = useCallback(async (fullRow: IRelevamientoListItem) => {
     const domicilioId = fullRow.domicilio_id;
     const calleCatalogoId = fullRow.calle_catalogo_id;
-    if (!domicilioId || !calleCatalogoId) return;
-    await setCalleCanon(domicilioId, Number(calleCatalogoId));
+    if (domicilioId && calleCatalogoId) {
+      await setCalleCanon(domicilioId, Number(calleCatalogoId));
+    }
   }, []);
 
   const totalPendientes = pendingSummary?.total ?? 0;

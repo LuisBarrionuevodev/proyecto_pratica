@@ -7,6 +7,9 @@ from flask import jsonify, request
 from app.domains.geolocalizacion.normalizacion_calles.services.set_calle_canon_service import (
     set_calle_canon,
 )
+from app.domains.geolocalizacion.normalizacion_calles.services.set_esquina_canon_service import (
+    set_esquina_canon,
+)
 
 from . import geolocalizacion_calles
 
@@ -22,6 +25,24 @@ def set_calle_canon_route(domicilio_id: int):
         return jsonify({"detail": "calle_catalogo_id es obligatorio"}), 400
     try:
         result = set_calle_canon(domicilio_id, int(calle_catalogo_id))
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
+    except Exception as e:
+        return jsonify({"detail": "Error interno", "error": str(e)}), 500
+
+
+@geolocalizacion_calles.post("/geolocalizacion/calles/set-esquina/<int:domicilio_id>")
+def set_esquina_canon_route(domicilio_id: int):
+    """
+    Setea la esquina canónica de un domicilio.
+    """
+    data: Dict[str, Any] = request.get_json(silent=True) or {}
+    esquina_catalogo_id = data.get("esquina_catalogo_id")
+    if not esquina_catalogo_id:
+        return jsonify({"detail": "esquina_catalogo_id es obligatorio"}), 400
+    try:
+        result = set_esquina_canon(domicilio_id, int(esquina_catalogo_id))
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400

@@ -19,6 +19,9 @@ from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
 from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
+from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
+    normalizar_domicilio_en_sesion,
+)
 
 
 def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
@@ -77,6 +80,8 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     )
     if dom:
         act.domicilio_id = dom.id
+        numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
+        normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
 
     # Inspectores (catálogo)
     nombres = payload.get("inspectores") or []
