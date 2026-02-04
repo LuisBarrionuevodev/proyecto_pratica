@@ -67,3 +67,39 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
         "rubro": getattr(rub, "nombre", None),
         "contraproducencia": rel.contraproducencia,
     }
+
+
+def relevamiento_to_pendiente_domicilio_row(rel: Relevamiento) -> Dict[str, Any]:
+    """
+    Convierte un Relevamiento a un formato mínimo para pendientes de domicilio.
+    """
+    fecha_iso: Optional[str] = rel.fecha.isoformat() if rel.fecha else None
+    rub = rel.rubro
+    dom = rel.domicilio
+
+    calle = getattr(dom, "calle", None)
+    numero = getattr(dom, "numero", None)
+    calle_normalizada = getattr(dom, "calle_normalizada", None)
+    calle_catalogo_id = getattr(dom, "calle_catalogo_id", None)
+    numero_tipo = getattr(dom, "numero_tipo", None)
+    esquina_normalizada = getattr(dom, "esquina_normalizada", None)
+    esquina_catalogo_id = getattr(dom, "esquina_catalogo_id", None)
+    esquina_status = getattr(dom, "esquina_norm_status", None)
+    domicilio_id = getattr(dom, "id", None)
+
+    return {
+        "id": rel.id,
+        "fecha": fecha_iso,
+        "contraproducencia": rel.contraproducencia,
+        "rubro": getattr(rub, "nombre", None),
+        "calle_ingresada": calle,
+        "calle": calle,
+        "calle_normalizada": calle_normalizada,
+        "calle_catalogo_id": calle_catalogo_id,
+        "numero": numero,
+        "numero_tipo": numero_tipo,
+        "esquina_normalizada": esquina_normalizada,
+        "esquina_catalogo_id": esquina_catalogo_id,
+        "esquina_status": esquina_status,
+        "domicilio_id": domicilio_id,
+    }

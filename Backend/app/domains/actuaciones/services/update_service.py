@@ -22,6 +22,9 @@ from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_tra
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
+from app.domains.geolocalizacion.geocoding.services.geocode_service import (
+    geocode_domicilio,
+)
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_contribuyente_if_orphan,
     soft_delete_domicilio_if_orphan,
@@ -200,5 +203,12 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
 
     if ran_cleanup:
         db.session.commit()
+
+    # Best-effort geocode (no bloquea la actualización)
+    try:
+        if act.domicilio_id:
+            geocode_domicilio(act.domicilio_id)
+    except Exception:
+        pass
 
     return act

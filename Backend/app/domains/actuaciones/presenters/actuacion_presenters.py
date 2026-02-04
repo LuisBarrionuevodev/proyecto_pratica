@@ -277,3 +277,64 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "notificacion_previa_num": notificacion_previa_num,
         "comprobacion_previa_num": comprobacion_previa_num,
     }
+
+
+def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
+    """
+    Convierte una Actuación a un formato mínimo para pendientes de domicilio.
+
+    Retorna solo las columnas necesarias para la UI de pendientes.
+    """
+    ot_num: Optional[str] = None
+    if getattr(act, "orden_trabajo", None):
+        ot_num = (
+            getattr(act.orden_trabajo, "numero_acta", None)
+            or getattr(act.orden_trabajo, "numero", None)
+        )
+
+    fecha_iso: Optional[str] = act.fecha.isoformat() if act.fecha else None
+
+    dom = getattr(act, "domicilio", None)
+    rubro_nombre: Optional[str] = None
+    calle: Optional[str] = None
+    numero: Optional[str] = None
+    numero_tipo: Optional[str] = None
+    calle_normalizada: Optional[str] = None
+    calle_catalogo_id: Optional[int] = None
+    esquina_normalizada: Optional[str] = None
+    esquina_catalogo_id: Optional[int] = None
+    esquina_status: Optional[str] = None
+    domicilio_id: Optional[int] = None
+
+    if dom:
+        domicilio_id = getattr(dom, "id", None)
+        calle = getattr(dom, "calle", None)
+        numero = getattr(dom, "numero", None)
+        numero_tipo = getattr(dom, "numero_tipo", None)
+        calle_normalizada = getattr(dom, "calle_normalizada", None)
+        calle_catalogo_id = getattr(dom, "calle_catalogo_id", None)
+        esquina_normalizada = getattr(dom, "esquina_normalizada", None)
+        esquina_catalogo_id = getattr(dom, "esquina_catalogo_id", None)
+        esquina_status = getattr(dom, "esquina_norm_status", None)
+        rub = getattr(dom, "rubro", None)
+        if rub:
+            rubro_nombre = getattr(rub, "nombre", None)
+
+    return {
+        "id": act.id,
+        "fecha_actuacion": fecha_iso,
+        "orden_trabajo_numero": ot_num,
+        "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
+        "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),
+        "rubro_nombre": rubro_nombre,
+        "calle_ingresada": calle,
+        "calle": calle,
+        "calle_normalizada": calle_normalizada,
+        "calle_catalogo_id": calle_catalogo_id,
+        "numero": numero,
+        "numero_tipo": numero_tipo,
+        "esquina_normalizada": esquina_normalizada,
+        "esquina_catalogo_id": esquina_catalogo_id,
+        "esquina_status": esquina_status,
+        "domicilio_id": domicilio_id,
+    }

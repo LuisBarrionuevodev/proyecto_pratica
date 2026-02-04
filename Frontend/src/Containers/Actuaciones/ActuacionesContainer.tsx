@@ -31,6 +31,7 @@ import {
 import {
   fetchCallesCatalogo,
   setCalleCanon,
+  setNumeroEsquina,
   type CalleCatalogoItem,
 } from "../../api/geolocalizacionApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
@@ -137,26 +138,8 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const pendingExtraColumns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => [
     {
-      accessorKey: "calle_mostrar",
-      header: "Calle",
-      size: 200,
-      enableEditing: false,
-    },
-    {
-      accessorKey: "calle_estado",
-      header: "Estado Calle",
-      size: 120,
-      enableEditing: false,
-    },
-    {
-      accessorKey: "calle_score",
-      header: "Score Calle",
-      size: 120,
-      enableEditing: false,
-    },
-    {
-      accessorKey: "calle_sugerida",
-      header: "Calle sugerida",
+      accessorKey: "calle_ingresada",
+      header: "Calle ingresada",
       size: 200,
       enableEditing: false,
     },
@@ -204,11 +187,9 @@ const ActuacionesContainer = (): JSX.Element => {
   ], [pendingType, callesCatalogo, callesLoading, handleSearchCalles]);
 
   const pendingColumnVisibility = useMemo(() => ({
-    calle: false,
-    calle_mostrar: true,
-    calle_estado: pendingType === "domicilios",
-    calle_score: pendingType === "domicilios",
-    calle_sugerida: pendingType === "domicilios",
+    calle: true,
+    numero: true,
+    calle_ingresada: true,
     calle_catalogo_id: pendingType === "domicilios",
   }), [pendingType]);
 
@@ -216,7 +197,13 @@ const ActuacionesContainer = (): JSX.Element => {
     if (pendingType !== "domicilios") return;
     const domicilioId = fullRow.domicilio_id;
     const calleCatalogoId = fullRow.calle_catalogo_id;
-    if (domicilioId && calleCatalogoId) {
+    const numero = fullRow.numero;
+    const numeroTipo = (fullRow as any).numero_tipo;
+    if (!domicilioId) return;
+    if (numero) {
+      await setNumeroEsquina(domicilioId, String(numero), numeroTipo || null);
+    }
+    if (calleCatalogoId) {
       await setCalleCanon(domicilioId, Number(calleCatalogoId));
     }
   }, [pendingType]);
@@ -383,7 +370,12 @@ const ActuacionesContainer = (): JSX.Element => {
                   initialColumnVisibility={pendingColumnVisibility}
                   extraColumns={pendingExtraColumns}
                   enableEditing={pendingType !== "notificaciones"}
-                  hideRowActions
+                  hideRowActions={false}
+                  hideDeleteAction
+                  skipValidation
+                  skipUpdate
+                  numeroHeader="Número/Esquina"
+                  numeroEditorLabel="Número/Esquina"
                   onBeforeSave={handleBeforeSavePendiente}
                 />
               </>

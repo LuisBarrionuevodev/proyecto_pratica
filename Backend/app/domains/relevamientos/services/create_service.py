@@ -11,6 +11,9 @@ from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
+from app.domains.geolocalizacion.geocoding.services.geocode_service import (
+    geocode_domicilio,
+)
 
 
 def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
@@ -62,4 +65,11 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     )
     db.session.add(rel)
     db.session.commit()
+
+    # Best-effort geocode (no bloquea la creación)
+    try:
+        if rel.domicilio_id:
+            geocode_domicilio(rel.domicilio_id)
+    except Exception:
+        pass
     return rel

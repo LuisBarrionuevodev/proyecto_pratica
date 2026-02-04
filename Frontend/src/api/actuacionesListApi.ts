@@ -15,7 +15,9 @@ export interface IActuacionListItem {
     inspector3: string | null;
     calle: string | null;
     numero: string | null;
+    numero_esquina?: string | null;
     numero_tipo?: string | null;
+    calle_ingresada?: string | null;
     tipo_actuacion: string | null;
     contraproducencia: string | null;
     doc_nro: string | null;

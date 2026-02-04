@@ -8,7 +8,9 @@ from app.domains.relevamientos.services.pendientes_service import (
     get_pendientes_summary,
     get_pendientes_list,
 )
-from app.domains.relevamientos.presenters.relevamiento_presenter import relevamiento_to_row
+from app.domains.relevamientos.presenters.relevamiento_presenter import (
+    relevamiento_to_pendiente_domicilio_row,
+)
 from app.shared.errors import pydantic_errors_to_cell_map
 
 from . import relevamiento
@@ -42,7 +44,7 @@ def pendientes_list():
         if not filters.tipo:
             return jsonify({"detail": "tipo es obligatorio."}), 400
         rels = get_pendientes_list(filters)
-        return jsonify([relevamiento_to_row(r) for r in rels]), 200
+        return jsonify([relevamiento_to_pendiente_domicilio_row(r) for r in rels]), 200
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except ValueError as e:

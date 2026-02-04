@@ -23,6 +23,7 @@ from .catalog_tipo_actuacion import CatalogTipoActuacion
 from .catalog_contraproducencia import CatalogContraproducencia
 from .catalog_motivo_comprobacion import CatalogMotivoComprobacion
 from .calle_catalogo import CalleCatalogo
+from .domicilio_geocode import DomicilioGeocode
 from .lugar_trabajo import LugarTrabajo
 from .participante import Participante
 from .establecimiento import Establecimiento
@@ -56,6 +57,7 @@ __all__ = [
     "CatalogContraproducencia",
     "CatalogMotivoComprobacion",
     "CalleCatalogo",
+    "DomicilioGeocode",
     "LugarTrabajo",
     "Participante",
     "Establecimiento",

@@ -6,7 +6,9 @@ export interface IRelevamientoListItem {
   inspector: string | null;
   calle: string | null;
   numero: string | null;
+  numero_esquina?: string | null;
   numero_tipo?: string | null;
+  calle_ingresada?: string | null;
   rubro: string | null;
   contraproducencia: string | null;
   domicilio_id?: number | null;

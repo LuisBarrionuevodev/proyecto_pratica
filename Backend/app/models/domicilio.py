@@ -96,6 +96,7 @@ class Domicilio(db.Model):
         "CalleCatalogo",
         foreign_keys=[esquina_catalogo_id],
     )
+    geocode = db.relationship("DomicilioGeocode", uselist=False, back_populates="domicilio")
     actuaciones = db.relationship("Actuaciones", back_populates="domicilio")
     barrio = db.relationship("Barrio", back_populates="domicilio")
     contribuyente = db.relationship("Contribuyente", back_populates="domicilio")

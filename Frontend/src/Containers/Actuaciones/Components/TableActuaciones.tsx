@@ -39,6 +39,11 @@ interface TablaActuacionesProps {
   initialColumnVisibility?: Record<string, boolean>;
   enableEditing?: boolean;
   hideRowActions?: boolean;
+  hideDeleteAction?: boolean;
+  skipValidation?: boolean;
+  skipUpdate?: boolean;
+  numeroHeader?: string;
+  numeroEditorLabel?: string;
   extraColumns?: MRT_ColumnDef<IActuacionListItem>[];
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
   onAfterSave?: (fullRow: IActuacionListItem) => Promise<void>;
@@ -98,6 +103,11 @@ const TablaActuaciones = ({
   initialColumnVisibility,
   enableEditing = true,
   hideRowActions = false,
+  hideDeleteAction = false,
+  skipValidation = false,
+  skipUpdate = false,
+  numeroHeader = "Número",
+  numeroEditorLabel = "Número",
   extraColumns = [],
   onBeforeSave,
   onAfterSave,
@@ -180,27 +190,31 @@ const TablaActuaciones = ({
     const fullRow = { ...row.original, ...values };
 
     try {
-      // ✅ Validación previa (pinta celdas rojas si hay errores)
-      const v = await validateRow({
-        batch_id: UI_BATCH_ID,
-        row_id: `act_${id}`,
-        row: fullRow as any, // importante: fullRow debe coincidir con lo que espera tu backend
-      });
+      if (!skipValidation) {
+        // ✅ Validación previa (pinta celdas rojas si hay errores)
+        const v = await validateRow({
+          batch_id: UI_BATCH_ID,
+          row_id: `act_${id}`,
+          row: fullRow as any, // importante: fullRow debe coincidir con lo que espera tu backend
+        });
 
-      if (!v.ok) {
-        setRowErrors(prev => ({ ...prev, [id]: normalizeErrors(v.errors || {}) }));
-        return; // NO salimos del modo edición
+        if (!v.ok) {
+          setRowErrors(prev => ({ ...prev, [id]: normalizeErrors(v.errors || {}) }));
+          return; // NO salimos del modo edición
+        }
+
+        // ✅ si OK, limpiar errores de esa fila
+        setRowErrors(prev => ({ ...prev, [id]: {} }));
       }
-
-      // ✅ si OK, limpiar errores de esa fila
-      setRowErrors(prev => ({ ...prev, [id]: {} }));
 
       if (onBeforeSave) {
         await onBeforeSave(fullRow as IActuacionListItem);
       }
 
-      // ✅ guardar con PUT (tu api ya debe usar put, no patch)
-      await updateActuacion(id, fullRow as any);
+      if (!skipUpdate) {
+        // ✅ guardar con PUT (tu api ya debe usar put, no patch)
+        await updateActuacion(id, fullRow as any);
+      }
 
       if (onAfterSave) {
         await onAfterSave(fullRow as IActuacionListItem);
@@ -223,7 +237,7 @@ const TablaActuaciones = ({
       const msg = error?.response?.data?.detail || "No se pudo actualizar el registro.";
       alert(msg);
     }
-  }, [onRefresh, triggerRefresh, onBeforeSave, onAfterSave]);
+  }, [onRefresh, triggerRefresh, onBeforeSave, onAfterSave, skipValidation, skipUpdate]);
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
     const baseColumns: MRT_ColumnDef<IActuacionListItem>[] = [
@@ -342,7 +356,7 @@ const TablaActuaciones = ({
     },
     {
       accessorKey: "numero",
-      header: "Número",
+      header: numeroHeader,
       size: 400,
       Cell: ({ row }) => {
         if (
@@ -376,7 +390,7 @@ const TablaActuaciones = ({
               };
             }}
             calles={callesCatalogo}
-            label="Número"
+            label={numeroEditorLabel}
             error={!!err}
             helperText={err ?? ""}
           />
@@ -459,7 +473,7 @@ const TablaActuaciones = ({
 
     ];
     return [...baseColumns, ...extraColumns];
-  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns, callesCatalogo]);
+  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns, callesCatalogo, numeroHeader, numeroEditorLabel]);
 
   const columnOrder = useMemo(() => ([
     "mrt-row-select",
@@ -532,18 +546,20 @@ const TablaActuaciones = ({
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Eliminar">
-          <IconButton
-            sx={{
-              color: COLORS.white,
-              transition: "color 0.2s ease, background-color 0.2s ease",
-              "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
-            }}
-            onClick={() => handleDeleteRow(Number(row.original.id))}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
+        {!hideDeleteAction && (
+          <Tooltip title="Eliminar">
+            <IconButton
+              sx={{
+                color: COLORS.white,
+                transition: "color 0.2s ease, background-color 0.2s ease",
+                "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
+              }}
+              onClick={() => handleDeleteRow(Number(row.original.id))}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
     ),
 

@@ -10,6 +10,8 @@ export interface IRelevamientosPendientesSummary {
 
 export interface IRelevamientosPendientesItem extends IRelevamientoListItem {
   domicilio_id?: number | null;
+  numero_esquina?: string | null;
+  calle_ingresada?: string | null;
   calle_normalizada?: string | null;
   esquina_normalizada?: string | null;
   esquina_catalogo_id?: number | null;
@@ -20,6 +22,7 @@ export interface IRelevamientosPendientesItem extends IRelevamientoListItem {
   calle_sugerida?: string | null;
   calle_mostrar?: string | null;
   calle_catalogo_id?: number | null;
+  esquina_catalogo_id?: number | null;
 }
 
 export interface IRelevamientosPendientesFilters {

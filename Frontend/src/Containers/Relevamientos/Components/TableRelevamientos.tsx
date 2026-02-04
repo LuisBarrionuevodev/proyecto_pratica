@@ -25,6 +25,11 @@ interface TablaRelevamientosProps {
   initialColumnVisibility?: Record<string, boolean>;
   enableEditing?: boolean;
   hideRowActions?: boolean;
+  hideDeleteAction?: boolean;
+  skipValidation?: boolean;
+  skipUpdate?: boolean;
+  numeroHeader?: string;
+  numeroEditorLabel?: string;
   extraColumns?: MRT_ColumnDef<IRelevamientoListItem>[];
   onBeforeSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
   onAfterSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
@@ -56,6 +61,11 @@ const TablaRelevamientos = ({
   initialColumnVisibility,
   enableEditing = true,
   hideRowActions = false,
+  hideDeleteAction = false,
+  skipValidation = false,
+  skipUpdate = false,
+  numeroHeader = "Numero",
+  numeroEditorLabel = "Número",
   extraColumns = [],
   onBeforeSave,
   onAfterSave,
@@ -132,7 +142,7 @@ const TablaRelevamientos = ({
       const id = Number(row.original.id);
       const fullRow = { ...row.original, ...values };
 
-      if (batchId) {
+      if (batchId && !skipValidation) {
         const v = await validateRow({
           batch_id: batchId,
           row_id: `rel_${id}`,
@@ -151,7 +161,9 @@ const TablaRelevamientos = ({
         if (onBeforeSave) {
           await onBeforeSave(fullRow as IRelevamientoListItem);
         }
-        await updateRelevamiento(id, fullRow as IRelevamientoListItem);
+        if (!skipUpdate) {
+          await updateRelevamiento(id, fullRow as IRelevamientoListItem);
+        }
 
         if (onAfterSave) {
           await onAfterSave(fullRow as IRelevamientoListItem);
@@ -170,7 +182,7 @@ const TablaRelevamientos = ({
         alert(msg);
       }
     },
-    [batchId, onRefresh, onBeforeSave, onAfterSave]
+    [batchId, onRefresh, onBeforeSave, onAfterSave, skipValidation, skipUpdate]
   );
 
   const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => {
@@ -216,7 +228,7 @@ const TablaRelevamientos = ({
     },
     {
       accessorKey: "numero",
-      header: "Numero",
+      header: numeroHeader,
       size: 400,
       Cell: ({ row }) => {
         if (
@@ -250,7 +262,7 @@ const TablaRelevamientos = ({
               };
             }}
             calles={callesCatalogo}
-            label="Número"
+            label={numeroEditorLabel}
             error={!!err}
             helperText={err ?? ""}
           />
@@ -283,7 +295,7 @@ const TablaRelevamientos = ({
       },
     ];
     return [...baseColumns, ...extraColumns];
-  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns, callesCatalogo]);
+  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns, callesCatalogo, numeroHeader, numeroEditorLabel]);
 
   const columnOrder = useMemo(() => ([
     ...(hideRowActions ? [] : ["mrt-row-actions"]),
@@ -332,18 +344,20 @@ const TablaRelevamientos = ({
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Eliminar">
-          <IconButton
-            sx={{
-              color: COLORS.white,
-              transition: "color 0.2s ease, background-color 0.2s ease",
-              "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
-            }}
-            onClick={() => handleDeleteRow(Number(row.original.id))}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
+        {!hideDeleteAction && (
+          <Tooltip title="Eliminar">
+            <IconButton
+              sx={{
+                color: COLORS.white,
+                transition: "color 0.2s ease, background-color 0.2s ease",
+                "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
+              }}
+              onClick={() => handleDeleteRow(Number(row.original.id))}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
     ),
   });

@@ -40,3 +40,15 @@ export const setEsquinaCanon = async (
   );
   return data;
 };
+
+export const setNumeroEsquina = async (
+  domicilioId: number,
+  numero: string,
+  numeroTipo?: string | null
+): Promise<{ ok: boolean }> => {
+  const { data } = await apiClient.post<{ ok: boolean }>(
+    `/geolocalizacion/calles/set-numero/${domicilioId}`,
+    { numero, numero_tipo: numeroTipo || null }
+  );
+  return data;
+};
