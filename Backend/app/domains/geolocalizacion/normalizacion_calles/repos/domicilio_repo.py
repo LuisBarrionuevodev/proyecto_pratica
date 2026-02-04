@@ -16,10 +16,19 @@ def get_domicilio(domicilio_id: int) -> Domicilio | None:
 def list_pendientes(limit: int, only: Optional[str] = None) -> List[Domicilio]:
     """
     Lista domicilios con normalización pendiente o con error.
+
+    Reglas:
+    - Calle pendiente: calle_norm_status no OK.
+    - Esquina pendiente: solo si numero_tipo == ESQUINA y esquina_norm_status no OK.
+    - Si numero_tipo es NUMERO u OTRO, no se considera pendiente por esquina.
     """
-    calle_pendiente = Domicilio.calle_norm_status.in_(["PENDIENTE", "NO_MATCH", "REVIEW"])
-    esquina_pendiente = Domicilio.esquina_norm_status.in_(
-        ["PENDIENTE", "NO_MATCH", "REVIEW"]
+    calle_pendiente = Domicilio.calle_norm_status.in_(["PENDIENTE", "NO_MATCH", "REVIEW"]) | (
+        Domicilio.calle_norm_status.is_(None)
+    )
+    esquina_pendiente = and_(
+        Domicilio.numero_tipo == "ESQUINA",
+        Domicilio.esquina_norm_status.in_(["PENDIENTE", "NO_MATCH", "REVIEW"])
+        | (Domicilio.esquina_norm_status.is_(None)),
     )
 
     query = Domicilio.query.filter(Domicilio.calle.isnot(None))

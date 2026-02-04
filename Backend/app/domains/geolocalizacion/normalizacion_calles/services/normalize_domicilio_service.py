@@ -14,7 +14,10 @@ from app.domains.geolocalizacion.normalizacion_calles.services.numero_esquina_de
 
 def _normalize_calle(dom) -> Dict[str, object]:
     """
-    Normaliza la calle principal de un domicilio.
+    Normaliza la calle principal del domicilio.
+    - Guarda calle_raw si está vacío.
+    - Matchea contra catálogo (exacto/base/fuzzy).
+    - Actualiza campos de normalización.
     """
     if dom.calle_raw is None:
         dom.calle_raw = dom.calle
@@ -65,7 +68,11 @@ def _clear_esquina_fields(dom) -> None:
 
 def _normalize_esquina(dom, override_numero_tipo: Optional[str] = None) -> Optional[Dict[str, object]]:
     """
-    Normaliza esquina si el número es una calle.
+    Normaliza esquina solo cuando `numero` representa una calle (ESQUINA).
+
+    Casos:
+    - NUMERO/OTRO: limpia campos de esquina y no marca pendiente.
+    - ESQUINA: intenta match de calle sobre el valor de `numero`.
     """
     if not dom.numero:
         dom.numero_tipo = None
@@ -141,7 +148,8 @@ def normalizar_domicilio_en_sesion(dom, override_numero_tipo: Optional[str] = No
     Normaliza la calle/esquina de un domicilio usando la sesión actual.
 
     Qué hace:
-    - Ejecuta normalización de calle y esquina.
+    - Normaliza calle (siempre).
+    - Normaliza esquina solo si el número es ESQUINA.
     - Actualiza campos de normalización en el modelo.
     - Agrega el domicilio a la sesión (sin commit).
 
@@ -165,7 +173,7 @@ def normalizar_domicilio_en_sesion(dom, override_numero_tipo: Optional[str] = No
 
 def normalizar_domicilio(domicilio_id: int) -> Dict[str, object]:
     """
-    Normaliza la calle de un domicilio y persiste resultado.
+    Normaliza calle/esquina de un domicilio y persiste resultado.
     """
     dom = get_domicilio(domicilio_id)
     result = normalizar_domicilio_en_sesion(dom)

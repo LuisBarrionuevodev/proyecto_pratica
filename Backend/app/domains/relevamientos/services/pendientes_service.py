@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from app.models import Relevamiento, Domicilio
 from app.domains.relevamientos.schemas.pendientes_filters import RelevamientosPendientesFilters
@@ -24,8 +24,13 @@ def _domicilios_pendientes_query(filters: RelevamientosPendientesFilters):
             or_(
                 Domicilio.calle_norm_status.is_(None),
                 Domicilio.calle_norm_status != "OK",
-                Domicilio.esquina_norm_status.is_(None),
-                Domicilio.esquina_norm_status != "OK",
+                and_(
+                    Domicilio.numero_tipo == "ESQUINA",
+                    or_(
+                        Domicilio.esquina_norm_status.is_(None),
+                        Domicilio.esquina_norm_status != "OK",
+                    ),
+                ),
             )
         )
     )

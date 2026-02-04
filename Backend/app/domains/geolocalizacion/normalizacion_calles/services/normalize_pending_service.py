@@ -13,6 +13,10 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 def normalizar_pendientes(limit: int = 200, only: str | None = None) -> Dict[str, object]:
     """
     Normaliza domicilios pendientes en batch.
+
+    Reglas:
+    - Calle pendiente siempre se procesa.
+    - Esquina solo se procesa si numero_tipo == ESQUINA.
     """
     if only not in (None, "calle", "esquina", "both"):
         raise ValueError("El parámetro 'only' debe ser calle, esquina o both.")
