@@ -14,6 +14,7 @@ class Distrito(db.Model):
     geom = db.Column(Geometry(geometry_type="POLYGON", srid=4326), nullable=True)
 
     barrio = db.relationship("Barrio", back_populates="distrito")
+    domicilio = db.relationship("Domicilio", back_populates="distrito")
 
     
 

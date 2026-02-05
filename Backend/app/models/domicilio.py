@@ -27,6 +27,13 @@ class Domicilio(db.Model):
         unique=False,
         index=True,
     )
+    distrito_id = db.Column(
+        db.Integer,
+        db.ForeignKey("distrito.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
     contribuyente_id = db.Column(
         db.Integer,
         db.ForeignKey("contribuyente.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -99,6 +106,7 @@ class Domicilio(db.Model):
     geocode = db.relationship("DomicilioGeocode", uselist=False, back_populates="domicilio")
     actuaciones = db.relationship("Actuaciones", back_populates="domicilio")
     barrio = db.relationship("Barrio", back_populates="domicilio")
+    distrito = db.relationship("Distrito", back_populates="domicilio")
     contribuyente = db.relationship("Contribuyente", back_populates="domicilio")
     relevamiento = db.relationship("Relevamiento", back_populates="domicilio")
 

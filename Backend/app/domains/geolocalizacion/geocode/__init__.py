@@ -1,0 +1,1 @@
+"""Dominio geolocalizacion (mapa/distritos)."""

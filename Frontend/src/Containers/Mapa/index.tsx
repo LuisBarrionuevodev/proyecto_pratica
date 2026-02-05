@@ -1,7 +1,7 @@
-import MapView from "./Components/MapView";
+import MapViewGeo from "./Components/MapViewGeo";
 
 const Mapa = () => {
-    return <MapView />;
+    return <MapViewGeo />;
 };
 
 export default Mapa;

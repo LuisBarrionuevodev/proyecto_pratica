@@ -18,6 +18,9 @@ from app.domains.grid.schemas.batch import (
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.grid.services.batch_store import InMemoryBatchStore
 from app.domains.grid.services.validate_service import GridValidateService
+from app.domains.geolocalizacion.geocode.services.pipeline_service import (
+    pipeline_post_commit,
+)
 from app.models import (
     Inspector,
     Motivo,
@@ -142,6 +145,13 @@ def commit_batch():
                 act = handler.create_fn(normalized)
             else:
                 act = handler.update_fn(int(act_id), normalized)
+
+            try:
+                domicilio_id = getattr(act, "domicilio_id", None)
+                if domicilio_id:
+                    pipeline_post_commit(int(domicilio_id))
+            except Exception:
+                pass
 
             results.append(
                 CommitRowResponse(
@@ -280,6 +290,13 @@ def commit_row():
             act = handler.create_fn(normalized)
         else:
             act = handler.update_fn(int(act_id), normalized)
+
+        try:
+            domicilio_id = getattr(act, "domicilio_id", None)
+            if domicilio_id:
+                pipeline_post_commit(int(domicilio_id))
+        except Exception:
+            pass
 
         resp = CommitRowResponse(
             batch_id=req.batch_id,

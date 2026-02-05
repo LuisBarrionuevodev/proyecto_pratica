@@ -11,6 +11,7 @@ from app.domains.grid.routes import grid as grid_bp
 from app.domains.relevamientos.routes import relevamiento as relevamiento_bp
 from app.domains.geolocalizacion.normalizacion_calles.routes import geolocalizacion_calles as geoloc_calles_bp
 from app.domains.geolocalizacion.geocoding.routes import geolocalizacion_geocode as geoloc_geocode_bp
+from app.domains.geolocalizacion.geocode.routes import geolocalizacion_map as geoloc_map_bp
 
 migrate = Migrate()
 
@@ -46,6 +47,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(grid_bp)
     app.register_blueprint(geoloc_calles_bp)
     app.register_blueprint(geoloc_geocode_bp)
+    app.register_blueprint(geoloc_map_bp)
     print(app.url_map)
 
     return app
