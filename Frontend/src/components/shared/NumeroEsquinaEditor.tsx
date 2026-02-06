@@ -15,6 +15,7 @@ interface NumeroEsquinaEditorProps {
   helperText?: string;
   allowFreeSolo?: boolean;
   onModeChange?: (mode: "NUMERO" | "ESQUINA") => void;
+  initialMode?: "NUMERO" | "ESQUINA";
 }
 
 const NumeroEsquinaEditor = ({
@@ -26,11 +27,13 @@ const NumeroEsquinaEditor = ({
   helperText = "",
   allowFreeSolo = false,
   onModeChange,
+  initialMode: initialModeProp,
 }: NumeroEsquinaEditorProps) => {
   const initialMode: EditorMode = useMemo(() => {
+    if (initialModeProp) return initialModeProp;
     if (!value) return "NUMERO";
     return hasLetters(value) ? "ESQUINA" : "NUMERO";
-  }, [value]);
+  }, [value, initialModeProp]);
 
   const [mode, setMode] = useState<EditorMode>(initialMode);
   const [inputValue, setInputValue] = useState(value ?? "");
@@ -90,6 +93,8 @@ const NumeroEsquinaEditor = ({
           size="small"
           freeSolo={allowFreeSolo}
           options={calles}
+          openOnFocus
+          autoHighlight
           value={calles.includes(value ?? "") ? value : null}
           inputValue={inputValue}
           onInputChange={(_, newInputValue, reason) => {

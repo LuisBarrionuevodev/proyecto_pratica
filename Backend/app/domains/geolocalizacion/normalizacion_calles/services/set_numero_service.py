@@ -7,6 +7,9 @@ from app.domains.geolocalizacion.normalizacion_calles.repos.domicilio_repo impor
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    on_domicilio_changed,
+)
 
 
 def set_numero_esquina(
@@ -34,6 +37,10 @@ def set_numero_esquina(
     result = normalizar_domicilio_en_sesion(dom, override_numero_tipo=override)
     db.session.add(dom)
     db.session.commit()
+    try:
+        on_domicilio_changed(dom.id)
+    except Exception:
+        pass
     return {
         "ok": True,
         "domicilio_id": dom.id,

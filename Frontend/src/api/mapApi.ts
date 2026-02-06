@@ -47,6 +47,11 @@ export const getMapPoints = async (params?: Record<string, any>) => {
   return data;
 };
 
+export const getMapPointsV2 = async (params?: Record<string, any>) => {
+  const { data } = await apiClient.get<MapPointFeatureCollection>("/map/points", { params });
+  return data;
+};
+
 export const getMapHeatmap = async (params?: Record<string, any>) => {
   const { data } = await apiClient.get<{ items: HeatmapItem[] }>("/map/heatmap", { params });
   return data.items;
@@ -60,4 +65,9 @@ export const getMapDistricts = async (params?: Record<string, any>) => {
 export const getMapPendientes = async (params?: Record<string, any>) => {
   const { data } = await apiClient.get<{ items: PendingItem[] }>("/map/pendientes", { params });
   return data.items;
+};
+
+export const getMapDetails = async (domicilioId: number, params?: Record<string, any>) => {
+  const { data } = await apiClient.get(`/map/details/${domicilioId}`, { params });
+  return data;
 };

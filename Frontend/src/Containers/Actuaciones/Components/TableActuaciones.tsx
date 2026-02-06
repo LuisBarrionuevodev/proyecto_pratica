@@ -47,6 +47,9 @@ interface TablaActuacionesProps {
   extraColumns?: MRT_ColumnDef<IActuacionListItem>[];
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
   onAfterSave?: (fullRow: IActuacionListItem) => Promise<void>;
+  readOnlyColumns?: string[];
+  numeroCallesOptions?: string[];
+  numeroAllowFreeSolo?: boolean;
 }
 
 // ✅ UUID fijo válido para validar filas desde esta vista
@@ -111,6 +114,9 @@ const TablaActuaciones = ({
   extraColumns = [],
   onBeforeSave,
   onAfterSave,
+  readOnlyColumns = [],
+  numeroCallesOptions,
+  numeroAllowFreeSolo = false,
 }: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -123,7 +129,11 @@ const TablaActuaciones = ({
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
   const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
-  const { calles: callesCatalogo } = useCallesCatalogo();
+  const { calles: callesCatalogoHook } = useCallesCatalogo();
+  const callesCatalogo = useMemo(() => {
+    const merged = [...callesCatalogoHook, ...(numeroCallesOptions || [])];
+    return Array.from(new Set(merged));
+  }, [callesCatalogoHook, numeroCallesOptions]);
 
   // ✅ errores por celda por idActuacion
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
@@ -247,6 +257,7 @@ const TablaActuaciones = ({
       accessorKey: "orden_trabajo_numero",
       header: "OT",
       size: 100,
+      enableEditing: !readOnlyColumns.includes("orden_trabajo_numero"),
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["orden_trabajo_numero"];
@@ -258,6 +269,7 @@ const TablaActuaciones = ({
       accessorKey: "fecha_actuacion",
       header: "Fecha",
       size: 120,
+      enableEditing: !readOnlyColumns.includes("fecha_actuacion"),
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["fecha_actuacion"];
@@ -361,10 +373,9 @@ const TablaActuaciones = ({
       Cell: ({ row }) => {
         if (
           row.original.numero_tipo === "ESQUINA" &&
-          row.original.esquina_status === "OK" &&
-          row.original.esquina_normalizada
+          (row.original.numero_esquina || row.original.esquina_normalizada)
         ) {
-          return row.original.esquina_normalizada;
+          return row.original.numero_esquina || row.original.esquina_normalizada || "";
         }
         return row.original.numero ?? "";
       },
@@ -393,6 +404,8 @@ const TablaActuaciones = ({
             label={numeroEditorLabel}
             error={!!err}
             helperText={err ?? ""}
+            allowFreeSolo={numeroAllowFreeSolo}
+            initialMode={(row.original as any).numero_tipo || undefined}
           />
         );
       },

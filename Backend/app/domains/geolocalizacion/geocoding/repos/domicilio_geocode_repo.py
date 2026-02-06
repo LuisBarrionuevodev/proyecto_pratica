@@ -36,3 +36,16 @@ def get_or_create_geocode(domicilio_id: int) -> DomicilioGeocode:
     db.session.add(geo)
     db.session.flush()
     return geo
+
+
+def ensure_geocode_row(domicilio_id: int) -> DomicilioGeocode:
+    """
+    Garantiza la existencia de un row de geocode para un domicilio.
+
+    Args:
+        domicilio_id: id del domicilio.
+
+    Returns:
+        DomicilioGeocode existente o nuevo.
+    """
+    return get_or_create_geocode(domicilio_id)

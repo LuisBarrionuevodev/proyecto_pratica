@@ -11,8 +11,8 @@ from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
-from app.domains.geolocalizacion.geocoding.services.geocode_service import (
-    geocode_domicilio,
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    on_domicilio_changed,
 )
 
 
@@ -78,7 +78,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     # Best-effort geocode (no bloquea la actualización)
     try:
         if rel.domicilio_id:
-            geocode_domicilio(rel.domicilio_id)
+            on_domicilio_changed(rel.domicilio_id)
     except Exception:
         pass
     return rel

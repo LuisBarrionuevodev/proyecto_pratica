@@ -196,6 +196,8 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
     provider = GEO_PROVIDER if GEO_PROVIDER in {"geoapify", "nominatim", "none"} else "geoapify"
     geo.provider = provider
     geo.checked_at = datetime.utcnow()
+    if not geo.source or geo.source not in {"MANUAL", "REVERSE"}:
+        geo.source = "AUTO"
     if geo.geo_status == "OK" and geo.lat is not None and geo.lng is not None:
         return {
             "ok": True,

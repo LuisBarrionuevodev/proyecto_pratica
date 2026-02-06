@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  GeoJSON,
+  CircleMarker,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import {
   Box,
@@ -16,14 +24,14 @@ import distritosGeo from "../distritos.json";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { fetchRubros, fetchTiposActuacion } from "../../../api/gridApi";
 import {
-  getMapPoints,
+  getMapPointsV2,
   getMapHeatmap,
   getMapDistricts,
-  getMapPendientes,
+  getMapDetails,
   type DistrictMetricItem,
   type HeatmapItem,
-  type PendingItem,
 } from "../../../api/mapApi";
+import { getGeoPending, setGeoManual, reverseGeo, type GeoPendingItem } from "../../../api/geoApi";
 
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
@@ -53,16 +61,19 @@ export default function MapViewGeo() {
   const [tipo, setTipo] = useState<string>("");
   const [rubro, setRubro] = useState<string>("");
   const [distritoId, setDistritoId] = useState<string>("");
-  const [scope, setScope] = useState<string>("all");
+  const [origin, setOrigin] = useState<string>("all");
 
   const [tipos, setTipos] = useState<string[]>([]);
-  const [rubros, setRubros] = useState<string[]>([]);
+  const [rubros, setRubros] = useState<{ id: number; nombre: string }[]>([]);
 
   const [points, setPoints] = useState<any[]>([]);
   const [heatmap, setHeatmap] = useState<HeatmapItem[]>([]);
   const [districts, setDistricts] = useState<DistrictMetricItem[]>([]);
-  const [pendientes, setPendientes] = useState<PendingItem[]>([]);
+  const [pendientes, setPendientes] = useState<GeoPendingItem[]>([]);
   const [center, setCenter] = useState<[number, number] | null>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const [selectedDetails, setSelectedDetails] = useState<any>(null);
+  const [manualPin, setManualPin] = useState<{ domicilioId: number; lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     const loadCatalogs = async () => {
@@ -72,7 +83,7 @@ export default function MapViewGeo() {
           fetchRubros(),
         ]);
         setTipos(tiposResp.items.map((t: any) => t.nombre));
-        setRubros(rubrosResp.items.map((r: any) => r.nombre));
+        setRubros(rubrosResp.items.map((r: any) => ({ id: r.id, nombre: r.nombre })));
       } catch (err) {
         console.error(err);
       }
@@ -81,16 +92,17 @@ export default function MapViewGeo() {
   }, []);
 
   const loadData = useCallback(async () => {
+    const rubroId = rubros.find((r) => r.nombre === rubro)?.id;
     const params: Record<string, any> = {
-      desde,
-      hasta,
+      from: desde || undefined,
+      to: hasta || undefined,
       tipo: tipo || undefined,
-      rubro: rubro || undefined,
+      rubro_id: rubroId || undefined,
       distrito_id: distritoId || undefined,
-      scope: scope || undefined,
+      origin: origin || undefined,
     };
     if (tab === "puntos") {
-      const fc = await getMapPoints(params);
+      const fc = await getMapPointsV2(params);
       setPoints(fc.features);
     } else if (tab === "heatmap") {
       const items = await getMapHeatmap(params);
@@ -99,10 +111,10 @@ export default function MapViewGeo() {
       const items = await getMapDistricts(params);
       setDistricts(items);
     } else {
-      const items = await getMapPendientes(params);
+      const items = await getGeoPending();
       setPendientes(items);
     }
-  }, [tab, desde, hasta, tipo, rubro, distritoId, scope]);
+  }, [tab, desde, hasta, tipo, rubro, rubros, distritoId, origin]);
 
   useEffect(() => {
     loadData();
@@ -143,19 +155,18 @@ export default function MapViewGeo() {
         <Select size="small" value={rubro} onChange={(e) => setRubro(e.target.value)} displayEmpty>
           <MenuItem value="">Rubro (todos)</MenuItem>
           {rubros.map((r) => (
-            <MenuItem key={r} value={r}>{r}</MenuItem>
+            <MenuItem key={r.id} value={r.nombre}>{r.nombre}</MenuItem>
           ))}
         </Select>
 
         <TextField size="small" label="Distrito ID" value={distritoId} onChange={(e) => setDistritoId(e.target.value)} />
 
-        {tab === "pendientes" && (
-          <Select size="small" value={scope} onChange={(e) => setScope(e.target.value)} displayEmpty>
-            <MenuItem value="all">Scope: all</MenuItem>
-            <MenuItem value="actuaciones">Actuaciones</MenuItem>
-            <MenuItem value="relevamientos">Relevamientos</MenuItem>
-          </Select>
-        )}
+        <Select size="small" value={origin} onChange={(e) => setOrigin(e.target.value)} displayEmpty>
+          <MenuItem value="all">Origen: todos</MenuItem>
+          <MenuItem value="actuaciones">Solo actuaciones</MenuItem>
+          <MenuItem value="relevamientos">Solo relevamientos</MenuItem>
+          <MenuItem value="both">Ambos</MenuItem>
+        </Select>
 
         <Button variant="contained" onClick={loadData}>Actualizar</Button>
       </Paper>
@@ -186,13 +197,30 @@ export default function MapViewGeo() {
             key={idx}
             position={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
             icon={pinIcon}
+            eventHandlers={{
+              click: async () => {
+                setSelected(f);
+                const id = f.properties?.domicilio_id;
+                if (id) {
+                  const details = await getMapDetails(id, { from: desde, to: hasta });
+                  setSelectedDetails(details);
+                }
+              },
+            }}
           >
             <Popup>
-              <div><strong>{f.properties?.source}</strong></div>
+              <div><strong>{f.properties?.has_act && f.properties?.has_rel ? "Ambos" : f.properties?.has_act ? "Actuación" : "Relevamiento"}</strong></div>
               <div>Domicilio: {f.properties?.domicilio_id}</div>
-              <div>Tipo: {f.properties?.tipo || "-"}</div>
-              <div>Rubro: {f.properties?.rubro || "-"}</div>
-              <div>Fecha: {f.properties?.fecha || "-"}</div>
+              <div>Actuaciones: {f.properties?.act_count}</div>
+              <div>Relevamientos: {f.properties?.rel_count}</div>
+              {selectedDetails && selected?.properties?.domicilio_id === f.properties?.domicilio_id && (
+                <div>
+                  <div>Última act.: {selectedDetails.last_act_fecha || "-"}</div>
+                  <div>Último rel.: {selectedDetails.last_rel_fecha || "-"}</div>
+                  <div>Rubro: {selectedDetails.rubro || "-"}</div>
+                  <div>Contribuyente: {selectedDetails.contribuyente || "-"}</div>
+                </div>
+              )}
             </Popup>
           </Marker>
         ))}
@@ -205,7 +233,85 @@ export default function MapViewGeo() {
             pathOptions={{ color: "red", fillOpacity: 0.5 }}
           />
         ))}
+
+        {tab === "pendientes" && manualPin && (
+          <Marker
+            position={[manualPin.lat, manualPin.lng]}
+            icon={pinIcon}
+            draggable
+            eventHandlers={{
+              dragend: (e) => {
+                const latlng = (e.target as any).getLatLng();
+                setManualPin({ ...manualPin, lat: latlng.lat, lng: latlng.lng });
+              },
+            }}
+          >
+            <Popup>
+              <div>Domicilio #{manualPin.domicilioId}</div>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={async () => {
+                  await setGeoManual(manualPin.domicilioId, manualPin.lat, manualPin.lng);
+                  setManualPin(null);
+                  await loadData();
+                }}
+              >
+                Guardar manual
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ ml: 1 }}
+                onClick={async () => {
+                  await reverseGeo(manualPin.domicilioId, manualPin.lat, manualPin.lng);
+                  setManualPin(null);
+                  await loadData();
+                }}
+              >
+                Reverse
+              </Button>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
+
+      {selectedDetails && (
+        <Paper sx={{ p: 1, mt: 1 }}>
+          <Typography variant="subtitle2">
+            {selectedDetails.act_count > 0 && selectedDetails.rel_count > 0
+              ? "Ambos"
+              : selectedDetails.act_count > 0
+              ? "Actuación"
+              : "Relevamiento"}
+          </Typography>
+          <div>
+            Domicilio: {selectedDetails.calle || "-"} {selectedDetails.numero || ""}
+            {selectedDetails.esquina ? ` y ${selectedDetails.esquina}` : ""}
+          </div>
+          <div>Contribuyente: {selectedDetails.contribuyente || "-"}</div>
+          <div>Rubro: {selectedDetails.rubro || "-"}</div>
+          <div>Inspeccionado {selectedDetails.act_count} veces</div>
+          <div>Relevamientos {selectedDetails.rel_count}</div>
+          <div>ODT: {(selectedDetails.odt_list || []).join(", ") || "-"}</div>
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="subtitle2">Actuaciones</Typography>
+            {(selectedDetails.actuaciones || []).map((a: any) => (
+              <div key={a.id}>
+                {a.fecha} - {a.tipo} {a.contraproducencia || ""}
+              </div>
+            ))}
+          </Box>
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="subtitle2">Relevamientos</Typography>
+            {(selectedDetails.relevamientos || []).map((r: any) => (
+              <div key={r.id}>
+                {r.fecha} - {r.inspector || "-"} {r.rubro || r.contraproducencia || ""}
+              </div>
+            ))}
+          </Box>
+        </Paper>
+      )}
 
       {tab === "pendientes" && (
         <Paper sx={{ p: 1, mt: 1, maxHeight: "20vh", overflow: "auto" }}>
@@ -213,13 +319,21 @@ export default function MapViewGeo() {
           {pendientes.map((p) => (
             <Box key={p.domicilio_id} sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
               <span>
-                #{p.domicilio_id} {p.calle_raw} {p.numero_raw}
+                #{p.domicilio_id} {p.calle_normalizada || "-"} {p.numero || ""}
               </span>
-              {p.lat && p.lng && (
-                <Button size="small" onClick={() => setCenter([p.lat as number, p.lng as number])}>
-                  Abrir
-                </Button>
-              )}
+              <Button
+                size="small"
+                onClick={() => {
+                  setCenter(center || defaultCenter);
+                  setManualPin({
+                    domicilioId: p.domicilio_id,
+                    lat: center ? center[0] : defaultCenter[0],
+                    lng: center ? center[1] : defaultCenter[1],
+                  });
+                }}
+              >
+                Ubicar
+              </Button>
             </Box>
           ))}
         </Paper>

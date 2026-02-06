@@ -23,6 +23,12 @@ class DomicilioGeocode(db.Model):
     score = db.Column(db.Float, nullable=True)
     error_msg = db.Column(db.String(255), nullable=True)
     raw_json = db.Column(db.JSON, nullable=True)
+    addr_hash = db.Column(db.String(40), nullable=True)
+    source = db.Column(
+        db.Enum("AUTO", "MANUAL", "REVERSE", name="domicilio_geocode_source"),
+        nullable=True,
+        default="AUTO",
+    )
     checked_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(

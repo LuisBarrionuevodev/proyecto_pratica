@@ -138,12 +138,6 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const pendingExtraColumns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => [
     {
-      accessorKey: "calle_ingresada",
-      header: "Calle ingresada",
-      size: 200,
-      enableEditing: false,
-    },
-    {
       accessorKey: "calle_catalogo_id",
       header: "Calle catálogo",
       size: 240,
@@ -154,9 +148,9 @@ const ActuacionesContainer = (): JSX.Element => {
         return match ? match.nombre : "";
       },
       Edit: ({ row }) => {
-        const currentValue = (row as any)?._valuesCache?.calle_catalogo_id ?? row.original.calle_catalogo_id;
-        const currentOption =
-          callesCatalogo.find((opt) => opt.id === currentValue) || null;
+        const currentValue =
+          (row as any)?._valuesCache?.calle_catalogo_id ?? row.original.calle_catalogo_id;
+        const currentOption = callesCatalogo.find((opt) => opt.id === currentValue) || null;
 
         return (
           <Autocomplete
@@ -174,11 +168,7 @@ const ActuacionesContainer = (): JSX.Element => {
               };
             }}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Calle catálogo"
-                variant="outlined"
-              />
+              <TextField {...params} label="Calle catálogo" variant="outlined" />
             )}
           />
         );
@@ -186,12 +176,38 @@ const ActuacionesContainer = (): JSX.Element => {
     },
   ], [pendingType, callesCatalogo, callesLoading, handleSearchCalles]);
 
-  const pendingColumnVisibility = useMemo(() => ({
-    calle: true,
-    numero: true,
-    calle_ingresada: true,
-    calle_catalogo_id: pendingType === "domicilios",
-  }), [pendingType]);
+  const pendingColumnVisibility = useMemo(() => {
+    if (pendingType !== "domicilios") return {};
+    return {
+      orden_trabajo_numero: true,
+      fecha_actuacion: true,
+      calle: true,
+      calle_catalogo_id: true,
+      numero: true,
+      tipo_actuacion: false,
+      contraproducencia: false,
+      rubro_nombre: false,
+      inspector1: false,
+      inspector2: false,
+      inspector3: false,
+      notificacion_motivo_1: false,
+      notificacion_motivo_2: false,
+      notificacion_motivo_3: false,
+      acta_inspeccion_num: false,
+      acta_notificacion_num: false,
+      acta_comprobacion_num: false,
+      acta_clausura_num: false,
+      acta_decomiso_num: false,
+      decomiso_kilos_total: false,
+      expediente_numero: false,
+      expediente_anio: false,
+      oficio_numero: false,
+      oficio_anio: false,
+      oficio_causa: false,
+      notificacion_previa_num: false,
+      comprobacion_previa_num: false,
+    };
+  }, [pendingType]);
 
   const handleBeforeSavePendiente = useCallback(async (fullRow: IActuacionListItem) => {
     if (pendingType !== "domicilios") return;
@@ -377,6 +393,9 @@ const ActuacionesContainer = (): JSX.Element => {
                   numeroHeader="Número/Esquina"
                   numeroEditorLabel="Número/Esquina"
                   onBeforeSave={handleBeforeSavePendiente}
+                  readOnlyColumns={pendingType === "domicilios" ? ["orden_trabajo_numero", "fecha_actuacion"] : []}
+                  numeroCallesOptions={callesCatalogo.map((c) => c.nombre)}
+                  numeroAllowFreeSolo
                 />
               </>
             )}

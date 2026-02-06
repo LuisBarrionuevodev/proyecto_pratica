@@ -131,12 +131,6 @@ const RelevamientosContainer = (): JSX.Element => {
 
   const pendingExtraColumns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => [
     {
-      accessorKey: "calle_ingresada",
-      header: "Calle ingresada",
-      size: 200,
-      enableEditing: false,
-    },
-    {
       accessorKey: "calle_catalogo_id",
       header: "Calle catálogo",
       size: 240,
@@ -147,9 +141,9 @@ const RelevamientosContainer = (): JSX.Element => {
         return match ? match.nombre : "";
       },
       Edit: ({ row }) => {
-        const currentValue = (row as any)?._valuesCache?.calle_catalogo_id ?? row.original.calle_catalogo_id;
-        const currentOption =
-          callesCatalogo.find((opt) => opt.id === currentValue) || null;
+        const currentValue =
+          (row as any)?._valuesCache?.calle_catalogo_id ?? row.original.calle_catalogo_id;
+        const currentOption = callesCatalogo.find((opt) => opt.id === currentValue) || null;
 
         return (
           <Autocomplete
@@ -167,11 +161,7 @@ const RelevamientosContainer = (): JSX.Element => {
               };
             }}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Calle catálogo"
-                variant="outlined"
-              />
+              <TextField {...params} label="Calle catálogo" variant="outlined" />
             )}
           />
         );
@@ -180,10 +170,13 @@ const RelevamientosContainer = (): JSX.Element => {
   ], [callesCatalogo, callesLoading, handleSearchCalles]);
 
   const pendingColumnVisibility = useMemo(() => ({
+    fecha: true,
     calle: true,
     numero: true,
-    calle_ingresada: true,
     calle_catalogo_id: true,
+    inspector: false,
+    rubro: false,
+    contraproducencia: false,
   }), []);
 
   const handleBeforeSavePendiente = useCallback(async (fullRow: IRelevamientoListItem) => {
@@ -346,6 +339,9 @@ const RelevamientosContainer = (): JSX.Element => {
                   numeroHeader="Número/Esquina"
                   numeroEditorLabel="Número/Esquina"
                   onBeforeSave={handleBeforeSavePendiente}
+                  readOnlyColumns={["fecha"]}
+                  numeroCallesOptions={callesCatalogo.map((c) => c.nombre)}
+                  numeroAllowFreeSolo
                 />
               </>
             )}

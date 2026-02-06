@@ -6,6 +6,9 @@ from typing import Dict
 from app.database import db
 from app.models import CalleCatalogo
 from app.domains.geolocalizacion.normalizacion_calles.repos.domicilio_repo import get_domicilio
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    on_domicilio_changed,
+)
 
 
 def set_calle_canon(domicilio_id: int, calle_catalogo_id: int) -> Dict[str, object]:
@@ -29,6 +32,11 @@ def set_calle_canon(domicilio_id: int, calle_catalogo_id: int) -> Dict[str, obje
 
     db.session.add(dom)
     db.session.commit()
+
+    try:
+        on_domicilio_changed(dom.id)
+    except Exception:
+        pass
 
     return {
         "ok": True,

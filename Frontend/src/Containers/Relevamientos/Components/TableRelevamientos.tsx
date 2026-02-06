@@ -33,6 +33,9 @@ interface TablaRelevamientosProps {
   extraColumns?: MRT_ColumnDef<IRelevamientoListItem>[];
   onBeforeSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
   onAfterSave?: (fullRow: IRelevamientoListItem) => Promise<void>;
+  readOnlyColumns?: string[];
+  numeroCallesOptions?: string[];
+  numeroAllowFreeSolo?: boolean;
 }
 
 const ERROR_KEY_MAP: Record<string, string> = {
@@ -69,6 +72,9 @@ const TablaRelevamientos = ({
   extraColumns = [],
   onBeforeSave,
   onAfterSave,
+  readOnlyColumns = [],
+  numeroCallesOptions,
+  numeroAllowFreeSolo = false,
 }: TablaRelevamientosProps) => {
   const [data, setData] = useState<IRelevamientoListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -77,7 +83,11 @@ const TablaRelevamientos = ({
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
-  const { calles: callesCatalogo } = useCallesCatalogo();
+  const { calles: callesCatalogoHook } = useCallesCatalogo();
+  const callesCatalogo = useMemo(() => {
+    const merged = [...callesCatalogoHook, ...(numeroCallesOptions || [])];
+    return Array.from(new Set(merged));
+  }, [callesCatalogoHook, numeroCallesOptions]);
 
   useEffect(() => {
     if (externalData) setData(externalData);
@@ -192,6 +202,7 @@ const TablaRelevamientos = ({
       accessorKey: "fecha",
       header: "Fecha",
       size: 120,
+      enableEditing: !readOnlyColumns.includes("fecha"),
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["fecha"];
@@ -233,10 +244,9 @@ const TablaRelevamientos = ({
       Cell: ({ row }) => {
         if (
           row.original.numero_tipo === "ESQUINA" &&
-          row.original.esquina_status === "OK" &&
-          row.original.esquina_normalizada
+          (row.original.numero_esquina || row.original.esquina_normalizada)
         ) {
-          return row.original.esquina_normalizada;
+          return row.original.numero_esquina || row.original.esquina_normalizada || "";
         }
         return row.original.numero ?? "";
       },
@@ -265,6 +275,8 @@ const TablaRelevamientos = ({
             label={numeroEditorLabel}
             error={!!err}
             helperText={err ?? ""}
+            allowFreeSolo={numeroAllowFreeSolo}
+            initialMode={(row.original as any).numero_tipo || undefined}
           />
         );
       },

@@ -5,8 +5,8 @@ from typing import Dict
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio,
 )
-from app.domains.geolocalizacion.geocoding.services.geocode_service import (
-    geocode_domicilio,
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    on_domicilio_changed,
 )
 
 
@@ -27,7 +27,7 @@ def pipeline_post_commit(domicilio_id: int) -> Dict[str, object]:
         return result
 
     try:
-        geo = geocode_domicilio(domicilio_id)
+        geo = on_domicilio_changed(domicilio_id)
         result["geocode"] = geo
     except Exception as exc:  # noqa: BLE001
         result["geocode_error"] = str(exc)

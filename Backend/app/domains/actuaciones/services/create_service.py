@@ -22,8 +22,8 @@ from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_tra
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
-from app.domains.geolocalizacion.geocoding.services.geocode_service import (
-    geocode_domicilio,
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    on_domicilio_changed,
 )
 
 
@@ -115,7 +115,7 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     # Best-effort geocode (no bloquea la creación)
     try:
         if act.domicilio_id:
-            geocode_domicilio(act.domicilio_id)
+            on_domicilio_changed(act.domicilio_id)
     except Exception:
         pass
     return act
