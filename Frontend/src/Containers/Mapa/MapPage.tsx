@@ -445,8 +445,8 @@ const MapPage = () => {
         {activeTab !== "pendientes" && (
           <MapContainer center={defaultCenter} zoom={12} style={{ height: "75vh", width: "100%" }}>
             <TileLayer
-              attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
           <MapCenter center={center} />
           <MapClickHandler
@@ -534,8 +534,8 @@ const MapPage = () => {
 
             <MapContainer center={defaultCenter} zoom={13} style={{ height: "75vh", width: "100%" }}>
               <TileLayer
-                attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; OpenStreetMap contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MapCenter center={center} />
               <MapClickHandler
