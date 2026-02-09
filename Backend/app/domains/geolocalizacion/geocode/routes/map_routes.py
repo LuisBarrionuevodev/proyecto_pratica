@@ -9,6 +9,7 @@ from app.domains.geolocalizacion.geocode.services.map_service import (
     list_distritos_metric,
     list_pendientes,
     get_details,
+    save_manual_geocode,
 )
 
 from . import geolocalizacion_map
@@ -115,8 +116,43 @@ def map_pendientes():
         desde=params.get("desde"),
         hasta=params.get("hasta"),
         scope=params.get("scope"),
+        kind=params.get("kind"),
     )
     return jsonify({"items": items}), 200
+
+
+@geolocalizacion_map.get("/api/map/pendientes")
+def map_pendientes_alias():
+    """
+    Alias para pendientes con prefijo /api.
+    """
+    return map_pendientes()
+
+
+@geolocalizacion_map.post("/api/map/geocode/manual")
+def map_geocode_manual():
+    """
+    Guarda un punto manual desde el mapa.
+    """
+    payload = request.get_json(silent=True) or {}
+    domicilio_id = payload.get("domicilio_id")
+    lat = payload.get("lat")
+    lng = payload.get("lng")
+    do_reverse = bool(payload.get("do_reverse", False))
+    if domicilio_id is None or lat is None or lng is None:
+        return jsonify({"detail": "domicilio_id, lat y lng son obligatorios"}), 400
+    try:
+        result = save_manual_geocode(
+            domicilio_id=int(domicilio_id),
+            lat=float(lat),
+            lng=float(lng),
+            do_reverse=do_reverse,
+        )
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify({"detail": str(exc)}), 404
+    except Exception as exc:
+        return jsonify({"detail": "Error interno", "error": str(exc)}), 500
 
 
 @geolocalizacion_map.get("/map/details/<int:domicilio_id>")

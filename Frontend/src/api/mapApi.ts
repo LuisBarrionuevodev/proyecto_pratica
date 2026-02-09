@@ -27,12 +27,20 @@ export interface PendingItem {
   domicilio_id: number;
   calle_raw: string | null;
   calle_normalizada: string | null;
+  calle_catalogo_id?: number | null;
   numero_raw: string | null;
+  numero?: string | null;
   numero_tipo: string | null;
+  esquina_catalogo_id?: number | null;
   esquina_normalizada: string | null;
   calle_status: string | null;
   esquina_status: string | null;
   geo_status: string | null;
+  score?: number | null;
+  quality?: string | null;
+  provider?: string | null;
+  source?: string | null;
+  addr_hash?: string | null;
   error_msg: string | null;
   lat: number | null;
   lng: number | null;
@@ -69,5 +77,15 @@ export const getMapPendientes = async (params?: Record<string, any>) => {
 
 export const getMapDetails = async (domicilioId: number, params?: Record<string, any>) => {
   const { data } = await apiClient.get(`/map/details/${domicilioId}`, { params });
+  return data;
+};
+
+export const saveManualGeocode = async (payload: {
+  domicilio_id: number;
+  lat: number;
+  lng: number;
+  do_reverse?: boolean;
+}) => {
+  const { data } = await apiClient.post("/api/map/geocode/manual", payload);
   return data;
 };

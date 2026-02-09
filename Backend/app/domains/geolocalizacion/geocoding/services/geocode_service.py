@@ -127,18 +127,25 @@ def _evaluate_geoapify(feature: dict) -> Dict[str, object]:
     lng = float(coords[0]) if len(coords) > 1 else None
     lat = float(coords[1]) if len(coords) > 1 else None
     result_type = str(props.get("result_type") or "")
+    housenumber = props.get("housenumber") or props.get("house_number")
     confidence = props.get("rank", {}).get("confidence")
-    status = "REVIEW" if result_type in {"city", "street", "district"} else "OK"
-    quality = result_type[:30] if result_type else None
-    score = confidence
+    is_building = bool(housenumber) or result_type in {"building", "house", "address"}
+    quality = "building" if is_building else (result_type[:30] if result_type else None)
+    score = float(confidence) if confidence is not None else None
 
     return {
-        "status": status,
         "lat": lat,
         "lng": lng,
         "quality": quality,
         "score": score,
     }
+
+
+def _is_accepted(quality: Optional[str], score: Optional[float]) -> bool:
+    try:
+        return quality == "building" and score is not None and float(score) >= 0.95
+    except Exception:
+        return False
 
 
 def _evaluate_nominatim(item: dict) -> Dict[str, object]:
@@ -258,13 +265,19 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
             else:
                 item = results[0]
                 evaluated = _evaluate_nominatim(item)
-                geo.geo_status = "REVIEW" if used_fallback else evaluated["status"]
                 geo.lat = evaluated["lat"]
                 geo.lng = evaluated["lng"]
                 geo.quality = evaluated["quality"]
                 geo.score = evaluated["score"]
                 geo.error_msg = None
                 geo.raw_json = item
+                if geo.lat is not None and geo.lng is not None:
+                    if used_fallback:
+                        geo.geo_status = "GEO_PENDING"
+                    else:
+                        geo.geo_status = "OK" if _is_accepted(geo.quality, geo.score) else "GEO_PENDING"
+                else:
+                    geo.geo_status = "GEO_PENDING"
         else:
             response = _request_geoapify(query)
             features = response.get("features") or []
@@ -285,14 +298,19 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
             else:
                 feature = features[0]
                 evaluated = _evaluate_geoapify(feature)
-                # Si llegó por fallback, degradamos a REVIEW para evitar falso OK
-                geo.geo_status = "REVIEW" if used_fallback else evaluated["status"]
                 geo.lat = evaluated["lat"]
                 geo.lng = evaluated["lng"]
                 geo.quality = evaluated["quality"]
                 geo.score = evaluated["score"]
                 geo.error_msg = None
                 geo.raw_json = feature
+                if geo.lat is not None and geo.lng is not None:
+                    if used_fallback:
+                        geo.geo_status = "GEO_PENDING"
+                    else:
+                        geo.geo_status = "OK" if _is_accepted(geo.quality, geo.score) else "GEO_PENDING"
+                else:
+                    geo.geo_status = "GEO_PENDING"
     except Exception as exc:  # noqa: BLE001 - se reporta como ERROR
         geo.geo_status = "ERROR"
         geo.lat = None
@@ -302,7 +320,7 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
         geo.error_msg = str(exc)[:255]
         geo.raw_json = None
 
-    if geo.geo_status in {"OK", "REVIEW"} and geo.lat is not None and geo.lng is not None:
+    if geo.geo_status == "OK" and geo.lat is not None and geo.lng is not None:
         try:
             from app.domains.geolocalizacion.geocode.services.distritos_service import (
                 resolve_distrito_id,
@@ -316,7 +334,7 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
     db.session.commit()
 
     return {
-        "ok": geo.geo_status in {"OK", "REVIEW"},
+        "ok": geo.geo_status == "OK",
         "domicilio_id": domicilio_id,
         "geo_status": geo.geo_status,
         "lat": float(geo.lat) if geo.lat is not None else None,

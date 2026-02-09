@@ -92,10 +92,10 @@ def run_geocode_if_ready(domicilio_id: int) -> Dict[str, object]:
         raise ValueError("Domicilio no encontrado.")
     geo = ensure_geocode_row(domicilio_id)
     if not is_ready_for_geocode(dom):
-        geo.geo_status = "REVIEW"
+        geo.geo_status = "NORM_PENDING"
         db.session.add(geo)
         db.session.commit()
-        return {"ok": False, "geo_status": "REVIEW", "domicilio_id": domicilio_id}
+        return {"ok": False, "geo_status": "NORM_PENDING", "domicilio_id": domicilio_id}
     return geocode_domicilio(domicilio_id)
 
 

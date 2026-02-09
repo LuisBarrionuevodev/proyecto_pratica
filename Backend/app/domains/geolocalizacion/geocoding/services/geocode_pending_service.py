@@ -36,9 +36,12 @@ def list_pendientes_geocode(limit: int = 200) -> List[Domicilio]:
     Returns:
         Lista de domicilios candidatos a geocodificar.
     """
-    query = _base_pending_query().outerjoin(
-        DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id
-    ).filter(or_(DomicilioGeocode.domicilio_id.is_(None), DomicilioGeocode.geo_status != "OK"))
+    query = (
+        _base_pending_query()
+        .outerjoin(DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .filter(or_(DomicilioGeocode.domicilio_id.is_(None), DomicilioGeocode.geo_status != "OK"))
+        .filter(or_(DomicilioGeocode.source.is_(None), DomicilioGeocode.source != "MANUAL"))
+    )
     return query.order_by(Domicilio.id.desc()).limit(limit).all()
 
 
@@ -56,7 +59,7 @@ def geocode_pendientes(limit: int = 200) -> Dict[str, int]:
     summary = {
         "processed": 0,
         "ok_count": 0,
-        "review_count": 0,
+        "geo_pending_count": 0,
         "no_match_count": 0,
         "error_count": 0,
     }
@@ -66,8 +69,8 @@ def geocode_pendientes(limit: int = 200) -> Dict[str, int]:
         status = result.get("geo_status") or result.get("status")
         if status == "OK":
             summary["ok_count"] += 1
-        elif status == "REVIEW":
-            summary["review_count"] += 1
+        elif status in {"GEO_PENDING", "PENDING", "REVIEW"}:
+            summary["geo_pending_count"] += 1
         elif status == "NO_MATCH":
             summary["no_match_count"] += 1
         elif status == "ERROR":

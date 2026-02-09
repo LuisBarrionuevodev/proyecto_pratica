@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy import and_, func, or_
 
 from app.database import db
+from datetime import datetime
 from app.models import (
     Actuaciones,
     Domicilio,
@@ -16,6 +17,13 @@ from app.models import (
     Inspector,
 )
 from app.models.actuaciones_inspector import actuaciones_inspector
+from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
+    get_or_create_geocode,
+)
+from app.domains.geolocalizacion.geocoding.services.reverse_geocode_service import (
+    reverse_geocode,
+)
+from app.domains.geolocalizacion.geocode.services.distritos_service import resolve_distrito_id
 
 
 def _parse_date(value: Optional[str]) -> Optional[date]:
@@ -342,6 +350,55 @@ def get_details(
     }
 
 
+def save_manual_geocode(
+    domicilio_id: int,
+    lat: float,
+    lng: float,
+    do_reverse: bool = False,
+) -> Dict[str, object]:
+    """
+    Guarda geolocalización manual desde mapa y opcionalmente reverse.
+
+    Args:
+        domicilio_id: id del domicilio.
+        lat: latitud.
+        lng: longitud.
+        do_reverse: si True, ejecuta reverse geocode.
+
+    Returns:
+        Dict con ok y domicilio_id.
+
+    Raises:
+        ValueError: si no existe domicilio.
+    """
+    dom = Domicilio.query.get(domicilio_id)
+    if not dom:
+        raise ValueError("Domicilio no encontrado.")
+
+    geo = get_or_create_geocode(domicilio_id)
+    geo.lat = lat
+    geo.lng = lng
+    geo.geo_status = "OK"
+    geo.source = "MANUAL"
+    geo.provider = geo.provider or "manual"
+    geo.checked_at = datetime.utcnow()
+    geo.error_msg = None
+
+    if do_reverse:
+        rev = reverse_geocode(lat, lng)
+        geo.raw_json = {"manual": True, "reverse": rev}
+
+    try:
+        dom.distrito_id = resolve_distrito_id(float(lat), float(lng))
+        db.session.add(dom)
+    except Exception:
+        pass
+
+    db.session.add(geo)
+    db.session.commit()
+    return {"ok": True, "domicilio_id": domicilio_id}
+
+
 def list_heatmap(
     desde: Optional[str] = None,
     hasta: Optional[str] = None,
@@ -385,6 +442,7 @@ def list_pendientes(
     desde: Optional[str] = None,
     hasta: Optional[str] = None,
     scope: Optional[str] = None,
+    kind: Optional[str] = None,
 ) -> List[Dict[str, object]]:
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
@@ -415,6 +473,11 @@ def list_pendientes(
             DomicilioGeocode.error_msg,
             DomicilioGeocode.lat,
             DomicilioGeocode.lng,
+            DomicilioGeocode.score,
+            DomicilioGeocode.quality,
+            DomicilioGeocode.provider,
+            DomicilioGeocode.source,
+            DomicilioGeocode.addr_hash,
             act_subq.c.last_act_id,
             act_subq.c.act_count,
             rel_subq.c.last_rel_id,
@@ -433,16 +496,32 @@ def list_pendientes(
             Domicilio.numero_tipo == "ESQUINA",
             or_(Domicilio.esquina_norm_status.is_(None), Domicilio.esquina_norm_status != "OK"),
         ),
+        and_(
+            or_(Domicilio.numero_tipo.is_(None), Domicilio.numero_tipo != "ESQUINA"),
+            or_(Domicilio.numero.is_(None), Domicilio.numero == ""),
+        ),
     )
-    geo_pending = or_(
-        DomicilioGeocode.domicilio_id.is_(None),
-        DomicilioGeocode.geo_status != "OK",
+
+    map_pending = and_(
+        ~norm_pending,
+        or_(
+            DomicilioGeocode.domicilio_id.is_(None),
+            DomicilioGeocode.geo_status.in_(
+                ["PENDING", "GEO_PENDING", "NO_MATCH", "ERROR", "REVIEW"]
+            ),
+            DomicilioGeocode.lat.is_(None),
+            DomicilioGeocode.lng.is_(None),
+            and_(DomicilioGeocode.score.isnot(None), DomicilioGeocode.score < 0.95),
+            and_(DomicilioGeocode.quality.isnot(None), DomicilioGeocode.quality != "building"),
+        ),
     )
-    latlon_pending = or_(
-        DomicilioGeocode.lat.is_(None),
-        DomicilioGeocode.lng.is_(None),
-    )
-    q = q.filter(or_(norm_pending, geo_pending, latlon_pending))
+
+    if kind == "norm":
+        q = q.filter(norm_pending)
+    elif kind == "map":
+        q = q.filter(map_pending)
+    else:
+        q = q.filter(or_(norm_pending, map_pending))
 
     if scope in {"actuaciones", "relevamientos"}:
         if scope == "actuaciones":
@@ -451,18 +530,41 @@ def list_pendientes(
             q = q.filter(rel_subq.c.last_rel_id.isnot(None))
 
     results = []
-    for dom, geo_status, error_msg, lat, lng, last_act_id, act_count, last_rel_id, rel_count in q.all():
+    for (
+        dom,
+        geo_status,
+        error_msg,
+        lat,
+        lng,
+        score,
+        quality,
+        provider,
+        source,
+        addr_hash,
+        last_act_id,
+        act_count,
+        last_rel_id,
+        rel_count,
+    ) in q.all():
         results.append(
             {
                 "domicilio_id": dom.id,
                 "calle_raw": dom.calle,
                 "calle_normalizada": dom.calle_normalizada,
+                "calle_catalogo_id": dom.calle_catalogo_id,
                 "numero_raw": dom.numero,
+                "numero": dom.numero,
                 "numero_tipo": dom.numero_tipo,
+                "esquina_catalogo_id": dom.esquina_catalogo_id,
                 "esquina_normalizada": dom.esquina_normalizada,
                 "calle_status": dom.calle_norm_status,
                 "esquina_status": dom.esquina_norm_status,
                 "geo_status": geo_status,
+                "score": float(score) if score is not None else None,
+                "quality": quality,
+                "provider": provider,
+                "source": source,
+                "addr_hash": addr_hash,
                 "error_msg": error_msg,
                 "lat": float(lat) if lat is not None else None,
                 "lng": float(lng) if lng is not None else None,

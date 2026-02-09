@@ -13,7 +13,16 @@ class DomicilioGeocode(db.Model):
     lat = db.Column(db.Numeric(10, 7), nullable=True)
     lng = db.Column(db.Numeric(10, 7), nullable=True)
     geo_status = db.Column(
-        db.Enum("PENDING", "OK", "REVIEW", "NO_MATCH", "ERROR", name="domicilio_geocode_status"),
+        db.Enum(
+            "PENDING",
+            "OK",
+            "REVIEW",
+            "NO_MATCH",
+            "ERROR",
+            "NORM_PENDING",
+            "GEO_PENDING",
+            name="domicilio_geocode_status",
+        ),
         nullable=False,
         default="PENDING",
         index=True,
