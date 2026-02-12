@@ -116,3 +116,51 @@ Entidades principales:
 cd frontend
 npm install
 npm run dev
+```
+
+### Backend (Windows)
+```powershell
+cd Backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Variables minimas (ejemplo):
+- `DATABASE_URL=mysql+pymysql://user:pass@localhost:3306/digitaliza`
+
+Setup rapido (migraciones + upgrade + import CSV):
+```powershell
+python run.py setup --csv .\app\domains\geolocalizacion\normalizacion_calles\data\calles_normalizadas.csv --message "auto migration"
+```
+
+Levantar server:
+```powershell
+python run.py
+```
+
+### Backend (Linux/Mac)
+```bash
+cd Backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Variables minimas (ejemplo):
+- `DATABASE_URL=mysql+pymysql://user:pass@localhost:3306/digitaliza`
+
+Setup rapido (migraciones + upgrade + import CSV):
+```bash
+python run.py setup --csv ./app/domains/geolocalizacion/normalizacion_calles/data/calles_normalizadas.csv --message "auto migration"
+```
+
+Levantar server:
+```bash
+python run.py
+```
+
+Notas:
+- Si ya existe `migrations/`, el setup no ejecuta `flask db init`.
+- Si no hay cambios de modelos, `migrate` puede generar migracion vacia (usa `--no-migrate` si queres omitir).
+- Si falla por GeoAlchemy2: `pip install geoalchemy2`.
