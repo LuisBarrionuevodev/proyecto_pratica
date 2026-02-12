@@ -1,9 +1,12 @@
 import logging
 from logging.config import fileConfig
 
+import geoalchemy2  # noqa: F401
 from flask import current_app
 
 from alembic import context
+from app.database import db
+from migrations import renderers  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -38,6 +41,7 @@ def get_engine_url():
 # target_metadata = mymodel.Base.metadata
 config.set_main_option('sqlalchemy.url', get_engine_url())
 target_db = current_app.extensions['migrate'].db
+target_metadata = db.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -48,7 +52,7 @@ target_db = current_app.extensions['migrate'].db
 def get_metadata():
     if hasattr(target_db, 'metadatas'):
         return target_db.metadatas[None]
-    return target_db.metadata
+    return target_metadata
 
 
 def run_migrations_offline():
@@ -65,7 +69,10 @@ def run_migrations_offline():
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url, target_metadata=get_metadata(), literal_binds=True
+        url=url,
+        target_metadata=get_metadata(),
+        literal_binds=True,
+        compare_type=True,
     )
 
     with context.begin_transaction():
@@ -90,9 +97,22 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
+    def render_item(type_, obj, autogen_context):
+        if type_ == "type" and isinstance(
+            obj,
+            (geoalchemy2.types.Geometry, geoalchemy2.types.Geography),
+        ):
+            autogen_context.imports.add("import geoalchemy2")
+            return False
+        return False
+
     conf_args = current_app.extensions['migrate'].configure_args
     if conf_args.get("process_revision_directives") is None:
         conf_args["process_revision_directives"] = process_revision_directives
+    if conf_args.get("compare_type") is None:
+        conf_args["compare_type"] = True
+    if conf_args.get("render_item") is None:
+        conf_args["render_item"] = render_item
 
     connectable = get_engine()
 
