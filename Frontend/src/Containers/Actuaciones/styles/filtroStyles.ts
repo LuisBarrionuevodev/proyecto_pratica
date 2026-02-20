@@ -72,7 +72,7 @@ export const filtroItemStyles: SxProps<Theme> = {
         backgroundColor: COLORS.rowOdd,
         color: COLORS.white,
         fontFamily: '"Tactic Sans", sans-serif',
-        borderRadius: "6px",
+        borderRadius: 3,
         "& input": { 
             color: COLORS.white,
             "&::placeholder": { color: "#999", opacity: 1 },

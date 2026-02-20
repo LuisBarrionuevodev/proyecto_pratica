@@ -1,0 +1,1 @@
+export type Periodo = "Semanal" | "Mensual" | "Trimestral" | "Anual";

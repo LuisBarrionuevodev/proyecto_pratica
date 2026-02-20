@@ -58,6 +58,7 @@ export const InputStyles = {
             opacity: 0,
             transition: "opacity 0.3s ease-in-out",
             zIndex: 1,
+            pointerEvents: "none",
         },
 
         '&.Mui-focused': {
