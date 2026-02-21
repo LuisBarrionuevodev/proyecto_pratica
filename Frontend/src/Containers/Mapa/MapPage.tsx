@@ -42,6 +42,7 @@ import { usePendientes } from "./hooks/usePendientes";
 import { useCallesCatalogoOptions } from "./hooks/useCallesCatalogoOptions";
 import { useUpdateDomicilio } from "./hooks/useUpdateDomicilio";
 import { useSaveManualPoint } from "./hooks/useSaveManualPoint";
+import { filtroItemStyles } from "../Actuaciones/styles/filtroStyles";
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
 
@@ -346,14 +347,14 @@ const MapPage = () => {
   });
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", width: "100%" }}>
-      <Box sx={{ flex: 1 }}>
-        <Paper sx={{ p: 1, mb: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+    <Box sx={{ display: "flex", alignItems: "center", height: { xl: "850px" }, width: "93vw", mr: "10px", ml: "10px", }}>
+      <Box flex={1}>
+        <Paper sx={{ p: 1, mb: 1, display: "flex", bgcolor: "#2B2E34", gap: 2, flexWrap: "wrap" , alignItems:"center"}}>
           <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)}>
-            <Tab label="Puntos" value="puntos" />
-            <Tab label="Heatmap" value="heatmap" />
-            <Tab label="Distritos" value="distritos" />
-            <Tab label="Pendientes" value="pendientes" />
+            <Tab sx={{ color: "white" }} label="Puntos" value="puntos" />
+            <Tab sx={{ color: "white" }} label="Heatmap" value="heatmap" />
+            <Tab sx={{ color: "white" }} label="Distritos" value="distritos" />
+            <Tab sx={{ color: "white" }} label="Pendientes" value="pendientes" />
           </Tabs>
           {activeTab === "pendientes" && pendientesView === "manual" && (
             <Typography variant="subtitle2" sx={{ alignSelf: "center" }}>
@@ -363,30 +364,30 @@ const MapPage = () => {
 
           {activeTab !== "pendientes" && (
             <>
-              <TextField size="small" type="date" label="Desde" value={desde} onChange={(e) => setDesde(e.target.value)} />
-              <TextField size="small" type="date" label="Hasta" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+              <TextField sx={filtroItemStyles} size="small" type="date" label="Desde" value={desde} onChange={(e) => setDesde(e.target.value)} />
+              <TextField sx={filtroItemStyles} size="small" type="date" label="Hasta" value={hasta} onChange={(e) => setHasta(e.target.value)} />
 
-              <Select size="small" value={tipo} onChange={(e) => setTipo(e.target.value)} displayEmpty>
-                <MenuItem value="">Tipo (todos)</MenuItem>
+              <Select sx={{ color: "white" }} size="small" value={tipo} onChange={(e) => setTipo(e.target.value)} displayEmpty>
+                <MenuItem sx={{ color: "black" }} value="">Tipo (todos)</MenuItem>
                 {tipos.map((t) => (
-                  <MenuItem key={t} value={t}>{t}</MenuItem>
+                  <MenuItem sx={{ color: "black" }} key={t} value={t}>{t}</MenuItem>
                 ))}
               </Select>
 
-              <Select size="small" value={rubro} onChange={(e) => setRubro(e.target.value)} displayEmpty>
-                <MenuItem value="">Rubro (todos)</MenuItem>
+              <Select sx={{ color: "white" }} size="small" value={rubro} onChange={(e) => setRubro(e.target.value)} displayEmpty>
+                <MenuItem sx={{ color: "black" }} value="">Rubro (todos)</MenuItem>
                 {rubros.map((r) => (
-                  <MenuItem key={r.id} value={r.nombre}>{r.nombre}</MenuItem>
+                  <MenuItem sx={{ color: "black" }} key={r.id} value={r.nombre}>{r.nombre}</MenuItem>
                 ))}
               </Select>
 
-              <TextField size="small" label="Distrito ID" value={distritoId} onChange={(e) => setDistritoId(e.target.value)} />
+              <TextField sx={{ color: "white" }} size="small" label="Distrito ID" value={distritoId} onChange={(e) => setDistritoId(e.target.value)} />
 
-              <Select size="small" value={origin} onChange={(e) => setOrigin(e.target.value)} displayEmpty>
-                <MenuItem value="all">Origen: todos</MenuItem>
-                <MenuItem value="actuaciones">Solo actuaciones</MenuItem>
-                <MenuItem value="relevamientos">Solo relevamientos</MenuItem>
-                <MenuItem value="both">Ambos</MenuItem>
+              <Select sx={{ color: "white" }} size="small" value={origin} onChange={(e) => setOrigin(e.target.value)} displayEmpty>
+                <MenuItem sx={{ color: "black" }} value="all">Origen: todos</MenuItem>
+                <MenuItem sx={{ color: "black" }} value="actuaciones">Solo actuaciones</MenuItem>
+                <MenuItem sx={{ color: "black" }} value="relevamientos">Solo relevamientos</MenuItem>
+                <MenuItem sx={{ color: "black" }} value="both">Ambos</MenuItem>
               </Select>
             </>
           )}
@@ -397,14 +398,14 @@ const MapPage = () => {
         </Paper>
 
         {activeTab === "pendientes" && (
-          <Box sx={{ p: 1 }}>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
-              <TextField size="small" type="date" label="Desde" value={desde} onChange={(e) => setDesde(e.target.value)} />
-              <TextField size="small" type="date" label="Hasta" value={hasta} onChange={(e) => setHasta(e.target.value)} />
-              <Select size="small" value={scope} onChange={(e) => setScope(e.target.value)} displayEmpty>
-                <MenuItem value="all">Scope: all</MenuItem>
-                <MenuItem value="actuaciones">Actuaciones</MenuItem>
-                <MenuItem value="relevamientos">Relevamientos</MenuItem>
+          <Box>
+            <Box sx={{ p:1, bgcolor: "#2B2E34", display: "flex", gap: 1, flexWrap: "wrap", mb: 2, alignItems:"center"}}>
+              <TextField sx={filtroItemStyles} size="small" type="date" label="Desde" value={desde} onChange={(e) => setDesde(e.target.value)} />
+              <TextField sx={filtroItemStyles} size="small" type="date" label="Hasta" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+              <Select sx={{ color: "white" }} size="small" value={scope} onChange={(e) => setScope(e.target.value)} displayEmpty>
+                <MenuItem sx={{ color: "black" }} value="all">Todos</MenuItem>
+                <MenuItem sx={{ color: "black" }} value="actuaciones">Actuaciones</MenuItem>
+                <MenuItem sx={{ color: "black" }} value="relevamientos">Relevamientos</MenuItem>
               </Select>
               <Button variant="contained" onClick={() => { refetchNorm(); refetchMap(); }}>
                 Filtrar
@@ -422,13 +423,17 @@ const MapPage = () => {
               >
                 Limpiar
               </Button>
+              <Box display={"flex"} >
+                <Tabs value={pendientesView} onChange={(_, v) => setPendientesView(v)}>
+                  <Tab sx={{ color: "white" }} label="Normalización manual" value="norm" />
+                  <Tab sx={{ color: "white" }} label="Pendientes en mapa" value="map" />
+                  {pendientesView === "manual" && <Tab label="Manual" value="manual" />}
+                </Tabs>
+              </Box>
+
             </Box>
 
-            <Tabs value={pendientesView} onChange={(_, v) => setPendientesView(v)}>
-              <Tab label="Normalización manual" value="norm" />
-              <Tab label="Pendientes en mapa" value="map" />
-              {pendientesView === "manual" && <Tab label="Manual" value="manual" />}
-            </Tabs>
+
 
             {pendientesView !== "manual" && (
               <Box sx={{ mt: 1 }}>
@@ -448,52 +453,52 @@ const MapPage = () => {
               attribution='&copy; OpenStreetMap contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-          <MapCenter center={center} />
-          <MapClickHandler
-            enabled={false}
-            onClick={(lat, lng) => setPin({ lat, lng })}
-          />
-
-          <GeoJSON
-            data={distritosGeo as any}
-            style={(feature: any) => {
-              const nombre = feature?.properties?.nombre;
-              const value = districtValues[nombre] || 0;
-              const intensity = Math.min(1, value / maxDistrictValue);
-              return {
-                color: "blue",
-                weight: 1,
-                fillOpacity: activeTab === "distritos" ? 0.1 + intensity * 0.4 : 0.05,
-              };
-            }}
-            onEachFeature={(f, layer) => {
-              layer.bindTooltip((f as any).properties?.nombre || "Distrito");
-            }}
-          />
-
-          {activeTab === "puntos" && points.map((f, idx) => (
-            <Marker
-              key={idx}
-              position={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
-              icon={pinIcon}
-            >
-              <Popup>
-                <div><strong>{f.properties?.has_act && f.properties?.has_rel ? "Ambos" : f.properties?.has_act ? "Actuación" : "Relevamiento"}</strong></div>
-                <div>Domicilio: {f.properties?.domicilio_id}</div>
-                <div>Actuaciones: {f.properties?.act_count}</div>
-                <div>Relevamientos: {f.properties?.rel_count}</div>
-              </Popup>
-            </Marker>
-          ))}
-
-          {activeTab === "heatmap" && heatmap.map((p, idx) => (
-            <CircleMarker
-              key={idx}
-              center={[p.lat, p.lng]}
-              radius={6}
-              pathOptions={{ color: "red", fillOpacity: 0.5 }}
+            <MapCenter center={center} />
+            <MapClickHandler
+              enabled={false}
+              onClick={(lat, lng) => setPin({ lat, lng })}
             />
-          ))}
+
+            <GeoJSON
+              data={distritosGeo as any}
+              style={(feature: any) => {
+                const nombre = feature?.properties?.nombre;
+                const value = districtValues[nombre] || 0;
+                const intensity = Math.min(1, value / maxDistrictValue);
+                return {
+                  color: "blue",
+                  weight: 1,
+                  fillOpacity: activeTab === "distritos" ? 0.1 + intensity * 0.4 : 0.05,
+                };
+              }}
+              onEachFeature={(f, layer) => {
+                layer.bindTooltip((f as any).properties?.nombre || "Distrito");
+              }}
+            />
+
+            {activeTab === "puntos" && points.map((f, idx) => (
+              <Marker
+                key={idx}
+                position={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
+                icon={pinIcon}
+              >
+                <Popup>
+                  <div><strong>{f.properties?.has_act && f.properties?.has_rel ? "Ambos" : f.properties?.has_act ? "Actuación" : "Relevamiento"}</strong></div>
+                  <div>Domicilio: {f.properties?.domicilio_id}</div>
+                  <div>Actuaciones: {f.properties?.act_count}</div>
+                  <div>Relevamientos: {f.properties?.rel_count}</div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {activeTab === "heatmap" && heatmap.map((p, idx) => (
+              <CircleMarker
+                key={idx}
+                center={[p.lat, p.lng]}
+                radius={6}
+                pathOptions={{ color: "red", fillOpacity: 0.5 }}
+              />
+            ))}
           </MapContainer>
         )}
 

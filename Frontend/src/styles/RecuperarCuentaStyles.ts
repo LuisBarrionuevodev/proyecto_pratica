@@ -67,8 +67,9 @@ export const BoxNuevaContraseñaStyles = {
 }
 
 export const ErrorTextRecuperarStyles = {
+    textAlign:"center",
     color: "red", 
-    fontSize: 14, 
+    fontSize: 15, 
     fontWeight: 500
 }
 
