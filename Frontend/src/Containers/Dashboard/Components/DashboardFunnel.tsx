@@ -1,34 +1,48 @@
-import { ResponsiveFunnel } from "@nivo/funnel";
 import { Box } from "@mui/material";
+import { BarChart } from "@mui/x-charts";
+import { ChartStyle } from "../../../styles/DashboardStyles";
 
-const data = [
-    { id: "Actuaciones", value: 1000 },
-    { id: "Inspecciones", value: 800 },
-    { id: "Notificaciones", value: 600 },
-    { id: "Clausuras", value: 400 },
-    { id: "Decomisos", value: 200 },
-];
 
-const FunnelChart = () => {
+const EfectivasInefectivasChart = () => {
+
+    const dataset = [
+        { tipo: "Efectivas", cantidad: 350 },
+        { tipo: "Inefectivas", cantidad: 222 },
+    ];
+
     return (
         <Box sx={{ height: 350 }}>
-            <ResponsiveFunnel
-                data={data}
-                margin={{ top: 30, right: 20, bottom: 20, left: 20 }}
-                valueFormat=">-.0f"
-                colors={{ scheme: "category10" }}
-                borderWidth={1}
-                borderColor="#fff"
-                labelColor="#333"
-                beforeSeparatorLength={30}
-                afterSeparatorLength={30}
-                beforeSeparatorOffset={15}
-                afterSeparatorOffset={15}
-                currentPartSizeExtension={10}
-                motionConfig="gentle"
+            <BarChart
+                sx={ChartStyle}
+                slotProps={{
+                    tooltip: {
+                        trigger: "item",
+                    },
+                }}
+                xAxis={[
+                    {
+                        scaleType: "band",
+                        data: ["Efectivas", "Inefectivas"],
+                    },
+                ]}
+                series={[
+                    {
+                        label: "Efectivas",
+                        data: [350],
+                        color: "#22BF75",
+                        stack: "total",
+                    },
+                    {
+                        label: "Inefectivas",
+                        data: [null, 222],
+                        color: "#FA4F58",
+                        stack: "total",
+                    },
+                ]}
+                height={350}
             />
         </Box>
     );
 };
 
-export default FunnelChart;
+export default EfectivasInefectivasChart;

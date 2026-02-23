@@ -23,6 +23,16 @@ const ActuacionesMensualesChart =  ({periodo}: Props) => {
           stack: "total",
         },
         {
+          label: "Decomiso",
+          data: [30, 40, 35, 50, 45, 60],
+          stack: "total",
+        },
+        {
+          label: "Comprobacion",
+          data: [30, 40, 35, 50, 45, 60],
+          stack: "total",
+        },
+        {
           label: "Notificaciones",
           data: [80, 70, 75, 90, 85, 95],
           stack: "total",

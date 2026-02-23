@@ -3,17 +3,17 @@ import { exportDashboardToExcel } from "../../../utils/exportExcelDashboard";
 import ActuacionesMensualesChart from "./DashboardActuacionMensual";
 import DecomisoMensualChart from "./DashboardDecomiso";
 import TopRubrosChart from "./DashboardTopRubros";
-import RankingInspectoresChart from "./DashboardInspectores";
+import RankingInspectoresChart, { type Inspector } from "./DashboardInspectores";
 import DistribucionTipoChart from "./DashboardDistribucion";
 import ComparacionTurnoChart from "./DashboardTurnos";
 import PipelineChart from "./DashboardEmbudo";
 import ChartCard from "./ChartCard";
-import FunnelChart from "./DashboardFunnel";
+import EfectivasInefectivasChart from "./DashboardFunnel";
 import KPI from "./DashboardKPI";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { useEffect, useState } from "react";
-
-type Periodo = "Semanal" | "Mensual" | "Trimestral" | "Anual";
+import type { Periodo } from "../../../types/periodos";
+import RankingInspectores from "./DashboardInspectores";
 
 const Panel = () => {
 
@@ -39,6 +39,28 @@ const Panel = () => {
     fetchDashboard();
   }, [periodo]);
 
+const inspectores: Inspector[] = [
+  { id: 1, nombre: "Gómez", inspecciones: 124 },
+  { id: 2, nombre: "Luna", inspecciones: 98 },
+  { id: 3, nombre: "Pérez", inspecciones: 156 },
+  { id: 4, nombre: "Sosa", inspecciones: 87 },
+  { id: 5, nombre: "Díaz", inspecciones: 142 },
+  { id: 6, nombre: "Romero", inspecciones: 110 },
+  { id: 7, nombre: "Torres", inspecciones: 76 },
+  { id: 8, nombre: "Rojas", inspecciones: 133 },
+  { id: 9, nombre: "Fernández", inspecciones: 123 },
+  { id: 10, nombre: "Gutiérrez", inspecciones: 52 },
+  { id: 11, nombre: "Martínez", inspecciones: 23 },
+  { id: 12, nombre: "Acosta", inspecciones: 41 },
+  { id: 13, nombre: "Benítez", inspecciones: 53 },
+  { id: 14, nombre: "Herrera", inspecciones: 26 },
+  { id: 15, nombre: "Silva", inspecciones: 22 },
+  { id: 16, nombre: "Molina", inspecciones: 11 },
+  { id: 17, nombre: "Castro", inspecciones: 64 },
+  { id: 18, nombre: "Vera", inspecciones: 22 },
+  { id: 19, nombre: "Navarro", inspecciones: 43 },
+  { id: 20, nombre: "Ibarra", inspecciones: 57 },
+];
 
   const tarjetasData = [
     { title: "Actuaciones", value: 120 },
@@ -77,7 +99,7 @@ const Panel = () => {
           borderRadius={3}
           height={{ xs: "auto", md: "50px" }}
         >
-          {["semanal", "mensual", "trimestral", "anual"].map((item) => (
+          {["Semanal", "Mensual", "Trimestral", "Anual"].map((item) => (
             <Button
               key={item}
               onClick={() => setPeriodo(item as Periodo)}
@@ -89,7 +111,6 @@ const Panel = () => {
                 borderRadius: 2,
                 
                 fontWeight: 500,
-                textTransform: "uppercase",
                 "&:hover": {
                   backgroundColor:
                     periodo === item ? "#fff" : "rgba(255,255,255,0.1)",
@@ -161,7 +182,7 @@ const Panel = () => {
 
       <Grid container spacing={3} >
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title={`Actuaciones ${periodo}`}>
+          <ChartCard title={`Actas Labradas ${periodo}`}>
             <ActuacionesMensualesChart
             periodo={periodo} />
           </ChartCard>
@@ -172,7 +193,7 @@ const Panel = () => {
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 7 }}>
-          <ChartCard title={`Top Rubros ${periodo}`}>
+          <ChartCard title={`Rubros con mas Notificaciones ${periodo}`}>
             <TopRubrosChart
              />
           </ChartCard>
@@ -182,24 +203,24 @@ const Panel = () => {
             <DistribucionTipoChart />
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <ChartCard title={`Ranking Inspectores ${periodo}`}>
-            <RankingInspectoresChart />
+            <RankingInspectores data={inspectores} />
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <ChartCard title={`Comparacion por Turno ${periodo}`}>
             <ComparacionTurnoChart />
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <ChartCard title="Funnel">
-            <FunnelChart />
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <ChartCard title="Resueltos por Expediente">
+            <PipelineChart />
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title="Pipeline">
-            <PipelineChart />
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <ChartCard title="Inspecciones Efectivas e Inefectivas">
+            <EfectivasInefectivasChart />
           </ChartCard>
         </Grid>
       </Grid>

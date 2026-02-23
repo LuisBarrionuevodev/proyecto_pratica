@@ -1,29 +1,72 @@
-import { BarChart } from "@mui/x-charts";
-import { ChartStyle } from "../../../styles/DashboardStyles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
+import { useMemo } from "react";
+import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 
-const RankingInspectoresChart = () => {
-  const inspectores = [
-    "Castro",
-    "Diaz",
-    "Gomez",
-    "Ricciuti",
-  ];
+export type Inspector = {
+  id: number;
+  nombre: string;
+  inspecciones: number;
+};
 
-  return (
-    <BarChart
-      layout="horizontal"
-      yAxis={[{ scaleType: "band", data: inspectores, width:50 }]}
-      series={[
-        {
-          color:"#0166FF",
-          data: [150, 120, 95, 80],
-          label: "Actuaciones",
-        },
-      ]}
-      height={350}
-      sx={ChartStyle}
-    />
+type Props = {
+  data: Inspector[];
+};
+
+const RankingInspectores = ({ data }: Props) => {
+  // Ordenar y agregar posición
+  const ranking = useMemo(() => {
+    return [...data]
+      .sort((a, b) => b.inspecciones - a.inspecciones)
+      .map((item, index) => ({
+        ...item,
+        posicion: index + 1,
+      }));
+  }, [data]);
+
+  const columns = useMemo<MRT_ColumnDef<typeof ranking[0]>[]>(
+    () => [
+      {
+        accessorKey: "posicion",
+        header: "#",
+        size: 10,
+      },
+      {
+        accessorKey: "nombre",
+        header: "Inspector",
+      },
+      {
+        accessorKey: "inspecciones",
+        header: "Inspecciones",
+      },
+    ],
+    []
   );
-}
 
-export default RankingInspectoresChart;
+  const table = useMaterialReactTable({
+    columns,
+    data: ranking,
+    ...DARK_TABLE_CONFIG,
+    enableEditing: false,
+    enableRowSelection: false,
+    enableSelectAll: false,
+    enableColumnFilters: false,
+    enableGlobalFilter: false,
+    enableSorting: false,
+    enableTopToolbar: false,
+    enableBottomToolbar: true,
+     muiTableContainerProps: {
+    sx: {
+      maxHeight: 350,
+      minHeight: 300,
+    },
+  },
+  });
+
+  return <MaterialReactTable table={table} />;
+};
+
+export default RankingInspectores;

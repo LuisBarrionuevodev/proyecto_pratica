@@ -12,7 +12,7 @@ const ComparacionTurnoChart = () => {
           data: [200, 300,],
         },
       ]}
-      height={300}
+      height={350}
         sx={ChartStyle}
     />
   );

@@ -20,10 +20,10 @@ interface KPIProps {
 const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
 
     const labelPeriodo = {
-        semanal: "Semana",
-        mensual: "Mes",
-        trimestral: "Trimestre",
-        anual: "Año",
+        Semanal: "Semana",
+        Mensual: "Mes",
+        Trimestral: "Trimestre",
+        Anual: "Año",
     };
 
     const isPositive = percentage >= 0;

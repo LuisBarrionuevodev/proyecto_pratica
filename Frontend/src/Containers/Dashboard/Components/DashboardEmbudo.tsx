@@ -3,22 +3,17 @@ import { ChartStyle } from "../../../styles/DashboardStyles";
 
 const PipelineChart = () => {
   const etapas = [
-    "Actuaciones",
-    "Inspecciones",
+    "Oficios",
     "Notificaciones",
-    "Comprobaciones",
-    "Clausuras",
-    "Decomisos",
   ];
 
   return (
     <BarChart
-      layout="horizontal"
-      yAxis={[{ scaleType: "band", data: etapas }]}
+      xAxis={[{ scaleType: "band", data: etapas }]}
       series={[
         {
           color:"#0166FF",
-          data: [1000, 800, 650, 500, 300, 150],
+          data: [600, 400],
           label: "Cantidad",
         },
       ]}
