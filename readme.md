@@ -124,12 +124,8 @@ cd Backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-Variables minimas (ejemplo):
-- `DATABASE_URL=mysql+pymysql://user:pass@localhost:3306/digitaliza`
-
-Setup rapido (migraciones + upgrade + import CSV):
+```Variables minimas (ejemplo):
+- `DATABASE_URL=mysql+pymysql://user:pass@localhost:3306/digitaliza`Setup rapido (migraciones + upgrade + import CSV):
 ```powershell
 python run.py setup --csv .\app\domains\geolocalizacion\normalizacion_calles\data\calles_normalizadas.csv --message "auto migration"
 ```
