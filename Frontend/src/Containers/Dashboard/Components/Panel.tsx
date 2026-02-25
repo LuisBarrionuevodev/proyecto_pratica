@@ -3,7 +3,7 @@ import { exportDashboardToExcel } from "../../../utils/exportExcelDashboard";
 import ActuacionesMensualesChart from "./DashboardActuacionMensual";
 import DecomisoMensualChart from "./DashboardDecomiso";
 import TopRubrosChart from "./DashboardTopRubros";
-import RankingInspectoresChart, { type Inspector } from "./DashboardInspectores";
+import { type Inspector } from "./DashboardInspectores";
 import DistribucionTipoChart from "./DashboardDistribucion";
 import ComparacionTurnoChart from "./DashboardTurnos";
 import PipelineChart from "./DashboardEmbudo";

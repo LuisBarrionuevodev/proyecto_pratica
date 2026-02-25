@@ -1,106 +1,180 @@
-import { Box, Typography, Avatar } from "@mui/material";
-import FotoAvatar from "../../../assets/FotoAvatar.png";
+import { useState } from "react";
+import {
+    Box,
+    Typography,
+    Avatar,
+    Popover,
+    IconButton,
+    TextField,
+} from "@mui/material";
 import VerifiedIcon from "@mui/icons-material/Verified";
+import EditIcon from "@mui/icons-material/Edit";
+import { AvatarPerfilStye, BoxPerfilStyle, EditNombreStyle, InfoPerfilStyle, NombrePerfilStyle, RolPerfilStyle } from "../../../styles/PerfilStyles";
 
-/**
- * BoxNombreUsuario - Hero Header estilo Spotify Profile
- * 
- * Estructura visual:
- * - Fondo con degradado oscuro
- * - Avatar grande a la izquierda
- * - Nombre grande + badge "Perfil verificado"
- */
-const BoxNombreUsuario = () => {
-    // const nombreUsuario = localStorage.getItem("Nombre de Usuario")
-    const nombreUsuario = "Luis Barrionuevo";
+type AvatarType =
+    | "avatar1"
+    | "avatar2"
+    | "avatar3"
+    | "avatar4"
+    | "avatar5";
+
+const avatars: AvatarType[] = [
+    "avatar1",
+    "avatar2",
+    "avatar3",
+    "avatar4",
+    "avatar5",
+];
+
+interface Props {
+    nombre?: string;
+    rol?: string;
+    avatarInicial?: AvatarType;
+    onAvatarChange?: (avatar: AvatarType) => void;
+    onNameChange?: (name: string) => void;
+}
+
+const BoxNombreUsuario = ({
+    nombre = "Luis Barrionuevo",
+    rol = "Administrador",
+    avatarInicial = "avatar5",
+    onAvatarChange,
+    onNameChange,
+}: Props) => {
+    const [avatar, setAvatar] = useState<AvatarType>(avatarInicial);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+    const [editing, setEditing] = useState(false);
+    const [nameValue, setNameValue] = useState(nombre);
+
+    const open = Boolean(anchorEl);
+
+    const handleSelectAvatar = (selected: AvatarType) => {
+        setAvatar(selected);
+        setAnchorEl(null);
+        onAvatarChange?.(selected);
+    };
+
+    const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+
+
+    const handleSaveName = () => {
+        setEditing(false);
+        onNameChange?.(nameValue);
+    };
 
     return (
         <Box
-            sx={{
-                // Degradado estilo Spotify profile header
-                background: "linear-gradient(180deg, #3a3d44 0%, #2B2E34 50%, #1A1C20 100%)",
-                minHeight: { xs: "180px", sm: "200px", md: "220px" },
-                padding: { xs: 3, sm: 4, md: 5 },
-                display: "flex",
-                alignItems: "flex-end",
-                gap: { xs: 2, sm: 3 },
-            }}
+            sx={BoxPerfilStyle}
         >
-            {/* Avatar grande - estilo Spotify */}
+            {/* Avatar clickeable */}
             <Avatar
-                src={FotoAvatar}
-                alt={nombreUsuario}
-                sx={{
-                    width: { xs: 100, sm: 140, md: 180 },
-                    height: { xs: 100, sm: 140, md: 180 },
-                    border: "4px solid #1A1C20",
-                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.5)",
-                }}
+                src={`https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=${avatar}`}
+                alt={nombre}
+                onClick={handleOpen}
+                sx={AvatarPerfilStye}
             />
 
-            {/* Info del usuario */}
-            <Box
-                sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1,
-                    pb: { xs: 1, sm: 2 },
+            {/* Popover selector */}
+            <Popover
+                open={open}
+                anchorEl={anchorEl}
+                onClose={handleClose}
+                anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
                 }}
             >
-                {/* Badge "Perfil" */}
                 <Box
                     sx={{
                         display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
+                        gap: 2,
+                        p: 2,
+                        backgroundColor: "#1A1C20",
                     }}
                 >
-                    <VerifiedIcon
-                        sx={{
-                            fontSize: { xs: 14, sm: 16 },
-                            color: "#0166FF",
-                        }}
-                    />
+                    {avatars.map((av) => (
+                        <Avatar
+                            key={av}
+                            src={`/avatars/${av}.png`}
+                            onClick={() => handleSelectAvatar(av)}
+                            sx={{
+                                width: 70,
+                                height: 70,
+                                cursor: "pointer",
+                                border:
+                                    avatar === av
+                                        ? "3px solid #1976d2"
+                                        : "2px solid transparent",
+                            }}
+                        />
+                    ))}
+                </Box>
+            </Popover>
+
+            {/* Info */}
+            <Box sx={{ display: "flex", flexDirection: "column",alignItems:{xs:"center",md:"normal"}, gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                     <Typography
-                        sx={{
-                            fontFamily: '"Tactic Sans", sans-serif',
-                            fontWeight: 500,
-                            fontSize: { xs: "11px", sm: "12px" },
-                            color: "#FFFFFF",
-                            textTransform: "uppercase",
-                            letterSpacing: "1px",
-                        }}
+                        sx={RolPerfilStyle}
                     >
-                        Perfil verificado
+                        {rol} • SMT Digitaliza
                     </Typography>
                 </Box>
 
-                {/* Nombre grande */}
-                <Typography
-                    sx={{
-                        fontFamily: '"Tactic Sans", sans-serif',
-                        fontWeight: 800,
-                        fontSize: { xs: "28px", sm: "42px", md: "56px", lg: "64px" },
-                        color: "#FFFFFF",
-                        lineHeight: 1.1,
-                        letterSpacing: "-1px",
-                    }}
-                >
-                    {nombreUsuario}
-                </Typography>
+                {/* Nombre editable */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    {editing ? (
+                        <TextField
+                            value={nameValue}
+                            onChange={(e) => {
+                                if (e.target.value.length <= 20) {
+                                    setNameValue(e.target.value);
+                                }
+                            }}
+                            onBlur={handleSaveName}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveName();
+                                if (e.key === "Escape") {
+                                    setNameValue(nombre);
+                                    setEditing(false);
+                                }
+                            }}
+                            autoFocus
+                            variant="standard"
+                            slotProps={{
+                                htmlInput: {
+                                    maxLength: 20,
+                                },
+                            }}
+                            helperText={`${nameValue.length} / 20`}
+                            sx={EditNombreStyle}
+                        />
+                    ) : (
+                        <>
+                            <Typography
+                                sx={NombrePerfilStyle}
+                            >
+                                {nameValue}
+                            </Typography>
 
-                {/* Subtítulo opcional */}
-                <Typography
-                    sx={{
-                        fontFamily: '"Tactic Sans", sans-serif',
-                        fontWeight: 400,
-                        fontSize: { xs: "12px", sm: "14px" },
-                        color: "rgba(255, 255, 255, 0.7)",
-                        mt: 0.5,
-                    }}
-                >
-                    Administrador • SMT Digitaliza
-                </Typography>
+                            <IconButton
+                                onClick={() => setEditing(true)}
+                                sx={{ color: "#fff" }}
+                            >
+                                <EditIcon />
+                            </IconButton>
+                        </>
+                    )}
+                </Box>
+
             </Box>
         </Box>
     );

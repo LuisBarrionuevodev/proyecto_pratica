@@ -1,58 +1,8 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { buttonStyle, inputDarkStyle } from "../../../styles/PerfilStyles";
 
-/**
- * BoxCambiarInfo - Card de cambio de contraseña estilo Spotify/dark theme
- * 
- * Estilo: card oscura con bordes suaves, inputs dark mode
- */
 const BoxCambiarInfo = () => {
-    // Estilos dark mode para inputs
-    const inputDarkStyle = {
-        width: "100%",
-        "& .MuiInputBase-input": {
-            fontFamily: '"Tactic Sans", sans-serif',
-            fontWeight: 500,
-            color: "#FFFFFF",
-            fontSize: "14px",
-        },
-        "& .MuiOutlinedInput-root": {
-            backgroundColor: "#2B2E34",
-            borderRadius: "8px",
-            "& fieldset": {
-                borderColor: "#3a3d44",
-            },
-            "&:hover fieldset": {
-                borderColor: "#535353",
-            },
-            "&.Mui-focused fieldset": {
-                borderColor: "#0166FF",
-                borderWidth: "2px",
-            },
-        },
-        "& .MuiInputBase-input::placeholder": {
-            color: "rgba(255, 255, 255, 0.5)",
-            opacity: 1,
-        },
-    };
-
-    const buttonStyle = {
-        backgroundColor: "#0166FF",
-        color: "#FFFFFF",
-        fontFamily: '"Tactic Sans", sans-serif',
-        fontWeight: 600,
-        fontSize: "14px",
-        height: "48px",
-        width: "100%",
-        borderRadius: "24px",
-        textTransform: "none",
-        mt: 2,
-        transition: "all 0.2s ease",
-        "&:hover": {
-            backgroundColor: "#0055DD",
-            transform: "scale(1.02)",
-        },
-    };
 
     return (
         <Box
@@ -63,7 +13,7 @@ const BoxCambiarInfo = () => {
                 boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
                 display: "flex",
                 flexDirection: "column",
-                width: "100%",
+                width: {xs:"230px",sm:"450px",md:"550px"},
                 gap: 3,
                 p: { xs: 3, sm: 4 },
             }}
@@ -95,11 +45,12 @@ const BoxCambiarInfo = () => {
                         color: "rgba(255, 255, 255, 0.7)",
                     }}
                 >
-                    Nombre
+                    Contraseña Actual
                 </Typography>
                 <TextField
-                    placeholder="Ingresa tu nombre"
+                    placeholder="Ingresa tu contraseña actual"
                     size="small"
+                    type="password"
                     fullWidth
                     sx={inputDarkStyle}
                 />

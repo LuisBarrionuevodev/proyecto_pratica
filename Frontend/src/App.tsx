@@ -13,6 +13,7 @@ import PendientesVinculacionOficio from "./Containers/Actuaciones/Containers/Pen
 import Mapa from "./Containers/Mapa";
 import Perfil from "./Containers/Perfil";
 import AppLayout from "./layouts/AppLayout";
+import GestionDeUsuarios from "./Containers/GestionDeUsuarios";
 
 /**
  * App - Enrutador principal (React Router v6)
@@ -36,6 +37,7 @@ function App() {
 
         {/* Rutas privadas - CON AppLayout (NavLeft + TopBar + ContentShell) */}
         <Route element={<AppLayout />}>
+          <Route path="gestionDeUsuarios" element={<GestionDeUsuarios/>}/>
           <Route path="/actuaciones" element={<Actuaciones />} />
           <Route path="/relevamientos" element={<Relevamientos />} />
           <Route path="/pendientes" element={<Pendientes />} />

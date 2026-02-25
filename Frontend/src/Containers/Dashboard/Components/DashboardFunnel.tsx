@@ -11,7 +11,7 @@ const EfectivasInefectivasChart = () => {
     ];
 
     return (
-        <Box sx={{ height: 350 }}>
+        <Box sx={{ height: 350,}}>
             <BarChart
                 sx={ChartStyle}
                 slotProps={{

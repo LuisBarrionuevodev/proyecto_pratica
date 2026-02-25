@@ -14,6 +14,7 @@ const ChartCard = ({ title, children }: ChartCardProps) => (
             borderRadius: 3,
             boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
             p: 2,
+            minWidth:"260px",
             height: "90%",
             transition: "0.3s",
             "&:hover": {

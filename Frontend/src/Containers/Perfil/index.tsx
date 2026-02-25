@@ -2,16 +2,6 @@ import { Box, Slide } from "@mui/material";
 import BoxCambiarInfo from "./Components/BoxCambiarInfo";
 import BoxNombreUsuario from "./Components/BoxNombreUsuario";
 
-/**
- * Perfil - Layout estilo Spotify Profile
- * 
- * Estructura:
- * 1. Hero header con degradado oscuro (BoxNombreUsuario)
- * 2. Avatar grande + nombre a la izquierda
- * 3. Formulario de cambio de contraseña centrado abajo
- * 
- * Nota: NavLeft y TopBar vienen del AppLayout (no se importan aquí)
- */
 const Perfil = () => {
     return (
         <Box
@@ -22,10 +12,25 @@ const Perfil = () => {
                 bgcolor: "transparent",
             }}
         >
-            {/* Hero Header - estilo Spotify profile */}
-            <BoxNombreUsuario />
-            
-            {/* Contenido principal - Form centrado */}
+
+            <BoxNombreUsuario
+
+            // Esto despues se mandara o recibira de esta manera al backend:
+
+                // nombre={user.nombre}
+                // rol={user.rol}
+                // avatarInicial={user.avatar}
+                // onAvatarChange={(newAvatar) => {
+                //     axios.put("/api/users/avatar", {
+                //         userId: user.id,
+                //         avatar: newAvatar,
+                //     }); 
+                // }}
+                // onNameChange={(newName) => {
+                //     axios.put("/api/user/name", { nombre: newName });
+                // }}
+            />
+
             <Box
                 sx={{
                     flex: 1,
