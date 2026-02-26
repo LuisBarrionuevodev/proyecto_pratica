@@ -1,8 +1,30 @@
 import { Box, Slide } from "@mui/material";
 import BoxCambiarInfo from "./Components/BoxCambiarInfo";
 import BoxNombreUsuario from "./Components/BoxNombreUsuario";
+import axios from "axios";
 
 const Perfil = () => {
+
+    const handlePasswordChange = async ({
+    currentPassword,
+    newPassword,
+  }: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    try {
+      await axios.put("http://localhost:3000/api/user/change-password", {
+        currentPassword,
+        newPassword,
+      });
+
+      console.log("Contraseña actualizada correctamente");
+    } catch (error) {
+      console.error("Error al cambiar contraseña", error);
+    }
+  };
+
+
     return (
         <Box
             sx={{
@@ -17,6 +39,7 @@ const Perfil = () => {
 
             // Esto despues se mandara o recibira de esta manera al backend:
 
+                // user={user.user}
                 // nombre={user.nombre}
                 // rol={user.rol}
                 // avatarInicial={user.avatar}
@@ -54,7 +77,7 @@ const Perfil = () => {
                             mt: { xs: 2, sm: 3 },
                         }}
                     >
-                        <BoxCambiarInfo />
+                        <BoxCambiarInfo onPasswordChange={handlePasswordChange} />
                     </Box>
                 </Slide>
             </Box>

@@ -92,13 +92,13 @@ const CardsInicio = (): JSX.Element => {
             </Grid>
 
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Link to="/gestionPersonasBpm" style={{ textDecoration: "none" }}>
+                <Link to="/gestionDeUsuarios" style={{ textDecoration: "none" }}>
                     <Box sx={CardStyle}>
                         <BadgeIcon sx={iconStyles} />
                         <Box>
-                            <Typography sx={StyleTextCard}>Personas BPM</Typography>
+                            <Typography sx={StyleTextCard}>Gestíon de Usuarios</Typography>
                             <Typography sx={StyleTextCardSecondary}>
-                                Gestiona personas con BPM
+                                Gestiona Usuarios existentes
                             </Typography>
                         </Box>
                     </Box>

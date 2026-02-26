@@ -7,7 +7,6 @@ import {
     IconButton,
     TextField,
 } from "@mui/material";
-import VerifiedIcon from "@mui/icons-material/Verified";
 import EditIcon from "@mui/icons-material/Edit";
 import { AvatarPerfilStye, BoxPerfilStyle, EditNombreStyle, InfoPerfilStyle, NombrePerfilStyle, RolPerfilStyle } from "../../../styles/PerfilStyles";
 
@@ -27,6 +26,7 @@ const avatars: AvatarType[] = [
 ];
 
 interface Props {
+    user?: string;
     nombre?: string;
     rol?: string;
     avatarInicial?: AvatarType;
@@ -35,9 +35,10 @@ interface Props {
 }
 
 const BoxNombreUsuario = ({
-    nombre = "Luis Barrionuevo",
+    user = "Luis Barrionuevo",
+    nombre = "Luisito de Boca",
     rol = "Administrador",
-    avatarInicial = "avatar5",
+    avatarInicial = "avatar3",
     onAvatarChange,
     onNameChange,
 }: Props) => {
@@ -125,7 +126,7 @@ const BoxNombreUsuario = ({
                     <Typography
                         sx={RolPerfilStyle}
                     >
-                        {rol} • SMT Digitaliza
+                        {rol} • SMT Digitaliza • {user}
                     </Typography>
                 </Box>
 

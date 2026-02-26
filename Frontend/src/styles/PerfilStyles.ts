@@ -120,7 +120,7 @@ export const NombrePerfilStyle = {
     },
     color: "#FFFFFF",
     lineHeight: 1,
-    textAlign:"end"
+    textAlign:""
 }
 
 export const RolPerfilStyle = {

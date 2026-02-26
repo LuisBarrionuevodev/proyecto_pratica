@@ -37,7 +37,7 @@ function App() {
 
         {/* Rutas privadas - CON AppLayout (NavLeft + TopBar + ContentShell) */}
         <Route element={<AppLayout />}>
-          <Route path="gestionDeUsuarios" element={<GestionDeUsuarios/>}/>
+          <Route path="/gestionDeUsuarios" element={<GestionDeUsuarios/>}/>
           <Route path="/actuaciones" element={<Actuaciones />} />
           <Route path="/relevamientos" element={<Relevamientos />} />
           <Route path="/pendientes" element={<Pendientes />} />

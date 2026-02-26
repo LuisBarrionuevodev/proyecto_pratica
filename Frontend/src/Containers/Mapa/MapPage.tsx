@@ -43,6 +43,7 @@ import { useCallesCatalogoOptions } from "./hooks/useCallesCatalogoOptions";
 import { useUpdateDomicilio } from "./hooks/useUpdateDomicilio";
 import { useSaveManualPoint } from "./hooks/useSaveManualPoint";
 import { filtroItemStyles } from "../Actuaciones/styles/filtroStyles";
+import { TablePendientesStyle } from "../../styles/MapStyles";
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
 
@@ -285,6 +286,7 @@ const MapPage = () => {
   ], [callesCatalogo]);
 
   const tableNorm = useMaterialReactTable({
+    ...TablePendientesStyle,
     columns: columnsNorm,
     data: pendientesNorm,
     enableEditing: true,
@@ -319,6 +321,7 @@ const MapPage = () => {
   ], []);
 
   const tableMap = useMaterialReactTable({
+    ...TablePendientesStyle,
     columns: columnsMap,
     data: pendientesMap,
     enableEditing: false,
@@ -347,9 +350,9 @@ const MapPage = () => {
   });
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", height: { xl: "850px" }, width: "93vw", mr: "10px", ml: "10px", }}>
+    <Box sx={{ display: "flex", alignItems: "center", width: "93vw", mr: "10px", ml: "10px", mt: "15px" }}>
       <Box flex={1}>
-        <Paper sx={{ p: 1, mb: 1, display: "flex", bgcolor: "#2B2E34", gap: 2, flexWrap: "wrap" , alignItems:"center"}}>
+        <Paper sx={{ p: 1, mb: 1, display: "flex", bgcolor: "#2B2E34", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
           <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)}>
             <Tab sx={{ color: "white" }} label="Puntos" value="puntos" />
             <Tab sx={{ color: "white" }} label="Heatmap" value="heatmap" />
@@ -381,7 +384,13 @@ const MapPage = () => {
                 ))}
               </Select>
 
-              <TextField sx={{ color: "white" }} size="small" label="Distrito ID" value={distritoId} onChange={(e) => setDistritoId(e.target.value)} />
+              <TextField sx={{
+                "& .MuiInputLabel-root": {
+                  color: "white",
+                  fontFamily: '"Tactic Sans", sans-serif',
+                  "&.Mui-focused": { color: "#0166FF" },
+                },
+              }} size="small" label="Distrito ID" value={distritoId} onChange={(e) => setDistritoId(e.target.value)} />
 
               <Select sx={{ color: "white" }} size="small" value={origin} onChange={(e) => setOrigin(e.target.value)} displayEmpty>
                 <MenuItem sx={{ color: "black" }} value="all">Origen: todos</MenuItem>
@@ -398,8 +407,8 @@ const MapPage = () => {
         </Paper>
 
         {activeTab === "pendientes" && (
-          <Box>
-            <Box sx={{ p:1, bgcolor: "#2B2E34", display: "flex", gap: 1, flexWrap: "wrap", mb: 2, alignItems:"center"}}>
+          <Box display={"flex"} flexDirection={"column"} justifyContent={"center"}>
+            <Box sx={{ p: 1, bgcolor: "#2B2E34", display: "flex", gap: 1, flexWrap: "wrap", mb: 2, alignItems: "center", flexDirection: { xs: "column", sm: "row" } }}>
               <TextField sx={filtroItemStyles} size="small" type="date" label="Desde" value={desde} onChange={(e) => setDesde(e.target.value)} />
               <TextField sx={filtroItemStyles} size="small" type="date" label="Hasta" value={hasta} onChange={(e) => setHasta(e.target.value)} />
               <Select sx={{ color: "white" }} size="small" value={scope} onChange={(e) => setScope(e.target.value)} displayEmpty>
@@ -423,7 +432,7 @@ const MapPage = () => {
               >
                 Limpiar
               </Button>
-              <Box display={"flex"} >
+              <Box display={"flex"} top={0} >
                 <Tabs value={pendientesView} onChange={(_, v) => setPendientesView(v)}>
                   <Tab sx={{ color: "white" }} label="Normalización manual" value="norm" />
                   <Tab sx={{ color: "white" }} label="Pendientes en mapa" value="map" />
@@ -436,11 +445,20 @@ const MapPage = () => {
 
 
             {pendientesView !== "manual" && (
-              <Box sx={{ mt: 1 }}>
+              <Box >
                 {pendientesView === "norm" ? (
-                  <MaterialReactTable table={tableNorm} />
+                  <Box sx={{
+                    width: "100%",
+                    overflowX: "auto",
+                  }}>
+                    <Box sx={{ maxWidth:{xs: "500px",sm: "900px",md:"1000px",lg:"100%",xl:"100%"}}}>
+                      <MaterialReactTable table={tableNorm} />
+                    </Box>
+                  </Box>
                 ) : (
-                  <MaterialReactTable table={tableMap} />
+                  <Box  sx={{ maxWidth:{xs: "500px",sm: "900px",md:"1000px",lg:"100%",xl:"100%"} }}>
+                    <MaterialReactTable table={tableMap} />
+                  </Box>
                 )}
               </Box>
             )}

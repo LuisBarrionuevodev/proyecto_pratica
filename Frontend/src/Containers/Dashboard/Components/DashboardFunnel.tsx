@@ -5,11 +5,6 @@ import { ChartStyle } from "../../../styles/DashboardStyles";
 
 const EfectivasInefectivasChart = () => {
 
-    const dataset = [
-        { tipo: "Efectivas", cantidad: 350 },
-        { tipo: "Inefectivas", cantidad: 222 },
-    ];
-
     return (
         <Box sx={{ height: 350,}}>
             <BarChart
