@@ -8,9 +8,6 @@
   outline: none !important;
 }
 
-
-
-
 @font-face {
   font-family: 'Tactic Sans';
   src: url('./assets/fonts/TacticSansExd-Reg.otf') format('opentype');
@@ -229,4 +226,19 @@ a{
 
 .MuiAlert-root.MuiAlert-standardInfo .MuiAlert-icon {
     color: #FFFFFF !important;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: #2B2E34 !important;
+  box-shadow: none !important;
 }

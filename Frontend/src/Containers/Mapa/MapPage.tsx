@@ -2,9 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  Chip,
   MenuItem,
   Paper,
   Select,
+  Stack,
   Tab,
   Tabs,
   TextField,
@@ -47,12 +51,36 @@ import { TablePendientesStyle } from "../../styles/MapStyles";
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
 
-const pinIcon = new L.Icon({
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+const createPin = (color: string) =>
+  L.divIcon({
+    className: "",
+    html: `
+      <div style="
+        width:20px;
+        height:20px;
+        background:${color};
+        border-radius:50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border:2px solid white;
+        box-shadow:0 4px 10px rgba(0,0,0,0.3);
+      "></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 18],
+  });
+
+  const getMarkerIcon = (f: any) => {
+  const hasAct = f.properties?.has_act;
+  const hasRel = f.properties?.has_rel;
+
+  if (hasAct && hasRel) return createPin("#9C27B0"); // violeta
+  if (hasAct) return createPin("#E53935"); // rojo
+  if (hasRel) return createPin("#1976D2"); // azul
+
+  return createPin("#9E9E9E"); // gris por si no tiene nada
+};
+
+const manualPinIcon = createPin("#FF9800");
 
 const MapCenter = ({ center }: { center: [number, number] | null }) => {
   const map = useMap();
@@ -451,12 +479,12 @@ const MapPage = () => {
                     width: "100%",
                     overflowX: "auto",
                   }}>
-                    <Box sx={{ maxWidth:{xs: "500px",sm: "900px",md:"1000px",lg:"100%",xl:"100%"}}}>
+                    <Box sx={{ maxWidth: { xs: "500px", sm: "900px", md: "1000px", lg: "100%", xl: "100%" } }}>
                       <MaterialReactTable table={tableNorm} />
                     </Box>
                   </Box>
                 ) : (
-                  <Box  sx={{ maxWidth:{xs: "500px",sm: "900px",md:"1000px",lg:"100%",xl:"100%"} }}>
+                  <Box sx={{ maxWidth: { xs: "500px", sm: "900px", md: "1000px", lg: "100%", xl: "100%" } }}>
                     <MaterialReactTable table={tableMap} />
                   </Box>
                 )}
@@ -498,13 +526,59 @@ const MapPage = () => {
               <Marker
                 key={idx}
                 position={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
-                icon={pinIcon}
+                icon={getMarkerIcon(f)}
               >
-                <Popup>
-                  <div><strong>{f.properties?.has_act && f.properties?.has_rel ? "Ambos" : f.properties?.has_act ? "Actuación" : "Relevamiento"}</strong></div>
-                  <div>Domicilio: {f.properties?.domicilio_id}</div>
-                  <div>Actuaciones: {f.properties?.act_count}</div>
-                  <div>Relevamientos: {f.properties?.rel_count}</div>
+                <Popup className="custom-popup">
+                  <Box
+                    sx={{
+                      backgroundColor: "#2B2E34",
+                      borderRadius: "16px",
+                      padding: "12px 14px",
+                      minWidth: 220,  // parecido al default
+                      color: "#EAEAEA",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+                    }}
+                  >
+                    <Stack spacing={1}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, opacity: 0.9 }}
+                      >
+                        {f.properties?.has_act && f.properties?.has_rel
+                          ? "Ambos"
+                          : f.properties?.has_act
+                            ? "Actuación"
+                            : "Relevamiento"}
+                      </Typography>
+
+                      <Typography variant="body2" sx={{ fontSize: 13 }}>
+                        Domicilio: {f.properties?.domicilio_id}
+                      </Typography>
+
+                      <Stack direction="row" spacing={1}>
+                        <Chip
+                          label={`Act ${f.properties?.act_count}`}
+                          size="small"
+                          sx={{
+                            backgroundColor: "#E53935",
+                            color: "white",
+                            fontSize: 11,
+                            height: 22,
+                          }}
+                        />
+                        <Chip
+                          label={`Rel ${f.properties?.rel_count}`}
+                          size="small"
+                          sx={{
+                            backgroundColor: "#1976D2",
+                            color: "white",
+                            fontSize: 11,
+                            height: 22,
+                          }}
+                        />
+                      </Stack>
+                    </Stack>
+                  </Box>
                 </Popup>
               </Marker>
             ))}
@@ -568,7 +642,7 @@ const MapPage = () => {
               {pin && (
                 <Marker
                   position={[pin.lat, pin.lng]}
-                  icon={pinIcon}
+                  icon={manualPinIcon}
                   draggable
                   eventHandlers={{
                     dragend: (e) => {
