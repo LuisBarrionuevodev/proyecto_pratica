@@ -1,13 +1,16 @@
 import { Box } from "@mui/material";
 import { useState } from "react";
 import Slide from "@mui/material/Slide";
+import { useNavigate } from "react-router-dom";
 import EmailBox from "./Components/EmailBox";
 import CodigoBox from "./Components/CodigoBox";
 import NuevaContraseña from "./Components/NuevaContraseña";
 
 const RecuperarCuenta = () => {
+    const navigate = useNavigate();
     const [step, setStep] = useState<"email" | "codigo" | "contraseña">("email");
     const [email, setEmail] = useState("");
+    const [code, setCode] = useState("");
 
     return (
         <Box
@@ -43,6 +46,7 @@ const RecuperarCuenta = () => {
                 <Box position="absolute">
                     <CodigoBox
                         email={email}
+                        onCodeChange={setCode}
                         onSuccess={() => setStep("contraseña")}
                     />
                 </Box>
@@ -56,7 +60,11 @@ const RecuperarCuenta = () => {
                 unmountOnExit
             >
                 <Box position={"absolute"}>
-                    <NuevaContraseña/>
+                    <NuevaContraseña
+                        email={email}
+                        code={code}
+                        onSuccess={() => navigate("/")}
+                    />
                 </Box>
             </Slide>
         </Box>

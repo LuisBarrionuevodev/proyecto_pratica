@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Box,
     Typography,
@@ -35,10 +35,10 @@ interface Props {
 }
 
 const BoxNombreUsuario = ({
-    user = "Luis Barrionuevo",
-    nombre = "Luisito de Boca",
+    user = "",
+    nombre = "",
     rol = "Administrador",
-    avatarInicial = "avatar3",
+    avatarInicial = "avatar1",
     onAvatarChange,
     onNameChange,
 }: Props) => {
@@ -47,6 +47,14 @@ const BoxNombreUsuario = ({
 
     const [editing, setEditing] = useState(false);
     const [nameValue, setNameValue] = useState(nombre);
+
+    useEffect(() => {
+        setAvatar(avatarInicial);
+    }, [avatarInicial]);
+
+    useEffect(() => {
+        setNameValue(nombre);
+    }, [nombre]);
 
     const open = Boolean(anchorEl);
 
@@ -144,7 +152,7 @@ const BoxNombreUsuario = ({
                             onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveName();
                                 if (e.key === "Escape") {
-                                    setNameValue(nombre);
+                                    setNameValue(nombre || "");
                                     setEditing(false);
                                 }
                             }}

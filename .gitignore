@@ -13,7 +13,6 @@ __pycache__/
 *.pyo
 *.pyd
 
-migrations
 node_modules
 dist
 dist-ssr

@@ -4,19 +4,21 @@ import { BoxRecuperarContenidoStyles, ButtonRecuperarStyles, ErrorTextRecuperarS
 
 interface CodigoBoxProps {
     email: string;
+    onCodeChange: (code: string) => void;
     onSuccess: () => void;
 }
 
-const CodigoBox = ({ email, onSuccess }: CodigoBoxProps) => {
+const CodigoBox = ({ email, onCodeChange, onSuccess }: CodigoBoxProps) => {
     const [codigo, setCodigo] = useState("");
     const [error, setError] = useState("");
 
     const handleCodigo = () => {
-        if (codigo === "1234") {
+        if (codigo.trim().length === 6) {
             setError("");
+            onCodeChange(codigo.trim());
             onSuccess(); // 👈 avisa al padre
         } else {
-            setError("El código ingresado es incorrecto");
+            setError("El código debe tener 6 dígitos");
         }
     };
 

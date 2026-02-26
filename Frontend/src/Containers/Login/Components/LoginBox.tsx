@@ -5,6 +5,7 @@ import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
 import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { apiClient } from "../../../api/apiClient";
 
 const LoginBox = (): JSX.Element => {
     
@@ -14,11 +15,19 @@ const LoginBox = (): JSX.Element => {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
-    const handleLogin = () => {
-        if (username === "PeritoMercantil3" && password === "1234") {
+    const handleLogin = async () => {
+        try {
+            const response = await apiClient.post("/api/auth/login", {
+                username,
+                password,
+            });
+            const data = response.data;
+            if (data?.access_token) {
+                localStorage.setItem("access_token", data.access_token);
+            }
             setError("");
             navigate("/inicio");
-        } else {
+        } catch (e) {
             setError("Cuenta inválida");
         }
     };

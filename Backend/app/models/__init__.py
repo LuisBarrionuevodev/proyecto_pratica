@@ -1,6 +1,5 @@
 from .actuaciones_inspector import actuaciones_inspector
 from .notificacion_motivo import notificacion_motivo
-from .usuario import Usuario
 from .turno import Turno
 from .rubro import Rubro
 from .contribuyente import Contribuyente
@@ -29,6 +28,9 @@ from .participante import Participante
 from .establecimiento import Establecimiento
 from .evento import Evento
 from .evento_participante import EventoParticipante
+from .user import User
+from .profile import Profile
+from .password_reset_code import PasswordResetCode
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -63,4 +65,7 @@ __all__ = [
     "Establecimiento",
     "Evento",
     "EventoParticipante",
+    "User",
+    "Profile",
+    "PasswordResetCode",
 ]

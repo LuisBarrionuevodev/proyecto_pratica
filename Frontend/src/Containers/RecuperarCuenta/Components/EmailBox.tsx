@@ -1,6 +1,7 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { BoxRecuperarContenidoStyles, ButtonRecuperarStyles, ErrorTextRecuperarStyles, InputRecuperarStyles } from "../../../styles/RecuperarCuentaStyles";
+import { apiClient } from "../../../api/apiClient";
 
 interface EmailBoxProps {
   onSuccess: () => void;
@@ -11,14 +12,15 @@ const EmailBox = ({ onSuccess, setEmailGlobal }: EmailBoxProps) => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  const handleEmail = () => {
-    if (email === "eliasasfoura7@gmail.com") {
+  const handleEmail = async () => {
+    try {
+      await apiClient.post("/api/auth/password-reset/request", { email });
       setError("");
       setEmailGlobal(email);
       onSuccess();
-    } else {
+    } catch (e) {
       setError(
-        "El correo ingresado no está asociado a una cuenta en nuestro sistema"
+        "No se pudo enviar el código. Verifique el correo e intente nuevamente."
       );
     }
   };

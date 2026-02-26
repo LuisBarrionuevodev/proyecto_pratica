@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Box,
     Avatar,
@@ -13,6 +13,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TextDigitaliza from "../assets/TextDigitaliza.svg"
 import LogoSMT from "../assets/LogoSMT.svg"
+import { apiClient } from "../api/apiClient";
 // Estilos Neo-Brutalistas
 import {
     TopBarContainerStyles,
@@ -27,16 +28,17 @@ import {
     MenuDividerStyles,
 } from "../styles/TopBarStyles";
 
-// Avatar del usuario
-import FotoAvatar from "../assets/FotoAvatar.png";
 import { useNavigate } from "react-router-dom";
 
-// Datos del usuario (temporales - luego vendrán de contexto/auth)
-const USER_DATA = {
-    name: "John Smith",
-    role: "Administrator",
-    email: "john.smith@smt.gob",
-    avatar: FotoAvatar,
+type MeResponse = {
+    user: {
+        username: string;
+        role: "admin" | "usuario";
+    };
+    profile: {
+        nickname: string | null;
+        avatar_key: "avatar1" | "avatar2" | "avatar3" | "avatar4" | "avatar5";
+    };
 };
 
 interface TopBarProps {
@@ -45,9 +47,33 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [userName, setUserName] = useState("Usuario");
+    const [roleLabel, setRoleLabel] = useState("Usuario");
+    const [avatarSeed, setAvatarSeed] = useState("avatar1");
     const open = Boolean(anchorEl);
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const res = await apiClient.get<MeResponse>("/api/profile/me");
+                const apiName = res.data.profile.nickname || res.data.user.username;
+                setUserName(apiName);
+                setRoleLabel(res.data.user.role === "admin" ? "Administrador" : "Usuario");
+                setAvatarSeed(res.data.profile.avatar_key || "avatar1");
+            } catch (error) {
+                setUserName("Usuario");
+                setRoleLabel("Usuario");
+                setAvatarSeed("avatar1");
+            }
+        };
+
+        fetchMe();
+        const onRefreshProfile = () => fetchMe();
+        window.addEventListener("profile:updated", onRefreshProfile);
+        return () => window.removeEventListener("profile:updated", onRefreshProfile);
+    }, []);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -68,6 +94,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
 
     const handleLogout = () => {
         handleClose();
+        localStorage.removeItem("access_token");
         navigate("/login");
     };
 
@@ -114,16 +141,16 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                 sx={AvatarButtonStyles}
             >
                 <Avatar
-                    src={USER_DATA.avatar}
-                    alt={USER_DATA.name}
+                    src={`https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=${avatarSeed}`}
+                    alt={userName}
                     sx={AvatarStyles}
                 />
                 <Box sx={UserInfoStyles}>
                     <Typography sx={UserNameStyles}>
-                        {USER_DATA.name}
+                        {userName}
                     </Typography>
                     <Typography sx={RoleBadgeSmallStyles}>
-                        ● {USER_DATA.role}
+                        ● {roleLabel}
                     </Typography>
                 </Box>
                 <KeyboardArrowDownIcon

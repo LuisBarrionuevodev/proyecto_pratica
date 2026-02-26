@@ -1,13 +1,20 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { BoxNuevaContraseñaStyles, ButtonRecuperarStyles, ErrorTextRecuperarStyles, InputRecuperarStyles } from "../../../styles/RecuperarCuentaStyles";
+import { apiClient } from "../../../api/apiClient";
 
-const NuevaContraseña = () => {
+interface NuevaContraseñaProps {
+    email: string;
+    code: string;
+    onSuccess: () => void;
+}
+
+const NuevaContraseña = ({ email, code, onSuccess }: NuevaContraseñaProps) => {
     const [password, setPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");
     const [error, setError] = useState("");
 
-    const handleContraseña = () => {
+    const handleContraseña = async () => {
         if (!password || !repeatPassword) {
             setError("Debe completar ambos campos");
             return;
@@ -23,9 +30,18 @@ const NuevaContraseña = () => {
             return;
         }
 
-        setError("");
-        console.log("Contraseña cambiada correctamente");
-        
+        try {
+            await apiClient.post("/api/auth/password-reset/confirm", {
+                email,
+                code,
+                new_password: password,
+                new_password2: repeatPassword,
+            });
+            setError("");
+            onSuccess();
+        } catch (e) {
+            setError("Código inválido o vencido");
+        }
     };
 
     return (
