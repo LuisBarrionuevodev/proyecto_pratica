@@ -577,7 +577,7 @@ const TablaActuaciones = ({
     ),
 
     renderTopToolbarCustomActions: ({ table }) => (
-      <TablaExportButtons data={data} table={table} />
+      <TablaExportButtons table={table} filePrefix="actuaciones" />
     ),
   });
 

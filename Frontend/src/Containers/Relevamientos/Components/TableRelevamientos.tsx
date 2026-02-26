@@ -12,6 +12,7 @@ import { updateRelevamiento, deleteRelevamiento } from "../../../api/relevamient
 import { validateRow, startBatch, fetchInspectores, fetchRubros, fetchContraproducencias } from "../../../api/gridApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { useCallesCatalogo } from "../../../hooks/useCallesCatalogo";
+import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   loadingStyles,
   DARK_TABLE_CONFIG,
@@ -371,6 +372,9 @@ const TablaRelevamientos = ({
           </Tooltip>
         )}
       </Box>
+    ),
+    renderTopToolbarCustomActions: ({ table }) => (
+      <TablaExportButtons table={table} filePrefix="relevamientos" />
     ),
   });
 
