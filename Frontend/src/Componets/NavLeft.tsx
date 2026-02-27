@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, Typography, Tooltip } from "@mui/material";
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
@@ -16,6 +16,13 @@ import {
     StyleLogoutButton,
 } from "../styles/NavBarStyles";
 import { menuSections, logoutItem } from "../constants/menuItems";
+import { apiClient } from "../api/apiClient";
+
+type MeResponse = {
+    user: {
+        role: "admin" | "usuario";
+    };
+};
 
 interface NavLeftProps {
     onToggle?: (open: boolean) => void;
@@ -25,6 +32,30 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [open, setOpen] = useState(false);
+    const [role, setRole] = useState<"admin" | "usuario">("usuario");
+
+    useEffect(() => {
+        const fetchRole = async () => {
+            try {
+                const res = await apiClient.get<MeResponse>("/api/profile/me");
+                setRole(res.data.user.role || "usuario");
+            } catch {
+                setRole("usuario");
+            }
+        };
+        fetchRole();
+    }, []);
+
+    const visibleSections = useMemo(() => {
+        return menuSections
+            .map((section) => ({
+                ...section,
+                items: section.items.filter((item) =>
+                    item.path === "/gestionDeUsuarios" ? role === "admin" : true
+                ),
+            }))
+            .filter((section) => section.items.length > 0);
+    }, [role]);
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -49,7 +80,7 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
 
                 {/* Lista de secciones con items agrupados */}
                 <List sx={StyleListItems}>
-                    {menuSections.map((section) => (
+                    {visibleSections.map((section) => (
                         <Box key={section.label}>
                             {/* Header de sección */}
                             <Typography sx={StyleSectionHeader(open)}>

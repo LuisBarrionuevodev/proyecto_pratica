@@ -14,6 +14,7 @@ from app.domains.geolocalizacion.normalizacion_calles.routes import geolocalizac
 from app.domains.geolocalizacion.geocoding.routes import geolocalizacion_geocode as geoloc_geocode_bp
 from app.domains.geolocalizacion.geocode.routes import geolocalizacion_map as geoloc_map_bp
 from app.domains.usuarios.routes import usuarios_api as usuarios_api_bp
+from app.domains.mapa_detalle.routes import mapa_detalle_api as mapa_detalle_api_bp
 from app.domains.usuarios.security.jwt import init_jwt
 from app.domains.usuarios.services.users_service import ensure_dev_admin_seed
 
@@ -60,6 +61,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(geoloc_calles_bp)
     app.register_blueprint(geoloc_geocode_bp)
     app.register_blueprint(geoloc_map_bp)
+    app.register_blueprint(mapa_detalle_api_bp)
     app.register_blueprint(usuarios_api_bp)
 
     # Seed opcional de admin solo en desarrollo.

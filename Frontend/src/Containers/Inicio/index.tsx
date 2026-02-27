@@ -1,9 +1,18 @@
-import type { JSX } from "react";
-import CargaDeDatos from "./Components/CargaDeDatos";
+import { useEffect, useState, type JSX } from "react";
 import CardsInicio from "./Components/CardsInicio";
 import TopBar from "../../Componets/TopBar";
 import { Box, Slide, Typography } from "@mui/material";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
+import { apiClient } from "../../api/apiClient";
+
+type MeResponse = {
+    user: {
+        username: string;
+    };
+    profile: {
+        nickname: string | null;
+    };
+};
 
 /**
  * Inicio - Vista principal estilo Early Bird
@@ -11,6 +20,20 @@ import { GLASS_COLORS } from "../../styles/GlassStyles";
  * - Cards abajo en caja glass ocupando todo el ancho
  */
 const Inicio = (): JSX.Element => {
+    const [displayName, setDisplayName] = useState("Usuario");
+
+    useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const res = await apiClient.get<MeResponse>("/api/profile/me");
+                setDisplayName(res.data.profile.nickname || res.data.user.username || "Usuario");
+            } catch {
+                setDisplayName("Usuario");
+            }
+        };
+        fetchMe();
+    }, []);
+
     return (
         <Box
             sx={{
@@ -57,11 +80,8 @@ const Inicio = (): JSX.Element => {
                         textAlign: "center",
                     }}
                 >
-                    ¿En qué podemos ayudarte, teo?
+                    Bienvenido, {displayName}
                 </Typography>
-                
-                {/* Buscador */}
-                <CargaDeDatos />
             </Box>
 
             {/* Cards Section - Al final, ocupando todo el ancho */}

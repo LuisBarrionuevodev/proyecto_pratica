@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   MenuItem,
   Paper,
@@ -42,6 +40,11 @@ import {
   type HeatmapItem,
   type PendingItem,
 } from "../../api/mapApi";
+import {
+  getMapaPopupDetalle,
+  type MapaPopupDetalle,
+  type PopupKind,
+} from "../../api/mapaDetalleApi";
 import { usePendientes } from "./hooks/usePendientes";
 import { useCallesCatalogoOptions } from "./hooks/useCallesCatalogoOptions";
 import { useUpdateDomicilio } from "./hooks/useUpdateDomicilio";
@@ -116,6 +119,13 @@ const buildDireccion = (item: PendingItem) => {
   return `${item.calle_normalizada || item.calle_raw || ""} ${numero}`.trim();
 };
 
+const formatDateLabel = (value: string | null | undefined) => {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("es-AR");
+};
+
 const MapPage = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [activeTab, setActiveTab] = useState<"puntos" | "heatmap" | "distritos" | "pendientes">("puntos");
@@ -140,6 +150,12 @@ const MapPage = () => {
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const [searchText, setSearchText] = useState("");
   const [searching, setSearching] = useState(false);
+  const [popupKindByDomicilio, setPopupKindByDomicilio] = useState<Record<number, PopupKind>>(
+    {}
+  );
+  const [popupDetails, setPopupDetails] = useState<Record<string, MapaPopupDetalle>>({});
+  const [popupLoading, setPopupLoading] = useState<Record<string, boolean>>({});
+  const [popupError, setPopupError] = useState<Record<string, string>>({});
 
   const { items: pendientesNorm, loading: pendingNormLoading, refetch: refetchNorm } = usePendientes("norm", {
     desde,
@@ -242,6 +258,26 @@ const MapPage = () => {
       setSearching(false);
     }
   };
+
+  const getDefaultPopupKind = (feature: any): PopupKind =>
+    feature?.properties?.has_act ? "actuacion" : "relevamiento";
+
+  const loadPopupDetail = useCallback(async (domicilioId: number, kind: PopupKind) => {
+    const cacheKey = `${domicilioId}:${kind}`;
+    if (popupDetails[cacheKey]) {
+      return;
+    }
+    try {
+      setPopupLoading((prev) => ({ ...prev, [cacheKey]: true }));
+      setPopupError((prev) => ({ ...prev, [cacheKey]: "" }));
+      const detail = await getMapaPopupDetalle(kind, domicilioId);
+      setPopupDetails((prev) => ({ ...prev, [cacheKey]: detail }));
+    } catch (err) {
+      setPopupError((prev) => ({ ...prev, [cacheKey]: "No se pudo cargar el detalle." }));
+    } finally {
+      setPopupLoading((prev) => ({ ...prev, [cacheKey]: false }));
+    }
+  }, [popupDetails]);
 
   const columnsNorm = useMemo<MRT_ColumnDef<PendingItem>[]>(() => [
     { accessorKey: "calle_raw", header: "Calle raw", size: 160 },
@@ -527,8 +563,38 @@ const MapPage = () => {
                 key={idx}
                 position={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
                 icon={getMarkerIcon(f)}
+                eventHandlers={{
+                  popupopen: () => {
+                    const domicilioId = Number(f?.properties?.domicilio_id);
+                    if (!domicilioId) return;
+                    const selectedKind = popupKindByDomicilio[domicilioId] || getDefaultPopupKind(f);
+                    if (!popupKindByDomicilio[domicilioId]) {
+                      setPopupKindByDomicilio((prev) => ({ ...prev, [domicilioId]: selectedKind }));
+                    }
+                    loadPopupDetail(domicilioId, selectedKind);
+                  },
+                }}
               >
                 <Popup className="custom-popup">
+                  {(() => {
+                    const domicilioId = Number(f?.properties?.domicilio_id);
+                    const hasAct = !!f?.properties?.has_act;
+                    const hasRel = !!f?.properties?.has_rel;
+                    const selectedKind =
+                      popupKindByDomicilio[domicilioId] || getDefaultPopupKind(f);
+                    const cacheKey = `${domicilioId}:${selectedKind}`;
+                    const detail = popupDetails[cacheKey];
+                    const isLoading = !!popupLoading[cacheKey];
+                    const errorText = popupError[cacheKey];
+                    const inspectoresLabel =
+                      detail?.inspectores?.length ? detail.inspectores.join(", ") : "-";
+
+                    const handleChangeKind = (kind: PopupKind) => {
+                      setPopupKindByDomicilio((prev) => ({ ...prev, [domicilioId]: kind }));
+                      loadPopupDetail(domicilioId, kind);
+                    };
+
+                    return (
                   <Box
                     sx={{
                       backgroundColor: "#2B2E34",
@@ -544,15 +610,19 @@ const MapPage = () => {
                         variant="subtitle2"
                         sx={{ fontWeight: 600, opacity: 0.9 }}
                       >
-                        {f.properties?.has_act && f.properties?.has_rel
-                          ? "Ambos"
-                          : f.properties?.has_act
-                            ? "Actuación"
-                            : "Relevamiento"}
+                        {detail
+                          ? detail.kind === "actuacion"
+                            ? `Actuación${detail.tipo ? ` - ${detail.tipo}` : ""}`
+                            : "Relevamiento"
+                          : f.properties?.has_act && f.properties?.has_rel
+                            ? "Ambos"
+                            : f.properties?.has_act
+                              ? "Actuación"
+                              : "Relevamiento"}
                       </Typography>
 
                       <Typography variant="body2" sx={{ fontSize: 13 }}>
-                        Domicilio: {f.properties?.domicilio_id}
+                        Domicilio: {detail?.domicilio || f.properties?.domicilio_id || "-"}
                       </Typography>
 
                       <Stack direction="row" spacing={1}>
@@ -577,8 +647,63 @@ const MapPage = () => {
                           }}
                         />
                       </Stack>
+
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant={selectedKind === "actuacion" ? "contained" : "outlined"}
+                          disabled={!hasAct}
+                          onClick={() => handleChangeKind("actuacion")}
+                          sx={{ minWidth: 48 }}
+                        >
+                          Act
+                        </Button>
+                        <Button
+                          size="small"
+                          variant={selectedKind === "relevamiento" ? "contained" : "outlined"}
+                          disabled={!hasRel}
+                          onClick={() => handleChangeKind("relevamiento")}
+                          sx={{ minWidth: 48 }}
+                        >
+                          Rel
+                        </Button>
+                      </Stack>
+
+                      {isLoading && (
+                        <Typography variant="body2" sx={{ fontSize: 12, opacity: 0.8 }}>
+                          Cargando detalle...
+                        </Typography>
+                      )}
+
+                      {!!errorText && (
+                        <Typography variant="body2" sx={{ fontSize: 12, color: "#FF8A80" }}>
+                          {errorText}
+                        </Typography>
+                      )}
+
+                      {!isLoading && detail && (
+                        <>
+                          <Typography variant="body2" sx={{ fontSize: 13 }}>
+                            {detail.kind === "actuacion" ? "Inspectores" : "Inspector"}:{" "}
+                            {inspectoresLabel}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontSize: 13 }}>
+                            Fecha: {formatDateLabel(detail.fecha)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontSize: 13 }}>
+                            Fecha de carga: {formatDateLabel(detail.created_at)}
+                          </Typography>
+                          {detail.kind === "actuacion" && detail.acta_inspeccion && (
+                            <Typography variant="body2" sx={{ fontSize: 13 }}>
+                              Acta Inspección: {detail.acta_inspeccion}
+                            </Typography>
+                          )}
+                        </>
+                      )}
                     </Stack>
                   </Box>
+                    );
+                  })()}
                 </Popup>
               </Marker>
             ))}
