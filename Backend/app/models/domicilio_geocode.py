@@ -51,5 +51,6 @@ class DomicilioGeocode(db.Model):
         onupdate=db.func.current_timestamp(),
         nullable=False,
     )
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
 
     domicilio = db.relationship("Domicilio", back_populates="geocode")

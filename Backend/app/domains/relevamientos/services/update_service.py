@@ -14,10 +14,20 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
+from app.domains.actuaciones.cleanup.garbage_collector import (
+    soft_delete_domicilio_if_orphan,
+)
 
 
 def _get_relevamiento_or_404(relevamiento_id: int) -> Relevamiento:
-    rel = Relevamiento.query.get(relevamiento_id)
+    rel = (
+        Relevamiento.query.filter(
+            Relevamiento.id == relevamiento_id,
+            Relevamiento.deleted_at.is_(None),
+        )
+        .limit(1)
+        .first()
+    )
     if not rel:
         raise ValueError("Relevamiento no encontrado.")
     return rel
@@ -38,6 +48,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         ValueError: si no existe o reglas de negocio.
     """
     rel = _get_relevamiento_or_404(relevamiento_id)
+    old_domicilio_id = rel.domicilio_id
 
     fecha_raw = payload.get("fecha")
     inspector_nombre = payload.get("inspector_nombre")
@@ -74,6 +85,10 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
 
     db.session.add(rel)
     db.session.commit()
+
+    if old_domicilio_id is not None and old_domicilio_id != rel.domicilio_id:
+        soft_delete_domicilio_if_orphan(old_domicilio_id)
+        db.session.commit()
 
     # Best-effort geocode (no bloquea la actualización)
     try:

@@ -11,7 +11,7 @@ class Domicilio(db.Model):
         index=True,
     )
     numero = db.Column(
-        db.String(20),
+        db.String(200),
         nullable=False,
         index=True,
     )

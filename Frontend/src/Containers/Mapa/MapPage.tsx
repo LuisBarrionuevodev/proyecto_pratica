@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -12,6 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -127,6 +129,7 @@ const formatDateLabel = (value: string | null | undefined) => {
 };
 
 const MapPage = () => {
+  const navigate = useNavigate();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [activeTab, setActiveTab] = useState<"puntos" | "heatmap" | "distritos" | "pendientes">("puntos");
   const [pendientesView, setPendientesView] = useState<"norm" | "map" | "manual">("norm");
@@ -421,7 +424,6 @@ const MapPage = () => {
             <Tab sx={{ color: "white" }} label="Puntos" value="puntos" />
             <Tab sx={{ color: "white" }} label="Heatmap" value="heatmap" />
             <Tab sx={{ color: "white" }} label="Distritos" value="distritos" />
-            <Tab sx={{ color: "white" }} label="Pendientes" value="pendientes" />
           </Tabs>
           {activeTab === "pendientes" && pendientesView === "manual" && (
             <Typography variant="subtitle2" sx={{ alignSelf: "center" }}>
@@ -508,7 +510,28 @@ const MapPage = () => {
 
 
 
-            {pendientesView !== "manual" && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              La resolución operativa de pendientes de domicilios se realiza en el módulo central.
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ ml: 2 }}
+                onClick={() => navigate("/gestionarDomicilios")}
+              >
+                Ir a Gestionar domicilios
+              </Button>
+            </Alert>
+
+            <Paper sx={{ p: 2, mb: 2, bgcolor: "#2B2E34" }}>
+              <Typography variant="subtitle2" sx={{ color: "white" }}>
+                Resumen de pendientes
+              </Typography>
+              <Typography sx={{ color: "rgba(255,255,255,0.85)" }}>
+                Nomenclatura: {pendientesNorm.length} | Geolocalización: {pendientesMap.length}
+              </Typography>
+            </Paper>
+
+            {false && pendientesView !== "manual" && (
               <Box >
                 {pendientesView === "norm" ? (
                   <Box sx={{
@@ -719,7 +742,7 @@ const MapPage = () => {
           </MapContainer>
         )}
 
-        {activeTab === "pendientes" && pendientesView === "manual" && (
+        {false && activeTab === "pendientes" && pendientesView === "manual" && (
           <Box sx={{ p: 1 }}>
             <Paper sx={{ p: 1, mb: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
               <TextField

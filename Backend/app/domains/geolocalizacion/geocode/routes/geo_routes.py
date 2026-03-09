@@ -4,12 +4,16 @@ from typing import Any, Dict
 from datetime import datetime
 
 from flask import jsonify, request
+from sqlalchemy import and_
 
 from app.database import db
-from app.models import Domicilio, DomicilioGeocode
+from app.models import Domicilio
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
     compute_addr_hash,
+)
+from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
+    get_or_create_geocode,
 )
 from app.domains.geolocalizacion.geocoding.services.reverse_geocode_service import (
     reverse_geocode,
@@ -31,7 +35,11 @@ def geo_pending():
     """
     q = (
         Domicilio.query.outerjoin(
-            DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id
+            DomicilioGeocode,
+            and_(
+                Domicilio.id == DomicilioGeocode.domicilio_id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
         )
         .filter(Domicilio.deleted_at.is_(None))
         .filter(
@@ -102,9 +110,9 @@ def geo_manual(domicilio_id: int):
         return jsonify({"detail": "lat y lng son obligatorios"}), 400
     try:
         dom = db.session.get(Domicilio, domicilio_id)
-        if not dom:
+        if not dom or dom.deleted_at is not None:
             return jsonify({"detail": "Domicilio no encontrado"}), 404
-        geo = DomicilioGeocode.query.get(domicilio_id) or DomicilioGeocode(domicilio_id=domicilio_id)
+        geo = get_or_create_geocode(domicilio_id)
         geo.lat = lat
         geo.lng = lng
         geo.geo_status = "OK"
@@ -144,7 +152,7 @@ def geo_reverse(domicilio_id: int):
         return jsonify({"detail": "lat y lng son obligatorios"}), 400
     try:
         dom = db.session.get(Domicilio, domicilio_id)
-        if not dom:
+        if not dom or dom.deleted_at is not None:
             return jsonify({"detail": "Domicilio no encontrado"}), 404
 
         rev = reverse_geocode(float(lat), float(lng))
@@ -167,7 +175,7 @@ def geo_reverse(domicilio_id: int):
         normalizar_domicilio_en_sesion(dom, override_numero_tipo="NUMERO")
         db.session.add(dom)
 
-        geo = DomicilioGeocode.query.get(domicilio_id) or DomicilioGeocode(domicilio_id=domicilio_id)
+        geo = get_or_create_geocode(domicilio_id)
         geo.lat = float(lat)
         geo.lng = float(lng)
         geo.geo_status = "OK"

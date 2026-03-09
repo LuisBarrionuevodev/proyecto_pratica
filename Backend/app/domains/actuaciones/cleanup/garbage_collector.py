@@ -14,11 +14,17 @@ from app.database import db
 from app.models.actuaciones import Actuaciones
 from app.models.contribuyente import Contribuyente
 from app.models.domicilio import Domicilio
+from app.models.relevamiento import Relevamiento
+from app.models.denuncia import Denuncia
+from app.models.iniciador_ruta import IniciadorRuta
 from app.models.orden_de_trabajo import OrdenTrabajo
 from app.models.notificacion import Notificacion
 from app.models.comprobacion import Comprobacion
 from app.models.oficio import Oficio
 from app.models.expediente import Expediente
+from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
+    soft_delete_geocode_if_exists,
+)
 
 
 def soft_delete_domicilio_if_orphan(domicilio_id: int) -> None:
@@ -48,11 +54,41 @@ def soft_delete_domicilio_if_orphan(domicilio_id: int) -> None:
         .limit(1)
         .first()
     )
-    if any_act is not None:
+    any_rel = (
+        db.session.query(Relevamiento.id)
+        .filter(
+            Relevamiento.domicilio_id == domicilio_id,
+            Relevamiento.deleted_at.is_(None),
+        )
+        .limit(1)
+        .first()
+    )
+    any_denuncia = (
+        db.session.query(Denuncia.id)
+        .filter(Denuncia.domicilio_id == domicilio_id, Denuncia.deleted_at.is_(None))
+        .limit(1)
+        .first()
+    )
+    any_iniciador = (
+        db.session.query(IniciadorRuta.id)
+        .filter(
+            IniciadorRuta.domicilio_id == domicilio_id,
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .limit(1)
+        .first()
+    )
+    if (
+        any_act is not None
+        or any_rel is not None
+        or any_denuncia is not None
+        or any_iniciador is not None
+    ):
         return
 
     domicilio.deleted_at = datetime.utcnow()
     db.session.add(domicilio)
+    soft_delete_geocode_if_exists(domicilio_id)
 
 
 def soft_delete_contribuyente_if_orphan(contribuyente_id: int) -> None:

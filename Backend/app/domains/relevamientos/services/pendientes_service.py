@@ -19,6 +19,7 @@ def _apply_fecha(query, desde, hasta):
 def _domicilios_pendientes_query(filters: RelevamientosPendientesFilters):
     query = (
         Relevamiento.query.join(Domicilio, Relevamiento.domicilio_id == Domicilio.id)
+        .filter(Relevamiento.deleted_at.is_(None))
         .filter(Domicilio.deleted_at.is_(None))
         .filter(
             or_(

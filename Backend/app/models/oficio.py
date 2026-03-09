@@ -31,12 +31,6 @@ class Oficio(db.Model):
         index=True,
         nullable=True,
     )
-    expediente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("expediente.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        index=True,
-        nullable=True,
-    )
 
     comprobacion = db.relationship("Comprobacion", back_populates="oficio")
     expediente = db.relationship(
@@ -55,7 +49,6 @@ class Oficio(db.Model):
             "anio": self.anio,
             "causa": self.causa,
             "comprobacion_id": self.comprobacion_id,
-            "expediente_id": self.expediente_id,
             "deleted_at": self.deleted_at,
         }
 

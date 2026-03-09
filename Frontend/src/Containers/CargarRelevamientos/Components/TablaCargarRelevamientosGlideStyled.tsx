@@ -49,7 +49,13 @@ import {
   formatDateToISO,
 } from "../../CargarActuaciones/utils/gridHelpers";
 
-const TablaCargarRelevamientosGlideStyled = () => {
+interface TablaCargarRelevamientosGlideStyledProps {
+  showTitle?: boolean;
+}
+
+const TablaCargarRelevamientosGlideStyled = ({
+  showTitle = true,
+}: TablaCargarRelevamientosGlideStyledProps) => {
   const initialRows = useMemo(() => createEmptyRows(5), []);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [data, setData] = useState<GridRow[]>(initialRows);
@@ -549,7 +555,7 @@ const TablaCargarRelevamientosGlideStyled = () => {
   return (
     <Box sx={containerStyles}>
       <Box sx={wrapperStyles}>
-        <Typography sx={titleStyles}>Carga de Relevamientos</Typography>
+        {showTitle && <Typography sx={titleStyles}>Cargar iniciadores principales</Typography>}
 
         {globalError && (
           <Alert severity="error" onClose={() => setGlobalError(null)} sx={alertBaseStyles}>

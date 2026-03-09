@@ -108,9 +108,10 @@ class IniciadorRuta(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
 
     domicilio = db.relationship("Domicilio")
-    denuncia = db.relationship("Denuncia")
+    denuncia = db.relationship("Denuncia", back_populates="iniciadores_ruta")
     relevamiento = db.relationship("Relevamiento")
     notificacion = db.relationship("Notificacion")
     comprobacion = db.relationship("Comprobacion")
@@ -155,4 +156,5 @@ class IniciadorRuta(db.Model):
             "created_by_user_id": self.created_by_user_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
         }

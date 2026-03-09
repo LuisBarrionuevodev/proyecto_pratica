@@ -90,12 +90,22 @@ def _resolve_relevamiento(ref_id: int) -> Relevamiento | None:
       - Si no existe relevamiento con ese id, interpreta ref_id como domicilio_id
         y devuelve el relevamiento más reciente de ese domicilio.
     """
-    by_id = Relevamiento.query.get(ref_id)
+    by_id = (
+        Relevamiento.query.filter(
+            Relevamiento.id == ref_id,
+            Relevamiento.deleted_at.is_(None),
+        )
+        .limit(1)
+        .first()
+    )
     if by_id:
         return by_id
 
     return (
-        Relevamiento.query.filter_by(domicilio_id=ref_id)
+        Relevamiento.query.filter(
+            Relevamiento.domicilio_id == ref_id,
+            Relevamiento.deleted_at.is_(None),
+        )
         .order_by(
             Relevamiento.fecha.desc(),
             Relevamiento.created_at.desc(),

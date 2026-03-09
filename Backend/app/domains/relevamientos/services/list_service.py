@@ -18,7 +18,7 @@ def listar_relevamientos_con_filtros(filters: RelevamientosListFilters) -> Dict[
     Returns:
         dict con items y meta.
     """
-    query = Relevamiento.query
+    query = Relevamiento.query.filter(Relevamiento.deleted_at.is_(None))
 
     if filters.desde:
         query = query.filter(Relevamiento.fecha >= filters.desde)
@@ -33,7 +33,9 @@ def listar_relevamientos_con_filtros(filters: RelevamientosListFilters) -> Dict[
             query = query.join(Inspector).filter(func.upper(Inspector.nombre) == s.upper())
 
     if filters.calle or filters.numero:
-        query = query.join(Domicilio, Relevamiento.domicilio_id == Domicilio.id)
+        query = query.join(Domicilio, Relevamiento.domicilio_id == Domicilio.id).filter(
+            Domicilio.deleted_at.is_(None)
+        )
         if filters.calle:
             query = query.filter(func.upper(Domicilio.calle).like(f"%{filters.calle.upper()}%"))
         if filters.numero:

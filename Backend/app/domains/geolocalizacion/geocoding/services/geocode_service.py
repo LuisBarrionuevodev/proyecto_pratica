@@ -196,7 +196,7 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
         ValueError: si el domicilio no existe.
     """
     dom = db.session.get(Domicilio, domicilio_id)
-    if not dom:
+    if not dom or dom.deleted_at is not None:
         raise ValueError("Domicilio no encontrado.")
 
     geo = get_or_create_geocode(domicilio_id)

@@ -24,6 +24,7 @@ def get_or_create_domicilio_basico(calle: str, numero: str) -> Domicilio:
     numero_norm = (numero or "").strip()
     dom = (
         Domicilio.query.filter_by(calle=calle_norm, numero=numero_norm)
+        .filter(Domicilio.deleted_at.is_(None))
         .first()
     )
     if dom:

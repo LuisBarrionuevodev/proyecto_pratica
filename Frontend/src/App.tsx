@@ -11,6 +11,7 @@ import Pendientes from "./Containers/Actuaciones/Containers/Pendientes";
 import PendientesVinculacionActa from "./Containers/Actuaciones/Containers/PendientesVinculacionActa";
 import PendientesVinculacionOficio from "./Containers/Actuaciones/Containers/PendientesVinculacionOficio";
 import Mapa from "./Containers/Mapa";
+import GestionarDomicilios from "./Containers/GestionarDomicilios";
 import Perfil from "./Containers/Perfil";
 import AppLayout from "./layouts/AppLayout";
 import GestionDeUsuarios from "./Containers/GestionDeUsuarios";
@@ -46,6 +47,7 @@ function App() {
           <Route path="/cargarRelevamiento" element={<CargarRelevamientos />} />
           <Route path="/cargarActuacion" element={<CargarActuaciones />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/gestionarDomicilios" element={<GestionarDomicilios />} />
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/perfil" element={<Perfil />} />
         </Route>

@@ -9,6 +9,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import type { JSX } from 'react';
 
 // Definición de secciones del menú (agrupadas)
@@ -44,6 +45,7 @@ export const menuSections: MenuSection[] = [
     items: [
       { text: "Expedientes", icon: <DashboardIcon />, path: "/actuaciones" },
       { text: "Relevamientos", icon: <ListAltIcon />, path: "/relevamientos" },
+      { text: "Gestionar domicilios", icon: <LocationOnIcon />, path: "/gestionarDomicilios" },
       { text: "Gestion Usuarios", icon: <BadgeIcon />, path: "/gestionDeUsuarios" },
       { text: "Dashboard", icon: <BarChartIcon />, path: "/dashboard" },
       { text: "Mapa", icon: <MapIcon />, path: "/mapa" },
@@ -75,6 +77,7 @@ export const routeLabels: Record<string, string> = {
   "/gestionPersonasBpm": "Gestión Personas BPM",
   "/gestionDeUsuarios": "Gestión De Usuarios",
   "/dashboard": "Dashboard",
+  "/gestionarDomicilios": "Gestionar domicilios",
   "/mapa": "Mapa",
   "/gestionSistema": "Configuración del Sistema",
   "/perfil": "Mi Perfil",

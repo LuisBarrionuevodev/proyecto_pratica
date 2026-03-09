@@ -38,7 +38,13 @@ def list_pendientes_geocode(limit: int = 200) -> List[Domicilio]:
     """
     query = (
         _base_pending_query()
-        .outerjoin(DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .outerjoin(
+            DomicilioGeocode,
+            and_(
+                Domicilio.id == DomicilioGeocode.domicilio_id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
+        )
         .filter(or_(DomicilioGeocode.domicilio_id.is_(None), DomicilioGeocode.geo_status != "OK"))
         .filter(or_(DomicilioGeocode.source.is_(None), DomicilioGeocode.source != "MANUAL"))
     )

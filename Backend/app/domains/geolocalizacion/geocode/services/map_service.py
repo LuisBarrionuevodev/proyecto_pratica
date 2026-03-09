@@ -71,7 +71,13 @@ def list_points(
             DomicilioGeocode.lng.label("lng"),
         )
         .join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .join(
+            DomicilioGeocode,
+            and_(
+                Domicilio.id == DomicilioGeocode.domicilio_id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
+        )
         .outerjoin(Rubro, Domicilio.rubro_id == Rubro.id)
         .filter(DomicilioGeocode.geo_status == "OK")
     )
@@ -110,8 +116,15 @@ def list_points(
             DomicilioGeocode.lng.label("lng"),
         )
         .join(Domicilio, Relevamiento.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .join(
+            DomicilioGeocode,
+            and_(
+                Domicilio.id == DomicilioGeocode.domicilio_id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
+        )
         .outerjoin(Rubro, Domicilio.rubro_id == Rubro.id)
+        .filter(Relevamiento.deleted_at.is_(None))
         .filter(DomicilioGeocode.geo_status == "OK")
     )
     q_rel = _apply_date_filters(q_rel, Relevamiento, d_desde, d_hasta)
@@ -181,7 +194,10 @@ def list_points_v2(
         Relevamiento.domicilio_id.label("dom_id"),
         func.count(Relevamiento.id).label("rel_count"),
         func.max(Relevamiento.fecha).label("last_rel_fecha"),
-    ).filter(Relevamiento.domicilio_id.isnot(None))
+    ).filter(
+        Relevamiento.domicilio_id.isnot(None),
+        Relevamiento.deleted_at.is_(None),
+    )
     rel_q = _apply_date_filters(rel_q, Relevamiento, d_desde, d_hasta)
     rel_sub = rel_q.group_by(Relevamiento.domicilio_id).subquery()
 
@@ -198,7 +214,13 @@ def list_points_v2(
             rel_sub.c.rel_count,
             rel_sub.c.last_rel_fecha,
         )
-        .join(DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .join(
+            DomicilioGeocode,
+            and_(
+                Domicilio.id == DomicilioGeocode.domicilio_id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
+        )
         .outerjoin(act_sub, act_sub.c.dom_id == Domicilio.id)
         .outerjoin(rel_sub, rel_sub.c.dom_id == Domicilio.id)
         .filter(Domicilio.deleted_at.is_(None))
@@ -260,14 +282,17 @@ def get_details(
     d_hasta = _parse_date(hasta)
 
     dom = Domicilio.query.get(domicilio_id)
-    if not dom:
+    if not dom or dom.deleted_at is not None:
         raise ValueError("Domicilio no encontrado.")
 
     act_q = Actuaciones.query.filter(Actuaciones.domicilio_id == domicilio_id)
     act_q = _apply_date_filters(act_q, Actuaciones, d_desde, d_hasta)
     acts = act_q.order_by(Actuaciones.fecha.desc()).all()
 
-    rel_q = Relevamiento.query.filter(Relevamiento.domicilio_id == domicilio_id)
+    rel_q = Relevamiento.query.filter(
+        Relevamiento.domicilio_id == domicilio_id,
+        Relevamiento.deleted_at.is_(None),
+    )
     rel_q = _apply_date_filters(rel_q, Relevamiento, d_desde, d_hasta)
     rels = rel_q.order_by(Relevamiento.fecha.desc()).all()
 
@@ -376,11 +401,14 @@ def save_manual_geocode(
         raise ValueError("Domicilio no encontrado.")
 
     geo = get_or_create_geocode(domicilio_id)
-    geo.lat = lat
-    geo.lng = lng
+    geo.lat = float(lat)
+    geo.lng = float(lng)
     geo.geo_status = "OK"
     geo.source = "MANUAL"
-    geo.provider = geo.provider or "manual"
+    geo.provider = "manual"
+    # Manual geolocation is considered high-confidence resolved.
+    geo.quality = "MANUAL_EXACT"
+    geo.score = 1.0
     geo.checked_at = datetime.utcnow()
     geo.error_msg = None
 
@@ -462,6 +490,7 @@ def list_pendientes(
             func.max(Relevamiento.id).label("last_rel_id"),
             func.count(Relevamiento.id).label("rel_count"),
         )
+        .filter(Relevamiento.deleted_at.is_(None))
         .group_by(Relevamiento.domicilio_id)
         .subquery()
     )
@@ -483,7 +512,13 @@ def list_pendientes(
             rel_subq.c.last_rel_id,
             rel_subq.c.rel_count,
         )
-        .outerjoin(DomicilioGeocode, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .outerjoin(
+            DomicilioGeocode,
+            and_(
+                Domicilio.id == DomicilioGeocode.domicilio_id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
+        )
         .outerjoin(act_subq, act_subq.c.dom_id == Domicilio.id)
         .outerjoin(rel_subq, rel_subq.c.dom_id == Domicilio.id)
         .filter(Domicilio.deleted_at.is_(None))
@@ -502,8 +537,16 @@ def list_pendientes(
         ),
     )
 
+    manual_resolved = and_(
+        DomicilioGeocode.source == "MANUAL",
+        DomicilioGeocode.geo_status == "OK",
+        DomicilioGeocode.lat.isnot(None),
+        DomicilioGeocode.lng.isnot(None),
+    )
+
     map_pending = and_(
         ~norm_pending,
+        ~manual_resolved,
         or_(
             DomicilioGeocode.domicilio_id.is_(None),
             DomicilioGeocode.geo_status.in_(

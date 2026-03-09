@@ -88,7 +88,7 @@ def run_geocode_if_ready(domicilio_id: int) -> Dict[str, object]:
         ValueError: si el domicilio no existe.
     """
     dom = db.session.get(Domicilio, domicilio_id)
-    if not dom:
+    if not dom or dom.deleted_at is not None:
         raise ValueError("Domicilio no encontrado.")
     geo = ensure_geocode_row(domicilio_id)
     if not is_ready_for_geocode(dom):
@@ -114,16 +114,22 @@ def on_domicilio_changed(domicilio_id: int, force: bool = False) -> Dict[str, ob
         ValueError: si el domicilio no existe.
     """
     dom = db.session.get(Domicilio, domicilio_id)
-    if not dom:
+    if not dom or dom.deleted_at is not None:
         raise ValueError("Domicilio no encontrado.")
 
-    geo = ensure_geocode_row(domicilio_id)
-    if geo.source in {"MANUAL", "REVERSE"} and not force:
-        return {"ok": True, "skipped": True, "reason": "manual_or_reverse", "domicilio_id": domicilio_id}
-
     new_hash = compute_addr_hash(dom)
+    geo = ensure_geocode_row(domicilio_id)
     if not force and geo.addr_hash == new_hash:
         return {"ok": True, "skipped": True, "reason": "hash_unchanged", "domicilio_id": domicilio_id}
+
+    # Legacy safety: preserve manual/reverse rows without hash history unless forced.
+    if not force and geo.source in {"MANUAL", "REVERSE"} and not geo.addr_hash:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "manual_or_reverse_without_hash",
+            "domicilio_id": domicilio_id,
+        }
 
     mark_geocode_pending(domicilio_id, new_hash)
     db.session.commit()

@@ -1,7 +1,7 @@
-import RelevamientosContainer from "./RelevamientosContainer";
+import RelevamientosSectionContainer from "./RelevamientosSectionContainer";
 
 const Relevamientos = () => {
-  return <RelevamientosContainer />;
+  return <RelevamientosSectionContainer />;
 };
 
 export default Relevamientos;

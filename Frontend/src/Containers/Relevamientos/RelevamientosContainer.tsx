@@ -2,9 +2,8 @@ import type { JSX } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Autocomplete,
-  Badge,
   Box,
+  Button,
   Card,
   CardActionArea,
   CardContent,
@@ -15,6 +14,7 @@ import {
   ThemeProvider,
   Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 import { darkTheme } from "../../configs/theme";
 import TablaRelevamientos from "./Components/TableRelevamientos";
@@ -29,8 +29,6 @@ import {
 } from "../../api/relevamientosPendientesApi";
 import {
   fetchCallesCatalogo,
-  setCalleCanon,
-  setNumeroEsquina,
   type CalleCatalogoItem,
 } from "../../api/geolocalizacionApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
@@ -46,6 +44,7 @@ import {
 } from "../Actuaciones/styles/filtroStyles";
 
 const RelevamientosContainer = (): JSX.Element => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"todos" | "pendientes">("todos");
 
   const { relevamientos, meta, loading, error, hasSearched, buscar } = useRelevamientosFiltradas();
@@ -129,71 +128,19 @@ const RelevamientosContainer = (): JSX.Element => {
     }
   }, [tab, handleSearchCalles]);
 
-  const pendingExtraColumns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => [
-    {
-      accessorKey: "calle_catalogo_id",
-      header: "Calle catálogo",
-      size: 240,
-      enableEditing: true,
-      Cell: ({ cell }) => {
-        const value = cell.getValue<number | null>();
-        const match = callesCatalogo.find((opt) => opt.id === value);
-        return match ? match.nombre : "";
-      },
-      Edit: ({ row }) => {
-        const currentValue =
-          (row as any)?._valuesCache?.calle_catalogo_id ?? row.original.calle_catalogo_id;
-        const currentOption = callesCatalogo.find((opt) => opt.id === currentValue) || null;
-
-        return (
-          <Autocomplete
-            options={callesCatalogo}
-            getOptionLabel={(option) => option.nombre}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            loading={callesLoading}
-            value={currentOption}
-            onInputChange={(_, value) => handleSearchCalles(value)}
-            onChange={(_, newValue) => {
-              (row as any)._valuesCache = {
-                ...(row as any)._valuesCache,
-                calle_catalogo_id: newValue?.id ?? null,
-                calle: newValue?.nombre ?? row.original.calle ?? "",
-              };
-            }}
-            renderInput={(params) => (
-              <TextField {...params} label="Calle catálogo" variant="outlined" />
-            )}
-          />
-        );
-      },
-    },
-  ], [callesCatalogo, callesLoading, handleSearchCalles]);
+  const pendingExtraColumns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => [], []);
 
   const pendingColumnVisibility = useMemo(() => ({
     fecha: true,
     calle: true,
     numero: true,
-    calle_catalogo_id: true,
+    calle_catalogo_id: false,
     inspector: false,
     rubro: false,
     contraproducencia: false,
   }), []);
 
-  const handleBeforeSavePendiente = useCallback(async (fullRow: IRelevamientoListItem) => {
-    const domicilioId = fullRow.domicilio_id;
-    const calleCatalogoId = fullRow.calle_catalogo_id;
-    const numero = fullRow.numero;
-    const numeroTipo = (fullRow as any).numero_tipo;
-    if (!domicilioId) return;
-    if (numero) {
-      await setNumeroEsquina(domicilioId, String(numero), numeroTipo || null);
-    }
-    if (calleCatalogoId) {
-      await setCalleCanon(domicilioId, Number(calleCatalogoId));
-    }
-  }, []);
-
-  const totalPendientes = pendingSummary?.total ?? 0;
+  const handleBeforeSavePendiente = useCallback(async (_fullRow: IRelevamientoListItem) => {}, []);
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -206,14 +153,6 @@ const RelevamientosContainer = (): JSX.Element => {
           sx={{ marginBottom: 2 }}
         >
           <Tab label="Todos" value="todos" />
-          <Tab
-            label={
-              <Badge color="error" badgeContent={totalPendientes} showZero>
-                Pendientes
-              </Badge>
-            }
-            value="pendientes"
-          />
         </Tabs>
 
         {tab === "todos" && (
@@ -279,6 +218,7 @@ const RelevamientosContainer = (): JSX.Element => {
                     numero: meta?.numero || null,
                   })
                 }
+                numeroAllowFreeSolo
               />
             )}
           </>
@@ -326,13 +266,27 @@ const RelevamientosContainer = (): JSX.Element => {
                     <strong>Mostrando:</strong> Domicilios pendientes ({pendingItems.length})
                   </Typography>
                 </Box>
+                <Alert
+                  severity="info"
+                  sx={{ marginBottom: 2, display: "flex", alignItems: "center", gap: 2 }}
+                >
+                  La resolución de domicilios pendientes se centralizó en Gestionar domicilios.
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => navigate("/gestionarDomicilios")}
+                    sx={{ marginLeft: 1 }}
+                  >
+                    Ir a Gestionar domicilios
+                  </Button>
+                </Alert>
                 <TablaRelevamientos
                   data={pendingItems}
                   loading={pendingLoading}
                   onRefresh={handleFiltrarPendientes}
                   initialColumnVisibility={pendingColumnVisibility}
                   extraColumns={pendingExtraColumns}
-                  hideRowActions={false}
+                  hideRowActions
                   hideDeleteAction
                   skipValidation
                   skipUpdate

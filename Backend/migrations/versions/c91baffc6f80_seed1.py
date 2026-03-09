@@ -1,8 +1,8 @@
-"""seed 1
+"""seed1
 
-Revision ID: 947292dc2ed4
-Revises: e63e83ad5f85
-Create Date: 2026-02-26 15:11:20.492436
+Revision ID: c91baffc6f80
+Revises: d885b40cae5e
+Create Date: 2026-03-08 23:30:52.169807
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '947292dc2ed4'
-down_revision = 'e63e83ad5f85'
+revision = 'c91baffc6f80'
+down_revision = 'd885b40cae5e'
 branch_labels = None
 depends_on = None
 
@@ -117,4 +117,3 @@ def downgrade():
     conn.execute(sa.text("""
         DELETE FROM turno WHERE id IN (1,2);
     """))
-    # ### end Alembic commands ###

@@ -43,6 +43,7 @@ class Denuncia(db.Model):
 
     domicilio = db.relationship("Domicilio")
     created_by_user = db.relationship("User")
+    iniciadores_ruta = db.relationship("IniciadorRuta", back_populates="denuncia")
 
     __table_args__ = (
         db.Index("ix_denuncia_anio_mes_estado", "anio", "mes", "estado"),
