@@ -31,6 +31,12 @@ from .evento_participante import EventoParticipante
 from .user import User
 from .profile import Profile
 from .password_reset_code import PasswordResetCode
+from .denuncia import Denuncia
+from .iniciador_ruta import IniciadorRuta
+from .ruta_trabajo import RutaTrabajo
+from .ruta_grupo import RutaGrupo
+from .ruta_grupo_inspector import RutaGrupoInspector
+from .ruta_item import RutaItem
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -68,4 +74,10 @@ __all__ = [
     "User",
     "Profile",
     "PasswordResetCode",
+    "Denuncia",
+    "IniciadorRuta",
+    "RutaTrabajo",
+    "RutaGrupo",
+    "RutaGrupoInspector",
+    "RutaItem",
 ]

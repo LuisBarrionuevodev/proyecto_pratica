@@ -11,6 +11,11 @@ class Relevamiento(db.Model):
     anio = db.Column(db.Integer, nullable=False, index=True)
     mes = db.Column(db.Integer, nullable=False, index=True)
     contraproducencia = db.Column(db.String(128), nullable=True, index=True)
+    turno_carga = db.Column(
+        db.Enum("MANIANA", "TARDE", name="tipo_turno"),
+        nullable=True,
+        index=True,
+    )
 
     inspector_id = db.Column(
         db.Integer,
@@ -33,6 +38,12 @@ class Relevamiento(db.Model):
         unique=False,
         index=True,
     )
+    created_by_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     created_at = db.Column(
         db.DateTime,
         nullable=False,
@@ -48,6 +59,7 @@ class Relevamiento(db.Model):
     inspector = db.relationship("Inspector", back_populates="relevamientos")
     domicilio = db.relationship("Domicilio", back_populates="relevamiento")
     rubro = db.relationship("Rubro", back_populates="relevamiento")
+    created_by_user = db.relationship("User")
 
     def to_dict(self, include_relations=False):
         data = {
@@ -56,9 +68,11 @@ class Relevamiento(db.Model):
             "anio": self.anio,
             "mes": self.mes,
             "contraproducencia": self.contraproducencia,
+            "turno_carga": self.turno_carga,
             "inspector_id": self.inspector_id,
             "domicilio_id": self.domicilio_id,
             "rubro_id": self.rubro_id,
+            "created_by_user_id": self.created_by_user_id,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }

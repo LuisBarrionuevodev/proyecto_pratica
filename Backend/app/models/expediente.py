@@ -10,6 +10,17 @@ class Expediente(db.Model):
         index=True,
     )
     anio = db.Column(db.String(4), nullable=False, index=True)
+    tipo_expediente = db.Column(
+        db.Enum(
+            "ENVIO_ACTA",
+            "RESPUESTA_OFICIO",
+            "PRORROGA_NOTIFICACION",
+            "OTRO",
+            name="tipo_expediente_enum",
+        ),
+        nullable=True,
+        index=True,
+    )
     comprobacion_id = db.Column(
         db.Integer,
         db.ForeignKey("comprobacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -34,7 +45,11 @@ class Expediente(db.Model):
     )
     deleted_at = db.Column(db.DateTime, nullable=True)
     comprobacion = db.relationship("Comprobacion", back_populates="expediente")
-    oficio = db.relationship("Oficio", back_populates="expediente")
+    oficio = db.relationship(
+        "Oficio",
+        back_populates="expediente",
+        foreign_keys=[oficio_id],
+    )
     __table_args__ = (
         db.UniqueConstraint("numero_expediente", "anio", name="uq_ex_numero_anio"),
     )
@@ -44,6 +59,7 @@ class Expediente(db.Model):
             "id": self.id,
             "numero_expediente": self.numero_expediente,
             "anio": self.anio,
+            "tipo_expediente": self.tipo_expediente,
             "comprobacion_id": self.comprobacion_id,
             "oficio_id": self.oficio_id,
             "created_at": self.created_at,

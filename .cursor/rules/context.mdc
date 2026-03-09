@@ -1,0 +1,277 @@
+---
+alwaysApply: true
+---
+====================================================
+Domain Context – Bromatología Inspection System
+====================================================
+
+This project is an internal inspection management system used by a municipal food safety authority (Bromatología).
+
+The backend is implemented with:
+- Flask
+- SQLAlchemy ORM
+- Alembic migrations
+- Modular architecture under app/domains
+
+The frontend is implemented with React + MUI.
+
+The system manages inspections, notifications, violations, administrative procedures, and inspection routes.
+
+Important: existing modules and endpoints must not be broken unless explicitly instructed.
+
+----------------------------------------------------
+
+Core Concept of the New Architecture
+
+The system is evolving from a model centered on "actuaciones" (inspection records) to a model centered on:
+
+1. Work triggers (iniciadores)
+2. Work planning (inspection routes)
+3. Work execution (completing tasks)
+4. Administrative follow-up (expedientes and oficios)
+
+----------------------------------------------------
+
+Work Triggers (Iniciadores)
+
+A work trigger represents a reason for an inspection visit.
+
+Possible triggers include:
+
+- relevamiento (field survey)
+- denuncia (complaint)
+- reinspeccion after notification expiration
+- verificar e informar (from oficio)
+- ratificacion de clausura (from oficio)
+- ratificacion de decomiso (from oficio)
+
+All triggers must be normalized into a unified operational entity called:
+
+iniciador_ruta
+
+This entity feeds the route planning system.
+
+----------------------------------------------------
+
+Route Planning
+
+Inspection routes organize work assignments.
+
+New entities required:
+
+ruta_trabajo
+    represents an inspection route for a given date and shift
+
+ruta_grupo
+    represents a group of inspectors assigned to a route
+
+ruta_grupo_inspector
+    relation between inspectors and groups
+
+ruta_item
+    represents a single work task within a route
+
+A ruta_item references an iniciador_ruta and contains execution state.
+
+----------------------------------------------------
+
+Work Execution
+
+Inspectors complete assigned tasks through the "complete work" flow.
+
+A completed task may generate one or more inspection documents:
+
+- acta de inspeccion
+- acta de notificacion
+- acta de comprobacion
+- acta de clausura
+- acta de decomiso
+
+Rules:
+
+If both NOTIFICACION and COMPROBACION are produced in the same visit,
+both must be saved but the dominant future flow is COMPROBACION.
+
+----------------------------------------------------
+
+Administrative Flow
+
+Administrative procedures include:
+
+expediente
+oficio
+
+Rules:
+
+- An oficio always belongs to an expediente.
+- A comprobacion may generate an expediente for sending the case.
+- Later, an oficio response may arrive with a different expediente.
+- Therefore multiple expedientes may exist in the lifecycle of the same case.
+
+----------------------------------------------------
+
+Not Executed Work
+
+When completing a task, it may not be executed.
+
+Possible reasons:
+
+LOCAL_CERRADO
+INCLEMENCIA_TIEMPO
+NO_EXISTE_LOCAL
+OTRO
+
+Rules:
+
+LOCAL_CERRADO
+    task returns to pending queue
+
+INCLEMENCIA_TIEMPO
+    task returns to pending queue
+
+OTRO
+    task normally returns to pending queue
+
+NO_EXISTE_LOCAL
+    the origin trigger must be logically closed so it will not be scheduled again
+
+Never physically delete records for this case. Use logical closure.
+
+----------------------------------------------------
+
+Entities Required in This Refactor
+
+Existing entities (must remain intact):
+
+relevamiento
+actuaciones
+notificacion
+comprobacion
+expediente
+oficio
+orden_trabajo
+domicilio
+users
+
+New entities:
+
+denuncia
+iniciador_ruta
+ruta_trabajo
+ruta_grupo
+ruta_grupo_inspector
+ruta_item
+
+----------------------------------------------------
+
+Denuncia Entity
+
+Minimum fields:
+
+id
+fecha
+domicilio_id
+motivo
+created_by_user_id
+created_at
+updated_at
+deleted_at (optional)
+
+----------------------------------------------------
+
+Relevamiento Update
+
+Add:
+
+turno_carga ENUM (MANIANA, TARDE)
+created_by_user_id
+
+----------------------------------------------------
+
+Route Item Execution Fields
+
+ruta_item must support execution results:
+
+estado_ejecucion
+motivo_no_realizado
+observaciones_ejecucion
+actuacion_id (nullable)
+
+----------------------------------------------------
+
+Security Rules
+
+Never trust user_id values coming from the frontend.
+
+Always obtain the user performing an action from the authenticated session or JWT context.
+
+Every record created by a user must store:
+
+created_by_user_id
+
+----------------------------------------------------
+
+Audit Requirements
+
+New operational entities must include:
+
+created_at
+updated_at
+created_by_user_id
+
+Prefer soft deletion or logical closure over physical deletion.
+
+----------------------------------------------------
+
+Architecture Rules
+
+Respect the existing modular architecture under app/domains.
+
+Do not move modules unless explicitly requested.
+
+Prefer extending existing services rather than duplicating logic.
+
+Business logic must live in service layers, not in route handlers.
+
+----------------------------------------------------
+
+Migration Rules
+
+All database changes must be implemented using Alembic migrations.
+
+Do not alter or drop existing tables without explicit instruction.
+
+New tables must follow the existing naming and SQLAlchemy conventions used in the project.
+
+----------------------------------------------------
+
+Agent Behavior Requirements
+
+Before implementing changes:
+
+1. Analyze the existing project structure
+2. Identify where SQLAlchemy models are defined
+3. Identify how migrations are organized
+4. Identify how authenticated user is retrieved
+5. Identify how actuaciones currently work
+
+Then propose an incremental implementation plan.
+
+Do not implement large architectural changes without confirming the plan first.
+
+----------------------------------------------------
+
+Refactor Objective
+
+Introduce the following new capabilities without breaking the current system:
+
+- complaint registration (denuncias)
+- unified trigger queue (iniciador_ruta)
+- inspection route planning (ruta_trabajo)
+- group assignments for inspectors
+- task execution tracking
+- support for not executed work cases
+- improved administrative traceability
+
+Frontend changes will come later.
+Focus first on backend models, migrations, and services.

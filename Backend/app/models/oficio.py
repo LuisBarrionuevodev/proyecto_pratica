@@ -31,9 +31,19 @@ class Oficio(db.Model):
         index=True,
         nullable=True,
     )
+    expediente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("expediente.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        index=True,
+        nullable=True,
+    )
 
     comprobacion = db.relationship("Comprobacion", back_populates="oficio")
-    expediente = db.relationship("Expediente", back_populates="oficio")
+    expediente = db.relationship(
+        "Expediente",
+        back_populates="oficio",
+        foreign_keys="Expediente.oficio_id",
+    )
     __table_args__ = (
         db.UniqueConstraint("numero_oficio", "anio", name="uq_of_numero_anio"),
     )
@@ -45,6 +55,7 @@ class Oficio(db.Model):
             "anio": self.anio,
             "causa": self.causa,
             "comprobacion_id": self.comprobacion_id,
+            "expediente_id": self.expediente_id,
             "deleted_at": self.deleted_at,
         }
 
