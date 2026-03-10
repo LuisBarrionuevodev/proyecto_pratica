@@ -81,7 +81,7 @@ const DenunciasCrudPlaceholder = () => {
             buscar({
               desde: meta?.desde || null,
               hasta: meta?.hasta || null,
-              estado: (meta?.estado as "all" | "hechas" | "no_hechas") || "all",
+              estado: "all",
               page: meta?.page || 1,
               page_size: meta?.page_size || 50,
             })

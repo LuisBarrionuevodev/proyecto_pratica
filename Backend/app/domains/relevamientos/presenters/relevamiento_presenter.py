@@ -69,6 +69,17 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
     }
 
 
+def relevamiento_operativo_to_row(rel: Relevamiento, iniciador_id: int, iniciador_estado: str) -> Dict[str, Any]:
+    """
+    Convierte un Relevamiento de gestión operativa a formato UI.
+    """
+    data = relevamiento_to_row(rel)
+    data["iniciador_ruta_id"] = iniciador_id
+    data["iniciador_estado"] = iniciador_estado
+    data["editable"] = iniciador_estado == "PENDIENTE"
+    return data
+
+
 def relevamiento_to_pendiente_domicilio_row(rel: Relevamiento) -> Dict[str, Any]:
     """
     Convierte un Relevamiento a un formato mínimo para pendientes de domicilio.

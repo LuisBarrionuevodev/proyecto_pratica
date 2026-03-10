@@ -17,6 +17,9 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_domicilio_if_orphan,
 )
+from app.domains.relevamientos.services.operational_guard_service import (
+    get_iniciador_pendiente_relevamiento,
+)
 
 
 def _get_relevamiento_or_404(relevamiento_id: int) -> Relevamiento:
@@ -48,6 +51,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         ValueError: si no existe o reglas de negocio.
     """
     rel = _get_relevamiento_or_404(relevamiento_id)
+    get_iniciador_pendiente_relevamiento(relevamiento_id)
     old_domicilio_id = rel.domicilio_id
 
     fecha_raw = payload.get("fecha")

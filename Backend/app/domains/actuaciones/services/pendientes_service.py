@@ -100,3 +100,14 @@ def get_pendientes_list(filters: ActuacionesPendientesFilters) -> List[Actuacion
         return []
 
     return query.order_by(Actuaciones.id.desc()).all()
+
+
+def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
+    """
+    Lista actuaciones pendientes de expediente.
+
+    Reutiliza la misma lógica de "sin_expediente":
+    - actuación con comprobación
+    - sin expediente vinculado a esa comprobación
+    """
+    return _sin_expediente_query(filters).order_by(Actuaciones.id.desc()).all()

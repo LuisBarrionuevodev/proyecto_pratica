@@ -72,6 +72,8 @@ const FiltroDenuncias = ({ onFiltrar }: FiltroDenunciasProps) => {
             select
             label="Estado"
             value={estado}
+            disabled
+            helperText="En gestión operativa se muestran solo pendientes."
             onChange={(e) => setEstado(e.target.value as "all" | "hechas" | "no_hechas")}
           >
             <MenuItem value="all">Todas</MenuItem>

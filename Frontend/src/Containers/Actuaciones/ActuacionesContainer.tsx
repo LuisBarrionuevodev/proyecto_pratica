@@ -10,7 +10,6 @@ import {
   CircularProgress,
   Tab,
   Tabs,
-  TextField,
   ThemeProvider,
   Typography,
 } from "@mui/material";
@@ -60,8 +59,6 @@ const ActuacionesContainer = (): JSX.Element => {
   const [pendingError, setPendingError] = useState<string | null>(null);
 
   const [callesCatalogo, setCallesCatalogo] = useState<CalleCatalogoItem[]>([]);
-  const [callesLoading, setCallesLoading] = useState(false);
-
 
   const handleFiltrarTodos = (filtros: {
     desde: string | null;
@@ -120,12 +117,11 @@ const ActuacionesContainer = (): JSX.Element => {
   };
 
   const handleSearchCalles = useCallback(async (value: string) => {
-    setCallesLoading(true);
     try {
       const resp = await fetchCallesCatalogo(value, 25);
       setCallesCatalogo(resp.items);
     } finally {
-      setCallesLoading(false);
+      // no-op
     }
   }, []);
 

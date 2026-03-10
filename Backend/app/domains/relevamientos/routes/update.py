@@ -10,6 +10,7 @@ from app.domains.relevamientos.presenters.relevamiento_presenter import relevami
 from app.domains.relevamientos.schemas.grid.relevamiento_row_in import RelevamientoGridRowIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.relevamientos.services.update_service import actualizar_relevamiento
+from app.domains.relevamientos.services.operational_guard_service import RelevamientoNoOperativoError
 
 from . import relevamiento
 
@@ -29,6 +30,8 @@ def actualizar_relevamiento_route(relevamiento_id: int):
         return jsonify(relevamiento_to_row(rel)), 200
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except RelevamientoNoOperativoError as e:
+        return jsonify({"detail": str(e)}), 409
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
     except Exception as e:

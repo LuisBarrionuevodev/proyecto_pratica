@@ -4,7 +4,7 @@ import type {
   IRelevamientosListMeta,
   IRelevamientosListFilters,
 } from "../../../api/relevamientosListApi";
-import { getRelevamientosFiltered } from "../../../api/relevamientosListApi";
+import { getRelevamientosOperativosFiltered } from "../../../api/relevamientosListApi";
 
 interface UseRelevamientosFiltradas {
   relevamientos: IRelevamientoListItem[];
@@ -27,7 +27,7 @@ export const useRelevamientosFiltradas = (): UseRelevamientosFiltradas => {
     setError(null);
     setHasSearched(true);
     try {
-      const response = await getRelevamientosFiltered(filters);
+      const response = await getRelevamientosOperativosFiltered(filters);
       setRelevamientos(response.items);
       setMeta(response.meta);
     } catch (err: any) {

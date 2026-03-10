@@ -42,17 +42,25 @@ const TablaDenuncias = ({
   }, [externalData]);
 
   const handleDeleteRow = useCallback(
-    async (id: number) => {
+    async (rowItem: IDenunciaGestionItem) => {
+      const id = Number(rowItem.id);
+      if (rowItem.editable === false) {
+        alert("Esta denuncia ya no está operativa y no puede eliminarse.");
+        onRefresh?.();
+        return;
+      }
       if (!window.confirm("¿Estás seguro de eliminar esta denuncia?")) return;
       const prev = [...data];
       setData((prevData) => prevData.filter((item) => item.id !== id));
       try {
         await deleteDenunciaGestion(id);
         onRefresh?.();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error al eliminar denuncia:", error);
-        alert("No se pudo eliminar la denuncia. Se restaurará la lista.");
+        const msg = error?.response?.data?.detail || "No se pudo eliminar la denuncia. Se restaurará la lista.";
+        alert(msg);
         setData(prev);
+        onRefresh?.();
       }
     },
     [data, onRefresh]
@@ -62,6 +70,11 @@ const TablaDenuncias = ({
     async ({ exitEditingMode, row, values }: any) => {
       const id = Number(row.original.id);
       const fullRow: IDenunciaGestionItem = { ...row.original, ...values };
+      if (fullRow.editable === false) {
+        alert("Esta denuncia ya no está operativa y no puede editarse.");
+        onRefresh?.();
+        return;
+      }
       try {
         setRowErrors((prev) => ({ ...prev, [id]: {} }));
         await updateDenunciaGestion(id, fullRow);
@@ -75,6 +88,7 @@ const TablaDenuncias = ({
         }
         const msg = error?.response?.data?.detail || "No se pudo actualizar la denuncia.";
         alert(msg);
+        onRefresh?.();
       }
     },
     [onRefresh]
@@ -177,26 +191,28 @@ const TablaDenuncias = ({
     onEditingRowSave: handleSaveRow,
     renderRowActions: ({ row, table }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        <Tooltip title="Editar">
+        <Tooltip title={row.original.editable === false ? "No editable (fuera de gestión operativa)" : "Editar"}>
           <IconButton
             sx={{
               color: COLORS.white,
               transition: "color 0.2s ease, background-color 0.2s ease",
               "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
             }}
+            disabled={row.original.editable === false}
             onClick={() => table.setEditingRow(row)}
           >
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Eliminar">
+        <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
           <IconButton
             sx={{
               color: COLORS.white,
               transition: "color 0.2s ease, background-color 0.2s ease",
               "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
             }}
-            onClick={() => handleDeleteRow(Number(row.original.id))}
+            disabled={row.original.editable === false}
+            onClick={() => handleDeleteRow(row.original)}
           >
             <DeleteIcon />
           </IconButton>

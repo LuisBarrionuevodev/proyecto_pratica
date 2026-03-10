@@ -4,6 +4,7 @@ from datetime import date
 from datetime import datetime
 
 from flask_jwt_extended import get_jwt_identity
+from sqlalchemy import func
 
 from app.database import db
 from app.models import Denuncia, Domicilio, IniciadorRuta, User
@@ -18,6 +19,9 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
     on_domicilio_changed,
 )
 from app.domains.denuncias.schemas import DenunciasGestionFilters, DenunciaGestionRowIn
+from app.domains.denuncias.services.operational_guard_service import (
+    get_iniciador_pendiente_denuncia,
+)
 
 
 def _get_current_user_id() -> int:
@@ -180,6 +184,8 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
     if not denuncia:
         raise ValueError("Denuncia no encontrada.")
 
+    get_iniciador_pendiente_denuncia(denuncia_id)
+
     now = datetime.utcnow()
     domicilio_id = denuncia.domicilio_id
 
@@ -210,7 +216,7 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
     return {"ok": True, "denuncia_id": denuncia_id}
 
 
-def _denuncia_to_gestion_row(d: Denuncia) -> dict:
+def _denuncia_to_gestion_row(d: Denuncia, iniciador: IniciadorRuta | None = None) -> dict:
     dom = d.domicilio
     calle = getattr(dom, "calle", None)
     numero = getattr(dom, "numero", None)
@@ -224,6 +230,9 @@ def _denuncia_to_gestion_row(d: Denuncia) -> dict:
         "motivo": d.motivo,
         "estado": d.estado,
         "domicilio_id": d.domicilio_id,
+        "iniciador_ruta_id": iniciador.id if iniciador else None,
+        "iniciador_estado": iniciador.estado_iniciador if iniciador else None,
+        "editable": (iniciador.estado_iniciador == "PENDIENTE") if iniciador else False,
     }
 
 
@@ -268,6 +277,61 @@ def listar_denuncias_gestion(filters: DenunciasGestionFilters) -> dict:
     }
 
 
+def listar_denuncias_gestion_operativa(filters: DenunciasGestionFilters) -> dict:
+    """
+    Listado operativo de denuncias:
+    solo aquellas con iniciador DENUNCIA pendiente y activo.
+    """
+    _get_current_user_id()
+
+    pending_iniciador_subq = (
+        db.session.query(
+            IniciadorRuta.denuncia_id.label("denuncia_id"),
+            func.max(IniciadorRuta.id).label("iniciador_id"),
+        )
+        .filter(
+            IniciadorRuta.denuncia_id.isnot(None),
+            IniciadorRuta.tipo_iniciador == "DENUNCIA",
+            IniciadorRuta.estado_iniciador == "PENDIENTE",
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .group_by(IniciadorRuta.denuncia_id)
+        .subquery()
+    )
+
+    query = (
+        db.session.query(Denuncia, IniciadorRuta)
+        .join(pending_iniciador_subq, pending_iniciador_subq.c.denuncia_id == Denuncia.id)
+        .join(IniciadorRuta, IniciadorRuta.id == pending_iniciador_subq.c.iniciador_id)
+        .filter(Denuncia.deleted_at.is_(None))
+    )
+
+    if filters.desde:
+        query = query.filter(Denuncia.fecha >= filters.desde)
+    if filters.hasta:
+        query = query.filter(Denuncia.fecha <= filters.hasta)
+
+    total = query.count()
+    offset = (filters.page - 1) * filters.page_size
+    rows = (
+        query.order_by(Denuncia.id.desc())
+        .offset(offset)
+        .limit(filters.page_size)
+        .all()
+    )
+    return {
+        "items": [_denuncia_to_gestion_row(d, iniciador) for d, iniciador in rows],
+        "meta": {
+            "total": total,
+            "page": filters.page,
+            "page_size": filters.page_size,
+            "desde": filters.desde.isoformat() if filters.desde else None,
+            "hasta": filters.hasta.isoformat() if filters.hasta else None,
+            "estado": "operativas_pendientes",
+        },
+    }
+
+
 def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> dict:
     """
     Actualiza denuncia desde grilla de gestión.
@@ -284,6 +348,7 @@ def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> 
     if not denuncia:
         raise ValueError("Denuncia no encontrada.")
 
+    iniciador_operativo = get_iniciador_pendiente_denuncia(denuncia_id)
     old_domicilio_id = denuncia.domicilio_id
 
     dom = get_or_create_domicilio_basico(row.calle, row.numero)
@@ -300,27 +365,8 @@ def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> 
     denuncia.estado = row.estado
     db.session.add(denuncia)
 
-    # Sincroniza iniciadores activos de esa denuncia con estado de negocio.
-    iniciadores = IniciadorRuta.query.filter(
-        IniciadorRuta.denuncia_id == denuncia.id,
-        IniciadorRuta.deleted_at.is_(None),
-    ).all()
-    for ini in iniciadores:
-        ini.domicilio_id = dom.id
-        if row.estado == "CERRADA":
-            ini.estado_iniciador = "CERRADO"
-            ini.cerrado_at = datetime.utcnow()
-            ini.cerrado_motivo = ini.cerrado_motivo or "DENUNCIA_CERRADA"
-        elif row.estado == "DESCARTADA":
-            ini.estado_iniciador = "ANULADO"
-            ini.cerrado_at = datetime.utcnow()
-            ini.cerrado_motivo = ini.cerrado_motivo or "DENUNCIA_DESCARTADA"
-        else:
-            if ini.estado_iniciador in {"CERRADO", "ANULADO"}:
-                ini.estado_iniciador = "PENDIENTE"
-                ini.cerrado_at = None
-                ini.cerrado_motivo = None
-        db.session.add(ini)
+    iniciador_operativo.domicilio_id = dom.id
+    db.session.add(iniciador_operativo)
 
     db.session.commit()
 
@@ -333,4 +379,5 @@ def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> 
     except Exception:
         pass
 
-    return _denuncia_to_gestion_row(denuncia)
+    refreshed_iniciador = get_iniciador_pendiente_denuncia(denuncia.id)
+    return _denuncia_to_gestion_row(denuncia, refreshed_iniciador)

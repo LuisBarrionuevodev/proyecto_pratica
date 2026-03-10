@@ -4,7 +4,7 @@ import type {
   IDenunciasGestionFilters,
   IDenunciasGestionMeta,
 } from "../../../api/denunciasApi";
-import { getDenunciasGestion } from "../../../api/denunciasApi";
+import { getDenunciasGestionOperativa } from "../../../api/denunciasApi";
 
 interface UseDenunciasFiltradas {
   denuncias: IDenunciaGestionItem[];
@@ -27,7 +27,7 @@ export const useDenunciasFiltradas = (): UseDenunciasFiltradas => {
     setError(null);
     setHasSearched(true);
     try {
-      const response = await getDenunciasGestion(filters);
+      const response = await getDenunciasGestionOperativa(filters);
       setDenuncias(response.items);
       setMeta(response.meta);
     } catch (err: any) {

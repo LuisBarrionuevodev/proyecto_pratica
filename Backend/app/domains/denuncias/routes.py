@@ -13,9 +13,11 @@ from app.domains.denuncias.services.denuncias_service import (
     actualizar_denuncia_gestion,
     crear_denuncia_con_iniciador,
     eliminar_denuncia_logicamente,
+    listar_denuncias_gestion_operativa,
     listar_denuncias_gestion,
     listar_denuncias,
 )
+from app.domains.denuncias.services.operational_guard_service import DenunciaNoOperativaError
 from app.shared.errors import pydantic_errors_to_cell_map
 
 denuncias_api = Blueprint("denuncias_api", __name__)
@@ -76,6 +78,27 @@ def list_denuncias_gestion_route():
         return jsonify({"detail": msg}), status
 
 
+@denuncias_api.get("/api/denuncias/gestion-operativa")
+@jwt_required()
+def list_denuncias_gestion_operativa_route():
+    try:
+        raw_params = request.args.to_dict()
+        params = {k: (v if v else None) for k, v in raw_params.items()}
+        if "page" in params and params["page"]:
+            params["page"] = int(params["page"])
+        if "page_size" in params and params["page_size"]:
+            params["page_size"] = int(params["page_size"])
+
+        filters = DenunciasGestionFilters.model_validate(params)
+        return jsonify(listar_denuncias_gestion_operativa(filters)), 200
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": e.errors()}), 422
+    except ValueError as e:
+        msg = str(e)
+        status = 401 if "no autorizado" in msg.lower() else 400
+        return jsonify({"detail": msg}), status
+
+
 @denuncias_api.put("/api/denuncias/<int:denuncia_id>")
 @jwt_required()
 def update_denuncia_gestion_route(denuncia_id: int):
@@ -87,6 +110,8 @@ def update_denuncia_gestion_route(denuncia_id: int):
         return jsonify(updated), 200
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except DenunciaNoOperativaError as e:
+        return jsonify({"detail": str(e)}), 409
     except ValueError as e:
         msg = str(e)
         status = 401 if "no autorizado" in msg.lower() else 400
@@ -98,6 +123,8 @@ def update_denuncia_gestion_route(denuncia_id: int):
 def delete_denuncia(denuncia_id: int):
     try:
         return jsonify(eliminar_denuncia_logicamente(denuncia_id)), 200
+    except DenunciaNoOperativaError as e:
+        return jsonify({"detail": str(e)}), 409
     except ValueError as e:
         msg = str(e)
         status = 401 if "no autorizado" in msg.lower() else 404

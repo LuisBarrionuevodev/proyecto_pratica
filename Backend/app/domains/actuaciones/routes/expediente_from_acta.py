@@ -50,5 +50,14 @@ def crear_expediente_desde_acta(actuacion_id: int):
     db.session.commit()
     db.session.refresh(act)
 
-    return jsonify(actuacion_to_grid_row(act)), 201
+    return jsonify({
+        "ok": True,
+        "item": actuacion_to_grid_row(act),
+        "meta": {
+            "actuacion_id": act.id,
+            "expediente_id": ex.id,
+            "expediente_numero": ex.numero_expediente,
+            "expediente_anio": ex.anio,
+        },
+    }), 201
 
