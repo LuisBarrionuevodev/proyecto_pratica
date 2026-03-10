@@ -1,8 +1,8 @@
-"""priemro
+"""inicio
 
-Revision ID: d885b40cae5e
+Revision ID: 0cf47c98a498
 Revises: 
-Create Date: 2026-03-08 22:35:22.013232
+Create Date: 2026-03-10 14:48:40.221018
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import geoalchemy2
 
 
 # revision identifiers, used by Alembic.
-revision = 'd885b40cae5e'
+revision = '0cf47c98a498'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -115,26 +115,6 @@ def upgrade():
     with op.batch_alter_table('establecimientos', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_establecimientos_nombre'), ['nombre'], unique=True)
 
-    op.create_table('expediente',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('numero_expediente', sa.String(length=6), nullable=False),
-    sa.Column('anio', sa.String(length=4), nullable=False),
-    sa.Column('tipo_expediente', sa.Enum('ENVIO_ACTA', 'RESPUESTA_OFICIO', 'PRORROGA_NOTIFICACION', 'OTRO', name='tipo_expediente_enum'), nullable=True),
-    sa.Column('comprobacion_id', sa.Integer(), nullable=True),
-    sa.Column('oficio_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('numero_expediente', 'anio', name='uq_ex_numero_anio')
-    )
-    with op.batch_alter_table('expediente', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_expediente_anio'), ['anio'], unique=False)
-        batch_op.create_index(batch_op.f('ix_expediente_comprobacion_id'), ['comprobacion_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_expediente_numero_expediente'), ['numero_expediente'], unique=False)
-        batch_op.create_index(batch_op.f('ix_expediente_tipo_expediente'), ['tipo_expediente'], unique=False)
-
     op.create_table('lugares_trabajo',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.String(length=128), nullable=False),
@@ -168,33 +148,6 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_notificacion_anio'), ['anio'], unique=False)
         batch_op.create_index(batch_op.f('ix_notificacion_mes'), ['mes'], unique=False)
         batch_op.create_index(batch_op.f('ix_notificacion_numero_acta'), ['numero_acta'], unique=False)
-
-    op.create_table('oficio',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('numero_oficio', sa.String(length=30), nullable=False),
-    sa.Column('anio', sa.Integer(), nullable=False),
-    sa.Column('causa', sa.String(length=10), nullable=True),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('comprobacion_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('numero_oficio', 'anio', name='uq_of_numero_anio')
-    )
-    with op.batch_alter_table('oficio', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_oficio_anio'), ['anio'], unique=False)
-        batch_op.create_index(batch_op.f('ix_oficio_causa'), ['causa'], unique=False)
-        batch_op.create_index(batch_op.f('ix_oficio_comprobacion_id'), ['comprobacion_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_oficio_numero_oficio'), ['numero_oficio'], unique=False)
-
-    with op.batch_alter_table('expediente', schema=None) as batch_op:
-        batch_op.create_foreign_key(
-            'fk_expediente_oficio_id_oficio',
-            'oficio',
-            ['oficio_id'],
-            ['id'],
-            onupdate='CASCADE',
-            ondelete='RESTRICT',
-        )
 
     op.create_table('orden_trabajo',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -295,6 +248,23 @@ def upgrade():
     sa.ForeignKeyConstraint(['notificacion_id'], ['notificacion.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('notificacion_id', 'motivo')
     )
+    op.create_table('oficio',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('numero_oficio', sa.String(length=30), nullable=False),
+    sa.Column('anio', sa.Integer(), nullable=False),
+    sa.Column('causa', sa.String(length=10), nullable=True),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('comprobacion_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('numero_oficio', 'anio', name='uq_of_numero_anio')
+    )
+    with op.batch_alter_table('oficio', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_oficio_anio'), ['anio'], unique=False)
+        batch_op.create_index(batch_op.f('ix_oficio_causa'), ['causa'], unique=False)
+        batch_op.create_index(batch_op.f('ix_oficio_comprobacion_id'), ['comprobacion_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_oficio_numero_oficio'), ['numero_oficio'], unique=False)
+
     op.create_table('participantes',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('dni', sa.String(length=20), nullable=False),
@@ -360,7 +330,7 @@ def upgrade():
     op.create_table('domicilio',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('calle', sa.String(length=128), nullable=False),
-    sa.Column('numero', sa.String(length=20), nullable=False),
+    sa.Column('numero', sa.String(length=200), nullable=False),
     sa.Column('numero_tipo', sa.String(length=16), nullable=True),
     sa.Column('cp', sa.String(length=4), nullable=True),
     sa.Column('ciudad', sa.String(length=110), nullable=True),
@@ -421,6 +391,27 @@ def upgrade():
     sa.ForeignKeyConstraint(['participante_id'], ['participantes.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('evento_id', 'participante_id')
     )
+    op.create_table('expediente',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('numero_expediente', sa.String(length=6), nullable=False),
+    sa.Column('anio', sa.String(length=4), nullable=False),
+    sa.Column('tipo_expediente', sa.Enum('ENVIO_ACTA', 'RESPUESTA_OFICIO', 'PRORROGA_NOTIFICACION', 'OTRO', name='tipo_expediente_enum'), nullable=True),
+    sa.Column('comprobacion_id', sa.Integer(), nullable=True),
+    sa.Column('oficio_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['oficio_id'], ['oficio.id'], onupdate='CASCADE', ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('numero_expediente', 'anio', name='uq_ex_numero_anio')
+    )
+    with op.batch_alter_table('expediente', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_expediente_anio'), ['anio'], unique=False)
+        batch_op.create_index(batch_op.f('ix_expediente_comprobacion_id'), ['comprobacion_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_expediente_numero_expediente'), ['numero_expediente'], unique=False)
+        batch_op.create_index(batch_op.f('ix_expediente_tipo_expediente'), ['tipo_expediente'], unique=False)
+
     op.create_table('ruta_grupo',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('ruta_trabajo_id', sa.Integer(), nullable=False),
@@ -511,10 +502,12 @@ def upgrade():
     sa.Column('checked_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['domicilio_id'], ['domicilio.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('domicilio_id')
     )
     with op.batch_alter_table('domicilio_geocode', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_domicilio_geocode_deleted_at'), ['deleted_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_domicilio_geocode_geo_status'), ['geo_status'], unique=False)
 
     op.create_table('relevamiento',
@@ -530,6 +523,7 @@ def upgrade():
     sa.Column('created_by_user_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['created_by_user_id'], ['users.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['domicilio_id'], ['domicilio.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['inspector_id'], ['inspector.id'], onupdate='CASCADE', ondelete='RESTRICT'),
@@ -540,6 +534,7 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_relevamiento_anio'), ['anio'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_contraproducencia'), ['contraproducencia'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_created_by_user_id'), ['created_by_user_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_relevamiento_deleted_at'), ['deleted_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_domicilio_id'), ['domicilio_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_inspector_id'), ['inspector_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_mes'), ['mes'], unique=False)
@@ -633,6 +628,7 @@ def upgrade():
     sa.Column('created_by_user_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['actuacion_id'], ['actuaciones.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['created_by_user_id'], ['users.id'], onupdate='CASCADE', ondelete='RESTRICT'),
@@ -651,6 +647,7 @@ def upgrade():
         batch_op.create_index('ix_iniciador_ruta_anio_mes_turno_estado', ['anio', 'mes', 'turno_sugerido', 'estado_iniciador'], unique=False)
         batch_op.create_index(batch_op.f('ix_iniciador_ruta_comprobacion_id'), ['comprobacion_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_iniciador_ruta_created_by_user_id'), ['created_by_user_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_iniciador_ruta_deleted_at'), ['deleted_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_iniciador_ruta_denuncia_id'), ['denuncia_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_iniciador_ruta_domicilio_id'), ['domicilio_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_iniciador_ruta_estado_iniciador'), ['estado_iniciador'], unique=False)
@@ -750,6 +747,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_iniciador_ruta_estado_iniciador'))
         batch_op.drop_index(batch_op.f('ix_iniciador_ruta_domicilio_id'))
         batch_op.drop_index(batch_op.f('ix_iniciador_ruta_denuncia_id'))
+        batch_op.drop_index(batch_op.f('ix_iniciador_ruta_deleted_at'))
         batch_op.drop_index(batch_op.f('ix_iniciador_ruta_created_by_user_id'))
         batch_op.drop_index(batch_op.f('ix_iniciador_ruta_comprobacion_id'))
         batch_op.drop_index('ix_iniciador_ruta_anio_mes_turno_estado')
@@ -786,6 +784,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_relevamiento_mes'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_inspector_id'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_domicilio_id'))
+        batch_op.drop_index(batch_op.f('ix_relevamiento_deleted_at'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_created_by_user_id'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_contraproducencia'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_anio'))
@@ -793,6 +792,7 @@ def downgrade():
     op.drop_table('relevamiento')
     with op.batch_alter_table('domicilio_geocode', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_domicilio_geocode_geo_status'))
+        batch_op.drop_index(batch_op.f('ix_domicilio_geocode_deleted_at'))
 
     op.drop_table('domicilio_geocode')
     with op.batch_alter_table('denuncia', schema=None) as batch_op:
@@ -823,6 +823,13 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_ruta_grupo_created_by_user_id'))
 
     op.drop_table('ruta_grupo')
+    with op.batch_alter_table('expediente', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_expediente_tipo_expediente'))
+        batch_op.drop_index(batch_op.f('ix_expediente_numero_expediente'))
+        batch_op.drop_index(batch_op.f('ix_expediente_comprobacion_id'))
+        batch_op.drop_index(batch_op.f('ix_expediente_anio'))
+
+    op.drop_table('expediente')
     op.drop_table('evento_participante')
     with op.batch_alter_table('domicilio', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_domicilio_rubro_id'))
@@ -862,6 +869,13 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_participantes_dni'))
 
     op.drop_table('participantes')
+    with op.batch_alter_table('oficio', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_oficio_numero_oficio'))
+        batch_op.drop_index(batch_op.f('ix_oficio_comprobacion_id'))
+        batch_op.drop_index(batch_op.f('ix_oficio_causa'))
+        batch_op.drop_index(batch_op.f('ix_oficio_anio'))
+
+    op.drop_table('oficio')
     op.drop_table('notificacion_motivo')
     with op.batch_alter_table('inspector', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_inspector_turno_id'))
@@ -900,16 +914,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_orden_trabajo_anio'))
 
     op.drop_table('orden_trabajo')
-    with op.batch_alter_table('expediente', schema=None) as batch_op:
-        batch_op.drop_constraint('fk_expediente_oficio_id_oficio', type_='foreignkey')
-
-    with op.batch_alter_table('oficio', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_oficio_numero_oficio'))
-        batch_op.drop_index(batch_op.f('ix_oficio_comprobacion_id'))
-        batch_op.drop_index(batch_op.f('ix_oficio_causa'))
-        batch_op.drop_index(batch_op.f('ix_oficio_anio'))
-
-    op.drop_table('oficio')
     with op.batch_alter_table('notificacion', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_notificacion_numero_acta'))
         batch_op.drop_index(batch_op.f('ix_notificacion_mes'))
@@ -924,13 +928,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_lugares_trabajo_nombre'))
 
     op.drop_table('lugares_trabajo')
-    with op.batch_alter_table('expediente', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_expediente_tipo_expediente'))
-        batch_op.drop_index(batch_op.f('ix_expediente_numero_expediente'))
-        batch_op.drop_index(batch_op.f('ix_expediente_comprobacion_id'))
-        batch_op.drop_index(batch_op.f('ix_expediente_anio'))
-
-    op.drop_table('expediente')
     with op.batch_alter_table('establecimientos', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_establecimientos_nombre'))
 

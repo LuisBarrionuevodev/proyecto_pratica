@@ -6,6 +6,7 @@ from app.database import db
 from app.models import Actuaciones, Notificacion
 from app.utils.actas import acta_6
 from app.domains.actuaciones.catalogs.motivo import get_motivo_o_falla
+from app.domains.actuaciones.services.notificacion_timing_service import inicializar_timing_notificacion
 
 
 def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
@@ -55,6 +56,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             noti.numero_acta = acta_num
             noti.anio = anio
             noti.mes = mes
+            inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
 
             # 👇 clave: si viene el campo (aunque sea []), lo reflejamos
             if "motivos" in data:
@@ -68,6 +70,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
     noti = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
     if not noti:
         noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
+        inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
         db.session.add(noti)
         db.session.flush()
     else:
@@ -75,6 +78,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
         if noti.deleted_at is not None:
             noti.deleted_at = None
             db.session.add(noti)
+        inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
 
     if "motivos" in data:
         motivos = data.get("motivos") or []

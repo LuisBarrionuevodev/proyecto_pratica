@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any, Dict, List
 
-from sqlalchemy import func, exists, or_, select, and_
+from sqlalchemy import func, exists, or_, select, and_, inspect as sa_inspect
 
+from app.database import db
 from app.models import Actuaciones, Domicilio, Expediente
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 
@@ -14,6 +16,19 @@ def _apply_fecha(query, desde, hasta):
     if hasta:
         query = query.filter(Actuaciones.fecha <= hasta)
     return query
+
+
+@lru_cache(maxsize=1)
+def _has_expediente_notificacion_id_column() -> bool:
+    """
+    Detecta si la columna `expediente.notificacion_id` existe en la DB conectada.
+
+    Evita 500 cuando el código fue desplegado pero la migración aún no corrió.
+    """
+    inspector = sa_inspect(db.engine)
+    cols = inspector.get_columns("expediente")
+    col_names = {c.get("name") for c in cols}
+    return "notificacion_id" in col_names
 
 
 def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
@@ -43,6 +58,25 @@ def _sin_expediente_query(filters: ActuacionesPendientesFilters):
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
         .filter(~subq)
     )
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
+    """
+    Pendientes de expediente por rama NOTIFICACION.
+
+    Regla para este slice:
+    - actuación con notificación
+    - sin comprobación (si hay ambas domina COMPROBACION)
+    - sin expediente asociado por su notificación
+    """
+    query = (
+        Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
+        .filter(Actuaciones.comprobacion_id.is_(None))
+    )
+    if _has_expediente_notificacion_id_column():
+        subq = exists().where(Expediente.notificacion_id == Actuaciones.notificacion_id)
+        query = query.filter(~subq)
     return _apply_fecha(query, filters.desde, filters.hasta)
 
 
@@ -106,8 +140,24 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
     """
     Lista actuaciones pendientes de expediente.
 
-    Reutiliza la misma lógica de "sin_expediente":
-    - actuación con comprobación
-    - sin expediente vinculado a esa comprobación
+    Reutiliza y unifica la lógica administrativa para dos ramas:
+    - COMPROBACION: actuación con comprobación sin expediente en su comprobación.
+    - NOTIFICACION: actuación con notificación sin comprobación (dominancia de comprobación).
+
+    source_type (filtro):
+    - all
+    - notificacion
+    - comprobacion
     """
-    return _sin_expediente_query(filters).order_by(Actuaciones.id.desc()).all()
+    source_type = (filters.source_type or "all").lower()
+
+    if source_type == "comprobacion":
+        query = _sin_expediente_query(filters)
+    elif source_type == "notificacion":
+        query = _sin_expediente_notificacion_query(filters)
+    else:
+        query_comp = _sin_expediente_query(filters)
+        query_noti = _sin_expediente_notificacion_query(filters)
+        query = query_comp.union(query_noti)
+
+    return query.order_by(Actuaciones.id.desc()).all()

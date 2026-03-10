@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 from app.domains.actuaciones.services.pendientes_service import get_pendientes_expediente
-from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_pendiente_expediente_row
 from app.shared.errors import pydantic_errors_to_cell_map
 
 from . import actuacion
@@ -22,7 +22,8 @@ def pendientes_expediente_list():
         "meta": {
           "total": int,
           "desde": "YYYY-MM-DD" | null,
-          "hasta": "YYYY-MM-DD" | null
+          "hasta": "YYYY-MM-DD" | null,
+          "source_type": "all|notificacion|comprobacion"
         }
       }
     """
@@ -30,13 +31,14 @@ def pendientes_expediente_list():
         params = {k: (v if v else None) for k, v in request.args.to_dict().items()}
         filters = ActuacionesPendientesFilters.model_validate(params)
         acts = get_pendientes_expediente(filters)
-        items = [actuacion_to_grid_row(a) for a in acts]
+        items = [actuacion_to_pendiente_expediente_row(a) for a in acts]
         return jsonify({
             "items": items,
             "meta": {
                 "total": len(items),
                 "desde": filters.desde.isoformat() if filters.desde else None,
                 "hasta": filters.hasta.isoformat() if filters.hasta else None,
+                "source_type": filters.source_type or "all",
             },
         }), 200
     except ValidationError as e:

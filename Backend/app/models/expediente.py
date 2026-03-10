@@ -28,6 +28,13 @@ class Expediente(db.Model):
         unique=False,
         index=True,
     )
+    notificacion_id = db.Column(
+        db.Integer,
+        db.ForeignKey("notificacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
     oficio_id = db.Column(
         db.Integer,
         db.ForeignKey("oficio.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -45,6 +52,7 @@ class Expediente(db.Model):
     )
     deleted_at = db.Column(db.DateTime, nullable=True)
     comprobacion = db.relationship("Comprobacion", back_populates="expediente")
+    notificacion = db.relationship("Notificacion", back_populates="expedientes")
     oficio = db.relationship(
         "Oficio",
         back_populates="expediente",
@@ -61,6 +69,7 @@ class Expediente(db.Model):
             "anio": self.anio,
             "tipo_expediente": self.tipo_expediente,
             "comprobacion_id": self.comprobacion_id,
+            "notificacion_id": self.notificacion_id,
             "oficio_id": self.oficio_id,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -70,6 +79,9 @@ class Expediente(db.Model):
         if include_relations:
             data["comprobacion"] = (
                 self.comprobacion.to_dict() if self.comprobacion else None
+            )
+            data["notificacion"] = (
+                self.notificacion.to_dict() if self.notificacion else None
             )
             data["oficio"] = self.oficio.to_dict() if self.oficio else None
 

@@ -28,6 +28,7 @@ from app.models import (
     CatalogTipoActuacion,
     CatalogContraproducencia,
     CatalogMotivoComprobacion,
+    JuzgadoCatalogo,
 )  # catálogos para dropdowns
 
 from . import grid
@@ -256,6 +257,20 @@ def list_rubros():
         "rubros",
         lambda: Rubro.query.order_by(Rubro.nombre.asc()).all(),
         lambda r: {"id": r.id, "nombre": r.nombre},
+    )
+
+
+@grid.get("/catalogs/juzgados")
+def list_juzgados():
+    """
+    Devuelve catálogo de juzgados para dropdowns.
+
+    Response: [{"id": int, "codigo": str, "nombre": str}]
+    """
+    return _fetch_catalog(
+        "juzgados",
+        lambda: JuzgadoCatalogo.query.order_by(JuzgadoCatalogo.nombre.asc()).all(),
+        lambda j: {"id": j.id, "codigo": j.codigo, "nombre": j.nombre},
     )
 
 

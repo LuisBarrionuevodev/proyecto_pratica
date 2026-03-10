@@ -9,12 +9,17 @@ class Notificacion(db.Model):
     numero_acta = db.Column(db.String(6), nullable=False, index=True)
     anio = db.Column(db.Integer, nullable=False, index=True, default=lambda: datetime.now().year)
     mes = db.Column(db.Integer, nullable=False, index=True, default=lambda: datetime.now().month)
+    plazo_dias = db.Column(db.Integer, nullable=False, default=5, server_default="5")
+    prorroga_dias = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    fecha_notificacion = db.Column(db.Date, nullable=True, index=True)
+    fecha_vencimiento = db.Column(db.Date, nullable=True, index=True)
 
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     deleted_at = db.Column(db.DateTime, nullable=True)
 
     actuaciones = db.relationship("Actuaciones", back_populates="notificacion")
+    expedientes = db.relationship("Expediente", back_populates="notificacion")
 
     # ✅ plural + secondary como objeto Table
     motivos = db.relationship(
@@ -33,6 +38,10 @@ class Notificacion(db.Model):
             "numero_acta": self.numero_acta,
             "anio": self.anio,
             "mes": self.mes,
+            "plazo_dias": self.plazo_dias,
+            "prorroga_dias": self.prorroga_dias,
+            "fecha_notificacion": self.fecha_notificacion.isoformat() if self.fecha_notificacion else None,
+            "fecha_vencimiento": self.fecha_vencimiento.isoformat() if self.fecha_vencimiento else None,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "deleted_at": self.deleted_at,

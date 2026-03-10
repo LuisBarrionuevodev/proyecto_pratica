@@ -8,6 +8,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
@@ -22,9 +24,11 @@ import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { DARK_TABLE_CONFIG } from "../styles/actuacionesTableStyles";
 
 const PendientesExpedienteView = () => {
+  type SourceTab = "notificacion" | "comprobacion";
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [desde, setDesde] = useState(defaultRange.desde);
   const [hasta, setHasta] = useState(defaultRange.hasta);
+  const [sourceTab, setSourceTab] = useState<SourceTab>("notificacion");
   const [items, setItems] = useState<IActuacionesPendientesItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -34,13 +38,14 @@ const PendientesExpedienteView = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [expNumero, setExpNumero] = useState("");
   const [expAnio, setExpAnio] = useState(new Date().getFullYear().toString());
+  const [prorrogaDias, setProrrogaDias] = useState("0");
   const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await getActuacionesPendientesExpediente(desde, hasta);
+      const resp = await getActuacionesPendientesExpediente(desde, hasta, sourceTab);
       setItems(resp.items);
       setTotal(resp.meta.total);
     } catch (err: any) {
@@ -50,7 +55,7 @@ const PendientesExpedienteView = () => {
     } finally {
       setLoading(false);
     }
-  }, [desde, hasta]);
+  }, [desde, hasta, sourceTab]);
 
   useEffect(() => {
     void loadData();
@@ -60,6 +65,7 @@ const PendientesExpedienteView = () => {
     setSelected(row);
     setExpNumero(row.expediente_numero || "");
     setExpAnio(row.expediente_anio ? String(row.expediente_anio) : String(new Date().getFullYear()));
+    setProrrogaDias("0");
     setModalOpen(true);
   };
 
@@ -82,12 +88,24 @@ const PendientesExpedienteView = () => {
       return;
     }
 
+    let prorrogaNum: number | undefined = undefined;
+    if (selected.source_type === "NOTIFICACION") {
+      const parsed = Number(prorrogaDias);
+      if (!Number.isInteger(parsed) || parsed < 0) {
+        setError("Prórroga (días) debe ser un entero mayor o igual a 0");
+        return;
+      }
+      prorrogaNum = parsed;
+    }
+
     setSaving(true);
     setError(null);
     try {
       await createExpedienteDesdeActuacion(selected.id, {
         expediente_numero: expNumero.trim(),
         expediente_anio: anioNum,
+        source_type: selected.source_type,
+        prorroga_dias: prorrogaNum,
       });
       closeModal();
       await loadData();
@@ -99,16 +117,19 @@ const PendientesExpedienteView = () => {
   };
 
   const columns = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
-    () => [
-      { accessorKey: "id", header: "ID", size: 80 },
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
-      { accessorKey: "acta_comprobacion_num", header: "Acta Comprobación", size: 180 },
-      { accessorKey: "comprobacion_motivo", header: "Motivo Comprobación", size: 220 },
-      { accessorKey: "calle", header: "Calle", size: 200 },
-      { accessorKey: "numero", header: "Número", size: 120 },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 180 },
-      {
+    () => {
+      const baseColumns: MRT_ColumnDef<IActuacionesPendientesItem>[] = [
+        { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
+        { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
+      ];
+
+      const locationColumns: MRT_ColumnDef<IActuacionesPendientesItem>[] = [
+        { accessorKey: "calle", header: "Calle", size: 200 },
+        { accessorKey: "numero", header: "Número", size: 120 },
+        { accessorKey: "rubro_nombre", header: "Rubro", size: 180 },
+      ];
+
+      const actionColumn: MRT_ColumnDef<IActuacionesPendientesItem> = {
         id: "acciones",
         header: "Acciones",
         size: 160,
@@ -117,9 +138,35 @@ const PendientesExpedienteView = () => {
             Completar expediente
           </Button>
         ),
-      },
-    ],
-    []
+      };
+
+      if (sourceTab === "notificacion") {
+        return [
+          ...baseColumns,
+          { accessorKey: "acta_notificacion_num", header: "Acta notificación", size: 180 },
+          ...locationColumns,
+          {
+            id: "motivos_notificacion",
+            header: "Motivos notificación",
+            size: 260,
+            accessorFn: (row) =>
+              [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
+                .filter(Boolean)
+                .join(" | "),
+          },
+          actionColumn,
+        ];
+      }
+
+      return [
+        ...baseColumns,
+        { accessorKey: "acta_comprobacion_num", header: "Acta comprobación", size: 180 },
+        ...locationColumns,
+        { accessorKey: "comprobacion_motivo", header: "Motivo comprobación", size: 240 },
+        actionColumn,
+      ];
+    },
+    [sourceTab]
   );
 
   const table = useMaterialReactTable({
@@ -159,6 +206,15 @@ const PendientesExpedienteView = () => {
         </Button>
       </Box>
 
+      <Tabs
+        value={sourceTab}
+        onChange={(_, value: SourceTab) => setSourceTab(value)}
+        sx={{ marginTop: -1 }}
+      >
+        <Tab value="notificacion" label="Notificación" />
+        <Tab value="comprobacion" label="Comprobación" />
+      </Tabs>
+
       {error && <Alert severity="error">{error}</Alert>}
 
       {loading ? (
@@ -187,6 +243,17 @@ const PendientesExpedienteView = () => {
             fullWidth
             required
           />
+          {selected?.source_type === "NOTIFICACION" && (
+            <TextField
+              label="Prórroga (días)"
+              type="number"
+              value={prorrogaDias}
+              onChange={(e) => setProrrogaDias(e.target.value)}
+              fullWidth
+              required
+              helperText="Se suma al plazo base de 5 días de la notificación."
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeModal} disabled={saving}>

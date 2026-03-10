@@ -279,6 +279,34 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     }
 
 
+def _infer_expediente_source_type(act: Actuaciones) -> str:
+    """
+    Infiere la rama administrativa para expediente desde estado DB.
+
+    Regla determinística:
+    - Si existe comprobación, domina COMPROBACION.
+    - Si no, y existe notificación, NOTIFICACION.
+    - Si no hay ninguna, UNKNOWN.
+    """
+    if getattr(act, "comprobacion_id", None):
+        return "COMPROBACION"
+    if getattr(act, "notificacion_id", None):
+        return "NOTIFICACION"
+    return "UNKNOWN"
+
+
+def actuacion_to_pendiente_expediente_row(act: Actuaciones) -> Dict[str, Any]:
+    """
+    DTO compacto para la bandeja unificada de pendientes de expediente.
+
+    Incluye `source_type` explícito y mantiene campos mínimos para UI administrativa.
+    """
+    full = actuacion_to_grid_row(act)
+    source_type = _infer_expediente_source_type(act)
+    full["source_type"] = source_type
+    return full
+
+
 def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
     """
     Convierte una Actuación a un formato mínimo para pendientes de domicilio.

@@ -4,60 +4,46 @@ from typing import Any, Dict
 
 from flask import jsonify, request
 
-from app.database import db
-from app.models import Actuaciones, Expediente
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
-from app.utils.actas import acta_6
+from app.domains.actuaciones.services.expediente_completion_service import (
+    complete_expediente_from_actuacion,
+)
 
 from . import actuacion
 
 
 @actuacion.post("/<int:actuacion_id>/expediente")
 def crear_expediente_desde_acta(actuacion_id: int):
-    """Crea un expediente a partir de una actuación con comprobación."""
-    act = Actuaciones.query.get(actuacion_id)
-    if not act:
-        return jsonify({"detail": "Actuación no encontrada"}), 404
+    """
+    Crea expediente desde una actuación ramificando por `source_type` inferido en backend.
 
-    if not act.comprobacion_id:
-        return jsonify({"detail": "La actuación no tiene acta de comprobación"}), 400
-
+    Regla determinística:
+    - Si existen notificación y comprobación, domina COMPROBACION.
+    """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
-    numero = acta_6(data.get("expediente_numero"))
-    anio = data.get("expediente_anio")
-
-    if not numero or anio is None:
-        return jsonify({"detail": "expediente_numero y expediente_anio son obligatorios"}), 400
-
-    anio_str = str(anio)
-
-    existente = Expediente.query.filter_by(comprobacion_id=act.comprobacion_id).first()
-    if existente:
-        return jsonify({"detail": "Ya existe un expediente vinculado a esta comprobación"}), 409
-
-    dup = Expediente.query.filter_by(numero_expediente=numero, anio=anio_str).first()
-    if dup:
-        return jsonify({"detail": "Ese expediente ya existe"}), 409
-
-    ex = Expediente(
-        numero_expediente=numero,
-        anio=anio_str,
-        comprobacion_id=act.comprobacion_id,
-        oficio_id=None,
-    )
-
-    db.session.add(ex)
-    db.session.commit()
-    db.session.refresh(act)
-
-    return jsonify({
-        "ok": True,
-        "item": actuacion_to_grid_row(act),
-        "meta": {
-            "actuacion_id": act.id,
-            "expediente_id": ex.id,
-            "expediente_numero": ex.numero_expediente,
-            "expediente_anio": ex.anio,
-        },
-    }), 201
+    try:
+        result = complete_expediente_from_actuacion(actuacion_id, data)
+        act = result["actuacion"]
+        ex = result["expediente"]
+        return jsonify({
+            "ok": True,
+            "item": actuacion_to_grid_row(act),
+            "meta": {
+                "actuacion_id": act.id,
+                "expediente_id": ex.id,
+                "expediente_numero": ex.numero_expediente,
+                "expediente_anio": ex.anio,
+                "source_type": result["source_type"],
+                "next_state_hint": result["next_state_hint"],
+                "reinspeccion_due_date": result.get("reinspeccion_due_date"),
+                "plazo_dias": result.get("plazo_dias"),
+                "prorroga_dias": result.get("prorroga_dias"),
+            },
+        }), 201
+    except LookupError as e:
+        return jsonify({"detail": str(e)}), 404
+    except RuntimeError as e:
+        return jsonify({"detail": str(e)}), 409
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
 

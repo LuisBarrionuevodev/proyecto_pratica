@@ -28,11 +28,13 @@ class ActuacionesPendientesFilters(BaseModel):
         - desde: fecha desde (YYYY-MM-DD)
         - hasta: fecha hasta (YYYY-MM-DD)
         - tipo: domicilios | sin_expediente | notificaciones
+        - source_type: all | notificacion | comprobacion (solo para pendientes de expediente)
     """
 
     desde: Optional[date] = None
     hasta: Optional[date] = None
     tipo: Optional[str] = None
+    source_type: Optional[str] = None
 
     @field_validator("tipo")
     @classmethod
@@ -42,6 +44,19 @@ class ActuacionesPendientesFilters(BaseModel):
         value = str(v).strip().lower()
         if value not in {"domicilios", "sin_expediente", "notificaciones"}:
             raise ValueError("tipo inválido.")
+        return value
+
+    @field_validator("source_type")
+    @classmethod
+    def validate_source_type(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Normaliza source_type para filtros de pendientes de expediente.
+        """
+        if v is None or v == "":
+            return "all"
+        value = str(v).strip().lower()
+        if value not in {"all", "notificacion", "comprobacion"}:
+            raise ValueError("source_type inválido.")
         return value
 
     @model_validator(mode="after")

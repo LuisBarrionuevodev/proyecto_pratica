@@ -1,8 +1,8 @@
-"""seed2
+"""seed 2
 
-Revision ID: 9a0617e19f38
-Revises: c91baffc6f80
-Create Date: 2026-03-08 23:32:19.041313
+Revision ID: b960c9de1bbb
+Revises: 0a8dd3f8e75b
+Create Date: 2026-03-10 15:28:02.407670
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '9a0617e19f38'
-down_revision = 'c91baffc6f80'
+revision = 'b960c9de1bbb'
+down_revision = '0a8dd3f8e75b'
 branch_labels = None
 depends_on = None
 
@@ -84,3 +84,5 @@ def downgrade() -> None:
 
     # === Revertir OT ===
     op.drop_column("orden_trabajo", "deleted_at")
+
+    # ### end Alembic commands ###

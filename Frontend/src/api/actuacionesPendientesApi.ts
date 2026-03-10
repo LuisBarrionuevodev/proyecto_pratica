@@ -11,6 +11,7 @@ export interface IActuacionesPendientesSummary {
 }
 
 export interface IActuacionesPendientesItem extends IActuacionListItem {
+  source_type?: "NOTIFICACION" | "COMPROBACION";
   domicilio_id?: number | null;
   numero_esquina?: string | null;
   calle_ingresada?: string | null;
@@ -39,12 +40,15 @@ export interface IActuacionesPendientesExpedienteResponse {
     total: number;
     desde: string | null;
     hasta: string | null;
+    source_type?: "all" | "notificacion" | "comprobacion";
   };
 }
 
 export interface ICreateExpedienteRequest {
   expediente_numero: string;
   expediente_anio: number;
+  source_type?: "NOTIFICACION" | "COMPROBACION";
+  prorroga_dias?: number;
 }
 
 export interface ICreateExpedienteResponse {
@@ -55,6 +59,11 @@ export interface ICreateExpedienteResponse {
     expediente_id: number;
     expediente_numero: string;
     expediente_anio: string;
+    source_type?: "NOTIFICACION" | "COMPROBACION";
+    next_state_hint?: "PENDIENTE_REINSPECCION" | "ESPERANDO_OFICIO";
+    reinspeccion_due_date?: string | null;
+    plazo_dias?: number | null;
+    prorroga_dias?: number | null;
   };
 }
 
@@ -81,11 +90,13 @@ export const getActuacionesPendientes = async (
 
 export const getActuacionesPendientesExpediente = async (
   desde?: string | null,
-  hasta?: string | null
+  hasta?: string | null,
+  sourceType?: "all" | "notificacion" | "comprobacion"
 ): Promise<IActuacionesPendientesExpedienteResponse> => {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
+  if (sourceType) params.source_type = sourceType;
   const { data } = await apiClient.get<IActuacionesPendientesExpedienteResponse>(
     "/actuaciones/pendientes/expediente",
     { params }
