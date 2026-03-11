@@ -161,3 +161,31 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         query = query_comp.union(query_noti)
 
     return query.order_by(Actuaciones.id.desc()).all()
+
+
+def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
+    """
+    Lista actuaciones en estado "esperando oficio".
+
+    Reglas:
+    - Debe pertenecer a rama COMPROBACION (`comprobacion_id` no nulo).
+    - Debe existir expediente original de comprobación (ENVIO_ACTA u otro sin oficio).
+    - No debe existir expediente de respuesta de oficio para esa comprobación.
+    """
+    has_expediente_original = exists().where(
+        (Expediente.comprobacion_id == Actuaciones.comprobacion_id)
+        & (Expediente.oficio_id.is_(None))
+    )
+    has_respuesta_oficio = exists().where(
+        (Expediente.comprobacion_id == Actuaciones.comprobacion_id)
+        & (Expediente.oficio_id.isnot(None))
+        & (func.upper(Expediente.tipo_expediente) == "RESPUESTA_OFICIO")
+    )
+
+    query = (
+        Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
+        .filter(has_expediente_original)
+        .filter(~has_respuesta_oficio)
+    )
+    query = _apply_fecha(query, filters.desde, filters.hasta)
+    return query.order_by(Actuaciones.id.desc()).all()

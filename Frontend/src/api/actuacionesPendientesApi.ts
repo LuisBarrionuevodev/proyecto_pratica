@@ -44,9 +44,61 @@ export interface IActuacionesPendientesExpedienteResponse {
   };
 }
 
+export interface IPendientesOficioItem {
+  id: number;
+  fecha_actuacion: string | null;
+  orden_trabajo_numero: string | null;
+  acta_comprobacion_num: string | null;
+  comprobacion_motivo: string | null;
+  calle: string | null;
+  numero: string | null;
+  rubro_nombre: string | null;
+  expediente_original_id: number | null;
+  expediente_original_numero: string | null;
+  expediente_original_anio: string | null;
+}
+
+export interface IPendientesOficioResponse {
+  items: IPendientesOficioItem[];
+  meta: {
+    total: number;
+    desde: string | null;
+    hasta: string | null;
+  };
+}
+
+export interface ICreateOficioRequest {
+  numero_oficio: string;
+  fecha_oficio: string;
+  juzgado_id: number;
+  causa?: string | null;
+  numero_expediente_oficio: string;
+  fecha_expediente_oficio: string;
+  // Compat temporal; backend lo ignora.
+  anio_expediente_oficio?: number;
+}
+
+export interface ICreateOficioResponse {
+  ok: boolean;
+  meta: {
+    actuacion_id: number;
+    oficio_id: number;
+    expediente_original_id: number;
+    expediente_respuesta_oficio_id: number;
+  };
+}
+
+export interface IJuzgadoCatalogItem {
+  id: number;
+  codigo: string;
+  nombre: string;
+}
+
 export interface ICreateExpedienteRequest {
   expediente_numero: string;
-  expediente_anio: number;
+  fecha_expediente: string;
+  // Compat temporal; backend lo ignora.
+  expediente_anio?: number;
   source_type?: "NOTIFICACION" | "COMPROBACION";
   prorroga_dias?: number;
 }
@@ -58,6 +110,7 @@ export interface ICreateExpedienteResponse {
     actuacion_id: number;
     expediente_id: number;
     expediente_numero: string;
+    fecha_expediente?: string | null;
     expediente_anio: string;
     source_type?: "NOTIFICACION" | "COMPROBACION";
     next_state_hint?: "PENDIENTE_REINSPECCION" | "ESPERANDO_OFICIO";
@@ -113,4 +166,31 @@ export const createExpedienteDesdeActuacion = async (
     payload
   );
   return data;
+};
+
+export const getActuacionesPendientesOficio = async (
+  desde?: string | null,
+  hasta?: string | null
+): Promise<IPendientesOficioResponse> => {
+  const params: Record<string, string> = {};
+  if (desde) params.desde = desde;
+  if (hasta) params.hasta = hasta;
+  const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
+  return data;
+};
+
+export const createOficioDesdeActuacion = async (
+  actuacionId: number,
+  payload: ICreateOficioRequest
+): Promise<ICreateOficioResponse> => {
+  const { data } = await apiClient.post<ICreateOficioResponse>(
+    `/actuaciones/${actuacionId}/oficio`,
+    payload
+  );
+  return data;
+};
+
+export const getJuzgadosCatalogo = async (): Promise<IJuzgadoCatalogItem[]> => {
+  const { data } = await apiClient.get<{ items: IJuzgadoCatalogItem[] }>("/grid/catalogs/juzgados");
+  return data.items ?? [];
 };

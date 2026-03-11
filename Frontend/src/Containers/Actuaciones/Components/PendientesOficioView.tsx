@@ -8,64 +8,74 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Tab,
-  Tabs,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import {
-  createExpedienteDesdeActuacion,
-  getActuacionesPendientesExpediente,
-  type IActuacionesPendientesItem,
+  createOficioDesdeActuacion,
+  getActuacionesPendientesOficio,
+  getJuzgadosCatalogo,
+  type IJuzgadoCatalogItem,
+  type IPendientesOficioItem,
 } from "../../../api/actuacionesPendientesApi";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { DARK_TABLE_CONFIG } from "../styles/actuacionesTableStyles";
 
-const PendientesExpedienteView = () => {
-  type SourceTab = "notificacion" | "comprobacion";
+const PendientesOficioView = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [desde, setDesde] = useState(defaultRange.desde);
   const [hasta, setHasta] = useState(defaultRange.hasta);
-  const [sourceTab, setSourceTab] = useState<SourceTab>("notificacion");
-  const [items, setItems] = useState<IActuacionesPendientesItem[]>([]);
+  const [items, setItems] = useState<IPendientesOficioItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [juzgados, setJuzgados] = useState<IJuzgadoCatalogItem[]>([]);
 
-  const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
+  const [selected, setSelected] = useState<IPendientesOficioItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [numeroOficio, setNumeroOficio] = useState("");
+  const [fechaOficio, setFechaOficio] = useState(defaultRange.hasta);
+  const [juzgadoId, setJuzgadoId] = useState<number | "">("");
+  const [causa, setCausa] = useState("");
   const [expNumero, setExpNumero] = useState("");
   const [expFecha, setExpFecha] = useState(defaultRange.hasta);
-  const [prorrogaDias, setProrrogaDias] = useState("0");
   const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await getActuacionesPendientesExpediente(desde, hasta, sourceTab);
+      const [resp, juzgadosResp] = await Promise.all([
+        getActuacionesPendientesOficio(desde, hasta),
+        getJuzgadosCatalogo(),
+      ]);
       setItems(resp.items);
       setTotal(resp.meta.total);
+      setJuzgados(juzgadosResp);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Error al cargar pendientes de expediente");
+      setError(err?.response?.data?.detail || "Error al cargar pendientes de oficio");
       setItems([]);
       setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [desde, hasta, sourceTab]);
+  }, [desde, hasta]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
-  const openModal = (row: IActuacionesPendientesItem) => {
+  const openModal = (row: IPendientesOficioItem) => {
     setSelected(row);
-    setExpNumero(row.expediente_numero || "");
+    setNumeroOficio("");
+    setFechaOficio(defaultRange.hasta);
+    setJuzgadoId("");
+    setCausa("");
+    setExpNumero("");
     setExpFecha(defaultRange.hasta);
-    setProrrogaDias("0");
     setModalOpen(true);
   };
 
@@ -77,90 +87,53 @@ const PendientesExpedienteView = () => {
 
   const handleSave = async () => {
     if (!selected) return;
-    if (!expNumero.trim() || !expFecha) {
-      setError("Número y fecha de expediente son obligatorios");
+    if (!numeroOficio.trim() || !fechaOficio || !juzgadoId || !expNumero.trim() || !expFecha) {
+      setError("Completá número/fecha/juzgado y datos del expediente de oficio");
       return;
     }
-
-    let prorrogaNum: number | undefined = undefined;
-    if (selected.source_type === "NOTIFICACION") {
-      const parsed = Number(prorrogaDias);
-      if (!Number.isInteger(parsed) || parsed < 0) {
-        setError("Prórroga (días) debe ser un entero mayor o igual a 0");
-        return;
-      }
-      prorrogaNum = parsed;
-    }
-
     setSaving(true);
     setError(null);
     try {
-      await createExpedienteDesdeActuacion(selected.id, {
-        expediente_numero: expNumero.trim(),
-        fecha_expediente: expFecha,
-        source_type: selected.source_type,
-        prorroga_dias: prorrogaNum,
+      await createOficioDesdeActuacion(selected.id, {
+        numero_oficio: numeroOficio.trim(),
+        fecha_oficio: fechaOficio,
+        juzgado_id: Number(juzgadoId),
+        causa: causa.trim() || null,
+        numero_expediente_oficio: expNumero.trim(),
+        fecha_expediente_oficio: expFecha,
       });
       closeModal();
       await loadData();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo completar el expediente");
+      setError(err?.response?.data?.detail || "No se pudo cargar el oficio");
     } finally {
       setSaving(false);
     }
   };
 
-  const columns = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
-    () => {
-      const baseColumns: MRT_ColumnDef<IActuacionesPendientesItem>[] = [
-        { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
-        { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
-      ];
-
-      const locationColumns: MRT_ColumnDef<IActuacionesPendientesItem>[] = [
-        { accessorKey: "calle", header: "Calle", size: 200 },
-        { accessorKey: "numero", header: "Número", size: 120 },
-        { accessorKey: "rubro_nombre", header: "Rubro", size: 180 },
-      ];
-
-      const actionColumn: MRT_ColumnDef<IActuacionesPendientesItem> = {
+  const columns = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
+    () => [
+      { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
+      { accessorKey: "orden_trabajo_numero", header: "OT", size: 100 },
+      { accessorKey: "acta_comprobacion_num", header: "Acta comprobación", size: 180 },
+      { accessorKey: "comprobacion_motivo", header: "Motivo", size: 220 },
+      { accessorKey: "rubro_nombre", header: "Rubro", size: 180 },
+      { accessorKey: "calle", header: "Calle", size: 200 },
+      { accessorKey: "numero", header: "Número", size: 100 },
+      { accessorKey: "expediente_original_numero", header: "Expediente original", size: 180 },
+      { accessorKey: "expediente_original_anio", header: "Año exp. original", size: 140 },
+      {
         id: "acciones",
         header: "Acciones",
         size: 160,
         Cell: ({ row }) => (
           <Button variant="contained" size="small" onClick={() => openModal(row.original)}>
-            Completar expediente
+            Cargar oficio
           </Button>
         ),
-      };
-
-      if (sourceTab === "notificacion") {
-        return [
-          ...baseColumns,
-          { accessorKey: "acta_notificacion_num", header: "Acta notificación", size: 180 },
-          ...locationColumns,
-          {
-            id: "motivos_notificacion",
-            header: "Motivos notificación",
-            size: 260,
-            accessorFn: (row) =>
-              [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
-                .filter(Boolean)
-                .join(" | "),
-          },
-          actionColumn,
-        ];
-      }
-
-      return [
-        ...baseColumns,
-        { accessorKey: "acta_comprobacion_num", header: "Acta comprobación", size: 180 },
-        ...locationColumns,
-        { accessorKey: "comprobacion_motivo", header: "Motivo comprobación", size: 240 },
-        actionColumn,
-      ];
-    },
-    [sourceTab]
+      },
+    ],
+    []
   );
 
   const table = useMaterialReactTable({
@@ -171,7 +144,7 @@ const PendientesExpedienteView = () => {
     enableRowSelection: false,
     renderTopToolbarCustomActions: () => (
       <Typography variant="body2" sx={{ pl: 1 }}>
-        Total pendientes: {total}
+        Total esperando oficio: {total}
       </Typography>
     ),
   });
@@ -200,15 +173,6 @@ const PendientesExpedienteView = () => {
         </Button>
       </Box>
 
-      <Tabs
-        value={sourceTab}
-        onChange={(_, value: SourceTab) => setSourceTab(value)}
-        sx={{ marginTop: -1 }}
-      >
-        <Tab value="notificacion" label="Notificación" />
-        <Tab value="comprobacion" label="Comprobación" />
-      </Tabs>
-
       {error && <Alert severity="error">{error}</Alert>}
 
       {loading ? (
@@ -220,17 +184,54 @@ const PendientesExpedienteView = () => {
       )}
 
       <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth="sm">
-        <DialogTitle>Completar expediente</DialogTitle>
+        <DialogTitle>Cargar oficio</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
           <TextField
-            label="Número de expediente"
+            label="Expediente original"
+            value={`${selected?.expediente_original_numero ?? "-"} / ${selected?.expediente_original_anio ?? "-"}`}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+          <TextField
+            label="Contexto"
+            value={`Acta comp: ${selected?.acta_comprobacion_num ?? "-"} | OT: ${selected?.orden_trabajo_numero ?? "-"}`}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+          <TextField label="Número de oficio" value={numeroOficio} onChange={(e) => setNumeroOficio(e.target.value)} fullWidth required />
+          <TextField
+            label="Fecha de oficio"
+            type="date"
+            value={fechaOficio}
+            onChange={(e) => setFechaOficio(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+          />
+          <TextField
+            select
+            label="Juzgado"
+            value={juzgadoId}
+            onChange={(e) => setJuzgadoId(Number(e.target.value))}
+            fullWidth
+            required
+          >
+            {juzgados.map((j) => (
+              <MenuItem key={j.id} value={j.id}>
+                {j.nombre}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField label="Causa" value={causa} onChange={(e) => setCausa(e.target.value)} fullWidth />
+          <TextField
+            label="Número expediente oficio"
             value={expNumero}
             onChange={(e) => setExpNumero(e.target.value)}
             fullWidth
             required
           />
           <TextField
-            label="Fecha de expediente"
+            label="Fecha expediente oficio"
             type="date"
             value={expFecha}
             onChange={(e) => setExpFecha(e.target.value)}
@@ -238,17 +239,6 @@ const PendientesExpedienteView = () => {
             fullWidth
             required
           />
-          {selected?.source_type === "NOTIFICACION" && (
-            <TextField
-              label="Prórroga (días)"
-              type="number"
-              value={prorrogaDias}
-              onChange={(e) => setProrrogaDias(e.target.value)}
-              fullWidth
-              required
-              helperText="Se suma al plazo base de 5 días de la notificación."
-            />
-          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeModal} disabled={saving}>
@@ -263,4 +253,5 @@ const PendientesExpedienteView = () => {
   );
 };
 
-export default PendientesExpedienteView;
+export default PendientesOficioView;
+

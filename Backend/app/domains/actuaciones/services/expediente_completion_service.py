@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Dict, Tuple
 
 from app.database import db
@@ -25,22 +26,27 @@ def infer_source_type_from_actuacion(act: Actuaciones) -> str:
     return "UNKNOWN"
 
 
-def _parse_expediente_payload(data: Dict[str, Any]) -> Tuple[str, str]:
+def _parse_expediente_payload(data: Dict[str, Any]) -> Tuple[str, date, str]:
     """
-    Valida y normaliza `expediente_numero`/`expediente_anio`.
+    Valida y normaliza `expediente_numero`/`fecha_expediente`.
 
     Raises:
         ValueError: si faltan campos requeridos o son inválidos.
     """
     numero = acta_6(data.get("expediente_numero"))
-    anio = data.get("expediente_anio")
-    if not numero or anio is None:
-        raise ValueError("expediente_numero y expediente_anio son obligatorios")
+    fecha_expediente = data.get("fecha_expediente")
+    if not numero or fecha_expediente is None:
+        raise ValueError("expediente_numero y fecha_expediente son obligatorios")
+    if isinstance(fecha_expediente, date):
+        fecha_val = fecha_expediente
+    else:
+        try:
+            fecha_val = date.fromisoformat(str(fecha_expediente).strip())
+        except Exception as exc:
+            raise ValueError("fecha_expediente debe tener formato YYYY-MM-DD") from exc
 
-    anio_str = str(anio).strip()
-    if len(anio_str) != 4 or not anio_str.isdigit():
-        raise ValueError("expediente_anio debe tener 4 dígitos")
-    return numero, anio_str
+    anio_str = str(fecha_val.year)
+    return numero, fecha_val, anio_str
 
 
 def _parse_prorroga_payload(data: Dict[str, Any]) -> int:
@@ -88,7 +94,7 @@ def complete_expediente_from_actuacion(
         if provided != source_type:
             raise RuntimeError("source_type no coincide con el estado real de la actuación")
 
-    numero, anio_str = _parse_expediente_payload(data)
+    numero, fecha_expediente, anio_str = _parse_expediente_payload(data)
 
     if source_type == "COMPROBACION":
         if "prorroga_dias" in data:
@@ -115,7 +121,13 @@ def complete_expediente_from_actuacion(
 
     ex = Expediente(
         numero_expediente=numero,
+        fecha_expediente=fecha_expediente,
         anio=anio_str,
+        tipo_expediente=(
+            "ENVIO_ACTA"
+            if source_type == "COMPROBACION"
+            else "PRORROGA_NOTIFICACION"
+        ),
         comprobacion_id=act.comprobacion_id if source_type == "COMPROBACION" else None,
         notificacion_id=act.notificacion_id if source_type == "NOTIFICACION" else None,
         oficio_id=None,

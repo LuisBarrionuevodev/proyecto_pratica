@@ -366,3 +366,34 @@ def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
         "esquina_status": esquina_status,
         "domicilio_id": domicilio_id,
     }
+
+
+def actuacion_to_pendiente_oficio_row(act: Actuaciones) -> Dict[str, Any]:
+    """
+    Convierte una actuación a una fila compacta para la bandeja "Esperando oficio".
+
+    Incluye contexto operativo mínimo y el expediente original de comprobación.
+    """
+    full = actuacion_to_grid_row(act)
+    exp_original = None
+    if getattr(act, "comprobacion_id", None):
+        exp_original = (
+            Expediente.query
+            .filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
+            .order_by(Expediente.id.asc())
+            .first()
+        )
+
+    return {
+        "id": full.get("id"),
+        "fecha_actuacion": full.get("fecha_actuacion"),
+        "orden_trabajo_numero": full.get("orden_trabajo_numero"),
+        "acta_comprobacion_num": full.get("acta_comprobacion_num"),
+        "comprobacion_motivo": full.get("comprobacion_motivo"),
+        "calle": full.get("calle"),
+        "numero": full.get("numero"),
+        "rubro_nombre": full.get("rubro_nombre"),
+        "expediente_original_id": getattr(exp_original, "id", None),
+        "expediente_original_numero": getattr(exp_original, "numero_expediente", None),
+        "expediente_original_anio": getattr(exp_original, "anio", None),
+    }

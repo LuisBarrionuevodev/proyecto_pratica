@@ -9,6 +9,7 @@ class IniciadorRuta(db.Model):
         db.Enum(
             "RELEVAMIENTO",
             "DENUNCIA",
+            "REINSPECCION_OFICIO",
             "REINSPECCION_NOTIFICACION",
             "VERIFICAR_INFORMAR_OFICIO",
             "RATIFICACION_CLAUSURA_OFICIO",

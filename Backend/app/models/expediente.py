@@ -9,6 +9,7 @@ class Expediente(db.Model):
         nullable=False,
         index=True,
     )
+    fecha_expediente = db.Column(db.Date, nullable=True, index=True)
     anio = db.Column(db.String(4), nullable=False, index=True)
     tipo_expediente = db.Column(
         db.Enum(
@@ -66,6 +67,7 @@ class Expediente(db.Model):
         data = {
             "id": self.id,
             "numero_expediente": self.numero_expediente,
+            "fecha_expediente": self.fecha_expediente.isoformat() if self.fecha_expediente else None,
             "anio": self.anio,
             "tipo_expediente": self.tipo_expediente,
             "comprobacion_id": self.comprobacion_id,

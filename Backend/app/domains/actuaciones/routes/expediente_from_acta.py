@@ -32,6 +32,7 @@ def crear_expediente_desde_acta(actuacion_id: int):
                 "actuacion_id": act.id,
                 "expediente_id": ex.id,
                 "expediente_numero": ex.numero_expediente,
+                "fecha_expediente": ex.fecha_expediente.isoformat() if ex.fecha_expediente else None,
                 "expediente_anio": ex.anio,
                 "source_type": result["source_type"],
                 "next_state_hint": result["next_state_hint"],
