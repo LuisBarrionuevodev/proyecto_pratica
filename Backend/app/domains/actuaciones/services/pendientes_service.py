@@ -8,6 +8,10 @@ from sqlalchemy import func, exists, or_, select, and_, inspect as sa_inspect
 from app.database import db
 from app.models import Actuaciones, Domicilio, Expediente
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
+from app.domains.actuaciones.services.notificacion_iniciador_service import (
+    list_reinspeccion_notificacion_operativas,
+    sync_iniciadores_reinspeccion_notificacion,
+)
 
 
 def _apply_fecha(query, desde, hasta):
@@ -81,22 +85,18 @@ def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
 
 
 def _notificaciones_pendientes_query(filters: ActuacionesPendientesFilters):
-    base = (
-        Actuaciones.query
-        .filter(Actuaciones.notificacion_id.isnot(None))
-    )
-    base = _apply_fecha(base, filters.desde, filters.hasta)
+    """
+    Retorna query operativa para notificaciones vencidas con iniciador materializado.
 
-    subq = (
-        base.with_entities(Actuaciones.notificacion_id)
-        .group_by(Actuaciones.notificacion_id)
-        .having(func.count(Actuaciones.id) == 1)
-        .subquery()
-    )
-
-    query = Actuaciones.query.filter(
-        Actuaciones.notificacion_id.in_(select(subq.c.notificacion_id))
-    )
+    Importante:
+    - Sin scheduler, sincronizamos al consultar.
+    - Luego filtramos por rango de fecha de actuación para mantener contrato del endpoint.
+    """
+    sync_iniciadores_reinspeccion_notificacion()
+    act_ids = [a.id for a in list_reinspeccion_notificacion_operativas()]
+    if not act_ids:
+        return Actuaciones.query.filter(False)
+    query = Actuaciones.query.filter(Actuaciones.id.in_(act_ids))
     return _apply_fecha(query, filters.desde, filters.hasta)
 
 

@@ -14,6 +14,9 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
+from app.domains.relevamientos.services.relevamiento_iniciador_service import (
+    get_or_create_iniciador_from_relevamiento,
+)
 
 
 def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
@@ -64,6 +67,10 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         contraproducencia=contraproducencia,
     )
     db.session.add(rel)
+    db.session.flush()
+
+    iniciador = get_or_create_iniciador_from_relevamiento(rel)
+    db.session.add(iniciador)
     db.session.commit()
 
     # Best-effort geocode (no bloquea la creación)
