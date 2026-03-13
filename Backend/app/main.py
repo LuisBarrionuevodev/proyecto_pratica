@@ -16,6 +16,7 @@ from app.domains.geolocalizacion.geocode.routes import geolocalizacion_map as ge
 from app.domains.usuarios.routes import usuarios_api as usuarios_api_bp
 from app.domains.mapa_detalle.routes import mapa_detalle_api as mapa_detalle_api_bp
 from app.domains.denuncias.routes import denuncias_api as denuncias_api_bp
+from app.domains.rutas_trabajo.routes import rutas_trabajo as rutas_trabajo_bp
 from app.domains.usuarios.security.jwt import init_jwt
 from app.domains.usuarios.services.users_service import ensure_dev_admin_seed
 
@@ -65,6 +66,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(mapa_detalle_api_bp)
     app.register_blueprint(usuarios_api_bp)
     app.register_blueprint(denuncias_api_bp)
+    app.register_blueprint(rutas_trabajo_bp, url_prefix="/rutas-trabajo")
 
     # Seed opcional de admin solo en desarrollo.
     if os.getenv("FLASK_ENV", "development").lower() == "development":
