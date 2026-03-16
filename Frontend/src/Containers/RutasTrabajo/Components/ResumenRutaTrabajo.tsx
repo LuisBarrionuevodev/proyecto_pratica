@@ -1,4 +1,4 @@
-import { Box, Chip, Paper, Stack, Typography } from "@mui/material";
+import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import type { IRutaGrupoMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 
@@ -10,12 +10,6 @@ interface Props {
 
 const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
   const totalInspectores = grupos.reduce((acc, grupo) => acc + grupo.inspectores.length, 0);
-  const displayName =
-    ruta?.display_name ??
-    (ruta
-      ? `Ruta del turno ${ruta.turno === "MANIANA" ? "mañana" : "tarde"} del ${ruta.fecha?.split("-").reverse().join("/")}`
-      : "");
-
   if (!ruta) {
     return (
       <Paper
@@ -45,44 +39,31 @@ const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           Resumen de ruta
         </Typography>
-        <Chip size="small" color="primary" label={ruta.estado_ruta} />
       </Stack>
-      <Stack direction="row" spacing={2.2} flexWrap="wrap">
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Ruta
-          </Typography>
-          <Typography variant="body2">#{ruta.numero}</Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Nombre
-          </Typography>
-          <Typography variant="body2">{displayName}</Typography>
-        </Box>
+      <Stack direction="row" spacing={2.5} flexWrap="wrap">
         <Box>
           <Typography variant="caption" color="text.secondary">
             Fecha
           </Typography>
-          <Typography variant="body2">{ruta.fecha}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {ruta.fecha}
+          </Typography>
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">
             Turno
           </Typography>
-          <Typography variant="body2">{ruta.turno}</Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Turno
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {ruta.turno}
           </Typography>
-          <Typography variant="body2">{ruta.turno}</Typography>
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">
             Grupos
           </Typography>
-          <Typography variant="body2">{grupos.length}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {grupos.length}
+          </Typography>
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">
@@ -94,13 +75,13 @@ const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">
-            Inspectores asignados
+            Inspectores
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 700 }}>
             {totalInspectores}
           </Typography>
         </Box>
-        <Box sx={{ minWidth: 260 }}>
+        <Box sx={{ minWidth: 360, flex: 1 }}>
           <Typography variant="caption" color="text.secondary">
             Observaciones
           </Typography>

@@ -10,14 +10,12 @@ from app.domains.rutas_trabajo.schemas.grupo_inspectores_replace_in import (
     RutaGrupoInspectoresReplaceIn,
 )
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
-from app.domains.usuarios.security.decorators import require_role
 from app.shared.errors import pydantic_errors_to_cell_map
 
 from . import rutas_trabajo
 
 
 @rutas_trabajo.put("/<int:ruta_id>/grupos/<int:grupo_id>/inspectores")
-@require_role("admin")
 def replace_inspectores(ruta_id: int, grupo_id: int):
     """
     Reemplaza totalmente inspectores asignados a un grupo.

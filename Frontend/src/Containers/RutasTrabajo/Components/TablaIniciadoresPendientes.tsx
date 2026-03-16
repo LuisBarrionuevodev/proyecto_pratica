@@ -49,20 +49,36 @@ const TablaIniciadoresPendientes = ({
   onAssignSelected,
 }: Props) => {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const prioridadText = useCallback((prioridad: number | null | undefined) => {
+    if (prioridad === null || prioridad === undefined) return "Sin prioridad";
+    if (prioridad >= 3) return "Alta";
+    if (prioridad === 2) return "Media";
+    return "Baja";
+  }, []);
+
+  const prioridadTheme = useCallback((prioridad: number | null | undefined) => {
+    if (prioridad === null || prioridad === undefined) {
+      return { bgCell: "rgba(95,110,140,0.24)", textDark: "#c6d3ed" };
+    }
+    if (prioridad >= 3) {
+      return { bgCell: "rgba(184,120,34,0.28)", textDark: "#ffd9a2" };
+    }
+    if (prioridad === 2) {
+      return { bgCell: "rgba(58,103,182,0.28)", textDark: "#c8dcff" };
+    }
+    return { bgCell: "rgba(28,115,80,0.30)", textDark: "#bdf2d7" };
+  }, []);
+
   const columns = useMemo<GridColumn[]>(
     () => [
-      { id: "select", title: "", width: 44 },
-      { id: "id", title: "ID", width: 72, group: "Control" },
-      { id: "tipo", title: "Tipo", width: 190, group: "Iniciador" },
-      { id: "estado", title: "Estado", width: 140, group: "Iniciador" },
-      { id: "origen", title: "Origen", width: 170, group: "Iniciador" },
-      { id: "prioridad", title: "Prioridad", width: 120, group: "Iniciador" },
-      { id: "turno", title: "Turno", width: 130, group: "Iniciador" },
-      { id: "fecha", title: "Fecha origen", width: 140, group: "Iniciador" },
-      { id: "calle", title: "Calle", width: 220, group: "Domicilio" },
-      { id: "numero", title: "Numero", width: 110, group: "Domicilio" },
-      { id: "distrito", title: "Distrito", width: 110, group: "Domicilio" },
-      { id: "observaciones", title: "Observaciones", width: 320, group: "Detalle" },
+      { id: "select", title: "", width: 42 },
+      { id: "tipo", title: "Tipo", width: 150, group: "Iniciador" },
+      { id: "fecha", title: "Fecha", width: 104, group: "Iniciador" },
+      { id: "prioridad", title: "Prioridad", width: 110, group: "Iniciador" },
+      { id: "domicilio", title: "Domicilio", width: 260, group: "Domicilio" },
+      { id: "distrito", title: "Distrito", width: 120, group: "Domicilio" },
+      { id: "rubro", title: "Rubro", width: 140, group: "Domicilio" },
+      { id: "observaciones", title: "Observaciones", width: 160, group: "Detalle" },
     ],
     []
   );
@@ -87,48 +103,44 @@ const TablaIniciadoresPendientes = ({
         bgCell: "rgba(23, 62, 140, 0.24)",
         textDark: "#c9ddff",
       };
-      const stateTheme = {
-        bgCell: "rgba(9, 121, 105, 0.22)",
-        textDark: "#93f7d1",
-      };
-
-      const priorityLabel = current.badges?.prioridad_label ?? (current.prioridad ? `P${current.prioridad}` : "S/P");
-      const origenLabel = current.badges?.origen_label ?? current.origen?.tipo ?? "-";
       const tipoLabel = current.badges?.tipo_label ?? current.tipo_iniciador;
-      const estadoLabel = current.badges?.estado_label ?? current.estado_iniciador;
+      const domicilio = current.domicilio_texto ?? `${current.domicilio?.calle ?? "-"} ${current.domicilio?.numero ?? ""}`.trim();
+      const distritoNombre = current.distrito_nombre ?? current.domicilio?.distrito_nombre ?? null;
+      const rubro = current.rubro_nombre ?? current.domicilio?.rubro ?? "-";
+      const fechaCompacta = current.fecha_origen ? current.fecha_origen.slice(0, 10) : "-";
+      const observaciones = current.observaciones ?? "-";
+      const observacionesCompacta =
+        observaciones.length > 46 ? `${observaciones.slice(0, 43).trimEnd()}...` : observaciones;
 
       if (col === 0) {
         const checked = selectedSet.has(current.id);
         return {
-          kind: GridCellKind.Text,
-          data: checked ? "✓" : "",
-          displayData: checked ? "✓" : "",
+          kind: GridCellKind.Boolean,
+          data: checked,
+          displayData: checked ? "true" : "false",
           allowOverlay: false,
           readonly: true,
           themeOverride: { bgCell: "rgba(255,255,255,0.02)", textDark: checked ? "#8ec5ff" : "#60718f" },
         };
       }
-      if (col === 1) return { kind: GridCellKind.Number, data: current.id, displayData: String(current.id), allowOverlay: false };
-      if (col === 2) return { kind: GridCellKind.Bubble, data: [tipoLabel], allowOverlay: false, themeOverride: tagTheme };
-      if (col === 3) return { kind: GridCellKind.Bubble, data: [estadoLabel], allowOverlay: false, themeOverride: stateTheme };
-      if (col === 4) return { kind: GridCellKind.Bubble, data: [origenLabel], allowOverlay: false, themeOverride: tagTheme };
-      if (col === 5) return { kind: GridCellKind.Bubble, data: [priorityLabel], allowOverlay: false, themeOverride: tagTheme };
-      if (col === 6) return { kind: GridCellKind.Text, data: current.turno_sugerido ?? "-", displayData: current.turno_sugerido ?? "-", allowOverlay: false };
-      if (col === 7) return { kind: GridCellKind.Text, data: current.fecha_origen ?? "-", displayData: current.fecha_origen ?? "-", allowOverlay: false };
-      if (col === 8) return { kind: GridCellKind.Text, data: current.domicilio?.calle ?? "-", displayData: current.domicilio?.calle ?? "-", allowOverlay: false };
-      if (col === 9) return { kind: GridCellKind.Text, data: current.domicilio?.numero ?? "-", displayData: current.domicilio?.numero ?? "-", allowOverlay: false };
-      if (col === 10) {
-        const district = current.domicilio?.distrito_id ? String(current.domicilio.distrito_id) : "-";
-        return { kind: GridCellKind.Text, data: district, displayData: district, allowOverlay: false };
+      if (col === 1) return { kind: GridCellKind.Bubble, data: [tipoLabel], allowOverlay: false, themeOverride: tagTheme };
+      if (col === 2) return { kind: GridCellKind.Text, data: fechaCompacta, displayData: fechaCompacta, allowOverlay: false };
+      if (col === 3) {
+        const label = prioridadText(current.prioridad);
+        return { kind: GridCellKind.Bubble, data: [label], allowOverlay: false, themeOverride: prioridadTheme(current.prioridad) };
       }
+      if (col === 4) return { kind: GridCellKind.Text, data: domicilio || "-", displayData: domicilio || "-", allowOverlay: false };
+      if (col === 5) return { kind: GridCellKind.Text, data: distritoNombre ?? "-", displayData: distritoNombre ?? "-", allowOverlay: false };
+      if (col === 6) return { kind: GridCellKind.Text, data: rubro, displayData: rubro, allowOverlay: false };
       return {
         kind: GridCellKind.Text,
-        data: current.observaciones ?? "-",
-        displayData: current.observaciones ?? "-",
+        data: observacionesCompacta,
+        displayData: observacionesCompacta,
+        copyData: observaciones,
         allowOverlay: false,
       };
     },
-    [rows, selectedSet]
+    [prioridadText, prioridadTheme, rows, selectedSet]
   );
 
   return (
@@ -222,7 +234,7 @@ const TablaIniciadoresPendientes = ({
           rows={rows.length}
           onCellClicked={([col, row]) => {
             if (row < 0 || row >= rows.length) return;
-            if (col === 0 || col > 0) toggleRow(rows[row].id);
+            if (col === 0) toggleRow(rows[row].id);
           }}
           rowMarkers="none"
           smoothScrollX

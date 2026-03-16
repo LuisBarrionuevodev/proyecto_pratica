@@ -36,14 +36,13 @@ import ModalAsignarInspectoresGrupo from "./Components/ModalAsignarInspectoresGr
 import ModalAsignarSeleccionAGrupo from "./Components/ModalAsignarSeleccionAGrupo";
 import ModalCrearGrupoRuta from "./Components/ModalCrearGrupoRuta";
 import ModalCrearRutaTrabajo from "./Components/ModalCrearRutaTrabajo";
-import ModalEditarOrdenTrabajoItem from "./Components/ModalEditarOrdenTrabajoItem";
 import PanelGruposRuta from "./Components/PanelGruposRuta";
 import ResumenRutaTrabajo from "./Components/ResumenRutaTrabajo";
 import TablaIniciadoresPendientes from "./Components/TablaIniciadoresPendientes";
 
 const RutasTrabajo = () => {
-  const LAST_RUTA_STORAGE_KEY = "rutas_trabajo_last_ruta_id";
-  const [tab, setTab] = useState<"TABLA" | "BOARD" | "MAPA">("TABLA");
+  const LAST_RUTA_STORAGE_KEY = "rutas_trabajo_session_ruta_id";
+  const [tab, setTab] = useState<"TABLA" | "MAPA">("TABLA");
   const [ruta, setRuta] = useState<IRutaTrabajo | null>(null);
   const [grupos, setGrupos] = useState<IRutaGrupoMin[]>([]);
   const [items, setItems] = useState<IRutaItemMin[]>([]);
@@ -62,13 +61,11 @@ const RutasTrabajo = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [openCrearRuta, setOpenCrearRuta] = useState(false);
   const [openCrearGrupo, setOpenCrearGrupo] = useState(false);
+  const [openCrearRuta, setOpenCrearRuta] = useState(false);
   const [openAsignarInspectores, setOpenAsignarInspectores] = useState(false);
   const [openAsignarGrupo, setOpenAsignarGrupo] = useState(false);
-  const [openEditarOt, setOpenEditarOt] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<IRutaGrupoMin | null>(null);
-  const [itemSeleccionado, setItemSeleccionado] = useState<IRutaItemMin | null>(null);
   const [inspectoresCatalogo, setInspectoresCatalogo] = useState<CatalogItem[]>([]);
 
   const rutaId = ruta?.id ?? null;
@@ -82,20 +79,41 @@ const RutasTrabajo = () => {
       setGrupos(detail.grupos);
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
-      window.localStorage.setItem(LAST_RUTA_STORAGE_KEY, String(targetRutaId));
+      window.sessionStorage.setItem(LAST_RUTA_STORAGE_KEY, String(targetRutaId));
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
+      setRuta(null);
+      setGrupos([]);
+      setItems([]);
+      window.sessionStorage.removeItem(LAST_RUTA_STORAGE_KEY);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(LAST_RUTA_STORAGE_KEY);
+    const saved = window.sessionStorage.getItem(LAST_RUTA_STORAGE_KEY);
     const rutaIdSaved = Number(saved);
     if (!saved || !Number.isFinite(rutaIdSaved) || rutaIdSaved <= 0) return;
     void loadRutaDetail(rutaIdSaved);
   }, [loadRutaDetail]);
+
+  const handleCreateRuta = async (payload: { fecha: string; turno: "MANIANA" | "TARDE"; observaciones?: string }) => {
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const resp = await createRutaTrabajo({
+        fecha: payload.fecha,
+        turno: payload.turno,
+        observaciones: payload.observaciones || null,
+      });
+      await loadRutaDetail(resp.item.id);
+      setOpenCrearRuta(false);
+      setSuccessMessage(`Ruta ${resp.item.numero} creada en BORRADOR.`);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "No se pudo crear la ruta");
+    }
+  };
 
   const loadPendientes = useCallback(async () => {
     if (!rutaId) return;
@@ -135,23 +153,6 @@ const RutasTrabajo = () => {
     void loadPendientes();
   }, [loadPendientes]);
 
-  const handleCreateRuta = async (payload: { fecha: string; turno: "MANIANA" | "TARDE"; observaciones?: string }) => {
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      const resp = await createRutaTrabajo({
-        fecha: payload.fecha,
-        turno: payload.turno,
-        observaciones: payload.observaciones || null,
-      });
-      await loadRutaDetail(resp.item.id);
-      setOpenCrearRuta(false);
-      setSuccessMessage(`Ruta ${resp.item.numero} creada en BORRADOR.`);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo crear la ruta");
-    }
-  };
-
   const handleCreateGrupo = async () => {
     if (!rutaId) return;
     setError(null);
@@ -168,6 +169,12 @@ const RutasTrabajo = () => {
 
   const handleReplaceInspectores = async (inspectorIds: number[]) => {
     if (!rutaId || !grupoSeleccionado) return;
+    const grupoActual = grupos.find((g) => g.id === grupoSeleccionado.id);
+    if (!grupoActual) {
+      setError("El grupo seleccionado ya no existe en el borrador actual.");
+      await loadRutaDetail(rutaId);
+      return;
+    }
     setError(null);
     setSuccessMessage(null);
     try {
@@ -240,14 +247,12 @@ const RutasTrabajo = () => {
     }
   };
 
-  const handleSaveOt = async (numeroOt: string) => {
-    if (!rutaId || !itemSeleccionado) return;
+  const handleSaveOt = async (item: IRutaItemMin, numeroOt: string) => {
+    if (!rutaId) return;
     try {
-      const resp = await patchRutaItemOrdenTrabajo(rutaId, itemSeleccionado.id, { numero_orden_trabajo: numeroOt });
+      const resp = await patchRutaItemOrdenTrabajo(rutaId, item.id, { numero_orden_trabajo: numeroOt });
       setItems((prev) => prev.map((it) => (it.id === resp.item.id ? resp.item : it)));
       await loadRutaDetail(rutaId);
-      setOpenEditarOt(false);
-      setItemSeleccionado(null);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo guardar la OT");
     }
@@ -285,29 +290,15 @@ const RutasTrabajo = () => {
               </Typography>
             </Box>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Chip label={`Fecha: ${ruta?.fecha ?? "-"}`} variant="outlined" />
-              <Chip label={`Turno: ${ruta?.turno ?? "-"}`} variant="outlined" />
-              <Chip
-                label={`Estado: ${ruta?.estado_ruta ?? "SIN_RUTA"}`}
-                color={ruta?.estado_ruta === "BORRADOR" ? "primary" : "default"}
-                variant="filled"
-              />
+              <Chip label={`Fecha: ${ruta?.fecha ?? "-"}`} variant="outlined" color="primary" />
             </Stack>
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mt: 1.5 }} flexWrap="wrap">
             <Tabs value={tab} onChange={(_, value) => setTab(value)}>
               <Tab label="TABLA" value="TABLA" />
-              <Tab label="BOARD" value="BOARD" />
               <Tab label="MAPA" value="MAPA" />
             </Tabs>
             <Stack direction="row" spacing={1.2} flexWrap="wrap">
-              <Button variant="outlined" onClick={() => setOpenCrearRuta(true)}>
-                Crear ruta
-              </Button>
-              <Button variant="contained" disabled={!canCreateGrupo} onClick={() => setOpenCrearGrupo(true)}>
-                Crear grupo
-              </Button>
-              <Button variant="outlined">Guardar borrador</Button>
               <Button variant="contained">Continuar</Button>
             </Stack>
           </Stack>
@@ -319,6 +310,27 @@ const RutasTrabajo = () => {
         <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsActivos.length} />
 
         {tab === "TABLA" && (
+          !rutaId ? (
+            <Paper
+              sx={{
+                p: 4,
+                border: "1px dashed rgba(123, 154, 210, 0.4)",
+                background: "linear-gradient(180deg, rgba(15,24,43,0.92), rgba(10,16,31,0.98))",
+              }}
+            >
+              <Stack spacing={1.5} alignItems="center">
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  No hay borrador activo en esta sesión
+                </Typography>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Creá una ruta en BORRADOR para comenzar a asignar iniciadores y grupos.
+                </Typography>
+                <Button variant="contained" onClick={() => setOpenCrearRuta(true)}>
+                  Crear borrador
+                </Button>
+              </Stack>
+            </Paper>
+          ) : (
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 7 }}>
               <Paper
@@ -363,6 +375,15 @@ const RutasTrabajo = () => {
                 <Typography variant="subtitle1" sx={{ mb: 1 }}>
                   Grupos
                 </Typography>
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={!canCreateGrupo}
+                  onClick={() => setOpenCrearGrupo(true)}
+                  sx={{ mb: 1.5 }}
+                >
+                  + Nuevo grupo
+                </Button>
                 {loading ? (
                   <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                     <CircularProgress />
@@ -379,30 +400,13 @@ const RutasTrabajo = () => {
                     onEliminarGrupo={handleDeleteGrupo}
                     onMoverItem={handleMoveItem}
                     onQuitarItem={handleDeleteItem}
-                    onEditarOtItem={(item) => {
-                      setItemSeleccionado(item);
-                      setOpenEditarOt(true);
-                    }}
+                    onGuardarOtItem={handleSaveOt}
                   />
                 )}
               </Paper>
             </Grid>
           </Grid>
-        )}
-
-        {tab === "BOARD" && (
-          <Paper
-            sx={{
-              p: 3,
-              border: "1px solid rgba(90,117,162,0.28)",
-              background: "linear-gradient(180deg, rgba(16,25,45,0.92), rgba(11,17,33,0.98))",
-            }}
-          >
-            <Typography variant="subtitle1">BOARD</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Vista operativa básica disponible en siguiente etapa.
-            </Typography>
-          </Paper>
+          )
         )}
 
         {tab === "MAPA" && (
@@ -420,9 +424,8 @@ const RutasTrabajo = () => {
           </Paper>
         )}
 
-        <ModalCrearRutaTrabajo open={openCrearRuta} onClose={() => setOpenCrearRuta(false)} onSubmit={handleCreateRuta} />
-
         <ModalCrearGrupoRuta open={openCrearGrupo} onClose={() => setOpenCrearGrupo(false)} onSubmit={handleCreateGrupo} disabled={!canCreateGrupo} />
+        <ModalCrearRutaTrabajo open={openCrearRuta} onClose={() => setOpenCrearRuta(false)} onSubmit={handleCreateRuta} />
 
         <ModalAsignarInspectoresGrupo
           open={openAsignarInspectores}
@@ -444,15 +447,6 @@ const RutasTrabajo = () => {
           onConfirm={handleAssignSelected}
         />
 
-        <ModalEditarOrdenTrabajoItem
-          open={openEditarOt}
-          onClose={() => {
-            setOpenEditarOt(false);
-            setItemSeleccionado(null);
-          }}
-          item={itemSeleccionado}
-          onConfirm={handleSaveOt}
-        />
       </Box>
     </ThemeProvider>
   );

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from app.database import db
 from app.models import RutaGrupo, RutaTrabajo
 from sqlalchemy.exc import IntegrityError
@@ -7,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from .auth_service import get_current_user_id_or_fallback
 
 
-def create_ruta_grupo(*, ruta_id: int, nombre: str, estado: str | None) -> RutaGrupo:
+def create_ruta_grupo(*, ruta_id: int, nombre: str | None, estado: str | None) -> RutaGrupo:
     """
     Crea un grupo dentro de una ruta en estado BORRADOR.
 
@@ -24,7 +26,23 @@ def create_ruta_grupo(*, ruta_id: int, nombre: str, estado: str | None) -> RutaG
 
     nombre_value = (nombre or "").strip()
     if not nombre_value:
-        raise ValueError("nombre es obligatorio")
+        # Nombre autogenerado por secuencia histórica "Grupo N" dentro de la ruta.
+        # Incluye grupos soft-deleted para no reutilizar nombres y evitar choque
+        # con el unique (ruta_trabajo_id, nombre).
+        existing_names = (
+            db.session.query(RutaGrupo.nombre)
+            .filter(RutaGrupo.ruta_trabajo_id == ruta_id)
+            .all()
+        )
+        max_n = 0
+        for (group_name,) in existing_names:
+            match = re.fullmatch(r"Grupo\s+(\d+)", (group_name or "").strip(), flags=re.IGNORECASE)
+            if not match:
+                continue
+            number = int(match.group(1))
+            if number > max_n:
+                max_n = number
+        nombre_value = f"Grupo {max_n + 1}"
 
     existente = (
         RutaGrupo.query.filter(

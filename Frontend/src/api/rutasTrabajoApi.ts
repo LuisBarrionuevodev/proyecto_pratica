@@ -78,7 +78,9 @@ export interface IRutaIniciadorPendienteRow {
     calle: string | null;
     numero: string | null;
     distrito_id: number | null;
+    distrito_nombre?: string | null;
     barrio_id: number | null;
+    rubro?: string | null;
   };
   origen: {
     tipo: string | null;
@@ -89,6 +91,10 @@ export interface IRutaIniciadorPendienteRow {
     actuacion_id: number | null;
   };
   observaciones: string | null;
+  domicilio_texto?: string | null;
+  distrito_id?: number | null;
+  distrito_nombre?: string | null;
+  rubro_nombre?: string | null;
   badges?: {
     tipo_label?: string | null;
     estado_label?: string | null;
@@ -192,11 +198,25 @@ export const replaceRutaGrupoInspectores = async (
   grupoId: number,
   payload: IReplaceGrupoInspectoresRequest
 ): Promise<IReplaceGrupoInspectoresResponse> => {
-  const { data } = await apiClient.put<IReplaceGrupoInspectoresResponse>(
-    `/rutas-trabajo/${rutaId}/grupos/${grupoId}/inspectores`,
-    payload
-  );
-  return data;
+  const path = `/rutas-trabajo/${rutaId}/grupos/${grupoId}/inspectores`;
+  try {
+    const { data } = await apiClient.put<IReplaceGrupoInspectoresResponse>(path, payload);
+    return data;
+  } catch (err: any) {
+    const status = err?.response?.status;
+    const body = err?.response?.data;
+    // Trazabilidad mínima para diagnóstico de incidencias de asignación.
+    // eslint-disable-next-line no-console
+    console.error("[rutas-trabajo] replace inspectores failed", {
+      method: "PUT",
+      path,
+      rutaId,
+      grupoId,
+      status,
+      body,
+    });
+    throw err;
+  }
 };
 
 export const getRutaIniciadoresPendientes = async (

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 
-from app.models import Domicilio, IniciadorRuta, RutaItem, RutaTrabajo
+from app.models import Domicilio, IniciadorRuta, Relevamiento, RutaItem, RutaTrabajo
 
 
 def get_iniciadores_pendientes_para_ruta(
@@ -40,6 +41,12 @@ def get_iniciadores_pendientes_para_ruta(
 
     query = (
         IniciadorRuta.query.join(Domicilio, Domicilio.id == IniciadorRuta.domicilio_id)
+        .options(
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.calle_catalogo),
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.distrito),
+            joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+        )
         .filter(
             IniciadorRuta.estado_iniciador == "PENDIENTE",
             IniciadorRuta.deleted_at.is_(None),

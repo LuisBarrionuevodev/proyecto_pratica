@@ -3,6 +3,38 @@ from __future__ import annotations
 from app.models import IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
 
 
+def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
+    """
+    Construye un domicilio listo para UI priorizando datos normalizados.
+    """
+    dom = iniciador.domicilio
+    if not dom:
+        return None
+
+    calle = None
+    if dom.calle_catalogo and dom.calle_catalogo.nombre_canonico:
+        calle = dom.calle_catalogo.nombre_canonico
+    elif dom.calle_normalizada:
+        calle = dom.calle_normalizada
+    elif dom.calle:
+        calle = dom.calle
+    elif dom.calle_raw:
+        calle = dom.calle_raw
+
+    numero = (dom.numero or "").strip()
+    ref = (dom.esquina_normalizada or dom.esquina_raw or "").strip()
+
+    if calle and numero and ref:
+        return f"{calle} {numero} (ref: {ref})"
+    if calle and numero:
+        return f"{calle} {numero}"
+    if calle:
+        return calle
+    if ref:
+        return f"Ref: {ref}"
+    return None
+
+
 def ruta_trabajo_to_dict(ruta: RutaTrabajo) -> dict:
     """
     Serializa la ruta de trabajo para responses del módulo.
@@ -64,6 +96,13 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
     elif iniciador.oficio_id:
         origen = "OFICIO"
 
+    domicilio_texto = _build_domicilio_texto(iniciador)
+    rubro_nombre = dom.rubro.nombre if dom and dom.rubro else None
+    if not rubro_nombre and iniciador.relevamiento and iniciador.relevamiento.rubro:
+        rubro_nombre = iniciador.relevamiento.rubro.nombre
+    distrito_id = dom.distrito_id if dom else None
+    distrito_nombre = dom.distrito.nombre if dom and dom.distrito else None
+
     return {
         "id": iniciador.id,
         "tipo_iniciador": iniciador.tipo_iniciador,
@@ -73,11 +112,25 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
         "turno_sugerido": iniciador.turno_sugerido,
         "domicilio": {
             "id": dom.id if dom else None,
-            "calle": dom.calle if dom else None,
+            "calle": (
+                dom.calle_catalogo.nombre_canonico
+                if dom and dom.calle_catalogo and dom.calle_catalogo.nombre_canonico
+                else dom.calle_normalizada
+                if dom and dom.calle_normalizada
+                else dom.calle
+                if dom
+                else None
+            ),
             "numero": dom.numero if dom else None,
-            "distrito_id": dom.distrito_id if dom else None,
+            "distrito_id": distrito_id,
+            "distrito_nombre": distrito_nombre,
             "barrio_id": dom.barrio_id if dom else None,
+            "rubro": rubro_nombre,
         },
+        "domicilio_texto": domicilio_texto,
+        "distrito_id": distrito_id,
+        "distrito_nombre": distrito_nombre,
+        "rubro_nombre": rubro_nombre,
         "origen": {
             "tipo": origen,
             "denuncia_id": iniciador.denuncia_id,
