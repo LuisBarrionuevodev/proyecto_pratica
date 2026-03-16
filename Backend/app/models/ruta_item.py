@@ -23,6 +23,12 @@ class RutaItem(db.Model):
         nullable=False,
         index=True,
     )
+    orden_trabajo_id = db.Column(
+        db.Integer,
+        db.ForeignKey("orden_trabajo.id", ondelete="SET NULL", onupdate="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     estado_ruta_item = db.Column(
         db.Enum(
             "PENDIENTE_ASIGNACION",
@@ -90,6 +96,7 @@ class RutaItem(db.Model):
     ruta_trabajo = db.relationship("RutaTrabajo", back_populates="items")
     ruta_grupo = db.relationship("RutaGrupo", back_populates="items")
     iniciador_ruta = db.relationship("IniciadorRuta", back_populates="ruta_items")
+    orden_trabajo = db.relationship("OrdenTrabajo")
     actuacion = db.relationship("Actuaciones")
     ejecutado_por_user = db.relationship("User", foreign_keys=[ejecutado_por_user_id])
     created_by_user = db.relationship("User", foreign_keys=[created_by_user_id])
@@ -104,6 +111,7 @@ class RutaItem(db.Model):
             "ruta_trabajo_id": self.ruta_trabajo_id,
             "ruta_grupo_id": self.ruta_grupo_id,
             "iniciador_ruta_id": self.iniciador_ruta_id,
+            "orden_trabajo_id": self.orden_trabajo_id,
             "estado_ruta_item": self.estado_ruta_item,
             "estado_ejecucion": self.estado_ejecucion,
             "motivo_no_realizado": self.motivo_no_realizado,

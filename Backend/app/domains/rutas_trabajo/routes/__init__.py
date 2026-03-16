@@ -14,5 +14,6 @@ from . import assign_items  # noqa: E402,F401
 from . import move_item  # noqa: E402,F401
 from . import delete_item  # noqa: E402,F401
 from . import delete_grupo  # noqa: E402,F401
+from . import patch_item_orden_trabajo  # noqa: E402,F401
 
 __all__ = ["rutas_trabajo"]

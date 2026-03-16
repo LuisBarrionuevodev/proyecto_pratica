@@ -15,6 +15,7 @@ import GestionarDomicilios from "./Containers/GestionarDomicilios";
 import Perfil from "./Containers/Perfil";
 import AppLayout from "./layouts/AppLayout";
 import GestionDeUsuarios from "./Containers/GestionDeUsuarios";
+import RutasTrabajo from "./Containers/RutasTrabajo";
 
 /**
  * App - Enrutador principal (React Router v6)
@@ -48,6 +49,7 @@ function App() {
           <Route path="/cargarActuacion" element={<CargarActuaciones />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/gestionarDomicilios" element={<GestionarDomicilios />} />
+          <Route path="/rutasTrabajo" element={<RutasTrabajo />} />
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/perfil" element={<Perfil />} />
         </Route>

@@ -25,11 +25,16 @@ def grupo_inspector_to_dict(rel: RutaGrupoInspector) -> dict:
 
 def ruta_grupo_to_min_dict(grupo: RutaGrupo) -> dict:
     """
-    Serializa un grupo no eliminado con su listado de inspectores.
+    Serializa un grupo no eliminado con su listado de inspectores e items activos.
     """
     inspectores = [
         grupo_inspector_to_dict(rel)
         for rel in grupo.grupo_inspectores
+    ]
+    items_activos = [
+        ruta_item_to_min_dict(item)
+        for item in grupo.items
+        if item.deleted_at is None
     ]
     return {
         "id": grupo.id,
@@ -37,6 +42,7 @@ def ruta_grupo_to_min_dict(grupo: RutaGrupo) -> dict:
         "nombre": grupo.nombre,
         "estado": grupo.estado,
         "inspectores": inspectores,
+        "items": items_activos,
         "created_by_user_id": grupo.created_by_user_id,
         "created_at": grupo.created_at.isoformat() if grupo.created_at else None,
         "updated_at": grupo.updated_at.isoformat() if grupo.updated_at else None,
@@ -81,6 +87,12 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
             "actuacion_id": iniciador.actuacion_id,
         },
         "observaciones": iniciador.observaciones,
+        "badges": {
+            "tipo_label": (iniciador.tipo_iniciador or "").replace("_", " "),
+            "estado_label": (iniciador.estado_iniciador or "").replace("_", " "),
+            "origen_label": origen or "SIN_ORIGEN",
+            "prioridad_label": f"P{iniciador.prioridad}" if iniciador.prioridad else "S/P",
+        },
     }
 
 
@@ -88,11 +100,21 @@ def ruta_item_to_min_dict(item: RutaItem) -> dict:
     """
     Serializa un item de ruta para operaciones de asignación/movimiento.
     """
+    orden_trabajo = item.orden_trabajo
     return {
         "id": item.id,
         "ruta_trabajo_id": item.ruta_trabajo_id,
         "ruta_grupo_id": item.ruta_grupo_id,
         "iniciador_ruta_id": item.iniciador_ruta_id,
+        "orden_trabajo_id": item.orden_trabajo_id,
+        "orden_trabajo": {
+            "id": orden_trabajo.id,
+            "numero_acta": orden_trabajo.numero_acta,
+            "anio": orden_trabajo.anio,
+            "mes": orden_trabajo.mes,
+        }
+        if orden_trabajo
+        else None,
         "estado_ruta_item": item.estado_ruta_item,
         "deleted_at": item.deleted_at.isoformat() if item.deleted_at else None,
     }

@@ -38,3 +38,23 @@ class IniciadoresPendientesFiltersIn(BaseModel):
             return None
         trimmed = v.strip()
         return trimmed or None
+
+    @field_validator("tipo", mode="before")
+    @classmethod
+    def normalize_tipo(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Normaliza tipo de iniciador para admitir entrada en minúsculas/mixta.
+        """
+        if v is None:
+            return None
+        return str(v).strip().upper() or None
+
+    @field_validator("turno_sugerido", mode="before")
+    @classmethod
+    def normalize_turno(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Normaliza turno sugerido para evitar fallas por casing del cliente.
+        """
+        if v is None:
+            return None
+        return str(v).strip().upper() or None
