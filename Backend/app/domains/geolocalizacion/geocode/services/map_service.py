@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import logging
 from typing import Dict, List, Optional
 
 from sqlalchemy import and_, func, or_
@@ -23,7 +24,12 @@ from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
 from app.domains.geolocalizacion.geocoding.services.reverse_geocode_service import (
     reverse_geocode,
 )
+from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency import (
+    log_barrio_distrito_consistency,
+)
 from app.domains.geolocalizacion.geocode.services.distritos_service import resolve_distrito_id
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_date(value: Optional[str]) -> Optional[date]:
@@ -417,10 +423,21 @@ def save_manual_geocode(
         geo.raw_json = {"manual": True, "reverse": rev}
 
     try:
+        # Si no hay match queda en None y se persiste sin romper el flujo manual.
         dom.distrito_id = resolve_distrito_id(float(lat), float(lng))
         db.session.add(dom)
-    except Exception:
-        pass
+        log_barrio_distrito_consistency(
+            domicilio=dom,
+            source="MANUAL",
+            lat=float(lat),
+            lng=float(lng),
+        )
+    except Exception as exc:  # noqa: BLE001 - no debe cortar geocode manual
+        logger.warning(
+            "No se pudo resolver distrito en map manual geocode (domicilio_id=%s): %s",
+            domicilio_id,
+            exc,
+        )
 
     db.session.add(geo)
     db.session.commit()
@@ -459,6 +476,7 @@ def list_distritos_metric(
         items.append(
             {
                 "distrito_id": did,
+                "distrito_codigo": distrito.codigo if distrito else None,
                 "nombre": distrito.nombre if distrito else None,
                 "value": value,
             }

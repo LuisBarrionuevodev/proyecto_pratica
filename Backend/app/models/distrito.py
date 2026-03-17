@@ -8,6 +8,7 @@ class Distrito(db.Model):
     __tablename__ = "distrito"
 
     id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.Integer, nullable=True, unique=True, index=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True, index=True)
 
     # Polígono real
@@ -21,6 +22,7 @@ class Distrito(db.Model):
     def to_dict(self, include_relations=False, include_geom=False):
         data = {
             "id": self.id,
+            "codigo": self.codigo,
             "nombre": self.nombre,
         }
 

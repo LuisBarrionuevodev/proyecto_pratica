@@ -8,6 +8,10 @@ import urllib.parse
 import urllib.request
 
 from app.database import db
+from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency import (
+    log_barrio_distrito_consistency,
+)
+from app.domains.geolocalizacion.geocode.services.district_events import log_district_event
 from app.models import Domicilio
 from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
     get_or_create_geocode,
@@ -325,10 +329,48 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
             from app.domains.geolocalizacion.geocode.services.distritos_service import (
                 resolve_distrito_id,
             )
-            dom.distrito_id = resolve_distrito_id(float(geo.lat), float(geo.lng))
-        except Exception:
-            pass
-        db.session.add(dom)
+
+            # Si no hay match devuelve None y persistimos null sin romper geocoding.
+            resolved_distrito_id = resolve_distrito_id(float(geo.lat), float(geo.lng))
+            dom.distrito_id = resolved_distrito_id
+            db.session.add(dom)
+            log_barrio_distrito_consistency(
+                domicilio=dom,
+                source="AUTO",
+                lat=float(geo.lat),
+                lng=float(geo.lng),
+            )
+            if resolved_distrito_id is None:
+                log_district_event(
+                    event="district_no_match",
+                    domicilio_id=domicilio_id,
+                    lat=float(geo.lat),
+                    lng=float(geo.lng),
+                    source="AUTO",
+                    geo_status=geo.geo_status,
+                    distrito_id=None,
+                )
+            else:
+                log_district_event(
+                    event="district_assigned",
+                    domicilio_id=domicilio_id,
+                    lat=float(geo.lat),
+                    lng=float(geo.lng),
+                    source="AUTO",
+                    geo_status=geo.geo_status,
+                    distrito_id=int(resolved_distrito_id),
+                )
+        except Exception as exc:  # noqa: BLE001 - no debe frenar flujo de geocode
+            log_district_event(
+                event="district_error",
+                domicilio_id=domicilio_id,
+                lat=float(geo.lat),
+                lng=float(geo.lng),
+                source="AUTO",
+                geo_status=geo.geo_status,
+                distrito_id=None,
+                error=str(exc),
+            )
 
     db.session.add(geo)
     db.session.commit()

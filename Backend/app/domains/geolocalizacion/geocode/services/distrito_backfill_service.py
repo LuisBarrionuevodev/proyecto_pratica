@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.database import db
+from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency import (
+    log_barrio_distrito_consistency,
+)
+from app.domains.geolocalizacion.geocode.services.district_events import log_district_event
 from app.domains.geolocalizacion.geocode.services.distritos_service import (
     resolve_distrito_id,
 )
@@ -60,15 +64,37 @@ def run_distrito_backfill(*, limit: Optional[int] = None, force: bool = False) -
     rows = query.all()
     for domicilio, geo in rows:
         summary["processed"] += 1
+        lat = float(geo.lat)
+        lng = float(geo.lng)
+        geo_status = str(geo.geo_status or "")
         try:
-            resolved_distrito_id = resolve_distrito_id(float(geo.lat), float(geo.lng))
-        except Exception:
+            resolved_distrito_id = resolve_distrito_id(lat, lng)
+        except Exception as exc:
             summary["errors"] += 1
+            log_district_event(
+                event="district_error",
+                domicilio_id=int(domicilio.id),
+                lat=lat,
+                lng=lng,
+                source="BACKFILL",
+                geo_status=geo_status,
+                distrito_id=None,
+                error=str(exc),
+            )
             continue
 
         previous_distrito_id = domicilio.distrito_id
         if resolved_distrito_id is None:
             summary["no_match"] += 1
+            log_district_event(
+                event="district_no_match",
+                domicilio_id=int(domicilio.id),
+                lat=lat,
+                lng=lng,
+                source="BACKFILL",
+                geo_status=geo_status,
+                distrito_id=None,
+            )
             if force and previous_distrito_id is not None:
                 domicilio.distrito_id = None
                 db.session.add(domicilio)
@@ -78,13 +104,43 @@ def run_distrito_backfill(*, limit: Optional[int] = None, force: bool = False) -
         if previous_distrito_id is None:
             domicilio.distrito_id = resolved_distrito_id
             db.session.add(domicilio)
+            log_barrio_distrito_consistency(
+                domicilio=domicilio,
+                source="BACKFILL",
+                lat=lat,
+                lng=lng,
+            )
             summary["assigned"] += 1
+            log_district_event(
+                event="district_assigned",
+                domicilio_id=int(domicilio.id),
+                lat=lat,
+                lng=lng,
+                source="BACKFILL",
+                geo_status=geo_status,
+                distrito_id=int(resolved_distrito_id),
+            )
             continue
 
         if int(previous_distrito_id) != int(resolved_distrito_id):
             domicilio.distrito_id = resolved_distrito_id
             db.session.add(domicilio)
+            log_barrio_distrito_consistency(
+                domicilio=domicilio,
+                source="BACKFILL",
+                lat=lat,
+                lng=lng,
+            )
             summary["updated"] += 1
+            log_district_event(
+                event="district_assigned",
+                domicilio_id=int(domicilio.id),
+                lat=lat,
+                lng=lng,
+                source="BACKFILL",
+                geo_status=geo_status,
+                distrito_id=int(resolved_distrito_id),
+            )
             continue
 
         summary["skipped"] += 1

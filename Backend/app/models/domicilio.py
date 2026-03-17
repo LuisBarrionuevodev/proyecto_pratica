@@ -80,8 +80,6 @@ class Domicilio(db.Model):
     esquina_norm_score = db.Column(db.Float, nullable=True)
     esquina_norm_error = db.Column(db.String(255), nullable=True)
     esquina_norm_updated_at = db.Column(db.DateTime, nullable=True)
-    lat = db.Column(db.Numeric(9, 6), nullable=True)
-    long = db.Column(db.Numeric(9, 6), nullable=True)
     created_at = db.Column(
         db.TIMESTAMP,
         server_default=db.func.current_timestamp(),
@@ -111,6 +109,10 @@ class Domicilio(db.Model):
     relevamiento = db.relationship("Relevamiento", back_populates="domicilio")
 
     def to_dict(self, include_relations=False):
+        # Fuente operativa de coordenadas: domicilio_geocode.
+        geocode_lat = self.geocode.lat if self.geocode and self.geocode.lat is not None else None
+        geocode_lng = self.geocode.lng if self.geocode and self.geocode.lng is not None else None
+
         data = {
             "id": self.id,
             "calle": self.calle,
@@ -120,8 +122,8 @@ class Domicilio(db.Model):
             "barrio_id": self.barrio_id,
             "contribuyente_id": self.contribuyente_id,
             "rubro_id": self.rubro_id,
-            "lat": str(self.lat) if self.lat is not None else None,
-            "long": str(self.long) if self.long is not None else None,
+            "lat": str(geocode_lat) if geocode_lat is not None else None,
+            "long": str(geocode_lng) if geocode_lng is not None else None,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "esquina_raw": self.esquina_raw,

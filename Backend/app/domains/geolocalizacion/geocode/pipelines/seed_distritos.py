@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from app.database import db
-from app.models import Distrito
+import sqlalchemy as sa
+_DISTRICT_NUMBER_REGEX = re.compile(r"(\d+)")
+
 
 
 def _normalize_name(value: str | None) -> str:
@@ -95,7 +98,20 @@ def _geometry_to_wkt(geometry: Dict[str, Any]) -> str | None:
     return None
 
 
-def _load_distritos_from_geojson(path: Path) -> List[Tuple[str, str]]:
+def _extract_codigo(nombre: str) -> int | None:
+    """
+    Extrae código numérico de nombre de distrito.
+    """
+    match = _DISTRICT_NUMBER_REGEX.search(nombre or "")
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def _load_distritos_from_geojson(path: Path) -> List[Tuple[str, str, int | None]]:
     """
     Carga los nombres de distrito desde el GeoJSON canónico.
 
@@ -103,7 +119,7 @@ def _load_distritos_from_geojson(path: Path) -> List[Tuple[str, str]]:
         path: ruta del archivo GeoJSON.
 
     Returns:
-        Lista `(nombre, geom_wkt)` por distrito.
+        Lista `(nombre, geom_wkt, codigo)` por distrito.
 
     Raises:
         ValueError: si el archivo no tiene estructura GeoJSON esperada.
@@ -115,7 +131,7 @@ def _load_distritos_from_geojson(path: Path) -> List[Tuple[str, str]]:
     if not isinstance(features, list):
         raise ValueError("GeoJSON invalido: 'features' no es una lista.")
 
-    rows: List[Tuple[str, str]] = []
+    rows: List[Tuple[str, str, int | None]] = []
     for feature in features:
         if not isinstance(feature, dict):
             continue
@@ -131,7 +147,7 @@ def _load_distritos_from_geojson(path: Path) -> List[Tuple[str, str]]:
             continue
         geom_wkt = _geometry_to_wkt(geometry)
         if name and geom_wkt:
-            rows.append((name, geom_wkt))
+            rows.append((name, geom_wkt, _extract_codigo(name)))
     return rows
 
 
@@ -160,15 +176,27 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
     updated = 0
     skipped = 0
 
-    existing_rows = Distrito.query.with_entities(Distrito.id, Distrito.nombre).all()
-    existing_by_norm: Dict[str, Tuple[int, str]] = {}
-    for district_id, district_name in existing_rows:
-        key = _normalize_name(district_name)
-        if not key:
-            continue
-        existing_by_norm[key] = (int(district_id), str(district_name))
+    existing_rows = db.session.execute(
+        sa.text("SELECT id, nombre FROM distrito")
+    ).mappings().all()
+    existing_by_norm: Dict[str, Tuple[int, str]] = {
+        _normalize_name(str(row["nombre"])): (int(row["id"]), str(row["nombre"]))
+        for row in existing_rows
+        if _normalize_name(str(row["nombre"]))
+    }
 
-    for geo_name, geo_wkt in geojson_rows:
+    upsert_sql = sa.text(
+        """
+        INSERT INTO distrito (nombre, codigo, geom)
+        VALUES (:nombre, :codigo, ST_SwapXY(ST_GeomFromText(:wkt, 4326)))
+        ON DUPLICATE KEY UPDATE
+            nombre = VALUES(nombre),
+            codigo = VALUES(codigo),
+            geom = VALUES(geom)
+        """
+    )
+
+    for geo_name, geo_wkt, geo_codigo in geojson_rows:
         key = _normalize_name(geo_name)
         if not key:
             skipped += 1
@@ -176,14 +204,32 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
 
         existing = existing_by_norm.get(key)
         if existing is None:
-            new_row = Distrito(nombre=geo_name, geom=geo_wkt)
-            db.session.add(new_row)
+            db.session.execute(
+                upsert_sql,
+                {"nombre": geo_name, "codigo": geo_codigo, "wkt": geo_wkt},
+            )
             created += 1
             continue
 
         district_id, district_name = existing
         if district_name != geo_name:
-            db.session.query(Distrito).filter(Distrito.id == district_id).update({"nombre": geo_name})
+            db.session.execute(
+                sa.text(
+                    """
+                    UPDATE distrito
+                    SET nombre = :nombre,
+                        codigo = :codigo,
+                        geom = ST_SwapXY(ST_GeomFromText(:wkt, 4326))
+                    WHERE id = :district_id
+                    """
+                ),
+                {
+                    "nombre": geo_name,
+                    "codigo": geo_codigo,
+                    "wkt": geo_wkt,
+                    "district_id": district_id,
+                },
+            )
             updated += 1
         else:
             skipped += 1

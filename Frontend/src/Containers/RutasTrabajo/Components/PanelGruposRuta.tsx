@@ -97,6 +97,7 @@ const PanelGruposRuta = ({
                     iniciador?.domicilio_texto ??
                     `${iniciador?.domicilio?.calle ?? "-"} ${iniciador?.domicilio?.numero ?? ""}`.trim();
                   const rubro = iniciador?.rubro_nombre ?? iniciador?.domicilio?.rubro ?? "Sin rubro";
+                  const distritoNombre = iniciador?.distrito_nombre ?? iniciador?.domicilio?.distrito_nombre ?? null;
                   const tipoLabel = iniciador?.badges?.tipo_label ?? iniciador?.tipo_iniciador ?? "SIN TIPO";
                   const canMove = grupos.length > 1;
                   const target = targetByItem[item.id] || "";
@@ -108,7 +109,7 @@ const PanelGruposRuta = ({
                       </Typography>
                       <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }} alignItems="center" flexWrap="wrap">
                         <Typography variant="caption" color="text.secondary">
-                          {rubro}
+                          {distritoNombre ? `${rubro} · ${distritoNombre}` : rubro}
                         </Typography>
                         <Chip label={tipoLabel} size="small" variant="outlined" />
                         <Chip label={`#${item.iniciador_ruta_id}`} size="small" variant="outlined" />
