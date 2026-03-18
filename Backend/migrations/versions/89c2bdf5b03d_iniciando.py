@@ -1,16 +1,17 @@
-"""priemro
+"""iniciando
 
-Revision ID: 1a3d755bcc50
+Revision ID: 89c2bdf5b03d
 Revises: 
-Create Date: 2026-03-17 22:26:06.429113
+Create Date: 2026-03-18 15:16:24.203340
 
 """
 from alembic import op
 import sqlalchemy as sa
 import geoalchemy2
 
+
 # revision identifiers, used by Alembic.
-revision = '1a3d755bcc50'
+revision = '89c2bdf5b03d'
 down_revision = None
 branch_labels = None
 depends_on = None

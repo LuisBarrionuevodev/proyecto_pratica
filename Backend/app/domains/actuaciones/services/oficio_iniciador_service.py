@@ -5,6 +5,10 @@ from datetime import date
 from flask_jwt_extended import get_jwt_identity
 
 from app.models import Actuaciones, Expediente, IniciadorRuta, Oficio, User
+from app.domains.rutas_trabajo.services.iniciador_policy_service import (
+    inactive_estados,
+    priority_for_tipo,
+)
 
 
 def _get_current_user_id() -> int:
@@ -59,7 +63,7 @@ def get_or_create_iniciador_from_oficio(
             IniciadorRuta.oficio_id == oficio.id,
             IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
             IniciadorRuta.deleted_at.is_(None),
-            IniciadorRuta.estado_iniciador.notin_(("ANULADO", "CERRADO", "CERRADO_NO_EXISTE_LOCAL")),
+            IniciadorRuta.estado_iniciador.notin_(inactive_estados()),
         )
         .order_by(IniciadorRuta.id.desc())
         .first()
@@ -83,6 +87,7 @@ def get_or_create_iniciador_from_oficio(
         anio=int(fecha_origen.year),
         mes=int(fecha_origen.month),
         domicilio_id=int(domicilio_id),
+        prioridad=priority_for_tipo("REINSPECCION_OFICIO"),
         oficio_id=oficio.id,
         comprobacion_id=actuacion.comprobacion_id,
         actuacion_id=actuacion.id,

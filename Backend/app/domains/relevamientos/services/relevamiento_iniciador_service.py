@@ -3,6 +3,10 @@ from __future__ import annotations
 from flask_jwt_extended import get_jwt_identity
 
 from app.models import IniciadorRuta, Relevamiento, User
+from app.domains.rutas_trabajo.services.iniciador_policy_service import (
+    inactive_estados,
+    priority_for_tipo,
+)
 
 
 def _get_current_user_id() -> int:
@@ -48,7 +52,7 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
             IniciadorRuta.relevamiento_id == relevamiento.id,
             IniciadorRuta.tipo_iniciador == "RELEVAMIENTO",
             IniciadorRuta.deleted_at.is_(None),
-            IniciadorRuta.estado_iniciador.notin_(("ANULADO", "CERRADO", "CERRADO_NO_EXISTE_LOCAL")),
+            IniciadorRuta.estado_iniciador.notin_(inactive_estados()),
         )
         .order_by(IniciadorRuta.id.desc())
         .first()
@@ -70,6 +74,7 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
         anio=int(fecha_origen.year),
         mes=int(fecha_origen.month),
         domicilio_id=int(relevamiento.domicilio_id),
+        prioridad=priority_for_tipo("RELEVAMIENTO"),
         relevamiento_id=relevamiento.id,
         created_by_user_id=created_by_user_id,
         observaciones=f"Derivado automático desde relevamiento {relevamiento.id}",

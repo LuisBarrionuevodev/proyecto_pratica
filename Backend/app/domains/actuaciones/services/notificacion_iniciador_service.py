@@ -8,6 +8,10 @@ from sqlalchemy.orm import aliased
 
 from app.database import db
 from app.models import Actuaciones, IniciadorRuta, Notificacion, User
+from app.domains.rutas_trabajo.services.iniciador_policy_service import (
+    inactive_estados,
+    priority_for_tipo,
+)
 
 
 def _get_current_user_id() -> int:
@@ -71,7 +75,7 @@ def _has_active_iniciador_notificacion(notificacion_id: int) -> bool:
             IniciadorRuta.notificacion_id == notificacion_id,
             IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION",
             IniciadorRuta.deleted_at.is_(None),
-            IniciadorRuta.estado_iniciador.notin_(("ANULADO", "CERRADO", "CERRADO_NO_EXISTE_LOCAL")),
+            IniciadorRuta.estado_iniciador.notin_(inactive_estados()),
         )
         .order_by(IniciadorRuta.id.desc())
         .first()
@@ -103,6 +107,7 @@ def sync_iniciadores_reinspeccion_notificacion() -> int:
             anio=int(noti.fecha_vencimiento.year),
             mes=int(noti.fecha_vencimiento.month),
             domicilio_id=int(act.domicilio_id),
+            prioridad=priority_for_tipo("REINSPECCION_NOTIFICACION"),
             notificacion_id=noti.id,
             actuacion_id=act.id,
             created_by_user_id=user_id,

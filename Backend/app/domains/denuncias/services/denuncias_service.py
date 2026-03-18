@@ -22,6 +22,10 @@ from app.domains.denuncias.schemas import DenunciasGestionFilters, DenunciaGesti
 from app.domains.denuncias.services.operational_guard_service import (
     get_iniciador_pendiente_denuncia,
 )
+from app.domains.rutas_trabajo.services.iniciador_policy_service import (
+    is_estado_activo,
+    priority_for_tipo,
+)
 
 
 def _get_current_user_id() -> int:
@@ -129,6 +133,7 @@ def crear_denuncia_con_iniciador(
         anio=anio,
         mes=mes,
         domicilio_id=resolved_domicilio_id,
+        prioridad=priority_for_tipo("DENUNCIA"),
         denuncia_id=denuncia.id,
         created_by_user_id=user_id,
     )
@@ -198,7 +203,7 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
     )
     for ini in iniciadores:
         ini.deleted_at = now
-        if ini.estado_iniciador not in {"CERRADO", "CERRADO_NO_EXISTE_LOCAL"}:
+        if is_estado_activo(ini.estado_iniciador):
             ini.estado_iniciador = "ANULADO"
         ini.cerrado_at = ini.cerrado_at or now
         ini.cerrado_motivo = ini.cerrado_motivo or "SOFT_DELETE_DENUNCIA"
