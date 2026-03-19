@@ -27,6 +27,40 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 )
 
 
+def _resolve_tipo_actuacion(payload: Dict[str, Any]) -> str | None:
+    """
+    Resuelve tipo_actuacion efectivo para altas desde grilla.
+
+    Reglas:
+    - Si el payload ya trae tipo_actuacion explícito, se respeta.
+    - Si no trae tipo pero hay evidencia de inspección real (actas operativas),
+      fuerza `INSPECCION` para mantener consistencia del circuito.
+    - Si no hay evidencia, mantiene `None` (flujo contraproducencia/registro mínimo).
+    """
+    tipo = payload.get("tipo_actuacion")
+    if tipo:
+        return tipo
+
+    notificacion = payload.get("notificacion") or {}
+    comprobacion = payload.get("comprobacion") or {}
+    clausura = payload.get("clausura") or {}
+    decomiso = payload.get("decomiso") or {}
+
+    has_inspeccion_real = any(
+        [
+            bool(payload.get("acta_inspeccion_num")),
+            bool(notificacion.get("acta_num")),
+            bool(comprobacion.get("acta_num")),
+            bool(clausura.get("acta_num")),
+            bool(decomiso.get("acta_num")),
+        ]
+    )
+    if has_inspeccion_real:
+        return "INSPECCION"
+
+    return None
+
+
 def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     """
     Crea una `Actuaciones` y adjunta entidades relacionadas según el payload canon.
@@ -59,11 +93,12 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     if existente:
         raise ValueError("Ya existe una actuación asociada a esa Orden de Trabajo.")
 
+    tipo_actuacion = _resolve_tipo_actuacion(payload)
     act = Actuaciones(
         fecha=fecha,
         mes=mes,
         anio=anio,
-        tipo=payload.get("tipo_actuacion"),
+        tipo=tipo_actuacion,
         contraproducencia=payload.get("contraproducencia"),
         orden_trabajo_id=ot.id,
     )
@@ -72,7 +107,7 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
 
     # Catálogos / entidades base
     # Si no hay tipo y hay contraproducencia, permitimos domicilio sin rubro/contribuyente
-    allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
+    allow_missing_catalogs = tipo_actuacion is None and payload.get("contraproducencia") is not None
     rubro = get_rubro_o_falla(payload.get("rubro_nombre"))
     contrib = resolve_contribuyente(payload.get("contribuyente"))
     dom = get_or_create_domicilio(

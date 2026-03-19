@@ -1,8 +1,8 @@
-"""iniciando
+"""iniciadndo
 
-Revision ID: 89c2bdf5b03d
+Revision ID: a00ee416407f
 Revises: 
-Create Date: 2026-03-18 15:16:24.203340
+Create Date: 2026-03-18 23:41:26.696393
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import geoalchemy2
 
 
 # revision identifiers, used by Alembic.
-revision = '89c2bdf5b03d'
+revision = 'a00ee416407f'
 down_revision = None
 branch_labels = None
 depends_on = None

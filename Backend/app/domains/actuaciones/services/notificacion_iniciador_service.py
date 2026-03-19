@@ -7,7 +7,7 @@ from sqlalchemy import and_, exists
 from sqlalchemy.orm import aliased
 
 from app.database import db
-from app.models import Actuaciones, IniciadorRuta, Notificacion, User
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, User
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
@@ -45,7 +45,15 @@ def _get_current_user_id() -> int:
 
 def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     """
-    Retorna inspecciones con notificación vencida y sin reinspección.
+    Retorna actuaciones base INSPECCION elegibles para crear iniciador por
+    vencimiento de notificación.
+
+    Elegibilidad:
+    - notificación no borrada.
+    - fecha_vencimiento no nula y <= hoy.
+    - actuación base de tipo INSPECCION.
+    - domicilio operativo (domicilio_id no nulo y domicilio no soft-deleteado).
+    - sin reinspección ya registrada para la misma notificación.
     """
     today = date.today()
     A2 = aliased(Actuaciones)
@@ -58,8 +66,11 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     return (
         Actuaciones.query
         .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
+        .join(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
         .filter(Actuaciones.tipo == "INSPECCION")
         .filter(Actuaciones.notificacion_id.isnot(None))
+        .filter(Actuaciones.domicilio_id.isnot(None))
+        .filter(Domicilio.deleted_at.is_(None))
         .filter(Notificacion.deleted_at.is_(None))
         .filter(Notificacion.fecha_vencimiento.isnot(None))
         .filter(Notificacion.fecha_vencimiento <= today)
@@ -87,17 +98,31 @@ def sync_iniciadores_reinspeccion_notificacion() -> int:
     """
     Materializa iniciadores derivados para notificaciones vencidas.
 
-    Crea solo cuando corresponde y con idempotencia.
+    Crea solo cuando corresponde y con idempotencia:
+    - si ya existe iniciador activo para la notificación, no duplica;
+    - si en la misma corrida aparecen múltiples actuaciones base para una
+      misma notificación, materializa una sola vez.
     """
     created = 0
+    processed_notificacion_ids: set[int] = set()
     user_id = _get_current_user_id()
+    today = date.today()
+
     for act in _eligible_inspecciones_vencidas():
         noti = act.notificacion
         if not noti or not noti.fecha_vencimiento:
             continue
+        if noti.deleted_at is not None:
+            continue
+        if noti.fecha_vencimiento > today:
+            continue
         if not act.domicilio_id:
             continue
-        if _has_active_iniciador_notificacion(int(noti.id)):
+        notificacion_id = int(noti.id)
+        if notificacion_id in processed_notificacion_ids:
+            continue
+        if _has_active_iniciador_notificacion(notificacion_id):
+            processed_notificacion_ids.add(notificacion_id)
             continue
 
         iniciador = IniciadorRuta(
@@ -108,7 +133,7 @@ def sync_iniciadores_reinspeccion_notificacion() -> int:
             mes=int(noti.fecha_vencimiento.month),
             domicilio_id=int(act.domicilio_id),
             prioridad=priority_for_tipo("REINSPECCION_NOTIFICACION"),
-            notificacion_id=noti.id,
+            notificacion_id=notificacion_id,
             actuacion_id=act.id,
             created_by_user_id=user_id,
             observaciones=(
@@ -117,6 +142,7 @@ def sync_iniciadores_reinspeccion_notificacion() -> int:
             ),
         )
         db.session.add(iniciador)
+        processed_notificacion_ids.add(notificacion_id)
         created += 1
 
     if created > 0:
