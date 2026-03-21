@@ -1,39 +1,20 @@
 import type { SxProps, Theme } from "@mui/material";
 
+import { color as tokenColor, motion } from "../theme/tokens";
+
 // =============================================================================
 // ESTILOS GLASSMORPHISM REUTILIZABLES (optimizado para rendimiento)
 // =============================================================================
 
-// Constantes de transición sincronizadas (sidebar <-> content)
+// Constantes de transición sincronizadas (sidebar <-> content) — desde tokens
 export const TRANSITION = {
-    duration: 200, // ms - más rápido
-    easing: "ease-out",
-    css: "all 0.2s ease-out",
+    duration: motion.durationMs,
+    easing: motion.easing,
+    css: motion.css,
 };
 
-// Paleta de colores glass (sin blur para mejor rendimiento)
-export const GLASS_COLORS = {
-    // Fondos unificados (NavLeft y ContentShell mismo color)
-    sidebarBg: "rgba(18, 18, 22, 0.94)",
-    contentBg: "rgba(18, 18, 22, 0.94)", // Mismo color que sidebar
-    cardBg: "rgba(30, 32, 38, 0.85)",
-    hoverBg: "rgba(255, 255, 255, 0.06)",
-    activeBg: "rgba(255, 255, 255, 0.10)",
-    
-    // Bordes
-    borderLight: "rgba(255, 255, 255, 0.06)",
-    borderMedium: "rgba(255, 255, 255, 0.10)",
-    borderActive: "rgba(1, 102, 255, 0.5)",
-    
-    // Textos
-    textPrimary: "#FFFFFF",
-    textSecondary: "rgba(255, 255, 255, 0.7)",
-    textMuted: "rgba(255, 255, 255, 0.45)",
-    
-    // Acentos
-    primary: "#0166FF",
-    primaryGlow: "rgba(1, 102, 255, 0.3)",
-};
+// Paleta de colores glass — valores desde tokens (misma forma pública)
+export const GLASS_COLORS = { ...tokenColor };
 
 // Estilo glass base para sidebar
 export const glassSidebar: SxProps<Theme> = {
@@ -61,6 +42,15 @@ export const glassCard: SxProps<Theme> = {
     border: `1px solid ${GLASS_COLORS.borderMedium}`,
     boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
     borderRadius: "16px",
+};
+
+/**
+ * Panel glass tipo Paper para cabecera con tabs (Mapa, Rutas, Cargar actuación, Relevamientos, etc.).
+ */
+export const glassTabsHeaderPanelSx: SxProps<Theme> = {
+    ...glassCard,
+    p: 2,
+    overflow: "hidden",
 };
 
 // Estilo para item de menú activo

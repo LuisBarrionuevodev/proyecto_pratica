@@ -89,8 +89,8 @@ const inspectores: Inspector[] = [
   return (
     <Box p={3} ml={3}>
       <Box display={"flex"} flexDirection={{ xs: "column", md: "column", lg: "row" }} justifyContent={"space-between"} alignItems={"center"}>
-        <Typography color="white" fontSize={{ xs: "20px", sm: "50px" }} fontWeight={500} >
-          Panel de Control
+        <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.65)", maxWidth: { xs: "100%", lg: 280 } }}>
+          Indicadores según el período seleccionado.
         </Typography>
         <Box
           display="flex"

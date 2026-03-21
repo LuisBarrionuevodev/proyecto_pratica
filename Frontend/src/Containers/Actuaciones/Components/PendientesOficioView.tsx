@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
   Box,
-  Button,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
-  TextField,
   Typography,
 } from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -21,13 +20,27 @@ import {
   type IJuzgadoCatalogItem,
   type IPendientesOficioItem,
 } from "../../../api/actuacionesPendientesApi";
+import { containerStyles, wrapperStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { DARK_TABLE_CONFIG } from "../styles/actuacionesTableStyles";
+import {
+  alertBaseStyles,
+  COLORS,
+  filtroButtonPrimaryStyles,
+  filtroButtonSecondaryStyles,
+  filtroButtonsStyles,
+  filtroContainerStyles,
+  filtroGridStyles,
+  filtroItemStyles,
+  filtroTitleStyles,
+} from "../styles/filtroStyles";
+import { AppButton, AppSelect, AppTextField } from "../../../ui";
 
 const PendientesOficioView = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [desde, setDesde] = useState(defaultRange.desde);
   const [hasta, setHasta] = useState(defaultRange.hasta);
+
   const [items, setItems] = useState<IPendientesOficioItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -67,6 +80,16 @@ const PendientesOficioView = () => {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const handleFiltrar = useCallback(() => {
+    void loadData();
+  }, [loadData]);
+
+  const handleLimpiar = useCallback(() => {
+    const range = getCurrentMonthRange();
+    setDesde(range.desde);
+    setHasta(range.hasta);
+  }, []);
 
   const openModal = (row: IPendientesOficioItem) => {
     setSelected(row);
@@ -127,9 +150,9 @@ const PendientesOficioView = () => {
         header: "Acciones",
         size: 160,
         Cell: ({ row }) => (
-          <Button variant="contained" size="small" onClick={() => openModal(row.original)}>
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original)}>
             Cargar oficio
-          </Button>
+          </AppButton>
         ),
       },
     ],
@@ -150,108 +173,153 @@ const PendientesOficioView = () => {
   });
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-        <TextField
-          size="small"
-          label="Desde"
-          type="date"
-          value={desde}
-          onChange={(e) => setDesde(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          size="small"
-          label="Hasta"
-          type="date"
-          value={hasta}
-          onChange={(e) => setHasta(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <Button variant="contained" onClick={loadData}>
-          Filtrar
-        </Button>
-      </Box>
+    <Box sx={containerStyles}>
+      <Box sx={wrapperStyles}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box sx={filtroContainerStyles}>
+            <Typography sx={filtroTitleStyles}>Rango de fechas</Typography>
+            <Box sx={filtroGridStyles}>
+              <Box sx={filtroItemStyles}>
+                <AppTextField
+                  appearance="dense"
+                  fullWidth
+                  type="date"
+                  label="Desde"
+                  value={desde}
+                  onChange={(e) => setDesde(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  variant="outlined"
+                />
+              </Box>
+              <Box sx={filtroItemStyles}>
+                <AppTextField
+                  appearance="dense"
+                  fullWidth
+                  type="date"
+                  label="Hasta"
+                  value={hasta}
+                  onChange={(e) => setHasta(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  variant="outlined"
+                />
+              </Box>
+            </Box>
+            <Box sx={filtroButtonsStyles}>
+              <AppButton
+                dsVariant="ghost"
+                dsSize="sm"
+                onClick={handleLimpiar}
+                startIcon={<ClearIcon />}
+                sx={filtroButtonSecondaryStyles}
+              >
+                Limpiar
+              </AppButton>
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                onClick={handleFiltrar}
+                startIcon={<SearchIcon />}
+                sx={filtroButtonPrimaryStyles}
+              >
+                Filtrar
+              </AppButton>
+            </Box>
+          </Box>
 
-      {error && <Alert severity="error">{error}</Alert>}
+          {error && <Alert severity="error" sx={alertBaseStyles}>{error}</Alert>}
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress />
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress sx={{ color: COLORS.primary }} />
+            </Box>
+          ) : (
+            <MaterialReactTable table={table} />
+          )}
+
+          <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth="sm">
+            <DialogTitle>Cargar oficio</DialogTitle>
+            <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+              <AppTextField
+                appearance="dense"
+                label="Expediente original"
+                value={`${selected?.expediente_original_numero ?? "-"} / ${selected?.expediente_original_anio ?? "-"}`}
+                fullWidth
+                InputProps={{ readOnly: true }}
+              />
+              <AppTextField
+                appearance="dense"
+                label="Contexto"
+                value={`Acta comp: ${selected?.acta_comprobacion_num ?? "-"} | OT: ${selected?.orden_trabajo_numero ?? "-"}`}
+                fullWidth
+                InputProps={{ readOnly: true }}
+              />
+              <AppTextField
+                appearance="dense"
+                label="Número de oficio"
+                value={numeroOficio}
+                onChange={(e) => setNumeroOficio(e.target.value)}
+                fullWidth
+                required
+              />
+              <AppTextField
+                appearance="dense"
+                label="Fecha de oficio"
+                type="date"
+                value={fechaOficio}
+                onChange={(e) => setFechaOficio(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+              <AppSelect
+                appearance="dense"
+                label="Juzgado"
+                value={String(juzgadoId)}
+                onChange={(e) => setJuzgadoId(Number(e.target.value))}
+                fullWidth
+                required
+                variant="outlined"
+                options={juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))}
+              />
+              <AppTextField
+                appearance="dense"
+                label="Causa"
+                value={causa}
+                onChange={(e) => setCausa(e.target.value)}
+                fullWidth
+              />
+              <AppTextField
+                appearance="dense"
+                label="Número expediente oficio"
+                value={expNumero}
+                onChange={(e) => setExpNumero(e.target.value)}
+                fullWidth
+                required
+              />
+              <AppTextField
+                appearance="dense"
+                label="Fecha expediente oficio"
+                type="date"
+                value={expFecha}
+                onChange={(e) => setExpFecha(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+            </DialogContent>
+            <DialogActions>
+              <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModal} disabled={saving}>
+                Cancelar
+              </AppButton>
+              <AppButton dsVariant="primary" dsSize="sm" onClick={handleSave} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar"}
+              </AppButton>
+            </DialogActions>
+          </Dialog>
         </Box>
-      ) : (
-        <MaterialReactTable table={table} />
-      )}
-
-      <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth="sm">
-        <DialogTitle>Cargar oficio</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-          <TextField
-            label="Expediente original"
-            value={`${selected?.expediente_original_numero ?? "-"} / ${selected?.expediente_original_anio ?? "-"}`}
-            fullWidth
-            InputProps={{ readOnly: true }}
-          />
-          <TextField
-            label="Contexto"
-            value={`Acta comp: ${selected?.acta_comprobacion_num ?? "-"} | OT: ${selected?.orden_trabajo_numero ?? "-"}`}
-            fullWidth
-            InputProps={{ readOnly: true }}
-          />
-          <TextField label="Número de oficio" value={numeroOficio} onChange={(e) => setNumeroOficio(e.target.value)} fullWidth required />
-          <TextField
-            label="Fecha de oficio"
-            type="date"
-            value={fechaOficio}
-            onChange={(e) => setFechaOficio(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-          />
-          <TextField
-            select
-            label="Juzgado"
-            value={juzgadoId}
-            onChange={(e) => setJuzgadoId(Number(e.target.value))}
-            fullWidth
-            required
-          >
-            {juzgados.map((j) => (
-              <MenuItem key={j.id} value={j.id}>
-                {j.nombre}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField label="Causa" value={causa} onChange={(e) => setCausa(e.target.value)} fullWidth />
-          <TextField
-            label="Número expediente oficio"
-            value={expNumero}
-            onChange={(e) => setExpNumero(e.target.value)}
-            fullWidth
-            required
-          />
-          <TextField
-            label="Fecha expediente oficio"
-            type="date"
-            value={expFecha}
-            onChange={(e) => setExpFecha(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeModal} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} variant="contained" disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </Box>
     </Box>
   );
 };
 
 export default PendientesOficioView;
-

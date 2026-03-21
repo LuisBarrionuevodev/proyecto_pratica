@@ -8,15 +8,9 @@ import {
   CardActionArea,
   CardContent,
   CircularProgress,
-  Tab,
-  Tabs,
-  TextField,
-  ThemeProvider,
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-
-import { darkTheme } from "../../configs/theme";
 import TablaRelevamientos from "./Components/TableRelevamientos";
 import FiltroRelevamientos from "./Components/FiltroRelevamientos";
 import FiltroPendientes from "../Actuaciones/Components/FiltroPendientes";
@@ -36,7 +30,7 @@ import type { MRT_ColumnDef } from "material-react-table";
 import type { IRelevamientoListItem } from "../../api/relevamientosListApi";
 
 import {
-  wrapperStyles,
+  moduleContentColumnSx,
   titleStyles,
   metaInfoStyles,
   metaItemStyles,
@@ -45,7 +39,7 @@ import {
 
 const RelevamientosContainer = (): JSX.Element => {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"todos" | "pendientes">("todos");
+  const [tab] = useState<"todos" | "pendientes">("todos");
 
   const { relevamientos, meta, loading, error, hasSearched, buscar } = useRelevamientosFiltradas();
 
@@ -143,20 +137,10 @@ const RelevamientosContainer = (): JSX.Element => {
   const handleBeforeSavePendiente = useCallback(async (_fullRow: IRelevamientoListItem) => {}, []);
 
   return (
-    <ThemeProvider theme={darkTheme}>
-      <Box sx={wrapperStyles}>
+    <Box sx={moduleContentColumnSx}>
         <Typography sx={titleStyles}>Relevamientos</Typography>
 
-        <Tabs
-          value={tab}
-          onChange={(_, value) => setTab(value)}
-          sx={{ marginBottom: 2 }}
-        >
-          <Tab label="Todos" value="todos" />
-        </Tabs>
-
-        {tab === "todos" && (
-          <>
+        <>
             <FiltroRelevamientos onFiltrar={handleFiltrarTodos} />
 
             {error && hasSearched && (
@@ -221,8 +205,7 @@ const RelevamientosContainer = (): JSX.Element => {
                 numeroAllowFreeSolo
               />
             )}
-          </>
-        )}
+        </>
 
         {tab === "pendientes" && (
           <>
@@ -301,8 +284,7 @@ const RelevamientosContainer = (): JSX.Element => {
             )}
           </>
         )}
-      </Box>
-    </ThemeProvider>
+    </Box>
   );
 };
 

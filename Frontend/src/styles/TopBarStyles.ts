@@ -1,5 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
 import { GLASS_COLORS } from "./GlassStyles";
+import { color as tokenColor, layoutShell } from "../theme/tokens";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA TOPBAR
@@ -7,7 +8,7 @@ import { GLASS_COLORS } from "./GlassStyles";
 
 // Paleta de colores (armonizada con NavLeft)
 export const COLORS = {
-    primary: "#0166FF",
+    primary: tokenColor.primary,
     black: "#000000",
     white: "#FFFFFF",
     grayDark: GLASS_COLORS.sidebarBg,
@@ -24,7 +25,7 @@ export const TopBarContainerStyles: SxProps<Theme> = {
     width: "100%",
     bgcolor: "transparent",
     zIndex: 1200,
-    height: "55px",
+    height: `${layoutShell.topBarHeightPx}px`,
     position: "relative",
     display: "flex",
     alignItems: "center",

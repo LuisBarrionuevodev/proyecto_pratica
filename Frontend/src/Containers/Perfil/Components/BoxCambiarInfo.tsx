@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import { AppButton, AppTextField } from "../../../ui";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { buttonStyle, inputDarkStyle } from "../../../styles/PerfilStyles";
 
@@ -87,7 +88,8 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
         >
           Contraseña actual
         </Typography>
-        <TextField
+        <AppTextField
+          appearance="default"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           placeholder="Ingresa tu contraseña actual"
@@ -111,7 +113,8 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
         >
           Nueva contraseña
         </Typography>
-        <TextField
+        <AppTextField
+          appearance="default"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder="••••••••••"
@@ -135,7 +138,8 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
         >
           Confirmar contraseña
         </Typography>
-        <TextField
+        <AppTextField
+          appearance="default"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="••••••••••"
@@ -149,9 +153,9 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
       </Box>
 
       {/* Botón */}
-      <Button sx={buttonStyle} onClick={handleSave}>
+      <AppButton dsVariant="primary" sx={buttonStyle} onClick={handleSave}>
         Guardar cambios
-      </Button>
+      </AppButton>
     </Box>
   );
 };

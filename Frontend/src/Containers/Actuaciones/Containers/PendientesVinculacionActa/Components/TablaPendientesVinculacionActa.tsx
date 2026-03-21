@@ -3,7 +3,7 @@ import type { IActuacion } from "../../../../../types/actuaciones";
 import { BASE_TABLE_CONFIG } from "../../../../../constants/tableConfig";
 import { TablaExportButtons } from "../../../Components/TableButtons";
 import { Box, Typography } from "@mui/material";
-import { TableGeneralStyles, TableLoadingStyles, TableTitleStyles } from "../../../../../styles/TablasStyle";
+import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
 import { useCallback, useEffect, useState } from "react";
 import { usePendientes } from "../../../../../hooks/usePendientes";
@@ -209,7 +209,6 @@ const TablaPendientesVinculacionActa = () => {
                     },
                 }}
             >
-                <Typography sx={TableTitleStyles}>Gestión de Pendientes de Vinculacion con Acta</Typography>
                 <CardsExpedientes />
                 <MaterialReactTable table={table} />
             </Box>

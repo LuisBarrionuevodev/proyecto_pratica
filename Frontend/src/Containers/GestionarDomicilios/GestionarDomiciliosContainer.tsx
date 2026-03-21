@@ -1,6 +1,8 @@
-import { Alert, Box, Tab, Tabs, ThemeProvider, Typography } from "@mui/material";
-import { useMemo, useState } from "react";
-import { darkTheme } from "../../configs/theme";
+import { Alert, Box, Tab, Tabs, Typography } from "@mui/material";
+import { useCallback, useMemo, useState } from "react";
+import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { alertBaseStyles } from "../Actuaciones/styles/filtroStyles";
+import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import DomiciliosFiltersBar from "./components/DomiciliosFiltersBar";
 import DomiciliosSummaryCards from "./components/DomiciliosSummaryCards";
@@ -20,22 +22,30 @@ const GestionarDomiciliosContainer = () => {
     hasta: defaultRange.hasta,
     scope: "all",
   });
+  /** Hasta presionar Filtrar no se cargan pendientes ni las pestañas operativas. */
+  const [queryEnabled, setQueryEnabled] = useState(false);
   const [selectedForManual, setSelectedForManual] = useState<DomicilioPendienteItem | null>(null);
 
   const { nomenclaturaItems, geolocalizacionItems, loading, error, refetch } =
-    useDomiciliosPendientes(filters);
+    useDomiciliosPendientes(filters, { enabled: queryEnabled });
 
   const { guardarNormalizacion } = useDomicilioNormalizationActions();
   const { guardarPuntoManual } = useDomicilioGeolocalizacionActions();
 
-  const onFiltrar = async () => {
-    await refetch();
-  };
+  const onFiltrar = useCallback(async () => {
+    if (queryEnabled) {
+      await refetch();
+    } else {
+      setQueryEnabled(true);
+    }
+  }, [queryEnabled, refetch]);
 
   const onLimpiar = async () => {
     const range = getCurrentMonthRange();
     const reset = { desde: range.desde, hasta: range.hasta, scope: "all" as const };
     setFilters(reset);
+    setQueryEnabled(false);
+    setSelectedForManual(null);
   };
 
   const onGuardarNormalizacion = async (payload: {
@@ -46,7 +56,7 @@ const GestionarDomiciliosContainer = () => {
     numero_tipo?: string | null;
   }) => {
     await guardarNormalizacion(payload);
-    await refetch();
+    if (queryEnabled) await refetch();
   };
 
   const onGuardarPuntoManual = async (payload: {
@@ -56,19 +66,16 @@ const GestionarDomiciliosContainer = () => {
   }) => {
     await guardarPuntoManual({ ...payload, do_reverse: true });
     setSelectedForManual(null);
-    await refetch();
+    if (queryEnabled) await refetch();
   };
 
   return (
-    <ThemeProvider theme={darkTheme}>
-      <Box sx={{ width: "100%", p: 2 }}>
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          Gestionar domicilios
-        </Typography>
-
+    <Box sx={containerStyles}>
+      <Box sx={wrapperStyles}>
         <DomiciliosSummaryCards
           nomenclaturaCount={nomenclaturaItems.length}
           geolocalizacionCount={geolocalizacionItems.length}
+          pendingQuery={!queryEnabled}
         />
 
         <DomiciliosFiltersBar
@@ -78,51 +85,78 @@ const GestionarDomiciliosContainer = () => {
           onLimpiar={onLimpiar}
         />
 
+        {!queryEnabled && (
+          <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mb: 2, px: 0.5 }}>
+            Definí el rango de fechas y el alcance, luego presioná <strong>Filtrar</strong> para cargar
+            pendientes y trabajar en nomenclatura o geolocalización.
+          </Typography>
+        )}
+
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ ...alertBaseStyles, mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        <Box sx={{ bgcolor: "#2B2E34", px: 1 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, v: DomiciliosTab) => {
-              setActiveTab(v);
-              if (v !== "geolocalizacion") {
-                setSelectedForManual(null);
-              }
-            }}
-          >
-            <Tab sx={{ color: "white" }} label="Nomenclatura" value="nomenclatura" />
-            <Tab sx={{ color: "white" }} label="Geolocalización" value="geolocalizacion" />
-          </Tabs>
-        </Box>
+        {queryEnabled && (
+          <>
+            <Box
+              sx={{
+                borderRadius: "12px",
+                border: `1px solid ${GLASS_COLORS.borderLight}`,
+                backgroundColor: GLASS_COLORS.cardBg,
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                px: 1,
+                overflow: "hidden",
+              }}
+            >
+              <Tabs
+                value={activeTab}
+                onChange={(_, v: DomiciliosTab) => {
+                  setActiveTab(v);
+                  if (v !== "geolocalizacion") {
+                    setSelectedForManual(null);
+                  }
+                }}
+                sx={{
+                  minHeight: 44,
+                  "& .MuiTab-root": { color: GLASS_COLORS.textSecondary, fontFamily: '"Tactic Sans", sans-serif' },
+                  "& .Mui-selected": { color: GLASS_COLORS.primary },
+                  "& .MuiTabs-indicator": { backgroundColor: GLASS_COLORS.primary },
+                }}
+              >
+                <Tab label="Nomenclatura" value="nomenclatura" />
+                <Tab label="Geolocalización" value="geolocalizacion" />
+              </Tabs>
+            </Box>
 
-        <Box sx={{ mt: 1 }}>
-          {activeTab === "nomenclatura" ? (
-            <TabNomenclaturaTable
-              items={nomenclaturaItems}
-              loading={loading}
-              onGuardar={onGuardarNormalizacion}
-            />
-          ) : (
-            <>
-              <TabGeolocalizacionTable
-                items={geolocalizacionItems}
-                loading={loading}
-                onGeolocalizar={(item) => setSelectedForManual(item)}
-              />
-              <ManualMapPanel
-                selected={selectedForManual}
-                onClose={() => setSelectedForManual(null)}
-                onSave={onGuardarPuntoManual}
-              />
-            </>
-          )}
-        </Box>
+            <Box sx={{ mt: 1.5 }}>
+              {activeTab === "nomenclatura" ? (
+                <TabNomenclaturaTable
+                  items={nomenclaturaItems}
+                  loading={loading}
+                  onGuardar={onGuardarNormalizacion}
+                />
+              ) : (
+                <>
+                  <TabGeolocalizacionTable
+                    items={geolocalizacionItems}
+                    loading={loading}
+                    onGeolocalizar={(item) => setSelectedForManual(item)}
+                  />
+                  <ManualMapPanel
+                    selected={selectedForManual}
+                    onClose={() => setSelectedForManual(null)}
+                    onSave={onGuardarPuntoManual}
+                  />
+                </>
+              )}
+            </Box>
+          </>
+        )}
       </Box>
-    </ThemeProvider>
+    </Box>
   );
 };
 

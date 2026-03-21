@@ -4,7 +4,7 @@ import type { IActuacion } from "../../../../../types/actuaciones";
 import { BASE_TABLE_CONFIG } from "../../../../../constants/tableConfig";
 import { TablaExportButtons } from "../../../Components/TableButtons";
 import { Box, Typography } from "@mui/material";
-import { TableGeneralStyles, TableLoadingStyles, TableTitleStyles } from "../../../../../styles/TablasStyle";
+import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
 import { usePendientes } from "../../../../../hooks/usePendientes";
 
@@ -134,7 +134,6 @@ const TablaPendientes = () => {
           },
         }}
       >
-        <Typography sx={TableTitleStyles}>Gestión de Pendientes</Typography>
         <CardsExpedientes/>
         <MaterialReactTable table={table} />
       </Box>

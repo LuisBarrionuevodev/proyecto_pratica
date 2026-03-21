@@ -1,32 +1,29 @@
 import { Alert, Box, CircularProgress, Typography } from "@mui/material";
-import { useEffect, useMemo } from "react";
 import FiltroDenuncias from "./FiltroDenuncias";
 import TablaDenuncias from "./TableDenuncias";
 import { useDenunciasFiltradas } from "../hooks/useDenunciasFiltradas";
-import { getCurrentMonthRange } from "../../../utils/dateRange";
 import {
+  COLORS,
   errorAlertStyles,
-  filtroContainerStyles,
   metaInfoStyles,
   metaItemStyles,
-  titleStyles,
+  moduleContentColumnSx,
 } from "../../Actuaciones/styles/filtroStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 const DenunciasCrudPlaceholder = () => {
   const { denuncias, meta, loading, error, hasSearched, buscar } = useDenunciasFiltradas();
-  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
-
-  useEffect(() => {
-    buscar({
-      desde: defaultRange.desde,
-      hasta: defaultRange.hasta,
-      estado: "all",
-    });
-  }, [buscar, defaultRange.desde, defaultRange.hasta]);
 
   return (
-    <Box sx={filtroContainerStyles}>
-      <Typography sx={titleStyles}>Denuncias</Typography>
+    <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
+      >
+        Listado operativo de denuncias. Los resultados se cargan solo al pulsar <strong>Filtrar</strong> (no se
+        combinan con filtros de relevamientos).
+      </Typography>
+
       <FiltroDenuncias
         onFiltrar={(filters) =>
           buscar({
@@ -43,9 +40,15 @@ const DenunciasCrudPlaceholder = () => {
         </Alert>
       )}
 
+      {!hasSearched && !loading && (
+        <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+          Definí el rango de fechas y pulsá <strong>Filtrar</strong> para ver denuncias.
+        </Typography>
+      )}
+
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-          <CircularProgress sx={{ color: "#0166FF" }} />
+          <CircularProgress sx={{ color: COLORS.primary }} />
         </Box>
       )}
 

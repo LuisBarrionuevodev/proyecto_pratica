@@ -74,12 +74,68 @@ export const CardStyle = {
     padding: "16px 20px",
     gap: 2,
     border: `1px solid ${GLASS_COLORS.borderLight}`,
-    transition: "all 0.2s ease",
+    transition: "background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
     "&:hover": {
         backgroundColor: GLASS_COLORS.hoverBg,
         borderColor: GLASS_COLORS.borderMedium,
         transform: "translateY(-2px)",
     },
+};
+
+/**
+ * Cards de accesos en columna izquierda de Inicio: layout vertical (icono arriba, título y descripción abajo),
+ * proporción más alta que ancha al ocupar el ancho de la grilla 2×3.
+ */
+export const CardStyleInicioAccesos = {
+    ...CardStyle,
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    height: "auto",
+    minHeight: "136px",
+    padding: "14px 16px",
+    gap: 0.75,
+};
+
+/**
+ * Cáscara común para las 9 cards del dashboard Inicio (grilla 3×3): misma base visual y relleno de celda.
+ */
+export const InicioCardShellGrid = {
+    ...CardStyle,
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    boxSizing: "border-box" as const,
+    height: "100%",
+    minHeight: 0,
+    padding: "14px 16px",
+    gap: 0.75,
+    overflow: "auto",
+};
+
+/** Misma estética que CardStyle, altura flexible para cards de columna derecha (Inicio). */
+export const InicioCardStyleColumn = {
+    ...CardStyle,
+    height: "auto",
+    minHeight: "152px",
+    flexDirection: "column" as const,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    padding: "18px 18px",
+};
+
+/** Card fina (misma línea visual, menos padding) para columna derecha de Inicio. */
+export const InicioCardStyleFina = {
+    ...CardStyle,
+    height: "auto",
+    minHeight: "138px",
+    flexDirection: "column" as const,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    padding: "14px 18px",
+    gap: 0.75,
 };
 
 export const StyleBoxTextCard = {

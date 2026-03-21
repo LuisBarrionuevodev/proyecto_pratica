@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-    Box,
-    Typography,
-    Avatar,
-    Popover,
-    IconButton,
-    TextField,
-} from "@mui/material";
+import { Box, Typography, Avatar, Popover, IconButton } from "@mui/material";
+import { AppTextField } from "../../../ui";
 import EditIcon from "@mui/icons-material/Edit";
-import { AvatarPerfilStye, BoxPerfilStyle, EditNombreStyle, InfoPerfilStyle, NombrePerfilStyle, RolPerfilStyle } from "../../../styles/PerfilStyles";
+import { AvatarPerfilStye, BoxPerfilStyle, EditNombreStyle, NombrePerfilStyle, RolPerfilStyle } from "../../../styles/PerfilStyles";
 
 type AvatarType =
     | "avatar1"
@@ -141,7 +135,8 @@ const BoxNombreUsuario = ({
                 {/* Nombre editable */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                     {editing ? (
-                        <TextField
+                        <AppTextField
+                            appearance="default"
                             value={nameValue}
                             onChange={(e) => {
                                 if (e.target.value.length <= 20) {

@@ -30,6 +30,26 @@ export const wrapperStyles: SxProps<Theme> = {
   padding: { xs: 2, sm: 3 },
 };
 
+/** Shell de sección con tabs (Relevamientos): un solo padding, sin height 100% para no colapsar hijos al cambiar pestaña. */
+export const relevamientosSectionOuterSx: SxProps<Theme> = {
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+  boxSizing: "border-box",
+  padding: { xs: 2, sm: 3 },
+  minHeight: 0,
+};
+
+/** Columna de contenido bajo tabs: sin padding extra ni height 100% (el padre ya define el área). */
+export const moduleContentColumnSx: SxProps<Theme> = {
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+  boxSizing: "border-box",
+};
+
 // Título oculto (ahora en el breadcrumb del AppLayout)
 export const titleStyles: SxProps<Theme> = {
     display: "none",
@@ -171,6 +191,18 @@ export const metaItemStyles: SxProps<Theme> = {
 // =============================================================================
 // ALERTS Y ERRORES
 // =============================================================================
+
+/** Estilo canónico para alertas en fondos dark institucionales. Referencia: CargarActuaciones. */
+export const alertBaseStyles: SxProps<Theme> = {
+    fontFamily: '"Tactic Sans", sans-serif',
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: "10px",
+    marginBottom: "16px",
+    backgroundColor: COLORS.grayDark,
+    color: COLORS.white,
+    "& .MuiAlert-icon": { color: COLORS.white },
+    "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
+};
 
 export const errorAlertStyles: SxProps<Theme> = {
     marginBottom: "16px",

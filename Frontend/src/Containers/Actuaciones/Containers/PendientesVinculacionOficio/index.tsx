@@ -1,13 +1,7 @@
-import { ThemeProvider } from "@emotion/react";
-import { darkTheme } from "../../../../configs/theme";
 import TablaPendientesVinculacionOficio from "./Components/TablaPendientesVinculacionOficio";
 
 const PendientesVinculacionOficio = () => {
-    return (
-        <ThemeProvider theme={darkTheme}>
-            <TablaPendientesVinculacionOficio />
-        </ThemeProvider>
-    );
+    return <TablaPendientesVinculacionOficio />;
 };
 
 export default PendientesVinculacionOficio;

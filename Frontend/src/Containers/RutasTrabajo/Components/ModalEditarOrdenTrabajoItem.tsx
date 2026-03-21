@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
+import { Alert } from "@mui/material";
 
 import type { IRutaItemMin } from "../../../api/rutasTrabajoApi";
+import { AppButton, AppDialog, AppTextField } from "../../../ui";
 
 interface Props {
   open: boolean;
@@ -42,27 +43,34 @@ const ModalEditarOrdenTrabajoItem = ({ open, onClose, item, onConfirm }: Props) 
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
-      <DialogTitle>Definir orden de trabajo</DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-        {error && <Alert severity="error">{error}</Alert>}
-        <TextField
-          label="Número OT"
-          value={numero}
-          onChange={(e) => setNumero(e.target.value)}
-          fullWidth
-          autoFocus
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button variant="contained" onClick={handleConfirm} disabled={saving}>
-          {saving ? "Guardando..." : "Guardar OT"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <AppDialog
+      open={open}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
+      onClose={(_event, _reason) => handleClose()}
+      onCloseButtonClick={() => handleClose()}
+      title="Definir orden de trabajo"
+      maxWidth="xs"
+      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      actions={
+        <>
+          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+            Cancelar
+          </AppButton>
+          <AppButton dsVariant="primary" onClick={handleConfirm} disabled={saving} loading={saving}>
+            Guardar OT
+          </AppButton>
+        </>
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
+      <AppTextField
+        label="Número OT"
+        value={numero}
+        onChange={(e) => setNumero(e.target.value)}
+        fullWidth
+        autoFocus
+      />
+    </AppDialog>
   );
 };
 

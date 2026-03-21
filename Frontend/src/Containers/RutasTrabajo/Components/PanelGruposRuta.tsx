@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Box, Button, Chip, Divider, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin } from "../../../api/rutasTrabajoApi";
+import {
+  rutasInstitutionalDividerSx,
+  rutasInstitutionalGrupoPaperSx,
+  rutasInstitutionalItemPaperSx,
+} from "../styles/institutionalVisual";
 
 interface Props {
   grupos: IRutaGrupoMin[];
@@ -35,17 +40,7 @@ const PanelGruposRuta = ({
         const expanded = expandedByGrupo[grupo.id] ?? false;
         const accent = `hsl(${(grupo.id * 61) % 360} 75% 58%)`;
         return (
-          <Paper
-            key={grupo.id}
-            variant="outlined"
-            sx={{
-              p: 1.5,
-              borderColor: "rgba(98, 127, 182, 0.34)",
-              background:
-                "linear-gradient(180deg, rgba(19,29,52,0.95) 0%, rgba(11,18,34,0.98) 100%)",
-              borderLeft: `4px solid ${accent}`,
-            }}
-          >
+          <Paper key={grupo.id} elevation={0} sx={rutasInstitutionalGrupoPaperSx(accent)}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -77,7 +72,7 @@ const PanelGruposRuta = ({
                 </Button>
               </Stack>
             </Stack>
-            <Divider sx={{ my: 1.2, borderColor: "rgba(124, 149, 193, 0.24)" }} />
+            <Divider sx={{ my: 1.2, ...rutasInstitutionalDividerSx }} />
 
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4 }}>
               {grupo.inspectores.length > 0
@@ -103,7 +98,7 @@ const PanelGruposRuta = ({
                   const target = targetByItem[item.id] || "";
                   const otDraft = otDraftByItem[item.id] ?? item.orden_trabajo?.numero_acta ?? "";
                   return (
-                    <Paper key={item.id} sx={{ p: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(90,114,152,0.22)" }}>
+                    <Paper key={item.id} elevation={0} sx={rutasInstitutionalItemPaperSx}>
                       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
                           {direccion || `Iniciador #${item.iniciador_ruta_id}`}
                       </Typography>

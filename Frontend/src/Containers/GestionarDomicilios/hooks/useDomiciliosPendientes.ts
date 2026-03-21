@@ -2,7 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { getMapPendientes } from "../../../api/mapApi";
 import type { DomicilioPendienteItem, DomiciliosFilters } from "../types";
 
-export const useDomiciliosPendientes = (filters: DomiciliosFilters) => {
+export type UseDomiciliosPendientesOptions = {
+  /**
+   * Si es false, no se consulta la API al montar ni al cambiar filtros.
+   * Útil para exigir “Filtrar” antes de cargar la vista operativa.
+   */
+  enabled?: boolean;
+};
+
+export const useDomiciliosPendientes = (
+  filters: DomiciliosFilters,
+  options?: UseDomiciliosPendientesOptions
+) => {
+  const enabled = options?.enabled ?? true;
+
   const [nomenclaturaItems, setNomenclaturaItems] = useState<DomicilioPendienteItem[]>([]);
   const [geolocalizacionItems, setGeolocalizacionItems] = useState<DomicilioPendienteItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,8 +46,15 @@ export const useDomiciliosPendientes = (filters: DomiciliosFilters) => {
   }, [filters.desde, filters.hasta, filters.scope]);
 
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (!enabled) {
+      setNomenclaturaItems([]);
+      setGeolocalizacionItems([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    void refetch();
+  }, [enabled, refetch]);
 
   return {
     nomenclaturaItems,

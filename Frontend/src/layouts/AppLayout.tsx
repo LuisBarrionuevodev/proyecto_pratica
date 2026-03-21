@@ -6,11 +6,11 @@ import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
 import { TRANSITION, GLASS_COLORS } from "../styles/GlassStyles";
 import { routeLabels } from "../constants/menuItems";
+import { layoutShell } from "../theme/tokens";
 
-// Constantes de dimensiones
-const TOPBAR_HEIGHT = 56;
-const SIDEBAR_COLLAPSED = 72;
-const SIDEBAR_EXPANDED = 260;
+const TOPBAR_HEIGHT = layoutShell.topBarHeightPx;
+const SIDEBAR_COLLAPSED = layoutShell.sidebarCollapsedPx;
+const SIDEBAR_EXPANDED = layoutShell.sidebarExpandedPx;
 const OUTER_MARGIN = 12; // Margen exterior uniforme
 // Altura del layout en desktop: 95vh (deja margen abajo como "app window")
 const LAYOUT_HEIGHT = "calc(100vh - 24px)"; // 100vh menos margen arriba y abajo
@@ -52,7 +52,7 @@ const AppLayout = () => {
                     bgcolor: "transparent",
                 }}
             >
-                <TopBar sidebarWidth={SIDEBAR_COLLAPSED} />
+                <TopBar sidebarWidth={layoutShell.sidebarCollapsedPx} />
             </Box>
 
             {/* Contenedor principal con altura fija "app window" */}

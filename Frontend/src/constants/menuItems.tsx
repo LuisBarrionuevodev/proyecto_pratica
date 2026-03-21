@@ -1,19 +1,20 @@
-import NoteAddIcon from '@mui/icons-material/NoteAdd';
-import DashboardIcon from "@mui/icons-material/Dashboard";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import MapIcon from "@mui/icons-material/Map";
-import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import BadgeIcon from '@mui/icons-material/Badge';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout';
-import HomeIcon from '@mui/icons-material/Home';
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import BadgeIcon from "@mui/icons-material/Badge";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
+import HomeIcon from "@mui/icons-material/Home";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RouteIcon from "@mui/icons-material/Route";
-import type { JSX } from 'react';
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import type { JSX } from "react";
 
-// Definición de secciones del menú (agrupadas)
 export interface MenuItem {
   text: string;
   icon: JSX.Element;
@@ -25,69 +26,68 @@ export interface MenuSection {
   items: MenuItem[];
 }
 
-// Secciones del menú lateral (estilo Spotify)
 export const menuSections: MenuSection[] = [
   {
+    label: "TRABAJO",
+    items: [{ text: "Ruta de trabajo", icon: <RouteIcon />, path: "/rutasTrabajo" }],
+  },
+  {
     label: "MAIN",
-    items: [
-      { text: "Inicio", icon: <HomeIcon />, path: "/inicio" },
-    ],
+    items: [{ text: "Inicio", icon: <HomeIcon />, path: "/inicio" }],
   },
   {
     label: "CARGA",
     items: [
-      { text: "Cargar Actuación", icon: <CreateNewFolderIcon />, path: "/cargarActuacion" },
-      { text: "Cargar Relevamiento", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
+      { text: "Cargar actas", icon: <CreateNewFolderIcon />, path: "/cargarActuacion" },
+      { text: "Cargar relevamiento o denuncia", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
       { text: "Cargar Personas", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
     ],
   },
   {
     label: "GESTIÓN",
     items: [
-      { text: "Expedientes", icon: <DashboardIcon />, path: "/actuaciones" },
+      { text: "Actuaciones", icon: <DashboardIcon />, path: "/actuaciones" },
       { text: "Relevamientos", icon: <ListAltIcon />, path: "/relevamientos" },
-      { text: "Ruta de trabajo", icon: <RouteIcon />, path: "/rutasTrabajo" },
+      { text: "Establecimientos", icon: <StorefrontIcon />, path: "/establecimientos" },
+      { text: "Completar trabajos", icon: <TaskAltIcon />, path: "/completarTrabajos" },
       { text: "Gestionar domicilios", icon: <LocationOnIcon />, path: "/gestionarDomicilios" },
-      { text: "Gestion Usuarios", icon: <BadgeIcon />, path: "/gestionDeUsuarios" },
-      { text: "Dashboard", icon: <BarChartIcon />, path: "/dashboard" },
+      { text: "Gestión de usuarios", icon: <BadgeIcon />, path: "/gestionDeUsuarios" },
+      { text: "Indicadores", icon: <BarChartIcon />, path: "/dashboard" },
       { text: "Mapa", icon: <MapIcon />, path: "/mapa" },
     ],
   },
   {
     label: "CONFIGURACIÓN",
-    items: [
-      { text: "Sistema", icon: <SettingsIcon />, path: "/gestionSistema" },
-    ],
+    items: [{ text: "Sistema", icon: <SettingsIcon />, path: "/gestionSistema" }],
   },
 ];
 
-// Item de logout (separado, al final)
 export const logoutItem: MenuItem = {
   text: "Cerrar Sesión",
   icon: <LogoutIcon />,
   path: "/login",
 };
 
-// Mapeo de rutas a labels para el breadcrumb
 export const routeLabels: Record<string, string> = {
   "/inicio": "Inicio",
-  "/cargarActuacion": "Carga de Actuaciones",
-  "/cargarRelevamiento": "Carga de Relevamientos",
-  "/cargarPersonasCapacitadas": "Carga de Personas Capacitadas",
-  "/actuaciones": "Gestión de Expedientes",
-  "/relevamientos": "Gestión de Relevamientos",
+  "/cargarActuacion": "Cargar actas",
+  "/cargarRelevamiento": "Cargar relevamiento o denuncia",
+  "/cargarPersonasCapacitadas": "Cargar Personas",
+  "/actuaciones": "Actuaciones",
+  "/relevamientos": "Relevamientos",
+  "/establecimientos": "Establecimientos",
   "/rutasTrabajo": "Ruta de trabajo",
+  "/completarTrabajos": "Completar trabajos",
   "/gestionPersonasBpm": "Gestión Personas BPM",
-  "/gestionDeUsuarios": "Gestión De Usuarios",
-  "/dashboard": "Dashboard",
+  "/gestionDeUsuarios": "Gestión de usuarios",
+  "/dashboard": "Indicadores",
   "/gestionarDomicilios": "Gestionar domicilios",
   "/mapa": "Mapa",
-  "/gestionSistema": "Configuración del Sistema",
+  "/gestionSistema": "Sistema",
   "/perfil": "Mi Perfil",
   "/pendientes": "Pendientes",
   "/pendientesVinculacionActa": "Pendientes Vinculación Acta",
   "/pendientesVinculacionOficio": "Pendientes Vinculación Oficio",
 };
 
-// Mantener compatibilidad con código existente (flat list)
-export const menuItems = menuSections.flatMap(section => section.items);
+export const menuItems = menuSections.flatMap((section) => section.items);

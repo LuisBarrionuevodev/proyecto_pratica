@@ -16,6 +16,8 @@ import Perfil from "./Containers/Perfil";
 import AppLayout from "./layouts/AppLayout";
 import GestionDeUsuarios from "./Containers/GestionDeUsuarios";
 import RutasTrabajo from "./Containers/RutasTrabajo";
+import CompletarTrabajos from "./Containers/CompletarTrabajos";
+import PlaceholderModule from "./Containers/PlaceholderModule";
 
 /**
  * App - Enrutador principal (React Router v6)
@@ -50,8 +52,12 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/gestionarDomicilios" element={<GestionarDomicilios />} />
           <Route path="/rutasTrabajo" element={<RutasTrabajo />} />
+          <Route path="/completarTrabajos" element={<CompletarTrabajos />} />
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/cargarPersonasCapacitadas" element={<PlaceholderModule titulo="Cargar Personas" />} />
+          <Route path="/gestionSistema" element={<PlaceholderModule titulo="Sistema" />} />
+          <Route path="/establecimientos" element={<PlaceholderModule titulo="Establecimientos" />} />
         </Route>
       </Routes>
     </Router>

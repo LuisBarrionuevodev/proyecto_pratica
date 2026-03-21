@@ -1,10 +1,11 @@
-import { Box, TextField, Button, MenuItem, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { fetchInspectores } from "../../../api/gridApi";
+import { fetchInspectores, type CatalogItem } from "../../../api/gridApi";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import {
   filtroContainerStyles,
   filtroTitleStyles,
@@ -37,7 +38,7 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
     const loadCatalogs = async () => {
       try {
         const resp = await fetchInspectores();
-        setCatalogInspectores([...new Set(resp.items.map((i: any) => i.nombre))]);
+        setCatalogInspectores([...new Set(resp.items.map((i: CatalogItem) => i.nombre))]);
       } catch (error) {
         console.error("Error cargando inspectores:", error);
       }
@@ -81,7 +82,8 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
       <Typography sx={filtroTitleStyles}>Filtros de Relevamientos</Typography>
       <Box sx={filtroGridStyles}>
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             type="date"
             label="Desde"
@@ -93,7 +95,8 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
         </Box>
 
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             type="date"
             label="Hasta"
@@ -105,23 +108,23 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
         </Box>
 
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppSelect
+            appearance="dense"
             fullWidth
-            select
             label="Inspector"
             value={inspector}
             onChange={(e) => setInspector(e.target.value)}
             variant="outlined"
-          >
-            <MenuItem value="">Todos</MenuItem>
-            {catalogInspectores.map((i) => (
-              <MenuItem key={i} value={i}>{i}</MenuItem>
-            ))}
-          </TextField>
+            options={[
+              { value: "", label: "Todos" },
+              ...catalogInspectores.map((i) => ({ value: i, label: i })),
+            ]}
+          />
         </Box>
 
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             label="Calle"
             value={calle}
@@ -131,7 +134,8 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
         </Box>
 
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             label="Numero"
             value={numero}
@@ -142,22 +146,25 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
       </Box>
 
       <Box sx={filtroButtonsStyles}>
-        <Button
+        <AppButton
+          dsVariant="ghost"
+          dsSize="sm"
           onClick={handleLimpiar}
           startIcon={<ClearIcon />}
           sx={filtroButtonSecondaryStyles}
         >
           Limpiar
-        </Button>
+        </AppButton>
 
-        <Button
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
           onClick={handleFiltrar}
           startIcon={<SearchIcon />}
           sx={filtroButtonPrimaryStyles}
-          variant="contained"
         >
           Filtrar
-        </Button>
+        </AppButton>
       </Box>
     </Box>
   );

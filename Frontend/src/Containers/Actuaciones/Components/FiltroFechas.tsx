@@ -1,9 +1,10 @@
-import { Box, TextField, Button, MenuItem, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { fetchTiposActuacion, fetchContraproducencias } from "../../../api/gridApi";
+import { AppButton, AppSelect, AppTextField } from "../../../ui";
 
 import {
     filtroContainerStyles,
@@ -27,7 +28,7 @@ interface FiltroFechasProps {
 
 /**
  * Componente de filtro para búsqueda de actuaciones.
- * 
+ *
  * Filtros disponibles:
  * - Rango de fechas (desde/hasta)
  * - Tipo de actuación
@@ -78,6 +79,15 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
         // NO llamar a onFiltrar - solo limpiar inputs
     };
 
+    const tipoOptions = [
+        { value: "", label: "Todos" },
+        ...catalogTipos.map((t) => ({ value: t, label: t })),
+    ];
+    const contraproducenciaOptions = [
+        { value: "", label: "Todas" },
+        ...catalogContras.map((c) => ({ value: c, label: c })),
+    ];
+
     return (
         <Box sx={filtroContainerStyles}>
             <Typography sx={filtroTitleStyles}>Filtros de Búsqueda</Typography>
@@ -85,7 +95,8 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
             <Box sx={filtroGridStyles}>
                 {/* Fecha Desde */}
                 <Box sx={filtroItemStyles}>
-                    <TextField
+                    <AppTextField
+                        appearance="dense"
                         fullWidth
                         type="date"
                         label="Desde"
@@ -98,7 +109,8 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
 
                 {/* Fecha Hasta */}
                 <Box sx={filtroItemStyles}>
-                    <TextField
+                    <AppTextField
+                        appearance="dense"
                         fullWidth
                         type="date"
                         label="Hasta"
@@ -111,7 +123,8 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
 
                 {/* Orden de Trabajo */}
                 <Box sx={filtroItemStyles}>
-                    <TextField
+                    <AppTextField
+                        appearance="dense"
                         fullWidth
                         label="Orden de Trabajo"
                         value={ordenTrabajo}
@@ -123,56 +136,51 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
 
                 {/* Tipo de Actuación */}
                 <Box sx={filtroItemStyles}>
-                    <TextField
+                    <AppSelect
+                        appearance="dense"
                         fullWidth
-                        select
                         label="Tipo de Actuación"
                         value={tipo}
                         onChange={(e) => setTipo(e.target.value)}
                         variant="outlined"
-                    >
-                        <MenuItem value="">Todos</MenuItem>
-                        {catalogTipos.map((t) => (
-                            <MenuItem key={t} value={t}>{t}</MenuItem>
-                        ))}
-                    </TextField>
+                        options={tipoOptions}
+                    />
                 </Box>
 
                 {/* Contraproducencia */}
                 <Box sx={filtroItemStyles}>
-                    <TextField
+                    <AppSelect
+                        appearance="dense"
                         fullWidth
-                        select
                         label="Contraproducencia"
                         value={contraproducencia}
                         onChange={(e) => setContraproducencia(e.target.value)}
                         variant="outlined"
-                    >
-                        <MenuItem value="">Todas</MenuItem>
-                        {catalogContras.map((c) => (
-                            <MenuItem key={c} value={c}>{c}</MenuItem>
-                        ))}
-                    </TextField>
+                        options={contraproducenciaOptions}
+                    />
                 </Box>
             </Box>
 
             <Box sx={filtroButtonsStyles}>
-                <Button
+                <AppButton
+                    dsVariant="ghost"
+                    dsSize="sm"
                     onClick={handleLimpiar}
                     startIcon={<ClearIcon />}
                     sx={filtroButtonSecondaryStyles}
                 >
                     Limpiar
-                </Button>
+                </AppButton>
 
-                <Button
+                <AppButton
+                    dsVariant="primary"
+                    dsSize="sm"
                     onClick={handleFiltrar}
                     startIcon={<SearchIcon />}
                     sx={filtroButtonPrimaryStyles}
-                    variant="contained"
                 >
                     Filtrar
-                </Button>
+                </AppButton>
             </Box>
         </Box>
     );

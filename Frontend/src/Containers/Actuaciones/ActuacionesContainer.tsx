@@ -8,14 +8,9 @@ import {
   CardActionArea,
   CardContent,
   CircularProgress,
-  Tab,
-  Tabs,
-  ThemeProvider,
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-
-import { darkTheme } from "../../configs/theme";
 import TablaActuaciones from "./Components/TableActuaciones";
 import FiltroFechas from "./Components/FiltroFechas";
 import FiltroPendientes from "./Components/FiltroPendientes";
@@ -45,7 +40,7 @@ import {
 
 const ActuacionesContainer = (): JSX.Element => {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"todos" | "pendientes">("todos");
+  const [tab] = useState<"todos" | "pendientes">("todos");
 
   const { actuaciones, meta, loading, error, hasSearched, buscar } = useActuacionesFiltradas();
 
@@ -169,20 +164,10 @@ const ActuacionesContainer = (): JSX.Element => {
   const handleBeforeSavePendiente = useCallback(async (_fullRow: IActuacionListItem) => {}, []);
 
   return (
-    <ThemeProvider theme={darkTheme}>
-      <Box sx={wrapperStyles}>
+    <Box sx={wrapperStyles}>
         <Typography sx={titleStyles}>Actuaciones</Typography>
 
-        <Tabs
-          value={tab}
-          onChange={(_, value) => setTab(value)}
-          sx={{ marginBottom: 2 }}
-        >
-          <Tab label="Todos" value="todos" />
-        </Tabs>
-
-        {tab === "todos" && (
-          <>
+        <>
             <FiltroFechas onFiltrar={handleFiltrarTodos} />
 
             {error && hasSearched && (
@@ -246,8 +231,7 @@ const ActuacionesContainer = (): JSX.Element => {
                 }
               />
             )}
-          </>
-        )}
+        </>
 
         {tab === "pendientes" && (
           <>
@@ -351,8 +335,7 @@ const ActuacionesContainer = (): JSX.Element => {
             )}
           </>
         )}
-      </Box>
-    </ThemeProvider>
+    </Box>
   );
 };
 

@@ -1,4 +1,5 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import { AppButton, AppTextField } from "../../../ui";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
 import LogoSMT from "../../../assets/LogoSMT.svg"
 import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
@@ -27,7 +28,7 @@ const LoginBox = (): JSX.Element => {
             }
             setError("");
             navigate("/inicio");
-        } catch (e) {
+        } catch {
             setError("Cuenta inválida");
         }
     };
@@ -47,14 +48,16 @@ const LoginBox = (): JSX.Element => {
                 </Box>
 
                 <Box sx={LoginBoxInputStyles}>
-                    <TextField 
+                    <AppTextField
+                        appearance="default"
                         sx={InputStyles}
                         placeholder="Usuario"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
 
-                    <TextField 
+                    <AppTextField
+                        appearance="default"
                         sx={InputStyles}
                         placeholder="Contraseña"
                         type="password"
@@ -68,9 +71,14 @@ const LoginBox = (): JSX.Element => {
                         </Typography>
                     )}
 
-                    <Button sx={ButtonStyle} onClick={handleLogin}>
+                    <AppButton
+                        dsVariant="primary"
+                        dsSize="sm"
+                        sx={[ButtonStyle, { minHeight: 25, height: 25, py: 0, boxSizing: "border-box" }]}
+                        onClick={handleLogin}
+                    >
                         Ingresar
-                    </Button>
+                    </AppButton>
 
                     <Typography mt={2} textAlign={"center"} fontSize={14}  color="#0166FF" fontWeight={500}>¿Has olvidado tu contraseña? 
                         <Link to={"/recuperarCuenta"} style={{fontWeight:800, textDecoration: "none", color: "#0166FF", }}> Haz click aqui</Link>

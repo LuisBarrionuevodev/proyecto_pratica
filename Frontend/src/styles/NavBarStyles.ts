@@ -1,5 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
 import { TRANSITION, GLASS_COLORS } from "./GlassStyles";
+import { layoutShell } from "../theme/tokens";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA NAVLEFT
@@ -41,10 +42,10 @@ export const StyleListItems = {
 
 // Drawer principal - misma altura que ContentShell
 export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
-    width: open ? 250 : 72,
+    width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
-        width: open ? 250 : 72,
+        width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
         transition: TRANSITION.css,
         overflowX: "hidden",
         backgroundColor: GLASS_COLORS.sidebarBg,
@@ -164,7 +165,7 @@ export const StyleExpandButton: SxProps<Theme> = {
 };
 
 // Contenedor del logout (sticky bottom)
-export const StyleLogoutContainer = (open: boolean): SxProps<Theme> => ({
+export const StyleLogoutContainer = (_open: boolean): SxProps<Theme> => ({
     width: "100%",
     height: "44px",
     paddingY: 1,

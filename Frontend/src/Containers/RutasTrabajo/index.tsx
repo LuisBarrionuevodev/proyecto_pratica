@@ -1,21 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Grid,
-  Paper,
-  Stack,
-  Tab,
-  Tabs,
-  ThemeProvider,
-  Typography,
-} from "@mui/material";
-
-import { darkTheme } from "../../configs/theme";
+import { Alert, Box, Button, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
+import { GLASS_COLORS } from "../../styles/GlassStyles";
 import {
   assignRutaItems,
   createRutaGrupo,
@@ -36,12 +22,23 @@ import ModalAsignarInspectoresGrupo from "./Components/ModalAsignarInspectoresGr
 import ModalAsignarSeleccionAGrupo from "./Components/ModalAsignarSeleccionAGrupo";
 import ModalCrearGrupoRuta from "./Components/ModalCrearGrupoRuta";
 import ModalCrearRutaTrabajo from "./Components/ModalCrearRutaTrabajo";
-import PanelGruposRuta from "./Components/PanelGruposRuta";
-import ResumenRutaTrabajo from "./Components/ResumenRutaTrabajo";
-import TablaIniciadoresPendientes from "./Components/TablaIniciadoresPendientes";
+import { clearPersistedRutaId, persistRutaId, useRutasTrabajoSession } from "./hooks";
+import { rutasInstitutionalHeaderPaperSx } from "./styles/institutionalVisual";
+import { RutasEmptyView } from "./views/RutasEmptyView";
+import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
+import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
+
+const rutasAlertSx = {
+  fontFamily: '"Tactic Sans", sans-serif',
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  borderRadius: "10px",
+  backgroundColor: GLASS_COLORS.cardBg,
+  color: "#FFFFFF",
+  "& .MuiAlert-icon": { color: "#FFFFFF" },
+  "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
+} as const;
 
 const RutasTrabajo = () => {
-  const LAST_RUTA_STORAGE_KEY = "rutas_trabajo_session_ruta_id";
   const [tab, setTab] = useState<"TABLA" | "MAPA">("TABLA");
   const [ruta, setRuta] = useState<IRutaTrabajo | null>(null);
   const [grupos, setGrupos] = useState<IRutaGrupoMin[]>([]);
@@ -79,24 +76,19 @@ const RutasTrabajo = () => {
       setGrupos(detail.grupos);
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
-      window.sessionStorage.setItem(LAST_RUTA_STORAGE_KEY, String(targetRutaId));
+      persistRutaId(targetRutaId);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
       setRuta(null);
       setGrupos([]);
       setItems([]);
-      window.sessionStorage.removeItem(LAST_RUTA_STORAGE_KEY);
+      clearPersistedRutaId();
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    const saved = window.sessionStorage.getItem(LAST_RUTA_STORAGE_KEY);
-    const rutaIdSaved = Number(saved);
-    if (!saved || !Number.isFinite(rutaIdSaved) || rutaIdSaved <= 0) return;
-    void loadRutaDetail(rutaIdSaved);
-  }, [loadRutaDetail]);
+  useRutasTrabajoSession(loadRutaDetail);
 
   const handleCreateRuta = async (payload: { fecha: string; turno: "MANIANA" | "TARDE"; observaciones?: string }) => {
     setError(null);
@@ -270,30 +262,9 @@ const RutasTrabajo = () => {
   );
 
   return (
-    <ThemeProvider theme={darkTheme}>
-      <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2.2 }}>
-        <Paper
-          sx={{
-            p: 2.2,
-            border: "1px solid rgba(104, 129, 171, 0.35)",
-            background:
-              "linear-gradient(180deg, rgba(18,27,47,0.94) 0%, rgba(10,16,30,0.99) 100%)",
-          }}
-        >
-          <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
-                Rutas de trabajo
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Planificacion operativa de iniciadores, grupos e items.
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Chip label={`Fecha: ${ruta?.fecha ?? "-"}`} variant="outlined" color="primary" />
-            </Stack>
-          </Stack>
-          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mt: 1.5 }} flexWrap="wrap">
+    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2.2 }}>
+        <Paper elevation={0} sx={rutasInstitutionalHeaderPaperSx}>
+          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" flexWrap="wrap">
             <Tabs value={tab} onChange={(_, value) => setTab(value)}>
               <Tab label="TABLA" value="TABLA" />
               <Tab label="MAPA" value="MAPA" />
@@ -304,124 +275,66 @@ const RutasTrabajo = () => {
           </Stack>
         </Paper>
 
-        {error && <Alert severity="error">{error}</Alert>}
-        {successMessage && <Alert severity="success">{successMessage}</Alert>}
+        {error && (
+          <Alert severity="error" sx={rutasAlertSx}>
+            {error}
+          </Alert>
+        )}
+        {successMessage && (
+          <Alert severity="success" sx={rutasAlertSx}>
+            {successMessage}
+          </Alert>
+        )}
 
-        <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsActivos.length} />
+        {tab === "TABLA" && rutaId == null && (
+          <RutasEmptyView onCrearBorrador={() => setOpenCrearRuta(true)} />
+        )}
 
-        {tab === "TABLA" && (
-          !rutaId ? (
-            <Paper
-              sx={{
-                p: 4,
-                border: "1px dashed rgba(123, 154, 210, 0.4)",
-                background: "linear-gradient(180deg, rgba(15,24,43,0.92), rgba(10,16,31,0.98))",
-              }}
-            >
-              <Stack spacing={1.5} alignItems="center">
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  No hay borrador activo en esta sesión
-                </Typography>
-                <Typography variant="body2" color="text.secondary" textAlign="center">
-                  Creá una ruta en BORRADOR para comenzar a asignar iniciadores y grupos.
-                </Typography>
-                <Button variant="contained" onClick={() => setOpenCrearRuta(true)}>
-                  Crear borrador
-                </Button>
-              </Stack>
-            </Paper>
-          ) : (
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 7 }}>
-              <Paper
-                sx={{
-                  p: 2,
-                  border: "1px solid rgba(100, 127, 176, 0.3)",
-                  background:
-                    "linear-gradient(180deg, rgba(17,26,46,0.94) 0%, rgba(10,16,31,0.98) 100%)",
-                }}
-              >
-                <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                  Iniciadores pendientes
-                </Typography>
-                <TablaIniciadoresPendientes
-                  rows={iniciadores}
-                  total={iniciadoresMeta.total}
-                  page={iniciadoresMeta.page}
-                  perPage={iniciadoresMeta.perPage}
-                  loading={loadingPendientes}
-                  selectedIds={selectedIniciadorIds}
-                  filters={filters}
-                  onChangeFilters={(next) => {
-                    setFilters(next);
-                    setIniciadoresMeta((prev) => ({ ...prev, page: 1 }));
-                  }}
-                  onPageChange={(nextPage) => setIniciadoresMeta((prev) => ({ ...prev, page: nextPage }))}
-                  onPerPageChange={(nextPerPage) => setIniciadoresMeta((prev) => ({ ...prev, perPage: nextPerPage, page: 1 }))}
-                  onSelectionChange={setSelectedIniciadorIds}
-                  onAssignSelected={() => setOpenAsignarGrupo(true)}
-                />
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Paper
-                sx={{
-                  p: 2,
-                  border: "1px solid rgba(101, 129, 180, 0.33)",
-                  background:
-                    "linear-gradient(180deg, rgba(18,28,50,0.95) 0%, rgba(10,16,31,0.99) 100%)",
-                }}
-              >
-                <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                  Grupos
-                </Typography>
-                <Button
-                  variant="contained"
-                  size="small"
-                  disabled={!canCreateGrupo}
-                  onClick={() => setOpenCrearGrupo(true)}
-                  sx={{ mb: 1.5 }}
-                >
-                  + Nuevo grupo
-                </Button>
-                {loading ? (
-                  <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                    <CircularProgress />
-                  </Box>
-                ) : (
-                  <PanelGruposRuta
-                    grupos={grupos}
-                    items={itemsActivos}
-                    iniciadorById={iniciadorById}
-                    onEditarInspectores={(grupo) => {
-                      setGrupoSeleccionado(grupo);
-                      setOpenAsignarInspectores(true);
-                    }}
-                    onEliminarGrupo={handleDeleteGrupo}
-                    onMoverItem={handleMoveItem}
-                    onQuitarItem={handleDeleteItem}
-                    onGuardarOtItem={handleSaveOt}
-                  />
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-          )
+        {tab === "TABLA" && rutaId != null && ruta != null && (
+          <RutasPlanificacionView
+            ruta={ruta}
+            grupos={grupos}
+            itemsActivos={itemsActivos}
+            itemsCount={itemsActivos.length}
+            iniciadores={iniciadores}
+            iniciadoresMeta={iniciadoresMeta}
+            selectedIniciadorIds={selectedIniciadorIds}
+            filters={filters}
+            loading={loading}
+            loadingPendientes={loadingPendientes}
+            canCreateGrupo={canCreateGrupo}
+            iniciadorById={iniciadorById}
+            onChangeFilters={(next) => {
+              setFilters(next);
+              setIniciadoresMeta((prev) => ({ ...prev, page: 1 }));
+            }}
+            onPageChange={(nextPage) => setIniciadoresMeta((prev) => ({ ...prev, page: nextPage }))}
+            onPerPageChange={(nextPerPage) =>
+              setIniciadoresMeta((prev) => ({ ...prev, perPage: nextPerPage, page: 1 }))
+            }
+            onSelectionChange={setSelectedIniciadorIds}
+            onAssignSelected={() => setOpenAsignarGrupo(true)}
+            onOpenCrearGrupo={() => setOpenCrearGrupo(true)}
+            onEditarInspectores={(grupo) => {
+              setGrupoSeleccionado(grupo);
+              setOpenAsignarInspectores(true);
+            }}
+            onEliminarGrupo={handleDeleteGrupo}
+            onMoverItem={handleMoveItem}
+            onQuitarItem={handleDeleteItem}
+            onGuardarOtItem={handleSaveOt}
+          />
         )}
 
         {tab === "MAPA" && (
-          <Paper
-            sx={{
-              p: 3,
-              border: "1px solid rgba(90,117,162,0.28)",
-              background: "linear-gradient(180deg, rgba(16,25,45,0.92), rgba(11,17,33,0.98))",
-            }}
-          >
-            <Typography variant="subtitle1">MAPA</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Placeholder visual para integración de mapa en etapa posterior.
-            </Typography>
-          </Paper>
+          <RutasMapaOperativoView
+            ruta={ruta}
+            grupos={grupos}
+            itemsActivos={itemsActivos}
+            iniciadorById={iniciadorById}
+            onVolverPlanificacion={() => setTab("TABLA")}
+            canPublish={false}
+          />
         )}
 
         <ModalCrearGrupoRuta open={openCrearGrupo} onClose={() => setOpenCrearGrupo(false)} onSubmit={handleCreateGrupo} disabled={!canCreateGrupo} />
@@ -447,8 +360,7 @@ const RutasTrabajo = () => {
           onConfirm={handleAssignSelected}
         />
 
-      </Box>
-    </ThemeProvider>
+    </Box>
   );
 };
 

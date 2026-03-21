@@ -1,6 +1,7 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import type { IRutaGrupoMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
+import { rutasInstitutionalResumenPaperSx } from "../styles/institutionalVisual";
 
 interface Props {
   ruta: IRutaTrabajo | null;
@@ -12,13 +13,7 @@ const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
   const totalInspectores = grupos.reduce((acc, grupo) => acc + grupo.inspectores.length, 0);
   if (!ruta) {
     return (
-      <Paper
-        sx={{
-          p: 2.5,
-          border: "1px solid rgba(102, 127, 172, 0.35)",
-          background: "linear-gradient(180deg, rgba(16,25,45,0.92), rgba(11,17,33,0.98))",
-        }}
-      >
+      <Paper elevation={0} sx={rutasInstitutionalResumenPaperSx}>
         <Typography variant="subtitle1">Resumen de ruta</Typography>
         <Typography variant="body2" color="text.secondary">
           Todavía no hay una ruta seleccionada. Creá una ruta para comenzar.
@@ -28,13 +23,7 @@ const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
   }
 
   return (
-    <Paper
-      sx={{
-        p: 2.5,
-        border: "1px solid rgba(103, 131, 180, 0.36)",
-        background: "linear-gradient(180deg, rgba(17,28,50,0.92) 0%, rgba(10,16,31,0.98) 100%)",
-      }}
-    >
+    <Paper elevation={0} sx={rutasInstitutionalResumenPaperSx}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           Resumen de ruta

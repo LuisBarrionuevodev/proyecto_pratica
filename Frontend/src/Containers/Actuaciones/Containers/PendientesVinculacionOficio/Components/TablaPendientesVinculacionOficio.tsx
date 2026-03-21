@@ -4,7 +4,7 @@ import type { IActuacion } from "../../../../../types/actuaciones";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { BASE_TABLE_CONFIG } from "../../../../../constants/tableConfig";
 import { TablaExportButtons } from "../../../Components/TableButtons";
-import { TableGeneralStyles, TableLoadingStyles, TableTitleStyles } from "../../../../../styles/TablasStyle";
+import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import { Box, Typography } from "@mui/material";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
 import BasicModal from "./ModalPendientesOficio";
@@ -168,7 +168,6 @@ const TablaPendientesVinculacionOficio = () => {
                     },
                 }}
             >
-                <Typography sx={TableTitleStyles}>Gestión de Pendientes de Vinculacion con Oficio</Typography>
                 <CardsExpedientes />
                 <BasicModal/>
                 <MaterialReactTable table={table} />

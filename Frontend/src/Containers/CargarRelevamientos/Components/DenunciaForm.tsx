@@ -1,24 +1,14 @@
 import { useMemo, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Paper,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Paper, Typography } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import AddIcon from "@mui/icons-material/Add";
 
 import { createDenuncia } from "../../../api/denunciasApi";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { AppButton, AppDialog, AppTextField } from "../../../ui";
 import {
+  alertBaseStyles,
   errorAlertStyles,
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
@@ -27,8 +17,8 @@ import {
   filtroGridStyles,
   filtroItemStyles,
   filtroTitleStyles,
+  COLORS,
 } from "../../Actuaciones/styles/filtroStyles";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 interface FormErrors {
   fecha?: string;
@@ -101,15 +91,20 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
       setSuccessMsg("Denuncia creada correctamente.");
       handleClear();
       setOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const data = err as { response?: { data?: { detail?: string; message?: string } } };
       const detail =
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
+        data.response?.data?.detail ||
+        data.response?.data?.message ||
         "No se pudo crear la denuncia.";
       setErrorMsg(detail);
     } finally {
       setLoading(false);
     }
+  };
+
+  const tryCloseModal = () => {
+    if (!loading) setOpen(false);
   };
 
   return (
@@ -123,7 +118,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
       )}
 
       {successMsg && (
-        <Alert severity="success" sx={{ marginBottom: 2 }} onClose={() => setSuccessMsg(null)}>
+        <Alert severity="success" sx={alertBaseStyles} onClose={() => setSuccessMsg(null)}>
           {successMsg}
         </Alert>
       )}
@@ -136,9 +131,11 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
           gap: 2,
-          backgroundColor: GLASS_COLORS.cardBg,
-          borderRadius: "12px",
-          border: `1px solid ${GLASS_COLORS.borderLight}`,
+          backgroundColor: COLORS.grayDark,
+          borderRadius: "8px",
+          border: `1px solid ${COLORS.border}`,
+          boxShadow:
+            "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
         }}
       >
         <Box>
@@ -149,101 +146,111 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
             Registrá una denuncia con una carga simple y rápida.
           </Typography>
         </Box>
-        <Button
+        <AppButton
+          dsVariant="primary"
           onClick={() => {
             setErrorMsg(null);
             setErrors({});
             setOpen(true);
           }}
           startIcon={<AddIcon />}
-          variant="contained"
           sx={filtroButtonPrimaryStyles}
         >
           Nueva denuncia
-        </Button>
+        </AppButton>
       </Paper>
 
-      <Dialog open={open} onClose={() => !loading && setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Nueva denuncia</DialogTitle>
-        <DialogContent dividers>
-          <Box sx={filtroGridStyles}>
-            <Box sx={filtroItemStyles}>
-              <TextField
-                fullWidth
-                required
-                type="date"
-                label="Fecha"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                variant="outlined"
-                error={!!errors.fecha}
-                helperText={errors.fecha || ""}
-              />
-            </Box>
-
-            <Box sx={filtroItemStyles}>
-              <TextField
-                fullWidth
-                required
-                label="Calle"
-                value={calle}
-                onChange={(e) => setCalle(e.target.value)}
-                variant="outlined"
-                error={!!errors.calle}
-                helperText={errors.calle || ""}
-              />
-            </Box>
-
-            <Box sx={filtroItemStyles}>
-              <TextField
-                fullWidth
-                required
-                label="Número o esquina"
-                value={numeroOEsquina}
-                onChange={(e) => setNumeroOEsquina(e.target.value)}
-                variant="outlined"
-                error={!!errors.numeroOEsquina}
-                helperText={errors.numeroOEsquina || ""}
-              />
-            </Box>
-
-            <Box sx={filtroItemStyles}>
-              <TextField
-                fullWidth
-                required
-                label="Motivo"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                variant="outlined"
-                multiline
-                minRows={3}
-                error={!!errors.motivo}
-                helperText={errors.motivo || ""}
-              />
-            </Box>
+      <AppDialog
+        open={open}
+        onClose={() => tryCloseModal()}
+        onCloseButtonClick={() => tryCloseModal()}
+        title="Nueva denuncia"
+        contentDividers
+        actions={
+          <Box sx={filtroButtonsStyles}>
+            <AppButton
+              dsVariant="ghost"
+              onClick={handleClear}
+              startIcon={<ClearIcon />}
+              sx={filtroButtonSecondaryStyles}
+              disabled={loading}
+            >
+              Limpiar
+            </AppButton>
+            <AppButton
+              dsVariant="primary"
+              onClick={handleSubmit}
+              startIcon={<SendIcon />}
+              sx={filtroButtonPrimaryStyles}
+              loading={loading}
+            >
+              Guardar denuncia
+            </AppButton>
           </Box>
-        </DialogContent>
-        <DialogActions sx={filtroButtonsStyles}>
-          <Button
-            onClick={handleClear}
-            startIcon={<ClearIcon />}
-            sx={filtroButtonSecondaryStyles}
-            disabled={loading}
-          >
-            Limpiar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
-            sx={filtroButtonPrimaryStyles}
-            variant="contained"
-            disabled={loading}
-          >
-            {loading ? "Guardando..." : "Guardar denuncia"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+      >
+        <Box sx={filtroGridStyles}>
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="default"
+              fullWidth
+              required
+              type="date"
+              label="Fecha"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              variant="outlined"
+              error={!!errors.fecha}
+              helperText={errors.fecha || ""}
+            />
+          </Box>
+
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="default"
+              fullWidth
+              required
+              label="Calle"
+              value={calle}
+              onChange={(e) => setCalle(e.target.value)}
+              variant="outlined"
+              error={!!errors.calle}
+              helperText={errors.calle || ""}
+            />
+          </Box>
+
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="default"
+              fullWidth
+              required
+              label="Número o esquina"
+              value={numeroOEsquina}
+              onChange={(e) => setNumeroOEsquina(e.target.value)}
+              variant="outlined"
+              error={!!errors.numeroOEsquina}
+              helperText={errors.numeroOEsquina || ""}
+            />
+          </Box>
+
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="default"
+              fullWidth
+              required
+              label="Motivo"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              variant="outlined"
+              multiline
+              minRows={3}
+              error={!!errors.motivo}
+              helperText={errors.motivo || ""}
+            />
+          </Box>
+        </Box>
+      </AppDialog>
     </Box>
   );
 };

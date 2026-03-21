@@ -1,6 +1,8 @@
-import { Box, TextField, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+
+import { AppButton, AppTextField } from "../../../ui";
 
 import {
   filtroContainerStyles,
@@ -37,7 +39,8 @@ const FiltroPendientes = ({
 
       <Box sx={filtroGridStyles}>
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             type="date"
             label="Desde"
@@ -49,7 +52,8 @@ const FiltroPendientes = ({
         </Box>
 
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             type="date"
             label="Hasta"
@@ -62,22 +66,25 @@ const FiltroPendientes = ({
       </Box>
 
       <Box sx={filtroButtonsStyles}>
-        <Button
+        <AppButton
+          dsVariant="ghost"
+          dsSize="sm"
           onClick={onLimpiar}
           startIcon={<ClearIcon />}
           sx={filtroButtonSecondaryStyles}
         >
           Limpiar
-        </Button>
+        </AppButton>
 
-        <Button
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
           onClick={onFiltrar}
           startIcon={<SearchIcon />}
           sx={filtroButtonPrimaryStyles}
-          variant="contained"
         >
           Filtrar
-        </Button>
+        </AppButton>
       </Box>
     </Box>
   );

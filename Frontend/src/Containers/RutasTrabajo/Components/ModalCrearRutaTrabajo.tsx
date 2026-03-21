@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from "@mui/material";
 
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 
 interface Props {
   open: boolean;
@@ -37,40 +37,57 @@ const ModalCrearRutaTrabajo = ({ open, onClose, onSubmit }: Props) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Crear ruta de trabajo</DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-        <TextField
-          label="Fecha"
-          type="date"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          required
-        />
-        <TextField select label="Turno" value={turno} onChange={(e) => setTurno(e.target.value as "MANIANA" | "TARDE")} fullWidth>
-          <MenuItem value="MANIANA">Mañana</MenuItem>
-          <MenuItem value="TARDE">Tarde</MenuItem>
-        </TextField>
-        <TextField
-          label="Observaciones"
-          value={observaciones}
-          onChange={(e) => setObservaciones(e.target.value)}
-          fullWidth
-          multiline
-          minRows={3}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={saving || !fecha}>
-          {saving ? "Guardando..." : "Crear ruta"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <AppDialog
+      open={open}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
+      onClose={(_event, _reason) => handleClose()}
+      onCloseButtonClick={() => handleClose()}
+      title="Crear ruta de trabajo"
+      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      actions={
+        <>
+          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+            Cancelar
+          </AppButton>
+          <AppButton
+            dsVariant="primary"
+            onClick={handleSubmit}
+            disabled={saving || !fecha}
+            loading={saving}
+          >
+            Crear ruta
+          </AppButton>
+        </>
+      }
+    >
+      <AppTextField
+        label="Fecha"
+        type="date"
+        value={fecha}
+        onChange={(e) => setFecha(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+        required
+      />
+      <AppSelect
+        label="Turno"
+        value={turno}
+        onChange={(e) => setTurno(e.target.value as "MANIANA" | "TARDE")}
+        fullWidth
+        options={[
+          { value: "MANIANA", label: "Mañana" },
+          { value: "TARDE", label: "Tarde" },
+        ]}
+      />
+      <AppTextField
+        label="Observaciones"
+        value={observaciones}
+        onChange={(e) => setObservaciones(e.target.value)}
+        fullWidth
+        multiline
+        minRows={3}
+      />
+    </AppDialog>
   );
 };
 

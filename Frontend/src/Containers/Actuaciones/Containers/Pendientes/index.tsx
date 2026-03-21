@@ -1,13 +1,7 @@
-import { ThemeProvider } from "@emotion/react";
-import { darkTheme } from "../../../../configs/theme";
 import TablaPendientes from "./Components/TablaPendientes";
 
 const Pendientes = () => {
-    return (
-        <ThemeProvider theme={darkTheme}>
-            <TablaPendientes />
-        </ThemeProvider>
-    );
+    return <TablaPendientes />;
 };
 
 export default Pendientes;

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
+
+import { AppButton, AppDialog } from "../../../ui";
 
 interface Props {
   open: boolean;
@@ -27,22 +29,33 @@ const ModalCrearGrupoRuta = ({ open, onClose, onSubmit, disabled = false }: Prop
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Crear grupo</DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          El nombre se genera automáticamente siguiendo la secuencia del día (Grupo N).
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={saving || disabled}>
-          {saving ? "Guardando..." : "Crear grupo"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <AppDialog
+      open={open}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
+      onClose={(_event, _reason) => handleClose()}
+      onCloseButtonClick={() => handleClose()}
+      title="Crear grupo"
+      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      actions={
+        <>
+          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+            Cancelar
+          </AppButton>
+          <AppButton
+            dsVariant="primary"
+            onClick={handleSubmit}
+            disabled={saving || disabled}
+            loading={saving}
+          >
+            Crear grupo
+          </AppButton>
+        </>
+      }
+    >
+      <Typography variant="body2" color="text.secondary">
+        El nombre se genera automáticamente siguiendo la secuencia del día (Grupo N).
+      </Typography>
+    </AppDialog>
   );
 };
 

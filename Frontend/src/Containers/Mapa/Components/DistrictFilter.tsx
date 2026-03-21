@@ -1,4 +1,4 @@
-import { TextField, MenuItem } from "@mui/material";
+import { AppSelect } from "../../../ui";
 
 type Props = {
   distritos: string[];
@@ -8,11 +8,15 @@ type Props = {
 
 export default function DistrictFilter({ distritos, value, onChange }: Props) {
   return (
-    <TextField select size="small" label="Filtrar por distrito" value={value} onChange={(e) => onChange(e.target.value)}>
-      <MenuItem value="">Todos</MenuItem>
-      {distritos.map((d) => (
-        <MenuItem key={d} value={d}>{d}</MenuItem>
-      ))}
-    </TextField>
+    <AppSelect
+      size="small"
+      label="Filtrar por distrito"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      options={[
+        { value: "", label: "Todos" },
+        ...distritos.map((d) => ({ value: d, label: d })),
+      ]}
+    />
   );
 }

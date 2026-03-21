@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 
+import { AppButton, AppDialog, AppSelect } from "../../../ui";
 import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
 
 interface Props {
@@ -34,35 +35,40 @@ const ModalAsignarSeleccionAGrupo = ({ open, onClose, grupos, selectedCount, onC
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Asignar selección a grupo</DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          Se asignarán {selectedCount} iniciadores seleccionados.
-        </Typography>
-        <TextField
-          select
-          label="Grupo destino"
-          value={grupoId}
-          onChange={(e) => setGrupoId(Number(e.target.value))}
-          fullWidth
-        >
-          {gruposOrdenados.map((g) => (
-            <MenuItem key={g.id} value={g.id}>
-              {g.nombre}
-            </MenuItem>
-          ))}
-        </TextField>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button variant="contained" onClick={handleConfirm} disabled={saving || !grupoId}>
-          {saving ? "Asignando..." : "Asignar"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <AppDialog
+      open={open}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
+      onClose={(_event, _reason) => handleClose()}
+      onCloseButtonClick={() => handleClose()}
+      title="Asignar selección a grupo"
+      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      actions={
+        <>
+          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+            Cancelar
+          </AppButton>
+          <AppButton
+            dsVariant="primary"
+            onClick={handleConfirm}
+            disabled={saving || !grupoId}
+            loading={saving}
+          >
+            Asignar
+          </AppButton>
+        </>
+      }
+    >
+      <Typography variant="body2" color="text.secondary">
+        Se asignarán {selectedCount} iniciadores seleccionados.
+      </Typography>
+      <AppSelect
+        label="Grupo destino"
+        value={grupoId}
+        onChange={(e) => setGrupoId(Number(e.target.value))}
+        fullWidth
+        options={gruposOrdenados.map((g) => ({ value: g.id, label: g.nombre }))}
+      />
+    </AppDialog>
   );
 };
 

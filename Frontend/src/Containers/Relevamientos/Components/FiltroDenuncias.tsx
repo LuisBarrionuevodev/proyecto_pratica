@@ -1,8 +1,9 @@
-import { Box, Button, MenuItem, TextField, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import {
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
@@ -40,6 +41,11 @@ const FiltroDenuncias = ({ onFiltrar }: FiltroDenunciasProps) => {
     setDesde(range.desde);
     setHasta(range.hasta);
     setEstado("all");
+    onFiltrar({
+      desde: range.desde,
+      hasta: range.hasta,
+      estado: "all",
+    });
   };
 
   return (
@@ -47,57 +53,69 @@ const FiltroDenuncias = ({ onFiltrar }: FiltroDenunciasProps) => {
       <Typography sx={filtroTitleStyles}>Filtros de Denuncias</Typography>
       <Box sx={filtroGridStyles}>
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             type="date"
             label="Desde"
             value={desde}
             onChange={(e) => setDesde(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            variant="outlined"
           />
         </Box>
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppTextField
+            appearance="dense"
             fullWidth
             type="date"
             label="Hasta"
             value={hasta}
             onChange={(e) => setHasta(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            variant="outlined"
           />
         </Box>
         <Box sx={filtroItemStyles}>
-          <TextField
+          <AppSelect
+            appearance="dense"
             fullWidth
-            select
             label="Estado"
             value={estado}
             disabled
             helperText="En gestión operativa se muestran solo pendientes."
             onChange={(e) => setEstado(e.target.value as "all" | "hechas" | "no_hechas")}
-          >
-            <MenuItem value="all">Todas</MenuItem>
-            <MenuItem value="hechas">Hechas</MenuItem>
-            <MenuItem value="no_hechas">No hechas</MenuItem>
-          </TextField>
+            variant="outlined"
+            options={[
+              { value: "all", label: "Todas" },
+              { value: "hechas", label: "Hechas" },
+              { value: "no_hechas", label: "No hechas" },
+            ]}
+          />
         </Box>
       </Box>
       <Box sx={filtroButtonsStyles}>
-        <Button onClick={handleLimpiar} startIcon={<ClearIcon />} sx={filtroButtonSecondaryStyles}>
+        <AppButton
+          dsVariant="ghost"
+          dsSize="sm"
+          onClick={handleLimpiar}
+          startIcon={<ClearIcon />}
+          sx={filtroButtonSecondaryStyles}
+        >
           Limpiar
-        </Button>
-        <Button
+        </AppButton>
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
           onClick={handleFiltrar}
           startIcon={<SearchIcon />}
           sx={filtroButtonPrimaryStyles}
-          variant="contained"
         >
           Filtrar
-        </Button>
+        </AppButton>
       </Box>
     </Box>
   );
 };
 
 export default FiltroDenuncias;
-
