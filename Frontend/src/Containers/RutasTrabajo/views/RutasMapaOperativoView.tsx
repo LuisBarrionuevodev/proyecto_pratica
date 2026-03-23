@@ -1,14 +1,11 @@
-import { Alert, Box, Chip, Divider, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, CircularProgress, Paper, Stack, Tooltip, Typography } from "@mui/material";
 
 import { COLORS } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import ResumenRutaTrabajo from "../Components/ResumenRutaTrabajo";
-import { MapaRutaTrabajo } from "../components/MapaRutaTrabajo";
+import PanelGruposRuta from "../Components/PanelGruposRuta";
+import { MapaRutaTrabajo } from "../Components/MapaRutaTrabajo";
 import { useRutaMapa } from "../hooks/useRutaMapa";
-import {
-  rutasInstitutionalDividerSx,
-  rutasInstitutionalGrupoPaperSx,
-  rutasInstitutionalPanelPaperSx,
-} from "../styles/institutionalVisual";
+import { rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
 import type { RutasMapaOperativoViewProps } from "../types/rutasTrabajoMapa.types";
 import { AppButton } from "../../../ui/AppButton";
 
@@ -23,7 +20,7 @@ const alertSx = {
 } as const;
 
 /**
- * Vista MAPA operativa: resumen de ruta, panel de grupos (solo lectura), mapa Leaflet/OSM y acciones volver/publicar.
+ * Vista MAPA operativa: resumen, mapa Leaflet/OSM y gestión de ítems/grupos (misma lógica que TABLA vía handlers).
  */
 export function RutasMapaOperativoView({
   ruta,
@@ -33,8 +30,22 @@ export function RutasMapaOperativoView({
   onVolverPlanificacion,
   onPublicarRuta,
   canPublish = false,
+  publishingRuta = false,
+  detailLoading = false,
+  onEditarInspectores,
+  onEliminarGrupo,
+  onMoverItem,
+  onQuitarItem,
+  onGuardarOtItem,
 }: RutasMapaOperativoViewProps) {
   const mapa = useRutaMapa(grupos, itemsActivos, iniciadorById);
+  const canGestionMapa =
+    ruta != null &&
+    onEditarInspectores != null &&
+    onEliminarGrupo != null &&
+    onMoverItem != null &&
+    onQuitarItem != null &&
+    onGuardarOtItem != null;
 
   return (
     <Stack spacing={2}>
@@ -53,17 +64,23 @@ export function RutasMapaOperativoView({
               Volver a planificación
             </AppButton>
             <Tooltip
-              title={canPublish ? "Publicar la ruta (requiere endpoint activo)." : "Sin endpoint de publicación en esta versión."}
+              title={
+                publishingRuta
+                  ? "Publicando la ruta…"
+                  : canPublish
+                    ? "Publicar la ruta: valida grupos, inspectores, ítems y OT, y genera las actuaciones mínimas."
+                    : "Solo se puede publicar una ruta en BORRADOR con el detalle cargado."
+              }
               placement="top"
             >
               <span>
                 <AppButton
                   dsVariant="primary"
                   dsSize="sm"
-                  disabled={!canPublish}
+                  disabled={!canPublish || publishingRuta}
                   onClick={() => void onPublicarRuta?.()}
                 >
-                  Publicar ruta
+                  {publishingRuta ? "Publicando…" : "Publicar ruta"}
                 </AppButton>
               </span>
             </Tooltip>
@@ -92,49 +109,37 @@ export function RutasMapaOperativoView({
           }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-            Grupos
+            Grupos e ítems
           </Typography>
-          {grupos.length === 0 ? (
+          {ruta == null ? (
+            <Typography variant="body2" color="text.secondary">
+              Creá o abrí una ruta desde la pestaña TABLA para gestionar grupos e ítems aquí.
+            </Typography>
+          ) : grupos.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               No hay grupos en esta ruta. Creá grupos en la pestaña TABLA.
             </Typography>
+          ) : canGestionMapa ? (
+            detailLoading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress size={32} />
+              </Box>
+            ) : (
+              <PanelGruposRuta
+                grupos={grupos}
+                items={itemsActivos}
+                iniciadorById={iniciadorById}
+                onEditarInspectores={onEditarInspectores}
+                onEliminarGrupo={onEliminarGrupo}
+                onMoverItem={onMoverItem}
+                onQuitarItem={onQuitarItem}
+                onGuardarOtItem={onGuardarOtItem}
+              />
+            )
           ) : (
-            <Stack spacing={1.2}>
-              {mapa.gruposVista.map((gv) => (
-                <Paper key={gv.id} elevation={0} sx={rutasInstitutionalGrupoPaperSx(gv.color)}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {gv.nombre}
-                  </Typography>
-                  <Stack direction="row" spacing={0.75} sx={{ mt: 0.75 }} flexWrap="wrap" useFlexGap>
-                    <Chip size="small" label={`${gv.itemCount} ítems`} color="primary" variant="outlined" />
-                    {gv.estado ? <Chip size="small" label={gv.estado} variant="outlined" /> : null}
-                  </Stack>
-                  <Divider sx={{ my: 1, ...rutasInstitutionalDividerSx }} />
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.45 }}>
-                    {gv.inspectoresResumen}
-                  </Typography>
-                  {gv.items.length > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                        Orden en mapa (cuando haya coords)
-                      </Typography>
-                      <Stack spacing={0.35}>
-                        {gv.items.slice(0, 8).map((it) => (
-                          <Typography key={it.itemId} variant="caption" sx={{ pl: 0.5, borderLeft: `3px solid ${gv.color}` }}>
-                            {it.orden}. {it.etiqueta}
-                          </Typography>
-                        ))}
-                        {gv.items.length > 8 ? (
-                          <Typography variant="caption" color="text.secondary">
-                            +{gv.items.length - 8} más…
-                          </Typography>
-                        ) : null}
-                      </Stack>
-                    </Box>
-                  )}
-                </Paper>
-              ))}
-            </Stack>
+            <Typography variant="body2" color="text.secondary">
+              Gestioná ítems desde TABLA.
+            </Typography>
           )}
         </Paper>
 

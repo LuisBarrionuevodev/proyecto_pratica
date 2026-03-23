@@ -13,7 +13,6 @@ import {
   updateDenunciaGestion,
 } from "../../../api/denunciasApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
-import { useCallesCatalogo } from "../../../hooks/useCallesCatalogo";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   COLORS,
@@ -34,7 +33,6 @@ const TablaDenuncias = ({
 }: TablaDenunciasProps) => {
   const [data, setData] = useState<IDenunciaGestionItem[]>(externalData || []);
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
-  const { calles } = useCallesCatalogo();
   const loading = externalLoading || false;
 
   useEffect(() => {
@@ -140,7 +138,6 @@ const TablaDenuncias = ({
                   numero_tipo: mode,
                 };
               }}
-              calles={calles}
               label="Número/Esquina"
               error={!!err}
               helperText={err ?? ""}
@@ -168,7 +165,7 @@ const TablaDenuncias = ({
         editSelectOptions: ["ABIERTA", "CERRADA", "DESCARTADA"],
       },
     ],
-    [rowErrors, calles]
+    [rowErrors]
   );
 
   const table = useMaterialReactTable({

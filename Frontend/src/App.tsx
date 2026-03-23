@@ -17,7 +17,11 @@ import AppLayout from "./layouts/AppLayout";
 import GestionDeUsuarios from "./Containers/GestionDeUsuarios";
 import RutasTrabajo from "./Containers/RutasTrabajo";
 import CompletarTrabajos from "./Containers/CompletarTrabajos";
-import PlaceholderModule from "./Containers/PlaceholderModule";
+import GestionCapacitacionesPage from "./Containers/Capacitaciones/GestionCapacitacionesPage";
+import GestionSistemaPage from "./Containers/GestionSistema/GestionSistemaPage";
+import EstablecimientosLayout from "./Containers/Establecimientos/EstablecimientosLayout";
+import EstablecimientosListPage from "./Containers/Establecimientos/EstablecimientosListPage";
+import EstablecimientoDetallePage from "./Containers/Establecimientos/EstablecimientoDetallePage";
 
 /**
  * App - Enrutador principal (React Router v6)
@@ -55,9 +59,12 @@ function App() {
           <Route path="/completarTrabajos" element={<CompletarTrabajos />} />
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/perfil" element={<Perfil />} />
-          <Route path="/cargarPersonasCapacitadas" element={<PlaceholderModule titulo="Cargar Personas" />} />
-          <Route path="/gestionSistema" element={<PlaceholderModule titulo="Sistema" />} />
-          <Route path="/establecimientos" element={<PlaceholderModule titulo="Establecimientos" />} />
+          <Route path="/cargarPersonasCapacitadas" element={<GestionCapacitacionesPage />} />
+          <Route path="/gestionSistema" element={<GestionSistemaPage />} />
+          <Route path="/establecimientos" element={<EstablecimientosLayout />}>
+            <Route index element={<EstablecimientosListPage />} />
+            <Route path=":id" element={<EstablecimientoDetallePage />} />
+          </Route>
         </Route>
       </Routes>
     </Router>

@@ -19,7 +19,6 @@ import {
   validateRow,
 } from "../../../api/gridApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
-import { useCallesCatalogo } from "../../../hooks/useCallesCatalogo";
 import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
@@ -129,12 +128,6 @@ const TablaActuaciones = ({
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
   const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
-  const { calles: callesCatalogoHook } = useCallesCatalogo();
-  const callesCatalogo = useMemo(() => {
-    const merged = [...callesCatalogoHook, ...(numeroCallesOptions || [])];
-    return Array.from(new Set(merged));
-  }, [callesCatalogoHook, numeroCallesOptions]);
-
   // ✅ errores por celda por idActuacion
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
 
@@ -400,7 +393,7 @@ const TablaActuaciones = ({
                 numero_tipo: mode,
               };
             }}
-            calles={callesCatalogo}
+            extraCalles={numeroCallesOptions}
             label={numeroEditorLabel}
             error={!!err}
             helperText={err ?? ""}
@@ -486,7 +479,7 @@ const TablaActuaciones = ({
 
     ];
     return [...baseColumns, ...extraColumns];
-  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns, callesCatalogo, numeroHeader, numeroEditorLabel]);
+  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns, numeroCallesOptions, numeroHeader, numeroEditorLabel]);
 
   const columnOrder = useMemo(() => ([
     "mrt-row-select",

@@ -11,7 +11,6 @@ import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { updateRelevamiento, deleteRelevamiento } from "../../../api/relevamientosApi";
 import { validateRow, startBatch, fetchInspectores, fetchRubros, fetchContraproducencias } from "../../../api/gridApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
-import { useCallesCatalogo } from "../../../hooks/useCallesCatalogo";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   loadingStyles,
@@ -84,12 +83,6 @@ const TablaRelevamientos = ({
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
-  const { calles: callesCatalogoHook } = useCallesCatalogo();
-  const callesCatalogo = useMemo(() => {
-    const merged = [...callesCatalogoHook, ...(numeroCallesOptions || [])];
-    return Array.from(new Set(merged));
-  }, [callesCatalogoHook, numeroCallesOptions]);
-
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
@@ -286,7 +279,7 @@ const TablaRelevamientos = ({
                 numero_tipo: mode,
               };
             }}
-            calles={callesCatalogo}
+            extraCalles={numeroCallesOptions}
             label={numeroEditorLabel}
             error={!!err}
             helperText={err ?? ""}
@@ -322,7 +315,7 @@ const TablaRelevamientos = ({
       },
     ];
     return [...baseColumns, ...extraColumns];
-  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns, callesCatalogo, numeroHeader, numeroEditorLabel]);
+  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns, numeroCallesOptions, numeroHeader, numeroEditorLabel]);
 
   const columnOrder = useMemo(() => ([
     ...(hideRowActions ? [] : ["mrt-row-actions"]),

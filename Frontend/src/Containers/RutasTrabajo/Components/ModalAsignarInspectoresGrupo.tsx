@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Box,
   Checkbox,
-  FormControl,
-  InputLabel,
+  List,
+  ListItemButton,
+  ListItemIcon,
   ListItemText,
-  MenuItem,
-  Select,
   Typography,
 } from "@mui/material";
 
 import type { CatalogItem } from "../../../api/gridApi";
 import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 
 interface Props {
@@ -22,6 +23,9 @@ interface Props {
   grupos: IRutaGrupoMin[];
 }
 
+/**
+ * Asignación de inspectores al grupo: rejilla de filas seleccionables y confirmación principal “Listo”.
+ */
 const ModalAsignarInspectoresGrupo = ({ open, onClose, onSubmit, grupo, inspectoresCatalogo, grupos }: Props) => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
@@ -48,6 +52,10 @@ const ModalAsignarInspectoresGrupo = ({ open, onClose, onSubmit, grupo, inspecto
     onClose();
   };
 
+  const toggleInspector = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
   const handleSubmit = async () => {
     if (!grupo) return;
     setSaving(true);
@@ -61,63 +69,91 @@ const ModalAsignarInspectoresGrupo = ({ open, onClose, onSubmit, grupo, inspecto
   return (
     <AppDialog
       open={open}
+      maxWidth="md"
+      fullWidth
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}
       title="Asignar/Reemplazar inspectores"
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
       actions={
-        <>
-          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
-            Cancelar
-          </AppButton>
-          <AppButton
-            dsVariant="primary"
-            onClick={handleSubmit}
-            disabled={saving || !grupo}
-            loading={saving}
-          >
-            Guardar inspectores
-          </AppButton>
-        </>
+        <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+          Cancelar
+        </AppButton>
       }
+      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
     >
       <AppTextField
         label="Grupo"
         value={grupo?.nombre ?? "-"}
         fullWidth
+        appearance="glass"
         InputProps={{ readOnly: true }}
       />
-      <FormControl fullWidth>
-        <InputLabel id="inspectores-multiple-label">Inspectores</InputLabel>
-        <Select
-          labelId="inspectores-multiple-label"
-          multiple
-          value={selectedIdsSafe}
-          label="Inspectores"
-          onChange={(e) => setSelectedIds((e.target.value as number[]).map((v) => Number(v)))}
-          renderValue={(selected) => {
-            const set = new Set(selected as number[]);
-            return inspectoresCatalogo
-              .filter((i) => set.has(i.id))
-              .map((i) => i.nombre)
-              .join(", ");
-          }}
-        >
-          {availableInspectores.map((inspector) => (
-            <MenuItem key={inspector.id} value={inspector.id}>
-              <Checkbox checked={selectedIdsSafe.includes(inspector.id)} />
+      <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, fontFamily: '"Tactic Sans", sans-serif' }}>
+        Tocá una fila para incluir o quitar. Esta acción reemplaza la lista del grupo. No se listan inspectores ya
+        asignados a otros grupos.
+      </Typography>
+      <List
+        dense
+        sx={{
+          maxHeight: 360,
+          overflow: "auto",
+          border: `1px solid ${GLASS_COLORS.borderMedium}`,
+          borderRadius: "12px",
+          bgcolor: "rgba(0,0,0,0.2)",
+          py: 0,
+        }}
+      >
+        {availableInspectores.map((inspector) => {
+          const checked = selectedIdsSafe.includes(inspector.id);
+          return (
+            <ListItemButton
+              key={inspector.id}
+              selected={checked}
+              onClick={() => toggleInspector(inspector.id)}
+              sx={{
+                borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+                "&.Mui-selected": {
+                  backgroundColor: "rgba(1, 102, 255, 0.12)",
+                },
+                "&.Mui-selected:hover": {
+                  backgroundColor: "rgba(1, 102, 255, 0.18)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 42 }}>
+                <Checkbox
+                  edge="start"
+                  checked={checked}
+                  tabIndex={-1}
+                  disableRipple
+                  sx={{ color: GLASS_COLORS.textMuted, "&.Mui-checked": { color: GLASS_COLORS.primary } }}
+                />
+              </ListItemIcon>
               <ListItemText
                 primary={inspector.nombre}
                 secondary={inspector.legajo ? `Legajo: ${inspector.legajo}` : undefined}
+                primaryTypographyProps={{
+                  sx: { fontFamily: '"Tactic Sans", sans-serif', fontWeight: 600, color: GLASS_COLORS.textPrimary },
+                }}
+                secondaryTypographyProps={{ sx: { color: GLASS_COLORS.textMuted } }}
               />
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <Typography variant="caption" color="text.secondary">
-        Esta acción reemplaza completamente la lista de inspectores del grupo. No se muestran inspectores ocupados por otros grupos.
-      </Typography>
+            </ListItemButton>
+          );
+        })}
+      </List>
+      <Box sx={{ pt: 0.5 }}>
+        <AppButton
+          dsVariant="primary"
+          fullWidth
+          onClick={handleSubmit}
+          disabled={saving || !grupo}
+          loading={saving}
+          sx={{ py: 1.25, fontWeight: 700, letterSpacing: "0.06em" }}
+        >
+          Listo
+        </AppButton>
+      </Box>
     </AppDialog>
   );
 };

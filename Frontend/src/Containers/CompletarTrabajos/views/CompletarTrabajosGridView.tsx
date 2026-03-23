@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Paper, Typography } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
 
 import {
   alertBaseStyles,
-  gridContainerStyles,
-} from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+  COLORS,
+  filtroContainerStyles,
+  filtroTitleStyles,
+} from "../../Actuaciones/styles/filtroStyles";
 import { AppButton } from "../../../ui";
-import { CompletarTrabajosGrid } from "../components/CompletarTrabajosGrid";
+import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
 import { useTrabajosDelDia } from "../hooks";
 import type { TrabajoDelDiaRow } from "../types/completarTrabajos.types";
 
@@ -16,7 +18,7 @@ export type CompletarTrabajosGridViewProps = {
 };
 
 /**
- * Vista principal con grilla Glide: trabajos del día para la fecha elegida (mock).
+ * Vista principal con MRT (edición por fila): trabajos del día para la fecha elegida (mock).
  */
 export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajosGridViewProps) {
   const { rows: fetchedRows, loading, error } = useTrabajosDelDia(fecha);
@@ -27,45 +29,50 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
   }, [fetchedRows]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Paper sx={{ ...gridContainerStyles, overflow: "hidden" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minHeight: 0 }}>
+      <Box sx={filtroContainerStyles}>
+        <Typography sx={filtroTitleStyles}>Trabajos del día</Typography>
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
+            flexWrap: "wrap",
             alignItems: "center",
-            px: 2,
-            pt: 2,
-            pb: 1,
+            justifyContent: "space-between",
+            gap: 2,
           }}
         >
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
-            Fecha operativa: {fecha}
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: '"Tactic Sans", sans-serif',
+              color: COLORS.white,
+              "& strong": { color: COLORS.primary, fontWeight: 700 },
+            }}
+          >
+            Fecha operativa: <strong>{fecha}</strong>
           </Typography>
-          <AppButton dsVariant="secondary" onClick={onVolver}>
+          <AppButton dsVariant="ghost" onClick={onVolver} sx={{ alignSelf: { xs: "stretch", sm: "center" } }}>
             Volver
           </AppButton>
         </Box>
+      </Box>
 
-        <Box sx={{ px: 2, pb: 2 }}>
-          {error && (
-            <Alert severity="error" sx={{ ...alertBaseStyles, mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          {!error && rows.length === 0 && !loading && (
-            <Typography
-              variant="body2"
-              sx={{ mb: 2, color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' }}
-            >
-              No hay trabajos para esta fecha (mock vacío).
-            </Typography>
-          )}
-          {(rows.length > 0 || loading) && (
-            <CompletarTrabajosGrid rows={rows} onRowsChange={setRows} loading={loading} />
-          )}
-        </Box>
-      </Paper>
+      {error && (
+        <Alert severity="error" sx={{ ...alertBaseStyles, mb: 0 }}>
+          {error}
+        </Alert>
+      )}
+      {!error && rows.length === 0 && !loading && (
+        <Typography
+          variant="body2"
+          sx={{ color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' }}
+        >
+          No hay trabajos para esta fecha (mock vacío).
+        </Typography>
+      )}
+      {(rows.length > 0 || loading) && (
+        <CompletarTrabajosMRT rows={rows} onRowsChange={setRows} loading={loading} />
+      )}
     </Box>
   );
 }

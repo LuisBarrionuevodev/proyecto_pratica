@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { resolveBreadcrumbLabel } from "../utils/breadcrumbLabel";
 import { Box, Typography } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
 import { TRANSITION, GLASS_COLORS } from "../styles/GlassStyles";
-import { routeLabels } from "../constants/menuItems";
 import { layoutShell } from "../theme/tokens";
 
 const TOPBAR_HEIGHT = layoutShell.topBarHeightPx;
@@ -26,7 +26,7 @@ const AppLayout = () => {
     const location = useLocation();
 
     const currentSidebarWidth = sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED;
-    const currentLabel = routeLabels[location.pathname] || "Vista";
+    const currentLabel = resolveBreadcrumbLabel(location.pathname);
 
     return (
         <Box

@@ -1,16 +1,15 @@
 import { useCallback, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 import { containerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { wrapperStyles } from "../Actuaciones/styles/filtroStyles";
-import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { CompletarEmptyView } from "./views/CompletarEmptyView";
 import { CompletarTrabajosGridView } from "./views/CompletarTrabajosGridView";
 
 type VistaCompletar = "empty" | "grid";
 
 /**
- * Módulo Completar trabajos: empty + grilla Glide con datos mock por fecha.
+ * Módulo Completar trabajos: empty + tabla MRT (edición por fila) con datos mock por fecha.
  */
 const CompletarTrabajos = () => {
   const [vista, setVista] = useState<VistaCompletar>("empty");

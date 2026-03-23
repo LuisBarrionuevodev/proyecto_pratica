@@ -1,1 +1,1 @@
-export { CompletarTrabajosGrid, type CompletarTrabajosGridProps } from "./CompletarTrabajosGrid";
+export { CompletarTrabajosMRT, type CompletarTrabajosMRTProps } from "./CompletarTrabajosMRT";

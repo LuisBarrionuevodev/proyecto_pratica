@@ -115,7 +115,11 @@ export interface IGetRutaIniciadoresPendientesResponse {
 export interface IGetRutaIniciadoresPendientesParams {
   tipo?: string;
   prioridad?: number;
+  /** BAJA (=1), MEDIA (=2), ALTA (>=3); preferido frente a `prioridad` numérica. */
+  prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
   distrito?: number;
+  /** Filtro por `domicilio.calle_catalogo_id` (misma noción que nomenclatura). */
+  calle_catalogo_id?: number;
   q?: string;
   turno_sugerido?: "MANIANA" | "TARDE";
   page?: number;
@@ -127,6 +131,8 @@ export interface IRutaItemMin {
   ruta_trabajo_id: number;
   ruta_grupo_id: number;
   iniciador_ruta_id: number;
+  /** Presente tras publicar la ruta (actuación mínima vinculada). */
+  actuacion_id?: number | null;
   orden_trabajo_id?: number | null;
   orden_trabajo?: {
     id: number;
@@ -136,6 +142,15 @@ export interface IRutaItemMin {
   } | null;
   estado_ruta_item: string;
   deleted_at: string | null;
+  /** Detalle / mapa: desde iniciador → domicilio → geocode */
+  domicilio_id?: number | null;
+  domicilio_texto?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  geo_status?: string | null;
+  distrito_id?: number | null;
+  distrito_nombre?: string | null;
+  rubro_nombre?: string | null;
 }
 
 export interface IAssignItemsRequest {
@@ -171,6 +186,11 @@ export interface IPatchItemOtRequest {
 
 export interface IPatchItemOtResponse {
   item: IRutaItemMin;
+}
+
+export interface IPublicarRutaTrabajoResponse {
+  ruta: IRutaTrabajo;
+  items: IRutaItemMin[];
 }
 
 export const createRutaTrabajo = async (
@@ -272,6 +292,14 @@ export const patchRutaItemOrdenTrabajo = async (
   const { data } = await apiClient.patch<IPatchItemOtResponse>(
     `/rutas-trabajo/${rutaId}/items/${itemId}/orden-trabajo`,
     payload
+  );
+  return data;
+};
+
+/** Publica la ruta (BORRADOR → PUBLICADA), crea actuaciones mínimas por ítem. 409 = validación de negocio. */
+export const publicarRutaTrabajo = async (rutaId: number): Promise<IPublicarRutaTrabajoResponse> => {
+  const { data } = await apiClient.post<IPublicarRutaTrabajoResponse>(
+    `/rutas-trabajo/${rutaId}/publicar`
   );
   return data;
 };

@@ -93,9 +93,21 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
         {markers.map((m) => (
           <Marker key={`mk-${m.itemId}`} position={[m.lat, m.lng]} icon={createNumberedDivIcon(m.orden, m.color)}>
             <Popup>
-              <div style={{ minWidth: 160 }}>
+              <div style={{ minWidth: 180 }}>
                 <strong>#{m.orden}</strong>
                 <div style={{ marginTop: 4, fontSize: 13 }}>{m.etiqueta}</div>
+                {m.rubroNombre ? (
+                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>Rubro: {m.rubroNombre}</div>
+                ) : null}
+                {m.distritoNombre ? (
+                  <div style={{ fontSize: 12, opacity: 0.9 }}>Distrito: {m.distritoNombre}</div>
+                ) : null}
+                {m.ordenTrabajoLabel ? (
+                  <div style={{ fontSize: 12, opacity: 0.9 }}>{m.ordenTrabajoLabel}</div>
+                ) : null}
+                {m.geoStatus ? (
+                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.75 }}>Geo: {m.geoStatus}</div>
+                ) : null}
               </div>
             </Popup>
           </Marker>

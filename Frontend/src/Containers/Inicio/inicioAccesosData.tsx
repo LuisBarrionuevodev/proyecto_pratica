@@ -18,8 +18,8 @@ export const INICIO_ACCESOS: InicioAccesoItem[] = [
   {
     to: "/cargarPersonasCapacitadas",
     Icon: PersonAddIcon,
-    title: "Cargar Personas",
-    description: "Personas capacitadas para inspecciones",
+    title: "Gestión de capacitaciones",
+    description: "Registro y seguimiento de capacitaciones",
   },
   {
     to: "/cargarRelevamiento",
@@ -48,7 +48,7 @@ export const INICIO_ACCESOS: InicioAccesoItem[] = [
   {
     to: "/gestionSistema",
     Icon: SettingsSuggestIcon,
-    title: "Sistema",
-    description: "Configuración y administración del sistema",
+    title: "Configuración del sistema",
+    description: "Catálogos y parámetros (consulta)",
   },
 ];

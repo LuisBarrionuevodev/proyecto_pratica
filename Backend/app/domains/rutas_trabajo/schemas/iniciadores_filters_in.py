@@ -17,6 +17,8 @@ TipoIniciadorLiteral = Literal[
 
 TurnoLiteral = Literal["MANIANA", "TARDE"]
 
+PrioridadCategoriaLiteral = Literal["BAJA", "MEDIA", "ALTA"]
+
 
 class IniciadoresPendientesFiltersIn(BaseModel):
     """
@@ -25,7 +27,9 @@ class IniciadoresPendientesFiltersIn(BaseModel):
 
     tipo: Optional[TipoIniciadorLiteral] = None
     prioridad: Optional[int] = Field(default=None, ge=1, le=32767)
+    prioridad_categoria: Optional[PrioridadCategoriaLiteral] = None
     distrito: Optional[int] = Field(default=None, ge=1)
+    calle_catalogo_id: Optional[int] = Field(default=None, ge=1)
     q: Optional[str] = Field(default=None, max_length=200)
     turno_sugerido: Optional[TurnoLiteral] = None
     page: int = Field(default=1, ge=1)
@@ -56,5 +60,12 @@ class IniciadoresPendientesFiltersIn(BaseModel):
         Normaliza turno sugerido para evitar fallas por casing del cliente.
         """
         if v is None:
+            return None
+        return str(v).strip().upper() or None
+
+    @field_validator("prioridad_categoria", mode="before")
+    @classmethod
+    def normalize_prioridad_categoria(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
             return None
         return str(v).strip().upper() or None

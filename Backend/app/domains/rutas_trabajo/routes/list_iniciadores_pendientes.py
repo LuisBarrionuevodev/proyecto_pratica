@@ -27,9 +27,11 @@ def list_iniciadores_pendientes(ruta_id: int):
             ruta_id=ruta_id,
             tipo=filters.tipo,
             prioridad=filters.prioridad,
+            prioridad_categoria=filters.prioridad_categoria,
             distrito=filters.distrito,
             q=filters.q,
             turno_sugerido=filters.turno_sugerido,
+            calle_catalogo_id=filters.calle_catalogo_id,
             page=filters.page,
             per_page=filters.per_page,
         )

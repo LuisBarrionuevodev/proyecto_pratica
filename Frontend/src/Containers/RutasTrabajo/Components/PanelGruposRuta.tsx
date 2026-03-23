@@ -16,7 +16,7 @@ interface Props {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => Promise<void>;
+  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
 }
 
 const PanelGruposRuta = ({
@@ -125,7 +125,18 @@ const PanelGruposRuta = ({
                         <Button
                           size="small"
                           variant="contained"
-                          onClick={() => void onGuardarOtItem(item, otDraft)}
+                          onClick={() => {
+                            void (async () => {
+                              const ok = await onGuardarOtItem(item, otDraft);
+                              if (ok) {
+                                setOtDraftByItem((prev) => {
+                                  const next = { ...prev };
+                                  delete next[item.id];
+                                  return next;
+                                });
+                              }
+                            })();
+                          }}
                         >
                           Guardar OT
                         </Button>

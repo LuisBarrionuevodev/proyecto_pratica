@@ -97,3 +97,42 @@ export const glassContentHeader: SxProps<Theme> = {
     paddingY: 2,
     borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
 };
+
+/** Backdrop de diálogos: oscurece el shell y aplica blur ligero. */
+export const glassDialogBackdropSx: SxProps<Theme> = {
+    backgroundColor: "rgba(4, 6, 12, 0.72)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+};
+
+/** Paper del Dialog alineado al glass institucional. */
+export const glassDialogPaperSx: SxProps<Theme> = {
+    ...glassCard,
+    backgroundColor: GLASS_COLORS.cardBg,
+    color: GLASS_COLORS.textPrimary,
+    maxHeight: "min(92vh, 920px)",
+    display: "flex",
+    flexDirection: "column",
+};
+
+export const glassDialogTitleSx: SxProps<Theme> = {
+    fontFamily: '"Tactic Sans", sans-serif',
+    fontSize: "15px",
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+    backgroundColor: "rgba(0, 0, 0, 0.22)",
+    py: 1.5,
+};
+
+export const glassDialogContentSx: SxProps<Theme> = {
+    backgroundColor: "rgba(14, 16, 22, 0.35)",
+};
+
+export const glassDialogActionsSx: SxProps<Theme> = {
+    borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    px: 2,
+    py: 1.5,
+    gap: 1,
+};

@@ -5,7 +5,8 @@ import { alertBaseStyles } from "../Actuaciones/styles/filtroStyles";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import DomiciliosFiltersBar from "./components/DomiciliosFiltersBar";
-import DomiciliosSummaryCards from "./components/DomiciliosSummaryCards";
+import DomiciliosQueueToggle from "./components/DomiciliosQueueToggle";
+import type { DomiciliosQueueFocus } from "./components/DomiciliosQueueToggle";
 import ManualMapPanel from "./components/ManualMapPanel";
 import TabGeolocalizacionTable from "./components/TabGeolocalizacionTable";
 import TabNomenclaturaTable from "./components/TabNomenclaturaTable";
@@ -17,6 +18,7 @@ import type { DomicilioPendienteItem, DomiciliosFilters, DomiciliosTab } from ".
 const GestionarDomiciliosContainer = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [activeTab, setActiveTab] = useState<DomiciliosTab>("nomenclatura");
+  const [queueFocus, setQueueFocus] = useState<DomiciliosQueueFocus>("all");
   const [filters, setFilters] = useState<DomiciliosFilters>({
     desde: defaultRange.desde,
     hasta: defaultRange.hasta,
@@ -46,7 +48,14 @@ const GestionarDomiciliosContainer = () => {
     setFilters(reset);
     setQueryEnabled(false);
     setSelectedForManual(null);
+    setQueueFocus("all");
   };
+
+  const handleQueueFocus = useCallback((next: DomiciliosQueueFocus) => {
+    setQueueFocus(next);
+    if (next === "nomenclatura") setActiveTab("nomenclatura");
+    if (next === "geolocalizacion") setActiveTab("geolocalizacion");
+  }, []);
 
   const onGuardarNormalizacion = async (payload: {
     domicilio_id: number;
@@ -72,7 +81,9 @@ const GestionarDomiciliosContainer = () => {
   return (
     <Box sx={containerStyles}>
       <Box sx={wrapperStyles}>
-        <DomiciliosSummaryCards
+        <DomiciliosQueueToggle
+          value={queueFocus}
+          onChange={handleQueueFocus}
           nomenclaturaCount={nomenclaturaItems.length}
           geolocalizacionCount={geolocalizacionItems.length}
           pendingQuery={!queryEnabled}
@@ -100,39 +111,41 @@ const GestionarDomiciliosContainer = () => {
 
         {queryEnabled && (
           <>
-            <Box
-              sx={{
-                borderRadius: "12px",
-                border: `1px solid ${GLASS_COLORS.borderLight}`,
-                backgroundColor: GLASS_COLORS.cardBg,
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                px: 1,
-                overflow: "hidden",
-              }}
-            >
-              <Tabs
-                value={activeTab}
-                onChange={(_, v: DomiciliosTab) => {
-                  setActiveTab(v);
-                  if (v !== "geolocalizacion") {
-                    setSelectedForManual(null);
-                  }
-                }}
+            {queueFocus === "all" && (
+              <Box
                 sx={{
-                  minHeight: 44,
-                  "& .MuiTab-root": { color: GLASS_COLORS.textSecondary, fontFamily: '"Tactic Sans", sans-serif' },
-                  "& .Mui-selected": { color: GLASS_COLORS.primary },
-                  "& .MuiTabs-indicator": { backgroundColor: GLASS_COLORS.primary },
+                  borderRadius: "12px",
+                  border: `1px solid ${GLASS_COLORS.borderLight}`,
+                  backgroundColor: GLASS_COLORS.cardBg,
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  px: 1,
+                  overflow: "hidden",
                 }}
               >
-                <Tab label="Nomenclatura" value="nomenclatura" />
-                <Tab label="Geolocalización" value="geolocalizacion" />
-              </Tabs>
-            </Box>
+                <Tabs
+                  value={activeTab}
+                  onChange={(_, v: DomiciliosTab) => {
+                    setActiveTab(v);
+                    if (v !== "geolocalizacion") {
+                      setSelectedForManual(null);
+                    }
+                  }}
+                  sx={{
+                    minHeight: 44,
+                    "& .MuiTab-root": { color: GLASS_COLORS.textSecondary, fontFamily: '"Tactic Sans", sans-serif' },
+                    "& .Mui-selected": { color: GLASS_COLORS.primary },
+                    "& .MuiTabs-indicator": { backgroundColor: GLASS_COLORS.primary },
+                  }}
+                >
+                  <Tab label="Nomenclatura" value="nomenclatura" />
+                  <Tab label="Geolocalización" value="geolocalizacion" />
+                </Tabs>
+              </Box>
+            )}
 
             <Box sx={{ mt: 1.5 }}>
-              {activeTab === "nomenclatura" ? (
+              {(queueFocus === "all" && activeTab === "nomenclatura") || queueFocus === "nomenclatura" ? (
                 <TabNomenclaturaTable
                   items={nomenclaturaItems}
                   loading={loading}

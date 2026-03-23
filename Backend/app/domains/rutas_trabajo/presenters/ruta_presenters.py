@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from app.models import IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
 
 
@@ -33,6 +35,60 @@ def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
     if ref:
         return f"Ref: {ref}"
     return None
+
+
+def _numeric_to_float(value: Decimal | float | int | None) -> float | None:
+    """Convierte un valor numérico de DB a float para JSON; None si falta."""
+    if value is None:
+        return None
+    return float(value)
+
+
+def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
+    """
+    Extrae domicilio, texto UI, distrito, rubro y coordenadas desde iniciador → domicilio → geocode.
+
+    lat/lng solo se exponen cuando existen ambos en `domicilio_geocode` (fuente operativa de coords).
+    """
+    ini = item.iniciador_ruta
+    domicilio_texto = _build_domicilio_texto(ini) if ini else None
+    dom = ini.domicilio if ini else None
+
+    lat: float | None = None
+    lng: float | None = None
+    geo_status: str | None = None
+    domicilio_id: int | None = None
+    distrito_id: int | None = None
+    distrito_nombre: str | None = None
+    rubro_nombre: str | None = None
+
+    if dom:
+        domicilio_id = dom.id
+        distrito_id = dom.distrito_id
+        distrito_nombre = dom.distrito.nombre if dom.distrito else None
+        rubro_nombre = dom.rubro.nombre if dom.rubro else None
+        if ini and not rubro_nombre and ini.relevamiento and ini.relevamiento.rubro:
+            rubro_nombre = ini.relevamiento.rubro.nombre
+
+        gc = dom.geocode
+        if gc:
+            geo_status = str(gc.geo_status) if gc.geo_status is not None else None
+            la = _numeric_to_float(gc.lat)
+            ln = _numeric_to_float(gc.lng)
+            if la is not None and ln is not None:
+                lat = la
+                lng = ln
+
+    return {
+        "domicilio_id": domicilio_id,
+        "domicilio_texto": domicilio_texto,
+        "lat": lat,
+        "lng": lng,
+        "geo_status": geo_status,
+        "distrito_id": distrito_id,
+        "distrito_nombre": distrito_nombre,
+        "rubro_nombre": rubro_nombre,
+    }
 
 
 def ruta_trabajo_to_dict(ruta: RutaTrabajo) -> dict:
@@ -151,15 +207,18 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
 
 def ruta_item_to_min_dict(item: RutaItem) -> dict:
     """
-    Serializa un item de ruta para operaciones de asignación/movimiento.
+    Serializa un item de ruta para operaciones de asignación/movimiento y detalle/mapa.
+
+    Incluye ubicación y geocodificación cuando el iniciador tiene domicilio (vía iniciador_ruta → domicilio → geocode).
     """
     orden_trabajo = item.orden_trabajo
-    return {
+    base = {
         "id": item.id,
         "ruta_trabajo_id": item.ruta_trabajo_id,
         "ruta_grupo_id": item.ruta_grupo_id,
         "iniciador_ruta_id": item.iniciador_ruta_id,
         "orden_trabajo_id": item.orden_trabajo_id,
+        "actuacion_id": item.actuacion_id,
         "orden_trabajo": {
             "id": orden_trabajo.id,
             "numero_acta": orden_trabajo.numero_acta,
@@ -171,3 +230,5 @@ def ruta_item_to_min_dict(item: RutaItem) -> dict:
         "estado_ruta_item": item.estado_ruta_item,
         "deleted_at": item.deleted_at.isoformat() if item.deleted_at else None,
     }
+    base.update(_ruta_item_ubicacion_y_geo(item))
+    return base

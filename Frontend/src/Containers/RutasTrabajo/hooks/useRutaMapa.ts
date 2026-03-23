@@ -12,6 +12,9 @@ function etiquetaItem(
   item: IRutaItemMin,
   iniciadorById: Record<number, IRutaIniciadorPendienteRow>
 ): string {
+  if (item.domicilio_texto?.trim()) {
+    return item.domicilio_texto.trim();
+  }
   const ini = iniciadorById[item.iniciador_ruta_id];
   const texto =
     ini?.domicilio_texto ??
@@ -19,9 +22,15 @@ function etiquetaItem(
   return texto || `Iniciador #${item.iniciador_ruta_id}`;
 }
 
+function ordenTrabajoLabel(item: IRutaItemMin): string | null {
+  const ot = item.orden_trabajo;
+  if (!ot) return null;
+  return `OT ${ot.numero_acta} · ${String(ot.mes).padStart(2, "0")}/${ot.anio}`;
+}
+
 /**
  * Transforma grupos + ítems en estructura para panel Leaflet y leyendas.
- * Las coordenadas por ítem no vienen hoy en la API: lat/lng quedan null y no se dibujan markers/polylines.
+ * lat/lng vienen del detail de ruta (domicilio_geocode); sin coords no se dibujan markers.
  */
 export function useRutaMapa(
   grupos: IRutaGrupoMin[],
@@ -39,9 +48,8 @@ export function useRutaMapa(
         .sort((a, b) => a.id - b.id);
 
       const items: RutaMapaItemVista[] = groupItems.map((it, idx) => {
-        // Reservado: si el backend expone lat/lng en item o iniciador, mapear aquí.
-        const lat = null as number | null;
-        const lng = null as number | null;
+        const lat = typeof it.lat === "number" && !Number.isNaN(it.lat) ? it.lat : null;
+        const lng = typeof it.lng === "number" && !Number.isNaN(it.lng) ? it.lng : null;
         return {
           itemId: it.id,
           iniciadorRutaId: it.iniciador_ruta_id,
@@ -49,6 +57,10 @@ export function useRutaMapa(
           etiqueta: etiquetaItem(it, iniciadorById),
           lat,
           lng,
+          rubroNombre: it.rubro_nombre ?? null,
+          distritoNombre: it.distrito_nombre ?? null,
+          geoStatus: it.geo_status ?? null,
+          ordenTrabajoLabel: ordenTrabajoLabel(it),
         };
       });
 
@@ -85,6 +97,10 @@ export function useRutaMapa(
             lng: it.lng,
             etiqueta: it.etiqueta,
             color: gv.color,
+            rubroNombre: it.rubroNombre,
+            distritoNombre: it.distritoNombre,
+            geoStatus: it.geoStatus,
+            ordenTrabajoLabel: it.ordenTrabajoLabel,
           });
           positions.push([it.lat, it.lng]);
         }
@@ -97,7 +113,7 @@ export function useRutaMapa(
     const tieneCoordenadas = markers.length > 0;
     const avisoCoordenadas = tieneCoordenadas
       ? null
-      : "Los ítems de ruta aún no traen coordenadas desde la API. El mapa muestra el área de referencia (Tucumán). Cuando existan lat/lng, se dibujarán puntos y recorridos por grupo.";
+      : "Ningún ítem tiene lat/lng en geocodificación (domicilio_geocode). El mapa muestra el área de referencia (Tucumán). Con coords válidas se dibujan puntos y líneas simples por orden de ítem en cada grupo.";
 
     return {
       gruposVista,

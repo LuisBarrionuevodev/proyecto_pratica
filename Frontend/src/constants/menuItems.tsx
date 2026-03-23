@@ -40,7 +40,7 @@ export const menuSections: MenuSection[] = [
     items: [
       { text: "Cargar actas", icon: <CreateNewFolderIcon />, path: "/cargarActuacion" },
       { text: "Cargar relevamiento o denuncia", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
-      { text: "Cargar Personas", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
+      { text: "Gestión de capacitaciones", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
     ],
   },
   {
@@ -58,7 +58,7 @@ export const menuSections: MenuSection[] = [
   },
   {
     label: "CONFIGURACIÓN",
-    items: [{ text: "Sistema", icon: <SettingsIcon />, path: "/gestionSistema" }],
+    items: [{ text: "Configuración del sistema", icon: <SettingsIcon />, path: "/gestionSistema" }],
   },
 ];
 
@@ -72,7 +72,7 @@ export const routeLabels: Record<string, string> = {
   "/inicio": "Inicio",
   "/cargarActuacion": "Cargar actas",
   "/cargarRelevamiento": "Cargar relevamiento o denuncia",
-  "/cargarPersonasCapacitadas": "Cargar Personas",
+  "/cargarPersonasCapacitadas": "Gestión de capacitaciones",
   "/actuaciones": "Actuaciones",
   "/relevamientos": "Relevamientos",
   "/establecimientos": "Establecimientos",
@@ -83,7 +83,7 @@ export const routeLabels: Record<string, string> = {
   "/dashboard": "Indicadores",
   "/gestionarDomicilios": "Gestionar domicilios",
   "/mapa": "Mapa",
-  "/gestionSistema": "Sistema",
+  "/gestionSistema": "Configuración del sistema",
   "/perfil": "Mi Perfil",
   "/pendientes": "Pendientes",
   "/pendientesVinculacionActa": "Pendientes Vinculación Acta",

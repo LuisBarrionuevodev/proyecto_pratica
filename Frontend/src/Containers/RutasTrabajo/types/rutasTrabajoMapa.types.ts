@@ -9,6 +9,10 @@ export type RutaMapaMarker = {
   lng: number;
   etiqueta: string;
   color: string;
+  rubroNombre?: string | null;
+  distritoNombre?: string | null;
+  geoStatus?: string | null;
+  ordenTrabajoLabel?: string | null;
 };
 
 /** Polilínea por grupo (orden de visita). Positions en [lat, lng] para react-leaflet. */
@@ -26,6 +30,10 @@ export type RutaMapaItemVista = {
   etiqueta: string;
   lat: number | null;
   lng: number | null;
+  rubroNombre?: string | null;
+  distritoNombre?: string | null;
+  geoStatus?: string | null;
+  ordenTrabajoLabel?: string | null;
 };
 
 /** Grupo con datos derivados para UI mapa. */
@@ -56,6 +64,15 @@ export type RutasMapaOperativoViewProps = {
   iniciadorById: Record<number, IRutaIniciadorPendienteRow>;
   onVolverPlanificacion: () => void;
   onPublicarRuta?: () => void | Promise<void>;
-  /** Sin endpoint de publicación: false (botón deshabilitado). */
+  /** Ruta en BORRADOR con datos listos; false deshabilita el botón. */
   canPublish?: boolean;
+  /** Muestra estado de carga en el botón de publicar. */
+  publishingRuta?: boolean;
+  /** Misma gestión liviana que TABLA (comparte handlers con el contenedor). */
+  detailLoading?: boolean;
+  onEditarInspectores?: (grupo: IRutaGrupoMin) => void;
+  onEliminarGrupo?: (grupo: IRutaGrupoMin) => void | Promise<void>;
+  onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
+  onQuitarItem?: (item: IRutaItemMin) => void | Promise<void>;
+  onGuardarOtItem?: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
 };

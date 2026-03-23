@@ -11,9 +11,11 @@ def get_iniciadores_pendientes_para_ruta(
     ruta_id: int,
     tipo: str | None,
     prioridad: int | None,
+    prioridad_categoria: str | None,
     distrito: int | None,
     q: str | None,
     turno_sugerido: str | None,
+    calle_catalogo_id: int | None,
     page: int,
     per_page: int,
 ) -> tuple[list[IniciadorRuta], int]:
@@ -25,6 +27,7 @@ def get_iniciadores_pendientes_para_ruta(
     - solo iniciadores PENDIENTE y no soft-deleted.
     - excluye iniciadores ya tomados por RutaItem no eliminado de rutas activas.
     - para slice 1, ruta activa = BORRADOR.
+    - filtros opcionales: tipo, prioridad, distrito, calle_catalogo_id (domicilio), q, turno_sugerido.
 
     Returns:
     - tupla (items, total)
@@ -59,10 +62,18 @@ def get_iniciadores_pendientes_para_ruta(
 
     if tipo:
         query = query.filter(IniciadorRuta.tipo_iniciador == tipo)
-    if prioridad is not None:
+    if prioridad_categoria == "BAJA":
+        query = query.filter(IniciadorRuta.prioridad == 1)
+    elif prioridad_categoria == "MEDIA":
+        query = query.filter(IniciadorRuta.prioridad == 2)
+    elif prioridad_categoria == "ALTA":
+        query = query.filter(IniciadorRuta.prioridad >= 3)
+    elif prioridad is not None:
         query = query.filter(IniciadorRuta.prioridad == prioridad)
     if distrito is not None:
         query = query.filter(Domicilio.distrito_id == distrito)
+    if calle_catalogo_id is not None:
+        query = query.filter(Domicilio.calle_catalogo_id == calle_catalogo_id)
     if turno_sugerido:
         query = query.filter(IniciadorRuta.turno_sugerido == turno_sugerido)
     if q:

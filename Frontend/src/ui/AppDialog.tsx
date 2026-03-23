@@ -10,13 +10,25 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import type { ReactNode, MouseEvent } from "react";
 
+import {
+  glassDialogActionsSx,
+  glassDialogBackdropSx,
+  glassDialogContentSx,
+  glassDialogPaperSx,
+  glassDialogTitleSx,
+} from "../styles/GlassStyles";
+
 export type AppDialogTone = "default" | "danger";
+
+/** `glass`: panel institucional (default). `plain`: sin estilos glass extra (Paper MUI por defecto). */
+export type AppDialogAppearance = "glass" | "plain";
 
 export type AppDialogProps = Omit<DialogProps, "title"> & {
   title?: ReactNode;
   actions?: ReactNode;
   showCloseButton?: boolean;
   tone?: AppDialogTone;
+  appearance?: AppDialogAppearance;
   contentSx?: SxProps<Theme>;
   /** Activa bordes entre título / contenido / acciones (paridad con `DialogContent dividers` de MUI). */
   contentDividers?: boolean;
@@ -42,6 +54,7 @@ export function AppDialog({
   onClose,
   showCloseButton = true,
   tone = "default",
+  appearance = "glass",
   maxWidth = "sm",
   fullWidth = true,
   scroll = "paper",
@@ -58,13 +71,42 @@ export function AppDialog({
   const showTitleRow = title != null || showHeaderClose;
 
   const userPaper = slotProps?.paper as PaperProps | undefined;
+  const userBackdrop = slotProps?.backdrop as { sx?: SxProps<Theme> } | undefined;
+  const glassPaperSx = appearance === "glass" ? glassDialogPaperSx : undefined;
   const mergedPaperSlotProps: PaperProps = {
     ...userPaper,
     sx: [
+      glassPaperSx,
       paperSx,
       ...(Array.isArray(userPaper?.sx) ? userPaper.sx : userPaper?.sx ? [userPaper.sx] : []),
     ],
   };
+
+  const mergedBackdrop = {
+    ...userBackdrop,
+    sx: [
+      appearance === "glass" ? glassDialogBackdropSx : undefined,
+      userBackdrop?.sx,
+    ],
+  };
+
+  const titleSx: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 1,
+    pr: showHeaderClose ? 1 : 2,
+    ...(appearance === "glass" ? glassDialogTitleSx : {}),
+    ...(tone === "danger" ? { color: theme.palette.error.main } : {}),
+  };
+
+  const mergedContentSx: SxProps<Theme> = [
+    appearance === "glass" ? glassDialogContentSx : undefined,
+    contentSx,
+  ];
+
+  const mergedActionsSx: SxProps<Theme> | undefined =
+    appearance === "glass" ? glassDialogActionsSx : undefined;
 
   return (
     <Dialog
@@ -76,20 +118,12 @@ export function AppDialog({
       slotProps={{
         ...slotProps,
         paper: mergedPaperSlotProps,
+        backdrop: mergedBackdrop,
       }}
       {...rest}
     >
       {showTitleRow && (
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1,
-            pr: showHeaderClose ? 1 : 2,
-            ...(tone === "danger" ? { color: theme.palette.error.main } : {}),
-          }}
-        >
+        <DialogTitle sx={titleSx}>
           <span style={{ flex: 1 }}>{title ?? null}</span>
           {showHeaderClose && (
             <IconButton
@@ -97,16 +131,21 @@ export function AppDialog({
               onClick={onCloseButtonClick}
               edge="end"
               size="small"
+              sx={
+                appearance === "glass"
+                  ? { color: "rgba(255,255,255,0.75)", "&:hover": { color: theme.palette.primary.main } }
+                  : undefined
+              }
             >
               <CloseIcon />
             </IconButton>
           )}
         </DialogTitle>
       )}
-      <DialogContent dividers={Boolean(contentDividers)} sx={contentSx}>
+      <DialogContent dividers={Boolean(contentDividers)} sx={mergedContentSx}>
         {children}
       </DialogContent>
-      {actions != null && <DialogActions>{actions}</DialogActions>}
+      {actions != null && <DialogActions sx={mergedActionsSx}>{actions}</DialogActions>}
     </Dialog>
   );
 }

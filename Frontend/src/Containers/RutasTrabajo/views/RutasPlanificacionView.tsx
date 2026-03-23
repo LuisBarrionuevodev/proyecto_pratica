@@ -8,17 +8,12 @@ import type {
 } from "../../../api/rutasTrabajoApi";
 import PanelGruposRuta from "../Components/PanelGruposRuta";
 import ResumenRutaTrabajo from "../Components/ResumenRutaTrabajo";
-import TablaIniciadoresPendientes from "../Components/TablaIniciadoresPendientes";
+import TablaIniciadoresPendientes, {
+  type IniciadoresPendientesFilters,
+} from "../Components/TablaIniciadoresPendientes";
 import { rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
 
-/** Mismo shape que `TablaIniciadoresPendientes` (filters). */
-export type RutasPlanificacionFilters = {
-  q: string;
-  tipo: string;
-  prioridad: string;
-  distrito: string;
-  turno_sugerido: string;
-};
+export type RutasPlanificacionFilters = IniciadoresPendientesFilters;
 
 export type RutasPlanificacionViewProps = {
   ruta: IRutaTrabajo;
@@ -29,11 +24,15 @@ export type RutasPlanificacionViewProps = {
   iniciadoresMeta: { total: number; page: number; perPage: number };
   selectedIniciadorIds: number[];
   filters: RutasPlanificacionFilters;
-  loading: boolean;
+  /** Solo carga inicial / refresco explícito del detail; no usar para PATCH de ítem. */
+  detailLoading: boolean;
   loadingPendientes: boolean;
   canCreateGrupo: boolean;
   iniciadorById: Record<number, IRutaIniciadorPendienteRow>;
   onChangeFilters: (next: RutasPlanificacionFilters) => void;
+  /** Tabla de pendientes visible (tras interactuar con catálogos). */
+  pendientesTablaVisible: boolean;
+  onRefrescarPendientes: () => void;
   onPageChange: (nextPage: number) => void;
   onPerPageChange: (nextPerPage: number) => void;
   onSelectionChange: (ids: number[]) => void;
@@ -43,7 +42,7 @@ export type RutasPlanificacionViewProps = {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => void | Promise<void>;
+  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
 };
 
 /**
@@ -59,11 +58,13 @@ export function RutasPlanificacionView({
   iniciadoresMeta,
   selectedIniciadorIds,
   filters,
-  loading,
+  detailLoading,
   loadingPendientes,
   canCreateGrupo,
   iniciadorById,
   onChangeFilters,
+  pendientesTablaVisible,
+  onRefrescarPendientes,
   onPageChange,
   onPerPageChange,
   onSelectionChange,
@@ -85,6 +86,7 @@ export function RutasPlanificacionView({
               Iniciadores pendientes
             </Typography>
             <TablaIniciadoresPendientes
+              tablaVisible={pendientesTablaVisible}
               rows={iniciadores}
               total={iniciadoresMeta.total}
               page={iniciadoresMeta.page}
@@ -93,6 +95,7 @@ export function RutasPlanificacionView({
               selectedIds={selectedIniciadorIds}
               filters={filters}
               onChangeFilters={onChangeFilters}
+              onRefrescar={onRefrescarPendientes}
               onPageChange={onPageChange}
               onPerPageChange={onPerPageChange}
               onSelectionChange={onSelectionChange}
@@ -114,7 +117,7 @@ export function RutasPlanificacionView({
             >
               + Nuevo grupo
             </AppButton>
-            {loading ? (
+            {detailLoading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                 <CircularProgress />
               </Box>

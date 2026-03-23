@@ -1,15 +1,34 @@
-import { Autocomplete, Box, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import {
+  Autocomplete,
+  Box,
+  CircularProgress,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+
+import { fetchCallesCatalogo } from "../../api/geolocalizacionApi";
 
 type EditorMode = "NUMERO" | "ESQUINA";
 
 const hasLetters = (value: string) => /[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(value);
 const isOnlyDigits = (value: string) => /^\d+$/.test(value);
 
+const CALLES_DEBOUNCE_MS = 280;
+
 interface NumeroEsquinaEditorProps {
   value: string | null;
   onChange: (newValue: string | null) => void;
-  calles: string[];
+  /**
+   * Opciones extra (ej. calles sugeridas desde el mapa). El listado principal sale del catálogo DB
+   * con búsqueda por texto (`fetchCallesCatalogo`).
+   */
+  extraCalles?: string[];
+  /**
+   * @deprecated Usar `extraCalles`. Se fusiona con `extraCalles` por compatibilidad.
+   */
+  calles?: string[];
   label?: string;
   error?: boolean;
   helperText?: string;
@@ -21,7 +40,8 @@ interface NumeroEsquinaEditorProps {
 const NumeroEsquinaEditor = ({
   value,
   onChange,
-  calles,
+  extraCalles = [],
+  calles = [],
   label = "Número",
   error = false,
   helperText = "",
@@ -29,6 +49,11 @@ const NumeroEsquinaEditor = ({
   onModeChange,
   initialMode: initialModeProp,
 }: NumeroEsquinaEditorProps) => {
+  const supplementary = useMemo(
+    () => Array.from(new Set([...extraCalles, ...calles].filter(Boolean))),
+    [extraCalles, calles]
+  );
+
   const initialMode: EditorMode = useMemo(() => {
     if (initialModeProp) return initialModeProp;
     if (!value) return "NUMERO";
@@ -37,6 +62,40 @@ const NumeroEsquinaEditor = ({
 
   const [mode, setMode] = useState<EditorMode>(initialMode);
   const [inputValue, setInputValue] = useState(value ?? "");
+  const [options, setOptions] = useState<string[]>([]);
+  const [loadingCalles, setLoadingCalles] = useState(false);
+  const fetchSeq = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const mergeOptions = useCallback(
+    (fromDb: string[], query: string) => {
+      const q = query.trim().toLowerCase();
+      const extraFiltered = supplementary.filter(
+        (n) => !q || n.toLowerCase().includes(q)
+      );
+      return Array.from(new Set([...fromDb, ...extraFiltered]));
+    },
+    [supplementary]
+  );
+
+  const runCallesFetch = useCallback(
+    async (query: string) => {
+      const seq = ++fetchSeq.current;
+      setLoadingCalles(true);
+      try {
+        const resp = await fetchCallesCatalogo(query.trim() || undefined, 30);
+        if (seq !== fetchSeq.current) return;
+        const names = resp.items.map((i) => i.nombre).filter(Boolean);
+        setOptions(mergeOptions(names, query));
+      } catch {
+        if (seq !== fetchSeq.current) return;
+        setOptions(mergeOptions([], query));
+      } finally {
+        if (seq === fetchSeq.current) setLoadingCalles(false);
+      }
+    },
+    [mergeOptions]
+  );
 
   useEffect(() => {
     setMode(initialMode);
@@ -46,6 +105,32 @@ const NumeroEsquinaEditor = ({
   useEffect(() => {
     onModeChange?.(mode);
   }, [mode, onModeChange]);
+
+  useEffect(() => {
+    if (mode !== "ESQUINA") return;
+    void runCallesFetch("");
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [mode, runCallesFetch]);
+
+  const scheduleFetch = useCallback(
+    (raw: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
+        void runCallesFetch(raw);
+      }, CALLES_DEBOUNCE_MS);
+    },
+    [runCallesFetch]
+  );
+
+  const optionsWithCurrent = useMemo(() => {
+    const v = value?.trim();
+    if (!v) return options;
+    if (options.includes(v)) return options;
+    return [...options, v];
+  }, [options, value]);
 
   const handleModeChange = (_: MouseEvent<HTMLElement>, newMode: EditorMode | null) => {
     if (!newMode) return;
@@ -92,19 +177,29 @@ const NumeroEsquinaEditor = ({
         <Autocomplete
           size="small"
           freeSolo={allowFreeSolo}
-          options={calles}
+          options={optionsWithCurrent}
+          loading={loadingCalles}
+          filterOptions={(x) => x}
           openOnFocus
           autoHighlight
-          value={calles.includes(value ?? "") ? value : null}
+          value={value}
           inputValue={inputValue}
+          onOpen={() => {
+            void runCallesFetch(inputValue);
+          }}
           onInputChange={(_, newInputValue, reason) => {
             setInputValue(newInputValue);
             if (reason === "clear") {
               onChange(null);
+              void runCallesFetch("");
               return;
             }
             if (reason === "input") {
               onChange(newInputValue.length > 0 ? newInputValue : null);
+              scheduleFetch(newInputValue);
+            }
+            if (reason === "reset") {
+              setInputValue(value ?? "");
             }
           }}
           onChange={(_, newValue) => {
@@ -117,6 +212,15 @@ const NumeroEsquinaEditor = ({
               label={`${label} (esquina)`}
               error={error}
               helperText={helperText}
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loadingCalles ? <CircularProgress color="inherit" size={16} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
             />
           )}
           sx={{ flex: 1 }}

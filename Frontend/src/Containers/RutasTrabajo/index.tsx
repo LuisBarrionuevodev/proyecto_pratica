@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Button, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Alert, Box, Paper, Stack, Tab, Tabs, Tooltip, Typography } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
 import {
@@ -7,26 +7,31 @@ import {
   createRutaGrupo,
   createRutaTrabajo,
   deleteRutaGrupo,
-  deleteRutaItem,
   getRutaIniciadoresPendientes,
   getRutaTrabajoDetail,
-  moveRutaItem,
-  patchRutaItemOrdenTrabajo,
+  publicarRutaTrabajo,
   replaceRutaGrupoInspectores,
   type IRutaGrupoMin,
   type IRutaIniciadorPendienteRow,
   type IRutaItemMin,
   type IRutaTrabajo,
 } from "../../api/rutasTrabajoApi";
+import type { IniciadoresPendientesFilters } from "./Components/TablaIniciadoresPendientes";
 import ModalAsignarInspectoresGrupo from "./Components/ModalAsignarInspectoresGrupo";
 import ModalAsignarSeleccionAGrupo from "./Components/ModalAsignarSeleccionAGrupo";
 import ModalCrearGrupoRuta from "./Components/ModalCrearGrupoRuta";
 import ModalCrearRutaTrabajo from "./Components/ModalCrearRutaTrabajo";
-import { clearPersistedRutaId, persistRutaId, useRutasTrabajoSession } from "./hooks";
+import {
+  clearPersistedRutaId,
+  persistRutaId,
+  useRutaTrabajoBorradorActions,
+  useRutasTrabajoSession,
+} from "./hooks";
 import { rutasInstitutionalHeaderPaperSx } from "./styles/institutionalVisual";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
 import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
+import { AppButton } from "../../ui";
 
 const rutasAlertSx = {
   fontFamily: '"Tactic Sans", sans-serif',
@@ -38,6 +43,14 @@ const rutasAlertSx = {
   "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
 } as const;
 
+const FILTROS_INICIADORES_VACIOS: IniciadoresPendientesFilters = {
+  tipo: "",
+  prioridad_categoria: "",
+  distrito: "",
+  calle_catalogo_id: null,
+  turno_sugerido: "",
+};
+
 const RutasTrabajo = () => {
   const [tab, setTab] = useState<"TABLA" | "MAPA">("TABLA");
   const [ruta, setRuta] = useState<IRutaTrabajo | null>(null);
@@ -46,14 +59,10 @@ const RutasTrabajo = () => {
   const [iniciadores, setIniciadores] = useState<IRutaIniciadorPendienteRow[]>([]);
   const [iniciadoresMeta, setIniciadoresMeta] = useState({ total: 0, page: 1, perPage: 25 });
   const [selectedIniciadorIds, setSelectedIniciadorIds] = useState<number[]>([]);
-  const [filters, setFilters] = useState({
-    q: "",
-    tipo: "",
-    prioridad: "",
-    distrito: "",
-    turno_sugerido: "",
-  });
-  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState<IniciadoresPendientesFilters>({ ...FILTROS_INICIADORES_VACIOS });
+  const [pendientesTablaVisible, setPendientesTablaVisible] = useState(false);
+  /** Solo carga/refresco completo del detail de ruta (no PATCH sueltos). */
+  const [detailLoading, setDetailLoading] = useState(false);
   const [loadingPendientes, setLoadingPendientes] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -64,11 +73,15 @@ const RutasTrabajo = () => {
   const [openAsignarGrupo, setOpenAsignarGrupo] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<IRutaGrupoMin | null>(null);
   const [inspectoresCatalogo, setInspectoresCatalogo] = useState<CatalogItem[]>([]);
+  const [publishingRuta, setPublishingRuta] = useState(false);
 
   const rutaId = ruta?.id ?? null;
+  /** Borrador con detalle cargado: habilita la acción (el botón se deshabilita además mientras `publishingRuta`). */
+  const puedeIntentarPublicar = Boolean(rutaId && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
 
-  const loadRutaDetail = useCallback(async (targetRutaId: number) => {
-    setLoading(true);
+  const loadRutaDetail = useCallback(async (targetRutaId: number, opts?: { showLoading?: boolean }) => {
+    const showLoading = opts?.showLoading !== false;
+    if (showLoading) setDetailLoading(true);
     setError(null);
     try {
       const detail = await getRutaTrabajoDetail(targetRutaId);
@@ -76,6 +89,10 @@ const RutasTrabajo = () => {
       setGrupos(detail.grupos);
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
+      setPendientesTablaVisible(false);
+      setFilters({ ...FILTROS_INICIADORES_VACIOS });
+      setIniciadores([]);
+      setIniciadoresMeta((prev) => ({ ...prev, total: 0, page: 1 }));
       persistRutaId(targetRutaId);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
@@ -84,7 +101,7 @@ const RutasTrabajo = () => {
       setItems([]);
       clearPersistedRutaId();
     } finally {
-      setLoading(false);
+      if (showLoading) setDetailLoading(false);
     }
   }, []);
 
@@ -108,14 +125,16 @@ const RutasTrabajo = () => {
   };
 
   const loadPendientes = useCallback(async () => {
-    if (!rutaId) return;
+    if (!rutaId || !pendientesTablaVisible) return;
     setLoadingPendientes(true);
     try {
       const resp = await getRutaIniciadoresPendientes(rutaId, {
-        q: filters.q || undefined,
         tipo: filters.tipo || undefined,
-        prioridad: filters.prioridad ? Number(filters.prioridad) : undefined,
+        prioridad_categoria: filters.prioridad_categoria
+          ? (filters.prioridad_categoria as "BAJA" | "MEDIA" | "ALTA")
+          : undefined,
         distrito: filters.distrito ? Number(filters.distrito) : undefined,
+        calle_catalogo_id: filters.calle_catalogo_id ?? undefined,
         turno_sugerido: (filters.turno_sugerido || undefined) as "MANIANA" | "TARDE" | undefined,
         page: iniciadoresMeta.page,
         per_page: iniciadoresMeta.perPage,
@@ -127,7 +146,69 @@ const RutasTrabajo = () => {
     } finally {
       setLoadingPendientes(false);
     }
-  }, [filters, iniciadoresMeta.page, iniciadoresMeta.perPage, rutaId]);
+  }, [filters, iniciadoresMeta.page, iniciadoresMeta.perPage, pendientesTablaVisible, rutaId]);
+
+  const handleFiltrosPendientesChange = useCallback((next: IniciadoresPendientesFilters) => {
+    setFilters(next);
+    setPendientesTablaVisible(true);
+    setSelectedIniciadorIds([]);
+    setIniciadoresMeta((prev) => ({ ...prev, page: 1 }));
+  }, []);
+
+  const handleRefrescarPendientes = useCallback(() => {
+    setPendientesTablaVisible(false);
+    setFilters({ ...FILTROS_INICIADORES_VACIOS });
+    setIniciadores([]);
+    setIniciadoresMeta((prev) => ({ ...prev, total: 0, page: 1 }));
+    setSelectedIniciadorIds([]);
+  }, []);
+
+  /** Limpia sesión y estado local: vuelve al flujo de “crear ruta” (p. ej. tras publicar). */
+  const resetVistaRutaTrabajo = useCallback(() => {
+    clearPersistedRutaId();
+    setRuta(null);
+    setGrupos([]);
+    setItems([]);
+    setIniciadores([]);
+    setIniciadoresMeta((prev) => ({ ...prev, total: 0, page: 1 }));
+    setFilters({ ...FILTROS_INICIADORES_VACIOS });
+    setPendientesTablaVisible(false);
+    setSelectedIniciadorIds([]);
+    setOpenCrearGrupo(false);
+    setOpenAsignarInspectores(false);
+    setOpenAsignarGrupo(false);
+    setGrupoSeleccionado(null);
+    setTab("TABLA");
+  }, []);
+
+  const handlePublicarRuta = useCallback(async () => {
+    if (!rutaId || ruta?.estado_ruta !== "BORRADOR" || publishingRuta) return;
+    setPublishingRuta(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await publicarRutaTrabajo(rutaId);
+      resetVistaRutaTrabajo();
+      setSuccessMessage(
+        "Ruta publicada correctamente. Los trabajos pasaron a ejecución y podés registrarlos en Completar trabajo."
+      );
+    } catch (err: unknown) {
+      const ax = err as { response?: { status?: number; data?: { detail?: unknown } } };
+      const status = ax?.response?.status;
+      const detail = ax?.response?.data?.detail;
+      if (typeof detail === "string") {
+        setError(detail);
+      } else if (status === 409) {
+        setError(
+          "No se cumplen las condiciones para publicar. Revisá inspectores por grupo, ítems activos y OT en cada ítem."
+        );
+      } else {
+        setError("No se pudo publicar la ruta. Intentá de nuevo más tarde.");
+      }
+    } finally {
+      setPublishingRuta(false);
+    }
+  }, [publishingRuta, resetVistaRutaTrabajo, ruta?.estado_ruta, rutaId]);
 
   useEffect(() => {
     const loadInspectores = async () => {
@@ -145,13 +226,21 @@ const RutasTrabajo = () => {
     void loadPendientes();
   }, [loadPendientes]);
 
+  const { moveItem: handleMoveItem, deleteItem: handleDeleteItem, saveOtItem: handleSaveOt } =
+    useRutaTrabajoBorradorActions({
+      rutaId,
+      setItems,
+      setError,
+      loadPendientes,
+    });
+
   const handleCreateGrupo = async () => {
     if (!rutaId) return;
     setError(null);
     setSuccessMessage(null);
     try {
-      await createRutaGrupo(rutaId, {});
-      await loadRutaDetail(rutaId);
+      const resp = await createRutaGrupo(rutaId, {});
+      setGrupos((prev) => [...prev, { ...resp.item, items: resp.item.items ?? [] }]);
       setOpenCrearGrupo(false);
       setSuccessMessage("Grupo creado correctamente.");
     } catch (err: any) {
@@ -170,10 +259,12 @@ const RutasTrabajo = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      await replaceRutaGrupoInspectores(rutaId, grupoSeleccionado.id, {
+      const resp = await replaceRutaGrupoInspectores(rutaId, grupoSeleccionado.id, {
         inspector_ids: inspectorIds,
       });
-      await loadRutaDetail(rutaId);
+      setGrupos((prev) =>
+        prev.map((g) => (g.id === grupoSeleccionado.id ? { ...g, inspectores: resp.items } : g))
+      );
       setOpenAsignarInspectores(false);
       setGrupoSeleccionado(null);
       setSuccessMessage("Inspectores del grupo actualizados.");
@@ -196,33 +287,9 @@ const RutasTrabajo = () => {
       setSelectedIniciadorIds([]);
       setOpenAsignarGrupo(false);
       await loadPendientes();
-      await loadRutaDetail(rutaId);
       setSuccessMessage("Iniciadores asignados correctamente.");
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo asignar la selección");
-    }
-  };
-
-  const handleMoveItem = async (item: IRutaItemMin, targetGrupoId: number) => {
-    if (!rutaId) return;
-    try {
-      const resp = await moveRutaItem(rutaId, item.id, { target_grupo_id: targetGrupoId });
-      setItems((prev) => prev.map((it) => (it.id === item.id ? resp.item : it)));
-      await loadRutaDetail(rutaId);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo mover el item");
-    }
-  };
-
-  const handleDeleteItem = async (item: IRutaItemMin) => {
-    if (!rutaId) return;
-    try {
-      await deleteRutaItem(rutaId, item.id);
-      setItems((prev) => prev.filter((it) => it.id !== item.id));
-      await loadPendientes();
-      await loadRutaDetail(rutaId);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo quitar el item");
     }
   };
 
@@ -233,20 +300,8 @@ const RutasTrabajo = () => {
       setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
       setItems((prev) => prev.filter((it) => it.ruta_grupo_id !== grupo.id));
       await loadPendientes();
-      await loadRutaDetail(rutaId);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
-    }
-  };
-
-  const handleSaveOt = async (item: IRutaItemMin, numeroOt: string) => {
-    if (!rutaId) return;
-    try {
-      const resp = await patchRutaItemOrdenTrabajo(rutaId, item.id, { numero_orden_trabajo: numeroOt });
-      setItems((prev) => prev.map((it) => (it.id === resp.item.id ? resp.item : it)));
-      await loadRutaDetail(rutaId);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo guardar la OT");
     }
   };
 
@@ -269,8 +324,27 @@ const RutasTrabajo = () => {
               <Tab label="TABLA" value="TABLA" />
               <Tab label="MAPA" value="MAPA" />
             </Tabs>
-            <Stack direction="row" spacing={1.2} flexWrap="wrap">
-              <Button variant="contained">Continuar</Button>
+            <Stack direction="row" spacing={1.2} flexWrap="wrap" alignItems="center">
+              {rutaId != null && ruta?.estado_ruta === "BORRADOR" && (
+                <Tooltip
+                  title={
+                    publishingRuta
+                      ? "Publicando…"
+                      : "Valida inspectores por grupo, ítems con OT y genera actuaciones mínimas."
+                  }
+                >
+                  <span>
+                    <AppButton
+                      dsVariant="primary"
+                      dsSize="sm"
+                      disabled={!puedeIntentarPublicar || publishingRuta}
+                      onClick={() => void handlePublicarRuta()}
+                    >
+                      {publishingRuta ? "Publicando…" : "Publicar ruta"}
+                    </AppButton>
+                  </span>
+                </Tooltip>
+              )}
             </Stack>
           </Stack>
         </Paper>
@@ -300,14 +374,13 @@ const RutasTrabajo = () => {
             iniciadoresMeta={iniciadoresMeta}
             selectedIniciadorIds={selectedIniciadorIds}
             filters={filters}
-            loading={loading}
+            detailLoading={detailLoading}
             loadingPendientes={loadingPendientes}
             canCreateGrupo={canCreateGrupo}
             iniciadorById={iniciadorById}
-            onChangeFilters={(next) => {
-              setFilters(next);
-              setIniciadoresMeta((prev) => ({ ...prev, page: 1 }));
-            }}
+            pendientesTablaVisible={pendientesTablaVisible}
+            onChangeFilters={handleFiltrosPendientesChange}
+            onRefrescarPendientes={handleRefrescarPendientes}
             onPageChange={(nextPage) => setIniciadoresMeta((prev) => ({ ...prev, page: nextPage }))}
             onPerPageChange={(nextPerPage) =>
               setIniciadoresMeta((prev) => ({ ...prev, perPage: nextPerPage, page: 1 }))
@@ -333,7 +406,18 @@ const RutasTrabajo = () => {
             itemsActivos={itemsActivos}
             iniciadorById={iniciadorById}
             onVolverPlanificacion={() => setTab("TABLA")}
-            canPublish={false}
+            onPublicarRuta={handlePublicarRuta}
+            canPublish={puedeIntentarPublicar}
+            publishingRuta={publishingRuta}
+            detailLoading={detailLoading}
+            onEditarInspectores={(grupo) => {
+              setGrupoSeleccionado(grupo);
+              setOpenAsignarInspectores(true);
+            }}
+            onEliminarGrupo={handleDeleteGrupo}
+            onMoverItem={handleMoveItem}
+            onQuitarItem={handleDeleteItem}
+            onGuardarOtItem={handleSaveOt}
           />
         )}
 
