@@ -1,37 +1,46 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Typography } from "@mui/material";
 
-import {
-  alertBaseStyles,
-  COLORS,
-  filtroContainerStyles,
-  filtroTitleStyles,
-} from "../../Actuaciones/styles/filtroStyles";
+import { alertBaseStyles, COLORS } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton } from "../../../ui";
+import { glassCard } from "../../../styles/GlassStyles";
 import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
-import { useTrabajosDelDia } from "../hooks";
-import type { TrabajoDelDiaRow } from "../types/completarTrabajos.types";
+import { useCompletarTrabajoCatalogs, useTrabajosDelDia } from "../hooks";
 
 export type CompletarTrabajosGridViewProps = {
   fecha: string;
   onVolver: () => void;
 };
 
+const DEFAULT_PER_PAGE = 20;
+
 /**
- * Vista principal con MRT (edición por fila): trabajos del día para la fecha elegida (mock).
+ * Vista principal: trabajos del día (API paginada) + edición inline MRT para cierre.
  */
 export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajosGridViewProps) {
-  const { rows: fetchedRows, loading, error } = useTrabajosDelDia(fecha);
-  const [rows, setRows] = useState<TrabajoDelDiaRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
+  const catalogsState = useCompletarTrabajoCatalogs();
 
   useEffect(() => {
-    setRows(fetchedRows);
-  }, [fetchedRows]);
+    setPage(1);
+  }, [fecha]);
+
+  const { rows, meta, loading, error } = useTrabajosDelDia(fecha, {
+    page,
+    perPage: perPage,
+    refreshNonce,
+  });
+
+  const total = meta?.total ?? 0;
+  const catalogs = catalogsState.status === "ready" ? catalogsState.data : null;
+  const catalogsError = catalogsState.status === "error" ? catalogsState.message : null;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minHeight: 0 }}>
-      <Box sx={filtroContainerStyles}>
-        <Typography sx={filtroTitleStyles}>Trabajos del día</Typography>
+      <Box sx={{ ...glassCard, p: 2 }}>
         <Box
           sx={{
             display: "flex",
@@ -42,14 +51,15 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
           }}
         >
           <Typography
-            variant="body2"
+            variant="body1"
             sx={{
               fontFamily: '"Tactic Sans", sans-serif',
               color: COLORS.white,
-              "& strong": { color: COLORS.primary, fontWeight: 700 },
+              fontWeight: 600,
+              letterSpacing: "0.02em",
             }}
           >
-            Fecha operativa: <strong>{fecha}</strong>
+            {fecha}
           </Typography>
           <AppButton dsVariant="ghost" onClick={onVolver} sx={{ alignSelf: { xs: "stretch", sm: "center" } }}>
             Volver
@@ -62,16 +72,48 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
           {error}
         </Alert>
       )}
-      {!error && rows.length === 0 && !loading && (
+      {catalogsError && (
+        <Alert severity="warning" sx={{ ...alertBaseStyles, mb: 0 }}>
+          {catalogsError}
+        </Alert>
+      )}
+      {!error && meta != null && (
+        <Typography
+          variant="caption"
+          sx={{
+            fontFamily: '"Tactic Sans", sans-serif',
+            color: "rgba(255,255,255,0.5)",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          Total trabajos: {meta.total}
+        </Typography>
+      )}
+      {!error && total === 0 && !loading && (
         <Typography
           variant="body2"
           sx={{ color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' }}
         >
-          No hay trabajos para esta fecha (mock vacío).
+          No hay trabajos pendientes para el día operativo elegido. Revisá que sea la misma fecha de la ruta (no el día del
+          borrador), que la ruta esté publicada y que queden ítems EN_PROCESO.
         </Typography>
       )}
-      {(rows.length > 0 || loading) && (
-        <CompletarTrabajosMRT rows={rows} onRowsChange={setRows} loading={loading} />
+      {(total > 0 || loading) && (
+        <CompletarTrabajosMRT
+          rows={rows}
+          loading={loading}
+          total={total}
+          page={page}
+          perPage={perPage}
+          onPageChange={setPage}
+          onPerPageChange={(n) => {
+            setPerPage(n);
+            setPage(1);
+          }}
+          catalogs={catalogs}
+          onCierreExitoso={() => setRefreshNonce((n) => n + 1)}
+        />
       )}
     </Box>
   );

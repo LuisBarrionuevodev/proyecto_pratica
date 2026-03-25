@@ -8,8 +8,9 @@ from app.utils.fechas import parse_fecha_grid
 
 from .previas_service import resolver_previas
 from app.domains.actuaciones.attach.inspeccion import attach_inspeccion
-from app.domains.actuaciones.attach.notificacion import attach_notificacion
-from app.domains.actuaciones.attach.comprobacion import attach_comprobacion
+from app.domains.actuaciones.services.completar_trabajo_actas_service import (
+    aplicar_notificacion_y_comprobacion_completar_trabajo,
+)
 from app.domains.actuaciones.attach.clausura import attach_clausura
 from app.domains.actuaciones.attach.decomiso import attach_decomiso
 from app.domains.actuaciones.attach.oficio import attach_oficio
@@ -42,55 +43,31 @@ def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
     return act
 
 
-def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuaciones:
+def aplicar_payload_actuacion(
+    act: Actuaciones,
+    payload: Dict[str, Any],
+    *,
+    ejecutar_resolver_previas: bool = True,
+) -> None:
     """
-    Actualiza una `Actuaciones` existente en base a un payload canon.
+    Aplica sobre una `Actuaciones` ya cargada las mismas mutaciones que el núcleo de
+    `actualizar_actuacion`, **sin** `commit`, cleanup ni geocode.
 
-    Este service mantiene el comportamiento histórico:
-    - Aplica updates parciales según keys presentes en `payload`.
-    - Recalcula `mes/anio/fecha` si viene `fecha_actuacion`.
-    - Permite cambiar OT si vienen `orden_trabajo_numero` + `fecha_actuacion` (y respeta la regla 1 OT -> 1 actuación).
-    - Resuelve catálogos/dominios y adjunta actas del día / previas.
-    - Adjunta oficio/expediente si vienen en payload.
-    - Persiste con `db.session.commit()` al final.
+    Sirve para orquestar en una sola transacción (p. ej. Completar trabajo + ruta ítem)
+    reutilizando la lógica de domicilio, inspectores, actas y oficio/expediente.
 
-    Cleanup post-update (soft delete):
-    - Antes de modificar la actuación, guarda `old_domicilio_id` y el `old_contribuyente_id`
-      (derivado del domicilio viejo si existe).
-    - Luego del primer commit:
-      - Si cambió `domicilio_id`, intenta soft-delete del domicilio viejo si quedó huérfano.
-      - Siempre evalúa soft-delete del contribuyente viejo (si existe) para cubrir reasignaciones
-        por cambio de DNI, aun cuando no cambie `domicilio_id`.
-      - Hace un segundo commit para persistir `deleted_at`.
+    Parámetros:
+        act: instancia ORM persistida (con `id`).
+        payload: dict canónico como el del mapper de grilla / update actuaciones.
+        ejecutar_resolver_previas: si False, no invoca `resolver_previas` (flujos sin previas,
+            p. ej. Completar trabajo).
 
-    Args:
-        actuacion_id: id de la actuación a actualizar.
-        payload: dict canon del mapper (sin DB).
+    Errores:
+        ValueError y demás excepciones de negocio de los attach/catalogs, igual que antes.
 
-    Returns:
-        Instancia de `Actuaciones` actualizada y commiteada.
-
-    Raises:
-        ValueError: si la actuación no existe o si se violan reglas de negocio/validaciones.
+    Side effects:
+        Modifica `act` y entidades relacionadas en la sesión actual; no hace flush/commit.
     """
-    act = _get_actuacion_or_404(actuacion_id)
-
-    # Snapshot pre-update para cleanup post-commit.
-    old_domicilio_id: int | None = act.domicilio_id
-    old_contribuyente_id: int | None = None
-    old_orden_trabajo_id: int | None = act.orden_trabajo_id  # nuevo: para soft delete OT
-    old_notificacion_id: int | None = act.notificacion_id
-    old_comprobacion_id: int | None = act.comprobacion_id
-    old_oficios_ids: list[int] = []
-    old_expedientes_ids: list[int] = []
-    if old_comprobacion_id:
-        old_oficios_ids = [o.id for o in Oficio.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
-        old_expedientes_ids = [e.id for e in Expediente.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
-    if old_domicilio_id is not None:
-        old_dom: Domicilio | None = db.session.get(Domicilio, old_domicilio_id)
-        if old_dom is not None:
-            old_contribuyente_id = old_dom.contribuyente_id
-
     # Fecha
     if payload.get("fecha_actuacion"):
         mes, anio, fecha = parse_fecha_grid(payload["fecha_actuacion"])
@@ -143,18 +120,19 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         nombres = payload.get("inspectores") or []
         act.inspector = get_inspectores_o_falla(nombres) if nombres else []
 
-    # Previas
-    resolver_previas(act, payload)
+    if ejecutar_resolver_previas:
+        resolver_previas(act, payload)
 
     # Actas (update)
     if "acta_inspeccion_num" in payload:
         attach_inspeccion(act, payload.get("acta_inspeccion_num"), crear=False)
 
-    if "notificacion" in payload:
-        attach_notificacion(act, payload.get("notificacion"))
-
-    if "comprobacion" in payload:
-        attach_comprobacion(act, payload.get("comprobacion"))
+    if "notificacion" in payload or "comprobacion" in payload:
+        aplicar_notificacion_y_comprobacion_completar_trabajo(
+            act,
+            notificacion=payload.get("notificacion") if "notificacion" in payload else None,
+            comprobacion=payload.get("comprobacion") if "comprobacion" in payload else None,
+        )
 
     if "clausura" in payload:
         attach_clausura(act, payload.get("clausura"), crear=False)
@@ -163,7 +141,10 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         attach_decomiso(act, payload.get("decomiso"), crear=False)
 
     # Oficio / Expediente
-    oficio = attach_oficio(payload.get("oficio"), act.comprobacion_id  if "oficio" in payload else None)
+    oficio = attach_oficio(
+        payload.get("oficio"),
+        act.comprobacion_id if "oficio" in payload else None,
+    )
     expediente = (
         attach_expediente(payload.get("expediente"), act.comprobacion_id, oficio.id if oficio else None)
         if "expediente" in payload
@@ -171,6 +152,57 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     )
     if expediente and hasattr(act, "expediente_id"):
         act.expediente_id = expediente.id
+
+
+def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuaciones:
+    """
+    Actualiza una `Actuaciones` existente en base a un payload canon.
+
+    Este service mantiene el comportamiento histórico:
+    - Aplica updates parciales según keys presentes en `payload`.
+    - Recalcula `mes/anio/fecha` si viene `fecha_actuacion`.
+    - Permite cambiar OT si vienen `orden_trabajo_numero` + `fecha_actuacion` (y respeta la regla 1 OT -> 1 actuación).
+    - Delega el núcleo de mutación a `aplicar_payload_actuacion` (misma semántica histórica).
+    - Persiste con `db.session.commit()` al final.
+
+    Cleanup post-update (soft delete):
+    - Antes de modificar la actuación, guarda `old_domicilio_id` y el `old_contribuyente_id`
+      (derivado del domicilio viejo si existe).
+    - Luego del primer commit:
+      - Si cambió `domicilio_id`, intenta soft-delete del domicilio viejo si quedó huérfano.
+      - Siempre evalúa soft-delete del contribuyente viejo (si existe) para cubrir reasignaciones
+        por cambio de DNI, aun cuando no cambie `domicilio_id`.
+      - Hace un segundo commit para persistir `deleted_at`.
+
+    Args:
+        actuacion_id: id de la actuación a actualizar.
+        payload: dict canon del mapper (sin DB).
+
+    Returns:
+        Instancia de `Actuaciones` actualizada y commiteada.
+
+    Raises:
+        ValueError: si la actuación no existe o si se violan reglas de negocio/validaciones.
+    """
+    act = _get_actuacion_or_404(actuacion_id)
+
+    # Snapshot pre-update para cleanup post-commit.
+    old_domicilio_id: int | None = act.domicilio_id
+    old_contribuyente_id: int | None = None
+    old_orden_trabajo_id: int | None = act.orden_trabajo_id  # nuevo: para soft delete OT
+    old_notificacion_id: int | None = act.notificacion_id
+    old_comprobacion_id: int | None = act.comprobacion_id
+    old_oficios_ids: list[int] = []
+    old_expedientes_ids: list[int] = []
+    if old_comprobacion_id:
+        old_oficios_ids = [o.id for o in Oficio.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
+        old_expedientes_ids = [e.id for e in Expediente.query.filter_by(comprobacion_id=old_comprobacion_id).all()]
+    if old_domicilio_id is not None:
+        old_dom: Domicilio | None = db.session.get(Domicilio, old_domicilio_id)
+        if old_dom is not None:
+            old_contribuyente_id = old_dom.contribuyente_id
+
+    aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
 
     db.session.add(act)
     db.session.commit()

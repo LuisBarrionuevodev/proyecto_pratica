@@ -137,14 +137,12 @@ const PendientesOficioView = () => {
   const columns = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
     () => [
       { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 100 },
-      { accessorKey: "acta_comprobacion_num", header: "Acta comprobación", size: 180 },
-      { accessorKey: "comprobacion_motivo", header: "Motivo", size: 220 },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 180 },
+      { accessorKey: "orden_trabajo_numero", header: "Orden de trabajo", size: 130 },
+      { accessorKey: "acta_comprobacion_num", header: "Número de acta", size: 140 },
+      { accessorKey: "rubro_nombre", header: "Rubro", size: 160 },
       { accessorKey: "calle", header: "Calle", size: 200 },
       { accessorKey: "numero", header: "Número", size: 100 },
-      { accessorKey: "expediente_original_numero", header: "Expediente original", size: 180 },
-      { accessorKey: "expediente_original_anio", header: "Año exp. original", size: 140 },
+      { accessorKey: "comprobacion_motivo", header: "Motivo", size: 220 },
       {
         id: "acciones",
         header: "Acciones",

@@ -1,51 +1,76 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type { TrabajoDelDiaRow } from "../types/completarTrabajos.types";
-import { getMockTrabajosDelDiaRows } from "./mockTrabajosDelDiaData";
+import {
+  getCompletarTrabajoPendientes,
+  type ICompletarTrabajoPendienteRow,
+  type ICompletarTrabajoPendientesMeta,
+} from "../../../api/completarTrabajoApi";
 
-const MOCK_DELAY_MS = 450;
+export type UseTrabajosDelDiaOptions = {
+  page?: number;
+  perPage?: number;
+  /** Incrementar para forzar refetch manteniendo fecha/paginación. */
+  refreshNonce?: number;
+};
 
 /**
- * Carga trabajos del día para una fecha (mock local con latencia simulada).
+ * Carga trabajos pendientes de completar para una fecha (API real, paginado).
  *
- * @param fecha - ISO date YYYY-MM-DD; si vacío, no dispara carga.
- * @returns rows, loading, error — listo para reemplazar por fetch real.
+ * @param fecha - Día operativo de la ruta (YYYY-MM-DD), igual a `RutaTrabajo.fecha`; si vacío, no dispara carga.
  */
-export function useTrabajosDelDia(fecha: string | null) {
-  const [rows, setRows] = useState<TrabajoDelDiaRow[]>([]);
+export function useTrabajosDelDia(fecha: string | null, options: UseTrabajosDelDiaOptions = {}) {
+  const page = options.page ?? 1;
+  const perPage = options.perPage ?? 20;
+  const refreshNonce = options.refreshNonce ?? 0;
+
+  const [rows, setRows] = useState<ICompletarTrabajoPendienteRow[]>([]);
+  const [meta, setMeta] = useState<ICompletarTrabajoPendientesMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastFechaRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!fecha) {
       setRows([]);
+      setMeta(null);
       setError(null);
       setLoading(false);
+      lastFechaRef.current = null;
       return;
+    }
+
+    if (lastFechaRef.current !== fecha) {
+      lastFechaRef.current = fecha;
+      setRows([]);
+      setMeta(null);
     }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
+    void (async () => {
       try {
-        const next = getMockTrabajosDelDiaRows(fecha);
-        setRows(next);
-      } catch {
-        setError("No se pudieron cargar los trabajos del día.");
+        const resp = await getCompletarTrabajoPendientes({ fecha, page, per_page: perPage });
+        if (cancelled) return;
+        setRows(resp.items);
+        setMeta(resp.meta);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const ax = err as { response?: { data?: { detail?: string; errors?: unknown } } };
+        const detail = ax?.response?.data?.detail;
+        setError(typeof detail === "string" ? detail : "No se pudieron cargar los trabajos del día.");
         setRows([]);
+        setMeta(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, MOCK_DELAY_MS);
+    })();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
     };
-  }, [fecha]);
+  }, [fecha, page, perPage, refreshNonce]);
 
-  return { rows, loading, error };
+  return { rows, meta, loading, error };
 }

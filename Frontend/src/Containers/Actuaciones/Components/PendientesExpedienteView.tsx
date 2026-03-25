@@ -19,6 +19,7 @@ import {
   createExpedienteDesdeActuacion,
   getActuacionesPendientesExpediente,
   type IActuacionesPendientesItem,
+  type ICreateExpedienteRequest,
 } from "../../../api/actuacionesPendientesApi";
 import { containerStyles, wrapperStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
@@ -35,6 +36,25 @@ import {
   filtroTitleStyles,
 } from "../styles/filtroStyles";
 import { AppButton, AppTextField } from "../../../ui";
+
+/** Número de acta administrativa relevante para la fila (notif. vs comp.). */
+function pendienteExpedienteActaNum(row: IActuacionesPendientesItem): string | null {
+  if (row.source_type === "COMPROBACION") return row.acta_comprobacion_num ?? null;
+  if (row.source_type === "NOTIFICACION") return row.acta_notificacion_num ?? null;
+  return row.acta_comprobacion_num ?? row.acta_notificacion_num ?? null;
+}
+
+/** Texto de motivo(s) según la rama administrativa. */
+function pendienteExpedienteMotivoText(row: IActuacionesPendientesItem): string {
+  if (row.source_type === "COMPROBACION") {
+    const m = row.comprobacion_motivo?.trim();
+    return m ?? "";
+  }
+  const parts = [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3].filter(
+    (s): s is string => Boolean(s && String(s).trim())
+  );
+  return parts.join(", ");
+}
 
 const PendientesExpedienteView = () => {
   type SourceTab = "notificacion" | "comprobacion";
@@ -108,12 +128,15 @@ const PendientesExpedienteView = () => {
     setSaving(true);
     setError(null);
     try {
-      await createExpedienteDesdeActuacion(selected.id, {
-        numero_expediente: expNumero.trim(),
+      const payload: ICreateExpedienteRequest = {
+        expediente_numero: expNumero.trim(),
         fecha_expediente: expFecha,
-        prorroga_dias: Number(prorrogaDias) || 0,
         source_type: selected.source_type,
-      });
+      };
+      if (selected.source_type === "NOTIFICACION") {
+        payload.prorroga_dias = Number(prorrogaDias) || 0;
+      }
+      await createExpedienteDesdeActuacion(selected.id, payload);
       closeModal();
       await loadData();
     } catch (err: any) {
@@ -137,12 +160,22 @@ const PendientesExpedienteView = () => {
   const columns = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
       { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 100 },
-      { accessorKey: "acta_numero", header: "Acta", size: 140 },
-      { accessorKey: "motivo", header: "Motivo", size: 220 },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 180 },
+      { accessorKey: "orden_trabajo_numero", header: "Orden de trabajo", size: 130 },
+      {
+        id: "acta_admin",
+        header: "Número de acta",
+        size: 140,
+        accessorFn: (row) => pendienteExpedienteActaNum(row) ?? "",
+      },
+      { accessorKey: "rubro_nombre", header: "Rubro", size: 160 },
       { accessorKey: "calle", header: "Calle", size: 200 },
       { accessorKey: "numero", header: "Número", size: 100 },
+      {
+        id: "motivo_admin",
+        header: "Motivo(s)",
+        size: 220,
+        accessorFn: (row) => pendienteExpedienteMotivoText(row),
+      },
       actionColumn,
     ],
     []

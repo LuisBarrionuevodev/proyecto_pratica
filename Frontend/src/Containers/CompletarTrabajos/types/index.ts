@@ -1,1 +1,1 @@
-export type { CompletarTrabajosEmptyProps, TrabajoDelDiaRow } from "./completarTrabajos.types";
+export type { CompletarTrabajosEmptyProps } from "./completarTrabajos.types";

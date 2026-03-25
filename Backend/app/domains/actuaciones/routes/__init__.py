@@ -17,5 +17,8 @@ from . import pendientes  # noqa: E402,F401
 from . import pendientes_expediente  # noqa: E402,F401
 from . import pendientes_oficio  # noqa: E402,F401
 from . import oficio_from_acta  # noqa: E402,F401
+from . import completar_trabajo_pendientes  # noqa: E402,F401
+from . import completar_trabajo_cerrar  # noqa: E402,F401
+from . import completar_trabajo_detalle  # noqa: E402,F401
 
 __all__ = ["actuacion"]

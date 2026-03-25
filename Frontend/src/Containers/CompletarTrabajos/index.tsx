@@ -9,7 +9,8 @@ import { CompletarTrabajosGridView } from "./views/CompletarTrabajosGridView";
 type VistaCompletar = "empty" | "grid";
 
 /**
- * Módulo Completar trabajos: empty + tabla MRT (edición por fila) con datos mock por fecha.
+ * Módulo Completar trabajos: selector de fecha + grilla MRT con datos reales.
+ * No incluye actas previas (notif./comprob. previa): no obligatorias aquí; el origen va por iniciador.
  */
 const CompletarTrabajos = () => {
   const [vista, setVista] = useState<VistaCompletar>("empty");

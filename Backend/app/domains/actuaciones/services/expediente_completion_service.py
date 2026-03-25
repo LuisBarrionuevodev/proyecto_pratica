@@ -33,7 +33,8 @@ def _parse_expediente_payload(data: Dict[str, Any]) -> Tuple[str, date, str]:
     Raises:
         ValueError: si faltan campos requeridos o son inválidos.
     """
-    numero = acta_6(data.get("expediente_numero"))
+    # Front histórico envió `numero_expediente`; contrato estable es `expediente_numero`.
+    numero = acta_6(data.get("expediente_numero") or data.get("numero_expediente"))
     fecha_expediente = data.get("fecha_expediente")
     if not numero or fecha_expediente is None:
         raise ValueError("expediente_numero y fecha_expediente son obligatorios")

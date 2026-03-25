@@ -43,8 +43,9 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
       <Box sx={filtroGlassPanelSx}>
         <Typography sx={{ ...filtroTitleStyles, marginBottom: "12px" }}>Fecha operativa</Typography>
         <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mb: 1.75 }}>
-          Elegí el día de operación. En una próxima versión verás los trabajos asignados para
-          completar.
+          Usá la <strong>misma fecha operativa</strong> que configuraste en la ruta de trabajo (no el día en que creaste el
+          borrador). Solo aparecen ítems de rutas <strong>ya publicadas</strong>; hasta publicar no hay actuación ni
+          EN_PROCESO.
         </Typography>
 
         <Box sx={{ ...filtroGridStyles, marginBottom: "12px" }}>
