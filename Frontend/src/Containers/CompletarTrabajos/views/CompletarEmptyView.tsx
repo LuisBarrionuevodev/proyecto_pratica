@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import { GLASS_COLORS, glassCard } from "../../../styles/GlassStyles";
+import { fechaLocalHoyIso } from "../../../utils/dateRange";
 import { AppButton, AppTextField } from "../../../ui";
 import {
   filtroButtonPrimaryStyles,
@@ -12,14 +13,6 @@ import {
   filtroTitleStyles,
 } from "../../Actuaciones/styles/filtroStyles";
 import type { CompletarTrabajosEmptyProps } from "../types";
-
-function fechaLocalHoyIso(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 /** Contenedor de filtro: relevamientos + glass; altura según contenido (compacto). */
 const filtroGlassPanelSx = {

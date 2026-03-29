@@ -8,6 +8,9 @@ from app.database import db
 from app.models import CatalogContraproducencia, CatalogTipoActuacion
 
 from app.domains.actuaciones.schemas.list_filters import _coerce_catalog_value
+from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+    map_contraproducencia_alias_to_catalog_nombre,
+)
 
 
 class CompletarTrabajoCierreIn(BaseModel):
@@ -61,7 +64,21 @@ class CompletarTrabajoCierreIn(BaseModel):
             return None
         if db.session is None:  # pragma: no cover
             return s
-        return _coerce_catalog_value(s, CatalogContraproducencia, "contraproducencia")
+        s = map_contraproducencia_alias_to_catalog_nombre(s)
+        try:
+            return _coerce_catalog_value(s, CatalogContraproducencia, "contraproducencia")
+        except ValueError:
+            # Coerción estricta por SQL puede fallar por variantes de barra/espacios vs seed;
+            # alinear con la misma lógica que `normalize_contraproducencia` (loose key).
+            def _ck_loose(x: str) -> str:
+                z = x.upper().replace("_", " ").replace("/", " ")
+                return " ".join(z.split())
+
+            want = _ck_loose(s)
+            for (nombre,) in db.session.query(CatalogContraproducencia.nombre).all():
+                if nombre and _ck_loose(str(nombre)) == want:
+                    return str(nombre).strip()
+            raise
 
     @field_validator("rubro_nombre", "calle", "numero", mode="before")
     @classmethod

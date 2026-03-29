@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Typography } from "@mui/material";
 
+import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { alertBaseStyles, COLORS } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton } from "../../../ui";
 import { glassCard } from "../../../styles/GlassStyles";
+import { CompletarTrabajoModal } from "../components/CompletarTrabajoModal";
 import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
 import { useCompletarTrabajoCatalogs, useTrabajosDelDia } from "../hooks";
 
@@ -15,12 +17,12 @@ export type CompletarTrabajosGridViewProps = {
 const DEFAULT_PER_PAGE = 20;
 
 /**
- * Vista principal: trabajos del día (API paginada) + edición inline MRT para cierre.
+ * Vista principal: tabla resumen + modal de cierre (`submitCompletarTrabajoCierreFromRow`).
  */
 export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajosGridViewProps) {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
-  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [modalRow, setModalRow] = useState<ICompletarTrabajoPendienteRow | null>(null);
 
   const catalogsState = useCompletarTrabajoCatalogs();
 
@@ -28,10 +30,9 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
     setPage(1);
   }, [fecha]);
 
-  const { rows, meta, loading, error } = useTrabajosDelDia(fecha, {
+  const { rows, meta, loading, error, removeRowByRutaItemId } = useTrabajosDelDia(fecha, {
     page,
     perPage: perPage,
-    refreshNonce,
   });
 
   const total = meta?.total ?? 0;
@@ -111,10 +112,20 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
             setPerPage(n);
             setPage(1);
           }}
-          catalogs={catalogs}
-          onCierreExitoso={() => setRefreshNonce((n) => n + 1)}
+          onOpenCompletarModal={setModalRow}
         />
       )}
+
+      <CompletarTrabajoModal
+        open={modalRow != null}
+        row={modalRow}
+        catalogs={catalogs}
+        catalogsReady={catalogsState.status === "ready"}
+        onClose={() => setModalRow(null)}
+        onSuccess={(rutaItemId) => {
+          removeRowByRutaItemId(rutaItemId);
+        }}
+      />
     </Box>
   );
 }

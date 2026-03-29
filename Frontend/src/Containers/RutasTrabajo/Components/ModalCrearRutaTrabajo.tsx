@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { fechaLocalHoyIso } from "../../../utils/dateRange";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 
 interface Props {
@@ -10,11 +10,14 @@ interface Props {
 }
 
 const ModalCrearRutaTrabajo = ({ open, onClose, onSubmit }: Props) => {
-  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
-  const [fecha, setFecha] = useState(defaultRange.hasta);
+  const [fecha, setFecha] = useState(() => fechaLocalHoyIso());
   const [turno, setTurno] = useState<"MANIANA" | "TARDE">("MANIANA");
   const [observaciones, setObservaciones] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setFecha(fechaLocalHoyIso());
+  }, [open]);
 
   const handleClose = () => {
     if (saving) return;

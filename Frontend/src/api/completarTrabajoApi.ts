@@ -16,9 +16,17 @@ export interface ICompletarTrabajoPendienteRow {
   tipo_actuacion: string | null;
   /** Tipo de catálogo coherente con `tipo_iniciador` (referencia para el formulario de tipo). */
   tipo_actuacion_esperado?: string | null;
+  /** Nombres de inspectores (misma convención que grilla actuaciones). */
+  inspector1?: string | null;
+  inspector2?: string | null;
+  inspector3?: string | null;
+  /** Nombre de fantasía del comercio / local (actuación). */
+  nombre_local?: string | null;
   contraproducencia: string | null;
   calle: string | null;
   numero: string | null;
+  /** FK domicilio de la actuación; para edición/nomenclatura futura sin alta “desde cero”. */
+  domicilio_id?: number | null;
   domicilio_texto: string | null;
   rubro_nombre: string | null;
   inspectores_texto: string | null;
@@ -38,6 +46,8 @@ export interface ICompletarTrabajoPendienteRow {
   acta_clausura_num?: string | null;
   acta_decomiso_num?: string | null;
   decomiso_kilos_total?: number | null;
+  /** Solo en merge cliente → POST; no viene del listado. */
+  inspectores?: string[];
 }
 
 export interface ICompletarTrabajoPendientesMeta {
@@ -133,6 +143,8 @@ export interface ICompletarTrabajoCierreBody {
   acta_clausura_num?: string | null;
   acta_decomiso_num?: string | null;
   decomiso_kilos_total?: number | null;
+  nombre_local?: string | null;
+  inspectores?: string[] | null;
 }
 
 export const postCompletarTrabajoCerrar = async (

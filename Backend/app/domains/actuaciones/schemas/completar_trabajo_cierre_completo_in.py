@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import field_validator, model_validator
 
@@ -19,7 +19,9 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     Cierre Completar trabajo (fase 3): PR2 + actas del día cuando la visita está **realizada**
     (sin contraproducencia).
 
-    - OT/fecha no se envían; inspectores no se modifican desde este payload.
+    - OT/fecha no se envían.
+    - `inspectores`: nombres de catálogo (opcional); solo aplica visita realizada (mismo commit que actas).
+    - `nombre_local`: nombre de fantasía del comercio en actuación (opcional).
     - Con contraproducencia (no realizada): no se permiten actas ni oficio/expediente ampliados.
     - Sin previas en payload.
     """
@@ -27,7 +29,9 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     doc_nro: Optional[str] = None
     contrib_apellido: Optional[str] = None
     contrib_nombre: Optional[str] = None
+    nombre_local: Optional[str] = None
     numero_tipo: Optional[str] = None
+    inspectores: Optional[List[str]] = None
 
     acta_inspeccion_num: Optional[str] = None
     acta_notificacion_num: Optional[str] = None
@@ -50,6 +54,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         "doc_nro",
         "contrib_apellido",
         "contrib_nombre",
+        "nombre_local",
         "acta_inspeccion_num",
         "acta_notificacion_num",
         "notificacion_motivo_1",
@@ -72,6 +77,16 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             s = v.strip()
             return s or None
         return v
+
+    @field_validator("inspectores", mode="before")
+    @classmethod
+    def normalize_inspectores(cls, v: object) -> object:
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            return v
+        # Lista vacía válida: limpia inspectores en actuación (front envía [] explícito).
+        return [str(x).strip() for x in v if str(x).strip()]
 
     @field_validator("numero_tipo", mode="before")
     @classmethod

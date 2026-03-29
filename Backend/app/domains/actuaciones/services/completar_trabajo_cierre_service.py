@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaItem
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaGrupo, RutaGrupoInspector, RutaItem
 
 from app.domains.actuaciones.mappers.completar_trabajo_cierre_mapper import (
     map_completar_trabajo_cierre_to_aplicar_payload,
@@ -27,6 +27,8 @@ from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     validar_tipo_actuacion_para_iniciador,
 )
 from app.models import CatalogTipoActuacion
+
+from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
@@ -76,7 +78,8 @@ def _apply_domicilio_rubro(
     if not dom_payload:
         return
 
-    allow_missing_catalogs = act.tipo is None and bucket != ContrapBucket.NONE
+    # Visita no realizada: no exigir contribuyente/rubro aunque `act.tipo` ya venga seteado (p. ej. al publicar ruta).
+    allow_missing_catalogs = bucket != ContrapBucket.NONE
     dom = get_or_create_domicilio(
         dom_payload,
         contrib,
@@ -117,7 +120,9 @@ def cerrar_completar_trabajo_por_ruta_item(
             joinedload(RutaItem.actuacion).joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
             joinedload(RutaItem.iniciador_ruta).joinedload(IniciadorRuta.domicilio),
             joinedload(RutaItem.ruta_trabajo),
-            joinedload(RutaItem.ruta_grupo),
+            joinedload(RutaItem.ruta_grupo)
+            .selectinload(RutaGrupo.grupo_inspectores)
+            .joinedload(RutaGrupoInspector.inspector),
         )
         .first()
     )
@@ -174,6 +179,12 @@ def cerrar_completar_trabajo_por_ruta_item(
                 )
             act.contraproducencia = stored_contra
             _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if payload.inspectores is not None:
+                nombres = payload.inspectores or []
+                act.inspector = get_inspectores_o_falla(nombres) if nombres else []
+
+        if payload.nombre_local is not None:
+            act.nombre_local = str(payload.nombre_local).strip() or None
 
         if act.domicilio_id and ini.domicilio_id != act.domicilio_id:
             ini.domicilio_id = act.domicilio_id
@@ -227,7 +238,9 @@ def cerrar_completar_trabajo_por_ruta_item(
             joinedload(RutaItem.actuacion).joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
             joinedload(RutaItem.iniciador_ruta).joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
             joinedload(RutaItem.iniciador_ruta).joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
-            joinedload(RutaItem.ruta_grupo),
+            joinedload(RutaItem.ruta_grupo)
+            .selectinload(RutaGrupo.grupo_inspectores)
+            .joinedload(RutaGrupoInspector.inspector),
         )
         .first()
     )

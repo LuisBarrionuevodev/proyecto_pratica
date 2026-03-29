@@ -64,6 +64,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
                 noti.motivos = [get_motivo_o_falla(m) for m in motivos]
 
             db.session.add(noti)
+            actuacion.notificacion_id = noti.id
             return
 
     # 2) si no tenía, buscamos por acta+anio
@@ -79,6 +80,8 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             noti.deleted_at = None
             db.session.add(noti)
         inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
+
+    actuacion.notificacion_id = noti.id
 
     if "motivos" in data:
         motivos = data.get("motivos") or []
@@ -98,5 +101,3 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             raise ValueError(
                 f"La Notificación {acta_num}/{anio} ya está asociada a otra actuación del mismo tipo ({actuacion.tipo})."
             )
-
-    actuacion.notificacion_id = noti.id

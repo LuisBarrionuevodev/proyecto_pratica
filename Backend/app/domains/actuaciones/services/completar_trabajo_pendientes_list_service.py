@@ -4,7 +4,7 @@ from datetime import date
 
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaGrupo, RutaItem, RutaTrabajo
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
 
 from app.domains.actuaciones.presenters.completar_trabajo_presenters import ruta_item_completar_trabajo_to_row
 
@@ -58,7 +58,9 @@ def list_completar_trabajo_pendientes(
                 joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
                 joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
             ),
-            joinedload(RutaItem.ruta_grupo),
+            joinedload(RutaItem.ruta_grupo)
+            .selectinload(RutaGrupo.grupo_inspectores)
+            .joinedload(RutaGrupoInspector.inspector),
         )
         .order_by(RutaItem.id.asc())
     )

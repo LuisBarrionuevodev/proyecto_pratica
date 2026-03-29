@@ -14,6 +14,9 @@ class ContrapBucket(str, Enum):
 # Valor persistido en `actuaciones.contraproducencia` para cierre sin reingreso.
 STORED_NO_EXISTE_LOCAL = "NO_EXISTE_LOCAL"
 
+# Nombre en `CatalogContraproducencia` (seed `run.py`) al que se mapean alias viejos antes del coerce Pydantic.
+CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL = "NO EXISTE/NO ES EL RUBRO"
+
 # Valores de catálogo (seed `run.py`) para reingreso con prioridad alta.
 STORED_REINGRESO_ALTA = frozenset(
     {
@@ -43,6 +46,17 @@ _NO_EXISTE_ALIAS_KEYS = frozenset(
         _loose_key("NO EXISTE LOCAL"),
     }
 )
+
+
+def map_contraproducencia_alias_to_catalog_nombre(raw: str) -> str:
+    """
+    Convierte texto legacy (p. ej. \"NO EXISTE / NO COINCIDE RUBRO\") al nombre válido en catálogo
+    para que pase `CompletarTrabajoCierreIn` antes de `normalize_contraproducencia` (que persiste `NO_EXISTE_LOCAL`).
+    """
+    key = _loose_key(raw)
+    if key in _NO_EXISTE_ALIAS_KEYS:
+        return CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL
+    return raw
 
 
 def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBucket]:

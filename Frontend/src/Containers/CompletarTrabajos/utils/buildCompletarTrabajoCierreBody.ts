@@ -13,6 +13,7 @@ export type CompletarTrabajoFormFields = {
   doc_nro: string;
   contrib_apellido: string;
   contrib_nombre: string;
+  nombre_local: string;
   observaciones_ejecucion: string;
   acta_inspeccion_num: string;
   acta_notificacion_num: string;
@@ -32,13 +33,17 @@ function s(v: string): string | undefined {
 }
 
 export type BuildCierreBodyOptions = {
-  /** Por defecto false: el tipo se define en otro flujo (formulario de tipo). */
   includeTipoActuacion?: boolean;
+  /**
+   * No reenvía `tipo_actuacion` del merge (ya fijado al publicar la ruta).
+   * Sí conserva rubro/calle/número: el cierre con contrib/domicilio los necesita en el body.
+   */
+  omitPrecargadoPr2?: boolean;
 };
 
 /**
  * Arma el body POST /cerrar alineado al backend (sin actas si hay contraproducencia).
- * No incluye expediente/oficio (fuera de alcance en esta UI).
+ * No incluye `inspectores`: vienen de la ruta y no se modifican en este flujo.
  */
 export function buildCompletarTrabajoCierreBody(
   f: CompletarTrabajoFormFields,
@@ -58,6 +63,7 @@ export function buildCompletarTrabajoCierreBody(
   if (s(f.doc_nro)) body.doc_nro = s(f.doc_nro);
   if (s(f.contrib_apellido)) body.contrib_apellido = s(f.contrib_apellido);
   if (s(f.contrib_nombre)) body.contrib_nombre = s(f.contrib_nombre);
+  if (s(f.nombre_local)) body.nombre_local = s(f.nombre_local);
   if (s(f.observaciones_ejecucion)) body.observaciones_ejecucion = s(f.observaciones_ejecucion);
 
   if (visitaRealizada) {
@@ -87,6 +93,7 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   doc_nro: "",
   contrib_apellido: "",
   contrib_nombre: "",
+  nombre_local: "",
   observaciones_ejecucion: "",
   acta_inspeccion_num: "",
   acta_notificacion_num: "",
@@ -130,6 +137,7 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     doc_nro: row.doc_nro ?? "",
     contrib_apellido: row.contrib_apellido ?? "",
     contrib_nombre: row.contrib_nombre ?? "",
+    nombre_local: row.nombre_local ?? "",
     observaciones_ejecucion: row.observaciones_ejecucion ?? "",
     acta_inspeccion_num: row.acta_inspeccion_num ?? "",
     acta_notificacion_num: row.acta_notificacion_num ?? "",
@@ -144,9 +152,10 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
   };
 }
 
-/**
- * Combina la fila original con los valores editados en MRT y arma el body de cierre.
- */
+function applyOmitPrecargadoPr2(fields: CompletarTrabajoFormFields): void {
+  fields.tipo_actuacion = "";
+}
+
 export function buildCompletarTrabajoCierreBodyFromInline(
   original: ICompletarTrabajoPendienteRow,
   values: Record<string, unknown>,
@@ -156,6 +165,9 @@ export function buildCompletarTrabajoCierreBodyFromInline(
   const fields = rowToFormFields(merged);
   if ("decomiso_kilos_total" in values) {
     fields.decomiso_kilos_total = strFromUnknown(values.decomiso_kilos_total);
+  }
+  if (options?.omitPrecargadoPr2 === true) {
+    applyOmitPrecargadoPr2(fields);
   }
   return buildCompletarTrabajoCierreBody(fields, options);
 }

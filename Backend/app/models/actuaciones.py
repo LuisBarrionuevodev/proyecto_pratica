@@ -17,7 +17,9 @@ class Actuaciones(db.Model):
     tipo = db.Column(db.String(255), nullable=True, index=True)
 
     contraproducencia = db.Column(db.String(255), nullable=True, index=True)
-    
+
+    # Nombre de fantasía del comercio (acta / UI). Futuro: vincular a `establecimientos`.
+    nombre_local = db.Column(db.String(255), nullable=True, index=True)
 
     # --- FKs (tal cual tu modelo) ---
     orden_trabajo_id = db.Column(

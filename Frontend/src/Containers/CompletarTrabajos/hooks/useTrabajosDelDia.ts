@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   getCompletarTrabajoPendientes,
@@ -9,8 +9,6 @@ import {
 export type UseTrabajosDelDiaOptions = {
   page?: number;
   perPage?: number;
-  /** Incrementar para forzar refetch manteniendo fecha/paginación. */
-  refreshNonce?: number;
 };
 
 /**
@@ -21,7 +19,6 @@ export type UseTrabajosDelDiaOptions = {
 export function useTrabajosDelDia(fecha: string | null, options: UseTrabajosDelDiaOptions = {}) {
   const page = options.page ?? 1;
   const perPage = options.perPage ?? 20;
-  const refreshNonce = options.refreshNonce ?? 0;
 
   const [rows, setRows] = useState<ICompletarTrabajoPendienteRow[]>([]);
   const [meta, setMeta] = useState<ICompletarTrabajoPendientesMeta | null>(null);
@@ -70,7 +67,13 @@ export function useTrabajosDelDia(fecha: string | null, options: UseTrabajosDelD
     return () => {
       cancelled = true;
     };
-  }, [fecha, page, perPage, refreshNonce]);
+  }, [fecha, page, perPage]);
 
-  return { rows, meta, loading, error };
+  /** Quita un ítem cerrado del listado local sin refetch completo (sigue en sync con total). */
+  const removeRowByRutaItemId = useCallback((rutaItemId: number) => {
+    setRows((prev) => prev.filter((r) => r.ruta_item_id !== rutaItemId));
+    setMeta((m) => (m ? { ...m, total: Math.max(0, m.total - 1) } : null));
+  }, []);
+
+  return { rows, meta, loading, error, removeRowByRutaItemId };
 }

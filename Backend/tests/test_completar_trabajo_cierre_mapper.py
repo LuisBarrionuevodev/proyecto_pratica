@@ -28,3 +28,18 @@ def test_mapper_sin_ot_fecha_inspectores_ni_previas() -> None:
     assert m.get("contraproducencia") is None
     assert m.get("tipo_actuacion") == "INSPECCION"
     assert m.get("acta_inspeccion_num") == "000042"
+
+
+def test_mapper_incluye_inspectores_cuando_vienen_en_body() -> None:
+    row = CompletarTrabajoCierreCompletoIn.model_construct(
+        tipo_actuacion="INSPECCION",
+        inspectores=["Pérez, Juan", "García, Ana"],
+    )
+    act = MagicMock()
+    act.domicilio = None
+    ini = MagicMock()
+    ini.domicilio = None
+
+    m = map_completar_trabajo_cierre_to_aplicar_payload(row, act=act, ini=ini)
+
+    assert m.get("inspectores") == ["Pérez, Juan", "García, Ana"]

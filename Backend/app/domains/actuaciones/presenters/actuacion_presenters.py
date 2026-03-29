@@ -217,6 +217,9 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     )
     calle_sugerida = calle_normalizada if calle_normalizada else None
 
+    _raw_nombre_local = getattr(act, "nombre_local", None)
+    nombre_local_val = (str(_raw_nombre_local).strip() or None) if _raw_nombre_local is not None else None
+
     return {
         "id": act.id,
         "orden_trabajo_numero": ot_num,
@@ -251,6 +254,8 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "doc_nro": doc_nro,
         "contrib_apellido": contrib_apellido,
         "contrib_nombre": contrib_nombre,
+
+        "nombre_local": nombre_local_val,
 
         "acta_inspeccion_num": acta_inspeccion_num,
 

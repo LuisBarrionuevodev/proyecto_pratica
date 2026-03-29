@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Paper, Stack, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Paper, Snackbar, Stack, Tab, Tabs, Tooltip, Typography } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
 import {
@@ -354,11 +354,25 @@ const RutasTrabajo = () => {
             {error}
           </Alert>
         )}
-        {successMessage && (
-          <Alert severity="success" sx={rutasAlertSx}>
+        <Snackbar
+          open={Boolean(successMessage)}
+          autoHideDuration={5000}
+          onClose={(_, reason) => {
+            if (reason === "clickaway") return;
+            setSuccessMessage(null);
+          }}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          sx={{ top: { sm: 88 } }}
+        >
+          <Alert
+            onClose={() => setSuccessMessage(null)}
+            severity="success"
+            variant="filled"
+            sx={{ ...rutasAlertSx, width: "100%" }}
+          >
             {successMessage}
           </Alert>
-        )}
+        </Snackbar>
 
         {tab === "TABLA" && rutaId == null && (
           <RutasEmptyView onCrearBorrador={() => setOpenCrearRuta(true)} />

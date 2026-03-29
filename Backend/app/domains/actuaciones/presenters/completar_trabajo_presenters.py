@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from app.models import RutaItem
+from app.models import RutaGrupo, RutaItem
 
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
@@ -11,6 +11,7 @@ from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
 
 # Campos de `actuacion_to_grid_row` necesarios para edición inline de cierre (sin previas en UI).
 _COMPLETAR_GRID_EXTRA_KEYS: tuple[str, ...] = (
+    "nombre_local",
     "numero_tipo",
     "doc_nro",
     "contrib_apellido",
@@ -35,6 +36,20 @@ def _tipo_actuacion_esperado_safe(tipo_iniciador: str | None) -> str | None:
         return tipo_actuacion_esperado_para_iniciador(tipo_iniciador)
     except KeyError:
         return None
+
+
+def _nombres_inspectores_grupo(grupo: Optional[RutaGrupo]) -> list[str]:
+    """Nombres ordenados por id de relación; la actuación al publicar no copia inspectores al act."""
+    if grupo is None:
+        return []
+    rels = getattr(grupo, "grupo_inspectores", None) or []
+    out: list[str] = []
+    for rel in sorted(rels, key=lambda x: x.id):
+        ins = getattr(rel, "inspector", None)
+        n = getattr(ins, "nombre", None) if ins else None
+        if n and str(n).strip():
+            out.append(str(n).strip())
+    return out
 
 
 def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
@@ -69,10 +84,17 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     parts = [p for p in (calle_m, num_m) if p]
     domicilio_texto = " ".join(parts).strip() or None
 
+    grupo = item.ruta_grupo
     insp1, insp2, insp3 = base.get("inspector1"), base.get("inspector2"), base.get("inspector3")
     inspectores_texto = ", ".join(x for x in (insp1, insp2, insp3) if x) or None
+    if not inspectores_texto and grupo is not None:
+        nombres_g = _nombres_inspectores_grupo(grupo)
+        if nombres_g:
+            inspectores_texto = ", ".join(nombres_g)
+            insp1 = nombres_g[0] if len(nombres_g) > 0 else insp1
+            insp2 = nombres_g[1] if len(nombres_g) > 1 else insp2
+            insp3 = nombres_g[2] if len(nombres_g) > 2 else insp3
 
-    grupo = item.ruta_grupo
     grupo_nombre = grupo.nombre if grupo else None
 
     tipo_ini = ini.tipo_iniciador if ini else None
@@ -93,8 +115,12 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
         "calle": base.get("calle"),
         "numero": base.get("numero"),
         "domicilio_texto": domicilio_texto,
+        "domicilio_id": base.get("domicilio_id"),
         "rubro_nombre": rubro,
         "inspectores_texto": inspectores_texto,
+        "inspector1": insp1,
+        "inspector2": insp2,
+        "inspector3": insp3,
         "estado_operativo": item.estado_ruta_item,
         "observaciones_ejecucion": item.observaciones_ejecucion,
         "tipo_actuacion_esperado": _tipo_actuacion_esperado_safe(tipo_ini),

@@ -31,7 +31,7 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
     """
     Construye el dict canónico para `aplicar_payload_actuacion` en visita **realizada**.
 
-    No incluye: orden_trabajo_numero, fecha_actuacion, inspectores, previas.
+    No incluye: orden_trabajo_numero, fecha_actuacion, previas.
 
     Parámetros:
         row: body validado del POST cerrar (fase 3).
@@ -85,22 +85,36 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
             "nombre": _clean_str(row.contrib_nombre),
         }
 
+    if row.inspectores is not None:
+        payload["inspectores"] = [n for n in row.inspectores if n]
+
     if row.acta_inspeccion_num:
         payload["acta_inspeccion_num"] = _zfill6_if_digit(_clean_str(row.acta_inspeccion_num))
 
-    if row.acta_notificacion_num:
-        payload["notificacion"] = {
-            "acta_num": _zfill6_if_digit(_clean_str(row.acta_notificacion_num)),
-            "motivos": [
-                m
-                for m in [
-                    row.notificacion_motivo_1,
-                    row.notificacion_motivo_2,
-                    row.notificacion_motivo_3,
-                ]
-                if m
-            ],
-        }
+    motivos_nf = [
+        m
+        for m in [
+            row.notificacion_motivo_1,
+            row.notificacion_motivo_2,
+            row.notificacion_motivo_3,
+        ]
+        if m
+    ]
+    acta_src = _clean_str(row.acta_notificacion_num) if row.acta_notificacion_num else None
+    if not acta_src and motivos_nf and getattr(act, "notificacion", None) is not None:
+        acta_src = _clean_str(getattr(act.notificacion, "numero_acta", None))
+    if acta_src or motivos_nf:
+        acta_for_attach = _zfill6_if_digit(acta_src) if acta_src else None
+        if motivos_nf and not acta_for_attach:
+            raise ValueError(
+                "Si cargás motivos de notificación, el número de acta de notificación es obligatorio "
+                "(o debe existir ya en la actuación)."
+            )
+        if acta_for_attach:
+            payload["notificacion"] = {
+                "acta_num": acta_for_attach,
+                "motivos": motivos_nf,
+            }
 
     if row.acta_comprobacion_num:
         payload["comprobacion"] = {

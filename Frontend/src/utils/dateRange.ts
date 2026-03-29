@@ -10,3 +10,12 @@ export const getCurrentMonthRange = (): { desde: string; hasta: string } => {
     hasta: toIso(lastDay),
   };
 };
+
+/** Fecha local YYYY-MM-DD (evita desfase UTC de `toISOString` en zonas positivas). */
+export function fechaLocalHoyIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}

@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 
 import { containerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { wrapperStyles } from "../Actuaciones/styles/filtroStyles";
 import { CompletarEmptyView } from "./views/CompletarEmptyView";
 import { CompletarTrabajosGridView } from "./views/CompletarTrabajosGridView";
+import { fetchCompletarTrabajoCatalogsCached } from "./hooks/completarTrabajoCatalogsCache";
 
 type VistaCompletar = "empty" | "grid";
 
@@ -15,6 +16,10 @@ type VistaCompletar = "empty" | "grid";
 const CompletarTrabajos = () => {
   const [vista, setVista] = useState<VistaCompletar>("empty");
   const [fechaOperativa, setFechaOperativa] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetchCompletarTrabajoCatalogsCached();
+  }, []);
 
   const handleVerTrabajos = useCallback((fecha: string) => {
     setFechaOperativa(fecha);
