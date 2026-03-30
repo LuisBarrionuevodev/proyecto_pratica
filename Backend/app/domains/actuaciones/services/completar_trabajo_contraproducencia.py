@@ -48,6 +48,18 @@ _NO_EXISTE_ALIAS_KEYS = frozenset(
 )
 
 
+def contraproducencia_es_familia_no_existe_local(raw: str) -> bool:
+    """
+    True si el texto pertenece a la familia operativa NO EXISTE LOCAL (misma clave suelta que `normalize_contraproducencia`).
+
+    Sirve para emparejar el canónico seed con filas de catálogo que solo guardan p. ej. `NO_EXISTE_LOCAL`.
+    """
+    t = (raw or "").strip()
+    if not t:
+        return False
+    return _loose_key(t) in _NO_EXISTE_ALIAS_KEYS
+
+
 def map_contraproducencia_alias_to_catalog_nombre(raw: str) -> str:
     """
     Convierte texto legacy (p. ej. \"NO EXISTE / NO COINCIDE RUBRO\") al nombre válido en catálogo

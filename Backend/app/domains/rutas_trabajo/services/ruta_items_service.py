@@ -48,7 +48,8 @@ def assign_iniciadores_to_grupo(*, ruta_id: int, grupo_id: int, iniciador_ids: l
     Reglas:
     - operación transaccional total (si falla uno, rollback completo).
     - iniciador asignable: PENDIENTE + not deleted + sin item activo en ruta BORRADOR.
-    - si existe item soft-deleted para misma (ruta, iniciador), se reactiva.
+    - si existe item soft-deleted para misma (ruta, iniciador), se reactiva sin conservar OT
+      previa (orden_trabajo_id se limpía al reactivar para evitar OT fantasma).
     """
     _get_ruta_borrador_or_fail(ruta_id)
     _get_grupo_activo_or_fail(ruta_id=ruta_id, grupo_id=grupo_id)
@@ -97,9 +98,12 @@ def assign_iniciadores_to_grupo(*, ruta_id: int, grupo_id: int, iniciador_ids: l
             ).first()
 
             if existing:
+                was_deleted = existing.deleted_at is not None
                 existing.ruta_grupo_id = grupo_id
                 existing.estado_ruta_item = "ASIGNADO"
                 existing.deleted_at = None
+                if was_deleted:
+                    existing.orden_trabajo_id = None
                 item = existing
             else:
                 item = RutaItem(
@@ -142,6 +146,9 @@ def move_ruta_item(*, ruta_id: int, item_id: int, target_grupo_id: int) -> RutaI
 def soft_delete_ruta_item(*, ruta_id: int, item_id: int) -> RutaItem:
     """
     Soft delete de item y rollback de iniciador a PENDIENTE.
+
+    Libera la orden de trabajo del ítem (orden_trabajo_id = None) para que la OT
+    pueda reutilizarse en borrador y no quede reservada por un ítem eliminado.
     """
     _get_ruta_borrador_or_fail(ruta_id)
     item = _get_item_activo_or_fail(ruta_id=ruta_id, item_id=item_id)
@@ -152,6 +159,7 @@ def soft_delete_ruta_item(*, ruta_id: int, item_id: int) -> RutaItem:
 
     now = datetime.utcnow()
     item.deleted_at = now
+    item.orden_trabajo_id = None
     iniciador.estado_iniciador = "PENDIENTE"
     iniciador.updated_at = now
     db.session.commit()
@@ -161,6 +169,8 @@ def soft_delete_ruta_item(*, ruta_id: int, item_id: int) -> RutaItem:
 def soft_delete_grupo(*, ruta_id: int, grupo_id: int) -> dict:
     """
     Soft delete de grupo y de sus items activos, devolviendo iniciadores a PENDIENTE.
+
+    En cada ítem se libera orden_trabajo_id para no dejar OT fantasma en borrador.
     """
     _get_ruta_borrador_or_fail(ruta_id)
     grupo = _get_grupo_activo_or_fail(ruta_id=ruta_id, grupo_id=grupo_id)
@@ -188,6 +198,7 @@ def soft_delete_grupo(*, ruta_id: int, grupo_id: int) -> dict:
         grupo.deleted_at = now
         for item in active_items:
             item.deleted_at = now
+            item.orden_trabajo_id = None
             iniciador = iniciadores_by_id.get(item.iniciador_ruta_id)
             if iniciador:
                 iniciador.estado_iniciador = "PENDIENTE"

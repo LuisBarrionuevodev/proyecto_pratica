@@ -9,6 +9,7 @@ from app.models import CatalogContraproducencia, CatalogTipoActuacion
 
 from app.domains.actuaciones.schemas.list_filters import _coerce_catalog_value
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+    contraproducencia_es_familia_no_existe_local,
     map_contraproducencia_alias_to_catalog_nombre,
 )
 
@@ -78,6 +79,12 @@ class CompletarTrabajoCierreIn(BaseModel):
             for (nombre,) in db.session.query(CatalogContraproducencia.nombre).all():
                 if nombre and _ck_loose(str(nombre)) == want:
                     return str(nombre).strip()
+            # El alias mapea a nombre canónico seed, pero el catálogo DB puede tener solo p. ej. `NO_EXISTE_LOCAL`
+            # (misma familia operativa, distinta cadena suelta → el `== want` de arriba no matchea).
+            if contraproducencia_es_familia_no_existe_local(s):
+                for (nombre,) in db.session.query(CatalogContraproducencia.nombre).all():
+                    if nombre and contraproducencia_es_familia_no_existe_local(str(nombre)):
+                        return str(nombre).strip()
             raise
 
     @field_validator("rubro_nombre", "calle", "numero", mode="before")
