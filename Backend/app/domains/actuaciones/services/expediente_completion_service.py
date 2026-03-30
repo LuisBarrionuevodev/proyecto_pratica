@@ -71,7 +71,11 @@ def complete_expediente_from_actuacion(
     data: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    Completa expediente para una actuación ramificando por `source_type` inferido.
+    Flujo **Esperando expediente**: crea el expediente administrativo inicial (envío), no el de oficio.
+
+    - Rama COMPROBACION: expediente de envío con `oficio_id` NULL (`ENVIO_ACTA`); no debe existir ya
+      otro expediente de envío para esa comprobación (se ignora el expediente de respuesta de oficio).
+    - Rama NOTIFICACION: expediente ligado a la notificación y prórroga.
 
     Retorno:
         dict con `actuacion`, `expediente`, `source_type`, `next_state_hint`.
@@ -100,9 +104,15 @@ def complete_expediente_from_actuacion(
     if source_type == "COMPROBACION":
         if "prorroga_dias" in data:
             raise ValueError("prorroga_dias no aplica para COMPROBACION")
-        existente = Expediente.query.filter_by(comprobacion_id=act.comprobacion_id).first()
+        existente = (
+            Expediente.query.filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
+            .order_by(Expediente.id.asc())
+            .first()
+        )
         if existente:
-            raise RuntimeError("Ya existe un expediente vinculado a esta comprobación")
+            raise RuntimeError(
+                "Ya existe un expediente de envío (comprobación) vinculado a esta comprobación"
+            )
     else:
         prorroga_dias = _parse_prorroga_payload(data)
         if act.notificacion_id is None:

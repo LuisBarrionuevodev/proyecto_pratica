@@ -16,7 +16,7 @@ from . import actuacion
 
 @actuacion.post("/")
 def crear_actuacion():
-    """Crea una actuación desde una fila del grid."""
+    """Crea una actuación desde el canal **CargarActuacion** (fila de grilla validada)."""
     data: Dict[str, Any] = request.get_json(silent=True) or {}
 
     try:

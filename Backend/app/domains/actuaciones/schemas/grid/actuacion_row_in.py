@@ -132,12 +132,11 @@ def _raise_field_errors(model_name: str, field_errors: Dict[str, str]) -> None:
 
 class ActuacionGridRowIn(BaseModel):
     """
-    Fila proveniente de la grilla (Glide/React Table).
-    Enfoque:
-    - Normalizar strings
-    - Parsear fecha a date
-    - Validar catálogos en DB
-    - Validar reglas de negocio base con errores por CELDA
+    Fila del canal **CargarActuacion** (grilla Glide / MRT).
+
+    Incluye actas operativas del día y datos de actuación. Columnas `expediente_*` / `oficio_*` existen
+    solo como keys de grilla heredadas: si vienen con datos, el validador las rechaza (expediente de
+    comprobación y oficio se cargan solo por **Esperando expediente** / **Esperando oficio**).
     """
 
     id: Optional[int] = Field(default=None, ge=1)
@@ -194,7 +193,7 @@ class ActuacionGridRowIn(BaseModel):
     acta_decomiso_num: Optional[str] = None
     decomiso_kilos_total: Optional[float] = None
 
-    # Expediente / Oficio
+    # Columnas legacy de grilla; con valor → error (ver reglas_negocio_base)
     expediente_numero: Optional[str] = None
     expediente_anio: Optional[int] = None
 
@@ -323,6 +322,20 @@ class ActuacionGridRowIn(BaseModel):
 
 
         field_errors: Dict[str, str] = {}
+        # Canal actas: prohibido cargar aquí oficio ni expediente administrativo
+        if self.expediente_numero or self.expediente_anio is not None:
+            field_errors["expediente_numero"] = (
+                "El canal de carga de actas no admite expediente. "
+                "Use el flujo específico de expediente (Esperando expediente)."
+            )
+        if self.oficio_numero or self.oficio_anio is not None or self.oficio_causa:
+            field_errors["oficio_numero"] = (
+                "El canal de carga de actas no admite oficio. "
+                "Use el flujo específico de oficio (Esperando oficio)."
+            )
+        if field_errors:
+            _raise_field_errors(self.__class__.__name__, field_errors)
+
         # 1.b) Si contraproducencia == NO_HUBO => domicilio obligatorio
         if _matches_catalog(self.contraproducencia, "NO_HUBO"):
             if not self.calle:
@@ -352,11 +365,6 @@ class ActuacionGridRowIn(BaseModel):
                     self.acta_clausura_num,
                     self.acta_decomiso_num,
                     self.decomiso_kilos_total is not None,
-                    self.expediente_numero,
-                    self.expediente_anio is not None,
-                    self.oficio_numero,
-                    self.oficio_anio is not None,
-                    self.oficio_causa,
                     self.notificacion_previa_num,
                     self.comprobacion_previa_num,
                 ]

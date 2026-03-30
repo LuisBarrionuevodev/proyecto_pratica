@@ -18,11 +18,11 @@ from . import actuacion
 @actuacion.post("/completar-trabajo/cerrar/<int:ruta_item_id>")
 def cerrar_completar_trabajo(ruta_item_id: int):
     """
-    Cierra operativamente un trabajo (actuación + ruta_item + iniciador) en una transacción.
+    **Completar trabajo** — cierre operativo (actuación + ruta_item + iniciador) en una transacción.
 
-    Body JSON: campos PR2 + opcionalmente actas del día (inspección, notificación+motivos, comprobación,
-    clausura, decomiso+kilos, oficio/expediente) y contribuyente/domicilio extendido. Con contraproducencia
-    no se permiten actas.
+    Body: PR2 + actas del día permitidas (inspección, notificación+motivos, comprobación, clausura,
+    decomiso+kilos) y domicilio/contrib extendido. Oficio y expediente administrativo solo por
+    **Esperando oficio** / **Esperando expediente**. Con contraproducencia no se permiten actas.
 
     Recurso lógico: la **actuación**; ancla HTTP: **ruta_item_id** (ítem EN_PROCESO que se cierra).
     `tipo_actuacion` y `contraproducencia` se validan contra catálogo DB; si se envía tipo, debe coincidir

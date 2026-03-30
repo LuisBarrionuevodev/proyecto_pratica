@@ -15,10 +15,10 @@ from . import actuacion
 @actuacion.post("/<int:actuacion_id>/expediente")
 def crear_expediente_desde_acta(actuacion_id: int):
     """
-    Crea expediente desde una actuación ramificando por `source_type` inferido en backend.
+    **Esperando expediente:** alta del expediente administrativo inicial (envío), vía servicio
+    `complete_expediente_from_actuacion`.
 
-    Regla determinística:
-    - Si existen notificación y comprobación, domina COMPROBACION.
+    `source_type` se infiere en backend (si hay notificación y comprobación, domina COMPROBACION).
     """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
     try:

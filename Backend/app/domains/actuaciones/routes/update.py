@@ -18,7 +18,7 @@ from . import actuacion
 
 @actuacion.put("/<int:actuacion_id>")
 def actualizar_actuacion_route(actuacion_id: int):
-    """Actualiza una actuación existente desde una fila del grid (requiere payload completo)."""
+    """Actualiza por **CargarActuacion** (PUT con fila completa); no es flujo de oficio/expediente."""
     data: Dict[str, Any] = request.get_json(silent=True) or {}
 
     try:

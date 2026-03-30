@@ -11,12 +11,12 @@ from app.utils.actas import acta_6
 
 def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Completa el flujo de oficio desde una actuación de comprobación.
+    **Esperando oficio:** flujo sobre actuación con comprobación.
 
     - Valida rama COMPROBACION.
-    - Exige expediente original existente.
-    - Crea o actualiza Oficio.
-    - Crea expediente de respuesta de oficio sin sobrescribir el original.
+    - Exige **expediente de envío** (`oficio_id` NULL) ya creado.
+    - Crea o actualiza `Oficio` (misma comprobación) vía `attach_oficio`.
+    - Crea **expediente de respuesta de oficio** sin modificar el expediente de envío.
 
     Errores:
     - LookupError: 404 (actuación, juzgado o expediente original no encontrados)

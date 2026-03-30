@@ -1,17 +1,16 @@
-"""iniciadndo
+"""ss
 
-Revision ID: a00ee416407f
+Revision ID: 95941755b426
 Revises: 
-Create Date: 2026-03-18 23:41:26.696393
+Create Date: 2026-03-30 14:26:11.139060
 
 """
 from alembic import op
 import sqlalchemy as sa
 import geoalchemy2
 
-
 # revision identifiers, used by Alembic.
-revision = 'a00ee416407f'
+revision = '95941755b426'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -466,6 +465,7 @@ def upgrade():
     sa.Column('anio', sa.Integer(), nullable=False),
     sa.Column('tipo', sa.String(length=255), nullable=True),
     sa.Column('contraproducencia', sa.String(length=255), nullable=True),
+    sa.Column('nombre_local', sa.String(length=255), nullable=True),
     sa.Column('orden_trabajo_id', sa.Integer(), nullable=False),
     sa.Column('notificacion_id', sa.Integer(), nullable=True),
     sa.Column('comprobacion_id', sa.Integer(), nullable=True),
@@ -487,6 +487,7 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_actuaciones_contraproducencia'), ['contraproducencia'], unique=False)
         batch_op.create_index(batch_op.f('ix_actuaciones_domicilio_id'), ['domicilio_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_actuaciones_mes'), ['mes'], unique=False)
+        batch_op.create_index(batch_op.f('ix_actuaciones_nombre_local'), ['nombre_local'], unique=False)
         batch_op.create_index(batch_op.f('ix_actuaciones_notificacion_id'), ['notificacion_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_actuaciones_orden_trabajo_id'), ['orden_trabajo_id'], unique=True)
         batch_op.create_index(batch_op.f('ix_actuaciones_tipo'), ['tipo'], unique=False)
@@ -847,6 +848,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_actuaciones_tipo'))
         batch_op.drop_index(batch_op.f('ix_actuaciones_orden_trabajo_id'))
         batch_op.drop_index(batch_op.f('ix_actuaciones_notificacion_id'))
+        batch_op.drop_index(batch_op.f('ix_actuaciones_nombre_local'))
         batch_op.drop_index(batch_op.f('ix_actuaciones_mes'))
         batch_op.drop_index(batch_op.f('ix_actuaciones_domicilio_id'))
         batch_op.drop_index(batch_op.f('ix_actuaciones_contraproducencia'))

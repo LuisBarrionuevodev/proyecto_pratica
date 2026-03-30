@@ -52,11 +52,14 @@ def get_or_create_iniciador_from_oficio(
     expediente_respuesta: Expediente,
 ) -> IniciadorRuta:
     """
-    Crea (o recupera) un iniciador derivado desde oficio en estado neutral pendiende.
+    Crea (o recupera) un iniciador derivado desde oficio en estado neutral pendiente.
 
-    Regla:
-    - tipo_iniciador inicial fijo: REINSPECCION_OFICIO.
-    - idempotente para evitar duplicados activos del mismo oficio.
+    Parámetros:
+        expediente_respuesta: expediente de **respuesta de oficio** (no el de envío de comprobación).
+
+    Reglas:
+    - `tipo_iniciador` inicial: REINSPECCION_OFICIO.
+    - Idempotente: no duplica iniciadores activos del mismo oficio.
     """
     existente = (
         IniciadorRuta.query.filter(

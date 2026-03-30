@@ -15,7 +15,8 @@ from . import actuacion
 @actuacion.post("/<int:actuacion_id>/oficio")
 def crear_oficio_desde_acta(actuacion_id: int):
     """
-    Crea/actualiza oficio para una actuación y crea expediente de respuesta de oficio.
+    **Esperando oficio:** oficio ligado a la comprobación de la actuación + expediente de respuesta
+    de oficio (`RESPUESTA_OFICIO`), sin tocar el expediente de envío original.
     """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
     try:

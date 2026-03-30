@@ -13,8 +13,6 @@ from app.domains.actuaciones.services.completar_trabajo_actas_service import (
 )
 from app.domains.actuaciones.attach.clausura import attach_clausura
 from app.domains.actuaciones.attach.decomiso import attach_decomiso
-from app.domains.actuaciones.attach.oficio import attach_oficio
-from app.domains.actuaciones.attach.expediente import attach_expediente
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
@@ -33,6 +31,9 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_comprobacion_if_orphan,
     soft_delete_oficio_if_orphan,
     soft_delete_expediente_if_orphan,
+)
+from app.domains.actuaciones.services.actas_canal_payload_guard import (
+    rechazar_oficio_expediente_en_payload_canal_actas,
 )
 
 
@@ -54,7 +55,8 @@ def aplicar_payload_actuacion(
     `actualizar_actuacion`, **sin** `commit`, cleanup ni geocode.
 
     Sirve para orquestar en una sola transacción (p. ej. Completar trabajo + ruta ítem)
-    reutilizando la lógica de domicilio, inspectores, actas y oficio/expediente.
+    reutilizando la lógica de domicilio, inspectores y actas. Oficio y expediente
+    administrativo quedan fuera de este payload (ver `actas_canal_payload_guard`).
 
     Parámetros:
         act: instancia ORM persistida (con `id`).
@@ -68,6 +70,8 @@ def aplicar_payload_actuacion(
     Side effects:
         Modifica `act` y entidades relacionadas en la sesión actual; no hace flush/commit.
     """
+    rechazar_oficio_expediente_en_payload_canal_actas(payload)
+
     # Fecha
     if payload.get("fecha_actuacion"):
         mes, anio, fecha = parse_fecha_grid(payload["fecha_actuacion"])
@@ -140,23 +144,13 @@ def aplicar_payload_actuacion(
     if "decomiso" in payload:
         attach_decomiso(act, payload.get("decomiso"), crear=False)
 
-    # Oficio / Expediente
-    oficio = attach_oficio(
-        payload.get("oficio"),
-        act.comprobacion_id if "oficio" in payload else None,
-    )
-    expediente = (
-        attach_expediente(payload.get("expediente"), act.comprobacion_id, oficio.id if oficio else None)
-        if "expediente" in payload
-        else None
-    )
-    if expediente and hasattr(act, "expediente_id"):
-        act.expediente_id = expediente.id
-
 
 def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuaciones:
     """
-    Actualiza una `Actuaciones` existente en base a un payload canon.
+    Actualiza una `Actuaciones` existente desde el canal **CargarActuacion** (PUT grilla).
+
+    Payload: mismo canon que el alta por grilla; oficio/expediente administrativo van por endpoints
+    dedicados.
 
     Este service mantiene el comportamiento histórico:
     - Aplica updates parciales según keys presentes en `payload`.

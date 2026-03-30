@@ -29,9 +29,9 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
     ini: IniciadorRuta,
 ) -> dict[str, Any]:
     """
-    Construye el dict canónico para `aplicar_payload_actuacion` en visita **realizada**.
+    Construye el dict canónico para `aplicar_payload_actuacion` en visita **realizada** (Completar trabajo).
 
-    No incluye: orden_trabajo_numero, fecha_actuacion, previas.
+    No incluye: orden_trabajo_numero, fecha_actuacion, previas, oficio ni expediente (rechazados en schema).
 
     Parámetros:
         row: body validado del POST cerrar (fase 3).
@@ -129,19 +129,6 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
         payload["decomiso"] = {
             "acta_num": _zfill6_if_digit(_clean_str(row.acta_decomiso_num)),
             "kilos_total": row.decomiso_kilos_total,
-        }
-
-    if row.expediente_numero or row.expediente_anio is not None:
-        payload["expediente"] = {
-            "numero": _clean_str(row.expediente_numero),
-            "anio": row.expediente_anio,
-        }
-
-    if row.oficio_numero or row.oficio_anio is not None or row.oficio_causa:
-        payload["oficio"] = {
-            "numero": _clean_str(row.oficio_numero),
-            "anio": row.oficio_anio,
-            "causa": _clean_str(row.oficio_causa),
         }
 
     return payload

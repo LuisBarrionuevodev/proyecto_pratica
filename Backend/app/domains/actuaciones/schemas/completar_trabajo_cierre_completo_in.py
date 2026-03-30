@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
-from pydantic import field_validator, model_validator
+from pydantic import ConfigDict, field_validator, model_validator
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
 
@@ -14,17 +14,47 @@ def _clean_str(v: object) -> Optional[str]:
     return s or None
 
 
+def _tiene_oficio_en_body(data: dict[str, Any]) -> bool:
+    raw = data.get("oficio")
+    if isinstance(raw, dict) and any(v not in (None, "") for v in raw.values()):
+        return True
+    if raw not in (None, "", {}):
+        return True
+    if data.get("oficio_numero") not in (None, ""):
+        return True
+    if data.get("oficio_anio") is not None:
+        return True
+    if data.get("oficio_causa") not in (None, ""):
+        return True
+    return False
+
+
+def _tiene_expediente_en_body(data: dict[str, Any]) -> bool:
+    raw = data.get("expediente")
+    if isinstance(raw, dict) and any(v not in (None, "") for v in raw.values()):
+        return True
+    if raw not in (None, "", {}):
+        return True
+    if data.get("expediente_numero") not in (None, ""):
+        return True
+    if data.get("expediente_anio") is not None:
+        return True
+    return False
+
+
 class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     """
-    Cierre Completar trabajo (fase 3): PR2 + actas del día cuando la visita está **realizada**
-    (sin contraproducencia).
+    Body del POST **Completar trabajo** / cerrar ítem (canal operativo de actas).
 
-    - OT/fecha no se envían.
-    - `inspectores`: nombres de catálogo (opcional); solo aplica visita realizada (mismo commit que actas).
-    - `nombre_local`: nombre de fantasía del comercio en actuación (opcional).
-    - Con contraproducencia (no realizada): no se permiten actas ni oficio/expediente ampliados.
-    - Sin previas en payload.
+    - PR2 (tipo, contraproducencia, domicilio/contrib opcional) + actas del día si la visita está
+      **realizada** (sin contraproducencia).
+    - OT/fecha no se envían (ancla operativa: `ruta_item_id`).
+    - Sin previas en payload (origen en iniciador).
+    - **Prohibido:** oficio, expediente de comprobación o expediente de oficio; esos documentos solo
+      por **Esperando oficio** / **Esperando expediente**.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     doc_nro: Optional[str] = None
     contrib_apellido: Optional[str] = None
@@ -44,11 +74,22 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     acta_decomiso_num: Optional[str] = None
     decomiso_kilos_total: Optional[float] = None
 
-    expediente_numero: Optional[str] = None
-    expediente_anio: Optional[int] = None
-    oficio_numero: Optional[str] = None
-    oficio_anio: Optional[int] = None
-    oficio_causa: Optional[str] = None
+    @model_validator(mode="before")
+    @classmethod
+    def rechazar_oficio_y_expediente_canal_completar_trabajo(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if _tiene_oficio_en_body(data):
+            raise ValueError(
+                "El canal Completar trabajo no admite oficio. "
+                "Use el flujo específico de oficio (Esperando oficio)."
+            )
+        if _tiene_expediente_en_body(data):
+            raise ValueError(
+                "El canal Completar trabajo no admite expediente. "
+                "Use el flujo específico de expediente (Esperando expediente)."
+            )
+        return data
 
     @field_validator(
         "doc_nro",
@@ -64,9 +105,6 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         "comprobacion_motivo",
         "acta_clausura_num",
         "acta_decomiso_num",
-        "expediente_numero",
-        "oficio_numero",
-        "oficio_causa",
         mode="before",
     )
     @classmethod
@@ -124,16 +162,11 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             ),
             ("comprobacion_motivo", bool(self.comprobacion_motivo)),
             ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
-            ("expediente", self.expediente_numero is not None or self.expediente_anio is not None),
-            (
-                "oficio",
-                self.oficio_numero is not None or self.oficio_anio is not None or bool(self.oficio_causa),
-            ),
         ]
         malos = [k for k, ok in bloque if ok]
         if malos:
             raise ValueError(
                 "Si hay contraproducencia (visita no realizada), no se deben cargar actas del día ni "
-                f"oficio/expediente. Campos a vaciar: {', '.join(malos)}."
+                f"campos extendidos. Campos a vaciar: {', '.join(malos)}."
             )
         return self

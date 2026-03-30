@@ -1,8 +1,16 @@
+"""
+Presentación de actuaciones hacia grilla / bandejas.
+
+Semántica en `actuacion_to_grid_row`: `expediente_numero` / `expediente_anio` = solo expediente de
+**envío de comprobación** (`oficio_id` NULL). `oficio_*` = tabla `oficio` por `comprobacion_id`.
+El expediente de respuesta de oficio no se refleja en los campos `expediente_*` del canal actas.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, List
 
-from app.models import Actuaciones, Expediente
+from app.models import Actuaciones, Expediente, Oficio
 
 def _enum_to_str(value: Any) -> Optional[str]:
     """
@@ -35,6 +43,33 @@ def _enum_to_str(value: Any) -> Optional[str]:
     return s or None
 
 
+def expediente_envio_por_comprobacion(comprobacion_id: int) -> Optional[Expediente]:
+    """
+    Expediente de **comprobación** (envío de acta): `oficio_id` NULL.
+    No incluye el expediente de respuesta de oficio (ese lleva `oficio_id`).
+
+    Orden estable por `id` para el caso 0..1 operativo con datos legados.
+    """
+    return (
+        Expediente.query.filter_by(comprobacion_id=comprobacion_id, oficio_id=None)
+        .order_by(Expediente.id.asc())
+        .first()
+    )
+
+
+def oficio_por_comprobacion(comprobacion_id: int) -> Optional[Oficio]:
+    """
+    Oficio asociado a la comprobación (tabla `oficio`), sin inferirlo desde expedientes.
+    Orden estable por `id`; ignora filas soft-deleted.
+    """
+    return (
+        Oficio.query.filter_by(comprobacion_id=comprobacion_id)
+        .filter(Oficio.deleted_at.is_(None))
+        .order_by(Oficio.id.asc())
+        .first()
+    )
+
+
 def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     """
     Convierte una Actuación (con relaciones) al formato plano
@@ -43,6 +78,8 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     IMPORTANTE:
     - fecha_actuacion se entrega como YYYY-MM-DD para input type="date"
     - enum se entrega como string limpio
+    - `expediente_*` refleja solo el expediente de comprobación (envío), nunca el de respuesta de oficio.
+    - `oficio_*` sale del registro `Oficio` de la comprobación, no desde el expediente colateral.
     """
 
     # -------------------------
@@ -182,7 +219,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         comprobacion_previa_num = acta_comprobacion_num
 
     # -------------------------
-    # Expediente / Oficio
+    # Expediente de comprobación / Oficio (contextos separados)
     # -------------------------
     expediente_numero = None
     expediente_anio = None
@@ -190,19 +227,14 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     oficio_anio = None
     oficio_causa = None
 
-    exp = None
-    if getattr(act, "comprobacion_id", None):
-        exp = (
-            Expediente.query
-            .filter_by(comprobacion_id=act.comprobacion_id)
-            .first()
-        )
+    cid = getattr(act, "comprobacion_id", None)
+    if cid:
+        exp_envio = expediente_envio_por_comprobacion(cid)
+        if exp_envio:
+            expediente_numero = getattr(exp_envio, "numero_expediente", None)
+            expediente_anio = getattr(exp_envio, "anio", None)
 
-    if exp:
-        expediente_numero = getattr(exp, "numero_expediente", None)
-        expediente_anio = getattr(exp, "anio", None)
-
-        of = getattr(exp, "oficio", None)
+        of = oficio_por_comprobacion(cid)
         if of:
             oficio_numero = getattr(of, "numero_oficio", None)
             oficio_anio = getattr(of, "anio", None)
@@ -382,12 +414,7 @@ def actuacion_to_pendiente_oficio_row(act: Actuaciones) -> Dict[str, Any]:
     full = actuacion_to_grid_row(act)
     exp_original = None
     if getattr(act, "comprobacion_id", None):
-        exp_original = (
-            Expediente.query
-            .filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
-            .order_by(Expediente.id.asc())
-            .first()
-        )
+        exp_original = expediente_envio_por_comprobacion(act.comprobacion_id)
 
     return {
         "id": full.get("id"),

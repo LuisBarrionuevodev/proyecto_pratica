@@ -21,7 +21,7 @@ def aplicar_notificacion_y_comprobacion_completar_trabajo(
     Qué hace:
     - Delega en `attach_notificacion` / `attach_comprobacion` (upsert por acta+año, motivos catálogo).
     - Hace `flush` tras cada attach para que `act.notificacion_id` / `act.comprobacion_id` estén
-      resueltos antes de oficio/expediente en el mismo `aplicar_payload_actuacion`.
+      resueltos antes de otras ramas del mismo `aplicar_payload_actuacion` (solo actas/datos operativos).
 
     Parámetros:
         act: actuación destino (con `anio`, `mes`, `fecha` coherentes).

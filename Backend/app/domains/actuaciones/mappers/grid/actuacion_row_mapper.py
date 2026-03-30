@@ -32,10 +32,9 @@ def _enum_value(v: Any) -> Optional[str]:
 
 def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     """
-    Mapper UI -> Payload limpio para services (sin DB).
-    Alineado al nuevo schema:
-    - fecha_actuacion ya es date
-    - tipo_actuacion y contraproducencia son strings validadas por catálogo
+    Mapper **CargarActuacion** → payload canónico para create/update (sin DB).
+
+    No emite `oficio` ni `expediente` en el dict (circuitos Esperando oficio / expediente).
     """
     fecha_iso = row.fecha_as_date().isoformat()
 
@@ -102,20 +101,6 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
             "kilos_total": row.decomiso_kilos_total,
         }
 
-
-    # Expediente / Oficio
-    if row.expediente_numero or row.expediente_anio is not None:
-        payload["expediente"] = {
-            "numero": _clean_str(row.expediente_numero),
-            "anio": row.expediente_anio,
-        }
-
-    if row.oficio_numero or row.oficio_anio is not None or row.oficio_causa:
-        payload["oficio"] = {
-            "numero": _clean_str(row.oficio_numero),
-            "anio": row.oficio_anio,
-            "causa": _clean_str(row.oficio_causa),
-        }
     if row.notificacion_previa_num:
         payload["notificacion_previa_num"] = _clean_str(row.notificacion_previa_num)
 
