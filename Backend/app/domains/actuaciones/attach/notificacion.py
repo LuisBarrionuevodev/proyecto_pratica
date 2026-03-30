@@ -11,16 +11,16 @@ from app.domains.actuaciones.services.notificacion_timing_service import inicial
 
 def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
     """
-    Adjunta (upsert) el acta de Notificación a una Actuación.
+    Adjunta el acta de Notificación a una Actuación.
 
-    Comportamiento (sin cambiar lógica):
-    - Identifica la notificación por `(numero_acta, anio)` donde `anio` se toma de la `actuacion`.
-    - Si `actuacion.notificacion_id` existe:
-        - Actualiza esa notificación, validando que el `(numero_acta, anio)` no pertenezca a otra notificación.
-    - Si `actuacion.notificacion_id` NO existe:
-        - Busca por `(numero_acta, anio)`; si no existe, crea una mínima con `mes=actuacion.mes`.
-    - Si viene la key `"motivos"` (aunque sea `[]`), se refleja en `noti.motivos` validando catálogo (`Motivo`).
-    - Regla de negocio: una Notificación NO puede estar asociada a otra actuación del mismo `(anio, tipo)`.
+    Reglas:
+    - Unicidad lógica del acta: `(numero_acta, anio)`.
+    - No se reutiliza una fila `Notificacion` ya existente para enganchar otra actuación:
+      si el par ya existe en BD y esta actuación aún no tenía la suya, es conflicto.
+    - Si `actuacion.notificacion_id` ya apunta a una fila, solo se actualiza esa misma fila
+      (misma actuación editando su acta), sin tomar prestada otra fila por número/año.
+
+    Si viene la key `"motivos"` (aunque sea `[]`), se refleja en `noti.motivos` validando catálogo.
 
     Args:
         actuacion: Actuación destino (debe tener `id`, `anio`, `mes` y opcionalmente `tipo`).
@@ -30,7 +30,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
         None
 
     Raises:
-        ValueError: si el acta de notificación ya está asociada a otra actuación.
+        ValueError: conflicto de acta ya existente / ya vinculada a otra actuación.
         ValueError: si algún motivo no existe en catálogo (propaga `get_motivo_o_falla`).
     """
     if not data:
@@ -43,13 +43,15 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
     anio = actuacion.anio
     mes = actuacion.mes
 
-    # 1) si ya tiene notificación asociada, actualizamos esa
+    # 1) Ya tiene notificación asociada: solo actualizar esa fila (no reutilizar otra por número/año).
     if actuacion.notificacion_id:
         noti = db.session.get(Notificacion, actuacion.notificacion_id)
         if noti:
-            existente = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
-            if existente and existente.id != noti.id:
-                raise ValueError("Acta de notificación ya asociada a otra actuación.")
+            otra_misma_clave = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
+            if otra_misma_clave and otra_misma_clave.id != noti.id:
+                raise ValueError(
+                    f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+                )
 
             if noti.deleted_at is not None:
                 noti.deleted_at = None
@@ -58,7 +60,6 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             noti.mes = mes
             inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
 
-            # 👇 clave: si viene el campo (aunque sea []), lo reflejamos
             if "motivos" in data:
                 motivos = data.get("motivos") or []
                 noti.motivos = [get_motivo_o_falla(m) for m in motivos]
@@ -67,26 +68,23 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             actuacion.notificacion_id = noti.id
             return
 
-    # 2) si no tenía, buscamos por acta+anio
-    noti = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
-    if not noti:
-        noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
-        inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
-        db.session.add(noti)
-        db.session.flush()
-    else:
-        # restore si estaba soft-deleted
-        if noti.deleted_at is not None:
-            noti.deleted_at = None
-            db.session.add(noti)
-        inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
+    # 2) Primera asociación: crear acta nueva; no reenganchar fila existente.
+    if db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first():
+        raise ValueError(
+            f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+        )
+
+    noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
+    inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
+    db.session.add(noti)
+    db.session.flush()
 
     actuacion.notificacion_id = noti.id
 
     if "motivos" in data:
         motivos = data.get("motivos") or []
         noti.motivos = [get_motivo_o_falla(m) for m in motivos]
-        db.session.flush()  # 👈 útil para ver inserts antes del commit
+        db.session.flush()
 
     if actuacion.tipo is not None:
         existe_mismo_tipo = (
@@ -99,5 +97,5 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
         )
         if existe_mismo_tipo:
             raise ValueError(
-                f"La Notificación {acta_num}/{anio} ya está asociada a otra actuación del mismo tipo ({actuacion.tipo})."
+                f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
             )

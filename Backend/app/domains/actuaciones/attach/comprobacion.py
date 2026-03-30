@@ -9,32 +9,15 @@ from app.utils.actas import acta_6
 
 def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
     """
-    Adjunta (upsert) el acta de Comprobación a una Actuación.
+    Adjunta el acta de Comprobación a una Actuación.
 
-    Objetivo:
-    - Evitar crear "basura" de comprobaciones duplicadas y mantener la misma regla de negocio
-      (no repetir la misma comprobación en otra actuación del mismo `(anio, tipo)`).
+    Reglas:
+    - Unicidad lógica del acta: `(numero_acta, anio)`.
+    - No se reutiliza una fila `Comprobacion` ya existente para enganchar otra actuación:
+      si el par ya existe en BD y esta actuación aún no tenía la suya, es conflicto.
+    - Si `actuacion.comprobacion_id` ya apunta a una fila, solo se actualiza esa misma fila.
 
-    Comportamiento:
-    - Si `data` es `None` -> no hace nada.
-    - Normaliza `data["acta_num"]` con `acta_6`; si queda vacío -> no hace nada.
-    - Valida `motivo` como obligatorio (no vacío tras `strip()`).
-
-    Upsert:
-    - Si `actuacion.comprobacion_id` existe:
-        - Carga esa `Comprobacion` y actualiza `numero_acta`, `anio`, `mes`, `motivo`.
-        - Antes de actualizar, verifica que NO exista otra `Comprobacion` con el mismo `(numero_acta, anio)`
-          con `id` distinto. Si existe -> `ValueError("Acta de comprobación ya asociada a otra actuación")`.
-    - Si NO existe `actuacion.comprobacion_id` (o no se pudo cargar):
-        - Busca `Comprobacion` por `(numero_acta, anio)`.
-        - Si no existe, la crea.
-        - Si existe, actualiza `mes` y `motivo`.
-
-    Regla de negocio:
-    - La misma comprobación (mismo `comprobacion_id`) NO puede estar asociada a otra actuación del mismo `(anio, tipo)`.
-
-    Al final:
-    - Setea `actuacion.comprobacion_id = comp.id`.
+    Valida `motivo` como obligatorio (no vacío tras `strip()`).
 
     Args:
         actuacion: Actuación destino (debe tener `id`, `anio`, `mes` y opcionalmente `tipo`).
@@ -45,8 +28,7 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
 
     Raises:
         ValueError: si `motivo` es vacío.
-        ValueError: si el acta de comprobación ya está asociada a otra actuación.
-        ValueError: si la comprobación ya está asociada a otra actuación del mismo tipo (mismo `(anio, tipo)`).
+        ValueError: conflicto de acta ya existente / ya vinculada a otra actuación.
     """
     if not data:
         return
@@ -64,13 +46,14 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
 
     comp: Optional[Comprobacion] = None
 
-    # Caso 1: la actuación ya tiene una comprobación asociada -> actualizar esa
     if actuacion.comprobacion_id:
         comp = db.session.get(Comprobacion, actuacion.comprobacion_id)
         if comp:
-            existente = db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first()
-            if existente and existente.id != comp.id:
-                raise ValueError("Acta de comprobación ya asociada a otra actuación")
+            otra_misma_clave = db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first()
+            if otra_misma_clave and otra_misma_clave.id != comp.id:
+                raise ValueError(
+                    f"La Comprobación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+                )
 
             if comp.deleted_at is not None:
                 comp.deleted_at = None
@@ -80,24 +63,16 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             comp.motivo = motivo
             db.session.add(comp)
 
-    # Caso 2: no hay comprobación asociada (o no se pudo cargar) -> buscar/crear por acta+anio
     if not comp:
-        comp = db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first()
-        if not comp:
-            comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
-            db.session.add(comp)
-            db.session.flush()
-        else:
-            # restore si estaba soft-deleted
-            if comp.deleted_at is not None:
-                comp.deleted_at = None
-            comp.mes = mes
-            comp.motivo = motivo
-            db.session.add(comp)
+        if db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first():
+            raise ValueError(
+                f"La Comprobación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+            )
+        comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
+        db.session.add(comp)
 
     db.session.flush()
 
-    # Regla negocio: misma comprobación NO puede repetirse en (anio,tipo)
     if actuacion.tipo is not None:
         existe_mismo_tipo = (
             Actuaciones.query.filter(
@@ -109,7 +84,7 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
         )
         if existe_mismo_tipo:
             raise ValueError(
-                f"La Comprobación {acta_num}/{anio} ya está asociada a otra actuación del mismo tipo ({actuacion.tipo})."
+                f"La Comprobación {acta_num}/{anio} ya existe y está asociada a otra actuación."
             )
 
     actuacion.comprobacion_id = comp.id
