@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, ValidationError, field_validator, model_validator
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
 
@@ -140,10 +140,46 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     @model_validator(mode="after")
     def comprobacion_exige_motivo_si_hay_acta(self) -> "CompletarTrabajoCierreCompletoIn":
         if self.acta_comprobacion_num and not (self.comprobacion_motivo and str(self.comprobacion_motivo).strip()):
-            raise ValueError(
+            msg = (
                 "Si cargás acta de comprobación, el motivo de comprobación es obligatorio "
                 "(catálogo motivos comprobación)."
             )
+            raise ValidationError.from_exception_data(
+                self.__class__.__name__,
+                [
+                    {
+                        "type": "value_error",
+                        "loc": ("comprobacion_motivo",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    }
+                ],
+            )
+        return self
+
+    @model_validator(mode="after")
+    def notificacion_exige_motivo_si_hay_acta(self) -> "CompletarTrabajoCierreCompletoIn":
+        if self.acta_notificacion_num and str(self.acta_notificacion_num).strip():
+            if not any(
+                [
+                    self.notificacion_motivo_1 and str(self.notificacion_motivo_1).strip(),
+                    self.notificacion_motivo_2 and str(self.notificacion_motivo_2).strip(),
+                    self.notificacion_motivo_3 and str(self.notificacion_motivo_3).strip(),
+                ]
+            ):
+                raise ValidationError.from_exception_data(
+                    self.__class__.__name__,
+                    [
+                        {
+                            "type": "value_error",
+                            "loc": ("notificacion_motivo_1",),
+                            "msg": "Value error",
+                            "input": None,
+                            "ctx": {"error": "La notificación requiere al menos un motivo."},
+                        }
+                    ],
+                )
         return self
 
     @model_validator(mode="after")

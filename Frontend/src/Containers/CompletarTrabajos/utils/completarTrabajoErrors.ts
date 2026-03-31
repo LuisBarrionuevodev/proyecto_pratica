@@ -22,6 +22,7 @@ const ROW_ONLY_VALIDATORS = new Set(["no_actas_si_visita_no_realizada"]);
 /** Claves de error API → campo del formulario (cuando el `loc` de Pydantic no coincide con el nombre del payload). */
 const FIELD_KEY_ALIASES: Record<string, string> = {
   comprobacion_exige_motivo_si_hay_acta: "comprobacion_motivo",
+  notificacion_exige_motivo_si_hay_acta: "notificacion_motivo_1",
 };
 
 /** Texto breve del Alert cuando hay errores inline en Completar trabajo. */

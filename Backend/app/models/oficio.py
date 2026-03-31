@@ -52,6 +52,8 @@ class Oficio(db.Model):
     )
     __table_args__ = (
         db.UniqueConstraint("numero_oficio", "anio", name="uq_of_numero_anio"),
+        # Misma causa no puede repetirse en el mismo año; sí en años distintos.
+        db.UniqueConstraint("causa", "anio", name="uq_of_causa_anio"),
     )
 
     def to_dict(self, include_relations=False):

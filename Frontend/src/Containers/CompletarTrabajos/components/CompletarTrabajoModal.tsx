@@ -153,10 +153,20 @@ export function CompletarTrabajoModal({
     if (!row) return;
     setFieldErrors({});
     setError(null);
+    const preSubmitErrors: Record<string, string> = {};
     if (visitaRealizada && actaComprobacion.trim() && !comprobacionMotivo.trim()) {
-      setFieldErrors({
-        comprobacion_motivo: "Si cargás acta de comprobación, elegí un motivo de comprobación.",
-      });
+      preSubmitErrors.comprobacion_motivo =
+        "Si cargás acta de comprobación, elegí un motivo de comprobación.";
+    }
+    if (
+      visitaRealizada &&
+      actaNotificacion.trim() &&
+      ![notifM1, notifM2, notifM3].some((x) => x.trim())
+    ) {
+      preSubmitErrors.notificacion_motivo_1 = "La notificación requiere al menos un motivo.";
+    }
+    if (Object.keys(preSubmitErrors).length > 0) {
+      setFieldErrors(preSubmitErrors);
       setError(COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY);
       return;
     }

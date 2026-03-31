@@ -410,6 +410,11 @@ class ActuacionGridRowIn(BaseModel):
                     field_errors["calle"] = "Calle obligatoria si cargás contraproducencia."
                     field_errors["numero"] = "Número obligatorio si cargás contraproducencia."
 
+        # Notificación: acta ⇒ al menos un motivo
+        if self.acta_notificacion_num:
+            if not any([self.notificacion_motivo_1, self.notificacion_motivo_2, self.notificacion_motivo_3]):
+                field_errors["notificacion_motivo_1"] = "La notificación requiere al menos un motivo."
+
         if field_errors:
             _raise_field_errors(self.__class__.__name__, field_errors)
             

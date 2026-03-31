@@ -8,6 +8,14 @@ from app.utils.actas import acta_6
 from app.domains.actuaciones.catalogs.motivo import get_motivo_o_falla
 from app.domains.actuaciones.services.notificacion_timing_service import inicializar_timing_notificacion
 
+_MSG_NOTIF_MOTIVO = "La notificación requiere al menos un motivo."
+
+
+def _notificacion_exige_al_menos_un_motivo(noti: Notificacion) -> None:
+    rel = getattr(noti, "motivos", None) or []
+    if len(rel) < 1:
+        raise ValueError(_MSG_NOTIF_MOTIVO)
+
 
 def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
     """
@@ -20,7 +28,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
     - Si `actuacion.notificacion_id` ya apunta a una fila, solo se actualiza esa misma fila
       (misma actuación editando su acta), sin tomar prestada otra fila por número/año.
 
-    Si viene la key `"motivos"` (aunque sea `[]`), se refleja en `noti.motivos` validando catálogo.
+    Con acta de notificación persistida, debe haber **al menos un motivo** en catálogo.
 
     Args:
         actuacion: Actuación destino (debe tener `id`, `anio`, `mes` y opcionalmente `tipo`).
@@ -32,6 +40,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
     Raises:
         ValueError: conflicto de acta ya existente / ya vinculada a otra actuación.
         ValueError: si algún motivo no existe en catálogo (propaga `get_motivo_o_falla`).
+        ValueError: si hay acta y cero motivos.
     """
     if not data:
         return
@@ -63,6 +72,7 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             if "motivos" in data:
                 motivos = data.get("motivos") or []
                 noti.motivos = [get_motivo_o_falla(m) for m in motivos]
+            _notificacion_exige_al_menos_un_motivo(noti)
 
             db.session.add(noti)
             actuacion.notificacion_id = noti.id
@@ -81,10 +91,12 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
 
     actuacion.notificacion_id = noti.id
 
-    if "motivos" in data:
-        motivos = data.get("motivos") or []
-        noti.motivos = [get_motivo_o_falla(m) for m in motivos]
-        db.session.flush()
+    if "motivos" not in data:
+        raise ValueError(_MSG_NOTIF_MOTIVO)
+    motivos = data.get("motivos") or []
+    noti.motivos = [get_motivo_o_falla(m) for m in motivos]
+    db.session.flush()
+    _notificacion_exige_al_menos_un_motivo(noti)
 
     if actuacion.tipo is not None:
         existe_mismo_tipo = (
