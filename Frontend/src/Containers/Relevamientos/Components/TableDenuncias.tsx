@@ -24,12 +24,15 @@ interface TablaDenunciasProps {
   data?: IDenunciaGestionItem[];
   loading?: boolean;
   onRefresh?: () => void;
+  /** En realizados la tabla es solo lectura (sin acciones de edición/borrado). */
+  readOnly?: boolean;
 }
 
 const TablaDenuncias = ({
   data: externalData,
   loading: externalLoading,
   onRefresh,
+  readOnly = false,
 }: TablaDenunciasProps) => {
   const [data, setData] = useState<IDenunciaGestionItem[]>(externalData || []);
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
@@ -172,12 +175,12 @@ const TablaDenuncias = ({
     ...DARK_TABLE_CONFIG,
     columns,
     data,
-    enableEditing: true,
+    enableEditing: !readOnly,
     editDisplayMode: "row",
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
-    enableRowActions: true,
+    enableRowActions: !readOnly,
     positionActionsColumn: "first",
     initialState: {
       density: "compact",
@@ -186,7 +189,9 @@ const TablaDenuncias = ({
       },
     },
     onEditingRowSave: handleSaveRow,
-    renderRowActions: ({ row, table }) => (
+    renderRowActions: readOnly
+      ? undefined
+      : ({ row, table }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
         <Tooltip title={row.original.editable === false ? "No editable (fuera de gestión operativa)" : "Editar"}>
           <IconButton

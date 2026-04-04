@@ -26,6 +26,7 @@ _COMPLETAR_GRID_EXTRA_KEYS: tuple[str, ...] = (
     "acta_clausura_num",
     "acta_decomiso_num",
     "decomiso_kilos_total",
+    "resultado_cumplimiento_oficio",
 )
 
 

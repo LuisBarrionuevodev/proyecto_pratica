@@ -53,6 +53,21 @@ export const glassTabsHeaderPanelSx: SxProps<Theme> = {
     overflow: "hidden",
 };
 
+/**
+ * Tabs secundarios (p. ej. Pendientes | Realizados bajo filtros): más liviano que la cabecera principal,
+ * alineado visualmente con sub-secciones dentro de una misma vista.
+ */
+export const glassTabsSecondaryPanelSx: SxProps<Theme> = {
+    backgroundColor: "rgba(255, 255, 255, 0.035)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
+    borderRadius: "12px",
+    boxShadow: "none",
+    p: 1.25,
+    overflow: "hidden",
+};
+
 // Estilo para item de menú activo
 export const glassActiveItem: SxProps<Theme> = {
     backgroundColor: GLASS_COLORS.activeBg,

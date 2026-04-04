@@ -6,7 +6,6 @@ export interface IRelevamiento {
   numero: string | null;
   numero_tipo?: string | null;
   rubro: string | null;
-  contraproducencia: string | null;
   domicilio_id?: number | null;
   calle_normalizada?: string | null;
   esquina_normalizada?: string | null;
@@ -18,4 +17,6 @@ export interface IRelevamiento {
   calle_sugerida?: string | null;
   calle_mostrar?: string | null;
   calle_catalogo_id?: number | null;
+  turno?: string | null;
+  esta_abierto?: boolean | null;
 }

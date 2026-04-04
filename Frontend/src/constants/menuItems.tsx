@@ -13,6 +13,8 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RouteIcon from "@mui/icons-material/Route";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import type { JSX } from "react";
 
 export interface MenuItem {
@@ -38,7 +40,11 @@ export const menuSections: MenuSection[] = [
   {
     label: "CARGA",
     items: [
-      { text: "Cargar actas", icon: <CreateNewFolderIcon />, path: "/cargarActuacion" },
+      {
+        text: "Cargar actas de notificación/comprobación",
+        icon: <CreateNewFolderIcon />,
+        path: "/cargarActuacion",
+      },
       { text: "Cargar relevamiento o denuncia", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
       { text: "Gestión de capacitaciones", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
     ],
@@ -47,6 +53,8 @@ export const menuSections: MenuSection[] = [
     label: "GESTIÓN",
     items: [
       { text: "Actuaciones", icon: <DashboardIcon />, path: "/actuaciones" },
+      { text: "Gestión de notificación", icon: <NotificationsActiveIcon />, path: "/gestionNotificacion" },
+      { text: "Actas de comprobación", icon: <FactCheckOutlinedIcon />, path: "/actasComprobacion" },
       { text: "Relevamientos", icon: <ListAltIcon />, path: "/relevamientos" },
       { text: "Establecimientos", icon: <StorefrontIcon />, path: "/establecimientos" },
       { text: "Completar trabajos", icon: <TaskAltIcon />, path: "/completarTrabajos" },
@@ -70,10 +78,12 @@ export const logoutItem: MenuItem = {
 
 export const routeLabels: Record<string, string> = {
   "/inicio": "Inicio",
-  "/cargarActuacion": "Cargar actas",
+  "/cargarActuacion": "Cargar actas de notificación/comprobación",
   "/cargarRelevamiento": "Cargar relevamiento o denuncia",
   "/cargarPersonasCapacitadas": "Gestión de capacitaciones",
   "/actuaciones": "Actuaciones",
+  "/gestionNotificacion": "Gestión de notificación",
+  "/actasComprobacion": "Actas de comprobación",
   "/relevamientos": "Relevamientos",
   "/establecimientos": "Establecimientos",
   "/rutasTrabajo": "Ruta de trabajo",

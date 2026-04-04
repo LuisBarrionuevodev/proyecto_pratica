@@ -1,0 +1,130 @@
+import { apiClient } from "./apiClient";
+import type { IPendientesOficioResponse } from "./actuacionesPendientesApi";
+
+/** Reutiliza el mismo contrato que la bandeja esperando oficio. */
+export async function fetchComprobacionPendientesOficio(
+  desde?: string | null,
+  hasta?: string | null
+): Promise<IPendientesOficioResponse> {
+  const params: Record<string, string> = {};
+  if (desde) params.desde = desde;
+  if (hasta) params.hasta = hasta;
+  const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
+  return data;
+}
+
+export interface IReinspeccionOficioPendienteRow {
+  iniciador_id: number;
+  estado_iniciador: string;
+  tipo_iniciador: string;
+  fecha_origen_iniciador: string | null;
+  id: number;
+  fecha_actuacion: string | null;
+  orden_trabajo_numero: string | null;
+  acta_comprobacion_num: string | null;
+  comprobacion_motivo: string | null;
+  rubro_nombre: string | null;
+  calle: string | null;
+  numero: string | null;
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
+  documento_pendiente: string;
+}
+
+export interface IReinspeccionOficioResponse {
+  items: IReinspeccionOficioPendienteRow[];
+  meta: { total: number; desde: string | null; hasta: string | null };
+}
+
+export async function fetchPendientesReinspeccionOficio(
+  desde?: string | null,
+  hasta?: string | null
+): Promise<IReinspeccionOficioResponse> {
+  const params: Record<string, string> = {};
+  if (desde) params.desde = desde;
+  if (hasta) params.hasta = hasta;
+  const { data } = await apiClient.get<IReinspeccionOficioResponse>(
+    "/actuaciones/comprobacion/pendientes-reinspeccion-oficio",
+    { params }
+  );
+  return data;
+}
+
+export interface IComprobacionRecorridoRow {
+  id: number;
+  estado_recorrido: string;
+  fecha_actuacion: string | null;
+  orden_trabajo_numero: string | null;
+  acta_comprobacion_num: string | null;
+  comprobacion_motivo: string | null;
+  rubro_nombre: string | null;
+  calle: string | null;
+  numero: string | null;
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
+  expediente_numero?: string | null;
+  expediente_anio?: number | null;
+  oficio_numero?: string | null;
+  oficio_anio?: number | null;
+  [key: string]: unknown;
+}
+
+export interface IComprobacionRecorridoListResponse {
+  items: IComprobacionRecorridoRow[];
+  meta: { total: number; desde: string | null; hasta: string | null };
+}
+
+export interface IComprobacionRecorridoListParams {
+  desde?: string | null;
+  hasta?: string | null;
+  contrib_q?: string | null;
+  calle_q?: string | null;
+  numero_q?: string | null;
+  acta_comprobacion?: string | null;
+  expediente_numero?: string | null;
+  oficio_numero?: string | null;
+  estado_recorrido?: string | null;
+  /** CUMPLE / NO_CUMPLE (resultado_cumplimiento_oficio) */
+  tipo_final?: string | null;
+}
+
+export async function fetchComprobacionRecorrido(
+  paramsIn: IComprobacionRecorridoListParams = {}
+): Promise<IComprobacionRecorridoListResponse> {
+  const params: Record<string, string> = {};
+  const p = paramsIn;
+  if (p.desde) params.desde = p.desde;
+  if (p.hasta) params.hasta = p.hasta;
+  if (p.contrib_q) params.contrib_q = p.contrib_q;
+  if (p.calle_q) params.calle_q = p.calle_q;
+  if (p.numero_q) params.numero_q = p.numero_q;
+  if (p.acta_comprobacion) params.acta_comprobacion = p.acta_comprobacion;
+  if (p.expediente_numero) params.expediente_numero = p.expediente_numero;
+  if (p.oficio_numero) params.oficio_numero = p.oficio_numero;
+  if (p.estado_recorrido) params.estado_recorrido = p.estado_recorrido;
+  if (p.tipo_final) params.tipo_final = p.tipo_final;
+  const { data } = await apiClient.get<IComprobacionRecorridoListResponse>("/actuaciones/comprobacion/recorrido", {
+    params,
+  });
+  return data;
+}
+
+export interface IComprobacionRecorridoDetalle {
+  actuacion_id: number;
+  origen: Record<string, unknown>;
+  acta_comprobacion: Record<string, unknown>;
+  expediente_comprobacion_envio: Record<string, unknown> | null;
+  oficio: Record<string, unknown> | null;
+  expediente_respuesta_oficio: Record<string, unknown> | null;
+  reinspeccion_por_oficio: Record<string, unknown> | null;
+  resultado_final: Record<string, unknown>;
+}
+
+export async function fetchComprobacionRecorridoDetalle(
+  actuacionId: number
+): Promise<IComprobacionRecorridoDetalle> {
+  const { data } = await apiClient.get<IComprobacionRecorridoDetalle>(
+    `/actuaciones/comprobacion/recorrido/${actuacionId}`
+  );
+  return data;
+}

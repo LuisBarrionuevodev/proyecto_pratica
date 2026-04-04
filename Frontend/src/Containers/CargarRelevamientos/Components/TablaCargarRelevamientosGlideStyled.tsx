@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DataEditor, {
+  CompactSelection,
   type GridCell,
   GridCellKind,
   type GridColumn,
+  type GridKeyEventArgs,
+  type GridSelection,
   type Item,
   type EditableGridCell,
 } from "@glideapps/glide-data-grid";
@@ -18,7 +21,6 @@ import {
   type GridRow,
   fetchInspectores,
   fetchRubros,
-  fetchContraproducencias,
 } from "../../../api/gridApi";
 
 import {
@@ -36,10 +38,11 @@ import {
   wrapperStyles,
   gridContainerStyles,
   buttonMandarTodoStyles,
+  calculateRelevamientoTableHeight,
 } from "../styles/cargarRelevamientosStyles";
 import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
-import { gridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+import { gridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 import {
   extractDataColumns,
   rowHasData,
@@ -53,6 +56,9 @@ interface TablaCargarRelevamientosGlideStyledProps {
   showTitle?: boolean;
 }
 
+/** Con `rowMarkers="both"`, la primera columna de datos está desplazada en 1 respecto al canvas. */
+const ROW_MARKERS_BOTH_OFFSET = 1;
+
 const TablaCargarRelevamientosGlideStyled = ({
   showTitle = true,
 }: TablaCargarRelevamientosGlideStyledProps) => {
@@ -65,7 +71,7 @@ const TablaCargarRelevamientosGlideStyled = ({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
-  const [catalogContras, setCatalogContras] = useState<string[]>([]);
+  const [gridSelection, setGridSelection] = useState<GridSelection | undefined>(undefined);
 
   const gridRef = useRef<any>(null);
   const debounceRef = useRef<Record<string, number>>({});
@@ -79,10 +85,10 @@ const TablaCargarRelevamientosGlideStyled = ({
       motivos: [],
       rubros: catalogRubros,
       tipos: [],
-      contraproducencias: catalogContras,
+      contraproducencias: [],
       motivosComprobacion: [],
     }),
-    [catalogInspectores, catalogRubros, catalogContras]
+    [catalogInspectores, catalogRubros]
   );
 
   const ensureBatchStarted = useCallback(async (): Promise<string | null> => {
@@ -111,16 +117,11 @@ const TablaCargarRelevamientosGlideStyled = ({
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectoresResp, rubrosResp, contrasResp] = await Promise.all([
-          fetchInspectores(),
-          fetchRubros(),
-          fetchContraproducencias(),
-        ]);
+        const [inspectoresResp, rubrosResp] = await Promise.all([fetchInspectores(), fetchRubros()]);
         setCatalogInspectores([...new Set(inspectoresResp.items.map((i) => i.nombre))]);
         setCatalogRubros([...new Set(rubrosResp.items.map((r) => r.nombre))]);
-        setCatalogContras([...new Set(contrasResp.items.map((c) => c.nombre))]);
       } catch (error: any) {
-        setGlobalError("Error cargando catálogos (inspectores/rubros/contraproducencia).");
+        setGlobalError("Error cargando catálogos (inspectores/rubros).");
       }
     };
     loadCatalogs();
@@ -409,6 +410,41 @@ const TablaCargarRelevamientosGlideStyled = ({
     setData((prev) => [...prev, createEmptyRow()]);
   };
 
+  /**
+   * Navegación tipo planilla: Tab en la última columna de datos ("Está abierto") pasa a la primera
+   * columna de la fila siguiente; en la última fila útil, dispara appendRow (nueva fila + foco col 0).
+   */
+  const handleGridKeyDown = useCallback((event: GridKeyEventArgs) => {
+    if (event.key !== "Tab" || event.shiftKey) return;
+    const loc = event.location;
+    if (loc === undefined) return;
+    const [colGrid, row] = loc;
+    const lastDataColGrid = ROW_MARKERS_BOTH_OFFSET + COLUMN_DEFINITIONS.length - 1;
+    if (colGrid !== lastDataColGrid) return;
+
+    event.cancel();
+    event.preventDefault();
+    event.stopPropagation();
+
+    const numRows = dataRef.current.length;
+    const isAtLastUsableRow = row >= numRows - 1;
+
+    if (isAtLastUsableRow) {
+      void gridRef.current?.appendRow(0, false);
+      return;
+    }
+
+    setGridSelection({
+      columns: CompactSelection.empty(),
+      rows: CompactSelection.empty(),
+      current: {
+        cell: [0, row + 1],
+        range: { x: 0, y: row + 1, width: 1, height: 1 },
+        rangeStack: [],
+      },
+    });
+  }, []);
+
   const columns = useMemo<GridColumn[]>(
     () =>
       COLUMN_DEFINITIONS.map((col) => {
@@ -417,6 +453,8 @@ const TablaCargarRelevamientosGlideStyled = ({
           title: col.title,
           id: col.id,
           width: col.width,
+          /** Reparte el ancho extra del viewport (evita franja vacía a la derecha). */
+          grow: 1,
           group: col.group,
           icon: col.icon,
           themeOverride: groupConfig
@@ -550,7 +588,7 @@ const TablaCargarRelevamientosGlideStyled = ({
       .filter((value, idx, arr) => arr.indexOf(value) === idx)
       .join(" | ") || null;
 
-  const tableHeight = useMemo(() => calculateTableHeight(data.length), [data.length]);
+  const tableHeight = useMemo(() => calculateRelevamientoTableHeight(data.length), [data.length]);
 
   return (
     <Box sx={containerStyles}>
@@ -596,7 +634,7 @@ const TablaCargarRelevamientosGlideStyled = ({
           </Alert>
         )}
 
-        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <Box sx={{ display: "flex", gap: 2, mb: 2, width: "100%" }}>
           <Button
             variant="contained"
             onClick={handleCommitBatch}
@@ -608,20 +646,26 @@ const TablaCargarRelevamientosGlideStyled = ({
           </Button>
         </Box>
 
-        <Box sx={{ ...gridContainerStyles, height: tableHeight }}>
+        <Box sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}>
           <DataEditor
             ref={gridRef}
+            width="100%"
+            height={tableHeight}
+            gridSelection={gridSelection}
+            onGridSelectionChange={setGridSelection}
             getCellContent={getCellContent}
             columns={columns}
             rows={data.length}
             onCellEdited={handleCellEdit}
             onCellClicked={handleCellClicked}
+            onKeyDown={handleGridKeyDown}
             onFinishedEditing={handleFinishedEditing}
             onRowAppended={onRowAppended}
             customRenderers={allCells}
             theme={gridTheme}
             smoothScrollX={true}
             smoothScrollY={true}
+            trapFocus={true}
             rowMarkers="both"
             rowHeight={GRID_DIMENSIONS.rowHeight}
             headerHeight={GRID_DIMENSIONS.headerHeight}
@@ -657,9 +701,11 @@ const TablaCargarRelevamientosGlideStyled = ({
           <Typography sx={legendTitleStyles}>CÓMO USAR:</Typography>
           <Typography sx={legendTextStyles} component="div">
             <strong>1.</strong> Doble click en una celda o presiona <span style={kbdStyles}>Enter</span><br />
-            <strong>2.</strong> Para agregar filas: presiona <span style={kbdStyles}>Enter</span><br />
-            <strong>3.</strong> Validación automática al editar<br />
-            <strong>4.</strong> Confirmar todo: botón “Mandar todo”<br />
+            <strong>2.</strong> <span style={kbdStyles}>Tab</span> avanza por columnas; desde la última columna pasa a la
+            fila siguiente (o crea una fila nueva al final).<br />
+            <strong>3.</strong> Para agregar filas: también <span style={kbdStyles}>Enter</span> en la grilla<br />
+            <strong>4.</strong> Validación automática al editar<br />
+            <strong>5.</strong> Confirmar todo: botón “Mandar todo”<br />
             <br />
             <strong>COLORES:</strong>{" "}
             <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>

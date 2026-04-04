@@ -1,6 +1,8 @@
 # app/main.py
+import json
 import os
 from dotenv import load_dotenv
+import click
 from flask import Flask
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -76,6 +78,26 @@ def create_app(config_override: dict | None = None):
                     ensure_dev_admin_seed()
             except Exception:
                 app.logger.exception("No se pudo crear/verificar seed admin de desarrollo")
+
+    @app.cli.command("sync-notificaciones-vencidas")
+    def sync_notificaciones_vencidas_cli() -> None:
+        """
+        Materializa iniciadores REINSPECCION_NOTIFICACION por notificaciones vencidas (Fase C).
+
+        Camino canónico para cron / Task Scheduler: equivalente al módulo
+        `app.domains.actuaciones.pipelines.sync_notificaciones_vencidas`.
+        """
+        from app.domains.actuaciones.pipelines.sync_notificaciones_vencidas import (
+            run_sync_notificaciones_vencidas,
+        )
+
+        try:
+            metrics = run_sync_notificaciones_vencidas()
+        except Exception:
+            app.logger.exception("sync-notificaciones-vencidas CLI falló")
+            raise click.Abort()
+        click.echo(json.dumps(metrics, ensure_ascii=True))
+
     print(app.url_map)
 
     return app

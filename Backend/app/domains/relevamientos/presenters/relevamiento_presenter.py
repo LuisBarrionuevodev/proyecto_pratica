@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.models import Relevamiento
+from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
 
 
 def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
@@ -16,7 +17,6 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
     - calle
     - numero
     - rubro (nombre)
-    - contraproducencia
     """
     fecha_iso: Optional[str] = rel.fecha.isoformat() if rel.fecha else None
     inspector_nombre = rel.inspector.nombre if rel.inspector else None
@@ -65,18 +65,19 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
         "calle_sugerida": calle_sugerida,
         "calle_mostrar": calle_mostrar,
         "rubro": getattr(rub, "nombre", None),
-        "contraproducencia": rel.contraproducencia,
+        "turno": rel.turno_carga,
+        "esta_abierto": rel.esta_abierto,
     }
 
 
-def relevamiento_operativo_to_row(rel: Relevamiento, iniciador_id: int, iniciador_estado: str) -> Dict[str, Any]:
+def relevamiento_operativo_to_row(rel: Relevamiento, iniciador_id: int, iniciador_estado: object) -> Dict[str, Any]:
     """
     Convierte un Relevamiento de gestión operativa a formato UI.
     """
     data = relevamiento_to_row(rel)
     data["iniciador_ruta_id"] = iniciador_id
-    data["iniciador_estado"] = iniciador_estado
-    data["editable"] = iniciador_estado == "PENDIENTE"
+    data["iniciador_estado"] = normalize_estado_iniciador(iniciador_estado)
+    data["editable"] = es_estado_iniciador_pendiente(iniciador_estado)
     return data
 
 
@@ -101,7 +102,6 @@ def relevamiento_to_pendiente_domicilio_row(rel: Relevamiento) -> Dict[str, Any]
     return {
         "id": rel.id,
         "fecha": fecha_iso,
-        "contraproducencia": rel.contraproducencia,
         "rubro": getattr(rub, "nombre", None),
         "calle_ingresada": calle,
         "calle": calle,

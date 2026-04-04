@@ -29,7 +29,6 @@ import {
     COLORS,
     containerStyles,
     wrapperStyles,
-    titleStyles,
     alertBaseStyles,
     gridContainerStyles,
     legendStyles,
@@ -39,7 +38,7 @@ import {
     getStatusBadgeStyles,
     buttonMandarTodoStyles,
 } from "../styles/cargarActuacionesStyles";
-import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
+import { GROUP_CONFIG, getVisibleColumnDefinitions, type ActaCargaFocus } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../config/dropdownOptions";
 import { gridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
 import {
@@ -51,10 +50,21 @@ import {
     formatDateToISO,
 } from "../utils/gridHelpers";
 
+export type TablaCargarActuacionesGlideStyledProps = {
+    /** Foco de carga: columnas del otro tipo de acta se ocultan (sin borrar datos de fila). */
+    actaFocus?: ActaCargaFocus;
+    /** Si es false, la leyenda "Cómo usar" se omite (p. ej. la renderiza el contenedor padre). */
+    showHowTo?: boolean;
+};
+
 // =============================================================================
 // COMPONENTE PRINCIPAL
 // =============================================================================
-const TablaCargarActuacionesGlideStyled = () => {
+const TablaCargarActuacionesGlideStyled = ({
+    actaFocus = "todas",
+    showHowTo = true,
+}: TablaCargarActuacionesGlideStyledProps) => {
+    const visibleColumnDefs = useMemo(() => getVisibleColumnDefinitions(actaFocus), [actaFocus]);
     // Estado inicial con 5 filas vacías
     const initialRows = useMemo(() => createEmptyRows(5), []);
 
@@ -379,7 +389,7 @@ const TablaCargarActuacionesGlideStyled = () => {
 
             await ensureBatchStarted();
 
-            const columnDef = COLUMN_DEFINITIONS[col];
+            const columnDef = visibleColumnDefs[col];
             const columnId = columnDef.id;
             const rowData = data[row];
 
@@ -472,7 +482,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                 }, 900);
             }
         },
-        [data, batchId, ensureBatchStarted, handleValidateRow, validateBatchRows]
+        [data, batchId, ensureBatchStarted, handleValidateRow, validateBatchRows, visibleColumnDefs]
     );
 
     const handleAddRow = () => {
@@ -482,7 +492,7 @@ const TablaCargarActuacionesGlideStyled = () => {
     // Columnas con estilos Neo-Brutalistas - iconos blancos
     const columns = useMemo<GridColumn[]>(
         () =>
-            COLUMN_DEFINITIONS.map((col) => {
+            visibleColumnDefs.map((col) => {
                 const groupConfig = col.group ? GROUP_CONFIG[col.group as keyof typeof GROUP_CONFIG] : undefined;
                 return {
                     title: col.title,
@@ -499,7 +509,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                     } : undefined,
                 };
             }),
-        []
+        [visibleColumnDefs]
     );
 
     // Contenido de celda con colores Neo-Brutalistas
@@ -510,7 +520,7 @@ const TablaCargarActuacionesGlideStyled = () => {
             }
 
             const rowData = data[row];
-            const columnDef = COLUMN_DEFINITIONS[col];
+            const columnDef = visibleColumnDefs[col];
             const columnId = columnDef.id;
             const cellType = (columnDef as any).cellType || "text";
             const value = rowData[columnId as keyof GridRow];
@@ -602,7 +612,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                 themeOverride,
             };
         },
-        [data, catalogs]
+        [data, catalogs, visibleColumnDefs]
     );
 
     const handleCellClicked = useCallback(() => {
@@ -611,11 +621,11 @@ const TablaCargarActuacionesGlideStyled = () => {
 
     const handleFinishedEditing = useCallback(
         (_newValue: GridCell | undefined, [col, row]: Item) => {
-            if (row === data.length - 1 && col === COLUMN_DEFINITIONS.length - 1) {
+            if (row === data.length - 1 && col === visibleColumnDefs.length - 1) {
                 setTimeout(() => handleAddRow(), 100);
             }
         },
-        [data]
+        [data, visibleColumnDefs.length]
     );
 
     const onRowAppended = useCallback(() => handleAddRow(), []);
@@ -641,10 +651,6 @@ const TablaCargarActuacionesGlideStyled = () => {
     return (
         <Box sx={containerStyles}>
             <Box sx={wrapperStyles}>
-                <Typography sx={titleStyles}>
-                    Carga de Actuaciones
-                </Typography>
-
                 {globalError && (
                     <Alert severity="error" onClose={() => setGlobalError(null)} sx={alertBaseStyles}>
                         {globalError}
@@ -704,6 +710,7 @@ const TablaCargarActuacionesGlideStyled = () => {
 
                 <Box sx={{ ...gridContainerStyles, height: tableHeight }}>
                     <DataEditor
+                        key={actaFocus}
                         ref={gridRef}
                         getCellContent={getCellContent}
                         columns={columns}
@@ -746,6 +753,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                     />
                 </Box>
 
+                {showHowTo && (
                 <Box sx={legendStyles}>
                     <Typography sx={legendTitleStyles}>
                          CÓMO USAR:
@@ -767,6 +775,7 @@ const TablaCargarActuacionesGlideStyled = () => {
                         <span style={getStatusBadgeStyles(COLORS.primary, COLORS.white)}>VALIDANDO</span>
                     </Typography>
                 </Box>
+                )}
             </Box>
         </Box>
     );

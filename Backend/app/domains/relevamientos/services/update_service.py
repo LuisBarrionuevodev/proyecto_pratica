@@ -60,7 +60,6 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     calle = domicilio.get("calle")
     numero = domicilio.get("numero")
     rubro_nombre = payload.get("rubro_nombre")
-    contraproducencia = payload.get("contraproducencia")
 
     if not fecha_raw:
         raise ValueError("Fecha obligatoria.")
@@ -68,9 +67,8 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         raise ValueError("Inspector obligatorio.")
     if not calle or not numero:
         raise ValueError("Calle y número son obligatorios.")
-
-    if bool(rubro_nombre) == bool(contraproducencia):
-        raise ValueError("Debe cargar Rubro o Contraproducencia (excluyentes).")
+    if not rubro_nombre:
+        raise ValueError("Rubro obligatorio.")
 
     mes, anio, fecha = parse_fecha_grid(fecha_raw)
     inspector = get_inspectores_o_falla([inspector_nombre])[0]
@@ -85,7 +83,12 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     rel.inspector_id = inspector.id
     rel.domicilio_id = dom.id
     rel.rubro_id = rubro.id if rubro else None
-    rel.contraproducencia = contraproducencia
+
+    turno_carga = payload.get("turno_carga")
+    if turno_carga is not None and turno_carga not in ("MANIANA", "TARDE"):
+        raise ValueError("Turno inválido.")
+    rel.turno_carga = turno_carga
+    rel.esta_abierto = payload.get("esta_abierto")
 
     db.session.add(rel)
     db.session.commit()

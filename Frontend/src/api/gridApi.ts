@@ -27,6 +27,8 @@ export interface GridRow {
   "Calle"?: string | null;
   "Número"?: string | null;
   "Numero"?: string | null;
+  "Turno"?: string | null;
+  "Está abierto"?: string | boolean | null;
   "Rubro"?: string | null;
   "Apellido"?: string | null;
   "Nombre"?: string | null;

@@ -1,5 +1,8 @@
 from app.database import db
 
+# Fase B (MySQL 8.0.13+): índice único funcional `uq_iniciador_ruta_reinsp_notif_vencida_key`
+# en migración `b2c8e9f1a3d4_iniciador_reinsp_notif_vencida_uq` (expresión CASE, no columna ORM).
+
 
 class IniciadorRuta(db.Model):
     __tablename__ = "iniciador_ruta"

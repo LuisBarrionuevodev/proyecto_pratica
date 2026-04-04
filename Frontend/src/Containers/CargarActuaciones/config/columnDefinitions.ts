@@ -45,3 +45,32 @@ export const COLUMN_DEFINITIONS = [
 export const DATA_COLUMN_IDS = COLUMN_DEFINITIONS
     .filter(col => !col.id.startsWith("_"))
     .map(col => col.id);
+
+/** Columnas propias de acta de notificación (se ocultan en foco Comprobación). */
+const NOTIFICACION_COLUMN_IDS = new Set([
+    "Acta notificación",
+    "Motivo notif 1",
+    "Motivo notif 2",
+    "Motivo notif 3",
+]);
+
+/** Columnas propias de acta de comprobación (se ocultan en foco Notificación). */
+const COMPROBACION_COLUMN_IDS = new Set(["Acta comprobación", "Motivo comprobación"]);
+
+export type ActaCargaFocus = "notificacion" | "comprobacion" | "todas";
+
+/**
+ * Columnas visibles según el foco de carga: misma grilla, menos columnas del otro tipo de acta.
+ * `todas`: todas las columnas (notificación y comprobación a la vez).
+ * Los datos de fila siguen en memoria al cambiar de foco (sin borrar).
+ */
+export function getVisibleColumnDefinitions(actaFocus: ActaCargaFocus): typeof COLUMN_DEFINITIONS {
+    if (actaFocus === "todas") {
+        return COLUMN_DEFINITIONS;
+    }
+    return COLUMN_DEFINITIONS.filter((col) => {
+        if (actaFocus === "notificacion" && COMPROBACION_COLUMN_IDS.has(col.id)) return false;
+        if (actaFocus === "comprobacion" && NOTIFICACION_COLUMN_IDS.has(col.id)) return false;
+        return true;
+    });
+}

@@ -27,6 +27,7 @@ def map_relevamiento_row(row: RelevamientoGridRowIn) -> Dict[str, Any]:
             "numero_tipo": _clean_str(row.numero_tipo),
         },
         "rubro_nombre": _clean_str(row.rubro),
-        "contraproducencia": _clean_str(row.contraproducencia),
+        "turno_carga": row.turno,
+        "esta_abierto": row.esta_abierto,
     }
     return payload

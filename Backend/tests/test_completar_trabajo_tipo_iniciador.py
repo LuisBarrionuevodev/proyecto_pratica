@@ -39,3 +39,26 @@ def test_validar_falla_si_distinto() -> None:
             tipo_iniciador="RELEVAMIENTO",
             tipo_actuacion="REINSPECCION",
         )
+
+
+@pytest.mark.parametrize(
+    "tipo",
+    [
+        "RATIFICACION DE CLAUSURA",
+        "RATIFICACION DE DECOMISO",
+        "VERIFICAR E INFORMAR",
+    ],
+)
+def test_validar_reinspeccion_oficio_acepta_tipos_canonicos(tipo: str) -> None:
+    validar_tipo_actuacion_para_iniciador(
+        tipo_iniciador="REINSPECCION_OFICIO",
+        tipo_actuacion=tipo,
+    )
+
+
+def test_validar_reinspeccion_oficio_rechaza_reinspeccion() -> None:
+    with pytest.raises(ValueError, match="REINSPECCION_OFICIO"):
+        validar_tipo_actuacion_para_iniciador(
+            tipo_iniciador="REINSPECCION_OFICIO",
+            tipo_actuacion="REINSPECCION",
+        )

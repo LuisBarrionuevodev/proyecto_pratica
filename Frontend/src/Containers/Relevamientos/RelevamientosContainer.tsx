@@ -1,289 +1,139 @@
 import type { JSX } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  CircularProgress,
-  Typography,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useState } from "react";
+import { Alert, Box, CircularProgress, Paper, Tab, Tabs, Typography } from "@mui/material";
 import TablaRelevamientos from "./Components/TableRelevamientos";
 import FiltroRelevamientos from "./Components/FiltroRelevamientos";
-import FiltroPendientes from "../Actuaciones/Components/FiltroPendientes";
-import { useRelevamientosFiltradas } from "./hooks/useRelevamientosFiltradas";
-import {
-  getRelevamientosPendientes,
-  getRelevamientosPendientesSummary,
-  type IRelevamientosPendientesItem,
-  type IRelevamientosPendientesSummary,
-} from "../../api/relevamientosPendientesApi";
-import {
-  fetchCallesCatalogo,
-  type CalleCatalogoItem,
-} from "../../api/geolocalizacionApi";
-import { getCurrentMonthRange } from "../../utils/dateRange";
-import type { MRT_ColumnDef } from "material-react-table";
-import type { IRelevamientoListItem } from "../../api/relevamientosListApi";
-
+import { useRelevamientosBandeja } from "./hooks/useRelevamientosBandeja";
+import type { RelevamientosBandejaSlice } from "./hooks/useRelevamientosBandeja";
 import {
   moduleContentColumnSx,
-  titleStyles,
   metaInfoStyles,
   metaItemStyles,
   errorAlertStyles,
 } from "../Actuaciones/styles/filtroStyles";
+import { GLASS_COLORS, glassTabsSecondaryPanelSx } from "../../styles/GlassStyles";
 
 const RelevamientosContainer = (): JSX.Element => {
-  const navigate = useNavigate();
-  const [tab] = useState<"todos" | "pendientes">("todos");
+  const [slice, setSlice] = useState<RelevamientosBandejaSlice>("pendientes");
+  const { relevamientos, meta, loading, error, hasSearched, buscar } = useRelevamientosBandeja(slice);
 
-  const { relevamientos, meta, loading, error, hasSearched, buscar } = useRelevamientosFiltradas();
+  const handleFiltrar = useCallback(
+    (filtros: {
+      desde: string | null;
+      hasta: string | null;
+      inspector: string | null;
+      calle: string | null;
+      numero: string | null;
+    }) => {
+      void buscar({
+        desde: filtros.desde,
+        hasta: filtros.hasta,
+        inspector: filtros.inspector,
+        calle: filtros.calle,
+        numero: filtros.numero,
+        page: 1,
+        page_size: 50,
+      });
+    },
+    [buscar]
+  );
 
-  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
-  const [pendientesDesde, setPendientesDesde] = useState<string>(defaultRange.desde);
-  const [pendientesHasta, setPendientesHasta] = useState<string>(defaultRange.hasta);
-  const [pendingSummary, setPendingSummary] = useState<IRelevamientosPendientesSummary | null>(null);
-  const [pendingItems, setPendingItems] = useState<IRelevamientosPendientesItem[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
-  const [pendingError, setPendingError] = useState<string | null>(null);
-
-  const [callesCatalogo, setCallesCatalogo] = useState<CalleCatalogoItem[]>([]);
-  const [callesLoading, setCallesLoading] = useState(false);
-
-
-  const handleFiltrarTodos = (filtros: {
-    desde: string | null;
-    hasta: string | null;
-    inspector: string | null;
-    calle: string | null;
-    numero: string | null;
-  }) => {
-    buscar(filtros);
-  };
-
-  useEffect(() => {
-    getRelevamientosPendientesSummary(pendientesDesde, pendientesHasta)
-      .then(setPendingSummary)
-      .catch(() => undefined);
-  }, [pendientesDesde, pendientesHasta]);
-
-  const refreshPendientes = useCallback(async (desde: string, hasta: string) => {
-    setPendingLoading(true);
-    setPendingError(null);
-    try {
-      const [summary, items] = await Promise.all([
-        getRelevamientosPendientesSummary(desde, hasta),
-        getRelevamientosPendientes({ tipo: "domicilios", desde, hasta }),
-      ]);
-      setPendingSummary(summary);
-      setPendingItems(items);
-    } catch (err: any) {
-      setPendingError(err?.response?.data?.detail || "Error al cargar pendientes");
-      setPendingItems([]);
-    } finally {
-      setPendingLoading(false);
-    }
-  }, []);
-
-  const handleFiltrarPendientes = useCallback(async () => {
-    await refreshPendientes(pendientesDesde, pendientesHasta);
-  }, [refreshPendientes, pendientesDesde, pendientesHasta]);
-
-  const handleLimpiarPendientes = () => {
-    const range = getCurrentMonthRange();
-    setPendientesDesde(range.desde);
-    setPendientesHasta(range.hasta);
-    refreshPendientes(range.desde, range.hasta);
-  };
-
-  useEffect(() => {
-    if (tab === "pendientes") {
-      handleFiltrarPendientes();
-    }
-  }, [tab, handleFiltrarPendientes]);
-
-  const handleSearchCalles = useCallback(async (value: string) => {
-    setCallesLoading(true);
-    try {
-      const resp = await fetchCallesCatalogo(value, 25);
-      setCallesCatalogo(resp.items);
-    } finally {
-      setCallesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (tab === "pendientes") {
-      handleSearchCalles("");
-    }
-  }, [tab, handleSearchCalles]);
-
-  const pendingExtraColumns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => [], []);
-
-  const pendingColumnVisibility = useMemo(() => ({
-    fecha: true,
-    calle: true,
-    numero: true,
-    calle_catalogo_id: false,
-    inspector: false,
-    rubro: false,
-    contraproducencia: false,
-  }), []);
-
-  const handleBeforeSavePendiente = useCallback(async (_fullRow: IRelevamientoListItem) => {}, []);
+  const handleRefresh = useCallback(() => {
+    if (!meta?.desde || !meta?.hasta) return;
+    void buscar({
+      desde: meta.desde,
+      hasta: meta.hasta,
+      inspector: meta.inspector,
+      calle: meta.calle,
+      numero: meta.numero,
+      page: meta.page,
+      page_size: meta.page_size,
+    });
+  }, [buscar, meta]);
 
   return (
-    <Box sx={moduleContentColumnSx}>
-        <Typography sx={titleStyles}>Relevamientos</Typography>
+    <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+      <FiltroRelevamientos onFiltrar={handleFiltrar} />
 
-        <>
-            <FiltroRelevamientos onFiltrar={handleFiltrarTodos} />
+      <Paper elevation={0} sx={glassTabsSecondaryPanelSx}>
+        <Tabs
+          value={slice}
+          onChange={(_, v: RelevamientosBandejaSlice) => setSlice(v)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={{ marginBottom: 0, minHeight: 42 }}
+        >
+          <Tab label="Pendientes" value="pendientes" />
+          <Tab label="Realizados" value="realizados" />
+        </Tabs>
+      </Paper>
 
-            {error && hasSearched && (
-              <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
-                <strong>Error:</strong> {error}
-              </Alert>
-            )}
+      <Typography
+        variant="body2"
+        sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
+      >
+        {slice === "pendientes"
+          ? "Solo relevamientos con iniciador pendiente (editables)."
+          : "Relevamientos con actuación completada en ruta (CUMPLIDO); solo lectura en esta vista."}
+      </Typography>
 
-            {loading && (
-              <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-                <CircularProgress sx={{ color: "#0166FF" }} />
-              </Box>
-            )}
+      {error && hasSearched && (
+        <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
+          <strong>Error:</strong> {error}
+        </Alert>
+      )}
 
-            {hasSearched && !loading && meta && (
-              <Box sx={metaInfoStyles}>
-                <Typography sx={metaItemStyles}>
-                  <strong>Total:</strong> {meta.total}
-                </Typography>
-                <Typography sx={metaItemStyles}>
-                  <strong>Mostrando:</strong> {relevamientos.length} de {meta.total}
-                </Typography>
-                <Typography sx={metaItemStyles}>
-                  <strong>Página:</strong> {meta.page}
-                </Typography>
-                {meta.desde && meta.hasta && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Rango:</strong> {meta.desde} - {meta.hasta}
-                  </Typography>
-                )}
-                {meta.inspector && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Inspector:</strong> {meta.inspector}
-                  </Typography>
-                )}
-                {meta.calle && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Calle:</strong> {meta.calle}
-                  </Typography>
-                )}
-                {meta.numero && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Número:</strong> {meta.numero}
-                  </Typography>
-                )}
-              </Box>
-            )}
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+          <CircularProgress sx={{ color: "#0166FF" }} />
+        </Box>
+      )}
 
-            {hasSearched && !loading && (
-              <TablaRelevamientos
-                data={relevamientos}
-                loading={loading}
-                onRefresh={() =>
-                  handleFiltrarTodos({
-                    desde: meta?.desde || null,
-                    hasta: meta?.hasta || null,
-                    inspector: meta?.inspector || null,
-                    calle: meta?.calle || null,
-                    numero: meta?.numero || null,
-                  })
-                }
-                numeroAllowFreeSolo
-              />
-            )}
-        </>
+      {hasSearched && !loading && meta && (
+        <Box sx={metaInfoStyles}>
+          <Typography sx={metaItemStyles}>
+            <strong>Total:</strong> {meta.total}
+          </Typography>
+          <Typography sx={metaItemStyles}>
+            <strong>Mostrando:</strong> {relevamientos.length} de {meta.total}
+          </Typography>
+          <Typography sx={metaItemStyles}>
+            <strong>Página:</strong> {meta.page}
+          </Typography>
+          {meta.desde && meta.hasta && (
+            <Typography sx={metaItemStyles}>
+              <strong>Rango:</strong> {meta.desde} - {meta.hasta}
+            </Typography>
+          )}
+          {meta.inspector && (
+            <Typography sx={metaItemStyles}>
+              <strong>Inspector:</strong> {meta.inspector}
+            </Typography>
+          )}
+          {meta.calle && (
+            <Typography sx={metaItemStyles}>
+              <strong>Calle:</strong> {meta.calle}
+            </Typography>
+          )}
+          {meta.numero && (
+            <Typography sx={metaItemStyles}>
+              <strong>Número:</strong> {meta.numero}
+            </Typography>
+          )}
+        </Box>
+      )}
 
-        {tab === "pendientes" && (
-          <>
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 2 }}>
-              <Card sx={{ minWidth: 220 }}>
-                <CardActionArea onClick={() => handleFiltrarPendientes()}>
-                  <CardContent>
-                    <Typography variant="subtitle2">Domicilios pendientes</Typography>
-                    <Typography variant="h5">{pendingSummary?.domicilios ?? 0}</Typography>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Box>
-
-            <FiltroPendientes
-              desde={pendientesDesde}
-              hasta={pendientesHasta}
-              onChangeDesde={setPendientesDesde}
-              onChangeHasta={setPendientesHasta}
-              onFiltrar={handleFiltrarPendientes}
-              onLimpiar={handleLimpiarPendientes}
-              title="Filtros de Pendientes"
-            />
-
-            {pendingError && (
-              <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
-                <strong>Error:</strong> {pendingError}
-              </Alert>
-            )}
-
-            {pendingLoading && (
-              <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-                <CircularProgress sx={{ color: "#0166FF" }} />
-              </Box>
-            )}
-
-            {!pendingLoading && (
-              <>
-                <Box sx={metaInfoStyles}>
-                  <Typography sx={metaItemStyles}>
-                    <strong>Mostrando:</strong> Domicilios pendientes ({pendingItems.length})
-                  </Typography>
-                </Box>
-                <Alert
-                  severity="info"
-                  sx={{ marginBottom: 2, display: "flex", alignItems: "center", gap: 2 }}
-                >
-                  La resolución de domicilios pendientes se centralizó en Gestionar domicilios.
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() => navigate("/gestionarDomicilios")}
-                    sx={{ marginLeft: 1 }}
-                  >
-                    Ir a Gestionar domicilios
-                  </Button>
-                </Alert>
-                <TablaRelevamientos
-                  data={pendingItems}
-                  loading={pendingLoading}
-                  onRefresh={handleFiltrarPendientes}
-                  initialColumnVisibility={pendingColumnVisibility}
-                  extraColumns={pendingExtraColumns}
-                  hideRowActions
-                  hideDeleteAction
-                  skipValidation
-                  skipUpdate
-                  numeroHeader="Número/Esquina"
-                  numeroEditorLabel="Número/Esquina"
-                  onBeforeSave={handleBeforeSavePendiente}
-                  readOnlyColumns={["fecha"]}
-                  numeroCallesOptions={callesCatalogo.map((c) => c.nombre)}
-                  numeroAllowFreeSolo
-                />
-              </>
-            )}
-          </>
-        )}
+      {hasSearched && !loading && (
+        <TablaRelevamientos
+          data={relevamientos}
+          loading={loading}
+          onRefresh={handleRefresh}
+          numeroAllowFreeSolo
+          enableEditing={slice === "pendientes"}
+          hideRowActions={slice === "realizados"}
+          hideDeleteAction={slice === "realizados"}
+        />
+      )}
     </Box>
   );
 };

@@ -26,13 +26,22 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     is_estado_activo,
     priority_for_tipo,
 )
+from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
 
 
 def _get_current_user_id() -> int:
+    """
+    Resuelve el usuario desde el JWT (subject = id numérico, ver ``login_user``).
+
+    Raises:
+        ValueError: identidad inválida, usuario inexistente o inactivo (mensaje ``Usuario no autorizado``).
+    """
     identity = get_jwt_identity()
+    if identity is None:
+        raise ValueError("Usuario no autorizado.")
     user_id = identity.get("user_id") if isinstance(identity, dict) else identity
     try:
-        parsed_id = int(user_id)
+        parsed_id = int(str(user_id).strip())
     except (TypeError, ValueError):
         raise ValueError("Usuario no autorizado.")
 
@@ -236,8 +245,8 @@ def _denuncia_to_gestion_row(d: Denuncia, iniciador: IniciadorRuta | None = None
         "estado": d.estado,
         "domicilio_id": d.domicilio_id,
         "iniciador_ruta_id": iniciador.id if iniciador else None,
-        "iniciador_estado": iniciador.estado_iniciador if iniciador else None,
-        "editable": (iniciador.estado_iniciador == "PENDIENTE") if iniciador else False,
+        "iniciador_estado": normalize_estado_iniciador(iniciador.estado_iniciador) if iniciador else None,
+        "editable": es_estado_iniciador_pendiente(iniciador.estado_iniciador) if iniciador else False,
     }
 
 
@@ -245,7 +254,6 @@ def listar_denuncias_gestion(filters: DenunciasGestionFilters) -> dict:
     """
     Listado de gestión de denuncias con filtros y paginación.
     """
-    _get_current_user_id()
     query = Denuncia.query.filter(Denuncia.deleted_at.is_(None))
 
     if filters.desde:
@@ -287,8 +295,6 @@ def listar_denuncias_gestion_operativa(filters: DenunciasGestionFilters) -> dict
     Listado operativo de denuncias:
     solo aquellas con iniciador DENUNCIA pendiente y activo.
     """
-    _get_current_user_id()
-
     pending_iniciador_subq = (
         db.session.query(
             IniciadorRuta.denuncia_id.label("denuncia_id"),

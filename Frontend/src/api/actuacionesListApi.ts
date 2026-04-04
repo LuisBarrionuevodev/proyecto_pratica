@@ -51,6 +51,10 @@ export interface IActuacionListItem {
     calle_sugerida?: string | null;
     calle_mostrar?: string | null;
     calle_catalogo_id?: number | null;
+    /** false si la notificación ya tiene expediente(s); la grilla no debe editar esos campos. */
+    notificacion_editable?: boolean;
+    /** false si la comprobación ya tiene expediente de envío. */
+    comprobacion_editable?: boolean;
 }
 
 export interface IActuacionesListMeta {

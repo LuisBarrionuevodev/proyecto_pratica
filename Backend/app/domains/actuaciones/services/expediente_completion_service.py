@@ -75,7 +75,9 @@ def complete_expediente_from_actuacion(
 
     - Rama COMPROBACION: expediente de envío con `oficio_id` NULL (`ENVIO_ACTA`); no debe existir ya
       otro expediente de envío para esa comprobación (se ignora el expediente de respuesta de oficio).
-    - Rama NOTIFICACION: expediente ligado a la notificación y prórroga.
+    - Rama NOTIFICACION: expediente(s) `PRORROGA_NOTIFICACION` ligados a la notificación (0..N como
+      historial documental de plazo/prórroga). Cada alta aplica prórroga sobre `Notificacion` y crea una
+      fila adicional; el vencimiento operativo sigue consolidado en la notificación.
 
     Retorno:
         dict con `actuacion`, `expediente`, `source_type`, `next_state_hint`.
@@ -120,9 +122,6 @@ def complete_expediente_from_actuacion(
         noti = db.session.get(Notificacion, act.notificacion_id)
         if not noti:
             raise ValueError("No se encontró la notificación asociada a la actuación")
-        existente = Expediente.query.filter_by(notificacion_id=act.notificacion_id).first()
-        if existente:
-            raise RuntimeError("Ya existe un expediente vinculado a esta notificación")
         aplicar_prorroga_notificacion(noti, prorroga_dias)
         db.session.add(noti)
 

@@ -10,7 +10,6 @@ export interface IRelevamientoListItem {
   numero_tipo?: string | null;
   calle_ingresada?: string | null;
   rubro: string | null;
-  contraproducencia: string | null;
   domicilio_id?: number | null;
   calle_normalizada?: string | null;
   esquina_normalizada?: string | null;
@@ -25,6 +24,9 @@ export interface IRelevamientoListItem {
   iniciador_ruta_id?: number | null;
   iniciador_estado?: string | null;
   editable?: boolean;
+  /** Mapea `turno_carga` en backend (MANIANA | TARDE). */
+  turno?: string | null;
+  esta_abierto?: boolean | null;
 }
 
 export interface IRelevamientosListMeta {
@@ -53,6 +55,7 @@ export interface IRelevamientosListFilters {
   page_size?: number;
 }
 
+/** Listado completo sin filtro de actuación completada (p. ej. otros consumidores de API). */
 export const getRelevamientosFiltered = async (
   filters?: IRelevamientosListFilters
 ): Promise<IRelevamientosListResponse> => {
@@ -66,6 +69,28 @@ export const getRelevamientosFiltered = async (
   if (filters?.page_size) params.page_size = String(filters.page_size);
 
   const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos", { params });
+  return data;
+};
+
+/**
+ * Bandeja "Realizados": relevamientos con iniciador RELEVAMIENTO en CUMPLIDO y actuación vinculada
+ * (cierre exitoso vía Completar trabajo).
+ */
+export const getRelevamientosRealizadosActuacionCompletadaFiltered = async (
+  filters?: IRelevamientosListFilters
+): Promise<IRelevamientosListResponse> => {
+  const params: Record<string, string> = {};
+  if (filters?.desde) params.desde = filters.desde;
+  if (filters?.hasta) params.hasta = filters.hasta;
+  if (filters?.inspector) params.inspector = filters.inspector;
+  if (filters?.calle) params.calle = filters.calle;
+  if (filters?.numero) params.numero = filters.numero;
+  if (filters?.page) params.page = String(filters.page);
+  if (filters?.page_size) params.page_size = String(filters.page_size);
+
+  const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos/realizados", {
+    params,
+  });
   return data;
 };
 

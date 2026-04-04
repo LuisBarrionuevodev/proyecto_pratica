@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import axios from "axios";
 import { Alert, Box, Paper, Typography } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -92,12 +93,24 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
       handleClear();
       setOpen(false);
     } catch (err: unknown) {
-      const data = err as { response?: { data?: { detail?: string; message?: string } } };
-      const detail =
-        data.response?.data?.detail ||
-        data.response?.data?.message ||
-        "No se pudo crear la denuncia.";
-      setErrorMsg(detail);
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const data = err.response?.data as { detail?: string; msg?: string } | undefined;
+        const serverText = data?.detail ?? data?.msg;
+        if (status === 401) {
+          setErrorMsg(
+            "Sesión vencida o no iniciaste sesión. Volvé a iniciar sesión (te redirigimos al login si es necesario)."
+          );
+          return;
+        }
+        if (status === 403) {
+          setErrorMsg(serverText ?? "Tu usuario no puede realizar esta acción (inactivo o sin permiso).");
+          return;
+        }
+        setErrorMsg(serverText ?? "No se pudo crear la denuncia.");
+        return;
+      }
+      setErrorMsg("No se pudo crear la denuncia.");
     } finally {
       setLoading(false);
     }

@@ -52,5 +52,12 @@ export const getDropdownOptions = (
         return ["", ...catalogs.contraproducencias];
     }
 
+    if (columnId === "Turno") {
+        return ["", "MANIANA", "TARDE"];
+    }
+    if (columnId === "Está abierto") {
+        return ["", "Sí", "No"];
+    }
+
     return [""];
 };

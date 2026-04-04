@@ -306,7 +306,7 @@ export default function MapViewGeo() {
             <Typography variant="subtitle2">Relevamientos</Typography>
             {(selectedDetails.relevamientos || []).map((r: any) => (
               <div key={r.id}>
-                {r.fecha} - {r.inspector || "-"} {r.rubro || r.contraproducencia || ""}
+                {r.fecha} - {r.inspector || "-"} {r.rubro || ""}
               </div>
             ))}
           </Box>

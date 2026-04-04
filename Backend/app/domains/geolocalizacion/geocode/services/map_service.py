@@ -349,7 +349,6 @@ def get_details(
             "fecha": rel.fecha.isoformat() if rel.fecha else None,
             "inspector": rel.inspector.nombre if rel.inspector else None,
             "rubro": rel.rubro.nombre if rel.rubro else None,
-            "contraproducencia": rel.contraproducencia,
         }
 
     contrib = dom.contribuyente

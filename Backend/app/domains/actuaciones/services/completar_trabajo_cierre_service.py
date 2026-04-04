@@ -34,6 +34,38 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
     on_domicilio_changed,
 )
 
+_MSG_RESULTADO_SOLO_OFICIO = (
+    "El resultado de cumplimiento del oficio solo aplica a REINSPECCION_OFICIO."
+)
+_MSG_RESULTADO_SOLO_VISITA_REALIZADA = (
+    "El resultado de cumplimiento del oficio solo aplica cuando la visita está realizada "
+    "(sin contraproducencia)."
+)
+
+
+def _persist_resultado_cumplimiento_oficio(
+    act: Actuaciones,
+    ini: IniciadorRuta,
+    payload: CompletarTrabajoCierreCompletoIn,
+    *,
+    bucket: ContrapBucket,
+) -> None:
+    """
+    Persiste ``Actuaciones.resultado_cumplimiento_oficio`` solo en el contexto válido.
+
+    Reglas:
+    - Si no se envía valor (``None``): no modifica la columna (permite NULL histórico).
+    - Si se envía valor: exige iniciador ``REINSPECCION_OFICIO`` y visita realizada (sin contraproducencia).
+    """
+    val = payload.resultado_cumplimiento_oficio
+    if val is None:
+        return
+    if bucket != ContrapBucket.NONE:
+        raise ValueError(_MSG_RESULTADO_SOLO_VISITA_REALIZADA)
+    if ini.tipo_iniciador != "REINSPECCION_OFICIO":
+        raise ValueError(_MSG_RESULTADO_SOLO_OFICIO)
+    act.resultado_cumplimiento_oficio = val
+
 
 def _apply_domicilio_rubro(
     act: Actuaciones,
@@ -188,6 +220,8 @@ def cerrar_completar_trabajo_por_ruta_item(
 
         if act.domicilio_id and ini.domicilio_id != act.domicilio_id:
             ini.domicilio_id = act.domicilio_id
+
+        _persist_resultado_cumplimiento_oficio(act, ini, payload, bucket=bucket)
 
         # 2) RutaItem + Iniciador
         item.observaciones_ejecucion = payload.observaciones_ejecucion

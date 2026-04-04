@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from sqlalchemy import func
+from sqlalchemy import and_, exists, func
 
 from app.database import db
 from app.models import Relevamiento, Inspector, Domicilio, IniciadorRuta
@@ -45,6 +45,60 @@ def listar_relevamientos_con_filtros(filters: RelevamientosListFilters) -> Dict[
         dict con items y meta.
     """
     query = Relevamiento.query.filter(Relevamiento.deleted_at.is_(None))
+
+    query = _apply_common_filters(query, filters)
+
+    total = query.count()
+    query = query.order_by(Relevamiento.id.desc())
+    offset = (filters.page - 1) * filters.page_size
+    items = query.offset(offset).limit(filters.page_size).all()
+
+    return {
+        "items": items,
+        "meta": {
+            "total": total,
+            "page": filters.page,
+            "page_size": filters.page_size,
+            "desde": filters.desde.isoformat() if filters.desde else None,
+            "hasta": filters.hasta.isoformat() if filters.hasta else None,
+            "inspector": filters.inspector,
+            "calle": filters.calle,
+            "numero": filters.numero,
+        },
+    }
+
+
+def listar_relevamientos_realizados_actuacion_completada_con_filtros(
+    filters: RelevamientosListFilters,
+) -> Dict[str, Any]:
+    """
+    Lista relevamientos con cierre operativo exitoso vía ruta (Completar trabajo, visita realizada).
+
+    Criterio conservador:
+    - existe ``IniciadorRuta`` tipo ``RELEVAMIENTO``, no borrado, con ``estado_iniciador == CUMPLIDO``
+      (cierre exitoso vía Completar trabajo; la actuación vive en el ítem de ruta, no necesariamente en ``iniciador.actuacion_id``).
+
+    Args:
+        filters: filtros de fecha/inspector/calle/número y paginación.
+
+    Returns:
+        dict con ``items`` (``Relevamiento``) y ``meta``.
+    """
+    ir = IniciadorRuta
+    # Nota: al publicar ruta la actuación queda en `ruta_item.actuacion_id`; el ORM no copia
+    # `actuacion_id` al iniciador. CUMPLIDO tras Completar trabajo implica cierre con actuación en el ítem.
+    cumplido_operativo = exists().where(
+        and_(
+            ir.relevamiento_id == Relevamiento.id,
+            ir.tipo_iniciador == "RELEVAMIENTO",
+            ir.estado_iniciador == "CUMPLIDO",
+            ir.deleted_at.is_(None),
+        )
+    )
+    query = Relevamiento.query.filter(
+        Relevamiento.deleted_at.is_(None),
+        cumplido_operativo,
+    )
 
     query = _apply_common_filters(query, filters)
 

@@ -9,7 +9,7 @@ import {
 } from "material-react-table";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { updateRelevamiento, deleteRelevamiento } from "../../../api/relevamientosApi";
-import { validateRow, startBatch, fetchInspectores, fetchRubros, fetchContraproducencias } from "../../../api/gridApi";
+import { validateRow, startBatch, fetchInspectores, fetchRubros } from "../../../api/gridApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
@@ -44,7 +44,8 @@ const ERROR_KEY_MAP: Record<string, string> = {
   Calle: "calle",
   Numero: "numero",
   Rubro: "rubro",
-  Contraproducencia: "contraproducencia",
+  Turno: "turno",
+  "Está abierto": "esta_abierto",
 };
 
 const normalizeErrors = (errors?: Record<string, string>) => {
@@ -82,7 +83,6 @@ const TablaRelevamientos = ({
   const [batchId, setBatchId] = useState<string | null>(null);
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
-  const [catalogContras, setCatalogContras] = useState<string[]>([]);
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
@@ -102,14 +102,9 @@ const TablaRelevamientos = ({
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectores, rubros, contras] = await Promise.all([
-          fetchInspectores(),
-          fetchRubros(),
-          fetchContraproducencias(),
-        ]);
+        const [inspectores, rubros] = await Promise.all([fetchInspectores(), fetchRubros()]);
         setCatalogInspectores([...new Set(inspectores.items.map((i: any) => i.nombre))]);
         setCatalogRubros([...new Set(rubros.items.map((r: any) => r.nombre))]);
-        setCatalogContras([...new Set(contras.items.map((c: any) => c.nombre))]);
       } catch (error) {
         console.error("Error cargando catálogos:", error);
       }
@@ -124,7 +119,9 @@ const TablaRelevamientos = ({
     Calle: row.calle,
     Numero: row.numero,
     Rubro: row.rubro,
-    Contraproducencia: row.contraproducencia,
+    Turno: row.turno ?? "",
+    "Está abierto":
+      row.esta_abierto === true ? "Sí" : row.esta_abierto === false ? "No" : "",
   });
 
   const handleDeleteRow = useCallback(async (rowItem: IRelevamientoListItem) => {
@@ -149,10 +146,20 @@ const TablaRelevamientos = ({
     }
   }, [data, onRefresh]);
 
+  const normalizeRelevamientoRowForApi = (row: IRelevamientoListItem): IRelevamientoListItem => {
+    const copy = { ...row };
+    const ea = copy.esta_abierto as unknown;
+    if (ea === "Sí" || ea === "Si" || ea === "si") copy.esta_abierto = true;
+    else if (ea === "No" || ea === "no") copy.esta_abierto = false;
+    else if (ea === "" || ea === undefined) copy.esta_abierto = null;
+    if (copy.turno === "") copy.turno = null;
+    return copy;
+  };
+
   const handleSaveRow = useCallback(
     async ({ exitEditingMode, row, values }: any) => {
       const id = Number(row.original.id);
-      const fullRow = { ...row.original, ...values };
+      const fullRow = normalizeRelevamientoRowForApi({ ...row.original, ...values } as IRelevamientoListItem);
       if ((fullRow as IRelevamientoListItem).editable === false) {
         alert("Este relevamiento ya no está operativo y no puede editarse.");
         onRefresh?.();
@@ -298,24 +305,46 @@ const TablaRelevamientos = ({
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["rubro"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+        return { select: true, required: true, error: !!err, helperText: err ?? "" };
       },
     },
       {
-      accessorKey: "contraproducencia",
-      header: "Contraproducencia",
-      size: 200,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogContras],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["contraproducencia"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+        accessorKey: "turno",
+        header: "Turno",
+        size: 130,
+        editVariant: "select",
+        editSelectOptions: ["", "MANIANA", "TARDE"],
+        Cell: ({ cell }) => {
+          const v = cell.getValue() as string | null | undefined;
+          return v || "—";
+        },
+        muiEditTextFieldProps: ({ row }) => {
+          const rid = Number(row.original.id);
+          const err = rowErrors[rid]?.["turno"];
+          return { select: true, error: !!err, helperText: err ?? "" };
+        },
       },
+      {
+        accessorKey: "esta_abierto",
+        header: "Está abierto",
+        size: 130,
+        editVariant: "select",
+        editSelectOptions: ["", "Sí", "No"],
+        Cell: ({ cell }) => {
+          const v = cell.getValue() as boolean | string | null | undefined;
+          if (v === true || v === "Sí") return "Sí";
+          if (v === false || v === "No") return "No";
+          return "—";
+        },
+        muiEditTextFieldProps: ({ row }) => {
+          const rid = Number(row.original.id);
+          const err = rowErrors[rid]?.["esta_abierto"];
+          return { select: true, error: !!err, helperText: err ?? "" };
+        },
       },
     ];
     return [...baseColumns, ...extraColumns];
-  }, [rowErrors, catalogInspectores, catalogRubros, catalogContras, extraColumns, numeroCallesOptions, numeroHeader, numeroEditorLabel]);
+  }, [rowErrors, catalogInspectores, catalogRubros, extraColumns, numeroCallesOptions, numeroHeader, numeroEditorLabel]);
 
   const columnOrder = useMemo(() => ([
     ...(hideRowActions ? [] : ["mrt-row-actions"]),
@@ -344,8 +373,7 @@ const TablaRelevamientos = ({
       density: "compact",
       columnVisibility: {
         id: false,
-        rubro: false,
-        contraproducencia: false,
+        rubro: true,
         ...initialColumnVisibility,
       },
     },

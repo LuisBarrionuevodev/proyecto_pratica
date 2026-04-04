@@ -47,6 +47,29 @@ function dashIfEmpty(value: unknown): string {
   return String(value);
 }
 
+const CUMPLE_OPTS: { value: string; label: string }[] = [
+  { value: "", label: "—" },
+  { value: "CUMPLE", label: "CUMPLE" },
+  { value: "NO_CUMPLE", label: "NO_CUMPLE" },
+];
+
+/** Catálogo `Actuaciones.tipo` permitido al cerrar `REINSPECCION_OFICIO` (alineado al backend). */
+const TIPO_ACTUACION_REINSPECCION_OFICIO = [
+  "RATIFICACION DE CLAUSURA",
+  "RATIFICACION DE DECOMISO",
+  "VERIFICAR E INFORMAR",
+] as const;
+
+const TIPO_ACTUACION_REINSPECCION_OFICIO_OPTS: { value: string; label: string }[] = [
+  { value: "", label: "—" },
+  ...TIPO_ACTUACION_REINSPECCION_OFICIO.map((v) => ({ value: v, label: v })),
+];
+
+function tipoActuacionInicialReinspeccionOficio(tipo: string | null | undefined): string {
+  const t = (tipo ?? "").trim();
+  return (TIPO_ACTUACION_REINSPECCION_OFICIO as readonly string[]).includes(t) ? t : "";
+}
+
 export type CompletarTrabajoModalProps = {
   open: boolean;
   row: ICompletarTrabajoPendienteRow | null;
@@ -57,7 +80,9 @@ export type CompletarTrabajoModalProps = {
 };
 
 /**
- * Cierre Completar trabajo: cabecera fija, editables en orden cerrado, actas solo sin contraproducencia.
+ * Cierre Completar trabajo: cabecera fija.
+ * - `REINSPECCION_OFICIO`: tipo de actuación + dio cumplimiento + observaciones opcionales.
+ * - Resto: editables en orden cerrado, actas solo sin contraproducencia.
  */
 export function CompletarTrabajoModal({
   open,
@@ -86,6 +111,9 @@ export function CompletarTrabajoModal({
   const [actaClausura, setActaClausura] = useState("");
   const [actaDecomiso, setActaDecomiso] = useState("");
   const [decomisoKilos, setDecomisoKilos] = useState("");
+  const [tipoActuacionOficio, setTipoActuacionOficio] = useState("");
+  const [resultadoCumplimientoOficio, setResultadoCumplimientoOficio] = useState("");
+  const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
@@ -93,6 +121,16 @@ export function CompletarTrabajoModal({
 
   useEffect(() => {
     if (!open || !row) return;
+    setError(null);
+    setFieldErrors({});
+    if (row.tipo_iniciador === "REINSPECCION_OFICIO") {
+      setTipoActuacionOficio(tipoActuacionInicialReinspeccionOficio(row.tipo_actuacion));
+      setResultadoCumplimientoOficio(row.resultado_cumplimiento_oficio ?? "");
+      setObservacionesEjecucion(row.observaciones_ejecucion ?? "");
+      return;
+    }
+    setResultadoCumplimientoOficio("");
+    setObservacionesEjecucion("");
     setContraproducencia(row.contraproducencia ?? "");
     setCalle(row.calle ?? "");
     setNumero(row.numero ?? "");
@@ -111,9 +149,7 @@ export function CompletarTrabajoModal({
     setActaClausura(row.acta_clausura_num ?? "");
     setActaDecomiso(row.acta_decomiso_num ?? "");
     const k = row.decomiso_kilos_total;
-    setDecomisoKilos(k == null || k === "" ? "" : String(k));
-    setError(null);
-    setFieldErrors({});
+    setDecomisoKilos(k == null ? "" : String(k));
   }, [open, row]);
 
   const fe = useCallback((apiField: string) => fieldErrors[apiField], [fieldErrors]);
@@ -128,6 +164,7 @@ export function CompletarTrabajoModal({
 
   const contraHint = useMemo(() => getContraproducenciaUxHint(contraproducencia), [contraproducencia]);
   const visitaRealizada = !contraproducencia.trim();
+  const esReinspeccionOficio = row?.tipo_iniciador === "REINSPECCION_OFICIO";
 
   const inspectoresMostrar = useMemo(() => (row ? inspectoresLinea(row) : "—"), [row]);
 
@@ -153,6 +190,48 @@ export function CompletarTrabajoModal({
     if (!row) return;
     setFieldErrors({});
     setError(null);
+
+    if (row.tipo_iniciador === "REINSPECCION_OFICIO") {
+      const preSubmitErrors: Record<string, string> = {};
+      if (
+        !tipoActuacionOficio.trim() ||
+        !(TIPO_ACTUACION_REINSPECCION_OFICIO as readonly string[]).includes(tipoActuacionOficio)
+      ) {
+        preSubmitErrors.tipo_actuacion = "Elegí el tipo de actuación.";
+      }
+      if (!resultadoCumplimientoOficio || !["CUMPLE", "NO_CUMPLE"].includes(resultadoCumplimientoOficio)) {
+        preSubmitErrors.resultado_cumplimiento_oficio = "Seleccioná si dio cumplimiento o no.";
+      }
+      if (Object.keys(preSubmitErrors).length > 0) {
+        setFieldErrors(preSubmitErrors);
+        setError(COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY);
+        return;
+      }
+      setSaving(true);
+      try {
+        const values: Record<string, unknown> = {
+          contraproducencia: "",
+          tipo_actuacion: tipoActuacionOficio,
+          resultado_cumplimiento_oficio: resultadoCumplimientoOficio,
+          observaciones_ejecucion: observacionesEjecucion.trim(),
+          ...ACTA_KEYS_EMPTY,
+        };
+        await submitCompletarTrabajoCierreFromRow(row, values, {
+          includeTipoActuacion: true,
+          omitPrecargadoPr2: false,
+        });
+        onSuccess(row.ruta_item_id);
+        onClose();
+      } catch (e) {
+        const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
+        setFieldErrors(nextFe);
+        setError(generalMessage);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const preSubmitErrors: Record<string, string> = {};
     if (visitaRealizada && actaComprobacion.trim() && !comprobacionMotivo.trim()) {
       preSubmitErrors.comprobacion_motivo =
@@ -282,6 +361,54 @@ export function CompletarTrabajoModal({
         </Alert>
       )}
 
+      {row && esReinspeccionOficio && (
+        <Box sx={col}>
+          <AppSelect
+            label="Tipo de actuación"
+            value={tipoActuacionOficio}
+            onChange={(e) => {
+              setTipoActuacionOficio(e.target.value as string);
+              clearFe("tipo_actuacion");
+            }}
+            fullWidth
+            options={TIPO_ACTUACION_REINSPECCION_OFICIO_OPTS}
+            error={Boolean(fe("tipo_actuacion"))}
+            helperText={fe("tipo_actuacion") || "Obligatorio."}
+          />
+          <AppSelect
+            label="Dio cumplimiento"
+            value={resultadoCumplimientoOficio}
+            onChange={(e) => {
+              setResultadoCumplimientoOficio(e.target.value as string);
+              clearFe("resultado_cumplimiento_oficio");
+            }}
+            fullWidth
+            options={CUMPLE_OPTS}
+            error={Boolean(fe("resultado_cumplimiento_oficio"))}
+            helperText={
+              fe("resultado_cumplimiento_oficio") || "Seleccioná si dio cumplimiento o no."
+            }
+          />
+          <AppTextField
+            appearance="dense"
+            label="Observaciones de ejecución (opcional)"
+            value={observacionesEjecucion}
+            onChange={(e) => {
+              setObservacionesEjecucion(e.target.value);
+              clearFe("observaciones_ejecucion");
+            }}
+            fullWidth
+            multiline
+            minRows={2}
+            inputProps={{ maxLength: 4000 }}
+            error={Boolean(fe("observaciones_ejecucion"))}
+            helperText={fe("observaciones_ejecucion") || undefined}
+          />
+        </Box>
+      )}
+
+      {row && !esReinspeccionOficio && (
+        <>
       <Box sx={col}>
         <AppSelect
           label="Contraproducencia"
@@ -525,6 +652,8 @@ export function CompletarTrabajoModal({
             helperText={fe("decomiso_kilos_total") || undefined}
           />
         </Box>
+      )}
+        </>
       )}
     </AppDialog>
   );

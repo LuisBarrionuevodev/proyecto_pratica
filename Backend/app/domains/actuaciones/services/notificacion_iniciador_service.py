@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
+import logging
+import os
 
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import and_, exists
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 
 from app.database import db
@@ -12,6 +17,84 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
 )
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SyncReinspeccionNotificacionOutcome:
+    """
+    Métricas operativas de una corrida de sync (Fase C: trazabilidad).
+    No modifica reglas de negocio ni idempotencia (Fases A/B).
+    """
+
+    created: int
+    eligible_notificaciones: int
+    skipped_already_blocking: int
+    collisions_idempotent: int
+
+
+def materializacion_notificacion_vencida_on_read_enabled() -> bool:
+    """
+    Compatibilidad transitoria (Fase C): si es True, algunos GET pueden disparar sync.
+
+    Desaconsejado en producción; usar CLI / scheduler. Variable: `SYNC_NOTIFICACIONES_VENCIDAS_ON_READ`.
+    """
+    return os.environ.get("SYNC_NOTIFICACIONES_VENCIDAS_ON_READ", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
+def estado_bloquea_nueva_materializacion_reinspeccion_notificacion(estado_iniciador: str | None) -> bool:
+    """
+    Indica si un iniciador `REINSPECCION_NOTIFICACION` en ese estado impide crear otro
+    para la misma notificación (idempotencia en aplicación).
+
+    Política (Fase A, alineada a `inactive_estados()`):
+    - **No bloquean** (se puede materializar de nuevo si el flujo lo permite): `ANULADO`,
+      `CERRADO`, `CERRADO_NO_EXISTE_LOCAL`.
+    - **Bloquean** (no se crea duplicado mientras exista uno así): `PENDIENTE`, `PLANIFICADO`,
+      `EN_EJECUCION`, `CUMPLIDO`, `NO_REALIZADO_REPROGRAMAR`.
+
+    Si `estado_iniciador` es None, se considera que no bloquea (no hay fila).
+    """
+    if estado_iniciador is None:
+        return False
+    return estado_iniciador not in inactive_estados()
+
+
+def elegir_actuacion_base_inspeccion_para_notificacion(
+    candidates: list[Actuaciones],
+) -> Actuaciones | None:
+    """
+    Elige la actuación base INSPECCION para materializar el iniciador por notificación vencida.
+
+    Regla explícita (Fase A): si hay varias actuaciones INSPECCION elegibles para la misma
+    notificación, se usa **la de mayor `id`** (la más reciente en inserción).
+    """
+    if not candidates:
+        return None
+    return max(candidates, key=lambda a: a.id)
+
+
+def _agrupar_eligible_por_notificacion_id(
+    actuaciones: list[Actuaciones],
+) -> dict[int, Actuaciones]:
+    """
+    Agrupa actuaciones elegibles por `notificacion_id` y aplica `elegir_actuacion_base_inspeccion_para_notificacion`
+    en cada grupo (un solo acto base por notificación).
+    """
+    by_nid: dict[int, list[Actuaciones]] = defaultdict(list)
+    for act in actuaciones:
+        if act.notificacion_id is None:
+            continue
+        by_nid[int(act.notificacion_id)].append(act)
+    return {
+        nid: elegir_actuacion_base_inspeccion_para_notificacion(acts)
+        for nid, acts in by_nid.items()
+    }
 
 
 def _get_current_user_id() -> int:
@@ -48,6 +131,10 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     Retorna actuaciones base INSPECCION elegibles para crear iniciador por
     vencimiento de notificación.
 
+    Puede haber **varias filas** por el mismo `notificacion_id`; la elección de una sola
+    actuación base por notificación se hace en `_agrupar_eligible_por_notificacion_id`
+    (mayor `id`).
+
     Elegibilidad:
     - notificación no borrada.
     - fecha_vencimiento no nula y <= hoy.
@@ -64,8 +151,7 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
         )
     )
     return (
-        Actuaciones.query
-        .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
+        Actuaciones.query.join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
         .join(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
         .filter(Actuaciones.tipo == "INSPECCION")
         .filter(Actuaciones.notificacion_id.isnot(None))
@@ -75,12 +161,19 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
         .filter(Notificacion.fecha_vencimiento.isnot(None))
         .filter(Notificacion.fecha_vencimiento <= today)
         .filter(~subq_reinsp)
-        .order_by(Actuaciones.id.desc())
         .all()
     )
 
 
-def _has_active_iniciador_notificacion(notificacion_id: int) -> bool:
+def _exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacion(
+    notificacion_id: int,
+) -> bool:
+    """
+    True si ya hay un iniciador `REINSPECCION_NOTIFICACION` no borrado cuyo estado
+    **bloquea** una nueva materialización (ver `estado_bloquea_nueva_materializacion_reinspeccion_notificacion`).
+
+    Implementación: equivalente a filtrar `estado_iniciador NOT IN` estados inactivos.
+    """
     iniciador = (
         IniciadorRuta.query.filter(
             IniciadorRuta.notificacion_id == notificacion_id,
@@ -94,21 +187,41 @@ def _has_active_iniciador_notificacion(notificacion_id: int) -> bool:
     return iniciador is not None
 
 
-def sync_iniciadores_reinspeccion_notificacion() -> int:
+def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacionOutcome:
     """
     Materializa iniciadores derivados para notificaciones vencidas.
 
-    Crea solo cuando corresponde y con idempotencia:
-    - si ya existe iniciador activo para la notificación, no duplica;
-    - si en la misma corrida aparecen múltiples actuaciones base para una
-      misma notificación, materializa una sola vez.
+    **Ejecución (Fase C):** camino canónico = CLI / `flask sync-notificaciones-vencidas` / pipeline
+    `sync_notificaciones_vencidas` (scheduler externo). No depender de GETs de lectura.
+
+    Idempotencia (aplicación + BD Fase B):
+    - Una sola actuación base por `notificacion_id`: la INSPECCION elegible con **mayor `id`**.
+    - Si ya existe iniciador `REINSPECCION_NOTIFICACION` en estado bloqueante para esa notificación,
+      no se duplica (prefiltro).
+    - Índice único funcional `uq_iniciador_ruta_reinsp_notif_vencida_key` (migración): a lo sumo un iniciador
+      bloqueante por notificación; carreras concurrentes → `IntegrityError` manejada como skip idempotente.
+
+    Returns:
+        Métricas de la corrida (`SyncReinspeccionNotificacionOutcome`).
     """
+    eligible = _eligible_inspecciones_vencidas()
+    actuacion_por_noti = _agrupar_eligible_por_notificacion_id(eligible)
+
+    eligible_n = len(actuacion_por_noti)
+    logger.info(
+        "sync_reinspeccion_notificacion_inicio eligible_notificaciones=%s",
+        eligible_n,
+    )
+
     created = 0
+    skipped_already_blocking = 0
+    collisions_idempotent = 0
     processed_notificacion_ids: set[int] = set()
     user_id = _get_current_user_id()
     today = date.today()
 
-    for act in _eligible_inspecciones_vencidas():
+    for notificacion_id in sorted(actuacion_por_noti.keys()):
+        act = actuacion_por_noti[notificacion_id]
         noti = act.notificacion
         if not noti or not noti.fecha_vencimiento:
             continue
@@ -118,10 +231,12 @@ def sync_iniciadores_reinspeccion_notificacion() -> int:
             continue
         if not act.domicilio_id:
             continue
-        notificacion_id = int(noti.id)
         if notificacion_id in processed_notificacion_ids:
             continue
-        if _has_active_iniciador_notificacion(notificacion_id):
+        if _exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacion(
+            notificacion_id
+        ):
+            skipped_already_blocking += 1
             processed_notificacion_ids.add(notificacion_id)
             continue
 
@@ -141,13 +256,40 @@ def sync_iniciadores_reinspeccion_notificacion() -> int:
                 f"{noti.numero_acta}/{noti.anio}"
             ),
         )
-        db.session.add(iniciador)
+        try:
+            with db.session.begin_nested():
+                db.session.add(iniciador)
+                db.session.flush()
+        except IntegrityError as exc:
+            # Único en BD (índice uq_iniciador_ruta_reinsp_notif_vencida_key): carrera / doble sync / retry.
+            collisions_idempotent += 1
+            logger.debug(
+                "sync_reinspeccion_notificacion_colision_idempotente notificacion_id=%s: %s",
+                notificacion_id,
+                exc,
+            )
+            processed_notificacion_ids.add(notificacion_id)
+            continue
         processed_notificacion_ids.add(notificacion_id)
         created += 1
 
     if created > 0:
         db.session.commit()
-    return created
+
+    outcome = SyncReinspeccionNotificacionOutcome(
+        created=created,
+        eligible_notificaciones=eligible_n,
+        skipped_already_blocking=skipped_already_blocking,
+        collisions_idempotent=collisions_idempotent,
+    )
+    logger.info(
+        "sync_reinspeccion_notificacion_fin created=%s eligible=%s skipped_blocking=%s collisions=%s",
+        outcome.created,
+        outcome.eligible_notificaciones,
+        outcome.skipped_already_blocking,
+        outcome.collisions_idempotent,
+    )
+    return outcome
 
 
 def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
@@ -162,8 +304,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
         )
     )
     return (
-        Actuaciones.query
-        .join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
+        Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
         .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
         .filter(IniciadorRuta.estado_iniciador == "PENDIENTE")
         .filter(IniciadorRuta.deleted_at.is_(None))
@@ -171,4 +312,3 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
         .order_by(Actuaciones.id.desc())
         .all()
     )
-

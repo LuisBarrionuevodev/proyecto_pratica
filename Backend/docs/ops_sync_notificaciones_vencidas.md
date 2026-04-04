@@ -3,9 +3,27 @@
 ## Objetivo
 Ejecutar periodicamente el sync de iniciadores por notificaciones vencidas fuera del request lifecycle, con salida trazable para operaciones.
 
-Este runbook usa el CLI ya existente:
+**Fase C:** el camino canónico no depende de GETs de lectura. Los listados (`/actuaciones/pendientes-notificacion`, resumen/listado de pendientes con slice notificaciones) **no** materializan iniciadores salvo compatibilidad transitoria (ver abajo).
+
+## Comandos equivalentes (canónico)
+
+1. Módulo Python (recomendado para scripts / Task Scheduler):
 
 `python -m app.domains.actuaciones.pipelines.sync_notificaciones_vencidas`
+
+2. Flask CLI (misma lógica, JSON en stdout):
+
+`flask sync-notificaciones-vencidas`
+
+(Desde el directorio `Backend`, con `FLASK_APP=app:create_app` o `python -m flask` según tu entorno.)
+
+## Compatibilidad transitoria (solo emergencia)
+
+Si necesitás el comportamiento antiguo (materializar al leer):
+
+- Variable de entorno: `SYNC_NOTIFICACIONES_VENCIDAS_ON_READ=1` (valores aceptados: `1`, `true`, `yes`).
+
+Desaconsejado en producción: usar scheduler + comando de arriba.
 
 ## Ejecucion manual (validacion operativa)
 
@@ -18,8 +36,10 @@ python -m app.domains.actuaciones.pipelines.sync_notificaciones_vencidas
 ```
 
 Salida esperada:
-- Linea operativa: `Sync notificaciones vencidas OK. created=<N> elapsed_ms=<T>`
-- Linea JSON con metricas: `status`, `created`, `elapsed_ms`, `started_at`
+- Linea operativa: `Sync notificaciones vencidas OK. created=... eligible=... skipped_blocking=... collisions=... elapsed_ms=...`
+- Linea JSON con metricas: `status`, `created`, `eligible_notificaciones`, `skipped_already_blocking`, `collisions_idempotent`, `elapsed_ms`, `started_at`
+
+Logs en aplicación (nivel INFO): `sync_reinspeccion_notificacion_inicio` y `sync_reinspeccion_notificacion_fin` en el logger del servicio de iniciadores.
 
 ## Wrapper recomendado (Windows)
 

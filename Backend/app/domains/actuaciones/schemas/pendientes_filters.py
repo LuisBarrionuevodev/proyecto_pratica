@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional, Any
 
 from pydantic import BaseModel, field_validator, model_validator
@@ -13,10 +13,10 @@ def _current_month_range() -> tuple[date, date]:
     today = date.today()
     first_day = date(today.year, today.month, 1)
     if today.month == 12:
-        last_day = date(today.year, 12, 31)
+        next_month_first = date(today.year + 1, 1, 1)
     else:
-        next_month = date(today.year, today.month + 1, 1)
-        last_day = date(next_month.year, next_month.month, next_month.day - 1)
+        next_month_first = date(today.year, today.month + 1, 1)
+    last_day = next_month_first - timedelta(days=1)
     return first_day, last_day
 
 

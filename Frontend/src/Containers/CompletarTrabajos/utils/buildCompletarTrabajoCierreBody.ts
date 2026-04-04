@@ -15,6 +15,8 @@ export type CompletarTrabajoFormFields = {
   contrib_nombre: string;
   nombre_local: string;
   observaciones_ejecucion: string;
+  /** Vacío salvo flujo REINSPECCION_OFICIO. */
+  resultado_cumplimiento_oficio: string;
   acta_inspeccion_num: string;
   acta_notificacion_num: string;
   notificacion_motivo_1: string;
@@ -67,6 +69,10 @@ export function buildCompletarTrabajoCierreBody(
   if (s(f.observaciones_ejecucion)) body.observaciones_ejecucion = s(f.observaciones_ejecucion);
 
   if (visitaRealizada) {
+    const rc = s(f.resultado_cumplimiento_oficio);
+    if (rc === "CUMPLE" || rc === "NO_CUMPLE") {
+      body.resultado_cumplimiento_oficio = rc;
+    }
     if (s(f.acta_inspeccion_num)) body.acta_inspeccion_num = s(f.acta_inspeccion_num);
     if (s(f.acta_notificacion_num)) body.acta_notificacion_num = s(f.acta_notificacion_num);
     if (s(f.notificacion_motivo_1)) body.notificacion_motivo_1 = s(f.notificacion_motivo_1);
@@ -95,6 +101,7 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   contrib_nombre: "",
   nombre_local: "",
   observaciones_ejecucion: "",
+  resultado_cumplimiento_oficio: "",
   acta_inspeccion_num: "",
   acta_notificacion_num: "",
   notificacion_motivo_1: "",
@@ -139,6 +146,7 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     contrib_nombre: row.contrib_nombre ?? "",
     nombre_local: row.nombre_local ?? "",
     observaciones_ejecucion: row.observaciones_ejecucion ?? "",
+    resultado_cumplimiento_oficio: row.resultado_cumplimiento_oficio ?? "",
     acta_inspeccion_num: row.acta_inspeccion_num ?? "",
     acta_notificacion_num: row.acta_notificacion_num ?? "",
     notificacion_motivo_1: row.notificacion_motivo_1 ?? "",

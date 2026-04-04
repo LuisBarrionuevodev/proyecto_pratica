@@ -11,6 +11,10 @@ export interface IActuacionesPendientesSummary {
 }
 
 export interface IActuacionesPendientesItem extends IActuacionListItem {
+  /** Solo rama NOTIFICACION; consolidado en backend desde `Notificacion.fecha_vencimiento`. */
+  dias_restantes?: number | null;
+  /** Solo rama NOTIFICACION; count expedientes `PRORROGA_NOTIFICACION`. */
+  plazos_otorgados?: number | null;
   source_type?: "NOTIFICACION" | "COMPROBACION";
   domicilio_id?: number | null;
   numero_esquina?: string | null;
@@ -50,6 +54,8 @@ export interface IPendientesOficioItem {
   orden_trabajo_numero: string | null;
   acta_comprobacion_num: string | null;
   comprobacion_motivo: string | null;
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
   calle: string | null;
   numero: string | null;
   rubro_nombre: string | null;

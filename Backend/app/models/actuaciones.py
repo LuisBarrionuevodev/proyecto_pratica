@@ -21,6 +21,12 @@ class Actuaciones(db.Model):
     # Nombre de fantasía del comercio (acta / UI). Futuro: vincular a `establecimientos`.
     nombre_local = db.Column(db.String(255), nullable=True, index=True)
 
+    # Resultado explícito para reinspección por oficio (Completar trabajo). Solo válido si el iniciador es REINSPECCION_OFICIO.
+    resultado_cumplimiento_oficio = db.Column(
+        db.Enum("CUMPLE", "NO_CUMPLE", name="resultado_cumplimiento_oficio_enum"),
+        nullable=True,
+    )
+
     # --- FKs (tal cual tu modelo) ---
     orden_trabajo_id = db.Column(
         db.Integer,
@@ -111,6 +117,11 @@ class Actuaciones(db.Model):
 
 
     def to_dict(self, include_relations=False):
+        rc = getattr(self, "resultado_cumplimiento_oficio", None)
+        rc_out = None
+        if rc is not None:
+            rc_out = rc.value if hasattr(rc, "value") else str(rc)
+
         data = {
             "id": self.id,
             "fecha": self.fecha.isoformat() if self.fecha else None,
@@ -118,6 +129,7 @@ class Actuaciones(db.Model):
             "anio": self.anio,
             "tipo": self.tipo.value if self.tipo else None,
             "contraproducencia": self.contraproducencia.value if self.contraproducencia else None,
+            "resultado_cumplimiento_oficio": rc_out,
             "orden_trabajo_id": self.orden_trabajo_id,
             "notificacion_id": self.notificacion_id,
             "comprobacion_id": self.comprobacion_id,

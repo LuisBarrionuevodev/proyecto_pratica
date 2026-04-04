@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import ConfigDict, ValidationError, field_validator, model_validator
 
@@ -74,6 +74,8 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     acta_decomiso_num: Optional[str] = None
     decomiso_kilos_total: Optional[float] = None
 
+    resultado_cumplimiento_oficio: Optional[Literal["CUMPLE", "NO_CUMPLE"]] = None
+
     @model_validator(mode="before")
     @classmethod
     def rechazar_oficio_y_expediente_canal_completar_trabajo(cls, data: Any) -> Any:
@@ -115,6 +117,18 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             s = v.strip()
             return s or None
         return v
+
+    @field_validator("resultado_cumplimiento_oficio", mode="before")
+    @classmethod
+    def normalize_resultado_cumplimiento_oficio(cls, v: object) -> object:
+        if v is None or v == "":
+            return None
+        if not isinstance(v, str):
+            return v
+        u = v.strip().upper()
+        if u in ("CUMPLE", "NO_CUMPLE"):
+            return u
+        raise ValueError("resultado_cumplimiento_oficio debe ser CUMPLE o NO_CUMPLE.")
 
     @field_validator("inspectores", mode="before")
     @classmethod
@@ -198,6 +212,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             ),
             ("comprobacion_motivo", bool(self.comprobacion_motivo)),
             ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
+            ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
         ]
         malos = [k for k, ok in bloque if ok]
         if malos:

@@ -1,9 +1,22 @@
 /**
  * Estilos específicos para CargarRelevamientos
- * Tabla ajustada al ancho de columnas (sin espacio vacío a la derecha)
+ * Contenedor de grilla al 100% del ancho útil; sin caja gris sólida detrás (fondo transparente).
  */
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+
+/**
+ * Altura del viewport de la grilla acorde a filas reales (+ header de grupo, fila trailing).
+ * No usa el minHeight global de 400px de Cargar actas (evita “filas fantasma” vacías abajo).
+ */
+export function calculateRelevamientoTableHeight(rowCount: number): number {
+    const { rowHeight, headerHeight, groupHeaderHeight, trailingRowHeight, maxHeightOffset } = GRID_DIMENSIONS;
+    const contentHeight = groupHeaderHeight + headerHeight + rowCount * rowHeight + trailingRowHeight;
+    const maxHeight = typeof window !== "undefined" ? window.innerHeight - maxHeightOffset : 2000;
+    const floor = 120;
+    return Math.min(Math.max(contentHeight, floor), maxHeight);
+}
 
 // =============================================================================
 // PALETA DE COLORES
@@ -15,42 +28,43 @@ export const COLORS = {
     border: "#3a3d44",
 };
 
-// Ancho calculado de las columnas:
-// Fecha(140) + Inspector(200) + Calle(200) + Numero(120) + Rubro(180) + Contraproducencia(200) = 1040px
-// + rowMarker (~50px) = ~1090px
-const TABLE_WIDTH = 1100;
-
 // =============================================================================
 // CONTENEDORES
 // =============================================================================
 export const containerStyles = {
-    width: "98%",
+    width: "100%",
+    minWidth: 0,
     height: "100%",
     fontFamily: '"Tactic Sans", sans-serif',
 };
 
-// Wrapper sin centrar - contenido alineado a la izquierda
+// Sin padding horizontal: el padre (Cargar relevamiento) ya aplica p:{xs:2,sm:3}; evita doble márgen vs el Paper.
 export const wrapperStyles = {
     width: "100%",
-    height: {xs:"120%", sm:"85%"},
+    minWidth: 0,
+    height: "89%",
     display: "flex",
-    padding: { xs: 2, sm: 1 },
+    padding: 0,
+    gap: 2,
+    boxSizing: "border-box",
     flexDirection: "column" as const,
+    alignItems: "stretch",
 };
 
 // =============================================================================
-// CONTENEDOR DE GRILLA - Ancho fijo basado en columnas
+// CONTENEDOR DE GRILLA — ancho completo; borde sutil alineado al resto de la app
 // =============================================================================
 export const gridContainerStyles = {
-    border: `1px solid ${COLORS.border}`,
+    width: "100%",
+    minWidth: 0,
+    alignSelf: "stretch",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
     borderRadius: "8px",
     overflow: "hidden",
-    backgroundImage: "linear-gradient(rgba(255, 255, 255, 0.069), rgba(255, 255, 255, 0.069))",
-    backgroundColor: COLORS.grayDark,
-    width: "1074px",
-    height: "480px",
+    backgroundColor: "transparent",
+    backgroundImage: "none",
     maxWidth: "100%",
-    maxHeight: "100%", // Responsive: no excede el contenedor padre
+    maxHeight: "100%",
 };
 
 // =============================================================================

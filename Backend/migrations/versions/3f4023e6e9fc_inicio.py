@@ -1,16 +1,17 @@
-"""ss
+"""inicio
 
-Revision ID: 95941755b426
+Revision ID: 3f4023e6e9fc
 Revises: 
-Create Date: 2026-03-30 14:26:11.139060
+Create Date: 2026-04-02 20:36:36.392640
 
 """
 from alembic import op
 import sqlalchemy as sa
 import geoalchemy2
 
+
 # revision identifiers, used by Alembic.
-revision = '95941755b426'
+revision = '3f4023e6e9fc'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -279,6 +280,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['juzgado_id'], ['juzgado_catalogo.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('causa', 'anio', name='uq_of_causa_anio'),
     sa.UniqueConstraint('numero_oficio', 'anio', name='uq_of_numero_anio')
     )
     with op.batch_alter_table('oficio', schema=None) as batch_op:

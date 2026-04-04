@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from datetime import date
 from typing import Any, Dict, List
 
-from sqlalchemy import func, exists, or_, select, and_, inspect as sa_inspect
+from sqlalchemy import func, exists, or_, and_
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, Expediente
+from app.models import Actuaciones, Domicilio, Expediente, Notificacion
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 from app.domains.actuaciones.services.notificacion_iniciador_service import (
     list_reinspeccion_notificacion_operativas,
+    materializacion_notificacion_vencida_on_read_enabled,
     sync_iniciadores_reinspeccion_notificacion,
 )
 
@@ -20,19 +21,6 @@ def _apply_fecha(query, desde, hasta):
     if hasta:
         query = query.filter(Actuaciones.fecha <= hasta)
     return query
-
-
-@lru_cache(maxsize=1)
-def _has_expediente_notificacion_id_column() -> bool:
-    """
-    Detecta si la columna `expediente.notificacion_id` existe en la DB conectada.
-
-    Evita 500 cuando el código fue desplegado pero la migración aún no corrió.
-    """
-    inspector = sa_inspect(db.engine)
-    cols = inspector.get_columns("expediente")
-    col_names = {c.get("name") for c in cols}
-    return "notificacion_id" in col_names
 
 
 def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
@@ -67,32 +55,66 @@ def _sin_expediente_query(filters: ActuacionesPendientesFilters):
 
 def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
     """
-    Pendientes de expediente por rama NOTIFICACION.
+    Bandeja de gestión de expedientes de plazo por rama NOTIFICACION.
 
     Regla para este slice:
     - actuación con notificación
     - sin comprobación (si hay ambas domina COMPROBACION)
-    - sin expediente asociado por su notificación
+
+    Nota: puede haber 0..N expedientes `PRORROGA_NOTIFICACION` por notificación; la fila sigue
+    apareciendo (gestión continua). Métricas `dias_restantes` / `plazos_otorgados` en presenter.
     """
     query = (
         Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
         .filter(Actuaciones.comprobacion_id.is_(None))
     )
-    if _has_expediente_notificacion_id_column():
-        subq = exists().where(Expediente.notificacion_id == Actuaciones.notificacion_id)
-        query = query.filter(~subq)
     return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def build_notificacion_expediente_bandeja_metrics(
+    acts: List[Actuaciones],
+) -> tuple[dict[int, int], dict[int, date | None]]:
+    """
+    Para actuaciones NOTIFICACION-only: cuenta expedientes de plazo por `notificacion_id` y
+    carga `fecha_vencimiento` desde `Notificacion` (batch, evita N+1 en la bandeja).
+    """
+    noti_ids = list(
+        {
+            int(a.notificacion_id)
+            for a in acts
+            if a.notificacion_id is not None and a.comprobacion_id is None
+        }
+    )
+    if not noti_ids:
+        return {}, {}
+
+    rows = (
+        db.session.query(Expediente.notificacion_id, func.count(Expediente.id))
+        .filter(Expediente.notificacion_id.in_(noti_ids))
+        .filter(Expediente.tipo_expediente == "PRORROGA_NOTIFICACION")
+        .filter(Expediente.deleted_at.is_(None))
+        .group_by(Expediente.notificacion_id)
+        .all()
+    )
+    plazos_map: dict[int, int] = {int(nid): int(c) for nid, c in rows}
+
+    notis = Notificacion.query.filter(Notificacion.id.in_(noti_ids)).all()
+    venc_map: dict[int, date | None] = {int(n.id): n.fecha_vencimiento for n in notis}
+
+    return plazos_map, venc_map
 
 
 def _notificaciones_pendientes_query(filters: ActuacionesPendientesFilters):
     """
     Retorna query operativa para notificaciones vencidas con iniciador materializado.
 
-    Importante:
-    - Sin scheduler, sincronizamos al consultar.
-    - Luego filtramos por rango de fecha de actuación para mantener contrato del endpoint.
+    Fase C: la materialización corre por CLI / `flask sync-notificaciones-vencidas` / scheduler, no por este
+    GET. Solo si `SYNC_NOTIFICACIONES_VENCIDAS_ON_READ=1` se invoca sync aquí (compatibilidad transitoria).
+
+    Luego filtramos por rango de fecha de actuación para mantener contrato del endpoint.
     """
-    sync_iniciadores_reinspeccion_notificacion()
+    if materializacion_notificacion_vencida_on_read_enabled():
+        sync_iniciadores_reinspeccion_notificacion()
     act_ids = [a.id for a in list_reinspeccion_notificacion_operativas()]
     if not act_ids:
         return Actuaciones.query.filter(False)

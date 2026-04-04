@@ -10,12 +10,12 @@ class Relevamiento(db.Model):
     fecha = db.Column(db.Date, nullable=False)
     anio = db.Column(db.Integer, nullable=False, index=True)
     mes = db.Column(db.Integer, nullable=False, index=True)
-    contraproducencia = db.Column(db.String(128), nullable=True, index=True)
     turno_carga = db.Column(
         db.Enum("MANIANA", "TARDE", name="tipo_turno"),
         nullable=True,
         index=True,
     )
+    esta_abierto = db.Column(db.Boolean, nullable=True, index=True)
 
     inspector_id = db.Column(
         db.Integer,
@@ -68,8 +68,8 @@ class Relevamiento(db.Model):
             "fecha": self.fecha,
             "anio": self.anio,
             "mes": self.mes,
-            "contraproducencia": self.contraproducencia,
             "turno_carga": self.turno_carga,
+            "esta_abierto": self.esta_abierto,
             "inspector_id": self.inspector_id,
             "domicilio_id": self.domicilio_id,
             "rubro_id": self.rubro_id,

@@ -24,7 +24,7 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     Crea un Relevamiento desde un payload canon.
 
     Args:
-        payload: dict canon (sin DB) con fecha, inspector, domicilio y rubro/contraproducencia.
+        payload: dict canon (sin DB) con fecha, inspector, domicilio y rubro.
 
     Returns:
         Relevamiento creado y commiteado.
@@ -38,7 +38,6 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     calle = domicilio.get("calle")
     numero = domicilio.get("numero")
     rubro_nombre = payload.get("rubro_nombre")
-    contraproducencia = payload.get("contraproducencia")
 
     if not fecha_raw:
         raise ValueError("Fecha obligatoria.")
@@ -46,9 +45,8 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         raise ValueError("Inspector obligatorio.")
     if not calle or not numero:
         raise ValueError("Calle y número son obligatorios.")
-
-    if bool(rubro_nombre) == bool(contraproducencia):
-        raise ValueError("Debe cargar Rubro o Contraproducencia (excluyentes).")
+    if not rubro_nombre:
+        raise ValueError("Rubro obligatorio.")
 
     mes, anio, fecha = parse_fecha_grid(fecha_raw)
     inspector = get_inspectores_o_falla([inspector_nombre])[0]
@@ -57,6 +55,11 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
 
+    turno_carga = payload.get("turno_carga")
+    if turno_carga is not None and turno_carga not in ("MANIANA", "TARDE"):
+        raise ValueError("Turno inválido.")
+    esta_abierto = payload.get("esta_abierto")
+
     rel = Relevamiento(
         fecha=fecha,
         mes=mes,
@@ -64,7 +67,8 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         inspector_id=inspector.id,
         domicilio_id=dom.id,
         rubro_id=rubro.id if rubro else None,
-        contraproducencia=contraproducencia,
+        turno_carga=turno_carga,
+        esta_abierto=esta_abierto,
     )
     db.session.add(rel)
     db.session.flush()

@@ -9,5 +9,6 @@ COLUMN_MAP_RELEVAMIENTOS = {
     "Numero": "numero",
     "Número": "numero",
     "Rubro": "rubro",
-    "Contraproducencia": "contraproducencia",
+    "Turno": "turno",
+    "Está abierto": "esta_abierto",
 }

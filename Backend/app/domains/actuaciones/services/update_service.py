@@ -35,6 +35,9 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
 from app.domains.actuaciones.services.actas_canal_payload_guard import (
     rechazar_oficio_expediente_en_payload_canal_actas,
 )
+from app.domains.actuaciones.services.expediente_actas_edit_guard import (
+    assert_canal_actas_permite_payload_notificacion_comprobacion,
+)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -196,6 +199,7 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         if old_dom is not None:
             old_contribuyente_id = old_dom.contribuyente_id
 
+    assert_canal_actas_permite_payload_notificacion_comprobacion(act, payload)
     aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
 
     db.session.add(act)

@@ -8,7 +8,7 @@ from sqlalchemy import func
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from app.database import db
-from app.models import Inspector, Rubro, CatalogContraproducencia
+from app.models import Inspector, Rubro
 
 _SPACE_RE = re.compile(r"\s+")
 
@@ -64,10 +64,6 @@ def _coerce_catalog_value(
 
 
 def _raise_field_errors(model_name: str, field_errors: Dict[str, str]) -> None:
-    """
-    Genera errores por campo (celda-friendly) usando ValidationError.from_exception_data.
-    Compatible con Pydantic v2 (requiere ctx para value_error).
-    """
     errs = []
     for field, msg in field_errors.items():
         errs.append(
@@ -87,8 +83,7 @@ class RelevamientoGridRowIn(BaseModel):
     Fila proveniente de la grilla de Relevamientos.
 
     Reglas:
-    - Fecha, Inspector, Calle y Número son obligatorios.
-    - Rubro XOR Contraproducencia (exactamente uno).
+    - Fecha, Inspector, Calle, Número y Rubro son obligatorios.
     - Catálogos validados contra DB.
     """
 
@@ -99,7 +94,8 @@ class RelevamientoGridRowIn(BaseModel):
     numero: str
     numero_tipo: Optional[str] = None
     rubro: Optional[str] = None
-    contraproducencia: Optional[str] = None
+    turno: Optional[str] = None
+    esta_abierto: Optional[bool] = None
 
     @field_validator("id", mode="before")
     @classmethod
@@ -118,10 +114,35 @@ class RelevamientoGridRowIn(BaseModel):
     def parse_fecha(cls, v: Any) -> date:
         return _parse_fecha(v)
 
-    @field_validator("inspector", "calle", "numero", "rubro", "contraproducencia", mode="before")
+    @field_validator("inspector", "calle", "numero", "rubro", mode="before")
     @classmethod
     def strip_empty_to_none(cls, v: Any) -> Any:
         return _clean_str(v)
+
+    @field_validator("turno", mode="before")
+    @classmethod
+    def parse_turno(cls, v: Any) -> Optional[str]:
+        s = _clean_str(v)
+        if not s:
+            return None
+        u = s.strip().upper().replace("Ñ", "N")
+        if u in ("MANIANA", "TARDE"):
+            return u
+        raise ValueError("Turno inválido (MANIANA o TARDE, o vacío).")
+
+    @field_validator("esta_abierto", mode="before")
+    @classmethod
+    def parse_esta_abierto(cls, v: Any) -> Optional[bool]:
+        if v is None or v == "":
+            return None
+        if isinstance(v, bool):
+            return v
+        s = str(v).strip().lower()
+        if s in ("sí", "si", "yes", "true", "1", "s"):
+            return True
+        if s in ("no", "false", "0", "n"):
+            return False
+        return None
 
     @field_validator("numero_tipo", mode="before")
     @classmethod
@@ -155,11 +176,6 @@ class RelevamientoGridRowIn(BaseModel):
     def validate_rubro(cls, v: Optional[str]) -> Optional[str]:
         return _coerce_catalog_value(v, Rubro, "Rubro")
 
-    @field_validator("contraproducencia")
-    @classmethod
-    def validate_contra(cls, v: Optional[str]) -> Optional[str]:
-        return _coerce_catalog_value(v, CatalogContraproducencia, "Contraproducencia")
-
     @model_validator(mode="after")
     def reglas_negocio_base(self) -> "RelevamientoGridRowIn":
         field_errors: Dict[str, str] = {}
@@ -172,15 +188,8 @@ class RelevamientoGridRowIn(BaseModel):
             field_errors["calle"] = "Calle obligatoria."
         if not self.numero:
             field_errors["numero"] = "Número obligatorio."
-
-        tiene_rubro = bool(self.rubro)
-        tiene_contra = bool(self.contraproducencia)
-        if tiene_rubro and tiene_contra:
-            field_errors["rubro"] = "No puede cargar Rubro y Contraproducencia a la vez."
-            field_errors["contraproducencia"] = "No puede cargar Rubro y Contraproducencia a la vez."
-        if not tiene_rubro and not tiene_contra:
-            field_errors["rubro"] = "Debe cargar Rubro o Contraproducencia."
-            field_errors["contraproducencia"] = "Debe cargar Rubro o Contraproducencia."
+        if not self.rubro:
+            field_errors["rubro"] = "Rubro obligatorio."
 
         if field_errors:
             _raise_field_errors(self.__class__.__name__, field_errors)

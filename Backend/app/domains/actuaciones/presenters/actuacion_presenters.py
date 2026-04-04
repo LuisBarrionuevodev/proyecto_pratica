@@ -8,9 +8,15 @@ El expediente de respuesta de oficio no se refleja en los campos `expediente_*` 
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Dict, Optional, List
 
 from app.models import Actuaciones, Expediente, Oficio
+
+from app.domains.actuaciones.services.expediente_actas_edit_guard import (
+    comprobacion_editable_desde_canal_actas,
+    notificacion_editable_desde_canal_actas,
+)
 
 def _enum_to_str(value: Any) -> Optional[str]:
     """
@@ -282,6 +288,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
         "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
         "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),
+        "resultado_cumplimiento_oficio": _enum_to_str(getattr(act, "resultado_cumplimiento_oficio", None)),
 
         "doc_nro": doc_nro,
         "contrib_apellido": contrib_apellido,
@@ -313,6 +320,9 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
         "notificacion_previa_num": notificacion_previa_num,
         "comprobacion_previa_num": comprobacion_previa_num,
+
+        "notificacion_editable": notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None)),
+        "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
     }
 
 
@@ -332,15 +342,45 @@ def _infer_expediente_source_type(act: Actuaciones) -> str:
     return "UNKNOWN"
 
 
-def actuacion_to_pendiente_expediente_row(act: Actuaciones) -> Dict[str, Any]:
+def _dias_restantes_desde_vencimiento(fecha_vencimiento: date | None) -> int | None:
+    """
+    Días hasta el vencimiento operativo de la notificación (`Notificacion.fecha_vencimiento`).
+    Si ya venció: 0 (criterio conservador). Sin fecha: None.
+    """
+    if fecha_vencimiento is None:
+        return None
+    delta = (fecha_vencimiento - date.today()).days
+    return max(0, delta)
+
+
+def actuacion_to_pendiente_expediente_row(
+    act: Actuaciones,
+    *,
+    plazos_por_notificacion: dict[int, int] | None = None,
+    fecha_vencimiento_por_notificacion: dict[int, date | None] | None = None,
+) -> Dict[str, Any]:
     """
     DTO compacto para la bandeja unificada de pendientes de expediente.
 
     Incluye `source_type` explícito y mantiene campos mínimos para UI administrativa.
+    Rama NOTIFICACION: `dias_restantes` y `plazos_otorgados` cuando se pasan mapas batch
+    (`build_notificacion_expediente_bandeja_metrics`). Rama COMPROBACION: ambos None.
     """
     full = actuacion_to_grid_row(act)
     source_type = _infer_expediente_source_type(act)
     full["source_type"] = source_type
+
+    plazos_map = plazos_por_notificacion or {}
+    venc_map = fecha_vencimiento_por_notificacion or {}
+
+    if source_type == "NOTIFICACION" and act.notificacion_id is not None:
+        nid = int(act.notificacion_id)
+        full["plazos_otorgados"] = int(plazos_map.get(nid, 0))
+        full["dias_restantes"] = _dias_restantes_desde_vencimiento(venc_map.get(nid))
+    else:
+        full["plazos_otorgados"] = None
+        full["dias_restantes"] = None
+
     return full
 
 
@@ -422,6 +462,8 @@ def actuacion_to_pendiente_oficio_row(act: Actuaciones) -> Dict[str, Any]:
         "orden_trabajo_numero": full.get("orden_trabajo_numero"),
         "acta_comprobacion_num": full.get("acta_comprobacion_num"),
         "comprobacion_motivo": full.get("comprobacion_motivo"),
+        "contrib_apellido": full.get("contrib_apellido"),
+        "contrib_nombre": full.get("contrib_nombre"),
         "calle": full.get("calle"),
         "numero": full.get("numero"),
         "rubro_nombre": full.get("rubro_nombre"),

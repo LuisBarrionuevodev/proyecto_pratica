@@ -9,6 +9,7 @@ from . import update  # noqa: E402,F401
 from . import delete  # noqa: E402,F401
 from . import list  # noqa: E402,F401
 from . import list_operativa  # noqa: E402,F401
+from . import list_realizados  # noqa: E402,F401
 from . import pendientes  # noqa: E402,F401
 
 __all__ = ["relevamiento"]

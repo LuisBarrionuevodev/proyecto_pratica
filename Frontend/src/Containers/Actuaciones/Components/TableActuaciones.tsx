@@ -1,4 +1,4 @@
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import { Alert, Box, Typography, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import {
@@ -161,6 +161,14 @@ const TablaActuaciones = ({
   }, []);
 
   // Catálogos combinados (reusa helper del grid)
+  const hasBloqueoExpediente = useMemo(
+    () =>
+      data.some(
+        (r) => r.notificacion_editable === false || r.comprobacion_editable === false
+      ),
+    [data]
+  );
+
   const catalogs = useMemo(() => ({
     inspectores: catalogInspectores,
     motivos: catalogMotivos,
@@ -409,7 +417,23 @@ const TablaActuaciones = ({
     { accessorKey: "contrib_nombre", header: "Contribuyente Nombre", size: 180 },
 
     { accessorKey: "acta_inspeccion_num", header: "Acta Inspección", size: 150 },
-    { accessorKey: "acta_notificacion_num", header: "Acta Notificación", size: 150 },
+    {
+      accessorKey: "acta_notificacion_num",
+      header: "Acta Notificación",
+      size: 150,
+      muiEditTextFieldProps: ({ row }) => {
+        const locked = row.original.notificacion_editable === false;
+        const rid = Number(row.original.id);
+        const err = rowErrors[rid]?.["acta_notificacion_num"];
+        return {
+          disabled: locked,
+          error: !!err,
+          helperText: locked
+            ? "Notificación con expediente: no editable aquí."
+            : err ?? "",
+        };
+      },
+    },
 
     {
       accessorKey: "notificacion_motivo_1",
@@ -420,7 +444,15 @@ const TablaActuaciones = ({
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["notificacion_motivo_1"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+        const locked = row.original.notificacion_editable === false;
+        return {
+          select: true,
+          disabled: locked,
+          error: !!err,
+          helperText: locked
+            ? "Notificación con expediente: no editable aquí."
+            : err ?? "",
+        };
       },
     },
     {
@@ -432,7 +464,15 @@ const TablaActuaciones = ({
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["notificacion_motivo_2"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+        const locked = row.original.notificacion_editable === false;
+        return {
+          select: true,
+          disabled: locked,
+          error: !!err,
+          helperText: locked
+            ? "Notificación con expediente: no editable aquí."
+            : err ?? "",
+        };
       },
     },
     {
@@ -444,11 +484,35 @@ const TablaActuaciones = ({
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["notificacion_motivo_3"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+        const locked = row.original.notificacion_editable === false;
+        return {
+          select: true,
+          disabled: locked,
+          error: !!err,
+          helperText: locked
+            ? "Notificación con expediente: no editable aquí."
+            : err ?? "",
+        };
       },
     },
 
-    { accessorKey: "acta_comprobacion_num", header: "Acta Comprobación", size: 150 },
+    {
+      accessorKey: "acta_comprobacion_num",
+      header: "Acta Comprobación",
+      size: 150,
+      muiEditTextFieldProps: ({ row }) => {
+        const locked = row.original.comprobacion_editable === false;
+        const rid = Number(row.original.id);
+        const err = rowErrors[rid]?.["acta_comprobacion_num"];
+        return {
+          disabled: locked,
+          error: !!err,
+          helperText: locked
+            ? "Comprobación con expediente: no editable aquí."
+            : err ?? "",
+        };
+      },
+    },
     {
       accessorKey: "comprobacion_motivo",
       header: "Motivo Comprob.",
@@ -459,7 +523,15 @@ const TablaActuaciones = ({
       muiEditTextFieldProps: ({ row }) => {
         const rid = Number(row.original.id);
         const err = rowErrors[rid]?.["comprobacion_motivo"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+        const locked = row.original.comprobacion_editable === false;
+        return {
+          select: true,
+          disabled: locked,
+          error: !!err,
+          helperText: locked
+            ? "Comprobación con expediente: no editable aquí."
+            : err ?? "",
+        };
       },
     },
 
@@ -479,7 +551,17 @@ const TablaActuaciones = ({
 
     ];
     return [...baseColumns, ...extraColumns];
-  }, [catalogInspectores, catalogMotivos, catalogRubros, catalogs, rowErrors, extraColumns, numeroCallesOptions, numeroHeader, numeroEditorLabel]);
+  }, [
+    catalogInspectores,
+    catalogMotivos,
+    catalogRubros,
+    catalogs,
+    rowErrors,
+    extraColumns,
+    numeroCallesOptions,
+    numeroHeader,
+    numeroEditorLabel,
+  ]);
 
   const columnOrder = useMemo(() => ([
     "mrt-row-select",
@@ -584,6 +666,12 @@ const TablaActuaciones = ({
 
   return (
     <Box>
+      {hasBloqueoExpediente && (
+        <Alert severity="info" sx={{ mb: 1.5 }} variant="outlined">
+          Hay actuaciones con notificación o comprobación bloqueadas: ya tienen expediente asociado.
+          Esos campos no se pueden editar desde esta vista (el servidor también rechaza el cambio).
+        </Alert>
+      )}
       <AnimatedTable isRefreshing={isRefreshing}>
         <MaterialReactTable table={table} />
       </AnimatedTable>

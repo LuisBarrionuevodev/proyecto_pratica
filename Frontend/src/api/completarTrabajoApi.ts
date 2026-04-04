@@ -46,6 +46,8 @@ export interface ICompletarTrabajoPendienteRow {
   acta_clausura_num?: string | null;
   acta_decomiso_num?: string | null;
   decomiso_kilos_total?: number | null;
+  /** Resultado explícito reinspección por oficio (Etapa 1 backend). */
+  resultado_cumplimiento_oficio?: "CUMPLE" | "NO_CUMPLE" | null;
   /** Solo en merge cliente → POST; no viene del listado. */
   inspectores?: string[];
 }
@@ -145,6 +147,8 @@ export interface ICompletarTrabajoCierreBody {
   decomiso_kilos_total?: number | null;
   nombre_local?: string | null;
   inspectores?: string[] | null;
+  /** Solo válido en backend para `REINSPECCION_OFICIO` y visita realizada. */
+  resultado_cumplimiento_oficio?: "CUMPLE" | "NO_CUMPLE" | null;
 }
 
 export const postCompletarTrabajoCerrar = async (

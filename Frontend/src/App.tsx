@@ -22,6 +22,8 @@ import GestionSistemaPage from "./Containers/GestionSistema/GestionSistemaPage";
 import EstablecimientosLayout from "./Containers/Establecimientos/EstablecimientosLayout";
 import EstablecimientosListPage from "./Containers/Establecimientos/EstablecimientosListPage";
 import EstablecimientoDetallePage from "./Containers/Establecimientos/EstablecimientoDetallePage";
+import GestionNotificacionPage from "./Containers/GestionNotificacion/GestionNotificacionPage";
+import ActasComprobacionPage from "./Containers/ActasComprobacion/ActasComprobacionPage";
 
 /**
  * App - Enrutador principal (React Router v6)
@@ -47,6 +49,8 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/gestionDeUsuarios" element={<GestionDeUsuarios/>}/>
           <Route path="/actuaciones" element={<Actuaciones />} />
+          <Route path="/gestionNotificacion" element={<GestionNotificacionPage />} />
+          <Route path="/actasComprobacion" element={<ActasComprobacionPage />} />
           <Route path="/relevamientos" element={<Relevamientos />} />
           <Route path="/pendientes" element={<Pendientes />} />
           <Route path="/pendientesVinculacionActa" element={<PendientesVinculacionActa />} />
