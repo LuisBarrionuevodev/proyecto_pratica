@@ -83,6 +83,12 @@ const RelevamientosContainer = (): JSX.Element => {
         </Alert>
       )}
 
+      {!hasSearched && !loading && (
+        <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+          Definí el rango de fechas (y opcionalmente inspector/calle/número) y pulsá <strong>Filtrar</strong>.
+        </Typography>
+      )}
+
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
           <CircularProgress sx={{ color: "#0166FF" }} />

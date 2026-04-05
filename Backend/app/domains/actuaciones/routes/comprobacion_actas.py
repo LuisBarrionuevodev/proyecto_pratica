@@ -25,8 +25,7 @@ from . import actuacion
 
 def _filters_desde_request() -> ActuacionesPendientesFilters:
     raw = {k: (v if v else None) for k, v in request.args.to_dict().items()}
-    solo_fecha = {k: raw[k] for k in ("desde", "hasta") if k in raw}
-    return ActuacionesPendientesFilters.model_validate(solo_fecha)
+    return ActuacionesPendientesFilters.model_validate(raw)
 
 
 @actuacion.get("/comprobacion/pendientes-reinspeccion-oficio")

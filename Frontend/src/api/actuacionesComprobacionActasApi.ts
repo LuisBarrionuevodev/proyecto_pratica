@@ -4,11 +4,13 @@ import type { IPendientesOficioResponse } from "./actuacionesPendientesApi";
 /** Reutiliza el mismo contrato que la bandeja esperando oficio. */
 export async function fetchComprobacionPendientesOficio(
   desde?: string | null,
-  hasta?: string | null
+  hasta?: string | null,
+  distritoId?: number | null
 ): Promise<IPendientesOficioResponse> {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
+  if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
   const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
   return data;
 }
@@ -28,6 +30,8 @@ export interface IReinspeccionOficioPendienteRow {
   numero: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
+  oficio_numero?: string | null;
+  oficio_anio?: number | null;
   documento_pendiente: string;
 }
 
@@ -38,11 +42,13 @@ export interface IReinspeccionOficioResponse {
 
 export async function fetchPendientesReinspeccionOficio(
   desde?: string | null,
-  hasta?: string | null
+  hasta?: string | null,
+  distritoId?: number | null
 ): Promise<IReinspeccionOficioResponse> {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
+  if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
   const { data } = await apiClient.get<IReinspeccionOficioResponse>(
     "/actuaciones/comprobacion/pendientes-reinspeccion-oficio",
     { params }
@@ -77,6 +83,10 @@ export interface IComprobacionRecorridoListResponse {
 export interface IComprobacionRecorridoListParams {
   desde?: string | null;
   hasta?: string | null;
+  /** Si se envían ambos, el backend fija el rango al mes (prioridad sobre desde/hasta sueltos). */
+  mes?: number | null;
+  anio?: number | null;
+  distrito_id?: number | null;
   contrib_q?: string | null;
   calle_q?: string | null;
   numero_q?: string | null;
@@ -95,6 +105,9 @@ export async function fetchComprobacionRecorrido(
   const p = paramsIn;
   if (p.desde) params.desde = p.desde;
   if (p.hasta) params.hasta = p.hasta;
+  if (p.mes != null && p.mes > 0) params.mes = String(p.mes);
+  if (p.anio != null && p.anio > 0) params.anio = String(p.anio);
+  if (p.distrito_id != null && p.distrito_id > 0) params.distrito_id = String(p.distrito_id);
   if (p.contrib_q) params.contrib_q = p.contrib_q;
   if (p.calle_q) params.calle_q = p.calle_q;
   if (p.numero_q) params.numero_q = p.numero_q;

@@ -230,7 +230,9 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
     return {"ok": True, "denuncia_id": denuncia_id}
 
 
-def _denuncia_to_gestion_row(d: Denuncia, iniciador: IniciadorRuta | None = None) -> dict:
+def _denuncia_to_gestion_row(
+    d: Denuncia, iniciador: IniciadorRuta | None = None, *, bandeja_operativa: bool = False
+) -> dict:
     dom = d.domicilio
     calle = getattr(dom, "calle", None)
     numero = getattr(dom, "numero", None)
@@ -246,7 +248,11 @@ def _denuncia_to_gestion_row(d: Denuncia, iniciador: IniciadorRuta | None = None
         "domicilio_id": d.domicilio_id,
         "iniciador_ruta_id": iniciador.id if iniciador else None,
         "iniciador_estado": normalize_estado_iniciador(iniciador.estado_iniciador) if iniciador else None,
-        "editable": es_estado_iniciador_pendiente(iniciador.estado_iniciador) if iniciador else False,
+        "editable": (
+            True
+            if bandeja_operativa and iniciador
+            else (es_estado_iniciador_pendiente(iniciador.estado_iniciador) if iniciador else False)
+        ),
     }
 
 
@@ -331,7 +337,7 @@ def listar_denuncias_gestion_operativa(filters: DenunciasGestionFilters) -> dict
         .all()
     )
     return {
-        "items": [_denuncia_to_gestion_row(d, iniciador) for d, iniciador in rows],
+        "items": [_denuncia_to_gestion_row(d, iniciador, bandeja_operativa=True) for d, iniciador in rows],
         "meta": {
             "total": total,
             "page": filters.page,

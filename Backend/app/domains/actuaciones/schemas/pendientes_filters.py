@@ -1,9 +1,23 @@
 from __future__ import annotations
 
+from calendar import monthrange
 from datetime import date, timedelta
 from typing import Optional, Any
 
 from pydantic import BaseModel, field_validator, model_validator
+
+
+def _coerce_bool_optional(v: Any) -> bool:
+    if v is None or v == "":
+        return False
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().lower()
+    if s in ("1", "true", "yes", "on"):
+        return True
+    if s in ("0", "false", "no", "off"):
+        return False
+    return False
 
 
 def _current_month_range() -> tuple[date, date]:
@@ -35,6 +49,29 @@ class ActuacionesPendientesFilters(BaseModel):
     hasta: Optional[date] = None
     tipo: Optional[str] = None
     source_type: Optional[str] = None
+    # Filtro opcional por domicilio.distrito_id (bandejas comprobación / recorrido).
+    distrito_id: Optional[int] = None
+    # Si vienen ambos, fijan el rango de fechas al mes completo (recorrido / consultas).
+    mes: Optional[int] = None
+    anio: Optional[int] = None
+    # Si es True: no aplicar rango por defecto (mes actual) cuando desde/hasta vienen vacíos.
+    # Uso previsto: bandeja «Pendientes de expediente» rama COMPROBACION (todo el histórico pendiente).
+    omitir_rango_fecha: bool = False
+
+    @field_validator("omitir_rango_fecha", mode="before")
+    @classmethod
+    def _omitir_rango_fecha_bool(cls, v: Any) -> bool:
+        return _coerce_bool_optional(v)
+
+    @field_validator("distrito_id", "mes", "anio", mode="before")
+    @classmethod
+    def _empty_int_optional(cls, v: Any) -> Any:
+        if v is None or v == "":
+            return None
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
 
     @field_validator("tipo")
     @classmethod
@@ -63,12 +100,22 @@ class ActuacionesPendientesFilters(BaseModel):
     def apply_defaults_and_validate_range(self) -> "ActuacionesPendientesFilters":
         """
         Defaults:
-        - Si ambos son None → mes actual
+        - Si `mes` y `anio` están definidos → rango = ese mes calendario completo
+        - Si ambos desde/hasta son None → mes actual (salvo ``omitir_rango_fecha=True``)
         - Si solo `desde` → hasta = hoy
         - Si solo `hasta` → desde = primer día del mes de `hasta`
         """
-        if self.desde is None and self.hasta is None:
-            self.desde, self.hasta = _current_month_range()
+        if self.mes is not None and self.anio is not None:
+            if not 1 <= int(self.mes) <= 12:
+                raise ValueError("mes debe estar entre 1 y 12")
+            y, m = int(self.anio), int(self.mes)
+            first = date(y, m, 1)
+            last = date(y, m, monthrange(y, m)[1])
+            self.desde = first
+            self.hasta = last
+        elif self.desde is None and self.hasta is None:
+            if not self.omitir_rango_fecha:
+                self.desde, self.hasta = _current_month_range()
         elif self.desde is not None and self.hasta is None:
             self.hasta = date.today()
         elif self.desde is None and self.hasta is not None:

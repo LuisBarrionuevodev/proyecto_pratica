@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import {
   Alert,
   Box,
@@ -8,7 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Paper,
+  Grid,
   Typography,
 } from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -22,9 +23,8 @@ import {
 import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
-import { alertBaseStyles, COLORS } from "../Actuaciones/styles/filtroStyles";
+import { alertBaseStyles, COLORS, filtroContainerStyles, filtroTitleStyles } from "../Actuaciones/styles/filtroStyles";
 import { AppButton, AppTextField } from "../../ui";
-import { glassTabsSecondaryPanelSx } from "../../styles/GlassStyles";
 import {
   countByPlazoSlice,
   DIAS_EN_PLAZO_MIN,
@@ -238,37 +238,53 @@ const GestionNotificacionPage = () => {
     <Box sx={containerStyles}>
       <Box sx={wrapperStyles}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelSx, position: "sticky", top: 0, zIndex: 2 }}>
-            <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", mb: 1.5 }}>
-              Indicadores — tocá para filtrar la tabla
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {sliceChips.map(({ slice, count }) => {
-                const selected = plazoSlice === slice;
-                return (
-                  <Chip
-                    key={slice}
-                    label={`${sliceLabel(slice)} · ${count}`}
-                    onClick={() => setPlazoSlice(slice)}
-                    variant={selected ? "filled" : "outlined"}
-                    sx={{
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      borderColor: "rgba(255,255,255,0.2)",
-                      backgroundColor: selected ? "rgba(1, 102, 255, 0.35)" : "rgba(255,255,255,0.04)",
-                      color: "#fff",
-                      "&:hover": { backgroundColor: selected ? "rgba(1, 102, 255, 0.45)" : "rgba(255,255,255,0.08)" },
-                    }}
-                  />
-                );
-              })}
-            </Box>
+          <Box sx={filtroContainerStyles}>
+            <Typography sx={filtroTitleStyles}>Filtros e indicadores</Typography>
+            <Grid container spacing={1.5} alignItems="flex-end">
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", mb: 1 }}>
+                  Plazo operativo — tocá un indicador para filtrar la tabla
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {sliceChips.map(({ slice, count }) => {
+                    const selected = plazoSlice === slice;
+                    return (
+                      <Chip
+                        key={slice}
+                        label={`${sliceLabel(slice)} · ${count}`}
+                        onClick={() => setPlazoSlice(slice)}
+                        variant={selected ? "filled" : "outlined"}
+                        sx={{
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          borderColor: "rgba(255,255,255,0.2)",
+                          backgroundColor: selected ? "rgba(1, 102, 255, 0.35)" : "rgba(255,255,255,0.04)",
+                          color: "#fff",
+                          "&:hover": { backgroundColor: selected ? "rgba(1, 102, 255, 0.45)" : "rgba(255,255,255,0.08)" },
+                        }}
+                      />
+                    );
+                  })}
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, sm: "auto" }}>
+                <AppButton
+                  dsVariant="primary"
+                  dsSize="sm"
+                  startIcon={<FilterAltIcon sx={{ fontSize: 18 }} />}
+                  onClick={() => void loadData()}
+                  sx={{ fontFamily: '"Tactic Sans", sans-serif', fontWeight: 600 }}
+                >
+                  Actualizar bandeja
+                </AppButton>
+              </Grid>
+            </Grid>
             <Typography variant="caption" sx={{ display: "block", mt: 1.5, color: "rgba(255,255,255,0.45)" }}>
               Total = notificaciones cargadas en esta vista. En plazo: ≥{DIAS_EN_PLAZO_MIN} días (&gt;4). Por vencer:{" "}
               {POR_VENCER_MIN} a {POR_VENCER_MAX} días. Vencidas o hoy: 0 días (criterio API). Los días 3 y 4 solo
               aparecen con Total.
             </Typography>
-          </Paper>
+          </Box>
 
           {error && (
             <Alert severity="error" sx={alertBaseStyles}>

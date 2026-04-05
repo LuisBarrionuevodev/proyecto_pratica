@@ -31,13 +31,6 @@ export const useRelevamientosBandeja = (slice: RelevamientosBandejaSlice): UseRe
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(() => {
-    setRelevamientos([]);
-    setMeta(null);
-    setHasSearched(false);
-    setError(null);
-  }, [slice]);
-
   const buscar = useCallback(
     async (filters: IRelevamientosListFilters) => {
       setLoading(true);
@@ -60,6 +53,14 @@ export const useRelevamientosBandeja = (slice: RelevamientosBandejaSlice): UseRe
     },
     [slice]
   );
+
+  /** Al cambiar de pestaña: sin tabla hasta que el usuario pulse Filtrar. */
+  useEffect(() => {
+    setHasSearched(false);
+    setRelevamientos([]);
+    setMeta(null);
+    setError(null);
+  }, [slice]);
 
   return {
     relevamientos,

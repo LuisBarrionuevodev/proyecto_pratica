@@ -28,13 +28,6 @@ export const useDenunciasBandeja = (slice: DenunciasBandejaSlice): UseDenunciasB
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(() => {
-    setDenuncias([]);
-    setMeta(null);
-    setHasSearched(false);
-    setError(null);
-  }, [slice]);
-
   const buscar = useCallback(
     async (filters: IDenunciasGestionFilters) => {
       setLoading(true);
@@ -71,6 +64,14 @@ export const useDenunciasBandeja = (slice: DenunciasBandejaSlice): UseDenunciasB
     },
     [slice]
   );
+
+  /** Al cambiar de pestaña: sin tabla hasta Filtrar. */
+  useEffect(() => {
+    setHasSearched(false);
+    setDenuncias([]);
+    setMeta(null);
+    setError(null);
+  }, [slice]);
 
   return {
     denuncias,

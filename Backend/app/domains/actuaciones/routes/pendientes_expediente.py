@@ -19,6 +19,9 @@ def pendientes_expediente_list():
     """
     Lista actuaciones pendientes de expediente con contrato estable.
 
+    Query opcional ``omitir_rango_fecha=true``: sin ``desde``/``hasta`` no se aplica el rango por
+    defecto (mes corriente); la consulta incluye todo pendiente sin filtro temporal en actuación.
+
     Response:
       {
         "items": [...],

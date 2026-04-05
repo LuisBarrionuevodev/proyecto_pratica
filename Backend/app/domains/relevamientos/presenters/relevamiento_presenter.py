@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.models import Relevamiento
-from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
+from app.utils.iniciador_estado import normalize_estado_iniciador
 
 
 def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
@@ -77,7 +77,8 @@ def relevamiento_operativo_to_row(rel: Relevamiento, iniciador_id: int, iniciado
     data = relevamiento_to_row(rel)
     data["iniciador_ruta_id"] = iniciador_id
     data["iniciador_estado"] = normalize_estado_iniciador(iniciador_estado)
-    data["editable"] = es_estado_iniciador_pendiente(iniciador_estado)
+    # Bandeja gestión operativa solo lista iniciadores PENDIENTE; la grilla debe permitir editar siempre.
+    data["editable"] = True
     return data
 
 

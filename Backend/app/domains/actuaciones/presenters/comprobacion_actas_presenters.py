@@ -72,6 +72,8 @@ def iniciador_reinspeccion_to_row(ini: IniciadorRuta, act: Actuaciones) -> Dict[
         "numero": base.get("numero"),
         "contrib_apellido": base.get("contrib_apellido"),
         "contrib_nombre": base.get("contrib_nombre"),
+        "oficio_numero": base.get("oficio_numero"),
+        "oficio_anio": base.get("oficio_anio"),
         "documento_pendiente": "Reinspección por oficio",
     }
 

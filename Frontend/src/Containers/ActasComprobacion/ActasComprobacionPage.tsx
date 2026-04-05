@@ -21,6 +21,7 @@ import {
   fetchComprobacionRecorridoDetalle,
   fetchPendientesReinspeccionOficio,
   type IComprobacionRecorridoDetalle,
+  type IComprobacionRecorridoListParams,
   type IComprobacionRecorridoRow,
   type IReinspeccionOficioPendienteRow,
 } from "../../api/actuacionesComprobacionActasApi";
@@ -37,11 +38,17 @@ import {
   filtroGridStyles,
   filtroItemStyles,
   filtroTitleStyles,
+  metaInfoStyles,
+  metaItemStyles,
+  moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../ui";
-import { glassTabsSecondaryPanelSx } from "../../styles/GlassStyles";
+import { GLASS_COLORS, glassTabsSecondaryPanelSx } from "../../styles/GlassStyles";
+import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
+
+type RecPeriodMode = "month" | "range";
 
 function contribText(ap?: string | null, nom?: string | null): string {
   const t = [ap, nom].map((s) => (s ?? "").trim()).filter(Boolean).join(", ");
@@ -53,19 +60,22 @@ function domicilioText(calle?: string | null, num?: string | null): string {
   return t || "—";
 }
 
-const ESTADO_RECORRIDO_FILTER_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "Todos" },
-  { value: "Esperando oficio", label: "Esperando oficio" },
-  { value: "Oficio cargado — sin reinspección programada", label: "Oficio cargado — sin reinspección programada" },
-  { value: "Pendiente reinspección por oficio", label: "Pendiente reinspección por oficio" },
-  { value: "Reinspección cumplida", label: "Reinspección cumplida" },
-];
-
 const TIPO_FINAL_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Todos" },
   { value: "CUMPLE", label: "CUMPLE" },
   { value: "NO_CUMPLE", label: "NO_CUMPLE" },
 ];
+
+const MESES_OPTS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1),
+  label: String(i + 1),
+}));
+
+function yearOptions(center: number): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
+  for (let y = center - 5; y <= center + 2; y++) out.push({ value: String(y), label: String(y) });
+  return out;
+}
 
 function DetalleBloque({ titulo, data }: { titulo: string; data: Record<string, unknown> | null | undefined }) {
   return (
@@ -99,13 +109,40 @@ function DetalleBloque({ titulo, data }: { titulo: string; data: Record<string, 
 const ActasComprobacionPage = () => {
   const navigate = useNavigate();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
+  const defaultMonthYear = useMemo(() => {
+    const d = new Date(`${defaultRange.desde}T12:00:00`);
+    return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+  }, [defaultRange.desde]);
   const [tab, setTab] = useState<TabKey>("expediente");
+  /** Solo para el slice Recorrido (selector de distrito). */
+  const [distritosRecorrido, setDistritosRecorrido] = useState<DistritoCatalogoItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetchDistritosCatalogo();
+        if (!cancelled) setDistritosRecorrido(r.items ?? []);
+      } catch {
+        if (!cancelled) setDistritosRecorrido([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const distritoSelectOptionsRecorrido = useMemo(
+    () => [
+      { value: "", label: "Todos los distritos" },
+      ...distritosRecorrido.map((d) => ({ value: String(d.id), label: d.nombre })),
+    ],
+    [distritosRecorrido]
+  );
 
   // —— Pendientes de expediente (comprobación sin expediente de envío)
-  const [expDesde, setExpDesde] = useState(defaultRange.desde);
-  const [expHasta, setExpHasta] = useState(defaultRange.hasta);
   const [expItems, setExpItems] = useState<IActuacionesPendientesItem[]>([]);
-  const [expTotal, setExpTotal] = useState(0);
+  const [expTotalPendientes, setExpTotalPendientes] = useState(0);
   const [expLoading, setExpLoading] = useState(false);
   const [expError, setExpError] = useState<string | null>(null);
   const [selectedExp, setSelectedExp] = useState<IActuacionesPendientesItem | null>(null);
@@ -118,18 +155,20 @@ const ActasComprobacionPage = () => {
     setExpLoading(true);
     setExpError(null);
     try {
-      const resp = await getActuacionesPendientesExpediente(expDesde, expHasta, "comprobacion");
+      const resp = await getActuacionesPendientesExpediente(undefined, undefined, "comprobacion", null, {
+        omitirRangoFecha: true,
+      });
       setExpItems(resp.items);
-      setExpTotal(resp.meta.total);
+      setExpTotalPendientes(resp.meta.total);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setExpError(detail || "Error al cargar pendientes de expediente");
       setExpItems([]);
-      setExpTotal(0);
+      setExpTotalPendientes(0);
     } finally {
       setExpLoading(false);
     }
-  }, [expDesde, expHasta]);
+  }, []);
 
   useEffect(() => {
     if (tab === "expediente") void loadExpediente();
@@ -214,18 +253,15 @@ const ActasComprobacionPage = () => {
     data: expItems,
     enableEditing: false,
     enableRowSelection: false,
-    renderTopToolbarCustomActions: () => (
-      <Typography variant="body2" sx={{ pl: 1, color: "rgba(255,255,255,0.75)" }}>
-        Total pendientes de expediente: {expTotal}
-      </Typography>
-    ),
   });
 
   // —— Pendientes de oficio
   const [oficioDesde, setOficioDesde] = useState(defaultRange.desde);
   const [oficioHasta, setOficioHasta] = useState(defaultRange.hasta);
+  const [oficioActaQ, setOficioActaQ] = useState("");
+  const [oficioFilterApplied, setOficioFilterApplied] = useState(false);
+  const [oficioApiTotal, setOficioApiTotal] = useState(0);
   const [oficioItems, setOficioItems] = useState<IPendientesOficioItem[]>([]);
-  const [oficioTotal, setOficioTotal] = useState(0);
   const [oficioLoading, setOficioLoading] = useState(false);
   const [oficioError, setOficioError] = useState<string | null>(null);
   const [juzgados, setJuzgados] = useState<IJuzgadoCatalogItem[]>([]);
@@ -243,26 +279,30 @@ const ActasComprobacionPage = () => {
     setOficioLoading(true);
     setOficioError(null);
     try {
-      const [resp, jz] = await Promise.all([
-        fetchComprobacionPendientesOficio(oficioDesde, oficioHasta),
-        getJuzgadosCatalogo(),
-      ]);
-      setOficioItems(resp.items);
-      setOficioTotal(resp.meta.total);
+      const jz = await getJuzgadosCatalogo();
       setJuzgados(jz);
+      const resp = await fetchComprobacionPendientesOficio(oficioDesde, oficioHasta, null);
+      let items = resp.items;
+      const q = oficioActaQ.trim().toLowerCase();
+      if (q) {
+        items = items.filter((r) => (r.acta_comprobacion_num || "").toLowerCase().includes(q));
+      }
+      setOficioApiTotal(resp.meta.total);
+      setOficioItems(items);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setOficioError(detail || "Error al cargar pendientes de oficio");
       setOficioItems([]);
-      setOficioTotal(0);
+      setOficioApiTotal(0);
     } finally {
       setOficioLoading(false);
     }
-  }, [oficioDesde, oficioHasta]);
+  }, [oficioDesde, oficioHasta, oficioActaQ]);
 
-  useEffect(() => {
-    if (tab === "oficio") void loadOficio();
-  }, [tab, loadOficio]);
+  const aplicarFiltroOficio = useCallback(() => {
+    setOficioFilterApplied(true);
+    void loadOficio();
+  }, [loadOficio]);
 
   const openModalOficio = (row: IPendientesOficioItem) => {
     setSelectedOficio(row);
@@ -352,16 +392,15 @@ const ActasComprobacionPage = () => {
     data: oficioItems,
     enableEditing: false,
     enableRowSelection: false,
-    renderTopToolbarCustomActions: () => (
-      <Typography variant="body2" sx={{ pl: 1, color: "rgba(255,255,255,0.75)" }}>
-        Total pendientes de oficio: {oficioTotal}
-      </Typography>
-    ),
   });
 
   // —— Reinspección
   const [reinDesde, setReinDesde] = useState(defaultRange.desde);
   const [reinHasta, setReinHasta] = useState(defaultRange.hasta);
+  const [reinActaQ, setReinActaQ] = useState("");
+  const [reinOficioQ, setReinOficioQ] = useState("");
+  const [reinFilterApplied, setReinFilterApplied] = useState(false);
+  const [reinApiTotal, setReinApiTotal] = useState(0);
   const [reinItems, setReinItems] = useState<IReinspeccionOficioPendienteRow[]>([]);
   const [reinLoading, setReinLoading] = useState(false);
   const [reinError, setReinError] = useState<string | null>(null);
@@ -370,20 +409,35 @@ const ActasComprobacionPage = () => {
     setReinLoading(true);
     setReinError(null);
     try {
-      const resp = await fetchPendientesReinspeccionOficio(reinDesde, reinHasta);
-      setReinItems(resp.items);
+      const resp = await fetchPendientesReinspeccionOficio(reinDesde, reinHasta, null);
+      let items = resp.items;
+      const qa = reinActaQ.trim().toLowerCase();
+      if (qa) {
+        items = items.filter((r) => (r.acta_comprobacion_num || "").toLowerCase().includes(qa));
+      }
+      const qo = reinOficioQ.trim().toLowerCase();
+      if (qo) {
+        items = items.filter((r) => {
+          const blob = `${r.oficio_numero ?? ""}${r.oficio_anio != null ? String(r.oficio_anio) : ""}`.toLowerCase();
+          return blob.includes(qo);
+        });
+      }
+      setReinApiTotal(resp.meta.total);
+      setReinItems(items);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setReinError(detail || "Error al cargar pendientes de reinspección");
       setReinItems([]);
+      setReinApiTotal(0);
     } finally {
       setReinLoading(false);
     }
-  }, [reinDesde, reinHasta]);
+  }, [reinDesde, reinHasta, reinActaQ, reinOficioQ]);
 
-  useEffect(() => {
-    if (tab === "reinspeccion") void loadRein();
-  }, [tab, loadRein]);
+  const aplicarFiltroRein = useCallback(() => {
+    setReinFilterApplied(true);
+    void loadRein();
+  }, [loadRein]);
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
     () => [
@@ -403,6 +457,17 @@ const ActasComprobacionPage = () => {
       },
       { accessorKey: "rubro_nombre", header: "Rubro", size: 140 },
       { accessorKey: "acta_comprobacion_num", header: "Nº comprobación", size: 130 },
+      {
+        id: "oficio_ref",
+        header: "Nº oficio",
+        size: 130,
+        accessorFn: (r) => {
+          const n = r.oficio_numero ?? "";
+          const a = r.oficio_anio != null ? String(r.oficio_anio) : "";
+          const t = [n, a].filter(Boolean).join(" / ");
+          return t || "—";
+        },
+      },
       { accessorKey: "documento_pendiente", header: "Estado / documento pendiente", size: 200 },
       {
         id: "estado_ini",
@@ -430,25 +495,23 @@ const ActasComprobacionPage = () => {
     data: reinItems,
     enableEditing: false,
     enableRowSelection: false,
-    renderTopToolbarCustomActions: () => (
-      <Typography variant="body2" sx={{ pl: 1, color: "rgba(255,255,255,0.75)" }}>
-        Total pendientes de reinspección: {reinItems.length}
-      </Typography>
-    ),
   });
 
-  // —— Recorrido
-  const [recDesde, setRecDesde] = useState<string | null>(null);
-  const [recHasta, setRecHasta] = useState<string | null>(null);
+  // —— Recorrido (período acotado vs buscador de texto)
+  const [recPeriodMode, setRecPeriodMode] = useState<RecPeriodMode>("month");
+  const [recMes, setRecMes] = useState(defaultMonthYear.mes);
+  const [recAnio, setRecAnio] = useState(defaultMonthYear.anio);
+  const [recDesde, setRecDesde] = useState<string | null>(defaultRange.desde);
+  const [recHasta, setRecHasta] = useState<string | null>(defaultRange.hasta);
+  const [recDistritoId, setRecDistritoId] = useState<number | "">("");
   const [recContrib, setRecContrib] = useState("");
   const [recCalle, setRecCalle] = useState("");
-  const [recNumero, setRecNumero] = useState("");
   const [recActa, setRecActa] = useState("");
-  const [recExp, setRecExp] = useState("");
   const [recOfi, setRecOfi] = useState("");
-  const [recEstado, setRecEstado] = useState("");
   const [recTipoFinal, setRecTipoFinal] = useState("");
   const [recItems, setRecItems] = useState<IComprobacionRecorridoRow[]>([]);
+  const [recFilterApplied, setRecFilterApplied] = useState(false);
+  const [recMeta, setRecMeta] = useState<{ total: number; desde: string | null; hasta: string | null } | null>(null);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
   const [detalleOpen, setDetalleOpen] = useState(false);
@@ -456,37 +519,52 @@ const ActasComprobacionPage = () => {
   const [detalle, setDetalle] = useState<IComprobacionRecorridoDetalle | null>(null);
   const [detalleActuacionId, setDetalleActuacionId] = useState<number | null>(null);
 
-  const loadRecorrido = useCallback(async () => {
+  const recPeriodParams = useCallback((): IComprobacionRecorridoListParams => {
+    const p: IComprobacionRecorridoListParams = {
+      distrito_id: recDistritoId === "" ? undefined : recDistritoId,
+    };
+    if (recPeriodMode === "month") {
+      p.mes = recMes;
+      p.anio = recAnio;
+    } else {
+      p.desde = recDesde ?? undefined;
+      p.hasta = recHasta ?? undefined;
+    }
+    return p;
+  }, [recPeriodMode, recMes, recAnio, recDesde, recHasta, recDistritoId]);
+
+  const loadRecorridoSearch = useCallback(async () => {
     setRecLoading(true);
     setRecError(null);
     try {
       const resp = await fetchComprobacionRecorrido({
-        desde: recDesde || undefined,
-        hasta: recHasta || undefined,
+        ...recPeriodParams(),
         contrib_q: recContrib.trim() || undefined,
         calle_q: recCalle.trim() || undefined,
-        numero_q: recNumero.trim() || undefined,
         acta_comprobacion: recActa.trim() || undefined,
-        expediente_numero: recExp.trim() || undefined,
         oficio_numero: recOfi.trim() || undefined,
-        estado_recorrido: recEstado || undefined,
         tipo_final: recTipoFinal || undefined,
       });
       setRecItems(resp.items as IComprobacionRecorridoRow[]);
+      setRecMeta({
+        total: resp.meta.total,
+        desde: resp.meta.desde,
+        hasta: resp.meta.hasta,
+      });
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setRecError(detail || "Error al cargar recorrido");
       setRecItems([]);
+      setRecMeta(null);
     } finally {
       setRecLoading(false);
     }
-  }, [recDesde, recHasta, recContrib, recCalle, recNumero, recActa, recExp, recOfi, recEstado, recTipoFinal]);
+  }, [recPeriodParams, recContrib, recCalle, recActa, recOfi, recTipoFinal]);
 
-  /** Al entrar al slice Recorrido se consulta una vez; los cambios de filtros aplican con «Buscar». */
-  useEffect(() => {
-    if (tab === "recorrido") void loadRecorrido();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- evita refetch en cada tecla de los filtros
-  }, [tab]);
+  const aplicarFiltroRecorrido = useCallback(() => {
+    setRecFilterApplied(true);
+    void loadRecorridoSearch();
+  }, [loadRecorridoSearch]);
 
   const openDetalle = async (actuacionId: number) => {
     setDetalleActuacionId(actuacionId);
@@ -521,6 +599,7 @@ const ActasComprobacionPage = () => {
         size: 200,
         accessorFn: (r) => domicilioText(r.calle, r.numero),
       },
+      { accessorKey: "rubro_nombre", header: "Rubro", size: 140 },
       { accessorKey: "acta_comprobacion_num", header: "Nº comprobación", size: 130 },
       { accessorKey: "estado_recorrido", header: "Estado del recorrido", size: 260 },
       {
@@ -543,11 +622,6 @@ const ActasComprobacionPage = () => {
     data: recItems,
     enableEditing: false,
     enableRowSelection: false,
-    renderTopToolbarCustomActions: () => (
-      <Typography variant="body2" sx={{ pl: 1, color: "rgba(255,255,255,0.75)" }}>
-        {recItems.length} registro(s) (máx. 500 por consulta)
-      </Typography>
-    ),
   });
 
   const tabIndex =
@@ -556,14 +630,8 @@ const ActasComprobacionPage = () => {
   return (
     <Box sx={containerStyles}>
       <Box sx={wrapperStyles}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelSx, position: "sticky", top: 0, zIndex: 2 }}>
-            <Typography variant="h6" sx={{ color: "rgba(255,255,255,0.95)", mb: 1, fontWeight: 600 }}>
-              Actas de comprobación
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.55)", mb: 1.5 }}>
-              Expediente → oficio → reinspección por oficio; recorrido consultivo del circuito documental.
-            </Typography>
+        <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelSx }}>
             <Tabs
               value={tabIndex}
               onChange={(_, v) => {
@@ -588,57 +656,23 @@ const ActasComprobacionPage = () => {
           {tab === "expediente" && (
             <>
               <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Filtro secundario (fecha)</Typography>
-                <Box sx={filtroGridStyles}>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      type="date"
-                      label="Desde"
-                      value={expDesde}
-                      onChange={(e) => setExpDesde(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
+                <Typography sx={filtroTitleStyles}>Resumen</Typography>
+                {!expLoading && (
+                  <Box sx={metaInfoStyles}>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Total:</strong> {expTotalPendientes}
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Mostrando:</strong> {expItems.length} de {expTotalPendientes}
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Página:</strong> 1
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Rango:</strong> — (sin filtro por fecha; pendientes históricos)
+                    </Typography>
                   </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      type="date"
-                      label="Hasta"
-                      value={expHasta}
-                      onChange={(e) => setExpHasta(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
-                  </Box>
-                </Box>
-                <Box sx={filtroButtonsStyles}>
-                  <AppButton
-                    dsVariant="ghost"
-                    dsSize="sm"
-                    onClick={() => {
-                      const r = getCurrentMonthRange();
-                      setExpDesde(r.desde);
-                      setExpHasta(r.hasta);
-                    }}
-                    startIcon={<ClearIcon />}
-                    sx={filtroButtonSecondaryStyles}
-                  >
-                    Limpiar
-                  </AppButton>
-                  <AppButton
-                    dsVariant="primary"
-                    dsSize="sm"
-                    onClick={() => void loadExpediente()}
-                    startIcon={<SearchIcon />}
-                    sx={filtroButtonPrimaryStyles}
-                  >
-                    Filtrar
-                  </AppButton>
-                </Box>
+                )}
               </Box>
               {expError && (
                 <Alert severity="error" sx={alertBaseStyles}>
@@ -658,7 +692,7 @@ const ActasComprobacionPage = () => {
           {tab === "oficio" && (
             <>
               <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Filtro secundario (fecha)</Typography>
+                <Typography sx={filtroTitleStyles}>Filtros</Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
                     <AppTextField
@@ -684,6 +718,17 @@ const ActasComprobacionPage = () => {
                       variant="outlined"
                     />
                   </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº acta de comprobación (contiene)"
+                      placeholder="Opcional"
+                      value={oficioActaQ}
+                      onChange={(e) => setOficioActaQ(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
                 </Box>
                 <Box sx={filtroButtonsStyles}>
                   <AppButton
@@ -693,6 +738,8 @@ const ActasComprobacionPage = () => {
                       const r = getCurrentMonthRange();
                       setOficioDesde(r.desde);
                       setOficioHasta(r.hasta);
+                      setOficioActaQ("");
+                      setOficioFilterApplied(false);
                     }}
                     startIcon={<ClearIcon />}
                     sx={filtroButtonSecondaryStyles}
@@ -702,7 +749,7 @@ const ActasComprobacionPage = () => {
                   <AppButton
                     dsVariant="primary"
                     dsSize="sm"
-                    onClick={() => void loadOficio()}
+                    onClick={() => void aplicarFiltroOficio()}
                     startIcon={<SearchIcon />}
                     sx={filtroButtonPrimaryStyles}
                   >
@@ -715,12 +762,32 @@ const ActasComprobacionPage = () => {
                   {oficioError}
                 </Alert>
               )}
-              {oficioLoading ? (
+              {!oficioFilterApplied ? (
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
+                  Definí el rango de fechas (y opcionalmente el nº de acta) y pulsá <strong>Filtrar</strong>.
+                </Typography>
+              ) : oficioLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress sx={{ color: COLORS.primary }} />
                 </Box>
               ) : (
-                <MaterialReactTable table={tableOficio} />
+                <>
+                  <Box sx={metaInfoStyles}>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Total:</strong> {oficioApiTotal}
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Mostrando:</strong> {oficioItems.length} de {oficioApiTotal}
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Página:</strong> 1
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Rango:</strong> {oficioDesde} — {oficioHasta}
+                    </Typography>
+                  </Box>
+                  <MaterialReactTable table={tableOficio} />
+                </>
               )}
             </>
           )}
@@ -728,7 +795,7 @@ const ActasComprobacionPage = () => {
           {tab === "reinspeccion" && (
             <>
               <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Filtro secundario (fecha sobre actuación)</Typography>
+                <Typography sx={filtroTitleStyles}>Filtros</Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
                     <AppTextField
@@ -754,6 +821,28 @@ const ActasComprobacionPage = () => {
                       variant="outlined"
                     />
                   </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº acta comprobación (contiene)"
+                      placeholder="Opcional"
+                      value={reinActaQ}
+                      onChange={(e) => setReinActaQ(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº oficio (contiene)"
+                      placeholder="Opcional"
+                      value={reinOficioQ}
+                      onChange={(e) => setReinOficioQ(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
                 </Box>
                 <Box sx={filtroButtonsStyles}>
                   <AppButton
@@ -763,6 +852,9 @@ const ActasComprobacionPage = () => {
                       const r = getCurrentMonthRange();
                       setReinDesde(r.desde);
                       setReinHasta(r.hasta);
+                      setReinActaQ("");
+                      setReinOficioQ("");
+                      setReinFilterApplied(false);
                     }}
                     startIcon={<ClearIcon />}
                     sx={filtroButtonSecondaryStyles}
@@ -772,7 +864,7 @@ const ActasComprobacionPage = () => {
                   <AppButton
                     dsVariant="primary"
                     dsSize="sm"
-                    onClick={() => void loadRein()}
+                    onClick={() => void aplicarFiltroRein()}
                     startIcon={<SearchIcon />}
                     sx={filtroButtonPrimaryStyles}
                   >
@@ -785,12 +877,32 @@ const ActasComprobacionPage = () => {
                   {reinError}
                 </Alert>
               )}
-              {reinLoading ? (
+              {!reinFilterApplied ? (
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
+                  Definí fechas y/o criterios de acta u oficio y pulsá <strong>Filtrar</strong>.
+                </Typography>
+              ) : reinLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress sx={{ color: COLORS.primary }} />
                 </Box>
               ) : (
-                <MaterialReactTable table={tableRein} />
+                <>
+                  <Box sx={metaInfoStyles}>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Total:</strong> {reinApiTotal}
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Mostrando:</strong> {reinItems.length} de {reinApiTotal}
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Página:</strong> 1
+                    </Typography>
+                    <Typography sx={metaItemStyles}>
+                      <strong>Rango:</strong> {reinDesde} — {reinHasta}
+                    </Typography>
+                  </Box>
+                  <MaterialReactTable table={tableRein} />
+                </>
               )}
             </>
           )}
@@ -798,106 +910,166 @@ const ActasComprobacionPage = () => {
           {tab === "recorrido" && (
             <>
               <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Consulta — recorrido documental</Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
-                    gap: 1.5,
-                  }}
-                >
-                  <AppTextField
-                    appearance="dense"
-                    label="Desde"
-                    type="date"
-                    value={recDesde ?? ""}
-                    onChange={(e) => setRecDesde(e.target.value || null)}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Hasta"
-                    type="date"
-                    value={recHasta ?? ""}
-                    onChange={(e) => setRecHasta(e.target.value || null)}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Contribuyente"
-                    value={recContrib}
-                    onChange={(e) => setRecContrib(e.target.value)}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Calle"
-                    value={recCalle}
-                    onChange={(e) => setRecCalle(e.target.value)}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Número"
-                    value={recNumero}
-                    onChange={(e) => setRecNumero(e.target.value)}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Nº comprobación"
-                    value={recActa}
-                    onChange={(e) => setRecActa(e.target.value)}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Nº expediente (texto)"
-                    value={recExp}
-                    onChange={(e) => setRecExp(e.target.value)}
-                    fullWidth
-                  />
-                  <AppTextField
-                    appearance="dense"
-                    label="Nº oficio (texto)"
-                    value={recOfi}
-                    onChange={(e) => setRecOfi(e.target.value)}
-                    fullWidth
-                  />
-                  <AppSelect
-                    appearance="dense"
-                    label="Estado del recorrido"
-                    value={recEstado}
-                    onChange={(e) => setRecEstado(String(e.target.value))}
-                    fullWidth
-                    options={ESTADO_RECORRIDO_FILTER_OPTIONS}
-                  />
-                  <AppSelect
-                    appearance="dense"
-                    label="Tipo final (resultado)"
-                    value={recTipoFinal}
-                    onChange={(e) => setRecTipoFinal(String(e.target.value))}
-                    fullWidth
-                    options={TIPO_FINAL_OPTIONS}
-                  />
+                <Typography sx={filtroTitleStyles}>Filtros — recorrido documental</Typography>
+                <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: GLASS_COLORS.textMuted }}>
+                  Período, distrito y criterios de texto. Pulsá <strong>Filtrar</strong> para cargar la tabla (máx. 500 por
+                  consulta en servidor).
+                </Typography>
+                <Box sx={filtroGridStyles}>
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Vista de período"
+                      value={recPeriodMode}
+                      onChange={(e) => setRecPeriodMode(e.target.value as RecPeriodMode)}
+                      variant="outlined"
+                      options={[
+                        { value: "month", label: "Mes y año" },
+                        { value: "range", label: "Fecha desde / hasta" },
+                      ]}
+                    />
+                  </Box>
+                  {recPeriodMode === "month" ? (
+                    <>
+                      <Box sx={filtroItemStyles}>
+                        <AppSelect
+                          appearance="dense"
+                          fullWidth
+                          label="Mes"
+                          value={String(recMes)}
+                          onChange={(e) => setRecMes(Number(e.target.value))}
+                          variant="outlined"
+                          options={MESES_OPTS}
+                        />
+                      </Box>
+                      <Box sx={filtroItemStyles}>
+                        <AppSelect
+                          appearance="dense"
+                          fullWidth
+                          label="Año"
+                          value={String(recAnio)}
+                          onChange={(e) => setRecAnio(Number(e.target.value))}
+                          variant="outlined"
+                          options={yearOptions(defaultMonthYear.anio)}
+                        />
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Box sx={filtroItemStyles}>
+                        <AppTextField
+                          appearance="dense"
+                          fullWidth
+                          label="Desde"
+                          type="date"
+                          value={recDesde ?? ""}
+                          onChange={(e) => setRecDesde(e.target.value || null)}
+                          InputLabelProps={{ shrink: true }}
+                          variant="outlined"
+                        />
+                      </Box>
+                      <Box sx={filtroItemStyles}>
+                        <AppTextField
+                          appearance="dense"
+                          fullWidth
+                          label="Hasta"
+                          type="date"
+                          value={recHasta ?? ""}
+                          onChange={(e) => setRecHasta(e.target.value || null)}
+                          InputLabelProps={{ shrink: true }}
+                          variant="outlined"
+                        />
+                      </Box>
+                    </>
+                  )}
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Distrito"
+                      value={recDistritoId === "" ? "" : String(recDistritoId)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setRecDistritoId(v === "" ? "" : Number(v));
+                      }}
+                      variant="outlined"
+                      options={distritoSelectOptionsRecorrido}
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Contribuyente"
+                      value={recContrib}
+                      onChange={(e) => setRecContrib(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Calle"
+                      value={recCalle}
+                      onChange={(e) => setRecCalle(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº acta comprobación"
+                      value={recActa}
+                      onChange={(e) => setRecActa(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº oficio (texto)"
+                      value={recOfi}
+                      onChange={(e) => setRecOfi(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Tipo final"
+                      value={recTipoFinal}
+                      onChange={(e) => setRecTipoFinal(String(e.target.value))}
+                      variant="outlined"
+                      options={TIPO_FINAL_OPTIONS}
+                    />
+                  </Box>
                 </Box>
-                <Box sx={{ ...filtroButtonsStyles, mt: 1.5 }}>
+                <Box sx={filtroButtonsStyles}>
                   <AppButton
                     dsVariant="ghost"
                     dsSize="sm"
                     onClick={() => {
-                      setRecDesde(null);
-                      setRecHasta(null);
+                      const r = getCurrentMonthRange();
+                      const d = new Date(`${r.desde}T12:00:00`);
+                      setRecPeriodMode("month");
+                      setRecMes(d.getMonth() + 1);
+                      setRecAnio(d.getFullYear());
+                      setRecDesde(r.desde);
+                      setRecHasta(r.hasta);
+                      setRecDistritoId("");
                       setRecContrib("");
                       setRecCalle("");
-                      setRecNumero("");
                       setRecActa("");
-                      setRecExp("");
                       setRecOfi("");
-                      setRecEstado("");
                       setRecTipoFinal("");
+                      setRecFilterApplied(false);
+                      setRecMeta(null);
+                      setRecItems([]);
                     }}
                     startIcon={<ClearIcon />}
                     sx={filtroButtonSecondaryStyles}
@@ -907,11 +1079,11 @@ const ActasComprobacionPage = () => {
                   <AppButton
                     dsVariant="primary"
                     dsSize="sm"
-                    onClick={() => void loadRecorrido()}
+                    onClick={() => void aplicarFiltroRecorrido()}
                     startIcon={<SearchIcon />}
                     sx={filtroButtonPrimaryStyles}
                   >
-                    Buscar
+                    Filtrar
                   </AppButton>
                 </Box>
               </Box>
@@ -920,12 +1092,36 @@ const ActasComprobacionPage = () => {
                   {recError}
                 </Alert>
               )}
-              {recLoading ? (
+              {!recFilterApplied ? (
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
+                  Definí período/distrito y opcionalmente criterios de texto, luego pulsá <strong>Filtrar</strong>.
+                </Typography>
+              ) : recLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress sx={{ color: COLORS.primary }} />
                 </Box>
               ) : (
-                <MaterialReactTable table={tableRec} />
+                <>
+                  {recMeta && (
+                    <Box sx={metaInfoStyles}>
+                      <Typography sx={metaItemStyles}>
+                        <strong>Total:</strong> {recMeta.total}
+                      </Typography>
+                      <Typography sx={metaItemStyles}>
+                        <strong>Mostrando:</strong> {recItems.length} de {recMeta.total}
+                      </Typography>
+                      <Typography sx={metaItemStyles}>
+                        <strong>Página:</strong> 1
+                      </Typography>
+                      {recMeta.desde && recMeta.hasta && (
+                        <Typography sx={metaItemStyles}>
+                          <strong>Rango:</strong> {recMeta.desde} — {recMeta.hasta}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  <MaterialReactTable table={tableRec} />
+                </>
               )}
             </>
           )}

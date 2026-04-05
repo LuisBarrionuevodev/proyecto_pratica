@@ -150,12 +150,16 @@ export const getActuacionesPendientes = async (
 export const getActuacionesPendientesExpediente = async (
   desde?: string | null,
   hasta?: string | null,
-  sourceType?: "all" | "notificacion" | "comprobacion"
+  sourceType?: "all" | "notificacion" | "comprobacion",
+  distritoId?: number | null,
+  opts?: { omitirRangoFecha?: boolean }
 ): Promise<IActuacionesPendientesExpedienteResponse> => {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
   if (sourceType) params.source_type = sourceType;
+  if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
+  if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const { data } = await apiClient.get<IActuacionesPendientesExpedienteResponse>(
     "/actuaciones/pendientes/expediente",
     { params }
@@ -176,11 +180,13 @@ export const createExpedienteDesdeActuacion = async (
 
 export const getActuacionesPendientesOficio = async (
   desde?: string | null,
-  hasta?: string | null
+  hasta?: string | null,
+  distritoId?: number | null
 ): Promise<IPendientesOficioResponse> => {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
+  if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
   const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
   return data;
 };

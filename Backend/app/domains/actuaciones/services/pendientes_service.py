@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, exists, or_, and_
 
@@ -21,6 +21,15 @@ def _apply_fecha(query, desde, hasta):
     if hasta:
         query = query.filter(Actuaciones.fecha <= hasta)
     return query
+
+
+def _apply_distrito_optional(query, distrito_id: Optional[int]):
+    """Restringe por ``domicilio.distrito_id`` (join único)."""
+    if distrito_id is None:
+        return query
+    return query.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id).filter(
+        Domicilio.distrito_id == int(distrito_id)
+    )
 
 
 def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
@@ -172,14 +181,15 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
     - comprobacion
     """
     source_type = (filters.source_type or "all").lower()
+    distrito_id = getattr(filters, "distrito_id", None)
 
     if source_type == "comprobacion":
-        query = _sin_expediente_query(filters)
+        query = _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
     elif source_type == "notificacion":
-        query = _sin_expediente_notificacion_query(filters)
+        query = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
     else:
-        query_comp = _sin_expediente_query(filters)
-        query_noti = _sin_expediente_notificacion_query(filters)
+        query_comp = _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
+        query_noti = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
         query = query_comp.union(query_noti)
 
     return query.order_by(Actuaciones.id.desc()).all()
@@ -210,4 +220,5 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
         .filter(~has_respuesta_oficio)
     )
     query = _apply_fecha(query, filters.desde, filters.hasta)
+    query = _apply_distrito_optional(query, getattr(filters, "distrito_id", None))
     return query.order_by(Actuaciones.id.desc()).all()

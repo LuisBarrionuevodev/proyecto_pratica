@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
-from app.domains.actuaciones.services.pendientes_service import _apply_fecha
+from app.database import db
+from app.domains.actuaciones.services.pendientes_service import _apply_distrito_optional, _apply_fecha
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import estado_recorrido_label
 from app.models import Actuaciones, IniciadorRuta
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
@@ -22,14 +23,20 @@ def list_pendientes_reinspeccion_oficio(
     Iniciadores ``REINSPECCION_OFICIO`` aún pendientes de cierre operativo.
 
     Cada fila es (iniciador, actuación ancla). Rango de fechas sobre ``Actuaciones.fecha``.
+
+    Importante: usar ``query(IniciadorRuta, Actuaciones)`` para devolver tuplas; ``IniciadorRuta.query.join`` solo
+    devolvía iniciadores y el route desempaquetaba mal (``iniciador_reinspeccion_to_row`` fallaba).
     """
     q = (
-        IniciadorRuta.query.join(Actuaciones, Actuaciones.id == IniciadorRuta.actuacion_id)
+        db.session.query(IniciadorRuta, Actuaciones)
+        .join(Actuaciones, Actuaciones.id == IniciadorRuta.actuacion_id)
         .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
         .filter(IniciadorRuta.deleted_at.is_(None))
         .filter(~IniciadorRuta.estado_iniciador.in_(_REINSPECCION_OFICIO_TERMINAL))
     )
     q = _apply_fecha(q, filters.desde, filters.hasta)
+    distrito_id = getattr(filters, "distrito_id", None)
+    q = _apply_distrito_optional(q, distrito_id)
     return q.order_by(IniciadorRuta.id.desc()).all()
 
 
@@ -53,6 +60,8 @@ def list_comprobacion_recorrido(
     """
     q = Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
     q = _apply_fecha(q, filters.desde, filters.hasta)
+    distrito_id = getattr(filters, "distrito_id", None)
+    q = _apply_distrito_optional(q, distrito_id)
     rows: List[Actuaciones] = q.order_by(Actuaciones.id.desc()).limit(limit).all()
 
     from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
