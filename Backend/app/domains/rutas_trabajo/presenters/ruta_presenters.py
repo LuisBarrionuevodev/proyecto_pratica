@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from app.domains.rutas_trabajo.utils.planificacion_prioridad import (
+    elegible_urgente_planificacion,
+    prioridad_categoria_from_value,
+)
 from app.models import IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
 
 
@@ -196,6 +200,10 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
             "actuacion_id": iniciador.actuacion_id,
         },
         "observaciones": iniciador.observaciones,
+        "prioridad_categoria": prioridad_categoria_from_value(iniciador.prioridad),
+        "elegible_urgente": elegible_urgente_planificacion(
+            iniciador.tipo_iniciador, iniciador.prioridad
+        ),
         "badges": {
             "tipo_label": (iniciador.tipo_iniciador or "").replace("_", " "),
             "estado_label": (iniciador.estado_iniciador or "").replace("_", " "),

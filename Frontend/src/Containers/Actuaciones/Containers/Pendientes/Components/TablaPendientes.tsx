@@ -1,7 +1,7 @@
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { useEffect, useState } from "react";
 import type { IActuacion } from "../../../../../types/actuaciones";
-import { BASE_TABLE_CONFIG } from "../../../../../constants/tableConfig";
+import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../../../styles/actuacionesTableStyles";
 import { TablaExportButtons } from "../../../Components/TableButtons";
 import { Box, Typography } from "@mui/material";
 import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
@@ -93,10 +93,10 @@ const TablaPendientes = () => {
   ]
 
     const table = useMaterialReactTable({
-    ...BASE_TABLE_CONFIG,
+    ...DARK_TABLE_CONFIG,
+    ...MRT_READ_ONLY_BANDEJA,
     columns,
     data,
-    enableEditing: false,
     initialState: {
       columnVisibility: { 
         id: false, rubro_nombre: false, 

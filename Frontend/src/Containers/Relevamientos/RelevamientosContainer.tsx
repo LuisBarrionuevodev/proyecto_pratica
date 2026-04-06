@@ -11,7 +11,7 @@ import {
   metaItemStyles,
   errorAlertStyles,
 } from "../Actuaciones/styles/filtroStyles";
-import { GLASS_COLORS, glassTabsSecondaryPanelSx } from "../../styles/GlassStyles";
+import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 
 const RelevamientosContainer = (): JSX.Element => {
   const [slice, setSlice] = useState<RelevamientosBandejaSlice>("pendientes");
@@ -55,13 +55,13 @@ const RelevamientosContainer = (): JSX.Element => {
     <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
       <FiltroRelevamientos onFiltrar={handleFiltrar} />
 
-      <Paper elevation={0} sx={glassTabsSecondaryPanelSx}>
+      <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
         <Tabs
           value={slice}
           onChange={(_, v: RelevamientosBandejaSlice) => setSlice(v)}
           variant="scrollable"
           allowScrollButtonsMobile
-          sx={{ marginBottom: 0, minHeight: 42 }}
+          sx={glassSecondaryTabsSx}
         >
           <Tab label="Pendientes" value="pendientes" />
           <Tab label="Realizados" value="realizados" />

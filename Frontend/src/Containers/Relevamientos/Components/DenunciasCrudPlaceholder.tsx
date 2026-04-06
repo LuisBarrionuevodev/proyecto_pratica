@@ -11,7 +11,7 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../../Actuaciones/styles/filtroStyles";
-import { GLASS_COLORS, glassTabsSecondaryPanelSx } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../../styles/GlassStyles";
 
 const DenunciasCrudPlaceholder = () => {
   const [slice, setSlice] = useState<DenunciasBandejaSlice>("pendientes");
@@ -49,13 +49,13 @@ const DenunciasCrudPlaceholder = () => {
     <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
       <FiltroDenuncias variant={slice === "pendientes" ? "pendientes" : "realizados"} onFiltrar={handleFiltrar} />
 
-      <Paper elevation={0} sx={glassTabsSecondaryPanelSx}>
+      <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
         <Tabs
           value={slice}
           onChange={(_, v: DenunciasBandejaSlice) => setSlice(v)}
           variant="scrollable"
           allowScrollButtonsMobile
-          sx={{ marginBottom: 0, minHeight: 42 }}
+          sx={glassSecondaryTabsSx}
         >
           <Tab label="Pendientes" value="pendientes" />
           <Tab label="Realizados" value="realizados" />

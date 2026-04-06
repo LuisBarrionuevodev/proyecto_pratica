@@ -1,6 +1,16 @@
 import type { MRT_TableOptions } from "material-react-table";
 import type { SxProps, Theme } from "@mui/material";
 
+/**
+ * Bandejas / listados solo lectura: sin edición ni selección de filas (formularios en modal glass).
+ * Combinar con spread: `useMaterialReactTable({ ...DARK_TABLE_CONFIG, ...MRT_READ_ONLY_BANDEJA, ... })`
+ */
+export const MRT_READ_ONLY_BANDEJA: Partial<MRT_TableOptions<any>> = {
+  enableEditing: false,
+  enableRowSelection: false,
+  enableSelectAll: false,
+};
+
 // =============================================================================
 // ESTILOS NEO-BRUTALISTAS PARA ACTUACIONES - Material React Table
 // =============================================================================
@@ -132,6 +142,10 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
         sx: {
             maxHeight: "calc(100vh - 350px)",
             minHeight: "300px",
+            width: "100%",
+            maxWidth: "100%",
+            overflowX: "auto",
+            overflowY: "auto",
             backgroundColor: COLORS.grayDark,
             border: `1px solid ${COLORS.border}`,
             borderRadius: "8px",

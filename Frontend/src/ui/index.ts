@@ -10,3 +10,9 @@ export {
 export { AppChip, type AppChipProps, type AppChipTone } from "./AppChip";
 export { CardGlass, type CardGlassProps, type CardGlassPadding } from "./CardGlass";
 export { CardData, type CardDataProps, type CardDataSurface, type CardDataPadding } from "./CardData";
+export {
+  SegmentedFilterChips,
+  segmentedFilterChipSx,
+  type SegmentedFilterChipsOption,
+  type SegmentedFilterChipsProps,
+} from "./SegmentedFilterChips";

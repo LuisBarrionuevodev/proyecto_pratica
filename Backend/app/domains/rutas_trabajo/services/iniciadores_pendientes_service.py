@@ -1,9 +1,83 @@
 from __future__ import annotations
 
 from sqlalchemy import or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Query, joinedload
 
 from app.models import Domicilio, IniciadorRuta, Relevamiento, RutaItem, RutaTrabajo
+
+
+def assert_ruta_borrador_para_planificacion(ruta_id: int) -> RutaTrabajo:
+    """
+    Valida que la ruta exista y esté en BORRADOR para operaciones de planificación.
+
+    Raises:
+        LookupError: ruta inexistente.
+        RuntimeError: ruta no en BORRADOR.
+    """
+    ruta = RutaTrabajo.query.get(ruta_id)
+    if not ruta:
+        raise LookupError("Ruta de trabajo no encontrada")
+    if ruta.estado_ruta != "BORRADOR":
+        raise RuntimeError("La ruta debe estar en BORRADOR para listar iniciadores pendientes")
+    return ruta
+
+
+def planificable_iniciadores_base_query() -> Query:
+    """
+    Query base: iniciadores PENDIENTE, no eliminados, no asignados a ítem activo en ruta BORRADOR.
+
+    Requiere llamar antes assert_ruta_borrador_para_planificacion si se necesita validar ruta.
+    """
+    return (
+        IniciadorRuta.query.join(Domicilio, Domicilio.id == IniciadorRuta.domicilio_id)
+        .options(
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.calle_catalogo),
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.distrito),
+            joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+        )
+        .filter(
+            IniciadorRuta.estado_iniciador == "PENDIENTE",
+            IniciadorRuta.deleted_at.is_(None),
+            ~IniciadorRuta.ruta_items.any(
+                (RutaItem.deleted_at.is_(None))
+                & (RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"))
+            ),
+        )
+    )
+
+
+def _orden_planificacion_sql(orden: str | None) -> tuple:
+    """
+    Orden para listados M4 / Planificación.
+
+    Valores: prioridad (default), fecha_asc, fecha_desc, prioridad_asc.
+    """
+
+    o = (orden or "prioridad").strip().lower()
+    if o == "fecha_asc":
+        return (
+            IniciadorRuta.fecha_origen.asc(),
+            IniciadorRuta.prioridad.desc(),
+            IniciadorRuta.id.asc(),
+        )
+    if o == "fecha_desc":
+        return (
+            IniciadorRuta.fecha_origen.desc(),
+            IniciadorRuta.prioridad.desc(),
+            IniciadorRuta.id.asc(),
+        )
+    if o == "prioridad_asc":
+        return (
+            IniciadorRuta.prioridad.asc(),
+            IniciadorRuta.fecha_origen.asc(),
+            IniciadorRuta.id.asc(),
+        )
+    return (
+        IniciadorRuta.prioridad.desc(),
+        IniciadorRuta.fecha_origen.asc(),
+        IniciadorRuta.id.asc(),
+    )
 
 
 def get_iniciadores_pendientes_para_ruta(
@@ -18,6 +92,8 @@ def get_iniciadores_pendientes_para_ruta(
     calle_catalogo_id: int | None,
     page: int,
     per_page: int,
+    orden_planificacion: bool = False,
+    planificacion_orden: str | None = None,
 ) -> tuple[list[IniciadorRuta], int]:
     """
     Lista iniciadores planificables para una ruta en BORRADOR.
@@ -36,29 +112,9 @@ def get_iniciadores_pendientes_para_ruta(
     - LookupError: si ruta no existe.
     - RuntimeError: si ruta no está en BORRADOR.
     """
-    ruta = RutaTrabajo.query.get(ruta_id)
-    if not ruta:
-        raise LookupError("Ruta de trabajo no encontrada")
-    if ruta.estado_ruta != "BORRADOR":
-        raise RuntimeError("La ruta debe estar en BORRADOR para listar iniciadores pendientes")
+    assert_ruta_borrador_para_planificacion(ruta_id)
 
-    query = (
-        IniciadorRuta.query.join(Domicilio, Domicilio.id == IniciadorRuta.domicilio_id)
-        .options(
-            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
-            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.calle_catalogo),
-            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.distrito),
-            joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
-        )
-        .filter(
-            IniciadorRuta.estado_iniciador == "PENDIENTE",
-            IniciadorRuta.deleted_at.is_(None),
-            ~IniciadorRuta.ruta_items.any(
-                (RutaItem.deleted_at.is_(None))
-                & (RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"))
-            ),
-        )
-    )
+    query = planificable_iniciadores_base_query()
 
     if tipo:
         query = query.filter(IniciadorRuta.tipo_iniciador == tipo)
@@ -87,12 +143,16 @@ def get_iniciadores_pendientes_para_ruta(
         )
 
     total = query.count()
-    items = (
-        query.order_by(
+    if orden_planificacion:
+        order = _orden_planificacion_sql(planificacion_orden)
+    else:
+        order = (
             IniciadorRuta.fecha_origen.asc(),
             IniciadorRuta.prioridad.asc(),
             IniciadorRuta.id.asc(),
         )
+    items = (
+        query.order_by(*order)
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()

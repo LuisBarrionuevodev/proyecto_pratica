@@ -101,6 +101,9 @@ export interface IRutaIniciadorPendienteRow {
     origen_label?: string | null;
     prioridad_label?: string | null;
   };
+  /** Presente en respuestas de planificación / presenter extendido. */
+  prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
+  elegible_urgente?: boolean;
 }
 
 export interface IGetRutaIniciadoresPendientesResponse {

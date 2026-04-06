@@ -48,3 +48,16 @@ export const rutasInstitutionalItemPaperSx: SxProps<Theme> = {
 export const rutasInstitutionalDividerSx: SxProps<Theme> = {
   ...glassDivider,
 };
+
+/** Campo de búsqueda en paneles Planificación (alineado a glass / Digitaliza). */
+export const planificacionTextFieldSx: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    fontFamily: '"Tactic Sans", sans-serif',
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: "10px",
+    "& fieldset": { borderColor: GLASS_COLORS.borderLight },
+    "&:hover fieldset": { borderColor: GLASS_COLORS.borderMedium },
+    "&.Mui-focused fieldset": { borderColor: GLASS_COLORS.primary },
+  },
+  "& .MuiInputBase-input": { fontSize: "0.85rem" },
+};

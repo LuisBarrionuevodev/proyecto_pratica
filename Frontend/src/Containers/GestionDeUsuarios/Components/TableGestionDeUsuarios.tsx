@@ -4,21 +4,13 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import { useMemo, useEffect, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  IconButton,
-  Snackbar,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Chip, IconButton, Snackbar, Tooltip, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import { apiClient } from "../../../api/apiClient";
-import { TablaGestionUsuariosStyle } from "../../../styles/GestionDeUsuarioStyles";
+import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
+import { AppButton } from "../../../ui";
 
 type Usuario = {
   id: number;
@@ -254,9 +246,12 @@ const TableGestionDeUsuarios = () => {
   );
 
   const table = useMaterialReactTable({
-    ...TablaGestionUsuariosStyle,
+    ...DARK_TABLE_CONFIG,
     columns,
     data,
+    enableColumnFilters: false,
+    enableRowSelection: false,
+    positionGlobalFilter: "right",
     enableEditing: true,
     createDisplayMode: "modal",
     editDisplayMode: "modal",
@@ -326,14 +321,9 @@ const TableGestionDeUsuarios = () => {
       </Box>
     ),
     renderTopToolbarCustomActions: ({ table }) => (
-      <Button
-        variant="contained"
-        color="success"
-        startIcon={<AddIcon />}
-        onClick={() => table.setCreatingRow(true)}
-      >
+      <AppButton dsVariant="primary" dsSize="sm" startIcon={<AddIcon />} onClick={() => table.setCreatingRow(true)}>
         Crear nuevo user
-      </Button>
+      </AppButton>
     ),
   });
 

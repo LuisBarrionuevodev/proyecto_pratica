@@ -1,6 +1,8 @@
 import type { TextFieldProps } from "@mui/material/TextField";
 import TextField from "@mui/material/TextField";
+import { useTheme } from "@mui/material/styles";
 import { color as tokenColor } from "../theme/tokens";
+import { fieldErrorOutlineSx } from "./fieldErrorSx";
 
 export type AppTextFieldAppearance = "default" | "dense" | "glass";
 
@@ -42,18 +44,22 @@ export function AppTextField({
   sx,
   slotProps,
   InputProps,
+  error,
   ...rest
 }: AppTextFieldProps) {
+  const theme = useTheme();
   const resolvedSize = appearance === "dense" ? "small" : size ?? "medium";
   const appearanceSx = appearance === "glass" ? glassFieldSx() : {};
+  const errorSx = error ? fieldErrorOutlineSx(theme) : {};
 
   return (
     <TextField
       variant={variant}
       size={resolvedSize}
+      error={error}
       slotProps={slotProps}
       InputProps={InputProps}
-      sx={[appearanceSx, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
+      sx={[appearanceSx, errorSx, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
       {...rest}
     />
   );

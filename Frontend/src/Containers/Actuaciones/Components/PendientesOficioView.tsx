@@ -1,16 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, CircularProgress, Typography } from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import {
@@ -22,7 +13,8 @@ import {
 } from "../../../api/actuacionesPendientesApi";
 import { containerStyles, wrapperStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
-import { DARK_TABLE_CONFIG } from "../styles/actuacionesTableStyles";
+import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../styles/actuacionesTableStyles";
+import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   alertBaseStyles,
   COLORS,
@@ -34,7 +26,7 @@ import {
   filtroItemStyles,
   filtroTitleStyles,
 } from "../styles/filtroStyles";
-import { AppButton, AppSelect, AppTextField } from "../../../ui";
+import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 
 const PendientesOficioView = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
@@ -56,6 +48,8 @@ const PendientesOficioView = () => {
   const [expNumero, setExpNumero] = useState("");
   const [expFecha, setExpFecha] = useState(defaultRange.hasta);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [modalApiError, setModalApiError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -99,6 +93,8 @@ const PendientesOficioView = () => {
     setCausa("");
     setExpNumero("");
     setExpFecha(defaultRange.hasta);
+    setFieldErrors({});
+    setModalApiError(null);
     setModalOpen(true);
   };
 
@@ -106,16 +102,23 @@ const PendientesOficioView = () => {
     if (saving) return;
     setModalOpen(false);
     setSelected(null);
+    setFieldErrors({});
+    setModalApiError(null);
   };
 
   const handleSave = async () => {
     if (!selected) return;
-    if (!numeroOficio.trim() || !fechaOficio || !juzgadoId || !expNumero.trim() || !expFecha) {
-      setError("Completá número/fecha/juzgado y datos del expediente de oficio");
-      return;
-    }
+    const next: Record<string, string> = {};
+    if (!numeroOficio.trim()) next.numeroOficio = "Completá el número de oficio.";
+    if (!fechaOficio) next.fechaOficio = "Completá la fecha de oficio.";
+    if (!juzgadoId) next.juzgadoId = "Seleccioná un juzgado.";
+    if (!expNumero.trim()) next.expNumero = "Completá el número de expediente de oficio.";
+    if (!expFecha) next.expFecha = "Completá la fecha de expediente de oficio.";
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) return;
+
     setSaving(true);
-    setError(null);
+    setModalApiError(null);
     try {
       await createOficioDesdeActuacion(selected.id, {
         numero_oficio: numeroOficio.trim(),
@@ -128,7 +131,7 @@ const PendientesOficioView = () => {
       closeModal();
       await loadData();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo cargar el oficio");
+      setModalApiError(err?.response?.data?.detail || "No se pudo cargar el oficio");
     } finally {
       setSaving(false);
     }
@@ -159,10 +162,9 @@ const PendientesOficioView = () => {
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...MRT_READ_ONLY_BANDEJA,
     columns,
     data: items,
-    enableEditing: false,
-    enableRowSelection: false,
     renderTopToolbarCustomActions: () => (
       <Typography variant="body2" sx={{ pl: 1 }}>
         Total esperando oficio: {total}
@@ -234,86 +236,145 @@ const PendientesOficioView = () => {
             <MaterialReactTable table={table} />
           )}
 
-          <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth="sm">
-            <DialogTitle>Cargar oficio</DialogTitle>
-            <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-              <AppTextField
-                appearance="dense"
-                label="Expediente original"
-                value={`${selected?.expediente_original_numero ?? "-"} / ${selected?.expediente_original_anio ?? "-"}`}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-              <AppTextField
-                appearance="dense"
-                label="Contexto"
-                value={`Acta comp: ${selected?.acta_comprobacion_num ?? "-"} | OT: ${selected?.orden_trabajo_numero ?? "-"}`}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-              <AppTextField
-                appearance="dense"
-                label="Número de oficio"
-                value={numeroOficio}
-                onChange={(e) => setNumeroOficio(e.target.value)}
-                fullWidth
-                required
-              />
-              <AppTextField
-                appearance="dense"
-                label="Fecha de oficio"
-                type="date"
-                value={fechaOficio}
-                onChange={(e) => setFechaOficio(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                required
-              />
-              <AppSelect
-                appearance="dense"
-                label="Juzgado"
-                value={String(juzgadoId)}
-                onChange={(e) => setJuzgadoId(Number(e.target.value))}
-                fullWidth
-                required
-                variant="outlined"
-                options={juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))}
-              />
-              <AppTextField
-                appearance="dense"
-                label="Causa"
-                value={causa}
-                onChange={(e) => setCausa(e.target.value)}
-                fullWidth
-              />
-              <AppTextField
-                appearance="dense"
-                label="Número expediente oficio"
-                value={expNumero}
-                onChange={(e) => setExpNumero(e.target.value)}
-                fullWidth
-                required
-              />
-              <AppTextField
-                appearance="dense"
-                label="Fecha expediente oficio"
-                type="date"
-                value={expFecha}
-                onChange={(e) => setExpFecha(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                required
-              />
-            </DialogContent>
-            <DialogActions>
-              <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModal} disabled={saving}>
-                Cancelar
-              </AppButton>
-              <AppButton dsVariant="primary" dsSize="sm" onClick={handleSave} disabled={saving}>
-                {saving ? "Guardando..." : "Guardar"}
-              </AppButton>
-            </DialogActions>
-          </Dialog>
+          <AppDialog
+            open={modalOpen}
+            onClose={closeModal}
+            title="Cargar oficio"
+            appearance="glass"
+            maxWidth="sm"
+            fullWidth
+            showCloseButton
+            onCloseButtonClick={closeModal}
+            contentSx={formDialogContentStackSx}
+            actions={
+              <>
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModal} disabled={saving}>
+                  Cancelar
+                </AppButton>
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => void handleSave()} disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar"}
+                </AppButton>
+              </>
+            }
+          >
+            {modalApiError ? (
+              <Alert severity="error" sx={{ mb: 0 }}>
+                {modalApiError}
+              </Alert>
+            ) : null}
+            <AppTextField
+              appearance="glass"
+              label="Expediente original"
+              value={`${selected?.expediente_original_numero ?? "-"} / ${selected?.expediente_original_anio ?? "-"}`}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Contexto"
+              value={`Acta comp: ${selected?.acta_comprobacion_num ?? "-"} | OT: ${selected?.orden_trabajo_numero ?? "-"}`}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Número de oficio"
+              value={numeroOficio}
+              onChange={(e) => {
+                setNumeroOficio(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.numeroOficio;
+                  return n;
+                });
+              }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.numeroOficio)}
+              helperText={fieldErrors.numeroOficio || undefined}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Fecha de oficio"
+              type="date"
+              value={fechaOficio}
+              onChange={(e) => {
+                setFechaOficio(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.fechaOficio;
+                  return n;
+                });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.fechaOficio)}
+              helperText={fieldErrors.fechaOficio || undefined}
+            />
+            <AppSelect
+              appearance="glass"
+              label="Juzgado"
+              value={String(juzgadoId)}
+              onChange={(e) => {
+                setJuzgadoId(Number(e.target.value));
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.juzgadoId;
+                  return n;
+                });
+              }}
+              fullWidth
+              required
+              variant="outlined"
+              error={Boolean(fieldErrors.juzgadoId)}
+              helperText={fieldErrors.juzgadoId || undefined}
+              options={[{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))]}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Causa"
+              value={causa}
+              onChange={(e) => setCausa(e.target.value)}
+              fullWidth
+            />
+            <AppTextField
+              appearance="glass"
+              label="Número expediente oficio"
+              value={expNumero}
+              onChange={(e) => {
+                setExpNumero(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.expNumero;
+                  return n;
+                });
+              }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.expNumero)}
+              helperText={fieldErrors.expNumero || undefined}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Fecha expediente oficio"
+              type="date"
+              value={expFecha}
+              onChange={(e) => {
+                setExpFecha(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.expFecha;
+                  return n;
+                });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.expFecha)}
+              helperText={fieldErrors.expFecha || undefined}
+            />
+          </AppDialog>
         </Box>
       </Box>
     </Box>

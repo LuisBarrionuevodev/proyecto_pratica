@@ -16,7 +16,7 @@ export type UseRutaTrabajoBorradorActionsParams = {
 
 /**
  * Mutaciones de borrador (mover / quitar / OT) sin refetch del detail completo.
- * Actualiza solo `items` en estado local; quitar item dispara `loadPendientes` para la grilla de pendientes.
+ * Actualiza solo `items` en estado local; quitar item dispara `loadPendientes` (no-op en Asignación basada en pool).
  */
 export function useRutaTrabajoBorradorActions({
   rutaId,

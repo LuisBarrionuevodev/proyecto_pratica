@@ -20,14 +20,14 @@ const alertSx = {
 } as const;
 
 /**
- * Vista MAPA operativa: resumen, mapa Leaflet/OSM y gestión de ítems/grupos (misma lógica que TABLA vía handlers).
+ * Vista Mapa final (paso 3): resumen, mapa Leaflet/OSM y gestión de ítems/grupos (mismos handlers que Asignación).
  */
 export function RutasMapaOperativoView({
   ruta,
   grupos,
   itemsActivos,
   iniciadorById,
-  onVolverPlanificacion,
+  onVolverAsignacion,
   onPublicarRuta,
   canPublish = false,
   publishingRuta = false,
@@ -60,8 +60,8 @@ export function RutasMapaOperativoView({
             </Typography>
           </Box>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <AppButton dsVariant="secondary" dsSize="sm" onClick={onVolverPlanificacion}>
-              Volver a planificación
+            <AppButton dsVariant="secondary" dsSize="sm" onClick={onVolverAsignacion}>
+              Volver a asignación
             </AppButton>
             <Tooltip
               title={

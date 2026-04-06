@@ -62,7 +62,8 @@ export type RutasMapaOperativoViewProps = {
   grupos: IRutaGrupoMin[];
   itemsActivos: IRutaItemMin[];
   iniciadorById: Record<number, IRutaIniciadorPendienteRow>;
-  onVolverPlanificacion: () => void;
+  /** Vuelve a la etapa Asignación (paso 2 del flujo). */
+  onVolverAsignacion: () => void;
   onPublicarRuta?: () => void | Promise<void>;
   /** Ruta en BORRADOR con datos listos; false deshabilita el botón. */
   canPublish?: boolean;

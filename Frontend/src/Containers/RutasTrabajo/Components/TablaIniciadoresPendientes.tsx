@@ -1,26 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Autocomplete, Box, Chip, Stack, TextField, Typography } from "@mui/material";
+import { useMemo } from "react";
+import { Box, Chip, Stack, TextField, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
-  type MRT_PaginationState,
-  type MRT_Row,
   type MRT_RowSelectionState,
 } from "material-react-table";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
-import {
-  fetchCallesCatalogo,
-  fetchDistritosCatalogo,
-  type CalleCatalogoItem,
-  type DistritoCatalogoItem,
-} from "../../../api/geolocalizacionApi";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect } from "../../../ui";
-
-// ─── Valores alineados al backend (`TipoIniciadorLiteral`) ───
 
 const TIPO_INICIADOR_OPTIONS = [
   { value: "", label: "Todos" },
@@ -33,15 +23,12 @@ const TIPO_INICIADOR_OPTIONS = [
   { value: "RATIFICACION_DECOMISO_OFICIO", label: "Ratificación decomiso" },
 ] as const;
 
-/** Mapeo UI: Baja=1, Media=2, Alta>=3 (backend `prioridad_categoria`). */
 const PRIORIDAD_OPTIONS = [
   { value: "", label: "Todas" },
   { value: "BAJA", label: "Baja" },
   { value: "MEDIA", label: "Media" },
   { value: "ALTA", label: "Alta" },
 ] as const;
-
-// ─── Helpers de presentación ────────────────────────────────────────────────
 
 const PRIORIDAD_CONFIG = {
   alta: { label: "Alta", color: "#ffd9a2", bg: "rgba(184,120,34,0.30)" },
@@ -72,83 +59,61 @@ const compactFiltroSx = {
   maxWidth: 220,
 } as const;
 
-function iniciadorGlobalFilterFn(
-  row: MRT_Row<IRutaIniciadorPendienteRow>,
-  _columnId: string,
-  filterValue: unknown
-): boolean {
-  const search = String(filterValue ?? "")
-    .toLowerCase()
-    .trim();
-  if (!search) return true;
-  const r = row.original;
-  const dom =
-    r.domicilio_texto ?? `${r.domicilio?.calle ?? "-"} ${r.domicilio?.numero ?? ""}`.trim();
-  const parts = [
-    r.tipo_iniciador,
-    r.badges?.tipo_label,
-    String(r.prioridad ?? ""),
-    dom,
-    r.distrito_nombre,
-    r.domicilio?.distrito_nombre,
-    r.rubro_nombre,
-    r.domicilio?.rubro,
-    r.observaciones,
-    r.fecha_origen,
-    String(r.id),
-  ];
-  const hay = parts.filter(Boolean).join(" ").toLowerCase();
-  return hay.includes(search);
-}
-
-export type IniciadoresPendientesFilters = {
+/** Filtros locales sobre el pool del día (Asignación); sin catálogo remoto de calles. */
+export type AsignacionPoolFilters = {
   tipo: string;
   prioridad_categoria: "" | "BAJA" | "MEDIA" | "ALTA";
   distrito: string;
-  calle_catalogo_id: number | null;
-  turno_sugerido: string;
+  /** Búsqueda de texto sobre domicilio, rubro, tipo, etc. */
+  q: string;
 };
 
-type MrtBlockProps = {
+type TableProps = {
   rows: IRutaIniciadorPendienteRow[];
-  total: number;
-  page: number;
-  perPage: number;
-  loading: boolean;
+  totalEnPool: number;
   selectedIds: number[];
-  onPageChange: (nextPage: number) => void;
-  onPerPageChange: (nextPerPage: number) => void;
+  assignedIniciadorIds: Set<number>;
+  filters: AsignacionPoolFilters;
+  onChangeFilters: (next: AsignacionPoolFilters) => void;
   onSelectionChange: (ids: number[]) => void;
   onAssignSelected: () => void;
+  distritoOptions: { value: string; label: string }[];
+  onSincronizarDetalle?: () => void;
+  detailLoading?: boolean;
 };
 
-/**
- * Tabla MRT montada solo cuando ya hubo interacción con filtros (evita hooks condicionales en el padre).
- */
-function IniciadoresPendientesTableMrt({
+function IniciadoresPoolTableMrt({
   rows,
-  total,
-  page,
-  perPage,
-  loading,
+  totalEnPool,
   selectedIds,
-  onPageChange,
-  onPerPageChange,
+  assignedIniciadorIds,
   onSelectionChange,
   onAssignSelected,
-}: MrtBlockProps) {
+}: Omit<TableProps, "filters" | "onChangeFilters" | "distritoOptions" | "onSincronizarDetalle" | "detailLoading">) {
   const rowSelection = useMemo<MRT_RowSelectionState>(
     () => Object.fromEntries(selectedIds.map((id) => [String(id), true])),
     [selectedIds]
   );
 
-  const pagination = useMemo<MRT_PaginationState>(
-    () => ({ pageIndex: page - 1, pageSize: perPage }),
-    [page, perPage]
-  );
-
   const columns = useMemo<MRT_ColumnDef<IRutaIniciadorPendienteRow>[]>(
     () => [
+      {
+        id: "estado",
+        header: "Estado",
+        size: 110,
+        Cell: ({ row }) => {
+          const asignado = assignedIniciadorIds.has(row.original.id);
+          return (
+            <Chip
+              label={asignado ? "En ruta" : "Sin asignar"}
+              size="small"
+              color={asignado ? "success" : "default"}
+              variant="outlined"
+              sx={{ fontFamily: '"Tactic Sans", sans-serif', fontSize: "11px" }}
+            />
+          );
+        },
+      },
       {
         id: "tipo",
         accessorKey: "tipo_iniciador",
@@ -226,7 +191,7 @@ function IniciadoresPendientesTableMrt({
         },
       },
     ],
-    []
+    [assignedIniciadorIds]
   );
 
   const table = useMaterialReactTable({
@@ -237,12 +202,12 @@ function IniciadoresPendientesTableMrt({
 
     enableEditing: false,
     enableColumnFilters: false,
-    enableGlobalFilter: true,
-    globalFilterFn: iniciadorGlobalFilterFn,
+    enableGlobalFilter: false,
+
+    enableRowSelection: (row) => !assignedIniciadorIds.has(row.original.id),
     enableSelectAll: false,
 
-    enableRowSelection: true,
-    state: { rowSelection, pagination, isLoading: loading },
+    state: { rowSelection },
     onRowSelectionChange: (updaterOrValue) => {
       const next =
         typeof updaterOrValue === "function" ? updaterOrValue(rowSelection) : updaterOrValue;
@@ -253,19 +218,12 @@ function IniciadoresPendientesTableMrt({
       );
     },
 
-    manualPagination: true,
-    rowCount: total,
-    onPaginationChange: (updaterOrValue) => {
-      const next =
-        typeof updaterOrValue === "function" ? updaterOrValue(pagination) : updaterOrValue;
-      if (next.pageIndex !== pagination.pageIndex) onPageChange(next.pageIndex + 1);
-      if (next.pageSize !== pagination.pageSize) onPerPageChange(next.pageSize);
-    },
+    manualPagination: false,
 
     renderTopToolbarCustomActions: () => (
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
         <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
-          Total pendientes: {total}
+          Ítems en pool: {totalEnPool} · Filas visibles: {rows.length}
         </Typography>
         <Chip
           label={`${selectedIds.length} seleccionados`}
@@ -288,113 +246,39 @@ function IniciadoresPendientesTableMrt({
   return <MaterialReactTable table={table} />;
 }
 
-// ─── Props panel completo ───────────────────────────────────────────────────
+const FILTROS_VACIOS: AsignacionPoolFilters = {
+  tipo: "",
+  prioridad_categoria: "",
+  distrito: "",
+  q: "",
+};
 
-interface Props {
-  tablaVisible: boolean;
-  rows: IRutaIniciadorPendienteRow[];
-  total: number;
-  page: number;
-  perPage: number;
-  loading: boolean;
-  selectedIds: number[];
-  filters: IniciadoresPendientesFilters;
-  onChangeFilters: (next: IniciadoresPendientesFilters) => void;
-  onRefrescar: () => void;
-  onPageChange: (nextPage: number) => void;
-  onPerPageChange: (nextPerPage: number) => void;
-  onSelectionChange: (ids: number[]) => void;
-  onAssignSelected: () => void;
-}
+export type TablaIniciadoresPendientesProps = TableProps;
 
 /**
- * Filtros por catálogo: al cambiar cualquiera se consulta el servidor y se muestra la tabla.
- * Refrescar limpia filtros y oculta la tabla. Búsqueda MRT solo sobre la página cargada.
+ * Tabla de iniciadores del pool del día (Asignación): filtros locales, sin catálogo de calles ni carga global.
  */
-const TablaIniciadoresPendientes = ({
-  tablaVisible,
+function TablaIniciadoresPendientes({
   rows,
-  total,
-  page,
-  perPage,
-  loading,
+  totalEnPool,
   selectedIds,
+  assignedIniciadorIds,
   filters,
   onChangeFilters,
-  onRefrescar,
-  onPageChange,
-  onPerPageChange,
   onSelectionChange,
   onAssignSelected,
-}: Props) => {
-  const [distritos, setDistritos] = useState<DistritoCatalogoItem[]>([]);
-  const [calleOptions, setCalleOptions] = useState<CalleCatalogoItem[]>([]);
-  const [calleInput, setCalleInput] = useState("");
-  const [calleValue, setCalleValue] = useState<CalleCatalogoItem | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchDistritosCatalogo()
-      .then((res) => {
-        if (!cancelled) setDistritos(res.items ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setDistritos([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (filters.calle_catalogo_id == null) {
-      setCalleValue(null);
-      setCalleInput("");
-      return;
-    }
-    if (calleValue?.id === filters.calle_catalogo_id) return;
-    let cancelled = false;
-    void fetchCallesCatalogo("", 200).then((res) => {
-      if (cancelled) return;
-      const found = res.items.find((c) => c.id === filters.calle_catalogo_id);
-      if (found) {
-        setCalleValue(found);
-        setCalleInput(found.nombre);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.calle_catalogo_id, calleValue?.id]);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      void fetchCallesCatalogo(calleInput, 25)
-        .then((res) => setCalleOptions(res.items ?? []))
-        .catch(() => setCalleOptions([]));
-    }, 280);
-    return () => window.clearTimeout(t);
-  }, [calleInput]);
-
-  const distritoOptions = useMemo(
-    () => [
-      { value: "", label: "Todos" },
-      ...distritos.map((d) => ({ value: String(d.id), label: d.nombre || `Distrito #${d.id}` })),
-    ],
-    [distritos]
-  );
-
-  const mergeCalleOptions = useCallback((selected: CalleCatalogoItem | null, opts: CalleCatalogoItem[]) => {
-    if (!selected) return opts;
-    if (opts.some((o) => o.id === selected.id)) return opts;
-    return [selected, ...opts];
-  }, []);
+  distritoOptions,
+  onSincronizarDetalle,
+  detailLoading,
+}: TableProps) {
+  /** Solo si el pool mezcla más de un distrito: el filtro aporta valor; si no, no mostramos el control. */
+  const mostrarFiltroDistrito = distritoOptions.length > 2;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.35 }}>
-        Elegí un criterio en cualquier catálogo para cargar la tabla. La búsqueda de la tabla aplica solo
-        sobre las filas de la página actual.
+        Distribuí entre grupos lo elegido en Planificación. Los filtros aplican solo sobre este listado (sin consultas
+        globales). La búsqueda es local sobre domicilio, rubro y datos visibles.
       </Typography>
       <Stack
         direction="row"
@@ -424,108 +308,65 @@ const TablaIniciadoresPendientes = ({
               onChange={(e) =>
                 onChangeFilters({
                   ...filters,
-                  prioridad_categoria: String(e.target.value) as IniciadoresPendientesFilters["prioridad_categoria"],
+                  prioridad_categoria: String(e.target.value) as AsignacionPoolFilters["prioridad_categoria"],
                 })
               }
               fullWidth
               options={[...PRIORIDAD_OPTIONS]}
             />
           </Box>
-          <Box sx={{ ...compactFiltroSx, flex: "1 1 140px", minWidth: 128 }}>
-            <AppSelect
-              appearance="dense"
-              label="Distrito"
-              value={filters.distrito}
-              onChange={(e) => onChangeFilters({ ...filters, distrito: String(e.target.value) })}
-              fullWidth
-              options={distritoOptions}
-            />
-          </Box>
-          <Box sx={{ ...compactFiltroSx, flex: "2 1 200px", minWidth: 180, maxWidth: 320 }}>
-            <Autocomplete<CalleCatalogoItem, false, false, false>
+          {mostrarFiltroDistrito ? (
+            <Box sx={{ ...compactFiltroSx, flex: "1 1 140px", minWidth: 128 }}>
+              <AppSelect
+                appearance="dense"
+                label="Distrito (en el pool)"
+                value={filters.distrito}
+                onChange={(e) => onChangeFilters({ ...filters, distrito: String(e.target.value) })}
+                fullWidth
+                options={distritoOptions}
+              />
+            </Box>
+          ) : null}
+          <Box sx={{ ...compactFiltroSx, flex: "2 1 200px", minWidth: 160, maxWidth: 320 }}>
+            <TextField
               size="small"
-              options={mergeCalleOptions(calleValue, calleOptions)}
-              getOptionLabel={(o) => o.nombre}
-              isOptionEqualToValue={(a, b) => a.id === b.id}
-              filterOptions={(opts) => opts}
-              value={calleValue}
-              inputValue={calleInput}
-              onInputChange={(_, value, reason) => {
-                if (reason === "input") {
-                  setCalleInput(value);
-                  setCalleValue(null);
-                  if (filters.calle_catalogo_id != null) {
-                    onChangeFilters({ ...filters, calle_catalogo_id: null });
-                  }
-                } else if (reason === "clear") {
-                  setCalleInput("");
-                  setCalleValue(null);
-                  onChangeFilters({ ...filters, calle_catalogo_id: null });
-                }
-              }}
-              onChange={(_, newVal) => {
-                const opt = newVal && typeof newVal === "object" ? newVal : null;
-                setCalleValue(opt);
-                setCalleInput(opt?.nombre ?? "");
-                onChangeFilters({ ...filters, calle_catalogo_id: opt?.id ?? null });
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Calle (catálogo)"
-                  placeholder="Escribir para buscar…"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      fontFamily: '"Tactic Sans", sans-serif',
-                      fontSize: "0.875rem",
-                    },
-                  }}
-                />
-              )}
-            />
-          </Box>
-          <Box sx={{ ...compactFiltroSx, flex: "0 1 132px", minWidth: 120 }}>
-            <AppSelect
-              appearance="dense"
-              label="Turno"
-              value={filters.turno_sugerido}
-              onChange={(e) =>
-                onChangeFilters({ ...filters, turno_sugerido: String(e.target.value) })
-              }
               fullWidth
-              options={[
-                { value: "", label: "Todos" },
-                { value: "MANIANA", label: "Mañana" },
-                { value: "TARDE", label: "Tarde" },
-              ]}
+              label="Buscar en este listado"
+              placeholder="Texto en domicilio, rubro…"
+              value={filters.q}
+              onChange={(e) => onChangeFilters({ ...filters, q: e.target.value })}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontSize: "0.875rem",
+                },
+              }}
             />
           </Box>
         </Stack>
-        <AppButton dsVariant="secondary" dsSize="sm" onClick={onRefrescar}>
-          Refrescar
-        </AppButton>
+        {onSincronizarDetalle ? (
+          <AppButton
+            dsVariant="secondary"
+            dsSize="sm"
+            disabled={detailLoading}
+            onClick={() => onSincronizarDetalle()}
+          >
+            {detailLoading ? "Sincronizando…" : "Sincronizar borrador"}
+          </AppButton>
+        ) : null}
       </Stack>
 
-      {tablaVisible ? (
-        <IniciadoresPendientesTableMrt
-          rows={rows}
-          total={total}
-          page={page}
-          perPage={perPage}
-          loading={loading}
-          selectedIds={selectedIds}
-          onPageChange={onPageChange}
-          onPerPageChange={onPerPageChange}
-          onSelectionChange={onSelectionChange}
-          onAssignSelected={onAssignSelected}
-        />
-      ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-          La tabla se mostrará cuando elijas una opción en tipo, prioridad, distrito, calle o turno.
-        </Typography>
-      )}
+      <IniciadoresPoolTableMrt
+        rows={rows}
+        totalEnPool={totalEnPool}
+        selectedIds={selectedIds}
+        assignedIniciadorIds={assignedIniciadorIds}
+        onSelectionChange={onSelectionChange}
+        onAssignSelected={onAssignSelected}
+      />
     </Box>
   );
-};
+}
 
 export default TablaIniciadoresPendientes;
+export { FILTROS_VACIOS as ASIGNACION_POOL_FILTROS_VACIOS };

@@ -1,0 +1,68 @@
+import { apiClient } from "../../../../api/apiClient";
+import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
+import type {
+  IPlanificacionMetricas,
+  ICargaDistritoRow,
+  PlanificacionOrdenM4,
+} from "../types/planificacion.types";
+
+export interface IPlanificacionListMeta {
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export async function getPlanificacionMetricas(
+  rutaId: number,
+  distritoId?: number | null
+): Promise<IPlanificacionMetricas> {
+  const { data } = await apiClient.get<IPlanificacionMetricas>(
+    `/rutas-trabajo/${rutaId}/planificacion/metricas`,
+    { params: distritoId != null ? { distrito_id: distritoId } : {} }
+  );
+  return data;
+}
+
+export async function getPlanificacionCargaDistritos(
+  rutaId: number
+): Promise<{ items: ICargaDistritoRow[] }> {
+  const { data } = await apiClient.get<{ items: ICargaDistritoRow[] }>(
+    `/rutas-trabajo/${rutaId}/planificacion/carga-distritos`
+  );
+  return data;
+}
+
+export async function getPlanificacionUrgentes(
+  rutaId: number,
+  params: { page?: number; per_page?: number }
+): Promise<{ items: IRutaIniciadorPendienteRow[]; meta: IPlanificacionListMeta }> {
+  const { data } = await apiClient.get<{
+    items: IRutaIniciadorPendienteRow[];
+    meta: IPlanificacionListMeta;
+  }>(`/rutas-trabajo/${rutaId}/planificacion/urgentes`, { params });
+  return data;
+}
+
+export interface IPendientesContextoParams {
+  distrito_id: number;
+  tipo?: string;
+  prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
+  prioridad?: number;
+  q?: string;
+  turno_sugerido?: "MANIANA" | "TARDE";
+  calle_catalogo_id?: number;
+  page?: number;
+  per_page?: number;
+  orden?: PlanificacionOrdenM4;
+}
+
+export async function getPlanificacionPendientesContexto(
+  rutaId: number,
+  params: IPendientesContextoParams
+): Promise<{ items: IRutaIniciadorPendienteRow[]; meta: IPlanificacionListMeta }> {
+  const { data } = await apiClient.get<{
+    items: IRutaIniciadorPendienteRow[];
+    meta: IPlanificacionListMeta;
+  }>(`/rutas-trabajo/${rutaId}/planificacion/pendientes-contexto`, { params });
+  return data;
+}

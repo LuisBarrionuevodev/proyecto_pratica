@@ -42,11 +42,28 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
-import { AppButton, AppDialog, AppSelect, AppTextField } from "../../ui";
-import { GLASS_COLORS, glassTabsSecondaryPanelSx } from "../../styles/GlassStyles";
+import { AppButton, AppDialog, AppSelect, AppTextField, SegmentedFilterChips } from "../../ui";
+import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
+
+/** Evita recortes: `wrapperStyles` usa height 91% y rompe el scroll del layout con muchos filtros (p. ej. Recorrido). */
+const actasPageWrapperSx = {
+  ...wrapperStyles,
+  height: "auto" as const,
+  minHeight: "100%",
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box" as const,
+};
+
+const actasContentColumnSx = {
+  ...moduleContentColumnSx,
+  width: "100%",
+  maxWidth: "100%",
+  minWidth: 0,
+};
 
 type RecPeriodMode = "month" | "range";
 
@@ -150,6 +167,8 @@ const ActasComprobacionPage = () => {
   const [expNumeroForm, setExpNumeroForm] = useState("");
   const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
   const [savingExp, setSavingExp] = useState(false);
+  /** Tabla solo tras tocar el indicador superior (mismo patrón que Gestión de notificación / domicilios). */
+  const [expTablaVisible, setExpTablaVisible] = useState(false);
 
   const loadExpediente = useCallback(async () => {
     setExpLoading(true);
@@ -173,6 +192,10 @@ const ActasComprobacionPage = () => {
   useEffect(() => {
     if (tab === "expediente") void loadExpediente();
   }, [tab, loadExpediente]);
+
+  useEffect(() => {
+    setExpTablaVisible(false);
+  }, [tab]);
 
   const openModalExp = useCallback(
     (row: IActuacionesPendientesItem) => {
@@ -622,6 +645,23 @@ const ActasComprobacionPage = () => {
     data: recItems,
     enableEditing: false,
     enableRowSelection: false,
+    muiTablePaperProps: {
+      sx: {
+        ...((DARK_TABLE_CONFIG.muiTablePaperProps as { sx?: Record<string, unknown> })?.sx ?? {}),
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+      },
+    },
+    muiTableContainerProps: {
+      sx: {
+        ...((DARK_TABLE_CONFIG.muiTableContainerProps as { sx?: Record<string, unknown> })?.sx ?? {}),
+        minWidth: 0,
+        maxWidth: "100%",
+        /** Mucho contenido arriba (filtros): altura fija más conservadora para no pelear con el scroll del layout */
+        maxHeight: { xs: "min(45vh, 360px)", sm: "min(52vh, 440px)", md: "min(58vh, 520px)" },
+      },
+    },
   });
 
   const tabIndex =
@@ -629,9 +669,9 @@ const ActasComprobacionPage = () => {
 
   return (
     <Box sx={containerStyles}>
-      <Box sx={wrapperStyles}>
-        <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
-          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelSx }}>
+      <Box sx={actasPageWrapperSx}>
+        <Box sx={{ ...actasContentColumnSx, gap: 2 }}>
+          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
             <Tabs
               value={tabIndex}
               onChange={(_, v) => {
@@ -639,12 +679,9 @@ const ActasComprobacionPage = () => {
                   v === 0 ? "expediente" : v === 1 ? "oficio" : v === 2 ? "reinspeccion" : "recorrido"
                 );
               }}
-              sx={{
-                minHeight: 40,
-                "& .MuiTab-root": { color: "rgba(255,255,255,0.55)", minHeight: 40, textTransform: "none" },
-                "& .Mui-selected": { color: "#fff" },
-                "& .MuiTabs-indicator": { backgroundColor: COLORS.primary },
-              }}
+              variant="scrollable"
+              allowScrollButtonsMobile
+              sx={glassSecondaryTabsSx}
             >
               <Tab label="Pendientes de expediente" />
               <Tab label="Pendientes de oficio" />
@@ -655,36 +692,47 @@ const ActasComprobacionPage = () => {
 
           {tab === "expediente" && (
             <>
-              <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Resumen</Typography>
-                {!expLoading && (
-                  <Box sx={metaInfoStyles}>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Total:</strong> {expTotalPendientes}
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Mostrando:</strong> {expItems.length} de {expTotalPendientes}
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Página:</strong> 1
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Rango:</strong> — (sin filtro por fecha; pendientes históricos)
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
+              <SegmentedFilterChips
+                options={[
+                  {
+                    value: "bandeja",
+                    label: `Total pendientes · ${expLoading ? "…" : expTotalPendientes}`,
+                  },
+                ]}
+                onSelect={() => setExpTablaVisible(true)}
+                isSelected={(v) => expTablaVisible && v === "bandeja"}
+                onRefresh={() => void loadExpediente()}
+                refreshDisabled={expLoading}
+              />
               {expError && (
                 <Alert severity="error" sx={alertBaseStyles}>
                   {expError}
                 </Alert>
               )}
-              {expLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress sx={{ color: COLORS.primary }} />
+              {expLoading && !expTablaVisible && (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
                 </Box>
-              ) : (
-                <MaterialReactTable table={tableExpediente} />
+              )}
+              {expTablaVisible && (
+                <Box sx={{ position: "relative", opacity: expLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
+                  {expLoading && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <CircularProgress size={32} sx={{ color: COLORS.primary }} />
+                    </Box>
+                  )}
+                  <MaterialReactTable table={tableExpediente} />
+                </Box>
               )}
             </>
           )}
@@ -1120,7 +1168,9 @@ const ActasComprobacionPage = () => {
                       )}
                     </Box>
                   )}
-                  <MaterialReactTable table={tableRec} />
+                  <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
+                    <MaterialReactTable table={tableRec} />
+                  </Box>
                 </>
               )}
             </>

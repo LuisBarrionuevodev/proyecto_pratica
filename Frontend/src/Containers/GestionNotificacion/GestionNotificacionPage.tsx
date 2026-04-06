@@ -1,17 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Grid,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, CircularProgress, Typography } from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import {
@@ -22,15 +10,13 @@ import {
 } from "../../api/actuacionesPendientesApi";
 import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
-import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
-import { alertBaseStyles, COLORS, filtroContainerStyles, filtroTitleStyles } from "../Actuaciones/styles/filtroStyles";
-import { AppButton, AppTextField } from "../../ui";
+import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../Actuaciones/styles/actuacionesTableStyles";
+import { alertBaseStyles, COLORS, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
+import { formDialogContentStackSx } from "../../styles/formDialogStyles";
+import { AppButton, AppDialog, AppTextField, SegmentedFilterChips } from "../../ui";
 import {
   countByPlazoSlice,
-  DIAS_EN_PLAZO_MIN,
   matchesPlazoSlice,
-  POR_VENCER_MAX,
-  POR_VENCER_MIN,
   sliceLabel,
   type PlazoOperativoSlice,
 } from "./gestionNotificacionPlazo";
@@ -67,7 +53,7 @@ function plazosOtorgadosCell(row: IActuacionesPendientesItem): string {
 }
 
 /**
- * Bandeja: GET /actuaciones/pendientes/expediente?source_type=notificacion (sin rango en UI; usa default del backend).
+ * Bandeja: GET /actuaciones/pendientes/expediente?source_type=notificacion&omitir_rango_fecha=true (sin filtro por fecha en UI).
  */
 const GestionNotificacionPage = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
@@ -76,6 +62,8 @@ const GestionNotificacionPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plazoSlice, setPlazoSlice] = useState<PlazoOperativoSlice>("total");
+  /** La tabla solo se monta tras elegir un indicador de plazo. */
+  const [tablaVisible, setTablaVisible] = useState(false);
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -83,12 +71,16 @@ const GestionNotificacionPage = () => {
   const [expFecha, setExpFecha] = useState(defaultRange.hasta);
   const [prorrogaDias, setProrrogaDias] = useState("0");
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [modalApiError, setModalApiError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await getActuacionesPendientesExpediente(undefined, undefined, "notificacion");
+      const resp = await getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
+        omitirRangoFecha: true,
+      });
       setItems(resp.items);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
@@ -120,6 +112,8 @@ const GestionNotificacionPage = () => {
     setExpNumero("");
     setExpFecha(defaultRange.hasta);
     setProrrogaDias("0");
+    setFieldErrors({});
+    setModalApiError(null);
     setModalOpen(true);
   };
 
@@ -127,16 +121,24 @@ const GestionNotificacionPage = () => {
     if (saving) return;
     setModalOpen(false);
     setSelected(null);
+    setFieldErrors({});
+    setModalApiError(null);
   };
 
   const handleSave = async () => {
     if (!selected) return;
-    if (!expNumero.trim() || !expFecha) {
-      setError("Completá número y fecha del expediente de plazo");
-      return;
+    const next: Record<string, string> = {};
+    if (!expNumero.trim()) next.expNumero = "Completá el número de expediente.";
+    if (!expFecha) next.expFecha = "Completá la fecha de expediente.";
+    const pr = Number(prorrogaDias);
+    if (prorrogaDias.trim() !== "" && (Number.isNaN(pr) || pr < 0)) {
+      next.prorrogaDias = "Indicá un número de días válido (0 o más).";
     }
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) return;
+
     setSaving(true);
-    setError(null);
+    setModalApiError(null);
     try {
       const payload: ICreateExpedienteRequest = {
         expediente_numero: expNumero.trim(),
@@ -149,7 +151,7 @@ const GestionNotificacionPage = () => {
       await loadData();
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setError(detail || "No se pudo añadir el expediente de plazo");
+      setModalApiError(detail || "No se pudo añadir el expediente de plazo");
     } finally {
       setSaving(false);
     }
@@ -212,19 +214,11 @@ const GestionNotificacionPage = () => {
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...MRT_READ_ONLY_BANDEJA,
     columns,
     data: filteredRows,
-    enableEditing: false,
-    enableRowSelection: false,
     enableColumnFilters: false,
     enableGlobalFilter: false,
-    renderTopToolbarCustomActions: () => (
-      <Typography variant="body2" sx={{ pl: 1, color: "rgba(255,255,255,0.75)" }}>
-        {plazoSlice === "total"
-          ? `${filteredRows.length} notificación(es) en la bandeja`
-          : `Mostrando ${filteredRows.length} fila(s) · ${sliceLabel(plazoSlice)}`}
-      </Typography>
-    ),
   });
 
   const sliceChips: { slice: PlazoOperativoSlice; count: number }[] = [
@@ -237,54 +231,20 @@ const GestionNotificacionPage = () => {
   return (
     <Box sx={containerStyles}>
       <Box sx={wrapperStyles}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Box sx={filtroContainerStyles}>
-            <Typography sx={filtroTitleStyles}>Filtros e indicadores</Typography>
-            <Grid container spacing={1.5} alignItems="flex-end">
-              <Grid size={{ xs: 12 }}>
-                <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", mb: 1 }}>
-                  Plazo operativo — tocá un indicador para filtrar la tabla
-                </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                  {sliceChips.map(({ slice, count }) => {
-                    const selected = plazoSlice === slice;
-                    return (
-                      <Chip
-                        key={slice}
-                        label={`${sliceLabel(slice)} · ${count}`}
-                        onClick={() => setPlazoSlice(slice)}
-                        variant={selected ? "filled" : "outlined"}
-                        sx={{
-                          cursor: "pointer",
-                          fontWeight: 600,
-                          borderColor: "rgba(255,255,255,0.2)",
-                          backgroundColor: selected ? "rgba(1, 102, 255, 0.35)" : "rgba(255,255,255,0.04)",
-                          color: "#fff",
-                          "&:hover": { backgroundColor: selected ? "rgba(1, 102, 255, 0.45)" : "rgba(255,255,255,0.08)" },
-                        }}
-                      />
-                    );
-                  })}
-                </Box>
-              </Grid>
-              <Grid size={{ xs: 12, sm: "auto" }}>
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="sm"
-                  startIcon={<FilterAltIcon sx={{ fontSize: 18 }} />}
-                  onClick={() => void loadData()}
-                  sx={{ fontFamily: '"Tactic Sans", sans-serif', fontWeight: 600 }}
-                >
-                  Actualizar bandeja
-                </AppButton>
-              </Grid>
-            </Grid>
-            <Typography variant="caption" sx={{ display: "block", mt: 1.5, color: "rgba(255,255,255,0.45)" }}>
-              Total = notificaciones cargadas en esta vista. En plazo: ≥{DIAS_EN_PLAZO_MIN} días (&gt;4). Por vencer:{" "}
-              {POR_VENCER_MIN} a {POR_VENCER_MAX} días. Vencidas o hoy: 0 días (criterio API). Los días 3 y 4 solo
-              aparecen con Total.
-            </Typography>
-          </Box>
+        <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+          <SegmentedFilterChips<PlazoOperativoSlice>
+            options={sliceChips.map(({ slice, count }) => ({
+              value: slice,
+              label: `${sliceLabel(slice)} · ${loading ? "…" : count}`,
+            }))}
+            onSelect={(slice) => {
+              setPlazoSlice(slice);
+              setTablaVisible(true);
+            }}
+            isSelected={(slice) => tablaVisible && plazoSlice === slice}
+            onRefresh={() => void loadData()}
+            refreshDisabled={loading}
+          />
 
           {error && (
             <Alert severity="error" sx={alertBaseStyles}>
@@ -292,55 +252,114 @@ const GestionNotificacionPage = () => {
             </Alert>
           )}
 
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress sx={{ color: COLORS.primary }} />
+          {loading && !tablaVisible && (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+              <CircularProgress size={28} sx={{ color: COLORS.primary }} />
             </Box>
-          ) : (
-            <MaterialReactTable table={table} />
           )}
 
-          <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth="sm">
-            <DialogTitle>Añadir expediente de plazo</DialogTitle>
-            <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-              <AppTextField
-                appearance="dense"
-                label="Número de expediente"
-                value={expNumero}
-                onChange={(e) => setExpNumero(e.target.value)}
-                fullWidth
-                required
-              />
-              <AppTextField
-                appearance="dense"
-                label="Fecha de expediente"
-                type="date"
-                value={expFecha}
-                onChange={(e) => setExpFecha(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                required
-              />
-              <AppTextField
-                appearance="dense"
-                label="Prórroga (días)"
-                type="number"
-                value={prorrogaDias}
-                onChange={(e) => setProrrogaDias(e.target.value)}
-                fullWidth
-                required
-                helperText="Días que se suman al plazo consolidado de la notificación."
-              />
-            </DialogContent>
-            <DialogActions>
-              <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModal} disabled={saving}>
-                Cancelar
-              </AppButton>
-              <AppButton dsVariant="primary" dsSize="sm" onClick={() => void handleSave()} disabled={saving}>
-                {saving ? "Guardando..." : "Guardar"}
-              </AppButton>
-            </DialogActions>
-          </Dialog>
+          {tablaVisible && (
+            <Box sx={{ position: "relative", opacity: loading ? 0.65 : 1, transition: "opacity 0.2s" }}>
+              {loading && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <CircularProgress size={32} sx={{ color: COLORS.primary }} />
+                </Box>
+              )}
+              <MaterialReactTable table={table} />
+            </Box>
+          )}
+
+          <AppDialog
+            open={modalOpen}
+            onClose={closeModal}
+            title="Añadir expediente de plazo"
+            appearance="glass"
+            maxWidth="sm"
+            fullWidth
+            showCloseButton
+            onCloseButtonClick={closeModal}
+            contentSx={formDialogContentStackSx}
+            actions={
+              <>
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModal} disabled={saving}>
+                  Cancelar
+                </AppButton>
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => void handleSave()} disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar"}
+                </AppButton>
+              </>
+            }
+          >
+            {modalApiError ? (
+              <Alert severity="error" sx={{ mb: 0 }}>
+                {modalApiError}
+              </Alert>
+            ) : null}
+            <AppTextField
+              appearance="glass"
+              label="Número de expediente"
+              value={expNumero}
+              onChange={(e) => {
+                setExpNumero(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.expNumero;
+                  return n;
+                });
+              }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.expNumero)}
+              helperText={fieldErrors.expNumero || undefined}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Fecha de expediente"
+              type="date"
+              value={expFecha}
+              onChange={(e) => {
+                setExpFecha(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.expFecha;
+                  return n;
+                });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.expFecha)}
+              helperText={fieldErrors.expFecha || undefined}
+            />
+            <AppTextField
+              appearance="glass"
+              label="Prórroga (días)"
+              type="number"
+              value={prorrogaDias}
+              onChange={(e) => {
+                setProrrogaDias(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.prorrogaDias;
+                  return n;
+                });
+              }}
+              fullWidth
+              required
+              error={Boolean(fieldErrors.prorrogaDias)}
+              helperText={fieldErrors.prorrogaDias ?? "Días que se suman al plazo consolidado de la notificación."}
+            />
+          </AppDialog>
         </Box>
       </Box>
     </Box>

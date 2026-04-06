@@ -2,8 +2,10 @@ import type { MenuItemProps } from "@mui/material/MenuItem";
 import MenuItem from "@mui/material/MenuItem";
 import type { TextFieldProps } from "@mui/material/TextField";
 import TextField from "@mui/material/TextField";
+import { useTheme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import { color as tokenColor } from "../theme/tokens";
+import { fieldErrorOutlineSx } from "./fieldErrorSx";
 
 export type AppSelectAppearance = "default" | "dense" | "glass";
 
@@ -57,10 +59,13 @@ export function AppSelect({
   SelectProps,
   slotProps,
   InputProps,
+  error,
   ...rest
 }: AppSelectProps) {
+  const theme = useTheme();
   const resolvedSize = appearance === "dense" ? "small" : size ?? "medium";
   const appearanceSx = appearance === "glass" ? glassFieldSx() : {};
+  const errorSx = error ? fieldErrorOutlineSx(theme) : {};
 
   const selectChildren =
     options?.map((opt) => (
@@ -79,10 +84,11 @@ export function AppSelect({
       select
       variant={variant}
       size={resolvedSize}
+      error={error}
       SelectProps={SelectProps}
       slotProps={slotProps}
       InputProps={InputProps}
-      sx={[appearanceSx, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
+      sx={[appearanceSx, errorSx, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
       {...rest}
     >
       {selectChildren}

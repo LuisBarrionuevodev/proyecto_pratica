@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { usePendientes } from "../../../../../hooks/usePendientes";
 import type { IActuacion } from "../../../../../types/actuaciones";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
-import { BASE_TABLE_CONFIG } from "../../../../../constants/tableConfig";
+import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../../../styles/actuacionesTableStyles";
 import { TablaExportButtons } from "../../../Components/TableButtons";
 import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import { Box, Typography } from "@mui/material";
@@ -126,10 +126,10 @@ const TablaPendientesVinculacionOficio = () => {
     ]
 
     const table = useMaterialReactTable({
-        ...BASE_TABLE_CONFIG,
+        ...DARK_TABLE_CONFIG,
+        ...MRT_READ_ONLY_BANDEJA,
         columns,
         data,
-        enableEditing: false,
         initialState: {
             columnVisibility: {
                 id: false, rubro_nombre: false,

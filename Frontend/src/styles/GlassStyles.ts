@@ -68,6 +68,43 @@ export const glassTabsSecondaryPanelSx: SxProps<Theme> = {
     overflow: "hidden",
 };
 
+/**
+ * Misma superficie que `glassTabsSecondaryPanelSx` pero con altura mínima estable para barras de tabs/chips
+ * (evita que la caja “encoja” al cambiar selección o variante de chip).
+ */
+export const glassTabsSecondaryPanelBarSx: SxProps<Theme> = {
+    ...glassTabsSecondaryPanelSx,
+    minHeight: 72,
+    boxSizing: "border-box",
+    display: "flex",
+    alignItems: "center",
+};
+
+/**
+ * MUI `Tabs` dentro de `glassTabsSecondaryPanelSx`: tipografía y colores alineados a Relevamientos (blueprint tabs secundarios).
+ */
+export const glassSecondaryTabsSx: SxProps<Theme> = {
+    width: "100%",
+    flex: 1,
+    alignSelf: "stretch",
+    marginBottom: 0,
+    minHeight: 48,
+    fontFamily: '"Tactic Sans", sans-serif',
+    "& .MuiTab-root": {
+        color: GLASS_COLORS.textSecondary,
+        textTransform: "none",
+        minHeight: 48,
+        fontWeight: 500,
+        fontSize: "0.9375rem",
+    },
+    "& .Mui-selected": {
+        color: GLASS_COLORS.textPrimary,
+    },
+    "& .MuiTabs-indicator": {
+        backgroundColor: GLASS_COLORS.primary,
+    },
+};
+
 // Estilo para item de menú activo
 export const glassActiveItem: SxProps<Theme> = {
     backgroundColor: GLASS_COLORS.activeBg,

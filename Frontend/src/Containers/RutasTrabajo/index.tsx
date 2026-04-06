@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Paper, Snackbar, Stack, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Paper, Snackbar } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
 import {
@@ -7,7 +7,6 @@ import {
   createRutaGrupo,
   createRutaTrabajo,
   deleteRutaGrupo,
-  getRutaIniciadoresPendientes,
   getRutaTrabajoDetail,
   publicarRutaTrabajo,
   replaceRutaGrupoInspectores,
@@ -16,7 +15,8 @@ import {
   type IRutaItemMin,
   type IRutaTrabajo,
 } from "../../api/rutasTrabajoApi";
-import type { IniciadoresPendientesFilters } from "./Components/TablaIniciadoresPendientes";
+import type { AsignacionPoolFilters } from "./Components/TablaIniciadoresPendientes";
+import { ASIGNACION_POOL_FILTROS_VACIOS } from "./Components/TablaIniciadoresPendientes";
 import ModalAsignarInspectoresGrupo from "./Components/ModalAsignarInspectoresGrupo";
 import ModalAsignarSeleccionAGrupo from "./Components/ModalAsignarSeleccionAGrupo";
 import ModalCrearGrupoRuta from "./Components/ModalCrearGrupoRuta";
@@ -27,11 +27,17 @@ import {
   useRutaTrabajoBorradorActions,
   useRutasTrabajoSession,
 } from "./hooks";
+import { RutasTrabajoFlowStepper, type RutaFlowStep } from "./Components/RutasTrabajoFlowStepper";
 import { rutasInstitutionalHeaderPaperSx } from "./styles/institutionalVisual";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
 import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
-import { AppButton } from "../../ui";
+import { PlanificacionView } from "./planificacion/PlanificacionView";
+import type { PlanificacionPoolControl } from "./planificacion/hooks/usePlanificacionController";
+import {
+  buildDistritoOptionsFromPool,
+  filterAsignacionPoolRows,
+} from "./utils/filterAsignacionPool";
 
 const rutasAlertSx = {
   fontFamily: '"Tactic Sans", sans-serif',
@@ -43,27 +49,22 @@ const rutasAlertSx = {
   "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
 } as const;
 
-const FILTROS_INICIADORES_VACIOS: IniciadoresPendientesFilters = {
-  tipo: "",
-  prioridad_categoria: "",
-  distrito: "",
-  calle_catalogo_id: null,
-  turno_sugerido: "",
-};
-
 const RutasTrabajo = () => {
-  const [tab, setTab] = useState<"TABLA" | "MAPA">("TABLA");
+  /** Flujo secuencial: 1 Planificación → 2 Asignación → 3 Mapa final (desbloqueo solo por CTA). */
+  const [flowStep, setFlowStep] = useState<RutaFlowStep>(1);
+  const [flowMaxUnlocked, setFlowMaxUnlocked] = useState<RutaFlowStep>(1);
   const [ruta, setRuta] = useState<IRutaTrabajo | null>(null);
   const [grupos, setGrupos] = useState<IRutaGrupoMin[]>([]);
   const [items, setItems] = useState<IRutaItemMin[]>([]);
-  const [iniciadores, setIniciadores] = useState<IRutaIniciadorPendienteRow[]>([]);
-  const [iniciadoresMeta, setIniciadoresMeta] = useState({ total: 0, page: 1, perPage: 25 });
+  /** Pool del día compartido Planificación → Asignación (solo frontend hasta asignar a grupos). */
+  const [poolIniciadorIds, setPoolIniciadorIds] = useState<number[]>([]);
+  const [poolRowsById, setPoolRowsById] = useState<Record<number, IRutaIniciadorPendienteRow>>({});
   const [selectedIniciadorIds, setSelectedIniciadorIds] = useState<number[]>([]);
-  const [filters, setFilters] = useState<IniciadoresPendientesFilters>({ ...FILTROS_INICIADORES_VACIOS });
-  const [pendientesTablaVisible, setPendientesTablaVisible] = useState(false);
+  const [asignacionFilters, setAsignacionFilters] = useState<AsignacionPoolFilters>({
+    ...ASIGNACION_POOL_FILTROS_VACIOS,
+  });
   /** Solo carga/refresco completo del detail de ruta (no PATCH sueltos). */
   const [detailLoading, setDetailLoading] = useState(false);
-  const [loadingPendientes, setLoadingPendientes] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -89,11 +90,13 @@ const RutasTrabajo = () => {
       setGrupos(detail.grupos);
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
-      setPendientesTablaVisible(false);
-      setFilters({ ...FILTROS_INICIADORES_VACIOS });
-      setIniciadores([]);
-      setIniciadoresMeta((prev) => ({ ...prev, total: 0, page: 1 }));
+      setPoolIniciadorIds([]);
+      setPoolRowsById({});
+      setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
+      setSelectedIniciadorIds([]);
       persistRutaId(targetRutaId);
+      setFlowStep(1);
+      setFlowMaxUnlocked(1);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
       setRuta(null);
@@ -104,6 +107,60 @@ const RutasTrabajo = () => {
       if (showLoading) setDetailLoading(false);
     }
   }, []);
+
+  /** Actualiza grupos e ítems desde el servidor sin resetear el flujo ni el pool (Asignación). */
+  const refreshRutaBorrador = useCallback(async () => {
+    if (!rutaId) return;
+    setDetailLoading(true);
+    setError(null);
+    try {
+      const detail = await getRutaTrabajoDetail(rutaId);
+      setRuta(detail.ruta);
+      setGrupos(detail.grupos);
+      const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
+      setItems(reconstructedItems);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "No se pudo sincronizar el borrador");
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [rutaId]);
+
+  const agregarAlPool = useCallback((row: IRutaIniciadorPendienteRow) => {
+    setPoolIniciadorIds((prev) => (prev.includes(row.id) ? prev : [...prev, row.id]));
+    setPoolRowsById((prev) => ({ ...prev, [row.id]: row }));
+  }, []);
+
+  const quitarDelPool = useCallback((id: number) => {
+    setPoolIniciadorIds((prev) => prev.filter((x) => x !== id));
+    setPoolRowsById((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
+  const poolControl: PlanificacionPoolControl = useMemo(
+    () => ({
+      poolIniciadorIds,
+      poolRowsById,
+      agregarAlPool,
+      quitarDelPool,
+    }),
+    [poolIniciadorIds, poolRowsById, agregarAlPool, quitarDelPool]
+  );
+
+  const poolRowsOrdered = useMemo(
+    () => poolIniciadorIds.map((id) => poolRowsById[id]).filter(Boolean) as IRutaIniciadorPendienteRow[],
+    [poolIniciadorIds, poolRowsById]
+  );
+
+  const iniciadoresTablaAsignacion = useMemo(
+    () => filterAsignacionPoolRows(poolRowsOrdered, asignacionFilters),
+    [poolRowsOrdered, asignacionFilters]
+  );
+
+  const distritoFilterOptions = useMemo(() => buildDistritoOptionsFromPool(poolRowsOrdered), [poolRowsOrdered]);
 
   useRutasTrabajoSession(loadRutaDetail);
 
@@ -124,43 +181,17 @@ const RutasTrabajo = () => {
     }
   };
 
-  const loadPendientes = useCallback(async () => {
-    if (!rutaId || !pendientesTablaVisible) return;
-    setLoadingPendientes(true);
-    try {
-      const resp = await getRutaIniciadoresPendientes(rutaId, {
-        tipo: filters.tipo || undefined,
-        prioridad_categoria: filters.prioridad_categoria
-          ? (filters.prioridad_categoria as "BAJA" | "MEDIA" | "ALTA")
-          : undefined,
-        distrito: filters.distrito ? Number(filters.distrito) : undefined,
-        calle_catalogo_id: filters.calle_catalogo_id ?? undefined,
-        turno_sugerido: (filters.turno_sugerido || undefined) as "MANIANA" | "TARDE" | undefined,
-        page: iniciadoresMeta.page,
-        per_page: iniciadoresMeta.perPage,
-      });
-      setIniciadores(resp.items);
-      setIniciadoresMeta((prev) => ({ ...prev, total: resp.meta.total }));
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudieron cargar los iniciadores pendientes");
-    } finally {
-      setLoadingPendientes(false);
-    }
-  }, [filters, iniciadoresMeta.page, iniciadoresMeta.perPage, pendientesTablaVisible, rutaId]);
+  /** No-op: la grilla de Asignación usa solo el pool local; se mantiene la firma para mutaciones de borrador. */
+  const loadPendientes = useCallback(async () => {}, []);
 
-  const handleFiltrosPendientesChange = useCallback((next: IniciadoresPendientesFilters) => {
-    setFilters(next);
-    setPendientesTablaVisible(true);
+  const handleAsignacionFiltersChange = useCallback((next: AsignacionPoolFilters) => {
+    setAsignacionFilters(next);
     setSelectedIniciadorIds([]);
-    setIniciadoresMeta((prev) => ({ ...prev, page: 1 }));
   }, []);
 
-  const handleRefrescarPendientes = useCallback(() => {
-    setPendientesTablaVisible(false);
-    setFilters({ ...FILTROS_INICIADORES_VACIOS });
-    setIniciadores([]);
-    setIniciadoresMeta((prev) => ({ ...prev, total: 0, page: 1 }));
-    setSelectedIniciadorIds([]);
+  /** Debe ser estable: `usePlanificacionController` depende de `onError` en load* y efectos M1–M4. */
+  const handlePlanificacionError = useCallback((msg: string) => {
+    setError(msg);
   }, []);
 
   /** Limpia sesión y estado local: vuelve al flujo de “crear ruta” (p. ej. tras publicar). */
@@ -169,16 +200,16 @@ const RutasTrabajo = () => {
     setRuta(null);
     setGrupos([]);
     setItems([]);
-    setIniciadores([]);
-    setIniciadoresMeta((prev) => ({ ...prev, total: 0, page: 1 }));
-    setFilters({ ...FILTROS_INICIADORES_VACIOS });
-    setPendientesTablaVisible(false);
+    setPoolIniciadorIds([]);
+    setPoolRowsById({});
+    setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
     setSelectedIniciadorIds([]);
     setOpenCrearGrupo(false);
     setOpenAsignarInspectores(false);
     setOpenAsignarGrupo(false);
     setGrupoSeleccionado(null);
-    setTab("TABLA");
+    setFlowStep(1);
+    setFlowMaxUnlocked(1);
   }, []);
 
   const handlePublicarRuta = useCallback(async () => {
@@ -221,10 +252,6 @@ const RutasTrabajo = () => {
     };
     void loadInspectores();
   }, []);
-
-  useEffect(() => {
-    void loadPendientes();
-  }, [loadPendientes]);
 
   const { moveItem: handleMoveItem, deleteItem: handleDeleteItem, saveOtItem: handleSaveOt } =
     useRutaTrabajoBorradorActions({
@@ -286,7 +313,6 @@ const RutasTrabajo = () => {
       });
       setSelectedIniciadorIds([]);
       setOpenAsignarGrupo(false);
-      await loadPendientes();
       setSuccessMessage("Iniciadores asignados correctamente.");
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo asignar la selección");
@@ -299,7 +325,6 @@ const RutasTrabajo = () => {
       await deleteRutaGrupo(rutaId, grupo.id);
       setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
       setItems((prev) => prev.filter((it) => it.ruta_grupo_id !== grupo.id));
-      await loadPendientes();
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
     }
@@ -307,47 +332,23 @@ const RutasTrabajo = () => {
 
   const canCreateGrupo = useMemo(() => Boolean(rutaId), [rutaId]);
   const itemsActivos = useMemo(() => items.filter((i) => !i.deleted_at), [items]);
-  const iniciadorById = useMemo(
-    () =>
-      iniciadores.reduce<Record<number, IRutaIniciadorPendienteRow>>((acc, row) => {
-        acc[row.id] = row;
-        return acc;
-      }, {}),
-    [iniciadores]
+  const assignedIniciadorIds = useMemo(
+    () => new Set(itemsActivos.map((i) => i.iniciador_ruta_id)),
+    [itemsActivos]
   );
+  const iniciadorById = useMemo(() => ({ ...poolRowsById }), [poolRowsById]);
 
   return (
     <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2.2 }}>
-        <Paper elevation={0} sx={rutasInstitutionalHeaderPaperSx}>
-          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" flexWrap="wrap">
-            <Tabs value={tab} onChange={(_, value) => setTab(value)}>
-              <Tab label="TABLA" value="TABLA" />
-              <Tab label="MAPA" value="MAPA" />
-            </Tabs>
-            <Stack direction="row" spacing={1.2} flexWrap="wrap" alignItems="center">
-              {rutaId != null && ruta?.estado_ruta === "BORRADOR" && (
-                <Tooltip
-                  title={
-                    publishingRuta
-                      ? "Publicando…"
-                      : "Valida inspectores por grupo, ítems con OT y genera actuaciones mínimas."
-                  }
-                >
-                  <span>
-                    <AppButton
-                      dsVariant="primary"
-                      dsSize="sm"
-                      disabled={!puedeIntentarPublicar || publishingRuta}
-                      onClick={() => void handlePublicarRuta()}
-                    >
-                      {publishingRuta ? "Publicando…" : "Publicar ruta"}
-                    </AppButton>
-                  </span>
-                </Tooltip>
-              )}
-            </Stack>
-          </Stack>
-        </Paper>
+        {rutaId != null && (
+          <Paper elevation={0} sx={rutasInstitutionalHeaderPaperSx}>
+            <RutasTrabajoFlowStepper
+              flowStep={flowStep}
+              flowMaxUnlocked={flowMaxUnlocked}
+              onStepChange={setFlowStep}
+            />
+          </Paper>
+        )}
 
         {error && (
           <Alert severity="error" sx={rutasAlertSx}>
@@ -374,31 +375,38 @@ const RutasTrabajo = () => {
           </Alert>
         </Snackbar>
 
-        {tab === "TABLA" && rutaId == null && (
-          <RutasEmptyView onCrearBorrador={() => setOpenCrearRuta(true)} />
+        {rutaId == null && <RutasEmptyView onCrearBorrador={() => setOpenCrearRuta(true)} />}
+
+        {flowStep === 1 && rutaId != null && ruta != null && (
+          <PlanificacionView
+            ruta={ruta}
+            rutaId={rutaId}
+            poolControl={poolControl}
+            onError={handlePlanificacionError}
+            onContinuarAsignacion={() => {
+              setFlowMaxUnlocked((m): RutaFlowStep => (m < 2 ? 2 : m));
+              setFlowStep(2);
+            }}
+          />
         )}
 
-        {tab === "TABLA" && rutaId != null && ruta != null && (
+        {flowStep === 2 && rutaId != null && ruta != null && (
           <RutasPlanificacionView
             ruta={ruta}
             grupos={grupos}
             itemsActivos={itemsActivos}
             itemsCount={itemsActivos.length}
-            iniciadores={iniciadores}
-            iniciadoresMeta={iniciadoresMeta}
+            iniciadoresTabla={iniciadoresTablaAsignacion}
+            totalEnPool={poolRowsOrdered.length}
             selectedIniciadorIds={selectedIniciadorIds}
-            filters={filters}
+            assignedIniciadorIds={assignedIniciadorIds}
+            filters={asignacionFilters}
             detailLoading={detailLoading}
-            loadingPendientes={loadingPendientes}
             canCreateGrupo={canCreateGrupo}
             iniciadorById={iniciadorById}
-            pendientesTablaVisible={pendientesTablaVisible}
-            onChangeFilters={handleFiltrosPendientesChange}
-            onRefrescarPendientes={handleRefrescarPendientes}
-            onPageChange={(nextPage) => setIniciadoresMeta((prev) => ({ ...prev, page: nextPage }))}
-            onPerPageChange={(nextPerPage) =>
-              setIniciadoresMeta((prev) => ({ ...prev, perPage: nextPerPage, page: 1 }))
-            }
+            onChangeFilters={handleAsignacionFiltersChange}
+            onSincronizarDetalle={() => void refreshRutaBorrador()}
+            distritoFilterOptions={distritoFilterOptions}
             onSelectionChange={setSelectedIniciadorIds}
             onAssignSelected={() => setOpenAsignarGrupo(true)}
             onOpenCrearGrupo={() => setOpenCrearGrupo(true)}
@@ -410,16 +418,21 @@ const RutasTrabajo = () => {
             onMoverItem={handleMoveItem}
             onQuitarItem={handleDeleteItem}
             onGuardarOtItem={handleSaveOt}
+            onContinuarMapaFinal={() => {
+              setFlowMaxUnlocked((m): RutaFlowStep => (m < 3 ? 3 : m));
+              setFlowStep(3);
+            }}
+            onVolverPlanificacion={() => setFlowStep(1)}
           />
         )}
 
-        {tab === "MAPA" && (
+        {flowStep === 3 && rutaId != null && (
           <RutasMapaOperativoView
             ruta={ruta}
             grupos={grupos}
             itemsActivos={itemsActivos}
             iniciadorById={iniciadorById}
-            onVolverPlanificacion={() => setTab("TABLA")}
+            onVolverAsignacion={() => setFlowStep(2)}
             onPublicarRuta={handlePublicarRuta}
             canPublish={puedeIntentarPublicar}
             publishingRuta={publishingRuta}
