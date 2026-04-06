@@ -1,13 +1,13 @@
-import { Alert, Box, CircularProgress, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Chip, Paper, Stack, Tooltip, Typography } from "@mui/material";
 
 import { COLORS } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
-import ResumenRutaTrabajo from "../Components/ResumenRutaTrabajo";
-import PanelGruposRuta from "../Components/PanelGruposRuta";
+import { MapaFinalResumenLateral } from "../Components/MapaFinalResumenLateral";
 import { MapaRutaTrabajo } from "../Components/MapaRutaTrabajo";
 import { useRutaMapa } from "../hooks/useRutaMapa";
 import { rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
 import type { RutasMapaOperativoViewProps } from "../types/rutasTrabajoMapa.types";
 import { AppButton } from "../../../ui/AppButton";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 const alertSx = {
   fontFamily: '"Tactic Sans", sans-serif',
@@ -19,8 +19,13 @@ const alertSx = {
   "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
 } as const;
 
+function turnoLabel(t: string) {
+  return t === "MANIANA" ? "Mañana" : t === "TARDE" ? "Tarde" : t;
+}
+
 /**
- * Vista Mapa final (paso 3): resumen, mapa Leaflet/OSM y gestión de ítems/grupos (mismos handlers que Asignación).
+ * Vista Mapa final (paso 3): validación territorial del borrador ya asignado y publicación.
+ * Solo lectura respecto a grupos/ítems; las correcciones se hacen en Asignación.
  */
 export function RutasMapaOperativoView({
   ruta,
@@ -31,56 +36,75 @@ export function RutasMapaOperativoView({
   onPublicarRuta,
   canPublish = false,
   publishingRuta = false,
-  detailLoading = false,
-  onEditarInspectores,
-  onEliminarGrupo,
-  onMoverItem,
-  onQuitarItem,
-  onGuardarOtItem,
 }: RutasMapaOperativoViewProps) {
   const mapa = useRutaMapa(grupos, itemsActivos, iniciadorById);
-  const canGestionMapa =
-    ruta != null &&
-    onEditarInspectores != null &&
-    onEliminarGrupo != null &&
-    onMoverItem != null &&
-    onQuitarItem != null &&
-    onGuardarOtItem != null;
+  const { resumenTerritorial } = mapa;
+  const rt = resumenTerritorial;
+  const coordsCompletas = rt.totalItems > 0 && rt.itemsConCoordenadas === rt.totalItems;
+  const coordsParciales = rt.totalItems > 0 && rt.itemsConCoordenadas > 0 && rt.itemsConCoordenadas < rt.totalItems;
+  const sinCoords = rt.totalItems > 0 && rt.itemsConCoordenadas === 0;
+  const distritosDetectados = rt.distritosCubiertos.length > 0;
 
   return (
     <Stack spacing={2}>
       <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "center" }} justifyContent="space-between">
-          <Box>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-start" }} justifyContent="space-between">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
-              Mapa operativo
+              Mapa final — validación territorial
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Grupos e ítems sobre el territorio. Los recorridos se dibujan cuando haya coordenadas por domicilio.
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.5 }}>
+              Último paso antes de publicar: revisá cómo quedó la ruta en el mapa por grupo (colores y recorridos). Acá no se
+              reasigna trabajo; si necesitás cambios, usá Asignación.
             </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", lineHeight: 1.45, opacity: 0.92 }}>
+              La publicación de la ruta solo está disponible desde esta pantalla, una vez validada la distribución.
+            </Typography>
+            {ruta && (
+              <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 1.25 }}>
+                <Chip size="small" variant="outlined" label={ruta.fecha} sx={{ fontSize: "0.7rem" }} />
+                <Chip size="small" variant="outlined" label={turnoLabel(ruta.turno)} sx={{ fontSize: "0.7rem" }} />
+                {ruta.display_name != null && ruta.display_name !== "" && (
+                  <Chip size="small" variant="outlined" label={ruta.display_name} sx={{ fontSize: "0.7rem" }} />
+                )}
+              </Stack>
+            )}
           </Box>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <AppButton dsVariant="secondary" dsSize="sm" onClick={onVolverAsignacion}>
-              Volver a asignación
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}
+          >
+            <AppButton dsVariant="secondary" dsSize="md" fullWidth onClick={onVolverAsignacion} sx={{ minWidth: { sm: 200 } }}>
+              Volver a Asignación
             </AppButton>
             <Tooltip
               title={
                 publishingRuta
-                  ? "Publicando la ruta…"
+                  ? "Procesando publicación…"
                   : canPublish
-                    ? "Publicar la ruta: valida grupos, inspectores, ítems y OT, y genera las actuaciones mínimas."
-                    : "Solo se puede publicar una ruta en BORRADOR con el detalle cargado."
+                    ? "Confirma el borrador y pasa la ruta a estado publicado para ejecución (según validaciones del servidor)."
+                    : "Solo podés publicar una ruta en BORRADOR con el detalle cargado y listo para validar."
               }
               placement="top"
             >
-              <span>
+              <span style={{ width: "100%", display: "inline-flex" }}>
                 <AppButton
                   dsVariant="primary"
-                  dsSize="sm"
-                  disabled={!canPublish || publishingRuta}
+                  dsSize="md"
+                  fullWidth
+                  loading={publishingRuta}
+                  disabled={!canPublish}
                   onClick={() => void onPublicarRuta?.()}
+                  sx={{
+                    minWidth: { sm: 220 },
+                    fontWeight: 700,
+                    boxShadow: canPublish && !publishingRuta ? (t) => `0 0 0 1px ${t.palette.primary.dark}40` : undefined,
+                  }}
                 >
-                  {publishingRuta ? "Publicando…" : "Publicar ruta"}
+                  {publishingRuta ? "Publicando ruta…" : "Publicar ruta"}
                 </AppButton>
               </span>
             </Tooltip>
@@ -88,69 +112,125 @@ export function RutasMapaOperativoView({
         </Stack>
       </Paper>
 
-      <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsActivos.length} />
+      <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, letterSpacing: 0.02 }}>
+          Indicadores del borrador (solo lectura)
+        </Typography>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap alignItems={{ sm: "flex-start" }}>
+          <Box sx={{ minWidth: 100 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              Trabajos en ruta
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+              {rt.totalItems}
+            </Typography>
+          </Box>
+          <Box sx={{ minWidth: 120 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              {coordsParciales ? "En mapa (geocod.)" : "Puntos en mapa"}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                fontVariantNumeric: "tabular-nums",
+                color: sinCoords ? "warning.main" : coordsParciales ? "warning.light" : coordsCompletas ? "success.light" : "text.primary",
+              }}
+            >
+              {rt.totalItems === 0 ? "—" : `${rt.itemsConCoordenadas} / ${rt.totalItems}`}
+            </Typography>
+            {coordsParciales && (
+              <Typography variant="caption" color="warning.light" sx={{ display: "block", mt: 0.25, lineHeight: 1.35 }}>
+                Parcial: faltan coords en algunos domicilios
+              </Typography>
+            )}
+            {sinCoords && (
+              <Typography variant="caption" color="warning.light" sx={{ display: "block", mt: 0.25, lineHeight: 1.35 }}>
+                Ningún punto dibujado: revisá geocodificación
+              </Typography>
+            )}
+          </Box>
+          <Box sx={{ minWidth: 100 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              Distritos en datos
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                fontVariantNumeric: "tabular-nums",
+                color: rt.totalItems > 0 && !distritosDetectados ? "text.secondary" : "text.primary",
+              }}
+            >
+              {rt.totalItems === 0 ? "—" : distritosDetectados ? rt.distritosCubiertos.length : "0"}
+            </Typography>
+            {rt.totalItems > 0 && !distritosDetectados && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25, lineHeight: 1.35, opacity: 0.9 }}>
+                Sin nombre de distrito en ítems
+              </Typography>
+            )}
+          </Box>
+          {rt.hintCobertura && (
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                Cobertura / dispersión
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.45 }}>
+                {rt.hintCobertura}
+              </Typography>
+            </Box>
+          )}
+        </Stack>
+      </Paper>
 
       {mapa.avisoCoordenadas && (
-        <Alert severity="info" sx={alertSx}>
+        <Alert severity="warning" sx={{ ...alertSx, borderColor: "rgba(255, 183, 77, 0.35)", "& .MuiAlert-icon": { color: "warning.light" } }}>
           {mapa.avisoCoordenadas}
         </Alert>
       )}
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="stretch" sx={{ minHeight: 360 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            ...rutasInstitutionalPanelPaperSx,
-            flex: { md: "0 0 320px" },
-            maxWidth: { md: 360 },
-            minWidth: { md: 280 },
-            maxHeight: { md: "min(58vh, 560px)" },
-            overflow: "auto",
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-            Grupos e ítems
-          </Typography>
-          {ruta == null ? (
-            <Typography variant="body2" color="text.secondary">
-              Creá o abrí una ruta desde la pestaña TABLA para gestionar grupos e ítems aquí.
-            </Typography>
-          ) : grupos.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No hay grupos en esta ruta. Creá grupos en la pestaña TABLA.
-            </Typography>
-          ) : canGestionMapa ? (
-            detailLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress size={32} />
-              </Box>
-            ) : (
-              <PanelGruposRuta
-                grupos={grupos}
-                items={itemsActivos}
-                iniciadorById={iniciadorById}
-                onEditarInspectores={onEditarInspectores}
-                onEliminarGrupo={onEliminarGrupo}
-                onMoverItem={onMoverItem}
-                onQuitarItem={onQuitarItem}
-                onGuardarOtItem={onGuardarOtItem}
-              />
-            )
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              Gestioná ítems desde TABLA.
-            </Typography>
-          )}
-        </Paper>
-
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={2}
+        alignItems="stretch"
+        sx={{ minHeight: { xs: "auto", md: 420 } }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: { xs: 360, md: 480 } }}>
           <MapaRutaTrabajo
             center={mapa.mapCenter}
             zoom={mapa.mapZoom}
             markers={mapa.markers}
             polylines={mapa.polylines}
+            mapHeight="min(72vh, 680px)"
           />
         </Box>
+
+        <Paper
+          elevation={0}
+          sx={{
+            ...rutasInstitutionalPanelPaperSx,
+            flex: { md: "0 0 300px" },
+            maxWidth: { md: 340 },
+            minWidth: { md: 260 },
+            maxHeight: { md: "min(72vh, 680px)" },
+            overflow: "auto",
+            borderColor: GLASS_COLORS.borderLight,
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75, fontSize: "0.8125rem" }}>
+            Leyenda por grupo
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.25, lineHeight: 1.4 }}>
+            Color = grupo en el mapa. Solo lectura.
+          </Typography>
+          {ruta == null ? (
+            <Typography variant="body2" color="text.secondary">
+              Abrí una ruta desde el flujo para ver el mapa y el resumen.
+            </Typography>
+          ) : (
+            <MapaFinalResumenLateral gruposVista={mapa.gruposVista} />
+          )}
+        </Paper>
       </Stack>
     </Stack>
   );

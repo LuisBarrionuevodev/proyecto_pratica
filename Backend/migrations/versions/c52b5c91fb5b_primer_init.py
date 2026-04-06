@@ -1,8 +1,8 @@
-"""inicio
+"""primer init
 
-Revision ID: 3f4023e6e9fc
+Revision ID: c52b5c91fb5b
 Revises: 
-Create Date: 2026-04-02 20:36:36.392640
+Create Date: 2026-04-06 09:06:44.490195
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import geoalchemy2
 
 
 # revision identifiers, used by Alembic.
-revision = '3f4023e6e9fc'
+revision = 'c52b5c91fb5b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -468,6 +468,7 @@ def upgrade():
     sa.Column('tipo', sa.String(length=255), nullable=True),
     sa.Column('contraproducencia', sa.String(length=255), nullable=True),
     sa.Column('nombre_local', sa.String(length=255), nullable=True),
+    sa.Column('resultado_cumplimiento_oficio', sa.Enum('CUMPLE', 'NO_CUMPLE', name='resultado_cumplimiento_oficio_enum'), nullable=True),
     sa.Column('orden_trabajo_id', sa.Integer(), nullable=False),
     sa.Column('notificacion_id', sa.Integer(), nullable=True),
     sa.Column('comprobacion_id', sa.Integer(), nullable=True),
@@ -548,8 +549,8 @@ def upgrade():
     sa.Column('fecha', sa.Date(), nullable=False),
     sa.Column('anio', sa.Integer(), nullable=False),
     sa.Column('mes', sa.Integer(), nullable=False),
-    sa.Column('contraproducencia', sa.String(length=128), nullable=True),
     sa.Column('turno_carga', sa.Enum('MANIANA', 'TARDE', name='tipo_turno'), nullable=True),
+    sa.Column('esta_abierto', sa.Boolean(), nullable=True),
     sa.Column('inspector_id', sa.Integer(), nullable=True),
     sa.Column('domicilio_id', sa.Integer(), nullable=True),
     sa.Column('rubro_id', sa.Integer(), nullable=True),
@@ -565,10 +566,10 @@ def upgrade():
     )
     with op.batch_alter_table('relevamiento', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_relevamiento_anio'), ['anio'], unique=False)
-        batch_op.create_index(batch_op.f('ix_relevamiento_contraproducencia'), ['contraproducencia'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_created_by_user_id'), ['created_by_user_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_deleted_at'), ['deleted_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_domicilio_id'), ['domicilio_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_relevamiento_esta_abierto'), ['esta_abierto'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_inspector_id'), ['inspector_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_mes'), ['mes'], unique=False)
         batch_op.create_index(batch_op.f('ix_relevamiento_rubro_id'), ['rubro_id'], unique=False)
@@ -823,10 +824,10 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_relevamiento_rubro_id'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_mes'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_inspector_id'))
+        batch_op.drop_index(batch_op.f('ix_relevamiento_esta_abierto'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_domicilio_id'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_deleted_at'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_created_by_user_id'))
-        batch_op.drop_index(batch_op.f('ix_relevamiento_contraproducencia'))
         batch_op.drop_index(batch_op.f('ix_relevamiento_anio'))
 
     op.drop_table('relevamiento')

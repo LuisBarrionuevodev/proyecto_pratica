@@ -47,6 +47,16 @@ export type RutaMapaGrupoVista = {
   items: RutaMapaItemVista[];
 };
 
+/** Métricas agregadas para la vista Mapa final (solo lectura). */
+export type RutaMapaResumenTerritorial = {
+  totalItems: number;
+  itemsConCoordenadas: number;
+  /** Distritos distintos con nombre en ítems (cuando exista en datos). */
+  distritosCubiertos: string[];
+  /** Texto breve para lectura de cobertura / dispersión. */
+  hintCobertura: string | null;
+};
+
 export type UseRutaMapaResult = {
   gruposVista: RutaMapaGrupoVista[];
   markers: RutaMapaMarker[];
@@ -55,6 +65,7 @@ export type UseRutaMapaResult = {
   mapZoom: number;
   tieneCoordenadas: boolean;
   avisoCoordenadas: string | null;
+  resumenTerritorial: RutaMapaResumenTerritorial;
 };
 
 export type RutasMapaOperativoViewProps = {
@@ -71,6 +82,7 @@ export type RutasMapaOperativoViewProps = {
   publishingRuta?: boolean;
   /** Misma gestión liviana que TABLA (comparte handlers con el contenedor). */
   detailLoading?: boolean;
+  /** Reservados por compatibilidad; la Vista Mapa final no gestiona asignación (solo lectura + publicar). */
   onEditarInspectores?: (grupo: IRutaGrupoMin) => void;
   onEliminarGrupo?: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;

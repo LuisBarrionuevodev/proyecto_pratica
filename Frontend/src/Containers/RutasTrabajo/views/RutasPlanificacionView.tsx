@@ -1,4 +1,13 @@
-import { Box, CircularProgress, Grid, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Divider,
+  Grid,
+  Paper,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
@@ -14,7 +23,7 @@ import TablaIniciadoresPendientes, {
   type AsignacionPoolFilters,
   type TablaIniciadoresPendientesProps,
 } from "../Components/TablaIniciadoresPendientes";
-import { rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
+import { rutasInstitutionalDividerSx, rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
 
 export type RutasPlanificacionFilters = AsignacionPoolFilters;
 
@@ -49,18 +58,18 @@ function AsignacionPoolEmptyState({
     >
       <Inventory2OutlinedIcon sx={{ fontSize: 40, color: GLASS_COLORS.primary, opacity: 0.9, mb: 1 }} aria-hidden />
       <Typography sx={{ fontWeight: 700, fontSize: "1rem", mb: 1, color: GLASS_COLORS.textPrimary }}>
-        Pool del día no disponible en esta sesión
+        Pool del día no cargado en esta sesión
       </Typography>
       {poolVacioSinItems ? (
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: "auto", lineHeight: 1.55, mb: 2 }}>
-          No hay iniciadores en el pool ni ítems cargados en la ruta. Suele pasar si entraste directo a Asignación o
-          recargaste la página (el pool vive en memoria hasta asignar). Volvé a Planificación y armá el pool del día.
+          No hay ítems en el pool ni trabajos en la ruta. Suele pasar si abriste Asignación directo o recargaste la página
+          (el pool vive en memoria hasta asignarlo a grupos). Volvé a Planificación y armá el pool del día.
         </Typography>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 440, mx: "auto", lineHeight: 1.55, mb: 2 }}>
-          El pool no está cargado en el navegador (por ejemplo tras un F5), pero podés tener ítems ya asignados en
-          grupos a la derecha. Podés sincronizar el borrador con el servidor o volver a Planificación para volver a armar
-          el pool.
+          El navegador no tiene el pool (por ejemplo tras un F5), pero a la derecha podés seguir viendo grupos e ítems ya
+          guardados en el borrador. Podés sincronizar con el servidor o volver a Planificación para armar de nuevo el
+          pool.
         </Typography>
       )}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="center" alignItems="center">
@@ -78,7 +87,8 @@ function AsignacionPoolEmptyState({
       </Stack>
       {poolVacioConItemsEnRuta ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2, lineHeight: 1.45 }}>
-          Si ya tenés ítems en grupos, podés usar &quot;Continuar a mapa final&quot; arriba.
+          Si los grupos ya tienen trabajos asignados, usá &quot;Continuar a mapa final&quot; (arriba) para revisar el mapa;
+          no necesitás el pool en pantalla para avanzar.
         </Typography>
       ) : null}
     </Box>
@@ -116,7 +126,7 @@ export type RutasPlanificacionViewProps = {
 };
 
 /**
- * Etapa Asignación: listado del pool del día y reparto entre grupos (sin universo global ni catálogo de calles).
+ * Etapa Asignación: ítems del pool del día y reparto entre grupos (sin universo global ni catálogo de calles).
  */
 export function RutasPlanificacionView({
   ruta,
@@ -149,46 +159,55 @@ export function RutasPlanificacionView({
   const poolVacioSinItems = totalEnPool === 0 && itemsCount === 0;
   const poolVacioConItemsEnRuta = totalEnPool === 0 && itemsCount > 0;
 
+  const sectionTitleSx = { mb: 1, fontWeight: 700, letterSpacing: "0.01em" } as const;
+  const sectionCaptionSx = { display: "block", mb: 1.5, lineHeight: 1.45 } as const;
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.2 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
+
       <Stack
         direction={{ xs: "column", sm: "row" }}
-        spacing={1}
-        justifyContent="flex-end"
+        spacing={1.5}
+        justifyContent="space-between"
         alignItems={{ xs: "stretch", sm: "center" }}
+        sx={{ flexWrap: "wrap", rowGap: 1 }}
       >
-        <AppButton dsVariant="ghost" dsSize="sm" onClick={onVolverPlanificacion}>
+        <AppButton dsVariant="ghost" dsSize="sm" onClick={onVolverPlanificacion} sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}>
           Volver a planificación
         </AppButton>
         <Tooltip
           title={
             hayTrabajoParaMapa
               ? "Avanzar al mapa operativo de la ruta."
-              : "Agregá iniciadores al pool en Planificación o sincronizá si ya hay ítems en grupos."
+              : "Agregá iniciadores al pool en Planificación o sincronizá el borrador si ya hay ítems en grupos."
           }
         >
-          <span>
+          <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" }, width: { xs: "100%", sm: "auto" } }}>
             <AppButton
               dsVariant="primary"
-              dsSize="sm"
+              dsSize="md"
               onClick={onContinuarMapaFinal}
               disabled={!hayTrabajoParaMapa}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
             >
               Continuar a mapa final
             </AppButton>
-          </span>
+          </Box>
         </Tooltip>
       </Stack>
-      <Grid container spacing={2}>
+
+      <Divider sx={rutasInstitutionalDividerSx} />
+
+      <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
-              Listado del pool del día
+            <Typography variant="subtitle1" sx={sectionTitleSx}>
+              Ítems del pool del día
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5, lineHeight: 1.45 }}>
-              Iniciadores que sumaste al pool en Planificación (no es un listado global de pendientes). Asignalos a
-              grupos y completá inspectores u OT en el panel derecho.
+            <Typography variant="caption" color="text.secondary" sx={sectionCaptionSx}>
+              Mismo pool que armaste en Planificación: asigná estos trabajos a grupos y completá inspectores u OT en el
+              panel derecho.
             </Typography>
             {totalEnPool === 0 ? (
               <AsignacionPoolEmptyState
@@ -217,11 +236,14 @@ export function RutasPlanificacionView({
         </Grid>
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={sectionTitleSx}>
               Grupos
             </Typography>
+            <Typography variant="caption" color="text.secondary" sx={sectionCaptionSx}>
+              Equipos de la ruta: inspectores, trabajos asignados y orden de trabajo por ítem.
+            </Typography>
             <AppButton
-              dsVariant="primary"
+              dsVariant="secondary"
               dsSize="sm"
               disabled={!canCreateGrupo}
               onClick={onOpenCrearGrupo}
