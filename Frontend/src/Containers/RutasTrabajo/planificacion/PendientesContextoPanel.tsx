@@ -16,27 +16,20 @@ import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
 import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
-import { planificacionTextFieldSx, rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
+import {
+  planificacionPanelFooterMetaSx,
+  planificacionPanelSubtitleSx,
+  planificacionPanelTitleSx,
+  planificacionTextFieldSx,
+  rutasInstitutionalPanelPaperSx,
+  rutasInstitutionalScrollSx,
+} from "../styles/institutionalVisual";
 import type { PlanificacionFiltrosLista, PlanificacionOrdenM4 } from "./types/planificacion.types";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
-const panelTitleSx = {
-  fontFamily: tactic,
-  fontWeight: 700,
-  fontSize: "0.95rem",
-  color: GLASS_COLORS.textPrimary,
-  letterSpacing: "0.02em",
-} as const;
-
-const panelSubtitleSx = {
-  fontFamily: tactic,
-  fontSize: "0.75rem",
-  color: GLASS_COLORS.textMuted,
-} as const;
-
 const TIPO_OPCIONES: { value: string; label: string }[] = [
-  { value: "", label: "Todos (según card superior)" },
+  { value: "", label: "Todos" },
   { value: "DENUNCIA", label: "Denuncia" },
   { value: "RELEVAMIENTO", label: "Relevamiento" },
   { value: "REINSPECCION_NOTIFICACION", label: "Reinspección notificación" },
@@ -64,6 +57,8 @@ export type PendientesContextoPanelProps = {
   onApplyBusqueda: (q: string) => void;
   onPageChange: (page: number) => void;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
+  /** Centrar mapa y abrir card en el punto (requiere coords en el row). */
+  onVerEnMapa?: (row: IRutaIniciadorPendienteRow) => void;
 };
 
 /**
@@ -80,6 +75,7 @@ export function PendientesContextoPanel({
   onApplyBusqueda,
   onPageChange,
   onAgregar,
+  onVerEnMapa,
 }: PendientesContextoPanelProps) {
   const [localQ, setLocalQ] = useState("");
 
@@ -106,23 +102,19 @@ export function PendientesContextoPanel({
         }}
       >
         <MapOutlinedIcon sx={{ fontSize: 44, color: GLASS_COLORS.primary, opacity: 0.9 }} aria-hidden />
-        <Typography sx={{ ...panelTitleSx, textAlign: "center" }}>Pendientes del contexto</Typography>
+        <Typography sx={{ ...planificacionPanelTitleSx, textAlign: "center" }}>Pendientes del contexto</Typography>
         <Typography
           sx={{
             fontFamily: tactic,
             color: GLASS_COLORS.textSecondary,
             textAlign: "center",
-            maxWidth: 300,
-            lineHeight: 1.55,
+            maxWidth: 280,
+            lineHeight: 1.5,
             fontSize: "0.875rem",
           }}
         >
-          Elegí un distrito en el <strong style={{ color: GLASS_COLORS.textPrimary }}>mapa central</strong>. Los filtros
-          de abajo se habilitan con el territorio; las <strong style={{ color: GLASS_COLORS.textPrimary }}>cards KPI</strong>{" "}
-          siguen refinar el alcance.
-        </Typography>
-        <Typography sx={{ ...panelSubtitleSx, textAlign: "center", maxWidth: 280, fontSize: "0.72rem" }}>
-          Listado contextual: no es el universo global del sistema.
+          Elegí un distrito en el <strong style={{ color: GLASS_COLORS.textPrimary }}>mapa</strong>. Las cards de arriba
+          siguen filtrando el alcance.
         </Typography>
       </Box>
     );
@@ -140,8 +132,8 @@ export function PendientesContextoPanel({
       spacing={1.1}
     >
       <Box sx={{ flexShrink: 0 }}>
-        <Typography sx={panelTitleSx}>Pendientes del contexto</Typography>
-        <Typography sx={panelSubtitleSx}>
+        <Typography sx={planificacionPanelTitleSx}>Pendientes del contexto</Typography>
+        <Typography sx={planificacionPanelSubtitleSx}>
           Distrito:{" "}
           <Box component="span" sx={{ color: GLASS_COLORS.textPrimary, fontWeight: 600 }}>
             {distritoNombre ?? `#${distritoActivoId}`}
@@ -212,14 +204,14 @@ export function PendientesContextoPanel({
         </Stack>
       </Stack>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.25 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={28} sx={{ color: GLASS_COLORS.primary }} />
           </Box>
         ) : rows.length === 0 ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.82rem", color: GLASS_COLORS.textSecondary, lineHeight: 1.5 }}>
-            No hay pendientes con los filtros actuales. Probá otra card KPI, tipo u orden.
+            Sin resultados con estos filtros. Ajustá card, tipo u orden.
           </Typography>
         ) : (
           <Stack spacing={0.75}>
@@ -230,6 +222,7 @@ export function PendientesContextoPanel({
                 agregarLabel="Agregar"
                 agregarVariant="primary"
                 onAgregar={() => onAgregar(row)}
+                onVerEnMapa={onVerEnMapa}
               />
             ))}
           </Stack>
@@ -244,7 +237,7 @@ export function PendientesContextoPanel({
         gap={1}
         sx={{ flexShrink: 0, pt: 0.5, borderTop: `1px solid ${GLASS_COLORS.borderLight}` }}
       >
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textMuted }}>
+        <Typography sx={planificacionPanelFooterMetaSx}>
           {meta.total} total · pág. {meta.page}/{totalPages}
         </Typography>
         <Stack direction="row" spacing={0.5}>

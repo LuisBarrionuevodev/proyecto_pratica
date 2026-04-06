@@ -4,7 +4,13 @@ import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
 import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
-import { rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
+import {
+  planificacionPanelFooterMetaSx,
+  planificacionPanelSubtitleSx,
+  planificacionPanelTitleSx,
+  rutasInstitutionalPanelPaperSx,
+  rutasInstitutionalScrollSx,
+} from "../styles/institutionalVisual";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -24,8 +30,8 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange }: 
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.perPage) || 1);
   const emptyCopy =
     meta.total === 0
-      ? "No hay iniciadores elegibles como urgentes en esta ruta (prioridad alta, no relevamiento, pendientes de planificar). Si acabas de migrar prioridades, revisá que existan filas con prioridad ≥ 3."
-      : "Nada que mostrar aquí: puede que los ítems de esta página estén ya en el pool del día, o probá otra página.";
+      ? "Sin urgentes elegibles en esta ruta (prioridad alta, excl. relevamiento)."
+      : "Nada en esta página: quizá ya están en el pool. Probá otra página.";
 
   return (
     <Stack
@@ -40,25 +46,13 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange }: 
       spacing={1}
     >
       <Box sx={{ flexShrink: 0 }}>
-        <Typography
-          sx={{
-            fontFamily: tactic,
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            color: GLASS_COLORS.textPrimary,
-            letterSpacing: "0.02em",
-          }}
-        >
-          Urgentes para hoy
-        </Typography>
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45, mt: 0.25 }}>
-          Globales (no dependen del distrito). Incluye prioridad alta real (p. ej. denuncia, reinspección notificación,
-          derivados de oficio); nunca relevamiento. Pueden coincidir con la izquierda; al pasar al pool desaparecen de
-          ambas columnas.
+        <Typography sx={planificacionPanelTitleSx}>Urgentes para hoy</Typography>
+        <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.35 }}>
+          Prioridad alta · sin filtro por distrito · excluye relevamiento.
         </Typography>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.25 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />
@@ -90,12 +84,12 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange }: 
         gap={0.75}
         sx={{ flexShrink: 0, pt: 0.75, borderTop: `1px solid ${GLASS_COLORS.borderLight}` }}
       >
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted }}>
-          {meta.total} total · {meta.page}/{totalPages}
+        <Typography sx={planificacionPanelFooterMetaSx}>
+          {meta.total} total · pág. {meta.page}/{totalPages}
         </Typography>
         <Stack direction="row" spacing={0.5}>
           <AppButton dsVariant="ghost" dsSize="sm" disabled={meta.page <= 1 || loading} onClick={() => onPageChange(meta.page - 1)}>
-            Ant.
+            Anterior
           </AppButton>
           <AppButton
             dsVariant="ghost"
@@ -103,7 +97,7 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange }: 
             disabled={meta.page >= totalPages || loading}
             onClick={() => onPageChange(meta.page + 1)}
           >
-            Sig.
+            Siguiente
           </AppButton>
         </Stack>
       </Stack>

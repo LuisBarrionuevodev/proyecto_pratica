@@ -104,6 +104,10 @@ export interface IRutaIniciadorPendienteRow {
   /** Presente en respuestas de planificación / presenter extendido. */
   prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
   elegible_urgente?: boolean;
+  /** Geocodificación del domicilio (planificación / listados con joined geocode). */
+  lat?: number | null;
+  lng?: number | null;
+  geo_status?: string | null;
 }
 
 export interface IGetRutaIniciadoresPendientesResponse {

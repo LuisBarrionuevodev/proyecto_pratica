@@ -1,6 +1,7 @@
 import { Box, Stack, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { planificacionPanelSubtitleSx, planificacionPanelTitleSx } from "../styles/institutionalVisual";
 import type { RutaMapaGrupoVista } from "../types/rutasTrabajoMapa.types";
 
 function distritosDelGrupo(gv: RutaMapaGrupoVista): string[] {
@@ -31,8 +32,9 @@ export type MapaFinalResumenLateralProps = {
 export function MapaFinalResumenLateral({ gruposVista }: MapaFinalResumenLateralProps) {
   if (gruposVista.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.45, fontSize: "0.8125rem" }}>
-        No hay grupos en esta ruta. Volvé a <strong>Asignación</strong> para armar equipos y cargar trabajos.
+      <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.8125rem", lineHeight: 1.45, color: GLASS_COLORS.textSecondary }}>
+        No hay grupos en esta ruta. Volvé a <strong style={{ color: GLASS_COLORS.textPrimary }}>Asignación</strong> para armar
+        equipos y cargar trabajos.
       </Typography>
     );
   }
@@ -65,9 +67,8 @@ export function MapaFinalResumenLateral({ gruposVista }: MapaFinalResumenLateral
           >
             <Stack direction="row" alignItems="baseline" justifyContent="space-between" gap={0.75} sx={{ flexWrap: "nowrap" }}>
               <Typography
-                variant="body2"
                 sx={{
-                  fontWeight: 700,
+                  ...planificacionPanelTitleSx,
                   fontSize: "0.8125rem",
                   lineHeight: 1.35,
                   flex: 1,
@@ -114,8 +115,16 @@ export function MapaFinalResumenLateral({ gruposVista }: MapaFinalResumenLateral
         );
       })}
 
-      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4, fontSize: "0.68rem", pt: 0.5, opacity: 0.88 }}>
-        ¿Cambios de grupo u OT? <strong>Asignación</strong>
+      <Typography
+        sx={{
+          ...planificacionPanelSubtitleSx,
+          lineHeight: 1.4,
+          fontSize: "0.68rem",
+          pt: 0.5,
+          opacity: 0.9,
+        }}
+      >
+        ¿Cambios de grupo u OT? <strong style={{ color: GLASS_COLORS.textPrimary }}>Asignación</strong>
       </Typography>
     </Stack>
   );

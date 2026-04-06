@@ -46,7 +46,8 @@ class PlanificacionPendientesContextoQuery(BaseModel):
     q: Optional[str] = Field(default=None, max_length=200)
     turno_sugerido: Optional[TurnoLiteral] = None
     page: int = Field(default=1, ge=1)
-    per_page: int = Field(default=25, ge=1, le=100)
+    # Listado paginado (25) + carga mapa planificación (hasta 500 filas con coords en un solo request).
+    per_page: int = Field(default=25, ge=1, le=500)
     orden: PlanificacionOrdenLiteral = Field(default="prioridad")
 
     @field_validator("q")

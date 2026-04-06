@@ -8,9 +8,11 @@ import {
 } from "material-react-table";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect } from "../../../ui";
+import { planificacionPanelFooterMetaSx, planificacionPanelSubtitleSx } from "../styles/institutionalVisual";
 
 const TIPO_INICIADOR_OPTIONS = [
   { value: "", label: "Todos" },
@@ -222,7 +224,7 @@ function IniciadoresPoolTableMrt({
 
     renderTopToolbarCustomActions: () => (
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
+        <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
           Ítems en pool: {totalEnPool} · Filas visibles: {rows.length}
         </Typography>
         <Chip
@@ -276,7 +278,7 @@ function TablaIniciadoresPendientes({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.35 }}>
+      <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", lineHeight: 1.4 }}>
         Distribuí entre grupos lo elegido en Planificación. Los filtros aplican solo sobre este listado (sin consultas
         globales). La búsqueda es local sobre domicilio, rubro y datos visibles.
       </Typography>

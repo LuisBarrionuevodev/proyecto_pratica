@@ -61,3 +61,74 @@ export const planificacionTextFieldSx: SxProps<Theme> = {
   },
   "& .MuiInputBase-input": { fontSize: "0.85rem" },
 };
+
+const TACTIC = '"Tactic Sans", sans-serif' as const;
+
+/** Título de panel en Planificación (pendientes, urgentes, pool) — misma jerarquía en todas las columnas. */
+export const planificacionPanelTitleSx: SxProps<Theme> = {
+  fontFamily: TACTIC,
+  fontWeight: 700,
+  fontSize: "0.9375rem",
+  color: GLASS_COLORS.textPrimary,
+  letterSpacing: "0.02em",
+  lineHeight: 1.3,
+};
+
+/** Subtítulo / línea de contexto bajo el título (muted, legible en dark). */
+export const planificacionPanelSubtitleSx: SxProps<Theme> = {
+  fontFamily: TACTIC,
+  fontSize: "0.75rem",
+  color: GLASS_COLORS.textMuted,
+  lineHeight: 1.45,
+};
+
+/** Línea de paginación / totales al pie de paneles con lista. */
+export const planificacionPanelFooterMetaSx: SxProps<Theme> = {
+  fontFamily: TACTIC,
+  fontSize: "0.72rem",
+  color: GLASS_COLORS.textMuted,
+};
+
+/**
+ * Título del bloque "Resumen de ruta" y cabeceras de etapa en Asignación / Mapa final.
+ * Alineado a jerarquía de Planificación (ligeramente mayor que título de panel de columna).
+ */
+export const rutasResumenTitleSx: SxProps<Theme> = {
+  fontFamily: TACTIC,
+  fontWeight: 700,
+  fontSize: "1rem",
+  color: GLASS_COLORS.textPrimary,
+  letterSpacing: "0.02em",
+  lineHeight: 1.3,
+};
+
+/** Alertas informativas/advertencia en Rutas (glass dark, sin depender de otros módulos). */
+export const rutasInstitutionalAlertBaseSx: SxProps<Theme> = {
+  fontFamily: TACTIC,
+  borderRadius: "12px",
+  backgroundColor: "rgba(255,255,255,0.06)",
+  color: GLASS_COLORS.textPrimary,
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  "& .MuiAlert-message": { fontFamily: TACTIC },
+};
+
+/**
+ * Scrollbar fina dark para listas internas (Planificación y similares en Rutas).
+ * Alineada a tonos usados en tablas/mapa (#1E2127 / gris medio).
+ */
+export const rutasInstitutionalScrollSx: SxProps<Theme> = {
+  scrollbarWidth: "thin",
+  scrollbarColor: `#3a3d44 #1E2127`,
+  "&::-webkit-scrollbar": { width: 8, height: 8 },
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: "#1E2127",
+    borderRadius: "4px",
+  },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: "#3a3d44",
+    borderRadius: "4px",
+  },
+  "&::-webkit-scrollbar-thumb:hover": {
+    backgroundColor: "#4a4d54",
+  },
+};

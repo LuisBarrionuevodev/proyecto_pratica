@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Grid } from "@mui/material";
 
-import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
+import type { IRutaIniciadorPendienteRow, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import {
   usePlanificacionController,
   type PlanificacionPoolControl,
@@ -33,6 +33,7 @@ export function PlanificacionView({
   poolControl,
 }: PlanificacionViewProps) {
   const ctrl = usePlanificacionController({ rutaId, onError, poolControl });
+  const { agregarAlPool } = poolControl;
 
   const distritoNombreActivo = useMemo(() => {
     if (ctrl.distritoActivoId == null) return null;
@@ -52,6 +53,42 @@ export function PlanificacionView({
   const handleContinuar = useCallback(() => {
     onContinuarAsignacion();
   }, [onContinuarAsignacion]);
+
+  const [mapPopupRow, setMapPopupRow] = useState<IRutaIniciadorPendienteRow | null>(null);
+  const [mapFocusIniciadorId, setMapFocusIniciadorId] = useState<number | null>(null);
+  const [mapFlyToRow, setMapFlyToRow] = useState<IRutaIniciadorPendienteRow | null>(null);
+
+  useEffect(() => {
+    setMapPopupRow(null);
+    setMapFocusIniciadorId(null);
+    setMapFlyToRow(null);
+  }, [ctrl.distritoActivoId]);
+
+  const handleVerEnMapa = useCallback((row: IRutaIniciadorPendienteRow) => {
+    setMapPopupRow(row);
+    setMapFocusIniciadorId(row.id);
+    setMapFlyToRow(row);
+    window.setTimeout(() => setMapFlyToRow(null), 900);
+  }, []);
+
+  const handleMapMarkerClick = useCallback((row: IRutaIniciadorPendienteRow) => {
+    setMapPopupRow(row);
+    setMapFocusIniciadorId(row.id);
+  }, []);
+
+  const handleMapPopupClose = useCallback(() => {
+    setMapPopupRow(null);
+    setMapFocusIniciadorId(null);
+  }, []);
+
+  const handleAgregarDesdeMapa = useCallback(
+    (row: IRutaIniciadorPendienteRow) => {
+      agregarAlPool(row);
+      setMapPopupRow(null);
+      setMapFocusIniciadorId(null);
+    },
+    [agregarAlPool]
+  );
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minWidth: 0 }}>
@@ -86,6 +123,7 @@ export function PlanificacionView({
             onApplyBusqueda={handleApplyBusqueda}
             onPageChange={ctrl.loadPendientesContextoPage}
             onAgregar={ctrl.agregarAlPool}
+            onVerEnMapa={handleVerEnMapa}
           />
         </Grid>
         <Grid size={{ xs: 12, lg: 6 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
@@ -96,6 +134,13 @@ export function PlanificacionView({
             distritoActivoId={ctrl.distritoActivoId}
             distritoActivoNombre={distritoNombreActivo}
             onSelectDistrito={ctrl.seleccionarDistrito}
+            pendientesParaMapa={ctrl.pendientesParaMapa}
+            mapFocusIniciadorId={mapFocusIniciadorId}
+            mapPopupRow={mapPopupRow}
+            mapFlyToRow={mapFlyToRow}
+            onMapMarkerClick={handleMapMarkerClick}
+            onMapPopupClose={handleMapPopupClose}
+            onAgregarDesdeMapa={handleAgregarDesdeMapa}
           />
         </Grid>
         <Grid

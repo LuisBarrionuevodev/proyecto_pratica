@@ -1,14 +1,16 @@
 import { useMemo } from "react";
 import { Box, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
-import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import { GeoJSON, MapContainer, Pane, TileLayer } from "react-leaflet";
 import type { Feature, FeatureCollection } from "geojson";
 import L from "leaflet";
 
 import type { DistritoCatalogoItem } from "../../../api/geolocalizacionApi";
+import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import distritosGeoRaw from "../../Mapa/distritos.json";
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { ICargaDistritoRow } from "./types/planificacion.types";
 import { enrichPlanificacionDistritosGeoJson } from "./utils/mergePlanificacionDistritosGeo";
+import { PlanificacionMapaPendientesLayer } from "./PlanificacionMapaPendientesLayer";
 
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -34,6 +36,14 @@ export type PlanificacionMapaDistritosProps = {
   /** Nombre legible del distrito activo (catálogo / M2). */
   distritoActivoNombre?: string | null;
   onSelectDistrito: (distritoId: number | null) => void;
+  /** Pendientes del distrito (coords opcionales) para marcar solo con distrito elegido. */
+  pendientesParaMapa?: IRutaIniciadorPendienteRow[];
+  mapFocusIniciadorId?: number | null;
+  mapPopupRow?: IRutaIniciadorPendienteRow | null;
+  mapFlyToRow?: IRutaIniciadorPendienteRow | null;
+  onMapMarkerClick?: (row: IRutaIniciadorPendienteRow) => void;
+  onMapPopupClose?: () => void;
+  onAgregarDesdeMapa?: (row: IRutaIniciadorPendienteRow) => void;
 };
 
 /**
@@ -46,6 +56,19 @@ export function PlanificacionMapaDistritos({
   distritoActivoId,
   distritoActivoNombre,
   onSelectDistrito,
+  pendientesParaMapa = [],
+  mapFocusIniciadorId = null,
+  mapPopupRow = null,
+  mapFlyToRow = null,
+  onMapMarkerClick = () => {
+    /* noop */
+  },
+  onMapPopupClose = () => {
+    /* noop */
+  },
+  onAgregarDesdeMapa = () => {
+    /* noop */
+  },
 }: PlanificacionMapaDistritosProps) {
   const geoData = useMemo(() => {
     const base = distritosGeoRaw as FeatureCollection;
@@ -79,10 +102,10 @@ export function PlanificacionMapaDistritos({
     const selected = id != null && id === distritoActivoId;
     return {
       fillColor: fill,
-      weight: selected ? 4 : 1,
+      weight: selected ? 4 : 2,
       opacity: 1,
-      color: selected ? "#ffffff" : "rgba(255,255,255,0.35)",
-      fillOpacity: selected ? 0.95 : 0.88,
+      color: selected ? "#ffffff" : "rgba(255, 255, 255, 0.62)",
+      fillOpacity: selected ? 0.95 : 0.82,
     };
   };
 
@@ -137,6 +160,18 @@ export function PlanificacionMapaDistritos({
                 });
               }}
             />
+            <Pane name="planif-pendientes-pane" style={{ zIndex: 650 }}>
+              <PlanificacionMapaPendientesLayer
+                rows={pendientesParaMapa}
+                visible={distritoActivoId != null}
+                focusIniciadorId={mapFocusIniciadorId}
+                popupRow={mapPopupRow}
+                flyToRow={mapFlyToRow}
+                onMarkerClick={onMapMarkerClick}
+                onPopupClose={onMapPopupClose}
+                onAgregar={onAgregarDesdeMapa}
+              />
+            </Pane>
           </MapContainer>
 
           <Stack
@@ -153,9 +188,9 @@ export function PlanificacionMapaDistritos({
               <Typography
                 sx={{ fontFamily: tactic, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: GLASS_COLORS.textMuted, mb: 0.5 }}
               >
-                CARGA TERRITORIAL
+                CARGA
               </Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                 <Box
                   sx={{
                     width: 36,
@@ -165,10 +200,10 @@ export function PlanificacionMapaDistritos({
                     border: `1px solid ${GLASS_COLORS.borderLight}`,
                   }}
                 />
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textSecondary }}>baja → alta</Typography>
+                <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textSecondary }}>baja → alta</Typography>
               </Stack>
-              <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textSecondary, lineHeight: 1.35 }}>
-                Tocá un distrito para filtrar pendientes en la columna izquierda.
+              <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textMuted, lineHeight: 1.35 }}>
+                Tocá un distrito para filtrar y ver puntos.
               </Typography>
             </Box>
           </Stack>
@@ -191,14 +226,9 @@ export function PlanificacionMapaDistritos({
                 DISTRITO ACTIVO
               </Typography>
               {distritoActivoId == null ? (
-                <>
-                  <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.88rem", color: GLASS_COLORS.textPrimary }}>
-                    Vista general
-                  </Typography>
-                  <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textSecondary, mt: 0.5 }}>
-                    Ningún distrito seleccionado
-                  </Typography>
-                </>
+                <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.88rem", color: GLASS_COLORS.textPrimary }}>
+                  Toda la ciudad
+                </Typography>
               ) : (
                 <>
                   <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.88rem", color: GLASS_COLORS.textPrimary, lineHeight: 1.25 }}>
@@ -225,7 +255,7 @@ export function PlanificacionMapaDistritos({
                         }}
                       />
                       <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textMuted, mt: 0.35 }}>
-                        Relativo al máximo del día ({maxCant})
+                        vs. máx. día ({maxCant})
                       </Typography>
                     </Box>
                   ) : (
@@ -259,11 +289,11 @@ export function PlanificacionMapaDistritos({
         </Box>
       )}
       <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textMuted }}>
-          Leyenda: intensidad azul = carga relativa · borde blanco grueso = selección
+        <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted }}>
+          Azul = carga · borde claro = límites · selección reforzada
         </Typography>
         {distritoCatalogo.length === 0 && !loadingCatalogo ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: "#ffab40" }}>
+          <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: "warning.light" }}>
             Catálogo de distritos no disponible; recargá la página.
           </Typography>
         ) : null}

@@ -12,6 +12,7 @@ import {
   subtituloRubroFecha,
   type PrioridadCat,
 } from "../utils/iniciadorDisplay";
+import { parseIniciadorLatLng } from "../utils/iniciadorCoords";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -42,6 +43,10 @@ export type PlanificacionIniciadorCompactCardProps = {
   agregarLabel: string;
   onAgregar: () => void;
   agregarVariant?: "primary" | "secondary";
+  /** Si viene definido, el botón geo centra el mapa de planificación en lugar de abrir OSM. */
+  onVerEnMapa?: (row: IRutaIniciadorPendienteRow) => void;
+  /** Mostrar ícono “ver en mapa” (desactivar p. ej. en popup del mapa). */
+  showVerEnMapaButton?: boolean;
 };
 
 /**
@@ -52,18 +57,23 @@ export function PlanificacionIniciadorCompactCard({
   agregarLabel,
   onAgregar,
   agregarVariant = "primary",
+  onVerEnMapa,
+  showVerEnMapaButton = true,
 }: PlanificacionIniciadorCompactCardProps) {
   const cat = prioridadCategoriaRow(row);
   const subt = subtituloRubroFecha(row);
   const principal = lineaPrincipalPendiente(row);
-  const puedeMapa = principal !== "—";
+  const tieneCoords = parseIniciadorLatLng(row) != null;
+  const puedeMapaInterno = Boolean(onVerEnMapa && tieneCoords);
+  const puedeMapaExterno = principal !== "—" && !onVerEnMapa;
+  const puedeMapa = onVerEnMapa ? puedeMapaInterno : puedeMapaExterno;
 
   return (
     <Box
       sx={{
         px: 1.1,
         py: 0.85,
-        borderRadius: "10px",
+        borderRadius: "12px",
         border: `1px solid ${GLASS_COLORS.borderLight}`,
         backgroundColor: GLASS_COLORS.cardBg,
         transition: "border-color 0.15s ease, background-color 0.15s ease",
@@ -126,22 +136,34 @@ export function PlanificacionIniciadorCompactCard({
           </Typography>
         ) : null}
         <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5} sx={{ pt: 0.25 }}>
-          <Tooltip title={puedeMapa ? "Ver ubicación aproximada en mapa (OSM)" : "Sin domicilio para buscar"}>
-            <span>
-              <IconButton
-                size="small"
-                disabled={!puedeMapa}
-                onClick={() => abrirUbicacionEnMapaExterno(row)}
-                sx={{
-                  color: GLASS_COLORS.textSecondary,
-                  "&:hover": { color: GLASS_COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.08)" },
-                }}
-                aria-label="Ver en mapa"
-              >
-                <MapOutlinedIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
+          {showVerEnMapaButton ? (
+            <Tooltip
+              title={
+                onVerEnMapa
+                  ? puedeMapaInterno
+                    ? "Centrar en el mapa de planificación"
+                    : "Sin coordenadas en geocodificación"
+                  : puedeMapaExterno
+                    ? "Ver ubicación aproximada en mapa (OSM)"
+                    : "Sin domicilio para buscar"
+              }
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={!puedeMapa}
+                  onClick={() => (onVerEnMapa ? onVerEnMapa(row) : abrirUbicacionEnMapaExterno(row))}
+                  sx={{
+                    color: GLASS_COLORS.textSecondary,
+                    "&:hover": { color: GLASS_COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.08)" },
+                  }}
+                  aria-label="Ver en mapa"
+                >
+                  <MapOutlinedIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          ) : null}
           <AppButton dsVariant={agregarVariant} dsSize="sm" onClick={onAgregar}>
             {agregarLabel}
           </AppButton>

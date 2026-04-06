@@ -83,6 +83,8 @@ export function usePlanificacionController({
   const [urgentesRaw, setUrgentesRaw] = useState<IRutaIniciadorPendienteRow[]>([]);
   const [urgentesMeta, setUrgentesMeta] = useState({ total: 0, page: 1, perPage: 25 });
   const [pendientesRaw, setPendientesRaw] = useState<IRutaIniciadorPendienteRow[]>([]);
+  /** Misma query M4 con per_page alto: puntos en mapa al elegir distrito (no limitado a la página de la lista). */
+  const [pendientesMapaRaw, setPendientesMapaRaw] = useState<IRutaIniciadorPendienteRow[]>([]);
   const [pendientesMeta, setPendientesMeta] = useState({ total: 0, page: 1, perPage: 25 });
   const [distritoCatalogo, setDistritoCatalogo] = useState<DistritoCatalogoItem[]>([]);
   const [loadingDistritoCatalogo, setLoadingDistritoCatalogo] = useState(true);
@@ -206,11 +208,13 @@ export function usePlanificacionController({
   }, [distritoActivoId, loadMetricas]);
 
   const pendientesReqSeq = useRef(0);
+  const pendientesMapaReqSeq = useRef(0);
 
   /** M4: distrito + card + filtros (página 1). */
   useEffect(() => {
     if (distritoActivoId == null) {
       setPendientesRaw([]);
+      setPendientesMapaRaw([]);
       setPendientesMeta({ total: 0, page: 1, perPage: 25 });
       return;
     }
@@ -244,6 +248,48 @@ export function usePlanificacionController({
         if (seq === pendientesReqSeq.current) {
           setLoading((s) => ({ ...s, pendientesContexto: false }));
         }
+      }
+    };
+    void run();
+  }, [
+    distritoActivoId,
+    cardActiva,
+    filtros.q,
+    filtros.tipo,
+    filtros.prioridad_categoria,
+    filtros.orden,
+    rutaId,
+  ]);
+
+  /** M4 mapa: hasta 500 filas con coords para marcar pendientes del distrito (mismos filtros que la lista). */
+  useEffect(() => {
+    if (distritoActivoId == null) {
+      setPendientesMapaRaw([]);
+      return;
+    }
+    const seq = ++pendientesMapaReqSeq.current;
+    const run = async () => {
+      try {
+        const cardParams = mapCardToM4Params(cardActiva);
+        const { items } = await getPlanificacionPendientesContexto(rutaId, {
+          distrito_id: distritoActivoId,
+          page: 1,
+          per_page: 500,
+          q: filtros.q.trim() || undefined,
+          tipo: filtros.tipo || cardParams.tipo || undefined,
+          prioridad_categoria:
+            filtros.prioridad_categoria || cardParams.prioridad_categoria || undefined,
+          orden: filtros.orden,
+        });
+        if (seq !== pendientesMapaReqSeq.current) return;
+        setPendientesMapaRaw(items);
+      } catch (e: unknown) {
+        if (seq !== pendientesMapaReqSeq.current) return;
+        setPendientesMapaRaw([]);
+        const ax = e as { response?: { data?: { detail?: string; errors?: unknown } } };
+        const detail =
+          typeof ax?.response?.data?.detail === "string" ? ax.response.data.detail : null;
+        onErrorRef.current(detail ?? "No se pudieron cargar los puntos del mapa para este distrito");
       }
     };
     void run();
@@ -318,6 +364,7 @@ export function usePlanificacionController({
     urgentesMeta,
     loadUrgentes,
     pendientesContextoVisibles,
+    pendientesParaMapa: pendientesMapaRaw,
     pendientesMeta,
     loadPendientesContextoPage,
     loading,

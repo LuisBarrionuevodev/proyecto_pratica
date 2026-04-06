@@ -34,6 +34,7 @@ def planificable_iniciadores_base_query() -> Query:
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.calle_catalogo),
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.distrito),
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.geocode),
             joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
         )
         .filter(

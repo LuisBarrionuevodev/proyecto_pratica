@@ -1,23 +1,19 @@
 import { Alert, Box, Chip, Paper, Stack, Tooltip, Typography } from "@mui/material";
 
-import { COLORS } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import { MapaFinalResumenLateral } from "../Components/MapaFinalResumenLateral";
 import { MapaRutaTrabajo } from "../Components/MapaRutaTrabajo";
 import { useRutaMapa } from "../hooks/useRutaMapa";
-import { rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
+import {
+  planificacionPanelSubtitleSx,
+  planificacionPanelTitleSx,
+  rutasInstitutionalAlertBaseSx,
+  rutasInstitutionalPanelPaperSx,
+  rutasInstitutionalScrollSx,
+  rutasResumenTitleSx,
+} from "../styles/institutionalVisual";
 import type { RutasMapaOperativoViewProps } from "../types/rutasTrabajoMapa.types";
 import { AppButton } from "../../../ui/AppButton";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-
-const alertSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
-  borderRadius: "10px",
-  backgroundColor: "rgba(255,255,255,0.06)",
-  color: COLORS.white,
-  border: `1px solid ${COLORS.border}`,
-  "& .MuiAlert-icon": { color: COLORS.white },
-  "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
-} as const;
 
 function turnoLabel(t: string) {
   return t === "MANIANA" ? "Mañana" : t === "TARDE" ? "Tarde" : t;
@@ -45,27 +41,32 @@ export function RutasMapaOperativoView({
   const sinCoords = rt.totalItems > 0 && rt.itemsConCoordenadas === 0;
   const distritosDetectados = rt.distritosCubiertos.length > 0;
 
+  const chipOutlineSx = {
+    fontSize: "0.7rem",
+    borderColor: GLASS_COLORS.borderLight,
+    color: GLASS_COLORS.textSecondary,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  } as const;
+
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2.5}>
       <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-start" }} justifyContent="space-between">
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
-              Mapa final — validación territorial
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.5 }}>
+            <Typography sx={rutasResumenTitleSx}>Mapa final — validación territorial</Typography>
+            <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.75, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
               Último paso antes de publicar: revisá cómo quedó la ruta en el mapa por grupo (colores y recorridos). Acá no se
               reasigna trabajo; si necesitás cambios, usá Asignación.
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", lineHeight: 1.45, opacity: 0.92 }}>
+            <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.5, display: "block", fontSize: "0.72rem" }}>
               La publicación de la ruta solo está disponible desde esta pantalla, una vez validada la distribución.
             </Typography>
             {ruta && (
               <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 1.25 }}>
-                <Chip size="small" variant="outlined" label={ruta.fecha} sx={{ fontSize: "0.7rem" }} />
-                <Chip size="small" variant="outlined" label={turnoLabel(ruta.turno)} sx={{ fontSize: "0.7rem" }} />
+                <Chip size="small" variant="outlined" label={ruta.fecha} sx={chipOutlineSx} />
+                <Chip size="small" variant="outlined" label={turnoLabel(ruta.turno)} sx={chipOutlineSx} />
                 {ruta.display_name != null && ruta.display_name !== "" && (
-                  <Chip size="small" variant="outlined" label={ruta.display_name} sx={{ fontSize: "0.7rem" }} />
+                  <Chip size="small" variant="outlined" label={ruta.display_name} sx={chipOutlineSx} />
                 )}
               </Stack>
             )}
@@ -113,7 +114,7 @@ export function RutasMapaOperativoView({
       </Paper>
 
       <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, letterSpacing: 0.02 }}>
+        <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", mb: 1, letterSpacing: 0.02, fontWeight: 600 }}>
           Indicadores del borrador (solo lectura)
         </Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap alignItems={{ sm: "flex-start" }}>
@@ -184,7 +185,14 @@ export function RutasMapaOperativoView({
       </Paper>
 
       {mapa.avisoCoordenadas && (
-        <Alert severity="warning" sx={{ ...alertSx, borderColor: "rgba(255, 183, 77, 0.35)", "& .MuiAlert-icon": { color: "warning.light" } }}>
+        <Alert
+          severity="warning"
+          sx={{
+            ...rutasInstitutionalAlertBaseSx,
+            borderColor: "rgba(255, 183, 77, 0.35)",
+            "& .MuiAlert-icon": { color: "warning.light" },
+          }}
+        >
           {mapa.avisoCoordenadas}
         </Alert>
       )}
@@ -213,23 +221,27 @@ export function RutasMapaOperativoView({
             maxWidth: { md: 340 },
             minWidth: { md: 260 },
             maxHeight: { md: "min(72vh, 680px)" },
-            overflow: "auto",
-            borderColor: GLASS_COLORS.borderLight,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            minHeight: 0,
           }}
         >
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75, fontSize: "0.8125rem" }}>
-            Leyenda por grupo
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.25, lineHeight: 1.4 }}>
-            Color = grupo en el mapa. Solo lectura.
-          </Typography>
-          {ruta == null ? (
-            <Typography variant="body2" color="text.secondary">
-              Abrí una ruta desde el flujo para ver el mapa y el resumen.
+          <Box sx={{ flexShrink: 0 }}>
+            <Typography sx={{ ...planificacionPanelTitleSx, mb: 0.5 }}>Leyenda por grupo</Typography>
+            <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", mb: 1, fontSize: "0.72rem" }}>
+              Color = grupo en el mapa. Solo lectura.
             </Typography>
-          ) : (
-            <MapaFinalResumenLateral gruposVista={mapa.gruposVista} />
-          )}
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
+            {ruta == null ? (
+              <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
+                Abrí una ruta desde el flujo para ver el mapa y el resumen.
+              </Typography>
+            ) : (
+              <MapaFinalResumenLateral gruposVista={mapa.gruposVista} />
+            )}
+          </Box>
         </Paper>
       </Stack>
     </Stack>

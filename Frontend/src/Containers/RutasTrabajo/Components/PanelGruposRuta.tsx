@@ -6,6 +6,7 @@ import {
   rutasInstitutionalDividerSx,
   rutasInstitutionalGrupoPaperSx,
   rutasInstitutionalItemPaperSx,
+  rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
 
 interface Props {
@@ -34,7 +35,16 @@ const PanelGruposRuta = ({
   const [otDraftByItem, setOtDraftByItem] = useState<Record<number, string>>({});
 
   return (
-    <Stack spacing={1.2}>
+    <Box
+      sx={{
+        maxHeight: { xs: "none", md: "min(52vh, 560px)" },
+        overflowY: { xs: "visible", md: "auto" },
+        overflowX: "hidden",
+        pr: { md: 0.5 },
+        ...rutasInstitutionalScrollSx,
+      }}
+    >
+      <Stack spacing={1.2}>
       {grupos.map((grupo) => {
         const groupItems = items.filter((i) => i.ruta_grupo_id === grupo.id && !i.deleted_at);
         const expanded = expandedByGrupo[grupo.id] ?? false;
@@ -187,7 +197,8 @@ const PanelGruposRuta = ({
           </Paper>
         );
       })}
-    </Stack>
+      </Stack>
+    </Box>
   );
 };
 

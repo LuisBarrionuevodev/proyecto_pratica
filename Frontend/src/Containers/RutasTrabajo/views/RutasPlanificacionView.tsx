@@ -23,7 +23,12 @@ import TablaIniciadoresPendientes, {
   type AsignacionPoolFilters,
   type TablaIniciadoresPendientesProps,
 } from "../Components/TablaIniciadoresPendientes";
-import { rutasInstitutionalDividerSx, rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
+import {
+  planificacionPanelSubtitleSx,
+  planificacionPanelTitleSx,
+  rutasInstitutionalDividerSx,
+  rutasInstitutionalPanelPaperSx,
+} from "../styles/institutionalVisual";
 
 export type RutasPlanificacionFilters = AsignacionPoolFilters;
 
@@ -57,7 +62,7 @@ function AsignacionPoolEmptyState({
       }}
     >
       <Inventory2OutlinedIcon sx={{ fontSize: 40, color: GLASS_COLORS.primary, opacity: 0.9, mb: 1 }} aria-hidden />
-      <Typography sx={{ fontWeight: 700, fontSize: "1rem", mb: 1, color: GLASS_COLORS.textPrimary }}>
+      <Typography sx={{ ...planificacionPanelTitleSx, fontSize: "1rem", mb: 1, display: "block" }}>
         Pool del día no cargado en esta sesión
       </Typography>
       {poolVacioSinItems ? (
@@ -159,9 +164,6 @@ export function RutasPlanificacionView({
   const poolVacioSinItems = totalEnPool === 0 && itemsCount === 0;
   const poolVacioConItemsEnRuta = totalEnPool === 0 && itemsCount > 0;
 
-  const sectionTitleSx = { mb: 1, fontWeight: 700, letterSpacing: "0.01em" } as const;
-  const sectionCaptionSx = { display: "block", mb: 1.5, lineHeight: 1.45 } as const;
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
@@ -202,10 +204,8 @@ export function RutasPlanificacionView({
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-            <Typography variant="subtitle1" sx={sectionTitleSx}>
-              Ítems del pool del día
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={sectionCaptionSx}>
+            <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Ítems del pool del día</Typography>
+            <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", mb: 1.5 }}>
               Mismo pool que armaste en Planificación: asigná estos trabajos a grupos y completá inspectores u OT en el
               panel derecho.
             </Typography>
@@ -236,10 +236,8 @@ export function RutasPlanificacionView({
         </Grid>
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-            <Typography variant="subtitle1" sx={sectionTitleSx}>
-              Grupos
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={sectionCaptionSx}>
+            <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Grupos</Typography>
+            <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", mb: 1.5 }}>
               Equipos de la ruta: inspectores, trabajos asignados y orden de trabajo por ítem.
             </Typography>
             <AppButton
@@ -253,7 +251,7 @@ export function RutasPlanificacionView({
             </AppButton>
             {detailLoading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
+                <CircularProgress size={36} sx={{ color: GLASS_COLORS.primary }} />
               </Box>
             ) : (
               <PanelGruposRuta
