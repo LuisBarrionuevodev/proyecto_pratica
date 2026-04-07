@@ -7,17 +7,18 @@ import AddIcon from "@mui/icons-material/Add";
 
 import { createDenuncia } from "../../../api/denunciasApi";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import {
+  dialogFormActionsRowSx,
+  dialogFormGridSx,
+  formDialogShortContentSx,
+} from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 import {
   alertBaseStyles,
   errorAlertStyles,
-  filtroButtonPrimaryStyles,
-  filtroButtonSecondaryStyles,
-  filtroButtonsStyles,
   filtroContainerStyles,
-  filtroGridStyles,
-  filtroItemStyles,
   filtroTitleStyles,
+  filtroButtonPrimaryStyles,
   COLORS,
 } from "../../Actuaciones/styles/filtroStyles";
 
@@ -179,13 +180,13 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
         onCloseButtonClick={() => tryCloseModal()}
         title="Nueva denuncia"
         contentDividers
+        contentSx={formDialogShortContentSx}
         actions={
-          <Box sx={filtroButtonsStyles}>
+          <Box sx={dialogFormActionsRowSx}>
             <AppButton
               dsVariant="ghost"
               onClick={handleClear}
               startIcon={<ClearIcon />}
-              sx={filtroButtonSecondaryStyles}
               disabled={loading}
             >
               Limpiar
@@ -194,7 +195,6 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
               dsVariant="primary"
               onClick={handleSubmit}
               startIcon={<SendIcon />}
-              sx={filtroButtonPrimaryStyles}
               loading={loading}
             >
               Guardar denuncia
@@ -202,66 +202,59 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
           </Box>
         }
       >
-        <Box sx={filtroGridStyles}>
-          <Box sx={filtroItemStyles}>
-            <AppTextField
-              appearance="default"
-              fullWidth
-              required
-              type="date"
-              label="Fecha"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              error={!!errors.fecha}
-              helperText={errors.fecha || ""}
-            />
-          </Box>
+        <Box sx={dialogFormGridSx}>
+          <AppTextField
+            appearance="glass"
+            fullWidth
+            required
+            type="date"
+            label="Fecha"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            variant="outlined"
+            error={!!errors.fecha}
+            helperText={errors.fecha || ""}
+          />
 
-          <Box sx={filtroItemStyles}>
-            <AppTextField
-              appearance="default"
-              fullWidth
-              required
-              label="Calle"
-              value={calle}
-              onChange={(e) => setCalle(e.target.value)}
-              variant="outlined"
-              error={!!errors.calle}
-              helperText={errors.calle || ""}
-            />
-          </Box>
+          <AppTextField
+            appearance="glass"
+            fullWidth
+            required
+            label="Calle"
+            value={calle}
+            onChange={(e) => setCalle(e.target.value)}
+            variant="outlined"
+            error={!!errors.calle}
+            helperText={errors.calle || ""}
+          />
 
-          <Box sx={filtroItemStyles}>
-            <AppTextField
-              appearance="default"
-              fullWidth
-              required
-              label="Número o esquina"
-              value={numeroOEsquina}
-              onChange={(e) => setNumeroOEsquina(e.target.value)}
-              variant="outlined"
-              error={!!errors.numeroOEsquina}
-              helperText={errors.numeroOEsquina || ""}
-            />
-          </Box>
+          <AppTextField
+            appearance="glass"
+            fullWidth
+            required
+            label="Número o esquina"
+            value={numeroOEsquina}
+            onChange={(e) => setNumeroOEsquina(e.target.value)}
+            variant="outlined"
+            error={!!errors.numeroOEsquina}
+            helperText={errors.numeroOEsquina || ""}
+          />
 
-          <Box sx={filtroItemStyles}>
-            <AppTextField
-              appearance="default"
-              fullWidth
-              required
-              label="Motivo"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              variant="outlined"
-              multiline
-              minRows={3}
-              error={!!errors.motivo}
-              helperText={errors.motivo || ""}
-            />
-          </Box>
+          <AppTextField
+            appearance="glass"
+            fullWidth
+            required
+            label="Motivo"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            variant="outlined"
+            multiline
+            minRows={3}
+            sx={{ gridColumn: "1 / -1" }}
+            error={!!errors.motivo}
+            helperText={errors.motivo || ""}
+          />
         </Box>
       </AppDialog>
     </Box>

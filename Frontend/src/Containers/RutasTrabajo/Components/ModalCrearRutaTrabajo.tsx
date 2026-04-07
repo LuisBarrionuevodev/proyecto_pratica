@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Box } from "@mui/material";
 
 import { fechaLocalHoyIso } from "../../../utils/dateRange";
+import { dialogFormActionsRowSx, formDialogShortContentSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 
 interface Props {
@@ -46,9 +48,10 @@ const ModalCrearRutaTrabajo = ({ open, onClose, onSubmit }: Props) => {
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}
       title="Crear ruta de trabajo"
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      contentDividers
+      contentSx={formDialogShortContentSx}
       actions={
-        <>
+        <Box sx={dialogFormActionsRowSx}>
           <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
             Cancelar
           </AppButton>
@@ -60,35 +63,50 @@ const ModalCrearRutaTrabajo = ({ open, onClose, onSubmit }: Props) => {
           >
             Crear ruta
           </AppButton>
-        </>
+        </Box>
       }
     >
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+          gap: 2,
+          width: "100%",
+        }}
+      >
+        <AppTextField
+          appearance="glass"
+          label="Fecha"
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          fullWidth
+          required
+          variant="outlined"
+        />
+        <AppSelect
+          appearance="glass"
+          label="Turno"
+          value={turno}
+          onChange={(e) => setTurno(e.target.value as "MANIANA" | "TARDE")}
+          fullWidth
+          variant="outlined"
+          options={[
+            { value: "MANIANA", label: "Mañana" },
+            { value: "TARDE", label: "Tarde" },
+          ]}
+        />
+      </Box>
       <AppTextField
-        label="Fecha"
-        type="date"
-        value={fecha}
-        onChange={(e) => setFecha(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        fullWidth
-        required
-      />
-      <AppSelect
-        label="Turno"
-        value={turno}
-        onChange={(e) => setTurno(e.target.value as "MANIANA" | "TARDE")}
-        fullWidth
-        options={[
-          { value: "MANIANA", label: "Mañana" },
-          { value: "TARDE", label: "Tarde" },
-        ]}
-      />
-      <AppTextField
+        appearance="glass"
         label="Observaciones"
         value={observaciones}
         onChange={(e) => setObservaciones(e.target.value)}
         fullWidth
         multiline
         minRows={3}
+        variant="outlined"
       />
     </AppDialog>
   );

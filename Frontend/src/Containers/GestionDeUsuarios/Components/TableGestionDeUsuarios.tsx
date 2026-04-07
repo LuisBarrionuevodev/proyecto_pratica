@@ -10,7 +10,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import { apiClient } from "../../../api/apiClient";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
-import { AppButton } from "../../../ui";
+import { AppButton, ConfirmDialog } from "../../../ui";
 
 type Usuario = {
   id: number;
@@ -30,6 +30,8 @@ const TableGestionDeUsuarios = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  /** Usuario cuyo borrado está pendiente de confirmación en `ConfirmDialog`. */
+  const [deleteConfirmUserId, setDeleteConfirmUserId] = useState<number | null>(null);
 
   const fetchUsuarios = async () => {
     try {
@@ -308,13 +310,7 @@ const TableGestionDeUsuarios = () => {
           </IconButton>
         </Tooltip>
         <Tooltip title="Eliminar">
-          <IconButton
-            color="error"
-            onClick={() => {
-              if (!window.confirm("¿Seguro que querés eliminar este usuario?")) return;
-              handleDelete(row.original.id);
-            }}
-          >
+          <IconButton color="error" onClick={() => setDeleteConfirmUserId(row.original.id)}>
             <DeleteIcon />
           </IconButton>
         </Tooltip>
@@ -392,6 +388,26 @@ const TableGestionDeUsuarios = () => {
           {successMessage}
         </Alert>
       </Snackbar>
+
+      <ConfirmDialog
+        open={deleteConfirmUserId !== null}
+        onClose={() => setDeleteConfirmUserId(null)}
+        onConfirm={async () => {
+          if (deleteConfirmUserId == null) return;
+          const id = deleteConfirmUserId;
+          try {
+            await handleDelete(id);
+          } finally {
+            setDeleteConfirmUserId(null);
+          }
+        }}
+        title="Eliminar usuario"
+        destructive
+        loading={saving}
+        confirmLabel="Eliminar"
+      >
+        ¿Seguro que querés eliminar este usuario? Esta acción desactiva el usuario en el sistema.
+      </ConfirmDialog>
     </>
   );
 

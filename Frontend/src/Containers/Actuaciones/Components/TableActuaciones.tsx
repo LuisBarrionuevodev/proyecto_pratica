@@ -1,14 +1,15 @@
 import { Alert, Box, Typography, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_Row,
 } from "material-react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
-import { deleteActuacion, updateActuacion } from "../../../api/actuacionesApi";
+import { deleteActuacion } from "../../../api/actuacionesApi";
 import {
   fetchInspectores,
   fetchMotivos,
@@ -16,12 +17,11 @@ import {
   fetchTiposActuacion,
   fetchContraproducencias,
   fetchMotivosComprobacion,
-  validateRow,
 } from "../../../api/gridApi";
-import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
+import { ActuacionDetalleDialog } from "./ActuacionDetalleDialog";
 
 import {
   loadingStyles,
@@ -29,7 +29,12 @@ import {
   COLORS,
 } from "../styles/actuacionesTableStyles";
 
-import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
+import { ConfirmDialog } from "../../../ui";
+import { submitActuacionRow } from "../utils/submitActuacionRow";
+
+/** Referencia estable: `= []` en props default crea un array nuevo cada render y rompe el memo de columnas / MRT. */
+const EMPTY_EXTRA_COLUMNS: MRT_ColumnDef<IActuacionListItem>[] = [];
+const EMPTY_READ_ONLY_COLUMNS: string[] = [];
 
 interface TablaActuacionesProps {
   data?: IActuacionListItem[];
@@ -51,53 +56,6 @@ interface TablaActuacionesProps {
   numeroAllowFreeSolo?: boolean;
 }
 
-// ✅ UUID fijo válido para validar filas desde esta vista
-const UI_BATCH_ID = "00000000-0000-0000-0000-000000000001";
-
-// Mapeo de errores (backend -> snake_case de esta tabla)
-const ERROR_KEY_MAP: Record<string, string> = {
-  "Orden de trabajo": "orden_trabajo_numero",
-  "Fecha actuación": "fecha_actuacion",
-  "Tipo actuación": "tipo_actuacion",
-  "Contraproducencia": "contraproducencia",
-  "Inspector 1": "inspector1",
-  "Inspector 2": "inspector2",
-  "Inspector 3": "inspector3",
-  "Calle": "calle",
-  "Número": "numero",
-  "Rubro": "rubro_nombre",
-  "Apellido": "contrib_apellido",
-  "Nombre": "contrib_nombre",
-  "DNI": "doc_nro",
-  "Acta inspección": "acta_inspeccion_num",
-  "Acta notificación": "acta_notificacion_num",
-  "Motivo notif 1": "notificacion_motivo_1",
-  "Motivo notif 2": "notificacion_motivo_2",
-  "Motivo notif 3": "notificacion_motivo_3",
-  "Acta comprobación": "acta_comprobacion_num",
-  "Motivo comprobación": "comprobacion_motivo",
-  "Acta clausura": "acta_clausura_num",
-  "Acta decomiso": "acta_decomiso_num",
-  "Kilos decomiso": "decomiso_kilos_total",
-  "Acta notificación previa": "notificacion_previa_num",
-  "Acta comprobación previa": "comprobacion_previa_num",
-  "Expediente año": "expediente_anio",
-  "Expediente número": "expediente_numero",
-  "Oficio año": "oficio_anio",
-  "Oficio número": "oficio_numero",
-  "Oficio causa": "oficio_causa",
-};
-
-const normalizeErrors = (errors?: Record<string, string>) => {
-  if (!errors) return {};
-  const mapped: Record<string, string> = {};
-  Object.entries(errors).forEach(([key, msg]) => {
-    const targetKey = ERROR_KEY_MAP[key] || key;
-    mapped[targetKey] = msg;
-  });
-  return mapped;
-};
-
 const TablaActuaciones = ({
   data: externalData,
   loading: externalLoading,
@@ -110,10 +68,10 @@ const TablaActuaciones = ({
   skipUpdate = false,
   numeroHeader = "Número",
   numeroEditorLabel = "Número",
-  extraColumns = [],
+  extraColumns = EMPTY_EXTRA_COLUMNS,
   onBeforeSave,
   onAfterSave,
-  readOnlyColumns = [],
+  readOnlyColumns = EMPTY_READ_ONLY_COLUMNS,
   numeroCallesOptions,
   numeroAllowFreeSolo = false,
 }: TablaActuacionesProps) => {
@@ -122,20 +80,30 @@ const TablaActuaciones = ({
 
   const { isRefreshing, triggerRefresh } = useTableRefresh();
 
-  const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
-  const [catalogMotivos, setCatalogMotivos] = useState<string[]>([]);
-  const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
-  const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
-  const [catalogContras, setCatalogContras] = useState<string[]>([]);
-  const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
+  /** Un solo setState tras cargar catálogos evita 6 re-renders en serie al montar. */
+  const [catalogBundle, setCatalogBundle] = useState<{
+    inspectores: string[];
+    motivos: string[];
+    rubros: string[];
+    tipos: string[];
+    contras: string[];
+    motivosComprobacion: string[];
+  } | null>(null);
   // ✅ errores por celda por idActuacion
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
+  /** Actuación pendiente de confirmar borrado en `ConfirmDialog` (solo si no `hideDeleteAction`). */
+  const [deleteConfirmActuacionId, setDeleteConfirmActuacionId] = useState<number | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+  /** Fila abierta en modal de detalle/edición; la tabla es solo lectura. */
+  const [editDraft, setEditDraft] = useState<IActuacionListItem | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadCatalogs = async () => {
       try {
         const [inspectores, motivos, rubros, tipos, contras, motivosComp] = await Promise.all([
@@ -146,18 +114,23 @@ const TablaActuaciones = ({
           fetchContraproducencias(),
           fetchMotivosComprobacion(),
         ]);
-        // Deduplicar catálogos para evitar nombres repetidos
-        setCatalogInspectores([...new Set(inspectores.items.map((i: any) => i.nombre))]);
-        setCatalogMotivos([...new Set(motivos.items.map((m: any) => m.nombre))]);
-        setCatalogRubros([...new Set(rubros.items.map((r: any) => r.nombre))]);
-        setCatalogTipos([...new Set(tipos.items.map((t: any) => t.nombre))]);
-        setCatalogContras([...new Set(contras.items.map((c: any) => c.nombre))]);
-        setCatalogMotivosComprobacion([...new Set(motivosComp.items.map((m: any) => m.nombre))]);
+        if (cancelled) return;
+        setCatalogBundle({
+          inspectores: [...new Set(inspectores.items.map((i: any) => i.nombre))],
+          motivos: [...new Set(motivos.items.map((m: any) => m.nombre))],
+          rubros: [...new Set(rubros.items.map((r: any) => r.nombre))],
+          tipos: [...new Set(tipos.items.map((t: any) => t.nombre))],
+          contras: [...new Set(contras.items.map((c: any) => c.nombre))],
+          motivosComprobacion: [...new Set(motivosComp.items.map((m: any) => m.nombre))],
+        });
       } catch (error) {
         console.error("Error cargando catálogos:", error);
       }
     };
-    loadCatalogs();
+    void loadCatalogs();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Catálogos combinados (reusa helper del grid)
@@ -169,399 +142,154 @@ const TablaActuaciones = ({
     [data]
   );
 
-  const catalogs = useMemo(() => ({
-    inspectores: catalogInspectores,
-    motivos: catalogMotivos,
-    rubros: catalogRubros,
-    tipos: catalogTipos,
-    contraproducencias: catalogContras,
-    motivosComprobacion: catalogMotivosComprobacion,
-  }), [catalogInspectores, catalogMotivos, catalogRubros, catalogTipos, catalogContras, catalogMotivosComprobacion]);
+  const catalogs = useMemo(
+    () => ({
+      inspectores: catalogBundle?.inspectores ?? [],
+      motivos: catalogBundle?.motivos ?? [],
+      rubros: catalogBundle?.rubros ?? [],
+      tipos: catalogBundle?.tipos ?? [],
+      contraproducencias: catalogBundle?.contras ?? [],
+      motivosComprobacion: catalogBundle?.motivosComprobacion ?? [],
+    }),
+    [catalogBundle]
+  );
 
-  const handleDeleteRow = useCallback(async (id: number) => {
-    if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+  const performDeleteRow = useCallback(
+    async (id: number) => {
+      const prev = [...data];
+      setDeleteInProgress(true);
+      setData((prevData) => prevData.filter((item) => item.id !== id));
 
-    const prev = [...data];
-    setData(prevData => prevData.filter(item => item.id !== id));
+      try {
+        await deleteActuacion(id);
+        onRefresh?.();
+      } catch (error) {
+        console.error("Error al eliminar:", error);
+        alert("No se pudo eliminar el registro. Se restaurará la lista.");
+        setData(prev);
+      } finally {
+        setDeleteInProgress(false);
+      }
+    },
+    [data, onRefresh]
+  );
 
+  const handleEditDraftChange = useCallback((patch: Partial<IActuacionListItem>) => {
+    setEditDraft((prev) => (prev ? { ...prev, ...patch } : null));
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setEditDraft(null);
+  }, []);
+
+  const handleDialogSave = useCallback(async () => {
+    if (!editDraft) return;
+    const id = Number(editDraft.id);
+    setEditSaving(true);
     try {
-      await deleteActuacion(id);
-      onRefresh?.();
-    } catch (error) {
-      console.error("Error al eliminar:", error);
-      alert("No se pudo eliminar el registro. Se restaurará la lista.");
-      setData(prev);
-    }
-  }, [data, onRefresh]);
+      const result = await submitActuacionRow({
+        id,
+        fullRow: editDraft,
+        skipValidation,
+        skipUpdate,
+        onBeforeSave,
+        onAfterSave,
+        onValidationPassed: () => {
+          setRowErrors((prev) => ({ ...prev, [id]: {} }));
+        },
+      });
 
-  const handleSaveRow = useCallback(async ({ exitEditingMode, row, values }: any) => {
-    const id = Number(row.original.id);
-
-    // ✅ PUT: mandamos fila completa (merge original + values editados)
-    const fullRow = { ...row.original, ...values };
-
-    try {
-      if (!skipValidation) {
-        // ✅ Validación previa (pinta celdas rojas si hay errores)
-        const v = await validateRow({
-          batch_id: UI_BATCH_ID,
-          row_id: `act_${id}`,
-          row: fullRow as any, // importante: fullRow debe coincidir con lo que espera tu backend
-        });
-
-        if (!v.ok) {
-          setRowErrors(prev => ({ ...prev, [id]: normalizeErrors(v.errors || {}) }));
-          return; // NO salimos del modo edición
+      if (!result.ok) {
+        if (result.kind === "validation" || result.kind === "backend_fields") {
+          setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
+          return;
         }
-
-        // ✅ si OK, limpiar errores de esa fila
-        setRowErrors(prev => ({ ...prev, [id]: {} }));
-      }
-
-      if (onBeforeSave) {
-        await onBeforeSave(fullRow as IActuacionListItem);
-      }
-
-      if (!skipUpdate) {
-        // ✅ guardar con PUT (tu api ya debe usar put, no patch)
-        await updateActuacion(id, fullRow as any);
-      }
-
-      if (onAfterSave) {
-        await onAfterSave(fullRow as IActuacionListItem);
-      }
-
-      exitEditingMode();
-
-      triggerRefresh();
-      setTimeout(() => onRefresh?.(), 100);
-    } catch (error: any) {
-      console.error("Error al actualizar:", error);
-
-      // Si el backend devuelve 422 con errors por campo, podés mapearlos también:
-      const backendErrors = error?.response?.data?.errors;
-      if (backendErrors && typeof backendErrors === "object") {
-        setRowErrors(prev => ({ ...prev, [id]: normalizeErrors(backendErrors) }));
+        alert(result.message);
         return;
       }
 
-      const msg = error?.response?.data?.detail || "No se pudo actualizar el registro.";
-      alert(msg);
+      setEditDraft(null);
+      triggerRefresh();
+      setTimeout(() => onRefresh?.(), 100);
+    } finally {
+      setEditSaving(false);
     }
-  }, [onRefresh, triggerRefresh, onBeforeSave, onAfterSave, skipValidation, skipUpdate]);
+  }, [
+    editDraft,
+    onRefresh,
+    triggerRefresh,
+    onBeforeSave,
+    onAfterSave,
+    skipValidation,
+    skipUpdate,
+  ]);
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
     const baseColumns: MRT_ColumnDef<IActuacionListItem>[] = [
-    { accessorKey: "id", header: "ID", enableHiding: true, enableEditing: false, size: 80 },
+      { accessorKey: "id", header: "ID", enableHiding: true, size: 80 },
 
-    {
-      accessorKey: "orden_trabajo_numero",
-      header: "OT",
-      size: 100,
-      enableEditing: !readOnlyColumns.includes("orden_trabajo_numero"),
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["orden_trabajo_numero"];
-        return { required: true, error: !!err, helperText: err ?? "" };
-      },
-    },
+      { accessorKey: "orden_trabajo_numero", header: "OT", size: 100 },
+      { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
+      { accessorKey: "tipo_actuacion", header: "Tipo", size: 180 },
+      { accessorKey: "contraproducencia", header: "Contraproducencia", size: 180 },
+      { accessorKey: "rubro_nombre", header: "Rubro", size: 200 },
 
-    {
-      accessorKey: "fecha_actuacion",
-      header: "Fecha",
-      size: 120,
-      enableEditing: !readOnlyColumns.includes("fecha_actuacion"),
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["fecha_actuacion"];
-        return { type: "date", required: true, error: !!err, helperText: err ?? "" };
-      },
-    },
+      { accessorKey: "inspector1", header: "Inspector 1", size: 150 },
+      { accessorKey: "inspector2", header: "Inspector 2", size: 150 },
+      { accessorKey: "inspector3", header: "Inspector 3", size: 150 },
 
-    {
-      accessorKey: "tipo_actuacion",
-      header: "Tipo",
-      size: 180,
-      editVariant: "select",
-      // Opciones desde catálogo (backend)
-      editSelectOptions: getDropdownOptions("Tipo actuación", catalogs),
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["tipo_actuacion"];
-        return { select: true, error: !!err, helperText: err ?? "" };
+      {
+        accessorKey: "calle",
+        header: "Calle",
+        size: 200,
+        Cell: ({ row }) => {
+          if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
+            return row.original.calle_normalizada;
+          }
+          return row.original.calle ?? "";
+        },
       },
-    },
+      {
+        accessorKey: "numero",
+        header: numeroHeader,
+        size: 400,
+        Cell: ({ row }) => {
+          if (
+            row.original.numero_tipo === "ESQUINA" &&
+            (row.original.numero_esquina || row.original.esquina_normalizada)
+          ) {
+            return row.original.numero_esquina || row.original.esquina_normalizada || "";
+          }
+          return row.original.numero ?? "";
+        },
+      },
 
-    {
-      accessorKey: "contraproducencia",
-      header: "Contraproducencia",
-      size: 180,
-      editVariant: "select",
-      // Opciones desde catálogo (backend)
-      editSelectOptions: getDropdownOptions("Contraproducencia", catalogs),
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["contraproducencia"];
-        return { select: true, error: !!err, helperText: err ?? "" };
-      },
-    },
+      { accessorKey: "doc_nro", header: "Doc. Nro", size: 120 },
+      { accessorKey: "contrib_apellido", header: "Contribuyente Apellido", size: 180 },
+      { accessorKey: "contrib_nombre", header: "Contribuyente Nombre", size: 180 },
 
-    {
-      accessorKey: "rubro_nombre",
-      header: "Rubro",
-      size: 200,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogRubros],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["rubro_nombre"];
-        return { select: true, error: !!err, helperText: err ?? "" };
-      },
-    },
+      { accessorKey: "acta_inspeccion_num", header: "Acta Inspección", size: 150 },
+      { accessorKey: "acta_notificacion_num", header: "Acta Notificación", size: 150 },
+      { accessorKey: "notificacion_motivo_1", header: "Motivo Notif. 1", size: 180 },
+      { accessorKey: "notificacion_motivo_2", header: "Motivo Notif. 2", size: 180 },
+      { accessorKey: "notificacion_motivo_3", header: "Motivo Notif. 3", size: 180 },
 
-    {
-      accessorKey: "inspector1",
-      header: "Inspector 1",
-      size: 150,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogInspectores],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["inspector1"];
-        return { select: true, error: !!err, helperText: err ?? "" };
-      },
-    },
-    {
-      accessorKey: "inspector2",
-      header: "Inspector 2",
-      size: 150,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogInspectores],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["inspector2"];
-        return { select: true, error: !!err, helperText: err ?? "" };
-      },
-    },
-    {
-      accessorKey: "inspector3",
-      header: "Inspector 3",
-      size: 150,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogInspectores],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["inspector3"];
-        return { select: true, error: !!err, helperText: err ?? "" };
-      },
-    },
+      { accessorKey: "acta_comprobacion_num", header: "Acta Comprobación", size: 150 },
+      { accessorKey: "comprobacion_motivo", header: "Motivo Comprob.", size: 180 },
 
-    {
-      accessorKey: "calle",
-      header: "Calle",
-      size: 200,
-      Cell: ({ row }) => {
-        if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
-          return row.original.calle_normalizada;
-        }
-        return row.original.calle ?? "";
-      },
-    },
-    {
-      accessorKey: "numero",
-      header: numeroHeader,
-      size: 400,
-      Cell: ({ row }) => {
-        if (
-          row.original.numero_tipo === "ESQUINA" &&
-          (row.original.numero_esquina || row.original.esquina_normalizada)
-        ) {
-          return row.original.numero_esquina || row.original.esquina_normalizada || "";
-        }
-        return row.original.numero ?? "";
-      },
-      Edit: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["numero"];
-        const currentValue =
-          (row as any)?._valuesCache?.numero ?? row.original.numero ?? null;
+      { accessorKey: "acta_clausura_num", header: "Acta Clausura", size: 150 },
+      { accessorKey: "acta_decomiso_num", header: "Acta Decomiso", size: 150 },
+      { accessorKey: "decomiso_kilos_total", header: "Kilos Decomisados", size: 150 },
 
-        return (
-          <NumeroEsquinaEditor
-            value={currentValue}
-            onChange={(newValue) => {
-              (row as any)._valuesCache = {
-                ...(row as any)._valuesCache,
-                numero: newValue,
-              };
-            }}
-            onModeChange={(mode) => {
-              (row as any)._valuesCache = {
-                ...(row as any)._valuesCache,
-                numero_tipo: mode,
-              };
-            }}
-            extraCalles={numeroCallesOptions}
-            label={numeroEditorLabel}
-            error={!!err}
-            helperText={err ?? ""}
-            allowFreeSolo={numeroAllowFreeSolo}
-            initialMode={(row.original as any).numero_tipo || undefined}
-          />
-        );
-      },
-    },
+      { accessorKey: "expediente_numero", header: "Expediente Nro", size: 150 },
+      { accessorKey: "expediente_anio", header: "Expediente Año", size: 120 },
 
-    { accessorKey: "doc_nro", header: "Doc. Nro", size: 120 },
-    { accessorKey: "contrib_apellido", header: "Contribuyente Apellido", size: 180 },
-    { accessorKey: "contrib_nombre", header: "Contribuyente Nombre", size: 180 },
-
-    { accessorKey: "acta_inspeccion_num", header: "Acta Inspección", size: 150 },
-    {
-      accessorKey: "acta_notificacion_num",
-      header: "Acta Notificación",
-      size: 150,
-      muiEditTextFieldProps: ({ row }) => {
-        const locked = row.original.notificacion_editable === false;
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["acta_notificacion_num"];
-        return {
-          disabled: locked,
-          error: !!err,
-          helperText: locked
-            ? "Notificación con expediente: no editable aquí."
-            : err ?? "",
-        };
-      },
-    },
-
-    {
-      accessorKey: "notificacion_motivo_1",
-      header: "Motivo Notif. 1",
-      size: 180,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogMotivos],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["notificacion_motivo_1"];
-        const locked = row.original.notificacion_editable === false;
-        return {
-          select: true,
-          disabled: locked,
-          error: !!err,
-          helperText: locked
-            ? "Notificación con expediente: no editable aquí."
-            : err ?? "",
-        };
-      },
-    },
-    {
-      accessorKey: "notificacion_motivo_2",
-      header: "Motivo Notif. 2",
-      size: 180,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogMotivos],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["notificacion_motivo_2"];
-        const locked = row.original.notificacion_editable === false;
-        return {
-          select: true,
-          disabled: locked,
-          error: !!err,
-          helperText: locked
-            ? "Notificación con expediente: no editable aquí."
-            : err ?? "",
-        };
-      },
-    },
-    {
-      accessorKey: "notificacion_motivo_3",
-      header: "Motivo Notif. 3",
-      size: 180,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogMotivos],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["notificacion_motivo_3"];
-        const locked = row.original.notificacion_editable === false;
-        return {
-          select: true,
-          disabled: locked,
-          error: !!err,
-          helperText: locked
-            ? "Notificación con expediente: no editable aquí."
-            : err ?? "",
-        };
-      },
-    },
-
-    {
-      accessorKey: "acta_comprobacion_num",
-      header: "Acta Comprobación",
-      size: 150,
-      muiEditTextFieldProps: ({ row }) => {
-        const locked = row.original.comprobacion_editable === false;
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["acta_comprobacion_num"];
-        return {
-          disabled: locked,
-          error: !!err,
-          helperText: locked
-            ? "Comprobación con expediente: no editable aquí."
-            : err ?? "",
-        };
-      },
-    },
-    {
-      accessorKey: "comprobacion_motivo",
-      header: "Motivo Comprob.",
-      size: 180,
-      editVariant: "select",
-      // Opciones desde catálogo (backend)
-      editSelectOptions: getDropdownOptions("Motivo comprobación", catalogs),
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["comprobacion_motivo"];
-        const locked = row.original.comprobacion_editable === false;
-        return {
-          select: true,
-          disabled: locked,
-          error: !!err,
-          helperText: locked
-            ? "Comprobación con expediente: no editable aquí."
-            : err ?? "",
-        };
-      },
-    },
-
-    { accessorKey: "acta_clausura_num", header: "Acta Clausura", size: 150 },
-    { accessorKey: "acta_decomiso_num", header: "Acta Decomiso", size: 150 },
-    { accessorKey: "decomiso_kilos_total", header: "Kilos Decomisados", size: 150 },
-
-    { accessorKey: "expediente_numero", header: "Expediente Nro", size: 150 },
-    { accessorKey: "expediente_anio", header: "Expediente Año", size: 120 },
-
-    { accessorKey: "oficio_numero", header: "Oficio Nro", size: 120 },
-    { accessorKey: "oficio_anio", header: "Oficio Año", size: 120 },
-    { accessorKey: "oficio_causa", header: "Oficio Causa", size: 180 },
-
-    { accessorKey: "notificacion_previa_num", header: "Notificación Previa", size: 150 },
-    { accessorKey: "comprobacion_previa_num", header: "Comprobación Previa", size: 150 },
-
+      { accessorKey: "oficio_numero", header: "Oficio Nro", size: 120 },
+      { accessorKey: "oficio_anio", header: "Oficio Año", size: 120 },
+      { accessorKey: "oficio_causa", header: "Oficio Causa", size: 180 },
     ];
     return [...baseColumns, ...extraColumns];
-  }, [
-    catalogInspectores,
-    catalogMotivos,
-    catalogRubros,
-    catalogs,
-    rowErrors,
-    extraColumns,
-    numeroCallesOptions,
-    numeroHeader,
-    numeroEditorLabel,
-  ]);
+  }, [extraColumns, numeroHeader]);
 
   const columnOrder = useMemo(() => ([
     "mrt-row-select",
@@ -569,28 +297,9 @@ const TablaActuaciones = ({
     ...columns.map((col) => col.accessorKey as string),
   ]), [columns, hideRowActions]);
 
-  const table = useMaterialReactTable({
-    ...DARK_TABLE_CONFIG,
-    columns,
-    data,
-    enableEditing,
-    editDisplayMode: "row",
-    enableSorting: true,
-    enableColumnFilters: true,
-    enableGlobalFilter: true,
-    enableRowActions: !hideRowActions,
-    // Acciones al inicio (después del checkbox de selección)
-    positionActionsColumn: "first",
-    enableHiding: true,
-
-    // ✅ pintar celdas con error incluso fuera de edición
-    muiTableBodyCellProps: ({ row, column }) => {
-      const rid = Number(row.original.id);
-      const err = rowErrors[rid]?.[column.id];
-      return err ? { sx: { backgroundColor: "rgba(255, 68, 68, 0.15)" } } : {};
-    },
-
-    initialState: {
+  /** Objeto estable: un `initialState` nuevo cada render puede hacer que MRT re-sincronice estado interno sin fin. */
+  const tableInitialState = useMemo(
+    () => ({
       columnOrder,
       columnVisibility: {
         id: false,
@@ -610,27 +319,52 @@ const TablaActuaciones = ({
         oficio_numero: false,
         oficio_anio: false,
         oficio_causa: false,
-        notificacion_previa_num: false,
-        comprobacion_previa_num: false,
         ...initialColumnVisibility,
       },
-      density: "compact",
+      density: "compact" as const,
+    }),
+    [columnOrder, initialColumnVisibility]
+  );
+
+  /**
+   * El override de `muiTableBodyCellProps` debe componerse con el de `DARK_TABLE_CONFIG`;
+   * si no, las celdas sin error pierden zebra, bordes y tipografía (layout “roto”).
+   */
+  const baseMuiTableBodyCellProps = DARK_TABLE_CONFIG.muiTableBodyCellProps;
+
+  const muiTableBodyCellPropsMerged = useCallback(
+    ({ row, column }: { row: MRT_Row<IActuacionListItem>; column: { id?: string } }) => {
+      const base =
+        typeof baseMuiTableBodyCellProps === "function"
+          ? baseMuiTableBodyCellProps({ row } as Parameters<typeof baseMuiTableBodyCellProps>[0])
+          : {};
+      const rid = Number(row.original.id);
+      const err = rowErrors[rid]?.[String(column.id)];
+      if (!err) return base;
+      const prev = base as { sx?: Record<string, unknown> };
+      const sx = prev.sx;
+      const mergedSx =
+        sx && typeof sx === "object" && !Array.isArray(sx)
+          ? { ...sx, backgroundColor: "rgba(255, 68, 68, 0.15)" }
+          : { backgroundColor: "rgba(255, 68, 68, 0.15)" };
+      return { ...base, sx: mergedSx };
     },
+    [rowErrors]
+  );
 
-    onEditingRowSave: handleSaveRow,
-
-    renderRowActions: hideRowActions ? undefined : ({ row, table }) => (
+  const renderRowActionsCb = useCallback(
+    ({ row }: { row: MRT_Row<IActuacionListItem> }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        <Tooltip title="Editar">
+        <Tooltip title="Ver detalle">
           <IconButton
             sx={{
               color: COLORS.white,
               transition: "color 0.2s ease, background-color 0.2s ease",
               "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
             }}
-            onClick={() => table.setEditingRow(row)}
+            onClick={() => setEditDraft({ ...row.original })}
           >
-            <EditIcon />
+            <VisibilityIcon />
           </IconButton>
         </Tooltip>
 
@@ -642,7 +376,7 @@ const TablaActuaciones = ({
                 transition: "color 0.2s ease, background-color 0.2s ease",
                 "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
               }}
-              onClick={() => handleDeleteRow(Number(row.original.id))}
+              onClick={() => setDeleteConfirmActuacionId(Number(row.original.id))}
             >
               <DeleteIcon />
             </IconButton>
@@ -650,10 +384,37 @@ const TablaActuaciones = ({
         )}
       </Box>
     ),
+    [hideDeleteAction]
+  );
 
-    renderTopToolbarCustomActions: ({ table }) => (
+  const renderTopToolbarCustomActionsCb = useCallback(
+    ({ table }: { table: Parameters<typeof TablaExportButtons>[0]["table"] }) => (
       <TablaExportButtons table={table} filePrefix="actuaciones" />
     ),
+    []
+  );
+
+  const table = useMaterialReactTable({
+    ...DARK_TABLE_CONFIG,
+    columns,
+    data,
+    /** La grilla es solo lectura; `enableEditing` (prop) solo habilita el botón y el diálogo. */
+    enableEditing: false,
+    enableSorting: true,
+    enableColumnFilters: true,
+    enableGlobalFilter: true,
+    enableRowActions: !hideRowActions,
+    // Acciones al inicio (después del checkbox de selección)
+    positionActionsColumn: "first",
+    enableHiding: true,
+
+    muiTableBodyCellProps: muiTableBodyCellPropsMerged,
+
+    initialState: tableInitialState,
+
+    renderRowActions: hideRowActions ? undefined : renderRowActionsCb,
+
+    renderTopToolbarCustomActions: renderTopToolbarCustomActionsCb,
   });
 
   if (loading) {
@@ -676,6 +437,44 @@ const TablaActuaciones = ({
         <MaterialReactTable table={table} />
       </AnimatedTable>
       <GridLegend />
+
+      {editDraft && (
+        <ActuacionDetalleDialog
+          open
+          draft={editDraft}
+          fieldErrors={rowErrors[editDraft.id] ?? {}}
+          saving={editSaving}
+          catalogs={catalogs}
+          readOnlyColumns={readOnlyColumns}
+          numeroCallesOptions={numeroCallesOptions}
+          numeroEditorLabel={numeroEditorLabel}
+          numeroAllowFreeSolo={numeroAllowFreeSolo}
+          canEdit={enableEditing}
+          onClose={handleCloseEditDialog}
+          onDraftChange={handleEditDraftChange}
+          onSave={handleDialogSave}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteConfirmActuacionId !== null}
+        onClose={() => setDeleteConfirmActuacionId(null)}
+        onConfirm={async () => {
+          if (deleteConfirmActuacionId == null) return;
+          const id = deleteConfirmActuacionId;
+          try {
+            await performDeleteRow(id);
+          } finally {
+            setDeleteConfirmActuacionId(null);
+          }
+        }}
+        title="Eliminar actuación"
+        destructive
+        loading={deleteInProgress}
+        confirmLabel="Eliminar"
+      >
+        ¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer desde esta vista.
+      </ConfirmDialog>
     </Box>
   );
 };

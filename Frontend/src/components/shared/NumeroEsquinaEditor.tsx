@@ -102,9 +102,15 @@ const NumeroEsquinaEditor = ({
     setInputValue(value ?? "");
   }, [initialMode, value]);
 
+  /**
+   * Sincroniza el modo con el padre. NO incluir `onModeChange` en dependencias: si el padre pasa
+   * un callback inline nuevo en cada render, el efecto se re-ejecuta en bucle (setState → re-render → …).
+   */
+  const onModeChangeRef = useRef(onModeChange);
+  onModeChangeRef.current = onModeChange;
   useEffect(() => {
-    onModeChange?.(mode);
-  }, [mode, onModeChange]);
+    onModeChangeRef.current?.(mode);
+  }, [mode]);
 
   useEffect(() => {
     if (mode !== "ESQUINA") return;

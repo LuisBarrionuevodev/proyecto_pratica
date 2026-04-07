@@ -20,6 +20,8 @@ export interface IActuacionListItem {
     calle_ingresada?: string | null;
     tipo_actuacion: string | null;
     contraproducencia: string | null;
+    /** Presente en respuesta API (reinspección por oficio, etc.). */
+    resultado_cumplimiento_oficio?: string | null;
     doc_nro: string | null;
     contrib_apellido: string | null;
     contrib_nombre: string | null;
@@ -38,6 +40,8 @@ export interface IActuacionListItem {
     oficio_numero: string | null;
     oficio_anio: number | null;
     oficio_causa: string | null;
+    /** Presente en respuesta API; opcional en UI de bandeja. */
+    nombre_local?: string | null;
     notificacion_previa_num: string | null;
     comprobacion_previa_num: string | null;
     domicilio_id?: number | null;

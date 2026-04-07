@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Alert } from "@mui/material";
+import { Alert, Box } from "@mui/material";
 
 import type { IRutaItemMin } from "../../../api/rutasTrabajoApi";
+import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 
 interface Props {
@@ -50,24 +51,27 @@ const ModalEditarOrdenTrabajoItem = ({ open, onClose, item, onConfirm }: Props) 
       onCloseButtonClick={() => handleClose()}
       title="Definir orden de trabajo"
       maxWidth="xs"
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      contentDividers
+      contentSx={formDialogContentStackSx}
       actions={
-        <>
+        <Box sx={dialogFormActionsRowSx}>
           <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
             Cancelar
           </AppButton>
           <AppButton dsVariant="primary" onClick={handleConfirm} disabled={saving} loading={saving}>
             Guardar OT
           </AppButton>
-        </>
+        </Box>
       }
     >
       {error && <Alert severity="error">{error}</Alert>}
       <AppTextField
+        appearance="glass"
         label="Número OT"
         value={numero}
         onChange={(e) => setNumero(e.target.value)}
         fullWidth
+        variant="outlined"
         autoFocus
       />
     </AppDialog>

@@ -55,15 +55,28 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const [callesCatalogo, setCallesCatalogo] = useState<CalleCatalogoItem[]>([]);
 
-  const handleFiltrarTodos = (filtros: {
-    desde: string | null;
-    hasta: string | null;
-    tipo: string | null;
-    contraproducencia: string | null;
-    orden_trabajo: string | null;
-  }) => {
-    buscar(filtros);
-  };
+  const handleFiltrarTodos = useCallback(
+    (filtros: {
+      desde: string | null;
+      hasta: string | null;
+      tipo: string | null;
+      contraproducencia: string | null;
+      orden_trabajo: string | null;
+    }) => {
+      void buscar(filtros);
+    },
+    [buscar]
+  );
+
+  const handleRefreshListaActuaciones = useCallback(() => {
+    handleFiltrarTodos({
+      desde: meta?.desde || null,
+      hasta: meta?.hasta || null,
+      tipo: meta?.tipo || null,
+      contraproducencia: meta?.contraproducencia || null,
+      orden_trabajo: meta?.orden_trabajo || null,
+    });
+  }, [handleFiltrarTodos, meta]);
 
   useEffect(() => {
     getActuacionesPendientesSummary(pendientesDesde, pendientesHasta)
@@ -156,8 +169,6 @@ const ActuacionesContainer = (): JSX.Element => {
       oficio_numero: false,
       oficio_anio: false,
       oficio_causa: false,
-      notificacion_previa_num: false,
-      comprobacion_previa_num: false,
     };
   }, [pendingType]);
 
@@ -177,7 +188,15 @@ const ActuacionesContainer = (): JSX.Element => {
             )}
 
             {loading && (
-              <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: 320,
+                  width: "100%",
+                }}
+              >
                 <CircularProgress sx={{ color: "#0166FF" }} />
               </Box>
             )}
@@ -220,15 +239,7 @@ const ActuacionesContainer = (): JSX.Element => {
               <TablaActuaciones
                 data={actuaciones}
                 loading={loading}
-                onRefresh={() =>
-                  handleFiltrarTodos({
-                    desde: meta?.desde || null,
-                    hasta: meta?.hasta || null,
-                    tipo: meta?.tipo || null,
-                    contraproducencia: meta?.contraproducencia || null,
-                    orden_trabajo: meta?.orden_trabajo || null,
-                  })
-                }
+                onRefresh={handleRefreshListaActuaciones}
               />
             )}
         </>

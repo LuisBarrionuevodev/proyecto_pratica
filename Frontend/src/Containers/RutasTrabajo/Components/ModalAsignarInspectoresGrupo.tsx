@@ -12,6 +12,7 @@ import {
 import type { CatalogItem } from "../../../api/gridApi";
 import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 
 interface Props {
@@ -75,12 +76,15 @@ const ModalAsignarInspectoresGrupo = ({ open, onClose, onSubmit, grupo, inspecto
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}
       title="Asignar/Reemplazar inspectores"
+      contentDividers
+      contentSx={formDialogContentStackSx}
       actions={
-        <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
-          Cancelar
-        </AppButton>
+        <Box sx={dialogFormActionsRowSx}>
+          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+            Cancelar
+          </AppButton>
+        </Box>
       }
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
     >
       <AppTextField
         label="Grupo"

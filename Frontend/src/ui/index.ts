@@ -7,6 +7,7 @@ export {
   type AppDialogProps,
   type AppDialogTone,
 } from "./AppDialog";
+export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
 export { AppChip, type AppChipProps, type AppChipTone } from "./AppChip";
 export { CardGlass, type CardGlassProps, type CardGlassPadding } from "./CardGlass";
 export { CardData, type CardDataProps, type CardDataSurface, type CardDataPadding } from "./CardData";

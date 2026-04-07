@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
+import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog } from "../../../ui";
 
 interface Props {
@@ -35,9 +36,10 @@ const ModalCrearGrupoRuta = ({ open, onClose, onSubmit, disabled = false }: Prop
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}
       title="Crear grupo"
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      contentDividers
+      contentSx={formDialogContentStackSx}
       actions={
-        <>
+        <Box sx={dialogFormActionsRowSx}>
           <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
             Cancelar
           </AppButton>
@@ -49,7 +51,7 @@ const ModalCrearGrupoRuta = ({ open, onClose, onSubmit, disabled = false }: Prop
           >
             Crear grupo
           </AppButton>
-        </>
+        </Box>
       }
     >
       <Typography variant="body2" color="text.secondary">

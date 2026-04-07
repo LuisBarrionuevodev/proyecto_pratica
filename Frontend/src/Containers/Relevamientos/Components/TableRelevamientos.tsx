@@ -8,9 +8,10 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
-import { updateRelevamiento, deleteRelevamiento } from "../../../api/relevamientosApi";
-import { validateRow, startBatch, fetchInspectores, fetchRubros } from "../../../api/gridApi";
-import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
+import { deleteRelevamiento } from "../../../api/relevamientosApi";
+import { startBatch, fetchInspectores, fetchRubros } from "../../../api/gridApi";
+import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
+import { RelevamientoEditDialog } from "./RelevamientoEditDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   loadingStyles,
@@ -38,26 +39,6 @@ interface TablaRelevamientosProps {
   numeroAllowFreeSolo?: boolean;
 }
 
-const ERROR_KEY_MAP: Record<string, string> = {
-  Fecha: "fecha",
-  Inspector: "inspector",
-  Calle: "calle",
-  Numero: "numero",
-  Rubro: "rubro",
-  Turno: "turno",
-  "Está abierto": "esta_abierto",
-};
-
-const normalizeErrors = (errors?: Record<string, string>) => {
-  if (!errors) return {};
-  const mapped: Record<string, string> = {};
-  Object.entries(errors).forEach(([key, msg]) => {
-    const targetKey = ERROR_KEY_MAP[key] || key;
-    mapped[targetKey] = msg;
-  });
-  return mapped;
-};
-
 const TablaRelevamientos = ({
   data: externalData,
   loading: externalLoading,
@@ -83,6 +64,8 @@ const TablaRelevamientos = ({
   const [batchId, setBatchId] = useState<string | null>(null);
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
+  const [editDraft, setEditDraft] = useState<IRelevamientoListItem | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
@@ -112,18 +95,6 @@ const TablaRelevamientos = ({
     loadCatalogs();
   }, []);
 
-  const buildGridRow = (row: IRelevamientoListItem) => ({
-    ID: row.id,
-    Fecha: row.fecha,
-    Inspector: row.inspector,
-    Calle: row.calle,
-    Numero: row.numero,
-    Rubro: row.rubro,
-    Turno: row.turno ?? "",
-    "Está abierto":
-      row.esta_abierto === true ? "Sí" : row.esta_abierto === false ? "No" : "",
-  });
-
   const handleDeleteRow = useCallback(async (rowItem: IRelevamientoListItem) => {
     const id = Number(rowItem.id);
     if (rowItem.editable === false) {
@@ -146,205 +117,115 @@ const TablaRelevamientos = ({
     }
   }, [data, onRefresh]);
 
-  const normalizeRelevamientoRowForApi = (row: IRelevamientoListItem): IRelevamientoListItem => {
-    const copy = { ...row };
-    const ea = copy.esta_abierto as unknown;
-    if (ea === "Sí" || ea === "Si" || ea === "si") copy.esta_abierto = true;
-    else if (ea === "No" || ea === "no") copy.esta_abierto = false;
-    else if (ea === "" || ea === undefined) copy.esta_abierto = null;
-    if (copy.turno === "") copy.turno = null;
-    return copy;
-  };
+  const catalogs = useMemo(
+    () => ({ inspectores: catalogInspectores, rubros: catalogRubros }),
+    [catalogInspectores, catalogRubros]
+  );
 
-  const handleSaveRow = useCallback(
-    async ({ exitEditingMode, row, values }: any) => {
-      const id = Number(row.original.id);
-      const fullRow = normalizeRelevamientoRowForApi({ ...row.original, ...values } as IRelevamientoListItem);
-      if ((fullRow as IRelevamientoListItem).editable === false) {
-        alert("Este relevamiento ya no está operativo y no puede editarse.");
+  const handleDialogSave = useCallback(async () => {
+    if (!editDraft) return;
+    const id = Number(editDraft.id);
+    const fullRow = editDraft;
+    if (fullRow.editable === false) {
+      alert("Este relevamiento ya no está operativo y no puede editarse.");
+      onRefresh?.();
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const result = await submitRelevamientoRow({
+        id,
+        fullRow,
+        batchId,
+        skipValidation,
+        skipUpdate,
+        onBeforeSave,
+        onAfterSave,
+        onBeforePersist: () => {
+          setRowErrors((prev) => ({ ...prev, [id]: {} }));
+        },
+      });
+
+      if (!result.ok) {
+        if (result.kind === "validation" || result.kind === "backend_fields") {
+          setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
+          return;
+        }
+        alert(result.message);
         onRefresh?.();
         return;
       }
 
-      if (batchId && !skipValidation) {
-        const v = await validateRow({
-          batch_id: batchId,
-          row_id: `rel_${id}`,
-          row: buildGridRow(fullRow as IRelevamientoListItem) as any,
-        });
-
-        if (!v.ok) {
-          setRowErrors((prev) => ({ ...prev, [id]: normalizeErrors(v.errors || {}) }));
-          return;
-        }
-      }
-
-      setRowErrors((prev) => ({ ...prev, [id]: {} }));
-
-      try {
-        if (onBeforeSave) {
-          await onBeforeSave(fullRow as IRelevamientoListItem);
-        }
-        if (!skipUpdate) {
-          await updateRelevamiento(id, fullRow as IRelevamientoListItem);
-        }
-
-        if (onAfterSave) {
-          await onAfterSave(fullRow as IRelevamientoListItem);
-        }
-
-        exitEditingMode();
-        onRefresh?.();
-      } catch (error: any) {
-        console.error("Error al actualizar:", error);
-        const backendErrors = error?.response?.data?.errors;
-        if (backendErrors && typeof backendErrors === "object") {
-          setRowErrors((prev) => ({ ...prev, [id]: normalizeErrors(backendErrors) }));
-          return;
-        }
-        const msg = error?.response?.data?.detail || "No se pudo actualizar el registro.";
-        alert(msg);
-        onRefresh?.();
-      }
-    },
-    [batchId, onRefresh, onBeforeSave, onAfterSave, skipValidation, skipUpdate]
-  );
+      setEditDraft(null);
+      onRefresh?.();
+    } finally {
+      setEditSaving(false);
+    }
+  }, [
+    editDraft,
+    batchId,
+    onRefresh,
+    onBeforeSave,
+    onAfterSave,
+    skipValidation,
+    skipUpdate,
+  ]);
 
   const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => {
     const baseColumns: MRT_ColumnDef<IRelevamientoListItem>[] = [
-      { accessorKey: "id", header: "ID", enableHiding: true, enableEditing: false, size: 80 },
-    {
-      accessorKey: "fecha",
-      header: "Fecha",
-      size: 120,
-      enableEditing: !readOnlyColumns.includes("fecha"),
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["fecha"];
-        return { type: "date", required: true, error: !!err, helperText: err ?? "" };
+      { accessorKey: "id", header: "ID", enableHiding: true, size: 80 },
+      { accessorKey: "fecha", header: "Fecha", size: 120 },
+      { accessorKey: "inspector", header: "Inspector", size: 200 },
+      {
+        accessorKey: "calle",
+        header: "Calle",
+        size: 200,
+        Cell: ({ row }) => {
+          if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
+            return row.original.calle_normalizada;
+          }
+          return row.original.calle ?? "";
+        },
       },
-    },
-    {
-      accessorKey: "inspector",
-      header: "Inspector",
-      size: 200,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogInspectores],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["inspector"];
-        return { select: true, required: true, error: !!err, helperText: err ?? "" };
+      {
+        accessorKey: "numero",
+        header: numeroHeader,
+        size: 400,
+        Cell: ({ row }) => {
+          if (
+            row.original.numero_tipo === "ESQUINA" &&
+            (row.original.numero_esquina || row.original.esquina_normalizada)
+          ) {
+            return row.original.numero_esquina || row.original.esquina_normalizada || "";
+          }
+          return row.original.numero ?? "";
+        },
       },
-    },
-    {
-      accessorKey: "calle",
-      header: "Calle",
-      size: 200,
-      Cell: ({ row }) => {
-        if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
-          return row.original.calle_normalizada;
-        }
-        return row.original.calle ?? "";
-      },
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["calle"];
-        return { required: true, error: !!err, helperText: err ?? "" };
-      },
-    },
-    {
-      accessorKey: "numero",
-      header: numeroHeader,
-      size: 400,
-      Cell: ({ row }) => {
-        if (
-          row.original.numero_tipo === "ESQUINA" &&
-          (row.original.numero_esquina || row.original.esquina_normalizada)
-        ) {
-          return row.original.numero_esquina || row.original.esquina_normalizada || "";
-        }
-        return row.original.numero ?? "";
-      },
-      Edit: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["numero"];
-        const currentValue =
-          (row as any)?._valuesCache?.numero ?? row.original.numero ?? null;
-
-        return (
-          <NumeroEsquinaEditor
-            value={currentValue}
-            onChange={(newValue) => {
-              (row as any)._valuesCache = {
-                ...(row as any)._valuesCache,
-                numero: newValue,
-              };
-            }}
-            onModeChange={(mode) => {
-              (row as any)._valuesCache = {
-                ...(row as any)._valuesCache,
-                numero_tipo: mode,
-              };
-            }}
-            extraCalles={numeroCallesOptions}
-            label={numeroEditorLabel}
-            error={!!err}
-            helperText={err ?? ""}
-            allowFreeSolo={numeroAllowFreeSolo}
-            initialMode={(row.original as any).numero_tipo || undefined}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "rubro",
-      header: "Rubro",
-      size: 180,
-      editVariant: "select",
-      editSelectOptions: ["", ...catalogRubros],
-      muiEditTextFieldProps: ({ row }) => {
-        const rid = Number(row.original.id);
-        const err = rowErrors[rid]?.["rubro"];
-        return { select: true, required: true, error: !!err, helperText: err ?? "" };
-      },
-    },
+      { accessorKey: "rubro", header: "Rubro", size: 180 },
       {
         accessorKey: "turno",
         header: "Turno",
         size: 130,
-        editVariant: "select",
-        editSelectOptions: ["", "MANIANA", "TARDE"],
         Cell: ({ cell }) => {
           const v = cell.getValue() as string | null | undefined;
           return v || "—";
-        },
-        muiEditTextFieldProps: ({ row }) => {
-          const rid = Number(row.original.id);
-          const err = rowErrors[rid]?.["turno"];
-          return { select: true, error: !!err, helperText: err ?? "" };
         },
       },
       {
         accessorKey: "esta_abierto",
         header: "Está abierto",
         size: 130,
-        editVariant: "select",
-        editSelectOptions: ["", "Sí", "No"],
         Cell: ({ cell }) => {
           const v = cell.getValue() as boolean | string | null | undefined;
           if (v === true || v === "Sí") return "Sí";
           if (v === false || v === "No") return "No";
           return "—";
         },
-        muiEditTextFieldProps: ({ row }) => {
-          const rid = Number(row.original.id);
-          const err = rowErrors[rid]?.["esta_abierto"];
-          return { select: true, error: !!err, helperText: err ?? "" };
-        },
       },
     ];
     return [...baseColumns, ...extraColumns];
-  }, [rowErrors, catalogInspectores, catalogRubros, extraColumns, numeroCallesOptions, numeroHeader, numeroEditorLabel]);
+  }, [extraColumns, numeroHeader]);
 
   const columnOrder = useMemo(() => ([
     ...(hideRowActions ? [] : ["mrt-row-actions"]),
@@ -355,8 +236,8 @@ const TablaRelevamientos = ({
     ...DARK_TABLE_CONFIG,
     columns,
     data,
-    enableEditing,
-    editDisplayMode: "row",
+    /** La grilla es solo lectura; la prop `enableEditing` habilita el botón y el diálogo. */
+    enableEditing: false,
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
@@ -377,22 +258,23 @@ const TablaRelevamientos = ({
         ...initialColumnVisibility,
       },
     },
-    onEditingRowSave: handleSaveRow,
-    renderRowActions: hideRowActions ? undefined : ({ row, table }) => (
+    renderRowActions: hideRowActions ? undefined : ({ row }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        <Tooltip title={row.original.editable === false ? "No editable (fuera de gestión operativa)" : "Editar"}>
-          <IconButton
-            sx={{
-              color: COLORS.white,
-              transition: "color 0.2s ease, background-color 0.2s ease",
-              "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-            }}
-            disabled={row.original.editable === false}
-            onClick={() => table.setEditingRow(row)}
-          >
-            <EditIcon />
-          </IconButton>
-        </Tooltip>
+        {enableEditing && (
+          <Tooltip title={row.original.editable === false ? "No editable (fuera de gestión operativa)" : "Editar"}>
+            <IconButton
+              sx={{
+                color: COLORS.white,
+                transition: "color 0.2s ease, background-color 0.2s ease",
+                "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+              }}
+              disabled={row.original.editable === false}
+              onClick={() => setEditDraft({ ...row.original })}
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+        )}
         {!hideDeleteAction && (
           <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
             <IconButton
@@ -426,6 +308,25 @@ const TablaRelevamientos = ({
   return (
     <Box>
       <MaterialReactTable table={table} />
+
+      {editDraft && (
+        <RelevamientoEditDialog
+          open
+          draft={editDraft}
+          fieldErrors={rowErrors[editDraft.id] ?? {}}
+          saving={editSaving}
+          catalogs={catalogs}
+          readOnlyColumns={readOnlyColumns}
+          numeroCallesOptions={numeroCallesOptions}
+          numeroEditorLabel={numeroEditorLabel}
+          numeroAllowFreeSolo={numeroAllowFreeSolo}
+          onClose={() => setEditDraft(null)}
+          onDraftChange={(patch) =>
+            setEditDraft((prev) => (prev ? { ...prev, ...patch } : null))
+          }
+          onSave={handleDialogSave}
+        />
+      )}
     </Box>
   );
 };

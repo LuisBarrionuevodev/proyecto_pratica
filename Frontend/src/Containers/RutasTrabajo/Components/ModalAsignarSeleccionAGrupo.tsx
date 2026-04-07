@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
+import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppSelect } from "../../../ui";
 import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
 
@@ -41,9 +42,10 @@ const ModalAsignarSeleccionAGrupo = ({ open, onClose, grupos, selectedCount, onC
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}
       title="Asignar selección a grupo"
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      contentDividers
+      contentSx={formDialogContentStackSx}
       actions={
-        <>
+        <Box sx={dialogFormActionsRowSx}>
           <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
             Cancelar
           </AppButton>
@@ -55,17 +57,19 @@ const ModalAsignarSeleccionAGrupo = ({ open, onClose, grupos, selectedCount, onC
           >
             Asignar
           </AppButton>
-        </>
+        </Box>
       }
     >
       <Typography variant="body2" color="text.secondary">
         Se asignarán {selectedCount} iniciadores seleccionados.
       </Typography>
       <AppSelect
+        appearance="glass"
         label="Grupo destino"
         value={grupoId}
         onChange={(e) => setGrupoId(Number(e.target.value))}
         fullWidth
+        variant="outlined"
         options={gruposOrdenados.map((g) => ({ value: g.id, label: g.nombre }))}
       />
     </AppDialog>
