@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, Any, List
 
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.models import Actuaciones, OrdenTrabajo
@@ -35,8 +36,8 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
     Raises:
         ValueError: si orden_trabajo no existe.
     """
-    query = Actuaciones.query
-    
+    query = Actuaciones.query.options(joinedload(Actuaciones.inspector))
+
     # Filtro por rango de fechas (siempre están presentes tras validator)
     if filters.desde:
         query = query.filter(Actuaciones.fecha >= filters.desde)

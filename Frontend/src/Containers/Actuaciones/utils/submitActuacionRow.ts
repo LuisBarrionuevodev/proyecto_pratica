@@ -45,6 +45,7 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
   "Acta clausura": "acta_clausura_num",
   "Acta decomiso": "acta_decomiso_num",
   "Kilos decomiso": "decomiso_kilos_total",
+  "Nombre local": "nombre_local",
   "Acta notificación previa": "notificacion_previa_num",
   "Acta comprobación previa": "comprobacion_previa_num",
   "Expediente año": "expediente_anio",

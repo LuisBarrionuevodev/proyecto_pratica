@@ -170,7 +170,7 @@ export function ActuacionDetalleDialog({
             </Typography>
           )}
         <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 1 }}>
-          Inspectores: {inspectoresLinea(draft)}
+          Inspectores: {draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
         </Typography>
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 0.5 }}>
           Actas del día
@@ -298,31 +298,12 @@ export function ActuacionDetalleDialog({
                 fullWidth
               />
             )}
-          <AppSelect
+          <AppTextField
             appearance="glass"
-            label="Inspector 1"
-            value={draft.inspector1 ?? ""}
-            options={opts(["", ...catalogs.inspectores])}
+            label="Inspectores"
+            value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
             disabled
-            sx={roFieldSx}
-            fullWidth
-          />
-          <AppSelect
-            appearance="glass"
-            label="Inspector 2"
-            value={draft.inspector2 ?? ""}
-            options={opts(["", ...catalogs.inspectores])}
-            disabled
-            sx={roFieldSx}
-            fullWidth
-          />
-          <AppSelect
-            appearance="glass"
-            label="Inspector 3"
-            value={draft.inspector3 ?? ""}
-            options={opts(["", ...catalogs.inspectores])}
-            disabled
-            sx={roFieldSx}
+            sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
             fullWidth
           />
         </Box>
@@ -485,7 +466,7 @@ export function ActuacionDetalleDialog({
           2. Datos del local
         </Typography>
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 1 }}>
-          Domicilio y nombre de local son solo lectura. Podés corregir rubro y contribuyente.
+          Domicilio en solo lectura. Podés corregir nombre del local, rubro y contribuyente.
         </Typography>
         <AppTextField
           appearance="glass"
@@ -499,8 +480,10 @@ export function ActuacionDetalleDialog({
           appearance="glass"
           label="Nombre del local"
           value={draft.nombre_local ?? ""}
-          disabled
-          sx={{ ...roFieldSx, mt: 2 }}
+          onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
+          error={!!e("nombre_local")}
+          helperText={e("nombre_local")}
+          sx={{ mt: 2 }}
           fullWidth
         />
         <Box

@@ -159,6 +159,7 @@ class ActuacionGridRowIn(BaseModel):
 
     # Catálogos / clasificación
     rubro_nombre: Optional[str] = None
+    nombre_local: Optional[str] = None
     tipo_actuacion: Optional[str] = None
     contraproducencia: Optional[str] = None
 
@@ -224,6 +225,7 @@ class ActuacionGridRowIn(BaseModel):
 
     @field_validator(
         "rubro_nombre",
+        "nombre_local",
         "inspector1",
         "inspector2",
         "inspector3",

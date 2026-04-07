@@ -233,6 +233,13 @@ const TablaActuaciones = ({
       { accessorKey: "tipo_actuacion", header: "Tipo", size: 180 },
       { accessorKey: "contraproducencia", header: "Contraproducencia", size: 180 },
       { accessorKey: "rubro_nombre", header: "Rubro", size: 200 },
+      { accessorKey: "nombre_local", header: "Nombre local", size: 180 },
+      {
+        accessorKey: "inspectores_texto",
+        header: "Inspectores",
+        size: 260,
+        Cell: ({ row }) => row.original.inspectores_texto?.trim() || [row.original.inspector1, row.original.inspector2, row.original.inspector3].filter(Boolean).join(", ") || "",
+      },
 
       { accessorKey: "inspector1", header: "Inspector 1", size: 150 },
       { accessorKey: "inspector2", header: "Inspector 2", size: 150 },
@@ -303,6 +310,8 @@ const TablaActuaciones = ({
       columnOrder,
       columnVisibility: {
         id: false,
+        nombre_local: false,
+        inspector1: false,
         inspector2: false,
         inspector3: false,
         doc_nro: false,

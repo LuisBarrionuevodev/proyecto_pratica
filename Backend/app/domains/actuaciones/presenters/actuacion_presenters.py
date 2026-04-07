@@ -159,12 +159,15 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     inspector3 = None
 
     insp_list: List[Any] = getattr(act, "inspector", None) or []
+    if insp_list:
+        insp_list = sorted(insp_list, key=lambda x: getattr(x, "id", 0))
     nombres: List[str] = []
     if insp_list:
         for i in insp_list:
             n = getattr(i, "nombre", None)
             if n:
-                nombres.append(n)
+                nombres.append(str(n).strip())
+    inspectores_texto = ", ".join(nombres) if nombres else None
 
     if len(nombres) > 0:
         inspector1 = nombres[0]
@@ -268,6 +271,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "inspector1": inspector1,
         "inspector2": inspector2,
         "inspector3": inspector3,
+        "inspectores_texto": inspectores_texto,
 
         "calle": calle,
         "numero": numero,

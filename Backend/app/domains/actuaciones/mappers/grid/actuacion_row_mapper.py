@@ -45,6 +45,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         "tipo_actuacion": _enum_value(row.tipo_actuacion),
         "contraproducencia": _enum_value(row.contraproducencia),
         "rubro_nombre": _clean_str(row.rubro_nombre),
+        "nombre_local": _clean_str(row.nombre_local),
         "inspectores": [x for x in [row.inspector1, row.inspector2, row.inspector3] if x],
     }
 

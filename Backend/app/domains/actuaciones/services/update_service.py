@@ -88,6 +88,11 @@ def aplicar_payload_actuacion(
     if "contraproducencia" in payload:
         act.contraproducencia = payload.get("contraproducencia")
 
+    # Nombre de fantasía del local (columna en actuaciones)
+    if "nombre_local" in payload:
+        raw_nl = payload.get("nombre_local")
+        act.nombre_local = (str(raw_nl).strip() or None) if raw_nl is not None else None
+
     # OT (si permitís cambiarla)
     if payload.get("orden_trabajo_numero") and payload.get("fecha_actuacion"):
         ot = get_or_create_orden_trabajo(payload.get("orden_trabajo_numero"), payload.get("fecha_actuacion"))
