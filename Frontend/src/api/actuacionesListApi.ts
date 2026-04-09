@@ -27,6 +27,10 @@ export interface IActuacionListItem {
     doc_nro: string | null;
     contrib_apellido: string | null;
     contrib_nombre: string | null;
+    /** Persona jurídica; editable en canal actas; persiste en contribuyente. */
+    razon_social?: string | null;
+    /** EpiCollect5; solo lectura en UI; no se envía en PUT canal actas. */
+    ec5_uuid?: string | null;
     acta_inspeccion_num: string | null;
     acta_notificacion_num: string | null;
     notificacion_motivo_1: string | null;
@@ -61,6 +65,16 @@ export interface IActuacionListItem {
     notificacion_editable?: boolean;
     /** false si la comprobación ya tiene expediente de envío. */
     comprobacion_editable?: boolean;
+    /** Snapshot no-media importado desde EpiCollect (`actuacion_epicollect_detalle`). */
+    has_epicollect_detalle?: boolean;
+    /** Cantidad de claves en `payload_non_media.data` (sin campos de media). */
+    epicollect_non_media_field_count?: number;
+    /** Sectores / condiciones (SI-NO) con etiquetas legibles; solo claves con valor. */
+    epicollect_sectores_condiciones?: { field_id: string; label: string; value_preview: string }[];
+    /** Resto de campos no-media, orden alfabético por field_id. */
+    epicollect_otros_preview?: { field_id: string; value_preview: string }[];
+    /** Compat: primeras 5 de `epicollect_otros_preview`. */
+    epicollect_preview?: { field_id: string; value_preview: string }[];
 }
 
 export interface IActuacionesListMeta {

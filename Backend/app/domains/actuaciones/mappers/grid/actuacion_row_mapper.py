@@ -58,11 +58,12 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         }
 
     # Contribuyente
-    if row.doc_nro or row.contrib_apellido or row.contrib_nombre:
+    if row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
         payload["contribuyente"] = {
             "doc_nro": _clean_str(row.doc_nro),
             "apellido": _clean_str(row.contrib_apellido),
             "nombre": _clean_str(row.contrib_nombre),
+            "razon_social": _clean_str(row.razon_social),
         }
 
     # Actas (CANÓNICO según tus helpers attach_*)

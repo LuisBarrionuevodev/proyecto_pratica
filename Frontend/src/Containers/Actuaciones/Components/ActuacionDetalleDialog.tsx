@@ -1,4 +1,5 @@
-import { Alert, Box, Typography } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Alert, Box, Chip, Collapse, IconButton, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
@@ -85,6 +86,158 @@ function tieneReferenciaAdmin(row: IActuacionListItem): boolean {
   );
 }
 
+function BloqueEpicollectDetalleLectura({
+  draft,
+  otrosExpanded,
+  onToggleOtros,
+}: {
+  draft: IActuacionListItem;
+  otrosExpanded: boolean;
+  onToggleOtros: () => void;
+}) {
+  if (!draft.has_epicollect_detalle) return null;
+
+  const n = draft.epicollect_non_media_field_count ?? 0;
+  const sectores = draft.epicollect_sectores_condiciones ?? [];
+  const otros = draft.epicollect_otros_preview ?? draft.epicollect_preview ?? [];
+  const uuid = draft.ec5_uuid?.trim();
+
+  const listSx = {
+    m: 0,
+    pl: 2,
+    pt: 0.5,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "0.8125rem",
+    lineHeight: 1.45,
+  } as const;
+
+  return (
+    <Box sx={blockShellSx}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 0, flex: "1 1 auto" }}>
+          Datos importados de EpiCollect
+        </Typography>
+        <Chip
+          label="Formulario"
+          size="small"
+          sx={{
+            borderColor: "rgba(129, 199, 132, 0.55)",
+            color: "rgba(200, 230, 201, 0.95)",
+            bgcolor: "rgba(76, 175, 80, 0.12)",
+          }}
+          variant="outlined"
+        />
+      </Box>
+      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mb: 0.75, lineHeight: 1.5 }}>
+        Hay un snapshot local de <strong>{n}</strong> respuesta{n === 1 ? "" : "s"} del formulario (sin fotos). Solo
+        lectura; no se edita desde aquí.
+      </Typography>
+      {uuid ? (
+        <Typography
+          variant="caption"
+          sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 1, fontFamily: "monospace" }}
+        >
+          ec5_uuid: {uuid}
+        </Typography>
+      ) : null}
+
+      {sectores.length > 0 ? (
+        <Box sx={{ mb: otros.length > 0 ? 1.25 : 0 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "rgba(255,255,255,0.7)",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              display: "block",
+              mb: 0.75,
+            }}
+          >
+            Sectores / condiciones
+          </Typography>
+          <Box component="ul" sx={listSx}>
+            {sectores.map((s) => (
+              <Box component="li" key={s.field_id} sx={{ mb: 0.6 }}>
+                <Typography
+                  variant="body2"
+                  component="span"
+                  sx={{ color: "rgba(255,255,255,0.78)", fontSize: "inherit", fontWeight: 500 }}
+                >
+                  {s.label}
+                </Typography>
+                {": "}
+                <Typography variant="body2" component="span" sx={{ color: "rgba(255,255,255,0.62)", fontSize: "inherit" }}>
+                  {s.value_preview}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      ) : null}
+
+      {otros.length > 0 ? (
+        <>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "rgba(255,255,255,0.55)",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                flex: "1 1 auto",
+              }}
+            >
+              Otros campos del formulario
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={onToggleOtros}
+              aria-expanded={otrosExpanded}
+              aria-label={otrosExpanded ? "Ocultar otros campos" : "Mostrar otros campos"}
+              sx={{
+                color: "rgba(255,255,255,0.7)",
+                transform: otrosExpanded ? "rotate(180deg)" : "none",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <ExpandMoreIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <Collapse in={otrosExpanded}>
+            <Box component="ul" sx={{ ...listSx, pt: 0 }}>
+              {otros.map((p) => (
+                <Box component="li" key={p.field_id} sx={{ mb: 0.75 }}>
+                  <Typography
+                    variant="body2"
+                    component="span"
+                    sx={{ color: "rgba(255,255,255,0.5)", fontSize: "inherit" }}
+                  >
+                    {p.field_id}
+                  </Typography>
+                  {": "}
+                  <Typography
+                    variant="body2"
+                    component="span"
+                    sx={{ color: "rgba(255,255,255,0.72)", fontSize: "inherit" }}
+                  >
+                    {p.value_preview}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Collapse>
+        </>
+      ) : sectores.length === 0 ? (
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", pt: 0.5 }}>
+          No hay datos de formulario en el snapshot (o payload vacío).
+        </Typography>
+      ) : null}
+    </Box>
+  );
+}
+
 function BloqueIniciadorVacío() {
   return (
     <Box sx={blockShellSx}>
@@ -116,9 +269,13 @@ export function ActuacionDetalleDialog({
   onSave,
 }: ActuacionDetalleDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
 
   useEffect(() => {
-    if (open) setIsEditing(false);
+    if (open) {
+      setIsEditing(false);
+      setEpicollectOtrosExpanded(false);
+    }
   }, [open, draft.id]);
 
   const e = (key: string) => fieldErrors[key] ?? "";
@@ -172,6 +329,11 @@ export function ActuacionDetalleDialog({
         <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 1 }}>
           Inspectores: {draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
         </Typography>
+        {draft.ec5_uuid != null && String(draft.ec5_uuid).trim() !== "" && (
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", mb: 1 }}>
+            EpiCollect (ID): {dash(draft.ec5_uuid)}
+          </Typography>
+        )}
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 0.5 }}>
           Actas del día
         </Typography>
@@ -222,9 +384,19 @@ export function ActuacionDetalleDialog({
           Rubro: {dash(draft.rubro_nombre)}
         </Typography>
         <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-          Contribuyente: {dash(draft.contrib_apellido)} {dash(draft.contrib_nombre)} · Doc. {dash(draft.doc_nro)}
+          Contribuyente: {dash(draft.contrib_apellido)} {dash(draft.contrib_nombre)}
+          {draft.razon_social != null && String(draft.razon_social).trim() !== ""
+            ? ` · Razón social: ${dash(draft.razon_social)}`
+            : ""}{" "}
+          · Doc. {dash(draft.doc_nro)}
         </Typography>
       </Box>
+
+      <BloqueEpicollectDetalleLectura
+        draft={draft}
+        otrosExpanded={epicollectOtrosExpanded}
+        onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
+      />
 
       <BloqueIniciadorVacío />
     </>
@@ -305,6 +477,15 @@ export function ActuacionDetalleDialog({
             disabled
             sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
             fullWidth
+          />
+          <AppTextField
+            appearance="glass"
+            label="EpiCollect (ID) — solo lectura"
+            value={draft.ec5_uuid ?? ""}
+            disabled
+            sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+            fullWidth
+            helperText="No editable desde este canal."
           />
         </Box>
 
@@ -533,8 +714,24 @@ export function ActuacionDetalleDialog({
             helperText={e("contrib_nombre")}
             fullWidth
           />
+          <AppTextField
+            appearance="glass"
+            label="Razón social"
+            value={draft.razon_social ?? ""}
+            onChange={(ev) => onDraftChange({ razon_social: ev.target.value || null })}
+            error={!!e("razon_social")}
+            helperText={e("razon_social")}
+            sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+            fullWidth
+          />
         </Box>
       </Box>
+
+      <BloqueEpicollectDetalleLectura
+        draft={draft}
+        otrosExpanded={epicollectOtrosExpanded}
+        onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
+      />
 
       <BloqueIniciadorVacío />
     </>

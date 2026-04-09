@@ -23,6 +23,7 @@ COLUMN_MAP_ACTUACIONES: dict[str, str] = {
     "Nombre local": "nombre_local",
     "Apellido": "contrib_apellido",
     "Nombre": "contrib_nombre",
+    "Razón social": "razon_social",
     "DNI": "doc_nro",
     "Acta inspección": "acta_inspeccion_num",
     "Acta notificación": "acta_notificacion_num",

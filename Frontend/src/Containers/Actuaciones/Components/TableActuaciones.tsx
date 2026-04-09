@@ -274,6 +274,8 @@ const TablaActuaciones = ({
       { accessorKey: "doc_nro", header: "Doc. Nro", size: 120 },
       { accessorKey: "contrib_apellido", header: "Contribuyente Apellido", size: 180 },
       { accessorKey: "contrib_nombre", header: "Contribuyente Nombre", size: 180 },
+      { accessorKey: "razon_social", header: "Razón social", size: 200 },
+      { accessorKey: "ec5_uuid", header: "EpiCollect ID", size: 260 },
 
       { accessorKey: "acta_inspeccion_num", header: "Acta Inspección", size: 150 },
       { accessorKey: "acta_notificacion_num", header: "Acta Notificación", size: 150 },
@@ -317,6 +319,8 @@ const TablaActuaciones = ({
         doc_nro: false,
         contrib_apellido: false,
         contrib_nombre: false,
+        razon_social: false,
+        ec5_uuid: false,
         notificacion_motivo_2: false,
         notificacion_motivo_3: false,
         comprobacion_motivo: false,

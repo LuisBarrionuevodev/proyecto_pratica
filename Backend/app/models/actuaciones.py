@@ -21,6 +21,9 @@ class Actuaciones(db.Model):
     # Nombre de fantasía del comercio (acta / UI). Futuro: vincular a `establecimientos`.
     nombre_local = db.Column(db.String(255), nullable=True, index=True)
 
+    # Identificador del registro en EpiCollect5 (poblado por integración/import; no canal actas manual).
+    ec5_uuid = db.Column(db.String(36), nullable=True, unique=True, index=True)
+
     # Resultado explícito para reinspección por oficio (Completar trabajo). Solo válido si el iniciador es REINSPECCION_OFICIO.
     resultado_cumplimiento_oficio = db.Column(
         db.Enum("CUMPLE", "NO_CUMPLE", name="resultado_cumplimiento_oficio_enum"),
@@ -101,7 +104,19 @@ class Actuaciones(db.Model):
         back_populates="actuaciones",
     )
 
-    
+    actuacion_media_items = db.relationship(
+        "ActuacionMedia",
+        back_populates="actuacion",
+        cascade="all, delete-orphan",
+    )
+
+    epicollect_detalle = db.relationship(
+        "ActuacionEpicollectDetalle",
+        back_populates="actuacion",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
     db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),
 

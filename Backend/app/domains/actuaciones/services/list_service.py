@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Actuaciones, OrdenTrabajo
+from app.models import Actuaciones, Domicilio, OrdenTrabajo
 from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
 from app.utils.actas import acta_6
 
@@ -36,7 +36,12 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
     Raises:
         ValueError: si orden_trabajo no existe.
     """
-    query = Actuaciones.query.options(joinedload(Actuaciones.inspector))
+    query = Actuaciones.query.options(
+        joinedload(Actuaciones.inspector),
+        joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),
+        joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
+        joinedload(Actuaciones.epicollect_detalle),
+    )
 
     # Filtro por rango de fechas (siempre están presentes tras validator)
     if filters.desde:

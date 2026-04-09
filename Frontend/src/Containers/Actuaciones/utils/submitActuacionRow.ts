@@ -7,8 +7,17 @@ import { validateRow } from "../../../api/gridApi";
  * el presenter los incluye en GET para lectura. Se deben anular antes de validar y enviar.
  */
 export function sanitizeActuacionRowForCanalActasPut(row: IActuacionListItem): IActuacionListItem {
+  const {
+    ec5_uuid: _omitEc5,
+    has_epicollect_detalle: _omitDet,
+    epicollect_non_media_field_count: _omitCnt,
+    epicollect_preview: _omitPrev,
+    epicollect_sectores_condiciones: _omitSec,
+    epicollect_otros_preview: _omitOtros,
+    ...rowSinEc5
+  } = row;
   return {
-    ...row,
+    ...rowSinEc5,
     expediente_numero: null,
     expediente_anio: null,
     oficio_numero: null,
@@ -34,6 +43,7 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
   Rubro: "rubro_nombre",
   Apellido: "contrib_apellido",
   Nombre: "contrib_nombre",
+  "Razón social": "razon_social",
   DNI: "doc_nro",
   "Acta inspección": "acta_inspeccion_num",
   "Acta notificación": "acta_notificacion_num",

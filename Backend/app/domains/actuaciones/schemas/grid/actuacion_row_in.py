@@ -5,7 +5,7 @@ from datetime import datetime, date
 from typing import Any, Optional, Dict, Type
 
 from sqlalchemy import func
-from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from app.database import db
 from app.models import (
@@ -137,7 +137,11 @@ class ActuacionGridRowIn(BaseModel):
     Incluye actas operativas del día y datos de actuación. Columnas `expediente_*` / `oficio_*` existen
     solo como keys de grilla heredadas: si vienen con datos, el validador las rechaza (expediente de
     comprobación y oficio se cargan solo por **Esperando expediente** / **Esperando oficio**).
+
+    `ec5_uuid` no forma parte del contrato de este canal: se ignora si el cliente lo envía.
     """
+
+    model_config = ConfigDict(extra="ignore")
 
     id: Optional[int] = Field(default=None, ge=1)
 
@@ -177,6 +181,7 @@ class ActuacionGridRowIn(BaseModel):
     doc_nro: Optional[str] = None
     contrib_apellido: Optional[str] = None
     contrib_nombre: Optional[str] = None
+    razon_social: Optional[str] = None
 
     # Actas
     acta_inspeccion_num: Optional[str] = None
@@ -234,6 +239,7 @@ class ActuacionGridRowIn(BaseModel):
         "doc_nro",
         "contrib_apellido",
         "contrib_nombre",
+        "razon_social",
         "comprobacion_motivo",
         "oficio_numero",
         "oficio_causa",
@@ -361,6 +367,7 @@ class ActuacionGridRowIn(BaseModel):
                     self.doc_nro,
                     self.contrib_apellido,
                     self.contrib_nombre,
+                    self.razon_social,
                     self.acta_inspeccion_num,
                     self.acta_notificacion_num,
                     self.acta_comprobacion_num,
@@ -380,8 +387,8 @@ class ActuacionGridRowIn(BaseModel):
                     "Si solo cargás OT/fecha, debés justificar con contraproducencia."
                 )
 
-        # 2) Contribuyente: si hay nombre/apellido, doc obligatorio
-        if (self.contrib_apellido or self.contrib_nombre) and not self.doc_nro:
+        # 2) Contribuyente: si hay nombre/apellido/razón social, doc obligatorio
+        if (self.contrib_apellido or self.contrib_nombre or self.razon_social) and not self.doc_nro:
             field_errors["doc_nro"] = "Documento obligatorio si cargás contribuyente."
 
         # 3) Domicilio: calle y número juntos

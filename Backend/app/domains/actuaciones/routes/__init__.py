@@ -21,5 +21,6 @@ from . import oficio_from_acta  # noqa: E402,F401
 from . import completar_trabajo_pendientes  # noqa: E402,F401
 from . import completar_trabajo_cerrar  # noqa: E402,F401
 from . import completar_trabajo_detalle  # noqa: E402,F401
+from . import epicollect_import  # noqa: E402,F401
 
 __all__ = ["actuacion"]

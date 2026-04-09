@@ -11,12 +11,16 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, Optional, List
 
-from app.models import Actuaciones, Expediente, Oficio
-
+from app.domains.actuaciones.config.epicollect_sectors_display import (
+    EPICOLLECT_SECTORES_CONDICIONES_FIELDS,
+    EPICOLLECT_SECTOR_FIELD_IDS,
+)
 from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
+from app.models import Actuaciones, Expediente, Oficio
+
 
 def _enum_to_str(value: Any) -> Optional[str]:
     """
@@ -61,6 +65,83 @@ def expediente_envio_por_comprobacion(comprobacion_id: int) -> Optional[Expedien
         .order_by(Expediente.id.asc())
         .first()
     )
+
+
+def _epicollect_value_preview(value: Any, max_len: int = 72) -> str:
+    """Texto corto para vista previa de un valor JSON (no se expone el JSON completo)."""
+    if value is None:
+        return "—"
+    if isinstance(value, (dict, list)):
+        s = str(value)
+    else:
+        s = str(value).strip()
+    if not s:
+        return "—"
+    if len(s) > max_len:
+        return s[: max_len - 1] + "…"
+    return s
+
+
+def _epicollect_sector_value_present(value: Any) -> bool:
+    """True si el valor del formulario debe mostrarse en Sectores / condiciones."""
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, dict)):
+        return len(value) > 0
+    return True
+
+
+def _epicollect_detalle_for_grid(act: Actuaciones) -> Dict[str, Any]:
+    """
+    Campos derivados de `actuacion_epicollect_detalle` para grilla / modal (solo lectura).
+
+    - ``epicollect_sectores_condiciones``: SI/NO y similares con etiquetas humanas (orden fijo).
+    - ``epicollect_otros_preview``: resto de claves en ``data``, orden alfabético por field_id.
+    - ``epicollect_preview``: compatibilidad — primeras 5 entradas de ``epicollect_otros_preview``.
+    """
+    det = getattr(act, "epicollect_detalle", None)
+    if det is None:
+        return {
+            "has_epicollect_detalle": False,
+            "epicollect_non_media_field_count": 0,
+            "epicollect_sectores_condiciones": [],
+            "epicollect_otros_preview": [],
+            "epicollect_preview": [],
+        }
+    raw = getattr(det, "payload_non_media", None) or {}
+    data = raw.get("data") if isinstance(raw.get("data"), dict) else {}
+    keys = sorted(data.keys())
+
+    sectores: List[Dict[str, str]] = []
+    for field_id, label in EPICOLLECT_SECTORES_CONDICIONES_FIELDS:
+        if field_id not in data:
+            continue
+        val = data[field_id]
+        if not _epicollect_sector_value_present(val):
+            continue
+        sectores.append(
+            {
+                "field_id": field_id,
+                "label": label,
+                "value_preview": _epicollect_value_preview(val),
+            }
+        )
+
+    otros_keys = [k for k in keys if k not in EPICOLLECT_SECTOR_FIELD_IDS]
+    otros_preview: List[Dict[str, str]] = [
+        {"field_id": k, "value_preview": _epicollect_value_preview(data[k])} for k in otros_keys
+    ]
+    preview_cap = otros_preview[:5]
+
+    return {
+        "has_epicollect_detalle": True,
+        "epicollect_non_media_field_count": len(keys),
+        "epicollect_sectores_condiciones": sectores,
+        "epicollect_otros_preview": otros_preview,
+        "epicollect_preview": preview_cap,
+    }
 
 
 def oficio_por_comprobacion(comprobacion_id: int) -> Optional[Oficio]:
@@ -124,6 +205,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     doc_nro: Optional[str] = None
     contrib_apellido: Optional[str] = None
     contrib_nombre: Optional[str] = None
+    razon_social: Optional[str] = None
 
     dom = getattr(act, "domicilio", None)
     if dom:
@@ -150,6 +232,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
             doc_nro = getattr(contrib, "documento", None) or getattr(contrib, "doc_nro", None)
             contrib_apellido = getattr(contrib, "apellido", None)
             contrib_nombre = getattr(contrib, "nombre", None)
+            razon_social = getattr(contrib, "razon_social", None)
 
     # -------------------------
     # Inspectores (max 3)
@@ -297,6 +380,8 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "doc_nro": doc_nro,
         "contrib_apellido": contrib_apellido,
         "contrib_nombre": contrib_nombre,
+        "razon_social": razon_social,
+        "ec5_uuid": getattr(act, "ec5_uuid", None),
 
         "nombre_local": nombre_local_val,
 
@@ -327,6 +412,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
 
         "notificacion_editable": notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None)),
         "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
+        **_epicollect_detalle_for_grid(act),
     }
 
 

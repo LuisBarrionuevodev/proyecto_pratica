@@ -15,6 +15,11 @@ class Contribuyente(db.Model):
         nullable=True,
         index=True,
     )
+    razon_social = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True,
+    )
     documento = db.Column(
         db.String(11),
         nullable=False,
@@ -37,6 +42,7 @@ class Contribuyente(db.Model):
             "id": self.id,
             "apellido": self.apellido,
             "nombre": self.nombre,
+            "razon_social": self.razon_social,
             "documento": self.documento,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

@@ -46,6 +46,14 @@ def create_app(config_override: dict | None = None):
     app.config["SMTP_FROM"] = os.getenv("SMTP_FROM")
     app.config["PASSWORD_RESET_PEPPER"] = os.getenv("PASSWORD_RESET_PEPPER")
 
+    # EpiCollect5 (API de export; opcional hasta usar import-from-api)
+    app.config["EPICOLLECT_BASE_URL"] = os.getenv("EPICOLLECT_BASE_URL") or "https://five.epicollect.net"
+    app.config["EPICOLLECT_PROJECT_SLUG"] = os.getenv("EPICOLLECT_PROJECT_SLUG")
+    app.config["EPICOLLECT_FORM_REF"] = os.getenv("EPICOLLECT_FORM_REF")
+    app.config["EPICOLLECT_CLIENT_ID"] = os.getenv("EPICOLLECT_CLIENT_ID")
+    app.config["EPICOLLECT_CLIENT_SECRET"] = os.getenv("EPICOLLECT_CLIENT_SECRET")
+    app.config["EPICOLLECT_TIMEOUT_SECONDS"] = os.getenv("EPICOLLECT_TIMEOUT_SECONDS")
+
     # ✅ override ANTES de init_app
     if config_override:
         app.config.update(config_override)
@@ -97,6 +105,73 @@ def create_app(config_override: dict | None = None):
             app.logger.exception("sync-notificaciones-vencidas CLI falló")
             raise click.Abort()
         click.echo(json.dumps(metrics, ensure_ascii=True))
+
+    @app.cli.command("epicollect-import-from-api")
+    @click.argument("actuacion_id", type=int)
+    @click.argument("ec5_uuid")
+    def epicollect_import_from_api_cli(actuacion_id: int, ec5_uuid: str) -> None:
+        """
+        Descarga un entry desde la API EpiCollect y ejecuta el import sobre ACTUACION_ID.
+
+        Requiere EPICOLLECT_PROJECT_SLUG (y credenciales OAuth si el proyecto es privado).
+        """
+        from flask import current_app
+
+        from app.domains.actuaciones.services.epicollect_import_service import (
+            EpicollectImportConflictError,
+        )
+        from app.domains.actuaciones.services.epicollect_remote_import_service import (
+            fetch_and_import_epicollect_entry,
+        )
+        from app.integrations.epicollect.errors import (
+            EpicollectAuthError,
+            EpicollectClientError,
+            EpicollectConfigError,
+            EpicollectEntryNotFoundError,
+            EpicollectHttpError,
+            EpicollectNetworkError,
+        )
+
+        with app.app_context():
+            try:
+                act, media_n = fetch_and_import_epicollect_entry(
+                    actuacion_id,
+                    ec5_uuid,
+                    app_config=dict(current_app.config),
+                )
+            except EpicollectConfigError as e:
+                click.echo(f"Config: {e}", err=True)
+                raise click.Abort()
+            except EpicollectEntryNotFoundError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectAuthError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectHttpError as e:
+                click.echo(f"HTTP {e.status_code}: {e}", err=True)
+                raise click.Abort()
+            except EpicollectNetworkError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectImportConflictError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectClientError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except ValueError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except Exception:
+                app.logger.exception("epicollect-import-from-api CLI falló")
+                raise click.Abort()
+        click.echo(
+            json.dumps(
+                {"actuacion_id": act.id, "ec5_uuid": act.ec5_uuid, "media_count": media_n},
+                ensure_ascii=True,
+            )
+        )
 
     print(app.url_map)
 
