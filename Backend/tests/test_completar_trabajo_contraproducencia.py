@@ -4,6 +4,7 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
     CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL,
     ContrapBucket,
     STORED_NO_EXISTE_LOCAL,
+    STORED_NO_PERMITE_INSPECCION,
     map_contraproducencia_alias_to_catalog_nombre,
     motivo_no_realizado_para_ruta_item,
     normalize_contraproducencia,
@@ -22,6 +23,8 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
         ("NO EXISTE", STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL),
         ("NO EXISTE / NO COINCIDE RUBRO", STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL),
         ("NO EXISTE/NO ES EL RUBRO", STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL),
+        ("NO PERMITE INSPECCION", STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION),
+        ("NO_PERMITE_INSPECCION", STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION),
     ],
 )
 def test_normalize_contraproducencia(raw, stored, bucket) -> None:
@@ -40,12 +43,20 @@ def test_motivo_clima() -> None:
     assert m == "INCLEMENCIA_TIEMPO"
 
 
+def test_motivo_no_permite_inspeccion() -> None:
+    m = motivo_no_realizado_para_ruta_item(
+        STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION
+    )
+    assert m == "OTRO"
+
+
 @pytest.mark.parametrize(
     ("raw", "expected_catalog"),
     [
         ("NO EXISTE", CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL),
         ("NO EXISTE / NO COINCIDE RUBRO", CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL),
         ("LOCAL CERRADO", "LOCAL CERRADO"),
+        ("NO_PERMITE_INSPECCION", STORED_NO_PERMITE_INSPECCION),
     ],
 )
 def test_map_contraproducencia_alias_to_catalog_nombre(raw, expected_catalog) -> None:

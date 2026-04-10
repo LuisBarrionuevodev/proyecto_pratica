@@ -1,9 +1,18 @@
 import pytest
 from pydantic import ValidationError
 
+from app.database import db
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
 )
+from app.models import CatalogContraproducencia
+
+
+def _ensure_catalog_contraproducencia(app, nombre: str) -> None:
+    with app.app_context():
+        if not CatalogContraproducencia.query.filter_by(nombre=nombre).first():
+            db.session.add(CatalogContraproducencia(nombre=nombre))
+            db.session.commit()
 
 
 def test_completo_in_rechaza_actas_con_contraproducencia(app) -> None:
@@ -65,3 +74,38 @@ def test_completo_in_permite_notificacion_con_motivo(app) -> None:
         )
     assert m.acta_notificacion_num == "123456"
     assert m.notificacion_motivo_1 == "Cualquier"
+
+
+def test_completo_in_no_permite_inspeccion_permite_comprobacion_y_clausura(app) -> None:
+    _ensure_catalog_contraproducencia(app, "NO PERMITE INSPECCION")
+    with app.app_context():
+        m = CompletarTrabajoCierreCompletoIn(
+            contraproducencia="NO PERMITE INSPECCION",
+            acta_comprobacion_num="111111",
+            comprobacion_motivo="Falta de Higiene",
+            acta_clausura_num="222222",
+        )
+    assert m.acta_comprobacion_num == "111111"
+    assert m.acta_clausura_num == "222222"
+
+
+def test_completo_in_no_permite_inspeccion_rechaza_inspeccion(app) -> None:
+    _ensure_catalog_contraproducencia(app, "NO PERMITE INSPECCION")
+    with app.app_context():
+        with pytest.raises(ValidationError):
+            CompletarTrabajoCierreCompletoIn(
+                contraproducencia="NO PERMITE INSPECCION",
+                acta_inspeccion_num="123456",
+                acta_comprobacion_num="111111",
+                comprobacion_motivo="Falta de Higiene",
+            )
+
+
+def test_completo_in_no_permite_inspeccion_exige_comprobacion_y_motivo(app) -> None:
+    _ensure_catalog_contraproducencia(app, "NO PERMITE INSPECCION")
+    with app.app_context():
+        with pytest.raises(ValidationError):
+            CompletarTrabajoCierreCompletoIn(
+                contraproducencia="NO PERMITE INSPECCION",
+                acta_comprobacion_num="111111",
+            )

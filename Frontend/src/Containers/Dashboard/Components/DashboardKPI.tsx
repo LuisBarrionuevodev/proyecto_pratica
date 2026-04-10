@@ -12,7 +12,8 @@ import type { Periodo } from "../../../types/periodos";
 interface KPIProps {
     title: string;
     value: number | string;
-    percentage: number;
+    /** Si se omite, no se muestra la franja de tendencia (datos reales sin variación). */
+    percentage?: number;
     icon: ReactNode;
     periodo: Periodo;
 }
@@ -26,7 +27,8 @@ const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
         Anual: "Año",
     };
 
-    const isPositive = percentage >= 0;
+    const showTrend = typeof percentage === "number";
+    const isPositive = showTrend && percentage >= 0;
 
     return (
         <Card
@@ -51,7 +53,7 @@ const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
                     {value}
                 </Typography>
 
-                {/* Percentage */}
+                {showTrend ? (
                 <Box display="flex" alignItems="center" gap={0.5} mt={1}>
                     {isPositive ? (
                         <TrendingUpIcon sx={{ fontSize: 18, color: "success.main" }} />
@@ -73,6 +75,11 @@ const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
                         {periodo === "Semanal" ? "Última" : "Último"} {labelPeriodo[periodo]}
                     </Typography>
                 </Box>
+                ) : (
+                <Typography variant="body2" color="rgba(255,255,255,0.55)" mt={1}>
+                    {periodo === "Semanal" ? "Última" : "Último"} {labelPeriodo[periodo]}
+                </Typography>
+                )}
             </CardContent>
         </Card>
     );

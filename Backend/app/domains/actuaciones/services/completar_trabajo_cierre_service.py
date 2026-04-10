@@ -10,6 +10,7 @@ from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, Ruta
 
 from app.domains.actuaciones.mappers.completar_trabajo_cierre_mapper import (
     map_completar_trabajo_cierre_to_aplicar_payload,
+    map_no_permite_inspeccion_actas_to_aplicar_payload,
 )
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
@@ -17,6 +18,9 @@ from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
 from app.domains.actuaciones.schemas.list_filters import _coerce_catalog_value
 from app.domains.actuaciones.presenters.completar_trabajo_presenters import ruta_item_completar_trabajo_to_row
+from app.domains.actuaciones.services.completar_trabajo_inspectores_grupo import (
+    list_inspector_nombres_desde_ruta_item_grupo,
+)
 from app.domains.actuaciones.services.update_service import aplicar_payload_actuacion
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
     ContrapBucket,
@@ -196,11 +200,35 @@ def cerrar_completar_trabajo_por_ruta_item(
                 act=act,
                 ini=ini,
             )
+            if "inspectores" not in aplicar_payload:
+                nombres_grupo = list_inspector_nombres_desde_ruta_item_grupo(item)
+                if nombres_grupo:
+                    aplicar_payload["inspectores"] = nombres_grupo
             aplicar_payload_actuacion(
                 act,
                 aplicar_payload,
                 ejecutar_resolver_previas=False,
             )
+        elif bucket == ContrapBucket.NO_PERMITE_INSPECCION:
+            if payload.tipo_actuacion is not None:
+                act.tipo = _coerce_catalog_value(
+                    payload.tipo_actuacion,
+                    CatalogTipoActuacion,
+                    "tipo_actuacion",
+                    strip_prefix="TIPO.",
+                )
+            act.contraproducencia = stored_contra
+            _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if payload.inspectores is not None:
+                nombres = payload.inspectores or []
+                act.inspector = get_inspectores_o_falla(nombres) if nombres else []
+            else:
+                nombres_grupo = list_inspector_nombres_desde_ruta_item_grupo(item)
+                if nombres_grupo:
+                    act.inspector = get_inspectores_o_falla(nombres_grupo)
+            extra_actas = map_no_permite_inspeccion_actas_to_aplicar_payload(payload)
+            if extra_actas:
+                aplicar_payload_actuacion(act, extra_actas, ejecutar_resolver_previas=False)
         else:
             if payload.tipo_actuacion is not None:
                 act.tipo = _coerce_catalog_value(
@@ -214,6 +242,10 @@ def cerrar_completar_trabajo_por_ruta_item(
             if payload.inspectores is not None:
                 nombres = payload.inspectores or []
                 act.inspector = get_inspectores_o_falla(nombres) if nombres else []
+            else:
+                nombres_grupo = list_inspector_nombres_desde_ruta_item_grupo(item)
+                if nombres_grupo:
+                    act.inspector = get_inspectores_o_falla(nombres_grupo)
 
         if payload.nombre_local is not None:
             act.nombre_local = str(payload.nombre_local).strip() or None

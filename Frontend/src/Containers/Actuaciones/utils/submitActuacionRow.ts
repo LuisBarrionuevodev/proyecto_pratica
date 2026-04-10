@@ -14,6 +14,8 @@ export function sanitizeActuacionRowForCanalActasPut(row: IActuacionListItem): I
     epicollect_preview: _omitPrev,
     epicollect_sectores_condiciones: _omitSec,
     epicollect_otros_preview: _omitOtros,
+    epicollect_evidencias_total: _omitEviTot,
+    epicollect_evidencias_grupos: _omitEviGrp,
     ...rowSinEc5
   } = row;
   return {

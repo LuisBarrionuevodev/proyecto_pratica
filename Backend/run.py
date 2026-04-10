@@ -140,6 +140,7 @@ def _seed_catalogos_base() -> dict[str, int]:
     ]:
         upsert_nombre(CatalogTipoActuacion, nombre)
 
+    # Contraproducencias: ver también migración f1e2d3c4b5a6 (insert idempotente en deploy).
     for nombre in [
         "LOCAL CERRADO",
         "NO EXISTE/NO ES EL RUBRO",
@@ -147,6 +148,7 @@ def _seed_catalogos_base() -> dict[str, int]:
         "ZONA ROJA",
         "NO_HUBO",
         "OTROS",
+        "NO PERMITE INSPECCION",
     ]:
         upsert_nombre(CatalogContraproducencia, nombre)
 

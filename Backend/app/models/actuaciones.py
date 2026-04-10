@@ -108,6 +108,7 @@ class Actuaciones(db.Model):
         "ActuacionMedia",
         back_populates="actuacion",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     epicollect_detalle = db.relationship(

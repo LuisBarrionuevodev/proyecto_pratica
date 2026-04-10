@@ -132,3 +132,22 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
         }
 
     return payload
+
+
+def map_no_permite_inspeccion_actas_to_aplicar_payload(
+    row: CompletarTrabajoCierreCompletoIn,
+) -> dict[str, Any]:
+    """
+    Solo actas permitidas con contraproducencia «NO PERMITE INSPECCION»: comprobación y clausura opcional.
+
+    Debe llamarse tras validar el schema (acta + motivo de comprobación obligatorios).
+    """
+    payload: dict[str, Any] = {}
+    if row.acta_comprobacion_num:
+        payload["comprobacion"] = {
+            "acta_num": _zfill6_if_digit(_clean_str(row.acta_comprobacion_num)),
+            "motivo": _clean_str(row.comprobacion_motivo),
+        }
+    if row.acta_clausura_num:
+        payload["clausura"] = {"acta_num": _zfill6_if_digit(_clean_str(row.acta_clausura_num))}
+    return payload

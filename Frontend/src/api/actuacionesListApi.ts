@@ -75,6 +75,14 @@ export interface IActuacionListItem {
     epicollect_otros_preview?: { field_id: string; value_preview: string }[];
     /** Compat: primeras 5 de `epicollect_otros_preview`. */
     epicollect_preview?: { field_id: string; value_preview: string }[];
+    /** Medios importados desde EpiCollect, agrupados por `categoria` (solo `epicollect.*`). */
+    epicollect_evidencias_total?: number;
+    epicollect_evidencias_grupos?: {
+        categoria: string;
+        label: string;
+        count: number;
+        items: { url: string; orden: number; mime_type?: string | null }[];
+    }[];
 }
 
 export interface IActuacionesListMeta {

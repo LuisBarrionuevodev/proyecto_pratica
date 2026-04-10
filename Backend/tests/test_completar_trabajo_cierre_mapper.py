@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 from app.domains.actuaciones.mappers.completar_trabajo_cierre_mapper import (
     map_completar_trabajo_cierre_to_aplicar_payload,
+    map_no_permite_inspeccion_actas_to_aplicar_payload,
 )
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
@@ -43,3 +44,14 @@ def test_mapper_incluye_inspectores_cuando_vienen_en_body() -> None:
     m = map_completar_trabajo_cierre_to_aplicar_payload(row, act=act, ini=ini)
 
     assert m.get("inspectores") == ["Pérez, Juan", "García, Ana"]
+
+
+def test_map_no_permite_inspeccion_solo_comprobacion_y_clausura() -> None:
+    row = CompletarTrabajoCierreCompletoIn.model_construct(
+        acta_comprobacion_num="12",
+        comprobacion_motivo="Falta de Higiene",
+        acta_clausura_num="99",
+    )
+    m = map_no_permite_inspeccion_actas_to_aplicar_payload(row)
+    assert "comprobacion" in m and "clausura" in m
+    assert m["comprobacion"]["motivo"] == "Falta de Higiene"

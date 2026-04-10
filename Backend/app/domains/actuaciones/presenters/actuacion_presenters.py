@@ -8,9 +8,16 @@ El expediente de respuesta de oficio no se refleja en los campos `expediente_*` 
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, Optional, List
 
+from app.domains.actuaciones.config.epicollect_evidencias_display import (
+    EPICOLLECT_EVIDENCIAS_DISPLAY_ORDER,
+    EPICOLLECT_MEDIA_PREFIX,
+    label_for_epicollect_suffix,
+    suffix_from_epicollect_categoria,
+)
 from app.domains.actuaciones.config.epicollect_sectors_display import (
     EPICOLLECT_SECTORES_CONDICIONES_FIELDS,
     EPICOLLECT_SECTOR_FIELD_IDS,
@@ -141,6 +148,67 @@ def _epicollect_detalle_for_grid(act: Actuaciones) -> Dict[str, Any]:
         "epicollect_sectores_condiciones": sectores,
         "epicollect_otros_preview": otros_preview,
         "epicollect_preview": preview_cap,
+    }
+
+
+def _epicollect_evidencias_for_grid(act: Actuaciones) -> Dict[str, Any]:
+    """
+    Agrupa filas ``actuacion_media`` con categoría ``epicollect.*`` para el modal (solo lectura).
+
+    Returns:
+        ``epicollect_evidencias_grupos``: lista ordenada con label, count e items (url, orden, mime_type).
+        ``epicollect_evidencias_total``: cantidad total de filas epicollect.
+    """
+    items = getattr(act, "actuacion_media_items", None) or []
+    rows = [
+        m
+        for m in items
+        if getattr(m, "categoria", None) and str(m.categoria).startswith(EPICOLLECT_MEDIA_PREFIX)
+    ]
+    if not rows:
+        return {
+            "epicollect_evidencias_grupos": [],
+            "epicollect_evidencias_total": 0,
+        }
+
+    by_cat: dict[str, list[Any]] = defaultdict(list)
+    for m in rows:
+        by_cat[str(m.categoria)].append(m)
+
+    for cat in by_cat:
+        by_cat[cat].sort(key=lambda x: (int(x.orden or 0), int(x.id)))
+
+    order_rank = {s: i for i, s in enumerate(EPICOLLECT_EVIDENCIAS_DISPLAY_ORDER)}
+
+    def group_sort_key(categoria: str) -> tuple[int, str]:
+        suf = suffix_from_epicollect_categoria(categoria) or ""
+        rank = order_rank.get(suf, 10_000)
+        label = label_for_epicollect_suffix(suf)
+        return (rank, label.lower())
+
+    grupos: List[Dict[str, Any]] = []
+    for categoria in sorted(by_cat.keys(), key=group_sort_key):
+        lst = by_cat[categoria]
+        suf = suffix_from_epicollect_categoria(categoria) or ""
+        grupos.append(
+            {
+                "categoria": categoria,
+                "label": label_for_epicollect_suffix(suf),
+                "count": len(lst),
+                "items": [
+                    {
+                        "url": (str(r.url)[:2048] if r.url else ""),
+                        "orden": int(r.orden or 0),
+                        "mime_type": r.mime_type,
+                    }
+                    for r in lst
+                ],
+            }
+        )
+
+    return {
+        "epicollect_evidencias_grupos": grupos,
+        "epicollect_evidencias_total": len(rows),
     }
 
 
@@ -413,6 +481,7 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "notificacion_editable": notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None)),
         "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
         **_epicollect_detalle_for_grid(act),
+        **_epicollect_evidencias_for_grid(act),
     }
 
 

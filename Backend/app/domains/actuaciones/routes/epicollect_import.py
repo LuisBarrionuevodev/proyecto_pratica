@@ -28,10 +28,13 @@ from app.integrations.epicollect.errors import (
     EpicollectNetworkError,
 )
 
+from app.security.rate_limiter import limit_epicollect_import, limiter
+
 from . import actuacion
 
 
 @actuacion.post("/<int:actuacion_id>/epicollect/import")
+@limiter.limit(limit_epicollect_import)
 @jwt_required()
 def epicollect_import(actuacion_id: int):
     """
@@ -82,6 +85,7 @@ def epicollect_import(actuacion_id: int):
 
 
 @actuacion.post("/<int:actuacion_id>/epicollect/import-from-api")
+@limiter.limit(limit_epicollect_import)
 @jwt_required()
 def epicollect_import_from_api(actuacion_id: int):
     """

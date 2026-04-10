@@ -5,6 +5,9 @@ from typing import Any, List, Literal, Optional
 from pydantic import ConfigDict, ValidationError, field_validator, model_validator
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
+from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+    es_no_permite_inspeccion_contraproducencia,
+)
 
 
 def _clean_str(v: object) -> Optional[str]:
@@ -200,24 +203,76 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     def no_actas_si_visita_no_realizada(self) -> "CompletarTrabajoCierreCompletoIn":
         if not self.contraproducencia:
             return self
-        bloque: list[tuple[str, bool]] = [
-            ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
-            ("acta_notificacion_num", bool(self.acta_notificacion_num)),
-            ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),
-            ("acta_clausura_num", bool(self.acta_clausura_num)),
-            ("acta_decomiso_num", bool(self.acta_decomiso_num)),
-            (
-                "notificacion_motivos",
-                any([self.notificacion_motivo_1, self.notificacion_motivo_2, self.notificacion_motivo_3]),
-            ),
-            ("comprobacion_motivo", bool(self.comprobacion_motivo)),
-            ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
-            ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
-        ]
+        if es_no_permite_inspeccion_contraproducencia(self.contraproducencia):
+            bloque: list[tuple[str, bool]] = [
+                ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
+                ("acta_notificacion_num", bool(self.acta_notificacion_num)),
+                ("acta_decomiso_num", bool(self.acta_decomiso_num)),
+                (
+                    "notificacion_motivos",
+                    any(
+                        [
+                            self.notificacion_motivo_1,
+                            self.notificacion_motivo_2,
+                            self.notificacion_motivo_3,
+                        ]
+                    ),
+                ),
+                ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
+                ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
+            ]
+        else:
+            bloque = [
+                ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
+                ("acta_notificacion_num", bool(self.acta_notificacion_num)),
+                ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),
+                ("acta_clausura_num", bool(self.acta_clausura_num)),
+                ("acta_decomiso_num", bool(self.acta_decomiso_num)),
+                (
+                    "notificacion_motivos",
+                    any(
+                        [
+                            self.notificacion_motivo_1,
+                            self.notificacion_motivo_2,
+                            self.notificacion_motivo_3,
+                        ]
+                    ),
+                ),
+                ("comprobacion_motivo", bool(self.comprobacion_motivo)),
+                ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
+                ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
+            ]
         malos = [k for k, ok in bloque if ok]
         if malos:
             raise ValueError(
                 "Si hay contraproducencia (visita no realizada), no se deben cargar actas del día ni "
                 f"campos extendidos. Campos a vaciar: {', '.join(malos)}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def no_permite_inspeccion_exige_acta_comprobacion_y_motivo(self) -> "CompletarTrabajoCierreCompletoIn":
+        if not self.contraproducencia or not es_no_permite_inspeccion_contraproducencia(
+            self.contraproducencia
+        ):
+            return self
+        acta = (self.acta_comprobacion_num or "").strip()
+        motivo = (self.comprobacion_motivo or "").strip()
+        if not acta or not motivo:
+            msg = (
+                "Con contraproducencia NO PERMITE INSPECCION es obligatorio cargar acta de comprobación "
+                "y motivo de comprobación."
+            )
+            raise ValidationError.from_exception_data(
+                self.__class__.__name__,
+                [
+                    {
+                        "type": "value_error",
+                        "loc": ("acta_comprobacion_num",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    }
+                ],
             )
         return self

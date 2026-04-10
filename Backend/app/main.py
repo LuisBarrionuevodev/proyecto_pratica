@@ -5,10 +5,17 @@ from dotenv import load_dotenv
 import click
 from flask import Flask
 from flask_migrate import Migrate
-from flask_cors import CORS
 from sqlalchemy import inspect
 
 from app.database import db
+from app.security.deployment_config import (
+    apply_cors,
+    deployment_is_strict,
+    enforce_strict_runtime_config,
+    parse_cors_origins,
+)
+from app.security.phase1_jwt_guard import register_phase1_jwt_guard
+from app.security.rate_limiter import init_rate_limiter
 from app.domains.actuaciones.routes import actuacion as actuacion_bp
 from app.domains.grid.routes import grid as grid_bp
 from app.domains.relevamientos.routes import relevamiento as relevamiento_bp
@@ -19,6 +26,7 @@ from app.domains.usuarios.routes import usuarios_api as usuarios_api_bp
 from app.domains.mapa_detalle.routes import mapa_detalle_api as mapa_detalle_api_bp
 from app.domains.denuncias.routes import denuncias_api as denuncias_api_bp
 from app.domains.rutas_trabajo.routes import rutas_trabajo as rutas_trabajo_bp
+from app.domains.indicadores.routes import indicadores_api as indicadores_api_bp
 from app.domains.usuarios.security.jwt import init_jwt
 from app.domains.usuarios.services.users_service import ensure_dev_admin_seed
 
@@ -58,11 +66,15 @@ def create_app(config_override: dict | None = None):
     if config_override:
         app.config.update(config_override)
 
-    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+    enforce_strict_runtime_config(app)
+    _cors_origins = parse_cors_origins(strict=deployment_is_strict())
+    apply_cors(app, _cors_origins)
 
     db.init_app(app)
     migrate.init_app(app, db)
     init_jwt(app)
+    init_rate_limiter(app)
+    register_phase1_jwt_guard(app)
 
     app.url_map.strict_slashes = False
   
@@ -77,6 +89,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(usuarios_api_bp)
     app.register_blueprint(denuncias_api_bp)
     app.register_blueprint(rutas_trabajo_bp, url_prefix="/rutas-trabajo")
+    app.register_blueprint(indicadores_api_bp, url_prefix="/api/indicadores")
 
     # Seed opcional de admin solo en desarrollo.
     if os.getenv("FLASK_ENV", "development").lower() == "development":
@@ -172,7 +185,5 @@ def create_app(config_override: dict | None = None):
                 ensure_ascii=True,
             )
         )
-
-    print(app.url_map)
 
     return app

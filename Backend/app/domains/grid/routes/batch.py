@@ -31,6 +31,8 @@ from app.models import (
     JuzgadoCatalogo,
 )  # catálogos para dropdowns
 
+from app.security.rate_limiter import limit_grid_commit_batch, limit_grid_commit_row, limiter
+
 from . import grid
 
 store = InMemoryBatchStore()
@@ -115,6 +117,7 @@ def validate_batch():
 
 
 @grid.post("/commit-batch")
+@limiter.limit(limit_grid_commit_batch)
 def commit_batch():
     """
     Persiste múltiples filas ya validadas (payload canon) en una sola request.
@@ -275,6 +278,7 @@ def list_juzgados():
 
 
 @grid.post("/commit-row")
+@limiter.limit(limit_grid_commit_row)
 def commit_row():
     """
     Persiste una fila ya validada/mapeada (payload canon) sin revalidar su contenido.

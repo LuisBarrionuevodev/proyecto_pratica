@@ -11,11 +11,13 @@ from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import
 from app.domains.actuaciones.services.completar_trabajo_cierre_service import cerrar_completar_trabajo_por_ruta_item
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
 from app.shared.errors import pydantic_errors_to_cell_map
+from app.security.rate_limiter import limit_completar_trabajo_cerrar, limiter
 
 from . import actuacion
 
 
 @actuacion.post("/completar-trabajo/cerrar/<int:ruta_item_id>")
+@limiter.limit(limit_completar_trabajo_cerrar)
 def cerrar_completar_trabajo(ruta_item_id: int):
     """
     **Completar trabajo** — cierre operativo (actuación + ruta_item + iniciador) en una transacción.

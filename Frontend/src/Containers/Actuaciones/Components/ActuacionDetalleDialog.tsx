@@ -1,5 +1,5 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Alert, Box, Chip, Collapse, IconButton, Typography } from "@mui/material";
+import { Alert, Box, Chip, Collapse, IconButton, Link, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
@@ -238,6 +238,58 @@ function BloqueEpicollectDetalleLectura({
   );
 }
 
+function BloqueEvidenciasEpicollect({ draft }: { draft: IActuacionListItem }) {
+  const total = draft.epicollect_evidencias_total ?? 0;
+  const grupos = draft.epicollect_evidencias_grupos ?? [];
+  if (total <= 0 || grupos.length === 0) return null;
+
+  return (
+    <Box sx={blockShellSx}>
+      <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 1 }}>
+        Evidencias
+      </Typography>
+      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", mb: 1.25, lineHeight: 1.5 }}>
+        Archivos vinculados desde EpiCollect (por categoría).{" "}
+        <strong>{total}</strong> evidencia{total === 1 ? "" : "s"} en total. Los enlaces abren en otra pestaña.
+      </Typography>
+      {grupos.map((g) => {
+        const links = g.items.filter((it) => it.url && String(it.url).trim() !== "");
+        return (
+          <Box key={g.categoria} sx={{ mb: 1.5 }}>
+            <Typography
+              variant="body2"
+              sx={{ color: "rgba(255,255,255,0.88)", fontWeight: 600, mb: 0.5 }}
+            >
+              {g.label}: {g.count} {g.count === 1 ? "archivo" : "archivos"}
+            </Typography>
+            {links.length > 0 ? (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, columnGap: 1.25, rowGap: 0.5 }}>
+                {links.map((it, idx) => (
+                  <Link
+                    key={`${g.categoria}-${it.orden}-${idx}`}
+                    href={it.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    underline="hover"
+                    variant="body2"
+                    sx={{ color: "rgba(129, 212, 250, 0.95)", fontSize: "0.8125rem" }}
+                  >
+                    Ver {idx + 1}
+                  </Link>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)" }}>
+                Sin URL registrada
+              </Typography>
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
 function BloqueIniciadorVacío() {
   return (
     <Box sx={blockShellSx}>
@@ -397,6 +449,8 @@ export function ActuacionDetalleDialog({
         otrosExpanded={epicollectOtrosExpanded}
         onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
       />
+
+      <BloqueEvidenciasEpicollect draft={draft} />
 
       <BloqueIniciadorVacío />
     </>
@@ -732,6 +786,8 @@ export function ActuacionDetalleDialog({
         otrosExpanded={epicollectOtrosExpanded}
         onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
       />
+
+      <BloqueEvidenciasEpicollect draft={draft} />
 
       <BloqueIniciadorVacío />
     </>

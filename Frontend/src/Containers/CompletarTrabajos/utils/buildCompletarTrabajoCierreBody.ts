@@ -2,6 +2,7 @@ import type {
   ICompletarTrabajoCierreBody,
   ICompletarTrabajoPendienteRow,
 } from "../../../api/completarTrabajoApi";
+import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
 
 export type CompletarTrabajoFormFields = {
   tipo_actuacion: string;
@@ -55,6 +56,7 @@ export function buildCompletarTrabajoCierreBody(
   const body: ICompletarTrabajoCierreBody = {};
   const contra = s(f.contraproducencia);
   const visitaRealizada = !contra;
+  const noPermiteInspeccion = contra ? esNoPermiteInspeccionContraproducencia(contra) : false;
 
   if (includeTipo && s(f.tipo_actuacion)) body.tipo_actuacion = s(f.tipo_actuacion);
   if (contra) body.contraproducencia = contra;
@@ -84,6 +86,10 @@ export function buildCompletarTrabajoCierreBody(
     if (s(f.acta_decomiso_num)) body.acta_decomiso_num = s(f.acta_decomiso_num);
     const kilos = parseFloat(f.decomiso_kilos_total.replace(",", "."));
     if (!Number.isNaN(kilos)) body.decomiso_kilos_total = kilos;
+  } else if (noPermiteInspeccion) {
+    if (s(f.acta_comprobacion_num)) body.acta_comprobacion_num = s(f.acta_comprobacion_num);
+    if (s(f.comprobacion_motivo)) body.comprobacion_motivo = s(f.comprobacion_motivo);
+    if (s(f.acta_clausura_num)) body.acta_clausura_num = s(f.acta_clausura_num);
   }
 
   return body;

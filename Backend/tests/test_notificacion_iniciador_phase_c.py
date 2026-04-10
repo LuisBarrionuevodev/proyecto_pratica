@@ -36,7 +36,7 @@ def test_run_sync_pipeline_incluye_metricas_fase_c(monkeypatch):
     assert "elapsed_ms" in m
 
 
-def test_get_pendientes_notificacion_no_llama_sync_por_defecto(client, monkeypatch):
+def test_get_pendientes_notificacion_no_llama_sync_por_defecto(client, monkeypatch, auth_headers):
     mock_sync = MagicMock()
     monkeypatch.setattr(
         "app.domains.actuaciones.services.notificacion_iniciador_service.sync_iniciadores_reinspeccion_notificacion",
@@ -46,7 +46,7 @@ def test_get_pendientes_notificacion_no_llama_sync_por_defecto(client, monkeypat
         "app.domains.actuaciones.routes.pendientes_notificacion.list_reinspeccion_notificacion_operativas",
         lambda: [],
     )
-    r = client.get("/actuaciones/pendientes-notificacion")
+    r = client.get("/actuaciones/pendientes-notificacion", headers=auth_headers)
     assert r.status_code == 200
     mock_sync.assert_not_called()
 
@@ -72,7 +72,7 @@ def test_get_pendientes_summary_no_llama_sync_por_defecto(app, monkeypatch):
     mock_sync.assert_not_called()
 
 
-def test_sync_on_read_env_llama_sync_en_pendientes_notificacion(client, monkeypatch):
+def test_sync_on_read_env_llama_sync_en_pendientes_notificacion(client, monkeypatch, auth_headers):
     monkeypatch.setenv("SYNC_NOTIFICACIONES_VENCIDAS_ON_READ", "1")
     assert materializacion_notificacion_vencida_on_read_enabled() is True
 
@@ -87,7 +87,7 @@ def test_sync_on_read_env_llama_sync_en_pendientes_notificacion(client, monkeypa
         "app.domains.actuaciones.routes.pendientes_notificacion.list_reinspeccion_notificacion_operativas",
         lambda: [],
     )
-    client.get("/actuaciones/pendientes-notificacion")
+    client.get("/actuaciones/pendientes-notificacion", headers=auth_headers)
     mock_sync.assert_called_once()
 
 

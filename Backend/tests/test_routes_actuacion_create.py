@@ -1,18 +1,12 @@
-import importlib
 from datetime import date
+from unittest.mock import MagicMock
 
-def _patch_create_function(monkeypatch, module, fake_fn):
-    candidates = [
-        "crear_actuacion_desde_payload",
-        "create_actuacion_from_payload",
-        "crear_actuacion_from_payload",
-        "crear_actuacion",  # por si
-    ]
-    for name in candidates:
-        if hasattr(module, name):
-            monkeypatch.setattr(module, name, fake_fn)
-            return name
-    raise AssertionError(f"No encontré función create en route. Busqué: {candidates}")
+
+def _patch_create_function(monkeypatch, fake_fn):
+    monkeypatch.setattr(
+        "app.domains.actuaciones.routes.create.crear_actuacion_desde_payload",
+        fake_fn,
+    )
 
 
 
@@ -21,9 +15,6 @@ def _patch_create_function(monkeypatch, module, fake_fn):
 def _parse_iso_date(s: str) -> date:
     # payload["fecha_actuacion"] viene como "YYYY-MM-DD"
     return date.fromisoformat(s)
-
-
-from datetime import date
 
 
 class DummyOT:
@@ -62,21 +53,31 @@ class DummyActuacion:
 
 
 
-def test_post_actuaciones_create_ok(client, monkeypatch):
-    actuacion_mod = importlib.import_module("app.routes.actuacion")
+def test_post_actuaciones_create_ok(client, monkeypatch, auth_headers):
+    """Bypass Pydantic grid row para probar la ruta + presenter con payload canon mínimo."""
+    row = MagicMock()
+    monkeypatch.setattr(
+        "app.domains.actuaciones.routes.create.ActuacionGridRowIn.model_validate",
+        lambda data: row,
+    )
+    monkeypatch.setattr(
+        "app.domains.actuaciones.routes.create.map_actuacion_row",
+        lambda r: {
+            "tipo_actuacion": "INSPECCION",
+            "orden_trabajo_numero": "123",
+            "fecha_actuacion": "2025-12-31",
+        },
+    )
 
     def fake_create(payload):
-        return DummyActuacion(payload)  # ✅ ahora tiene to_dict()
+        return DummyActuacion(payload)
 
-    _patch_create_function(monkeypatch, actuacion_mod, fake_create)
+    _patch_create_function(monkeypatch, fake_create)
 
     resp = client.post(
         "/actuaciones/",
-        json={
-            "tipo_actuacion": "INSPECCION",
-            "orden_trabajo_numero": "123",
-            "fecha_actuacion": "31/12/2025",
-        },
+        headers=auth_headers,
+        json={"_test": "ignored_by_mock"},
     )
 
     assert resp.status_code in (200, 201), resp.get_data(as_text=True)
@@ -91,9 +92,10 @@ def test_post_actuaciones_create_ok(client, monkeypatch):
     assert data["fecha_actuacion"] == "2025-12-31"
 
 
-def test_post_actuaciones_validation_error_returns_422(client):
+def test_post_actuaciones_validation_error_returns_422(client, auth_headers):
     resp = client.post(
         "/actuaciones/",
+        headers=auth_headers,
         json={
             "orden_trabajo_numero": "123",
             "fecha_actuacion": "31/12/2025",

@@ -9,10 +9,14 @@ class ContrapBucket(str, Enum):
     NONE = "none"
     NO_EXISTE_LOCAL = "no_existe_local"
     REINGRESO_PRIORIDAD_ALTA = "reingreso_prioridad_alta"
+    NO_PERMITE_INSPECCION = "no_permite_inspeccion"
 
 
 # Valor persistido en `actuaciones.contraproducencia` para cierre sin reingreso.
 STORED_NO_EXISTE_LOCAL = "NO_EXISTE_LOCAL"
+
+# Catálogo `catalog_contraproducencia.nombre` (seed `run.py`). Visita no realizada pero exige acta de comprobación + motivo.
+STORED_NO_PERMITE_INSPECCION = "NO PERMITE INSPECCION"
 
 # Nombre en `CatalogContraproducencia` (seed `run.py`) al que se mapean alias viejos antes del coerce Pydantic.
 CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL = "NO EXISTE/NO ES EL RUBRO"
@@ -33,6 +37,22 @@ def _loose_key(s: str) -> str:
     """Normaliza para comparar alias (mayúsculas, sin barra extra, espacios únicos)."""
     x = s.upper().replace("_", " ").replace("/", " ")
     return " ".join(x.split())
+
+
+_NO_PERMITE_INSPECCION_ALIAS_KEYS = frozenset(
+    {
+        _loose_key("NO PERMITE INSPECCION"),
+        _loose_key("NO_PERMITE_INSPECCION"),
+        _loose_key("NO PERMITE INSPECCIÓN"),
+    }
+)
+
+
+def es_no_permite_inspeccion_contraproducencia(nombre: str | None) -> bool:
+    """True si el valor (post-coerción catálogo) es la contraproducencia «no permite inspección»."""
+    if not nombre:
+        return False
+    return _loose_key(nombre) in _NO_PERMITE_INSPECCION_ALIAS_KEYS
 
 
 _NO_EXISTE_ALIAS_KEYS = frozenset(
@@ -66,6 +86,8 @@ def map_contraproducencia_alias_to_catalog_nombre(raw: str) -> str:
     para que pase `CompletarTrabajoCierreIn` antes de `normalize_contraproducencia` (que persiste `NO_EXISTE_LOCAL`).
     """
     key = _loose_key(raw)
+    if key in _NO_PERMITE_INSPECCION_ALIAS_KEYS:
+        return STORED_NO_PERMITE_INSPECCION
     if key in _NO_EXISTE_ALIAS_KEYS:
         return CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL
     return raw
@@ -94,6 +116,9 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
     if key in _NO_EXISTE_ALIAS_KEYS:
         return STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL
 
+    if key in _NO_PERMITE_INSPECCION_ALIAS_KEYS:
+        return STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION
+
     # Sinónimos reingreso alta (acepta LOCAL_CERRADO, ZONA_ROJA, etc.)
     candidates = {
         _loose_key("LOCAL CERRADO"): "LOCAL CERRADO",
@@ -113,8 +138,8 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
 
     raise ValueError(
         f"Contraproducencia no reconocida: {raw!r}. "
-        "Usá valores del catálogo (p. ej. LOCAL CERRADO, CLIMA, ZONA ROJA, NO_HUBO, OTROS) "
-        "o variantes de no existe local normalizables."
+        "Usá valores del catálogo (p. ej. LOCAL CERRADO, CLIMA, ZONA ROJA, NO_HUBO, OTROS, "
+        "NO PERMITE INSPECCION) o variantes de no existe local normalizables."
     )
 
 
@@ -131,6 +156,8 @@ def motivo_no_realizado_para_ruta_item(stored_contra: str, bucket: ContrapBucket
     """
     if bucket == ContrapBucket.NO_EXISTE_LOCAL:
         return "NO_EXISTE_LOCAL"
+    if bucket == ContrapBucket.NO_PERMITE_INSPECCION:
+        return "OTRO"
     if stored_contra == "LOCAL CERRADO":
         return "LOCAL_CERRADO"
     if stored_contra == "CLIMA":

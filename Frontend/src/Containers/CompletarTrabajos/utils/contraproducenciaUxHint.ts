@@ -1,7 +1,12 @@
+import { CONTRAPRODUCCION_NO_PERMITE_INSPECCION } from "./completarTrabajoContraproducencia";
+
 /**
  * Mensajes UX según contraproducencia elegida (alineado al backend: no existe local vs reingreso).
  */
-export type ContraproducenciaUxHint = "cierra_sin_reingreso" | "reingreso_prioridad_alta";
+export type ContraproducenciaUxHint =
+  | "cierra_sin_reingreso"
+  | "reingreso_prioridad_alta"
+  | "no_permite_inspeccion";
 
 function looseKey(s: string): string {
   return s
@@ -39,6 +44,7 @@ export function getContraproducenciaUxHint(selected: string): ContraproducenciaU
   if (!t) return null;
   const k = looseKey(t);
   if (NO_REINGRESO_KEYS.has(k)) return "cierra_sin_reingreso";
+  if (k === looseKey(CONTRAPRODUCCION_NO_PERMITE_INSPECCION)) return "no_permite_inspeccion";
   if (REINGRESO_KEYS.has(k)) return "reingreso_prioridad_alta";
   return null;
 }

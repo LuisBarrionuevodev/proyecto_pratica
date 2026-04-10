@@ -31,11 +31,18 @@ from app.domains.usuarios.services.users_service import (
     update_user_admin,
 )
 from app.shared.errors import pydantic_errors_to_cell_map
+from app.security.rate_limiter import (
+    limit_password_reset_confirm,
+    limit_password_reset_request,
+    limit_login,
+    limiter,
+)
 
 usuarios_api = Blueprint("usuarios_api", __name__)
 
 
 @usuarios_api.post("/api/auth/login")
+@limiter.limit(limit_login)
 def auth_login():
     """
     Login con username + password.
@@ -55,6 +62,7 @@ def auth_login():
 
 
 @usuarios_api.post("/api/auth/password-reset/request")
+@limiter.limit(limit_password_reset_request)
 def auth_password_reset_request():
     """
     Solicita envío de código de recuperación.
@@ -71,6 +79,7 @@ def auth_password_reset_request():
 
 
 @usuarios_api.post("/api/auth/password-reset/confirm")
+@limiter.limit(limit_password_reset_confirm)
 def auth_password_reset_confirm():
     """
     Confirma código de recuperación y define nueva contraseña.

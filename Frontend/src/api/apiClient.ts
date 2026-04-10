@@ -1,7 +1,20 @@
 import axios from "axios";
 
+function resolveApiBaseUrl(): string {
+  const raw = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (raw) {
+    return raw.endsWith("/") ? raw : `${raw}/`;
+  }
+  if (import.meta.env.DEV) {
+    return "http://localhost:5000/";
+  }
+  throw new Error(
+    "VITE_API_BASE_URL no está definida. Configurarla en el build de producción/staging (URL del backend con barra final opcional)."
+  );
+}
+
 export const apiClient = axios.create({
-  baseURL: "http://localhost:5000/", //  cambiar al backend real después
+  baseURL: resolveApiBaseUrl(),
   headers: {
     "Content-Type": "application/json",
   },
