@@ -8,6 +8,9 @@ from typing import List, Optional, Tuple
 
 from app.database import db
 from app.domains.actuaciones.services.pendientes_service import _apply_distrito_optional, _apply_fecha
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import estado_recorrido_label
 from app.models import Actuaciones, IniciadorRuta
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
@@ -66,8 +69,10 @@ def list_comprobacion_recorrido(
 
     from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 
+    counts_by_eo = build_counts_by_eo_from_actuaciones(rows)
+
     def _keep(act: Actuaciones) -> bool:
-        row = actuacion_to_grid_row(act)
+        row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
         if contrib_q and contrib_q.strip():
             blob = f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''}".lower()
             if contrib_q.strip().lower() not in blob:

@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 
@@ -21,19 +22,37 @@ export type RutasTrabajoFlowStepperProps = {
   onStepChange: (step: RutaFlowStep) => void;
 };
 
+function StepConnector({ disabled }: { disabled: boolean }) {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        flexShrink: 0,
+        backgroundColor: disabled ? GLASS_COLORS.borderLight : GLASS_COLORS.borderMedium,
+        opacity: 0.85,
+        alignSelf: "center",
+        width: { xs: 1, sm: 24 },
+        height: { xs: 14, sm: 1 },
+      }}
+    />
+  );
+}
+
 /**
  * Navegación secuencial del borrador: paso actual, completados y futuros bloqueados hasta avanzar con CTA.
+ * En `xs` se apila en columna para no forzar ancho horizontal; en `sm+` fila con conectores horizontales.
  */
 export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChange }: RutasTrabajoFlowStepperProps) {
   return (
     <Stack
       component="nav"
       aria-label="Etapas del borrador de ruta"
-      direction="row"
-      alignItems="center"
-      flexWrap="wrap"
+      direction={{ xs: "column", sm: "row" }}
+      alignItems={{ xs: "stretch", sm: "center" }}
+      flexWrap={{ sm: "wrap" }}
       useFlexGap
       spacing={1}
+      sx={{ width: "100%", minWidth: 0, maxWidth: "100%", boxSizing: "border-box" }}
     >
       {STEPS.map(({ step, label }, idx) => {
         const disabled = step > flowMaxUnlocked;
@@ -42,19 +61,8 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
         const completed = flowStep > step;
 
         return (
-          <Stack key={step} direction="row" alignItems="center" spacing={1}>
-            {idx > 0 ? (
-              <Box
-                component="span"
-                sx={{
-                  width: 24,
-                  height: 1,
-                  backgroundColor: disabled ? GLASS_COLORS.borderLight : GLASS_COLORS.borderMedium,
-                  opacity: 0.8,
-                }}
-                aria-hidden
-              />
-            ) : null}
+          <Fragment key={step}>
+            {idx > 0 ? <StepConnector disabled={disabled} /> : null}
             <Box
               component="button"
               type="button"
@@ -85,6 +93,12 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 0.75,
+                minWidth: 0,
+                width: { xs: "100%", sm: "auto" },
+                maxWidth: "100%",
+                boxSizing: "border-box",
+                justifyContent: { xs: "flex-start", sm: "center" },
+                textAlign: "left",
                 transition: "background-color 0.15s, border-color 0.15s",
                 "&:hover:not(:disabled)": {
                   backgroundColor: active ? "rgba(1, 102, 255, 0.22)" : "rgba(255,255,255,0.08)",
@@ -110,11 +124,22 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
               >
                 {completed ? <CheckRoundedIcon sx={{ fontSize: 16 }} /> : step}
               </Box>
-              <Typography component="span" sx={{ fontFamily: tactic, fontSize: "inherit", fontWeight: "inherit" }}>
+              <Typography
+                component="span"
+                sx={{
+                  fontFamily: tactic,
+                  fontSize: "inherit",
+                  fontWeight: "inherit",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: { xs: "normal", sm: "nowrap" },
+                }}
+              >
                 {label}
               </Typography>
             </Box>
-          </Stack>
+          </Fragment>
         );
       })}
     </Stack>

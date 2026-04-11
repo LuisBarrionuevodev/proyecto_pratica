@@ -3,6 +3,9 @@ from __future__ import annotations
 from flask import jsonify, request
 from pydantic import ValidationError
 
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.presenters.actuacion_presenters import (
     actuacion_to_pendiente_oficio_row,
 )
@@ -28,7 +31,8 @@ def pendientes_oficio_list():
         params = {k: (v if v else None) for k, v in request.args.to_dict().items()}
         filters = ActuacionesPendientesFilters.model_validate(params)
         acts = get_pendientes_oficio(filters)
-        items = [actuacion_to_pendiente_oficio_row(a) for a in acts]
+        counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+        items = [actuacion_to_pendiente_oficio_row(a, counts_by_eo=counts_by_eo) for a in acts]
         return jsonify(
             {
                 "items": items,

@@ -1,26 +1,27 @@
 import { useMemo, useState } from "react";
 import axios from "axios";
-import { Alert, Box, Paper, Typography } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import AddIcon from "@mui/icons-material/Add";
 
 import { createDenuncia } from "../../../api/denunciasApi";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
-import {
-  dialogFormActionsRowSx,
-  dialogFormGridSx,
-  formDialogShortContentSx,
-} from "../../../styles/formDialogStyles";
-import { AppButton, AppDialog, AppTextField } from "../../../ui";
-import {
-  alertBaseStyles,
-  errorAlertStyles,
-  filtroContainerStyles,
-  filtroTitleStyles,
-  filtroButtonPrimaryStyles,
-  COLORS,
-} from "../../Actuaciones/styles/filtroStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { dialogFormActionsRowSx, formDialogShortContentSx } from "../../../styles/formDialogStyles";
+import { AppButton, AppDialog, AppTextField, CardGlass } from "../../../ui";
+import { alertBaseStyles, errorAlertStyles } from "../../Actuaciones/styles/filtroStyles";
+
+const tactic = '"Tactic Sans", sans-serif' as const;
+
+/** Grid del modal: 1 col en xs/sm; máximo 2 cols en md+ (sin 3 columnas apretadas). Motivo usa `gridColumn: 1 / -1`. */
+const denunciaDialogFormGridSx = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+  gap: 2,
+  width: "100%",
+  minWidth: 0,
+} as const;
 
 interface FormErrors {
   fecha?: string;
@@ -90,7 +91,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
         interseccion: isNumero ? null : numeroOrEsquina,
         motivo: motivo.trim(),
       });
-      setSuccessMsg("Denuncia creada correctamente.");
+      setSuccessMsg("Listo: la denuncia quedó registrada.");
       handleClear();
       setOpen(false);
     } catch (err: unknown) {
@@ -122,8 +123,28 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
   };
 
   return (
-    <Box sx={filtroContainerStyles}>
-      {showTitle && <Typography sx={filtroTitleStyles}>Carga de Denuncias</Typography>}
+    <Box
+      sx={{
+        width: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      {showTitle && (
+        <Typography
+          sx={{
+            fontFamily: tactic,
+            fontWeight: 700,
+            fontSize: "1.1rem",
+            color: GLASS_COLORS.textPrimary,
+          }}
+        >
+          Carga de denuncias
+        </Typography>
+      )}
 
       {errorMsg && (
         <Alert severity="error" sx={errorAlertStyles} onClose={() => setErrorMsg(null)}>
@@ -137,48 +158,61 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
         </Alert>
       )}
 
-      <Paper
-        sx={{
-          p: { xs: 2, sm: 3 },
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          justifyContent: "space-between",
-          alignItems: { xs: "flex-start", sm: "center" },
-          gap: 2,
-          backgroundColor: COLORS.grayDark,
-          borderRadius: "8px",
-          border: `1px solid ${COLORS.border}`,
-          boxShadow:
-            "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
-        }}
-      >
-        <Box>
-          <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700 }}>
-            ¿Desea cargar una nueva denuncia?
-          </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.75)" }}>
-            Registrá una denuncia con una carga simple y rápida.
-          </Typography>
-        </Box>
-        <AppButton
-          dsVariant="primary"
-          onClick={() => {
-            setErrorMsg(null);
-            setErrors({});
-            setOpen(true);
+      <CardGlass sx={{ width: "100%", minWidth: 0 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: 2,
+            minWidth: 0,
           }}
-          startIcon={<AddIcon />}
-          sx={filtroButtonPrimaryStyles}
         >
-          Nueva denuncia
-        </AppButton>
-      </Paper>
+          <Box sx={{ minWidth: 0, flex: { sm: "1 1 auto" } }}>
+            <Typography
+              sx={{
+                fontFamily: tactic,
+                fontWeight: 700,
+                fontSize: "1rem",
+                color: GLASS_COLORS.textPrimary,
+                letterSpacing: "0.02em",
+              }}
+            >
+              ¿Querés registrar una denuncia?
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: tactic,
+                mt: 0.5,
+                fontSize: "0.875rem",
+                color: GLASS_COLORS.textMuted,
+                lineHeight: 1.45,
+              }}
+            >
+              Fecha, domicilio y motivo en un solo paso. Después queda en cola para planificación.
+            </Typography>
+          </Box>
+          <AppButton
+            dsVariant="primary"
+            onClick={() => {
+              setErrorMsg(null);
+              setErrors({});
+              setOpen(true);
+            }}
+            startIcon={<AddIcon />}
+            sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
+          >
+            Nueva denuncia
+          </AppButton>
+        </Box>
+      </CardGlass>
 
       <AppDialog
         open={open}
         onClose={() => tryCloseModal()}
         onCloseButtonClick={() => tryCloseModal()}
-        title="Nueva denuncia"
+        title="Registrar denuncia"
         contentDividers
         contentSx={formDialogShortContentSx}
         actions={
@@ -202,7 +236,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
           </Box>
         }
       >
-        <Box sx={dialogFormGridSx}>
+        <Box sx={denunciaDialogFormGridSx}>
           <AppTextField
             appearance="glass"
             fullWidth

@@ -1,6 +1,7 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Alert, Box, Chip, Collapse, IconButton, Link, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
@@ -320,6 +321,7 @@ export function ActuacionDetalleDialog({
   onDraftChange,
   onSave,
 }: ActuacionDetalleDialogProps) {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
 
@@ -442,6 +444,47 @@ export function ActuacionDetalleDialog({
             : ""}{" "}
           · Doc. {dash(draft.doc_nro)}
         </Typography>
+      </Box>
+
+      <Box sx={blockShellSx}>
+        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
+          Establecimiento
+        </Typography>
+        {draft.establecimiento_operativo_id != null ? (
+          <>
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)", mb: 0.75 }}>
+              Esta actuación está vinculada a una ficha de establecimiento (ID {draft.establecimiento_operativo_id}).
+            </Typography>
+            {draft.establecimiento_actuaciones_en_ficha != null &&
+            draft.establecimiento_actuaciones_en_ficha > 0 ? (
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)" }}>
+                Historial en esta ficha: {draft.establecimiento_actuaciones_en_ficha} actuación
+                {draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "es"} registrada
+                {draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "s"}.
+              </Typography>
+            ) : (
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.5)" }}>
+                Cantidad de actuaciones en ficha: —
+              </Typography>
+            )}
+            <AppButton
+              dsVariant="secondary"
+              dsSize="sm"
+              sx={{ mt: 1.5, alignSelf: "flex-start", fontWeight: 600 }}
+              onClick={() => {
+                onClose();
+                navigate(`/establecimientos/${draft.establecimiento_operativo_id}`);
+              }}
+            >
+              Ver establecimiento
+            </AppButton>
+          </>
+        ) : (
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", lineHeight: 1.5 }}>
+            Sin ficha vinculada. Suele aparecer cuando el cierre en ruta registró el domicilio y generó la ficha
+            operativa; actuaciones anteriores a ese módulo pueden quedar sin vínculo.
+          </Typography>
+        )}
       </Box>
 
       <BloqueEpicollectDetalleLectura

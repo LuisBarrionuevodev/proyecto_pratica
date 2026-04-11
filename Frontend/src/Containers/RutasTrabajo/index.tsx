@@ -339,9 +339,28 @@ const RutasTrabajo = () => {
   const iniciadorById = useMemo(() => ({ ...poolRowsById }), [poolRowsById]);
 
   return (
-    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2.2 }}>
+    <Box
+      sx={{
+        width: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        p: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2.2,
+      }}
+    >
         {rutaId != null && (
-          <Paper elevation={0} sx={rutasInstitutionalHeaderPaperSx}>
+          <Paper
+            elevation={0}
+            sx={{
+              ...rutasInstitutionalHeaderPaperSx,
+              width: "100%",
+              minWidth: 0,
+              maxWidth: "100%",
+              boxSizing: "border-box",
+            }}
+          >
             <RutasTrabajoFlowStepper
               flowStep={flowStep}
               flowMaxUnlocked={flowMaxUnlocked}

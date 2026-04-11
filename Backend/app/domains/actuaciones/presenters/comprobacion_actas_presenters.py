@@ -54,9 +54,14 @@ def estado_recorrido_label(act: Actuaciones) -> str:
     return "Pendiente reinspección por oficio"
 
 
-def iniciador_reinspeccion_to_row(ini: IniciadorRuta, act: Actuaciones) -> Dict[str, Any]:
+def iniciador_reinspeccion_to_row(
+    ini: IniciadorRuta,
+    act: Actuaciones,
+    *,
+    counts_by_eo: dict[int, int] | None = None,
+) -> Dict[str, Any]:
     """Fila para bandeja Pendientes de reinspección (oficio ya cargado)."""
-    base = actuacion_to_grid_row(act)
+    base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     return {
         "iniciador_id": ini.id,
         "estado_iniciador": ini.estado_iniciador,
@@ -78,8 +83,12 @@ def iniciador_reinspeccion_to_row(ini: IniciadorRuta, act: Actuaciones) -> Dict[
     }
 
 
-def comprobacion_recorrido_resumen_row(act: Actuaciones) -> Dict[str, Any]:
-    base = actuacion_to_grid_row(act)
+def comprobacion_recorrido_resumen_row(
+    act: Actuaciones,
+    *,
+    counts_by_eo: dict[int, int] | None = None,
+) -> Dict[str, Any]:
+    base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     base["estado_recorrido"] = estado_recorrido_label(act)
     return base
 

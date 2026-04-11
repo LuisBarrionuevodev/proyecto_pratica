@@ -7,6 +7,9 @@ from __future__ import annotations
 from flask import jsonify, request
 from pydantic import ValidationError
 
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
     comprobacion_recorrido_resumen_row,
@@ -36,7 +39,11 @@ def comprobacion_pendientes_reinspeccion_oficio():
     try:
         filters = _filters_desde_request()
         pairs = list_pendientes_reinspeccion_oficio(filters)
-        items = [iniciador_reinspeccion_to_row(ini, act) for ini, act in pairs]
+        acts_only = [act for _, act in pairs]
+        counts_by_eo = build_counts_by_eo_from_actuaciones(acts_only)
+        items = [
+            iniciador_reinspeccion_to_row(ini, act, counts_by_eo=counts_by_eo) for ini, act in pairs
+        ]
         return (
             jsonify(
                 {
@@ -77,7 +84,8 @@ def comprobacion_recorrido_list():
             estado_recorrido=args.get("estado_recorrido"),
             tipo_final=args.get("tipo_final"),
         )
-        items = [comprobacion_recorrido_resumen_row(a) for a in acts]
+        counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+        items = [comprobacion_recorrido_resumen_row(a, counts_by_eo=counts_by_eo) for a in acts]
         return (
             jsonify(
                 {

@@ -5,6 +5,9 @@ from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
 from app.domains.actuaciones.services.list_service import listar_actuaciones_con_filtros
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 
 from . import actuacion
@@ -59,7 +62,9 @@ def listar_actuaciones():
         result = listar_actuaciones_con_filtros(filters)
         
         # Transformar items con presenter grid completo (todas las columnas)
-        items_dto = [actuacion_to_grid_row(act) for act in result["items"]]
+        items_raw = result["items"]
+        counts_by_eo = build_counts_by_eo_from_actuaciones(items_raw)
+        items_dto = [actuacion_to_grid_row(act, counts_by_eo=counts_by_eo) for act in items_raw]
         
         return jsonify({
             "items": items_dto,

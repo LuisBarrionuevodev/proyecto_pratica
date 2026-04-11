@@ -29,6 +29,7 @@ from .domicilio_geocode import DomicilioGeocode
 from .lugar_trabajo import LugarTrabajo
 from .participante import Participante
 from .establecimiento import Establecimiento
+from .establecimiento_operativo import EstablecimientoOperativo
 from .evento import Evento
 from .evento_participante import EventoParticipante
 from .user import User
@@ -75,6 +76,7 @@ __all__ = [
     "LugarTrabajo",
     "Participante",
     "Establecimiento",
+    "EstablecimientoOperativo",
     "Evento",
     "EventoParticipante",
     "User",

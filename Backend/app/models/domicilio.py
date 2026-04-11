@@ -107,6 +107,11 @@ class Domicilio(db.Model):
     distrito = db.relationship("Distrito", back_populates="domicilio")
     contribuyente = db.relationship("Contribuyente", back_populates="domicilio")
     relevamiento = db.relationship("Relevamiento", back_populates="domicilio")
+    establecimiento_operativo = db.relationship(
+        "EstablecimientoOperativo",
+        back_populates="domicilio",
+        uselist=False,
+    )
 
     def to_dict(self, include_relations=False):
         # Fuente operativa de coordenadas: domicilio_geocode.

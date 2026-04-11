@@ -5,8 +5,10 @@ import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "m
 import {
   createExpedienteDesdeActuacion,
   getActuacionesPendientesExpediente,
+  postSyncNotificacionesVencidas,
   type IActuacionesPendientesItem,
   type ICreateExpedienteRequest,
+  type ISyncNotificacionesVencidasResponse,
 } from "../../api/actuacionesPendientesApi";
 import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
@@ -74,6 +76,13 @@ const GestionNotificacionPage = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [modalApiError, setModalApiError] = useState<string | null>(null);
 
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<
+    | null
+    | { kind: "success"; metrics: ISyncNotificacionesVencidasResponse }
+    | { kind: "error"; message: string }
+  >(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -83,7 +92,10 @@ const GestionNotificacionPage = () => {
       });
       setItems(resp.items);
     } catch (err: unknown) {
-      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      const detail =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
       setError(detail || "Error al cargar la bandeja");
       setItems([]);
     } finally {
@@ -93,6 +105,38 @@ const GestionNotificacionPage = () => {
 
   useEffect(() => {
     void loadData();
+  }, [loadData]);
+
+  const handleSyncNotificacionesVencidas = useCallback(async () => {
+    setSyncLoading(true);
+    setSyncFeedback(null);
+    try {
+      const metrics = await postSyncNotificacionesVencidas();
+      setSyncFeedback({ kind: "success", metrics });
+      await loadData();
+    } catch (err: unknown) {
+      const detail =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { detail?: string }; status?: number } }).response?.data?.detail
+          : null;
+      const status =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { status?: number } }).response?.status
+          : undefined;
+      if (status === 429) {
+        setSyncFeedback({
+          kind: "error",
+          message: typeof detail === "string" ? detail : "Demasiadas solicitudes. Probá más tarde.",
+        });
+      } else {
+        setSyncFeedback({
+          kind: "error",
+          message: typeof detail === "string" ? detail : "No se pudo sincronizar.",
+        });
+      }
+    } finally {
+      setSyncLoading(false);
+    }
   }, [loadData]);
 
   const notificacionRows = useMemo(
@@ -150,7 +194,10 @@ const GestionNotificacionPage = () => {
       closeModal();
       await loadData();
     } catch (err: unknown) {
-      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      const detail =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
       setModalApiError(detail || "No se pudo añadir el expediente de plazo");
     } finally {
       setSaving(false);
@@ -232,6 +279,58 @@ const GestionNotificacionPage = () => {
     <Box sx={containerStyles}>
       <Box sx={wrapperStyles}>
         <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              flexWrap: "wrap",
+              alignItems: { xs: "stretch", sm: "flex-start" },
+              gap: 2,
+              pb: 1,
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <Box sx={{ flex: "1 1 280px", minWidth: 0 }}>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)", mb: 0.75 }}>
+                <strong>Sincronizar vencimientos</strong> materializa en el sistema la cola de reinspección por
+                notificaciones vencidas (iniciadores para planificación). Esta tabla sigue siendo la bandeja de{" "}
+                <strong>expedientes de plazo</strong> y <strong>días restantes</strong>: el resultado del sync{" "}
+                <strong>no siempre cambia</strong> las filas visibles.
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.25 }}>
+                El ícono de actualizar en los indicadores solo <strong>recarga esta bandeja</strong>; no ejecuta el
+                proceso operativo de sincronización.
+              </Typography>
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                onClick={() => void handleSyncNotificacionesVencidas()}
+                disabled={syncLoading || loading}
+              >
+                {syncLoading ? "Sincronizando…" : "Sincronizar vencimientos"}
+              </AppButton>
+            </Box>
+          </Box>
+
+          {syncFeedback?.kind === "success" && (
+            <Alert
+              severity="success"
+              sx={alertBaseStyles}
+              onClose={() => setSyncFeedback(null)}
+            >
+              Sincronización correcta. Creados: <strong>{syncFeedback.metrics.created}</strong>, elegibles:{" "}
+              <strong>{syncFeedback.metrics.eligible_notificaciones}</strong>, omitidos (ya bloqueados):{" "}
+              <strong>{syncFeedback.metrics.skipped_already_blocking}</strong>, colisiones idempotentes:{" "}
+              <strong>{syncFeedback.metrics.collisions_idempotent}</strong>, tiempo:{" "}
+              <strong>{syncFeedback.metrics.elapsed_ms}</strong> ms.
+            </Alert>
+          )}
+          {syncFeedback?.kind === "error" && (
+            <Alert severity="error" sx={alertBaseStyles} onClose={() => setSyncFeedback(null)}>
+              {syncFeedback.message}
+            </Alert>
+          )}
+
           <SegmentedFilterChips<PlazoOperativoSlice>
             options={sliceChips.map(({ slice, count }) => ({
               value: slice,

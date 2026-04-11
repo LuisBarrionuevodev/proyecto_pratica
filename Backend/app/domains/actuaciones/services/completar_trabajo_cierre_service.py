@@ -30,6 +30,9 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     validar_tipo_actuacion_para_iniciador,
 )
+from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
+    resolve_establecimiento_por_domicilio,
+)
 from app.models import CatalogTipoActuacion
 
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
@@ -284,6 +287,14 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.prioridad = max(int(ini.prioridad), 5)
             ini.cerrado_at = None
             ini.cerrado_motivo = None
+
+        if bucket == ContrapBucket.NONE:
+            eid = resolve_establecimiento_por_domicilio(
+                act.domicilio_id,
+                created_by_user_id=ejecutado_por_user_id,
+            )
+            if eid is not None:
+                act.establecimiento_operativo_id = eid
 
         ini.updated_at = now
         db.session.add(act)

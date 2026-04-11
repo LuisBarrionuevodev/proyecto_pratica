@@ -25,6 +25,9 @@ from app.domains.geolocalizacion.geocode.routes import geolocalizacion_map as ge
 from app.domains.usuarios.routes import usuarios_api as usuarios_api_bp
 from app.domains.mapa_detalle.routes import mapa_detalle_api as mapa_detalle_api_bp
 from app.domains.denuncias.routes import denuncias_api as denuncias_api_bp
+from app.domains.establecimientos.routes.establecimientos_operativos import (
+    establecimientos_operativos_bp,
+)
 from app.domains.rutas_trabajo.routes import rutas_trabajo as rutas_trabajo_bp
 from app.domains.indicadores.routes import indicadores_api as indicadores_api_bp
 from app.domains.usuarios.security.jwt import init_jwt
@@ -88,6 +91,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(mapa_detalle_api_bp)
     app.register_blueprint(usuarios_api_bp)
     app.register_blueprint(denuncias_api_bp)
+    app.register_blueprint(establecimientos_operativos_bp, url_prefix="/establecimientos-operativos")
     app.register_blueprint(rutas_trabajo_bp, url_prefix="/rutas-trabajo")
     app.register_blueprint(indicadores_api_bp, url_prefix="/api/indicadores")
 

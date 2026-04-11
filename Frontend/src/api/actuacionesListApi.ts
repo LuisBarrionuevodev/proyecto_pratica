@@ -65,6 +65,10 @@ export interface IActuacionListItem {
     notificacion_editable?: boolean;
     /** false si la comprobación ya tiene expediente de envío. */
     comprobacion_editable?: boolean;
+    /** Ficha operativa (mismo domicilio canónico); null si aún no vinculada. */
+    establecimiento_operativo_id?: number | null;
+    /** Cantidad de actuaciones con la misma ficha (incluye la actual). */
+    establecimiento_actuaciones_en_ficha?: number | null;
     /** Snapshot no-media importado desde EpiCollect (`actuacion_epicollect_detalle`). */
     has_epicollect_detalle?: boolean;
     /** Cantidad de claves en `payload_non_media.data` (sin campos de media). */

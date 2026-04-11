@@ -58,6 +58,12 @@ def limit_grid_commit_row() -> str:
 def limit_completar_trabajo_cerrar() -> str:
     return _env_limit("RATE_LIMIT_COMPLETAR_TRABAJO_CERRAR", "60 per hour")
 
+
+def limit_sync_notificaciones_vencidas() -> str:
+    """Sync de iniciadores por notificaciones vencidas (operación costosa; disparo manual desde UI)."""
+    return _env_limit("RATE_LIMIT_SYNC_NOTIFICACIONES_VENCIDAS", "10 per hour")
+
+
 limiter = Limiter(
     key_func=get_remote_address,
     on_breach=_on_breach,

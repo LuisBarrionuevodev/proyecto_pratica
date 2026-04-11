@@ -26,6 +26,9 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    count_actuaciones_por_establecimiento_operativo_ids,
+)
 from app.models import Actuaciones, Expediente, Oficio
 
 
@@ -225,7 +228,11 @@ def oficio_por_comprobacion(comprobacion_id: int) -> Optional[Oficio]:
     )
 
 
-def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
+def actuacion_to_grid_row(
+    act: Actuaciones,
+    *,
+    counts_by_eo: dict[int, int] | None = None,
+) -> Dict[str, Any]:
     """
     Convierte una Actuación (con relaciones) al formato plano
     que espera Material React Table.
@@ -235,6 +242,11 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     - enum se entrega como string limpio
     - `expediente_*` refleja solo el expediente de comprobación (envío), nunca el de respuesta de oficio.
     - `oficio_*` sale del registro `Oficio` de la comprobación, no desde el expediente colateral.
+
+    Parámetros:
+        counts_by_eo: mapa ``establecimiento_operativo_id`` -> cantidad de actuaciones en esa ficha.
+            En listados, pasar el resultado de ``build_counts_by_eo_from_actuaciones`` para evitar N+1.
+            Si es None y hay ficha, se hace una consulta por actuación (aceptable para alta/baja única).
     """
 
     # -------------------------
@@ -412,6 +424,15 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
     _raw_nombre_local = getattr(act, "nombre_local", None)
     nombre_local_val = (str(_raw_nombre_local).strip() or None) if _raw_nombre_local is not None else None
 
+    eo_id = getattr(act, "establecimiento_operativo_id", None)
+    en_ficha: int | None = None
+    if eo_id is not None:
+        eid = int(eo_id)
+        if counts_by_eo is not None:
+            en_ficha = int(counts_by_eo.get(eid, 0))
+        else:
+            en_ficha = int(count_actuaciones_por_establecimiento_operativo_ids([eid]).get(eid, 0))
+
     return {
         "id": act.id,
         "orden_trabajo_numero": ot_num,
@@ -452,6 +473,9 @@ def actuacion_to_grid_row(act: Actuaciones) -> Dict[str, Any]:
         "ec5_uuid": getattr(act, "ec5_uuid", None),
 
         "nombre_local": nombre_local_val,
+
+        "establecimiento_operativo_id": eo_id,
+        "establecimiento_actuaciones_en_ficha": en_ficha,
 
         "acta_inspeccion_num": acta_inspeccion_num,
 
@@ -517,6 +541,7 @@ def actuacion_to_pendiente_expediente_row(
     *,
     plazos_por_notificacion: dict[int, int] | None = None,
     fecha_vencimiento_por_notificacion: dict[int, date | None] | None = None,
+    counts_by_eo: dict[int, int] | None = None,
 ) -> Dict[str, Any]:
     """
     DTO compacto para la bandeja unificada de pendientes de expediente.
@@ -525,7 +550,7 @@ def actuacion_to_pendiente_expediente_row(
     Rama NOTIFICACION: `dias_restantes` y `plazos_otorgados` cuando se pasan mapas batch
     (`build_notificacion_expediente_bandeja_metrics`). Rama COMPROBACION: ambos None.
     """
-    full = actuacion_to_grid_row(act)
+    full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     source_type = _infer_expediente_source_type(act)
     full["source_type"] = source_type
 
@@ -604,13 +629,17 @@ def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
     }
 
 
-def actuacion_to_pendiente_oficio_row(act: Actuaciones) -> Dict[str, Any]:
+def actuacion_to_pendiente_oficio_row(
+    act: Actuaciones,
+    *,
+    counts_by_eo: dict[int, int] | None = None,
+) -> Dict[str, Any]:
     """
     Convierte una actuación a una fila compacta para la bandeja "Esperando oficio".
 
     Incluye contexto operativo mínimo y el expediente original de comprobación.
     """
-    full = actuacion_to_grid_row(act)
+    full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     exp_original = None
     if getattr(act, "comprobacion_id", None):
         exp_original = expediente_envio_por_comprobacion(act.comprobacion_id)

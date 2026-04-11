@@ -8,6 +8,9 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     get_pendientes_expediente,
 )
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_pendiente_expediente_row
 from app.shared.errors import pydantic_errors_to_cell_map
 
@@ -38,11 +41,13 @@ def pendientes_expediente_list():
         filters = ActuacionesPendientesFilters.model_validate(params)
         acts = get_pendientes_expediente(filters)
         plazos_map, venc_map = build_notificacion_expediente_bandeja_metrics(acts)
+        counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
         items = [
             actuacion_to_pendiente_expediente_row(
                 a,
                 plazos_por_notificacion=plazos_map,
                 fecha_vencimiento_por_notificacion=venc_map,
+                counts_by_eo=counts_by_eo,
             )
             for a in acts
         ]

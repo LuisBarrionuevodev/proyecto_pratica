@@ -1,7 +1,8 @@
 """
 JWT por fases en el API JSON.
 
-- Fase 1: mutaciones y escrituras sensibles (actuaciones, grid commit, geo POST, rutas_trabajo CUD).
+- Fase 1: mutaciones y escrituras sensibles (actuaciones, grid commit, geo POST, rutas_trabajo CUD,
+  sync notificaciones vencidas).
 - PR-A (lecturas): GET/HEAD en `/actuaciones/*`, `/api/denuncias*`, `/rutas-trabajo/*`.
 - PR-B (lecturas): GET/HEAD en `/relevamientos/*`.
 - PR-C1 (lecturas): GET/HEAD en `/map/*`, `/api/map/*`, `/geo/*`, `/geolocalizacion/*`.
@@ -44,6 +45,10 @@ _PHASE1_METHOD_PATH: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("POST", re.compile(r"^/actuaciones/completar-trabajo/cerrar/\d+$")),
     ("POST", re.compile(r"^/actuaciones/\d+/epicollect/import$")),
     ("POST", re.compile(r"^/actuaciones/\d+/epicollect/import-from-api$")),
+    (
+        "POST",
+        re.compile(r"^/actuaciones/pendientes/sync-notificaciones-vencidas$"),
+    ),
     ("POST", re.compile(r"^/grid/commit-batch$")),
     ("POST", re.compile(r"^/grid/commit-row$")),
     (
@@ -141,6 +146,13 @@ def _indicadores_requires_jwt(method: str, path: str) -> bool:
     return path == "/api/indicadores" or path.startswith("/api/indicadores/")
 
 
+def _establecimientos_operativos_requires_jwt(method: str, path: str) -> bool:
+    """Lecturas de fichas operativas (listado, detalle, historial de actuaciones)."""
+    if method not in _READ_METHODS_PROTECTED:
+        return False
+    return path == "/establecimientos-operativos" or path.startswith("/establecimientos-operativos/")
+
+
 def _requires_jwt(method: str, path: str) -> bool:
     return (
         _phase1_requires_jwt(method, path)
@@ -149,6 +161,7 @@ def _requires_jwt(method: str, path: str) -> bool:
         or _pr_c1_requires_jwt(method, path)
         or _pr_c2_requires_jwt(method, path)
         or _indicadores_requires_jwt(method, path)
+        or _establecimientos_operativos_requires_jwt(method, path)
     )
 
 

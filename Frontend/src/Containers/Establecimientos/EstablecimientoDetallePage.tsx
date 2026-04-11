@@ -1,49 +1,194 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import DescriptionIcon from "@mui/icons-material/Description";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import StorefrontIcon from "@mui/icons-material/Storefront";
-import AddIcon from "@mui/icons-material/Add";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import { Box, Grid, Link, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Alert, Box, Grid, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_PaginationState,
 } from "material-react-table";
+import { isAxiosError } from "axios";
 
 import { AppButton } from "../../ui";
 import { COLORS, gridContainerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import { glassCard } from "../../styles/GlassStyles";
-import { getMockEstablecimientoById } from "./mocks/establecimientosMock";
-import type { IHistorialInspeccionRow } from "./types/establecimientos.types";
-import { ResultadoInspeccionChip } from "./components/ResultadoInspeccionChip";
+import {
+  getEstablecimientoOperativoActuaciones,
+  getEstablecimientoOperativoById,
+  type IEstablecimientoOperativoDetail,
+  type IEstablecimientoOperativoHistorialRow,
+} from "../../api/establecimientosOperativosApi";
+
+const HIST_PAGE_SIZE = 20;
+
+function formatFecha(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("es-AR", { dateStyle: "medium" });
+}
+
+function dash(v: string | null | undefined): string {
+  const t = v?.trim();
+  return t ? t : "—";
+}
 
 /**
- * Ficha de establecimiento (mock): encabezado + pestañas Información / Actuaciones (historial de inspecciones).
+ * Ficha de establecimiento operativo: cabecera e historial desde API (JWT vía apiClient).
  */
 export default function EstablecimientoDetallePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: idParam } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"info" | "actuaciones">("info");
 
-  const detalle = id ? getMockEstablecimientoById(id) : undefined;
+  const establecimientoId = useMemo(() => {
+    if (!idParam || !/^\d+$/.test(idParam)) return null;
+    return Number.parseInt(idParam, 10);
+  }, [idParam]);
 
-  const colsHistorial = useMemo<MRT_ColumnDef<IHistorialInspeccionRow>[]>(
+  const [detalle, setDetalle] = useState<IEstablecimientoOperativoDetail | null>(null);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
+  const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
+
+  const [historialRows, setHistorialRows] = useState<IEstablecimientoOperativoHistorialRow[]>([]);
+  /** `null` = aún no hubo respuesta para el id/pestaña actual (evita flash “sin registros” al cargar). */
+  const [historialTotal, setHistorialTotal] = useState<number | null>(null);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [errorHistorial, setErrorHistorial] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: HIST_PAGE_SIZE,
+  });
+
+  useEffect(() => {
+    if (establecimientoId == null) {
+      setDetalle(null);
+      setErrorDetalle(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetalle(true);
+    setErrorDetalle(null);
+    void getEstablecimientoOperativoById(establecimientoId)
+      .then((d) => {
+        if (!cancelled) {
+          setDetalle(d);
+        }
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        if (isAxiosError(e) && e.response?.status === 404) {
+          setErrorDetalle("Establecimiento operativo no encontrado.");
+          setDetalle(null);
+          return;
+        }
+        const detail =
+          isAxiosError(e) && e.response?.data && typeof e.response.data === "object"
+            ? (e.response.data as { detail?: string }).detail
+            : null;
+        setErrorDetalle(detail ?? "No se pudo cargar la ficha.");
+        setDetalle(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetalle(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [establecimientoId]);
+
+  useEffect(() => {
+    if (establecimientoId == null) return;
+    setHistorialRows([]);
+    setHistorialTotal(null);
+    setErrorHistorial(null);
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  }, [establecimientoId]);
+
+  const loadHistorial = useCallback(async () => {
+    if (establecimientoId == null) return;
+    setLoadingHistorial(true);
+    setErrorHistorial(null);
+    try {
+      const res = await getEstablecimientoOperativoActuaciones(establecimientoId, {
+        page: pagination.pageIndex + 1,
+        page_size: pagination.pageSize,
+      });
+      setHistorialRows(res.items);
+      setHistorialTotal(res.meta.total);
+    } catch (e: unknown) {
+      const detail =
+        isAxiosError(e) && e.response?.data && typeof e.response.data === "object"
+          ? (e.response.data as { detail?: string }).detail
+          : null;
+      setErrorHistorial(detail ?? "No se pudo cargar el historial de actuaciones.");
+      setHistorialRows([]);
+      setHistorialTotal(0);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  }, [establecimientoId, pagination.pageIndex, pagination.pageSize]);
+
+  useEffect(() => {
+    if (tab !== "actuaciones" || establecimientoId == null) return;
+    void loadHistorial();
+  }, [tab, establecimientoId, loadHistorial]);
+
+  const tituloPrincipal = useMemo(() => {
+    if (!detalle) return "";
+    const rs = detalle.razon_social?.trim();
+    if (rs) return rs;
+    const nom = [detalle.contrib_nombre, detalle.contrib_apellido].filter(Boolean).join(" ").trim();
+    if (nom) return nom;
+    return `Ficha operativa #${detalle.id}`;
+  }, [detalle]);
+
+  const domicilioLinea = useMemo(() => {
+    if (!detalle) return "";
+    const parts = [detalle.calle, detalle.numero].filter((p) => p?.trim()).join(" ");
+    return parts.trim() || "—";
+  }, [detalle]);
+
+  const colsHistorial = useMemo<MRT_ColumnDef<IEstablecimientoOperativoHistorialRow>[]>(
     () => [
-      { accessorKey: "fecha", header: "FECHA", size: 150 },
-      { accessorKey: "tipoInspeccion", header: "TIPO DE INSPECCIÓN", size: 220 },
-      { accessorKey: "ordenTrabajo", header: "ORDEN DE TRABAJO", size: 140 },
-      { accessorKey: "inspectoresIniciales", header: "INSPECTORES", size: 100 },
       {
-        accessorKey: "resultado",
-        header: "RESULTADO",
+        accessorKey: "fecha",
+        header: "FECHA",
         size: 130,
-        Cell: ({ cell }) => (
-          <ResultadoInspeccionChip resultado={cell.getValue() as IHistorialInspeccionRow["resultado"]} />
-        ),
+        Cell: ({ row }) => formatFecha(row.original.fecha),
+      },
+      {
+        accessorKey: "tipo_actuacion",
+        header: "TIPO DE ACTUACIÓN",
+        size: 160,
+        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+      },
+      {
+        accessorKey: "contraproducencia",
+        header: "CONTRAPRODUCENCIA",
+        size: 160,
+        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+      },
+      {
+        accessorKey: "nombre_local",
+        header: "NOMBRE LOCAL",
+        size: 180,
+        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+      },
+      {
+        accessorKey: "orden_trabajo_numero",
+        header: "ORDEN DE TRABAJO",
+        size: 140,
+        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+      },
+      {
+        accessorKey: "acta_inspeccion_num",
+        header: "Nº ACTA INSPECCIÓN",
+        size: 150,
+        Cell: ({ cell }) => dash(cell.getValue() as string | null),
       },
     ],
     []
@@ -52,26 +197,25 @@ export default function EstablecimientoDetallePage() {
   const tableHistorial = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     columns: colsHistorial,
-    data: detalle?.historialInspecciones ?? [],
-    getRowId: (r) => r.id,
+    data: historialRows,
+    getRowId: (r) => String(r.id),
     enableEditing: false,
     enableRowSelection: false,
     enableColumnFilters: false,
     enableGlobalFilter: false,
-    enablePagination: false,
-    enableBottomToolbar: false,
+    manualPagination: true,
+    rowCount: historialTotal ?? 0,
+    state: {
+      pagination,
+      isLoading: loadingHistorial,
+      showProgressBars: loadingHistorial,
+    },
+    onPaginationChange: setPagination,
     initialState: { density: "compact" },
-    enableRowActions: true,
-    positionActionsColumn: "last",
-    displayColumnDefOptions: { "mrt-row-actions": { header: "", size: 56 } },
-    renderRowActions: () => (
-      <AppButton dsVariant="ghost" dsSize="sm" aria-label="Ver" sx={{ minWidth: 0, p: 0.5 }}>
-        <VisibilityIcon sx={{ fontSize: 20, color: COLORS.primary }} />
-      </AppButton>
-    ),
+    enableRowActions: false,
   });
 
-  if (!detalle) {
+  if (establecimientoId == null) {
     return (
       <Stack spacing={2} sx={{ p: 1 }}>
         <AppButton
@@ -83,18 +227,45 @@ export default function EstablecimientoDetallePage() {
           Volver al listado
         </AppButton>
         <Typography sx={{ color: COLORS.white, fontFamily: '"Tactic Sans", sans-serif' }}>
-          No se encontró el establecimiento (mock).
+          El identificador de la ficha no es válido. Usá el listado para abrir una ficha por su ID numérico.
         </Typography>
       </Stack>
     );
   }
 
-  const estadoColor =
-    detalle.estadoAdmin === "HABILITADO"
-      ? COLORS.successText
-      : detalle.estadoAdmin === "PENDIENTE"
-        ? COLORS.warningText
-        : COLORS.errorText;
+  if (loadingDetalle && !detalle) {
+    return (
+      <Stack spacing={2} sx={{ p: 1 }}>
+        <AppButton
+          dsVariant="ghost"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate("/establecimientos")}
+          sx={{ color: "rgba(255,255,255,0.75)", alignSelf: "flex-start" }}
+        >
+          Volver
+        </AppButton>
+        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontFamily: '"Tactic Sans", sans-serif' }}>
+          Cargando ficha…
+        </Typography>
+      </Stack>
+    );
+  }
+
+  if (errorDetalle || !detalle) {
+    return (
+      <Stack spacing={2} sx={{ p: 1 }}>
+        <AppButton
+          dsVariant="secondary"
+          startIcon={<ArrowBackIcon />}
+          component={RouterLink}
+          to="/establecimientos"
+        >
+          Volver al listado
+        </AppButton>
+        {errorDetalle ? <Alert severity="warning">{errorDetalle}</Alert> : null}
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={2} sx={{ width: "100%", maxWidth: "100%" }}>
@@ -135,7 +306,19 @@ export default function EstablecimientoDetallePage() {
                 lineHeight: 1.25,
               }}
             >
-              {detalle.razonSocial}
+              {tituloPrincipal}
+            </Typography>
+            <Typography
+              sx={{
+                mt: 0.5,
+                fontFamily: '"Tactic Sans", sans-serif',
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.5)",
+                letterSpacing: "0.06em",
+              }}
+            >
+              Ficha operativa #{detalle.id} · domicilio_id {detalle.domicilio_id}
             </Typography>
             <Typography
               sx={{
@@ -147,39 +330,26 @@ export default function EstablecimientoDetallePage() {
                 letterSpacing: "0.06em",
               }}
             >
-              RUBRO: {detalle.rubroDetalle}
+              RUBRO: {dash(detalle.rubro_nombre)}
             </Typography>
             <Grid container spacing={2} sx={{ mt: 1.5 }}>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Meta label="Titular del establecimiento" value={`${detalle.nombre} ${detalle.apellido}`} />
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Meta label="Contribuyente" value={dash([detalle.contrib_nombre, detalle.contrib_apellido].filter(Boolean).join(" "))} />
               </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Meta label="Documento de identidad" value={`DNI ${detalle.dni}`} />
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Meta label="Razón social" value={dash(detalle.razon_social)} />
               </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography
-                    sx={{
-                      fontSize: "10px",
-                      fontWeight: 600,
-                      letterSpacing: "0.08em",
-                      color: "rgba(255,255,255,0.45)",
-                    }}
-                  >
-                    ESTADO ADMINISTRATIVO
-                  </Typography>
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      bgcolor: estadoColor,
-                    }}
-                  />
-                  <Typography sx={{ fontSize: "13px", fontWeight: 600, color: COLORS.white }}>
-                    {detalle.estadoAdmin}
-                  </Typography>
-                </Stack>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Meta label="Documento" value={dash(detalle.documento)} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Meta label="Distrito" value={dash(detalle.distrito_nombre)} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Meta label="Actuaciones registradas" value={String(detalle.actuaciones_count)} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Meta label="Última actuación" value={formatFecha(detalle.ultima_actuacion_fecha)} />
               </Grid>
             </Grid>
           </Box>
@@ -210,7 +380,7 @@ export default function EstablecimientoDetallePage() {
         <Box sx={{ p: 2 }}>
           {tab === "info" && (
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12 }}>
                 <Paper elevation={0} sx={{ ...gridContainerStyles, p: 2, height: "100%" }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                     <LocationOnIcon sx={{ color: COLORS.primary, fontSize: 22 }} />
@@ -222,48 +392,22 @@ export default function EstablecimientoDetallePage() {
                         color: COLORS.white,
                       }}
                     >
-                      UBICACIÓN
+                      DOMICILIO
                     </Typography>
                   </Stack>
-                  <Box
-                    sx={{
-                      height: 200,
-                      borderRadius: "8px",
-                      border: `1px solid ${COLORS.border}`,
-                      background:
-                        "linear-gradient(145deg, rgba(30,33,39,1) 0%, rgba(43,46,52,1) 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      mb: 1.5,
-                    }}
-                  >
-                    <LocationOnIcon sx={{ fontSize: 48, color: COLORS.primary, opacity: 0.85 }} />
-                  </Box>
-                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>
-                    {detalle.direccionCompleta}
+                  <Typography sx={{ fontSize: "14px", fontWeight: 600, color: COLORS.white, mb: 1 }}>
+                    {domicilioLinea}
                   </Typography>
-                </Paper>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Paper elevation={0} sx={{ ...gridContainerStyles, p: 2, height: "100%" }}>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-                    <DescriptionIcon sx={{ color: COLORS.primary, fontSize: 22 }} />
-                    <Typography
-                      sx={{
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        letterSpacing: "0.1em",
-                        color: COLORS.white,
-                      }}
-                    >
-                      DOCUMENTOS ÚLTIMA INSPECCIÓN
+                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>
+                    {detalle.calle_normalizada?.trim()
+                      ? `Calle normalizada: ${detalle.calle_normalizada}`
+                      : null}
+                  </Typography>
+                  {detalle.distrito_id != null ? (
+                    <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", mt: 0.5 }}>
+                      Distrito (id): {detalle.distrito_id}
                     </Typography>
-                  </Stack>
-                  <Typography sx={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>
-                    Próximamente podrás consultar y descargar los documentos asociados a la última inspección del
-                    establecimiento.
-                  </Typography>
+                  ) : null}
                 </Paper>
               </Grid>
             </Grid>
@@ -271,46 +415,31 @@ export default function EstablecimientoDetallePage() {
 
           {tab === "actuaciones" && (
             <Stack spacing={1.5}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-                <Typography
-                  sx={{
-                    fontFamily: '"Tactic Sans", sans-serif',
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
-                    color: COLORS.white,
-                  }}
-                >
-                  Actuaciones e inspecciones
-                </Typography>
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="sm"
-                  startIcon={<AddIcon />}
-                  onClick={() => {}}
-                  sx={{ fontWeight: 700, letterSpacing: "0.06em" }}
-                >
-                  Nueva inspección
-                </AppButton>
-              </Stack>
-              {detalle.historialInspecciones.length === 0 ? (
+              <Typography
+                sx={{
+                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  color: COLORS.white,
+                }}
+              >
+                Historial de actuaciones
+              </Typography>
+              {errorHistorial ? <Alert severity="error">{errorHistorial}</Alert> : null}
+              {historialTotal === null && !errorHistorial ? (
                 <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-                  No hay registros en este mock.
+                  Cargando historial…
+                </Typography>
+              ) : historialTotal === 0 && !errorHistorial ? (
+                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
+                  No hay actuaciones vinculadas a esta ficha.
                 </Typography>
               ) : (
-                <MaterialReactTable table={tableHistorial} />
+                <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+                  <MaterialReactTable table={tableHistorial} />
+                </Box>
               )}
-              <Typography sx={{ fontSize: "11px", color: COLORS.primary }}>
-                <Link
-                  component="button"
-                  type="button"
-                  underline="hover"
-                  onClick={() => {}}
-                  sx={{ fontFamily: '"Tactic Sans", sans-serif', cursor: "pointer" }}
-                >
-                  Ver historial completo (mock)
-                </Link>
-              </Typography>
             </Stack>
           )}
         </Box>

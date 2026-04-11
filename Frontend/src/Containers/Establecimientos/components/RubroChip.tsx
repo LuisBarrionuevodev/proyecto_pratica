@@ -10,13 +10,28 @@ const RUBRO_SX: Record<IEstablecimientoListRow["rubroSlug"], { bg: string; color
   otro: { bg: "rgba(255,255,255,0.08)", color: COLORS.grayLight },
 };
 
-type Props = { rubro: string; slug: IEstablecimientoListRow["rubroSlug"] };
+export type RubroSlug = IEstablecimientoListRow["rubroSlug"];
+
+type Props = { rubro: string; slug?: RubroSlug };
+
+/** Heurística liviana para colorear rubros reales (nombre de catálogo) cuando no hay slug mock. */
+export function inferRubroSlugFromNombre(rubro: string | null | undefined): RubroSlug {
+  if (!rubro?.trim()) return "otro";
+  const u = rubro.toUpperCase();
+  if (u.includes("GASTR") || u.includes("RESTA") || u.includes("BAR")) return "gastronomia";
+  if (u.includes("INDUST")) return "industrial";
+  if (u.includes("MINOR") || u.includes("KIOS") || u.includes("SUPER")) return "minorista";
+  if (u.includes("SERV")) return "servicios";
+  return "otro";
+}
 
 /**
  * Chip de rubro alineado a la referencia UX (etiquetas de categoría en listado).
+ * Sin `slug`, se infiere por nombre (datos reales).
  */
 export function RubroChip({ rubro, slug }: Props) {
-  const t = RUBRO_SX[slug] ?? RUBRO_SX.otro;
+  const key = slug ?? inferRubroSlugFromNombre(rubro);
+  const t = RUBRO_SX[key] ?? RUBRO_SX.otro;
   return (
     <Chip
       label={rubro}

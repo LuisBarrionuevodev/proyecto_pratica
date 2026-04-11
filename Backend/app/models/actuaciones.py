@@ -18,7 +18,7 @@ class Actuaciones(db.Model):
 
     contraproducencia = db.Column(db.String(255), nullable=True, index=True)
 
-    # Nombre de fantasía del comercio (acta / UI). Futuro: vincular a `establecimientos`.
+    # Nombre de fantasía del comercio (acta / UI). Contexto de presentación (ficha vía establecimiento_operativo).
     nombre_local = db.Column(db.String(255), nullable=True, index=True)
 
     # Identificador del registro en EpiCollect5 (poblado por integración/import; no canal actas manual).
@@ -63,6 +63,14 @@ class Actuaciones(db.Model):
         index=True,
     )
 
+    establecimiento_operativo_id = db.Column(
+        db.Integer,
+        db.ForeignKey("establecimiento_operativo.id", ondelete="SET NULL", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
+
     created_at = db.Column(
         db.DateTime, nullable=False, server_default=db.func.current_timestamp()
     )
@@ -78,6 +86,11 @@ class Actuaciones(db.Model):
     orden_trabajo = db.relationship("OrdenTrabajo", back_populates="actuaciones")
     comprobacion = db.relationship("Comprobacion", back_populates="actuaciones")
     domicilio = db.relationship("Domicilio", back_populates="actuaciones")
+    establecimiento_operativo = db.relationship(
+        "EstablecimientoOperativo",
+        back_populates="actuaciones",
+        foreign_keys=[establecimiento_operativo_id],
+    )
 
     clausura = db.relationship(
         "Clausura",
@@ -150,6 +163,7 @@ class Actuaciones(db.Model):
             "notificacion_id": self.notificacion_id,
             "comprobacion_id": self.comprobacion_id,
             "domicilio_id": self.domicilio_id,
+            "establecimiento_operativo_id": self.establecimiento_operativo_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

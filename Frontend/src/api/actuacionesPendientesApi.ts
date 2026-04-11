@@ -126,6 +126,27 @@ export interface ICreateExpedienteResponse {
   };
 }
 
+export interface ISyncNotificacionesVencidasResponse {
+  status: string;
+  created: number;
+  eligible_notificaciones: number;
+  skipped_already_blocking: number;
+  collisions_idempotent: number;
+  elapsed_ms: number;
+  started_at: string;
+}
+
+/**
+ * Materializa iniciadores REINSPECCION_NOTIFICACION (mismo pipeline que CLI / scheduler).
+ * No garantiza cambios en la bandeja de expedientes de plazo de la UI.
+ */
+export const postSyncNotificacionesVencidas = async (): Promise<ISyncNotificacionesVencidasResponse> => {
+  const { data } = await apiClient.post<ISyncNotificacionesVencidasResponse>(
+    "/actuaciones/pendientes/sync-notificaciones-vencidas"
+  );
+  return data;
+};
+
 export const getActuacionesPendientesSummary = async (
   desde?: string | null,
   hasta?: string | null

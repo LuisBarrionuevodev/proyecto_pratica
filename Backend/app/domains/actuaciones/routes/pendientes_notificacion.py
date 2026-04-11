@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from flask import jsonify
 
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.services.notificacion_iniciador_service import (
     list_reinspeccion_notificacion_operativas,
@@ -23,5 +26,6 @@ def get_pendientes_notificacion():
     if materializacion_notificacion_vencida_on_read_enabled():
         sync_iniciadores_reinspeccion_notificacion()
     acts = list_reinspeccion_notificacion_operativas()
-    return jsonify([actuacion_to_grid_row(a) for a in acts]), 200
+    counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+    return jsonify([actuacion_to_grid_row(a, counts_by_eo=counts_by_eo) for a in acts]), 200
 

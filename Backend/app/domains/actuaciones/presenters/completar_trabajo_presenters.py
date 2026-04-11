@@ -11,6 +11,8 @@ from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
 
 # Campos de `actuacion_to_grid_row` necesarios para edición inline de cierre (sin previas en UI).
 _COMPLETAR_GRID_EXTRA_KEYS: tuple[str, ...] = (
+    "establecimiento_operativo_id",
+    "establecimiento_actuaciones_en_ficha",
     "nombre_local",
     "numero_tipo",
     "doc_nro",
