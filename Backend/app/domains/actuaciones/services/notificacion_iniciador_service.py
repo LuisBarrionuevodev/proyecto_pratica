@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 import logging
 import os
 
 from flask_jwt_extended import get_jwt_identity
-from sqlalchemy import and_, exists
+from sqlalchemy import and_, exists, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, User
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, RutaItem, User
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
@@ -26,12 +26,17 @@ class SyncReinspeccionNotificacionOutcome:
     """
     Métricas operativas de una corrida de sync (Fase C: trazabilidad).
     No modifica reglas de negocio ni idempotencia (Fases A/B).
+
+    revoked:
+        Iniciadores `REINSPECCION_NOTIFICACION` en `PENDIENTE` anulados en esta corrida
+        porque la notificación dejó de estar vencida operativa (reconciliación).
     """
 
     created: int
     eligible_notificaciones: int
     skipped_already_blocking: int
     collisions_idempotent: int
+    revoked: int = 0
 
 
 def materializacion_notificacion_vencida_on_read_enabled() -> bool:
@@ -187,9 +192,80 @@ def _exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacio
     return iniciador is not None
 
 
+_REVOKE_OBSERVACIONES_SUFFIX = (
+    "[sync notif vencidas] Anulado por reconciliación: la notificación asociada ya no "
+    "está vencida operativa (p. ej. prórroga), fue borrada, no tiene fecha de vencimiento "
+    "o no existe."
+)
+_REVOKE_CERRADO_MOTIVO = "SYNC_REINSPECCION_NOTIF_REVOCADA"
+
+
+def _revoke_obsolete_reinspeccion_notificacion_iniciadores(today: date) -> int:
+    """
+    Anula iniciadores `REINSPECCION_NOTIFICACION` en `PENDIENTE` que ya no deben estar en
+    cola operativa por notificación vencida.
+
+    Solo filas con `notificacion_id` no nulo, sin `RutaItem` activo (`deleted_at` nulo),
+    `deleted_at` nulo en el iniciador, y cuya notificación: no existe (join), está borrada,
+    tiene `fecha_vencimiento` nula o tiene `fecha_vencimiento` posterior a `today`.
+
+    No borra físicamente: pasa a `ANULADO` y deja trazabilidad en `observaciones` /
+    `cerrado_motivo` / `cerrado_at`.
+
+    Args:
+        today: Fecha de corte para considerar vencida operativa (`fecha_vencimiento <= today`).
+
+    Returns:
+        Cantidad de iniciadores actualizados en esta corrida.
+    """
+    tiene_item_activo = exists().where(
+        and_(
+            RutaItem.iniciador_ruta_id == IniciadorRuta.id,
+            RutaItem.deleted_at.is_(None),
+        )
+    )
+    candidatos = (
+        IniciadorRuta.query.outerjoin(Notificacion, Notificacion.id == IniciadorRuta.notificacion_id)
+        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
+        .filter(IniciadorRuta.estado_iniciador == "PENDIENTE")
+        .filter(IniciadorRuta.deleted_at.is_(None))
+        .filter(IniciadorRuta.notificacion_id.isnot(None))
+        .filter(~tiene_item_activo)
+        .filter(
+            or_(
+                Notificacion.id.is_(None),
+                Notificacion.deleted_at.isnot(None),
+                Notificacion.fecha_vencimiento.is_(None),
+                Notificacion.fecha_vencimiento > today,
+            )
+        )
+        .all()
+    )
+    if not candidatos:
+        return 0
+
+    now = datetime.utcnow()
+    n = 0
+    for ini in candidatos:
+        ini.estado_iniciador = "ANULADO"
+        ini.cerrado_at = ini.cerrado_at or now
+        ini.cerrado_motivo = ini.cerrado_motivo or _REVOKE_CERRADO_MOTIVO
+        prev = (ini.observaciones or "").strip()
+        suffix = _REVOKE_OBSERVACIONES_SUFFIX
+        ini.observaciones = f"{prev} | {suffix}" if prev else suffix
+        db.session.add(ini)
+        n += 1
+    return n
+
+
 def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacionOutcome:
     """
-    Materializa iniciadores derivados para notificaciones vencidas.
+    Materializa iniciadores derivados para notificaciones vencidas y reconcilia obsoletos.
+
+    Al inicio de cada corrida se anulan iniciadores `REINSPECCION_NOTIFICACION` en `PENDIENTE`
+    sin ítem de ruta activo cuya notificación ya no está vencida operativa (ver
+    `_revoke_obsolete_reinspeccion_notificacion_iniciadores`), para que un nuevo iniciador
+    pueda crearse si corresponde.
 
     **Ejecución (Fase C):** camino canónico = CLI / `flask sync-notificaciones-vencidas` / pipeline
     `sync_notificaciones_vencidas` (scheduler externo). No depender de GETs de lectura.
@@ -208,9 +284,12 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
     actuacion_por_noti = _agrupar_eligible_por_notificacion_id(eligible)
 
     eligible_n = len(actuacion_por_noti)
+    today = date.today()
+    revoked = _revoke_obsolete_reinspeccion_notificacion_iniciadores(today)
     logger.info(
-        "sync_reinspeccion_notificacion_inicio eligible_notificaciones=%s",
+        "sync_reinspeccion_notificacion_inicio eligible_notificaciones=%s revoked=%s",
         eligible_n,
+        revoked,
     )
 
     created = 0
@@ -218,7 +297,6 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
     collisions_idempotent = 0
     processed_notificacion_ids: set[int] = set()
     user_id = _get_current_user_id()
-    today = date.today()
 
     for notificacion_id in sorted(actuacion_por_noti.keys()):
         act = actuacion_por_noti[notificacion_id]
@@ -273,7 +351,7 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
         processed_notificacion_ids.add(notificacion_id)
         created += 1
 
-    if created > 0:
+    if created > 0 or revoked > 0:
         db.session.commit()
 
     outcome = SyncReinspeccionNotificacionOutcome(
@@ -281,21 +359,30 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
         eligible_notificaciones=eligible_n,
         skipped_already_blocking=skipped_already_blocking,
         collisions_idempotent=collisions_idempotent,
+        revoked=revoked,
     )
     logger.info(
-        "sync_reinspeccion_notificacion_fin created=%s eligible=%s skipped_blocking=%s collisions=%s",
+        "sync_reinspeccion_notificacion_fin created=%s eligible=%s skipped_blocking=%s "
+        "collisions=%s revoked=%s",
         outcome.created,
         outcome.eligible_notificaciones,
         outcome.skipped_already_blocking,
         outcome.collisions_idempotent,
+        outcome.revoked,
     )
     return outcome
 
 
 def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
     """
-    Lista actuaciones base con iniciador derivado de notificación en estado pendiente.
+    Lista actuaciones base INSPECCION con iniciador `REINSPECCION_NOTIFICACION` en `PENDIENTE`.
+
+    Defensa en profundidad (lectura): misma noción de **vencida operativa** que el sync /
+    `_eligible_inspecciones_vencidas` para la notificación: no borrada, `fecha_vencimiento`
+    no nula y ``<=`` fecha de consulta. Así una prórroga que mueve el vencimiento al futuro
+    deja de listarse aunque el sync aún no haya corrido.
     """
+    today = date.today()
     A2 = aliased(Actuaciones)
     subq_reinsp = exists().where(
         and_(
@@ -305,9 +392,14 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
     )
     return (
         Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
+        .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
+        .filter(Actuaciones.tipo == "INSPECCION")
         .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
         .filter(IniciadorRuta.estado_iniciador == "PENDIENTE")
         .filter(IniciadorRuta.deleted_at.is_(None))
+        .filter(Notificacion.deleted_at.is_(None))
+        .filter(Notificacion.fecha_vencimiento.isnot(None))
+        .filter(Notificacion.fecha_vencimiento <= today)
         .filter(~subq_reinsp)
         .order_by(Actuaciones.id.desc())
         .all()

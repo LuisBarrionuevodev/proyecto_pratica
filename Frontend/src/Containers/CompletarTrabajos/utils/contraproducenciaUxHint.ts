@@ -28,7 +28,10 @@ const NO_REINGRESO_KEYS = new Set([
   looseKey("NO EXISTE/NO ES EL RUBRO"),
 ]);
 
-/** Cerrado: LOCAL_CERRADO, CLIMA, ZONA_ROJA, NO_HUBO → reingreso con prioridad alta. */
+/**
+ * Misma familia que `STORED_REINGRESO_ALTA` / `normalize_contraproducencia` en backend:
+ * LOCAL CERRADO, CLIMA, ZONA ROJA, NO_HUBO, OTROS → reingreso con prioridad alta.
+ */
 const REINGRESO_KEYS = new Set([
   looseKey("LOCAL CERRADO"),
   looseKey("LOCAL_CERRADO"),
@@ -37,6 +40,7 @@ const REINGRESO_KEYS = new Set([
   looseKey("ZONA_ROJA"),
   looseKey("NO HUBO"),
   looseKey("NO_HUBO"),
+  looseKey("OTROS"),
 ]);
 
 export function getContraproducenciaUxHint(selected: string): ContraproducenciaUxHint | null {

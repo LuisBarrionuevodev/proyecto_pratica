@@ -25,6 +25,7 @@ def test_run_sync_pipeline_incluye_metricas_fase_c(monkeypatch):
             eligible_notificaciones=5,
             skipped_already_blocking=1,
             collisions_idempotent=0,
+            revoked=0,
         ),
     )
     m = pipe.run_sync_notificaciones_vencidas()
@@ -33,7 +34,26 @@ def test_run_sync_pipeline_incluye_metricas_fase_c(monkeypatch):
     assert m["eligible_notificaciones"] == 5
     assert m["skipped_already_blocking"] == 1
     assert m["collisions_idempotent"] == 0
+    assert m["revoked"] == 0
     assert "elapsed_ms" in m
+
+
+def test_run_sync_pipeline_incluye_metrica_revoked(monkeypatch):
+    from app.domains.actuaciones.pipelines import sync_notificaciones_vencidas as pipe
+
+    monkeypatch.setattr(
+        pipe,
+        "sync_iniciadores_reinspeccion_notificacion",
+        lambda: SyncReinspeccionNotificacionOutcome(
+            created=0,
+            eligible_notificaciones=0,
+            skipped_already_blocking=0,
+            collisions_idempotent=0,
+            revoked=2,
+        ),
+    )
+    m = pipe.run_sync_notificaciones_vencidas()
+    assert m["revoked"] == 2
 
 
 def test_get_pendientes_notificacion_no_llama_sync_por_defecto(client, monkeypatch, auth_headers):
@@ -77,7 +97,7 @@ def test_sync_on_read_env_llama_sync_en_pendientes_notificacion(client, monkeypa
     assert materializacion_notificacion_vencida_on_read_enabled() is True
 
     mock_sync = MagicMock(
-        return_value=SyncReinspeccionNotificacionOutcome(0, 0, 0, 0),
+        return_value=SyncReinspeccionNotificacionOutcome(0, 0, 0, 0, 0),
     )
     monkeypatch.setattr(
         "app.domains.actuaciones.routes.pendientes_notificacion.sync_iniciadores_reinspeccion_notificacion",
@@ -100,6 +120,7 @@ def test_flask_cli_sync_notificaciones_vencidas(app, monkeypatch):
             "eligible_notificaciones": 0,
             "skipped_already_blocking": 0,
             "collisions_idempotent": 0,
+            "revoked": 0,
             "elapsed_ms": 1.0,
             "started_at": "2026-01-01T00:00:00+00:00",
         },

@@ -31,6 +31,7 @@ def run_sync_notificaciones_vencidas() -> dict[str, int | float | str]:
         "eligible_notificaciones": int(outcome.eligible_notificaciones),
         "skipped_already_blocking": int(outcome.skipped_already_blocking),
         "collisions_idempotent": int(outcome.collisions_idempotent),
+        "revoked": int(outcome.revoked),
         "elapsed_ms": elapsed_ms,
         "started_at": started_at.isoformat(),
     }
@@ -57,6 +58,7 @@ def main() -> None:
             "Sync notificaciones vencidas OK. "
             f"created={metrics['created']} eligible={metrics['eligible_notificaciones']} "
             f"skipped_blocking={metrics['skipped_already_blocking']} collisions={metrics['collisions_idempotent']} "
+            f"revoked={metrics['revoked']} "
             f"elapsed_ms={metrics['elapsed_ms']}"
         )
         print(json.dumps(metrics, ensure_ascii=True))

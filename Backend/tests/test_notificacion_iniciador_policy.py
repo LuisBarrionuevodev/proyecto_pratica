@@ -72,13 +72,18 @@ def test_estados_no_bloqueantes_coinciden_con_inactive_estados():
 
 
 def _patch_session_sync_unit(monkeypatch):
-    """Sync sin contexto Flask ni DB: savepoint simulado + flush no-op."""
+    """Sync sin contexto Flask ni DB: savepoint simulado + flush no-op + sin reconciliación DB."""
     monkeypatch.setattr(
         notificacion_iniciador_service.db.session,
         "begin_nested",
         lambda: contextlib.nullcontext(),
     )
     monkeypatch.setattr(notificacion_iniciador_service.db.session, "flush", lambda: None)
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_revoke_obsolete_reinspeccion_notificacion_iniciadores",
+        lambda _today: 0,
+    )
 
 
 def test_sync_segunda_corrida_no_agrega_cuando_existe_bloqueo(monkeypatch):
@@ -275,3 +280,29 @@ def test_sync_doble_corrida_integrity_luego_exito(monkeypatch):
     assert a.created == 0 and a.collisions_idempotent == 1
     assert b.created == 1 and b.collisions_idempotent == 0
     assert len(adds) == 2
+
+
+def test_sync_commit_cuando_solo_revoked(monkeypatch):
+    """Si solo hay reconciliación (revoked > 0), debe hacer commit igual que si hubo altas."""
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_eligible_inspecciones_vencidas",
+        lambda: [],
+    )
+    monkeypatch.setattr(notificacion_iniciador_service, "_get_current_user_id", lambda: 1)
+    _patch_session_sync_unit(monkeypatch)
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_revoke_obsolete_reinspeccion_notificacion_iniciadores",
+        lambda _today: 1,
+    )
+    commits: list = []
+    monkeypatch.setattr(
+        notificacion_iniciador_service.db.session,
+        "commit",
+        lambda: commits.append(1),
+    )
+    o = sync_iniciadores_reinspeccion_notificacion()
+    assert o.created == 0
+    assert o.revoked == 1
+    assert commits == [1]

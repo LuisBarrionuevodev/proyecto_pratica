@@ -30,7 +30,7 @@ def post_pendientes_sync_notificaciones_vencidas():
 
     Retorno:
         200 JSON con métricas: `status`, `created`, `eligible_notificaciones`,
-        `skipped_already_blocking`, `collisions_idempotent`, `elapsed_ms`, `started_at`.
+        `skipped_already_blocking`, `collisions_idempotent`, `revoked`, `elapsed_ms`, `started_at`.
 
     Errores:
         401 sin JWT válido (guard global).

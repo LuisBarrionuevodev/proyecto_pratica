@@ -131,7 +131,7 @@ export function CompletarTrabajoModal({
       return;
     }
     setResultadoCumplimientoOficio("");
-    setObservacionesEjecucion("");
+    setObservacionesEjecucion(row.observaciones_ejecucion ?? "");
     setContraproducencia(row.contraproducencia ?? "");
     setCalle(row.calle ?? "");
     setNumero(row.numero ?? "");
@@ -270,6 +270,7 @@ export function CompletarTrabajoModal({
         contrib_apellido: contribApellido,
         contrib_nombre: contribNombre,
         nombre_local: nombreLocal,
+        observaciones_ejecucion: observacionesEjecucion.trim(),
         ...ACTA_KEYS_EMPTY,
       };
 
@@ -441,12 +442,30 @@ export function CompletarTrabajoModal({
         />
         {contraHint === "cierra_sin_reingreso" && (
           <Alert severity="warning" sx={{ borderRadius: 2 }}>
-            Este motivo cierra el iniciador: no vuelve a pendientes.
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Cierre del caso en esta cola
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              Este motivo <strong>cierra el iniciador</strong>: no vuelve a pendientes ni se reagenda desde Completar
+              trabajo.
+            </Typography>
+            <Typography variant="caption" sx={{ display: "block", opacity: 0.92 }}>
+              No se registran actas del día en este cierre.
+            </Typography>
           </Alert>
         )}
         {contraHint === "reingreso_prioridad_alta" && (
           <Alert severity="info" sx={{ borderRadius: 2 }}>
-            El trabajo vuelve a pendientes con prioridad alta.
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Reingreso a pendientes
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              En este cierre <strong>no se cargan actas</strong> del día: solo la contraproducencia y, si los ajustás,
+              domicilio y titular.
+            </Typography>
+            <Typography variant="body2">
+              El trabajo vuelve a <strong>pendientes</strong> con prioridad alta para una nueva visita.
+            </Typography>
           </Alert>
         )}
         {contraHint === "no_permite_inspeccion" && (
@@ -467,6 +486,15 @@ export function CompletarTrabajoModal({
             </List>
             <Typography variant="caption" sx={{ display: "block", opacity: 0.9, mt: 0.5 }}>
               El trabajo vuelve a pendientes con prioridad alta.
+            </Typography>
+          </Alert>
+        )}
+
+        {visitaRealizada && (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            <Typography variant="body2">
+              Con visita realizada, revisá calle, rubro y titular: datos correctos ayudan a vincular la actuación con la{" "}
+              <strong>ficha operativa</strong> al guardar.
             </Typography>
           </Alert>
         )}
@@ -719,6 +747,21 @@ export function CompletarTrabajoModal({
           )}
         </Box>
       )}
+          <AppTextField
+            appearance="dense"
+            label="Observaciones de ejecución (opcional)"
+            value={observacionesEjecucion}
+            onChange={(e) => {
+              setObservacionesEjecucion(e.target.value);
+              clearFe("observaciones_ejecucion");
+            }}
+            fullWidth
+            multiline
+            minRows={2}
+            inputProps={{ maxLength: 4000 }}
+            error={Boolean(fe("observaciones_ejecucion"))}
+            helperText={fe("observaciones_ejecucion") || undefined}
+          />
         </>
       )}
     </AppDialog>

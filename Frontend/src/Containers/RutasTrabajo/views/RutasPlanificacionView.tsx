@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Box,
   CircularProgress,
@@ -92,8 +93,8 @@ function AsignacionPoolEmptyState({
       </Stack>
       {poolVacioConItemsEnRuta ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2, lineHeight: 1.45 }}>
-          Si los grupos ya tienen trabajos asignados, usá &quot;Continuar a mapa final&quot; (arriba) para revisar el mapa;
-          no necesitás el pool en pantalla para avanzar.
+          Si los grupos ya tienen trabajos asignados, podés ir al mapa con &quot;Continuar a mapa final&quot; (arriba)
+          cuando todas las OT estén guardadas; no necesitás el pool en pantalla para eso.
         </Typography>
       ) : null}
     </Box>
@@ -164,6 +165,24 @@ export function RutasPlanificacionView({
   const poolVacioSinItems = totalEnPool === 0 && itemsCount === 0;
   const poolVacioConItemsEnRuta = totalEnPool === 0 && itemsCount > 0;
 
+  /** Sin `orden_trabajo_id` persistido (borrador en el input no cuenta). */
+  const itemsSinOt = useMemo(
+    () => itemsActivos.filter((it) => it.orden_trabajo_id == null),
+    [itemsActivos]
+  );
+  const puedeContinuarAMapaFinal =
+    hayTrabajoParaMapa && (itemsActivos.length === 0 || itemsSinOt.length === 0);
+
+  const continuarMapaFinalTooltip = useMemo(() => {
+    if (!hayTrabajoParaMapa) {
+      return "Agregá iniciadores al pool en Planificación o sincronizá el borrador si ya hay ítems en grupos.";
+    }
+    if (itemsActivos.length > 0 && itemsSinOt.length > 0) {
+      return "Hay ítems asignados sin orden de trabajo guardada. En cada ítem usá «Guardar OT» (solo números); lo escribido sin guardar no cuenta.";
+    }
+    return "Avanzar al mapa operativo de la ruta.";
+  }, [hayTrabajoParaMapa, itemsActivos.length, itemsSinOt.length]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
@@ -178,25 +197,35 @@ export function RutasPlanificacionView({
         <AppButton dsVariant="ghost" dsSize="sm" onClick={onVolverPlanificacion} sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}>
           Volver a planificación
         </AppButton>
-        <Tooltip
-          title={
-            hayTrabajoParaMapa
-              ? "Avanzar al mapa operativo de la ruta."
-              : "Agregá iniciadores al pool en Planificación o sincronizá el borrador si ya hay ítems en grupos."
-          }
+        <Stack
+          spacing={0.5}
+          alignItems={{ xs: "stretch", sm: "flex-end" }}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
         >
-          <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" }, width: { xs: "100%", sm: "auto" } }}>
-            <AppButton
-              dsVariant="primary"
-              dsSize="md"
-              onClick={onContinuarMapaFinal}
-              disabled={!hayTrabajoParaMapa}
-              sx={{ width: { xs: "100%", sm: "auto" } }}
+          <Tooltip title={continuarMapaFinalTooltip}>
+            <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" }, width: { xs: "100%", sm: "auto" } }}>
+              <AppButton
+                dsVariant="primary"
+                dsSize="md"
+                onClick={onContinuarMapaFinal}
+                disabled={!puedeContinuarAMapaFinal}
+                sx={{ width: { xs: "100%", sm: "auto" } }}
+              >
+                Continuar a mapa final
+              </AppButton>
+            </Box>
+          </Tooltip>
+          {itemsSinOt.length > 0 ? (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", lineHeight: 1.45, textAlign: { xs: "left", sm: "right" }, maxWidth: 360 }}
             >
-              Continuar a mapa final
-            </AppButton>
-          </Box>
-        </Tooltip>
+              Falta OT guardada en {itemsSinOt.length} ítem{itemsSinOt.length === 1 ? "" : "s"}. Usá «Guardar OT» en el
+              panel de grupos (solo números).
+            </Typography>
+          ) : null}
+        </Stack>
       </Stack>
 
       <Divider sx={rutasInstitutionalDividerSx} />

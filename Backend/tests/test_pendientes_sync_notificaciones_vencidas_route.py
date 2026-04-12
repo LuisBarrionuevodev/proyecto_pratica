@@ -16,6 +16,7 @@ def test_post_sync_notificaciones_vencidas_ok_metricas(client, auth_headers, mon
             "eligible_notificaciones": 3,
             "skipped_already_blocking": 0,
             "collisions_idempotent": 0,
+            "revoked": 0,
             "elapsed_ms": 12.5,
             "started_at": "2026-03-30T12:00:00+00:00",
         },
@@ -30,5 +31,6 @@ def test_post_sync_notificaciones_vencidas_ok_metricas(client, auth_headers, mon
     assert data["status"] == "ok"
     assert data["created"] == 1
     assert data["eligible_notificaciones"] == 3
+    assert data["revoked"] == 0
     assert "elapsed_ms" in data
     assert "started_at" in data
