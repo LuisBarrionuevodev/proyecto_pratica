@@ -57,109 +57,119 @@ export const titleStyles: SxProps<Theme> = {
 
 // =============================================================================
 // CONTENEDOR DE FILTROS - Sin blur para rendimiento
+// Jerarquía: 16px = panel principal (glassTabsHeaderPanelSx), 12px = subpanel filtros/meta, 8px = dataViewportFrameSx
 // =============================================================================
 
+/** Superficie base de subpaneles (filtros, bloques meta): alineado a shell `gap`/`p` del tema. */
+export const filterPanelSurfaceSx: SxProps<Theme> = {
+  backgroundColor: GLASS_COLORS.cardBg,
+  borderRadius: "12px",
+  border: `1px solid ${GLASS_COLORS.borderLight}`,
+  boxSizing: "border-box",
+};
+
 export const filtroContainerStyles: SxProps<Theme> = {
-    marginBottom: "20px",
-    padding: "24px",
-    backgroundColor: GLASS_COLORS.cardBg,
-    borderRadius: "12px",
-    border: `1px solid ${GLASS_COLORS.borderLight}`,
+  ...filterPanelSurfaceSx,
+  mb: 2,
+  p: 2,
 };
 
 export const filtroTitleStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 700,
-    fontSize: "18px",
-    color: COLORS.white,
-    marginBottom: "20px",
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 700,
+  fontSize: "18px",
+  color: COLORS.white,
+  mb: 2,
 };
 
 export const filtroGridStyles: SxProps<Theme> = {
-    display: "grid",
-    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
-    gap: "16px",
-    marginBottom: "16px",
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
+  gap: 2,
+  mb: 2,
 };
 
 export const filtroItemStyles: SxProps<Theme> = {
-    "& .MuiInputLabel-root": {
-        color: COLORS.white,
-        fontFamily: '"Tactic Sans", sans-serif',
-        "&.Mui-focused": { color: COLORS.primary },
+  "& .MuiInputLabel-root": {
+    color: COLORS.white,
+    fontFamily: '"Tactic Sans", sans-serif',
+    "&.Mui-focused": { color: COLORS.primary },
+  },
+  "& .MuiInputBase-root": {
+    backgroundColor: COLORS.rowOdd,
+    color: COLORS.white,
+    fontFamily: '"Tactic Sans", sans-serif',
+    borderRadius: 3,
+    "& input": {
+      color: COLORS.white,
+      "&::placeholder": { color: GLASS_COLORS.textMuted, opacity: 1 },
     },
-    "& .MuiInputBase-root": {
-        backgroundColor: COLORS.rowOdd,
-        color: COLORS.white,
-        fontFamily: '"Tactic Sans", sans-serif',
-        borderRadius: 3,
-        "& input": { 
-            color: COLORS.white,
-            "&::placeholder": { color: "#999", opacity: 1 },
-        },
-        "& .MuiSvgIcon-root": { color: COLORS.white },
-        "&:hover": {
-            backgroundColor: COLORS.grayMedium,
-        },
-        "&.Mui-focused": {
-            backgroundColor: COLORS.grayMedium,
-            "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: COLORS.primary,
-            },
-        },
+    "& .MuiSvgIcon-root": { color: COLORS.white },
+    "&:hover": {
+      backgroundColor: COLORS.grayMedium,
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: GLASS_COLORS.borderMedium,
+      },
     },
-    "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: COLORS.border,
+    "&.Mui-focused": {
+      backgroundColor: COLORS.grayMedium,
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: COLORS.primary,
+      },
     },
-    "& .MuiMenuItem-root": {
-        backgroundColor: COLORS.rowOdd,
-        color: COLORS.white,
-        "&:hover": {
-            backgroundColor: COLORS.grayMedium,
-        },
-        "&.Mui-selected": {
-            backgroundColor: COLORS.grayMedium,
-        },
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: GLASS_COLORS.borderLight,
+  },
+  "& .MuiMenuItem-root": {
+    backgroundColor: COLORS.rowOdd,
+    color: COLORS.white,
+    "&:hover": {
+      backgroundColor: COLORS.grayMedium,
     },
+    "&.Mui-selected": {
+      backgroundColor: COLORS.grayMedium,
+    },
+  },
 };
 
 export const filtroButtonsStyles: SxProps<Theme> = {
-    display: "flex",
-    gap: "12px",
-    justifyContent: "flex-end",
+  display: "flex",
+  gap: 1.5,
+  justifyContent: "flex-end",
 };
 
 export const filtroButtonPrimaryStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 600,
-    fontSize: "14px",
-    backgroundColor: COLORS.primary,
-    color: COLORS.white,
-    textTransform: "none",
-    padding: "10px 24px",
-    borderRadius: "6px",
-    border: `1px solid ${COLORS.border}`,
-    boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
-    "&:hover": {
-        backgroundColor: "#0152CC",
-        boxShadow: "0px 4px 8px rgba(0,0,0,0.4)",
-    },
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 600,
+  fontSize: "14px",
+  backgroundColor: COLORS.primary,
+  color: COLORS.white,
+  textTransform: "none",
+  padding: "10px 24px",
+  borderRadius: "6px",
+  border: `1px solid ${GLASS_COLORS.borderActive}`,
+  boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
+  "&:hover": {
+    backgroundColor: "#0152CC",
+    boxShadow: "0px 4px 8px rgba(0,0,0,0.4)",
+  },
 };
 
 export const filtroButtonSecondaryStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontWeight: 600,
-    fontSize: "14px",
-    backgroundColor: "transparent",
-    color: COLORS.white,
-    textTransform: "none",
-    padding: "10px 24px",
-    borderRadius: "6px",
-    border: `1px solid ${COLORS.border}`,
-    "&:hover": {
-        backgroundColor: COLORS.rowOdd,
-        borderColor: COLORS.white,
-    },
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 600,
+  fontSize: "14px",
+  backgroundColor: "transparent",
+  color: COLORS.white,
+  textTransform: "none",
+  padding: "10px 24px",
+  borderRadius: "6px",
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  "&:hover": {
+    backgroundColor: COLORS.rowOdd,
+    borderColor: GLASS_COLORS.borderLight,
+  },
 };
 
 // =============================================================================
@@ -167,15 +177,13 @@ export const filtroButtonSecondaryStyles: SxProps<Theme> = {
 // =============================================================================
 
 export const metaInfoStyles: SxProps<Theme> = {
-    marginBottom: "16px",
-    padding: "12px 16px",
-    backgroundColor: GLASS_COLORS.cardBg,
-    borderRadius: "10px",
-    border: `1px solid ${GLASS_COLORS.borderLight}`,
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    flexWrap: "wrap",
+  ...filterPanelSurfaceSx,
+  mb: 2,
+  p: 2,
+  display: "flex",
+  alignItems: "center",
+  gap: 2,
+  flexWrap: "wrap",
 };
 
 export const metaItemStyles: SxProps<Theme> = {
@@ -192,28 +200,28 @@ export const metaItemStyles: SxProps<Theme> = {
 // ALERTS Y ERRORES
 // =============================================================================
 
-/** Estilo canónico para alertas en fondos dark institucionales. Referencia: CargarActuaciones. */
+/** Estilo canónico para alertas en fondos dark institucionales (borde alineado a tokens glass). */
 export const alertBaseStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "10px",
-    marginBottom: "16px",
-    backgroundColor: COLORS.grayDark,
-    color: COLORS.white,
-    "& .MuiAlert-icon": { color: COLORS.white },
-    "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
+  fontFamily: '"Tactic Sans", sans-serif',
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  borderRadius: "12px",
+  mb: 2,
+  backgroundColor: GLASS_COLORS.cardBg,
+  color: COLORS.white,
+  "& .MuiAlert-icon": { color: COLORS.white },
+  "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
 };
 
 export const errorAlertStyles: SxProps<Theme> = {
-    marginBottom: "16px",
-    backgroundColor: "rgba(92, 35, 35, 0.9)",
-    color: COLORS.white,
-    border: `1px solid ${COLORS.error}`,
-    borderRadius: "10px",
-    "& .MuiAlert-icon": {
-        color: COLORS.error,
-    },
-    "& .MuiAlert-message": {
-        fontFamily: '"Tactic Sans", sans-serif',
-    },
+  mb: 2,
+  backgroundColor: "rgba(92, 35, 35, 0.9)",
+  color: COLORS.white,
+  border: `1px solid ${COLORS.error}`,
+  borderRadius: "12px",
+  "& .MuiAlert-icon": {
+    color: COLORS.error,
+  },
+  "& .MuiAlert-message": {
+    fontFamily: '"Tactic Sans", sans-serif',
+  },
 };

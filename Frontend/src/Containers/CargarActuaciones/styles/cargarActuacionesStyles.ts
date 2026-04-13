@@ -4,6 +4,7 @@
  */
 
 import { m } from "framer-motion";
+import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 // =============================================================================
@@ -70,15 +71,9 @@ export const alertBaseStyles = {
 };
 
 // =============================================================================
-// ESTILOS DEL CONTENEDOR DE GRILLA (mantiene estilo original para Glide)
+// ESTILOS DEL CONTENEDOR DE GRILLA — alineado a `/cargarRelevamiento` (`dataViewportFrameSx`)
 // =============================================================================
-export const gridContainerStyles = {
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: "8px",
-    boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
-    backgroundImage: "linear-gradient(rgba(255, 255, 255, 0.069), rgba(255, 255, 255, 0.069))",
-    backgroundColor: COLORS.grayDark,
-};
+export const gridContainerStyles = dataViewportFrameSx;
 
 // =============================================================================
 // ESTILOS DE LEYENDA - Sin blur para rendimiento

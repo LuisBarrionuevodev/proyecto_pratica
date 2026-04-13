@@ -3,6 +3,7 @@
  * Contenedor de grilla al 100% del ancho útil; sin caja gris sólida detrás (fondo transparente).
  */
 
+import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 
@@ -52,20 +53,9 @@ export const wrapperStyles = {
 };
 
 // =============================================================================
-// CONTENEDOR DE GRILLA — ancho completo; borde sutil alineado al resto de la app
+// CONTENEDOR DE GRILLA — mismo marco que `dataViewportFrameSx` (baseline Cargar relevamiento)
 // =============================================================================
-export const gridContainerStyles = {
-    width: "100%",
-    minWidth: 0,
-    alignSelf: "stretch",
-    border: `1px solid ${GLASS_COLORS.borderLight}`,
-    borderRadius: "8px",
-    overflow: "hidden",
-    backgroundColor: "transparent",
-    backgroundImage: "none",
-    maxWidth: "100%",
-    maxHeight: "100%",
-};
+export const gridContainerStyles = dataViewportFrameSx;
 
 // =============================================================================
 // BOTÓN MANDAR TODO - Azul cuando activo
