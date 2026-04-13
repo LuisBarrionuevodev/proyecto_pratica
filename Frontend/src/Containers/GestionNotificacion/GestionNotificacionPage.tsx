@@ -10,8 +10,8 @@ import {
   type ICreateExpedienteRequest,
   type ISyncNotificacionesVencidasResponse,
 } from "../../api/actuacionesPendientesApi";
-import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../Actuaciones/styles/actuacionesTableStyles";
 import { alertBaseStyles, COLORS, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
 import { formDialogContentStackSx } from "../../styles/formDialogStyles";
@@ -276,9 +276,7 @@ const GestionNotificacionPage = () => {
   ];
 
   return (
-    <Box sx={containerStyles}>
-      <Box sx={wrapperStyles}>
-        <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+    <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx }}>
           <Box
             sx={{
               display: "flex",
@@ -459,8 +457,6 @@ const GestionNotificacionPage = () => {
               helperText={fieldErrors.prorrogaDias ?? "Días que se suman al plazo consolidado de la notificación."}
             />
           </AppDialog>
-        </Box>
-      </Box>
     </Box>
   );
 };

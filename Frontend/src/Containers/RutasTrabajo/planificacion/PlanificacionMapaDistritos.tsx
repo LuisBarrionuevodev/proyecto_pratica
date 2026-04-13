@@ -10,6 +10,7 @@ import distritosGeoRaw from "../../Mapa/distritos.json";
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { ICargaDistritoRow } from "./types/planificacion.types";
 import { enrichPlanificacionDistritosGeoJson } from "./utils/mergePlanificacionDistritosGeo";
+import { PlanificacionMapaDistritoLabelsLayer } from "./PlanificacionMapaDistritoLabelsLayer";
 import { PlanificacionMapaPendientesLayer } from "./PlanificacionMapaPendientesLayer";
 
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
@@ -41,6 +42,7 @@ export type PlanificacionMapaDistritosProps = {
   mapFocusIniciadorId?: number | null;
   mapPopupRow?: IRutaIniciadorPendienteRow | null;
   mapFlyToRow?: IRutaIniciadorPendienteRow | null;
+  mapPopupOpenNonce?: number;
   onMapMarkerClick?: (row: IRutaIniciadorPendienteRow) => void;
   onMapPopupClose?: () => void;
   onAgregarDesdeMapa?: (row: IRutaIniciadorPendienteRow) => void;
@@ -60,6 +62,7 @@ export function PlanificacionMapaDistritos({
   mapFocusIniciadorId = null,
   mapPopupRow = null,
   mapFlyToRow = null,
+  mapPopupOpenNonce = 0,
   onMapMarkerClick = () => {
     /* noop */
   },
@@ -140,6 +143,26 @@ export function PlanificacionMapaDistritos({
               fontFamily: tactic,
               background: "#1a1d22",
             },
+            "& .leaflet-div-icon.planif-leaflet-pin, & .leaflet-div-icon.planif-leaflet-distrito-num": {
+              background: "transparent !important",
+              border: "none !important",
+            },
+            "& .leaflet-div-icon.planif-leaflet-distrito-num": {
+              pointerEvents: "none",
+            },
+            "& .planif-distrito-num-inner": {
+              fontSize: "42px",
+              fontWeight: 800,
+              opacity: 0.26,
+              color: "#ffffff",
+              fontFamily: tactic,
+              lineHeight: 1,
+              textAlign: "center",
+              textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+              pointerEvents: "none",
+              userSelect: "none",
+              minWidth: "1ch",
+            },
           }}
         >
           <MapContainer center={TUCUMAN_CENTER} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
@@ -160,6 +183,7 @@ export function PlanificacionMapaDistritos({
                 });
               }}
             />
+            <PlanificacionMapaDistritoLabelsLayer geoData={geoData} />
             <Pane name="planif-pendientes-pane" style={{ zIndex: 650 }}>
               <PlanificacionMapaPendientesLayer
                 rows={pendientesParaMapa}
@@ -167,6 +191,7 @@ export function PlanificacionMapaDistritos({
                 focusIniciadorId={mapFocusIniciadorId}
                 popupRow={mapPopupRow}
                 flyToRow={mapFlyToRow}
+                popupOpenNonce={mapPopupOpenNonce}
                 onMarkerClick={onMapMarkerClick}
                 onPopupClose={onMapPopupClose}
                 onAgregar={onAgregarDesdeMapa}
@@ -178,10 +203,11 @@ export function PlanificacionMapaDistritos({
             spacing={1}
             sx={{
               position: "absolute",
-              top: 12,
-              left: 12,
+              bottom: 12,
+              right: 12,
               zIndex: 1100,
               pointerEvents: "none",
+              alignItems: "flex-end",
             }}
           >
             <Box sx={overlaySx}>
@@ -202,8 +228,21 @@ export function PlanificacionMapaDistritos({
                 />
                 <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textSecondary }}>baja → alta</Typography>
               </Stack>
+              <Typography
+                sx={{ fontFamily: tactic, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.06em", color: GLASS_COLORS.textMuted, mb: 0.35, mt: 0.25 }}
+              >
+                PRIORIDAD (PIN)
+              </Typography>
+              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5 }}>
+                <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#2e7d32", border: "1px solid #a5d6a7" }} />
+                <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textSecondary }}>baja</Typography>
+                <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#f9a825", border: "1px solid #fff59d", ml: 0.5 }} />
+                <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textSecondary }}>media</Typography>
+                <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#c62828", border: "1px solid #ffab91", ml: 0.5 }} />
+                <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textSecondary }}>alta</Typography>
+              </Stack>
               <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textMuted, lineHeight: 1.35 }}>
-                Tocá un distrito para filtrar y ver puntos.
+                Tocá un distrito para filtrar y ver puntos. Número en mapa = pendientes en zona.
               </Typography>
             </Box>
           </Stack>
@@ -290,7 +329,7 @@ export function PlanificacionMapaDistritos({
       )}
       <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
         <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted }}>
-          Azul = carga · borde claro = límites · selección reforzada
+          Azul = carga · borde claro = límites · selección reforzada · pin = prioridad
         </Typography>
         {distritoCatalogo.length === 0 && !loadingCatalogo ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: "warning.light" }}>

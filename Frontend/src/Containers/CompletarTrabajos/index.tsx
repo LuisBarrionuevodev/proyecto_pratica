@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 
-import { containerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
-import { wrapperStyles } from "../Actuaciones/styles/filtroStyles";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { CompletarEmptyView } from "./views/CompletarEmptyView";
 import { CompletarTrabajosGridView } from "./views/CompletarTrabajosGridView";
 import { fetchCompletarTrabajoCatalogsCached } from "./hooks/completarTrabajoCatalogsCache";
@@ -31,14 +30,11 @@ const CompletarTrabajos = () => {
   }, []);
 
   return (
-    <Box sx={containerStyles}>
-      <Box sx={wrapperStyles}>
-       
-        {vista === "empty" && <CompletarEmptyView onVerTrabajos={handleVerTrabajos} />}
-        {vista === "grid" && fechaOperativa != null && (
-          <CompletarTrabajosGridView fecha={fechaOperativa} onVolver={handleVolver} />
-        )}
-      </Box>
+    <Box sx={functionalPageShellSx}>
+      {vista === "empty" && <CompletarEmptyView onVerTrabajos={handleVerTrabajos} />}
+      {vista === "grid" && fechaOperativa != null && (
+        <CompletarTrabajosGridView fecha={fechaOperativa} onVolver={handleVolver} />
+      )}
     </Box>
   );
 };

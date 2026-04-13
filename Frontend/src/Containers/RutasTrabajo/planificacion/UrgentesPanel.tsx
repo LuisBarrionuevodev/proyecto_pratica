@@ -20,13 +20,15 @@ export type UrgentesPanelProps = {
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
   meta: { total: number; page: number; perPage: number };
   onPageChange: (page: number) => void;
+  /** Mismo flujo que pendientes del contexto: mapa interno + distrito si hace falta. */
+  onVerEnMapa?: (row: IRutaIniciadorPendienteRow) => void;
 };
 
 /**
  * Bandeja M3: prioridad alta global (misma regla que backend: tipo ≠ RELEVAMIENTO, prioridad ≥ 3, planificables).
  * Scroll interno y paginación liviana; deduplicación con pool en el controller.
  */
-export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange }: UrgentesPanelProps) {
+export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, onVerEnMapa }: UrgentesPanelProps) {
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.perPage) || 1);
   const emptyCopy =
     meta.total === 0
@@ -70,6 +72,7 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange }: 
                 agregarLabel="A ruta"
                 agregarVariant="secondary"
                 onAgregar={() => onAgregar(row)}
+                onVerEnMapa={onVerEnMapa}
               />
             ))}
           </Stack>

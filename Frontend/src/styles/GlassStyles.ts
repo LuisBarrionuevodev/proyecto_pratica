@@ -172,6 +172,7 @@ export const glassDialogTitleSx: SxProps<Theme> = {
     fontSize: "15px",
     fontWeight: 700,
     letterSpacing: "0.06em",
+    color: GLASS_COLORS.textPrimary,
     borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
     backgroundColor: "rgba(0, 0, 0, 0.22)",
     py: 1.5,
@@ -179,11 +180,13 @@ export const glassDialogTitleSx: SxProps<Theme> = {
 
 export const glassDialogContentSx: SxProps<Theme> = {
     backgroundColor: "rgba(14, 16, 22, 0.35)",
+    color: GLASS_COLORS.textPrimary,
 };
 
 export const glassDialogActionsSx: SxProps<Theme> = {
     borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
     backgroundColor: "rgba(0, 0, 0, 0.15)",
+    color: GLASS_COLORS.textPrimary,
     px: 2,
     py: 1.5,
     gap: 1,

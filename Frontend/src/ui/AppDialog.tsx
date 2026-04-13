@@ -1,6 +1,7 @@
 import type { DialogProps } from "@mui/material/Dialog";
 import Dialog from "@mui/material/Dialog";
 import type { PaperProps } from "@mui/material/Paper";
+import Box from "@mui/material/Box";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -11,6 +12,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import type { ReactNode, MouseEvent } from "react";
 
 import {
+  GLASS_COLORS,
   glassDialogActionsSx,
   glassDialogBackdropSx,
   glassDialogContentSx,
@@ -100,8 +102,24 @@ export function AppDialog({
     ...(tone === "danger" ? { color: theme.palette.error.main } : {}),
   };
 
+  const dialogContentLayoutSx: SxProps<Theme> = {
+    minWidth: 0,
+    maxWidth: "100%",
+    boxSizing: "border-box",
+  };
+
+  const glassDialogContentDividersSx: SxProps<Theme> | undefined =
+    appearance === "glass" && contentDividers
+      ? {
+          borderTopColor: GLASS_COLORS.borderLight,
+          borderBottomColor: GLASS_COLORS.borderLight,
+        }
+      : undefined;
+
   const mergedContentSx: SxProps<Theme> = [
     appearance === "glass" ? glassDialogContentSx : undefined,
+    glassDialogContentDividersSx,
+    dialogContentLayoutSx,
     contentSx,
   ];
 
@@ -124,7 +142,9 @@ export function AppDialog({
     >
       {showTitleRow && (
         <DialogTitle sx={titleSx}>
-          <span style={{ flex: 1 }}>{title ?? null}</span>
+          <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+            {title ?? null}
+          </Box>
           {showHeaderClose && (
             <IconButton
               aria-label="Cerrar"

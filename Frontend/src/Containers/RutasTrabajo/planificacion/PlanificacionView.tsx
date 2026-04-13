@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Grid } from "@mui/material";
 
 import type { IRutaIniciadorPendienteRow, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
@@ -12,6 +12,7 @@ import { PendientesContextoPanel } from "./PendientesContextoPanel";
 import { PlanificacionSummaryCards } from "./PlanificacionSummaryCards";
 import { PoolDelDiaPanel } from "./PoolDelDiaPanel";
 import { UrgentesPanel } from "./UrgentesPanel";
+import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
 
 export type PlanificacionViewProps = {
   ruta: IRutaTrabajo;
@@ -21,6 +22,16 @@ export type PlanificacionViewProps = {
   /** Pool del día compartido con Asignación (estado elevado al contenedor del módulo). */
   poolControl: PlanificacionPoolControl;
 };
+
+const PENDING_VER_MAPA_MS = 12_000;
+
+function distritoIdRow(row: IRutaIniciadorPendienteRow): number | null {
+  const a = row.distrito_id ?? null;
+  if (typeof a === "number" && Number.isFinite(a)) return a;
+  const b = row.domicilio?.distrito_id ?? null;
+  if (typeof b === "number" && Number.isFinite(b)) return b;
+  return null;
+}
 
 /**
  * Vista Planificación: cards, mapa distrital (M2), urgentes (M3), pendientes contexto (M4), pool local.
@@ -57,24 +68,133 @@ export function PlanificacionView({
   const [mapPopupRow, setMapPopupRow] = useState<IRutaIniciadorPendienteRow | null>(null);
   const [mapFocusIniciadorId, setMapFocusIniciadorId] = useState<number | null>(null);
   const [mapFlyToRow, setMapFlyToRow] = useState<IRutaIniciadorPendienteRow | null>(null);
+  const [mapPopupOpenNonce, setMapPopupOpenNonce] = useState(0);
+  const [pendingVerEnMapaRow, setPendingVerEnMapaRow] = useState<IRutaIniciadorPendienteRow | null>(null);
+
+  const preservingPendingOnNextDistritoChangeRef = useRef<number | null>(null);
+  const pendingMapTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+
+  const clearPendingMapTimeout = useCallback(() => {
+    if (pendingMapTimeoutRef.current != null) {
+      window.clearTimeout(pendingMapTimeoutRef.current);
+      pendingMapTimeoutRef.current = null;
+    }
+  }, []);
+
+  const bumpPopupNonce = useCallback(() => {
+    setMapPopupOpenNonce((n) => n + 1);
+  }, []);
+
+  const applyMapFocus = useCallback(
+    (row: IRutaIniciadorPendienteRow) => {
+      clearPendingMapTimeout();
+      setPendingVerEnMapaRow(null);
+      setMapPopupRow(row);
+      setMapFocusIniciadorId(row.id);
+      setMapFlyToRow(row);
+      bumpPopupNonce();
+      window.setTimeout(() => setMapFlyToRow(null), 900);
+    },
+    [bumpPopupNonce, clearPendingMapTimeout]
+  );
+
+  const schedulePendingTimeout = useCallback(
+    (rowId: number) => {
+      clearPendingMapTimeout();
+      pendingMapTimeoutRef.current = window.setTimeout(() => {
+        pendingMapTimeoutRef.current = null;
+        setPendingVerEnMapaRow((prev) => {
+          if (prev?.id !== rowId) return prev;
+          onError("No se pudo centrar el punto en el mapa. Revisá el distrito o la geocodificación.");
+          return null;
+        });
+      }, PENDING_VER_MAPA_MS);
+    },
+    [clearPendingMapTimeout, onError]
+  );
 
   useEffect(() => {
     setMapPopupRow(null);
     setMapFocusIniciadorId(null);
     setMapFlyToRow(null);
-  }, [ctrl.distritoActivoId]);
+    const preserveId = preservingPendingOnNextDistritoChangeRef.current;
+    preservingPendingOnNextDistritoChangeRef.current = null;
+    if (preserveId == null) {
+      setPendingVerEnMapaRow(null);
+      clearPendingMapTimeout();
+    }
+  }, [ctrl.distritoActivoId, clearPendingMapTimeout]);
 
-  const handleVerEnMapa = useCallback((row: IRutaIniciadorPendienteRow) => {
-    setMapPopupRow(row);
-    setMapFocusIniciadorId(row.id);
-    setMapFlyToRow(row);
-    window.setTimeout(() => setMapFlyToRow(null), 900);
-  }, []);
+  useEffect(() => {
+    if (!pendingVerEnMapaRow) return;
+    const id = pendingVerEnMapaRow.id;
+    const match = ctrl.pendientesParaMapa.find((r) => r.id === id);
+    if (!match || !parseIniciadorLatLng(match)) return;
+
+    applyMapFocus(match);
+  }, [pendingVerEnMapaRow, ctrl.pendientesParaMapa, applyMapFocus]);
+
+  useEffect(
+    () => () => {
+      clearPendingMapTimeout();
+    },
+    [clearPendingMapTimeout]
+  );
+
+  const handleVerEnMapa = useCallback(
+    (row: IRutaIniciadorPendienteRow) => {
+      if (!parseIniciadorLatLng(row)) return;
+
+      const targetDistritoId = distritoIdRow(row);
+
+      if (targetDistritoId == null) {
+        if (ctrl.distritoActivoId == null) {
+          onError("Elegí un distrito en el mapa para ver puntos.");
+          return;
+        }
+        const inLayer = ctrl.pendientesParaMapa.some((r) => r.id === row.id && parseIniciadorLatLng(r));
+        if (inLayer) {
+          const fresh = ctrl.pendientesParaMapa.find((r) => r.id === row.id);
+          if (fresh) applyMapFocus(fresh);
+        } else {
+          onError(
+            "Este pendiente no aparece en el mapa del distrito activo. Cambiá de distrito o verificá la geocodificación."
+          );
+        }
+        return;
+      }
+
+      if (targetDistritoId !== ctrl.distritoActivoId) {
+        preservingPendingOnNextDistritoChangeRef.current = row.id;
+        ctrl.seleccionarDistrito(targetDistritoId);
+        setPendingVerEnMapaRow(row);
+        schedulePendingTimeout(row.id);
+        return;
+      }
+
+      const fresh = ctrl.pendientesParaMapa.find((r) => r.id === row.id);
+      if (fresh && parseIniciadorLatLng(fresh)) {
+        applyMapFocus(fresh);
+      } else {
+        setPendingVerEnMapaRow(row);
+        schedulePendingTimeout(row.id);
+      }
+    },
+    [
+      ctrl.distritoActivoId,
+      ctrl.pendientesParaMapa,
+      ctrl.seleccionarDistrito,
+      onError,
+      applyMapFocus,
+      schedulePendingTimeout,
+    ]
+  );
 
   const handleMapMarkerClick = useCallback((row: IRutaIniciadorPendienteRow) => {
     setMapPopupRow(row);
     setMapFocusIniciadorId(row.id);
-  }, []);
+    bumpPopupNonce();
+  }, [bumpPopupNonce]);
 
   const handleMapPopupClose = useCallback(() => {
     setMapPopupRow(null);
@@ -138,6 +258,7 @@ export function PlanificacionView({
             mapFocusIniciadorId={mapFocusIniciadorId}
             mapPopupRow={mapPopupRow}
             mapFlyToRow={mapFlyToRow}
+            mapPopupOpenNonce={mapPopupOpenNonce}
             onMapMarkerClick={handleMapMarkerClick}
             onMapPopupClose={handleMapPopupClose}
             onAgregarDesdeMapa={handleAgregarDesdeMapa}
@@ -160,6 +281,7 @@ export function PlanificacionView({
             onAgregar={ctrl.agregarAlPool}
             meta={ctrl.urgentesMeta}
             onPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
+            onVerEnMapa={handleVerEnMapa}
           />
           <PoolDelDiaPanel
             items={ctrl.poolItemsOrdenados}

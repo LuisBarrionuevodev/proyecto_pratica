@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, List, ListItem, ListItemText, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  LinearProgress,
+  List,
+  ListItem,
+  ListItemText,
+  Typography,
+} from "@mui/material";
 
-import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
+import type { ICompletarTrabajoInspectorGrupo, ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
+import { getCompletarTrabajoDetalle } from "../../../api/completarTrabajoApi";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
@@ -10,6 +20,7 @@ import { getContraproducenciaUxHint } from "../utils/contraproducenciaUxHint";
 import {
   applyCompletarTrabajoFieldErrorsFromApi,
   COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY,
+  formatCompletarTrabajoApiError,
 } from "../utils/completarTrabajoErrors";
 
 const ACTA_KEYS_EMPTY = {
@@ -43,6 +54,21 @@ function inspectoresLinea(r: ICompletarTrabajoPendienteRow): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
+/** Inspectores del grupo de ruta (GET detalle); más fiable que la fila del listado si cambió el grupo. */
+function inspectoresGrupoLinea(items: ICompletarTrabajoInspectorGrupo[]): string {
+  if (!items?.length) return "";
+  return items
+    .map((i) => {
+      const n = (i.nombre ?? "").trim();
+      const leg = (i.legajo ?? "").trim();
+      if (!n && !leg) return "";
+      if (n && leg) return `${n} (${leg})`;
+      return n || leg;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
 function dashIfEmpty(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   return String(value);
@@ -73,6 +99,7 @@ function tipoActuacionInicialReinspeccionOficio(tipo: string | null | undefined)
 
 export type CompletarTrabajoModalProps = {
   open: boolean;
+  /** Fila del listado al abrir; el modal refresca con GET detalle antes de editar. */
   row: ICompletarTrabajoPendienteRow | null;
   catalogs: CompletarTrabajoCatalogs | null;
   catalogsReady: boolean;
@@ -82,6 +109,8 @@ export type CompletarTrabajoModalProps = {
 
 /**
  * Cierre Completar trabajo: cabecera fija.
+ * Al abrir, carga `GET /actuaciones/completar-trabajo/detalle/:ruta_item_id` para fila fresca,
+ * inspectores del grupo y referencia de tipo; si falla, usa la fila del listado.
  * - `REINSPECCION_OFICIO`: tipo de actuación + dio cumplimiento + observaciones opcionales.
  * - Resto: editables en orden cerrado, actas solo sin contraproducencia.
  */
@@ -120,38 +149,83 @@ export function CompletarTrabajoModal({
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  /** Fila efectiva tras GET detalle (o fallback a `row` si el GET falla). */
+  const [resolvedRow, setResolvedRow] = useState<ICompletarTrabajoPendienteRow | null>(null);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+  const [detalleError, setDetalleError] = useState<string | null>(null);
+  const [inspectoresGrupo, setInspectoresGrupo] = useState<ICompletarTrabajoInspectorGrupo[]>([]);
+  const [tipoActuacionEsperadoRef, setTipoActuacionEsperadoRef] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!open || !row) return;
+    if (!open || !row) {
+      setResolvedRow(null);
+      setDetalleLoading(false);
+      setDetalleError(null);
+      setInspectoresGrupo([]);
+      setTipoActuacionEsperadoRef(null);
+      return;
+    }
+    let cancelled = false;
+    setResolvedRow(null);
+    setDetalleLoading(true);
+    setDetalleError(null);
+    setInspectoresGrupo([]);
+    setTipoActuacionEsperadoRef(null);
+
+    getCompletarTrabajoDetalle(row.ruta_item_id)
+      .then((d) => {
+        if (cancelled) return;
+        setResolvedRow(d.row);
+        setInspectoresGrupo(d.inspectores_grupo ?? []);
+        setTipoActuacionEsperadoRef(d.tipo_actuacion_esperado ?? d.row.tipo_actuacion_esperado ?? null);
+        setDetalleLoading(false);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setResolvedRow(row);
+        setInspectoresGrupo([]);
+        setTipoActuacionEsperadoRef(row.tipo_actuacion_esperado ?? null);
+        setDetalleError(formatCompletarTrabajoApiError(e));
+        setDetalleLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, row]);
+
+  useEffect(() => {
+    if (!open || !resolvedRow) return;
     setError(null);
     setFieldErrors({});
-    if (row.tipo_iniciador === "REINSPECCION_OFICIO") {
-      setTipoActuacionOficio(tipoActuacionInicialReinspeccionOficio(row.tipo_actuacion));
-      setResultadoCumplimientoOficio(row.resultado_cumplimiento_oficio ?? "");
-      setObservacionesEjecucion(row.observaciones_ejecucion ?? "");
+    if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
+      setTipoActuacionOficio(tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion));
+      setResultadoCumplimientoOficio(resolvedRow.resultado_cumplimiento_oficio ?? "");
+      setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
       return;
     }
     setResultadoCumplimientoOficio("");
-    setObservacionesEjecucion(row.observaciones_ejecucion ?? "");
-    setContraproducencia(row.contraproducencia ?? "");
-    setCalle(row.calle ?? "");
-    setNumero(row.numero ?? "");
-    setRubroNombre(row.rubro_nombre ?? "");
-    setDocNro(row.doc_nro ?? "");
-    setContribApellido(row.contrib_apellido ?? "");
-    setContribNombre(row.contrib_nombre ?? "");
-    setNombreLocal(row.nombre_local ?? "");
-    setActaInspeccion(row.acta_inspeccion_num ?? "");
-    setActaNotificacion(row.acta_notificacion_num ?? "");
-    setNotifM1(row.notificacion_motivo_1 ?? "");
-    setNotifM2(row.notificacion_motivo_2 ?? "");
-    setNotifM3(row.notificacion_motivo_3 ?? "");
-    setActaComprobacion(row.acta_comprobacion_num ?? "");
-    setComprobacionMotivo(row.comprobacion_motivo ?? "");
-    setActaClausura(row.acta_clausura_num ?? "");
-    setActaDecomiso(row.acta_decomiso_num ?? "");
-    const k = row.decomiso_kilos_total;
+    setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
+    setContraproducencia(resolvedRow.contraproducencia ?? "");
+    setCalle(resolvedRow.calle ?? "");
+    setNumero(resolvedRow.numero ?? "");
+    setRubroNombre(resolvedRow.rubro_nombre ?? "");
+    setDocNro(resolvedRow.doc_nro ?? "");
+    setContribApellido(resolvedRow.contrib_apellido ?? "");
+    setContribNombre(resolvedRow.contrib_nombre ?? "");
+    setNombreLocal(resolvedRow.nombre_local ?? "");
+    setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
+    setActaNotificacion(resolvedRow.acta_notificacion_num ?? "");
+    setNotifM1(resolvedRow.notificacion_motivo_1 ?? "");
+    setNotifM2(resolvedRow.notificacion_motivo_2 ?? "");
+    setNotifM3(resolvedRow.notificacion_motivo_3 ?? "");
+    setActaComprobacion(resolvedRow.acta_comprobacion_num ?? "");
+    setComprobacionMotivo(resolvedRow.comprobacion_motivo ?? "");
+    setActaClausura(resolvedRow.acta_clausura_num ?? "");
+    setActaDecomiso(resolvedRow.acta_decomiso_num ?? "");
+    const k = resolvedRow.decomiso_kilos_total;
     setDecomisoKilos(k == null ? "" : String(k));
-  }, [open, row]);
+  }, [open, resolvedRow]);
 
   const fe = useCallback((apiField: string) => fieldErrors[apiField], [fieldErrors]);
   const clearFe = useCallback((apiField: string) => {
@@ -166,16 +240,21 @@ export function CompletarTrabajoModal({
   const contraHint = useMemo(() => getContraproducenciaUxHint(contraproducencia), [contraproducencia]);
   const visitaRealizada = !contraproducencia.trim();
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
-  const esReinspeccionOficio = row?.tipo_iniciador === "REINSPECCION_OFICIO";
+  const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
 
-  const inspectoresMostrar = useMemo(() => (row ? inspectoresLinea(row) : "—"), [row]);
+  const inspectoresMostrar = useMemo(() => {
+    if (!resolvedRow) return "—";
+    const fromGrupo = inspectoresGrupoLinea(inspectoresGrupo);
+    if (fromGrupo) return fromGrupo;
+    return inspectoresLinea(resolvedRow);
+  }, [resolvedRow, inspectoresGrupo]);
 
   const contraOpts = useMemo(
     () => [
       { value: "", label: "Sin contraproducencia (visita realizada)" },
-      ...mergeCatalogOpts(cat.contraproducencias, row?.contraproducencia).filter((o) => o.value !== ""),
+      ...mergeCatalogOpts(cat.contraproducencias, resolvedRow?.contraproducencia).filter((o) => o.value !== ""),
     ],
-    [cat.contraproducencias, row?.contraproducencia]
+    [cat.contraproducencias, resolvedRow?.contraproducencia]
   );
   const motivoNotifOpts = useMemo(() => mergeCatalogOpts(cat.motivos, undefined), [cat.motivos]);
   const motivoCompOpts = useMemo(
@@ -189,11 +268,11 @@ export function CompletarTrabajoModal({
   }, [saving, onClose]);
 
   const handleSubmit = async () => {
-    if (!row) return;
+    if (!resolvedRow) return;
     setFieldErrors({});
     setError(null);
 
-    if (row.tipo_iniciador === "REINSPECCION_OFICIO") {
+    if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
       const preSubmitErrors: Record<string, string> = {};
       if (
         !tipoActuacionOficio.trim() ||
@@ -218,11 +297,11 @@ export function CompletarTrabajoModal({
           observaciones_ejecucion: observacionesEjecucion.trim(),
           ...ACTA_KEYS_EMPTY,
         };
-        await submitCompletarTrabajoCierreFromRow(row, values, {
+        await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
           includeTipoActuacion: true,
           omitPrecargadoPr2: false,
         });
-        onSuccess(row.ruta_item_id);
+        onSuccess(resolvedRow.ruta_item_id);
         onClose();
       } catch (e) {
         const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
@@ -295,8 +374,8 @@ export function CompletarTrabajoModal({
         });
       }
 
-      await submitCompletarTrabajoCierreFromRow(row, values, { omitPrecargadoPr2: true });
-      onSuccess(row.ruta_item_id);
+      await submitCompletarTrabajoCierreFromRow(resolvedRow, values, { omitPrecargadoPr2: true });
+      onSuccess(resolvedRow.ruta_item_id);
       onClose();
     } catch (e) {
       const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
@@ -325,13 +404,45 @@ export function CompletarTrabajoModal({
           <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
             Cancelar
           </AppButton>
-          <AppButton dsVariant="primary" onClick={() => void handleSubmit()} disabled={saving} loading={saving}>
+          <AppButton
+            dsVariant="primary"
+            onClick={() => void handleSubmit()}
+            disabled={saving || !resolvedRow || detalleLoading}
+            loading={saving}
+          >
             Guardar cierre
           </AppButton>
         </>
       }
     >
-      {row && (
+      {row && detalleLoading && !resolvedRow && (
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
+          <LinearProgress sx={{ borderRadius: 1 }} />
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, py: 2 }}>
+            <CircularProgress size={32} sx={{ color: "rgba(255,255,255,0.7)" }} />
+            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", textAlign: "center" }}>
+              Cargando detalle del trabajo…
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {detalleError && resolvedRow && (
+        <Alert severity="warning" sx={{ borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            No se pudo cargar el detalle actualizado del servidor.
+          </Typography>
+          <Typography variant="body2" sx={{ whiteSpace: "pre-line", opacity: 0.95 }}>
+            {detalleError}
+          </Typography>
+          <Typography variant="caption" sx={{ display: "block", mt: 1, opacity: 0.9 }}>
+            Se muestran los datos del listado. Podés intentar cerrar y volver a abrir, o continuar si coinciden con lo
+            que ves en terreno.
+          </Typography>
+        </Alert>
+      )}
+
+      {resolvedRow && (
         <Box
           sx={{
             ...col,
@@ -344,21 +455,41 @@ export function CompletarTrabajoModal({
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
             Solo lectura
           </Typography>
+          {!detalleError && inspectoresGrupo.length > 0 && (
+            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.42)", display: "block", mb: 0.5 }}>
+              Inspectores según el grupo de la ruta publicada (actualizado al abrir).
+            </Typography>
+          )}
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-            Fecha: {dashIfEmpty(row.fecha_actuacion)}
+            Fecha: {dashIfEmpty(resolvedRow.fecha_actuacion)}
           </Typography>
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-            Tipo de iniciador: {dashIfEmpty(row.tipo_iniciador)}
+            Tipo de iniciador: {dashIfEmpty(resolvedRow.tipo_iniciador)}
           </Typography>
+          {resolvedRow.grupo_nombre?.trim() ? (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
+              Grupo: {resolvedRow.grupo_nombre}
+            </Typography>
+          ) : null}
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
-            OT {row.orden_trabajo_numero ?? "—"}
+            OT {resolvedRow.orden_trabajo_numero ?? "—"}
           </Typography>
+          {tipoActuacionEsperadoRef?.trim() ? (
+            <Box>
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block" }}>
+                Tipo de actuación esperado (referencia catálogo)
+              </Typography>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)" }}>
+                {tipoActuacionEsperadoRef}
+              </Typography>
+            </Box>
+          ) : null}
           <Box>
             <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block" }}>
               Domicilio actual
             </Typography>
             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-              {domicilioResumen(row)}
+              {domicilioResumen(resolvedRow)}
             </Typography>
           </Box>
           <Box>
@@ -372,13 +503,13 @@ export function CompletarTrabajoModal({
         </Box>
       )}
 
-      {error && (
+      {resolvedRow && error && (
         <Alert severity="error" sx={{ borderRadius: 2, whiteSpace: "pre-line" }}>
           {error}
         </Alert>
       )}
 
-      {row && esReinspeccionOficio && (
+      {resolvedRow && esReinspeccionOficio && (
         <Box sx={col}>
           <AppSelect
             label="Tipo de actuación"
@@ -424,7 +555,7 @@ export function CompletarTrabajoModal({
         </Box>
       )}
 
-      {row && !esReinspeccionOficio && (
+      {resolvedRow && !esReinspeccionOficio && (
         <>
       <Box sx={col}>
         <AppSelect

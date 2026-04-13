@@ -1,5 +1,17 @@
-import { useState } from "react";
-import { Box, Button, Chip, Divider, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
+import { useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Divider,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin } from "../../../api/rutasTrabajoApi";
 import {
@@ -20,6 +32,40 @@ interface Props {
   onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
 }
 
+type OtUiKind = "sin_guardar" | "pendiente_guardar" | "guardada";
+
+function otUiState(
+  item: IRutaItemMin,
+  draftRaw: string
+): { kind: OtUiKind; chipLabel: string; chipColor: "default" | "warning" | "success"; helperText: string } {
+  const persisted = (item.orden_trabajo?.numero_acta ?? "").trim();
+  const draft = draftRaw.trim();
+  const hasPersistedId = item.orden_trabajo_id != null;
+
+  if (hasPersistedId && draft === persisted) {
+    return {
+      kind: "guardada",
+      chipLabel: "OT guardada",
+      chipColor: "success",
+      helperText: "OT vinculada al servidor. Podés editar y guardar de nuevo si hace falta.",
+    };
+  }
+  if (draft !== persisted) {
+    return {
+      kind: "pendiente_guardar",
+      chipLabel: "OT pendiente de guardar",
+      chipColor: "warning",
+      helperText: "Tocá «Guardar OT» para confirmar el número antes de ir al mapa final.",
+    };
+  }
+  return {
+    kind: "sin_guardar",
+    chipLabel: "OT no guardada",
+    chipColor: "default",
+    helperText: "Solo números. Guardá la OT para poder continuar al mapa final.",
+  };
+}
+
 const PanelGruposRuta = ({
   grupos,
   items,
@@ -33,6 +79,12 @@ const PanelGruposRuta = ({
   const [targetByItem, setTargetByItem] = useState<Record<number, number | "">>({});
   const [expandedByGrupo, setExpandedByGrupo] = useState<Record<number, boolean>>({});
   const [otDraftByItem, setOtDraftByItem] = useState<Record<number, string>>({});
+  const [savingOtItemId, setSavingOtItemId] = useState<number | null>(null);
+
+  const itemsSinOtPersistida = useMemo(
+    () => items.filter((i) => !i.deleted_at && i.orden_trabajo_id == null),
+    [items]
+  );
 
   return (
     <Box
@@ -45,6 +97,14 @@ const PanelGruposRuta = ({
       }}
     >
       <Stack spacing={1.2}>
+        {itemsSinOtPersistida.length > 0 ? (
+          <Alert severity="info" variant="outlined" sx={{ borderRadius: 2, py: 0.5 }}>
+            <Typography variant="body2" component="span" sx={{ lineHeight: 1.45 }}>
+              Hay {itemsSinOtPersistida.length} trabajo{itemsSinOtPersistida.length === 1 ? "" : "s"} sin OT guardada
+              en el servidor. Expandí «Gestionar items», cargá el número y usá «Guardar OT» en cada uno.
+            </Typography>
+          </Alert>
+        ) : null}
       {grupos.map((grupo) => {
         const groupItems = items.filter((i) => i.ruta_grupo_id === grupo.id && !i.deleted_at);
         const expanded = expandedByGrupo[grupo.id] ?? false;
@@ -107,6 +167,9 @@ const PanelGruposRuta = ({
                   const canMove = grupos.length > 1;
                   const target = targetByItem[item.id] || "";
                   const otDraft = otDraftByItem[item.id] ?? item.orden_trabajo?.numero_acta ?? "";
+                  const otUi = otUiState(item, otDraft);
+                  const savingThis = savingOtItemId === item.id;
+                  const puedeGuardarOt = otDraft.trim().length > 0 && !savingThis;
                   return (
                     <Paper key={item.id} elevation={0} sx={rutasInstitutionalItemPaperSx}>
                       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
@@ -118,8 +181,15 @@ const PanelGruposRuta = ({
                         </Typography>
                         <Chip label={tipoLabel} size="small" variant="outlined" />
                         <Chip label={`#${item.iniciador_ruta_id}`} size="small" variant="outlined" />
+                        <Chip label={otUi.chipLabel} size="small" color={otUi.chipColor} variant="outlined" />
                       </Stack>
-                      <Stack direction="row" spacing={0.8} sx={{ mt: 0.8 }} alignItems="center" flexWrap="wrap">
+                      <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={0.8}
+                        sx={{ mt: 0.8 }}
+                        alignItems={{ xs: "stretch", sm: "flex-start" }}
+                        flexWrap="wrap"
+                      >
                         <TextField
                           size="small"
                           label="OT"
@@ -130,25 +200,37 @@ const PanelGruposRuta = ({
                               [item.id]: e.target.value,
                             }))
                           }
-                          sx={{ width: 140 }}
+                          sx={{ width: { xs: "100%", sm: 160 }, minWidth: 0 }}
+                          helperText={otUi.helperText}
+                          FormHelperTextProps={{ sx: { maxWidth: 320, m: 0, mt: 0.5 } }}
                         />
                         <Button
                           size="small"
                           variant="contained"
+                          disabled={!puedeGuardarOt}
                           onClick={() => {
                             void (async () => {
-                              const ok = await onGuardarOtItem(item, otDraft);
-                              if (ok) {
-                                setOtDraftByItem((prev) => {
-                                  const next = { ...prev };
-                                  delete next[item.id];
-                                  return next;
-                                });
+                              setSavingOtItemId(item.id);
+                              try {
+                                const ok = await onGuardarOtItem(item, otDraft);
+                                if (ok) {
+                                  setOtDraftByItem((prev) => {
+                                    const next = { ...prev };
+                                    delete next[item.id];
+                                    return next;
+                                  });
+                                }
+                              } finally {
+                                setSavingOtItemId((id) => (id === item.id ? null : id));
                               }
                             })();
                           }}
+                          sx={{ alignSelf: { xs: "flex-start", sm: "center" }, mt: { xs: 0, sm: 0.25 } }}
+                          startIcon={
+                            savingThis ? <CircularProgress color="inherit" size={14} thickness={5} /> : undefined
+                          }
                         >
-                          Guardar OT
+                          {savingThis ? "Guardando…" : "Guardar OT"}
                         </Button>
                         <TextField
                           select

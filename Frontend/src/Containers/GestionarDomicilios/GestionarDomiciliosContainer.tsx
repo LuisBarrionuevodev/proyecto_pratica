@@ -1,8 +1,8 @@
 import { Alert, Box, Paper, Tab, Tabs } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
-import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { alertBaseStyles, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
-import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
+import { glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import ManualMapPanel from "./components/ManualMapPanel";
 import TabGeolocalizacionTable from "./components/TabGeolocalizacionTable";
 import TabNomenclaturaTable from "./components/TabNomenclaturaTable";
@@ -64,9 +64,7 @@ const GestionarDomiciliosContainer = () => {
   }, []);
 
   return (
-    <Box sx={containerStyles}>
-      <Box sx={wrapperStyles}>
-        <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+    <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx }}>
           <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
             <Tabs
               value={activeTab}
@@ -110,8 +108,6 @@ const GestionarDomiciliosContainer = () => {
               />
             </>
           )}
-        </Box>
-      </Box>
     </Box>
   );
 };

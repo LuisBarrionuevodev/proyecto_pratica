@@ -1,10 +1,12 @@
 import { useEffect, useMemo } from "react";
-import { CircleMarker, Popup, useMap } from "react-leaflet";
+import { Marker, Popup, useMap } from "react-leaflet";
 import { Box } from "@mui/material";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
 import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
+import { prioridadCategoriaRow } from "./utils/iniciadorDisplay";
+import { planificacionPendientePinIcon } from "./utils/planificacionMapaPins";
 
 function MapFlyTo({ target }: { target: IRutaIniciadorPendienteRow | null }) {
   const map = useMap();
@@ -24,6 +26,8 @@ export type PlanificacionMapaPendientesLayerProps = {
   focusIniciadorId: number | null;
   popupRow: IRutaIniciadorPendienteRow | null;
   flyToRow: IRutaIniciadorPendienteRow | null;
+  /** Se incrementa al abrir el popup desde la lista para forzar remount estable del Popup de Leaflet. */
+  popupOpenNonce?: number;
   onMarkerClick: (row: IRutaIniciadorPendienteRow) => void;
   onPopupClose: () => void;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
@@ -38,6 +42,7 @@ export function PlanificacionMapaPendientesLayer({
   focusIniciadorId,
   popupRow,
   flyToRow,
+  popupOpenNonce = 0,
   onMarkerClick,
   onPopupClose,
   onAgregar,
@@ -54,23 +59,20 @@ export function PlanificacionMapaPendientesLayer({
         if (!ll) return null;
         const isFocus = focusIniciadorId === row.id;
         const showPopup = popupRow?.id === row.id;
+        const icon = planificacionPendientePinIcon(prioridadCategoriaRow(row), isFocus);
         return (
-          <CircleMarker
+          <Marker
             key={row.id}
-            center={[ll.lat, ll.lng]}
-            radius={isFocus ? 14 : 10}
-            pathOptions={{
-              color: isFocus ? "#ffffff" : "#7ecbff",
-              weight: isFocus ? 3 : 2,
-              fillColor: isFocus ? "#0166ff" : "rgba(0, 180, 255, 0.85)",
-              fillOpacity: 1,
-            }}
+            position={[ll.lat, ll.lng]}
+            icon={icon}
+            zIndexOffset={isFocus ? 800 : 0}
             eventHandlers={{
               click: () => onMarkerClick(row),
             }}
           >
             {showPopup ? (
               <Popup
+                key={`${row.id}-${popupOpenNonce}`}
                 eventHandlers={{
                   remove: onPopupClose,
                 }}
@@ -80,14 +82,14 @@ export function PlanificacionMapaPendientesLayer({
                 <Box sx={{ m: -0.5 }}>
                   <PlanificacionIniciadorCompactCard
                     row={row}
-                    agregarLabel="Agregar"
+                    agregarLabel="Agregar al pool"
                     onAgregar={() => onAgregar(row)}
                     showVerEnMapaButton={false}
                   />
                 </Box>
               </Popup>
             ) : null}
-          </CircleMarker>
+          </Marker>
         );
       })}
     </>

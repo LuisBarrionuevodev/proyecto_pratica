@@ -1,5 +1,8 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
+import { Box } from "@mui/material";
 import { useState } from "react";
+
+import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import { AppButton, AppDialog, AppTextField } from "../../../ui";
 
 interface PolygonFormProps {
   open: boolean;
@@ -11,6 +14,10 @@ export default function PolygonForm({ open, onClose, onSave }: PolygonFormProps)
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
 
+  const handleClose = () => {
+    onClose();
+  };
+
   const handleSubmit = () => {
     onSave({ nombre, descripcion });
     setNombre("");
@@ -18,18 +25,42 @@ export default function PolygonForm({ open, onClose, onSave }: PolygonFormProps)
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Nuevo Distrito</DialogTitle>
-
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-        <TextField label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <TextField label="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} multiline rows={3} />
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" onClick={handleSubmit}>Guardar</Button>
-      </DialogActions>
-    </Dialog>
+    <AppDialog
+      open={open}
+      onClose={(_event, _reason) => handleClose()}
+      onCloseButtonClick={handleClose}
+      title="Nuevo Distrito"
+      contentDividers
+      contentSx={formDialogContentStackSx}
+      actions={
+        <Box sx={dialogFormActionsRowSx}>
+          <AppButton dsVariant="ghost" onClick={handleClose}>
+            Cancelar
+          </AppButton>
+          <AppButton dsVariant="primary" onClick={handleSubmit}>
+            Guardar
+          </AppButton>
+        </Box>
+      }
+    >
+      <AppTextField
+        appearance="glass"
+        label="Nombre"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        fullWidth
+        variant="outlined"
+      />
+      <AppTextField
+        appearance="glass"
+        label="Descripción"
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+        fullWidth
+        multiline
+        minRows={3}
+        variant="outlined"
+      />
+    </AppDialog>
   );
 }
