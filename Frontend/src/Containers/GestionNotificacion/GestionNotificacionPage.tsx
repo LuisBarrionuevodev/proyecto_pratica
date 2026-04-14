@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, CircularProgress, Typography } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  IconButton,
+  Paper,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import {
@@ -15,13 +26,16 @@ import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../Actuaciones/styles/actuacionesTableStyles";
 import { alertBaseStyles, COLORS, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
 import { formDialogContentStackSx } from "../../styles/formDialogStyles";
-import { AppButton, AppDialog, AppTextField, SegmentedFilterChips } from "../../ui";
+import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import { AppButton, AppDialog, AppTextField } from "../../ui";
 import {
   countByPlazoSlice,
   matchesPlazoSlice,
   sliceLabel,
   type PlazoOperativoSlice,
 } from "./gestionNotificacionPlazo";
+
+const PLAZO_TAB_ORDER: PlazoOperativoSlice[] = ["total", "en_plazo", "por_vencer", "vencidas_o_hoy"];
 
 function contribuyenteText(row: IActuacionesPendientesItem): string {
   const a = (row.contrib_apellido ?? "").trim();
@@ -64,8 +78,6 @@ const GestionNotificacionPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plazoSlice, setPlazoSlice] = useState<PlazoOperativoSlice>("total");
-  /** La tabla solo se monta tras elegir un indicador de plazo. */
-  const [tablaVisible, setTablaVisible] = useState(false);
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -113,6 +125,7 @@ const GestionNotificacionPage = () => {
     try {
       const metrics = await postSyncNotificacionesVencidas();
       setSyncFeedback({ kind: "success", metrics });
+      /** Tras sync exitoso, misma recarga que el refresh manual de la bandeja. */
       await loadData();
     } catch (err: unknown) {
       const detail =
@@ -259,6 +272,29 @@ const GestionNotificacionPage = () => {
     []
   );
 
+  const renderNotificacionToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Recargar bandeja">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Recargar bandeja"
+            disabled={loading}
+            onClick={() => void loadData()}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [loading, loadData]
+  );
+
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     ...MRT_READ_ONLY_BANDEJA,
@@ -266,14 +302,8 @@ const GestionNotificacionPage = () => {
     data: filteredRows,
     enableColumnFilters: false,
     enableGlobalFilter: false,
+    renderTopToolbarCustomActions: renderNotificacionToolbarRefresh,
   });
-
-  const sliceChips: { slice: PlazoOperativoSlice; count: number }[] = [
-    { slice: "total", count: sliceCounts.total },
-    { slice: "en_plazo", count: sliceCounts.en_plazo },
-    { slice: "por_vencer", count: sliceCounts.por_vencer },
-    { slice: "vencidas_o_hoy", count: sliceCounts.vencidas_o_hoy },
-  ];
 
   return (
     <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx }}>
@@ -296,8 +326,9 @@ const GestionNotificacionPage = () => {
                 <strong>no siempre cambia</strong> las filas visibles.
               </Typography>
               <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.25 }}>
-                El ícono de actualizar en los indicadores solo <strong>recarga esta bandeja</strong>; no ejecuta el
-                proceso operativo de sincronización.
+                Tras <strong>Sincronizar vencimientos</strong> correcto, la bandeja se recarga sola. El ícono de
+                actualizar en la barra de la tabla solo <strong>recarga esta bandeja</strong>; no ejecuta la
+                sincronización.
               </Typography>
               <AppButton
                 dsVariant="primary"
@@ -329,19 +360,23 @@ const GestionNotificacionPage = () => {
             </Alert>
           )}
 
-          <SegmentedFilterChips<PlazoOperativoSlice>
-            options={sliceChips.map(({ slice, count }) => ({
-              value: slice,
-              label: `${sliceLabel(slice)} · ${loading ? "…" : count}`,
-            }))}
-            onSelect={(slice) => {
-              setPlazoSlice(slice);
-              setTablaVisible(true);
-            }}
-            isSelected={(slice) => tablaVisible && plazoSlice === slice}
-            onRefresh={() => void loadData()}
-            refreshDisabled={loading}
-          />
+          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
+            <Tabs
+              value={plazoSlice}
+              onChange={(_, v) => setPlazoSlice(v as PlazoOperativoSlice)}
+              variant="scrollable"
+              allowScrollButtonsMobile
+              sx={glassSecondaryTabsSx}
+            >
+              {PLAZO_TAB_ORDER.map((slice) => (
+                <Tab
+                  key={slice}
+                  value={slice}
+                  label={`${sliceLabel(slice)} · ${loading ? "…" : sliceCounts[slice]}`}
+                />
+              ))}
+            </Tabs>
+          </Paper>
 
           {error && (
             <Alert severity="error" sx={alertBaseStyles}>
@@ -349,15 +384,13 @@ const GestionNotificacionPage = () => {
             </Alert>
           )}
 
-          {loading && !tablaVisible && (
+          {loading && notificacionRows.length === 0 && !error ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
               <CircularProgress size={28} sx={{ color: COLORS.primary }} />
             </Box>
-          )}
-
-          {tablaVisible && (
+          ) : (
             <Box sx={{ position: "relative", opacity: loading ? 0.65 : 1, transition: "opacity 0.2s" }}>
-              {loading && (
+              {loading && notificacionRows.length > 0 && (
                 <Box
                   sx={{
                     position: "absolute",

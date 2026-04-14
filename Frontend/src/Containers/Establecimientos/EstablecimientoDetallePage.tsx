@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import StorefrontIcon from "@mui/icons-material/Storefront";
-import { Alert, Box, Grid, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Alert, Box, Grid, Paper, Stack, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -13,7 +13,7 @@ import {
 import { isAxiosError } from "axios";
 
 import { AppButton } from "../../ui";
-import { COLORS, gridContainerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import { glassCard } from "../../styles/GlassStyles";
 import {
@@ -36,13 +36,23 @@ function dash(v: string | null | undefined): string {
   return t ? t : "—";
 }
 
+/** Apellido, Nombre para lectura (persona física). */
+function contribuyentePersonaFisica(
+  apellido: string | null | undefined,
+  nombre: string | null | undefined
+): string {
+  const a = apellido?.trim() ?? "";
+  const n = nombre?.trim() ?? "";
+  const t = [a, n].filter(Boolean).join(", ");
+  return t;
+}
+
 /**
  * Ficha de establecimiento operativo: cabecera e historial desde API (JWT vía apiClient).
  */
 export default function EstablecimientoDetallePage() {
   const { id: idParam } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"info" | "actuaciones">("info");
 
   const establecimientoId = useMemo(() => {
     if (!idParam || !/^\d+$/.test(idParam)) return null;
@@ -62,6 +72,8 @@ export default function EstablecimientoDetallePage() {
     pageIndex: 0,
     pageSize: HIST_PAGE_SIZE,
   });
+
+  const prevHistorialEstIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (establecimientoId == null) {
@@ -102,40 +114,50 @@ export default function EstablecimientoDetallePage() {
 
   useEffect(() => {
     if (establecimientoId == null) return;
-    setHistorialRows([]);
-    setHistorialTotal(null);
-    setErrorHistorial(null);
-    setPagination((p) => ({ ...p, pageIndex: 0 }));
-  }, [establecimientoId]);
 
-  const loadHistorial = useCallback(async () => {
-    if (establecimientoId == null) return;
+    const idChanged = prevHistorialEstIdRef.current !== establecimientoId;
+    if (idChanged) {
+      prevHistorialEstIdRef.current = establecimientoId;
+      setHistorialRows([]);
+      setHistorialTotal(null);
+      setErrorHistorial(null);
+      if (pagination.pageIndex !== 0) {
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+      }
+    }
+
+    const effectivePageIndex = idChanged ? 0 : pagination.pageIndex;
+
+    let cancelled = false;
     setLoadingHistorial(true);
     setErrorHistorial(null);
-    try {
-      const res = await getEstablecimientoOperativoActuaciones(establecimientoId, {
-        page: pagination.pageIndex + 1,
-        page_size: pagination.pageSize,
+    void getEstablecimientoOperativoActuaciones(establecimientoId, {
+      page: effectivePageIndex + 1,
+      page_size: pagination.pageSize,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setHistorialRows(res.items);
+        setHistorialTotal(res.meta.total);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const detail =
+          isAxiosError(e) && e.response?.data && typeof e.response.data === "object"
+            ? (e.response.data as { detail?: string }).detail
+            : null;
+        setErrorHistorial(detail ?? "No se pudo cargar el historial de actuaciones.");
+        setHistorialRows([]);
+        setHistorialTotal(0);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHistorial(false);
       });
-      setHistorialRows(res.items);
-      setHistorialTotal(res.meta.total);
-    } catch (e: unknown) {
-      const detail =
-        isAxiosError(e) && e.response?.data && typeof e.response.data === "object"
-          ? (e.response.data as { detail?: string }).detail
-          : null;
-      setErrorHistorial(detail ?? "No se pudo cargar el historial de actuaciones.");
-      setHistorialRows([]);
-      setHistorialTotal(0);
-    } finally {
-      setLoadingHistorial(false);
-    }
-  }, [establecimientoId, pagination.pageIndex, pagination.pageSize]);
 
-  useEffect(() => {
-    if (tab !== "actuaciones" || establecimientoId == null) return;
-    void loadHistorial();
-  }, [tab, establecimientoId, loadHistorial]);
+    return () => {
+      cancelled = true;
+    };
+  }, [establecimientoId, pagination.pageIndex, pagination.pageSize]);
 
   const tituloPrincipal = useMemo(() => {
     if (!detalle) return "";
@@ -150,6 +172,18 @@ export default function EstablecimientoDetallePage() {
     if (!detalle) return "";
     const parts = [detalle.calle, detalle.numero].filter((p) => p?.trim()).join(" ");
     return parts.trim() || "—";
+  }, [detalle]);
+
+  /** Si hay razón social en el título y también persona física, mostramos la persona en un meta aparte (sin repetir cuando el título ya es la persona). */
+  const identidadMeta = useMemo(() => {
+    if (!detalle) return { showTitularPersona: false, titularPersona: "", documento: "—" };
+    const rs = detalle.razon_social?.trim();
+    const persona = contribuyentePersonaFisica(detalle.contrib_apellido, detalle.contrib_nombre);
+    return {
+      showTitularPersona: Boolean(rs && persona),
+      titularPersona: persona,
+      documento: dash(detalle.documento),
+    };
   }, [detalle]);
 
   const colsHistorial = useMemo<MRT_ColumnDef<IEstablecimientoOperativoHistorialRow>[]>(
@@ -318,7 +352,8 @@ export default function EstablecimientoDetallePage() {
                 letterSpacing: "0.06em",
               }}
             >
-              Ficha operativa #{detalle.id} · domicilio_id {detalle.domicilio_id}
+              Ficha operativa #{detalle.id}
+              {detalle.domicilio_id != null ? ` · ref. domicilio ${detalle.domicilio_id}` : null}
             </Typography>
             <Typography
               sx={{
@@ -332,18 +367,45 @@ export default function EstablecimientoDetallePage() {
             >
               RUBRO: {dash(detalle.rubro_nombre)}
             </Typography>
-            <Grid container spacing={2} sx={{ mt: 1.5 }}>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Meta label="Contribuyente" value={dash([detalle.contrib_nombre, detalle.contrib_apellido].filter(Boolean).join(" "))} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Meta label="Razón social" value={dash(detalle.razon_social)} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Meta label="Documento" value={dash(detalle.documento)} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Meta label="Distrito" value={dash(detalle.distrito_nombre)} />
+
+            <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mt: 2 }}>
+              <LocationOnIcon sx={{ color: COLORS.primary, fontSize: 22, mt: 0.25, flexShrink: 0 }} />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                    color: "rgba(255,255,255,0.45)",
+                    mb: 0.5,
+                  }}
+                >
+                  DOMICILIO
+                </Typography>
+                <Typography sx={{ fontSize: "15px", fontWeight: 600, color: COLORS.white, lineHeight: 1.35 }}>
+                  {domicilioLinea}
+                </Typography>
+                {detalle.distrito_nombre?.trim() ? (
+                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.6)", mt: 0.5 }}>
+                    Distrito: {detalle.distrito_nombre.trim()}
+                  </Typography>
+                ) : null}
+                {detalle.calle_normalizada?.trim() ? (
+                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", mt: 0.5, lineHeight: 1.5 }}>
+                    Calle normalizada: {detalle.calle_normalizada.trim()}
+                  </Typography>
+                ) : null}
+              </Box>
+            </Stack>
+
+            <Grid container spacing={2} sx={{ mt: 2 }}>
+              {identidadMeta.showTitularPersona ? (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Meta label="Titular (persona física)" value={identidadMeta.titularPersona} />
+                </Grid>
+              ) : null}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Meta label="Identificación" value={identidadMeta.documento} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Meta label="Actuaciones registradas" value={String(detalle.actuaciones_count)} />
@@ -356,93 +418,34 @@ export default function EstablecimientoDetallePage() {
         </Stack>
       </Paper>
 
-      <Paper elevation={0} sx={{ ...glassCard, overflow: "hidden" }}>
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          sx={{
-            borderBottom: `1px solid ${COLORS.border}`,
-            px: 1,
-            "& .MuiTab-root": {
+      <Paper elevation={0} sx={{ ...glassCard, overflow: "hidden", p: 2 }}>
+        <Stack spacing={1.5}>
+          <Typography
+            sx={{
               fontFamily: '"Tactic Sans", sans-serif',
-              fontSize: "11px",
-              fontWeight: 600,
+              fontSize: "12px",
+              fontWeight: 700,
               letterSpacing: "0.08em",
-              color: "rgba(255,255,255,0.55)",
-            },
-            "& .Mui-selected": { color: `${COLORS.primary} !important` },
-          }}
-        >
-          <Tab value="info" label="Información" />
-          <Tab value="actuaciones" label="Actuaciones" />
-        </Tabs>
-
-        <Box sx={{ p: 2 }}>
-          {tab === "info" && (
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12 }}>
-                <Paper elevation={0} sx={{ ...gridContainerStyles, p: 2, height: "100%" }}>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-                    <LocationOnIcon sx={{ color: COLORS.primary, fontSize: 22 }} />
-                    <Typography
-                      sx={{
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        letterSpacing: "0.1em",
-                        color: COLORS.white,
-                      }}
-                    >
-                      DOMICILIO
-                    </Typography>
-                  </Stack>
-                  <Typography sx={{ fontSize: "14px", fontWeight: 600, color: COLORS.white, mb: 1 }}>
-                    {domicilioLinea}
-                  </Typography>
-                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>
-                    {detalle.calle_normalizada?.trim()
-                      ? `Calle normalizada: ${detalle.calle_normalizada}`
-                      : null}
-                  </Typography>
-                  {detalle.distrito_id != null ? (
-                    <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", mt: 0.5 }}>
-                      Distrito (id): {detalle.distrito_id}
-                    </Typography>
-                  ) : null}
-                </Paper>
-              </Grid>
-            </Grid>
+              color: COLORS.white,
+            }}
+          >
+            Historial de actuaciones
+          </Typography>
+          {errorHistorial ? <Alert severity="error">{errorHistorial}</Alert> : null}
+          {historialTotal === null && !errorHistorial ? (
+            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
+              Cargando historial…
+            </Typography>
+          ) : historialTotal === 0 && !errorHistorial ? (
+            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
+              No hay actuaciones vinculadas a esta ficha.
+            </Typography>
+          ) : (
+            <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+              <MaterialReactTable table={tableHistorial} />
+            </Box>
           )}
-
-          {tab === "actuaciones" && (
-            <Stack spacing={1.5}>
-              <Typography
-                sx={{
-                  fontFamily: '"Tactic Sans", sans-serif',
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  color: COLORS.white,
-                }}
-              >
-                Historial de actuaciones
-              </Typography>
-              {errorHistorial ? <Alert severity="error">{errorHistorial}</Alert> : null}
-              {historialTotal === null && !errorHistorial ? (
-                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-                  Cargando historial…
-                </Typography>
-              ) : historialTotal === 0 && !errorHistorial ? (
-                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-                  No hay actuaciones vinculadas a esta ficha.
-                </Typography>
-              ) : (
-                <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
-                  <MaterialReactTable table={tableHistorial} />
-                </Box>
-              )}
-            </Stack>
-          )}
-        </Box>
+        </Stack>
       </Paper>
     </Stack>
   );

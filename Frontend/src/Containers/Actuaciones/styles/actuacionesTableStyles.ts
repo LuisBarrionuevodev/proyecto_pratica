@@ -1,6 +1,8 @@
 import type { MRT_TableOptions } from "material-react-table";
 import type { SxProps, Theme } from "@mui/material";
 
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+
 /**
  * Bandejas / listados solo lectura: sin edición ni selección de filas (formularios en modal glass).
  * Combinar con spread: `useMaterialReactTable({ ...DARK_TABLE_CONFIG, ...MRT_READ_ONLY_BANDEJA, ... })`
@@ -54,8 +56,8 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
 
     muiTopToolbarProps: {
         sx: {
-            backgroundColor: COLORS.grayDark,
-            borderBottom: `1px solid ${COLORS.border}`,
+            backgroundColor: GLASS_COLORS.cardBg,
+            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
             "& .MuiIconButton-root": {
                 color: COLORS.white,
                 transition: "color 0.2s ease",
@@ -64,7 +66,10 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
             "& .MuiInputBase-root": {
                 backgroundColor: COLORS.rowOdd,
                 color: COLORS.white,
-                "& input": { color: COLORS.white, "&::placeholder": { color: "#999", opacity: 1 } },
+                "& input": {
+                    color: COLORS.white,
+                    "&::placeholder": { color: GLASS_COLORS.textMuted, opacity: 1 },
+                },
                 "& .MuiSvgIcon-root": { color: COLORS.white },
             },
         },
@@ -72,14 +77,14 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
 
     muiBottomToolbarProps: {
         sx: {
-            backgroundColor: COLORS.grayDark,
-            borderTop: `1px solid ${COLORS.border}`,
+            backgroundColor: GLASS_COLORS.cardBg,
+            borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
             "& .MuiTablePagination-root": { color: COLORS.white },
             "& .MuiIconButton-root": {
                 color: COLORS.white,
                 transition: "color 0.2s ease, background-color 0.2s ease",
                 "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-                "&.Mui-disabled": { color: "#555" },
+                "&.Mui-disabled": { color: GLASS_COLORS.textMuted },
             },
             "& .MuiSelect-select": { color: COLORS.white },
             "& .MuiSelect-icon": { color: COLORS.white },
@@ -88,13 +93,13 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
 
     muiTableHeadCellProps: {
         sx: {
-            backgroundColor: COLORS.grayDark,
+            backgroundColor: GLASS_COLORS.cardBg,
             color: COLORS.white,
             fontWeight: 600,
             fontSize: "12px",
             fontFamily: '"Tactic Sans", sans-serif',
-            borderBottom: `1px solid ${COLORS.border}`,
-            borderRight: `1px solid ${COLORS.border}`,
+            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+            borderRight: `1px solid ${GLASS_COLORS.borderLight}`,
             "& .MuiTableSortLabel-root": { 
                 color: COLORS.white, 
                 "&:hover": { color: COLORS.primary }, 
@@ -115,8 +120,8 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
             color: COLORS.white,
             fontSize: "11px",
             fontFamily: '"Tactic Sans", sans-serif',
-            borderBottom: `1px solid ${COLORS.border}`,
-            borderRight: `1px solid ${COLORS.border}`,
+            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+            borderRight: `1px solid ${GLASS_COLORS.borderLight}`,
             "& .MuiCheckbox-root": { color: COLORS.white, "&.Mui-checked": { color: COLORS.primary } },
             "& .MuiIconButton-root": {
                 color: COLORS.white,
@@ -146,21 +151,24 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
             maxWidth: "100%",
             overflowX: "auto",
             overflowY: "auto",
-            backgroundColor: COLORS.grayDark,
-            border: `1px solid ${COLORS.border}`,
+            backgroundColor: GLASS_COLORS.cardBg,
+            border: `1px solid ${GLASS_COLORS.borderLight}`,
             borderRadius: "8px",
             "&::-webkit-scrollbar": { width: "8px", height: "8px" },
             "&::-webkit-scrollbar-track": { background: COLORS.rowOdd },
-            "&::-webkit-scrollbar-thumb": { backgroundColor: COLORS.border, borderRadius: "4px" },
-            "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#4a4d54" },
+            "&::-webkit-scrollbar-thumb": {
+                backgroundColor: GLASS_COLORS.borderMedium,
+                borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb:hover": { backgroundColor: GLASS_COLORS.borderLight },
         },
     },
 
     muiTablePaperProps: {
         sx: {
-            backgroundColor: COLORS.grayDark,
-            boxShadow: "0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12)",
-            border: `1px solid ${COLORS.border}`,
+            backgroundColor: GLASS_COLORS.cardBg,
+            boxShadow: "none",
+            border: `1px solid ${GLASS_COLORS.borderLight}`,
             borderRadius: "8px",
             overflow: "hidden",
         },

@@ -84,10 +84,11 @@ def test_notificacion_primer_expediente_ok(app_ctx) -> None:
     try:
         act, noti = _mk_actuacion_solo_notificacion()
         nid = noti.id
+        ex_num = _unique_num()
         r = complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "100001",
+                "expediente_numero": ex_num,
                 "fecha_expediente": date(2026, 3, 10),
                 "prorroga_dias": 2,
             },
@@ -105,10 +106,12 @@ def test_notificacion_segundo_expediente_misma_notificacion_ok(app_ctx) -> None:
     try:
         act, noti = _mk_actuacion_solo_notificacion()
         nid = noti.id
+        ex1 = _unique_num()
+        ex2 = _unique_num()
         complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "200002",
+                "expediente_numero": ex1,
                 "fecha_expediente": date(2026, 3, 12),
                 "prorroga_dias": 1,
             },
@@ -116,7 +119,7 @@ def test_notificacion_segundo_expediente_misma_notificacion_ok(app_ctx) -> None:
         r2 = complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "300003",
+                "expediente_numero": ex2,
                 "fecha_expediente": date(2026, 4, 1),
                 "prorroga_dias": 3,
             },
@@ -128,7 +131,7 @@ def test_notificacion_segundo_expediente_misma_notificacion_ok(app_ctx) -> None:
             .all()
         )
         assert len(rows) == 2
-        assert {rows[0].numero_expediente, rows[1].numero_expediente} == {"200002", "300003"}
+        assert {rows[0].numero_expediente, rows[1].numero_expediente} == {ex1, ex2}
     finally:
         db.session.rollback()
 
@@ -139,7 +142,7 @@ def test_comprobacion_segundo_expediente_envio_sigue_bloqueado(app_ctx) -> None:
         complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "400004",
+                "expediente_numero": _unique_num(),
                 "fecha_expediente": date(2026, 3, 20),
             },
         )
@@ -147,7 +150,7 @@ def test_comprobacion_segundo_expediente_envio_sigue_bloqueado(app_ctx) -> None:
             complete_expediente_from_actuacion(
                 act.id,
                 {
-                    "expediente_numero": "500005",
+                    "expediente_numero": _unique_num(),
                     "fecha_expediente": date(2026, 3, 21),
                 },
             )

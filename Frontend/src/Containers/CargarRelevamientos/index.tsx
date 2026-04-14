@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import TablaCargarRelevamientosGlideStyled from "./Components/TablaCargarRelevamientosGlideStyled";
 import DenunciaForm from "./Components/DenunciaForm";
-import { glassTabsHeaderPanelSx, GLASS_COLORS } from "../../styles/GlassStyles";
+import { glassPrimaryTabsSx, glassTabsHeaderPanelSx, GLASS_COLORS } from "../../styles/GlassStyles";
 
 const CargarRelevamientos = () => {
   const [section, setSection] = useState<"relevamientos" | "denuncias">("relevamientos");
@@ -22,7 +22,7 @@ const CargarRelevamientos = () => {
         <Typography variant="body2" sx={{ mb: 2, color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}>
           Incluye relevamientos y denuncias
         </Typography>
-        <Tabs value={section} onChange={(_, value) => setSection(value)} sx={{ marginBottom: 0 }}>
+        <Tabs value={section} onChange={(_, value) => setSection(value)} sx={glassPrimaryTabsSx}>
           <Tab label="Relevamientos" value="relevamientos" />
           <Tab label="Denuncias" value="denuncias" />
         </Tabs>

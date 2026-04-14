@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { Alert, Box, Grid, Stack, Typography } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { Alert, Box, Stack, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
   type MRT_PaginationState,
+  type MRT_Updater,
 } from "material-react-table";
 
 import { AppButton, AppTextField } from "../../ui";
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import {
+  filtroButtonPrimaryStyles,
+  filtroButtonsStyles,
   filtroContainerStyles,
+  filtroGridStyles,
+  filtroItemStyles,
   filtroTitleStyles,
 } from "../Actuaciones/styles/filtroStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
@@ -24,81 +29,32 @@ import { RubroChip } from "./components/RubroChip";
 
 const DEFAULT_PAGE_SIZE = 20;
 
+function parseOptionalInt(s: string): number | undefined {
+  const t = s.trim();
+  if (!t) return undefined;
+  const n = Number.parseInt(t, 10);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+type EstablecimientosListResultsProps = {
+  rows: IEstablecimientoOperativoListItem[];
+  total: number;
+  loading: boolean;
+  pagination: MRT_PaginationState;
+  onPaginationChange: (updater: MRT_Updater<MRT_PaginationState>) => void;
+};
+
 /**
- * Listado de fichas operativas (`establecimiento_operativo`) desde API.
+ * Tabla de resultados: se monta solo cuando el usuario ya aplicó un filtro (evita hook condicional en el padre).
  */
-export default function EstablecimientosListPage() {
+function EstablecimientosListResults({
+  rows,
+  total,
+  loading,
+  pagination,
+  onPaginationChange,
+}: EstablecimientosListResultsProps) {
   const navigate = useNavigate();
-
-  const [rows, setRows] = useState<IEstablecimientoOperativoListItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [contrib, setContrib] = useState("");
-  const [calle, setCalle] = useState("");
-  const [distritoId, setDistritoId] = useState("");
-  const [rubroId, setRubroId] = useState("");
-
-  const [applied, setApplied] = useState({
-    contrib: "",
-    calle: "",
-    distrito_id: "" as string,
-    rubro_id: "" as string,
-  });
-
-  const [pagination, setPagination] = useState<MRT_PaginationState>({
-    pageIndex: 0,
-    pageSize: DEFAULT_PAGE_SIZE,
-  });
-
-  const parseOptionalInt = (s: string): number | undefined => {
-    const t = s.trim();
-    if (!t) return undefined;
-    const n = Number.parseInt(t, 10);
-    return Number.isFinite(n) ? n : undefined;
-  };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getEstablecimientosOperativos({
-        page: pagination.pageIndex + 1,
-        page_size: pagination.pageSize,
-        calle: applied.calle.trim() || undefined,
-        contrib: applied.contrib.trim() || undefined,
-        distrito_id: parseOptionalInt(applied.distrito_id),
-        rubro_id: parseOptionalInt(applied.rubro_id),
-      });
-      setRows(res.items);
-      setTotal(res.meta.total);
-    } catch (e: unknown) {
-      const msg =
-        e && typeof e === "object" && "response" in e
-          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
-          : null;
-      setError(msg ?? "No se pudo cargar el listado de establecimientos.");
-      setRows([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [applied, pagination.pageIndex, pagination.pageSize]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const onFiltrar = useCallback(() => {
-    setApplied({
-      contrib,
-      calle,
-      distrito_id: distritoId,
-      rubro_id: rubroId,
-    });
-    setPagination((p) => ({ ...p, pageIndex: 0 }));
-  }, [contrib, calle, distritoId, rubroId]);
 
   const columns = useMemo<MRT_ColumnDef<IEstablecimientoOperativoListItem>[]>(
     () => [
@@ -162,7 +118,7 @@ export default function EstablecimientosListPage() {
       isLoading: loading,
       showProgressBars: loading,
     },
-    onPaginationChange: setPagination,
+    onPaginationChange,
     muiTableBodyRowProps: () => ({
       sx: { cursor: "default" },
     }),
@@ -199,6 +155,96 @@ export default function EstablecimientosListPage() {
   }, [total, pagination.pageIndex, pagination.pageSize]);
 
   return (
+    <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+      <MaterialReactTable table={table} />
+      <Typography
+        variant="caption"
+        sx={{
+          display: "block",
+          mt: 1,
+          fontFamily: '"Tactic Sans", sans-serif',
+          color: "rgba(255,255,255,0.45)",
+        }}
+      >
+        {rangeLabel} · datos de establecimientos operativos
+      </Typography>
+    </Box>
+  );
+}
+
+/**
+ * Listado de fichas operativas (`establecimiento_operativo`) desde API.
+ * La tabla se muestra solo después de aplicar filtros (misma familia visual que Pendientes / Oficio).
+ */
+export default function EstablecimientosListPage() {
+  const [filtroAplicado, setFiltroAplicado] = useState(false);
+
+  const [rows, setRows] = useState<IEstablecimientoOperativoListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [contrib, setContrib] = useState("");
+  const [calle, setCalle] = useState("");
+  const [distritoId, setDistritoId] = useState("");
+  const [rubroId, setRubroId] = useState("");
+
+  const [applied, setApplied] = useState({
+    contrib: "",
+    calle: "",
+    distrito_id: "" as string,
+    rubro_id: "" as string,
+  });
+
+  const [pagination, setPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+
+  const load = useCallback(async () => {
+    if (!filtroAplicado) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getEstablecimientosOperativos({
+        page: pagination.pageIndex + 1,
+        page_size: pagination.pageSize,
+        calle: applied.calle.trim() || undefined,
+        contrib: applied.contrib.trim() || undefined,
+        distrito_id: parseOptionalInt(applied.distrito_id),
+        rubro_id: parseOptionalInt(applied.rubro_id),
+      });
+      setRows(res.items);
+      setTotal(res.meta.total);
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "response" in e
+          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      setError(msg ?? "No se pudo cargar el listado de establecimientos.");
+      setRows([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [filtroAplicado, applied, pagination.pageIndex, pagination.pageSize]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onFiltrar = useCallback(() => {
+    setFiltroAplicado(true);
+    setApplied({
+      contrib,
+      calle,
+      distrito_id: distritoId,
+      rubro_id: rubroId,
+    });
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  }, [contrib, calle, distritoId, rubroId]);
+
+  return (
     <Stack spacing={2} sx={{ width: "100%", maxWidth: "100%" }}>
       {error ? (
         <Alert severity="error" onClose={() => setError(null)}>
@@ -208,79 +254,86 @@ export default function EstablecimientosListPage() {
 
       <Box sx={filtroContainerStyles}>
         <Typography sx={filtroTitleStyles}>Filtros</Typography>
-        <Grid container spacing={1.5} alignItems="flex-end">
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Box sx={filtroGridStyles}>
+          <Box sx={filtroItemStyles}>
             <AppTextField
-              appearance="glass"
+              appearance="dense"
               fullWidth
-              size="small"
               label="Contribuyente / razón social"
               placeholder="Coincide con API (contrib)"
               value={contrib}
               onChange={(e) => setContrib(e.target.value)}
+              variant="outlined"
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          </Box>
+          <Box sx={filtroItemStyles}>
             <AppTextField
-              appearance="glass"
+              appearance="dense"
               fullWidth
-              size="small"
               label="Calle"
               value={calle}
               onChange={(e) => setCalle(e.target.value)}
+              variant="outlined"
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+          </Box>
+          <Box sx={filtroItemStyles}>
             <AppTextField
-              appearance="glass"
+              appearance="dense"
               fullWidth
-              size="small"
               label="ID distrito"
               placeholder="Opcional"
               value={distritoId}
               onChange={(e) => setDistritoId(e.target.value)}
+              variant="outlined"
               inputProps={{ inputMode: "numeric" }}
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+          </Box>
+          <Box sx={filtroItemStyles}>
             <AppTextField
-              appearance="glass"
+              appearance="dense"
               fullWidth
-              size="small"
               label="ID rubro"
               placeholder="Opcional"
               value={rubroId}
               onChange={(e) => setRubroId(e.target.value)}
+              variant="outlined"
               inputProps={{ inputMode: "numeric" }}
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <AppButton
-              dsVariant="primary"
-              startIcon={<FilterAltIcon sx={{ fontSize: 18 }} />}
-              onClick={onFiltrar}
-              sx={{ fontFamily: '"Tactic Sans", sans-serif', fontWeight: 600 }}
-            >
-              Filtrar
-            </AppButton>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
+        <Box sx={filtroButtonsStyles}>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            startIcon={<SearchIcon sx={{ fontSize: 18 }} />}
+            onClick={onFiltrar}
+            sx={filtroButtonPrimaryStyles}
+          >
+            Filtrar
+          </AppButton>
+        </Box>
       </Box>
 
-      <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
-        <MaterialReactTable table={table} />
+      {!filtroAplicado ? (
         <Typography
-          variant="caption"
           sx={{
-            display: "block",
-            mt: 1,
             fontFamily: '"Tactic Sans", sans-serif',
-            color: "rgba(255,255,255,0.45)",
+            fontSize: "14px",
+            color: "rgba(255,255,255,0.5)",
+            py: 2,
           }}
         >
-          {rangeLabel} · datos de establecimientos operativos
+          Completá criterios de búsqueda y tocá <strong>Filtrar</strong> para ver el listado.
         </Typography>
-      </Box>
+      ) : (
+        <EstablecimientosListResults
+          rows={rows}
+          total={total}
+          loading={loading}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+        />
+      )}
     </Stack>
   );
 }

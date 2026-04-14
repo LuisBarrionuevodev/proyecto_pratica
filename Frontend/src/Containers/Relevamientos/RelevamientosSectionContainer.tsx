@@ -4,7 +4,7 @@ import { Box, Paper, Tab, Tabs } from "@mui/material";
 import RelevamientosContainer from "./RelevamientosContainer";
 import DenunciasCrudPlaceholder from "./Components/DenunciasCrudPlaceholder";
 import { relevamientosSectionOuterSx } from "../Actuaciones/styles/filtroStyles";
-import { glassTabsHeaderPanelSx } from "../../styles/GlassStyles";
+import { glassPrimaryTabsSx, glassTabsHeaderPanelSx } from "../../styles/GlassStyles";
 
 const RelevamientosSectionContainer = (): JSX.Element => {
   const [section, setSection] = useState<"relevamientos" | "denuncias">("relevamientos");
@@ -12,7 +12,7 @@ const RelevamientosSectionContainer = (): JSX.Element => {
   return (
     <Box sx={relevamientosSectionOuterSx}>
       <Paper elevation={0} sx={glassTabsHeaderPanelSx}>
-        <Tabs value={section} onChange={(_, value) => setSection(value)} sx={{ marginBottom: 0 }}>
+        <Tabs value={section} onChange={(_, value) => setSection(value)} sx={glassPrimaryTabsSx}>
           <Tab label="Relevamientos" value="relevamientos" />
           <Tab label="Denuncias" value="denuncias" />
         </Tabs>

@@ -80,6 +80,10 @@ export const glassTabsSecondaryPanelBarSx: SxProps<Theme> = {
     alignItems: "center",
 };
 
+/** Fondo activo tab — más liviano que chip (`rgba(1,102,255,0.28)`) por coexistencia con indicador. */
+const GLASS_TAB_SELECTED_BG = "rgba(1, 102, 255, 0.12)";
+const GLASS_TAB_SELECTED_BG_HOVER = "rgba(1, 102, 255, 0.2)";
+
 /**
  * MUI `Tabs` dentro de `glassTabsSecondaryPanelSx`: tipografía y colores alineados a Relevamientos (blueprint tabs secundarios).
  */
@@ -96,12 +100,70 @@ export const glassSecondaryTabsSx: SxProps<Theme> = {
         minHeight: 48,
         fontWeight: 500,
         fontSize: "0.9375rem",
+        borderRadius: "10px",
+        transition: `color ${TRANSITION.duration}ms ${TRANSITION.easing}, background-color ${TRANSITION.duration}ms ${TRANSITION.easing}`,
+        "&:hover": {
+            color: GLASS_COLORS.textPrimary,
+        },
+        "&:not(.Mui-selected):hover": {
+            backgroundColor: GLASS_COLORS.hoverBg,
+        },
     },
-    "& .Mui-selected": {
+    "& .MuiTab-root.Mui-selected": {
         color: GLASS_COLORS.textPrimary,
+        backgroundColor: GLASS_TAB_SELECTED_BG,
+    },
+    "& .MuiTab-root.Mui-selected:hover": {
+        backgroundColor: GLASS_TAB_SELECTED_BG_HOVER,
     },
     "& .MuiTabs-indicator": {
         backgroundColor: GLASS_COLORS.primary,
+    },
+};
+
+/** Tabs principales: superficie activa un poco más marcada que secundarios, aún por debajo del chip (~0.28). */
+const GLASS_TAB_PRIMARY_SELECTED_BG = "rgba(1, 102, 255, 0.16)";
+const GLASS_TAB_PRIMARY_SELECTED_BG_HOVER = "rgba(1, 102, 255, 0.24)";
+
+/**
+ * MUI `Tabs` en cabeceras principales (`glassTabsHeaderPanelSx`): misma familia que secundarios,
+ * con más jerarquía (altura/tipografía/peso) e indicador explícito — no depender del default del tema.
+ * Usar junto a `glassTabsHeaderPanelSx` (p. ej. Mapa modo, sección Relevamientos); benchmark textual: `/cargarRelevamiento`.
+ */
+export const glassPrimaryTabsSx: SxProps<Theme> = {
+    width: "100%",
+    marginBottom: 0,
+    minHeight: 52,
+    fontFamily: '"Tactic Sans", sans-serif',
+    "& .MuiTab-root": {
+        color: GLASS_COLORS.textSecondary,
+        textTransform: "none",
+        minHeight: 52,
+        paddingTop: 1,
+        paddingBottom: 1,
+        fontWeight: 600,
+        fontSize: "1rem",
+        lineHeight: 1.35,
+        borderRadius: "10px",
+        transition: `color ${TRANSITION.duration}ms ${TRANSITION.easing}, background-color ${TRANSITION.duration}ms ${TRANSITION.easing}`,
+        "&:hover": {
+            color: GLASS_COLORS.textPrimary,
+        },
+        "&:not(.Mui-selected):hover": {
+            backgroundColor: GLASS_COLORS.hoverBg,
+        },
+    },
+    "& .MuiTab-root.Mui-selected": {
+        color: GLASS_COLORS.textPrimary,
+        fontWeight: 700,
+        backgroundColor: GLASS_TAB_PRIMARY_SELECTED_BG,
+    },
+    "& .MuiTab-root.Mui-selected:hover": {
+        backgroundColor: GLASS_TAB_PRIMARY_SELECTED_BG_HOVER,
+    },
+    "& .MuiTabs-indicator": {
+        backgroundColor: GLASS_COLORS.primary,
+        height: 3,
     },
 };
 

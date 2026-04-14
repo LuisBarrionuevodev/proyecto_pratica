@@ -89,7 +89,7 @@ def test_notificacion_con_expediente_bloquea_payload_con_notificacion(app_ctx) -
     try:
         act, noti = _mk_actuacion_solo_notificacion()
         ex = Expediente(
-            numero_expediente="111111",
+            numero_expediente=_unique_num(),
             anio="2026",
             fecha_expediente=date(2026, 3, 10),
             tipo_expediente="PRORROGA_NOTIFICACION",
@@ -122,7 +122,7 @@ def test_comprobacion_con_expediente_envio_bloquea_payload_con_comprobacion(app_
     try:
         act, comp = _mk_actuacion_solo_comprobacion()
         ex = Expediente(
-            numero_expediente="222222",
+            numero_expediente=_unique_num(),
             anio="2026",
             fecha_expediente=date(2026, 3, 12),
             tipo_expediente="ENVIO_ACTA",

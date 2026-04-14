@@ -141,7 +141,7 @@ def test_notificacion_un_expediente_sigue_en_lista(app_ctx) -> None:
         complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "610001",
+                "expediente_numero": _unique_num(),
                 "fecha_expediente": date(2026, 3, 10),
                 "prorroga_dias": 2,
             },
@@ -162,7 +162,7 @@ def test_notificacion_dos_expedientes_sigue_en_lista_plazos_dos(app_ctx) -> None
         complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "620001",
+                "expediente_numero": _unique_num(),
                 "fecha_expediente": date(2026, 3, 10),
                 "prorroga_dias": 1,
             },
@@ -170,7 +170,7 @@ def test_notificacion_dos_expedientes_sigue_en_lista_plazos_dos(app_ctx) -> None
         complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "620002",
+                "expediente_numero": _unique_num(),
                 "fecha_expediente": date(2026, 4, 1),
                 "prorroga_dias": 3,
             },
@@ -212,7 +212,7 @@ def test_comprobacion_bandeja_sin_expediente_luego_excluida_metricas_none(app_ct
         complete_expediente_from_actuacion(
             act.id,
             {
-                "expediente_numero": "630001",
+                "expediente_numero": _unique_num(),
                 "fecha_expediente": date(2026, 3, 20),
             },
         )

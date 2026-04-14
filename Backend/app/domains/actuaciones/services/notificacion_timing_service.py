@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from app.models import Notificacion
+from app.shared.utils.business_days_ar import calcular_fecha_vencimiento_notificacion_habiles
 
 DEFAULT_PLAZO_DIAS = 5
 
@@ -14,13 +15,16 @@ def calcular_fecha_vencimiento(
     prorroga_dias: int,
 ) -> date:
     """
-    Calcula fecha de vencimiento de notificación.
+    Calcula fecha de vencimiento de notificación en **días hábiles** (AR).
 
     Regla:
-    - fecha_vencimiento = fecha_notificacion + plazo_dias + prorroga_dias
+    - El día de ``fecha_notificacion`` no cuenta.
+    - El plazo empieza el próximo día hábil posterior.
+    - ``plazo_dias`` y ``prorroga_dias`` se suman como total de días hábiles del plazo (inclusive inicio).
+    - No son hábiles: sábado, domingo y feriados nacionales (ver ``feriados_nacionales_ar``).
     """
-    total_dias = max(0, int(plazo_dias)) + max(0, int(prorroga_dias))
-    return fecha_notificacion + timedelta(days=total_dias)
+    total_habiles = max(0, int(plazo_dias)) + max(0, int(prorroga_dias))
+    return calcular_fecha_vencimiento_notificacion_habiles(fecha_notificacion, total_habiles)
 
 
 def inicializar_timing_notificacion(

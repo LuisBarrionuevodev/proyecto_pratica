@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ClearIcon from "@mui/icons-material/Clear";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
-import { Alert, Box, CircularProgress, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  IconButton,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import {
@@ -42,7 +54,7 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
-import { AppButton, AppDialog, AppSelect, AppTextField, SegmentedFilterChips } from "../../ui";
+import { AppButton, AppDialog, AppSelect, AppTextField } from "../../ui";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 
@@ -167,9 +179,6 @@ const ActasComprobacionPage = () => {
   const [expNumeroForm, setExpNumeroForm] = useState("");
   const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
   const [savingExp, setSavingExp] = useState(false);
-  /** Tabla solo tras tocar el indicador superior (mismo patrón que Gestión de notificación / domicilios). */
-  const [expTablaVisible, setExpTablaVisible] = useState(false);
-
   const loadExpediente = useCallback(async () => {
     setExpLoading(true);
     setExpError(null);
@@ -192,10 +201,6 @@ const ActasComprobacionPage = () => {
   useEffect(() => {
     if (tab === "expediente") void loadExpediente();
   }, [tab, loadExpediente]);
-
-  useEffect(() => {
-    setExpTablaVisible(false);
-  }, [tab]);
 
   const openModalExp = useCallback(
     (row: IActuacionesPendientesItem) => {
@@ -270,19 +275,39 @@ const ActasComprobacionPage = () => {
     [openModalExp]
   );
 
+  const renderExpedienteToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Actualizar listado">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Actualizar listado"
+            disabled={expLoading}
+            onClick={() => void loadExpediente()}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [expLoading, loadExpediente]
+  );
+
   const tableExpediente = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     columns: columnsExpediente,
     data: expItems,
     enableEditing: false,
     enableRowSelection: false,
+    renderTopToolbarCustomActions: renderExpedienteToolbarRefresh,
   });
 
-  // —— Pendientes de oficio
-  const [oficioDesde, setOficioDesde] = useState(defaultRange.desde);
-  const [oficioHasta, setOficioHasta] = useState(defaultRange.hasta);
-  const [oficioActaQ, setOficioActaQ] = useState("");
-  const [oficioFilterApplied, setOficioFilterApplied] = useState(false);
+  // —— Pendientes de oficio (siempre mes corriente; sin filtro previo a la tabla)
   const [oficioApiTotal, setOficioApiTotal] = useState(0);
   const [oficioItems, setOficioItems] = useState<IPendientesOficioItem[]>([]);
   const [oficioLoading, setOficioLoading] = useState(false);
@@ -304,14 +329,10 @@ const ActasComprobacionPage = () => {
     try {
       const jz = await getJuzgadosCatalogo();
       setJuzgados(jz);
-      const resp = await fetchComprobacionPendientesOficio(oficioDesde, oficioHasta, null);
-      let items = resp.items;
-      const q = oficioActaQ.trim().toLowerCase();
-      if (q) {
-        items = items.filter((r) => (r.acta_comprobacion_num || "").toLowerCase().includes(q));
-      }
+      const r = getCurrentMonthRange();
+      const resp = await fetchComprobacionPendientesOficio(r.desde, r.hasta, null);
       setOficioApiTotal(resp.meta.total);
-      setOficioItems(items);
+      setOficioItems(resp.items);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setOficioError(detail || "Error al cargar pendientes de oficio");
@@ -320,12 +341,7 @@ const ActasComprobacionPage = () => {
     } finally {
       setOficioLoading(false);
     }
-  }, [oficioDesde, oficioHasta, oficioActaQ]);
-
-  const aplicarFiltroOficio = useCallback(() => {
-    setOficioFilterApplied(true);
-    void loadOficio();
-  }, [loadOficio]);
+  }, []);
 
   const openModalOficio = (row: IPendientesOficioItem) => {
     setSelectedOficio(row);
@@ -409,20 +425,39 @@ const ActasComprobacionPage = () => {
     []
   );
 
+  const renderOficioToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Actualizar listado">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Actualizar listado"
+            disabled={oficioLoading}
+            onClick={() => void loadOficio()}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [oficioLoading, loadOficio]
+  );
+
   const tableOficio = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     columns: columnsOficio,
     data: oficioItems,
     enableEditing: false,
     enableRowSelection: false,
+    renderTopToolbarCustomActions: renderOficioToolbarRefresh,
   });
 
-  // —— Reinspección
-  const [reinDesde, setReinDesde] = useState(defaultRange.desde);
-  const [reinHasta, setReinHasta] = useState(defaultRange.hasta);
-  const [reinActaQ, setReinActaQ] = useState("");
-  const [reinOficioQ, setReinOficioQ] = useState("");
-  const [reinFilterApplied, setReinFilterApplied] = useState(false);
+  // —— Reinspección (siempre mes corriente; sin filtro previo a la tabla)
   const [reinApiTotal, setReinApiTotal] = useState(0);
   const [reinItems, setReinItems] = useState<IReinspeccionOficioPendienteRow[]>([]);
   const [reinLoading, setReinLoading] = useState(false);
@@ -432,21 +467,10 @@ const ActasComprobacionPage = () => {
     setReinLoading(true);
     setReinError(null);
     try {
-      const resp = await fetchPendientesReinspeccionOficio(reinDesde, reinHasta, null);
-      let items = resp.items;
-      const qa = reinActaQ.trim().toLowerCase();
-      if (qa) {
-        items = items.filter((r) => (r.acta_comprobacion_num || "").toLowerCase().includes(qa));
-      }
-      const qo = reinOficioQ.trim().toLowerCase();
-      if (qo) {
-        items = items.filter((r) => {
-          const blob = `${r.oficio_numero ?? ""}${r.oficio_anio != null ? String(r.oficio_anio) : ""}`.toLowerCase();
-          return blob.includes(qo);
-        });
-      }
+      const r = getCurrentMonthRange();
+      const resp = await fetchPendientesReinspeccionOficio(r.desde, r.hasta, null);
       setReinApiTotal(resp.meta.total);
-      setReinItems(items);
+      setReinItems(resp.items);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setReinError(detail || "Error al cargar pendientes de reinspección");
@@ -455,12 +479,13 @@ const ActasComprobacionPage = () => {
     } finally {
       setReinLoading(false);
     }
-  }, [reinDesde, reinHasta, reinActaQ, reinOficioQ]);
+  }, []);
 
-  const aplicarFiltroRein = useCallback(() => {
-    setReinFilterApplied(true);
-    void loadRein();
-  }, [loadRein]);
+  useEffect(() => {
+    if (tab === "oficio") void loadOficio();
+    else if (tab === "reinspeccion") void loadRein();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga al cambiar de pestaña
+  }, [tab]);
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
     () => [
@@ -512,12 +537,36 @@ const ActasComprobacionPage = () => {
     [navigate]
   );
 
+  const renderReinToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Actualizar listado">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Actualizar listado"
+            disabled={reinLoading}
+            onClick={() => void loadRein()}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [reinLoading, loadRein]
+  );
+
   const tableRein = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     columns: columnsRein,
     data: reinItems,
     enableEditing: false,
     enableRowSelection: false,
+    renderTopToolbarCustomActions: renderReinToolbarRefresh,
   });
 
   // —— Recorrido (período acotado vs buscador de texto)
@@ -683,40 +732,39 @@ const ActasComprobacionPage = () => {
               allowScrollButtonsMobile
               sx={glassSecondaryTabsSx}
             >
-              <Tab label="Pendientes de expediente" />
-              <Tab label="Pendientes de oficio" />
-              <Tab label="Pendientes de reinspección" />
+              <Tab
+                label={`Pendientes de expediente · ${
+                  tab === "expediente" && expLoading ? "…" : expTotalPendientes
+                }`}
+              />
+              <Tab
+                label={`Pendientes de oficio · ${
+                  tab === "oficio" && oficioLoading ? "…" : oficioApiTotal
+                }`}
+              />
+              <Tab
+                label={`Pendientes de reinspección · ${
+                  tab === "reinspeccion" && reinLoading ? "…" : reinApiTotal
+                }`}
+              />
               <Tab label="Recorrido" />
             </Tabs>
           </Paper>
 
           {tab === "expediente" && (
             <>
-              <SegmentedFilterChips
-                options={[
-                  {
-                    value: "bandeja",
-                    label: `Total pendientes · ${expLoading ? "…" : expTotalPendientes}`,
-                  },
-                ]}
-                onSelect={() => setExpTablaVisible(true)}
-                isSelected={(v) => expTablaVisible && v === "bandeja"}
-                onRefresh={() => void loadExpediente()}
-                refreshDisabled={expLoading}
-              />
               {expError && (
                 <Alert severity="error" sx={alertBaseStyles}>
                   {expError}
                 </Alert>
               )}
-              {expLoading && !expTablaVisible && (
+              {expLoading && expItems.length === 0 && !expError ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
                   <CircularProgress size={28} sx={{ color: COLORS.primary }} />
                 </Box>
-              )}
-              {expTablaVisible && (
+              ) : (
                 <Box sx={{ position: "relative", opacity: expLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
-                  {expLoading && (
+                  {expLoading && expItems.length > 0 && (
                     <Box
                       sx={{
                         position: "absolute",
@@ -739,218 +787,68 @@ const ActasComprobacionPage = () => {
 
           {tab === "oficio" && (
             <>
-              <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Filtros</Typography>
-                <Box sx={filtroGridStyles}>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      type="date"
-                      label="Desde"
-                      value={oficioDesde}
-                      onChange={(e) => setOficioDesde(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      type="date"
-                      label="Hasta"
-                      value={oficioHasta}
-                      onChange={(e) => setOficioHasta(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Nº acta de comprobación (contiene)"
-                      placeholder="Opcional"
-                      value={oficioActaQ}
-                      onChange={(e) => setOficioActaQ(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                </Box>
-                <Box sx={filtroButtonsStyles}>
-                  <AppButton
-                    dsVariant="ghost"
-                    dsSize="sm"
-                    onClick={() => {
-                      const r = getCurrentMonthRange();
-                      setOficioDesde(r.desde);
-                      setOficioHasta(r.hasta);
-                      setOficioActaQ("");
-                      setOficioFilterApplied(false);
-                    }}
-                    startIcon={<ClearIcon />}
-                    sx={filtroButtonSecondaryStyles}
-                  >
-                    Limpiar
-                  </AppButton>
-                  <AppButton
-                    dsVariant="primary"
-                    dsSize="sm"
-                    onClick={() => void aplicarFiltroOficio()}
-                    startIcon={<SearchIcon />}
-                    sx={filtroButtonPrimaryStyles}
-                  >
-                    Filtrar
-                  </AppButton>
-                </Box>
-              </Box>
               {oficioError && (
                 <Alert severity="error" sx={alertBaseStyles}>
                   {oficioError}
                 </Alert>
               )}
-              {!oficioFilterApplied ? (
-                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-                  Definí el rango de fechas (y opcionalmente el nº de acta) y pulsá <strong>Filtrar</strong>.
-                </Typography>
-              ) : oficioLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress sx={{ color: COLORS.primary }} />
+              {oficioLoading && oficioItems.length === 0 && !oficioError ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
                 </Box>
               ) : (
-                <>
-                  <Box sx={metaInfoStyles}>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Total:</strong> {oficioApiTotal}
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Mostrando:</strong> {oficioItems.length} de {oficioApiTotal}
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Página:</strong> 1
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Rango:</strong> {oficioDesde} — {oficioHasta}
-                    </Typography>
-                  </Box>
+                <Box sx={{ position: "relative", opacity: oficioLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
+                  {oficioLoading && oficioItems.length > 0 && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <CircularProgress size={32} sx={{ color: COLORS.primary }} />
+                    </Box>
+                  )}
                   <MaterialReactTable table={tableOficio} />
-                </>
+                </Box>
               )}
             </>
           )}
 
           {tab === "reinspeccion" && (
             <>
-              <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Filtros</Typography>
-                <Box sx={filtroGridStyles}>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      type="date"
-                      label="Desde"
-                      value={reinDesde}
-                      onChange={(e) => setReinDesde(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      type="date"
-                      label="Hasta"
-                      value={reinHasta}
-                      onChange={(e) => setReinHasta(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Nº acta comprobación (contiene)"
-                      placeholder="Opcional"
-                      value={reinActaQ}
-                      onChange={(e) => setReinActaQ(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Nº oficio (contiene)"
-                      placeholder="Opcional"
-                      value={reinOficioQ}
-                      onChange={(e) => setReinOficioQ(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                </Box>
-                <Box sx={filtroButtonsStyles}>
-                  <AppButton
-                    dsVariant="ghost"
-                    dsSize="sm"
-                    onClick={() => {
-                      const r = getCurrentMonthRange();
-                      setReinDesde(r.desde);
-                      setReinHasta(r.hasta);
-                      setReinActaQ("");
-                      setReinOficioQ("");
-                      setReinFilterApplied(false);
-                    }}
-                    startIcon={<ClearIcon />}
-                    sx={filtroButtonSecondaryStyles}
-                  >
-                    Limpiar
-                  </AppButton>
-                  <AppButton
-                    dsVariant="primary"
-                    dsSize="sm"
-                    onClick={() => void aplicarFiltroRein()}
-                    startIcon={<SearchIcon />}
-                    sx={filtroButtonPrimaryStyles}
-                  >
-                    Filtrar
-                  </AppButton>
-                </Box>
-              </Box>
               {reinError && (
                 <Alert severity="error" sx={alertBaseStyles}>
                   {reinError}
                 </Alert>
               )}
-              {!reinFilterApplied ? (
-                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-                  Definí fechas y/o criterios de acta u oficio y pulsá <strong>Filtrar</strong>.
-                </Typography>
-              ) : reinLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress sx={{ color: COLORS.primary }} />
+              {reinLoading && reinItems.length === 0 && !reinError ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
                 </Box>
               ) : (
-                <>
-                  <Box sx={metaInfoStyles}>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Total:</strong> {reinApiTotal}
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Mostrando:</strong> {reinItems.length} de {reinApiTotal}
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Página:</strong> 1
-                    </Typography>
-                    <Typography sx={metaItemStyles}>
-                      <strong>Rango:</strong> {reinDesde} — {reinHasta}
-                    </Typography>
-                  </Box>
+                <Box sx={{ position: "relative", opacity: reinLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
+                  {reinLoading && reinItems.length > 0 && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <CircularProgress size={32} sx={{ color: COLORS.primary }} />
+                    </Box>
+                  )}
                   <MaterialReactTable table={tableRein} />
-                </>
+                </Box>
               )}
             </>
           )}
