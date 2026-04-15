@@ -57,6 +57,11 @@ class ActuacionesPendientesFilters(BaseModel):
     # Si es True: no aplicar rango por defecto (mes actual) cuando desde/hasta vienen vacíos.
     # Uso previsto: bandeja «Pendientes de expediente» rama COMPROBACION (todo el histórico pendiente).
     omitir_rango_fecha: bool = False
+    # Filtros documentales opcionales (solo aplican en service con ``source_type=notificacion``).
+    contribuyente_q: Optional[str] = None
+    calle_q: Optional[str] = None
+    numero_notificacion: Optional[str] = None
+    motivo_q: Optional[str] = None
 
     @field_validator("omitir_rango_fecha", mode="before")
     @classmethod
@@ -72,6 +77,14 @@ class ActuacionesPendientesFilters(BaseModel):
             return int(v)
         except (TypeError, ValueError):
             return None
+
+    @field_validator("contribuyente_q", "calle_q", "numero_notificacion", "motivo_q", mode="before")
+    @classmethod
+    def _strip_optional_q(cls, v: Any) -> Any:
+        if v is None or v == "":
+            return None
+        s = str(v).strip()
+        return s if s else None
 
     @field_validator("tipo")
     @classmethod

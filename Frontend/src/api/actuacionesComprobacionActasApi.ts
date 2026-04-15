@@ -68,6 +68,15 @@ export interface IComprobacionRecorridoRow {
   numero: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
+  /** Misma semántica que `actuacion_to_grid_row` (persona jurídica). */
+  razon_social?: string | null;
+  doc_nro?: string | null;
+  tipo_actuacion?: string | null;
+  inspector1?: string | null;
+  inspector2?: string | null;
+  inspector3?: string | null;
+  inspectores_texto?: string | null;
+  acta_inspeccion_num?: string | null;
   expediente_numero?: string | null;
   expediente_anio?: number | null;
   oficio_numero?: string | null;

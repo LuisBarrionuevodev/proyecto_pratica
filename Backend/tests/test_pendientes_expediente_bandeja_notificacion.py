@@ -26,7 +26,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     get_pendientes_expediente,
 )
-from app.models import Actuaciones, Comprobacion, Notificacion, OrdenTrabajo
+from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Motivo, Notificacion, OrdenTrabajo
 
 
 def _unique_num() -> str:
@@ -193,6 +193,86 @@ def test_notificacion_dias_restantes_vencido_es_cero(app_ctx) -> None:
         acts = get_pendientes_expediente(fl)
         row = next(r for r in _rows_expediente(acts) if r["id"] == act.id)
         assert row["dias_restantes"] == 0
+    finally:
+        db.session.rollback()
+
+
+def test_notificacion_filtros_documentales_post_query(app_ctx) -> None:
+    """Rama NOTIFICACION: contribuyente_q / calle_q / numero_notificacion / motivo_q reducen el set."""
+    try:
+        contrib = Contribuyente(apellido="DocFilterApellido", nombre="Pepe", documento=_unique_num())
+        db.session.add(contrib)
+        db.session.flush()
+        dom = Domicilio(calle="CalleDocFilterXyz", numero="200", contribuyente_id=contrib.id)
+        db.session.add(dom)
+        db.session.flush()
+        act, noti = _mk_actuacion_solo_notificacion()
+        act.domicilio_id = dom.id
+        noti.numero_acta = "777666"
+        noti.fecha_vencimiento = date.today() + timedelta(days=4)
+        mot = Motivo(nombre="InfraccionDocFilterTipo")
+        db.session.add(mot)
+        db.session.flush()
+        noti.motivos.append(mot)
+        db.session.flush()
+
+        base = {
+            "desde": "2026-01-01",
+            "hasta": "2026-12-31",
+            "source_type": "notificacion",
+        }
+        assert act.id in [a.id for a in get_pendientes_expediente(ActuacionesPendientesFilters.model_validate(base))]
+
+        assert act.id in [
+            a.id
+            for a in get_pendientes_expediente(
+                ActuacionesPendientesFilters.model_validate({**base, "contribuyente_q": "DocFilterApellido"})
+            )
+        ]
+        assert act.id in [
+            a.id
+            for a in get_pendientes_expediente(
+                ActuacionesPendientesFilters.model_validate({**base, "calle_q": "DocFilterXyz"})
+            )
+        ]
+        assert act.id in [
+            a.id
+            for a in get_pendientes_expediente(
+                ActuacionesPendientesFilters.model_validate({**base, "numero_notificacion": "776"})
+            )
+        ]
+        assert act.id in [
+            a.id
+            for a in get_pendientes_expediente(
+                ActuacionesPendientesFilters.model_validate({**base, "motivo_q": "DocFilterTipo"})
+            )
+        ]
+        assert act.id not in [
+            a.id
+            for a in get_pendientes_expediente(
+                ActuacionesPendientesFilters.model_validate({**base, "contribuyente_q": "NOEXISTE999"})
+            )
+        ]
+    finally:
+        db.session.rollback()
+
+
+def test_comprobacion_no_aplica_filtros_documentales(app_ctx) -> None:
+    """Los query params documentales no filtran la rama COMPROBACION."""
+    try:
+        act, _comp = _mk_actuacion_solo_comprobacion()
+        db.session.flush()
+        fl = ActuacionesPendientesFilters.model_validate(
+            {
+                "desde": "2026-01-01",
+                "hasta": "2026-12-31",
+                "source_type": "comprobacion",
+                "contribuyente_q": "NOEXISTE999",
+                "calle_q": "NOEXISTE888",
+            }
+        )
+        acts = get_pendientes_expediente(fl)
+        assert act.id in [a.id for a in acts]
     finally:
         db.session.rollback()
 

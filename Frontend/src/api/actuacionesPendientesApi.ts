@@ -168,12 +168,23 @@ export const getActuacionesPendientes = async (
   return data;
 };
 
+export type IActuacionesPendientesExpedienteOpts = {
+  omitirRangoFecha?: boolean;
+  mes?: number;
+  anio?: number;
+  /** Subcadena en apellido, nombre o razón social (solo historial notificación / backend). */
+  contribuyenteQ?: string | null;
+  calleQ?: string | null;
+  numeroNotificacion?: string | null;
+  motivoQ?: string | null;
+};
+
 export const getActuacionesPendientesExpediente = async (
   desde?: string | null,
   hasta?: string | null,
   sourceType?: "all" | "notificacion" | "comprobacion",
   distritoId?: number | null,
-  opts?: { omitirRangoFecha?: boolean }
+  opts?: IActuacionesPendientesExpedienteOpts
 ): Promise<IActuacionesPendientesExpedienteResponse> => {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
@@ -181,6 +192,16 @@ export const getActuacionesPendientesExpediente = async (
   if (sourceType) params.source_type = sourceType;
   if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
   if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
+  if (opts?.mes != null && opts.mes >= 1 && opts.mes <= 12) params.mes = String(opts.mes);
+  if (opts?.anio != null && opts.anio > 0) params.anio = String(opts.anio);
+  const cq = opts?.contribuyenteQ?.trim();
+  if (cq) params.contribuyente_q = cq;
+  const calleq = opts?.calleQ?.trim();
+  if (calleq) params.calle_q = calleq;
+  const nn = opts?.numeroNotificacion?.trim();
+  if (nn) params.numero_notificacion = nn;
+  const mq = opts?.motivoQ?.trim();
+  if (mq) params.motivo_q = mq;
   const { data } = await apiClient.get<IActuacionesPendientesExpedienteResponse>(
     "/actuaciones/pendientes/expediente",
     { params }

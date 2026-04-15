@@ -25,6 +25,10 @@ def pendientes_expediente_list():
     Query opcional ``omitir_rango_fecha=true``: sin ``desde``/``hasta`` no se aplica el rango por
     defecto (mes corriente); la consulta incluye todo pendiente sin filtro temporal en actuación.
 
+    Filtros documentales opcionales (solo ``source_type=notificacion``; subcadena insensible a mayúsculas):
+    ``contribuyente_q``, ``calle_q``, ``numero_notificacion``, ``motivo_q``. Si no se envían, el
+    comportamiento es el mismo que antes.
+
     Response:
       {
         "items": [...],

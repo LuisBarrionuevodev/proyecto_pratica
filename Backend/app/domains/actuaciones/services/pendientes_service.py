@@ -7,6 +7,10 @@ from sqlalchemy import func, exists, or_, and_
 
 from app.database import db
 from app.models import Actuaciones, Domicilio, Expediente, Notificacion
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 from app.domains.actuaciones.services.notificacion_iniciador_service import (
     list_reinspeccion_notificacion_operativas,
@@ -192,7 +196,63 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         query_noti = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
         query = query_comp.union(query_noti)
 
-    return query.order_by(Actuaciones.id.desc()).all()
+    acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    if source_type == "notificacion" and _notificacion_documental_filters_active(filters):
+        acts = _filter_actuaciones_documental_notificacion(acts, filters)
+    return acts
+
+
+def _notificacion_documental_filters_active(filters: ActuacionesPendientesFilters) -> bool:
+    """True si llegó algún filtro documental opcional (solo rama notificación)."""
+    return bool(
+        filters.contribuyente_q
+        or filters.calle_q
+        or filters.numero_notificacion
+        or filters.motivo_q
+    )
+
+
+def _filter_actuaciones_documental_notificacion(
+    acts: List[Actuaciones],
+    filters: ActuacionesPendientesFilters,
+) -> List[Actuaciones]:
+    """
+    Filtra en memoria actuaciones NOTIFICACION-only usando el mismo snapshot que la grilla
+    (``actuacion_to_grid_row``), criterio subcadena case-insensitive como recorrido documental.
+    """
+    if not acts:
+        return []
+    counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+    out: List[Actuaciones] = []
+    for act in acts:
+        row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
+        if filters.contribuyente_q:
+            blob = (
+                f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''} "
+                f"{row.get('razon_social') or ''}"
+            ).lower()
+            if filters.contribuyente_q.lower() not in blob:
+                continue
+        if filters.calle_q:
+            calle = (row.get("calle") or "").lower()
+            if filters.calle_q.lower() not in calle:
+                continue
+        if filters.numero_notificacion:
+            num = (row.get("acta_notificacion_num") or "").replace(" ", "").lower()
+            q = filters.numero_notificacion.replace(" ", "").lower()
+            if q not in num:
+                continue
+        if filters.motivo_q:
+            parts = [
+                row.get("notificacion_motivo_1"),
+                row.get("notificacion_motivo_2"),
+                row.get("notificacion_motivo_3"),
+            ]
+            blob = " ".join([str(p) for p in parts if p]).lower()
+            if filters.motivo_q.lower() not in blob:
+                continue
+        out.append(act)
+    return out
 
 
 def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:

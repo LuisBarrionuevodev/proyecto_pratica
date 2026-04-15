@@ -57,6 +57,7 @@ import {
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../ui";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
+import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
 
@@ -104,32 +105,6 @@ function yearOptions(center: number): { value: string; label: string }[] {
   const out: { value: string; label: string }[] = [];
   for (let y = center - 5; y <= center + 2; y++) out.push({ value: String(y), label: String(y) });
   return out;
-}
-
-function DetalleBloque({ titulo, data }: { titulo: string; data: Record<string, unknown> | null | undefined }) {
-  return (
-    <Box sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)", pb: 1.5, mb: 1.5 }}>
-      <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", mb: 1 }}>
-        {titulo}
-      </Typography>
-      {!data || Object.keys(data).length === 0 ? (
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
-          Sin datos
-        </Typography>
-      ) : (
-        <Stack spacing={0.35}>
-          {Object.entries(data).map(([k, v]) => (
-            <Typography key={k} variant="body2" sx={{ color: "rgba(255,255,255,0.82)" }}>
-              <Box component="span" sx={{ color: "rgba(255,255,255,0.5)", mr: 0.75 }}>
-                {k}
-              </Box>
-              {v === null || v === undefined ? "—" : String(v)}
-            </Typography>
-          ))}
-        </Stack>
-      )}
-    </Box>
-  );
 }
 
 /**
@@ -590,6 +565,8 @@ const ActasComprobacionPage = () => {
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalle, setDetalle] = useState<IComprobacionRecorridoDetalle | null>(null);
   const [detalleActuacionId, setDetalleActuacionId] = useState<number | null>(null);
+  /** Fila del listado Recorrido al abrir detalle (enriquece domicilio / inspectores sin otro endpoint). */
+  const [detalleListRow, setDetalleListRow] = useState<IComprobacionRecorridoRow | null>(null);
 
   const recPeriodParams = useCallback((): IComprobacionRecorridoListParams => {
     const p: IComprobacionRecorridoListParams = {
@@ -638,7 +615,9 @@ const ActasComprobacionPage = () => {
     void loadRecorridoSearch();
   }, [loadRecorridoSearch]);
 
-  const openDetalle = async (actuacionId: number) => {
+  const openDetalle = async (row: IComprobacionRecorridoRow) => {
+    const actuacionId = row.id;
+    setDetalleListRow(row);
     setDetalleActuacionId(actuacionId);
     setDetalleOpen(true);
     setDetalleLoading(true);
@@ -650,6 +629,7 @@ const ActasComprobacionPage = () => {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setRecError(detail || "No se pudo cargar el detalle");
       setDetalleOpen(false);
+      setDetalleListRow(null);
     } finally {
       setDetalleLoading(false);
     }
@@ -679,7 +659,7 @@ const ActasComprobacionPage = () => {
         header: "Acción",
         size: 120,
         Cell: ({ row }) => (
-          <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void openDetalle(row.original.id)}>
+          <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void openDetalle(row.original)}>
             Ver detalle
           </AppButton>
         ),
@@ -856,10 +836,12 @@ const ActasComprobacionPage = () => {
           {tab === "recorrido" && (
             <>
               <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Filtros — recorrido documental</Typography>
-                <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: GLASS_COLORS.textMuted }}>
-                  Período, distrito y criterios de texto. Pulsá <strong>Filtrar</strong> para cargar la tabla (máx. 500 por
-                  consulta en servidor).
+                <Typography sx={filtroTitleStyles}>Recorrido — filtros documentales</Typography>
+                <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.5 }}>
+                  Período calendario o rango de fechas, distrito y criterios opcionales por contribuyente, calle, número
+                  de acta de comprobación o número de oficio. Tipo final acota por resultado del circuito. Los campos de
+                  texto son opcionales. Tocá <strong>Filtrar</strong> para cargar la tabla (máx. 500 filas por consulta
+                  en servidor).
                 </Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
@@ -1040,7 +1022,8 @@ const ActasComprobacionPage = () => {
               )}
               {!recFilterApplied ? (
                 <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-                  Definí período/distrito y opcionalmente criterios de texto, luego pulsá <strong>Filtrar</strong>.
+                  Elegí período y distrito, ajustá filtros opcionales si hace falta, y tocá <strong>Filtrar</strong> para ver
+                  el listado.
                 </Typography>
               ) : recLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -1206,59 +1189,19 @@ const ActasComprobacionPage = () => {
         />
       </AppDialog>
 
-      <AppDialog
+      <RecorridoDetalleDocumentalDialog
         open={detalleOpen}
         onClose={() => {
           setDetalleOpen(false);
           setDetalle(null);
           setDetalleActuacionId(null);
+          setDetalleListRow(null);
         }}
-        onCloseButtonClick={() => {
-          setDetalleOpen(false);
-          setDetalle(null);
-          setDetalleActuacionId(null);
-        }}
-        title={detalleActuacionId ? `Recorrido — actuación #${detalleActuacionId}` : "Recorrido"}
-        fullWidth
-        maxWidth="md"
-        appearance="glass"
-        actions={
-          <AppButton
-            dsVariant="ghost"
-            dsSize="sm"
-            onClick={() => {
-              setDetalleOpen(false);
-              setDetalle(null);
-              setDetalleActuacionId(null);
-            }}
-          >
-            Cerrar
-          </AppButton>
-        }
-      >
-        {detalleLoading && (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-            <CircularProgress sx={{ color: COLORS.primary }} />
-          </Box>
-        )}
-        {!detalleLoading && detalle && (
-          <Stack spacing={0}>
-            <DetalleBloque titulo="Origen" data={detalle.origen as Record<string, unknown>} />
-            <DetalleBloque titulo="Acta de comprobación" data={detalle.acta_comprobacion as Record<string, unknown>} />
-            <DetalleBloque
-              titulo="Expediente de comprobación"
-              data={detalle.expediente_comprobacion_envio as Record<string, unknown> | null}
-            />
-            <DetalleBloque titulo="Oficio" data={detalle.oficio as Record<string, unknown> | null} />
-            <DetalleBloque
-              titulo="Expediente del oficio"
-              data={detalle.expediente_respuesta_oficio as Record<string, unknown> | null}
-            />
-            <DetalleBloque titulo="Reinspección por oficio" data={detalle.reinspeccion_por_oficio as Record<string, unknown> | null} />
-            <DetalleBloque titulo="Resultado final" data={detalle.resultado_final as Record<string, unknown>} />
-          </Stack>
-        )}
-      </AppDialog>
+        actuacionId={detalleActuacionId}
+        listRow={detalleListRow}
+        detalle={detalle}
+        loading={detalleLoading}
+      />
     </Box>
   );
 };

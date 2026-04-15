@@ -1,11 +1,14 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Alert, Box, Chip, Collapse, IconButton, Link, Typography } from "@mui/material";
+import type { ReactNode } from "react";
+import { Alert, Box, Chip, Collapse, Divider, IconButton, Link, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import { GLASS_COLORS, glassCard } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
+import { COLORS } from "../styles/filtroStyles";
 
 export type ActuacionEditCatalogs = {
   inspectores: string[];
@@ -72,6 +75,85 @@ function domicilioTexto(row: IActuacionListItem): string {
   return line || "—";
 }
 
+function titularLinea(row: IActuacionListItem): string {
+  const rs = (row.razon_social ?? "").trim();
+  if (rs) return rs;
+  const a = (row.contrib_apellido ?? "").trim();
+  const n = (row.contrib_nombre ?? "").trim();
+  const t = [a, n].filter(Boolean).join(", ");
+  return t || "—";
+}
+
+function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: { xs: 0.25, sm: 1 },
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        py: 0.65,
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        "&:last-of-type": { borderBottom: "none", pb: 0 },
+      }}
+    >
+      <Typography
+        component="span"
+        variant="body2"
+        sx={{ color: GLASS_COLORS.textSecondary, minWidth: { sm: 160 }, flex: { xs: "1 1 100%", sm: "0 1 38%" } }}
+      >
+        {etiqueta}
+      </Typography>
+      <Typography
+        component="span"
+        variant="body2"
+        sx={{
+          color: GLASS_COLORS.textPrimary,
+          fontWeight: 500,
+          textAlign: { xs: "left", sm: "right" },
+          flex: { xs: "1 1 100%", sm: "1 1 50%" },
+          wordBreak: "break-word",
+        }}
+      >
+        {valor}
+      </Typography>
+    </Box>
+  );
+}
+
+function DocumentalBloque({
+  overline,
+  resumen,
+  children,
+}: {
+  overline: string;
+  resumen?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Box
+      sx={{
+        ...glassCard,
+        p: 2,
+        mb: 0,
+        borderLeft: `3px solid ${COLORS.primary}`,
+        borderRadius: "12px",
+      }}
+    >
+      <Typography variant="overline" sx={{ color: COLORS.primary, letterSpacing: 1.1, fontWeight: 700 }}>
+        {overline}
+      </Typography>
+      {resumen ? (
+        <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mb: 1.25, mt: 0.25 }}>
+          {resumen}
+        </Typography>
+      ) : null}
+      {children}
+    </Box>
+  );
+}
+
 function inspectoresLinea(row: IActuacionListItem): string {
   const parts = [row.inspector1, row.inspector2, row.inspector3].filter((x) => x?.trim());
   return parts.length ? parts.join(", ") : "—";
@@ -87,14 +169,28 @@ function tieneReferenciaAdmin(row: IActuacionListItem): boolean {
   );
 }
 
+function estadoBloqueoLectura(row: IActuacionListItem): string {
+  const parts: string[] = [];
+  if (row.notificacion_editable === false) {
+    parts.push("Notificación con expediente (edición restringida en canal actas).");
+  }
+  if (row.comprobacion_editable === false) {
+    parts.push("Comprobación con expediente de envío (edición restringida).");
+  }
+  return parts.length ? parts.join(" ") : "Sin bloqueo explícito sobre notificación/comprobación en esta fila.";
+}
+
 function BloqueEpicollectDetalleLectura({
   draft,
   otrosExpanded,
   onToggleOtros,
+  embedded,
 }: {
   draft: IActuacionListItem;
   otrosExpanded: boolean;
   onToggleOtros: () => void;
+  /** Sin marco propio: va dentro de un bloque documental padre. */
+  embedded?: boolean;
 }) {
   if (!draft.has_epicollect_detalle) return null;
 
@@ -113,9 +209,16 @@ function BloqueEpicollectDetalleLectura({
   } as const;
 
   return (
-    <Box sx={blockShellSx}>
+    <Box sx={embedded ? { mb: 2 } : blockShellSx}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 0, flex: "1 1 auto" }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            ...(embedded
+              ? { color: GLASS_COLORS.textPrimary, fontWeight: 600, mt: 0, mb: 0, flex: "1 1 auto" }
+              : { ...sectionTitleSx, mt: 0, mb: 0, flex: "1 1 auto" }),
+          }}
+        >
           Datos importados de EpiCollect
         </Typography>
         <Chip
@@ -239,15 +342,22 @@ function BloqueEpicollectDetalleLectura({
   );
 }
 
-function BloqueEvidenciasEpicollect({ draft }: { draft: IActuacionListItem }) {
+function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionListItem; embedded?: boolean }) {
   const total = draft.epicollect_evidencias_total ?? 0;
   const grupos = draft.epicollect_evidencias_grupos ?? [];
   if (total <= 0 || grupos.length === 0) return null;
 
   return (
-    <Box sx={blockShellSx}>
-      <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 1 }}>
-        Evidencias
+    <Box sx={embedded ? { mb: 0 } : blockShellSx}>
+      <Typography
+        variant="subtitle2"
+        sx={
+          embedded
+            ? { color: GLASS_COLORS.textPrimary, fontWeight: 600, mt: 0, mb: 1, display: "block" }
+            : { ...sectionTitleSx, mt: 0, mb: 1 }
+        }
+      >
+        Evidencias multimedia
       </Typography>
       <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", mb: 1.25, lineHeight: 1.5 }}>
         Archivos vinculados desde EpiCollect (por categoría).{" "}
@@ -356,121 +466,96 @@ export function ActuacionDetalleDialog({
     setIsEditing(false);
   };
 
-  const title = isEditing ? "Editar actuación" : "Detalle de actuación";
+  const handlePrint = () => {
+    if (saving) return;
+    window.print();
+  };
+
+  const subtituloCabecera = [dash(draft.fecha_actuacion), domicilioTexto(draft), titularLinea(draft)].join(" · ");
+
+  const documentalTitleRead = (
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.75, py: 0.25, minWidth: 0 }}>
+      <Chip
+        label="Actuación"
+        size="small"
+        sx={{
+          height: 24,
+          fontWeight: 600,
+          borderColor: GLASS_COLORS.borderMedium,
+          color: GLASS_COLORS.textSecondary,
+          backgroundColor: "rgba(255,255,255,0.06)",
+        }}
+        variant="outlined"
+      />
+      <Typography
+        component="span"
+        variant="h6"
+        sx={{ fontWeight: 700, lineHeight: 1.25, color: GLASS_COLORS.textPrimary, wordBreak: "break-word" }}
+      >
+        {`Actuación #${draft.id}`}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: GLASS_COLORS.textSecondary,
+          fontWeight: 500,
+          lineHeight: 1.4,
+          wordBreak: "break-word",
+        }}
+      >
+        {subtituloCabecera}
+      </Typography>
+      <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+        OT {dash(draft.orden_trabajo_numero)} · {dash(draft.tipo_actuacion)}
+      </Typography>
+    </Box>
+  );
+
+  const tieneSnapEpicollect = Boolean(draft.has_epicollect_detalle);
+  const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
+  const totalEvid = draft.epicollect_evidencias_total ?? 0;
+  const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
+
+  const refAdminTexto = tieneReferenciaAdmin(draft)
+    ? `Expediente ${dash(draft.expediente_numero)} / ${dash(draft.expediente_anio)} · Oficio ${dash(draft.oficio_numero)} / ${dash(draft.oficio_anio)}${
+        draft.oficio_causa != null && String(draft.oficio_causa).trim() !== ""
+          ? ` · Causa: ${dash(draft.oficio_causa)}`
+          : ""
+      }`
+    : "—";
 
   const detalleVista = (
-    <>
-      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", fontFamily: '"Tactic Sans", sans-serif' }}>
-        ID actuación: {draft.id}
+    <Stack spacing={2} component="section" aria-label="Detalle documental de la actuación">
+      <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+        Vista documental desde el listado. Los mismos datos alimentan la edición parcial al pulsar Editar.
       </Typography>
 
-      <Box sx={blockShellSx}>
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
-          1. Datos de la actuación actual
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)", mb: 0.75 }}>
-          OT: {dash(draft.orden_trabajo_numero)} · Fecha: {dash(draft.fecha_actuacion)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 0.75 }}>
-          Tipo: {dash(draft.tipo_actuacion)} · Contraproducencia: {dash(draft.contraproducencia)}
-        </Typography>
-        {draft.resultado_cumplimiento_oficio != null &&
-          String(draft.resultado_cumplimiento_oficio).trim() !== "" && (
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 0.75 }}>
-              Resultado (oficio / reinspección): {dash(draft.resultado_cumplimiento_oficio)}
-            </Typography>
-          )}
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 1 }}>
-          Inspectores: {draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
-        </Typography>
-        {draft.ec5_uuid != null && String(draft.ec5_uuid).trim() !== "" && (
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", mb: 1 }}>
-            EpiCollect (ID): {dash(draft.ec5_uuid)}
-          </Typography>
-        )}
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 0.5 }}>
-          Actas del día
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)" }}>
-          Inspección: {dash(draft.acta_inspeccion_num)} · Notificación: {dash(draft.acta_notificacion_num)} ·
-          Comprobación: {dash(draft.acta_comprobacion_num)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mt: 0.5 }}>
-          Motivos notif.: {dash(draft.notificacion_motivo_1)} · {dash(draft.notificacion_motivo_2)} ·{" "}
-          {dash(draft.notificacion_motivo_3)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mt: 0.5 }}>
-          Motivo comprob.: {dash(draft.comprobacion_motivo)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", mt: 0.5 }}>
-          Clausura: {dash(draft.acta_clausura_num)} · Decomiso: {dash(draft.acta_decomiso_num)}
-          {draft.decomiso_kilos_total != null ? ` (${draft.decomiso_kilos_total} kg)` : ""}
-        </Typography>
-        {tieneReferenciaAdmin(draft) && (
-          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 0.5 }}>
-              Referencia administrativa (comprobación)
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.68)" }}>
-              Expediente: {dash(draft.expediente_numero)} / {dash(draft.expediente_anio)} · Oficio:{" "}
-              {dash(draft.oficio_numero)} / {dash(draft.oficio_anio)}
-            </Typography>
-            {draft.oficio_causa != null && String(draft.oficio_causa).trim() !== "" && (
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mt: 0.5 }}>
-                Causa oficio: {dash(draft.oficio_causa)}
-              </Typography>
-            )}
-          </Box>
-        )}
-      </Box>
-
-      <Box sx={blockShellSx}>
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
-          2. Datos del local
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)", mb: 0.75 }}>
-          Domicilio: {domicilioTexto(draft)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 0.75 }}>
-          Nombre del local: {dash(draft.nombre_local)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)", mb: 0.75 }}>
-          Rubro: {dash(draft.rubro_nombre)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-          Contribuyente: {dash(draft.contrib_apellido)} {dash(draft.contrib_nombre)}
-          {draft.razon_social != null && String(draft.razon_social).trim() !== ""
-            ? ` · Razón social: ${dash(draft.razon_social)}`
-            : ""}{" "}
-          · Doc. {dash(draft.doc_nro)}
-        </Typography>
-      </Box>
-
-      <Box sx={blockShellSx}>
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
-          Establecimiento
-        </Typography>
+      <DocumentalBloque
+        overline="Domicilio y titular"
+        resumen="Ubicación, titularidad, rubro y vínculo a ficha de establecimiento si existe."
+      >
+        <DocumentalFila etiqueta="Calle y número" valor={domicilioTexto(draft)} />
+        <DocumentalFila etiqueta="Nombre del local" valor={dash(draft.nombre_local)} />
+        <DocumentalFila etiqueta="Contribuyente / razón social" valor={titularLinea(draft)} />
+        <DocumentalFila etiqueta="Documento" valor={dash(draft.doc_nro)} />
+        <DocumentalFila etiqueta="Rubro" valor={dash(draft.rubro_nombre)} />
+        <DocumentalFila
+          etiqueta="Ficha establecimiento"
+          valor={
+            draft.establecimiento_operativo_id != null
+              ? `ID ${draft.establecimiento_operativo_id}${
+                  draft.establecimiento_actuaciones_en_ficha != null
+                    ? ` · ${draft.establecimiento_actuaciones_en_ficha} actuación(es) en la ficha`
+                    : ""
+                }`
+              : "Sin vínculo"
+          }
+        />
         {draft.establecimiento_operativo_id != null ? (
-          <>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)", mb: 0.75 }}>
-              Esta actuación está vinculada a una ficha de establecimiento (ID {draft.establecimiento_operativo_id}).
-            </Typography>
-            {draft.establecimiento_actuaciones_en_ficha != null &&
-            draft.establecimiento_actuaciones_en_ficha > 0 ? (
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)" }}>
-                Historial en esta ficha: {draft.establecimiento_actuaciones_en_ficha} actuación
-                {draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "es"} registrada
-                {draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "s"}.
-              </Typography>
-            ) : (
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.5)" }}>
-                Cantidad de actuaciones en ficha: —
-              </Typography>
-            )}
+          <Box sx={{ mt: 1.5 }}>
             <AppButton
               dsVariant="secondary"
               dsSize="sm"
-              sx={{ mt: 1.5, alignSelf: "flex-start", fontWeight: 600 }}
               onClick={() => {
                 onClose();
                 navigate(`/establecimientos/${draft.establecimiento_operativo_id}`);
@@ -478,25 +563,87 @@ export function ActuacionDetalleDialog({
             >
               Ver establecimiento
             </AppButton>
-          </>
+          </Box>
         ) : (
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", lineHeight: 1.5 }}>
-            Sin ficha vinculada. Suele aparecer cuando el cierre en ruta registró el domicilio y generó la ficha
-            operativa; actuaciones anteriores a ese módulo pueden quedar sin vínculo.
+          <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, display: "block", mt: 0.75 }}>
+            Sin ficha vinculada: suele figurar cuando el cierre en ruta consolidó el domicilio; registros anteriores al
+            módulo pueden quedar sin vínculo.
           </Typography>
         )}
-      </Box>
+      </DocumentalBloque>
 
-      <BloqueEpicollectDetalleLectura
-        draft={draft}
-        otrosExpanded={epicollectOtrosExpanded}
-        onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
-      />
+      <DocumentalBloque overline="Inspección / actuación base" resumen="Orden de trabajo, visita, tipo y equipo.">
+        <DocumentalFila etiqueta="Orden de trabajo" valor={dash(draft.orden_trabajo_numero)} />
+        <DocumentalFila etiqueta="Fecha de actuación" valor={dash(draft.fecha_actuacion)} />
+        <DocumentalFila etiqueta="Tipo" valor={dash(draft.tipo_actuacion)} />
+        <DocumentalFila etiqueta="Contraproducencia" valor={dash(draft.contraproducencia)} />
+        <DocumentalFila etiqueta="Inspectores" valor={draft.inspectores_texto?.trim() || inspectoresLinea(draft)} />
+      </DocumentalBloque>
 
-      <BloqueEvidenciasEpicollect draft={draft} />
+      <DocumentalBloque overline="Actas asociadas" resumen="Numeración y motivos del acta del día.">
+        <DocumentalFila etiqueta="Inspección" valor={dash(draft.acta_inspeccion_num)} />
+        <DocumentalFila etiqueta="Notificación" valor={dash(draft.acta_notificacion_num)} />
+        <DocumentalFila etiqueta="Motivo notificación 1" valor={dash(draft.notificacion_motivo_1)} />
+        <DocumentalFila etiqueta="Motivo notificación 2" valor={dash(draft.notificacion_motivo_2)} />
+        <DocumentalFila etiqueta="Motivo notificación 3" valor={dash(draft.notificacion_motivo_3)} />
+        <DocumentalFila etiqueta="Comprobación" valor={dash(draft.acta_comprobacion_num)} />
+        <DocumentalFila etiqueta="Motivo comprobación" valor={dash(draft.comprobacion_motivo)} />
+        <DocumentalFila etiqueta="Clausura" valor={dash(draft.acta_clausura_num)} />
+        <DocumentalFila
+          etiqueta="Decomiso"
+          valor={
+            draft.acta_decomiso_num || draft.decomiso_kilos_total != null
+              ? `${dash(draft.acta_decomiso_num)}${
+                  draft.decomiso_kilos_total != null ? ` (${draft.decomiso_kilos_total} kg)` : ""
+                }`
+              : "—"
+          }
+        />
+      </DocumentalBloque>
 
-      <BloqueIniciadorVacío />
-    </>
+      <DocumentalBloque
+        overline="Resultado / estado"
+        resumen="Cumplimiento administrativo, bloqueos de edición e iniciador de ruta (cuando exista API)."
+      >
+        <DocumentalFila
+          etiqueta="Resultado (oficio / reinspección)"
+          valor={
+            draft.resultado_cumplimiento_oficio != null && String(draft.resultado_cumplimiento_oficio).trim() !== ""
+              ? dash(draft.resultado_cumplimiento_oficio)
+              : "—"
+          }
+        />
+        <DocumentalFila etiqueta="Bloqueos canal actas" valor={estadoBloqueoLectura(draft)} />
+        <DocumentalFila etiqueta="Referencias administrativas" valor={refAdminTexto} />
+        <DocumentalFila
+          etiqueta="Iniciador de ruta"
+          valor="No disponible desde el listado. Reservado para cuando el API incluya el iniciador vinculado."
+        />
+      </DocumentalBloque>
+
+      <DocumentalBloque
+        overline="Evidencias y EpiCollect"
+        resumen="Snapshot no multimedia del formulario y enlaces por categoría cuando el import los aporta."
+      >
+        {tieneSnapEpicollect ? (
+          <BloqueEpicollectDetalleLectura
+            draft={draft}
+            otrosExpanded={epicollectOtrosExpanded}
+            onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
+            embedded
+          />
+        ) : null}
+        {tieneSnapEpicollect && tieneEvidenciasEpicollect ? (
+          <Divider sx={{ borderColor: GLASS_COLORS.borderLight, my: 1.5 }} />
+        ) : null}
+        {tieneEvidenciasEpicollect ? <BloqueEvidenciasEpicollect draft={draft} embedded /> : null}
+        {!tieneSnapEpicollect && !tieneEvidenciasEpicollect ? (
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.42)", fontStyle: "italic" }}>
+            Sin snapshot EpiCollect ni enlaces de evidencias en esta fila.
+          </Typography>
+        ) : null}
+      </DocumentalBloque>
+    </Stack>
   );
 
   const roFieldSx = { "& .MuiInputBase-input": { color: "rgba(255,255,255,0.72)" } };
@@ -841,7 +988,8 @@ export function ActuacionDetalleDialog({
       open={open}
       onClose={(_ev, _reason) => handleClose()}
       onCloseButtonClick={handleClose}
-      title={title}
+      title={isEditing ? "Editar actuación" : documentalTitleRead}
+      appearance="glass"
       maxWidth="md"
       fullWidth
       contentDividers
@@ -850,33 +998,57 @@ export function ActuacionDetalleDialog({
         {
           maxHeight: "min(72vh, 720px)",
           overflowY: "auto",
-          gap: 2.75,
+          gap: isEditing ? 2.75 : 0,
+          pt: isEditing ? undefined : 2,
+          pb: isEditing ? undefined : 2,
         },
       ]}
       showCloseButton
       actions={
-        <Box sx={{ display: "flex", gap: 1.5, justifyContent: "flex-end", flexWrap: "wrap", width: "100%" }}>
-          {!isEditing ? (
-            <>
-              <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
-                Cerrar
-              </AppButton>
-              {canEdit && (
-                <AppButton dsVariant="primary" onClick={() => setIsEditing(true)} disabled={saving}>
-                  Editar
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1.5,
+            width: "100%",
+          }}
+        >
+          <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, flex: "1 1 200px", minWidth: 0 }}>
+            {isEditing
+              ? "Los cambios se guardan con el botón Guardar (canal actas)."
+              : "Impresión: usa el menú del navegador si el diálogo no aparece en la vista previa."}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {!isEditing ? (
+              <>
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
+                  Cerrar
                 </AppButton>
-              )}
-            </>
-          ) : (
-            <>
-              <AppButton dsVariant="ghost" onClick={handleBackToDetail} disabled={saving}>
-                Volver al detalle
-              </AppButton>
-              <AppButton dsVariant="primary" onClick={() => void onSave()} loading={saving} disabled={saving}>
-                Guardar
-              </AppButton>
-            </>
-          )}
+                {canEdit ? (
+                  <AppButton dsVariant="secondary" dsSize="sm" onClick={() => setIsEditing(true)} disabled={saving}>
+                    Editar
+                  </AppButton>
+                ) : null}
+                <AppButton dsVariant="primary" dsSize="sm" onClick={handlePrint} disabled={saving}>
+                  Imprimir
+                </AppButton>
+              </>
+            ) : (
+              <>
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={handleBackToDetail} disabled={saving}>
+                  Volver al detalle
+                </AppButton>
+                <AppButton dsVariant="secondary" dsSize="sm" onClick={handlePrint} disabled={saving}>
+                  Imprimir
+                </AppButton>
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onSave()} loading={saving} disabled={saving}>
+                  Guardar
+                </AppButton>
+              </>
+            )}
+          </Box>
         </Box>
       }
     >
