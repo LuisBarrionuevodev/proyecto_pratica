@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, exists, or_, and_
+from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.models import Actuaciones, Domicilio, Expediente, Notificacion
@@ -115,6 +117,66 @@ def build_notificacion_expediente_bandeja_metrics(
     venc_map: dict[int, date | None] = {int(n.id): n.fecha_vencimiento for n in notis}
 
     return plazos_map, venc_map
+
+
+def build_posterior_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
+    """
+    Por cada actuación NOTIFICACION-only con domicilio, busca la primera visita **posterior**
+    (fecha, id) del mismo domicilio que ya tenga acta de comprobación.
+
+    Sirve para enriquecer la bandeja de expediente de plazo: la fila es la actuación de
+    notificación; la comprobación suele registrarse en otra actuación del mismo local.
+
+    Args:
+        acts: actuaciones devueltas por ``get_pendientes_expediente`` (u origen equivalente).
+
+    Returns:
+        Mapa ``actuacion_id`` -> actuación posterior o ``None``. Incluye entrada por cada
+        ``acts[].id``; solo las referencias NOTIFICACION-only pueden apuntar a una posterior no nula.
+    """
+    out: Dict[int, Optional[Actuaciones]] = {int(a.id): None for a in acts}
+    refs = [
+        a
+        for a in acts
+        if getattr(a, "notificacion_id", None)
+        and not getattr(a, "comprobacion_id", None)
+        and getattr(a, "domicilio_id", None)
+    ]
+    if not refs:
+        return out
+
+    dom_ids = {int(a.domicilio_id) for a in refs if a.domicilio_id is not None}
+    if not dom_ids:
+        return out
+
+    candidates = (
+        Actuaciones.query.filter(Actuaciones.domicilio_id.in_(dom_ids))
+        .filter(Actuaciones.comprobacion_id.isnot(None))
+        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .all()
+    )
+
+    by_dom: Dict[int, List[Actuaciones]] = defaultdict(list)
+    for c in candidates:
+        by_dom[int(c.domicilio_id)].append(c)
+
+    for lst in by_dom.values():
+        lst.sort(key=lambda x: ((x.fecha or date.min), int(x.id)))
+
+    for ref in refs:
+        rid = int(ref.id)
+        dom = int(ref.domicilio_id)  # type: ignore[arg-type]
+        ref_key = (ref.fecha or date.min, rid)
+        chosen: Optional[Actuaciones] = None
+        for c in by_dom.get(dom, []):
+            ck = (c.fecha or date.min, int(c.id))
+            if ck <= ref_key:
+                continue
+            chosen = c
+            break
+        out[rid] = chosen
+
+    return out
 
 
 def _notificaciones_pendientes_query(filters: ActuacionesPendientesFilters):

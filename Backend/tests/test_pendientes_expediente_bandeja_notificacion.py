@@ -22,8 +22,12 @@ from app.domains.actuaciones.services.expediente_completion_service import (
 from app.domains.actuaciones.services.notificacion_timing_service import (
     inicializar_timing_notificacion,
 )
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
+    build_posterior_comprobacion_por_actuacion_id,
     get_pendientes_expediente,
 )
 from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Motivo, Notificacion, OrdenTrabajo
@@ -108,14 +112,59 @@ def _mk_actuacion_solo_comprobacion() -> tuple[Actuaciones, Comprobacion]:
 
 def _rows_expediente(acts: list[Actuaciones]) -> list[dict]:
     plazos, venc = build_notificacion_expediente_bandeja_metrics(acts)
+    posterior = build_posterior_comprobacion_por_actuacion_id(acts)
+    counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
     return [
         actuacion_to_pendiente_expediente_row(
             a,
             plazos_por_notificacion=plazos,
             fecha_vencimiento_por_notificacion=venc,
+            counts_by_eo=counts_by_eo,
+            posterior_por_actuacion_id=posterior,
         )
         for a in acts
     ]
+
+
+def test_notificacion_posterior_comprobacion_mismo_domicilio(app_ctx) -> None:
+    """NOTIFICACION-only: si hay actuación posterior con comprobación en el mismo domicilio, el DTO la expone."""
+    try:
+        contrib = Contribuyente(apellido="PosteriorApellido", nombre="Ana", documento=_unique_num())
+        db.session.add(contrib)
+        db.session.flush()
+        dom = Domicilio(calle="CallePosterior", numero="50", contribuyente_id=contrib.id)
+        db.session.add(dom)
+        db.session.flush()
+
+        act_noti, noti = _mk_actuacion_solo_notificacion()
+        act_noti.domicilio_id = dom.id
+        act_noti.fecha = date(2026, 3, 1)
+        noti.fecha_vencimiento = date.today() + timedelta(days=10)
+        db.session.flush()
+
+        ot2 = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=3)
+        db.session.add(ot2)
+        db.session.flush()
+        comp = Comprobacion(numero_acta="POST99", anio=2026, mes=3, motivo="reinspeccion test")
+        db.session.add(comp)
+        db.session.flush()
+        act_comp = Actuaciones(
+            fecha=date(2026, 3, 20),
+            mes=3,
+            anio=2026,
+            orden_trabajo_id=ot2.id,
+            domicilio_id=dom.id,
+            comprobacion_id=comp.id,
+        )
+        db.session.add(act_comp)
+        db.session.flush()
+
+        acts = get_pendientes_expediente(_filters_notificacion())
+        row = next(r for r in _rows_expediente(acts) if r["id"] == act_noti.id)
+        assert row["comprobacion_posterior_fecha"] == "2026-03-20"
+        assert row["comprobacion_posterior_acta_num"] == "POST99"
+    finally:
+        db.session.rollback()
 
 
 def test_notificacion_cero_expedientes_aparece_plazos_cero(app_ctx) -> None:

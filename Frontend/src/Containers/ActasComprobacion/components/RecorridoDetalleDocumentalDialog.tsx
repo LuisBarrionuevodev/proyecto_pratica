@@ -6,7 +6,25 @@ import type {
   IComprobacionRecorridoRow,
 } from "../../../api/actuacionesComprobacionActasApi";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
-import { GLASS_COLORS, glassCard } from "../../../styles/GlassStyles";
+import {
+  DOC_MODAL_BLOCK_STACK_SPACING,
+  docModalBlockOverlineSx,
+  docModalBlockResumenSx,
+  docModalChipSx,
+  docModalEmptyStateSx,
+  docModalFilaEtiquetaSx,
+  docModalFilaValorSx,
+  docModalFooterButtonsSx,
+  docModalFooterHintSx,
+  docModalFooterRowSx,
+  docModalGlassCardShellSx,
+  docModalHeaderStackSx,
+  docModalIntroParagraphSx,
+  docModalReferenceSx,
+  docModalSubheadingInCardSx,
+  docModalSubtitleSx,
+  docModalTitleSx,
+} from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog } from "../../../ui";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 
@@ -53,24 +71,10 @@ function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }
         "&:last-of-type": { borderBottom: "none", pb: 0 },
       }}
     >
-      <Typography
-        component="span"
-        variant="body2"
-        sx={{ color: GLASS_COLORS.textSecondary, minWidth: { sm: 160 }, flex: { xs: "1 1 100%", sm: "0 1 38%" } }}
-      >
+      <Typography component="span" variant="body2" sx={docModalFilaEtiquetaSx}>
         {etiqueta}
       </Typography>
-      <Typography
-        component="span"
-        variant="body2"
-        sx={{
-          color: GLASS_COLORS.textPrimary,
-          fontWeight: 500,
-          textAlign: { xs: "left", sm: "right" },
-          flex: { xs: "1 1 100%", sm: "1 1 50%" },
-          wordBreak: "break-word",
-        }}
-      >
+      <Typography component="span" variant="body2" sx={docModalFilaValorSx}>
         {valor}
       </Typography>
     </Box>
@@ -87,20 +91,12 @@ function DocumentalBloque({
   children: ReactNode;
 }) {
   return (
-    <Box
-      sx={{
-        ...glassCard,
-        p: 2,
-        mb: 2,
-        borderLeft: `3px solid ${COLORS.primary}`,
-        borderRadius: "12px",
-      }}
-    >
-      <Typography variant="overline" sx={{ color: COLORS.primary, letterSpacing: 1.1, fontWeight: 700 }}>
+    <Box sx={docModalGlassCardShellSx(COLORS.primary)}>
+      <Typography component="div" sx={docModalBlockOverlineSx}>
         {overline}
       </Typography>
       {resumen ? (
-        <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mb: 1.25, mt: 0.25 }}>
+        <Typography component="div" sx={docModalBlockResumenSx}>
           {resumen}
         </Typography>
       ) : null}
@@ -138,7 +134,7 @@ function renderKvBloque(data: Record<string, unknown> | null | undefined): React
   const vacio = data == null || Object.keys(data).length === 0;
   if (vacio) {
     return (
-      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.42)", fontStyle: "italic" }}>
+      <Typography variant="body2" sx={docModalEmptyStateSx}>
         Sin registro en esta etapa.
       </Typography>
     );
@@ -194,33 +190,15 @@ export function RecorridoDetalleDocumentalDialog({
 
   const titleNode =
     actuacionId != null ? (
-      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.75, py: 0.25, minWidth: 0 }}>
-        <Chip
-          label="Comprobación"
-          size="small"
-          sx={{
-            height: 24,
-            fontWeight: 600,
-            borderColor: GLASS_COLORS.borderMedium,
-            color: GLASS_COLORS.textSecondary,
-            backgroundColor: "rgba(255,255,255,0.06)",
-          }}
-          variant="outlined"
-        />
-        <Typography
-          component="span"
-          variant="h6"
-          sx={{ fontWeight: 700, lineHeight: 1.25, color: GLASS_COLORS.textPrimary, wordBreak: "break-word" }}
-        >
+      <Box sx={docModalHeaderStackSx}>
+        <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
+        <Typography component="span" variant="h6" sx={docModalTitleSx}>
           {tituloPrincipal}
         </Typography>
-        <Typography
-          variant="body2"
-          sx={{ color: GLASS_COLORS.textSecondary, fontWeight: 500, lineHeight: 1.4, wordBreak: "break-word" }}
-        >
+        <Typography variant="body2" sx={docModalSubtitleSx}>
           {subtituloCabecera}
         </Typography>
-        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+        <Typography variant="caption" sx={docModalReferenceSx}>
           Actuación #{actuacionId}
         </Typography>
       </Box>
@@ -243,22 +221,15 @@ export function RecorridoDetalleDocumentalDialog({
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       actions={
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1.5,
-            width: "100%",
-          }}
-        >
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, flex: "1 1 220px", minWidth: 0 }}>
+        <Box sx={docModalFooterRowSx}>
+          <Typography variant="caption" component="div" sx={docModalFooterHintSx}>
             Vista solo lectura. Los datos reflejan el circuito cargado en el sistema al momento de la consulta.
           </Typography>
-          <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose}>
-            Cerrar
-          </AppButton>
+          <Box sx={docModalFooterButtonsSx}>
+            <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose}>
+              Cerrar
+            </AppButton>
+          </Box>
         </Box>
       }
     >
@@ -268,8 +239,12 @@ export function RecorridoDetalleDocumentalDialog({
         </Box>
       )}
       {!loading && detalle && (
-        <Box component="section" aria-label="Detalle del recorrido por etapas">
-          <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mb: 2 }}>
+        <Stack
+          component="section"
+          spacing={DOC_MODAL_BLOCK_STACK_SPACING}
+          aria-label="Detalle del recorrido por etapas"
+        >
+          <Typography variant="body2" sx={docModalIntroParagraphSx}>
             Circuito administrativo desde el acta de comprobación. Domicilio e inspectores provienen de la misma fila
             del listado cuando está disponible.
           </Typography>
@@ -286,7 +261,7 @@ export function RecorridoDetalleDocumentalDialog({
             </DocumentalBloque>
           ) : (
             <DocumentalBloque overline="Domicilio y titular" resumen="Abrir el detalle desde el listado Recorrido para ver estos datos.">
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.42)", fontStyle: "italic" }}>
+              <Typography variant="body2" sx={docModalEmptyStateSx}>
                 Sin fila de listado vinculada.
               </Typography>
             </DocumentalBloque>
@@ -326,19 +301,19 @@ export function RecorridoDetalleDocumentalDialog({
             overline="Etapas administrativas"
             resumen="Expediente de envío, oficio, expediente de respuesta y programación de reinspección."
           >
-            <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mt: 0.5, mb: 0.5 }}>
+            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.5, mb: 0.5 }}>
               Expediente de envío (comprobación)
             </Typography>
             {renderKvBloque(detalle.expediente_comprobacion_envio as Record<string, unknown> | null)}
-            <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mt: 1.25, mb: 0.5 }}>
+            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
               Oficio
             </Typography>
             {renderKvBloque(detalle.oficio as Record<string, unknown> | null)}
-            <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mt: 1.25, mb: 0.5 }}>
+            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
               Expediente del oficio (respuesta)
             </Typography>
             {renderKvBloque(detalle.expediente_respuesta_oficio as Record<string, unknown> | null)}
-            <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mt: 1.25, mb: 0.5 }}>
+            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
               Reinspección por oficio
             </Typography>
             {renderKvBloque(detalle.reinspeccion_por_oficio as Record<string, unknown> | null)}
@@ -347,7 +322,7 @@ export function RecorridoDetalleDocumentalDialog({
           <DocumentalBloque overline="Resultado final" resumen="Estado del recorrido y resultado consolidado del cumplimiento.">
             {renderKvBloque(detalle.resultado_final as Record<string, unknown>)}
           </DocumentalBloque>
-        </Box>
+        </Stack>
       )}
     </AppDialog>
   );

@@ -536,12 +536,28 @@ def _dias_restantes_desde_vencimiento(fecha_vencimiento: date | None) -> int | N
     return max(0, delta)
 
 
+def _inspectores_joined_text_from_orm(act: Actuaciones) -> Optional[str]:
+    """Nombres de inspectores de la actuación ORM (relación `inspector` cargada)."""
+    insp_list: List[Any] = getattr(act, "inspector", None) or []
+    if insp_list:
+        insp_list = sorted(insp_list, key=lambda x: getattr(x, "id", 0))
+    nombres: List[str] = []
+    for i in insp_list:
+        n = getattr(i, "nombre", None)
+        if n:
+            t = str(n).strip()
+            if t:
+                nombres.append(t)
+    return ", ".join(nombres) if nombres else None
+
+
 def actuacion_to_pendiente_expediente_row(
     act: Actuaciones,
     *,
     plazos_por_notificacion: dict[int, int] | None = None,
     fecha_vencimiento_por_notificacion: dict[int, date | None] | None = None,
     counts_by_eo: dict[int, int] | None = None,
+    posterior_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
 ) -> Dict[str, Any]:
     """
     DTO compacto para la bandeja unificada de pendientes de expediente.
@@ -549,6 +565,10 @@ def actuacion_to_pendiente_expediente_row(
     Incluye `source_type` explícito y mantiene campos mínimos para UI administrativa.
     Rama NOTIFICACION: `dias_restantes` y `plazos_otorgados` cuando se pasan mapas batch
     (`build_notificacion_expediente_bandeja_metrics`). Rama COMPROBACION: ambos None.
+
+    Campos `comprobacion_posterior_*`: visita con comprobación posterior a la fila (mismo
+    domicilio) o, en rama COMPROBACION, la propia fila. Requieren ``posterior_por_actuacion_id``
+    desde ``build_posterior_comprobacion_por_actuacion_id`` para la rama NOTIFICACION.
     """
     full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     source_type = _infer_expediente_source_type(act)
@@ -564,6 +584,24 @@ def actuacion_to_pendiente_expediente_row(
     else:
         full["plazos_otorgados"] = None
         full["dias_restantes"] = None
+
+    post_act: Actuaciones | None = None
+    if posterior_por_actuacion_id is not None:
+        post_act = posterior_por_actuacion_id.get(int(act.id))
+
+    if post_act is not None:
+        comp_p = getattr(post_act, "comprobacion", None)
+        full["comprobacion_posterior_fecha"] = post_act.fecha.isoformat() if post_act.fecha else None
+        full["comprobacion_posterior_inspectores_texto"] = _inspectores_joined_text_from_orm(post_act)
+        full["comprobacion_posterior_acta_num"] = getattr(comp_p, "numero_acta", None) if comp_p else None
+    elif source_type == "COMPROBACION" and getattr(act, "comprobacion_id", None):
+        full["comprobacion_posterior_fecha"] = full.get("fecha_actuacion")
+        full["comprobacion_posterior_inspectores_texto"] = full.get("inspectores_texto")
+        full["comprobacion_posterior_acta_num"] = full.get("acta_comprobacion_num")
+    else:
+        full["comprobacion_posterior_fecha"] = None
+        full["comprobacion_posterior_inspectores_texto"] = None
+        full["comprobacion_posterior_acta_num"] = None
 
     return full
 

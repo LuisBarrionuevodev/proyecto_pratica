@@ -6,7 +6,26 @@ import { useNavigate } from "react-router-dom";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
-import { GLASS_COLORS, glassCard } from "../../../styles/GlassStyles";
+import {
+  DOC_MODAL_BLOCK_STACK_SPACING,
+  DOC_MODAL_TEXT,
+  docModalBlockOverlineSx,
+  docModalBlockResumenSx,
+  docModalChipSx,
+  docModalEmptyStateSx,
+  docModalFilaEtiquetaSx,
+  docModalFilaValorSx,
+  docModalFooterButtonsSx,
+  docModalFooterHintSx,
+  docModalFooterRowSx,
+  docModalGlassCardShellSx,
+  docModalHeaderStackSx,
+  docModalIntroParagraphSx,
+  docModalReferenceSx,
+  docModalSubtitleSx,
+  docModalTitleSx,
+} from "../../../styles/documentalModalTokens";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
 
@@ -42,9 +61,9 @@ function opts(strings: string[]) {
 }
 
 const sectionTitleSx = {
-  color: "rgba(255,255,255,0.88)",
+  color: DOC_MODAL_TEXT,
   fontFamily: '"Tactic Sans", sans-serif',
-  fontWeight: 600,
+  fontWeight: 700,
   mb: 1.5,
   display: "block" as const,
 };
@@ -98,24 +117,10 @@ function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }
         "&:last-of-type": { borderBottom: "none", pb: 0 },
       }}
     >
-      <Typography
-        component="span"
-        variant="body2"
-        sx={{ color: GLASS_COLORS.textSecondary, minWidth: { sm: 160 }, flex: { xs: "1 1 100%", sm: "0 1 38%" } }}
-      >
+      <Typography component="span" variant="body2" sx={docModalFilaEtiquetaSx}>
         {etiqueta}
       </Typography>
-      <Typography
-        component="span"
-        variant="body2"
-        sx={{
-          color: GLASS_COLORS.textPrimary,
-          fontWeight: 500,
-          textAlign: { xs: "left", sm: "right" },
-          flex: { xs: "1 1 100%", sm: "1 1 50%" },
-          wordBreak: "break-word",
-        }}
-      >
+      <Typography component="span" variant="body2" sx={docModalFilaValorSx}>
         {valor}
       </Typography>
     </Box>
@@ -132,20 +137,12 @@ function DocumentalBloque({
   children: ReactNode;
 }) {
   return (
-    <Box
-      sx={{
-        ...glassCard,
-        p: 2,
-        mb: 0,
-        borderLeft: `3px solid ${COLORS.primary}`,
-        borderRadius: "12px",
-      }}
-    >
-      <Typography variant="overline" sx={{ color: COLORS.primary, letterSpacing: 1.1, fontWeight: 700 }}>
+    <Box sx={docModalGlassCardShellSx(COLORS.primary)}>
+      <Typography component="div" sx={docModalBlockOverlineSx}>
         {overline}
       </Typography>
       {resumen ? (
-        <Typography variant="caption" sx={{ display: "block", color: GLASS_COLORS.textSecondary, mb: 1.25, mt: 0.25 }}>
+        <Typography component="div" sx={docModalBlockResumenSx}>
           {resumen}
         </Typography>
       ) : null}
@@ -203,9 +200,10 @@ function BloqueEpicollectDetalleLectura({
     m: 0,
     pl: 2,
     pt: 0.5,
-    color: "rgba(255,255,255,0.72)",
+    color: DOC_MODAL_TEXT,
     fontSize: "0.8125rem",
     lineHeight: 1.45,
+    fontWeight: 400,
   } as const;
 
   return (
@@ -215,7 +213,7 @@ function BloqueEpicollectDetalleLectura({
           variant="subtitle2"
           sx={{
             ...(embedded
-              ? { color: GLASS_COLORS.textPrimary, fontWeight: 600, mt: 0, mb: 0, flex: "1 1 auto" }
+              ? { color: DOC_MODAL_TEXT, fontWeight: 700, mt: 0, mb: 0, flex: "1 1 auto" }
               : { ...sectionTitleSx, mt: 0, mb: 0, flex: "1 1 auto" }),
           }}
         >
@@ -232,14 +230,21 @@ function BloqueEpicollectDetalleLectura({
           variant="outlined"
         />
       </Box>
-      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mb: 0.75, lineHeight: 1.5 }}>
+      <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 400, mb: 0.75, lineHeight: 1.5 }}>
         Hay un snapshot local de <strong>{n}</strong> respuesta{n === 1 ? "" : "s"} del formulario (sin fotos). Solo
         lectura; no se edita desde aquí.
       </Typography>
       {uuid ? (
         <Typography
           variant="caption"
-          sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 1, fontFamily: "monospace" }}
+          sx={{
+            color: DOC_MODAL_TEXT,
+            fontWeight: 400,
+            display: "block",
+            mb: 1,
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+          }}
         >
           ec5_uuid: {uuid}
         </Typography>
@@ -250,8 +255,8 @@ function BloqueEpicollectDetalleLectura({
           <Typography
             variant="caption"
             sx={{
-              color: "rgba(255,255,255,0.7)",
-              fontWeight: 600,
+              color: DOC_MODAL_TEXT,
+              fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.04em",
               display: "block",
@@ -266,12 +271,12 @@ function BloqueEpicollectDetalleLectura({
                 <Typography
                   variant="body2"
                   component="span"
-                  sx={{ color: "rgba(255,255,255,0.78)", fontSize: "inherit", fontWeight: 500 }}
+                  sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 600 }}
                 >
                   {s.label}
                 </Typography>
                 {": "}
-                <Typography variant="body2" component="span" sx={{ color: "rgba(255,255,255,0.62)", fontSize: "inherit" }}>
+                <Typography variant="body2" component="span" sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 500 }}>
                   {s.value_preview}
                 </Typography>
               </Box>
@@ -286,8 +291,8 @@ function BloqueEpicollectDetalleLectura({
             <Typography
               variant="caption"
               sx={{
-                color: "rgba(255,255,255,0.55)",
-                fontWeight: 600,
+                color: DOC_MODAL_TEXT,
+                fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.04em",
                 flex: "1 1 auto",
@@ -301,7 +306,7 @@ function BloqueEpicollectDetalleLectura({
               aria-expanded={otrosExpanded}
               aria-label={otrosExpanded ? "Ocultar otros campos" : "Mostrar otros campos"}
               sx={{
-                color: "rgba(255,255,255,0.7)",
+                color: DOC_MODAL_TEXT,
                 transform: otrosExpanded ? "rotate(180deg)" : "none",
                 transition: "transform 0.2s ease",
               }}
@@ -313,19 +318,11 @@ function BloqueEpicollectDetalleLectura({
             <Box component="ul" sx={{ ...listSx, pt: 0 }}>
               {otros.map((p) => (
                 <Box component="li" key={p.field_id} sx={{ mb: 0.75 }}>
-                  <Typography
-                    variant="body2"
-                    component="span"
-                    sx={{ color: "rgba(255,255,255,0.5)", fontSize: "inherit" }}
-                  >
+                  <Typography variant="body2" component="span" sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 600 }}>
                     {p.field_id}
                   </Typography>
                   {": "}
-                  <Typography
-                    variant="body2"
-                    component="span"
-                    sx={{ color: "rgba(255,255,255,0.72)", fontSize: "inherit" }}
-                  >
+                  <Typography variant="body2" component="span" sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 500 }}>
                     {p.value_preview}
                   </Typography>
                 </Box>
@@ -334,7 +331,7 @@ function BloqueEpicollectDetalleLectura({
           </Collapse>
         </>
       ) : sectores.length === 0 ? (
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", pt: 0.5 }}>
+        <Typography variant="caption" sx={{ ...docModalEmptyStateSx, display: "block", pt: 0.5, fontSize: "0.8125rem" }}>
           No hay datos de formulario en el snapshot (o payload vacío).
         </Typography>
       ) : null}
@@ -353,13 +350,13 @@ function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionList
         variant="subtitle2"
         sx={
           embedded
-            ? { color: GLASS_COLORS.textPrimary, fontWeight: 600, mt: 0, mb: 1, display: "block" }
+            ? { color: DOC_MODAL_TEXT, fontWeight: 700, mt: 0, mb: 1, display: "block" }
             : { ...sectionTitleSx, mt: 0, mb: 1 }
         }
       >
         Evidencias multimedia
       </Typography>
-      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", mb: 1.25, lineHeight: 1.5 }}>
+      <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 400, mb: 1.25, lineHeight: 1.5 }}>
         Archivos vinculados desde EpiCollect (por categoría).{" "}
         <strong>{total}</strong> evidencia{total === 1 ? "" : "s"} en total. Los enlaces abren en otra pestaña.
       </Typography>
@@ -367,10 +364,7 @@ function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionList
         const links = g.items.filter((it) => it.url && String(it.url).trim() !== "");
         return (
           <Box key={g.categoria} sx={{ mb: 1.5 }}>
-            <Typography
-              variant="body2"
-              sx={{ color: "rgba(255,255,255,0.88)", fontWeight: 600, mb: 0.5 }}
-            >
+            <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 700, mb: 0.5 }}>
               {g.label}: {g.count} {g.count === 1 ? "archivo" : "archivos"}
             </Typography>
             {links.length > 0 ? (
@@ -383,14 +377,20 @@ function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionList
                     rel="noopener noreferrer"
                     underline="hover"
                     variant="body2"
-                    sx={{ color: "rgba(129, 212, 250, 0.95)", fontSize: "0.8125rem" }}
+                    sx={{
+                      color: DOC_MODAL_TEXT,
+                      fontWeight: 600,
+                      fontSize: "0.8125rem",
+                      textDecoration: "underline",
+                      textDecorationColor: COLORS.primary,
+                    }}
                   >
                     Ver {idx + 1}
                   </Link>
                 ))}
               </Box>
             ) : (
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)" }}>
+              <Typography variant="caption" sx={{ color: DOC_MODAL_TEXT, fontWeight: 500, fontStyle: "italic" }}>
                 Sin URL registrada
               </Typography>
             )}
@@ -407,7 +407,7 @@ function BloqueIniciadorVacío() {
       <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
         3. Iniciador de la ruta
       </Typography>
-      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)", lineHeight: 1.5 }}>
+      <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 400, lineHeight: 1.5 }}>
         Los datos del iniciador de ruta no están disponibles desde este listado. Cuando el API los
         incluya, se mostrarán aquí sin mezclarlos con la actuación ni el local.
       </Typography>
@@ -474,38 +474,15 @@ export function ActuacionDetalleDialog({
   const subtituloCabecera = [dash(draft.fecha_actuacion), domicilioTexto(draft), titularLinea(draft)].join(" · ");
 
   const documentalTitleRead = (
-    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.75, py: 0.25, minWidth: 0 }}>
-      <Chip
-        label="Actuación"
-        size="small"
-        sx={{
-          height: 24,
-          fontWeight: 600,
-          borderColor: GLASS_COLORS.borderMedium,
-          color: GLASS_COLORS.textSecondary,
-          backgroundColor: "rgba(255,255,255,0.06)",
-        }}
-        variant="outlined"
-      />
-      <Typography
-        component="span"
-        variant="h6"
-        sx={{ fontWeight: 700, lineHeight: 1.25, color: GLASS_COLORS.textPrimary, wordBreak: "break-word" }}
-      >
+    <Box sx={docModalHeaderStackSx}>
+      <Chip label="Actuación" size="small" sx={docModalChipSx} variant="outlined" />
+      <Typography component="span" variant="h6" sx={docModalTitleSx}>
         {`Actuación #${draft.id}`}
       </Typography>
-      <Typography
-        variant="body2"
-        sx={{
-          color: GLASS_COLORS.textSecondary,
-          fontWeight: 500,
-          lineHeight: 1.4,
-          wordBreak: "break-word",
-        }}
-      >
+      <Typography variant="body2" sx={docModalSubtitleSx}>
         {subtituloCabecera}
       </Typography>
-      <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+      <Typography variant="caption" sx={docModalReferenceSx}>
         OT {dash(draft.orden_trabajo_numero)} · {dash(draft.tipo_actuacion)}
       </Typography>
     </Box>
@@ -525,8 +502,8 @@ export function ActuacionDetalleDialog({
     : "—";
 
   const detalleVista = (
-    <Stack spacing={2} component="section" aria-label="Detalle documental de la actuación">
-      <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+    <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Detalle documental de la actuación">
+      <Typography variant="body2" sx={docModalIntroParagraphSx}>
         Vista documental desde el listado. Los mismos datos alimentan la edición parcial al pulsar Editar.
       </Typography>
 
@@ -565,7 +542,7 @@ export function ActuacionDetalleDialog({
             </AppButton>
           </Box>
         ) : (
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, display: "block", mt: 0.75 }}>
+          <Typography variant="caption" sx={{ ...docModalIntroParagraphSx, display: "block", mt: 0.75, fontSize: "0.8125rem" }}>
             Sin ficha vinculada: suele figurar cuando el cierre en ruta consolidó el domicilio; registros anteriores al
             módulo pueden quedar sin vínculo.
           </Typography>
@@ -638,7 +615,7 @@ export function ActuacionDetalleDialog({
         ) : null}
         {tieneEvidenciasEpicollect ? <BloqueEvidenciasEpicollect draft={draft} embedded /> : null}
         {!tieneSnapEpicollect && !tieneEvidenciasEpicollect ? (
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.42)", fontStyle: "italic" }}>
+          <Typography variant="body2" sx={docModalEmptyStateSx}>
             Sin snapshot EpiCollect ni enlaces de evidencias en esta fila.
           </Typography>
         ) : null}
@@ -1005,22 +982,13 @@ export function ActuacionDetalleDialog({
       ]}
       showCloseButton
       actions={
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1.5,
-            width: "100%",
-          }}
-        >
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, flex: "1 1 200px", minWidth: 0 }}>
+        <Box sx={docModalFooterRowSx}>
+          <Typography variant="caption" component="div" sx={{ ...docModalFooterHintSx, flex: "1 1 200px" }}>
             {isEditing
               ? "Los cambios se guardan con el botón Guardar (canal actas)."
               : "Impresión: usa el menú del navegador si el diálogo no aparece en la vista previa."}
           </Typography>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Box sx={docModalFooterButtonsSx}>
             {!isEditing ? (
               <>
                 <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>

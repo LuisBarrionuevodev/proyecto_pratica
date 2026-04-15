@@ -54,7 +54,10 @@ import {
   sliceLabel,
   type PlazoOperativoSlice,
 } from "./gestionNotificacionPlazo";
-import { NotificacionDetalleDocumentalDialog } from "./components/NotificacionDetalleDocumentalDialog";
+import {
+  NotificacionDetalleDocumentalDialog,
+  type NotificacionDetalleModalVariant,
+} from "./components/NotificacionDetalleDocumentalDialog";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
 const PLAZO_TAB_ORDER: PlazoOperativoSlice[] = ["en_plazo", "por_vencer", "vencidas_o_hoy", "total"];
@@ -105,6 +108,31 @@ function diasRestantesCell(row: IActuacionesPendientesItem): string {
 function plazosOtorgadosCell(row: IActuacionesPendientesItem): string {
   if (row.plazos_otorgados === null || row.plazos_otorgados === undefined) return "—";
   return String(row.plazos_otorgados);
+}
+
+/** Celda truncada con tooltip (bandeja compacta). */
+function EllipsisTableCell({ value }: { value: string }) {
+  const body = (
+    <Box
+      component="span"
+      sx={{
+        display: "block",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        maxWidth: "100%",
+        typography: "body2",
+      }}
+    >
+      {value}
+    </Box>
+  );
+  if (!value || value === "—") return body;
+  return (
+    <Tooltip title={value} placement="top-start" enterDelay={400}>
+      {body}
+    </Tooltip>
+  );
 }
 
 function trimToNull(s: string): string | null {
@@ -238,6 +266,7 @@ const GestionNotificacionPage = () => {
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalVariant, setModalVariant] = useState<NotificacionDetalleModalVariant>("documental");
   const [expNumero, setExpNumero] = useState("");
   const [expFecha, setExpFecha] = useState(defaultRange.hasta);
   const [prorrogaDias, setProrrogaDias] = useState("0");
@@ -463,7 +492,8 @@ const GestionNotificacionPage = () => {
     [notificacionRows, plazoSlice]
   );
 
-  const openModal = useCallback((row: IActuacionesPendientesItem) => {
+  const openModal = useCallback((row: IActuacionesPendientesItem, variant: NotificacionDetalleModalVariant) => {
+    setModalVariant(variant);
     setSelected(row);
     setExpNumero("");
     setExpFecha(defaultRange.hasta);
@@ -519,44 +549,58 @@ const GestionNotificacionPage = () => {
     }
   };
 
-  const columnsBase = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
+  /** Anchos reducidos para dar lugar a la columna Acción (MRT sin resize en bandeja). */
+  const columnsDataCompact = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
+      {
+        accessorKey: "fecha_actuacion",
+        header: "Fecha",
+        size: 100,
+        Cell: ({ cell }) => <EllipsisTableCell value={String(cell.getValue() ?? "").trim() || "—"} />,
+      },
       {
         id: "contribuyente",
         header: "Contribuyente",
-        size: 200,
+        size: 132,
         accessorFn: (row) => contribuyenteText(row),
+        Cell: ({ row }) => <EllipsisTableCell value={contribuyenteText(row.original)} />,
       },
       {
         id: "domicilio",
         header: "Domicilio",
-        size: 220,
+        size: 148,
         accessorFn: (row) => domicilioText(row),
+        Cell: ({ row }) => <EllipsisTableCell value={domicilioText(row.original)} />,
       },
       {
         id: "acta_notificacion",
         header: "Nº notificación",
-        size: 140,
+        size: 108,
         accessorFn: (row) => row.acta_notificacion_num ?? "—",
+        Cell: ({ row }) => (
+          <EllipsisTableCell value={(row.original.acta_notificacion_num ?? "").trim() || "—"} />
+        ),
       },
       {
         id: "motivos",
         header: "Motivo(s)",
-        size: 200,
+        size: 124,
         accessorFn: (row) => motivosNotif(row),
+        Cell: ({ row }) => <EllipsisTableCell value={motivosNotif(row.original)} />,
       },
       {
         id: "dias_restantes",
-        header: "Días restantes",
-        size: 130,
+        header: "Días rest.",
+        size: 88,
         accessorFn: (row) => diasRestantesCell(row),
+        Cell: ({ row }) => <EllipsisTableCell value={diasRestantesCell(row.original)} />,
       },
       {
         id: "plazos_otorgados",
-        header: "Plazos otorgados",
-        size: 130,
+        header: "Plazos",
+        size: 84,
         accessorFn: (row) => plazosOtorgadosCell(row),
+        Cell: ({ row }) => <EllipsisTableCell value={plazosOtorgadosCell(row.original)} />,
       },
     ],
     []
@@ -564,36 +608,38 @@ const GestionNotificacionPage = () => {
 
   const columnsOperativa = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
-      ...columnsBase,
+      ...columnsDataCompact,
       {
         id: "acciones",
         header: "Acción",
-        size: 200,
+        size: 196,
+        grow: false,
         Cell: ({ row }) => (
-          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original)}>
-            Ver detalle
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original, "soloExpediente")}>
+            Agregar expediente
           </AppButton>
         ),
       },
     ],
-    [columnsBase, openModal]
+    [columnsDataCompact, openModal]
   );
 
   const columnsHistorial = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
-      ...columnsBase,
+      ...columnsDataCompact,
       {
         id: "ver",
         header: "Acción",
-        size: 140,
+        size: 128,
+        grow: false,
         Cell: ({ row }) => (
-          <AppButton dsVariant="ghost" dsSize="sm" onClick={() => openModal(row.original)}>
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original, "documental")}>
             Ver detalle
           </AppButton>
         ),
       },
     ],
-    [columnsBase, openModal]
+    [columnsDataCompact, openModal]
   );
 
   const renderOperativaToolbarRefresh = useCallback(
@@ -998,7 +1044,7 @@ const GestionNotificacionPage = () => {
         open={modalOpen}
         onClose={closeModal}
         row={selected}
-        allowRegistrarExpediente={plazoSlice !== "total"}
+        variant={modalVariant}
         expNumero={expNumero}
         onExpNumeroChange={(v) => {
           setExpNumero(v);

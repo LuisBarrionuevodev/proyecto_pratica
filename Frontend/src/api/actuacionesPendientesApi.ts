@@ -15,6 +15,10 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   dias_restantes?: number | null;
   /** Solo rama NOTIFICACION; count expedientes `PRORROGA_NOTIFICACION`. */
   plazos_otorgados?: number | null;
+  /** Primera visita posterior (mismo domicilio) con comprobación; rama COMPROBACION: la propia fila. */
+  comprobacion_posterior_fecha?: string | null;
+  comprobacion_posterior_inspectores_texto?: string | null;
+  comprobacion_posterior_acta_num?: string | null;
   source_type?: "NOTIFICACION" | "COMPROBACION";
   domicilio_id?: number | null;
   numero_esquina?: string | null;
@@ -248,3 +252,43 @@ export const getJuzgadosCatalogo = async (): Promise<IJuzgadoCatalogItem[]> => {
   const { data } = await apiClient.get<{ items: IJuzgadoCatalogItem[] }>("/grid/catalogs/juzgados");
   return data.items ?? [];
 };
+
+/** Expediente `PRORROGA_NOTIFICACION` (detalle documental por actuación). */
+export interface INotificacionProrrogaExpedienteItem {
+  id: number;
+  numero_expediente: string;
+  anio: string;
+  fecha_expediente: string | null;
+  created_at: string | null;
+  tipo_expediente: string;
+  /** Reservado en backend; hoy suele ser null (delta no persistido por fila). */
+  prorroga_dias_solicitada: number | null;
+}
+
+export interface INotificacionProrrogaExpedientesConsolidado {
+  plazo_dias: number;
+  prorroga_dias: number;
+  fecha_notificacion: string | null;
+  fecha_vencimiento: string | null;
+}
+
+export interface INotificacionProrrogaExpedientesResponse {
+  actuacion_id: number;
+  notificacion_id: number;
+  plazos_otorgados: number;
+  consolidado: INotificacionProrrogaExpedientesConsolidado;
+  items: INotificacionProrrogaExpedienteItem[];
+}
+
+/**
+ * Trazabilidad de expedientes de prórroga ligados a la notificación de la actuación.
+ * GET `/actuaciones/:id/notificacion/expedientes-prorroga`
+ */
+export async function fetchNotificacionProrrogaExpedientes(
+  actuacionId: number
+): Promise<INotificacionProrrogaExpedientesResponse> {
+  const { data } = await apiClient.get<INotificacionProrrogaExpedientesResponse>(
+    `/actuaciones/${actuacionId}/notificacion/expedientes-prorroga`
+  );
+  return data;
+}

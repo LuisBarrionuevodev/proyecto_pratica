@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
+    build_posterior_comprobacion_por_actuacion_id,
     get_pendientes_expediente,
 )
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
@@ -46,12 +47,14 @@ def pendientes_expediente_list():
         acts = get_pendientes_expediente(filters)
         plazos_map, venc_map = build_notificacion_expediente_bandeja_metrics(acts)
         counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+        posterior_map = build_posterior_comprobacion_por_actuacion_id(acts)
         items = [
             actuacion_to_pendiente_expediente_row(
                 a,
                 plazos_por_notificacion=plazos_map,
                 fecha_vencimiento_por_notificacion=venc_map,
                 counts_by_eo=counts_by_eo,
+                posterior_por_actuacion_id=posterior_map,
             )
             for a in acts
         ]
