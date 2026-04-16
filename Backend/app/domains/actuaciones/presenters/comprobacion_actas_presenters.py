@@ -12,7 +12,7 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     oficio_por_comprobacion,
 )
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
-from app.models import Actuaciones, Expediente, IniciadorRuta
+from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
 
 
 def _expediente_respuesta_oficio(comprobacion_id: int) -> Optional[Expediente]:
@@ -93,9 +93,48 @@ def comprobacion_recorrido_resumen_row(
     return base
 
 
+def _iniciador_origen_primera_actuacion(act: Actuaciones) -> Optional[IniciadorRuta]:
+    """
+    Iniciador mostrado en ``origen.iniciador`` del detalle de recorrido (solo lectura / UI).
+
+    Debe reflejar el **origen de la actuación** donde se labró la primera comprobación
+    (p. ej. DENUNCIA, RELEVAMIENTO), no el iniciador de **reinspección por oficio**
+    (posterior en el circuito).
+
+    Regla: entre los ``IniciadorRuta`` de esta actuación (no borrados), el de menor ``id``
+    excluyendo ``REINSPECCION_OFICIO``. Si solo hubiera reinspección por oficio, se usa el
+    de menor ``id`` (compatibilidad). No altera cómo se crean ni actualizan iniciadores en BD.
+    """
+    q_base = IniciadorRuta.query.filter(
+        IniciadorRuta.actuacion_id == act.id,
+        IniciadorRuta.deleted_at.is_(None),
+    )
+    primero_sin_reinsp_ofi = (
+        q_base.filter(IniciadorRuta.tipo_iniciador != "REINSPECCION_OFICIO")
+        .order_by(IniciadorRuta.id.asc())
+        .first()
+    )
+    if primero_sin_reinsp_ofi is not None:
+        return primero_sin_reinsp_ofi
+    return q_base.order_by(IniciadorRuta.id.asc()).first()
+
+
+def _juzgado_nombre(ofi: Optional[Oficio]) -> Optional[str]:
+    if not ofi or not getattr(ofi, "juzgado_id", None):
+        return None
+    jz = JuzgadoCatalogo.query.filter_by(id=int(ofi.juzgado_id)).first()
+    return getattr(jz, "nombre", None) if jz else None
+
+
 def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
     """
     Detalle estructurado consultivo (sin PDF): origen, comprobación, expedientes, oficio, reinspección, resultado.
+
+    Contrato estable (extensiones UI recorrido):
+    - ``origen.iniciador``: iniciador de origen de la actuación / primera comprobación
+      (excluye ``REINSPECCION_OFICIO`` salvo si es el único).
+    - ``oficio``: incluye ``causa``, ``juzgado_id``, ``juzgado_nombre`` cuando hay oficio.
+    - ``resultado_final.tipo_actuacion``: mismo string que la grilla (``actuacion_to_grid_row``).
     """
     if not act.comprobacion_id:
         raise ValueError("La actuación no tiene comprobación")
@@ -115,8 +154,30 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         .first()
     )
 
+    ini_origen = _iniciador_origen_primera_actuacion(act)
+    iniciador_payload: Optional[Dict[str, Any]] = None
+    if ini_origen is not None:
+        iniciador_payload = {
+            "id": ini_origen.id,
+            "tipo_iniciador": ini_origen.tipo_iniciador,
+            "estado_iniciador": ini_origen.estado_iniciador,
+            "fecha_origen": ini_origen.fecha_origen.isoformat() if ini_origen.fecha_origen else None,
+        }
+
     resultado = getattr(act, "resultado_cumplimiento_oficio", None)
     res_val = resultado.value if resultado is not None and hasattr(resultado, "value") else resultado
+
+    oficio_payload: Optional[Dict[str, Any]] = None
+    if ofi is not None:
+        oficio_payload = {
+            "id": ofi.id,
+            "numero_oficio": ofi.numero_oficio,
+            "anio": ofi.anio,
+            "fecha_oficio": ofi.fecha_oficio.isoformat() if ofi.fecha_oficio else None,
+            "causa": getattr(ofi, "causa", None),
+            "juzgado_id": getattr(ofi, "juzgado_id", None),
+            "juzgado_nombre": _juzgado_nombre(ofi),
+        }
 
     return {
         "actuacion_id": act.id,
@@ -124,6 +185,7 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
             "descripcion": "Actuación con acta de comprobación",
             "fecha_actuacion": grid.get("fecha_actuacion"),
             "orden_trabajo_numero": grid.get("orden_trabajo_numero"),
+            "iniciador": iniciador_payload,
         },
         "acta_comprobacion": {
             "numero": grid.get("acta_comprobacion_num"),
@@ -140,16 +202,7 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
             if exp_env
             else None
         ),
-        "oficio": (
-            {
-                "id": ofi.id,
-                "numero_oficio": ofi.numero_oficio,
-                "anio": ofi.anio,
-                "fecha_oficio": ofi.fecha_oficio.isoformat() if ofi.fecha_oficio else None,
-            }
-            if ofi
-            else None
-        ),
+        "oficio": oficio_payload,
         "expediente_respuesta_oficio": (
             {
                 "id": exp_resp.id,
@@ -173,5 +226,6 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         "resultado_final": {
             "resultado_cumplimiento_oficio": res_val,
             "estado_recorrido": estado_recorrido_label(act),
+            "tipo_actuacion": grid.get("tipo_actuacion"),
         },
     }

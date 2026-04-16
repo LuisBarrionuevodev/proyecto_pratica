@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import ClearIcon from "@mui/icons-material/Clear";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
@@ -54,9 +53,13 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
-import { AppButton, AppDialog, AppSelect, AppTextField } from "../../ui";
+import { AppButton } from "../../ui";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
+import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
+import { ComprobacionOficioOperativoDialog } from "./components/ComprobacionOficioOperativoDialog";
+import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
+import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionOperativoBlocks";
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
@@ -111,7 +114,6 @@ function yearOptions(center: number): { value: string; label: string }[] {
  * Actas de comprobación: cuatro slices (expediente → oficio → reinspección → recorrido consultivo).
  */
 const ActasComprobacionPage = () => {
-  const navigate = useNavigate();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const defaultMonthYear = useMemo(() => {
     const d = new Date(`${defaultRange.desde}T12:00:00`);
@@ -151,6 +153,7 @@ const ActasComprobacionPage = () => {
   const [expError, setExpError] = useState<string | null>(null);
   const [selectedExp, setSelectedExp] = useState<IActuacionesPendientesItem | null>(null);
   const [modalExpOpen, setModalExpOpen] = useState(false);
+  const [modalExpError, setModalExpError] = useState<string | null>(null);
   const [expNumeroForm, setExpNumeroForm] = useState("");
   const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
   const [savingExp, setSavingExp] = useState(false);
@@ -182,6 +185,7 @@ const ActasComprobacionPage = () => {
       setSelectedExp(row);
       setExpNumeroForm("");
       setExpFechaForm(defaultRange.hasta);
+      setModalExpError(null);
       setModalExpOpen(true);
     },
     [defaultRange.hasta]
@@ -196,11 +200,11 @@ const ActasComprobacionPage = () => {
   const handleSaveExpediente = async () => {
     if (!selectedExp) return;
     if (!expNumeroForm.trim() || !expFechaForm) {
-      setExpError("Completá número y fecha del expediente de comprobación");
+      setModalExpError("Completá número y fecha del expediente de comprobación");
       return;
     }
     setSavingExp(true);
-    setExpError(null);
+    setModalExpError(null);
     try {
       const payload: ICreateExpedienteRequest = {
         expediente_numero: expNumeroForm.trim(),
@@ -212,7 +216,7 @@ const ActasComprobacionPage = () => {
       await loadExpediente();
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setExpError(detail || "No se pudo añadir el expediente");
+      setModalExpError(detail || "No se pudo añadir el expediente");
     } finally {
       setSavingExp(false);
     }
@@ -297,6 +301,7 @@ const ActasComprobacionPage = () => {
   const [expNumero, setExpNumero] = useState("");
   const [expFecha, setExpFecha] = useState(defaultRange.hasta);
   const [savingOficio, setSavingOficio] = useState(false);
+  const [modalOficioError, setModalOficioError] = useState<string | null>(null);
 
   const loadOficio = useCallback(async () => {
     setOficioLoading(true);
@@ -318,7 +323,7 @@ const ActasComprobacionPage = () => {
     }
   }, []);
 
-  const openModalOficio = (row: IPendientesOficioItem) => {
+  const openModalOficio = useCallback((row: IPendientesOficioItem) => {
     setSelectedOficio(row);
     setNumeroOficio("");
     setFechaOficio(defaultRange.hasta);
@@ -326,8 +331,9 @@ const ActasComprobacionPage = () => {
     setCausa("");
     setExpNumero("");
     setExpFecha(defaultRange.hasta);
+    setModalOficioError(null);
     setModalOficioOpen(true);
-  };
+  }, [defaultRange.hasta]);
 
   const closeModalOficio = () => {
     if (savingOficio) return;
@@ -338,11 +344,11 @@ const ActasComprobacionPage = () => {
   const handleSaveOficio = async () => {
     if (!selectedOficio) return;
     if (!numeroOficio.trim() || !fechaOficio || !juzgadoId || !expNumero.trim() || !expFecha) {
-      setOficioError("Completá número/fecha/juzgado y datos del expediente de oficio");
+      setModalOficioError("Completá número/fecha/juzgado y datos del expediente de oficio");
       return;
     }
     setSavingOficio(true);
-    setOficioError(null);
+    setModalOficioError(null);
     try {
       await createOficioDesdeActuacion(selectedOficio.id, {
         numero_oficio: numeroOficio.trim(),
@@ -356,7 +362,7 @@ const ActasComprobacionPage = () => {
       await loadOficio();
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setOficioError(detail || "No se pudo cargar el oficio");
+      setModalOficioError(detail || "No se pudo cargar el oficio");
     } finally {
       setSavingOficio(false);
     }
@@ -397,7 +403,7 @@ const ActasComprobacionPage = () => {
         ),
       },
     ],
-    []
+    [openModalOficio]
   );
 
   const renderOficioToolbarRefresh = useCallback(
@@ -437,6 +443,18 @@ const ActasComprobacionPage = () => {
   const [reinItems, setReinItems] = useState<IReinspeccionOficioPendienteRow[]>([]);
   const [reinLoading, setReinLoading] = useState(false);
   const [reinError, setReinError] = useState<string | null>(null);
+  const [modalReinOpen, setModalReinOpen] = useState(false);
+  const [selectedRein, setSelectedRein] = useState<ReinspeccionOperativoDetalleRow | null>(null);
+
+  const openModalRein = useCallback((r: IReinspeccionOficioPendienteRow) => {
+    setSelectedRein(r as ReinspeccionOperativoDetalleRow);
+    setModalReinOpen(true);
+  }, []);
+
+  const closeModalRein = useCallback(() => {
+    setModalReinOpen(false);
+    setSelectedRein(null);
+  }, []);
 
   const loadRein = useCallback(async () => {
     setReinLoading(true);
@@ -501,15 +519,15 @@ const ActasComprobacionPage = () => {
       {
         id: "accion_rein",
         header: "Acción",
-        size: 200,
-        Cell: () => (
-          <AppButton dsVariant="primary" dsSize="sm" onClick={() => navigate("/completarTrabajos")}>
-            Ir a Completar trabajos
+        size: 160,
+        Cell: ({ row }) => (
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalRein(row.original)}>
+            Ver detalle
           </AppButton>
         ),
       },
     ],
-    [navigate]
+    [openModalRein]
   );
 
   const renderReinToolbarRefresh = useCallback(
@@ -1059,135 +1077,42 @@ const ActasComprobacionPage = () => {
         </Box>
       </Box>
 
-      <AppDialog
+      <ComprobacionExpedienteOperativoDialog
         open={modalExpOpen}
         onClose={closeModalExp}
-        title="Añadir expediente de comprobación"
-        fullWidth
-        maxWidth="sm"
-        appearance="glass"
-        onCloseButtonClick={closeModalExp}
-        actions={
-          <>
-            <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModalExp} disabled={savingExp}>
-              Cancelar
-            </AppButton>
-            <AppButton dsVariant="primary" dsSize="sm" onClick={() => void handleSaveExpediente()} disabled={savingExp}>
-              {savingExp ? "Guardando..." : "Guardar"}
-            </AppButton>
-          </>
-        }
-        contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
-      >
-        <AppTextField
-          appearance="dense"
-          label="Contexto"
-          value={`Acta comp: ${selectedExp?.acta_comprobacion_num ?? "-"} | OT: ${selectedExp?.orden_trabajo_numero ?? "-"}`}
-          fullWidth
-          InputProps={{ readOnly: true }}
-        />
-        <AppTextField
-          appearance="dense"
-          label="Número de expediente"
-          value={expNumeroForm}
-          onChange={(e) => setExpNumeroForm(e.target.value)}
-          fullWidth
-          required
-        />
-        <AppTextField
-          appearance="dense"
-          label="Fecha de expediente"
-          type="date"
-          value={expFechaForm}
-          onChange={(e) => setExpFechaForm(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          required
-        />
-      </AppDialog>
+        row={selectedExp}
+        expNumero={expNumeroForm}
+        onExpNumeroChange={setExpNumeroForm}
+        expFecha={expFechaForm}
+        onExpFechaChange={setExpFechaForm}
+        modalApiError={modalExpError}
+        saving={savingExp}
+        onGuardar={handleSaveExpediente}
+      />
 
-      <AppDialog
+      <ComprobacionOficioOperativoDialog
         open={modalOficioOpen}
         onClose={closeModalOficio}
-        title="Añadir oficio"
-        fullWidth
-        maxWidth="sm"
-        appearance="glass"
-        onCloseButtonClick={closeModalOficio}
-        actions={
-          <>
-            <AppButton dsVariant="ghost" dsSize="sm" onClick={closeModalOficio} disabled={savingOficio}>
-              Cancelar
-            </AppButton>
-            <AppButton dsVariant="primary" dsSize="sm" onClick={() => void handleSaveOficio()} disabled={savingOficio}>
-              {savingOficio ? "Guardando..." : "Guardar"}
-            </AppButton>
-          </>
-        }
-        contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
-      >
-        <AppTextField
-          appearance="dense"
-          label="Expediente original"
-          value={`${selectedOficio?.expediente_original_numero ?? "-"} / ${selectedOficio?.expediente_original_anio ?? "-"}`}
-          fullWidth
-          InputProps={{ readOnly: true }}
-        />
-        <AppTextField
-          appearance="dense"
-          label="Contexto"
-          value={`Acta comp: ${selectedOficio?.acta_comprobacion_num ?? "-"} | OT: ${selectedOficio?.orden_trabajo_numero ?? "-"}`}
-          fullWidth
-          InputProps={{ readOnly: true }}
-        />
-        <AppTextField
-          appearance="dense"
-          label="Número de oficio"
-          value={numeroOficio}
-          onChange={(e) => setNumeroOficio(e.target.value)}
-          fullWidth
-          required
-        />
-        <AppTextField
-          appearance="dense"
-          label="Fecha de oficio"
-          type="date"
-          value={fechaOficio}
-          onChange={(e) => setFechaOficio(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          required
-        />
-        <AppSelect
-          appearance="dense"
-          label="Juzgado"
-          value={juzgadoId === "" ? "" : String(juzgadoId)}
-          onChange={(e) => setJuzgadoId(e.target.value === "" ? "" : Number(e.target.value))}
-          fullWidth
-          required
-          variant="outlined"
-          options={[{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))]}
-        />
-        <AppTextField appearance="dense" label="Causa" value={causa} onChange={(e) => setCausa(e.target.value)} fullWidth />
-        <AppTextField
-          appearance="dense"
-          label="Número expediente oficio"
-          value={expNumero}
-          onChange={(e) => setExpNumero(e.target.value)}
-          fullWidth
-          required
-        />
-        <AppTextField
-          appearance="dense"
-          label="Fecha expediente oficio"
-          type="date"
-          value={expFecha}
-          onChange={(e) => setExpFecha(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          required
-        />
-      </AppDialog>
+        row={selectedOficio}
+        juzgados={juzgados}
+        numeroOficio={numeroOficio}
+        onNumeroOficioChange={setNumeroOficio}
+        fechaOficio={fechaOficio}
+        onFechaOficioChange={setFechaOficio}
+        juzgadoId={juzgadoId}
+        onJuzgadoIdChange={setJuzgadoId}
+        causa={causa}
+        onCausaChange={setCausa}
+        expNumero={expNumero}
+        onExpNumeroChange={setExpNumero}
+        expFecha={expFecha}
+        onExpFechaChange={setExpFecha}
+        modalApiError={modalOficioError}
+        saving={savingOficio}
+        onGuardar={handleSaveOficio}
+      />
+
+      <ComprobacionReinspeccionDetalleDialog open={modalReinOpen} onClose={closeModalRein} row={selectedRein} />
 
       <RecorridoDetalleDocumentalDialog
         open={detalleOpen}

@@ -3,6 +3,7 @@ import { Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 
 import type {
   IComprobacionRecorridoDetalle,
+  IComprobacionRecorridoOficio,
   IComprobacionRecorridoRow,
 } from "../../../api/actuacionesComprobacionActasApi";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
@@ -19,38 +20,12 @@ import {
   docModalFooterRowSx,
   docModalGlassCardShellSx,
   docModalHeaderStackSx,
-  docModalIntroParagraphSx,
-  docModalReferenceSx,
   docModalSubheadingInCardSx,
   docModalSubtitleSx,
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog } from "../../../ui";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
-
-/** Etiquetas legibles para claves de expediente / oficio / reinspección (DTO detalle). */
-const CAMPO_ETIQUETA: Record<string, string> = {
-  descripcion: "Descripción",
-  fecha_actuacion: "Fecha de actuación",
-  orden_trabajo_numero: "Orden de trabajo",
-  numero: "Número",
-  motivo: "Motivo",
-  id: "ID interno",
-  anio: "Año",
-  fecha: "Fecha",
-  tipo: "Tipo",
-  numero_oficio: "Número de oficio",
-  fecha_oficio: "Fecha de oficio",
-  iniciador_id: "Iniciador",
-  estado_iniciador: "Estado del iniciador",
-  fecha_origen: "Fecha de origen",
-  resultado_cumplimiento_oficio: "Resultado cumplimiento oficio",
-  estado_recorrido: "Estado del recorrido",
-};
-
-function etiquetaCampo(clave: string): string {
-  return CAMPO_ETIQUETA[clave] ?? clave.replace(/_/g, " ");
-}
 
 function textoValor(val: unknown): string {
   if (val === null || val === undefined || val === "") return "—";
@@ -130,21 +105,126 @@ function inspectoresLinea(row: IComprobacionRecorridoRow): string {
   return parts.length ? parts.join(" · ") : "—";
 }
 
-function renderKvBloque(data: Record<string, unknown> | null | undefined): ReactNode {
-  const vacio = data == null || Object.keys(data).length === 0;
-  if (vacio) {
+function actaComprobacionCabecera(listRow: IComprobacionRecorridoRow | null, detalle: IComprobacionRecorridoDetalle): string {
+  const n =
+    (listRow?.acta_comprobacion_num ?? "").trim() ||
+    String(detalle.acta_comprobacion?.numero ?? "").trim();
+  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
+}
+
+function expedienteFilasEstructuradas(
+  exp: Record<string, unknown> | null | undefined,
+  sinRegistro: string,
+  opts?: { numeroEtiqueta?: string }
+): ReactNode {
+  if (!exp || Object.keys(exp).length === 0) {
     return (
       <Typography variant="body2" sx={docModalEmptyStateSx}>
-        Sin registro en esta etapa.
+        {sinRegistro}
+      </Typography>
+    );
+  }
+  const numLbl = opts?.numeroEtiqueta ?? "Número";
+  return (
+    <>
+      <DocumentalFila etiqueta="Fecha" valor={textoValor(exp.fecha)} />
+      <DocumentalFila etiqueta="Año" valor={textoValor(exp.anio)} />
+      <DocumentalFila etiqueta={numLbl} valor={textoValor(exp.numero)} />
+      <DocumentalFila etiqueta="Tipo" valor={textoValor(exp.tipo)} />
+    </>
+  );
+}
+
+function expedienteRespuestaYOficioBloque(
+  exp: Record<string, unknown> | null | undefined,
+  ofi: IComprobacionRecorridoOficio | null
+): ReactNode {
+  const expVacio = !exp || Object.keys(exp).length === 0;
+  const ofiVacio =
+    !ofi ||
+    (!ofi.numero_oficio &&
+      ofi.anio == null &&
+      !ofi.fecha_oficio &&
+      !ofi.causa &&
+      ofi.juzgado_id == null &&
+      !ofi.juzgado_nombre);
+  if (expVacio && ofiVacio) {
+    return (
+      <Typography variant="body2" sx={docModalEmptyStateSx}>
+        Sin expediente de respuesta ni oficio registrados.
       </Typography>
     );
   }
   return (
-    <Stack spacing={0}>
-      {Object.entries(data).map(([k, v]) => (
-        <DocumentalFila key={k} etiqueta={etiquetaCampo(k)} valor={textoValor(v)} />
-      ))}
-    </Stack>
+    <>
+      {!expVacio
+        ? expedienteFilasEstructuradas(exp, "Sin expediente de respuesta registrado.", {
+            numeroEtiqueta: "Número de expediente",
+          })
+        : null}
+      {ofiVacio ? null : (
+        <>
+          {expVacio ? null : <Box sx={{ height: 8 }} />}
+          {oficioAdministrativoFilas(ofi)}
+        </>
+      )}
+    </>
+  );
+}
+
+function oficioAdministrativoFilas(ofi: IComprobacionRecorridoOficio | null): ReactNode {
+  if (!ofi) {
+    return (
+      <Typography variant="body2" sx={docModalEmptyStateSx}>
+        Sin oficio registrado.
+      </Typography>
+    );
+  }
+  const vacio =
+    !ofi.numero_oficio &&
+    ofi.anio == null &&
+    !ofi.fecha_oficio &&
+    !ofi.causa &&
+    ofi.juzgado_id == null &&
+    !ofi.juzgado_nombre;
+  if (vacio) {
+    return (
+      <Typography variant="body2" sx={docModalEmptyStateSx}>
+        Sin oficio registrado.
+      </Typography>
+    );
+  }
+  const juz =
+    (ofi.juzgado_nombre ?? "").trim() ||
+    (ofi.juzgado_id != null ? `Id ${ofi.juzgado_id}` : "");
+  return (
+    <>
+      <DocumentalFila etiqueta="Número de oficio" valor={textoValor(ofi.numero_oficio)} />
+      <DocumentalFila etiqueta="Año" valor={textoValor(ofi.anio)} />
+      <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(ofi.fecha_oficio)} />
+      <DocumentalFila etiqueta="Causa" valor={textoValor(ofi.causa)} />
+      <DocumentalFila etiqueta="Juzgado" valor={juz || "—"} />
+    </>
+  );
+}
+
+function reinspeccionPorOficioFilas(data: Record<string, unknown> | null | undefined): ReactNode {
+  if (!data || Object.keys(data).length === 0) {
+    return (
+      <Typography variant="body2" sx={docModalEmptyStateSx}>
+        Sin registro de reinspección por oficio.
+      </Typography>
+    );
+  }
+  const idIni = data.iniciador_id;
+  const iniciadorTxt =
+    idIni != null && idIni !== "" ? `#${String(idIni)}` : "—";
+  return (
+    <>
+      <DocumentalFila etiqueta="Estado del iniciador" valor={textoValor(data.estado_iniciador)} />
+      <DocumentalFila etiqueta="Fecha de origen" valor={textoValor(data.fecha_origen)} />
+      <DocumentalFila etiqueta="Iniciador" valor={iniciadorTxt} />
+    </>
   );
 }
 
@@ -174,40 +254,29 @@ export function RecorridoDetalleDocumentalDialog({
     onClose();
   };
 
-  const actaNum =
-    (listRow?.acta_comprobacion_num ?? "").trim() ||
-    textoValor(detalle?.acta_comprobacion?.numero).replace(/^—$/, "");
-
-  const tituloPrincipal =
-    actaNum && actaNum !== "—" ? `Acta de comprobación Nº ${actaNum}` : "Acta de comprobación";
-
-  const fechaCab =
-    (listRow?.fecha_actuacion ?? "").trim() ||
-    textoValor(detalle?.origen?.fecha_actuacion).replace(/^—$/, "");
-  const domCab = listRow ? domicilioLinea(listRow) : "—";
-  const titCab = listRow ? contribTitular(listRow) : "—";
-  const subtituloCabecera = [fechaCab || "—", domCab, titCab].join(" · ");
-
   const titleNode =
-    actuacionId != null ? (
+    actuacionId != null && detalle ? (
       <Box sx={docModalHeaderStackSx}>
         <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          {tituloPrincipal}
+          Recorrido de la comprobación
         </Typography>
         <Typography variant="body2" sx={docModalSubtitleSx}>
-          {subtituloCabecera}
+          {actaComprobacionCabecera(listRow, detalle)}
         </Typography>
-        <Typography variant="caption" sx={docModalReferenceSx}>
-          Actuación #{actuacionId}
+      </Box>
+    ) : actuacionId != null ? (
+      <Box sx={docModalHeaderStackSx}>
+        <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
+        <Typography component="span" variant="h6" sx={docModalTitleSx}>
+          Recorrido de la comprobación
         </Typography>
       </Box>
     ) : (
       "Recorrido"
     );
 
-  const origen = detalle?.origen as Record<string, unknown> | undefined;
-  const descripcionOrigen = textoValor(origen?.descripcion);
+  const o = detalle?.origen;
 
   return (
     <AppDialog
@@ -244,23 +313,21 @@ export function RecorridoDetalleDocumentalDialog({
           spacing={DOC_MODAL_BLOCK_STACK_SPACING}
           aria-label="Detalle del recorrido por etapas"
         >
-          <Typography variant="body2" sx={docModalIntroParagraphSx}>
-            Circuito administrativo desde el acta de comprobación. Domicilio e inspectores provienen de la misma fila
-            del listado cuando está disponible.
-          </Typography>
-
           {listRow ? (
             <DocumentalBloque
-              overline="Domicilio y titular"
-              resumen="Ubicación, titular o razón social, documento y rubro según la actuación."
+              overline="Referencia"
+              resumen="Contribuyente, documentación y domicilio según la fila del listado. La orden de trabajo figura en Inspección base."
             >
-              <DocumentalFila etiqueta="Calle y número" valor={domicilioLinea(listRow)} />
               <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribTitular(listRow)} />
               <DocumentalFila etiqueta="Documento" valor={textoValor(listRow.doc_nro)} />
               <DocumentalFila etiqueta="Rubro" valor={textoValor(listRow.rubro_nombre)} />
+              <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(listRow)} />
             </DocumentalBloque>
           ) : (
-            <DocumentalBloque overline="Domicilio y titular" resumen="Abrir el detalle desde el listado Recorrido para ver estos datos.">
+            <DocumentalBloque
+              overline="Referencia"
+              resumen="Abrir el detalle desde el listado Recorrido para ver domicilio y titular."
+            >
               <Typography variant="body2" sx={docModalEmptyStateSx}>
                 Sin fila de listado vinculada.
               </Typography>
@@ -269,58 +336,78 @@ export function RecorridoDetalleDocumentalDialog({
 
           <DocumentalBloque
             overline="Inspección base"
-            resumen="Visita y equipo según el registro de la actuación; el origen del circuito resume el contexto documental."
+            resumen="Visita, orden de trabajo, actas e iniciador con el que se originó la actuación (primera comprobación)."
           >
             <DocumentalFila
-              etiqueta="Fecha de la actuación (visita registrada)"
-              valor={textoValor(listRow?.fecha_actuacion ?? origen?.fecha_actuacion)}
+              etiqueta="Fecha de la actuación"
+              valor={textoValor(listRow?.fecha_actuacion ?? o?.fecha_actuacion)}
             />
-            <DocumentalFila
-              etiqueta="Acta de inspección (si consta)"
-              valor={textoValor(listRow?.acta_inspeccion_num)}
-            />
-            <DocumentalFila etiqueta="Inspectores" valor={listRow ? inspectoresLinea(listRow) : "—"} />
             <DocumentalFila
               etiqueta="Orden de trabajo"
-              valor={textoValor(listRow?.orden_trabajo_numero ?? origen?.orden_trabajo_numero)}
+              valor={textoValor(o?.orden_trabajo_numero ?? listRow?.orden_trabajo_numero)}
             />
+            <DocumentalFila etiqueta="Acta de inspección (si consta)" valor={textoValor(listRow?.acta_inspeccion_num)} />
+            <DocumentalFila etiqueta="Inspectores" valor={listRow ? inspectoresLinea(listRow) : "—"} />
             <DocumentalFila etiqueta="Tipo de actuación" valor={textoValor(listRow?.tipo_actuacion)} />
-            <DocumentalFila etiqueta="Origen del circuito (descripción)" valor={descripcionOrigen} />
+            {o?.iniciador ? (
+              <>
+                <DocumentalFila
+                  etiqueta="Tipo de iniciador (origen de la actuación)"
+                  valor={textoValor(o.iniciador.tipo_iniciador)}
+                />
+                <DocumentalFila etiqueta="Estado del iniciador (origen)" valor={textoValor(o.iniciador.estado_iniciador)} />
+                <DocumentalFila etiqueta="Fecha de origen (iniciador)" valor={textoValor(o.iniciador.fecha_origen)} />
+              </>
+            ) : (
+              <DocumentalFila etiqueta="Iniciador de origen" valor="—" />
+            )}
           </DocumentalBloque>
 
-          <DocumentalBloque overline="Acta de comprobación" resumen="Número, motivo y fecha de la visita de comprobación.">
+          <DocumentalBloque overline="Acta de comprobación" resumen="Número y motivo del acta en el circuito.">
             <DocumentalFila etiqueta="Número" valor={textoValor(detalle.acta_comprobacion?.numero)} />
             <DocumentalFila etiqueta="Motivo" valor={textoValor(detalle.acta_comprobacion?.motivo)} />
-            <DocumentalFila
-              etiqueta="Fecha (actuación)"
-              valor={textoValor(listRow?.fecha_actuacion ?? origen?.fecha_actuacion)}
-            />
           </DocumentalBloque>
 
           <DocumentalBloque
             overline="Etapas administrativas"
-            resumen="Expediente de envío, oficio, expediente de respuesta y programación de reinspección."
+            resumen="Expediente de envío, oficio, respuesta y programación de reinspección."
           >
             <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.5, mb: 0.5 }}>
-              Expediente de envío (comprobación)
+              Expediente de envío de comprobación
             </Typography>
-            {renderKvBloque(detalle.expediente_comprobacion_envio as Record<string, unknown> | null)}
-            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
-              Oficio
-            </Typography>
-            {renderKvBloque(detalle.oficio as Record<string, unknown> | null)}
+            {expedienteFilasEstructuradas(
+              detalle.expediente_comprobacion_envio as Record<string, unknown> | null,
+              "Sin expediente de envío registrado."
+            )}
             <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
               Expediente del oficio (respuesta)
             </Typography>
-            {renderKvBloque(detalle.expediente_respuesta_oficio as Record<string, unknown> | null)}
+            {expedienteRespuestaYOficioBloque(
+              detalle.expediente_respuesta_oficio as Record<string, unknown> | null,
+              detalle.oficio
+            )}
             <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
               Reinspección por oficio
             </Typography>
-            {renderKvBloque(detalle.reinspeccion_por_oficio as Record<string, unknown> | null)}
+            {reinspeccionPorOficioFilas(detalle.reinspeccion_por_oficio as Record<string, unknown> | null)}
           </DocumentalBloque>
 
-          <DocumentalBloque overline="Resultado final" resumen="Estado del recorrido y resultado consolidado del cumplimiento.">
-            {renderKvBloque(detalle.resultado_final as Record<string, unknown>)}
+          <DocumentalBloque
+            overline="Resultado final"
+            resumen="Estado del recorrido, cumplimiento del oficio y tipo de actuación (ratificación, verificar e informar, etc.)."
+          >
+            <DocumentalFila
+              etiqueta="Estado del recorrido"
+              valor={textoValor(detalle.resultado_final?.estado_recorrido)}
+            />
+            <DocumentalFila
+              etiqueta="Resultado cumplimiento oficio"
+              valor={textoValor(detalle.resultado_final?.resultado_cumplimiento_oficio)}
+            />
+            <DocumentalFila
+              etiqueta="Tipo de actuación"
+              valor={textoValor(detalle.resultado_final?.tipo_actuacion)}
+            />
           </DocumentalBloque>
         </Stack>
       )}

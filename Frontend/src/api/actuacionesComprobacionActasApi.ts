@@ -131,15 +131,46 @@ export async function fetchComprobacionRecorrido(
   return data;
 }
 
+/** Iniciador preferente para origen del circuito (API recorrido detalle). */
+export interface IComprobacionRecorridoOrigenIniciador {
+  id: number;
+  tipo_iniciador: string;
+  estado_iniciador: string;
+  fecha_origen: string | null;
+}
+
+export interface IComprobacionRecorridoOrigen {
+  descripcion?: string;
+  fecha_actuacion?: string | null;
+  orden_trabajo_numero?: string | null;
+  iniciador?: IComprobacionRecorridoOrigenIniciador | null;
+}
+
+export interface IComprobacionRecorridoOficio {
+  id?: number;
+  numero_oficio?: string | null;
+  anio?: number | null;
+  fecha_oficio?: string | null;
+  causa?: string | null;
+  juzgado_id?: number | null;
+  juzgado_nombre?: string | null;
+}
+
+export interface IComprobacionRecorridoResultadoFinal {
+  resultado_cumplimiento_oficio?: string | null;
+  estado_recorrido?: string | null;
+  tipo_actuacion?: string | null;
+}
+
 export interface IComprobacionRecorridoDetalle {
   actuacion_id: number;
-  origen: Record<string, unknown>;
+  origen: IComprobacionRecorridoOrigen;
   acta_comprobacion: Record<string, unknown>;
   expediente_comprobacion_envio: Record<string, unknown> | null;
-  oficio: Record<string, unknown> | null;
+  oficio: IComprobacionRecorridoOficio | null;
   expediente_respuesta_oficio: Record<string, unknown> | null;
   reinspeccion_por_oficio: Record<string, unknown> | null;
-  resultado_final: Record<string, unknown>;
+  resultado_final: IComprobacionRecorridoResultadoFinal;
 }
 
 export async function fetchComprobacionRecorridoDetalle(
