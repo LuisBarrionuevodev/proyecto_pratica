@@ -8,7 +8,6 @@ import {
   CircularProgress,
   IconButton,
   Paper,
-  Stack,
   Tab,
   Tabs,
   Tooltip,
@@ -53,7 +52,7 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
-import { AppButton } from "../../ui";
+import { AppButton, AppSelect, AppTextField } from "../../ui";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
@@ -474,12 +473,6 @@ const ActasComprobacionPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (tab === "oficio") void loadOficio();
-    else if (tab === "reinspeccion") void loadRein();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga al cambiar de pestaña
-  }, [tab]);
-
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
     () => [
       { accessorKey: "fecha_actuacion", header: "Fecha", size: 110 },
@@ -632,6 +625,16 @@ const ActasComprobacionPage = () => {
     setRecFilterApplied(true);
     void loadRecorridoSearch();
   }, [loadRecorridoSearch]);
+
+  useEffect(() => {
+    if (tab === "oficio") void loadOficio();
+    else if (tab === "reinspeccion") void loadRein();
+    else if (tab === "recorrido") {
+      setRecFilterApplied(true);
+      void loadRecorridoSearch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga al cambiar de pestaña (no re-disparar al editar filtros)
+  }, [tab]);
 
   const openDetalle = async (row: IComprobacionRecorridoRow) => {
     const actuacionId = row.id;
@@ -858,8 +861,8 @@ const ActasComprobacionPage = () => {
                 <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.5 }}>
                   Período calendario o rango de fechas, distrito y criterios opcionales por contribuyente, calle, número
                   de acta de comprobación o número de oficio. Tipo final acota por resultado del circuito. Los campos de
-                  texto son opcionales. Tocá <strong>Filtrar</strong> para cargar la tabla (máx. 500 filas por consulta
-                  en servidor).
+                  texto son opcionales. Al entrar a esta pestaña se carga el listado con el mes/año o rango elegido; tocá{" "}
+                  <strong>Filtrar</strong> después de cambiar criterios (máx. 500 filas por consulta en servidor).
                 </Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
@@ -1040,8 +1043,7 @@ const ActasComprobacionPage = () => {
               )}
               {!recFilterApplied ? (
                 <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-                  Elegí período y distrito, ajustá filtros opcionales si hace falta, y tocá <strong>Filtrar</strong> para ver
-                  el listado.
+                  Tocá <strong>Filtrar</strong> para volver a cargar el listado (p. ej. después de <strong>Limpiar</strong>).
                 </Typography>
               ) : recLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
