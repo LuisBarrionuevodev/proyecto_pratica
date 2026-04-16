@@ -31,6 +31,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     get_pendientes_expediente,
 )
 from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Motivo, Notificacion, OrdenTrabajo
+from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 
 def _unique_num() -> str:
@@ -178,7 +179,9 @@ def test_notificacion_cero_expedientes_aparece_plazos_cero(app_ctx) -> None:
         row = next(r for r in _rows_expediente(acts) if r["id"] == act.id)
         assert row["source_type"] == "NOTIFICACION"
         assert row["plazos_otorgados"] == 0
-        assert row["dias_restantes"] == 5
+        assert row["dias_restantes"] == contar_dias_habiles_inclusive(
+            date.today(), noti.fecha_vencimiento
+        )
     finally:
         db.session.rollback()
 

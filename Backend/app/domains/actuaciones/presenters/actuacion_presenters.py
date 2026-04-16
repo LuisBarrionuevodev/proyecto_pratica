@@ -30,6 +30,7 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
 from app.models import Actuaciones, Expediente, Oficio
+from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 
 def _enum_to_str(value: Any) -> Optional[str]:
@@ -527,13 +528,21 @@ def _infer_expediente_source_type(act: Actuaciones) -> str:
 
 def _dias_restantes_desde_vencimiento(fecha_vencimiento: date | None) -> int | None:
     """
-    Días hasta el vencimiento operativo de la notificación (`Notificacion.fecha_vencimiento`).
-    Si ya venció: 0 (criterio conservador). Sin fecha: None.
+    Días **hábiles** restantes hasta el vencimiento operativo (`Notificacion.fecha_vencimiento`),
+    alineado con el plazo en hábiles (misma regla que `calcular_fecha_vencimiento_notificacion_habiles`).
+
+    Cuenta hábiles desde hoy hasta ``fecha_vencimiento`` inclusive. Si ya venció: 0.
+    Sin fecha: None.
+
+    Nota: el job/CLI ``sync-notificaciones-vencidas`` no recalcula esto; solo reconcilia
+    iniciadores de reinspección. Este valor se deriva en cada lectura desde la fecha persistida.
     """
     if fecha_vencimiento is None:
         return None
-    delta = (fecha_vencimiento - date.today()).days
-    return max(0, delta)
+    hoy = date.today()
+    if fecha_vencimiento < hoy:
+        return 0
+    return contar_dias_habiles_inclusive(hoy, fecha_vencimiento)
 
 
 def _inspectores_joined_text_from_orm(act: Actuaciones) -> Optional[str]:
@@ -563,7 +572,8 @@ def actuacion_to_pendiente_expediente_row(
     DTO compacto para la bandeja unificada de pendientes de expediente.
 
     Incluye `source_type` explícito y mantiene campos mínimos para UI administrativa.
-    Rama NOTIFICACION: `dias_restantes` y `plazos_otorgados` cuando se pasan mapas batch
+    Rama NOTIFICACION: `dias_restantes` (hábiles hasta `fecha_vencimiento`) y `plazos_otorgados`
+    cuando se pasan mapas batch
     (`build_notificacion_expediente_bandeja_metrics`). Rama COMPROBACION: ambos None.
 
     Campos `comprobacion_posterior_*`: visita con comprobación posterior a la fila (mismo

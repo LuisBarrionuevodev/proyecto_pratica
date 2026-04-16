@@ -161,6 +161,81 @@ function expedienteActasLinea(row: IActuacionesPendientesItem): string {
   return row.expediente_anio != null ? `${row.expediente_numero} / ${row.expediente_anio}` : String(row.expediente_numero);
 }
 
+const PRORROGA_BLOQUE_RESUMEN =
+  "Listado de expedientes PRORROGA_NOTIFICACION y plazo consolidado desde el servidor. Los días por expediente no se persisten por fila; el total de prórroga refleja la notificación.";
+
+/**
+ * GET `/actuaciones/:id/notificacion/expedientes-prorroga` — mismo bloque en historial (documental) y en alta operativa (soloExpediente).
+ */
+function NotificacionProrrogaExpedientesCard({
+  loading,
+  error,
+  detalle,
+}: {
+  loading: boolean;
+  error: string | null;
+  detalle: INotificacionProrrogaExpedientesResponse | null;
+}) {
+  return (
+    <DocumentalBloque overline="Prórrogas y expedientes de plazo" resumen={PRORROGA_BLOQUE_RESUMEN}>
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+          <CircularProgress size={28} sx={{ color: COLORS.primary }} />
+        </Box>
+      ) : error ? (
+        <Typography variant="body2" sx={{ ...docModalEmptyStateSx, fontStyle: "normal" }}>
+          {error}
+        </Typography>
+      ) : detalle ? (
+        <>
+          <DocumentalFila etiqueta="Plazo base (días hábiles)" valor={textoValor(detalle.consolidado?.plazo_dias)} />
+          <DocumentalFila etiqueta="Prórroga acumulada (días)" valor={textoValor(detalle.consolidado?.prorroga_dias)} />
+          <DocumentalFila etiqueta="Fecha de notificación" valor={textoValor(detalle.consolidado?.fecha_notificacion)} />
+          <DocumentalFila etiqueta="Fecha de vencimiento (consolidada)" valor={textoValor(detalle.consolidado?.fecha_vencimiento)} />
+          <DocumentalFila etiqueta="Cantidad de expedientes de prórroga" valor={String(detalle.plazos_otorgados ?? 0)} />
+          {!detalle.items?.length ? (
+            <Typography variant="body2" sx={{ ...docModalEmptyStateSx, mt: 1 }}>
+              Sin expedientes de prórroga registrados para esta notificación.
+            </Typography>
+          ) : (
+            <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+              {detalle.items.map((it, idx) => (
+                <Box
+                  key={it.id}
+                  sx={{
+                    pt: idx === 0 ? 0 : 1.25,
+                    borderTop: idx === 0 ? "none" : "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mb: 0.75 }}>
+                    Expediente de prórroga {idx + 1}
+                  </Typography>
+                  <DocumentalFila
+                    etiqueta="Número"
+                    valor={textoValor(it.numero_expediente)}
+                  />
+                  <DocumentalFila etiqueta="Año" valor={textoValor(it.anio)} />
+                  <DocumentalFila etiqueta="Fecha de expediente" valor={textoValor(it.fecha_expediente)} />
+                  <DocumentalFila etiqueta="Tipo" valor={textoValor(it.tipo_expediente)} />
+                  <DocumentalFila etiqueta="Registrado (alta)" valor={textoValor(it.created_at)} />
+                  <DocumentalFila
+                    etiqueta="Días de esta prórroga (detalle)"
+                    valor={
+                      it.prorroga_dias_solicitada != null
+                        ? String(it.prorroga_dias_solicitada)
+                        : "No informado por fila (solo total consolidado arriba)."
+                    }
+                  />
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </>
+      ) : null}
+    </DocumentalBloque>
+  );
+}
+
 /**
  * Card única: contexto de fila (antes Referencia + Domicilio y titular + expediente DTO de plazo en card suelta).
  * Prórrogas consolidadas siguen en el bloque API debajo.
@@ -210,8 +285,8 @@ export type NotificacionDetalleDocumentalDialogProps = {
 };
 
 /**
- * Detalle de notificación: modo `documental` (ficha + prórrogas) o `soloExpediente` (formulario de alta sin carga extra).
- * Datos desde `IActuacionesPendientesItem` del listado (sin endpoint de detalle adicional salvo prórrogas en modo documental).
+ * Detalle de notificación: modo `documental` (ficha completa) o `soloExpediente` (alta de expediente de plazo).
+ * En ambos casos se consulta GET `/actuaciones/:id/notificacion/expedientes-prorroga` con `row.id` = actuación.
  */
 export function NotificacionDetalleDocumentalDialog({
   open,
@@ -240,12 +315,13 @@ export function NotificacionDetalleDocumentalDialog({
   const [prorrogaError, setProrrogaError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !row || variant !== "documental") {
+    if (!open || !row) {
       setProrrogaDetalle(null);
       setProrrogaError(null);
       setProrrogaLoading(false);
       return;
     }
+    /** Prórrogas solo aplican a actuaciones de rama notificación (no comprobación “posterior” en misma UI). */
     if (row.source_type === "COMPROBACION") {
       setProrrogaDetalle(null);
       setProrrogaError(null);
@@ -277,7 +353,7 @@ export function NotificacionDetalleDocumentalDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, row?.id, row?.source_type, row?.plazos_otorgados, variant]);
+  }, [open, row?.id, row?.source_type, variant]);
 
   const titleNode =
     row != null ? (
@@ -339,6 +415,13 @@ export function NotificacionDetalleDocumentalDialog({
             row={row}
             resumen="Ubicación, titular, documento, rubro, acta, plazo operativo y expediente en DTO si consta."
           />
+          {row.source_type !== "COMPROBACION" ? (
+            <NotificacionProrrogaExpedientesCard
+              loading={prorrogaLoading}
+              error={prorrogaError}
+              detalle={prorrogaDetalle}
+            />
+          ) : null}
           {modalApiError ? (
             <Alert severity="error" sx={{ mb: 0 }}>
               {modalApiError}
@@ -402,78 +485,11 @@ export function NotificacionDetalleDocumentalDialog({
           </DocumentalBloque>
 
           {row.source_type !== "COMPROBACION" ? (
-            <DocumentalBloque
-              overline="Prórrogas y expedientes de plazo"
-              resumen="Listado de expedientes PRORROGA_NOTIFICACION y plazo consolidado desde el servidor. Los días por expediente no se persisten por fila; el total de prórroga refleja la notificación."
-            >
-              {prorrogaLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
-                </Box>
-              ) : prorrogaError ? (
-                <Typography variant="body2" sx={{ ...docModalEmptyStateSx, fontStyle: "normal" }}>
-                  {prorrogaError}
-                </Typography>
-              ) : prorrogaDetalle ? (
-                <>
-                  <DocumentalFila
-                    etiqueta="Plazo base (días hábiles)"
-                    valor={textoValor(prorrogaDetalle.consolidado.plazo_dias)}
-                  />
-                  <DocumentalFila
-                    etiqueta="Prórroga acumulada (días)"
-                    valor={textoValor(prorrogaDetalle.consolidado.prorroga_dias)}
-                  />
-                  <DocumentalFila
-                    etiqueta="Fecha de notificación"
-                    valor={textoValor(prorrogaDetalle.consolidado.fecha_notificacion)}
-                  />
-                  <DocumentalFila
-                    etiqueta="Fecha de vencimiento (consolidada)"
-                    valor={textoValor(prorrogaDetalle.consolidado.fecha_vencimiento)}
-                  />
-                  <DocumentalFila
-                    etiqueta="Cantidad de expedientes de prórroga"
-                    valor={String(prorrogaDetalle.plazos_otorgados)}
-                  />
-                  {prorrogaDetalle.items.length === 0 ? (
-                    <Typography variant="body2" sx={{ ...docModalEmptyStateSx, mt: 1 }}>
-                      Sin expedientes de prórroga registrados para esta notificación.
-                    </Typography>
-                  ) : (
-                    <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-                      {prorrogaDetalle.items.map((it, idx) => (
-                        <Box
-                          key={it.id}
-                          sx={{
-                            pt: idx === 0 ? 0 : 1.25,
-                            borderTop: idx === 0 ? "none" : "1px solid rgba(255,255,255,0.08)",
-                          }}
-                        >
-                          <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mb: 0.75 }}>
-                            Expediente de prórroga {idx + 1}
-                          </Typography>
-                          <DocumentalFila
-                            etiqueta="Número / año"
-                            valor={`${textoValor(it.numero_expediente)} / ${textoValor(it.anio)}`}
-                          />
-                          <DocumentalFila etiqueta="Fecha de expediente" valor={textoValor(it.fecha_expediente)} />
-                          <DocumentalFila etiqueta="Registrado (alta)" valor={textoValor(it.created_at)} />
-                          <DocumentalFila
-                            etiqueta="Días de esta prórroga (detalle)"
-                            valor={
-                              it.prorroga_dias_solicitada != null
-                                ? String(it.prorroga_dias_solicitada)
-                                : "No informado por fila (solo total consolidado arriba)."
-                            }
-                          />
-                        </Box>
-                      ))}
-                    </Stack>
-                  )}
-                </>
-              ) : null}
-            </DocumentalBloque>
+            <NotificacionProrrogaExpedientesCard
+              loading={prorrogaLoading}
+              error={prorrogaError}
+              detalle={prorrogaDetalle}
+            />
           ) : null}
 
           <DocumentalBloque

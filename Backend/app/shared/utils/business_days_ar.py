@@ -76,6 +76,29 @@ def _nth_dia_habil_desde_inicio_inclusive(
     return current
 
 
+def contar_dias_habiles_inclusive(
+    desde: date,
+    hasta: date,
+    *,
+    es_feriado: Optional[HolidayPredicate] = None,
+) -> int:
+    """
+    Cantidad de días hábiles en el rango ``desde`` .. ``hasta`` (ambos inclusive).
+
+    Si ``desde`` > ``hasta``, devuelve 0. Útil para "días hábiles restantes" hasta un
+    ``fecha_vencimiento`` alineado con el cómputo de plazo en hábiles.
+    """
+    if desde > hasta:
+        return 0
+    n = 0
+    d = desde
+    while d <= hasta:
+        if es_dia_habil(d, es_feriado=es_feriado):
+            n += 1
+        d += timedelta(days=1)
+    return n
+
+
 def calcular_fecha_vencimiento_notificacion_habiles(
     fecha_notificacion: date,
     total_dias_habiles: int,

@@ -9,6 +9,7 @@ import pytest
 from app.domains.actuaciones.services.notificacion_timing_service import calcular_fecha_vencimiento
 from app.shared.utils.business_days_ar import (
     calcular_fecha_vencimiento_notificacion_habiles,
+    contar_dias_habiles_inclusive,
     es_dia_habil,
     siguiente_dia_habil_posterior,
 )
@@ -57,3 +58,17 @@ def test_total_cero_devuelve_fecha_notificacion() -> None:
 
 def test_siguiente_dia_habil_posterior_viernes() -> None:
     assert siguiente_dia_habil_posterior(date(2026, 3, 6)) == date(2026, 3, 9)
+
+
+def test_contar_dias_habiles_inclusive_misma_semana() -> None:
+    # Lun 9 .. Vie 13 mar 2026 = 5 hábiles
+    assert contar_dias_habiles_inclusive(date(2026, 3, 9), date(2026, 3, 13)) == 5
+
+
+def test_contar_dias_habiles_inclusive_desde_mayor_que_hasta() -> None:
+    assert contar_dias_habiles_inclusive(date(2026, 3, 20), date(2026, 3, 9)) == 0
+
+
+def test_contar_dias_habiles_inclusive_salta_finde() -> None:
+    # Vie 6 .. Lun 9: vie + lun = 2 hábiles (sáb 7 y dom 8 no cuentan)
+    assert contar_dias_habiles_inclusive(date(2026, 3, 6), date(2026, 3, 9)) == 2
