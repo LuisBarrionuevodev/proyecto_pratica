@@ -22,6 +22,7 @@ import {
   docModalHeaderStackSx,
   docModalIntroParagraphSx,
   docModalReferenceSx,
+  docModalSubheadingInCardSx,
   docModalSubtitleSx,
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
@@ -127,6 +128,192 @@ function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }
   );
 }
 
+/** Número de acta como lectura principal en la card "Actas de la visita". */
+const actaNumeroPrincipalSx = {
+  color: DOC_MODAL_TEXT,
+  fontWeight: 700,
+  fontSize: "1.0625rem",
+  lineHeight: 1.35,
+  letterSpacing: "0.02em",
+  fontFamily: '"Tactic Sans", sans-serif',
+  mt: 0.75,
+  wordBreak: "break-word" as const,
+};
+
+/** Motivos, kilos y complementos bajo el número de acta. */
+const actaDetalleSecundarioSx = {
+  color: DOC_MODAL_TEXT,
+  fontSize: "0.8125rem",
+  fontWeight: 400,
+  lineHeight: 1.5,
+  opacity: 0.92,
+  mt: 1,
+};
+
+const actaGrupoWrapperSx = {
+  pb: 1.75,
+  borderBottom: "1px solid rgba(255,255,255,0.07)",
+  "&:last-of-type": { borderBottom: "none", pb: 0 },
+};
+
+function motivosNotificacionNoVacios(draft: IActuacionListItem): string[] {
+  return [draft.notificacion_motivo_1, draft.notificacion_motivo_2, draft.notificacion_motivo_3]
+    .map((x) => (x != null ? String(x).trim() : ""))
+    .filter(Boolean);
+}
+
+/** True si hay al menos un dato de acta para mostrar (misma lógica que `ActasVisitaLectura`). */
+function actasVisitaHayContenido(draft: IActuacionListItem): boolean {
+  const nIns = draft.acta_inspeccion_num;
+  const nNot = draft.acta_notificacion_num;
+  const nComp = draft.acta_comprobacion_num;
+  const nClau = draft.acta_clausura_num;
+  const nDec = draft.acta_decomiso_num;
+  const kg = draft.decomiso_kilos_total;
+  const motivosNoti = motivosNotificacionNoVacios(draft);
+  const mComp = draft.comprobacion_motivo != null ? String(draft.comprobacion_motivo).trim() : "";
+  const showInspeccion = !!(nIns != null && String(nIns).trim() !== "");
+  const showNotificacion =
+    (nNot != null && String(nNot).trim() !== "") || motivosNoti.length > 0;
+  const showComprobacion = (nComp != null && String(nComp).trim() !== "") || mComp !== "";
+  const showClausura = !!(nClau != null && String(nClau).trim() !== "");
+  const showDecomiso = (nDec != null && String(nDec).trim() !== "") || kg != null;
+  return showInspeccion || showNotificacion || showComprobacion || showClausura || showDecomiso;
+}
+
+/**
+ * Lectura documental de actas por tipo: número destacado, datos secundarios subordinados.
+ */
+function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
+  const nIns = draft.acta_inspeccion_num;
+  const nNot = draft.acta_notificacion_num;
+  const nComp = draft.acta_comprobacion_num;
+  const nClau = draft.acta_clausura_num;
+  const nDec = draft.acta_decomiso_num;
+  const kg = draft.decomiso_kilos_total;
+  const motivosNoti = motivosNotificacionNoVacios(draft);
+  const mComp = draft.comprobacion_motivo != null ? String(draft.comprobacion_motivo).trim() : "";
+
+  const showInspeccion = !!(nIns != null && String(nIns).trim() !== "");
+  const showNotificacion =
+    (nNot != null && String(nNot).trim() !== "") || motivosNoti.length > 0;
+  const showComprobacion = (nComp != null && String(nComp).trim() !== "") || mComp !== "";
+  const showClausura = !!(nClau != null && String(nClau).trim() !== "");
+  const showDecomiso =
+    (nDec != null && String(nDec).trim() !== "") || kg != null;
+
+  const hayAlgunaActa = showInspeccion || showNotificacion || showComprobacion || showClausura || showDecomiso;
+
+  if (!hayAlgunaActa) {
+    return null;
+  }
+
+  const numNot = (nNot != null && String(nNot).trim() !== "") ? dash(nNot) : "—";
+  const numComp = (nComp != null && String(nComp).trim() !== "") ? dash(nComp) : "—";
+  const numDec = (nDec != null && String(nDec).trim() !== "") ? dash(nDec) : "—";
+
+  return (
+    <Box component="div" sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {showInspeccion ? (
+        <Box sx={actaGrupoWrapperSx}>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Acta de inspección
+          </Typography>
+          <Typography component="p" sx={actaNumeroPrincipalSx}>
+            {dash(nIns)}
+          </Typography>
+        </Box>
+      ) : null}
+
+      {showNotificacion ? (
+        <Box sx={actaGrupoWrapperSx}>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Acta de notificación
+          </Typography>
+          <Typography component="p" sx={actaNumeroPrincipalSx}>
+            {numNot}
+          </Typography>
+          {motivosNoti.length > 0 ? (
+            <Box sx={{ mt: 1.25, pl: 0.25 }}>
+              <Typography
+                variant="caption"
+                component="p"
+                sx={{
+                  color: DOC_MODAL_TEXT,
+                  opacity: 0.65,
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  fontSize: "0.6875rem",
+                  mb: 0.75,
+                }}
+              >
+                Motivos
+              </Typography>
+              <Stack spacing={0.5} component="div">
+                {motivosNoti.map((m, i) => (
+                  <Typography key={i} sx={{ ...actaDetalleSecundarioSx, pl: 1, borderLeft: "2px solid rgba(255,255,255,0.12)" }}>
+                    {m}
+                  </Typography>
+                ))}
+              </Stack>
+            </Box>
+          ) : null}
+        </Box>
+      ) : null}
+
+      {showComprobacion ? (
+        <Box sx={actaGrupoWrapperSx}>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Acta de comprobación
+          </Typography>
+          <Typography component="p" sx={actaNumeroPrincipalSx}>
+            {numComp}
+          </Typography>
+          {mComp ? (
+            <Typography component="p" sx={actaDetalleSecundarioSx}>
+              <Box component="span" sx={{ opacity: 0.75, fontWeight: 600 }}>
+                Motivo:{" "}
+              </Box>
+              {mComp}
+            </Typography>
+          ) : null}
+        </Box>
+      ) : null}
+
+      {showClausura ? (
+        <Box sx={actaGrupoWrapperSx}>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Acta de clausura
+          </Typography>
+          <Typography component="p" sx={actaNumeroPrincipalSx}>
+            {dash(nClau)}
+          </Typography>
+        </Box>
+      ) : null}
+
+      {showDecomiso ? (
+        <Box sx={actaGrupoWrapperSx}>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Acta de decomiso
+          </Typography>
+          <Typography component="p" sx={actaNumeroPrincipalSx}>
+            {numDec}
+          </Typography>
+          {kg != null ? (
+            <Typography component="p" sx={{ ...actaDetalleSecundarioSx, mt: 1 }}>
+              <Box component="span" sx={{ opacity: 0.75, fontWeight: 600 }}>
+                Kilos decomisados:{" "}
+              </Box>
+              {kg} kg
+            </Typography>
+          ) : null}
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 function DocumentalBloque({
   overline,
   resumen,
@@ -166,15 +353,177 @@ function tieneReferenciaAdmin(row: IActuacionListItem): boolean {
   );
 }
 
-function estadoBloqueoLectura(row: IActuacionListItem): string {
+/** True si hay líneas concretas de expediente, oficio o causa para mostrar. */
+function expedienteOficioTieneContenido(draft: IActuacionListItem): boolean {
+  if (!tieneReferenciaAdmin(draft)) return false;
+  const exp =
+    (draft.expediente_numero != null && String(draft.expediente_numero).trim() !== "") ||
+    draft.expediente_anio != null;
+  const ofi =
+    (draft.oficio_numero != null && String(draft.oficio_numero).trim() !== "") ||
+    draft.oficio_anio != null;
+  const causa = draft.oficio_causa != null && String(draft.oficio_causa).trim() !== "";
+  return exp || ofi || causa;
+}
+
+function tieneRestriccionesEdicion(row: IActuacionListItem): boolean {
+  return row.notificacion_editable === false || row.comprobacion_editable === false;
+}
+
+/** Texto de restricciones cuando hay bloqueo; solo se usa si `tieneRestriccionesEdicion`. */
+function textoRestriccionesEdicion(row: IActuacionListItem): string {
   const parts: string[] = [];
   if (row.notificacion_editable === false) {
-    parts.push("Notificación con expediente (edición restringida en canal actas).");
+    parts.push("La notificación tiene expediente asociado: no puede editarse desde esta pantalla.");
   }
   if (row.comprobacion_editable === false) {
-    parts.push("Comprobación con expediente de envío (edición restringida).");
+    parts.push("La comprobación tiene expediente de envío: no puede editarse desde esta pantalla.");
   }
-  return parts.length ? parts.join(" ") : "Sin bloqueo explícito sobre notificación/comprobación en esta fila.";
+  return parts.join(" ");
+}
+
+function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
+  const res = draft.resultado_cumplimiento_oficio;
+  const tieneResultado = res != null && String(res).trim() !== "";
+  return tieneResultado || expedienteOficioTieneContenido(draft) || tieneRestriccionesEdicion(draft);
+}
+
+/** Referencias de expediente, oficio y causa; una línea por dato disponible. */
+function ExpedienteOficioLectura({ draft }: { draft: IActuacionListItem }) {
+  if (!expedienteOficioTieneContenido(draft)) {
+    return null;
+  }
+
+  const lineas: ReactNode[] = [];
+  if (
+    (draft.expediente_numero != null && String(draft.expediente_numero).trim() !== "") ||
+    draft.expediente_anio != null
+  ) {
+    lineas.push(
+      <Typography key="exp" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.875rem", lineHeight: 1.5 }}>
+        <Box component="span" sx={{ fontWeight: 700 }}>
+          Expediente:{" "}
+        </Box>
+        {dash(draft.expediente_numero)} / {dash(draft.expediente_anio)}
+      </Typography>
+    );
+  }
+  if (
+    (draft.oficio_numero != null && String(draft.oficio_numero).trim() !== "") ||
+    draft.oficio_anio != null
+  ) {
+    lineas.push(
+      <Typography key="ofi" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.875rem", lineHeight: 1.5 }}>
+        <Box component="span" sx={{ fontWeight: 700 }}>
+          Oficio:{" "}
+        </Box>
+        {dash(draft.oficio_numero)} / {dash(draft.oficio_anio)}
+      </Typography>
+    );
+  }
+  if (draft.oficio_causa != null && String(draft.oficio_causa).trim() !== "") {
+    lineas.push(
+      <Typography key="causa" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.875rem", lineHeight: 1.5 }}>
+        <Box component="span" sx={{ fontWeight: 700 }}>
+          Causa:{" "}
+        </Box>
+        {dash(draft.oficio_causa)}
+      </Typography>
+    );
+  }
+
+  return (
+    <Stack component="div" spacing={1}>
+      {lineas}
+    </Stack>
+  );
+}
+
+/**
+ * Card "Resultado y seguimiento": solo subsecciones con dato útil; sin texto vacío ni pedagógico.
+ */
+function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
+  const res = draft.resultado_cumplimiento_oficio;
+  const tieneResultado = res != null && String(res).trim() !== "";
+  const showExp = expedienteOficioTieneContenido(draft);
+  const showEdicion = tieneRestriccionesEdicion(draft);
+
+  if (!tieneResultado && !showExp && !showEdicion) {
+    return null;
+  }
+
+  const bloques: ReactNode[] = [];
+  if (tieneResultado) {
+    bloques.push(
+      <Box key="res">
+        <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          Resultado
+        </Typography>
+        <Typography component="p" sx={{ ...actaNumeroPrincipalSx, mt: 0.75 }}>
+          {dash(res)}
+        </Typography>
+      </Box>
+    );
+  }
+  if (showExp) {
+    bloques.push(
+      <Box key="exp">
+        <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          Expediente y oficio
+        </Typography>
+        <Box sx={{ mt: 0.75 }}>
+          <ExpedienteOficioLectura draft={draft} />
+        </Box>
+      </Box>
+    );
+  }
+  if (showEdicion) {
+    bloques.push(
+      <Box
+        key="ed"
+        sx={{
+          p: 1.25,
+          borderRadius: 1.5,
+          bgcolor: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <Typography
+          component="h3"
+          sx={{
+            ...docModalSubheadingInCardSx,
+            fontSize: "0.6875rem",
+            opacity: 0.9,
+          }}
+        >
+          Edición en canal actas
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: DOC_MODAL_TEXT,
+            fontSize: "0.8125rem",
+            fontWeight: 400,
+            lineHeight: 1.55,
+            mt: 1,
+            opacity: 0.88,
+          }}
+        >
+          {textoRestriccionesEdicion(draft)}
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Stack
+      divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight, opacity: 0.9 }} flexItem />}
+      spacing={2.25}
+      sx={{ width: "100%" }}
+    >
+      {bloques}
+    </Stack>
+  );
 }
 
 function BloqueEpicollectDetalleLectura({
@@ -471,19 +820,17 @@ export function ActuacionDetalleDialog({
     window.print();
   };
 
-  const subtituloCabecera = [dash(draft.fecha_actuacion), domicilioTexto(draft), titularLinea(draft)].join(" · ");
-
   const documentalTitleRead = (
-    <Box sx={docModalHeaderStackSx}>
-      <Chip label="Actuación" size="small" sx={docModalChipSx} variant="outlined" />
+    <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
+      <Chip label="Actuaciones" size="small" sx={docModalChipSx} variant="outlined" />
       <Typography component="span" variant="h6" sx={docModalTitleSx}>
-        {`Actuación #${draft.id}`}
+        {`OT ${dash(draft.orden_trabajo_numero)}`}
       </Typography>
       <Typography variant="body2" sx={docModalSubtitleSx}>
-        {subtituloCabecera}
+        {dash(draft.tipo_actuacion)}
       </Typography>
-      <Typography variant="caption" sx={docModalReferenceSx}>
-        OT {dash(draft.orden_trabajo_numero)} · {dash(draft.tipo_actuacion)}
+      <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+        Actuación #{draft.id}
       </Typography>
     </Box>
   );
@@ -493,39 +840,26 @@ export function ActuacionDetalleDialog({
   const totalEvid = draft.epicollect_evidencias_total ?? 0;
   const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
 
-  const refAdminTexto = tieneReferenciaAdmin(draft)
-    ? `Expediente ${dash(draft.expediente_numero)} / ${dash(draft.expediente_anio)} · Oficio ${dash(draft.oficio_numero)} / ${dash(draft.oficio_anio)}${
-        draft.oficio_causa != null && String(draft.oficio_causa).trim() !== ""
-          ? ` · Causa: ${dash(draft.oficio_causa)}`
-          : ""
-      }`
-    : "—";
-
   const detalleVista = (
-    <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Detalle documental de la actuación">
-      <Typography variant="body2" sx={docModalIntroParagraphSx}>
-        Vista documental desde el listado. Los mismos datos alimentan la edición parcial al pulsar Editar.
-      </Typography>
-
-      <DocumentalBloque
-        overline="Domicilio y titular"
-        resumen="Ubicación, titularidad, rubro y vínculo a ficha de establecimiento si existe."
-      >
-        <DocumentalFila etiqueta="Calle y número" valor={domicilioTexto(draft)} />
-        <DocumentalFila etiqueta="Nombre del local" valor={dash(draft.nombre_local)} />
-        <DocumentalFila etiqueta="Contribuyente / razón social" valor={titularLinea(draft)} />
-        <DocumentalFila etiqueta="Documento" valor={dash(draft.doc_nro)} />
+    <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Ficha de la actuación">
+      <DocumentalBloque overline="Lugar y titular">
+        <DocumentalFila etiqueta="Domicilio (calle y número)" valor={domicilioTexto(draft)} />
+        <DocumentalFila etiqueta="Nombre de fantasía" valor={dash(draft.nombre_local)} />
+        <DocumentalFila etiqueta="Titular o razón social" valor={titularLinea(draft)} />
+        <DocumentalFila etiqueta="N.º de documento" valor={dash(draft.doc_nro)} />
         <DocumentalFila etiqueta="Rubro" valor={dash(draft.rubro_nombre)} />
         <DocumentalFila
-          etiqueta="Ficha establecimiento"
+          etiqueta="Vinculación a ficha de establecimiento"
           valor={
             draft.establecimiento_operativo_id != null
-              ? `ID ${draft.establecimiento_operativo_id}${
+              ? `Ficha n.º ${draft.establecimiento_operativo_id}${
                   draft.establecimiento_actuaciones_en_ficha != null
-                    ? ` · ${draft.establecimiento_actuaciones_en_ficha} actuación(es) en la ficha`
+                    ? ` · ${draft.establecimiento_actuaciones_en_ficha} actuación${
+                        draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "es"
+                      } en esa ficha`
                     : ""
                 }`
-              : "Sin vínculo"
+              : "—"
           }
         />
         {draft.establecimiento_operativo_id != null ? (
@@ -541,85 +875,43 @@ export function ActuacionDetalleDialog({
               Ver establecimiento
             </AppButton>
           </Box>
-        ) : (
-          <Typography variant="caption" sx={{ ...docModalIntroParagraphSx, display: "block", mt: 0.75, fontSize: "0.8125rem" }}>
-            Sin ficha vinculada: suele figurar cuando el cierre en ruta consolidó el domicilio; registros anteriores al
-            módulo pueden quedar sin vínculo.
-          </Typography>
-        )}
+        ) : null}
       </DocumentalBloque>
 
-      <DocumentalBloque overline="Inspección / actuación base" resumen="Orden de trabajo, visita, tipo y equipo.">
-        <DocumentalFila etiqueta="Orden de trabajo" valor={dash(draft.orden_trabajo_numero)} />
-        <DocumentalFila etiqueta="Fecha de actuación" valor={dash(draft.fecha_actuacion)} />
-        <DocumentalFila etiqueta="Tipo" valor={dash(draft.tipo_actuacion)} />
+      <DocumentalBloque overline="La visita">
+        <DocumentalFila etiqueta="Fecha de la visita" valor={dash(draft.fecha_actuacion)} />
+        <DocumentalFila etiqueta="Inspectores a cargo" valor={draft.inspectores_texto?.trim() || inspectoresLinea(draft)} />
         <DocumentalFila etiqueta="Contraproducencia" valor={dash(draft.contraproducencia)} />
-        <DocumentalFila etiqueta="Inspectores" valor={draft.inspectores_texto?.trim() || inspectoresLinea(draft)} />
       </DocumentalBloque>
 
-      <DocumentalBloque overline="Actas asociadas" resumen="Numeración y motivos del acta del día.">
-        <DocumentalFila etiqueta="Inspección" valor={dash(draft.acta_inspeccion_num)} />
-        <DocumentalFila etiqueta="Notificación" valor={dash(draft.acta_notificacion_num)} />
-        <DocumentalFila etiqueta="Motivo notificación 1" valor={dash(draft.notificacion_motivo_1)} />
-        <DocumentalFila etiqueta="Motivo notificación 2" valor={dash(draft.notificacion_motivo_2)} />
-        <DocumentalFila etiqueta="Motivo notificación 3" valor={dash(draft.notificacion_motivo_3)} />
-        <DocumentalFila etiqueta="Comprobación" valor={dash(draft.acta_comprobacion_num)} />
-        <DocumentalFila etiqueta="Motivo comprobación" valor={dash(draft.comprobacion_motivo)} />
-        <DocumentalFila etiqueta="Clausura" valor={dash(draft.acta_clausura_num)} />
-        <DocumentalFila
-          etiqueta="Decomiso"
-          valor={
-            draft.acta_decomiso_num || draft.decomiso_kilos_total != null
-              ? `${dash(draft.acta_decomiso_num)}${
-                  draft.decomiso_kilos_total != null ? ` (${draft.decomiso_kilos_total} kg)` : ""
-                }`
-              : "—"
-          }
-        />
-      </DocumentalBloque>
+      {actasVisitaHayContenido(draft) ? (
+        <DocumentalBloque overline="Actas de la visita">
+          <ActasVisitaLectura draft={draft} />
+        </DocumentalBloque>
+      ) : null}
 
-      <DocumentalBloque
-        overline="Resultado / estado"
-        resumen="Cumplimiento administrativo, bloqueos de edición e iniciador de ruta (cuando exista API)."
-      >
-        <DocumentalFila
-          etiqueta="Resultado (oficio / reinspección)"
-          valor={
-            draft.resultado_cumplimiento_oficio != null && String(draft.resultado_cumplimiento_oficio).trim() !== ""
-              ? dash(draft.resultado_cumplimiento_oficio)
-              : "—"
-          }
-        />
-        <DocumentalFila etiqueta="Bloqueos canal actas" valor={estadoBloqueoLectura(draft)} />
-        <DocumentalFila etiqueta="Referencias administrativas" valor={refAdminTexto} />
-        <DocumentalFila
-          etiqueta="Iniciador de ruta"
-          valor="No disponible desde el listado. Reservado para cuando el API incluya el iniciador vinculado."
-        />
-      </DocumentalBloque>
+      {resultadoSeguimientoHayContenido(draft) ? (
+        <DocumentalBloque overline="Resultado y seguimiento">
+          <ResultadoSeguimientoLectura draft={draft} />
+        </DocumentalBloque>
+      ) : null}
 
-      <DocumentalBloque
-        overline="Evidencias y EpiCollect"
-        resumen="Snapshot no multimedia del formulario y enlaces por categoría cuando el import los aporta."
-      >
-        {tieneSnapEpicollect ? (
-          <BloqueEpicollectDetalleLectura
-            draft={draft}
-            otrosExpanded={epicollectOtrosExpanded}
-            onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
-            embedded
-          />
-        ) : null}
-        {tieneSnapEpicollect && tieneEvidenciasEpicollect ? (
-          <Divider sx={{ borderColor: GLASS_COLORS.borderLight, my: 1.5 }} />
-        ) : null}
-        {tieneEvidenciasEpicollect ? <BloqueEvidenciasEpicollect draft={draft} embedded /> : null}
-        {!tieneSnapEpicollect && !tieneEvidenciasEpicollect ? (
-          <Typography variant="body2" sx={docModalEmptyStateSx}>
-            Sin snapshot EpiCollect ni enlaces de evidencias en esta fila.
-          </Typography>
-        ) : null}
-      </DocumentalBloque>
+      {tieneSnapEpicollect || tieneEvidenciasEpicollect ? (
+        <DocumentalBloque overline="Formulario de campo y evidencias">
+          {tieneSnapEpicollect ? (
+            <BloqueEpicollectDetalleLectura
+              draft={draft}
+              otrosExpanded={epicollectOtrosExpanded}
+              onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
+              embedded
+            />
+          ) : null}
+          {tieneSnapEpicollect && tieneEvidenciasEpicollect ? (
+            <Divider sx={{ borderColor: GLASS_COLORS.borderLight, my: 1.5 }} />
+          ) : null}
+          {tieneEvidenciasEpicollect ? <BloqueEvidenciasEpicollect draft={draft} embedded /> : null}
+        </DocumentalBloque>
+      ) : null}
     </Stack>
   );
 
