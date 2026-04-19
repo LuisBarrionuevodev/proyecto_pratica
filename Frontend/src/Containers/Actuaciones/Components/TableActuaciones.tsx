@@ -35,6 +35,8 @@ import { submitActuacionRow } from "../utils/submitActuacionRow";
 /** Referencia estable: `= []` en props default crea un array nuevo cada render y rompe el memo de columnas / MRT. */
 const EMPTY_EXTRA_COLUMNS: MRT_ColumnDef<IActuacionListItem>[] = [];
 const EMPTY_READ_ONLY_COLUMNS: string[] = [];
+/** Evita `{}` nuevo en cada render cuando no hay errores de validación (estabiliza props del modal). */
+const EMPTY_ACTUACION_FIELD_ERRORS: Record<string, string> = {};
 
 interface TablaActuacionesProps {
   data?: IActuacionListItem[];
@@ -455,7 +457,7 @@ const TablaActuaciones = ({
         <ActuacionDetalleDialog
           open
           draft={editDraft}
-          fieldErrors={rowErrors[editDraft.id] ?? {}}
+          fieldErrors={rowErrors[editDraft.id] ?? EMPTY_ACTUACION_FIELD_ERRORS}
           saving={editSaving}
           catalogs={catalogs}
           readOnlyColumns={readOnlyColumns}

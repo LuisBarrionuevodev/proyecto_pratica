@@ -1,7 +1,7 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { ReactNode } from "react";
 import { Alert, Box, Chip, Collapse, Divider, IconButton, Link, Stack, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
@@ -12,13 +12,12 @@ import {
   docModalBlockOverlineSx,
   docModalBlockResumenSx,
   docModalChipSx,
-  docModalEmptyStateSx,
   docModalFilaEtiquetaSx,
   docModalFilaValorSx,
   docModalFooterButtonsSx,
   docModalFooterHintSx,
   docModalFooterRowSx,
-  docModalGlassCardShellSx,
+  docModalActuacionScrollCardShellSx,
   docModalHeaderStackSx,
   docModalIntroParagraphSx,
   docModalReferenceSx,
@@ -76,6 +75,18 @@ const blockShellSx = {
   border: "1px solid rgba(255,255,255,0.08)",
   fontFamily: '"Tactic Sans", sans-serif',
 };
+
+/** Estilo de inputs deshabilitados en edición; referencia estable (no recrear por render). */
+const roFieldSx = { "& .MuiInputBase-input": { color: "rgba(255,255,255,0.72)" } };
+
+const edicionGrid2ColSx = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+  gap: 2,
+  width: "100%",
+} as const;
+
+const dateFieldShrinkLabelProps = { shrink: true } as const;
 
 function dash(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
@@ -179,6 +190,16 @@ function actasVisitaHayContenido(draft: IActuacionListItem): boolean {
   const showClausura = !!(nClau != null && String(nClau).trim() !== "");
   const showDecomiso = (nDec != null && String(nDec).trim() !== "") || kg != null;
   return showInspeccion || showNotificacion || showComprobacion || showClausura || showDecomiso;
+}
+
+/** Snapshot EpiCollect en lectura: hay algo que mostrar más allá del flag `has_epicollect_detalle`. */
+function epicollectSnapshotLecturaHayContenido(draft: IActuacionListItem): boolean {
+  if (!draft.has_epicollect_detalle) return false;
+  const uuid = draft.ec5_uuid?.trim();
+  const sectores = draft.epicollect_sectores_condiciones ?? [];
+  const otrosRaw = draft.epicollect_otros_preview ?? draft.epicollect_preview ?? [];
+  const otrosUtiles = otrosRaw.some((p) => String(p.value_preview ?? p.field_id ?? "").trim());
+  return Boolean(uuid) || sectores.length > 0 || otrosUtiles;
 }
 
 /**
@@ -324,7 +345,7 @@ function DocumentalBloque({
   children: ReactNode;
 }) {
   return (
-    <Box sx={docModalGlassCardShellSx(COLORS.primary)}>
+    <Box sx={docModalActuacionScrollCardShellSx(COLORS.primary)}>
       <Typography component="div" sx={docModalBlockOverlineSx}>
         {overline}
       </Typography>
@@ -538,11 +559,11 @@ function BloqueEpicollectDetalleLectura({
   /** Sin marco propio: va dentro de un bloque documental padre. */
   embedded?: boolean;
 }) {
-  if (!draft.has_epicollect_detalle) return null;
+  if (!epicollectSnapshotLecturaHayContenido(draft)) return null;
 
-  const n = draft.epicollect_non_media_field_count ?? 0;
   const sectores = draft.epicollect_sectores_condiciones ?? [];
-  const otros = draft.epicollect_otros_preview ?? draft.epicollect_preview ?? [];
+  const otrosRaw = draft.epicollect_otros_preview ?? draft.epicollect_preview ?? [];
+  const otros = otrosRaw.filter((p) => String(p.value_preview ?? p.field_id ?? "").trim());
   const uuid = draft.ec5_uuid?.trim();
 
   const listSx = {
@@ -555,64 +576,43 @@ function BloqueEpicollectDetalleLectura({
     fontWeight: 400,
   } as const;
 
+  const captionSubseccionSx = {
+    color: DOC_MODAL_TEXT,
+    fontWeight: 700,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.04em",
+    display: "block",
+    mb: 0.75,
+  };
+
   return (
     <Box sx={embedded ? { mb: 2 } : blockShellSx}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            ...(embedded
-              ? { color: DOC_MODAL_TEXT, fontWeight: 700, mt: 0, mb: 0, flex: "1 1 auto" }
-              : { ...sectionTitleSx, mt: 0, mb: 0, flex: "1 1 auto" }),
-          }}
-        >
-          Datos importados de EpiCollect
+      {!embedded ? (
+        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 1.25 }}>
+          Formulario de campo
         </Typography>
-        <Chip
-          label="Formulario"
-          size="small"
-          sx={{
-            borderColor: "rgba(129, 199, 132, 0.55)",
-            color: "rgba(200, 230, 201, 0.95)",
-            bgcolor: "rgba(76, 175, 80, 0.12)",
-          }}
-          variant="outlined"
-        />
-      </Box>
-      <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 400, mb: 0.75, lineHeight: 1.5 }}>
-        Hay un snapshot local de <strong>{n}</strong> respuesta{n === 1 ? "" : "s"} del formulario (sin fotos). Solo
-        lectura; no se edita desde aquí.
-      </Typography>
+      ) : null}
+
       {uuid ? (
-        <Typography
-          variant="caption"
-          sx={{
-            color: DOC_MODAL_TEXT,
-            fontWeight: 400,
-            display: "block",
-            mb: 1,
-            fontFamily: "monospace",
-            fontSize: "0.75rem",
-          }}
-        >
-          ec5_uuid: {uuid}
-        </Typography>
+        <Box sx={{ mb: sectores.length > 0 || otros.length > 0 ? 1.25 : 0 }}>
+          <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 400, lineHeight: 1.5 }}>
+            <Box component="span" sx={{ opacity: 0.82 }}>
+              Identificador
+            </Box>
+            <Box
+              component="span"
+              sx={{ fontFamily: "monospace", fontSize: "0.8125rem", ml: 0.75, wordBreak: "break-all" }}
+            >
+              {uuid}
+            </Box>
+          </Typography>
+        </Box>
       ) : null}
 
       {sectores.length > 0 ? (
         <Box sx={{ mb: otros.length > 0 ? 1.25 : 0 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              color: DOC_MODAL_TEXT,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-              display: "block",
-              mb: 0.75,
-            }}
-          >
-            Sectores / condiciones
+          <Typography variant="caption" sx={captionSubseccionSx}>
+            Condiciones
           </Typography>
           <Box component="ul" sx={listSx}>
             {sectores.map((s) => (
@@ -637,23 +637,14 @@ function BloqueEpicollectDetalleLectura({
       {otros.length > 0 ? (
         <>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                color: DOC_MODAL_TEXT,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                flex: "1 1 auto",
-              }}
-            >
-              Otros campos del formulario
+            <Typography variant="caption" sx={{ ...captionSubseccionSx, mb: 0, flex: "1 1 auto" }}>
+              Otros datos
             </Typography>
             <IconButton
               size="small"
               onClick={onToggleOtros}
               aria-expanded={otrosExpanded}
-              aria-label={otrosExpanded ? "Ocultar otros campos" : "Mostrar otros campos"}
+              aria-label={otrosExpanded ? "Contraer lista" : "Expandir lista"}
               sx={{
                 color: DOC_MODAL_TEXT,
                 transform: otrosExpanded ? "rotate(180deg)" : "none",
@@ -665,24 +656,24 @@ function BloqueEpicollectDetalleLectura({
           </Box>
           <Collapse in={otrosExpanded}>
             <Box component="ul" sx={{ ...listSx, pt: 0 }}>
-              {otros.map((p) => (
-                <Box component="li" key={p.field_id} sx={{ mb: 0.75 }}>
-                  <Typography variant="body2" component="span" sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 600 }}>
-                    {p.field_id}
-                  </Typography>
-                  {": "}
-                  <Typography variant="body2" component="span" sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 500 }}>
-                    {p.value_preview}
-                  </Typography>
-                </Box>
-              ))}
+              {otros.map((p, idx) => {
+                const val = String(p.value_preview ?? "").trim();
+                const line = val || String(p.field_id ?? "").trim();
+                return (
+                  <Box component="li" key={`${p.field_id}-${idx}`} sx={{ mb: 0.75 }}>
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      sx={{ color: DOC_MODAL_TEXT, fontSize: "inherit", fontWeight: 500 }}
+                    >
+                      {line}
+                    </Typography>
+                  </Box>
+                );
+              })}
             </Box>
           </Collapse>
         </>
-      ) : sectores.length === 0 ? (
-        <Typography variant="caption" sx={{ ...docModalEmptyStateSx, display: "block", pt: 0.5, fontSize: "0.8125rem" }}>
-          No hay datos de formulario en el snapshot (o payload vacío).
-        </Typography>
       ) : null}
     </Box>
   );
@@ -791,56 +782,93 @@ export function ActuacionDetalleDialog({
     }
   }, [open, draft.id]);
 
-  const e = (key: string) => fieldErrors[key] ?? "";
-  const ro = (key: string) => readOnlyColumns.includes(key);
   const lockedNotif = draft.notificacion_editable === false;
   const lockedComp = draft.comprobacion_editable === false;
 
-  const mergedCatalogs = {
-    inspectores: catalogs.inspectores,
-    motivos: catalogs.motivos,
-    rubros: catalogs.rubros,
-    tipos: catalogs.tipos,
-    contraproducencias: catalogs.contraproducencias,
-    motivosComprobacion: catalogs.motivosComprobacion,
-  };
-
-  const handleClose = () => {
-    if (saving) return;
-    onClose();
-  };
-
-  const handleBackToDetail = () => {
-    if (saving) return;
-    setIsEditing(false);
-  };
-
-  const handlePrint = () => {
-    if (saving) return;
-    window.print();
-  };
-
-  const documentalTitleRead = (
-    <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-      <Chip label="Actuaciones" size="small" sx={docModalChipSx} variant="outlined" />
-      <Typography component="span" variant="h6" sx={docModalTitleSx}>
-        {`OT ${dash(draft.orden_trabajo_numero)}`}
-      </Typography>
-      <Typography variant="body2" sx={docModalSubtitleSx}>
-        {dash(draft.tipo_actuacion)}
-      </Typography>
-      <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
-        Actuación #{draft.id}
-      </Typography>
-    </Box>
+  const mergedCatalogs = useMemo(
+    () => ({
+      inspectores: catalogs.inspectores,
+      motivos: catalogs.motivos,
+      rubros: catalogs.rubros,
+      tipos: catalogs.tipos,
+      contraproducencias: catalogs.contraproducencias,
+      motivosComprobacion: catalogs.motivosComprobacion,
+    }),
+    [
+      catalogs.inspectores,
+      catalogs.motivos,
+      catalogs.rubros,
+      catalogs.tipos,
+      catalogs.contraproducencias,
+      catalogs.motivosComprobacion,
+    ]
   );
 
-  const tieneSnapEpicollect = Boolean(draft.has_epicollect_detalle);
-  const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
-  const totalEvid = draft.epicollect_evidencias_total ?? 0;
-  const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
+  const motivosOptions = useMemo(() => opts(["", ...catalogs.motivos]), [catalogs.motivos]);
+  const rubrosOptions = useMemo(() => opts(["", ...catalogs.rubros]), [catalogs.rubros]);
+  const motivoComprobacionOptions = useMemo(
+    () => opts(getDropdownOptions("Motivo comprobación", mergedCatalogs)),
+    [mergedCatalogs]
+  );
 
-  const detalleVista = (
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    onClose();
+  }, [saving, onClose]);
+
+  const handleDialogClose = useCallback(
+    (_event: unknown, _reason: string) => {
+      if (saving) return;
+      onClose();
+    },
+    [saving, onClose]
+  );
+
+  const handleBackToDetail = useCallback(() => {
+    if (saving) return;
+    setIsEditing(false);
+  }, [saving]);
+
+  const handlePrint = useCallback(() => {
+    if (saving) return;
+    window.print();
+  }, [saving]);
+
+  const handleStartEditing = useCallback(() => setIsEditing(true), []);
+
+  const handleSaveClick = useCallback(() => {
+    void onSave();
+  }, [onSave]);
+
+  const toggleEpicollectOtros = useCallback(() => {
+    setEpicollectOtrosExpanded((v) => !v);
+  }, []);
+
+  const documentalTitleRead = useMemo(
+    () => (
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
+        <Chip label="Actuaciones" size="small" sx={docModalChipSx} variant="outlined" />
+        <Typography component="span" variant="h6" sx={docModalTitleSx}>
+          {`OT ${dash(draft.orden_trabajo_numero)}`}
+        </Typography>
+        <Typography variant="body2" sx={docModalSubtitleSx}>
+          {dash(draft.tipo_actuacion)}
+        </Typography>
+        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+          Actuación #{draft.id}
+        </Typography>
+      </Box>
+    ),
+    [draft.id, draft.orden_trabajo_numero, draft.tipo_actuacion]
+  );
+
+  const detalleVista = useMemo(() => {
+    const tieneSnapshotEpicollectLectura = epicollectSnapshotLecturaHayContenido(draft);
+    const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
+    const totalEvid = draft.epicollect_evidencias_total ?? 0;
+    const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
+
+    return (
     <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Ficha de la actuación">
       <DocumentalBloque overline="Lugar y titular">
         <DocumentalFila etiqueta="Domicilio (calle y número)" valor={domicilioTexto(draft)} />
@@ -896,28 +924,31 @@ export function ActuacionDetalleDialog({
         </DocumentalBloque>
       ) : null}
 
-      {tieneSnapEpicollect || tieneEvidenciasEpicollect ? (
+      {tieneSnapshotEpicollectLectura || tieneEvidenciasEpicollect ? (
         <DocumentalBloque overline="Formulario de campo y evidencias">
-          {tieneSnapEpicollect ? (
+          {tieneSnapshotEpicollectLectura ? (
             <BloqueEpicollectDetalleLectura
               draft={draft}
               otrosExpanded={epicollectOtrosExpanded}
-              onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
+              onToggleOtros={toggleEpicollectOtros}
               embedded
             />
           ) : null}
-          {tieneSnapEpicollect && tieneEvidenciasEpicollect ? (
+          {tieneSnapshotEpicollectLectura && tieneEvidenciasEpicollect ? (
             <Divider sx={{ borderColor: GLASS_COLORS.borderLight, my: 1.5 }} />
           ) : null}
           {tieneEvidenciasEpicollect ? <BloqueEvidenciasEpicollect draft={draft} embedded /> : null}
         </DocumentalBloque>
       ) : null}
     </Stack>
-  );
+    );
+  }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
 
-  const roFieldSx = { "& .MuiInputBase-input": { color: "rgba(255,255,255,0.72)" } };
+  const edicionVista = useMemo(() => {
+    const e = (key: string) => fieldErrors[key] ?? "";
+    const ro = (key: string) => readOnlyColumns.includes(key);
 
-  const edicionVista = (
+    return (
     <>
       {(lockedNotif || lockedComp) && (
         <Alert severity="info" variant="outlined" sx={{ mb: 1 }}>
@@ -937,14 +968,7 @@ export function ActuacionDetalleDialog({
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 1 }}>
           Solo lectura: OT, fecha, tipo, contraproducencia e inspectores no se editan desde este canal.
         </Typography>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: 2,
-            width: "100%",
-          }}
-        >
+        <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="OT"
@@ -960,7 +984,7 @@ export function ActuacionDetalleDialog({
             value={draft.fecha_actuacion ?? ""}
             disabled
             sx={roFieldSx}
-            InputLabelProps={{ shrink: true }}
+            InputLabelProps={dateFieldShrinkLabelProps}
             fullWidth
           />
           <AppTextField appearance="glass" label="Tipo" value={draft.tipo_actuacion ?? ""} disabled sx={roFieldSx} fullWidth />
@@ -1005,14 +1029,7 @@ export function ActuacionDetalleDialog({
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", display: "block", mt: 2, mb: 1 }}>
           Actas del día (editables)
         </Typography>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: 2,
-            width: "100%",
-          }}
-        >
+        <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="Acta inspección"
@@ -1027,7 +1044,7 @@ export function ActuacionDetalleDialog({
         <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 2, mb: 1.5 }}>
           Notificación
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, width: "100%" }}>
+        <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="Acta notificación"
@@ -1043,7 +1060,7 @@ export function ActuacionDetalleDialog({
             label="Motivo notif. 1"
             value={draft.notificacion_motivo_1 ?? ""}
             onChange={(ev) => onDraftChange({ notificacion_motivo_1: ev.target.value as string })}
-            options={opts(["", ...catalogs.motivos])}
+            options={motivosOptions}
             disabled={lockedNotif}
             error={!!e("notificacion_motivo_1")}
             helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("notificacion_motivo_1")}
@@ -1054,7 +1071,7 @@ export function ActuacionDetalleDialog({
             label="Motivo notif. 2"
             value={draft.notificacion_motivo_2 ?? ""}
             onChange={(ev) => onDraftChange({ notificacion_motivo_2: ev.target.value as string })}
-            options={opts(["", ...catalogs.motivos])}
+            options={motivosOptions}
             disabled={lockedNotif}
             error={!!e("notificacion_motivo_2")}
             helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("notificacion_motivo_2")}
@@ -1065,7 +1082,7 @@ export function ActuacionDetalleDialog({
             label="Motivo notif. 3"
             value={draft.notificacion_motivo_3 ?? ""}
             onChange={(ev) => onDraftChange({ notificacion_motivo_3: ev.target.value as string })}
-            options={opts(["", ...catalogs.motivos])}
+            options={motivosOptions}
             disabled={lockedNotif}
             error={!!e("notificacion_motivo_3")}
             helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("notificacion_motivo_3")}
@@ -1076,7 +1093,7 @@ export function ActuacionDetalleDialog({
         <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 2, mb: 1.5 }}>
           Comprobación
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, width: "100%" }}>
+        <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="Acta comprobación"
@@ -1092,7 +1109,7 @@ export function ActuacionDetalleDialog({
             label="Motivo comprobación"
             value={draft.comprobacion_motivo ?? ""}
             onChange={(ev) => onDraftChange({ comprobacion_motivo: ev.target.value as string })}
-            options={opts(getDropdownOptions("Motivo comprobación", mergedCatalogs))}
+            options={motivoComprobacionOptions}
             disabled={lockedComp}
             error={!!e("comprobacion_motivo")}
             helperText={lockedComp ? "Comprobación con expediente: no editable aquí." : e("comprobacion_motivo")}
@@ -1103,7 +1120,7 @@ export function ActuacionDetalleDialog({
         <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 2, mb: 1.5 }}>
           Clausura / decomiso
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, width: "100%" }}>
+        <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="Acta clausura"
@@ -1180,21 +1197,13 @@ export function ActuacionDetalleDialog({
           sx={{ mt: 2 }}
           fullWidth
         />
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: 2,
-            width: "100%",
-            mt: 2,
-          }}
-        >
+        <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
           <AppSelect
             appearance="glass"
             label="Rubro"
             value={draft.rubro_nombre ?? ""}
             onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
-            options={opts(["", ...catalogs.rubros])}
+            options={rubrosOptions}
             disabled={ro("rubro_nombre")}
             error={!!e("rubro_nombre")}
             helperText={e("rubro_nombre")}
@@ -1243,74 +1252,99 @@ export function ActuacionDetalleDialog({
       <BloqueEpicollectDetalleLectura
         draft={draft}
         otrosExpanded={epicollectOtrosExpanded}
-        onToggleOtros={() => setEpicollectOtrosExpanded((v) => !v)}
+        onToggleOtros={toggleEpicollectOtros}
       />
 
       <BloqueEvidenciasEpicollect draft={draft} />
 
       <BloqueIniciadorVacío />
     </>
+    );
+  }, [
+    draft,
+    fieldErrors,
+    readOnlyColumns,
+    lockedNotif,
+    lockedComp,
+    motivosOptions,
+    rubrosOptions,
+    motivoComprobacionOptions,
+    epicollectOtrosExpanded,
+    toggleEpicollectOtros,
+    onDraftChange,
+  ]);
+
+  const dialogContentExtraSx = useMemo(
+    () => ({
+      maxHeight: "min(72vh, 720px)",
+      overflowY: "auto" as const,
+      gap: isEditing ? 2.75 : 0,
+      pt: isEditing ? undefined : 2,
+      pb: isEditing ? undefined : 2,
+    }),
+    [isEditing]
+  );
+
+  const dialogContentSx = useMemo(
+    () => [formDialogContentStackSx, dialogContentExtraSx],
+    [dialogContentExtraSx]
+  );
+
+  const dialogActions = useMemo(
+    () => (
+      <Box sx={docModalFooterRowSx}>
+        <Typography variant="caption" component="div" sx={{ ...docModalFooterHintSx, flex: "1 1 200px" }}>
+          {isEditing
+            ? "Los cambios se guardan con el botón Guardar (canal actas)."
+            : "Impresión: usa el menú del navegador si el diálogo no aparece en la vista previa."}
+        </Typography>
+        <Box sx={docModalFooterButtonsSx}>
+          {!isEditing ? (
+            <>
+              <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
+                Cerrar
+              </AppButton>
+              {canEdit ? (
+                <AppButton dsVariant="secondary" dsSize="sm" onClick={handleStartEditing} disabled={saving}>
+                  Editar
+                </AppButton>
+              ) : null}
+              <AppButton dsVariant="primary" dsSize="sm" onClick={handlePrint} disabled={saving}>
+                Imprimir
+              </AppButton>
+            </>
+          ) : (
+            <>
+              <AppButton dsVariant="ghost" dsSize="sm" onClick={handleBackToDetail} disabled={saving}>
+                Volver al detalle
+              </AppButton>
+              <AppButton dsVariant="secondary" dsSize="sm" onClick={handlePrint} disabled={saving}>
+                Imprimir
+              </AppButton>
+              <AppButton dsVariant="primary" dsSize="sm" onClick={handleSaveClick} loading={saving} disabled={saving}>
+                Guardar
+              </AppButton>
+            </>
+          )}
+        </Box>
+      </Box>
+    ),
+    [isEditing, saving, canEdit, handleClose, handleBackToDetail, handlePrint, handleStartEditing, handleSaveClick]
   );
 
   return (
     <AppDialog
       open={open}
-      onClose={(_ev, _reason) => handleClose()}
+      onClose={handleDialogClose}
       onCloseButtonClick={handleClose}
       title={isEditing ? "Editar actuación" : documentalTitleRead}
       appearance="glass"
       maxWidth="md"
       fullWidth
       contentDividers
-      contentSx={[
-        formDialogContentStackSx,
-        {
-          maxHeight: "min(72vh, 720px)",
-          overflowY: "auto",
-          gap: isEditing ? 2.75 : 0,
-          pt: isEditing ? undefined : 2,
-          pb: isEditing ? undefined : 2,
-        },
-      ]}
+      contentSx={dialogContentSx}
       showCloseButton
-      actions={
-        <Box sx={docModalFooterRowSx}>
-          <Typography variant="caption" component="div" sx={{ ...docModalFooterHintSx, flex: "1 1 200px" }}>
-            {isEditing
-              ? "Los cambios se guardan con el botón Guardar (canal actas)."
-              : "Impresión: usa el menú del navegador si el diálogo no aparece en la vista previa."}
-          </Typography>
-          <Box sx={docModalFooterButtonsSx}>
-            {!isEditing ? (
-              <>
-                <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
-                  Cerrar
-                </AppButton>
-                {canEdit ? (
-                  <AppButton dsVariant="secondary" dsSize="sm" onClick={() => setIsEditing(true)} disabled={saving}>
-                    Editar
-                  </AppButton>
-                ) : null}
-                <AppButton dsVariant="primary" dsSize="sm" onClick={handlePrint} disabled={saving}>
-                  Imprimir
-                </AppButton>
-              </>
-            ) : (
-              <>
-                <AppButton dsVariant="ghost" dsSize="sm" onClick={handleBackToDetail} disabled={saving}>
-                  Volver al detalle
-                </AppButton>
-                <AppButton dsVariant="secondary" dsSize="sm" onClick={handlePrint} disabled={saving}>
-                  Imprimir
-                </AppButton>
-                <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onSave()} loading={saving} disabled={saving}>
-                  Guardar
-                </AppButton>
-              </>
-            )}
-          </Box>
-        </Box>
-      }
+      actions={dialogActions}
     >
       {!isEditing ? detalleVista : edicionVista}
     </AppDialog>

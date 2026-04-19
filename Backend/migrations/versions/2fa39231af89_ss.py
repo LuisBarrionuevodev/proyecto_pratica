@@ -1,8 +1,8 @@
-"""queonda
+"""ss
 
-Revision ID: 882ad9b97369
+Revision ID: 2fa39231af89
 Revises: 
-Create Date: 2026-04-16 11:30:59.026107
+Create Date: 2026-04-17 21:08:22.774322
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import geoalchemy2
 
 
 # revision identifiers, used by Alembic.
-revision = '882ad9b97369'
+revision = '2fa39231af89'
 down_revision = None
 branch_labels = None
 depends_on = None

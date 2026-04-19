@@ -1,6 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
 
-import { glassCard } from "./GlassStyles";
+import { GLASS_COLORS, glassCard } from "./GlassStyles";
 
 /**
  * Tokens compartidos para modales documentales (Recorrido, Notificación, Actuación).
@@ -147,6 +147,23 @@ export function docModalGlassCardShellSx(borderAccent: string): SxProps<Theme> {
     p: 2,
     mb: 0,
     borderRadius: "12px",
+    borderLeft: `3px solid ${borderAccent}`,
+  };
+}
+
+/**
+ * Card documental para el modal de Actuaciones (bloques dentro del `DialogContent` scrollable).
+ * Conserva fondo, borde, sombra e acento lateral; **omite `backdrop-filter`** para reducir
+ * recomposición de capas al hacer scroll (ver PR rendimiento / compositing).
+ */
+export function docModalActuacionScrollCardShellSx(borderAccent: string): SxProps<Theme> {
+  return {
+    backgroundColor: GLASS_COLORS.cardBg,
+    border: `1px solid ${GLASS_COLORS.borderMedium}`,
+    boxShadow: "0 2px 14px rgba(0, 0, 0, 0.24)",
+    borderRadius: "12px",
+    p: 2,
+    mb: 0,
     borderLeft: `3px solid ${borderAccent}`,
   };
 }
