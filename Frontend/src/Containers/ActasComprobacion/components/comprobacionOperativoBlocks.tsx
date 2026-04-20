@@ -5,6 +5,7 @@ import type { IActuacionesPendientesItem, IPendientesOficioItem } from "../../..
 import type { IReinspeccionOficioPendienteRow } from "../../../api/actuacionesComprobacionActasApi";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
+  docModalActuacionScrollCardShellSx,
   docModalBlockOverlineSx,
   docModalBlockResumenSx,
   docModalFilaEtiquetaSx,
@@ -13,10 +14,9 @@ import {
   docModalSubheadingInCardSx,
 } from "../../../styles/documentalModalTokens";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
+import { humanizarEstadoIniciador, humanizarTipoActuacion } from "../utils/documentalLabelFormat";
 
-/** Resumen fijo de la card Referencia (comprobación operativa). */
-export const REFERENCIA_RESUMEN_COMPROBACION =
-  "Ubicación, titular, documento, rubro y acta.";
+type DocumentalCardShell = "glass" | "actuacion";
 
 export function textoValor(val: unknown): string {
   if (val === null || val === undefined || val === "") return "—";
@@ -51,13 +51,18 @@ export function DocumentalBloque({
   overline,
   resumen,
   children,
+  shell = "actuacion",
 }: {
   overline: string;
   resumen?: string;
   children: ReactNode;
+  /** Mismo shell liviano que Actuaciones / Notificación (operativa). */
+  shell?: DocumentalCardShell;
 }) {
+  const shellSx =
+    shell === "actuacion" ? docModalActuacionScrollCardShellSx(COLORS.primary) : docModalGlassCardShellSx(COLORS.primary);
   return (
-    <Box sx={docModalGlassCardShellSx(COLORS.primary)}>
+    <Box sx={shellSx}>
       <Typography component="div" sx={docModalBlockOverlineSx}>
         {overline}
       </Typography>
@@ -99,12 +104,12 @@ function inspectoresLinea(row: IActuacionesPendientesItem): string {
 /** Referencia para bandeja expediente (misma fila que `IActuacionesPendientesItem`). */
 export function BloqueReferenciaComprobacionExpediente({ row }: { row: IActuacionesPendientesItem }) {
   return (
-    <DocumentalBloque overline="Referencia" resumen={REFERENCIA_RESUMEN_COMPROBACION}>
-      <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
+    <DocumentalBloque overline="Referencia de la comprobación">
       <DocumentalFila etiqueta="Domicilio" valor={domicilioLineaPendiente(row)} />
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLineaPendiente(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
+      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
     </DocumentalBloque>
   );
@@ -146,15 +151,15 @@ function expedienteEnvioNumeroLinea(row: IPendientesOficioItem): string {
  */
 export function BloqueReferenciaComprobacionOficio({ row }: { row: ComprobacionOficioReferenciaRow }) {
   return (
-    <DocumentalBloque overline="Referencia" resumen={REFERENCIA_RESUMEN_COMPROBACION}>
-      <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
+    <DocumentalBloque overline="Referencia de la comprobación">
       <DocumentalFila etiqueta="Domicilio" valor={domicilioOficio(row)} />
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribOficio(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
+      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
-      <DocumentalFila etiqueta="Nº expediente de envío de acta" valor={expedienteEnvioNumeroLinea(row)} />
-      <DocumentalFila etiqueta="Fecha expediente de envío" valor="—" />
+      <DocumentalFila etiqueta="Expediente de envío" valor={expedienteEnvioNumeroLinea(row)} />
+      <DocumentalFila etiqueta="Fecha del expediente de envío" valor="—" />
     </DocumentalBloque>
   );
 }
@@ -164,19 +169,24 @@ export function BloqueInspeccionBaseComprobacion({
 }: {
   row: Pick<
     IActuacionesPendientesItem,
-    "acta_inspeccion_num" | "inspectores_texto" | "inspector1" | "inspector2" | "inspector3" | "orden_trabajo_numero" | "tipo_actuacion"
+    | "fecha_actuacion"
+    | "acta_inspeccion_num"
+    | "inspectores_texto"
+    | "inspector1"
+    | "inspector2"
+    | "inspector3"
+    | "orden_trabajo_numero"
+    | "tipo_actuacion"
   >;
 }) {
   const insp = inspectoresLinea(row as IActuacionesPendientesItem);
   return (
-    <DocumentalBloque
-      overline="Inspección base"
-      resumen="Acta de inspección, equipo, orden de trabajo y tipo de actuación según la actuación."
-    >
-      <DocumentalFila etiqueta="Acta de inspección (si consta)" valor={textoValor(row.acta_inspeccion_num)} />
-      <DocumentalFila etiqueta="Inspectores" valor={insp} />
+    <DocumentalBloque overline="La visita">
+      <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
       <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-      <DocumentalFila etiqueta="Tipo de actuación" valor={textoValor(row.tipo_actuacion)} />
+      <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
+      <DocumentalFila etiqueta="Inspectores" valor={insp} />
+      <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
     </DocumentalBloque>
   );
 }
@@ -195,6 +205,7 @@ export function BloqueInspeccionBaseFromOficioRow({
   };
 }) {
   const pseudo = {
+    fecha_actuacion: row.fecha_actuacion,
     acta_inspeccion_num: row.acta_inspeccion_num ?? null,
     inspectores_texto: row.inspectores_texto ?? null,
     inspector1: row.inspector1 ?? null,
@@ -202,7 +213,17 @@ export function BloqueInspeccionBaseFromOficioRow({
     inspector3: row.inspector3 ?? null,
     orden_trabajo_numero: row.orden_trabajo_numero,
     tipo_actuacion: row.tipo_actuacion ?? null,
-  } as IActuacionesPendientesItem;
+  } as Pick<
+    IActuacionesPendientesItem,
+    | "fecha_actuacion"
+    | "acta_inspeccion_num"
+    | "inspectores_texto"
+    | "inspector1"
+    | "inspector2"
+    | "inspector3"
+    | "orden_trabajo_numero"
+    | "tipo_actuacion"
+  >;
   return <BloqueInspeccionBaseComprobacion row={pseudo} />;
 }
 
@@ -251,45 +272,53 @@ function parNumAnio(num: string | null | undefined, anio: string | number | null
   return String(num ?? "—");
 }
 
+/** Referencia (solo lectura) para detalle de reinspección por oficio. */
+export function BloqueReferenciaReinspeccionDetalle({ row }: { row: ReinspeccionOperativoDetalleRow }) {
+  return (
+    <DocumentalBloque overline="Referencia de la comprobación">
+      <DocumentalFila etiqueta="Domicilio" valor={domicilioReinspeccion(row)} />
+      <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribReinspeccion(row)} />
+      <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
+      <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
+      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
+      <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
+    </DocumentalBloque>
+  );
+}
+
+/** Expediente / oficio asociados (solo lectura) en detalle de reinspección. */
+export function BloqueTramitesReinspeccionDetalle({ row }: { row: ReinspeccionOperativoDetalleRow }) {
+  return (
+    <DocumentalBloque overline="Trámites administrativos">
+      <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.25, mb: 0.5 }}>
+        Expediente de envío
+      </Typography>
+      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(row.expediente_envio_numero ?? null, row.expediente_envio_anio)} />
+      <DocumentalFila etiqueta="Fecha" valor={textoValor(row.fecha_expediente_envio)} />
+      <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1, mb: 0.5 }}>
+        Expediente de respuesta
+      </Typography>
+      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(row.expediente_respuesta_numero ?? null, row.expediente_respuesta_anio)} />
+      <DocumentalFila etiqueta="Fecha" valor={textoValor(row.fecha_expediente_respuesta)} />
+      <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1, mb: 0.5 }}>
+        Oficio
+      </Typography>
+      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(row.oficio_numero ?? null, row.oficio_anio)} />
+      <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(row.fecha_oficio)} />
+      <DocumentalFila etiqueta="Causa" valor={textoValor(row.oficio_causa)} />
+      <DocumentalFila etiqueta="Juzgado" valor={textoValor(row.juzgado_nombre)} />
+    </DocumentalBloque>
+  );
+}
+
 /**
- * Referencia + bloque expediente/oficio para pendiente de reinspección (solo lectura).
+ * @deprecated Preferir `BloqueReferenciaReinspeccionDetalle` + `BloqueTramitesReinspeccionDetalle` para controlar el orden en el diálogo.
  */
 export function BloqueReferenciaYTramitesReinspeccion({ row }: { row: ReinspeccionOperativoDetalleRow }) {
   return (
     <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-      <DocumentalBloque overline="Referencia" resumen={REFERENCIA_RESUMEN_COMPROBACION}>
-        <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
-        <DocumentalFila etiqueta="Domicilio" valor={domicilioReinspeccion(row)} />
-        <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribReinspeccion(row)} />
-        <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
-        <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-        <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
-      </DocumentalBloque>
-      <DocumentalBloque
-        overline="Expediente y oficio"
-        resumen="Número de expediente de envío y de respuesta, oficio, causa y juzgado cuando constan (o al ampliar el DTO en el servidor)."
-      >
-        <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.25, mb: 0.5 }}>
-          Expediente de envío
-        </Typography>
-        <DocumentalFila etiqueta="Nº expediente de envío" valor={parNumAnio(row.expediente_envio_numero ?? null, row.expediente_envio_anio)} />
-        <DocumentalFila etiqueta="Fecha expediente de envío" valor={textoValor(row.fecha_expediente_envio)} />
-        <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1, mb: 0.5 }}>
-          Respuesta de oficio
-        </Typography>
-        <DocumentalFila
-          etiqueta="Nº expediente (respuesta oficio)"
-          valor={parNumAnio(row.expediente_respuesta_numero ?? null, row.expediente_respuesta_anio)}
-        />
-        <DocumentalFila etiqueta="Fecha expediente (respuesta)" valor={textoValor(row.fecha_expediente_respuesta)} />
-        <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1, mb: 0.5 }}>
-          Oficio
-        </Typography>
-        <DocumentalFila etiqueta="Oficio (número / año)" valor={parNumAnio(row.oficio_numero ?? null, row.oficio_anio)} />
-        <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(row.fecha_oficio)} />
-        <DocumentalFila etiqueta="Causa" valor={textoValor(row.oficio_causa)} />
-        <DocumentalFila etiqueta="Juzgado" valor={textoValor(row.juzgado_nombre)} />
-      </DocumentalBloque>
+      <BloqueReferenciaReinspeccionDetalle row={row} />
+      <BloqueTramitesReinspeccionDetalle row={row} />
     </Stack>
   );
 }

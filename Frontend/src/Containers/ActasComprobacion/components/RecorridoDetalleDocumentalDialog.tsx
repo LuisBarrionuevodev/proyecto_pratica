@@ -9,6 +9,7 @@ import type {
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
+  docModalActuacionScrollCardShellSx,
   docModalBlockOverlineSx,
   docModalBlockResumenSx,
   docModalChipSx,
@@ -16,20 +17,31 @@ import {
   docModalFilaEtiquetaSx,
   docModalFilaValorSx,
   docModalFooterButtonsSx,
-  docModalFooterHintSx,
   docModalFooterRowSx,
   docModalGlassCardShellSx,
   docModalHeaderStackSx,
-  docModalSubheadingInCardSx,
   docModalSubtitleSx,
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog } from "../../../ui";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
+import {
+  humanizarCumplimientoOficio,
+  humanizarEstadoIniciador,
+  humanizarTipoActuacion,
+  humanizarTipoExpediente,
+  humanizarTipoVisitaRecorrido,
+} from "../utils/documentalLabelFormat";
+
+type DocumentalCardShell = "glass" | "actuacion";
 
 function textoValor(val: unknown): string {
   if (val === null || val === undefined || val === "") return "—";
   return String(val);
+}
+
+function campoUtil(val: unknown): boolean {
+  return val != null && String(val).trim() !== "";
 }
 
 function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
@@ -60,13 +72,17 @@ function DocumentalBloque({
   overline,
   resumen,
   children,
+  shell = "actuacion",
 }: {
   overline: string;
   resumen?: string;
   children: ReactNode;
+  shell?: DocumentalCardShell;
 }) {
+  const shellSx =
+    shell === "actuacion" ? docModalActuacionScrollCardShellSx(COLORS.primary) : docModalGlassCardShellSx(COLORS.primary);
   return (
-    <Box sx={docModalGlassCardShellSx(COLORS.primary)}>
+    <Box sx={shellSx}>
       <Typography component="div" sx={docModalBlockOverlineSx}>
         {overline}
       </Typography>
@@ -112,91 +128,40 @@ function actaComprobacionCabecera(listRow: IComprobacionRecorridoRow | null, det
   return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
 }
 
-function expedienteFilasEstructuradas(
-  exp: Record<string, unknown> | null | undefined,
-  sinRegistro: string,
+function expedienteRecordUtil(exp: Record<string, unknown> | null | undefined): boolean {
+  if (!exp || Object.keys(exp).length === 0) return false;
+  return campoUtil(exp.fecha) || campoUtil(exp.anio) || campoUtil(exp.numero) || campoUtil(exp.tipo);
+}
+
+function expedienteFilas(
+  exp: Record<string, unknown>,
   opts?: { numeroEtiqueta?: string }
 ): ReactNode {
-  if (!exp || Object.keys(exp).length === 0) {
-    return (
-      <Typography variant="body2" sx={docModalEmptyStateSx}>
-        {sinRegistro}
-      </Typography>
-    );
-  }
   const numLbl = opts?.numeroEtiqueta ?? "Número";
   return (
     <>
       <DocumentalFila etiqueta="Fecha" valor={textoValor(exp.fecha)} />
       <DocumentalFila etiqueta="Año" valor={textoValor(exp.anio)} />
       <DocumentalFila etiqueta={numLbl} valor={textoValor(exp.numero)} />
-      <DocumentalFila etiqueta="Tipo" valor={textoValor(exp.tipo)} />
+      <DocumentalFila etiqueta="Tipo" valor={humanizarTipoExpediente(exp.tipo)} />
     </>
   );
 }
 
-function expedienteRespuestaYOficioBloque(
-  exp: Record<string, unknown> | null | undefined,
-  ofi: IComprobacionRecorridoOficio | null
-): ReactNode {
-  const expVacio = !exp || Object.keys(exp).length === 0;
-  const ofiVacio =
-    !ofi ||
-    (!ofi.numero_oficio &&
-      ofi.anio == null &&
-      !ofi.fecha_oficio &&
-      !ofi.causa &&
-      ofi.juzgado_id == null &&
-      !ofi.juzgado_nombre);
-  if (expVacio && ofiVacio) {
-    return (
-      <Typography variant="body2" sx={docModalEmptyStateSx}>
-        Sin expediente de respuesta ni oficio registrados.
-      </Typography>
-    );
-  }
-  return (
-    <>
-      {!expVacio
-        ? expedienteFilasEstructuradas(exp, "Sin expediente de respuesta registrado.", {
-            numeroEtiqueta: "Número de expediente",
-          })
-        : null}
-      {ofiVacio ? null : (
-        <>
-          {expVacio ? null : <Box sx={{ height: 8 }} />}
-          {oficioAdministrativoFilas(ofi)}
-        </>
-      )}
-    </>
+function oficioTieneContenido(ofi: IComprobacionRecorridoOficio | null | undefined): boolean {
+  if (!ofi) return false;
+  return !!(
+    campoUtil(ofi.numero_oficio) ||
+    ofi.anio != null ||
+    campoUtil(ofi.fecha_oficio) ||
+    campoUtil(ofi.causa) ||
+    ofi.juzgado_id != null ||
+    campoUtil(ofi.juzgado_nombre)
   );
 }
 
-function oficioAdministrativoFilas(ofi: IComprobacionRecorridoOficio | null): ReactNode {
-  if (!ofi) {
-    return (
-      <Typography variant="body2" sx={docModalEmptyStateSx}>
-        Sin oficio registrado.
-      </Typography>
-    );
-  }
-  const vacio =
-    !ofi.numero_oficio &&
-    ofi.anio == null &&
-    !ofi.fecha_oficio &&
-    !ofi.causa &&
-    ofi.juzgado_id == null &&
-    !ofi.juzgado_nombre;
-  if (vacio) {
-    return (
-      <Typography variant="body2" sx={docModalEmptyStateSx}>
-        Sin oficio registrado.
-      </Typography>
-    );
-  }
-  const juz =
-    (ofi.juzgado_nombre ?? "").trim() ||
-    (ofi.juzgado_id != null ? `Id ${ofi.juzgado_id}` : "");
+function oficioAdministrativoFilas(ofi: IComprobacionRecorridoOficio): ReactNode {
+  const juz = (ofi.juzgado_nombre ?? "").trim();
   return (
     <>
       <DocumentalFila etiqueta="Número de oficio" valor={textoValor(ofi.numero_oficio)} />
@@ -208,24 +173,61 @@ function oficioAdministrativoFilas(ofi: IComprobacionRecorridoOficio | null): Re
   );
 }
 
-function reinspeccionPorOficioFilas(data: Record<string, unknown> | null | undefined): ReactNode {
-  if (!data || Object.keys(data).length === 0) {
-    return (
-      <Typography variant="body2" sx={docModalEmptyStateSx}>
-        Sin registro de reinspección por oficio.
-      </Typography>
-    );
-  }
-  const idIni = data.iniciador_id;
-  const iniciadorTxt =
-    idIni != null && idIni !== "" ? `#${String(idIni)}` : "—";
+function reinspeccionTieneContenido(data: Record<string, unknown> | null | undefined): boolean {
+  if (!data || Object.keys(data).length === 0) return false;
+  return campoUtil(data.estado_iniciador) || campoUtil(data.fecha_origen);
+}
+
+function reinspeccionPorOficioFilas(data: Record<string, unknown>): ReactNode {
   return (
     <>
-      <DocumentalFila etiqueta="Estado del iniciador" valor={textoValor(data.estado_iniciador)} />
-      <DocumentalFila etiqueta="Fecha de origen" valor={textoValor(data.fecha_origen)} />
-      <DocumentalFila etiqueta="Iniciador" valor={iniciadorTxt} />
+      <DocumentalFila etiqueta="Estado del trámite" valor={humanizarEstadoIniciador(data.estado_iniciador)} />
+      <DocumentalFila etiqueta="Fecha de origen del trámite" valor={textoValor(data.fecha_origen)} />
     </>
   );
+}
+
+/**
+ * Circuito en espera de la visita posterior (reinspección por oficio): el `tipo_actuacion` del
+ * grid sigue siendo el de la actuación ya labrada (p. ej. reinspección), pero en resultado final
+ * debe leerse como trabajo pendiente, no como “tipo final” del circuito.
+ */
+function esRecorridoPendienteReinspeccionPorOficio(estadoRecorrido: unknown): boolean {
+  const s = String(estadoRecorrido ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\u0300-\u036f/g, "");
+  return s.includes("pendiente reinspeccion por oficio");
+}
+
+/** ``REINSPECCION`` genérico = paso del circuito, no la actuación hija (ratificación / verificar e informar). */
+function esReinspeccionGenericaResultado(val: unknown): boolean {
+  const n = String(val ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\u0300-\u036f/g, "")
+    .replace(/_/g, " ");
+  return n.replace(/\s+/g, " ") === "reinspeccion";
+}
+
+function valorTipoActuacionResultadoFinal(detalle: IComprobacionRecorridoDetalle): string {
+  if (esRecorridoPendienteReinspeccionPorOficio(detalle.resultado_final?.estado_recorrido)) {
+    return "Pendiente";
+  }
+  const preferido = detalle.resultado_final?.tipo_visita ?? detalle.resultado_final?.tipo_actuacion;
+  if (preferido == null || String(preferido).trim() === "") {
+    return "Pendiente";
+  }
+  if (esReinspeccionGenericaResultado(preferido)) {
+    return "Pendiente";
+  }
+  const humanizado = humanizarTipoVisitaRecorrido(preferido);
+  if (humanizado === "Reinspeccion") {
+    return "Pendiente";
+  }
+  return humanizado;
 }
 
 export type RecorridoDetalleDocumentalDialogProps = {
@@ -256,7 +258,7 @@ export function RecorridoDetalleDocumentalDialog({
 
   const titleNode =
     actuacionId != null && detalle ? (
-      <Box sx={docModalHeaderStackSx}>
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
         <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
           Recorrido de la comprobación
@@ -266,7 +268,7 @@ export function RecorridoDetalleDocumentalDialog({
         </Typography>
       </Box>
     ) : actuacionId != null ? (
-      <Box sx={docModalHeaderStackSx}>
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
         <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
           Recorrido de la comprobación
@@ -277,6 +279,14 @@ export function RecorridoDetalleDocumentalDialog({
     );
 
   const o = detalle?.origen;
+  const expEnvio = detalle?.expediente_comprobacion_envio as Record<string, unknown> | null | undefined;
+  const expResp = detalle?.expediente_respuesta_oficio as Record<string, unknown> | null | undefined;
+  const reinsData = detalle?.reinspeccion_por_oficio as Record<string, unknown> | null | undefined;
+
+  const muestraExpedienteEnvio = expedienteRecordUtil(expEnvio);
+  const muestraExpedienteRespuesta = expedienteRecordUtil(expResp);
+  const muestraOficio = oficioTieneContenido(detalle?.oficio ?? null);
+  const muestraReinspeccion = reinspeccionTieneContenido(reinsData);
 
   return (
     <AppDialog
@@ -291,9 +301,7 @@ export function RecorridoDetalleDocumentalDialog({
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       actions={
         <Box sx={docModalFooterRowSx}>
-          <Typography variant="caption" component="div" sx={docModalFooterHintSx}>
-            Vista solo lectura. Los datos reflejan el circuito cargado en el sistema al momento de la consulta.
-          </Typography>
+          <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
           <Box sx={docModalFooterButtonsSx}>
             <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose}>
               Cerrar
@@ -314,100 +322,77 @@ export function RecorridoDetalleDocumentalDialog({
           aria-label="Detalle del recorrido por etapas"
         >
           {listRow ? (
-            <DocumentalBloque
-              overline="Referencia"
-              resumen="Contribuyente, documentación y domicilio según la fila del listado. La orden de trabajo figura en Inspección base."
-            >
+            <DocumentalBloque overline="Referencia">
               <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribTitular(listRow)} />
               <DocumentalFila etiqueta="Documento" valor={textoValor(listRow.doc_nro)} />
               <DocumentalFila etiqueta="Rubro" valor={textoValor(listRow.rubro_nombre)} />
               <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(listRow)} />
             </DocumentalBloque>
           ) : (
-            <DocumentalBloque
-              overline="Referencia"
-              resumen="Abrir el detalle desde el listado Recorrido para ver domicilio y titular."
-            >
+            <DocumentalBloque overline="Referencia">
               <Typography variant="body2" sx={docModalEmptyStateSx}>
-                Sin fila de listado vinculada.
+                Sin datos de listado.
               </Typography>
             </DocumentalBloque>
           )}
 
-          <DocumentalBloque
-            overline="Inspección base"
-            resumen="Visita, orden de trabajo, actas e iniciador con el que se originó la actuación (primera comprobación)."
-          >
+          <DocumentalBloque overline="La visita">
             <DocumentalFila
-              etiqueta="Fecha de la actuación"
+              etiqueta="Fecha de actuación"
               valor={textoValor(listRow?.fecha_actuacion ?? o?.fecha_actuacion)}
             />
             <DocumentalFila
               etiqueta="Orden de trabajo"
               valor={textoValor(o?.orden_trabajo_numero ?? listRow?.orden_trabajo_numero)}
             />
-            <DocumentalFila etiqueta="Acta de inspección (si consta)" valor={textoValor(listRow?.acta_inspeccion_num)} />
+            <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(listRow?.acta_inspeccion_num)} />
             <DocumentalFila etiqueta="Inspectores" valor={listRow ? inspectoresLinea(listRow) : "—"} />
-            <DocumentalFila etiqueta="Tipo de actuación" valor={textoValor(listRow?.tipo_actuacion)} />
+            <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(listRow?.tipo_actuacion)} />
             {o?.iniciador ? (
               <>
-                <DocumentalFila
-                  etiqueta="Tipo de iniciador (origen de la actuación)"
-                  valor={textoValor(o.iniciador.tipo_iniciador)}
-                />
-                <DocumentalFila etiqueta="Estado del iniciador (origen)" valor={textoValor(o.iniciador.estado_iniciador)} />
-                <DocumentalFila etiqueta="Fecha de origen (iniciador)" valor={textoValor(o.iniciador.fecha_origen)} />
+                <DocumentalFila etiqueta="Estado del trámite" valor={humanizarEstadoIniciador(o.iniciador.estado_iniciador)} />
+                <DocumentalFila etiqueta="Fecha de origen del trámite" valor={textoValor(o.iniciador.fecha_origen)} />
               </>
-            ) : (
-              <DocumentalFila etiqueta="Iniciador de origen" valor="—" />
-            )}
+            ) : null}
           </DocumentalBloque>
 
-          <DocumentalBloque overline="Acta de comprobación" resumen="Número y motivo del acta en el circuito.">
+          <DocumentalBloque overline="Acta de comprobación">
             <DocumentalFila etiqueta="Número" valor={textoValor(detalle.acta_comprobacion?.numero)} />
             <DocumentalFila etiqueta="Motivo" valor={textoValor(detalle.acta_comprobacion?.motivo)} />
           </DocumentalBloque>
 
-          <DocumentalBloque
-            overline="Etapas administrativas"
-            resumen="Expediente de envío, oficio, respuesta y programación de reinspección."
-          >
-            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.5, mb: 0.5 }}>
-              Expediente de envío de comprobación
-            </Typography>
-            {expedienteFilasEstructuradas(
-              detalle.expediente_comprobacion_envio as Record<string, unknown> | null,
-              "Sin expediente de envío registrado."
-            )}
-            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
-              Expediente del oficio (respuesta)
-            </Typography>
-            {expedienteRespuestaYOficioBloque(
-              detalle.expediente_respuesta_oficio as Record<string, unknown> | null,
-              detalle.oficio
-            )}
-            <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1.25, mb: 0.5 }}>
-              Reinspección por oficio
-            </Typography>
-            {reinspeccionPorOficioFilas(detalle.reinspeccion_por_oficio as Record<string, unknown> | null)}
-          </DocumentalBloque>
+          {muestraExpedienteEnvio && expEnvio ? (
+            <DocumentalBloque overline="Expediente de envío">
+              {expedienteFilas(expEnvio)}
+            </DocumentalBloque>
+          ) : null}
 
-          <DocumentalBloque
-            overline="Resultado final"
-            resumen="Estado del recorrido, cumplimiento del oficio y tipo de actuación (ratificación, verificar e informar, etc.)."
-          >
+          {muestraExpedienteRespuesta && expResp ? (
+            <DocumentalBloque overline="Expediente de respuesta">
+              {expedienteFilas(expResp, { numeroEtiqueta: "Número de expediente" })}
+            </DocumentalBloque>
+          ) : null}
+
+          {muestraOficio && detalle.oficio ? (
+            <DocumentalBloque overline="Oficio">{oficioAdministrativoFilas(detalle.oficio)}</DocumentalBloque>
+          ) : null}
+
+          {muestraReinspeccion && reinsData ? (
+            <DocumentalBloque overline="Reinspección por oficio">
+              {reinspeccionPorOficioFilas(reinsData)}
+            </DocumentalBloque>
+          ) : null}
+
+          <DocumentalBloque overline="Resultado final">
             <DocumentalFila
               etiqueta="Estado del recorrido"
               valor={textoValor(detalle.resultado_final?.estado_recorrido)}
             />
-            <DocumentalFila
-              etiqueta="Resultado cumplimiento oficio"
-              valor={textoValor(detalle.resultado_final?.resultado_cumplimiento_oficio)}
-            />
-            <DocumentalFila
-              etiqueta="Tipo de actuación"
-              valor={textoValor(detalle.resultado_final?.tipo_actuacion)}
-            />
+            {(() => {
+              const cumpl = humanizarCumplimientoOficio(detalle.resultado_final?.resultado_cumplimiento_oficio);
+              return cumpl !== "—" ? <DocumentalFila etiqueta="Cumplimiento del oficio" valor={cumpl} /> : null;
+            })()}
+            <DocumentalFila etiqueta="Tipo de actuación" valor={valorTipoActuacionResultadoFinal(detalle)} />
           </DocumentalBloque>
         </Stack>
       )}

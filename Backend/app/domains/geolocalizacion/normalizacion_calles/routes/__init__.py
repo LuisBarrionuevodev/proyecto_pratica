@@ -10,5 +10,6 @@ from . import catalogo_list  # noqa: E402,F401
 from . import distrito_catalogo_list  # noqa: E402,F401
 from . import set_canon  # noqa: E402,F401
 from . import set_numero  # noqa: E402,F401
+from . import guardar_nomenclatura  # noqa: E402,F401
 
 __all__ = ["geolocalizacion_calles"]

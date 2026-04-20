@@ -6,7 +6,6 @@ import { AppButton } from "../../../ui";
 import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
 import {
   planificacionPanelFooterMetaSx,
-  planificacionPanelSubtitleSx,
   planificacionPanelTitleSx,
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
@@ -30,10 +29,7 @@ export type UrgentesPanelProps = {
  */
 export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, onVerEnMapa }: UrgentesPanelProps) {
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.perPage) || 1);
-  const emptyCopy =
-    meta.total === 0
-      ? "Sin urgentes elegibles en esta ruta (prioridad alta, excl. relevamiento)."
-      : "Nada en esta página: quizá ya están en el pool. Probá otra página.";
+  const emptyCopy = meta.total === 0 ? "Sin urgentes." : "Sin ítems en esta página.";
 
   return (
     <Stack
@@ -48,10 +44,7 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, on
       spacing={1}
     >
       <Box sx={{ flexShrink: 0 }}>
-        <Typography sx={planificacionPanelTitleSx}>Urgentes para hoy</Typography>
-        <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.35 }}>
-          Prioridad alta · sin filtro por distrito · excluye relevamiento.
-        </Typography>
+        <Typography sx={planificacionPanelTitleSx}>Urgentes</Typography>
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
@@ -60,7 +53,7 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, on
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />
           </Box>
         ) : rows.length === 0 ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.82rem", color: GLASS_COLORS.textSecondary, lineHeight: 1.5 }}>
+          <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
             {emptyCopy}
           </Typography>
         ) : (
@@ -69,8 +62,8 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, on
               <PlanificacionIniciadorCompactCard
                 key={row.id}
                 row={row}
-                agregarLabel="A ruta"
-                agregarVariant="secondary"
+                agregarLabel="Agregar"
+                agregarVariant="primary"
                 onAgregar={() => onAgregar(row)}
                 onVerEnMapa={onVerEnMapa}
               />
@@ -88,7 +81,7 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, on
         sx={{ flexShrink: 0, pt: 0.75, borderTop: `1px solid ${GLASS_COLORS.borderLight}` }}
       >
         <Typography sx={planificacionPanelFooterMetaSx}>
-          {meta.total} total · pág. {meta.page}/{totalPages}
+          {meta.total} · {meta.page}/{totalPages}
         </Typography>
         <Stack direction="row" spacing={0.5}>
           <AppButton dsVariant="ghost" dsSize="sm" disabled={meta.page <= 1 || loading} onClick={() => onPageChange(meta.page - 1)}>

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 
 import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog } from "../../../ui";
+import { rutasAsignacionNeutralContainedButtonSx } from "../styles/institutionalVisual";
 
 interface Props {
   open: boolean;
@@ -40,9 +41,16 @@ const ModalCrearGrupoRuta = ({ open, onClose, onSubmit, disabled = false }: Prop
       contentSx={formDialogContentStackSx}
       actions={
         <Box sx={dialogFormActionsRowSx}>
-          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
+          <Button
+            variant="contained"
+            size="small"
+            disableElevation
+            onClick={handleClose}
+            disabled={saving}
+            sx={rutasAsignacionNeutralContainedButtonSx}
+          >
             Cancelar
-          </AppButton>
+          </Button>
           <AppButton
             dsVariant="primary"
             onClick={handleSubmit}

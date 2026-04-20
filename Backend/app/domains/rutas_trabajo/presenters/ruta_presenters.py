@@ -123,11 +123,10 @@ def ruta_grupo_to_min_dict(grupo: RutaGrupo) -> dict:
         grupo_inspector_to_dict(rel)
         for rel in grupo.grupo_inspectores
     ]
-    items_activos = [
-        ruta_item_to_min_dict(item)
-        for item in grupo.items
-        if item.deleted_at is None
-    ]
+    # Orden estable por id: el modelo no tiene secuencia de visita; id refleja creación asignación.
+    activos = [item for item in grupo.items if item.deleted_at is None]
+    activos.sort(key=lambda it: it.id)
+    items_activos = [ruta_item_to_min_dict(item) for item in activos]
     return {
         "id": grupo.id,
         "ruta_trabajo_id": grupo.ruta_trabajo_id,
@@ -234,13 +233,16 @@ def ruta_item_to_min_dict(item: RutaItem) -> dict:
     Serializa un item de ruta para operaciones de asignación/movimiento y detalle/mapa.
 
     Incluye ubicación y geocodificación cuando el iniciador tiene domicilio (vía iniciador_ruta → domicilio → geocode).
+    Incluye tipo_iniciador desde IniciadorRuta para UI (mapa / panel) sin depender del pool de planificación.
     """
     orden_trabajo = item.orden_trabajo
+    ini = item.iniciador_ruta
     base = {
         "id": item.id,
         "ruta_trabajo_id": item.ruta_trabajo_id,
         "ruta_grupo_id": item.ruta_grupo_id,
         "iniciador_ruta_id": item.iniciador_ruta_id,
+        "tipo_iniciador": ini.tipo_iniciador if ini else None,
         "orden_trabajo_id": item.orden_trabajo_id,
         "actuacion_id": item.actuacion_id,
         "orden_trabajo": {

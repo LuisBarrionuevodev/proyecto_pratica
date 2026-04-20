@@ -133,7 +133,6 @@ export async function fetchComprobacionRecorrido(
 
 /** Iniciador preferente para origen del circuito (API recorrido detalle). */
 export interface IComprobacionRecorridoOrigenIniciador {
-  id: number;
   tipo_iniciador: string;
   estado_iniciador: string;
   fecha_origen: string | null;
@@ -160,6 +159,8 @@ export interface IComprobacionRecorridoResultadoFinal {
   resultado_cumplimiento_oficio?: string | null;
   estado_recorrido?: string | null;
   tipo_actuacion?: string | null;
+  /** Tipo de visita desambigüado (ratificación / verificar e informar) cuando aplica oficio; preferir en UI sobre `tipo_actuacion`. */
+  tipo_visita?: string | null;
 }
 
 export interface IComprobacionRecorridoDetalle {

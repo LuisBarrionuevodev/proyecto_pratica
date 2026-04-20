@@ -138,6 +138,8 @@ export interface IRutaItemMin {
   ruta_trabajo_id: number;
   ruta_grupo_id: number;
   iniciador_ruta_id: number;
+  /** Tipo del iniciador vinculado (detail/assign/move/publicar). Fuente de verdad para mapa sin depender del pool. */
+  tipo_iniciador?: string | null;
   /** Presente tras publicar la ruta (actuación mínima vinculada). */
   actuacion_id?: number | null;
   orden_trabajo_id?: number | null;

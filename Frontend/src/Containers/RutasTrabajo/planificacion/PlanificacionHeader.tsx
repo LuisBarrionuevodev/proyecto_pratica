@@ -37,24 +37,12 @@ export function PlanificacionHeader({
         justifyContent="space-between"
       >
         <Box>
-          <Typography
-            sx={{
-              fontFamily: tactic,
-              fontSize: "0.7rem",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: GLASS_COLORS.textMuted,
-              mb: 0.5,
-            }}
-          >
-            Gestión operativa › Planificación
-          </Typography>
           <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "1.35rem", color: GLASS_COLORS.textPrimary }}>
-            Rutas de trabajo
+            Planificación
           </Typography>
           <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center" sx={{ mt: 1 }}>
-            <Typography sx={{ fontFamily: tactic, color: GLASS_COLORS.textSecondary, fontSize: "0.875rem" }}>
-              {fechaFmt} · Turno {turnoLabel}
+            <Typography sx={{ fontFamily: tactic, color: GLASS_COLORS.textSecondary, fontSize: "0.8125rem" }}>
+              {fechaFmt} · {turnoLabel}
             </Typography>
             <Box
               component="span"

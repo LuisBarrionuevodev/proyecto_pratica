@@ -22,8 +22,8 @@ const tactic = '"Tactic Sans", sans-serif' as const;
 
 const overlaySx = {
   ...glassCard,
-  p: 1.25,
-  maxWidth: 220,
+  p: 1,
+  maxWidth: 240,
   pointerEvents: "auto" as const,
   boxShadow: "0 8px 28px rgba(0,0,0,0.45)",
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
@@ -200,55 +200,7 @@ export function PlanificacionMapaDistritos({
           </MapContainer>
 
           <Stack
-            spacing={1}
-            sx={{
-              position: "absolute",
-              bottom: 12,
-              right: 12,
-              zIndex: 1100,
-              pointerEvents: "none",
-              alignItems: "flex-end",
-            }}
-          >
-            <Box sx={overlaySx}>
-              <Typography
-                sx={{ fontFamily: tactic, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: GLASS_COLORS.textMuted, mb: 0.5 }}
-              >
-                CARGA
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 8,
-                    borderRadius: 1,
-                    background: `linear-gradient(90deg, rgba(1,102,255,0.2) 0%, rgba(1,102,255,0.95) 100%)`,
-                    border: `1px solid ${GLASS_COLORS.borderLight}`,
-                  }}
-                />
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textSecondary }}>baja → alta</Typography>
-              </Stack>
-              <Typography
-                sx={{ fontFamily: tactic, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.06em", color: GLASS_COLORS.textMuted, mb: 0.35, mt: 0.25 }}
-              >
-                PRIORIDAD (PIN)
-              </Typography>
-              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#2e7d32", border: "1px solid #a5d6a7" }} />
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textSecondary }}>baja</Typography>
-                <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#f9a825", border: "1px solid #fff59d", ml: 0.5 }} />
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textSecondary }}>media</Typography>
-                <Box sx={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#c62828", border: "1px solid #ffab91", ml: 0.5 }} />
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textSecondary }}>alta</Typography>
-              </Stack>
-              <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textMuted, lineHeight: 1.35 }}>
-                Tocá un distrito para filtrar y ver puntos. Número en mapa = pendientes en zona.
-              </Typography>
-            </Box>
-          </Stack>
-
-          <Stack
-            spacing={0.75}
+            spacing={0.5}
             sx={{
               position: "absolute",
               top: 12,
@@ -258,34 +210,51 @@ export function PlanificacionMapaDistritos({
               alignItems: "flex-end",
             }}
           >
-            <Box sx={{ ...overlaySx, maxWidth: 260 }}>
+            <Box sx={overlaySx}>
               <Typography
-                sx={{ fontFamily: tactic, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: GLASS_COLORS.textMuted, mb: 0.5 }}
+                sx={{
+                  fontFamily: tactic,
+                  fontSize: "0.62rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  color: GLASS_COLORS.textMuted,
+                  mb: 0.35,
+                }}
               >
-                DISTRITO ACTIVO
+                Distrito
               </Typography>
               {distritoActivoId == null ? (
-                <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.88rem", color: GLASS_COLORS.textPrimary }}>
-                  Toda la ciudad
+                <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
+                  Ninguno
                 </Typography>
               ) : (
                 <>
-                  <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.88rem", color: GLASS_COLORS.textPrimary, lineHeight: 1.25 }}>
-                    {distritoActivoNombre ?? `Distrito #${distritoActivoId}`}
+                  <Typography
+                    sx={{
+                      fontFamily: tactic,
+                      fontWeight: 700,
+                      fontSize: "0.875rem",
+                      color: GLASS_COLORS.textPrimary,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {distritoActivoNombre ?? `Distrito ${distritoActivoId}`}
                   </Typography>
                   {cantidadActiva != null ? (
-                    <Box sx={{ mt: 1 }}>
+                    <Box sx={{ mt: 0.75 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.35 }}>
-                        <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textMuted }}>Carga en zona</Typography>
-                        <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", fontWeight: 700, color: GLASS_COLORS.primary }}>
-                          {cantidadActiva} pend.
+                        <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textMuted }}>
+                          Carga
+                        </Typography>
+                        <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", fontWeight: 700, color: GLASS_COLORS.primary }}>
+                          {cantidadActiva}
                         </Typography>
                       </Stack>
                       <LinearProgress
                         variant="determinate"
                         value={intensidadRelativa * 100}
                         sx={{
-                          height: 6,
+                          height: 5,
                           borderRadius: 1,
                           backgroundColor: "rgba(255,255,255,0.08)",
                           "& .MuiLinearProgress-bar": {
@@ -293,13 +262,13 @@ export function PlanificacionMapaDistritos({
                           },
                         }}
                       />
-                      <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textMuted, mt: 0.35 }}>
-                        vs. máx. día ({maxCant})
+                      <Typography sx={{ fontFamily: tactic, fontSize: "0.62rem", color: GLASS_COLORS.textMuted, mt: 0.25 }}>
+                        Máx. {maxCant}
                       </Typography>
                     </Box>
                   ) : (
-                    <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textSecondary, mt: 0.5 }}>
-                      Sin dato de carga M2 para este polígono.
+                    <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted, mt: 0.5 }}>
+                      Sin dato.
                     </Typography>
                   )}
                 </>
@@ -310,9 +279,9 @@ export function PlanificacionMapaDistritos({
                 onClick={() => onSelectDistrito(null)}
                 sx={{
                   fontFamily: tactic,
-                  fontSize: "0.72rem",
+                  fontSize: "0.68rem",
                   color: GLASS_COLORS.primary,
-                  mt: 1,
+                  mt: 0.75,
                   cursor: "pointer",
                   background: "none",
                   border: "none",
@@ -321,22 +290,19 @@ export function PlanificacionMapaDistritos({
                   pointerEvents: "auto",
                 }}
               >
-                Quitar selección
+                Limpiar
               </Typography>
             </Box>
           </Stack>
         </Box>
       )}
-      <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted }}>
-          Azul = carga · borde claro = límites · selección reforzada · pin = prioridad
-        </Typography>
-        {distritoCatalogo.length === 0 && !loadingCatalogo ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: "warning.light" }}>
-            Catálogo de distritos no disponible; recargá la página.
+      {distritoCatalogo.length === 0 && !loadingCatalogo ? (
+        <Box sx={{ mt: 0.75 }}>
+          <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: "warning.light" }}>
+            Catálogo de distritos no disponible.
           </Typography>
-        ) : null}
-      </Box>
+        </Box>
+      ) : null}
     </Box>
   );
 }

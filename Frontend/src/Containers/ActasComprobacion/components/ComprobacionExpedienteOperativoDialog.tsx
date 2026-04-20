@@ -7,6 +7,7 @@ import {
   docModalFooterButtonsSx,
   docModalFooterRowSx,
   docModalHeaderStackSx,
+  docModalReferenceSx,
   docModalSubtitleSx,
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
@@ -15,6 +16,7 @@ import {
   BloqueInspeccionBaseComprobacion,
   BloqueReferenciaComprobacionExpediente,
   DOC_MODAL_BLOCK_STACK_SPACING,
+  DocumentalBloque,
 } from "./comprobacionOperativoBlocks";
 
 function actaComprobacionCabecera(row: IActuacionesPendientesItem): string {
@@ -36,7 +38,7 @@ export type ComprobacionExpedienteOperativoDialogProps = {
 };
 
 /**
- * Alta de expediente de envío (comprobación): card Referencia + inspección base + formulario glass.
+ * Alta de expediente de envío (comprobación): Referencia, visita y carga en card de acción.
  */
 export function ComprobacionExpedienteOperativoDialog({
   open,
@@ -57,13 +59,16 @@ export function ComprobacionExpedienteOperativoDialog({
 
   const titleNode =
     row != null ? (
-      <Box sx={docModalHeaderStackSx}>
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
         <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
           Registrar expediente de envío
         </Typography>
         <Typography variant="body2" sx={docModalSubtitleSx}>
           {actaComprobacionCabecera(row)}
+        </Typography>
+        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+          Actuación #{row.id}
         </Typography>
       </Box>
     ) : (
@@ -100,29 +105,33 @@ export function ComprobacionExpedienteOperativoDialog({
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
           <BloqueReferenciaComprobacionExpediente row={row} />
           <BloqueInspeccionBaseComprobacion row={row} />
-          {modalApiError ? (
-            <Alert severity="error" sx={{ mb: 0 }}>
-              {modalApiError}
-            </Alert>
-          ) : null}
-          <AppTextField
-            appearance="glass"
-            label="Número de expediente"
-            value={expNumero}
-            onChange={(e) => onExpNumeroChange(e.target.value)}
-            fullWidth
-            required
-          />
-          <AppTextField
-            appearance="glass"
-            label="Fecha de expediente"
-            type="date"
-            value={expFecha}
-            onChange={(e) => onExpFechaChange(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-          />
+          <DocumentalBloque overline="Alta de expediente de envío">
+            <Stack spacing={2}>
+              {modalApiError ? (
+                <Alert severity="error" sx={{ mb: 0 }}>
+                  {modalApiError}
+                </Alert>
+              ) : null}
+              <AppTextField
+                appearance="glass"
+                label="Número de expediente"
+                value={expNumero}
+                onChange={(e) => onExpNumeroChange(e.target.value)}
+                fullWidth
+                required
+              />
+              <AppTextField
+                appearance="glass"
+                label="Fecha de expediente"
+                type="date"
+                value={expFecha}
+                onChange={(e) => onExpFechaChange(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+            </Stack>
+          </DocumentalBloque>
         </Stack>
       )}
     </AppDialog>

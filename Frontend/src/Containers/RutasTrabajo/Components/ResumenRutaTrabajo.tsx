@@ -18,9 +18,7 @@ const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
     return (
       <Paper elevation={0} sx={rutasInstitutionalResumenPaperSx}>
         <Typography sx={rutasResumenTitleSx}>Resumen de ruta</Typography>
-        <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.75 }}>
-          Todavía no hay una ruta seleccionada. Creá una ruta para comenzar.
-        </Typography>
+        <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.75 }}>Sin ruta. Crear borrador.</Typography>
       </Paper>
     );
   }
@@ -71,12 +69,12 @@ const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
             {totalInspectores}
           </Typography>
         </Box>
-        <Box sx={{ minWidth: 360, flex: 1 }}>
+        <Box sx={{ minWidth: 200, flex: 1, maxWidth: 480 }}>
           <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
             Observaciones
           </Typography>
-          <Typography variant="body2" sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textSecondary, lineHeight: 1.45 }}>
-            {ruta.observaciones || "Sin observaciones registradas"}
+          <Typography variant="body2" sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textSecondary, lineHeight: 1.4 }}>
+            {ruta.observaciones?.trim() || "—"}
           </Typography>
         </Box>
       </Stack>

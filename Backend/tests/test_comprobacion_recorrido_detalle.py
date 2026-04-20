@@ -8,8 +8,11 @@ from datetime import date
 import pytest
 
 from app.database import db
-from app.domains.actuaciones.presenters.comprobacion_actas_presenters import comprobacion_recorrido_detalle
-from app.models import Actuaciones, Comprobacion, Domicilio, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
+from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
+    comprobacion_recorrido_detalle,
+    estado_recorrido_label,
+)
+from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
 
 
 def _unique_num() -> str:
@@ -45,12 +48,26 @@ def _mk_actuacion_con_comprobacion() -> tuple[Actuaciones, Comprobacion]:
     return act, comp
 
 
+def test_resultado_final_tipo_visita_none_si_actuacion_solo_reinspeccion_generica(app_ctx) -> None:
+    """``tipo_visita`` no debe repetir REINSPECCION genérico como actuación resultante."""
+    try:
+        act, _comp = _mk_actuacion_con_comprobacion()
+        act.tipo = "REINSPECCION"
+        db.session.flush()
+        d = comprobacion_recorrido_detalle(act)
+        assert d["resultado_final"]["tipo_visita"] is None
+        assert d["resultado_final"]["tipo_actuacion"] == "REINSPECCION"
+    finally:
+        db.session.rollback()
+
+
 def test_comprobacion_recorrido_detalle_incluye_tipo_actuacion_y_origen_iniciador(app_ctx) -> None:
     try:
         act, _comp = _mk_actuacion_con_comprobacion()
         db.session.flush()
         d = comprobacion_recorrido_detalle(act)
         assert "tipo_actuacion" in d["resultado_final"]
+        assert "tipo_visita" in d["resultado_final"]
         assert "iniciador" in d["origen"]
         assert d["origen"]["iniciador"] is None or isinstance(d["origen"]["iniciador"], dict)
     finally:
@@ -101,6 +118,34 @@ def test_comprobacion_recorrido_detalle_origen_iniciador_excluye_reinspeccion_of
         d = comprobacion_recorrido_detalle(act)
         assert d["origen"]["iniciador"] is not None
         assert d["origen"]["iniciador"]["tipo_iniciador"] == "DENUNCIA"
+    finally:
+        db.session.rollback()
+
+
+def test_estado_recorrido_sin_expediente_envio_es_esperando_expediente(app_ctx) -> None:
+    """Sin expediente de envío debe mostrarse «Esperando expediente», no «Esperando oficio»."""
+    try:
+        act, _comp = _mk_actuacion_con_comprobacion()
+        db.session.flush()
+        assert estado_recorrido_label(act) == "Esperando expediente"
+    finally:
+        db.session.rollback()
+
+
+def test_estado_recorrido_con_expediente_sin_oficio_es_esperando_oficio(app_ctx) -> None:
+    try:
+        act, comp = _mk_actuacion_con_comprobacion()
+        ex = Expediente(
+            numero_expediente=_unique_num()[:6],
+            anio="2026",
+            fecha_expediente=date(2026, 3, 20),
+            tipo_expediente="ENVIO_ACTA",
+            comprobacion_id=comp.id,
+            oficio_id=None,
+        )
+        db.session.add(ex)
+        db.session.flush()
+        assert estado_recorrido_label(act) == "Esperando oficio"
     finally:
         db.session.rollback()
 

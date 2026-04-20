@@ -55,8 +55,8 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
 
       <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
         {items.length === 0 ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary, lineHeight: 1.45 }}>
-            Vacío. Sumá desde pendientes o urgentes.
+          <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
+            Sin ítems.
           </Typography>
         ) : (
           <Stack spacing={0.75}>

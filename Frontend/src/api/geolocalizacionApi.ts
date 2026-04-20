@@ -74,3 +74,54 @@ export const setNumeroEsquina = async (
   );
   return data;
 };
+
+/** Payload para POST guardar-nomenclatura (calle/esquina híbrido). */
+export type GuardarNomenclaturaCalle =
+  | { mode: "CATALOGO"; calle_catalogo_id: number }
+  | { mode: "MANUAL"; calle_texto: string };
+
+export type GuardarNomenclaturaEsquina =
+  | { mode: "CATALOGO"; esquina_catalogo_id: number }
+  | { mode: "MANUAL" };
+
+export interface GuardarNomenclaturaBody {
+  calle: GuardarNomenclaturaCalle;
+  numero: string;
+  numero_tipo: "NUMERO" | "ESQUINA";
+  esquina?: GuardarNomenclaturaEsquina;
+}
+
+export interface GuardarNomenclaturaResponse {
+  ok: boolean;
+  domicilio_id: number;
+  calle: {
+    mode: string;
+    calle: string;
+    calle_catalogo_id: number | null;
+    calle_normalizada: string | null;
+    calle_norm_status: string | null;
+  };
+  numero: string;
+  numero_tipo: string | null;
+  esquina?: {
+    mode: string;
+    esquina_catalogo_id: number | null;
+    esquina_normalizada: string | null;
+    esquina_norm_status: string | null;
+  } | null;
+}
+
+/**
+ * Guardado unificado de nomenclatura (catálogo o manual por eje).
+ * Un solo commit en backend; reemplaza el encadenamiento set-numero + set-canon + set-esquina.
+ */
+export const guardarNomenclaturaHibrida = async (
+  domicilioId: number,
+  body: GuardarNomenclaturaBody
+): Promise<GuardarNomenclaturaResponse> => {
+  const { data } = await apiClient.post<GuardarNomenclaturaResponse>(
+    `/geolocalizacion/calles/guardar-nomenclatura/${domicilioId}`,
+    body
+  );
+  return data;
+};

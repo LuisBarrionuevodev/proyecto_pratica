@@ -4,6 +4,7 @@ Presentación para bandejas de Actas de comprobación (reinspección oficio / re
 
 from __future__ import annotations
 
+import unicodedata
 from typing import Any, Dict, Optional
 
 from app.domains.actuaciones.presenters.actuacion_presenters import (
@@ -12,6 +13,7 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     oficio_por_comprobacion,
 )
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
+from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuacion_para_iniciador
 from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
 
 
@@ -29,9 +31,15 @@ def _expediente_respuesta_oficio(comprobacion_id: int) -> Optional[Expediente]:
 def estado_recorrido_label(act: Actuaciones) -> str:
     """
     Etiqueta consultiva del estado del circuito documental para la fila de actuación.
+
+    Orden del circuito: expediente de envío de acta → oficio administrativo → (re)programación
+    de reinspección. Sin expediente de envío aún no corresponde mostrar «Esperando oficio».
     """
     if not act.comprobacion_id:
         return "—"
+    exp_env = expediente_envio_por_comprobacion(act.comprobacion_id)
+    if not exp_env:
+        return "Esperando expediente"
     ofi = oficio_por_comprobacion(act.comprobacion_id)
     if not ofi:
         return "Esperando oficio"
@@ -119,6 +127,77 @@ def _iniciador_origen_primera_actuacion(act: Actuaciones) -> Optional[IniciadorR
     return q_base.order_by(IniciadorRuta.id.asc()).first()
 
 
+_TIPOS_INI_TRABAJO_OFICIO = (
+    "REINSPECCION_OFICIO",
+    "VERIFICAR_INFORMAR_OFICIO",
+    "RATIFICACION_CLAUSURA_OFICIO",
+    "RATIFICACION_DECOMISO_OFICIO",
+)
+
+_TIPOS_VISITA_CATALOG = frozenset(
+    {
+        "RATIFICACION DE CLAUSURA",
+        "RATIFICACION DE DECOMISO",
+        "VERIFICAR E INFORMAR",
+    }
+)
+
+
+def _norm_tipo_catalogo(s: str | None) -> str:
+    if not s:
+        return ""
+    t = str(s).strip().upper().replace("_", " ")
+    t = unicodedata.normalize("NFD", t)
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return " ".join(t.split())
+
+
+def _iniciador_trabajo_oficio_mas_reciente(act_id: int) -> Optional[IniciadorRuta]:
+    """Último iniciador de circuito oficio/reinspección (tipos operativos alineados a Completar trabajo)."""
+    return (
+        IniciadorRuta.query.filter(
+            IniciadorRuta.actuacion_id == act_id,
+            IniciadorRuta.tipo_iniciador.in_(_TIPOS_INI_TRABAJO_OFICIO),
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .order_by(IniciadorRuta.id.desc())
+        .first()
+    )
+
+
+def _tipo_visita_resultado_final(
+    grid: Dict[str, Any],
+    ini_oficio: Optional[IniciadorRuta],
+) -> Optional[str]:
+    """
+    Actuación **resultante** del circuito oficio/reinspección (ratificación / verificar e informar).
+
+    No devuelve ``REINSPECCION`` genérico: ese valor describe el paso/circuito, no la actuación hija.
+    En ese caso se devuelve ``None`` y la UI muestra «Pendiente» hasta que ``act.tipo`` refleje
+    el tipo concreto labrado.
+    """
+    raw = grid.get("tipo_actuacion")
+    if raw and _norm_tipo_catalogo(str(raw)) in {_norm_tipo_catalogo(x) for x in _TIPOS_VISITA_CATALOG}:
+        return str(raw).strip()
+
+    if ini_oficio and ini_oficio.tipo_iniciador in (
+        "VERIFICAR_INFORMAR_OFICIO",
+        "RATIFICACION_CLAUSURA_OFICIO",
+        "RATIFICACION_DECOMISO_OFICIO",
+    ):
+        try:
+            return tipo_actuacion_para_iniciador(ini_oficio.tipo_iniciador)
+        except KeyError:
+            pass
+
+    if raw and _norm_tipo_catalogo(str(raw)) == "REINSPECCION":
+        return None
+
+    if raw:
+        return str(raw).strip()
+    return None
+
+
 def _juzgado_nombre(ofi: Optional[Oficio]) -> Optional[str]:
     if not ofi or not getattr(ofi, "juzgado_id", None):
         return None
@@ -135,11 +214,14 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
       (excluye ``REINSPECCION_OFICIO`` salvo si es el único).
     - ``oficio``: incluye ``causa``, ``juzgado_id``, ``juzgado_nombre`` cuando hay oficio.
     - ``resultado_final.tipo_actuacion``: mismo string que la grilla (``actuacion_to_grid_row``).
+    - ``resultado_final.tipo_visita``: actuación resultante (ratificación / verificar e informar) o
+      ``None`` si aún no hay tipo concreto (p. ej. ``REINSPECCION`` genérico en ``act.tipo``).
     """
     if not act.comprobacion_id:
         raise ValueError("La actuación no tiene comprobación")
 
     grid = actuacion_to_grid_row(act)
+    ini_oficio = _iniciador_trabajo_oficio_mas_reciente(act.id)
     exp_env = expediente_envio_por_comprobacion(act.comprobacion_id)
     ofi = oficio_por_comprobacion(act.comprobacion_id)
     exp_resp = _expediente_respuesta_oficio(act.comprobacion_id)
@@ -158,7 +240,6 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
     iniciador_payload: Optional[Dict[str, Any]] = None
     if ini_origen is not None:
         iniciador_payload = {
-            "id": ini_origen.id,
             "tipo_iniciador": ini_origen.tipo_iniciador,
             "estado_iniciador": ini_origen.estado_iniciador,
             "fecha_origen": ini_origen.fecha_origen.isoformat() if ini_origen.fecha_origen else None,
@@ -216,7 +297,6 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         ),
         "reinspeccion_por_oficio": (
             {
-                "iniciador_id": ini.id,
                 "estado_iniciador": ini.estado_iniciador,
                 "fecha_origen": ini.fecha_origen.isoformat() if ini.fecha_origen else None,
             }
@@ -227,5 +307,6 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
             "resultado_cumplimiento_oficio": res_val,
             "estado_recorrido": estado_recorrido_label(act),
             "tipo_actuacion": grid.get("tipo_actuacion"),
+            "tipo_visita": _tipo_visita_resultado_final(grid, ini_oficio),
         },
     }

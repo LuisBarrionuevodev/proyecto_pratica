@@ -53,6 +53,7 @@ import {
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect, AppTextField } from "../../ui";
+import { humanizarEstadoIniciador } from "./utils/documentalLabelFormat";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
@@ -94,8 +95,8 @@ function domicilioText(calle?: string | null, num?: string | null): string {
 
 const TIPO_FINAL_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Todos" },
-  { value: "CUMPLE", label: "CUMPLE" },
-  { value: "NO_CUMPLE", label: "NO_CUMPLE" },
+  { value: "CUMPLE", label: "Cumple" },
+  { value: "NO_CUMPLE", label: "No cumple" },
 ];
 
 const MESES_OPTS = Array.from({ length: 12 }, (_, i) => ({
@@ -389,7 +390,7 @@ const ActasComprobacionPage = () => {
         id: "estado_doc",
         header: "Estado / documento pendiente",
         size: 200,
-        accessorFn: () => "Esperando oficio",
+        accessorFn: () => "Pendiente de oficio (carga manual)",
       },
       {
         id: "acciones",
@@ -505,9 +506,9 @@ const ActasComprobacionPage = () => {
       { accessorKey: "documento_pendiente", header: "Estado / documento pendiente", size: 200 },
       {
         id: "estado_ini",
-        header: "Estado iniciador",
+        header: "Estado del iniciador",
         size: 120,
-        accessorFn: (r) => r.estado_iniciador ?? "—",
+        accessorFn: (r) => humanizarEstadoIniciador(r.estado_iniciador),
       },
       {
         id: "accion_rein",

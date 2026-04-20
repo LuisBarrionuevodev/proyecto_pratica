@@ -7,6 +7,7 @@ import {
   docModalFooterButtonsSx,
   docModalFooterRowSx,
   docModalHeaderStackSx,
+  docModalReferenceSx,
   docModalSubtitleSx,
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
@@ -15,6 +16,7 @@ import {
   BloqueInspeccionBaseFromOficioRow,
   BloqueReferenciaComprobacionOficio,
   DOC_MODAL_BLOCK_STACK_SPACING,
+  DocumentalBloque,
   type ComprobacionOficioReferenciaRow,
 } from "./comprobacionOperativoBlocks";
 
@@ -56,7 +58,7 @@ export type ComprobacionOficioOperativoDialogProps = {
 };
 
 /**
- * Alta de oficio + expediente de respuesta: mismas cards que expediente + filas de envío en Referencia; formulario debajo.
+ * Alta de oficio y expediente de respuesta: Referencia, visita y carga en card de acción.
  */
 export function ComprobacionOficioOperativoDialog({
   open,
@@ -86,13 +88,16 @@ export function ComprobacionOficioOperativoDialog({
 
   const titleNode =
     row != null ? (
-      <Box sx={docModalHeaderStackSx}>
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
         <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
           Registrar oficio y expediente de respuesta
         </Typography>
         <Typography variant="body2" sx={docModalSubtitleSx}>
           {actaCabecera(row)}
+        </Typography>
+        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+          Actuación #{row.id}
         </Typography>
       </Box>
     ) : (
@@ -129,58 +134,65 @@ export function ComprobacionOficioOperativoDialog({
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
           <BloqueReferenciaComprobacionOficio row={row} />
           <BloqueInspeccionBaseFromOficioRow row={row} />
-          {modalApiError ? (
-            <Alert severity="error" sx={{ mb: 0 }}>
-              {modalApiError}
-            </Alert>
-          ) : null}
-          <AppTextField
-            appearance="glass"
-            label="Número de oficio"
-            value={numeroOficio}
-            onChange={(e) => onNumeroOficioChange(e.target.value)}
-            fullWidth
-            required
-          />
-          <AppTextField
-            appearance="glass"
-            label="Fecha de oficio"
-            type="date"
-            value={fechaOficio}
-            onChange={(e) => onFechaOficioChange(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-          />
-          <AppSelect
-            appearance="glass"
-            label="Juzgado"
-            value={juzgadoId === "" ? "" : String(juzgadoId)}
-            onChange={(e) => onJuzgadoIdChange(e.target.value === "" ? "" : Number(e.target.value))}
-            fullWidth
-            required
-            variant="outlined"
-            options={[{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))]}
-          />
-          <AppTextField appearance="glass" label="Causa" value={causa} onChange={(e) => onCausaChange(e.target.value)} fullWidth />
-          <AppTextField
-            appearance="glass"
-            label="Número expediente oficio (respuesta)"
-            value={expNumero}
-            onChange={(e) => onExpNumeroChange(e.target.value)}
-            fullWidth
-            required
-          />
-          <AppTextField
-            appearance="glass"
-            label="Fecha expediente oficio"
-            type="date"
-            value={expFecha}
-            onChange={(e) => onExpFechaChange(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-          />
+          <DocumentalBloque overline="Oficio y expediente de respuesta">
+            <Stack spacing={2}>
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4 }}>
+                Carga manual: podés ingresar o corregir el número de oficio y el resto de los datos antes de guardar.
+              </Typography>
+              {modalApiError ? (
+                <Alert severity="error" sx={{ mb: 0 }}>
+                  {modalApiError}
+                </Alert>
+              ) : null}
+              <AppTextField
+                appearance="glass"
+                label="Número de oficio"
+                value={numeroOficio}
+                onChange={(e) => onNumeroOficioChange(e.target.value)}
+                fullWidth
+                required
+              />
+              <AppTextField
+                appearance="glass"
+                label="Fecha de oficio"
+                type="date"
+                value={fechaOficio}
+                onChange={(e) => onFechaOficioChange(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+              <AppSelect
+                appearance="glass"
+                label="Juzgado"
+                value={juzgadoId === "" ? "" : String(juzgadoId)}
+                onChange={(e) => onJuzgadoIdChange(e.target.value === "" ? "" : Number(e.target.value))}
+                fullWidth
+                required
+                variant="outlined"
+                options={[{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))]}
+              />
+              <AppTextField appearance="glass" label="Causa" value={causa} onChange={(e) => onCausaChange(e.target.value)} fullWidth />
+              <AppTextField
+                appearance="glass"
+                label="Número de expediente de respuesta"
+                value={expNumero}
+                onChange={(e) => onExpNumeroChange(e.target.value)}
+                fullWidth
+                required
+              />
+              <AppTextField
+                appearance="glass"
+                label="Fecha del expediente de respuesta"
+                type="date"
+                value={expFecha}
+                onChange={(e) => onExpFechaChange(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+            </Stack>
+          </DocumentalBloque>
         </Stack>
       )}
     </AppDialog>

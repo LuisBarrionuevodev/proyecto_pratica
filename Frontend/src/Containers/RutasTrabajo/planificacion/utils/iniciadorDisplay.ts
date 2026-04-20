@@ -1,15 +1,23 @@
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 
-/** Etiqueta corta de tipo para badges (misma línea que backend `badges.tipo_label` pero más compacta). */
-const TIPO_CORTO: Record<string, string> = {
-  RELEVAMIENTO: "RELEVAMIENTO",
-  DENUNCIA: "DENUNCIA",
-  REINSPECCION_NOTIFICACION: "REINSPECCIÓN NOTIF.",
-  REINSPECCION_OFICIO: "REINSPECCIÓN OFICIO",
-  VERIFICAR_INFORMAR_OFICIO: "VERIFICAR / INFORMAR",
-  RATIFICACION_CLAUSURA_OFICIO: "RATIF. CLAUSURA",
-  RATIFICACION_DECOMISO_OFICIO: "RATIF. DECOMISO",
+/** Etiquetas de tipo de iniciador (sin enums crudos visibles). */
+const TIPO_INICIADOR_LABELS: Record<string, string> = {
+  RELEVAMIENTO: "Relevamiento",
+  DENUNCIA: "Denuncia",
+  REINSPECCION_NOTIFICACION: "Reinspección por notificación",
+  REINSPECCION_OFICIO: "Reinspección por oficio",
+  VERIFICAR_INFORMAR_OFICIO: "Verificar e informar (oficio)",
+  RATIFICACION_CLAUSURA_OFICIO: "Ratificación clausura (oficio)",
+  RATIFICACION_DECOMISO_OFICIO: "Ratificación decomiso (oficio)",
 };
+
+function humanizarCodigoTipoDesconocido(codigo: string): string {
+  return codigo
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");
+}
 
 /**
  * Texto principal del pendiente: domicilio compuesto o fallback.
@@ -37,8 +45,33 @@ export function subtituloRubroFecha(row: IRutaIniciadorPendienteRow): string | n
 
 export function etiquetaTipoCorta(row: IRutaIniciadorPendienteRow): string {
   const key = row.tipo_iniciador ?? "";
-  if (TIPO_CORTO[key]) return TIPO_CORTO[key];
-  return key.replace(/_/g, " ");
+  if (TIPO_INICIADOR_LABELS[key]) return TIPO_INICIADOR_LABELS[key];
+  if (!key.trim()) return "—";
+  return humanizarCodigoTipoDesconocido(key);
+}
+
+/**
+ * Humaniza el código `tipo_iniciador` del API (ítem de ruta o pendiente) sin fila completa.
+ */
+export function tipoIniciadorDesdeCodigoApi(codigo: string | null | undefined): string | null {
+  if (codigo == null || !String(codigo).trim()) return null;
+  const c = String(codigo).trim();
+  if (TIPO_INICIADOR_LABELS[c]) return TIPO_INICIADOR_LABELS[c];
+  return humanizarCodigoTipoDesconocido(c);
+}
+
+/**
+ * Tipo de iniciador para UI desde fila de planificación: prioriza `tipo_iniciador` humanizado; si no hay código, `badges.tipo_label`.
+ *
+ * @param row — Fila de pendiente; si falta, retorna `null`.
+ * @returns Etiqueta corta sin enums crudos, o `null` si no hay tipo en datos.
+ */
+export function tipoIniciadorEtiquetaOperativa(row: IRutaIniciadorPendienteRow | undefined): string | null {
+  if (!row) return null;
+  const codigo = row.tipo_iniciador?.trim();
+  if (codigo) return tipoIniciadorDesdeCodigoApi(codigo);
+  const badge = row.badges?.tipo_label?.trim();
+  return badge || null;
 }
 
 export type PrioridadCat = "BAJA" | "MEDIA" | "ALTA";

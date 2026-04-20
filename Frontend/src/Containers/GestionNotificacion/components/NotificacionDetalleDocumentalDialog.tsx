@@ -10,17 +10,18 @@ import {
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
+  docModalActuacionScrollCardShellSx,
   docModalBlockOverlineSx,
   docModalBlockResumenSx,
   docModalChipSx,
   docModalFilaEtiquetaSx,
   docModalFilaValorSx,
   docModalFooterButtonsSx,
-  docModalFooterHintSx,
   docModalFooterRowSx,
   docModalGlassCardShellSx,
   docModalHeaderStackSx,
   docModalEmptyStateSx,
+  docModalReferenceSx,
   docModalSubheadingInCardSx,
   docModalSubtitleSx,
   docModalTitleSx,
@@ -57,17 +58,24 @@ function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }
   );
 }
 
+type DocumentalCardShell = "glass" | "actuacion";
+
 function DocumentalBloque({
   overline,
   resumen,
   children,
+  shell = "glass",
 }: {
   overline: string;
   resumen?: string;
   children: ReactNode;
+  /** `actuacion`: mismo shell liviano que Actuaciones (scroll/compositing). Solo variante documental. */
+  shell?: DocumentalCardShell;
 }) {
+  const shellSx =
+    shell === "actuacion" ? docModalActuacionScrollCardShellSx(COLORS.primary) : docModalGlassCardShellSx(COLORS.primary);
   return (
-    <Box sx={docModalGlassCardShellSx(COLORS.primary)}>
+    <Box sx={shellSx}>
       <Typography component="div" sx={docModalBlockOverlineSx}>
         {overline}
       </Typography>
@@ -119,27 +127,40 @@ function distritoNombreSiHay(row: IActuacionesPendientesItem): string | null {
   return s || null;
 }
 
-/**
- * Resumen operativo de la reinspección / comprobación (DTO `comprobacion_posterior_*` desde bandeja).
- */
 function filasResultadoEstado(row: IActuacionesPendientesItem): { etiqueta: string; valor: string }[] {
   const fecha = (row.comprobacion_posterior_fecha ?? "").trim();
   const insp = (row.comprobacion_posterior_inspectores_texto ?? "").trim();
   const acta = (row.comprobacion_posterior_acta_num ?? "").trim();
   return [
-    {
-      etiqueta: "Fecha de la segunda inspección (comprobación)",
-      valor: fecha || "—",
-    },
-    {
-      etiqueta: "Inspectores involucrados",
-      valor: insp || "—",
-    },
-    {
-      etiqueta: "Acta de comprobación Nº",
-      valor: acta || "—",
-    },
+    { etiqueta: "Fecha de comprobación", valor: fecha || "—" },
+    { etiqueta: "Inspectores", valor: insp || "—" },
+    { etiqueta: "Acta de comprobación Nº", valor: acta || "—" },
   ];
+}
+
+function campoTextoUtil(s: unknown): boolean {
+  return s != null && String(s).trim() !== "";
+}
+
+function visitaBaseHayContenido(row: IActuacionesPendientesItem): boolean {
+  return (
+    campoTextoUtil(row.acta_inspeccion_num) ||
+    campoTextoUtil(row.orden_trabajo_numero) ||
+    campoTextoUtil(row.tipo_actuacion) ||
+    inspectoresLinea(row) !== "—"
+  );
+}
+
+function motivosNotificacionHayContenido(row: IActuacionesPendientesItem): boolean {
+  return [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3].some(campoTextoUtil);
+}
+
+function resultadoComprobacionPosteriorHayContenido(row: IActuacionesPendientesItem): boolean {
+  return (
+    campoTextoUtil(row.comprobacion_posterior_fecha) ||
+    campoTextoUtil(row.comprobacion_posterior_inspectores_texto) ||
+    campoTextoUtil(row.comprobacion_posterior_acta_num)
+  );
 }
 
 /** Línea de cabecera: acta de notificación (gestión notificación siempre con número en bandeja). */
@@ -161,23 +182,25 @@ function expedienteActasLinea(row: IActuacionesPendientesItem): string {
   return row.expediente_anio != null ? `${row.expediente_numero} / ${row.expediente_anio}` : String(row.expediente_numero);
 }
 
-const PRORROGA_BLOQUE_RESUMEN =
-  "Listado de expedientes PRORROGA_NOTIFICACION y plazo consolidado desde el servidor. Los días por expediente no se persisten por fila; el total de prórroga refleja la notificación.";
-
 /**
- * GET `/actuaciones/:id/notificacion/expedientes-prorroga` — mismo bloque en historial (documental) y en alta operativa (soloExpediente).
+ * GET `/actuaciones/:id/notificacion/expedientes-prorroga` — documental (historial) vs operativa (soloExpediente).
  */
 function NotificacionProrrogaExpedientesCard({
   loading,
   error,
   detalle,
+  modo,
+  shell = "glass",
 }: {
   loading: boolean;
   error: string | null;
   detalle: INotificacionProrrogaExpedientesResponse | null;
+  modo: "operativa" | "documental";
+  shell?: DocumentalCardShell;
 }) {
+  const operativa = modo === "operativa";
   return (
-    <DocumentalBloque overline="Prórrogas y expedientes de plazo" resumen={PRORROGA_BLOQUE_RESUMEN}>
+    <DocumentalBloque overline="Plazo y expedientes de prórroga" shell={shell}>
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
           <CircularProgress size={28} sx={{ color: COLORS.primary }} />
@@ -188,14 +211,17 @@ function NotificacionProrrogaExpedientesCard({
         </Typography>
       ) : detalle ? (
         <>
-          <DocumentalFila etiqueta="Plazo base (días hábiles)" valor={textoValor(detalle.consolidado?.plazo_dias)} />
+          <DocumentalFila
+            etiqueta="Plazo base (hábiles)"
+            valor={textoValor(detalle.consolidado?.plazo_dias)}
+          />
           <DocumentalFila etiqueta="Prórroga acumulada (días)" valor={textoValor(detalle.consolidado?.prorroga_dias)} />
           <DocumentalFila etiqueta="Fecha de notificación" valor={textoValor(detalle.consolidado?.fecha_notificacion)} />
-          <DocumentalFila etiqueta="Fecha de vencimiento (consolidada)" valor={textoValor(detalle.consolidado?.fecha_vencimiento)} />
-          <DocumentalFila etiqueta="Cantidad de expedientes de prórroga" valor={String(detalle.plazos_otorgados ?? 0)} />
+          <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.consolidado?.fecha_vencimiento)} />
+          <DocumentalFila etiqueta="Expedientes de prórroga" valor={String(detalle.plazos_otorgados ?? 0)} />
           {!detalle.items?.length ? (
-            <Typography variant="body2" sx={{ ...docModalEmptyStateSx, mt: 1 }}>
-              Sin expedientes de prórroga registrados para esta notificación.
+            <Typography variant="body2" sx={{ ...docModalEmptyStateSx, mt: 0.75 }}>
+              Sin registros de prórroga.
             </Typography>
           ) : (
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
@@ -208,23 +234,20 @@ function NotificacionProrrogaExpedientesCard({
                   }}
                 >
                   <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mb: 0.75 }}>
-                    Expediente de prórroga {idx + 1}
+                    Expediente {idx + 1}
                   </Typography>
-                  <DocumentalFila
-                    etiqueta="Número"
-                    valor={textoValor(it.numero_expediente)}
-                  />
+                  <DocumentalFila etiqueta="Número" valor={textoValor(it.numero_expediente)} />
                   <DocumentalFila etiqueta="Año" valor={textoValor(it.anio)} />
                   <DocumentalFila etiqueta="Fecha de expediente" valor={textoValor(it.fecha_expediente)} />
-                  <DocumentalFila etiqueta="Tipo" valor={textoValor(it.tipo_expediente)} />
-                  <DocumentalFila etiqueta="Registrado (alta)" valor={textoValor(it.created_at)} />
+                  {operativa ? null : (
+                    <>
+                      <DocumentalFila etiqueta="Tipo" valor={textoValor(it.tipo_expediente)} />
+                      <DocumentalFila etiqueta="Registrado" valor={textoValor(it.created_at)} />
+                    </>
+                  )}
                   <DocumentalFila
-                    etiqueta="Días de esta prórroga (detalle)"
-                    valor={
-                      it.prorroga_dias_solicitada != null
-                        ? String(it.prorroga_dias_solicitada)
-                        : "No informado por fila (solo total consolidado arriba)."
-                    }
+                    etiqueta="Días (esta alta)"
+                    valor={it.prorroga_dias_solicitada != null ? String(it.prorroga_dias_solicitada) : "—"}
                   />
                 </Box>
               ))}
@@ -237,29 +260,28 @@ function NotificacionProrrogaExpedientesCard({
 }
 
 /**
- * Card única: contexto de fila (antes Referencia + Domicilio y titular + expediente DTO de plazo en card suelta).
- * Prórrogas consolidadas siguen en el bloque API debajo.
+ * Contexto de fila. Misma jerarquía operativa / documental (PR N1–N2); `shell="actuacion"` en historial.
  */
 function BloqueReferenciaNotificacion({
   row,
-  resumen,
+  shell = "glass",
 }: {
   row: IActuacionesPendientesItem;
-  resumen: string;
+  shell?: DocumentalCardShell;
 }) {
   const distritoNom = distritoNombreSiHay(row);
   return (
-    <DocumentalBloque overline="Referencia" resumen={resumen}>
-      <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
+    <DocumentalBloque overline="Referencia de la notificación" shell={shell}>
       <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
       {distritoNom ? <DocumentalFila etiqueta="Distrito" valor={distritoNom} /> : null}
       <DocumentalFila etiqueta="Acta de notificación Nº" valor={actaNotificacionNumValor(row)} />
+      <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
       <DocumentalFila etiqueta="Días restantes" valor={diasPlazoLinea(row)} />
       <DocumentalFila etiqueta="Plazos otorgados" valor={textoValor(row.plazos_otorgados)} />
-      <DocumentalFila etiqueta="Expediente asociado (DTO actas, si consta)" valor={expedienteActasLinea(row)} />
+      <DocumentalFila etiqueta="Expediente en actas" valor={expedienteActasLinea(row)} />
     </DocumentalBloque>
   );
 }
@@ -357,13 +379,16 @@ export function NotificacionDetalleDocumentalDialog({
 
   const titleNode =
     row != null ? (
-      <Box sx={docModalHeaderStackSx}>
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
         <Chip label="Notificación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
           {variant === "soloExpediente" ? "Registrar expediente de plazo" : "Historial de notificación"}
         </Typography>
         <Typography variant="body2" sx={docModalSubtitleSx}>
           {actaNotificacionCabecera(row)}
+        </Typography>
+        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+          Actuación #{row.id}
         </Typography>
       </Box>
     ) : (
@@ -397,9 +422,7 @@ export function NotificacionDetalleDocumentalDialog({
           </Box>
         ) : (
           <Box sx={docModalFooterRowSx}>
-            <Typography variant="caption" component="div" sx={docModalFooterHintSx}>
-              Vista solo consulta. Los datos reflejan el estado al cargar la bandeja o el historial.
-            </Typography>
+            <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
             <Box sx={docModalFooterButtonsSx}>
               <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose}>
                 Cerrar
@@ -410,16 +433,14 @@ export function NotificacionDetalleDocumentalDialog({
       }
     >
       {!row ? null : variant === "soloExpediente" ? (
-        <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-          <BloqueReferenciaNotificacion
-            row={row}
-            resumen="Ubicación, titular, documento, rubro, acta, plazo operativo y expediente en DTO si consta."
-          />
+        <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Alta de expediente de plazo">
+          <BloqueReferenciaNotificacion row={row} />
           {row.source_type !== "COMPROBACION" ? (
             <NotificacionProrrogaExpedientesCard
               loading={prorrogaLoading}
               error={prorrogaError}
               detalle={prorrogaDetalle}
+              modo="operativa"
             />
           ) : null}
           {modalApiError ? (
@@ -427,79 +448,82 @@ export function NotificacionDetalleDocumentalDialog({
               {modalApiError}
             </Alert>
           ) : null}
-          <AppTextField
-            appearance="glass"
-            label="Número de expediente"
-            value={expNumero}
-            onChange={(e) => onExpNumeroChange(e.target.value)}
-            fullWidth
-            required
-            error={Boolean(fieldErrors.expNumero)}
-            helperText={fieldErrors.expNumero || undefined}
-          />
-          <AppTextField
-            appearance="glass"
-            label="Fecha de expediente"
-            type="date"
-            value={expFecha}
-            onChange={(e) => onExpFechaChange(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-            error={Boolean(fieldErrors.expFecha)}
-            helperText={fieldErrors.expFecha || undefined}
-          />
-          <AppTextField
-            appearance="glass"
-            label="Prórroga (días)"
-            type="number"
-            value={prorrogaDias}
-            onChange={(e) => onProrrogaDiasChange(e.target.value)}
-            fullWidth
-            required
-            error={Boolean(fieldErrors.prorrogaDias)}
-            helperText={fieldErrors.prorrogaDias ?? "Días que se suman al plazo consolidado de la notificación."}
-          />
+          <DocumentalBloque overline="Alta de expediente de plazo">
+            <Stack spacing={2} sx={{ width: "100%" }}>
+              <AppTextField
+                appearance="glass"
+                label="Número de expediente"
+                value={expNumero}
+                onChange={(e) => onExpNumeroChange(e.target.value)}
+                fullWidth
+                required
+                error={Boolean(fieldErrors.expNumero)}
+                helperText={fieldErrors.expNumero || undefined}
+              />
+              <AppTextField
+                appearance="glass"
+                label="Fecha de expediente"
+                type="date"
+                value={expFecha}
+                onChange={(e) => onExpFechaChange(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+                error={Boolean(fieldErrors.expFecha)}
+                helperText={fieldErrors.expFecha || undefined}
+              />
+              <AppTextField
+                appearance="glass"
+                label="Días de prórroga"
+                type="number"
+                value={prorrogaDias}
+                onChange={(e) => onProrrogaDiasChange(e.target.value)}
+                fullWidth
+                required
+                error={Boolean(fieldErrors.prorrogaDias)}
+                helperText={fieldErrors.prorrogaDias || undefined}
+              />
+            </Stack>
+          </DocumentalBloque>
         </Stack>
       ) : (
-        <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-          <BloqueReferenciaNotificacion
-            row={row}
-            resumen="Datos de la fila al consultar: ubicación, titular, acta de notificación, plazo operativo y expediente en DTO si consta."
-          />
+        <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Historial de la notificación">
+          <BloqueReferenciaNotificacion row={row} shell="actuacion" />
 
-          <DocumentalBloque
-            overline="Inspección base"
-            resumen="Equipo y actas de la visita registrada en la fila (la fecha figura en Referencia)."
-          >
-            <DocumentalFila etiqueta="Acta de inspección (si consta)" valor={textoValor(row.acta_inspeccion_num)} />
-            <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
-            <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-            <DocumentalFila etiqueta="Tipo de actuación" valor={textoValor(row.tipo_actuacion)} />
-          </DocumentalBloque>
+          {visitaBaseHayContenido(row) ? (
+            <DocumentalBloque overline="La visita" shell="actuacion">
+              <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
+              <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
+              <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
+              <DocumentalFila etiqueta="Tipo de actuación" valor={textoValor(row.tipo_actuacion)} />
+            </DocumentalBloque>
+          ) : null}
 
-          <DocumentalBloque overline="Motivos / infracciones" resumen="Hasta tres motivos vinculados a la notificación.">
-            <DocumentalFila etiqueta="Motivo 1" valor={textoValor(row.notificacion_motivo_1)} />
-            <DocumentalFila etiqueta="Motivo 2" valor={textoValor(row.notificacion_motivo_2)} />
-            <DocumentalFila etiqueta="Motivo 3" valor={textoValor(row.notificacion_motivo_3)} />
-          </DocumentalBloque>
+          {motivosNotificacionHayContenido(row) ? (
+            <DocumentalBloque overline="Motivos" shell="actuacion">
+              <DocumentalFila etiqueta="Motivo 1" valor={textoValor(row.notificacion_motivo_1)} />
+              <DocumentalFila etiqueta="Motivo 2" valor={textoValor(row.notificacion_motivo_2)} />
+              <DocumentalFila etiqueta="Motivo 3" valor={textoValor(row.notificacion_motivo_3)} />
+            </DocumentalBloque>
+          ) : null}
 
           {row.source_type !== "COMPROBACION" ? (
             <NotificacionProrrogaExpedientesCard
               loading={prorrogaLoading}
               error={prorrogaError}
               detalle={prorrogaDetalle}
+              modo="documental"
+              shell="actuacion"
             />
           ) : null}
 
-          <DocumentalBloque
-            overline="Resultado / estado actual"
-            resumen="Comprobación en una visita posterior (mismo domicilio), si ya consta registrada."
-          >
-            {filasResultadoEstado(row).map((f) => (
-              <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
-            ))}
-          </DocumentalBloque>
+          {resultadoComprobacionPosteriorHayContenido(row) ? (
+            <DocumentalBloque overline="Resultado y seguimiento" shell="actuacion">
+              {filasResultadoEstado(row).map((f) => (
+                <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
+              ))}
+            </DocumentalBloque>
+          ) : null}
         </Stack>
       )}
     </AppDialog>

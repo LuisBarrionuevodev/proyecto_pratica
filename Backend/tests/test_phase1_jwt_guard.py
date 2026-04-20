@@ -91,3 +91,8 @@ def test_get_relevamientos_con_jwt_no_401_por_auth(client, auth_headers):
 def test_login_publico_sin_jwt(client):
     resp = client.post("/api/auth/login", json={"username": "x", "password": "y"})
     assert resp.status_code != 401
+
+
+def test_post_guardar_nomenclatura_sin_jwt_401(client):
+    resp = client.post("/geolocalizacion/calles/guardar-nomenclatura/1", json={})
+    assert resp.status_code == 401

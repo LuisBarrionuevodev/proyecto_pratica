@@ -3,14 +3,17 @@ import {
   Box,
   CircularProgress,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -28,8 +31,17 @@ import type { PlanificacionFiltrosLista, PlanificacionOrdenM4 } from "./types/pl
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
+/**
+ * Alto máximo del viewport de la lista (solo este bloque hace scroll).
+ * Calibrado para ~2 `PlanificacionIniciadorCompactCard` + `Stack.spacing` entre ítems.
+ */
+const PENDIENTES_LISTA_VIEWPORT_MAX = "min(17.5rem, 38vh)";
+
+/** Centinela MUI Select: `value=""` suele dar comportamientos raros; en estado seguimos usando `tipo: ""`. */
+const TIPO_FILTRO_TODOS_SENTINEL = "__planif_tipo_todos__";
+
 const TIPO_OPCIONES: { value: string; label: string }[] = [
-  { value: "", label: "Todos" },
+  { value: TIPO_FILTRO_TODOS_SENTINEL, label: "Todos" },
   { value: "DENUNCIA", label: "Denuncia" },
   { value: "RELEVAMIENTO", label: "Relevamiento" },
   { value: "REINSPECCION_NOTIFICACION", label: "Reinspección notificación" },
@@ -55,6 +67,8 @@ export type PendientesContextoPanelProps = {
   meta: { total: number; page: number; perPage: number };
   loading: boolean;
   onApplyBusqueda: (q: string) => void;
+  /** Limpia búsqueda/filtros del panel y relanza M4 (lista + mapa), sin recargar la página. */
+  onReiniciarContextoPanel: () => void;
   onPageChange: (page: number) => void;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
   /** Centrar mapa y abrir card en el punto (requiere coords en el row). */
@@ -73,6 +87,7 @@ export function PendientesContextoPanel({
   meta,
   loading,
   onApplyBusqueda,
+  onReiniciarContextoPanel,
   onPageChange,
   onAgregar,
   onVerEnMapa,
@@ -101,20 +116,19 @@ export function PendientesContextoPanel({
           gap: 2,
         }}
       >
-        <MapOutlinedIcon sx={{ fontSize: 44, color: GLASS_COLORS.primary, opacity: 0.9 }} aria-hidden />
+        <MapOutlinedIcon sx={{ fontSize: 40, color: GLASS_COLORS.primary, opacity: 0.85 }} aria-hidden />
         <Typography sx={{ ...planificacionPanelTitleSx, textAlign: "center" }}>Pendientes del contexto</Typography>
         <Typography
           sx={{
             fontFamily: tactic,
-            color: GLASS_COLORS.textSecondary,
+            color: GLASS_COLORS.textMuted,
             textAlign: "center",
-            maxWidth: 280,
-            lineHeight: 1.5,
-            fontSize: "0.875rem",
+            maxWidth: 240,
+            lineHeight: 1.4,
+            fontSize: "0.8125rem",
           }}
         >
-          Elegí un distrito en el <strong style={{ color: GLASS_COLORS.textPrimary }}>mapa</strong>. Las cards de arriba
-          siguen filtrando el alcance.
+          Seleccioná un distrito en el mapa.
         </Typography>
       </Box>
     );
@@ -133,11 +147,8 @@ export function PendientesContextoPanel({
     >
       <Box sx={{ flexShrink: 0 }}>
         <Typography sx={planificacionPanelTitleSx}>Pendientes del contexto</Typography>
-        <Typography sx={planificacionPanelSubtitleSx}>
-          Distrito:{" "}
-          <Box component="span" sx={{ color: GLASS_COLORS.textPrimary, fontWeight: 600 }}>
-            {distritoNombre ?? `#${distritoActivoId}`}
-          </Box>
+        <Typography sx={{ ...planificacionPanelSubtitleSx, color: GLASS_COLORS.textPrimary, fontWeight: 600 }}>
+          {distritoNombre ?? `Distrito ${distritoActivoId}`}
         </Typography>
       </Box>
 
@@ -149,8 +160,11 @@ export function PendientesContextoPanel({
           <Select
             labelId="planif-tipo-label"
             label="Tipo de iniciador"
-            value={filtros.tipo}
-            onChange={(e) => onFiltrosChange({ tipo: e.target.value })}
+            value={filtros.tipo === "" ? TIPO_FILTRO_TODOS_SENTINEL : filtros.tipo}
+            onChange={(e) => {
+              const v = e.target.value;
+              onFiltrosChange({ tipo: v === TIPO_FILTRO_TODOS_SENTINEL ? "" : v });
+            }}
             sx={{
               fontFamily: tactic,
               borderRadius: "10px",
@@ -192,26 +206,54 @@ export function PendientesContextoPanel({
           <TextField
             size="small"
             fullWidth
-            placeholder="Buscar domicilio…"
+            placeholder="Buscar…"
             value={localQ}
             onChange={(e) => setLocalQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onApplyBusqueda(localQ)}
             sx={planificacionTextFieldSx}
           />
-          <AppButton dsVariant="secondary" dsSize="sm" onClick={() => onApplyBusqueda(localQ)}>
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => onApplyBusqueda(localQ)}>
             Buscar
           </AppButton>
+          <Tooltip title="Restablecer búsqueda y filtros del panel">
+            <IconButton
+              size="small"
+              onClick={() => {
+                setLocalQ("");
+                onReiniciarContextoPanel();
+              }}
+              aria-label="Restablecer búsqueda y filtros del panel"
+              sx={{
+                mt: 0.25,
+                color: GLASS_COLORS.textSecondary,
+                border: `1px solid ${GLASS_COLORS.borderLight}`,
+                borderRadius: "10px",
+                "&:hover": { color: GLASS_COLORS.primary, borderColor: GLASS_COLORS.borderMedium },
+              }}
+            >
+              <RefreshIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Stack>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
+      <Box
+        sx={{
+          maxHeight: PENDIENTES_LISTA_VIEWPORT_MAX,
+          minHeight: 0,
+          overflow: "auto",
+          flexShrink: 0,
+          pr: 0.5,
+          ...rutasInstitutionalScrollSx,
+        }}
+      >
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={28} sx={{ color: GLASS_COLORS.primary }} />
           </Box>
         ) : rows.length === 0 ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.82rem", color: GLASS_COLORS.textSecondary, lineHeight: 1.5 }}>
-            Sin resultados con estos filtros. Ajustá card, tipo u orden.
+          <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
+            Sin resultados.
           </Typography>
         ) : (
           <Stack spacing={0.75}>
@@ -229,6 +271,9 @@ export function PendientesContextoPanel({
         )}
       </Box>
 
+      {/* Absorbe el alto sobrante de la columna: la paginación queda abajo sin estirar la lista. */}
+      <Box sx={{ flexGrow: 1, minHeight: 0, flexShrink: 0 }} aria-hidden />
+
       <Stack
         direction="row"
         alignItems="center"
@@ -238,7 +283,7 @@ export function PendientesContextoPanel({
         sx={{ flexShrink: 0, pt: 0.5, borderTop: `1px solid ${GLASS_COLORS.borderLight}` }}
       >
         <Typography sx={planificacionPanelFooterMetaSx}>
-          {meta.total} total · pág. {meta.page}/{totalPages}
+          {meta.total} · {meta.page}/{totalPages}
         </Typography>
         <Stack direction="row" spacing={0.5}>
           <AppButton

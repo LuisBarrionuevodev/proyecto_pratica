@@ -66,6 +66,16 @@ def _clear_esquina_fields(dom) -> None:
     dom.esquina_norm_updated_at = None
 
 
+def clear_esquina_norm_fields(dom) -> None:
+    """
+    Limpia campos de normalización de esquina (p. ej. cuando ``numero_tipo`` no es ESQUINA).
+
+    Parámetros:
+        dom: instancia ``Domicilio`` en sesión.
+    """
+    _clear_esquina_fields(dom)
+
+
 def _normalize_esquina(dom, override_numero_tipo: Optional[str] = None) -> Optional[Dict[str, object]]:
     """
     Normaliza esquina solo cuando `numero` representa una calle (ESQUINA).

@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { alertBaseStyles, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import type { GuardarNomenclaturaBody } from "../../api/geolocalizacionApi";
 import ManualMapPanel from "./components/ManualMapPanel";
 import TabGeolocalizacionTable from "./components/TabGeolocalizacionTable";
 import TabNomenclaturaTable from "./components/TabNomenclaturaTable";
@@ -35,13 +36,7 @@ const GestionarDomiciliosContainer = () => {
   const { guardarNormalizacion } = useDomicilioNormalizationActions();
   const { guardarPuntoManual } = useDomicilioGeolocalizacionActions();
 
-  const onGuardarNormalizacion = async (payload: {
-    domicilio_id: number;
-    calle_catalogo_id?: number | null;
-    esquina_catalogo_id?: number | null;
-    numero?: string | null;
-    numero_tipo?: string | null;
-  }) => {
+  const onGuardarNormalizacion = async (payload: GuardarNomenclaturaBody & { domicilio_id: number }) => {
     await guardarNormalizacion(payload);
     await refetch();
   };

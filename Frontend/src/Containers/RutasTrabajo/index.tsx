@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Paper, Snackbar } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
@@ -18,7 +18,6 @@ import {
 import type { AsignacionPoolFilters } from "./Components/TablaIniciadoresPendientes";
 import { ASIGNACION_POOL_FILTROS_VACIOS } from "./Components/TablaIniciadoresPendientes";
 import ModalAsignarInspectoresGrupo from "./Components/ModalAsignarInspectoresGrupo";
-import ModalAsignarSeleccionAGrupo from "./Components/ModalAsignarSeleccionAGrupo";
 import ModalCrearGrupoRuta from "./Components/ModalCrearGrupoRuta";
 import ModalCrearRutaTrabajo from "./Components/ModalCrearRutaTrabajo";
 import {
@@ -32,6 +31,7 @@ import { rutasInstitutionalHeaderPaperSx } from "./styles/institutionalVisual";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
 import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
+import type { CapturaMapaFinalHandle, ExportGruposPrintHandle } from "./types/rutasTrabajoMapa.types";
 import { PlanificacionView } from "./planificacion/PlanificacionView";
 import type { PlanificacionPoolControl } from "./planificacion/hooks/usePlanificacionController";
 import {
@@ -59,7 +59,6 @@ const RutasTrabajo = () => {
   /** Pool del día compartido Planificación → Asignación (solo frontend hasta asignar a grupos). */
   const [poolIniciadorIds, setPoolIniciadorIds] = useState<number[]>([]);
   const [poolRowsById, setPoolRowsById] = useState<Record<number, IRutaIniciadorPendienteRow>>({});
-  const [selectedIniciadorIds, setSelectedIniciadorIds] = useState<number[]>([]);
   const [asignacionFilters, setAsignacionFilters] = useState<AsignacionPoolFilters>({
     ...ASIGNACION_POOL_FILTROS_VACIOS,
   });
@@ -71,10 +70,11 @@ const RutasTrabajo = () => {
   const [openCrearGrupo, setOpenCrearGrupo] = useState(false);
   const [openCrearRuta, setOpenCrearRuta] = useState(false);
   const [openAsignarInspectores, setOpenAsignarInspectores] = useState(false);
-  const [openAsignarGrupo, setOpenAsignarGrupo] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<IRutaGrupoMin | null>(null);
   const [inspectoresCatalogo, setInspectoresCatalogo] = useState<CatalogItem[]>([]);
   const [publishingRuta, setPublishingRuta] = useState(false);
+  const capturaMapaFinalRef = useRef<CapturaMapaFinalHandle | null>(null);
+  const exportGruposPrintRef = useRef<ExportGruposPrintHandle | null>(null);
 
   const rutaId = ruta?.id ?? null;
   /** Borrador con detalle cargado: habilita la acción (el botón se deshabilita además mientras `publishingRuta`). */
@@ -88,12 +88,12 @@ const RutasTrabajo = () => {
       const detail = await getRutaTrabajoDetail(targetRutaId);
       setRuta(detail.ruta);
       setGrupos(detail.grupos);
+      // Por grupo, el API devuelve ítems ordenados por id ascendente (sin campo de secuencia de visita en modelo).
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
       setPoolIniciadorIds([]);
       setPoolRowsById({});
       setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
-      setSelectedIniciadorIds([]);
       persistRutaId(targetRutaId);
       setFlowStep(1);
       setFlowMaxUnlocked(1);
@@ -117,6 +117,7 @@ const RutasTrabajo = () => {
       const detail = await getRutaTrabajoDetail(rutaId);
       setRuta(detail.ruta);
       setGrupos(detail.grupos);
+      // Mismo orden por grupo que en loadRutaDetail (ítems por id ascendente en presenter).
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
     } catch (err: any) {
@@ -186,7 +187,6 @@ const RutasTrabajo = () => {
 
   const handleAsignacionFiltersChange = useCallback((next: AsignacionPoolFilters) => {
     setAsignacionFilters(next);
-    setSelectedIniciadorIds([]);
   }, []);
 
   /** Debe ser estable: `usePlanificacionController` depende de `onError` en load* y efectos M1–M4. */
@@ -203,10 +203,8 @@ const RutasTrabajo = () => {
     setPoolIniciadorIds([]);
     setPoolRowsById({});
     setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
-    setSelectedIniciadorIds([]);
     setOpenCrearGrupo(false);
     setOpenAsignarInspectores(false);
-    setOpenAsignarGrupo(false);
     setGrupoSeleccionado(null);
     setFlowStep(1);
     setFlowMaxUnlocked(1);
@@ -219,10 +217,59 @@ const RutasTrabajo = () => {
     setSuccessMessage(null);
     try {
       await publicarRutaTrabajo(rutaId);
+      let capturePngError: string | null = null;
+      let gruposPrintError: string | null = null;
+
+      try {
+        const runPng = capturaMapaFinalRef.current;
+        if (!runPng) {
+          throw new Error("Vista de captura no disponible.");
+        }
+        await runPng({ estadoEtiqueta: "Publicada" });
+      } catch (capErr) {
+        console.error(capErr);
+        capturePngError =
+          "No se pudo generar ni descargar la captura PNG del mapa. La ruta igual quedó publicada.";
+      }
+
+      try {
+        const runGrupos = exportGruposPrintRef.current;
+        if (!runGrupos) {
+          throw new Error("Exportación de grupos no disponible.");
+        }
+        await runGrupos({ estadoEtiqueta: "Publicada" });
+      } catch (grErr) {
+        console.error(grErr);
+        gruposPrintError =
+          "No se pudo abrir la hoja de grupos para impresión (revisá bloqueo de ventanas emergentes). La ruta igual quedó publicada.";
+      }
+
       resetVistaRutaTrabajo();
-      setSuccessMessage(
-        "Ruta publicada correctamente. Los trabajos pasaron a ejecución y podés registrarlos en Completar trabajo."
-      );
+
+      const avisosExport: string[] = [];
+      if (capturePngError) avisosExport.push(capturePngError);
+      if (gruposPrintError) avisosExport.push(gruposPrintError);
+      if (avisosExport.length) {
+        setError(avisosExport.join(" "));
+      }
+
+      if (!capturePngError && !gruposPrintError) {
+        setSuccessMessage(
+          "Ruta publicada. Se descargó la captura PNG del mapa y se abrió la hoja de grupos (en el cuadro de impresión podés elegir «Guardar como PDF» según tu navegador)."
+        );
+      } else if (!capturePngError && gruposPrintError) {
+        setSuccessMessage(
+          "Ruta publicada. La captura PNG se descargó; revisá el aviso sobre la hoja de grupos."
+        );
+      } else if (capturePngError && !gruposPrintError) {
+        setSuccessMessage(
+          "Ruta publicada. Se abrió la hoja de grupos para impresión; revisá el aviso sobre la captura PNG."
+        );
+      } else {
+        setSuccessMessage(
+          "Ruta publicada correctamente. Los trabajos pasaron a ejecución y podés registrarlos en Completar trabajo."
+        );
+      }
     } catch (err: unknown) {
       const ax = err as { response?: { status?: number; data?: { detail?: unknown } } };
       const status = ax?.response?.status;
@@ -275,60 +322,91 @@ const RutasTrabajo = () => {
     }
   };
 
-  const handleReplaceInspectores = async (inspectorIds: number[]) => {
-    if (!rutaId || !grupoSeleccionado) return;
-    const grupoActual = grupos.find((g) => g.id === grupoSeleccionado.id);
-    if (!grupoActual) {
-      setError("El grupo seleccionado ya no existe en el borrador actual.");
-      await loadRutaDetail(rutaId);
-      return;
-    }
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      const resp = await replaceRutaGrupoInspectores(rutaId, grupoSeleccionado.id, {
-        inspector_ids: inspectorIds,
-      });
-      setGrupos((prev) =>
-        prev.map((g) => (g.id === grupoSeleccionado.id ? { ...g, inspectores: resp.items } : g))
-      );
-      setOpenAsignarInspectores(false);
-      setGrupoSeleccionado(null);
-      setSuccessMessage("Inspectores del grupo actualizados.");
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudieron actualizar inspectores");
-    }
-  };
+  const handleCloseModalInspectores = useCallback(() => {
+    setOpenAsignarInspectores(false);
+    setGrupoSeleccionado(null);
+  }, []);
 
-  const handleAssignSelected = async (grupoId: number) => {
-    if (!rutaId || selectedIniciadorIds.length === 0) return;
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      const resp = await assignRutaItems(rutaId, grupoId, { iniciador_ids: selectedIniciadorIds });
-      setItems((prev) => {
-        const map = new Map(prev.map((i) => [i.id, i]));
-        resp.items.forEach((i) => map.set(i.id, i));
-        return Array.from(map.values());
-      });
-      setSelectedIniciadorIds([]);
-      setOpenAsignarGrupo(false);
-      setSuccessMessage("Iniciadores asignados correctamente.");
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo asignar la selección");
-    }
-  };
+  const handleReplaceInspectores = useCallback(
+    async (inspectorIds: number[]) => {
+      if (!rutaId || !grupoSeleccionado) return;
+      const grupoActual = grupos.find((g) => g.id === grupoSeleccionado.id);
+      if (!grupoActual) {
+        setError("El grupo seleccionado ya no existe en el borrador actual.");
+        await loadRutaDetail(rutaId);
+        return;
+      }
+      const grupoId = grupoSeleccionado.id;
+      setError(null);
+      setSuccessMessage(null);
+      try {
+        const resp = await replaceRutaGrupoInspectores(rutaId, grupoId, {
+          inspector_ids: inspectorIds,
+        });
+        setGrupos((prev) => prev.map((g) => (g.id === grupoId ? { ...g, inspectores: resp.items } : g)));
+        setOpenAsignarInspectores(false);
+        setGrupoSeleccionado(null);
+        setSuccessMessage("Inspectores del grupo actualizados.");
+      } catch (err: any) {
+        setError(err?.response?.data?.detail || "No se pudieron actualizar inspectores");
+      }
+    },
+    [grupoSeleccionado, grupos, loadRutaDetail, rutaId]
+  );
 
-  const handleDeleteGrupo = async (grupo: IRutaGrupoMin) => {
-    if (!rutaId) return;
-    try {
-      await deleteRutaGrupo(rutaId, grupo.id);
-      setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
-      setItems((prev) => prev.filter((it) => it.ruta_grupo_id !== grupo.id));
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
-    }
-  };
+  const assignIniciadoresToGrupo = useCallback(
+    async (grupoId: number, iniciadorIds: number[]): Promise<boolean> => {
+      if (!rutaId || iniciadorIds.length === 0) return false;
+      setError(null);
+      setSuccessMessage(null);
+      try {
+        const resp = await assignRutaItems(rutaId, grupoId, { iniciador_ids: iniciadorIds });
+        setItems((prev) => {
+          const map = new Map(prev.map((i) => [i.id, i]));
+          resp.items.forEach((i) => map.set(i.id, i));
+          return Array.from(map.values());
+        });
+        setSuccessMessage("Iniciadores asignados correctamente.");
+        return true;
+      } catch (err: any) {
+        setError(err?.response?.data?.detail || "No se pudo asignar la selección");
+        return false;
+      }
+    },
+    [rutaId]
+  );
+
+  const handleDeleteGrupo = useCallback(
+    async (grupo: IRutaGrupoMin) => {
+      if (!rutaId) return;
+      try {
+        await deleteRutaGrupo(rutaId, grupo.id);
+        setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
+        setItems((prev) => prev.filter((it) => it.ruta_grupo_id !== grupo.id));
+      } catch (err: any) {
+        setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
+      }
+    },
+    [rutaId]
+  );
+
+  const handleSincronizarBorradorAsignacion = useCallback(() => {
+    void refreshRutaBorrador();
+  }, [refreshRutaBorrador]);
+
+  const handleOpenCrearGrupo = useCallback(() => setOpenCrearGrupo(true), []);
+
+  const handleEditarInspectoresAsignacion = useCallback((grupo: IRutaGrupoMin) => {
+    setGrupoSeleccionado(grupo);
+    setOpenAsignarInspectores(true);
+  }, []);
+
+  const handleContinuarMapaFinal = useCallback(() => {
+    setFlowMaxUnlocked((m): RutaFlowStep => (m < 3 ? 3 : m));
+    setFlowStep(3);
+  }, []);
+
+  const handleVolverPlanificacion = useCallback(() => setFlowStep(1), []);
 
   const canCreateGrupo = useMemo(() => Boolean(rutaId), [rutaId]);
   const itemsActivos = useMemo(() => items.filter((i) => !i.deleted_at), [items]);
@@ -417,31 +495,23 @@ const RutasTrabajo = () => {
             itemsCount={itemsActivos.length}
             iniciadoresTabla={iniciadoresTablaAsignacion}
             totalEnPool={poolRowsOrdered.length}
-            selectedIniciadorIds={selectedIniciadorIds}
             assignedIniciadorIds={assignedIniciadorIds}
             filters={asignacionFilters}
             detailLoading={detailLoading}
             canCreateGrupo={canCreateGrupo}
             iniciadorById={iniciadorById}
             onChangeFilters={handleAsignacionFiltersChange}
-            onSincronizarDetalle={() => void refreshRutaBorrador()}
+            onSincronizarDetalle={handleSincronizarBorradorAsignacion}
             distritoFilterOptions={distritoFilterOptions}
-            onSelectionChange={setSelectedIniciadorIds}
-            onAssignSelected={() => setOpenAsignarGrupo(true)}
-            onOpenCrearGrupo={() => setOpenCrearGrupo(true)}
-            onEditarInspectores={(grupo) => {
-              setGrupoSeleccionado(grupo);
-              setOpenAsignarInspectores(true);
-            }}
+            onOpenCrearGrupo={handleOpenCrearGrupo}
+            onEditarInspectores={handleEditarInspectoresAsignacion}
             onEliminarGrupo={handleDeleteGrupo}
             onMoverItem={handleMoveItem}
             onQuitarItem={handleDeleteItem}
             onGuardarOtItem={handleSaveOt}
-            onContinuarMapaFinal={() => {
-              setFlowMaxUnlocked((m): RutaFlowStep => (m < 3 ? 3 : m));
-              setFlowStep(3);
-            }}
-            onVolverPlanificacion={() => setFlowStep(1)}
+            onContinuarMapaFinal={handleContinuarMapaFinal}
+            onVolverPlanificacion={handleVolverPlanificacion}
+            onAssignIniciadoresToGrupo={assignIniciadoresToGrupo}
           />
         )}
 
@@ -456,6 +526,8 @@ const RutasTrabajo = () => {
             canPublish={puedeIntentarPublicar}
             publishingRuta={publishingRuta}
             detailLoading={detailLoading}
+            capturaMapaFinalRef={capturaMapaFinalRef}
+            exportGruposPrintRef={exportGruposPrintRef}
             onEditarInspectores={(grupo) => {
               setGrupoSeleccionado(grupo);
               setOpenAsignarInspectores(true);
@@ -472,22 +544,11 @@ const RutasTrabajo = () => {
 
         <ModalAsignarInspectoresGrupo
           open={openAsignarInspectores}
-          onClose={() => {
-            setOpenAsignarInspectores(false);
-            setGrupoSeleccionado(null);
-          }}
+          onClose={handleCloseModalInspectores}
           onSubmit={handleReplaceInspectores}
           grupo={grupoSeleccionado}
           inspectoresCatalogo={inspectoresCatalogo}
           grupos={grupos}
-        />
-
-        <ModalAsignarSeleccionAGrupo
-          open={openAsignarGrupo}
-          onClose={() => setOpenAsignarGrupo(false)}
-          grupos={grupos}
-          selectedCount={selectedIniciadorIds.length}
-          onConfirm={handleAssignSelected}
         />
 
     </Box>

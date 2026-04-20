@@ -55,7 +55,7 @@ _PHASE1_METHOD_PATH: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
         "POST",
         re.compile(
             r"^/geolocalizacion/calles/(?:normalize/\d+|normalize-pending|set-canon/\d+|"
-            r"set-esquina/\d+|set-numero/\d+)$"
+            r"set-esquina/\d+|set-numero/\d+|guardar-nomenclatura/\d+)$"
         ),
     ),
     ("POST", re.compile(r"^/geolocalizacion/geocode/\d+$")),

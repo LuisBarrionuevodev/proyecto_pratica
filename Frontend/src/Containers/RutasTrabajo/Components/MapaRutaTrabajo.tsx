@@ -1,20 +1,27 @@
 import { useEffect, useMemo } from "react";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Box } from "@mui/material";
 
 import type { RutaMapaMarker, RutaMapaPolyline } from "../types/rutasTrabajoMapa.types";
+import { MARKER_RING_BOXSHADOW } from "../utils/mapaRutaGrupoTrazado";
 
 /** Misma URL y atribución que `Mapa/Components/MapView.tsx`. */
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-function createNumberedDivIcon(order: number, colorHex: string): L.DivIcon {
+function createNumberedDivIcon(order: number, colorHex: string, grupoCodigo: string, styleIndex: number): L.DivIcon {
+  const ring = MARKER_RING_BOXSHADOW[styleIndex % MARKER_RING_BOXSHADOW.length];
+  const boxShadow = `${ring}, 0 2px 6px rgba(0,0,0,0.5)`;
+  const html = `<div style="display:flex;flex-direction:column;align-items:center;">
+<div style="width:26px;height:26px;border-radius:50%;background:${colorHex};color:#fff;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid #f5f5f5;box-shadow:${boxShadow};">${order}</div>
+<div style="margin-top:2px;font-size:8px;font-weight:800;color:#f8f8f8;line-height:1;text-shadow:0 0 5px #000,0 0 5px #000;letter-spacing:0.06em;">${grupoCodigo}</div>
+</div>`;
   return L.divIcon({
     className: "ruta-num-marker",
-    html: `<div style="width:26px;height:26px;border-radius:50%;background:${colorHex};color:#fff;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.95);box-shadow:0 1px 4px rgba(0,0,0,0.35);">${order}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html,
+    iconSize: [30, 40],
+    iconAnchor: [15, 38],
   });
 }
 
@@ -54,8 +61,7 @@ export type MapaRutaTrabajoProps = {
 };
 
 /**
- * Mapa Leaflet + OSM para una ruta: tiles estándar del proyecto, markers numerados por orden de ítem y polilíneas por grupo.
- * Sin coordenadas en datos, solo muestra el área de referencia.
+ * Mapa Leaflet + OSM: direcciones numeradas, código Gn por grupo en pin y en trazo, patrón/grosor de línea por grupo (legible en B/N).
  */
 export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = "min(58vh, 560px)" }: MapaRutaTrabajoProps) {
   const key = useMemo(() => `${center[0]}-${center[1]}-${zoom}`, [center, zoom]);
@@ -73,10 +79,31 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
           fontFamily: '"Tactic Sans", sans-serif',
           background: "#1a1d22",
         },
+        "& .ruta-grupo-line-tooltip.leaflet-tooltip": {
+          background: "rgba(12, 14, 18, 0.94)",
+          color: "#f0f0f0",
+          border: "1px solid rgba(255,255,255,0.35)",
+          borderRadius: "8px",
+          padding: "3px 8px",
+          fontSize: "10px",
+          fontWeight: 600,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.45)",
+          whiteSpace: "nowrap",
+          maxWidth: 220,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        },
+        "& .ruta-grupo-line-tooltip.leaflet-tooltip-top:before": {
+          borderTopColor: "rgba(12, 14, 18, 0.94)",
+        },
+        "& .ruta-grupo-line-tooltip.leaflet-tooltip-bottom:before": {
+          borderBottomColor: "rgba(12, 14, 18, 0.94)",
+        },
       }}
     >
       <MapContainer key={key} center={center} zoom={zoom} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-        <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
+        {/* crossOrigin mejora chances de que los tiles entren en capturas canvas (html-to-image). */}
+        <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} crossOrigin="anonymous" />
         <FitMapToData markers={markers} polylines={polylines} />
         {polylines.map((pl) => (
           <Polyline
@@ -84,17 +111,35 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
             positions={pl.positions}
             pathOptions={{
               color: pl.color,
-              weight: 4,
-              opacity: 0.85,
-              dashArray: "10 8",
+              weight: pl.weight,
+              opacity: 0.88,
+              dashArray: pl.dashArray,
+              lineCap: "round",
+              lineJoin: "round",
             }}
-          />
+          >
+            <Tooltip permanent direction="center" opacity={1} className="ruta-grupo-line-tooltip">
+              <span>
+                <strong style={{ letterSpacing: "0.06em" }}>{pl.grupoCodigo}</strong>
+                {pl.grupoNombreCorto ? (
+                  <span style={{ fontWeight: 500, opacity: 0.9 }}>{` · ${pl.grupoNombreCorto}`}</span>
+                ) : null}
+              </span>
+            </Tooltip>
+          </Polyline>
         ))}
         {markers.map((m) => (
-          <Marker key={`mk-${m.itemId}`} position={[m.lat, m.lng]} icon={createNumberedDivIcon(m.orden, m.color)}>
+          <Marker
+            key={`mk-${m.itemId}`}
+            position={[m.lat, m.lng]}
+            icon={createNumberedDivIcon(m.orden, m.color, m.grupoCodigo, m.grupoStyleIndex)}
+          >
             <Popup>
-              <div style={{ minWidth: 180 }}>
-                <strong>#{m.orden}</strong>
+              <div style={{ minWidth: 200 }}>
+                <strong>
+                  Dirección {m.orden} · {m.grupoCodigo}
+                </strong>
+                <div style={{ marginTop: 4, fontSize: 12, opacity: 0.95 }}>{m.nombreGrupo}</div>
                 <div style={{ marginTop: 4, fontSize: 13 }}>{m.etiqueta}</div>
                 {m.rubroNombre ? (
                   <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>Rubro: {m.rubroNombre}</div>
@@ -102,11 +147,16 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
                 {m.distritoNombre ? (
                   <div style={{ fontSize: 12, opacity: 0.9 }}>Distrito: {m.distritoNombre}</div>
                 ) : null}
+                {m.tipoIniciadorLabel ? (
+                  <div style={{ fontSize: 12, opacity: 0.9 }}>Tipo: {m.tipoIniciadorLabel}</div>
+                ) : (
+                  <div style={{ fontSize: 12, opacity: 0.85 }}>Tipo: —</div>
+                )}
                 {m.ordenTrabajoLabel ? (
                   <div style={{ fontSize: 12, opacity: 0.9 }}>{m.ordenTrabajoLabel}</div>
                 ) : null}
-                {m.geoStatus ? (
-                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.75 }}>Geo: {m.geoStatus}</div>
+                {m.geoStatusLabel ? (
+                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.8 }}>Ubicación: {m.geoStatusLabel}</div>
                 ) : null}
               </div>
             </Popup>

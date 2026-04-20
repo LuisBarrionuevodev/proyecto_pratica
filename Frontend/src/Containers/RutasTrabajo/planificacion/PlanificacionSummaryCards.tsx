@@ -11,9 +11,9 @@ type CardDef = {
 };
 
 const CARDS: CardDef[] = [
-  { key: null, label: "Total pendientes", valueKey: "total" },
-  { key: "ALTA_PRIORIDAD", label: "Alta prioridad", valueKey: "alta" },
-  { key: "OFICIOS_URGENTES", label: "Oficios urgentes", valueKey: "oficios_urgentes" },
+  { key: null, label: "Total", valueKey: "total" },
+  { key: "ALTA_PRIORIDAD", label: "Alta", valueKey: "alta" },
+  { key: "OFICIOS_URGENTES", label: "Oficios", valueKey: "oficios_urgentes" },
   { key: "DENUNCIAS", label: "Denuncias", valueKey: "denuncias" },
   { key: "NOTIFICACIONES", label: "Notificaciones", valueKey: "notificaciones" },
   { key: "RELEVAMIENTOS", label: "Relevamientos", valueKey: "relevamientos" },

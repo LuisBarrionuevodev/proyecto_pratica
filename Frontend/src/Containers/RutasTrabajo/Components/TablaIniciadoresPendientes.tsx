@@ -1,10 +1,12 @@
-import { useMemo } from "react";
-import { Box, Chip, Stack, TextField, Typography } from "@mui/material";
+import { memo, useCallback, useMemo, useRef } from "react";
+import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
   type MRT_RowSelectionState,
+  type MRT_TableOptions,
+  type MRT_Updater,
 } from "material-react-table";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
@@ -12,7 +14,12 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect } from "../../../ui";
-import { planificacionPanelFooterMetaSx, planificacionPanelSubtitleSx } from "../styles/institutionalVisual";
+import {
+  asignacionFiltroInputSlotSx,
+  planificacionPanelFooterMetaSx,
+  planificacionTextFieldSx,
+  rutasAsignacionNeutralContainedButtonSx,
+} from "../styles/institutionalVisual";
 
 const TIPO_INICIADOR_OPTIONS = [
   { value: "", label: "Todos" },
@@ -54,11 +61,29 @@ const TIPO_SX = {
   fontFamily: '"Tactic Sans", sans-serif',
 } as const;
 
+/** Pool Asignación: sin paginación ni ordenamiento MRT (filtros ya están fuera de la tabla). */
+const ASIGNACION_INICIADORES_MRT_OPTIONS: Partial<MRT_TableOptions<IRutaIniciadorPendienteRow>> = {
+  enablePagination: false,
+  enableSorting: false,
+  enableColumnActions: false,
+  enableBottomToolbar: false,
+  /** Menos nodos DOM cuando el pool tiene muchas filas (scroll virtual). */
+  enableRowVirtualization: true,
+};
+
+function getIniciadorPoolRowId(row: IRutaIniciadorPendienteRow) {
+  return String(row.id);
+}
+
+/** Controles de filtro alineados por línea base del input (misma “banda” visual). */
 const compactFiltroSx = {
   ...filtroItemStyles,
   minWidth: 0,
   flex: "1 1 120px",
   maxWidth: 220,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "flex-end",
 } as const;
 
 /** Filtros locales sobre el pool del día (Asignación); sin catálogo remoto de calles. */
@@ -96,6 +121,42 @@ function IniciadoresPoolTableMrt({
     () => Object.fromEntries(selectedIds.map((id) => [String(id), true])),
     [selectedIds]
   );
+
+  const rowSelectionRef = useRef(rowSelection);
+  rowSelectionRef.current = rowSelection;
+
+  const handleRowSelectionChange = useCallback(
+    (updaterOrValue: MRT_Updater<MRT_RowSelectionState>) => {
+      const next =
+        typeof updaterOrValue === "function" ? updaterOrValue(rowSelectionRef.current) : updaterOrValue;
+      onSelectionChange(
+        Object.keys(next)
+          .filter((k) => next[k])
+          .map(Number)
+      );
+    },
+    [onSelectionChange]
+  );
+
+  const enableRowSelectionForRow = useCallback(
+    (row: { original: IRutaIniciadorPendienteRow }) => !assignedIniciadorIds.has(row.original.id),
+    [assignedIniciadorIds]
+  );
+
+  const renderTopToolbarCustomActions = useCallback(() => {
+    const nSel = selectedIds.length;
+    return (
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
+        <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
+          {totalEnPool} en pool · {rows.length} visibles
+        </Typography>
+        <Chip label={`${nSel} seleccionados`} color="primary" variant="filled" size="small" />
+        <AppButton dsVariant="primary" dsSize="sm" onClick={onAssignSelected} disabled={nSel === 0}>
+          Asignar seleccionados
+        </AppButton>
+      </Stack>
+    );
+  }, [totalEnPool, rows.length, selectedIds.length, onAssignSelected]);
 
   const columns = useMemo<MRT_ColumnDef<IRutaIniciadorPendienteRow>[]>(
     () => [
@@ -198,55 +259,28 @@ function IniciadoresPoolTableMrt({
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...ASIGNACION_INICIADORES_MRT_OPTIONS,
     columns,
     data: rows,
-    getRowId: (row) => String(row.id),
+    getRowId: getIniciadorPoolRowId,
 
     enableEditing: false,
     enableColumnFilters: false,
     enableGlobalFilter: false,
 
-    enableRowSelection: (row) => !assignedIniciadorIds.has(row.original.id),
+    enableRowSelection: enableRowSelectionForRow,
     enableSelectAll: false,
 
     state: { rowSelection },
-    onRowSelectionChange: (updaterOrValue) => {
-      const next =
-        typeof updaterOrValue === "function" ? updaterOrValue(rowSelection) : updaterOrValue;
-      onSelectionChange(
-        Object.keys(next)
-          .filter((k) => next[k])
-          .map(Number)
-      );
-    },
+    onRowSelectionChange: handleRowSelectionChange,
 
-    manualPagination: false,
-
-    renderTopToolbarCustomActions: () => (
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
-        <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
-          Ítems en pool: {totalEnPool} · Filas visibles: {rows.length}
-        </Typography>
-        <Chip
-          label={`${selectedIds.length} seleccionados`}
-          color="primary"
-          variant="outlined"
-          size="small"
-        />
-        <AppButton
-          dsVariant="primary"
-          dsSize="sm"
-          onClick={onAssignSelected}
-          disabled={selectedIds.length === 0}
-        >
-          Asignar seleccionados
-        </AppButton>
-      </Stack>
-    ),
+    renderTopToolbarCustomActions,
   });
 
   return <MaterialReactTable table={table} />;
 }
+
+const IniciadoresPoolTableMrtMemo = memo(IniciadoresPoolTableMrt);
 
 const FILTROS_VACIOS: AsignacionPoolFilters = {
   tipo: "",
@@ -260,7 +294,7 @@ export type TablaIniciadoresPendientesProps = TableProps;
 /**
  * Tabla de iniciadores del pool del día (Asignación): filtros locales, sin catálogo de calles ni carga global.
  */
-function TablaIniciadoresPendientes({
+function TablaIniciadoresPendientesInner({
   rows,
   totalEnPool,
   selectedIds,
@@ -277,88 +311,82 @@ function TablaIniciadoresPendientes({
   const mostrarFiltroDistrito = distritoOptions.length > 2;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", lineHeight: 1.4 }}>
-        Distribuí entre grupos lo elegido en Planificación. Los filtros aplican solo sobre este listado (sin consultas
-        globales). La búsqueda es local sobre domicilio, rubro y datos visibles.
-      </Typography>
-      <Stack
-        direction="row"
-        spacing={0.75}
-        flexWrap="wrap"
-        alignItems="flex-end"
-        justifyContent="space-between"
-        useFlexGap
-        gap={1}
-      >
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" alignItems="flex-end" useFlexGap sx={{ flex: 1 }}>
-          <Box sx={{ ...compactFiltroSx, flex: "1 1 140px", minWidth: 132 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ columnGap: 1, rowGap: 1, alignItems: "flex-end" }}>
+        <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "1 1 140px", minWidth: 132 }}>
+          <AppSelect
+            appearance="dense"
+            label="Tipo"
+            value={filters.tipo}
+            onChange={(e) => onChangeFilters({ ...filters, tipo: String(e.target.value) })}
+            fullWidth
+            options={[...TIPO_INICIADOR_OPTIONS]}
+          />
+        </Box>
+        <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "0 1 172px", minWidth: 160 }}>
+          <AppSelect
+            appearance="dense"
+            label="Prioridad"
+            value={filters.prioridad_categoria}
+            onChange={(e) =>
+              onChangeFilters({
+                ...filters,
+                prioridad_categoria: String(e.target.value) as AsignacionPoolFilters["prioridad_categoria"],
+              })
+            }
+            fullWidth
+            options={[...PRIORIDAD_OPTIONS]}
+          />
+        </Box>
+        {mostrarFiltroDistrito ? (
+          <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "1 1 140px", minWidth: 128 }}>
             <AppSelect
               appearance="dense"
-              label="Tipo"
-              value={filters.tipo}
-              onChange={(e) => onChangeFilters({ ...filters, tipo: String(e.target.value) })}
+              label="Distrito"
+              value={filters.distrito}
+              onChange={(e) => onChangeFilters({ ...filters, distrito: String(e.target.value) })}
               fullWidth
-              options={[...TIPO_INICIADOR_OPTIONS]}
+              options={distritoOptions}
             />
           </Box>
-          <Box sx={{ ...compactFiltroSx, flex: "0 1 118px", minWidth: 108 }}>
-            <AppSelect
-              appearance="dense"
-              label="Prioridad"
-              value={filters.prioridad_categoria}
-              onChange={(e) =>
-                onChangeFilters({
-                  ...filters,
-                  prioridad_categoria: String(e.target.value) as AsignacionPoolFilters["prioridad_categoria"],
-                })
-              }
-              fullWidth
-              options={[...PRIORIDAD_OPTIONS]}
-            />
-          </Box>
-          {mostrarFiltroDistrito ? (
-            <Box sx={{ ...compactFiltroSx, flex: "1 1 140px", minWidth: 128 }}>
-              <AppSelect
-                appearance="dense"
-                label="Distrito (en el pool)"
-                value={filters.distrito}
-                onChange={(e) => onChangeFilters({ ...filters, distrito: String(e.target.value) })}
-                fullWidth
-                options={distritoOptions}
-              />
-            </Box>
-          ) : null}
-          <Box sx={{ ...compactFiltroSx, flex: "2 1 200px", minWidth: 160, maxWidth: 320 }}>
-            <TextField
-              size="small"
-              fullWidth
-              label="Buscar en este listado"
-              placeholder="Texto en domicilio, rubro…"
-              value={filters.q}
-              onChange={(e) => onChangeFilters({ ...filters, q: e.target.value })}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontFamily: '"Tactic Sans", sans-serif',
-                  fontSize: "0.875rem",
-                },
-              }}
-            />
-          </Box>
-        </Stack>
-        {onSincronizarDetalle ? (
-          <AppButton
-            dsVariant="secondary"
-            dsSize="sm"
+        ) : null}
+        <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "2 1 200px", minWidth: 160, maxWidth: 360 }}>
+          <TextField
+            hiddenLabel
+            size="small"
+            fullWidth
+            placeholder="Buscar — domicilio, rubro…"
+            value={filters.q}
+            onChange={(e) => onChangeFilters({ ...filters, q: e.target.value })}
+            inputProps={{ "aria-label": "Buscar en el listado del pool" }}
+            sx={[planificacionTextFieldSx, asignacionFiltroInputSlotSx]}
+          />
+        </Box>
+      </Stack>
+      {onSincronizarDetalle ? (
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+          sx={{
+            borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
+            pt: 1,
+            mt: 0.25,
+          }}
+        >
+          <Button
+            variant="contained"
+            size="small"
+            disableElevation
             disabled={detailLoading}
             onClick={() => onSincronizarDetalle()}
+            sx={rutasAsignacionNeutralContainedButtonSx}
           >
             {detailLoading ? "Sincronizando…" : "Sincronizar borrador"}
-          </AppButton>
-        ) : null}
-      </Stack>
+          </Button>
+        </Stack>
+      ) : null}
 
-      <IniciadoresPoolTableMrt
+      <IniciadoresPoolTableMrtMemo
         rows={rows}
         totalEnPool={totalEnPool}
         selectedIds={selectedIds}
@@ -369,6 +397,8 @@ function TablaIniciadoresPendientes({
     </Box>
   );
 }
+
+const TablaIniciadoresPendientes = memo(TablaIniciadoresPendientesInner);
 
 export default TablaIniciadoresPendientes;
 export { FILTROS_VACIOS as ASIGNACION_POOL_FILTROS_VACIOS };

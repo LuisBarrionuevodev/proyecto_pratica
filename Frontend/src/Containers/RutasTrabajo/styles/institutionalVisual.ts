@@ -132,3 +132,40 @@ export const rutasInstitutionalScrollSx: SxProps<Theme> = {
     backgroundColor: "#4a4d54",
   },
 };
+
+/**
+ * Botón contenido sólido neutro (sync, acciones secundarias “firmes” en Asignación).
+ * Evita outlined/ghost cuando se busca UI sólida sin competir con primary blue.
+ */
+export const rutasAsignacionNeutralContainedButtonSx: SxProps<Theme> = {
+  fontFamily: TACTIC,
+  textTransform: "none",
+  fontWeight: 600,
+  fontSize: "0.8125rem",
+  minHeight: 32,
+  px: 1.5,
+  py: 0.5,
+  lineHeight: 1.2,
+  color: GLASS_COLORS.textPrimary,
+  backgroundColor: "rgba(255,255,255,0.12)",
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  boxShadow: "none",
+  "&:hover": {
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderColor: GLASS_COLORS.borderActive,
+  },
+  "&.Mui-disabled": {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    color: GLASS_COLORS.textMuted,
+    borderColor: GLASS_COLORS.borderLight,
+  },
+};
+
+/** Altura uniforme del slot de input en la fila de filtros de Asignación (selects + buscar). */
+export const asignacionFiltroInputSlotSx: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    minHeight: 40,
+    alignItems: "center",
+    borderRadius: "10px",
+  },
+};

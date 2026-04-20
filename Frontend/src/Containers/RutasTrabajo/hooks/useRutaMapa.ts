@@ -1,14 +1,24 @@
 import { useMemo } from "react";
 
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin } from "../../../api/rutasTrabajoApi";
+import { tipoIniciadorDesdeCodigoApi, tipoIniciadorEtiquetaOperativa } from "../planificacion/utils/iniciadorDisplay";
 import type {
   RutaMapaGrupoVista,
+  RutaMapaInspectorFila,
   RutaMapaItemVista,
   RutaMapaMarker,
   RutaMapaPolyline,
   RutaMapaResumenTerritorial,
   UseRutaMapaResult,
 } from "../types/rutasTrabajoMapa.types";
+import { humanizarGeoStatus } from "../utils/mapaFinalLabels";
+import {
+  POLYLINE_DASH_BY_INDEX,
+  POLYLINE_WEIGHT_BY_INDEX,
+  buildGrupoCodigoPorId,
+  grupoEstiloIndex,
+  grupoNombreEnMapa,
+} from "../utils/mapaRutaGrupoTrazado";
 
 /** Mismo criterio de acento que `PanelGruposRuta`. */
 export function grupoColorAccent(grupoId: number): string {
@@ -25,19 +35,43 @@ function etiquetaItem(
   const ini = iniciadorById[item.iniciador_ruta_id];
   const texto =
     ini?.domicilio_texto ??
-    `${ini?.domicilio?.calle ?? "-"} ${ini?.domicilio?.numero ?? ""}`.trim();
-  return texto || `Iniciador #${item.iniciador_ruta_id}`;
+    `${ini?.domicilio?.calle ?? ""} ${ini?.domicilio?.numero ?? ""}`.trim();
+  return texto || "Sin domicilio en datos";
 }
 
 function ordenTrabajoLabel(item: IRutaItemMin): string | null {
   const ot = item.orden_trabajo;
   if (!ot) return null;
-  return `OT ${ot.numero_acta} · ${String(ot.mes).padStart(2, "0")}/${ot.anio}`;
+  return `O. trabajo ${ot.numero_acta} · ${String(ot.mes).padStart(2, "0")}/${ot.anio}`;
+}
+
+/**
+ * Etiqueta de tipo: primero `tipo_iniciador` del ítem (detail API); si falta, pool de planificación.
+ */
+function tipoIniciadorLabelParaItem(
+  it: IRutaItemMin,
+  iniciadorById: Record<number, IRutaIniciadorPendienteRow>
+): string | null {
+  const desdeItem = tipoIniciadorDesdeCodigoApi(it.tipo_iniciador ?? null);
+  if (desdeItem) return desdeItem;
+  return tipoIniciadorEtiquetaOperativa(iniciadorById[it.iniciador_ruta_id]) ?? null;
+}
+
+function inspectoresFilasDesdeGrupo(g: IRutaGrupoMin): RutaMapaInspectorFila[] {
+  return g.inspectores.map((i) => {
+    const legajo = i.inspector_legajo?.trim() || null;
+    const nom = i.inspector_nombre?.trim();
+    if (nom) return { inspectorId: i.inspector_id, nombre: nom, legajo };
+    if (legajo) return { inspectorId: i.inspector_id, nombre: `Leg. ${legajo}`, legajo: null };
+    return { inspectorId: i.inspector_id, nombre: "Inspector sin datos", legajo: null };
+  });
 }
 
 /**
  * Transforma grupos + ítems en estructura para panel Leaflet y leyendas.
  * lat/lng vienen del detail de ruta (domicilio_geocode); sin coords no se dibujan markers.
+ *
+ * Orden de direcciones (ítems): no hay secuencia explícita en modelo; se usa `id` ascendente (detail ordena igual).
  */
 export function useRutaMapa(
   grupos: IRutaGrupoMin[],
@@ -57,6 +91,8 @@ export function useRutaMapa(
       const items: RutaMapaItemVista[] = groupItems.map((it, idx) => {
         const lat = typeof it.lat === "number" && !Number.isNaN(it.lat) ? it.lat : null;
         const lng = typeof it.lng === "number" && !Number.isNaN(it.lng) ? it.lng : null;
+        const tipoIniciadorLabel = tipoIniciadorLabelParaItem(it, iniciadorById);
+        const geoRaw = it.geo_status ?? null;
         return {
           itemId: it.id,
           iniciadorRutaId: it.iniciador_ruta_id,
@@ -64,19 +100,20 @@ export function useRutaMapa(
           etiqueta: etiquetaItem(it, iniciadorById),
           lat,
           lng,
-          rubroNombre: it.rubro_nombre ?? null,
-          distritoNombre: it.distrito_nombre ?? null,
-          geoStatus: it.geo_status ?? null,
+          rubroNombre: it.rubro_nombre?.trim() ? it.rubro_nombre.trim() : null,
+          distritoNombre: it.distrito_nombre?.trim() ? it.distrito_nombre.trim() : null,
+          geoStatus: geoRaw,
+          geoStatusLabel: humanizarGeoStatus(geoRaw),
           ordenTrabajoLabel: ordenTrabajoLabel(it),
+          tipoIniciadorLabel,
         };
       });
 
+      const filasInsp = inspectoresFilasDesdeGrupo(g);
       const inspectoresResumen =
-        g.inspectores.length === 0
+        filasInsp.length === 0
           ? "Sin inspectores"
-          : g.inspectores
-              .map((i) => i.inspector_nombre || `Inspector #${i.inspector_id}`)
-              .join(", ");
+          : filasInsp.map((f) => (f.legajo ? `${f.nombre} (leg. ${f.legajo})` : f.nombre)).join(", ");
 
       return {
         id: g.id,
@@ -84,6 +121,7 @@ export function useRutaMapa(
         color,
         estado: g.estado,
         inspectoresResumen,
+        inspectoresFilas: filasInsp,
         itemCount: items.length,
         items,
       };
@@ -92,13 +130,24 @@ export function useRutaMapa(
     const markers: RutaMapaMarker[] = [];
     const polylines: RutaMapaPolyline[] = [];
 
+    const grupoIdsSorted = [...grupos].map((g) => g.id).sort((a, b) => a - b);
+    const codigoPorGrupo = buildGrupoCodigoPorId(grupoIdsSorted);
+
     for (const gv of gruposVista) {
+      const gIdx = grupoEstiloIndex(gv.id, grupoIdsSorted);
+      const grupoCodigo = codigoPorGrupo.get(gv.id) ?? `G${gIdx + 1}`;
+      const dashPat = POLYLINE_DASH_BY_INDEX[gIdx % POLYLINE_DASH_BY_INDEX.length];
+      const weight = POLYLINE_WEIGHT_BY_INDEX[gIdx % POLYLINE_WEIGHT_BY_INDEX.length];
+
       const positions: [number, number][] = [];
       for (const it of gv.items) {
         if (it.lat != null && it.lng != null && !Number.isNaN(it.lat) && !Number.isNaN(it.lng)) {
           markers.push({
             itemId: it.itemId,
             grupoId: gv.id,
+            grupoCodigo,
+            grupoStyleIndex: gIdx,
+            nombreGrupo: gv.nombre,
             orden: it.orden,
             lat: it.lat,
             lng: it.lng,
@@ -107,20 +156,30 @@ export function useRutaMapa(
             rubroNombre: it.rubroNombre,
             distritoNombre: it.distritoNombre,
             geoStatus: it.geoStatus,
+            geoStatusLabel: it.geoStatusLabel,
             ordenTrabajoLabel: it.ordenTrabajoLabel,
+            tipoIniciadorLabel: it.tipoIniciadorLabel,
           });
           positions.push([it.lat, it.lng]);
         }
       }
       if (positions.length >= 2) {
-        polylines.push({ grupoId: gv.id, color: gv.color, positions });
+        polylines.push({
+          grupoId: gv.id,
+          grupoCodigo,
+          grupoNombreCorto: grupoNombreEnMapa(gv.nombre),
+          color: gv.color,
+          positions,
+          dashArray: dashPat,
+          weight,
+        });
       }
     }
 
     const tieneCoordenadas = markers.length > 0;
     const avisoCoordenadas = tieneCoordenadas
       ? null
-      : "Ningún ítem tiene lat/lng en geocodificación (domicilio_geocode). El mapa muestra el área de referencia (Tucumán). Con coords válidas se dibujan puntos y líneas simples por orden de ítem en cada grupo.";
+      : "Sin ubicaciones para dibujar. Mapa en zona de referencia. Revisar geocodificación o Asignación.";
 
     const distritosSet = new Set<string>();
     for (const gv of gruposVista) {
@@ -135,14 +194,13 @@ export function useRutaMapa(
 
     let hintCobertura: string | null = null;
     if (totalItems === 0) {
-      hintCobertura = "No hay ítems asignados. Volvé a Asignación para cargar trabajos en grupos.";
+      hintCobertura = "Sin direcciones en grupos.";
     } else if (distritosCubiertos.length === 0) {
-      hintCobertura =
-        "Los ítems no traen nombre de distrito en los datos mostrados; revisá domicilios o geocodificación.";
+      hintCobertura = "Sin distrito en datos.";
     } else if (distritosCubiertos.length === 1) {
-      hintCobertura = `Cobertura en un solo distrito (${distritosCubiertos[0]}).`;
+      hintCobertura = distritosCubiertos[0];
     } else {
-      hintCobertura = `Cobertura en ${distritosCubiertos.length} distritos: revisá dispersión antes de publicar.`;
+      hintCobertura = `${distritosCubiertos.length} distritos`;
     }
 
     const resumenTerritorial: RutaMapaResumenTerritorial = {

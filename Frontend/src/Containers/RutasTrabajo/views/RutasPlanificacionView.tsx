@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   Box,
+  Button,
   CircularProgress,
   Divider,
   Grid,
@@ -18,6 +19,7 @@ import type {
   IRutaItemMin,
   IRutaTrabajo,
 } from "../../../api/rutasTrabajoApi";
+import ModalAsignarSeleccionAGrupo from "../Components/ModalAsignarSeleccionAGrupo";
 import PanelGruposRuta from "../Components/PanelGruposRuta";
 import ResumenRutaTrabajo from "../Components/ResumenRutaTrabajo";
 import TablaIniciadoresPendientes, {
@@ -25,8 +27,8 @@ import TablaIniciadoresPendientes, {
   type TablaIniciadoresPendientesProps,
 } from "../Components/TablaIniciadoresPendientes";
 import {
-  planificacionPanelSubtitleSx,
   planificacionPanelTitleSx,
+  rutasAsignacionNeutralContainedButtonSx,
   rutasInstitutionalDividerSx,
   rutasInstitutionalPanelPaperSx,
 } from "../styles/institutionalVisual";
@@ -41,9 +43,7 @@ type AsignacionPoolEmptyStateProps = {
   detailLoading: boolean;
 };
 
-/**
- * Sin pool en memoria (p. ej. F5 o acceso directo a Asignación): guía al usuario sin hablar de universo global.
- */
+/** Pool vacío en memoria (p. ej. F5): mensaje mínimo + acciones. */
 function AsignacionPoolEmptyState({
   poolVacioSinItems,
   poolVacioConItemsEnRuta,
@@ -54,7 +54,7 @@ function AsignacionPoolEmptyState({
   return (
     <Box
       sx={{
-        py: 3,
+        py: 2.5,
         px: 2,
         borderRadius: 2,
         border: `1px dashed ${GLASS_COLORS.borderMedium}`,
@@ -62,41 +62,36 @@ function AsignacionPoolEmptyState({
         textAlign: "center",
       }}
     >
-      <Inventory2OutlinedIcon sx={{ fontSize: 40, color: GLASS_COLORS.primary, opacity: 0.9, mb: 1 }} aria-hidden />
-      <Typography sx={{ ...planificacionPanelTitleSx, fontSize: "1rem", mb: 1, display: "block" }}>
-        Pool del día no cargado en esta sesión
+      <Inventory2OutlinedIcon sx={{ fontSize: 36, color: GLASS_COLORS.primary, opacity: 0.85, mb: 0.75 }} aria-hidden />
+      <Typography sx={{ ...planificacionPanelTitleSx, fontSize: "0.9375rem", mb: 1, display: "block" }}>
+        Pool no disponible en esta sesión
       </Typography>
-      {poolVacioSinItems ? (
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: "auto", lineHeight: 1.55, mb: 2 }}>
-          No hay ítems en el pool ni trabajos en la ruta. Suele pasar si abriste Asignación directo o recargaste la página
-          (el pool vive en memoria hasta asignarlo a grupos). Volvé a Planificación y armá el pool del día.
-        </Typography>
-      ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 440, mx: "auto", lineHeight: 1.55, mb: 2 }}>
-          El navegador no tiene el pool (por ejemplo tras un F5), pero a la derecha podés seguir viendo grupos e ítems ya
-          guardados en el borrador. Podés sincronizar con el servidor o volver a Planificación para armar de nuevo el
-          pool.
-        </Typography>
-      )}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ maxWidth: 360, mx: "auto", lineHeight: 1.45, mb: 2, fontSize: "0.8125rem" }}
+      >
+        {poolVacioSinItems
+          ? "Ir a Planificación para armar el pool."
+          : poolVacioConItemsEnRuta
+            ? "Sincronizar o volver a Planificación. Los grupos siguen a la derecha."
+            : null}
+      </Typography>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="center" alignItems="center">
         <AppButton dsVariant="primary" dsSize="sm" onClick={onVolverPlanificacion}>
           Ir a planificación
         </AppButton>
-        <AppButton
-          dsVariant="secondary"
-          dsSize="sm"
+        <Button
+          variant="contained"
+          size="small"
+          disableElevation
           disabled={detailLoading}
           onClick={() => onSincronizarDetalle()}
+          sx={rutasAsignacionNeutralContainedButtonSx}
         >
           {detailLoading ? "Sincronizando…" : "Sincronizar borrador"}
-        </AppButton>
+        </Button>
       </Stack>
-      {poolVacioConItemsEnRuta ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2, lineHeight: 1.45 }}>
-          Si los grupos ya tienen trabajos asignados, podés ir al mapa con &quot;Continuar a mapa final&quot; (arriba)
-          cuando todas las OT estén guardadas; no necesitás el pool en pantalla para eso.
-        </Typography>
-      ) : null}
     </Box>
   );
 }
@@ -109,7 +104,6 @@ export type RutasPlanificacionViewProps = {
   /** Filas del pool del día (orden fijo), ya filtradas para la tabla. */
   iniciadoresTabla: IRutaIniciadorPendienteRow[];
   totalEnPool: number;
-  selectedIniciadorIds: number[];
   assignedIniciadorIds: Set<number>;
   filters: RutasPlanificacionFilters;
   /** Solo carga inicial / refresco explícito del detail; no usar para PATCH de ítem. */
@@ -119,8 +113,6 @@ export type RutasPlanificacionViewProps = {
   onChangeFilters: (next: RutasPlanificacionFilters) => void;
   onSincronizarDetalle: () => void;
   distritoFilterOptions: TablaIniciadoresPendientesProps["distritoOptions"];
-  onSelectionChange: (ids: number[]) => void;
-  onAssignSelected: () => void;
   onOpenCrearGrupo: () => void;
   onEditarInspectores: (grupo: IRutaGrupoMin) => void;
   onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
@@ -129,62 +121,35 @@ export type RutasPlanificacionViewProps = {
   onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
   onContinuarMapaFinal: () => void;
   onVolverPlanificacion: () => void;
+  onAssignIniciadoresToGrupo: (grupoId: number, iniciadorIds: number[]) => Promise<boolean>;
 };
 
-/**
- * Etapa Asignación: ítems del pool del día y reparto entre grupos (sin universo global ni catálogo de calles).
- */
-export function RutasPlanificacionView({
+type AsignacionTopSectionProps = {
+  ruta: IRutaTrabajo;
+  grupos: IRutaGrupoMin[];
+  itemsCount: number;
+  itemsSinOtCount: number;
+  hayTrabajoParaMapa: boolean;
+  puedeContinuarAMapaFinal: boolean;
+  continuarMapaFinalTooltip: string;
+  onVolverPlanificacion: () => void;
+  onContinuarMapaFinal: () => void;
+};
+
+/** Resumen + barra de acciones: no depende de la selección del pool. */
+const AsignacionTopSection = memo(function AsignacionTopSection({
   ruta,
   grupos,
-  itemsActivos,
   itemsCount,
-  iniciadoresTabla,
-  totalEnPool,
-  selectedIniciadorIds,
-  assignedIniciadorIds,
-  filters,
-  detailLoading,
-  canCreateGrupo,
-  iniciadorById,
-  onChangeFilters,
-  onSincronizarDetalle,
-  distritoFilterOptions,
-  onSelectionChange,
-  onAssignSelected,
-  onOpenCrearGrupo,
-  onEditarInspectores,
-  onEliminarGrupo,
-  onMoverItem,
-  onQuitarItem,
-  onGuardarOtItem,
-  onContinuarMapaFinal,
+  itemsSinOtCount,
+  hayTrabajoParaMapa,
+  puedeContinuarAMapaFinal,
+  continuarMapaFinalTooltip,
   onVolverPlanificacion,
-}: RutasPlanificacionViewProps) {
-  const hayTrabajoParaMapa = totalEnPool > 0 || itemsCount > 0;
-  const poolVacioSinItems = totalEnPool === 0 && itemsCount === 0;
-  const poolVacioConItemsEnRuta = totalEnPool === 0 && itemsCount > 0;
-
-  /** Sin `orden_trabajo_id` persistido (borrador en el input no cuenta). */
-  const itemsSinOt = useMemo(
-    () => itemsActivos.filter((it) => it.orden_trabajo_id == null),
-    [itemsActivos]
-  );
-  const puedeContinuarAMapaFinal =
-    hayTrabajoParaMapa && (itemsActivos.length === 0 || itemsSinOt.length === 0);
-
-  const continuarMapaFinalTooltip = useMemo(() => {
-    if (!hayTrabajoParaMapa) {
-      return "Agregá iniciadores al pool en Planificación o sincronizá el borrador si ya hay ítems en grupos.";
-    }
-    if (itemsActivos.length > 0 && itemsSinOt.length > 0) {
-      return "Hay ítems asignados sin orden de trabajo guardada. En cada ítem usá «Guardar OT» (solo números); lo escribido sin guardar no cuenta.";
-    }
-    return "Avanzar al mapa operativo de la ruta.";
-  }, [hayTrabajoParaMapa, itemsActivos.length, itemsSinOt.length]);
-
+  onContinuarMapaFinal,
+}: AsignacionTopSectionProps) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+    <>
       <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
 
       <Stack
@@ -194,7 +159,12 @@ export function RutasPlanificacionView({
         alignItems={{ xs: "stretch", sm: "center" }}
         sx={{ flexWrap: "wrap", rowGap: 1 }}
       >
-        <AppButton dsVariant="ghost" dsSize="sm" onClick={onVolverPlanificacion} sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}>
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
+          onClick={onVolverPlanificacion}
+          sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}
+        >
           Volver a planificación
         </AppButton>
         <Stack
@@ -203,7 +173,9 @@ export function RutasPlanificacionView({
           sx={{ width: { xs: "100%", sm: "auto" } }}
         >
           <Tooltip title={continuarMapaFinalTooltip}>
-            <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" }, width: { xs: "100%", sm: "auto" } }}>
+            <Box
+              sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" }, width: { xs: "100%", sm: "auto" } }}
+            >
               <AppButton
                 dsVariant="primary"
                 dsSize="md"
@@ -215,88 +187,291 @@ export function RutasPlanificacionView({
               </AppButton>
             </Box>
           </Tooltip>
-          {itemsSinOt.length > 0 ? (
+          {itemsSinOtCount > 0 ? (
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ display: "block", lineHeight: 1.45, textAlign: { xs: "left", sm: "right" }, maxWidth: 360 }}
+              sx={{
+                display: "block",
+                lineHeight: 1.4,
+                textAlign: { xs: "left", sm: "right" },
+                maxWidth: 280,
+                fontSize: "0.7rem",
+              }}
             >
-              Falta OT guardada en {itemsSinOt.length} ítem{itemsSinOt.length === 1 ? "" : "s"}. Usá «Guardar OT» en el
-              panel de grupos (solo números).
+              {itemsSinOtCount} ítem{itemsSinOtCount === 1 ? "" : "s"} sin OT guardada.
             </Typography>
           ) : null}
         </Stack>
       </Stack>
 
       <Divider sx={rutasInstitutionalDividerSx} />
+    </>
+  );
+});
+
+type AsignacionPoolColumnProps = {
+  totalEnPool: number;
+  poolVacioSinItems: boolean;
+  poolVacioConItemsEnRuta: boolean;
+  iniciadoresTabla: IRutaIniciadorPendienteRow[];
+  selectedIniciadorIds: number[];
+  assignedIniciadorIds: Set<number>;
+  filters: RutasPlanificacionFilters;
+  onChangeFilters: (next: AsignacionPoolFilters) => void;
+  onSelectionChange: (ids: number[]) => void;
+  onAssignSelected: () => void;
+  distritoFilterOptions: TablaIniciadoresPendientesProps["distritoOptions"];
+  onSincronizarDetalle: () => void;
+  detailLoading: boolean;
+  onVolverPlanificacion: () => void;
+};
+
+const AsignacionPoolColumn = memo(function AsignacionPoolColumn({
+  totalEnPool,
+  poolVacioSinItems,
+  poolVacioConItemsEnRuta,
+  iniciadoresTabla,
+  selectedIniciadorIds,
+  assignedIniciadorIds,
+  filters,
+  onChangeFilters,
+  onSelectionChange,
+  onAssignSelected,
+  distritoFilterOptions,
+  onSincronizarDetalle,
+  detailLoading,
+  onVolverPlanificacion,
+}: AsignacionPoolColumnProps) {
+  return (
+    <Grid size={{ xs: 12, md: 7 }}>
+      <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
+        <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Ítems del pool del día</Typography>
+        {totalEnPool === 0 ? (
+          <AsignacionPoolEmptyState
+            poolVacioSinItems={poolVacioSinItems}
+            poolVacioConItemsEnRuta={poolVacioConItemsEnRuta}
+            onVolverPlanificacion={onVolverPlanificacion}
+            onSincronizarDetalle={onSincronizarDetalle}
+            detailLoading={detailLoading}
+          />
+        ) : (
+          <TablaIniciadoresPendientes
+            rows={iniciadoresTabla}
+            totalEnPool={totalEnPool}
+            selectedIds={selectedIniciadorIds}
+            assignedIniciadorIds={assignedIniciadorIds}
+            filters={filters}
+            onChangeFilters={onChangeFilters}
+            onSelectionChange={onSelectionChange}
+            onAssignSelected={onAssignSelected}
+            distritoOptions={distritoFilterOptions}
+            onSincronizarDetalle={onSincronizarDetalle}
+            detailLoading={detailLoading}
+          />
+        )}
+      </Paper>
+    </Grid>
+  );
+});
+
+type AsignacionGruposColumnProps = {
+  detailLoading: boolean;
+  canCreateGrupo: boolean;
+  onOpenCrearGrupo: () => void;
+  grupos: IRutaGrupoMin[];
+  itemsActivos: IRutaItemMin[];
+  iniciadorById: Record<number, IRutaIniciadorPendienteRow>;
+  onEditarInspectores: (grupo: IRutaGrupoMin) => void;
+  onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
+  onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
+  onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
+  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
+};
+
+const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
+  detailLoading,
+  canCreateGrupo,
+  onOpenCrearGrupo,
+  grupos,
+  itemsActivos,
+  iniciadorById,
+  onEditarInspectores,
+  onEliminarGrupo,
+  onMoverItem,
+  onQuitarItem,
+  onGuardarOtItem,
+}: AsignacionGruposColumnProps) {
+  return (
+    <Grid size={{ xs: 12, md: 5 }}>
+      <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
+        <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Grupos</Typography>
+        <Button
+          variant="contained"
+          size="small"
+          disableElevation
+          disabled={!canCreateGrupo}
+          onClick={onOpenCrearGrupo}
+          sx={[{ mb: 1.5 }, rutasAsignacionNeutralContainedButtonSx]}
+        >
+          + Nuevo grupo
+        </Button>
+        {detailLoading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress size={36} sx={{ color: GLASS_COLORS.primary }} />
+          </Box>
+        ) : (
+          <PanelGruposRuta
+            grupos={grupos}
+            items={itemsActivos}
+            iniciadorById={iniciadorById}
+            onEditarInspectores={onEditarInspectores}
+            onEliminarGrupo={onEliminarGrupo}
+            onMoverItem={onMoverItem}
+            onQuitarItem={onQuitarItem}
+            onGuardarOtItem={onGuardarOtItem}
+          />
+        )}
+      </Paper>
+    </Grid>
+  );
+});
+
+/**
+ * Etapa Asignación: ítems del pool del día y reparto entre grupos (sin universo global ni catálogo de calles).
+ * La selección del pool vive aquí para no re-renderizar `RutasTrabajo` ni la columna de grupos en cada click.
+ */
+function RutasPlanificacionView({
+  ruta,
+  grupos,
+  itemsActivos,
+  itemsCount,
+  iniciadoresTabla,
+  totalEnPool,
+  assignedIniciadorIds,
+  filters,
+  detailLoading,
+  canCreateGrupo,
+  iniciadorById,
+  onChangeFilters,
+  onSincronizarDetalle,
+  distritoFilterOptions,
+  onOpenCrearGrupo,
+  onEditarInspectores,
+  onEliminarGrupo,
+  onMoverItem,
+  onQuitarItem,
+  onGuardarOtItem,
+  onContinuarMapaFinal,
+  onVolverPlanificacion,
+  onAssignIniciadoresToGrupo,
+}: RutasPlanificacionViewProps) {
+  const [selectedIniciadorIds, setSelectedIniciadorIds] = useState<number[]>([]);
+  const [openAsignarGrupo, setOpenAsignarGrupo] = useState(false);
+  const selectedIniciadorIdsRef = useRef<number[]>([]);
+  selectedIniciadorIdsRef.current = selectedIniciadorIds;
+
+  const hayTrabajoParaMapa = totalEnPool > 0 || itemsCount > 0;
+  const poolVacioSinItems = totalEnPool === 0 && itemsCount === 0;
+  const poolVacioConItemsEnRuta = totalEnPool === 0 && itemsCount > 0;
+
+  const itemsSinOt = useMemo(
+    () => itemsActivos.filter((it) => it.orden_trabajo_id == null),
+    [itemsActivos]
+  );
+  const puedeContinuarAMapaFinal =
+    hayTrabajoParaMapa && (itemsActivos.length === 0 || itemsSinOt.length === 0);
+
+  const continuarMapaFinalTooltip = useMemo(() => {
+    if (!hayTrabajoParaMapa) {
+      return "Sin ítems en pool ni en la ruta.";
+    }
+    if (itemsActivos.length > 0 && itemsSinOt.length > 0) {
+      return "Guardá la OT en cada ítem antes de continuar.";
+    }
+    return "Mapa operativo.";
+  }, [hayTrabajoParaMapa, itemsActivos.length, itemsSinOt.length]);
+
+  const handleChangeFilters = useCallback(
+    (next: AsignacionPoolFilters) => {
+      onChangeFilters(next);
+      setSelectedIniciadorIds([]);
+    },
+    [onChangeFilters]
+  );
+
+  const handleOpenAssignModal = useCallback(() => setOpenAsignarGrupo(true), []);
+
+  const handleCloseAssignModal = useCallback(() => setOpenAsignarGrupo(false), []);
+
+  /** Ref evita que `onConfirm` del modal cambie en cada tick de selección (memo del modal aprovecha). */
+  const handleModalConfirm = useCallback(
+    async (grupoId: number) => {
+      const ok = await onAssignIniciadoresToGrupo(grupoId, selectedIniciadorIdsRef.current);
+      if (ok) {
+        setSelectedIniciadorIds([]);
+        setOpenAsignarGrupo(false);
+      }
+    },
+    [onAssignIniciadoresToGrupo]
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+      <AsignacionTopSection
+        ruta={ruta}
+        grupos={grupos}
+        itemsCount={itemsCount}
+        itemsSinOtCount={itemsSinOt.length}
+        hayTrabajoParaMapa={hayTrabajoParaMapa}
+        puedeContinuarAMapaFinal={puedeContinuarAMapaFinal}
+        continuarMapaFinalTooltip={continuarMapaFinalTooltip}
+        onVolverPlanificacion={onVolverPlanificacion}
+        onContinuarMapaFinal={onContinuarMapaFinal}
+      />
 
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-            <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Ítems del pool del día</Typography>
-            <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", mb: 1.5 }}>
-              Mismo pool que armaste en Planificación: asigná estos trabajos a grupos y completá inspectores u OT en el
-              panel derecho.
-            </Typography>
-            {totalEnPool === 0 ? (
-              <AsignacionPoolEmptyState
-                poolVacioSinItems={poolVacioSinItems}
-                poolVacioConItemsEnRuta={poolVacioConItemsEnRuta}
-                onVolverPlanificacion={onVolverPlanificacion}
-                onSincronizarDetalle={onSincronizarDetalle}
-                detailLoading={detailLoading}
-              />
-            ) : (
-              <TablaIniciadoresPendientes
-                rows={iniciadoresTabla}
-                totalEnPool={totalEnPool}
-                selectedIds={selectedIniciadorIds}
-                assignedIniciadorIds={assignedIniciadorIds}
-                filters={filters}
-                onChangeFilters={onChangeFilters}
-                onSelectionChange={onSelectionChange}
-                onAssignSelected={onAssignSelected}
-                distritoOptions={distritoFilterOptions}
-                onSincronizarDetalle={onSincronizarDetalle}
-                detailLoading={detailLoading}
-              />
-            )}
-          </Paper>
-        </Grid>
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
-            <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Grupos</Typography>
-            <Typography sx={{ ...planificacionPanelSubtitleSx, display: "block", mb: 1.5 }}>
-              Equipos de la ruta: inspectores, trabajos asignados y orden de trabajo por ítem.
-            </Typography>
-            <AppButton
-              dsVariant="secondary"
-              dsSize="sm"
-              disabled={!canCreateGrupo}
-              onClick={onOpenCrearGrupo}
-              sx={{ mb: 1.5 }}
-            >
-              + Nuevo grupo
-            </AppButton>
-            {detailLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress size={36} sx={{ color: GLASS_COLORS.primary }} />
-              </Box>
-            ) : (
-              <PanelGruposRuta
-                grupos={grupos}
-                items={itemsActivos}
-                iniciadorById={iniciadorById}
-                onEditarInspectores={onEditarInspectores}
-                onEliminarGrupo={onEliminarGrupo}
-                onMoverItem={onMoverItem}
-                onQuitarItem={onQuitarItem}
-                onGuardarOtItem={onGuardarOtItem}
-              />
-            )}
-          </Paper>
-        </Grid>
+        <AsignacionPoolColumn
+          totalEnPool={totalEnPool}
+          poolVacioSinItems={poolVacioSinItems}
+          poolVacioConItemsEnRuta={poolVacioConItemsEnRuta}
+          iniciadoresTabla={iniciadoresTabla}
+          selectedIniciadorIds={selectedIniciadorIds}
+          assignedIniciadorIds={assignedIniciadorIds}
+          filters={filters}
+          onChangeFilters={handleChangeFilters}
+          onSelectionChange={setSelectedIniciadorIds}
+          onAssignSelected={handleOpenAssignModal}
+          distritoFilterOptions={distritoFilterOptions}
+          onSincronizarDetalle={onSincronizarDetalle}
+          detailLoading={detailLoading}
+          onVolverPlanificacion={onVolverPlanificacion}
+        />
+        <AsignacionGruposColumn
+          detailLoading={detailLoading}
+          canCreateGrupo={canCreateGrupo}
+          onOpenCrearGrupo={onOpenCrearGrupo}
+          grupos={grupos}
+          itemsActivos={itemsActivos}
+          iniciadorById={iniciadorById}
+          onEditarInspectores={onEditarInspectores}
+          onEliminarGrupo={onEliminarGrupo}
+          onMoverItem={onMoverItem}
+          onQuitarItem={onQuitarItem}
+          onGuardarOtItem={onGuardarOtItem}
+        />
       </Grid>
+
+      <ModalAsignarSeleccionAGrupo
+        open={openAsignarGrupo}
+        onClose={handleCloseAssignModal}
+        grupos={grupos}
+        selectedCount={selectedIniciadorIds.length}
+        onConfirm={handleModalConfirm}
+      />
     </Box>
   );
 }
+
+const RutasPlanificacionViewMemo = memo(RutasPlanificacionView);
+export { RutasPlanificacionViewMemo as RutasPlanificacionView };

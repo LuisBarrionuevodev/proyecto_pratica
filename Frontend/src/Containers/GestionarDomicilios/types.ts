@@ -11,7 +11,12 @@ export interface DomiciliosFilters {
   scope: "all" | "actuaciones" | "relevamientos";
 }
 
+export type NomenclaturaCalleMode = "CATALOGO" | "MANUAL";
+export type NomenclaturaEsquinaMode = "CATALOGO" | "MANUAL";
+
 export interface DomicilioNomenclaturaEditCache {
+  calleMode?: NomenclaturaCalleMode;
+  esquinaMode?: NomenclaturaEsquinaMode;
   calle_catalogo_id?: number | null;
   numero_tipo?: "NUMERO" | "ESQUINA" | null;
   numero?: string | null;

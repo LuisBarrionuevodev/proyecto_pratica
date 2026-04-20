@@ -81,6 +81,15 @@ export function PlanificacionView({
     }
   }, []);
 
+  const handleReiniciarPendientesContexto = useCallback(() => {
+    ctrl.reiniciarFiltrosPendientesContexto();
+    clearPendingMapTimeout();
+    setPendingVerEnMapaRow(null);
+    setMapPopupRow(null);
+    setMapFocusIniciadorId(null);
+    setMapFlyToRow(null);
+  }, [ctrl, clearPendingMapTimeout]);
+
   const bumpPopupNonce = useCallback(() => {
     setMapPopupOpenNonce((n) => n + 1);
   }, []);
@@ -241,6 +250,7 @@ export function PlanificacionView({
             meta={ctrl.pendientesMeta}
             loading={ctrl.loading.pendientesContexto}
             onApplyBusqueda={handleApplyBusqueda}
+            onReiniciarContextoPanel={handleReiniciarPendientesContexto}
             onPageChange={ctrl.loadPendientesContextoPage}
             onAgregar={ctrl.agregarAlPool}
             onVerEnMapa={handleVerEnMapa}

@@ -1,34 +1,24 @@
-import {
-  setCalleCanon,
-  setEsquinaCanon,
-  setNumeroEsquina,
-} from "../../../api/geolocalizacionApi";
+import type { GuardarNomenclaturaBody } from "../../../api/geolocalizacionApi";
+import { guardarNomenclaturaHibrida } from "../../../api/geolocalizacionApi";
 
 export const useDomicilioNormalizationActions = () => {
-  const guardarNormalizacion = async (payload: {
-    domicilio_id: number;
-    calle_catalogo_id?: number | null;
-    esquina_catalogo_id?: number | null;
-    numero?: string | null;
-    numero_tipo?: string | null;
-  }) => {
-    const {
-      domicilio_id,
-      calle_catalogo_id,
-      esquina_catalogo_id,
-      numero,
-      numero_tipo,
-    } = payload;
-
-    if (numero !== undefined && numero !== null && String(numero).trim() !== "") {
-      await setNumeroEsquina(domicilio_id, String(numero), numero_tipo || null);
-    }
-    if (calle_catalogo_id) {
-      await setCalleCanon(domicilio_id, Number(calle_catalogo_id));
-    }
-    if (numero_tipo === "ESQUINA" && esquina_catalogo_id) {
-      await setEsquinaCanon(domicilio_id, Number(esquina_catalogo_id));
-    }
+  /**
+   * Persiste nomenclatura vía endpoint híbrido (calle y esquina en modo catálogo o manual).
+   *
+   * Parámetros:
+   *   payload: cuerpo ``GuardarNomenclaturaBody`` más ``domicilio_id``.
+   *
+   * Retorno:
+   *   Respuesta del backend.
+   *
+   * Errores:
+   *   Propaga errores de Axios (4xx/5xx).
+   */
+  const guardarNormalizacion = async (
+    payload: GuardarNomenclaturaBody & { domicilio_id: number }
+  ) => {
+    const { domicilio_id, ...body } = payload;
+    return guardarNomenclaturaHibrida(domicilio_id, body);
   };
 
   return { guardarNormalizacion };

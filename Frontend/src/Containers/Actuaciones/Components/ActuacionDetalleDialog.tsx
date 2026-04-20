@@ -1,6 +1,6 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { ReactNode } from "react";
-import { Alert, Box, Chip, Collapse, Divider, IconButton, Link, Stack, Typography } from "@mui/material";
+import { Box, Chip, Collapse, Divider, IconButton, Link, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
@@ -85,6 +85,32 @@ const edicionGrid2ColSx = {
   gap: 2,
   width: "100%",
 } as const;
+
+/** Marco discreto para datos de visita de solo contexto en edición. */
+const edicionContextoVisitaSx = {
+  p: 1.5,
+  borderRadius: 1.5,
+  bgcolor: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.06)",
+} as const;
+
+/** Acta de notificación / comprobación bloqueada por expediente (misma semántica que `lockedNotif` / `lockedComp`). */
+const edicionActaBloqueadaShellSx = {
+  mt: 0,
+  p: 1.25,
+  borderRadius: 1.5,
+  bgcolor: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.1)",
+} as const;
+
+/**
+ * Modo edición: separa el título de subsección (h3 de acta) del contenido siguiente,
+ * para que el label flotante del primer control no compita con el heading.
+ */
+const edicionActaSubtituloSx = { ...docModalSubheadingInCardSx, mb: 1.5 } as const;
+
+/** Aire entre el overline/resumen del bloque documental y el primer control (p. ej. Lugar y titular, formulario). */
+const edicionGapBloqueAPrimerControlSx = { mt: 2 } as const;
 
 const dateFieldShrinkLabelProps = { shrink: true } as const;
 
@@ -741,20 +767,6 @@ function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionList
   );
 }
 
-function BloqueIniciadorVacío() {
-  return (
-    <Box sx={blockShellSx}>
-      <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
-        3. Iniciador de la ruta
-      </Typography>
-      <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 400, lineHeight: 1.5 }}>
-        Los datos del iniciador de ruta no están disponibles desde este listado. Cuando el API los
-        incluya, se mostrarán aquí sin mezclarlos con la actuación ni el local.
-      </Typography>
-    </Box>
-  );
-}
-
 /**
  * Detalle de actuación (lectura por defecto) y edición parcial tras "Editar".
  * Guardado vía `submitActuacionRow` en el padre (canal actas: sin reenvío de expediente/oficio).
@@ -862,6 +874,37 @@ export function ActuacionDetalleDialog({
     [draft.id, draft.orden_trabajo_numero, draft.tipo_actuacion]
   );
 
+  /** Misma identidad que lectura, con marca discreta de modo edición. */
+  const documentalTitleEdit = useMemo(
+    () => (
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+          <Chip label="Actuaciones" size="small" sx={docModalChipSx} variant="outlined" />
+          <Chip
+            label="Edición"
+            size="small"
+            sx={{
+              ...docModalChipSx,
+              borderColor: "rgba(255,255,255,0.38)",
+              bgcolor: "rgba(255,255,255,0.08)",
+            }}
+            variant="outlined"
+          />
+        </Box>
+        <Typography component="span" variant="h6" sx={docModalTitleSx}>
+          {`OT ${dash(draft.orden_trabajo_numero)}`}
+        </Typography>
+        <Typography variant="body2" sx={docModalSubtitleSx}>
+          {dash(draft.tipo_actuacion)}
+        </Typography>
+        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+          Actuación #{draft.id}
+        </Typography>
+      </Box>
+    ),
+    [draft.id, draft.orden_trabajo_numero, draft.tipo_actuacion]
+  );
+
   const detalleVista = useMemo(() => {
     const tieneSnapshotEpicollectLectura = epicollectSnapshotLecturaHayContenido(draft);
     const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
@@ -947,318 +990,436 @@ export function ActuacionDetalleDialog({
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? "";
     const ro = (key: string) => readOnlyColumns.includes(key);
+    const helperBloqueo = (key: string, locked: boolean) => (locked ? e(key) || undefined : e(key));
+
+    const tieneSnapshotEpicollectLectura = epicollectSnapshotLecturaHayContenido(draft);
+    const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
+    const totalEvid = draft.epicollect_evidencias_total ?? 0;
+    const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
+    const ec5Trim = draft.ec5_uuid?.trim() ?? "";
+    const muestraBloqueFormulario =
+      tieneSnapshotEpicollectLectura || tieneEvidenciasEpicollect || ec5Trim !== "";
+
+    const res = draft.resultado_cumplimiento_oficio;
+    const tieneResultado = res != null && String(res).trim() !== "";
+    const muestraResultadoSeguimientoEdicion = tieneResultado || tieneReferenciaAdmin(draft);
+
+    const gridNotificacion = (
+      <Box sx={edicionGrid2ColSx}>
+        <AppTextField
+          appearance="glass"
+          label="Número de acta"
+          value={draft.acta_notificacion_num ?? ""}
+          onChange={(ev) => onDraftChange({ acta_notificacion_num: ev.target.value })}
+          disabled={lockedNotif}
+          error={!!e("acta_notificacion_num")}
+          helperText={helperBloqueo("acta_notificacion_num", lockedNotif)}
+          fullWidth
+        />
+        <AppSelect
+          appearance="glass"
+          label="Motivo 1"
+          value={draft.notificacion_motivo_1 ?? ""}
+          onChange={(ev) => onDraftChange({ notificacion_motivo_1: ev.target.value as string })}
+          options={motivosOptions}
+          disabled={lockedNotif}
+          error={!!e("notificacion_motivo_1")}
+          helperText={helperBloqueo("notificacion_motivo_1", lockedNotif)}
+          fullWidth
+        />
+        <AppSelect
+          appearance="glass"
+          label="Motivo 2"
+          value={draft.notificacion_motivo_2 ?? ""}
+          onChange={(ev) => onDraftChange({ notificacion_motivo_2: ev.target.value as string })}
+          options={motivosOptions}
+          disabled={lockedNotif}
+          error={!!e("notificacion_motivo_2")}
+          helperText={helperBloqueo("notificacion_motivo_2", lockedNotif)}
+          fullWidth
+        />
+        <AppSelect
+          appearance="glass"
+          label="Motivo 3"
+          value={draft.notificacion_motivo_3 ?? ""}
+          onChange={(ev) => onDraftChange({ notificacion_motivo_3: ev.target.value as string })}
+          options={motivosOptions}
+          disabled={lockedNotif}
+          error={!!e("notificacion_motivo_3")}
+          helperText={helperBloqueo("notificacion_motivo_3", lockedNotif)}
+          fullWidth
+        />
+      </Box>
+    );
+
+    const gridComprobacion = (
+      <Box sx={edicionGrid2ColSx}>
+        <AppTextField
+          appearance="glass"
+          label="Número de acta"
+          value={draft.acta_comprobacion_num ?? ""}
+          onChange={(ev) => onDraftChange({ acta_comprobacion_num: ev.target.value })}
+          disabled={lockedComp}
+          error={!!e("acta_comprobacion_num")}
+          helperText={helperBloqueo("acta_comprobacion_num", lockedComp)}
+          fullWidth
+        />
+        <AppSelect
+          appearance="glass"
+          label="Motivo de comprobación"
+          value={draft.comprobacion_motivo ?? ""}
+          onChange={(ev) => onDraftChange({ comprobacion_motivo: ev.target.value as string })}
+          options={motivoComprobacionOptions}
+          disabled={lockedComp}
+          error={!!e("comprobacion_motivo")}
+          helperText={helperBloqueo("comprobacion_motivo", lockedComp)}
+          fullWidth
+        />
+      </Box>
+    );
 
     return (
-    <>
-      {(lockedNotif || lockedComp) && (
-        <Alert severity="info" variant="outlined" sx={{ mb: 1 }}>
-          {lockedNotif && "Algunos campos de notificación están bloqueados (expediente). "}
-          {lockedComp && "Algunos campos de comprobación están bloqueados (expediente). "}
-        </Alert>
-      )}
+      <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
+        <DocumentalBloque overline="Lugar y titular">
+          <AppTextField
+            appearance="glass"
+            label="Domicilio (calle y número)"
+            value={domicilioTexto(draft)}
+            disabled
+            sx={{ ...roFieldSx, ...edicionGapBloqueAPrimerControlSx }}
+            fullWidth
+          />
+          <AppTextField
+            appearance="glass"
+            label="Nombre de fantasía"
+            value={draft.nombre_local ?? ""}
+            onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
+            error={!!e("nombre_local")}
+            helperText={e("nombre_local")}
+            sx={{ mt: 2 }}
+            fullWidth
+          />
+          <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
+            <AppSelect
+              appearance="glass"
+              label="Rubro"
+              value={draft.rubro_nombre ?? ""}
+              onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
+              options={rubrosOptions}
+              disabled={ro("rubro_nombre")}
+              error={!!e("rubro_nombre")}
+              helperText={e("rubro_nombre")}
+              fullWidth
+            />
+            <AppTextField
+              appearance="glass"
+              label="N.º de documento"
+              value={draft.doc_nro ?? ""}
+              onChange={(ev) => onDraftChange({ doc_nro: ev.target.value })}
+              error={!!e("doc_nro")}
+              helperText={e("doc_nro")}
+              fullWidth
+            />
+            <AppTextField
+              appearance="glass"
+              label="Apellido"
+              value={draft.contrib_apellido ?? ""}
+              onChange={(ev) => onDraftChange({ contrib_apellido: ev.target.value })}
+              error={!!e("contrib_apellido")}
+              helperText={e("contrib_apellido")}
+              fullWidth
+            />
+            <AppTextField
+              appearance="glass"
+              label="Nombre"
+              value={draft.contrib_nombre ?? ""}
+              onChange={(ev) => onDraftChange({ contrib_nombre: ev.target.value })}
+              error={!!e("contrib_nombre")}
+              helperText={e("contrib_nombre")}
+              fullWidth
+            />
+            <AppTextField
+              appearance="glass"
+              label="Razón social"
+              value={draft.razon_social ?? ""}
+              onChange={(ev) => onDraftChange({ razon_social: ev.target.value || null })}
+              error={!!e("razon_social")}
+              helperText={e("razon_social")}
+              sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+              fullWidth
+            />
+          </Box>
+          <DocumentalFila etiqueta="Titular o razón social" valor={titularLinea(draft)} />
+          <DocumentalFila
+            etiqueta="Vinculación a ficha de establecimiento"
+            valor={
+              draft.establecimiento_operativo_id != null
+                ? `Ficha n.º ${draft.establecimiento_operativo_id}${
+                    draft.establecimiento_actuaciones_en_ficha != null
+                      ? ` · ${draft.establecimiento_actuaciones_en_ficha} actuación${
+                          draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "es"
+                        } en esa ficha`
+                      : ""
+                  }`
+                : "—"
+            }
+          />
+          {draft.establecimiento_operativo_id != null ? (
+            <Box sx={{ mt: 1.5 }}>
+              <AppButton
+                dsVariant="secondary"
+                dsSize="sm"
+                onClick={() => {
+                  onClose();
+                  navigate(`/establecimientos/${draft.establecimiento_operativo_id}`);
+                }}
+              >
+                Ver establecimiento
+              </AppButton>
+            </Box>
+          ) : null}
+        </DocumentalBloque>
 
-      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", fontFamily: '"Tactic Sans", sans-serif' }}>
-        ID actuación: {draft.id}
-      </Typography>
-
-      <Box sx={blockShellSx}>
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
-          1. Datos de la actuación actual
-        </Typography>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 1 }}>
-          Solo lectura: OT, fecha, tipo, contraproducencia e inspectores no se editan desde este canal.
-        </Typography>
-        <Box sx={edicionGrid2ColSx}>
-          <AppTextField
-            appearance="glass"
-            label="OT"
-            value={draft.orden_trabajo_numero ?? ""}
-            disabled
-            sx={roFieldSx}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Fecha"
-            type="date"
-            value={draft.fecha_actuacion ?? ""}
-            disabled
-            sx={roFieldSx}
-            InputLabelProps={dateFieldShrinkLabelProps}
-            fullWidth
-          />
-          <AppTextField appearance="glass" label="Tipo" value={draft.tipo_actuacion ?? ""} disabled sx={roFieldSx} fullWidth />
-          <AppTextField
-            appearance="glass"
-            label="Contraproducencia"
-            value={draft.contraproducencia ?? ""}
-            disabled
-            sx={roFieldSx}
-            fullWidth
-          />
-          {draft.resultado_cumplimiento_oficio != null &&
-            String(draft.resultado_cumplimiento_oficio).trim() !== "" && (
+        <DocumentalBloque overline="La visita" resumen="Referencia del acta. No se edita en este canal.">
+          <Box sx={{ ...edicionContextoVisitaSx, ...edicionGapBloqueAPrimerControlSx }}>
+            <Box sx={edicionGrid2ColSx}>
               <AppTextField
                 appearance="glass"
-                label="Resultado (oficio / reinspección)"
-                value={draft.resultado_cumplimiento_oficio ?? ""}
+                label="OT"
+                value={draft.orden_trabajo_numero ?? ""}
+                disabled
+                sx={roFieldSx}
+                fullWidth
+              />
+              <AppTextField
+                appearance="glass"
+                label="Fecha de la visita"
+                type="date"
+                value={draft.fecha_actuacion ?? ""}
+                disabled
+                sx={roFieldSx}
+                InputLabelProps={dateFieldShrinkLabelProps}
+                fullWidth
+              />
+              <AppTextField
+                appearance="glass"
+                label="Tipo de actuación"
+                value={draft.tipo_actuacion ?? ""}
+                disabled
+                sx={roFieldSx}
+                fullWidth
+              />
+              <AppTextField
+                appearance="glass"
+                label="Contraproducencia"
+                value={draft.contraproducencia ?? ""}
+                disabled
+                sx={roFieldSx}
+                fullWidth
+              />
+              <AppTextField
+                appearance="glass"
+                label="Inspectores a cargo"
+                value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
                 disabled
                 sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
                 fullWidth
               />
-            )}
-          <AppTextField
-            appearance="glass"
-            label="Inspectores"
-            value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
-            disabled
-            sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="EpiCollect (ID) — solo lectura"
-            value={draft.ec5_uuid ?? ""}
-            disabled
-            sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
-            fullWidth
-            helperText="No editable desde este canal."
-          />
-        </Box>
-
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", display: "block", mt: 2, mb: 1 }}>
-          Actas del día (editables)
-        </Typography>
-        <Box sx={edicionGrid2ColSx}>
-          <AppTextField
-            appearance="glass"
-            label="Acta inspección"
-            value={draft.acta_inspeccion_num ?? ""}
-            onChange={(ev) => onDraftChange({ acta_inspeccion_num: ev.target.value })}
-            error={!!e("acta_inspeccion_num")}
-            helperText={e("acta_inspeccion_num")}
-            fullWidth
-          />
-        </Box>
-
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 2, mb: 1.5 }}>
-          Notificación
-        </Typography>
-        <Box sx={edicionGrid2ColSx}>
-          <AppTextField
-            appearance="glass"
-            label="Acta notificación"
-            value={draft.acta_notificacion_num ?? ""}
-            onChange={(ev) => onDraftChange({ acta_notificacion_num: ev.target.value })}
-            disabled={lockedNotif}
-            error={!!e("acta_notificacion_num")}
-            helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("acta_notificacion_num")}
-            fullWidth
-          />
-          <AppSelect
-            appearance="glass"
-            label="Motivo notif. 1"
-            value={draft.notificacion_motivo_1 ?? ""}
-            onChange={(ev) => onDraftChange({ notificacion_motivo_1: ev.target.value as string })}
-            options={motivosOptions}
-            disabled={lockedNotif}
-            error={!!e("notificacion_motivo_1")}
-            helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("notificacion_motivo_1")}
-            fullWidth
-          />
-          <AppSelect
-            appearance="glass"
-            label="Motivo notif. 2"
-            value={draft.notificacion_motivo_2 ?? ""}
-            onChange={(ev) => onDraftChange({ notificacion_motivo_2: ev.target.value as string })}
-            options={motivosOptions}
-            disabled={lockedNotif}
-            error={!!e("notificacion_motivo_2")}
-            helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("notificacion_motivo_2")}
-            fullWidth
-          />
-          <AppSelect
-            appearance="glass"
-            label="Motivo notif. 3"
-            value={draft.notificacion_motivo_3 ?? ""}
-            onChange={(ev) => onDraftChange({ notificacion_motivo_3: ev.target.value as string })}
-            options={motivosOptions}
-            disabled={lockedNotif}
-            error={!!e("notificacion_motivo_3")}
-            helperText={lockedNotif ? "Notificación con expediente: no editable aquí." : e("notificacion_motivo_3")}
-            fullWidth
-          />
-        </Box>
-
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 2, mb: 1.5 }}>
-          Comprobación
-        </Typography>
-        <Box sx={edicionGrid2ColSx}>
-          <AppTextField
-            appearance="glass"
-            label="Acta comprobación"
-            value={draft.acta_comprobacion_num ?? ""}
-            onChange={(ev) => onDraftChange({ acta_comprobacion_num: ev.target.value })}
-            disabled={lockedComp}
-            error={!!e("acta_comprobacion_num")}
-            helperText={lockedComp ? "Comprobación con expediente: no editable aquí." : e("acta_comprobacion_num")}
-            fullWidth
-          />
-          <AppSelect
-            appearance="glass"
-            label="Motivo comprobación"
-            value={draft.comprobacion_motivo ?? ""}
-            onChange={(ev) => onDraftChange({ comprobacion_motivo: ev.target.value as string })}
-            options={motivoComprobacionOptions}
-            disabled={lockedComp}
-            error={!!e("comprobacion_motivo")}
-            helperText={lockedComp ? "Comprobación con expediente: no editable aquí." : e("comprobacion_motivo")}
-            fullWidth
-          />
-        </Box>
-
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 2, mb: 1.5 }}>
-          Clausura / decomiso
-        </Typography>
-        <Box sx={edicionGrid2ColSx}>
-          <AppTextField
-            appearance="glass"
-            label="Acta clausura"
-            value={draft.acta_clausura_num ?? ""}
-            onChange={(ev) => onDraftChange({ acta_clausura_num: ev.target.value })}
-            error={!!e("acta_clausura_num")}
-            helperText={e("acta_clausura_num")}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Acta decomiso"
-            value={draft.acta_decomiso_num ?? ""}
-            onChange={(ev) => onDraftChange({ acta_decomiso_num: ev.target.value })}
-            error={!!e("acta_decomiso_num")}
-            helperText={e("acta_decomiso_num")}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Kilos decomisados"
-            type="number"
-            value={draft.decomiso_kilos_total ?? ""}
-            onChange={(ev) => {
-              const v = ev.target.value;
-              onDraftChange({
-                decomiso_kilos_total: v === "" ? null : Number(v),
-              });
-            }}
-            error={!!e("decomiso_kilos_total")}
-            helperText={e("decomiso_kilos_total")}
-            fullWidth
-          />
-        </Box>
-
-        {tieneReferenciaAdmin(draft) && (
-          <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 0.75 }}>
-              Referencia administrativa (solo lectura; no se envía por este canal de guardado)
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.62)" }}>
-              Expediente: {dash(draft.expediente_numero)} / {dash(draft.expediente_anio)} · Oficio:{" "}
-              {dash(draft.oficio_numero)} / {dash(draft.oficio_anio)}
-              {draft.oficio_causa != null && String(draft.oficio_causa).trim() !== ""
-                ? ` · Causa: ${dash(draft.oficio_causa)}`
-                : ""}
-            </Typography>
+            </Box>
           </Box>
-        )}
-      </Box>
+        </DocumentalBloque>
 
-      <Box sx={blockShellSx}>
-        <Typography variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0 }}>
-          2. Datos del local
-        </Typography>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block", mb: 1 }}>
-          Domicilio en solo lectura. Podés corregir nombre del local, rubro y contribuyente.
-        </Typography>
-        <AppTextField
-          appearance="glass"
-          label="Domicilio"
-          value={domicilioTexto(draft)}
-          disabled
-          sx={roFieldSx}
-          fullWidth
-        />
-        <AppTextField
-          appearance="glass"
-          label="Nombre del local"
-          value={draft.nombre_local ?? ""}
-          onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
-          error={!!e("nombre_local")}
-          helperText={e("nombre_local")}
-          sx={{ mt: 2 }}
-          fullWidth
-        />
-        <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
-          <AppSelect
-            appearance="glass"
-            label="Rubro"
-            value={draft.rubro_nombre ?? ""}
-            onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
-            options={rubrosOptions}
-            disabled={ro("rubro_nombre")}
-            error={!!e("rubro_nombre")}
-            helperText={e("rubro_nombre")}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Doc. Nro"
-            value={draft.doc_nro ?? ""}
-            onChange={(ev) => onDraftChange({ doc_nro: ev.target.value })}
-            error={!!e("doc_nro")}
-            helperText={e("doc_nro")}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Apellido"
-            value={draft.contrib_apellido ?? ""}
-            onChange={(ev) => onDraftChange({ contrib_apellido: ev.target.value })}
-            error={!!e("contrib_apellido")}
-            helperText={e("contrib_apellido")}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Nombre"
-            value={draft.contrib_nombre ?? ""}
-            onChange={(ev) => onDraftChange({ contrib_nombre: ev.target.value })}
-            error={!!e("contrib_nombre")}
-            helperText={e("contrib_nombre")}
-            fullWidth
-          />
-          <AppTextField
-            appearance="glass"
-            label="Razón social"
-            value={draft.razon_social ?? ""}
-            onChange={(ev) => onDraftChange({ razon_social: ev.target.value || null })}
-            error={!!e("razon_social")}
-            helperText={e("razon_social")}
-            sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
-            fullWidth
-          />
-        </Box>
-      </Box>
+        <DocumentalBloque overline="Actas de la visita">
+          <Box sx={actaGrupoWrapperSx}>
+            <Typography component="h3" sx={edicionActaSubtituloSx}>
+              Acta de inspección
+            </Typography>
+            <Box sx={edicionGrid2ColSx}>
+              <AppTextField
+                appearance="glass"
+                label="Número de acta"
+                value={draft.acta_inspeccion_num ?? ""}
+                onChange={(ev) => onDraftChange({ acta_inspeccion_num: ev.target.value })}
+                error={!!e("acta_inspeccion_num")}
+                helperText={e("acta_inspeccion_num")}
+                fullWidth
+              />
+            </Box>
+          </Box>
 
-      <BloqueEpicollectDetalleLectura
-        draft={draft}
-        otrosExpanded={epicollectOtrosExpanded}
-        onToggleOtros={toggleEpicollectOtros}
-      />
+          <Box sx={actaGrupoWrapperSx}>
+            <Typography component="h3" sx={edicionActaSubtituloSx}>
+              Acta de notificación
+            </Typography>
+            {lockedNotif ? (
+              <Box sx={edicionActaBloqueadaShellSx}>
+                <Typography
+                  variant="caption"
+                  component="p"
+                  sx={{
+                    color: DOC_MODAL_TEXT,
+                    opacity: 0.8,
+                    lineHeight: 1.45,
+                    mb: 1.25,
+                    maxWidth: 520,
+                  }}
+                >
+                  Expediente asociado: bloqueado en canal actas. Los motivos y el número no se modifican aquí.
+                </Typography>
+                {gridNotificacion}
+              </Box>
+            ) : (
+              gridNotificacion
+            )}
+          </Box>
 
-      <BloqueEvidenciasEpicollect draft={draft} />
+          <Box sx={actaGrupoWrapperSx}>
+            <Typography component="h3" sx={edicionActaSubtituloSx}>
+              Acta de comprobación
+            </Typography>
+            {lockedComp ? (
+              <Box sx={edicionActaBloqueadaShellSx}>
+                <Typography
+                  variant="caption"
+                  component="p"
+                  sx={{
+                    color: DOC_MODAL_TEXT,
+                    opacity: 0.8,
+                    lineHeight: 1.45,
+                    mb: 1.25,
+                    maxWidth: 520,
+                  }}
+                >
+                  Expediente de envío: bloqueado en canal actas. El motivo y el número no se modifican aquí.
+                </Typography>
+                {gridComprobacion}
+              </Box>
+            ) : (
+              gridComprobacion
+            )}
+          </Box>
 
-      <BloqueIniciadorVacío />
-    </>
+          <Box sx={actaGrupoWrapperSx}>
+            <Typography component="h3" sx={edicionActaSubtituloSx}>
+              Acta de clausura
+            </Typography>
+            <Box sx={edicionGrid2ColSx}>
+              <AppTextField
+                appearance="glass"
+                label="Número de acta"
+                value={draft.acta_clausura_num ?? ""}
+                onChange={(ev) => onDraftChange({ acta_clausura_num: ev.target.value })}
+                error={!!e("acta_clausura_num")}
+                helperText={e("acta_clausura_num")}
+                fullWidth
+              />
+            </Box>
+          </Box>
+
+          <Box sx={actaGrupoWrapperSx}>
+            <Typography component="h3" sx={edicionActaSubtituloSx}>
+              Acta de decomiso
+            </Typography>
+            <Box sx={edicionGrid2ColSx}>
+              <AppTextField
+                appearance="glass"
+                label="Número de acta"
+                value={draft.acta_decomiso_num ?? ""}
+                onChange={(ev) => onDraftChange({ acta_decomiso_num: ev.target.value })}
+                error={!!e("acta_decomiso_num")}
+                helperText={e("acta_decomiso_num")}
+                fullWidth
+              />
+              <AppTextField
+                appearance="glass"
+                label="Kilos decomisados"
+                type="number"
+                value={draft.decomiso_kilos_total ?? ""}
+                onChange={(ev) => {
+                  const v = ev.target.value;
+                  onDraftChange({
+                    decomiso_kilos_total: v === "" ? null : Number(v),
+                  });
+                }}
+                error={!!e("decomiso_kilos_total")}
+                helperText={e("decomiso_kilos_total")}
+                fullWidth
+              />
+            </Box>
+          </Box>
+        </DocumentalBloque>
+
+        {muestraResultadoSeguimientoEdicion ? (
+          <DocumentalBloque overline="Resultado y seguimiento">
+            {tieneResultado ? (
+              <Box sx={edicionGapBloqueAPrimerControlSx}>
+                <DocumentalFila etiqueta="Resultado" valor={dash(res)} />
+              </Box>
+            ) : null}
+            {expedienteOficioTieneContenido(draft) ? (
+              <Box sx={{ mt: tieneResultado ? 2 : 0 }}>
+                <Typography component="h3" sx={edicionActaSubtituloSx}>
+                  Expediente y oficio
+                </Typography>
+                <ExpedienteOficioLectura draft={draft} />
+              </Box>
+            ) : tieneReferenciaAdmin(draft) ? (
+              <Box sx={tieneResultado ? { mt: 1.5 } : edicionGapBloqueAPrimerControlSx}>
+                <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, opacity: 0.88 }}>
+                  Expediente: {dash(draft.expediente_numero)} / {dash(draft.expediente_anio)} · Oficio:{" "}
+                  {dash(draft.oficio_numero)} / {dash(draft.oficio_anio)}
+                  {draft.oficio_causa != null && String(draft.oficio_causa).trim() !== ""
+                    ? ` · Causa: ${dash(draft.oficio_causa)}`
+                    : ""}
+                </Typography>
+              </Box>
+            ) : null}
+          </DocumentalBloque>
+        ) : null}
+
+        {muestraBloqueFormulario ? (
+          <DocumentalBloque overline="Formulario de campo y evidencias">
+            {ec5Trim !== "" ? (
+              <AppTextField
+                appearance="glass"
+                label="Identificador EpiCollect"
+                value={draft.ec5_uuid ?? ""}
+                disabled
+                sx={{
+                  ...roFieldSx,
+                  ...edicionGapBloqueAPrimerControlSx,
+                  mb: tieneSnapshotEpicollectLectura || tieneEvidenciasEpicollect ? 2 : 0,
+                }}
+                fullWidth
+              />
+            ) : null}
+            {tieneSnapshotEpicollectLectura ? (
+              <Box sx={ec5Trim !== "" ? undefined : edicionGapBloqueAPrimerControlSx}>
+                <BloqueEpicollectDetalleLectura
+                  draft={draft}
+                  otrosExpanded={epicollectOtrosExpanded}
+                  onToggleOtros={toggleEpicollectOtros}
+                  embedded
+                />
+              </Box>
+            ) : null}
+            {tieneSnapshotEpicollectLectura && tieneEvidenciasEpicollect ? (
+              <Divider sx={{ borderColor: GLASS_COLORS.borderLight, my: 1.5 }} />
+            ) : null}
+            {tieneEvidenciasEpicollect ? (
+              <Box
+                sx={
+                  ec5Trim !== "" || tieneSnapshotEpicollectLectura
+                    ? undefined
+                    : edicionGapBloqueAPrimerControlSx
+                }
+              >
+                <BloqueEvidenciasEpicollect draft={draft} embedded />
+              </Box>
+            ) : null}
+          </DocumentalBloque>
+        ) : null}
+      </Stack>
     );
   }, [
     draft,
@@ -1272,13 +1433,15 @@ export function ActuacionDetalleDialog({
     epicollectOtrosExpanded,
     toggleEpicollectOtros,
     onDraftChange,
+    navigate,
+    onClose,
   ]);
 
   const dialogContentExtraSx = useMemo(
     () => ({
       maxHeight: "min(72vh, 720px)",
       overflowY: "auto" as const,
-      gap: isEditing ? 2.75 : 0,
+      gap: 0,
       pt: isEditing ? undefined : 2,
       pb: isEditing ? undefined : 2,
     }),
@@ -1295,7 +1458,7 @@ export function ActuacionDetalleDialog({
       <Box sx={docModalFooterRowSx}>
         <Typography variant="caption" component="div" sx={{ ...docModalFooterHintSx, flex: "1 1 200px" }}>
           {isEditing
-            ? "Los cambios se guardan con el botón Guardar (canal actas)."
+            ? "Guardar aplica en canal actas."
             : "Impresión: usa el menú del navegador si el diálogo no aparece en la vista previa."}
         </Typography>
         <Box sx={docModalFooterButtonsSx}>
@@ -1337,7 +1500,7 @@ export function ActuacionDetalleDialog({
       open={open}
       onClose={handleDialogClose}
       onCloseButtonClick={handleClose}
-      title={isEditing ? "Editar actuación" : documentalTitleRead}
+      title={isEditing ? documentalTitleEdit : documentalTitleRead}
       appearance="glass"
       maxWidth="md"
       fullWidth

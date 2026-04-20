@@ -4,16 +4,18 @@ import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   docModalChipSx,
   docModalFooterButtonsSx,
-  docModalFooterHintSx,
   docModalFooterRowSx,
   docModalHeaderStackSx,
+  docModalReferenceSx,
   docModalSubtitleSx,
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog } from "../../../ui";
+import { humanizarEstadoIniciador } from "../utils/documentalLabelFormat";
 import {
   BloqueInspeccionBaseComprobacion,
-  BloqueReferenciaYTramitesReinspeccion,
+  BloqueReferenciaReinspeccionDetalle,
+  BloqueTramitesReinspeccionDetalle,
   DOC_MODAL_BLOCK_STACK_SPACING,
   type ReinspeccionOperativoDetalleRow,
   DocumentalBloque,
@@ -33,18 +35,21 @@ export type ComprobacionReinspeccionDetalleDialogProps = {
 };
 
 /**
- * Vista consultiva de pendiente de reinspección por oficio: mismas cards que operativo + iniciador.
+ * Vista consultiva de pendiente de reinspección por oficio: Referencia, visita, trámites e iniciador.
  */
 export function ComprobacionReinspeccionDetalleDialog({ open, onClose, row }: ComprobacionReinspeccionDetalleDialogProps) {
   const titleNode =
     row != null ? (
-      <Box sx={docModalHeaderStackSx}>
+      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
         <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
         <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          Detalle — reinspección por oficio
+          Reinspección por oficio
         </Typography>
         <Typography variant="body2" sx={docModalSubtitleSx}>
           {actaCabecera(row)}
+        </Typography>
+        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
+          Actuación #{row.id}
         </Typography>
       </Box>
     ) : (
@@ -65,9 +70,7 @@ export function ComprobacionReinspeccionDetalleDialog({ open, onClose, row }: Co
       showCloseButton
       actions={
         <Box sx={docModalFooterRowSx}>
-          <Typography variant="caption" component="div" sx={docModalFooterHintSx}>
-            Vista solo consulta. Los valores de expediente/oficio completos dependen del DTO de la bandeja.
-          </Typography>
+          <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
           <Box sx={docModalFooterButtonsSx}>
             <AppButton dsVariant="primary" dsSize="sm" onClick={onClose}>
               Cerrar
@@ -78,9 +81,10 @@ export function ComprobacionReinspeccionDetalleDialog({ open, onClose, row }: Co
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-          <BloqueReferenciaYTramitesReinspeccion row={row} />
+          <BloqueReferenciaReinspeccionDetalle row={row} />
           <BloqueInspeccionBaseComprobacion
             row={{
+              fecha_actuacion: row.fecha_actuacion,
               acta_inspeccion_num: row.acta_inspeccion_num ?? null,
               inspectores_texto: row.inspectores_texto ?? null,
               inspector1: row.inspector1 ?? null,
@@ -90,15 +94,12 @@ export function ComprobacionReinspeccionDetalleDialog({ open, onClose, row }: Co
               tipo_actuacion: row.tipo_actuacion ?? null,
             }}
           />
-          <DocumentalBloque
-            overline="Iniciador (reinspección)"
-            resumen="Estado operativo del iniciador de reinspección por oficio."
-          >
-            <DocumentalFila etiqueta="Estado del iniciador" valor={textoValor(row.estado_iniciador)} />
-            <DocumentalFila etiqueta="Tipo de iniciador" valor={textoValor(row.tipo_iniciador)} />
+          <BloqueTramitesReinspeccionDetalle row={row} />
+          <DocumentalBloque overline="Reinspección">
+            <DocumentalFila etiqueta="Estado del iniciador" valor={humanizarEstadoIniciador(row.estado_iniciador)} />
             <DocumentalFila etiqueta="Fecha de origen" valor={textoValor(row.fecha_origen_iniciador)} />
-            <DocumentalFila etiqueta="Iniciador (id)" valor={row.iniciador_id != null ? `#${row.iniciador_id}` : "—"} />
-            <DocumentalFila etiqueta="Documento / estado" valor={textoValor(row.documento_pendiente)} />
+            <DocumentalFila etiqueta="Iniciador" valor={row.iniciador_id != null ? `#${row.iniciador_id}` : "—"} />
+            <DocumentalFila etiqueta="Trámite / documento pendiente" valor={textoValor(row.documento_pendiente)} />
           </DocumentalBloque>
         </Stack>
       )}
