@@ -212,6 +212,7 @@ const RutasTrabajo = () => {
 
   const handlePublicarRuta = useCallback(async () => {
     if (!rutaId || ruta?.estado_ruta !== "BORRADOR" || publishingRuta) return;
+
     setPublishingRuta(true);
     setError(null);
     setSuccessMessage(null);
@@ -241,7 +242,7 @@ const RutasTrabajo = () => {
       } catch (grErr) {
         console.error(grErr);
         gruposPrintError =
-          "No se pudo abrir la hoja de grupos para impresión (revisá bloqueo de ventanas emergentes). La ruta igual quedó publicada.";
+          "No se pudo imprimir la hoja de grupos (cuadro de impresión). La ruta quedó publicada.";
       }
 
       resetVistaRutaTrabajo();
@@ -255,7 +256,7 @@ const RutasTrabajo = () => {
 
       if (!capturePngError && !gruposPrintError) {
         setSuccessMessage(
-          "Ruta publicada. Se descargó la captura PNG del mapa y se abrió la hoja de grupos (en el cuadro de impresión podés elegir «Guardar como PDF» según tu navegador)."
+          "Ruta publicada. Se descargó la captura PNG del mapa y se abrió el cuadro de impresión de la hoja de grupos (podés elegir «Guardar como PDF» según tu navegador)."
         );
       } else if (!capturePngError && gruposPrintError) {
         setSuccessMessage(
@@ -263,7 +264,7 @@ const RutasTrabajo = () => {
         );
       } else if (capturePngError && !gruposPrintError) {
         setSuccessMessage(
-          "Ruta publicada. Se abrió la hoja de grupos para impresión; revisá el aviso sobre la captura PNG."
+          "Ruta publicada. Se disparó la impresión de la hoja de grupos; revisá el aviso sobre la captura PNG."
         );
       } else {
         setSuccessMessage(

@@ -194,7 +194,7 @@ export function RutasMapaOperativoView({
                 publishingRuta
                   ? "Publicando y generando exportaciones…"
                   : canPublish
-                    ? "Publica la ruta, descarga captura PNG del mapa y abre la hoja de grupos para imprimir o guardar como PDF."
+                    ? "Publica la ruta, descarga captura PNG del mapa y abre el cuadro de impresión de la hoja de grupos (guardar como PDF según el navegador)."
                     : "Solo con borrador listo."
               }
               placement="top"

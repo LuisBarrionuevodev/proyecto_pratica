@@ -5,7 +5,7 @@ import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin, IRutaTrab
 /** Ejecuta la captura PNG del bloque operativo Mapa final (p. ej. tras publicar). */
 export type CapturaMapaFinalHandle = (opts?: { estadoEtiqueta?: string }) => Promise<void>;
 
-/** Abre la hoja HTML imprimible de grupos / direcciones (MF7). */
+/** Dispara impresión / PDF de la hoja de grupos (MF7, iframe en página; sin ventana emergente). */
 export type ExportGruposPrintHandle = (opts?: { estadoEtiqueta?: string }) => Promise<void>;
 
 /** Punto en el mapa (cuando existan coordenadas en datos). */

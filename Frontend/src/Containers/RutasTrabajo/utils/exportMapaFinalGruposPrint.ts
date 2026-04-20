@@ -192,33 +192,84 @@ ${bloquesGrupo || '<p class="muted">Sin grupos en esta ruta.</p>'}
 }
 
 /**
- * Abre una ventana con el HTML, dispara el diálogo de impresión del navegador.
- * El usuario puede elegir impresora o «Guardar como PDF» según el SO/navegador.
+ * Imprime la hoja de grupos usando un iframe oculto en el documento actual.
+ * Evita `window.open` y el bloqueo de ventanas emergentes tras operaciones async.
  */
 export function printMapaFinalGruposOperativo(payload: MapaFinalGruposPrintPayload): Promise<void> {
   return new Promise((resolve, reject) => {
     const html = buildMapaFinalGruposPrintHtml(payload);
-    const w = window.open("", "_blank", "noopener,noreferrer");
-    if (!w) {
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("title", "Impresión hoja de grupos");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.cssText =
+      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;margin:0;padding:0;opacity:0;pointer-events:none";
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      try {
+        iframe.remove();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    try {
+      document.body.appendChild(iframe);
+    } catch (e) {
       reject(
-        new Error(
-          "El navegador bloqueó la ventana de impresión. Permití ventanas emergentes para generar la hoja de grupos."
-        )
+        e instanceof Error
+          ? e
+          : new Error("No se pudo preparar la impresión de la hoja de grupos.")
       );
       return;
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    const trigger = () => {
+
+    const idoc = iframe.contentDocument;
+    const iwin = iframe.contentWindow;
+    if (!idoc || !iwin) {
+      cleanup();
+      reject(new Error("El navegador no permitió crear el documento de impresión de grupos."));
+      return;
+    }
+
+    try {
+      idoc.open();
+      idoc.write(html);
+      idoc.close();
+    } catch (e) {
+      cleanup();
+      reject(
+        e instanceof Error
+          ? e
+          : new Error("No se pudo escribir el documento de impresión de grupos.")
+      );
+      return;
+    }
+
+    const triggerPrint = () => {
       try {
-        w.focus();
-        w.print();
-      } finally {
-        resolve();
+        iwin.focus();
+        iwin.print();
+      } catch (e) {
+        cleanup();
+        reject(
+          e instanceof Error
+            ? e
+            : new Error("No se pudo abrir el cuadro de impresión de la hoja de grupos.")
+        );
+        return;
       }
+      resolve();
+      try {
+        iwin.addEventListener("afterprint", cleanup, { once: true });
+      } catch {
+        /* IE / entornos viejos */
+      }
+      window.setTimeout(cleanup, 120_000);
     };
-    // Dar tiempo a que el documento esté listo (especialmente fuentes / layout).
-    setTimeout(trigger, 300);
+
+    window.setTimeout(triggerPrint, 300);
   });
 }
