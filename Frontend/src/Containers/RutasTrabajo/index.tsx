@@ -194,7 +194,7 @@ const RutasTrabajo = () => {
     setError(msg);
   }, []);
 
-  /** Limpia sesión y estado local: vuelve al flujo de “crear ruta” (p. ej. tras publicar). */
+  /** Limpia sesión y estado local: vuelve a la pantalla de elegir borrador / crear ruta (también tras publicar). */
   const resetVistaRutaTrabajo = useCallback(() => {
     clearPersistedRutaId();
     setRuta(null);
@@ -208,6 +208,8 @@ const RutasTrabajo = () => {
     setGrupoSeleccionado(null);
     setFlowStep(1);
     setFlowMaxUnlocked(1);
+    setError(null);
+    setSuccessMessage(null);
   }, []);
 
   const handlePublicarRuta = useCallback(async () => {
@@ -473,7 +475,12 @@ const RutasTrabajo = () => {
           </Alert>
         </Snackbar>
 
-        {rutaId == null && <RutasEmptyView onCrearBorrador={() => setOpenCrearRuta(true)} />}
+        {rutaId == null && (
+          <RutasEmptyView
+            onCrearBorrador={() => setOpenCrearRuta(true)}
+            onAbrirBorrador={(id) => void loadRutaDetail(id)}
+          />
+        )}
 
         {flowStep === 1 && rutaId != null && ruta != null && (
           <PlanificacionView
@@ -481,6 +488,7 @@ const RutasTrabajo = () => {
             rutaId={rutaId}
             poolControl={poolControl}
             onError={handlePlanificacionError}
+            onVolverAElegirRuta={resetVistaRutaTrabajo}
             onContinuarAsignacion={() => {
               setFlowMaxUnlocked((m): RutaFlowStep => (m < 2 ? 2 : m));
               setFlowStep(2);

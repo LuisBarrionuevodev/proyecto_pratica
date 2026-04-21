@@ -13,6 +13,8 @@ export interface IActuacionListItem {
     inspector1: string | null;
     inspector2: string | null;
     inspector3: string | null;
+    /** Lista canónica de nombres (misma semántica que PUT); sin tope de cantidad. */
+    inspectores?: string[] | null;
     /** Nombres concatenados (presenter); útil para tabla/exportación. */
     inspectores_texto?: string | null;
     calle: string | null;

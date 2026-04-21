@@ -32,6 +32,9 @@ export function CargarActuacionesHowTo() {
                 <br />
                 <strong>6.</strong> Para borrar un dropdown: selecciona la opción vacía al inicio de la lista
                 <br />
+                <strong>7.</strong> <strong>Inspectores:</strong> doble clic en la celda para editar la lista (más de tres,
+                catálogo real)
+                <br />
                 <br />
                 <strong>COLORES:</strong>{" "}
                 <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>

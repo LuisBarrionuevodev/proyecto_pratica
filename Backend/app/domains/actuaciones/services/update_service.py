@@ -38,6 +38,9 @@ from app.domains.actuaciones.services.actas_canal_payload_guard import (
 from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     assert_canal_actas_permite_payload_notificacion_comprobacion,
 )
+from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
+    log_truncation_risk_if_applicable,
+)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -129,7 +132,13 @@ def aplicar_payload_actuacion(
 
     # Inspectores
     if "inspectores" in payload:
-        nombres = payload.get("inspectores") or []
+        raw_ins = payload.get("inspectores") or []
+        nombres = [str(x).strip() for x in raw_ins if str(x).strip()]
+        if getattr(act, "id", None):
+            log_truncation_risk_if_applicable(
+                actuacion_id=int(act.id),
+                payload_inspectores_nombres=nombres,
+            )
         act.inspector = get_inspectores_o_falla(nombres) if nombres else []
 
     if ejecutar_resolver_previas:

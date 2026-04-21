@@ -1,23 +1,43 @@
 import AddIcon from "@mui/icons-material/Add";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
-import { Box, Stack, Typography } from "@mui/material";
-import { useMemo } from "react";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import { Box, CircularProgress, Divider, Stack, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 
+import { listRutasBorrador, type IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, CardGlass } from "../../../ui";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
+function labelTurno(t: IRutaTrabajo["turno"]): string {
+  if (t === "MANIANA") return "Mañana";
+  if (t === "TARDE") return "Tarde";
+  return t;
+}
+
+function labelBorrador(r: IRutaTrabajo): string {
+  const fecha = r.fecha
+    ? new Date(r.fecha + "T12:00:00").toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : "—";
+  return `Ruta ${r.numero} · ${fecha} · ${labelTurno(r.turno)}`;
+}
+
 export type RutasEmptyViewProps = {
   /** Abre el modal de creación de ruta (BORRADOR). */
   onCrearBorrador: () => void;
+  /** Carga el detalle de un borrador existente (solo BORRADOR desde API). */
+  onAbrirBorrador: (rutaId: number) => void;
 };
 
 /**
- * Vista inicial cuando no hay borrador en la pestaña TABLA: planificación diaria, fecha y CTA para crear ruta.
- * Superficie `CardGlass` alineada al resto de Rutas de trabajo.
+ * Vista inicial cuando no hay borrador en sesión: lista borradores en DB, fecha de hoy y CTA para crear ruta.
  */
-export function RutasEmptyView({ onCrearBorrador }: RutasEmptyViewProps) {
+export function RutasEmptyView({ onCrearBorrador, onAbrirBorrador }: RutasEmptyViewProps) {
   const fechaHoyLegible = useMemo(
     () =>
       new Date().toLocaleDateString("es-AR", {
@@ -27,6 +47,32 @@ export function RutasEmptyView({ onCrearBorrador }: RutasEmptyViewProps) {
       }),
     []
   );
+
+  const [borradores, setBorradores] = useState<IRutaTrabajo[]>([]);
+  const [loadingLista, setLoadingLista] = useState(true);
+  const [errorLista, setErrorLista] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingLista(true);
+    setErrorLista(null);
+    void listRutasBorrador({ per_page: 50, page: 1 })
+      .then((resp) => {
+        if (!cancelled) setBorradores(resp.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBorradores([]);
+          setErrorLista("No se pudo cargar la lista de borradores.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLista(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Box
@@ -41,7 +87,7 @@ export function RutasEmptyView({ onCrearBorrador }: RutasEmptyViewProps) {
     >
       <CardGlass
         sx={{
-          maxWidth: 480,
+          maxWidth: 520,
           width: "100%",
           textAlign: "center",
         }}
@@ -112,14 +158,70 @@ export function RutasEmptyView({ onCrearBorrador }: RutasEmptyViewProps) {
             sx={{
               fontFamily: tactic,
               color: GLASS_COLORS.textSecondary,
-              maxWidth: 360,
+              maxWidth: 400,
               mx: "auto",
               lineHeight: 1.55,
             }}
           >
-            ¿Querés crear una ruta de trabajo para hoy? El borrador te permite armar grupos, asignar iniciadores y
-            publicar cuando esté listo.
+            Podés reabrir un <strong>borrador</strong> guardado o crear una ruta nueva para hoy. Los borradores
+            publicados no aparecen aquí.
           </Typography>
+
+          {loadingLista && (
+            <CircularProgress size={28} sx={{ color: GLASS_COLORS.primary }} aria-label="Cargando borradores" />
+          )}
+
+          {!loadingLista && errorLista && (
+            <Typography variant="body2" sx={{ fontFamily: tactic, color: GLASS_COLORS.textMuted }}>
+              {errorLista}
+            </Typography>
+          )}
+
+          {!loadingLista && borradores.length > 0 && (
+            <>
+              <Divider
+                flexItem
+                sx={{ borderColor: GLASS_COLORS.borderMedium, opacity: 0.6, width: "100%", maxWidth: 420 }}
+              />
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontFamily: tactic,
+                  fontWeight: 700,
+                  color: GLASS_COLORS.textPrimary,
+                  alignSelf: "stretch",
+                  textAlign: "left",
+                }}
+              >
+                Borradores pendientes
+              </Typography>
+              <Stack spacing={1} alignItems="stretch" sx={{ width: "100%", maxHeight: 280, overflowY: "auto" }}>
+                {borradores.map((r) => (
+                  <AppButton
+                    key={r.id}
+                    dsVariant="secondary"
+                    dsSize="md"
+                    fullWidth
+                    startIcon={<FolderOpenIcon />}
+                    onClick={() => onAbrirBorrador(r.id)}
+                    sx={{
+                      fontFamily: tactic,
+                      fontWeight: 600,
+                      justifyContent: "flex-start",
+                      textAlign: "left",
+                    }}
+                  >
+                    {labelBorrador(r)}
+                  </AppButton>
+                ))}
+              </Stack>
+            </>
+          )}
+
+          <Divider
+            flexItem
+            sx={{ borderColor: GLASS_COLORS.borderMedium, opacity: 0.6, width: "100%", maxWidth: 420 }}
+          />
 
           <AppButton
             dsVariant="primary"

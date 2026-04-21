@@ -26,7 +26,7 @@ async function loadFromApi(): Promise<CompletarTrabajoCatalogs> {
     motivos: [...new Set(motivos.items.map((i) => i.nombre))],
     motivosComprobacion: [...new Set(motivosComp.items.map((i) => i.nombre))],
     contraproducencias: [...new Set(contras.items.map((i) => i.nombre))],
-    inspectores: [...new Set(insp.items.map((i) => i.nombre)))],
+    inspectores: [...new Set(insp.items.map((i) => i.nombre))],
   };
 }
 

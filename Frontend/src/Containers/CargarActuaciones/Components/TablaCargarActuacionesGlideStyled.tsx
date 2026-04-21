@@ -49,6 +49,12 @@ import {
     parseDateValue,
     formatDateToISO,
 } from "../utils/gridHelpers";
+import {
+    formatInspectoresCellDisplay,
+    getInspectoresListFromRow,
+    dedupeInspectoresPreserveOrder,
+} from "../utils/inspectoresGridHelpers";
+import { InspectoresListaDialog } from "./InspectoresListaDialog";
 
 export type TablaCargarActuacionesGlideStyledProps = {
     /** Foco de carga: columnas del otro tipo de acta se ocultan (sin borrar datos de fila). */
@@ -88,6 +94,9 @@ const TablaCargarActuacionesGlideStyled = ({
     const dataRef = useRef<GridRow[]>(initialRows);
     const batchValidateRef = useRef<number | undefined>(undefined);
     const startingBatchRef = useRef<boolean>(false);
+    const inspectoresClickRef = useRef<{ col: number; row: number; time: number } | null>(null);
+
+    const [inspectoresDialogRow, setInspectoresDialogRow] = useState<number | null>(null);
 
     // Catálogos combinados para dropdowns
     const catalogs = useMemo(() => ({
@@ -485,6 +494,80 @@ const TablaCargarActuacionesGlideStyled = ({
         [data, batchId, ensureBatchStarted, handleValidateRow, validateBatchRows, visibleColumnDefs]
     );
 
+    const applyInspectoresListToRow = useCallback(
+        (rowIndex: number, names: string[]) => {
+            void ensureBatchStarted();
+            const list = dedupeInspectoresPreserveOrder(names);
+            const rowData = dataRef.current[rowIndex];
+            if (!rowData) return;
+
+            let updatedRow: GridRow = {
+                ...rowData,
+                "Inspectores": list,
+                "Inspector 1": null,
+                "Inspector 2": null,
+                "Inspector 3": null,
+                _rowError: null,
+                _touched: true,
+                _needsCommit: true,
+            };
+
+            if (!rowHasData(updatedRow)) {
+                updatedRow = {
+                    ...updatedRow,
+                    _state: undefined,
+                    _cellErrors: {},
+                    _rowError: null,
+                    _normalized: undefined,
+                    _touched: false,
+                    _needsCommit: false,
+                };
+            } else if (updatedRow._state === "OK") {
+                updatedRow = {
+                    ...updatedRow,
+                    _state: "PENDIENTE",
+                    _normalized: undefined,
+                };
+            }
+
+            setData((prev) => {
+                const next = [...prev];
+                next[rowIndex] = updatedRow;
+                return next;
+            });
+            setInspectoresDialogRow(null);
+
+            const rowId = updatedRow._rowId;
+            if (rowId && debounceRef.current[rowId] !== undefined) {
+                clearTimeout(debounceRef.current[rowId]);
+            }
+            if (rowId) {
+                debounceRef.current[rowId] = window.setTimeout(() => {
+                    if (batchId) {
+                        if (rowHasData(updatedRow)) {
+                            handleValidateRow(updatedRow);
+                        } else {
+                            validateRow({
+                                batch_id: batchId,
+                                row_id: rowId,
+                                row: {},
+                            }).catch(() => {
+                                /* limpieza batch */
+                            });
+                        }
+                    }
+                }, 500);
+            }
+            if (batchId) {
+                if (batchValidateRef.current) clearTimeout(batchValidateRef.current);
+                batchValidateRef.current = window.setTimeout(() => {
+                    validateBatchRows(dataRef.current);
+                }, 900);
+            }
+        },
+        [ensureBatchStarted, batchId, handleValidateRow, validateBatchRows]
+    );
+
     const handleAddRow = () => {
         setData((prev) => [...prev, createEmptyRow()]);
     };
@@ -598,6 +681,26 @@ const TablaCargarActuacionesGlideStyled = ({
                 } as any;
             }
 
+            // Lista de inspectores (edición por doble clic → modal; una sola columna)
+            if (cellType === "inspectores") {
+                const names = getInspectoresListFromRow(rowData);
+                const summary = formatInspectoresCellDisplay(names);
+                const displayData = hasError
+                    ? `${summary || "(sin inspectores)"} (${cellErrors[columnId] || ""})`
+                    : names.length === 0
+                      ? "Doble clic para elegir…"
+                      : summary;
+                return {
+                    kind: GridCellKind.Text,
+                    data: summary,
+                    displayData,
+                    allowOverlay: false,
+                    readonly: true,
+                    copyData: names.join(", "),
+                    themeOverride,
+                };
+            }
+
             // Celda tipo TEXT
             const strValue = value?.toString() || "";
             const errorMsg = hasError ? (cellErrors[columnId] || "") : "";
@@ -615,9 +718,26 @@ const TablaCargarActuacionesGlideStyled = ({
         [data, catalogs, visibleColumnDefs]
     );
 
-    const handleCellClicked = useCallback(() => {
-        void ensureBatchStarted();
-    }, [ensureBatchStarted]);
+    const handleCellClicked = useCallback(
+        (cell: Item) => {
+            void ensureBatchStarted();
+            const [col, row] = cell;
+            const columnId = visibleColumnDefs[col]?.id;
+            if (columnId !== "Inspectores") {
+                inspectoresClickRef.current = null;
+                return;
+            }
+            const now = Date.now();
+            const prev = inspectoresClickRef.current;
+            if (prev && prev.col === col && prev.row === row && now - prev.time < 450) {
+                inspectoresClickRef.current = null;
+                setInspectoresDialogRow(row);
+                return;
+            }
+            inspectoresClickRef.current = { col, row, time: now };
+        },
+        [ensureBatchStarted, visibleColumnDefs]
+    );
 
     const handleFinishedEditing = useCallback(
         (_newValue: GridCell | undefined, [col, row]: Item) => {
@@ -696,6 +816,21 @@ const TablaCargarActuacionesGlideStyled = ({
                     </Alert>
                 )}
 
+                <InspectoresListaDialog
+                    open={inspectoresDialogRow !== null}
+                    initialNames={
+                        inspectoresDialogRow !== null && data[inspectoresDialogRow]
+                            ? getInspectoresListFromRow(data[inspectoresDialogRow])
+                            : []
+                    }
+                    catalogNames={catalogInspectores}
+                    onClose={() => setInspectoresDialogRow(null)}
+                    onSave={(names) => {
+                        if (inspectoresDialogRow === null) return;
+                        applyInspectoresListToRow(inspectoresDialogRow, names);
+                    }}
+                />
+
                 <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <Button
                         variant="contained"
@@ -766,6 +901,7 @@ const TablaCargarActuacionesGlideStyled = ({
                         <strong>4.</strong> La validación por fila es <strong>automática</strong> al editar<br/>
                         <strong>5.</strong> Para confirmar todo: usa el botón <strong>“Mandar todo”</strong><br/>
                         <strong>6.</strong> Para borrar un dropdown: selecciona la opción vacía al inicio de la lista<br/>
+                        <strong>7.</strong> <strong>Inspectores:</strong> doble clic en la celda para abrir el editor (lista completa, catálogo del sistema)<br/>
                         <br/>
                         <strong>COLORES:</strong>{" "}
                         <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>

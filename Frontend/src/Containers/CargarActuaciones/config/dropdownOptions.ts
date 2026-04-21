@@ -25,7 +25,8 @@ export const getDropdownOptions = (
     }
 ): string[] => {
     // Detectar tipo de columna
-    const isInspector = columnId.startsWith("Inspector");
+    // "Inspectores" (lista) no usa dropdown de celda; solo columnas "Inspector …" sueltas.
+    const isInspector = columnId.startsWith("Inspector") && columnId !== "Inspectores";
     const isMotivoNotif = columnId.startsWith("Motivo notif");
     const isMotivoComprobacion = columnId === "Motivo comprobación";
     const isRubro = columnId === "Rubro";

@@ -190,4 +190,31 @@ def create_app(config_override: dict | None = None):
             )
         )
 
+    @app.cli.command("audit-inspectores-actuaciones")
+    @click.option(
+        "--max-ids",
+        type=int,
+        default=200,
+        show_default=True,
+        help="Máximo de ids listados en actuacion_ids_mas_de_3.",
+    )
+    def audit_inspectores_actuaciones_cli(max_ids: int) -> None:
+        """
+        Inventario: cuántas actuaciones tienen más de 3 inspectores activos (tabla puente).
+
+        Cuenta solo filas con deleted_at IS NULL. Salida JSON para scripts y revisiones previas
+        a migrar el contrato de grilla (inspector1/2/3).
+        """
+        from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
+            audit_actuaciones_inspectores_summary,
+        )
+
+        with app.app_context():
+            try:
+                report = audit_actuaciones_inspectores_summary(max_detail_ids=max_ids)
+            except Exception:
+                app.logger.exception("audit-inspectores-actuaciones falló")
+                raise click.Abort()
+        click.echo(json.dumps(report, ensure_ascii=True, indent=2))
+
     return app

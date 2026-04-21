@@ -332,6 +332,8 @@ def actuacion_to_grid_row(
             if n:
                 nombres.append(str(n).strip())
     inspectores_texto = ", ".join(nombres) if nombres else None
+    # Lista completa para el canal grilla / PUT (evita truncado a 3 al guardar).
+    inspectores_lista = list(nombres) if nombres else []
 
     if len(nombres) > 0:
         inspector1 = nombres[0]
@@ -444,6 +446,7 @@ def actuacion_to_grid_row(
         "inspector1": inspector1,
         "inspector2": inspector2,
         "inspector3": inspector3,
+        "inspectores": inspectores_lista,
         "inspectores_texto": inspectores_texto,
 
         "calle": calle,

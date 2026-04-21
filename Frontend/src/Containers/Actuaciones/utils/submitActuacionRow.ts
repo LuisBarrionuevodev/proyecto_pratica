@@ -1,6 +1,7 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { updateActuacion } from "../../../api/actuacionesApi";
 import { validateRow } from "../../../api/gridApi";
+import { buildInspectoresForCanal } from "./buildInspectoresForCanal";
 
 /**
  * El canal **Cargar actuación** (PUT grilla) no admite expediente/oficio administrativos en el cuerpo;
@@ -40,6 +41,7 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
   "Inspector 1": "inspector1",
   "Inspector 2": "inspector2",
   "Inspector 3": "inspector3",
+  Inspectores: "inspectores",
   Calle: "calle",
   Número: "numero",
   Rubro: "rubro_nombre",
@@ -105,12 +107,14 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const { id, fullRow, skipValidation, skipUpdate, onBeforeSave, onAfterSave, onValidationPassed } = params;
 
   const rowForCanal = sanitizeActuacionRowForCanalActasPut(fullRow);
+  const inspectores = buildInspectoresForCanal(rowForCanal);
+  const rowWithInspectores = { ...rowForCanal, inspectores };
 
   if (!skipValidation) {
     const v = await validateRow({
       batch_id: ACTUACION_TABLE_UI_BATCH_ID,
       row_id: `act_${id}`,
-      row: rowForCanal as any,
+      row: rowWithInspectores as any,
     });
 
     if (!v.ok) {
@@ -122,15 +126,15 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
 
   try {
     if (onBeforeSave) {
-      await onBeforeSave(rowForCanal);
+      await onBeforeSave(rowWithInspectores);
     }
 
     if (!skipUpdate) {
-      await updateActuacion(id, rowForCanal as any);
+      await updateActuacion(id, rowWithInspectores as any);
     }
 
     if (onAfterSave) {
-      await onAfterSave(rowForCanal);
+      await onAfterSave(rowWithInspectores);
     }
 
     return { ok: true };

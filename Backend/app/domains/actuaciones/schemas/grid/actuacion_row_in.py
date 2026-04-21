@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, date
-from typing import Any, Optional, Dict, Type
+from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy import func
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -168,6 +168,8 @@ class ActuacionGridRowIn(BaseModel):
     contraproducencia: Optional[str] = None
 
     # Inspectores (catálogo DB)
+    # Lista canónica para persistir (sin tope). Si viene, tiene prioridad sobre inspector1/2/3.
+    inspectores: Optional[List[str]] = None
     inspector1: Optional[str] = None
     inspector2: Optional[str] = None
     inspector3: Optional[str] = None
@@ -253,6 +255,20 @@ class ActuacionGridRowIn(BaseModel):
     def strip_empty_to_none(cls, v: Any) -> Any:
         return _clean_str(v)
 
+    @field_validator("inspectores", mode="before")
+    @classmethod
+    def normalize_inspectores_list(cls, v: Any) -> Any:
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            raise ValueError("inspectores debe ser una lista de strings.")
+        out: List[str] = []
+        for item in v:
+            s = _clean_str(item)
+            if s:
+                out.append(s)
+        return out
+
     @field_validator(
         "doc_nro",
         "expediente_numero",
@@ -313,6 +329,17 @@ class ActuacionGridRowIn(BaseModel):
         # compat: antes era str + helper; ahora ya es date
         return self.fecha_actuacion
 
+    def inspectores_resueltos(self) -> List[str]:
+        """
+        Lista de nombres de inspectores para validación y mapper.
+
+        Si ``inspectores`` viene informado (incluye lista vacía), es la fuente canónica.
+        Si es ``None``, se derivan de inspector1/2/3 (compatibilidad grilla / Excel).
+        """
+        if self.inspectores is not None:
+            return list(self.inspectores)
+        return [x for x in [self.inspector1, self.inspector2, self.inspector3] if x]
+
     @field_validator("numero_tipo", mode="before")
     @classmethod
     def normalize_numero_tipo(cls, v: Any) -> Optional[str]:
@@ -359,9 +386,7 @@ class ActuacionGridRowIn(BaseModel):
                 [
                     self.tipo_actuacion is not None,
                     self.rubro_nombre,
-                    self.inspector1,
-                    self.inspector2,
-                    self.inspector3,
+                    bool(self.inspectores_resueltos()),
                     self.calle,
                     self.numero,
                     self.doc_nro,
@@ -405,8 +430,8 @@ class ActuacionGridRowIn(BaseModel):
                 field_errors["calle"] = "Calle obligatoria cuando hay tipo de actuación."
                 field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
             # Debe haber al menos un inspector cargado
-            if not (self.inspector1 or self.inspector2 or self.inspector3):
-                field_errors["inspector1"] = "Debe cargar al menos un inspector."
+            if not self.inspectores_resueltos():
+                field_errors["inspectores"] = "Debe cargar al menos un inspector."
             # Si hay domicilio con tipo, exigir rubro + doc
             if not self.rubro_nombre:
                 field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."

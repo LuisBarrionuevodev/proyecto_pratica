@@ -1,17 +1,16 @@
-"""ss
+"""buenas
 
-Revision ID: 2fa39231af89
+Revision ID: c378dcc33cd0
 Revises: 
-Create Date: 2026-04-17 21:08:22.774322
+Create Date: 2026-04-20 08:10:08.640426
 
 """
 from alembic import op
 import sqlalchemy as sa
 import geoalchemy2
 
-
 # revision identifiers, used by Alembic.
-revision = '2fa39231af89'
+revision = 'c378dcc33cd0'
 down_revision = None
 branch_labels = None
 depends_on = None

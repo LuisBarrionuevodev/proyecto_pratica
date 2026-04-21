@@ -240,7 +240,11 @@ const TablaActuaciones = ({
         accessorKey: "inspectores_texto",
         header: "Inspectores",
         size: 260,
-        Cell: ({ row }) => row.original.inspectores_texto?.trim() || [row.original.inspector1, row.original.inspector2, row.original.inspector3].filter(Boolean).join(", ") || "",
+        Cell: ({ row }) =>
+          row.original.inspectores_texto?.trim() ||
+          row.original.inspectores?.filter(Boolean).join(", ") ||
+          [row.original.inspector1, row.original.inspector2, row.original.inspector3].filter(Boolean).join(", ") ||
+          "",
       },
 
       { accessorKey: "inspector1", header: "Inspector 1", size: 150 },

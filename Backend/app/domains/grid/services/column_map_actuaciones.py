@@ -17,6 +17,7 @@ COLUMN_MAP_ACTUACIONES: dict[str, str] = {
     "Inspector 1": "inspector1",
     "Inspector 2": "inspector2",
     "Inspector 3": "inspector3",
+    "Inspectores": "inspectores",
     "Calle": "calle",
     "Número": "numero",
     "Rubro": "rubro_nombre",

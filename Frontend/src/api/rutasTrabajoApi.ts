@@ -214,6 +214,30 @@ export const getRutaTrabajoDetail = async (rutaId: number): Promise<IGetRutaTrab
   return data;
 };
 
+/** Solo rutas en estado BORRADOR (reabrir borrador). */
+export interface IListRutasBorradorResponse {
+  items: IRutaTrabajo[];
+  meta: {
+    total: number;
+    page: number;
+    per_page: number;
+  };
+}
+
+export interface IListRutasBorradorParams {
+  page?: number;
+  per_page?: number;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+export const listRutasBorrador = async (
+  params?: IListRutasBorradorParams
+): Promise<IListRutasBorradorResponse> => {
+  const { data } = await apiClient.get<IListRutasBorradorResponse>("/rutas-trabajo", { params });
+  return data;
+};
+
 export const createRutaGrupo = async (
   rutaId: number,
   payload: ICreateRutaGrupoRequest

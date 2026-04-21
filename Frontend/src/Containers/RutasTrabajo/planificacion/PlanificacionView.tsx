@@ -18,6 +18,8 @@ export type PlanificacionViewProps = {
   ruta: IRutaTrabajo;
   rutaId: number;
   onError: (msg: string) => void;
+  /** Vuelve a la prepantalla (lista de borradores / crear ruta). */
+  onVolverAElegirRuta: () => void;
   onContinuarAsignacion: () => void;
   /** Pool del día compartido con Asignación (estado elevado al contenedor del módulo). */
   poolControl: PlanificacionPoolControl;
@@ -40,6 +42,7 @@ export function PlanificacionView({
   ruta,
   rutaId,
   onError,
+  onVolverAElegirRuta,
   onContinuarAsignacion,
   poolControl,
 }: PlanificacionViewProps) {
@@ -221,7 +224,11 @@ export function PlanificacionView({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minWidth: 0 }}>
-      <PlanificacionHeader ruta={ruta} onContinuarAsignacion={handleContinuar} />
+      <PlanificacionHeader
+        ruta={ruta}
+        onVolverAElegirRuta={onVolverAElegirRuta}
+        onContinuarAsignacion={handleContinuar}
+      />
 
       <PlanificacionSummaryCards
         metricas={ctrl.metricas}

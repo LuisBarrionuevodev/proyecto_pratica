@@ -5,6 +5,17 @@ from typing import Any, Dict, Optional
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 
 
+def _dedupe_inspector_names_preserve_order(names: list[str]) -> list[str]:
+    """Evita duplicados consecutivos por nombre (misma PK inspector) al persistir N:M."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for n in names:
+        if n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
+
+
 def _clean_str(v: Any) -> Optional[str]:
     if v is None:
         return None
@@ -38,6 +49,8 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     """
     fecha_iso = row.fecha_as_date().isoformat()
 
+    inspectores_payload = _dedupe_inspector_names_preserve_order(row.inspectores_resueltos())
+
     payload: Dict[str, Any] = {
         "id": row.id,
         "orden_trabajo_numero": _zfill6_if_digit(_clean_str(row.orden_trabajo_numero)),
@@ -46,7 +59,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         "contraproducencia": _enum_value(row.contraproducencia),
         "rubro_nombre": _clean_str(row.rubro_nombre),
         "nombre_local": _clean_str(row.nombre_local),
-        "inspectores": [x for x in [row.inspector1, row.inspector2, row.inspector3] if x],
+        "inspectores": inspectores_payload,
     }
 
     # Domicilio

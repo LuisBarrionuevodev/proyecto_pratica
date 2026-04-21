@@ -1,3 +1,4 @@
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, Stack, Typography } from "@mui/material";
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -5,6 +6,8 @@ import { AppButton } from "../../../ui";
 
 export type PlanificacionHeaderProps = {
   ruta: IRutaTrabajo;
+  /** Vuelve a la pantalla inicial (elegir otro borrador o crear ruta). */
+  onVolverAElegirRuta: () => void;
   onContinuarAsignacion: () => void;
   continuarDisabled?: boolean;
 };
@@ -16,6 +19,7 @@ const tactic = '"Tactic Sans", sans-serif' as const;
  */
 export function PlanificacionHeader({
   ruta,
+  onVolverAElegirRuta,
   onContinuarAsignacion,
   continuarDisabled = false,
 }: PlanificacionHeaderProps) {
@@ -62,15 +66,31 @@ export function PlanificacionHeader({
             </Box>
           </Stack>
         </Box>
-        <AppButton
-          dsVariant="primary"
-          dsSize="md"
-          disabled={continuarDisabled}
-          onClick={onContinuarAsignacion}
-          sx={{ fontFamily: tactic, fontWeight: 700, alignSelf: { xs: "stretch", sm: "center" } }}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.25}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
         >
-          Continuar a asignación
-        </AppButton>
+          <AppButton
+            dsVariant="secondary"
+            dsSize="md"
+            startIcon={<ArrowBackIcon />}
+            onClick={onVolverAElegirRuta}
+            sx={{ fontFamily: tactic, fontWeight: 600, order: { xs: 2, sm: 1 } }}
+          >
+            Elegir otra ruta
+          </AppButton>
+          <AppButton
+            dsVariant="primary"
+            dsSize="md"
+            disabled={continuarDisabled}
+            onClick={onContinuarAsignacion}
+            sx={{ fontFamily: tactic, fontWeight: 700, order: { xs: 1, sm: 2 } }}
+          >
+            Continuar a asignación
+          </AppButton>
+        </Stack>
       </Stack>
     </Box>
   );

@@ -6,6 +6,7 @@ rutas_trabajo = Blueprint("rutas_trabajo", __name__)
 
 # Registrar endpoints (side-effect imports)
 from . import create_ruta  # noqa: E402,F401
+from . import list_rutas  # noqa: E402,F401
 from . import detail_ruta  # noqa: E402,F401
 from . import create_grupo  # noqa: E402,F401
 from . import replace_grupo_inspectores  # noqa: E402,F401

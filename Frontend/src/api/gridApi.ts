@@ -21,6 +21,8 @@ export interface GridRow {
   "Contraproducencia"?: string | null;
   "Orden de trabajo"?: string | null;
   "Inspector"?: string | null;
+  /** Lista canónica para la grilla de actuaciones (reemplaza columnas fijas Inspector 1–3). */
+  "Inspectores"?: string[] | string | null;
   "Inspector 1"?: string | null;
   "Inspector 2"?: string | null;
   "Inspector 3"?: string | null;

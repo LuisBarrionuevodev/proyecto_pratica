@@ -34,9 +34,11 @@ export const rowHasData = (row: GridRow): boolean => {
     
     // Verificar si hay algún valor en las columnas de datos
     const dataColumns = extractDataColumns(row);
-    return Object.values(dataColumns).some(value => 
-        value !== null && value !== undefined && value !== ""
-    );
+    return Object.values(dataColumns).some((value) => {
+        if (value === null || value === undefined || value === "") return false;
+        if (Array.isArray(value)) return value.length > 0;
+        return true;
+    });
 };
 
 /**

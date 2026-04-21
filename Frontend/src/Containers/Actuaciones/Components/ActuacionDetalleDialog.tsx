@@ -1092,10 +1092,19 @@ export function ActuacionDetalleDialog({
       const n1 = patch.inspector1 !== undefined ? patch.inspector1 : draft.inspector1;
       const n2 = patch.inspector2 !== undefined ? patch.inspector2 : draft.inspector2;
       const n3 = patch.inspector3 !== undefined ? patch.inspector3 : draft.inspector3;
-      const parts = [n1, n2, n3].map((x) => String(x ?? "").trim()).filter(Boolean);
+      const head = [n1, n2, n3].map((x) => String(x ?? "").trim()).filter(Boolean);
+      const prevFull =
+        draft.inspectores && draft.inspectores.length > 0
+          ? draft.inspectores
+          : [draft.inspector1, draft.inspector2, draft.inspector3]
+              .map((x) => String(x ?? "").trim())
+              .filter(Boolean);
+      const tail = prevFull.length > 3 ? prevFull.slice(3) : [];
+      const merged = [...head, ...tail];
       onDraftChange({
         ...patch,
-        inspectores_texto: parts.length ? parts.join(", ") : null,
+        inspectores: merged.length ? merged : null,
+        inspectores_texto: merged.length ? merged.join(", ") : null,
       });
     };
 
