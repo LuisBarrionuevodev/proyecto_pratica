@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -47,26 +47,31 @@ function domicilioResumen(r: ICompletarTrabajoPendienteRow): string {
   return r.domicilio_texto?.trim() || [r.calle, r.numero].filter(Boolean).join(" ").trim() || "—";
 }
 
-function inspectoresLinea(r: ICompletarTrabajoPendienteRow): string {
-  const t = r.inspectores_texto?.trim();
-  if (t) return t;
-  const parts = [r.inspector1, r.inspector2, r.inspector3].filter((x) => x?.trim());
-  return parts.length ? parts.join(", ") : "—";
+/** Slots iniciales: prioriza nombres del grupo (GET detalle); si no hay, fila del listado. */
+function initialInspectorSlots(
+  row: ICompletarTrabajoPendienteRow,
+  grupo: ICompletarTrabajoInspectorGrupo[]
+): [string, string, string] {
+  if (grupo.length > 0) {
+    const names = grupo
+      .map((g) => (g.nombre ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    return [names[0] ?? "", names[1] ?? "", names[2] ?? ""];
+  }
+  return [
+    (row.inspector1 ?? "").trim(),
+    (row.inspector2 ?? "").trim(),
+    (row.inspector3 ?? "").trim(),
+  ];
 }
 
-/** Inspectores del grupo de ruta (GET detalle); más fiable que la fila del listado si cambió el grupo. */
-function inspectoresGrupoLinea(items: ICompletarTrabajoInspectorGrupo[]): string {
-  if (!items?.length) return "";
-  return items
-    .map((i) => {
-      const n = (i.nombre ?? "").trim();
-      const leg = (i.legajo ?? "").trim();
-      if (!n && !leg) return "";
-      if (n && leg) return `${n} (${leg})`;
-      return n || leg;
-    })
-    .filter(Boolean)
-    .join(", ");
+function inspectorsSlotsKey(a: string, b: string, c: string): string {
+  return `${a.trim()}\0${b.trim()}\0${c.trim()}`;
+}
+
+function slotsToExplicitInspectoresList(a: string, b: string, c: string): string[] {
+  return [a, b, c].map((x) => x.trim()).filter(Boolean);
 }
 
 function dashIfEmpty(value: unknown): string {
@@ -122,7 +127,7 @@ export function CompletarTrabajoModal({
   onClose,
   onSuccess,
 }: CompletarTrabajoModalProps) {
-  const cat = catalogs ?? { motivos: [], motivosComprobacion: [], contraproducencias: [] };
+  const cat = catalogs ?? { motivos: [], motivosComprobacion: [], contraproducencias: [], inspectores: [] };
   const [contraproducencia, setContraproducencia] = useState("");
   const [calle, setCalle] = useState("");
   const [numero, setNumero] = useState("");
@@ -155,6 +160,11 @@ export function CompletarTrabajoModal({
   const [detalleError, setDetalleError] = useState<string | null>(null);
   const [inspectoresGrupo, setInspectoresGrupo] = useState<ICompletarTrabajoInspectorGrupo[]>([]);
   const [tipoActuacionEsperadoRef, setTipoActuacionEsperadoRef] = useState<string | null>(null);
+
+  const [insp1, setInsp1] = useState("");
+  const [insp2, setInsp2] = useState("");
+  const [insp3, setInsp3] = useState("");
+  const baselineInspectorSlotsRef = useRef<[string, string, string]>(["", "", ""]);
 
   useEffect(() => {
     if (!open || !row) {
@@ -196,6 +206,12 @@ export function CompletarTrabajoModal({
 
   useEffect(() => {
     if (!open || !resolvedRow) return;
+    const slots = initialInspectorSlots(resolvedRow, inspectoresGrupo);
+    setInsp1(slots[0]);
+    setInsp2(slots[1]);
+    setInsp3(slots[2]);
+    baselineInspectorSlotsRef.current = slots;
+
     setError(null);
     setFieldErrors({});
     if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
@@ -225,7 +241,7 @@ export function CompletarTrabajoModal({
     setActaDecomiso(resolvedRow.acta_decomiso_num ?? "");
     const k = resolvedRow.decomiso_kilos_total;
     setDecomisoKilos(k == null ? "" : String(k));
-  }, [open, resolvedRow]);
+  }, [open, resolvedRow, inspectoresGrupo]);
 
   const fe = useCallback((apiField: string) => fieldErrors[apiField], [fieldErrors]);
   const clearFe = useCallback((apiField: string) => {
@@ -242,12 +258,15 @@ export function CompletarTrabajoModal({
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
 
-  const inspectoresMostrar = useMemo(() => {
-    if (!resolvedRow) return "—";
-    const fromGrupo = inspectoresGrupoLinea(inspectoresGrupo);
-    if (fromGrupo) return fromGrupo;
-    return inspectoresLinea(resolvedRow);
-  }, [resolvedRow, inspectoresGrupo]);
+  const inspectoresSelectOptions = useMemo(() => {
+    const catalog = cat.inspectores ?? [];
+    const set = new Set<string>(catalog);
+    [insp1, insp2, insp3].forEach((x) => {
+      const t = x.trim();
+      if (t) set.add(t);
+    });
+    return [{ value: "", label: "—" }, ...[...set].sort((a, b) => a.localeCompare(b, "es")).map((v) => ({ value: v, label: v }))];
+  }, [cat.inspectores, insp1, insp2, insp3]);
 
   const contraOpts = useMemo(
     () => [
@@ -297,9 +316,15 @@ export function CompletarTrabajoModal({
           observaciones_ejecucion: observacionesEjecucion.trim(),
           ...ACTA_KEYS_EMPTY,
         };
+        const base = baselineInspectorSlotsRef.current;
+        const inspectoresDirty =
+          inspectorsSlotsKey(insp1, insp2, insp3) !== inspectorsSlotsKey(base[0], base[1], base[2]);
         await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
           includeTipoActuacion: true,
           omitPrecargadoPr2: false,
+          ...(inspectoresDirty
+            ? { inspectoresExplicitos: slotsToExplicitInspectoresList(insp1, insp2, insp3) }
+            : {}),
         });
         onSuccess(resolvedRow.ruta_item_id);
         onClose();
@@ -374,7 +399,15 @@ export function CompletarTrabajoModal({
         });
       }
 
-      await submitCompletarTrabajoCierreFromRow(resolvedRow, values, { omitPrecargadoPr2: true });
+      const base = baselineInspectorSlotsRef.current;
+      const inspectoresDirty =
+        inspectorsSlotsKey(insp1, insp2, insp3) !== inspectorsSlotsKey(base[0], base[1], base[2]);
+      await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+        omitPrecargadoPr2: true,
+        ...(inspectoresDirty
+          ? { inspectoresExplicitos: slotsToExplicitInspectoresList(insp1, insp2, insp3) }
+          : {}),
+      });
       onSuccess(resolvedRow.ruta_item_id);
       onClose();
     } catch (e) {
@@ -455,11 +488,6 @@ export function CompletarTrabajoModal({
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
             Solo lectura
           </Typography>
-          {!detalleError && inspectoresGrupo.length > 0 && (
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.42)", display: "block", mb: 0.5 }}>
-              Inspectores según el grupo de la ruta publicada (actualizado al abrir).
-            </Typography>
-          )}
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
             Fecha: {dashIfEmpty(resolvedRow.fecha_actuacion)}
           </Typography>
@@ -492,14 +520,48 @@ export function CompletarTrabajoModal({
               {domicilioResumen(resolvedRow)}
             </Typography>
           </Box>
-          <Box>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block" }}>
-              Inspectores
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-              {inspectoresMostrar}
-            </Typography>
-          </Box>
+        </Box>
+      )}
+
+      {resolvedRow && !detalleLoading && (
+        <Box sx={{ ...col, width: "100%" }}>
+          <AppSelect
+            appearance="dense"
+            label="Inspector 1"
+            value={insp1}
+            onChange={(e) => {
+              setInsp1(e.target.value as string);
+              clearFe("inspectores");
+            }}
+            options={inspectoresSelectOptions}
+            fullWidth
+            error={Boolean(fe("inspectores"))}
+            helperText={fe("inspectores") || undefined}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Inspector 2"
+            value={insp2}
+            onChange={(e) => {
+              setInsp2(e.target.value as string);
+              clearFe("inspectores");
+            }}
+            options={inspectoresSelectOptions}
+            fullWidth
+            error={Boolean(fe("inspectores"))}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Inspector 3"
+            value={insp3}
+            onChange={(e) => {
+              setInsp3(e.target.value as string);
+              clearFe("inspectores");
+            }}
+            options={inspectoresSelectOptions}
+            fullWidth
+            error={Boolean(fe("inspectores"))}
+          />
         </Box>
       )}
 

@@ -42,11 +42,16 @@ export type BuildCierreBodyOptions = {
    * Sí conserva rubro/calle/número: el cierre con contrib/domicilio los necesita en el body.
    */
   omitPrecargadoPr2?: boolean;
+  /**
+   * Si está definido, envía `inspectores` tal cual (sustituye la herencia del grupo en backend).
+   * Lista vacía = sin inspectores en el cierre. Si se omite la opción, el backend sigue usando el grupo.
+   */
+  inspectoresExplicitos?: string[];
 };
 
 /**
  * Arma el body POST /cerrar alineado al backend (sin actas si hay contraproducencia).
- * No incluye `inspectores`: vienen de la ruta y no se modifican en este flujo.
+ * `inspectores` solo se incluye si `options.inspectoresExplicitos` está definido (sustituye herencia del grupo).
  */
 export function buildCompletarTrabajoCierreBody(
   f: CompletarTrabajoFormFields,
@@ -90,6 +95,10 @@ export function buildCompletarTrabajoCierreBody(
     if (s(f.acta_comprobacion_num)) body.acta_comprobacion_num = s(f.acta_comprobacion_num);
     if (s(f.comprobacion_motivo)) body.comprobacion_motivo = s(f.comprobacion_motivo);
     if (s(f.acta_clausura_num)) body.acta_clausura_num = s(f.acta_clausura_num);
+  }
+
+  if (options?.inspectoresExplicitos !== undefined) {
+    body.inspectores = options.inspectoresExplicitos.map((n) => String(n).trim()).filter(Boolean);
   }
 
   return body;

@@ -1,12 +1,16 @@
-import { Box, Typography } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
 import { AppButton, AppTextField } from "../../../ui";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
 import LogoSMT from "../../../assets/LogoSMT.svg"
 import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
 import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiClient } from "../../../api/apiClient";
+import {
+    consumeSessionEndFeedback,
+    sessionEndUserMessage,
+} from "../../../auth/sessionEndFeedback";
 
 const LoginBox = (): JSX.Element => {
     
@@ -15,6 +19,14 @@ const LoginBox = (): JSX.Element => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [sessionInfo, setSessionInfo] = useState<string | null>(null);
+
+    useEffect(() => {
+        const payload = consumeSessionEndFeedback();
+        if (payload) {
+            setSessionInfo(sessionEndUserMessage(payload.reason));
+        }
+    }, []);
 
     const handleLogin = async () => {
         try {
@@ -27,6 +39,7 @@ const LoginBox = (): JSX.Element => {
                 localStorage.setItem("access_token", data.access_token);
             }
             setError("");
+            setSessionInfo(null);
             navigate("/inicio");
         } catch {
             setError("Cuenta inválida");
@@ -48,6 +61,11 @@ const LoginBox = (): JSX.Element => {
                 </Box>
 
                 <Box sx={LoginBoxInputStyles}>
+                    {sessionInfo && (
+                        <Alert severity="info" sx={{ mb: 1.5, textAlign: "left" }} onClose={() => setSessionInfo(null)}>
+                            {sessionInfo}
+                        </Alert>
+                    )}
                     <AppTextField
                         appearance="default"
                         sx={InputStyles}

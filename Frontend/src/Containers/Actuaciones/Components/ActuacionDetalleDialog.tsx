@@ -1078,6 +1078,27 @@ export function ActuacionDetalleDialog({
       </Box>
     );
 
+    const inspectoresExtras = [draft.inspector1, draft.inspector2, draft.inspector3].filter(
+      (x): x is string => Boolean(x?.trim())
+    );
+    const inspectoresUnion = [
+      ...new Set([...(mergedCatalogs.inspectores ?? []), ...inspectoresExtras]),
+    ].sort((a, b) => a.localeCompare(b, "es"));
+    const inspectoresSelectOptions = opts(["", ...inspectoresUnion]);
+
+    const patchInspectores = (
+      patch: Partial<Pick<IActuacionListItem, "inspector1" | "inspector2" | "inspector3">>
+    ) => {
+      const n1 = patch.inspector1 !== undefined ? patch.inspector1 : draft.inspector1;
+      const n2 = patch.inspector2 !== undefined ? patch.inspector2 : draft.inspector2;
+      const n3 = patch.inspector3 !== undefined ? patch.inspector3 : draft.inspector3;
+      const parts = [n1, n2, n3].map((x) => String(x ?? "").trim()).filter(Boolean);
+      onDraftChange({
+        ...patch,
+        inspectores_texto: parts.length ? parts.join(", ") : null,
+      });
+    };
+
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
         <DocumentalBloque overline="Lugar y titular">
@@ -1180,7 +1201,7 @@ export function ActuacionDetalleDialog({
           ) : null}
         </DocumentalBloque>
 
-        <DocumentalBloque overline="La visita" resumen="Referencia del acta. No se edita en este canal.">
+        <DocumentalBloque overline="La visita">
           <Box sx={{ ...edicionContextoVisitaSx, ...edicionGapBloqueAPrimerControlSx }}>
             <Box sx={edicionGrid2ColSx}>
               <AppTextField
@@ -1217,12 +1238,47 @@ export function ActuacionDetalleDialog({
                 sx={roFieldSx}
                 fullWidth
               />
-              <AppTextField
+              <AppSelect
                 appearance="glass"
-                label="Inspectores a cargo"
-                value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
-                disabled
-                sx={{ ...roFieldSx, gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+                label="Inspector 1"
+                value={draft.inspector1 ?? ""}
+                onChange={(ev) => {
+                  const v = (ev.target.value as string) || null;
+                  patchInspectores({ inspector1: v });
+                }}
+                options={inspectoresSelectOptions}
+                disabled={ro("inspector1")}
+                error={!!e("inspector1")}
+                helperText={e("inspector1")}
+                fullWidth
+              />
+              <AppSelect
+                appearance="glass"
+                label="Inspector 2"
+                value={draft.inspector2 ?? ""}
+                onChange={(ev) => {
+                  const v = (ev.target.value as string) || null;
+                  patchInspectores({ inspector2: v });
+                }}
+                options={inspectoresSelectOptions}
+                disabled={ro("inspector2")}
+                error={!!e("inspector2")}
+                helperText={e("inspector2")}
+                fullWidth
+              />
+              <AppSelect
+                appearance="glass"
+                label="Inspector 3"
+                value={draft.inspector3 ?? ""}
+                onChange={(ev) => {
+                  const v = (ev.target.value as string) || null;
+                  patchInspectores({ inspector3: v });
+                }}
+                options={inspectoresSelectOptions}
+                disabled={ro("inspector3")}
+                error={!!e("inspector3")}
+                helperText={e("inspector3")}
+                sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}
                 fullWidth
               />
             </Box>
@@ -1430,6 +1486,7 @@ export function ActuacionDetalleDialog({
     motivosOptions,
     rubrosOptions,
     motivoComprobacionOptions,
+    mergedCatalogs.inspectores,
     epicollectOtrosExpanded,
     toggleEpicollectOtros,
     onDraftChange,

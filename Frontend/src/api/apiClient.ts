@@ -1,5 +1,10 @@
 import axios from "axios";
 
+import {
+  parseJwt401Reason,
+  setSessionEndFeedback,
+} from "../auth/sessionEndFeedback";
+
 function resolveApiBaseUrl(): string {
   const raw = import.meta.env.VITE_API_BASE_URL?.trim();
   if (raw) {
@@ -33,8 +38,25 @@ const isAuthPublicUrl = (url: string | undefined) =>
   Boolean(url && (url.includes("/api/auth/login") || url.includes("/api/auth/password-reset")));
 
 /**
- * 401 de Flask-JWT = token ausente, expirado o inválido. Limpia sesión y envía a login
- * (el usuario suele tener la SPA abierta sin `access_token` tras cerrar o expirar).
+ * Evita múltiples redirects si varias peticiones devuelven 401 a la vez.
+ */
+let authRedirectToLoginScheduled = false;
+
+function scheduleAuthRedirectToLogin(reason: ReturnType<typeof parseJwt401Reason>, detail?: string): void {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname.includes("/login")) return;
+  if (authRedirectToLoginScheduled) return;
+  authRedirectToLoginScheduled = true;
+  setSessionEndFeedback({
+    reason,
+    detail,
+  });
+  window.location.assign("/login");
+}
+
+/**
+ * 401 de Flask-JWT = token ausente, expirado o inválido. Limpia sesión, guarda motivo
+ * para el login y redirige (sin refresh token en este proyecto).
  */
 apiClient.interceptors.response.use(
   (response) => response,
@@ -42,10 +64,14 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const reqUrl = error.config?.url ?? "";
     if (status === 401 && !isAuthPublicUrl(reqUrl)) {
+      const data = error.response?.data;
+      const msg =
+        typeof data === "object" && data !== null && "msg" in data
+          ? String((data as { msg: unknown }).msg)
+          : undefined;
+      const reason = parseJwt401Reason(data);
       localStorage.removeItem("access_token");
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-        window.location.assign("/login");
-      }
+      scheduleAuthRedirectToLogin(reason, msg);
     }
     return Promise.reject(error);
   }

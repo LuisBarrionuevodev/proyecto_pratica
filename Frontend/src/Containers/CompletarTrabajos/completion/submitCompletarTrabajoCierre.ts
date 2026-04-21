@@ -5,6 +5,8 @@ import { buildCompletarTrabajoCierreBodyFromInline } from "../utils/buildComplet
 export type SubmitCompletarTrabajoCierreOptions = {
   includeTipoActuacion?: boolean;
   omitPrecargadoPr2?: boolean;
+  /** Sustituye inspectores del grupo; solo enviar si el usuario los editó en el modal. */
+  inspectoresExplicitos?: string[];
 };
 
 /**
@@ -18,6 +20,9 @@ export async function submitCompletarTrabajoCierreFromRow(
   const body = buildCompletarTrabajoCierreBodyFromInline(row, values, {
     includeTipoActuacion: options?.includeTipoActuacion === true,
     omitPrecargadoPr2: options?.omitPrecargadoPr2 === true,
+    ...(options?.inspectoresExplicitos !== undefined
+      ? { inspectoresExplicitos: options.inspectoresExplicitos }
+      : {}),
   });
   await postCompletarTrabajoCerrar(row.ruta_item_id, body);
 }
