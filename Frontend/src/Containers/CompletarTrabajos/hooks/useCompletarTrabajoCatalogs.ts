@@ -29,7 +29,7 @@ export function useCompletarTrabajoCatalogs(): CatalogsState {
         if (cancelled) return;
         setState({
           status: "error",
-          message: "No se pudieron cargar los catálogos (motivos, contraproducencias).",
+          message: "No se pudieron cargar los catálogos (motivos, contraproducencias, rubros, inspectores).",
         });
       });
     return () => {

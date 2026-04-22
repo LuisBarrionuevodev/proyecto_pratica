@@ -178,80 +178,87 @@ function IniciadoresPoolTableMrt({
         },
       },
       {
-        id: "tipo",
-        accessorKey: "tipo_iniciador",
-        header: "Tipo",
-        size: 160,
+        id: "tipo_prioridad",
+        header: "Tipo · Prioridad",
+        size: 188,
         Cell: ({ row }) => {
           const label = row.original.badges?.tipo_label ?? row.original.tipo_iniciador;
-          return <Chip label={label} size="small" sx={TIPO_SX} />;
-        },
-      },
-      {
-        id: "fecha",
-        accessorKey: "fecha_origen",
-        header: "Fecha",
-        size: 110,
-        Cell: ({ row }) => <>{row.original.fecha_origen?.slice(0, 10) ?? "-"}</>,
-      },
-      {
-        id: "prioridad",
-        accessorKey: "prioridad",
-        header: "Prioridad",
-        size: 120,
-        Cell: ({ row }) => {
           const cfg = prioridadCfg(row.original.prioridad);
           return (
-            <Chip
-              label={cfg.label}
-              size="small"
-              sx={{
-                fontSize: "11px",
-                height: 22,
-                backgroundColor: cfg.bg,
-                color: cfg.color,
-                fontFamily: '"Tactic Sans", sans-serif',
-              }}
-            />
+            <Stack spacing={0.65} alignItems="flex-start" sx={{ py: 0.25, minWidth: 0 }}>
+              <Chip label={label} size="small" sx={TIPO_SX} />
+              <Chip
+                label={cfg.label}
+                size="small"
+                sx={{
+                  fontSize: "11px",
+                  height: 22,
+                  backgroundColor: cfg.bg,
+                  color: cfg.color,
+                  fontFamily: '"Tactic Sans", sans-serif',
+                }}
+              />
+            </Stack>
           );
         },
       },
       {
         id: "domicilio",
         header: "Domicilio",
-        size: 260,
+        size: 300,
         Cell: ({ row }) => {
           const d =
             row.original.domicilio_texto ??
             `${row.original.domicilio?.calle ?? "-"} ${row.original.domicilio?.numero ?? ""}`.trim();
-          return <>{d || "-"}</>;
+          const distrito =
+            row.original.distrito_nombre ?? row.original.domicilio?.distrito_nombre ?? null;
+          const linea1 = d?.trim() || "—";
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.35, minWidth: 0 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "0.8125rem",
+                  lineHeight: 1.35,
+                  color: GLASS_COLORS.textPrimary,
+                  fontFamily: '"Tactic Sans", sans-serif',
+                  wordBreak: "break-word",
+                }}
+              >
+                {linea1}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: "0.7rem",
+                  lineHeight: 1.25,
+                  color: distrito ? GLASS_COLORS.textSecondary : "rgba(255,255,255,0.28)",
+                  fontFamily: '"Tactic Sans", sans-serif',
+                }}
+              >
+                {distrito?.trim() || "—"}
+              </Typography>
+            </Box>
+          );
         },
-      },
-      {
-        id: "distrito",
-        header: "Distrito",
-        size: 130,
-        Cell: ({ row }) => (
-          <>{row.original.distrito_nombre ?? row.original.domicilio?.distrito_nombre ?? "-"}</>
-        ),
       },
       {
         id: "rubro",
         header: "Rubro",
-        size: 150,
+        size: 148,
         Cell: ({ row }) => (
-          <>{row.original.rubro_nombre ?? row.original.domicilio?.rubro ?? "-"}</>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: "0.8125rem",
+              color: GLASS_COLORS.textPrimary,
+              fontFamily: '"Tactic Sans", sans-serif',
+              wordBreak: "break-word",
+            }}
+          >
+            {row.original.rubro_nombre ?? row.original.domicilio?.rubro ?? "—"}
+          </Typography>
         ),
-      },
-      {
-        id: "observaciones",
-        accessorKey: "observaciones",
-        header: "Observaciones",
-        size: 200,
-        Cell: ({ row }) => {
-          const obs = row.original.observaciones ?? "-";
-          return <>{obs.length > 60 ? `${obs.slice(0, 57).trimEnd()}…` : obs}</>;
-        },
       },
     ],
     [assignedIniciadorIds]

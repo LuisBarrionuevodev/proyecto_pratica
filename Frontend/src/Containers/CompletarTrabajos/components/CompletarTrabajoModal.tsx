@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Autocomplete,
   Box,
+  Chip,
   CircularProgress,
   LinearProgress,
   List,
   ListItem,
   ListItemText,
+  TextField,
   Typography,
 } from "@mui/material";
 
@@ -47,31 +50,43 @@ function domicilioResumen(r: ICompletarTrabajoPendienteRow): string {
   return r.domicilio_texto?.trim() || [r.calle, r.numero].filter(Boolean).join(" ").trim() || "—";
 }
 
-/** Slots iniciales: prioriza nombres del grupo (GET detalle); si no hay, fila del listado. */
-function initialInspectorSlots(
+function dedupeInspectoresPreserveOrder(names: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const n of names) {
+    const t = n.trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+/**
+ * Lista inicial: grupo de ruta (orden estable); si no hay, `inspectores[]` o slots 1–3 de la fila.
+ */
+function initialInspectoresList(
   row: ICompletarTrabajoPendienteRow,
   grupo: ICompletarTrabajoInspectorGrupo[]
-): [string, string, string] {
+): string[] {
   if (grupo.length > 0) {
-    const names = grupo
-      .map((g) => (g.nombre ?? "").trim())
-      .filter(Boolean)
-      .slice(0, 3);
-    return [names[0] ?? "", names[1] ?? "", names[2] ?? ""];
+    return dedupeInspectoresPreserveOrder(grupo.map((g) => (g.nombre ?? "").trim()).filter(Boolean));
   }
-  return [
+  if (Array.isArray(row.inspectores) && row.inspectores.length > 0) {
+    return dedupeInspectoresPreserveOrder(row.inspectores.map((x) => String(x)));
+  }
+  return dedupeInspectoresPreserveOrder([
     (row.inspector1 ?? "").trim(),
     (row.inspector2 ?? "").trim(),
     (row.inspector3 ?? "").trim(),
-  ];
+  ].filter(Boolean));
 }
 
-function inspectorsSlotsKey(a: string, b: string, c: string): string {
-  return `${a.trim()}\0${b.trim()}\0${c.trim()}`;
-}
-
-function slotsToExplicitInspectoresList(a: string, b: string, c: string): string[] {
-  return [a, b, c].map((x) => x.trim()).filter(Boolean);
+function sameInspectoresListOrder(a: string[], b: string[]): boolean {
+  const na = a.map((x) => x.trim()).filter(Boolean);
+  const nb = b.map((x) => x.trim()).filter(Boolean);
+  if (na.length !== nb.length) return false;
+  return na.every((v, i) => v === nb[i]);
 }
 
 function dashIfEmpty(value: unknown): string {
@@ -127,7 +142,13 @@ export function CompletarTrabajoModal({
   onClose,
   onSuccess,
 }: CompletarTrabajoModalProps) {
-  const cat = catalogs ?? { motivos: [], motivosComprobacion: [], contraproducencias: [], inspectores: [] };
+  const cat = catalogs ?? {
+    motivos: [],
+    motivosComprobacion: [],
+    contraproducencias: [],
+    inspectores: [],
+    rubros: [],
+  };
   const [contraproducencia, setContraproducencia] = useState("");
   const [calle, setCalle] = useState("");
   const [numero, setNumero] = useState("");
@@ -161,10 +182,8 @@ export function CompletarTrabajoModal({
   const [inspectoresGrupo, setInspectoresGrupo] = useState<ICompletarTrabajoInspectorGrupo[]>([]);
   const [tipoActuacionEsperadoRef, setTipoActuacionEsperadoRef] = useState<string | null>(null);
 
-  const [insp1, setInsp1] = useState("");
-  const [insp2, setInsp2] = useState("");
-  const [insp3, setInsp3] = useState("");
-  const baselineInspectorSlotsRef = useRef<[string, string, string]>(["", "", ""]);
+  const [inspectoresList, setInspectoresList] = useState<string[]>([]);
+  const baselineInspectoresRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!open || !row) {
@@ -206,11 +225,9 @@ export function CompletarTrabajoModal({
 
   useEffect(() => {
     if (!open || !resolvedRow) return;
-    const slots = initialInspectorSlots(resolvedRow, inspectoresGrupo);
-    setInsp1(slots[0]);
-    setInsp2(slots[1]);
-    setInsp3(slots[2]);
-    baselineInspectorSlotsRef.current = slots;
+    const initial = initialInspectoresList(resolvedRow, inspectoresGrupo);
+    setInspectoresList(initial);
+    baselineInspectoresRef.current = initial;
 
     setError(null);
     setFieldErrors({});
@@ -258,15 +275,18 @@ export function CompletarTrabajoModal({
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
 
-  const inspectoresSelectOptions = useMemo(() => {
+  /** Inspectores del catálogo que aún no están en la lista (agregar). */
+  const inspectoresDisponiblesParaAgregar = useMemo(() => {
     const catalog = cat.inspectores ?? [];
-    const set = new Set<string>(catalog);
-    [insp1, insp2, insp3].forEach((x) => {
-      const t = x.trim();
-      if (t) set.add(t);
-    });
-    return [{ value: "", label: "—" }, ...[...set].sort((a, b) => a.localeCompare(b, "es")).map((v) => ({ value: v, label: v }))];
-  }, [cat.inspectores, insp1, insp2, insp3]);
+    const ya = new Set(inspectoresList.map((x) => x.trim()).filter(Boolean));
+    return [...catalog].filter((n) => !ya.has(n)).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [cat.inspectores, inspectoresList]);
+
+  /** Rubro actual siempre en opciones aunque el catálogo aún no incluya ese string (merge con DB). */
+  const rubroSelectOptions = useMemo(
+    () => mergeCatalogOpts(cat.rubros ?? [], rubroNombre),
+    [cat.rubros, rubroNombre]
+  );
 
   const contraOpts = useMemo(
     () => [
@@ -316,14 +336,13 @@ export function CompletarTrabajoModal({
           observaciones_ejecucion: observacionesEjecucion.trim(),
           ...ACTA_KEYS_EMPTY,
         };
-        const base = baselineInspectorSlotsRef.current;
-        const inspectoresDirty =
-          inspectorsSlotsKey(insp1, insp2, insp3) !== inspectorsSlotsKey(base[0], base[1], base[2]);
+        const base = baselineInspectoresRef.current;
+        const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
         await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
           includeTipoActuacion: true,
           omitPrecargadoPr2: false,
           ...(inspectoresDirty
-            ? { inspectoresExplicitos: slotsToExplicitInspectoresList(insp1, insp2, insp3) }
+            ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
             : {}),
         });
         onSuccess(resolvedRow.ruta_item_id);
@@ -399,13 +418,12 @@ export function CompletarTrabajoModal({
         });
       }
 
-      const base = baselineInspectorSlotsRef.current;
-      const inspectoresDirty =
-        inspectorsSlotsKey(insp1, insp2, insp3) !== inspectorsSlotsKey(base[0], base[1], base[2]);
+      const base = baselineInspectoresRef.current;
+      const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
       await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
         omitPrecargadoPr2: true,
         ...(inspectoresDirty
-          ? { inspectoresExplicitos: slotsToExplicitInspectoresList(insp1, insp2, insp3) }
+          ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
           : {}),
       });
       onSuccess(resolvedRow.ruta_item_id);
@@ -525,42 +543,49 @@ export function CompletarTrabajoModal({
 
       {resolvedRow && !detalleLoading && (
         <Box sx={{ ...col, width: "100%" }}>
-          <AppSelect
-            appearance="dense"
-            label="Inspector 1"
-            value={insp1}
-            onChange={(e) => {
-              setInsp1(e.target.value as string);
-              clearFe("inspectores");
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+            Inspectores
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+            {inspectoresList.length === 0 ? (
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                —
+              </Typography>
+            ) : (
+              inspectoresList.map((name, idx) => (
+                <Chip
+                  key={`${idx}-${name}`}
+                  label={name}
+                  size="small"
+                  onDelete={() => {
+                    setInspectoresList((prev) => prev.filter((_, i) => i !== idx));
+                    clearFe("inspectores");
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                />
+              ))
+            )}
+          </Box>
+          <Autocomplete
+            size="small"
+            options={inspectoresDisponiblesParaAgregar}
+            value={null}
+            onChange={(_, value) => {
+              if (value && !inspectoresList.includes(value)) {
+                setInspectoresList((prev) => [...prev, value]);
+                clearFe("inspectores");
+              }
             }}
-            options={inspectoresSelectOptions}
-            fullWidth
-            error={Boolean(fe("inspectores"))}
-            helperText={fe("inspectores") || undefined}
-          />
-          <AppSelect
-            appearance="dense"
-            label="Inspector 2"
-            value={insp2}
-            onChange={(e) => {
-              setInsp2(e.target.value as string);
-              clearFe("inspectores");
-            }}
-            options={inspectoresSelectOptions}
-            fullWidth
-            error={Boolean(fe("inspectores"))}
-          />
-          <AppSelect
-            appearance="dense"
-            label="Inspector 3"
-            value={insp3}
-            onChange={(e) => {
-              setInsp3(e.target.value as string);
-              clearFe("inspectores");
-            }}
-            options={inspectoresSelectOptions}
-            fullWidth
-            error={Boolean(fe("inspectores"))}
+            disabled={!catalogsReady || inspectoresDisponiblesParaAgregar.length === 0}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Agregar"
+                placeholder={catalogsReady ? "Catálogo" : "…"}
+                error={Boolean(fe("inspectores"))}
+                helperText={fe("inspectores") || undefined}
+              />
+            )}
           />
         </Box>
       )}
@@ -720,15 +745,17 @@ export function CompletarTrabajoModal({
           helperText={fe("numero") || undefined}
         />
 
-        <AppTextField
+        <AppSelect
           appearance="dense"
           label="Rubro"
           value={rubroNombre}
           onChange={(e) => {
-            setRubroNombre(e.target.value);
+            setRubroNombre(e.target.value as string);
             clearFe("rubro_nombre");
           }}
           fullWidth
+          disabled={!catalogsReady}
+          options={rubroSelectOptions}
           error={Boolean(fe("rubro_nombre"))}
           helperText={fe("rubro_nombre") || undefined}
         />
