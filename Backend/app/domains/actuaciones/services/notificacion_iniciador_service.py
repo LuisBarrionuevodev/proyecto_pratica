@@ -20,6 +20,14 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
 
 logger = logging.getLogger(__name__)
 
+# --- PR3 política de negocio (actuación mixta notificación + comprobación) ---
+# Gestión y expediente operan por canal en paralelo (PR1/PR2). La materialización de
+# REINSPECCION_NOTIFICACION por notificación vencida **no** se suprime por tener
+# `comprobacion_id` en la misma INSPECCION: el plazo de la notificación sigue siendo un
+# compromiso operativo independiente. Idempotencia: una fila bloqueante por `notificacion_id`
+# (índice único + prefiltro en sync). Iniciadores de otros tipos/canales (p. ej. oficio) no
+# compiten con esa clave.
+
 
 @dataclass(frozen=True)
 class SyncReinspeccionNotificacionOutcome:
@@ -146,6 +154,9 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     - actuación base de tipo INSPECCION.
     - domicilio operativo (domicilio_id no nulo y domicilio no soft-deleteado).
     - sin reinspección ya registrada para la misma notificación.
+
+    **Actuación mixta** (misma fila con ``notificacion_id`` y ``comprobacion_id``): sigue siendo
+    elegible si cumple lo anterior (canal notificación en paralelo al de comprobación; PR3).
     """
     today = date.today()
     A2 = aliased(Actuaciones)
@@ -277,6 +288,9 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
     - Índice único funcional `uq_iniciador_ruta_reinsp_notif_vencida_key` (migración): a lo sumo un iniciador
       bloqueante por notificación; carreras concurrentes → `IntegrityError` manejada como skip idempotente.
 
+    **Caso mixto** (notificación + comprobación en la misma actuación): no se suprime la creación;
+    convive con otros ``tipo_iniciador`` que usen otras claves (p. ej. comprobación/oficio).
+
     Returns:
         Métricas de la corrida (`SyncReinspeccionNotificacionOutcome`).
     """
@@ -318,6 +332,15 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
             processed_notificacion_ids.add(notificacion_id)
             continue
 
+        obs_base = (
+            f"Derivado automático por vencimiento de notificación "
+            f"{noti.numero_acta}/{noti.anio}"
+        )
+        if getattr(act, "comprobacion_id", None) is not None:
+            obs_base += (
+                " | Misma actuación con acta de comprobación; canal notificación en paralelo (PR3)."
+            )
+
         iniciador = IniciadorRuta(
             tipo_iniciador="REINSPECCION_NOTIFICACION",
             estado_iniciador="PENDIENTE",
@@ -329,10 +352,7 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
             notificacion_id=notificacion_id,
             actuacion_id=act.id,
             created_by_user_id=user_id,
-            observaciones=(
-                f"Derivado automático por vencimiento de notificación "
-                f"{noti.numero_acta}/{noti.anio}"
-            ),
+            observaciones=obs_base,
         )
         try:
             with db.session.begin_nested():
@@ -381,6 +401,9 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
     `_eligible_inspecciones_vencidas` para la notificación: no borrada, `fecha_vencimiento`
     no nula y ``<=`` fecha de consulta. Así una prórroga que mueve el vencimiento al futuro
     deja de listarse aunque el sync aún no haya corrido.
+
+    Incluye actuaciones **mixtas** (con ``comprobacion_id``) si el iniciador materializado apunta a
+    esa actuación (alineado con PR1/PR3).
     """
     today = date.today()
     A2 = aliased(Actuaciones)

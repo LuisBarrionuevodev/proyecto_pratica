@@ -73,16 +73,13 @@ def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
     Bandeja de gestión de expedientes de plazo por rama NOTIFICACION.
 
     Regla para este slice:
-    - actuación con notificación
-    - sin comprobación (si hay ambas domina COMPROBACION)
+    - actuación con notificación (puede coexistir comprobación en la misma actuación; la gestión
+      de plazo por notificación sigue siendo un canal paralelo a la de comprobación).
 
     Nota: puede haber 0..N expedientes `PRORROGA_NOTIFICACION` por notificación; la fila sigue
     apareciendo (gestión continua). Métricas `dias_restantes` / `plazos_otorgados` en presenter.
     """
-    query = (
-        Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
-        .filter(Actuaciones.comprobacion_id.is_(None))
-    )
+    query = Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
     return _apply_fecha(query, filters.desde, filters.hasta)
 
 
@@ -90,14 +87,16 @@ def build_notificacion_expediente_bandeja_metrics(
     acts: List[Actuaciones],
 ) -> tuple[dict[int, int], dict[int, date | None]]:
     """
-    Para actuaciones NOTIFICACION-only: cuenta expedientes de plazo por `notificacion_id` y
-    carga `fecha_vencimiento` desde `Notificacion` (batch, evita N+1 en la bandeja).
+    Para actuaciones con notificación en la bandeja: cuenta expedientes de plazo por
+    `notificacion_id` y carga `fecha_vencimiento` desde `Notificacion` (batch, evita N+1).
+
+    Incluye actuaciones que también tienen comprobación en la misma fila (canal paralelo).
     """
     noti_ids = list(
         {
             int(a.notificacion_id)
             for a in acts
-            if a.notificacion_id is not None and a.comprobacion_id is None
+            if a.notificacion_id is not None
         }
     )
     if not noti_ids:
@@ -239,7 +238,8 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
 
     Reutiliza y unifica la lógica administrativa para dos ramas:
     - COMPROBACION: actuación con comprobación sin expediente en su comprobación.
-    - NOTIFICACION: actuación con notificación sin comprobación (dominancia de comprobación).
+    - NOTIFICACION: actuación con notificación (puede incluir la misma actuación que ya tiene
+      comprobación; el presenter marca el canal según ``source_type`` del filtro).
 
     source_type (filtro):
     - all

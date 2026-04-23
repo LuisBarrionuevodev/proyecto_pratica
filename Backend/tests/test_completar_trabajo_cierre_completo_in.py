@@ -34,6 +34,17 @@ def test_completo_in_permite_actas_sin_contra(app) -> None:
     assert m.acta_inspeccion_num == "123456"
 
 
+def test_completo_in_permite_razon_social_sin_apellido(app) -> None:
+    with app.app_context():
+        m = CompletarTrabajoCierreCompletoIn(
+            tipo_actuacion="INSPECCION",
+            doc_nro="30123456789",
+            razon_social="Empresa Demo SA",
+        )
+    assert m.razon_social == "Empresa Demo SA"
+    assert m.contrib_apellido is None
+
+
 def test_completo_in_exige_motivo_si_acta_comprobacion(app) -> None:
     with app.app_context():
         with pytest.raises(ValidationError) as exc:

@@ -111,7 +111,49 @@ def _mk_actuacion_solo_comprobacion() -> tuple[Actuaciones, Comprobacion]:
     return act, comp
 
 
-def _rows_expediente(acts: list[Actuaciones]) -> list[dict]:
+def test_notificacion_y_comprobacion_misma_actuacion_aparece_en_ambas_bandas(app_ctx) -> None:
+    """PR1: misma actuación con ambas actas entra en bandeja notificación (plazo) y en comprobación."""
+    try:
+        ot = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=3)
+        db.session.add(ot)
+        db.session.flush()
+        noti = Notificacion(numero_acta=_unique_num(), anio=2026, mes=3)
+        db.session.add(noti)
+        db.session.flush()
+        inicializar_timing_notificacion(noti, fecha_notificacion=date(2026, 3, 1))
+        comp = Comprobacion(numero_acta=_unique_num(), anio=2026, mes=3, motivo="motivo mixto bandeja")
+        db.session.add(comp)
+        db.session.flush()
+        act = Actuaciones(
+            fecha=date(2026, 3, 2),
+            mes=3,
+            anio=2026,
+            orden_trabajo_id=ot.id,
+            notificacion_id=noti.id,
+            comprobacion_id=comp.id,
+        )
+        db.session.add(act)
+        db.session.flush()
+
+        acts_n = get_pendientes_expediente(_filters_notificacion())
+        assert act.id in [a.id for a in acts_n]
+        row_n = next(r for r in _rows_expediente(acts_n, channel="notificacion") if r["id"] == act.id)
+        assert row_n["source_type"] == "NOTIFICACION"
+        assert row_n["plazos_otorgados"] == 0
+        assert row_n["dias_restantes"] is not None
+        assert row_n["comprobacion_posterior_acta_num"] == comp.numero_acta
+
+        acts_c = get_pendientes_expediente(_filters_comprobacion())
+        assert act.id in [a.id for a in acts_c]
+        row_c = next(r for r in _rows_expediente(acts_c, channel="comprobacion") if r["id"] == act.id)
+        assert row_c["source_type"] == "COMPROBACION"
+        assert row_c["dias_restantes"] is None
+        assert row_c["plazos_otorgados"] is None
+    finally:
+        db.session.rollback()
+
+
+def _rows_expediente(acts: list[Actuaciones], *, channel: str = "notificacion") -> list[dict]:
     plazos, venc = build_notificacion_expediente_bandeja_metrics(acts)
     posterior = build_posterior_comprobacion_por_actuacion_id(acts)
     counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
@@ -122,6 +164,7 @@ def _rows_expediente(acts: list[Actuaciones]) -> list[dict]:
             fecha_vencimiento_por_notificacion=venc,
             counts_by_eo=counts_by_eo,
             posterior_por_actuacion_id=posterior,
+            expediente_list_channel=channel,
         )
         for a in acts
     ]
@@ -336,7 +379,7 @@ def test_comprobacion_bandeja_sin_expediente_luego_excluida_metricas_none(app_ct
         fl = _filters_comprobacion()
         acts0 = get_pendientes_expediente(fl)
         assert act.id in [a.id for a in acts0]
-        row0 = next(r for r in _rows_expediente(acts0) if r["id"] == act.id)
+        row0 = next(r for r in _rows_expediente(acts0, channel="comprobacion") if r["id"] == act.id)
         assert row0["source_type"] == "COMPROBACION"
         assert row0["dias_restantes"] is None
         assert row0["plazos_otorgados"] is None

@@ -70,6 +70,7 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
         or row.doc_nro is not None
         or row.contrib_apellido is not None
         or row.contrib_nombre is not None
+        or row.razon_social is not None
     )
     if need_domicilio and (calle or numero or row.numero_tipo):
         payload["domicilio"] = {
@@ -78,11 +79,12 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
             "numero_tipo": row.numero_tipo,
         }
 
-    if row.doc_nro or row.contrib_apellido or row.contrib_nombre:
+    if row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
         payload["contribuyente"] = {
             "doc_nro": _clean_str(row.doc_nro),
             "apellido": _clean_str(row.contrib_apellido),
             "nombre": _clean_str(row.contrib_nombre),
+            "razon_social": _clean_str(row.razon_social),
         }
 
     if row.inspectores is not None:

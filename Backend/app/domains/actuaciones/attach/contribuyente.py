@@ -24,12 +24,15 @@ def resolve_contribuyente(data: Optional[Dict[str, Any]]) -> Optional[Contribuye
     - Si `data` es `None` o vacío -> devuelve `None`.
     - Si viene `apellido`, `nombre` y/o `razon_social`, entonces `doc_nro` es obligatorio; si falta -> `ValueError`.
     - Si existe un contribuyente con ese documento:
-        - Actualiza `apellido` / `nombre` / `razon_social` según claves presentes en `data`.
+        - Actualiza `apellido` / `nombre` / `razon_social` solo si la clave está en `data`
+          (incluido `None` o cadena vacía tras normalizar: limpia el campo en BD).
+        - Si la clave no está en `data`, el campo existente no se modifica.
         - Devuelve la instancia existente (posiblemente actualizada).
     - Si no existe:
-        - Crea un nuevo `Contribuyente` con los campos provistos.
+        - Crea un nuevo `Contribuyente` con los campos provistos (solo claves presentes en `data`).
         - Hace `flush()` para obtener el `id`.
         - Devuelve la instancia creada.
+    - Tras actualizar un existente con cambios, hace `flush()` para reflejar el estado en la sesión/BD.
 
     Args:
         data: Diccionario con claves opcionales:
@@ -69,12 +72,16 @@ def resolve_contribuyente(data: Optional[Dict[str, Any]]) -> Optional[Contribuye
     )
     if c:
         changed = False
-        if apellido is not None and apellido != "" and apellido != c.apellido:
-            c.apellido = apellido
-            changed = True
-        if nombre is not None and nombre != "" and nombre != c.nombre:
-            c.nombre = nombre
-            changed = True
+        if "apellido" in data:
+            new_a = _clean_str(apellido)
+            if new_a != c.apellido:
+                c.apellido = new_a
+                changed = True
+        if "nombre" in data:
+            new_n = _clean_str(nombre)
+            if new_n != c.nombre:
+                c.nombre = new_n
+                changed = True
         if "razon_social" in data:
             new_rs = _clean_str(razon_social)
             if new_rs != c.razon_social:
@@ -82,14 +89,17 @@ def resolve_contribuyente(data: Optional[Dict[str, Any]]) -> Optional[Contribuye
                 changed = True
         if changed:
             db.session.add(c)
+            db.session.flush()
         return c
 
-    c = Contribuyente(
-        documento=doc,
-        apellido=apellido,
-        nombre=nombre,
-        razon_social=_clean_str(razon_social),
-    )
+    kw: Dict[str, Any] = {"documento": doc}
+    if "apellido" in data:
+        kw["apellido"] = _clean_str(apellido)
+    if "nombre" in data:
+        kw["nombre"] = _clean_str(nombre)
+    if "razon_social" in data:
+        kw["razon_social"] = _clean_str(razon_social)
+    c = Contribuyente(**kw)
     db.session.add(c)
     db.session.flush()
     return c

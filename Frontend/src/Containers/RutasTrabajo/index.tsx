@@ -79,6 +79,8 @@ const RutasTrabajo = () => {
   const rutaId = ruta?.id ?? null;
   /** Borrador con detalle cargado: habilita la acción (el botón se deshabilita además mientras `publishingRuta`). */
   const puedeIntentarPublicar = Boolean(rutaId && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
+  /** Ruta publicada u otro estado no borrador: mapa en preview histórica solo lectura. */
+  const vistaHistoricaReadOnly = Boolean(ruta && ruta.estado_ruta !== "BORRADOR");
 
   const loadRutaDetail = useCallback(async (targetRutaId: number, opts?: { showLoading?: boolean }) => {
     const showLoading = opts?.showLoading !== false;
@@ -95,8 +97,10 @@ const RutasTrabajo = () => {
       setPoolRowsById({});
       setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
       persistRutaId(targetRutaId);
-      setFlowStep(1);
-      setFlowMaxUnlocked(1);
+      const esBorrador = detail.ruta.estado_ruta === "BORRADOR";
+      // Planificación y APIs asociadas exigen BORRADOR; rutas publicadas se abren en mapa (base para preview histórica).
+      setFlowStep(esBorrador ? 1 : 3);
+      setFlowMaxUnlocked(esBorrador ? 1 : 3);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
       setRuta(null);
@@ -431,7 +435,7 @@ const RutasTrabajo = () => {
         gap: 2.2,
       }}
     >
-        {rutaId != null && (
+        {rutaId != null && ruta?.estado_ruta === "BORRADOR" && (
           <Paper
             elevation={0}
             sx={{
@@ -478,7 +482,7 @@ const RutasTrabajo = () => {
         {rutaId == null && (
           <RutasEmptyView
             onCrearBorrador={() => setOpenCrearRuta(true)}
-            onAbrirBorrador={(id) => void loadRutaDetail(id)}
+            onAbrirRuta={(id) => void loadRutaDetail(id)}
           />
         )}
 
@@ -537,14 +541,20 @@ const RutasTrabajo = () => {
             detailLoading={detailLoading}
             capturaMapaFinalRef={capturaMapaFinalRef}
             exportGruposPrintRef={exportGruposPrintRef}
-            onEditarInspectores={(grupo) => {
-              setGrupoSeleccionado(grupo);
-              setOpenAsignarInspectores(true);
-            }}
-            onEliminarGrupo={handleDeleteGrupo}
-            onMoverItem={handleMoveItem}
-            onQuitarItem={handleDeleteItem}
-            onGuardarOtItem={handleSaveOt}
+            vistaHistoricaReadOnly={vistaHistoricaReadOnly}
+            onVolverAlListado={resetVistaRutaTrabajo}
+            onEditarInspectores={
+              vistaHistoricaReadOnly
+                ? undefined
+                : (grupo) => {
+                    setGrupoSeleccionado(grupo);
+                    setOpenAsignarInspectores(true);
+                  }
+            }
+            onEliminarGrupo={vistaHistoricaReadOnly ? undefined : handleDeleteGrupo}
+            onMoverItem={vistaHistoricaReadOnly ? undefined : handleMoveItem}
+            onQuitarItem={vistaHistoricaReadOnly ? undefined : handleDeleteItem}
+            onGuardarOtItem={vistaHistoricaReadOnly ? undefined : handleSaveOt}
           />
         )}
 

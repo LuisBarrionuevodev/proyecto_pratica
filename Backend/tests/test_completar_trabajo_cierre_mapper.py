@@ -31,6 +31,29 @@ def test_mapper_sin_ot_fecha_inspectores_ni_previas() -> None:
     assert m.get("acta_inspeccion_num") == "000042"
 
 
+def test_mapper_incluye_razon_social_en_contribuyente() -> None:
+    row = CompletarTrabajoCierreCompletoIn.model_construct(
+        tipo_actuacion="INSPECCION",
+        doc_nro="30123456789",
+        contrib_apellido=None,
+        contrib_nombre=None,
+        razon_social="  Panadería del Sur SRL  ",
+    )
+    act = MagicMock()
+    act.domicilio = None
+    ini = MagicMock()
+    ini.domicilio = None
+
+    m = map_completar_trabajo_cierre_to_aplicar_payload(row, act=act, ini=ini)
+
+    assert m.get("contribuyente") == {
+        "doc_nro": "30123456789",
+        "apellido": None,
+        "nombre": None,
+        "razon_social": "Panadería del Sur SRL",
+    }
+
+
 def test_mapper_incluye_inspectores_cuando_vienen_en_body() -> None:
     row = CompletarTrabajoCierreCompletoIn.model_construct(
         tipo_actuacion="INSPECCION",

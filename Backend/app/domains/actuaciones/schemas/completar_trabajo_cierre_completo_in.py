@@ -62,6 +62,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     doc_nro: Optional[str] = None
     contrib_apellido: Optional[str] = None
     contrib_nombre: Optional[str] = None
+    razon_social: Optional[str] = None
     nombre_local: Optional[str] = None
     numero_tipo: Optional[str] = None
     inspectores: Optional[List[str]] = None
@@ -100,6 +101,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         "doc_nro",
         "contrib_apellido",
         "contrib_nombre",
+        "razon_social",
         "nombre_local",
         "acta_inspeccion_num",
         "acta_notificacion_num",

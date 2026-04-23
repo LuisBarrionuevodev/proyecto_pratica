@@ -8,20 +8,29 @@ from app.models import Actuaciones, Expediente, Notificacion
 from app.utils.actas import acta_6
 from app.domains.actuaciones.services.notificacion_timing_service import aplicar_prorroga_notificacion
 
+# Actuación con notificación y comprobación: el cliente debe enviar ``source_type`` en el payload
+# de ``complete_expediente_from_actuacion`` (ver PR2).
+AMBIGUO_EXPEDIENTE_SOURCE = "AMBIGUO"
+
 
 def infer_source_type_from_actuacion(act: Actuaciones) -> str:
     """
-    Infiere el `source_type` para flujo de expediente a partir del estado DB.
+    Infiere el canal por defecto de expediente a partir del estado DB.
 
     Reglas:
-    - Si hay comprobación y notificación, domina COMPROBACION.
-    - Si solo hay comprobación, COMPROBACION.
-    - Si solo hay notificación, NOTIFICACION.
-    - Si no hay ninguna, UNKNOWN.
+    - Si hay **solo** comprobación → ``COMPROBACION``.
+    - Si hay **solo** notificación → ``NOTIFICACION``.
+    - Si hay **ambas** en la misma actuación → ``AMBIGUO_EXPEDIENTE_SOURCE`` (el canal se elige con
+      ``source_type`` explícito en el payload de alta).
+    - Si no hay ninguna → ``UNKNOWN``.
     """
-    if act.comprobacion_id is not None:
+    has_n = act.notificacion_id is not None
+    has_c = act.comprobacion_id is not None
+    if has_n and has_c:
+        return AMBIGUO_EXPEDIENTE_SOURCE
+    if has_c:
         return "COMPROBACION"
-    if act.notificacion_id is not None:
+    if has_n:
         return "NOTIFICACION"
     return "UNKNOWN"
 
@@ -79,6 +88,9 @@ def complete_expediente_from_actuacion(
       historial documental de plazo/prórroga). Cada alta aplica prórroga sobre `Notificacion` y crea una
       fila adicional; el vencimiento operativo sigue consolidado en la notificación.
 
+    Si la actuación tiene **notificación y comprobación**, el payload debe incluir ``source_type``
+    ``NOTIFICACION`` o ``COMPROBACION`` para indicar el canal; sin eso se rechaza con ``ValueError``.
+
     Retorno:
         dict con `actuacion`, `expediente`, `source_type`, `next_state_hint`.
 
@@ -91,15 +103,32 @@ def complete_expediente_from_actuacion(
     if not act:
         raise LookupError("Actuación no encontrada")
 
-    source_type = infer_source_type_from_actuacion(act)
-    if source_type == "UNKNOWN":
+    inferred = infer_source_type_from_actuacion(act)
+    if inferred == "UNKNOWN":
         raise ValueError("La actuación no tiene acta de notificación ni de comprobación")
 
-    provided_source_type = data.get("source_type")
-    if provided_source_type:
-        provided = str(provided_source_type).strip().upper()
-        if provided != source_type:
-            raise RuntimeError("source_type no coincide con el estado real de la actuación")
+    provided_raw = data.get("source_type")
+    if inferred == AMBIGUO_EXPEDIENTE_SOURCE:
+        if provided_raw is None or str(provided_raw).strip() == "":
+            raise ValueError(
+                "La actuación tiene acta de notificación y de comprobación. "
+                "Indicá source_type: NOTIFICACION (plazo/prórroga) o COMPROBACION (envío de acta)."
+            )
+        source_type = str(provided_raw).strip().upper()
+        if source_type not in ("NOTIFICACION", "COMPROBACION"):
+            raise ValueError(
+                "source_type debe ser NOTIFICACION o COMPROBACION cuando la actuación tiene ambas actas."
+            )
+        if source_type == "NOTIFICACION" and act.notificacion_id is None:
+            raise ValueError("La actuación no tiene notificación para el canal NOTIFICACION")
+        if source_type == "COMPROBACION" and act.comprobacion_id is None:
+            raise ValueError("La actuación no tiene comprobación para el canal COMPROBACION")
+    else:
+        source_type = inferred
+        if provided_raw is not None and str(provided_raw).strip() != "":
+            provided = str(provided_raw).strip().upper()
+            if provided != source_type:
+                raise RuntimeError("source_type no coincide con el estado real de la actuación")
 
     numero, fecha_expediente, anio_str = _parse_expediente_payload(data)
 

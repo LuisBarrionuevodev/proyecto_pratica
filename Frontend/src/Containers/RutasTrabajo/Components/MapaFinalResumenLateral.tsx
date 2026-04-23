@@ -88,6 +88,8 @@ export type MapaFinalResumenLateralProps = {
   onEditarInspectores?: (grupo: IRutaGrupoMin) => void;
   /** `false` si la ruta no es editable (p. ej. no BORRADOR) o hay carga de detalle. */
   puedeEditarEquipos?: boolean;
+  /** Oculta por completo acciones de equipo (no solo deshabilitadas). */
+  readOnly?: boolean;
 };
 
 const BOTON_EQUIPO_SX = {
@@ -108,11 +110,18 @@ export function MapaFinalResumenLateral({
   gruposModelo = [],
   onEditarInspectores,
   puedeEditarEquipos = false,
+  readOnly = false,
 }: MapaFinalResumenLateralProps) {
   if (gruposVista.length === 0) {
     return (
       <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.8125rem", lineHeight: 1.45, color: GLASS_COLORS.textSecondary }}>
-        No hay grupos. Usá <strong style={{ color: GLASS_COLORS.textPrimary }}>Asignación</strong> para armar equipos.
+        {readOnly ? (
+          "No hay grupos con datos en esta ruta (consulta histórica)."
+        ) : (
+          <>
+            No hay grupos. Usá <strong style={{ color: GLASS_COLORS.textPrimary }}>Asignación</strong> para armar equipos.
+          </>
+        )}
       </Typography>
     );
   }
@@ -186,7 +195,7 @@ export function MapaFinalResumenLateral({
                   >
                     Inspectores
                   </Typography>
-                  {onEditarInspectores && grupoMin ? (
+                  {!readOnly && onEditarInspectores && grupoMin ? (
                     <Tooltip title={puedeEditarEquipos ? "Editar inspectores" : "Solo con borrador."}>
                       <span>
                         <Button

@@ -15,10 +15,11 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   dias_restantes?: number | null;
   /** Solo rama NOTIFICACION; count expedientes `PRORROGA_NOTIFICACION`. */
   plazos_otorgados?: number | null;
-  /** Primera visita posterior (mismo domicilio) con comprobación; rama COMPROBACION: la propia fila. */
+  /** Primera visita posterior (mismo domicilio) con comprobación; rama COMPROBACION o misma actuación mixta en listado notificación: acta de la fila. */
   comprobacion_posterior_fecha?: string | null;
   comprobacion_posterior_inspectores_texto?: string | null;
   comprobacion_posterior_acta_num?: string | null;
+  /** Con `source_type=notificacion` en el GET puede ser NOTIFICACION aunque la actuación tenga también comprobación (canal paralelo). */
   source_type?: "NOTIFICACION" | "COMPROBACION";
   domicilio_id?: number | null;
   numero_esquina?: string | null;
@@ -109,6 +110,7 @@ export interface ICreateExpedienteRequest {
   fecha_expediente: string;
   // Compat temporal; backend lo ignora.
   expediente_anio?: number;
+  /** Obligatorio si la actuación tiene notificación y comprobación (misma fila). */
   source_type?: "NOTIFICACION" | "COMPROBACION";
   prorroga_dias?: number;
 }

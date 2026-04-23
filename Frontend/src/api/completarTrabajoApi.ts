@@ -36,6 +36,7 @@ export interface ICompletarTrabajoPendienteRow {
   doc_nro?: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
+  razon_social?: string | null;
   acta_inspeccion_num?: string | null;
   acta_notificacion_num?: string | null;
   notificacion_motivo_1?: string | null;
@@ -134,6 +135,7 @@ export interface ICompletarTrabajoCierreBody {
   doc_nro?: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
+  razon_social?: string | null;
   observaciones_ejecucion?: string | null;
   acta_inspeccion_num?: string | null;
   acta_notificacion_num?: string | null;

@@ -214,27 +214,53 @@ export const getRutaTrabajoDetail = async (rutaId: number): Promise<IGetRutaTrab
   return data;
 };
 
-/** Solo rutas en estado BORRADOR (reabrir borrador). */
-export interface IListRutasBorradorResponse {
-  items: IRutaTrabajo[];
-  meta: {
-    total: number;
-    page: number;
-    per_page: number;
-  };
+/** Meta de `GET /rutas-trabajo` (borradores por defecto o `estado_ruta` explícito). */
+export interface IListRutasTrabajoMeta {
+  total: number;
+  page: number;
+  per_page: number;
+  estados?: string[];
+  fecha?: string | null;
+  fecha_desde?: string | null;
+  fecha_hasta?: string | null;
 }
 
+export interface IListRutasTrabajoResponse {
+  items: IRutaTrabajo[];
+  meta: IListRutasTrabajoMeta;
+}
+
+/** Sin `estado_ruta`: solo BORRADOR (comportamiento backend por defecto). */
 export interface IListRutasBorradorParams {
   page?: number;
   per_page?: number;
+  fecha?: string;
   fecha_desde?: string;
   fecha_hasta?: string;
 }
 
+export interface IListRutasTrabajoParams extends IListRutasBorradorParams {
+  /** Uno o varios separados por coma, p. ej. `PUBLICADA` o `PUBLICADA,EN_CURSO`. */
+  estado_ruta?: string;
+}
+
+export type IListRutasBorradorResponse = IListRutasTrabajoResponse;
+
 export const listRutasBorrador = async (
   params?: IListRutasBorradorParams
 ): Promise<IListRutasBorradorResponse> => {
-  const { data } = await apiClient.get<IListRutasBorradorResponse>("/rutas-trabajo", { params });
+  const { data } = await apiClient.get<IListRutasTrabajoResponse>("/rutas-trabajo", { params });
+  return data;
+};
+
+/**
+ * Lista rutas de trabajo (`GET /rutas-trabajo`).
+ * Sin `estado_ruta` el backend devuelve solo BORRADOR; con `estado_ruta=PUBLICADA` (y opcional `fecha=YYYY-MM-DD`) rutas publicadas / histórico.
+ */
+export const listRutasTrabajo = async (
+  params?: IListRutasTrabajoParams
+): Promise<IListRutasTrabajoResponse> => {
+  const { data } = await apiClient.get<IListRutasTrabajoResponse>("/rutas-trabajo", { params });
   return data;
 };
 

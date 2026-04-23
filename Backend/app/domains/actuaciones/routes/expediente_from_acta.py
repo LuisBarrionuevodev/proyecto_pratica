@@ -18,7 +18,8 @@ def crear_expediente_desde_acta(actuacion_id: int):
     **Esperando expediente:** alta del expediente administrativo inicial (envío), vía servicio
     `complete_expediente_from_actuacion`.
 
-    `source_type` se infiere en backend (si hay notificación y comprobación, domina COMPROBACION).
+    Con notificación y comprobación en la misma actuación, el cuerpo debe incluir ``source_type``
+    ``NOTIFICACION`` o ``COMPROBACION`` para elegir el canal de alta.
     """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
     try:

@@ -126,4 +126,11 @@ export type RutasMapaOperativoViewProps = {
   capturaMapaFinalRef?: MutableRefObject<CapturaMapaFinalHandle | null>;
   /** Registro para disparar impresión / PDF vía navegador de la hoja de grupos (MF7). */
   exportGruposPrintRef?: MutableRefObject<ExportGruposPrintHandle | null>;
+  /**
+   * Preview histórica: ruta no BORRADOR (p. ej. PUBLICADA). Solo lectura: sin CTAs de edición/publicación;
+   * el bloque bajo `exportOperativoRef` queda como ancla estable para futura reimpresión/captura (PR posterior).
+   */
+  vistaHistoricaReadOnly?: boolean;
+  /** Con `vistaHistoricaReadOnly`, vuelve al listado inicial (borradores / publicadas). */
+  onVolverAlListado?: () => void;
 };

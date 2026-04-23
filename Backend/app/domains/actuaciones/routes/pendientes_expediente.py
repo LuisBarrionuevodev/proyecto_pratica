@@ -26,6 +26,9 @@ def pendientes_expediente_list():
     Query opcional ``omitir_rango_fecha=true``: sin ``desde``/``hasta`` no se aplica el rango por
     defecto (mes corriente); la consulta incluye todo pendiente sin filtro temporal en actuación.
 
+    Cada ítem incluye ``source_type`` alineado con el filtro del GET (en ``notificacion``, filas con
+    notificación pueden marcarse ``NOTIFICACION`` aunque la misma actuación tenga comprobación).
+
     Filtros documentales opcionales (solo ``source_type=notificacion``; subcadena insensible a mayúsculas):
     ``contribuyente_q``, ``calle_q``, ``numero_notificacion``, ``motivo_q``. Si no se envían, el
     comportamiento es el mismo que antes.
@@ -48,6 +51,7 @@ def pendientes_expediente_list():
         plazos_map, venc_map = build_notificacion_expediente_bandeja_metrics(acts)
         counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
         posterior_map = build_posterior_comprobacion_por_actuacion_id(acts)
+        list_channel = (filters.source_type or "all").strip().lower()
         items = [
             actuacion_to_pendiente_expediente_row(
                 a,
@@ -55,6 +59,7 @@ def pendientes_expediente_list():
                 fecha_vencimiento_por_notificacion=venc_map,
                 counts_by_eo=counts_by_eo,
                 posterior_por_actuacion_id=posterior_map,
+                expediente_list_channel=list_channel,
             )
             for a in acts
         ]

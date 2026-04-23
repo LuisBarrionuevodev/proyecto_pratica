@@ -44,8 +44,16 @@ const MAPA_FINAL_SECTION_LABEL_SX = {
   mb: 1,
 };
 
+const HISTORICO_ALERT_SX = {
+  ...rutasInstitutionalAlertBaseSx,
+  borderColor: "rgba(100, 180, 255, 0.35)",
+  "& .MuiAlert-icon": { color: "info.light" },
+  "& .MuiAlert-message": { fontSize: "0.875rem", lineHeight: 1.45 },
+} as const;
+
 /**
- * Vista Mapa final (paso 3): mapa, indicadores y publicación del borrador.
+ * Paso 3 del flujo borrador: mapa, indicadores y publicación.
+ * Con `vistaHistoricaReadOnly`: misma superficie visual en solo lectura (consulta de ruta ya publicada u otro estado no borrador).
  */
 export function RutasMapaOperativoView({
   ruta,
@@ -60,6 +68,8 @@ export function RutasMapaOperativoView({
   onEditarInspectores,
   capturaMapaFinalRef,
   exportGruposPrintRef,
+  vistaHistoricaReadOnly = false,
+  onVolverAlListado,
 }: RutasMapaOperativoViewProps) {
   const mapa = useRutaMapa(grupos, itemsActivos, iniciadorById);
   const exportOperativoRef = useRef<HTMLDivElement>(null);
@@ -86,7 +96,8 @@ export function RutasMapaOperativoView({
   } as const;
 
   const estadoLabel = ruta ? estadoRutaVisible(ruta.estado_ruta) : null;
-  const puedeEditarEquipos = Boolean(ruta?.estado_ruta === "BORRADOR" && !detailLoading);
+  const puedeEditarEquipos = Boolean(!vistaHistoricaReadOnly && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
+  const readOnly = Boolean(vistaHistoricaReadOnly);
 
   const ejecutarCapturaMapaFinal = useCallback(
     async (opts?: { estadoEtiqueta?: string }) => {
@@ -103,7 +114,6 @@ export function RutasMapaOperativoView({
         await new Promise<void>((resolve) => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         });
-        // Breve espera: tiles Leaflet y reflow tras cambiar el texto de estado.
         await new Promise<void>((r) => setTimeout(r, 400));
         const filename = buildMapaFinalCapturaFilename(ruta);
         await downloadMapaFinalRegionPng(el, filename);
@@ -131,38 +141,49 @@ export function RutasMapaOperativoView({
     [ruta, mapa.gruposVista, estadoLabel]
   );
 
+  /** En histórico no se registran handles de captura/impresión (evita uso accidental; PR futuro re-asignará desde aquí). */
   useEffect(() => {
-    if (!capturaMapaFinalRef) return;
+    if (readOnly || !capturaMapaFinalRef) return;
     capturaMapaFinalRef.current = ejecutarCapturaMapaFinal;
     return () => {
       capturaMapaFinalRef.current = null;
     };
-  }, [capturaMapaFinalRef, ejecutarCapturaMapaFinal]);
+  }, [readOnly, capturaMapaFinalRef, ejecutarCapturaMapaFinal]);
 
   useEffect(() => {
-    if (!exportGruposPrintRef) return;
+    if (readOnly || !exportGruposPrintRef) return;
     exportGruposPrintRef.current = ejecutarExportGruposPrint;
     return () => {
       exportGruposPrintRef.current = null;
     };
-  }, [exportGruposPrintRef, ejecutarExportGruposPrint]);
+  }, [readOnly, exportGruposPrintRef, ejecutarExportGruposPrint]);
+
+  useEffect(() => {
+    if (!readOnly) return;
+    if (capturaMapaFinalRef) capturaMapaFinalRef.current = null;
+    if (exportGruposPrintRef) exportGruposPrintRef.current = null;
+  }, [readOnly, capturaMapaFinalRef, exportGruposPrintRef]);
 
   return (
     <Stack spacing={2}>
       <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-start" }} justifyContent="space-between">
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ ...rutasResumenTitleSx, fontSize: "1.0625rem", letterSpacing: "0.04em" }}>Mapa final</Typography>
+            <Typography sx={{ ...rutasResumenTitleSx, fontSize: "1.0625rem", letterSpacing: "0.04em" }}>
+              {readOnly ? "Consulta histórica · Mapa operativo" : "Mapa final"}
+            </Typography>
             <Typography
               sx={{
                 ...planificacionPanelSubtitleSx,
                 mt: 0.35,
                 fontSize: "0.72rem",
                 color: GLASS_COLORS.textMuted,
-                maxWidth: 480,
+                maxWidth: 520,
               }}
             >
-              Mapa y publicación. Equipos y direcciones: Asignación.
+              {readOnly
+                ? "Resumen de la ruta tal como quedó registrada. Solo lectura: no se puede editar ni volver a publicar desde aquí."
+                : "Revisión final antes de publicar: equipos y direcciones se gestionan en Asignación."}
             </Typography>
             {ruta && (
               <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 1.25 }} alignItems="center">
@@ -186,44 +207,72 @@ export function RutasMapaOperativoView({
               alignItems: { sm: "stretch" },
             }}
           >
-            <AppButton dsVariant="secondary" dsSize="md" fullWidth onClick={onVolverAsignacion} sx={{ minWidth: { sm: 180 } }}>
-              Asignación
-            </AppButton>
-            <Tooltip
-              title={
-                publishingRuta
-                  ? "Publicando y generando exportaciones…"
-                  : canPublish
-                    ? "Publica la ruta, descarga captura PNG del mapa y abre el cuadro de impresión de la hoja de grupos (guardar como PDF según el navegador)."
-                    : "Solo con borrador listo."
-              }
-              placement="top"
-            >
-              <span style={{ width: "100%", display: "inline-flex" }}>
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="md"
-                  fullWidth
-                  loading={publishingRuta}
-                  disabled={!canPublish}
-                  onClick={() => void onPublicarRuta?.()}
-                  sx={{
-                    minWidth: { sm: 160 },
-                    fontWeight: 700,
-                    boxShadow: canPublish && !publishingRuta ? (t) => `0 0 0 1px ${t.palette.primary.dark}40` : undefined,
-                  }}
-                >
-                  {publishingRuta ? "Publicando…" : "Publicar"}
+            {readOnly ? (
+              <AppButton
+                dsVariant="primary"
+                dsSize="md"
+                fullWidth
+                onClick={() => onVolverAlListado?.()}
+                sx={{ minWidth: { sm: 200 }, fontWeight: 700 }}
+              >
+                Volver al listado
+              </AppButton>
+            ) : (
+              <>
+                <AppButton dsVariant="secondary" dsSize="md" fullWidth onClick={onVolverAsignacion} sx={{ minWidth: { sm: 180 } }}>
+                  Asignación
                 </AppButton>
-              </span>
-            </Tooltip>
+                <Tooltip
+                  title={
+                    publishingRuta
+                      ? "Publicando y generando exportaciones…"
+                      : canPublish
+                        ? "Publica la ruta, descarga captura PNG del mapa y abre el cuadro de impresión de la hoja de grupos (guardar como PDF según el navegador)."
+                        : "Solo con borrador listo."
+                  }
+                  placement="top"
+                >
+                  <span style={{ width: "100%", display: "inline-flex" }}>
+                    <AppButton
+                      dsVariant="primary"
+                      dsSize="md"
+                      fullWidth
+                      loading={publishingRuta}
+                      disabled={!canPublish}
+                      onClick={() => void onPublicarRuta?.()}
+                      sx={{
+                        minWidth: { sm: 160 },
+                        fontWeight: 700,
+                        boxShadow: canPublish && !publishingRuta ? (t) => `0 0 0 1px ${t.palette.primary.dark}40` : undefined,
+                      }}
+                    >
+                      {publishingRuta ? "Publicando…" : "Publicar"}
+                    </AppButton>
+                  </span>
+                </Tooltip>
+              </>
+            )}
           </Stack>
         </Stack>
       </Paper>
 
-      <Stack ref={exportOperativoRef} spacing={2} sx={{ minWidth: 0 }}>
+      {readOnly && (
+        <Alert severity="info" sx={HISTORICO_ALERT_SX}>
+          <strong>Solo consulta.</strong> Esta ruta ya no está en borrador: el mapa y el panel lateral son un registro operativo
+          para consulta. Las acciones de planificación, asignación y publicación no están disponibles en esta vista.
+        </Alert>
+      )}
+
+      <Stack
+        ref={exportOperativoRef}
+        spacing={2}
+        sx={{ minWidth: 0 }}
+        {...(readOnly ? { "data-ruta-historico-preview": "true" } : {})}
+      >
         <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.25, px: 2 }}>
-          <Typography sx={MAPA_FINAL_SECTION_LABEL_SX}>Resumen para respaldo</Typography>
+          <Typography sx={MAPA_FINAL_SECTION_LABEL_SX}>
+            {readOnly ? "Identificación de la ruta (historial)" : "Resumen para respaldo"}
+          </Typography>
           {ruta ? (
             <Typography
               component="div"
@@ -246,7 +295,7 @@ export function RutasMapaOperativoView({
                 <Box component="span" sx={{ opacity: 0.85 }}>{` · ${ruta.display_name}`}</Box>
               ) : null}
               <Box component="span" sx={{ opacity: 0.85 }}>
-                {" · Estado: "}
+                {" · Estado registrado: "}
                 <Box component="span" ref={estadoCapturaRef} sx={{ color: GLASS_COLORS.textPrimary, fontWeight: 700 }}>
                   {estadoLabel ?? "—"}
                 </Box>
@@ -260,7 +309,9 @@ export function RutasMapaOperativoView({
         </Paper>
 
         <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5, px: 2 }}>
-          <Typography sx={MAPA_FINAL_SECTION_LABEL_SX}>Indicadores</Typography>
+          <Typography sx={MAPA_FINAL_SECTION_LABEL_SX}>
+            {readOnly ? "Indicadores (snapshot)" : "Indicadores"}
+          </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75} flexWrap="wrap" useFlexGap alignItems={{ sm: "flex-start" }}>
             <Box sx={{ minWidth: 88 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
@@ -370,19 +421,34 @@ export function RutasMapaOperativoView({
             }}
           >
             <Box sx={{ flexShrink: 0 }}>
-              <Typography sx={{ ...planificacionPanelTitleSx, mb: 0.25, fontSize: "0.875rem" }}>Grupos y direcciones</Typography>
+              <Typography sx={{ ...planificacionPanelTitleSx, mb: 0.25, fontSize: "0.875rem" }}>
+                {readOnly ? "Grupos y direcciones (consulta)" : "Grupos y direcciones"}
+              </Typography>
+              {readOnly ? (
+                <Typography
+                  sx={{
+                    ...planificacionPanelSubtitleSx,
+                    fontSize: "0.68rem",
+                    color: GLASS_COLORS.textMuted,
+                    mb: 0.5,
+                  }}
+                >
+                  Datos al momento de la consulta; sin edición de equipos ni visitas.
+                </Typography>
+              ) : null}
             </Box>
             <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
               {ruta == null ? (
                 <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
-                  Seleccioná una ruta en el flujo.
+                  {readOnly ? "No hay ruta seleccionada." : "Seleccioná una ruta en el flujo."}
                 </Typography>
               ) : (
                 <MapaFinalResumenLateral
                   gruposVista={mapa.gruposVista}
                   gruposModelo={grupos}
-                  onEditarInspectores={onEditarInspectores}
+                  onEditarInspectores={readOnly ? undefined : onEditarInspectores}
                   puedeEditarEquipos={puedeEditarEquipos}
+                  readOnly={readOnly}
                 />
               )}
             </Box>

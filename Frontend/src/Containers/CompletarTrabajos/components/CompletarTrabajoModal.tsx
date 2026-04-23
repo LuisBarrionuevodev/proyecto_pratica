@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   Alert,
   Autocomplete,
@@ -10,6 +10,8 @@ import {
   ListItem,
   ListItemText,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 
@@ -117,6 +119,14 @@ function tipoActuacionInicialReinspeccionOficio(tipo: string | null | undefined)
   return (TIPO_ACTUACION_REINSPECCION_OFICIO as readonly string[]).includes(t) ? t : "";
 }
 
+/** Titular del domicilio: persona física (apellido + nombre) o razón social (PJ). */
+type TitularModoCompletarTrabajo = "persona" | "razon_social";
+
+function titularModoInicialDesdeRow(r: ICompletarTrabajoPendienteRow): TitularModoCompletarTrabajo {
+  const rs = (r.razon_social ?? "").trim();
+  return rs ? "razon_social" : "persona";
+}
+
 export type CompletarTrabajoModalProps = {
   open: boolean;
   /** Fila del listado al abrir; el modal refresca con GET detalle antes de editar. */
@@ -156,6 +166,8 @@ export function CompletarTrabajoModal({
   const [docNro, setDocNro] = useState("");
   const [contribApellido, setContribApellido] = useState("");
   const [contribNombre, setContribNombre] = useState("");
+  const [razonSocial, setRazonSocial] = useState("");
+  const [titularModo, setTitularModo] = useState<TitularModoCompletarTrabajo>("persona");
   const [nombreLocal, setNombreLocal] = useState("");
   const [actaInspeccion, setActaInspeccion] = useState("");
   const [actaNotificacion, setActaNotificacion] = useState("");
@@ -246,6 +258,8 @@ export function CompletarTrabajoModal({
     setDocNro(resolvedRow.doc_nro ?? "");
     setContribApellido(resolvedRow.contrib_apellido ?? "");
     setContribNombre(resolvedRow.contrib_nombre ?? "");
+    setRazonSocial(resolvedRow.razon_social ?? "");
+    setTitularModo(titularModoInicialDesdeRow(resolvedRow));
     setNombreLocal(resolvedRow.nombre_local ?? "");
     setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
     setActaNotificacion(resolvedRow.acta_notificacion_num ?? "");
@@ -286,6 +300,21 @@ export function CompletarTrabajoModal({
   const rubroSelectOptions = useMemo(
     () => mergeCatalogOpts(cat.rubros ?? [], rubroNombre),
     [cat.rubros, rubroNombre]
+  );
+
+  const handleTitularModoChange = useCallback(
+    (_: MouseEvent<HTMLElement>, next: TitularModoCompletarTrabajo | null) => {
+      if (next == null || next === titularModo) return;
+      if (next === "razon_social") {
+        setContribApellido("");
+        setContribNombre("");
+      } else {
+        setRazonSocial("");
+      }
+      setTitularModo(next);
+      ["contrib_apellido", "contrib_nombre", "razon_social"].forEach((k) => clearFe(k));
+    },
+    [titularModo, clearFe]
   );
 
   const contraOpts = useMemo(
@@ -384,14 +413,26 @@ export function CompletarTrabajoModal({
     }
     setSaving(true);
     try {
+      const titularPayload: Record<string, unknown> =
+        titularModo === "persona"
+          ? {
+              contrib_apellido: contribApellido,
+              contrib_nombre: contribNombre,
+              razon_social: null,
+            }
+          : {
+              contrib_apellido: null,
+              contrib_nombre: null,
+              razon_social: razonSocial,
+            };
+
       const values: Record<string, unknown> = {
         contraproducencia,
         rubro_nombre: rubroNombre,
         calle,
         numero,
         doc_nro: docNro,
-        contrib_apellido: contribApellido,
-        contrib_nombre: contribNombre,
+        ...titularPayload,
         nombre_local: nombreLocal,
         observaciones_ejecucion: observacionesEjecucion.trim(),
         ...ACTA_KEYS_EMPTY,
@@ -759,33 +800,80 @@ export function CompletarTrabajoModal({
           error={Boolean(fe("rubro_nombre"))}
           helperText={fe("rubro_nombre") || undefined}
         />
-        <AppTextField
-          appearance="dense"
-          label="Contribuyente apellido / razón social"
-          value={contribApellido}
-          onChange={(e) => {
-            setContribApellido(e.target.value);
-            clearFe("contrib_apellido");
-          }}
+
+        <Typography variant="caption" sx={labelMuted}>
+          Titular
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          value={titularModo}
+          onChange={handleTitularModoChange}
+          size="small"
           fullWidth
-          error={Boolean(fe("contrib_apellido"))}
-          helperText={fe("contrib_apellido") || undefined}
-        />
-        <AppTextField
-          appearance="dense"
-          label="Contribuyente nombre"
-          value={contribNombre}
-          onChange={(e) => {
-            setContribNombre(e.target.value);
-            clearFe("contrib_nombre");
+          sx={{
+            "& .MuiToggleButton-root": {
+              flex: 1,
+              textTransform: "none",
+              fontFamily: '"Tactic Sans", sans-serif',
+              fontSize: "0.8125rem",
+              color: "rgba(255,255,255,0.75)",
+              borderColor: "rgba(255,255,255,0.2)",
+            },
+            "& .Mui-selected": {
+              bgcolor: "rgba(255,255,255,0.12) !important",
+              color: "rgba(255,255,255,0.95) !important",
+            },
           }}
-          fullWidth
-          error={Boolean(fe("contrib_nombre"))}
-          helperText={fe("contrib_nombre") || undefined}
-        />
+        >
+          <ToggleButton value="persona">Contribuyente</ToggleButton>
+          <ToggleButton value="razon_social">Razón social</ToggleButton>
+        </ToggleButtonGroup>
+
+        {titularModo === "persona" ? (
+          <>
+            <AppTextField
+              appearance="dense"
+              label="Apellido"
+              value={contribApellido}
+              onChange={(e) => {
+                setContribApellido(e.target.value);
+                clearFe("contrib_apellido");
+              }}
+              fullWidth
+              error={Boolean(fe("contrib_apellido"))}
+              helperText={fe("contrib_apellido") || undefined}
+            />
+            <AppTextField
+              appearance="dense"
+              label="Nombre"
+              value={contribNombre}
+              onChange={(e) => {
+                setContribNombre(e.target.value);
+                clearFe("contrib_nombre");
+              }}
+              fullWidth
+              error={Boolean(fe("contrib_nombre"))}
+              helperText={fe("contrib_nombre") || undefined}
+            />
+          </>
+        ) : (
+          <AppTextField
+            appearance="dense"
+            label="Razón social"
+            value={razonSocial}
+            onChange={(e) => {
+              setRazonSocial(e.target.value);
+              clearFe("razon_social");
+            }}
+            fullWidth
+            error={Boolean(fe("razon_social"))}
+            helperText={fe("razon_social") || undefined}
+          />
+        )}
+
         <AppTextField
           appearance="dense"
-          label="DNI"
+          label="CUIT / DNI"
           value={docNro}
           onChange={(e) => {
             setDocNro(e.target.value);
