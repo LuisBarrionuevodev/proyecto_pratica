@@ -1,6 +1,7 @@
-import { Box, Button, Chip, Divider, Stack, Tooltip, Typography } from "@mui/material";
+import { memo, useMemo, useState } from "react";
+import { Box, Button, Chip, Divider, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 
-import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
+import type { IRutaGrupoMin, IRutaItemMin } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import {
   planificacionPanelSubtitleSx,
@@ -10,6 +11,33 @@ import {
 import type { RutaMapaGrupoVista, RutaMapaItemVista } from "../types/rutasTrabajoMapa.types";
 
 const EM = "—";
+
+export type MapaFinalResumenLateralProps = {
+  gruposVista: RutaMapaGrupoVista[];
+  /** Grupos del borrador (API) para abrir el modal con el objeto completo. */
+  gruposModelo?: IRutaGrupoMin[];
+  /** Ítems activos del borrador (resolver modelo para mover desde mapa). */
+  itemsActivos?: IRutaItemMin[];
+  /** Mismo handler que Asignación → `ModalAsignarInspectoresGrupo`. */
+  onEditarInspectores?: (grupo: IRutaGrupoMin) => void;
+  /** Mover ítem a otro grupo (solo borrador; mismo API que Asignación). */
+  onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
+  /** `false` si la ruta no es editable (p. ej. no BORRADOR) o hay carga de detalle. */
+  puedeEditarEquipos?: boolean;
+  /** Oculta por completo acciones de equipo (no solo deshabilitadas). */
+  readOnly?: boolean;
+};
+
+/** Misma familia que acciones neutras en Asignación; compacto al lado de rótulos de sección. */
+const MAPA_LATERAL_ACCION_COMPACTA_SX = {
+  ...rutasAsignacionNeutralContainedButtonSx,
+  minHeight: 28,
+  minWidth: 0,
+  py: 0.25,
+  px: 1.25,
+  fontSize: "0.7rem",
+  lineHeight: 1.25,
+} as const;
 
 function distritosDelGrupo(gv: RutaMapaGrupoVista): string[] {
   const s = new Set<string>();
@@ -25,7 +53,101 @@ function chipLabelInspector(fila: { nombre: string; legajo: string | null }): st
   return fila.nombre;
 }
 
-function DireccionRow({ it }: { it: RutaMapaItemVista }) {
+const TACTIC = '"Tactic Sans", sans-serif' as const;
+
+type MoverDestinoOption = { id: number; nombre: string };
+
+/**
+ * Selector + botón compacto (misma línea visual que «Equipo») para mover visita a otro grupo.
+ */
+const DireccionMoverCompact = memo(function DireccionMoverCompact({
+  item,
+  destinos,
+  onMover,
+}: {
+  item: IRutaItemMin;
+  destinos: MoverDestinoOption[];
+  onMover: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
+}) {
+  const [target, setTarget] = useState<number | "">("");
+  const [pending, setPending] = useState(false);
+
+  return (
+    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap", gap: 0.5 }}>
+      <TextField
+        select
+        size="small"
+        label="Grupo"
+        value={target}
+        disabled={pending}
+        onChange={(e) => {
+          const v = e.target.value;
+          setTarget(v === "" ? "" : Number(v));
+        }}
+        sx={{
+          minWidth: 108,
+          maxWidth: 200,
+          flex: "1 1 auto",
+          "& .MuiOutlinedInput-root": {
+            minHeight: 28,
+            fontSize: "0.75rem",
+            fontFamily: TACTIC,
+            borderRadius: "8px",
+          },
+          "& .MuiInputLabel-root": { fontSize: "0.7rem" },
+        }}
+      >
+        <MenuItem value="">
+          <em>Elegir…</em>
+        </MenuItem>
+        {destinos.map((d) => (
+          <MenuItem key={d.id} value={d.id} sx={{ fontSize: "0.8rem" }}>
+            {d.nombre}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Tooltip title="Mover esta visita al grupo elegido (misma acción que en Asignación).">
+        <span>
+          <Button
+            type="button"
+            variant="contained"
+            size="small"
+            disableElevation
+            disabled={target === "" || pending}
+            onClick={() => {
+              void (async () => {
+                if (typeof target !== "number") return;
+                setPending(true);
+                try {
+                  await onMover(item, target);
+                } finally {
+                  setPending(false);
+                }
+              })();
+            }}
+            sx={MAPA_LATERAL_ACCION_COMPACTA_SX}
+          >
+            {pending ? "…" : "Mover"}
+          </Button>
+        </span>
+      </Tooltip>
+    </Stack>
+  );
+});
+
+function DireccionRow({
+  it,
+  itemModelo,
+  moverDestinos,
+  onMoverItem,
+  mostrarMover,
+}: {
+  it: RutaMapaItemVista;
+  itemModelo?: IRutaItemMin;
+  moverDestinos: MoverDestinoOption[];
+  onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
+  mostrarMover: boolean;
+}) {
   const sinMapa = it.lat == null || it.lng == null;
   const tipoTxt = it.tipoIniciadorLabel ?? EM;
   const rubroTxt = it.rubroNombre?.trim() || null;
@@ -34,25 +156,39 @@ function DireccionRow({ it }: { it: RutaMapaItemVista }) {
   return (
     <Box
       sx={{
-        pl: 1,
-        py: 0.75,
-        borderLeft: `2px solid ${GLASS_COLORS.borderMedium}`,
-        bgcolor: "rgba(0,0,0,0.12)",
-        borderRadius: "0 8px 8px 0",
+        borderRadius: "10px",
+        border: `1px solid ${GLASS_COLORS.borderLight}`,
+        bgcolor: "rgba(0,0,0,0.14)",
+        overflow: "hidden",
       }}
     >
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 600,
-          color: GLASS_COLORS.textPrimary,
-          lineHeight: 1.35,
-          fontSize: "0.8125rem",
-        }}
-      >
-        {it.orden}. {it.etiqueta}
-      </Typography>
-      <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+      <Box sx={{ pl: 1.1, pr: 0.75, py: 0.75, borderLeft: `3px solid ${GLASS_COLORS.borderMedium}` }}>
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            mb: 0.35,
+            color: GLASS_COLORS.textMuted,
+            fontSize: "0.65rem",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            fontWeight: 600,
+          }}
+        >
+          Visita {it.orden}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            color: GLASS_COLORS.textPrimary,
+            lineHeight: 1.35,
+            fontSize: "0.8125rem",
+          }}
+        >
+          {it.etiqueta}
+        </Typography>
+        <Stack spacing={0.25} sx={{ mt: 0.5 }}>
         {rubroTxt ? (
           <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, lineHeight: 1.35, fontSize: "0.72rem" }}>
             Rubro: {rubroTxt}
@@ -76,31 +212,13 @@ function DireccionRow({ it }: { it: RutaMapaItemVista }) {
           </Typography>
         ) : null}
       </Stack>
+        {mostrarMover && itemModelo && onMoverItem ? (
+          <DireccionMoverCompact item={itemModelo} destinos={moverDestinos} onMover={onMoverItem} />
+        ) : null}
+      </Box>
     </Box>
   );
 }
-
-export type MapaFinalResumenLateralProps = {
-  gruposVista: RutaMapaGrupoVista[];
-  /** Grupos del borrador (API) para abrir el modal con el objeto completo. */
-  gruposModelo?: IRutaGrupoMin[];
-  /** Mismo handler que Asignación → `ModalAsignarInspectoresGrupo`. */
-  onEditarInspectores?: (grupo: IRutaGrupoMin) => void;
-  /** `false` si la ruta no es editable (p. ej. no BORRADOR) o hay carga de detalle. */
-  puedeEditarEquipos?: boolean;
-  /** Oculta por completo acciones de equipo (no solo deshabilitadas). */
-  readOnly?: boolean;
-};
-
-const BOTON_EQUIPO_SX = {
-  ...rutasAsignacionNeutralContainedButtonSx,
-  minHeight: 26,
-  minWidth: 0,
-  py: 0.25,
-  px: 1,
-  fontSize: "0.68rem",
-  lineHeight: 1.2,
-} as const;
 
 /**
  * Panel operativo Mapa final: grupos con inspectores y listado numerado de direcciones (domicilio, rubro, tipo, OT).
@@ -108,10 +226,20 @@ const BOTON_EQUIPO_SX = {
 export function MapaFinalResumenLateral({
   gruposVista,
   gruposModelo = [],
+  itemsActivos = [],
   onEditarInspectores,
+  onMoverItem,
   puedeEditarEquipos = false,
   readOnly = false,
 }: MapaFinalResumenLateralProps) {
+  const itemById = useMemo(() => {
+    const m: Record<number, IRutaItemMin> = {};
+    for (const row of itemsActivos) {
+      if (!row.deleted_at) m[row.id] = row;
+    }
+    return m;
+  }, [itemsActivos]);
+
   if (gruposVista.length === 0) {
     return (
       <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.8125rem", lineHeight: 1.45, color: GLASS_COLORS.textSecondary }}>
@@ -205,7 +333,7 @@ export function MapaFinalResumenLateral({
                           disableElevation
                           disabled={!puedeEditarEquipos}
                           onClick={() => onEditarInspectores(grupoMin)}
-                          sx={BOTON_EQUIPO_SX}
+                          sx={MAPA_LATERAL_ACCION_COMPACTA_SX}
                         >
                           Equipo
                         </Button>
@@ -260,9 +388,26 @@ export function MapaFinalResumenLateral({
                   Direcciones
                 </Typography>
                 <Stack spacing={0.75}>
-                  {gv.items.map((it) => (
-                    <DireccionRow key={it.itemId} it={it} />
-                  ))}
+                  {gv.items.map((it) => {
+                    const modelo = itemById[it.itemId];
+                    const moverDestinos = gruposVista.filter((g) => g.id !== gv.id).map((g) => ({ id: g.id, nombre: g.nombre }));
+                    const mostrarMover =
+                      !readOnly &&
+                      Boolean(onMoverItem) &&
+                      puedeEditarEquipos &&
+                      moverDestinos.length > 0 &&
+                      Boolean(modelo);
+                    return (
+                      <DireccionRow
+                        key={it.itemId}
+                        it={it}
+                        itemModelo={modelo}
+                        moverDestinos={moverDestinos}
+                        onMoverItem={onMoverItem}
+                        mostrarMover={mostrarMover}
+                      />
+                    );
+                  })}
                 </Stack>
               </Box>
             </Stack>

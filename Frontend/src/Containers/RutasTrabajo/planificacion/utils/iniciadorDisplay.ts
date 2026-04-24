@@ -32,7 +32,30 @@ export function lineaPrincipalPendiente(row: IRutaIniciadorPendienteRow): string
 }
 
 /**
+ * Rubro operativo para listados (pool / cards / tabla asignación).
+ */
+export function rubroLineaPendiente(row: IRutaIniciadorPendienteRow): string {
+  const r = row.rubro_nombre ?? row.domicilio?.rubro ?? "";
+  return r.trim() || "—";
+}
+
+/**
+ * Nombre de distrito desde fila planificada (top-level o anidado en domicilio).
+ */
+export function distritoNombrePendiente(row: IRutaIniciadorPendienteRow): string {
+  const d = row.distrito_nombre ?? row.domicilio?.distrito_nombre ?? "";
+  return d.trim() || "—";
+}
+
+/** Fecha de origen si viene del API; `null` si no hay nada que mostrar. */
+export function fechaOrigenPendiente(row: IRutaIniciadorPendienteRow): string | null {
+  const f = row.fecha_origen?.trim();
+  return f || null;
+}
+
+/**
  * Subtítulo rubro · fecha (solo segmentos presentes).
+ * @deprecated Preferir `rubroLineaPendiente` + `fechaOrigenPendiente` en UI con jerarquía propia.
  */
 export function subtituloRubroFecha(row: IRutaIniciadorPendienteRow): string | null {
   const rubro = row.rubro_nombre ?? row.domicilio?.rubro ?? "";

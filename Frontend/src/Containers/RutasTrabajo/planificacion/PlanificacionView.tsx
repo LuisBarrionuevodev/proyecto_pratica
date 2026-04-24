@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, Grid } from "@mui/material";
 
 import type { IRutaIniciadorPendienteRow, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
@@ -6,7 +7,10 @@ import {
   usePlanificacionController,
   type PlanificacionPoolControl,
 } from "./hooks/usePlanificacionController";
-import { PlanificacionHeader } from "./PlanificacionHeader";
+
+import { AppButton } from "../../../ui";
+import { RutaResumenHeaderCard, rutaResumenHeaderAccionButtonSx } from "../Components/RutaResumenHeaderCard";
+import { estadoRutaVisible, turnoLabel } from "../utils/rutaResumenLabels";
 import { PlanificacionMapaDistritos } from "./PlanificacionMapaDistritos";
 import { PendientesContextoPanel } from "./PendientesContextoPanel";
 import { PlanificacionSummaryCards } from "./PlanificacionSummaryCards";
@@ -224,10 +228,38 @@ export function PlanificacionView({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minWidth: 0 }}>
-      <PlanificacionHeader
-        ruta={ruta}
-        onVolverAElegirRuta={onVolverAElegirRuta}
-        onContinuarAsignacion={handleContinuar}
+      <RutaResumenHeaderCard
+        title="Resumen de ruta"
+        chips={[
+          ...(estadoRutaVisible(ruta.estado_ruta)
+            ? [{ key: "estado", label: estadoRutaVisible(ruta.estado_ruta)!, variant: "estado" as const }]
+            : []),
+          { key: "fecha", label: ruta.fecha },
+          { key: "turno", label: turnoLabel(ruta.turno) },
+        ]}
+        actions={
+          <>
+            <AppButton
+              dsVariant="secondary"
+              dsSize="md"
+              fullWidth
+              startIcon={<ArrowBackIcon />}
+              onClick={onVolverAElegirRuta}
+              sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
+            >
+              Elegir otra ruta
+            </AppButton>
+            <AppButton
+              dsVariant="primary"
+              dsSize="md"
+              fullWidth
+              onClick={handleContinuar}
+              sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 700 }}
+            >
+              Continuar a asignación
+            </AppButton>
+          </>
+        }
       />
 
       <PlanificacionSummaryCards

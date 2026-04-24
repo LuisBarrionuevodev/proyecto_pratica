@@ -169,3 +169,25 @@ export const asignacionFiltroInputSlotSx: SxProps<Theme> = {
     borderRadius: "10px",
   },
 };
+
+/** Altura de controles en la fila OT / Guardar / Mover (alineado a `AppButton` `md` y filtros). */
+export const asignacionItemControlInputHeight = 40;
+
+/** `TextField` (OT o select) en fila de ítem: alto uniforme y tipografía institucional. */
+export const asignacionItemOtTextFieldRootSx: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    minHeight: asignacionItemControlInputHeight,
+    alignItems: "center",
+    borderRadius: "10px",
+    fontFamily: TACTIC,
+  },
+  "& .MuiInputBase-input": { fontSize: "0.875rem" },
+};
+
+/** Botón neutro en fila de ítem (Mover): misma altura que `AppButton` `md`. */
+export const asignacionItemRowNeutralButtonSx: SxProps<Theme> = {
+  ...rutasAsignacionNeutralContainedButtonSx,
+  minHeight: asignacionItemControlInputHeight,
+  px: 2,
+  fontSize: "0.875rem",
+};

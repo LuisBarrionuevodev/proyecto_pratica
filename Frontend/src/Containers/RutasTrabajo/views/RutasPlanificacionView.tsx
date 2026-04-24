@@ -19,9 +19,11 @@ import type {
   IRutaItemMin,
   IRutaTrabajo,
 } from "../../../api/rutasTrabajoApi";
+import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
 import ModalAsignarSeleccionAGrupo from "../Components/ModalAsignarSeleccionAGrupo";
 import PanelGruposRuta from "../Components/PanelGruposRuta";
-import ResumenRutaTrabajo from "../Components/ResumenRutaTrabajo";
+import { RutaResumenHeaderCard, rutaResumenHeaderAccionButtonSx } from "../Components/RutaResumenHeaderCard";
+import { RutaResumenMetricasInline } from "../Components/ResumenRutaTrabajo";
 import TablaIniciadoresPendientes, {
   type AsignacionPoolFilters,
   type TablaIniciadoresPendientesProps,
@@ -32,6 +34,7 @@ import {
   rutasInstitutionalDividerSx,
   rutasInstitutionalPanelPaperSx,
 } from "../styles/institutionalVisual";
+import { estadoRutaVisible, turnoLabel } from "../utils/rutaResumenLabels";
 
 export type RutasPlanificacionFilters = AsignacionPoolFilters;
 
@@ -118,7 +121,7 @@ export type RutasPlanificacionViewProps = {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
+  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
   onContinuarMapaFinal: () => void;
   onVolverPlanificacion: () => void;
   onAssignIniciadoresToGrupo: (grupoId: number, iniciadorIds: number[]) => Promise<boolean>;
@@ -129,7 +132,6 @@ type AsignacionTopSectionProps = {
   grupos: IRutaGrupoMin[];
   itemsCount: number;
   itemsSinOtCount: number;
-  hayTrabajoParaMapa: boolean;
   puedeContinuarAMapaFinal: boolean;
   continuarMapaFinalTooltip: string;
   onVolverPlanificacion: () => void;
@@ -142,68 +144,55 @@ const AsignacionTopSection = memo(function AsignacionTopSection({
   grupos,
   itemsCount,
   itemsSinOtCount,
-  hayTrabajoParaMapa,
   puedeContinuarAMapaFinal,
   continuarMapaFinalTooltip,
   onVolverPlanificacion,
   onContinuarMapaFinal,
 }: AsignacionTopSectionProps) {
+  const estado = estadoRutaVisible(ruta.estado_ruta);
   return (
     <>
-      <ResumenRutaTrabajo ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
-
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={1.5}
-        justifyContent="space-between"
-        alignItems={{ xs: "stretch", sm: "center" }}
-        sx={{ flexWrap: "wrap", rowGap: 1 }}
-      >
-        <AppButton
-          dsVariant="primary"
-          dsSize="sm"
-          onClick={onVolverPlanificacion}
-          sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}
-        >
-          Volver a planificación
-        </AppButton>
-        <Stack
-          spacing={0.5}
-          alignItems={{ xs: "stretch", sm: "flex-end" }}
-          sx={{ width: { xs: "100%", sm: "auto" } }}
-        >
-          <Tooltip title={continuarMapaFinalTooltip}>
-            <Box
-              sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" }, width: { xs: "100%", sm: "auto" } }}
+      <RutaResumenHeaderCard
+        title="Resumen de ruta"
+        chips={[
+          ...(estado ? [{ key: "estado", label: estado, variant: "estado" as const }] : []),
+          { key: "fecha", label: ruta.fecha },
+          { key: "turno", label: turnoLabel(ruta.turno) },
+        ]}
+        summary={<RutaResumenMetricasInline omitFechaTurno ruta={ruta} grupos={grupos} itemsCount={itemsCount} />}
+        actions={
+          <>
+            <AppButton
+              dsVariant="secondary"
+              dsSize="md"
+              fullWidth
+              onClick={onVolverPlanificacion}
+              sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
             >
-              <AppButton
-                dsVariant="primary"
-                dsSize="md"
-                onClick={onContinuarMapaFinal}
-                disabled={!puedeContinuarAMapaFinal}
-                sx={{ width: { xs: "100%", sm: "auto" } }}
-              >
-                Continuar a mapa final
-              </AppButton>
-            </Box>
-          </Tooltip>
-          {itemsSinOtCount > 0 ? (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{
-                display: "block",
-                lineHeight: 1.4,
-                textAlign: { xs: "left", sm: "right" },
-                maxWidth: 280,
-                fontSize: "0.7rem",
-              }}
-            >
-              {itemsSinOtCount} ítem{itemsSinOtCount === 1 ? "" : "s"} sin OT guardada.
-            </Typography>
-          ) : null}
-        </Stack>
-      </Stack>
+              Volver a planificación
+            </AppButton>
+            <Tooltip title={continuarMapaFinalTooltip}>
+              <span style={{ display: "flex", width: "100%" }}>
+                <AppButton
+                  dsVariant="primary"
+                  dsSize="md"
+                  fullWidth
+                  onClick={onContinuarMapaFinal}
+                  disabled={!puedeContinuarAMapaFinal}
+                  sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 700 }}
+                >
+                  Continuar a mapa final
+                </AppButton>
+              </span>
+            </Tooltip>
+            {itemsSinOtCount > 0 ? (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4, fontSize: "0.7rem" }}>
+                {itemsSinOtCount} ítem{itemsSinOtCount === 1 ? "" : "s"} sin OT guardada.
+              </Typography>
+            ) : null}
+          </>
+        }
+      />
 
       <Divider sx={rutasInstitutionalDividerSx} />
     </>
@@ -286,7 +275,7 @@ type AsignacionGruposColumnProps = {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
+  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
 };
 
 const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
@@ -306,16 +295,15 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
     <Grid size={{ xs: 12, md: 5 }}>
       <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
         <Typography sx={{ ...planificacionPanelTitleSx, mb: 1 }}>Grupos</Typography>
-        <Button
-          variant="contained"
-          size="small"
-          disableElevation
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
           disabled={!canCreateGrupo}
           onClick={onOpenCrearGrupo}
-          sx={[{ mb: 1.5 }, rutasAsignacionNeutralContainedButtonSx]}
+          sx={{ mb: 1.5, fontWeight: 700 }}
         >
           + Nuevo grupo
-        </Button>
+        </AppButton>
         {detailLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={36} sx={{ color: GLASS_COLORS.primary }} />
@@ -423,7 +411,6 @@ function RutasPlanificacionView({
         grupos={grupos}
         itemsCount={itemsCount}
         itemsSinOtCount={itemsSinOt.length}
-        hayTrabajoParaMapa={hayTrabajoParaMapa}
         puedeContinuarAMapaFinal={puedeContinuarAMapaFinal}
         continuarMapaFinalTooltip={continuarMapaFinalTooltip}
         onVolverPlanificacion={onVolverPlanificacion}

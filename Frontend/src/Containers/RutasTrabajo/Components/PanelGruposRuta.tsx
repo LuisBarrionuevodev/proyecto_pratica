@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -12,15 +12,29 @@ import {
   Typography,
 } from "@mui/material";
 
-import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin } from "../../../api/rutasTrabajoApi";
+import type {
+  IRutaGrupoInspector,
+  IRutaGrupoMin,
+  IRutaIniciadorPendienteRow,
+  IRutaItemMin,
+} from "../../../api/rutasTrabajoApi";
 import { AppButton } from "../../../ui";
 import {
+  asignacionItemOtTextFieldRootSx,
+  asignacionItemRowNeutralButtonSx,
   rutasAsignacionNeutralContainedButtonSx,
   rutasInstitutionalDividerSx,
   rutasInstitutionalGrupoPaperSx,
   rutasInstitutionalItemPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
+import {
+  distritoOperativoDesdeItemYPool,
+  etiquetaDomicilioDesdeItemYPool,
+  rubroOperativoDesdeItemYPool,
+  tipoEtiquetaDesdeItemYPool,
+} from "../utils/rutaItemOperativoDesdeItemYPool";
+import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
 
 interface Props {
   grupos: IRutaGrupoMin[];
@@ -30,7 +44,7 @@ interface Props {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
+  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
 }
 
 type OtUiKind = "sin_guardar" | "pendiente_guardar" | "guardada";
@@ -67,8 +81,26 @@ function otUiState(
   };
 }
 
-const OT_FIELD_SX = { width: { xs: "100%", sm: 160 }, minWidth: 0 } as const;
+const OT_FIELD_SX = {
+  width: { xs: "100%", sm: 168 },
+  minWidth: 0,
+  ...asignacionItemOtTextFieldRootSx,
+} as const;
+
+const MOVER_A_FIELD_SX = {
+  ...asignacionItemOtTextFieldRootSx,
+} as const;
+
 const OT_FORM_HELPER_PROPS = { sx: { maxWidth: 320, m: 0, mt: 0.5 } } as const;
+
+/** Nombre o legajo; sin IDs en UI operativa. */
+function etiquetaInspectorEnLinea(ins: IRutaGrupoInspector): string {
+  const nom = ins.inspector_nombre?.trim();
+  if (nom) return nom;
+  const leg = ins.inspector_legajo?.trim();
+  if (leg) return `Leg. ${leg}`;
+  return "Inspector";
+}
 
 type RutaGrupoItemRowProps = {
   item: IRutaItemMin;
@@ -83,6 +115,8 @@ type RutaGrupoItemRowProps = {
   onGuardarOt: (item: IRutaItemMin, otDraft: string) => void;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
+  /** Error de guardado OT (p. ej. 409) mostrado bajo el campo en este ítem. */
+  otInlineError?: string;
 };
 
 /**
@@ -108,6 +142,8 @@ type GrupoRutaSectionProps = {
   onGuardarOt: (item: IRutaItemMin, otDraft: string) => void;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
+  /** Mensaje de error inline por ítem (conflicto OT, etc.). */
+  otInlineErrorByItem: Record<number, string>;
 };
 
 function grupoRutaSectionPropsAreEqual(prev: GrupoRutaSectionProps, next: GrupoRutaSectionProps): boolean {
@@ -130,6 +166,7 @@ function grupoRutaSectionPropsAreEqual(prev: GrupoRutaSectionProps, next: GrupoR
     const id = it.id;
     if ((prev.otDraftForItem[id] ?? "") !== (next.otDraftForItem[id] ?? "")) return false;
     if ((prev.targetForItem[id] ?? "") !== (next.targetForItem[id] ?? "")) return false;
+    if ((prev.otInlineErrorByItem[id] ?? "") !== (next.otInlineErrorByItem[id] ?? "")) return false;
   }
   return true;
 }
@@ -155,6 +192,7 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
   onGuardarOt,
   onMoverItem,
   onQuitarItem,
+  otInlineErrorByItem,
 }: GrupoRutaSectionProps) {
   const accent = `hsl(${(grupo.id * 61) % 360} 75% 58%)`;
 
@@ -181,19 +219,21 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
           flexWrap="wrap"
           useFlexGap
           justifyContent={{ xs: "flex-start", sm: "flex-end" }}
+          alignItems="center"
         >
-          <AppButton dsVariant="primary" dsSize="sm" onClick={() => onToggleExpanded(grupo.id)}>
-            {expanded ? "Ocultar items" : "Gestionar items"}
-          </AppButton>
           <Button
+            type="button"
             variant="contained"
             size="small"
             disableElevation
-            onClick={() => onEditarInspectores(grupo)}
+            onClick={() => onToggleExpanded(grupo.id)}
             sx={rutasAsignacionNeutralContainedButtonSx}
           >
-            Inspectores
+            {expanded ? "Ocultar items" : "Gestionar items"}
           </Button>
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => onEditarInspectores(grupo)}>
+            Inspectores
+          </AppButton>
           <AppButton dsVariant="danger" dsSize="sm" onClick={() => void onEliminarGrupo(grupo)}>
             Eliminar
           </AppButton>
@@ -202,9 +242,7 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
       <Divider sx={{ my: 1.2, ...rutasInstitutionalDividerSx }} />
 
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4 }}>
-        {grupo.inspectores.length > 0
-          ? grupo.inspectores.map((i) => i.inspector_nombre ?? `#${i.inspector_id}`).join(", ")
-          : "Sin inspectores"}
+        {grupo.inspectores.length > 0 ? grupo.inspectores.map((i) => etiquetaInspectorEnLinea(i)).join(", ") : "Sin inspectores"}
       </Typography>
 
       <Stack spacing={1} sx={{ mt: 1.5 }}>
@@ -218,6 +256,7 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
             const otDraft = otDraftForItem[item.id] ?? "";
             const target = targetForItem[item.id] ?? "";
             const savingThis = savingItemIdInSection === item.id;
+            const otInlineError = otInlineErrorByItem[item.id];
             return (
               <RutaGrupoItemRow
                 key={item.id}
@@ -228,6 +267,7 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
                 savingThis={savingThis}
                 canMove={canMove}
                 moveTargets={moveTargets}
+                otInlineError={otInlineError}
                 onOtDraftChange={onOtDraftChange}
                 onMoveTargetChange={onMoveTargetChange}
                 onGuardarOt={onGuardarOt}
@@ -250,6 +290,7 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
   savingThis,
   canMove,
   moveTargets,
+  otInlineError,
   onOtDraftChange,
   onMoveTargetChange,
   onGuardarOt,
@@ -258,85 +299,113 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
 }: RutaGrupoItemRowProps) {
   const otUi = useMemo(() => otUiState(item, otDraft), [item, otDraft]);
   const puedeGuardarOt = otDraft.trim().length > 0 && !savingThis;
+  const otErrorMsg = otInlineError?.trim() ?? "";
+  const hasOtInlineError = Boolean(otErrorMsg);
 
-  const direccion =
-    iniciador?.domicilio_texto ??
-    `${iniciador?.domicilio?.calle ?? "-"} ${iniciador?.domicilio?.numero ?? ""}`.trim();
-  const rubro = iniciador?.rubro_nombre ?? iniciador?.domicilio?.rubro ?? "Sin rubro";
-  const distritoNombre = iniciador?.distrito_nombre ?? iniciador?.domicilio?.distrito_nombre ?? null;
-  const tipoLabel = iniciador?.badges?.tipo_label ?? iniciador?.tipo_iniciador ?? "SIN TIPO";
+  /** Snapshot del ítem (GET detail) primero; pool de planificación como enriquecimiento. */
+  const direccion = etiquetaDomicilioDesdeItemYPool(item, iniciador);
+  const rubro = rubroOperativoDesdeItemYPool(item, iniciador);
+  const distritoNombre = distritoOperativoDesdeItemYPool(item, iniciador);
+  const tipoLabel = tipoEtiquetaDesdeItemYPool(item, iniciador);
 
   return (
     <Paper elevation={0} sx={rutasInstitutionalItemPaperSx}>
       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
-        {direccion || `Iniciador #${item.iniciador_ruta_id}`}
+        {direccion}
       </Typography>
       <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }} alignItems="center" flexWrap="wrap">
         <Typography variant="caption" color="text.secondary">
           {distritoNombre ? `${rubro} · ${distritoNombre}` : rubro}
         </Typography>
         <Chip label={tipoLabel} size="small" variant="outlined" />
-        <Chip label={`#${item.iniciador_ruta_id}`} size="small" variant="outlined" />
         <Chip label={otUi.chipLabel} size="small" color={otUi.chipColor} variant="outlined" />
       </Stack>
       <Stack
         direction={{ xs: "column", sm: "row" }}
-        spacing={0.8}
+        spacing={1}
         sx={{ mt: 0.8 }}
         alignItems={{ xs: "stretch", sm: "flex-start" }}
         flexWrap="wrap"
+        useFlexGap
       >
-        <TextField
-          size="small"
-          label="OT"
-          value={otDraft}
-          onChange={(e) => onOtDraftChange(item.id, e.target.value)}
-          sx={OT_FIELD_SX}
-          helperText={otUi.helperText}
-          FormHelperTextProps={OT_FORM_HELPER_PROPS}
-        />
+        <Box
+          sx={{
+            width: { xs: "100%", sm: "auto" },
+            minWidth: { sm: 168 },
+            maxWidth: { sm: 220 },
+            flex: { sm: "0 0 auto" },
+          }}
+        >
+          <TextField
+            fullWidth
+            size="small"
+            label="OT"
+            value={otDraft}
+            onChange={(e) => onOtDraftChange(item.id, e.target.value)}
+            sx={OT_FIELD_SX}
+            error={hasOtInlineError}
+            helperText={hasOtInlineError ? otErrorMsg : otUi.helperText}
+            FormHelperTextProps={{
+              sx: {
+                ...OT_FORM_HELPER_PROPS.sx,
+                ...(hasOtInlineError
+                  ? { color: "error.light", fontWeight: 600, fontFamily: '"Tactic Sans", sans-serif' }
+                  : {}),
+              },
+            }}
+          />
+        </Box>
         <AppButton
           dsVariant="primary"
-          dsSize="sm"
+          dsSize="md"
           loading={savingThis}
           disabled={!puedeGuardarOt}
           onClick={() => onGuardarOt(item, otDraft)}
-          sx={{ alignSelf: { xs: "flex-start", sm: "center" }, mt: { xs: 0, sm: 0.25 } }}
+          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" }, width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}
         >
           {savingThis ? "Guardando…" : "Guardar OT"}
         </AppButton>
-        <TextField
-          select
-          size="small"
-          label="Mover a"
-          value={target}
-          onChange={(e) => {
-            const val = e.target.value ? Number(e.target.value) : "";
-            onMoveTargetChange(item.id, val);
-          }}
-          sx={{ minWidth: 150 }}
-          disabled={!canMove}
-        >
-          <MenuItem value="">Seleccionar</MenuItem>
-          {moveTargets.map((g) => (
-            <MenuItem key={g.id} value={g.id}>
-              {g.nombre}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Box sx={{ width: { xs: "100%", sm: "auto" }, minWidth: { sm: 180 }, maxWidth: { sm: 280 }, flex: { sm: "0 0 auto" } }}>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label="Mover a"
+            value={target}
+            onChange={(e) => {
+              const val = e.target.value ? Number(e.target.value) : "";
+              onMoveTargetChange(item.id, val);
+            }}
+            sx={MOVER_A_FIELD_SX}
+            disabled={!canMove}
+          >
+            <MenuItem value="">Seleccionar</MenuItem>
+            {moveTargets.map((g) => (
+              <MenuItem key={g.id} value={g.id}>
+                {g.nombre}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
         <Button
+          type="button"
           variant="contained"
-          size="small"
+          size="medium"
           disableElevation
           onClick={() => {
             if (typeof target === "number") void onMoverItem(item, target);
           }}
           disabled={!canMove || typeof target !== "number"}
-          sx={rutasAsignacionNeutralContainedButtonSx}
+          sx={asignacionItemRowNeutralButtonSx}
         >
           Mover
         </Button>
-        <AppButton dsVariant="danger" dsSize="sm" onClick={() => void onQuitarItem(item)}>
+        <AppButton
+          dsVariant="danger"
+          dsSize="md"
+          onClick={() => void onQuitarItem(item)}
+          sx={{ flexShrink: 0, width: { xs: "100%", sm: "auto" } }}
+        >
           Quitar
         </AppButton>
       </Stack>
@@ -358,6 +427,24 @@ function PanelGruposRutaInner({
   const [expandedByGrupo, setExpandedByGrupo] = useState<Record<number, boolean>>({});
   const [otDraftByItem, setOtDraftByItem] = useState<Record<number, string>>({});
   const [savingOtItemId, setSavingOtItemId] = useState<number | null>(null);
+  /** Conflicto OT u otro 409: mensaje por `item.id`, solo en la card del ítem. */
+  const [otInlineErrorByItem, setOtInlineErrorByItem] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    const ids = new Set(items.filter((i) => !i.deleted_at).map((i) => i.id));
+    setOtInlineErrorByItem((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const idStr of Object.keys(next)) {
+        const id = Number(idStr);
+        if (!ids.has(id)) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items]);
 
   const itemsSinOtPersistida = useMemo(
     () => items.filter((i) => !i.deleted_at && i.orden_trabajo_id == null),
@@ -391,6 +478,12 @@ function PanelGruposRutaInner({
   const canMove = grupos.length > 1;
 
   const handleOtDraftChange = useCallback((itemId: number, value: string) => {
+    setOtInlineErrorByItem((prev) => {
+      if (prev[itemId] == null) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
     setOtDraftByItem((prev) => ({ ...prev, [itemId]: value }));
   }, []);
 
@@ -403,13 +496,21 @@ function PanelGruposRutaInner({
       void (async () => {
         setSavingOtItemId(item.id);
         try {
-          const ok = await onGuardarOtItem(item, otDraft);
-          if (ok) {
+          const result = await onGuardarOtItem(item, otDraft);
+          if (result.ok) {
+            setOtInlineErrorByItem((prev) => {
+              if (prev[item.id] == null) return prev;
+              const next = { ...prev };
+              delete next[item.id];
+              return next;
+            });
             setOtDraftByItem((prev) => {
               const next = { ...prev };
               delete next[item.id];
               return next;
             });
+          } else if (result.scope === "inline") {
+            setOtInlineErrorByItem((prev) => ({ ...prev, [item.id]: result.message }));
           }
         } finally {
           setSavingOtItemId((id) => (id === item.id ? null : id));
@@ -469,6 +570,7 @@ function PanelGruposRutaInner({
               iniciadorById={iniciadorById}
               otDraftForItem={otDraftForItem}
               targetForItem={targetForItem}
+              otInlineErrorByItem={otInlineErrorByItem}
               savingItemIdInSection={savingItemIdInSection}
               onToggleExpanded={toggleGrupoExpanded}
               onEditarInspectores={onEditarInspectores}

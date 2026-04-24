@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin } from "../../../api/rutasTrabajoApi";
-import { tipoIniciadorDesdeCodigoApi, tipoIniciadorEtiquetaOperativa } from "../planificacion/utils/iniciadorDisplay";
+import {
+  distritoOperativoDesdeItemYPool,
+  etiquetaDomicilioDesdeItemYPool,
+  rubroOperativoDesdeItemYPool,
+  tipoEtiquetaDesdeItemYPool,
+} from "../utils/rutaItemOperativoDesdeItemYPool";
 import type {
   RutaMapaGrupoVista,
   RutaMapaInspectorFila,
@@ -25,36 +30,10 @@ export function grupoColorAccent(grupoId: number): string {
   return `hsl(${(grupoId * 61) % 360} 75% 58%)`;
 }
 
-function etiquetaItem(
-  item: IRutaItemMin,
-  iniciadorById: Record<number, IRutaIniciadorPendienteRow>
-): string {
-  if (item.domicilio_texto?.trim()) {
-    return item.domicilio_texto.trim();
-  }
-  const ini = iniciadorById[item.iniciador_ruta_id];
-  const texto =
-    ini?.domicilio_texto ??
-    `${ini?.domicilio?.calle ?? ""} ${ini?.domicilio?.numero ?? ""}`.trim();
-  return texto || "Sin domicilio en datos";
-}
-
 function ordenTrabajoLabel(item: IRutaItemMin): string | null {
   const ot = item.orden_trabajo;
   if (!ot) return null;
   return `O. trabajo ${ot.numero_acta} · ${String(ot.mes).padStart(2, "0")}/${ot.anio}`;
-}
-
-/**
- * Etiqueta de tipo: primero `tipo_iniciador` del ítem (detail API); si falta, pool de planificación.
- */
-function tipoIniciadorLabelParaItem(
-  it: IRutaItemMin,
-  iniciadorById: Record<number, IRutaIniciadorPendienteRow>
-): string | null {
-  const desdeItem = tipoIniciadorDesdeCodigoApi(it.tipo_iniciador ?? null);
-  if (desdeItem) return desdeItem;
-  return tipoIniciadorEtiquetaOperativa(iniciadorById[it.iniciador_ruta_id]) ?? null;
 }
 
 function inspectoresFilasDesdeGrupo(g: IRutaGrupoMin): RutaMapaInspectorFila[] {
@@ -89,19 +68,22 @@ export function useRutaMapa(
         .sort((a, b) => a.id - b.id);
 
       const items: RutaMapaItemVista[] = groupItems.map((it, idx) => {
+        const poolRow = iniciadorById[it.iniciador_ruta_id];
         const lat = typeof it.lat === "number" && !Number.isNaN(it.lat) ? it.lat : null;
         const lng = typeof it.lng === "number" && !Number.isNaN(it.lng) ? it.lng : null;
-        const tipoIniciadorLabel = tipoIniciadorLabelParaItem(it, iniciadorById);
+        const rubroFull = rubroOperativoDesdeItemYPool(it, poolRow);
+        const distritoFull = distritoOperativoDesdeItemYPool(it, poolRow);
+        const tipoIniciadorLabel = tipoEtiquetaDesdeItemYPool(it, poolRow);
         const geoRaw = it.geo_status ?? null;
         return {
           itemId: it.id,
           iniciadorRutaId: it.iniciador_ruta_id,
           orden: idx + 1,
-          etiqueta: etiquetaItem(it, iniciadorById),
+          etiqueta: etiquetaDomicilioDesdeItemYPool(it, poolRow),
           lat,
           lng,
-          rubroNombre: it.rubro_nombre?.trim() ? it.rubro_nombre.trim() : null,
-          distritoNombre: it.distrito_nombre?.trim() ? it.distrito_nombre.trim() : null,
+          rubroNombre: rubroFull === "Sin rubro" ? null : rubroFull,
+          distritoNombre: distritoFull,
           geoStatus: geoRaw,
           geoStatusLabel: humanizarGeoStatus(geoRaw),
           ordenTrabajoLabel: ordenTrabajoLabel(it),

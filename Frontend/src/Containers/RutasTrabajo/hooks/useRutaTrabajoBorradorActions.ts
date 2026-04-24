@@ -7,6 +7,12 @@ import {
   type IRutaItemMin,
 } from "../../../api/rutasTrabajoApi";
 
+/** Resultado de guardar OT: conflicto de negocio (p. ej. 409) vs error global ya volcado a `setError`. */
+export type GuardarOtItemResult =
+  | { ok: true }
+  | { ok: false; scope: "inline"; message: string }
+  | { ok: false; scope: "global" };
+
 export type UseRutaTrabajoBorradorActionsParams = {
   rutaId: number | null;
   setItems: React.Dispatch<React.SetStateAction<IRutaItemMin[]>>;
@@ -52,17 +58,24 @@ export function useRutaTrabajoBorradorActions({
   );
 
   const saveOtItem = useCallback(
-    async (item: IRutaItemMin, numeroOt: string): Promise<boolean> => {
-      if (!rutaId) return false;
+    async (item: IRutaItemMin, numeroOt: string): Promise<GuardarOtItemResult> => {
+      if (!rutaId) return { ok: false, scope: "global" };
       try {
         const resp = await patchRutaItemOrdenTrabajo(rutaId, item.id, {
           numero_orden_trabajo: numeroOt,
         });
         setItems((prev) => prev.map((it) => (it.id === resp.item.id ? resp.item : it)));
-        return true;
-      } catch (err: any) {
-        setError(err?.response?.data?.detail || "No se pudo guardar la OT");
-        return false;
+        return { ok: true };
+      } catch (err: unknown) {
+        const ax = err as { response?: { status?: number; data?: { detail?: unknown } } };
+        const status = ax?.response?.status;
+        const detail = ax?.response?.data?.detail;
+        const msg = typeof detail === "string" ? detail : "No se pudo guardar la OT";
+        if (status === 409) {
+          return { ok: false, scope: "inline", message: msg };
+        }
+        setError(msg);
+        return { ok: false, scope: "global" };
       }
     },
     [rutaId, setItems, setError]

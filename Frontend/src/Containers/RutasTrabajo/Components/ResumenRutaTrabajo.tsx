@@ -1,85 +1,84 @@
-import { Box, Paper, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 
 import type { IRutaGrupoMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { planificacionPanelSubtitleSx, rutasInstitutionalResumenPaperSx, rutasResumenTitleSx } from "../styles/institutionalVisual";
+import { planificacionPanelSubtitleSx } from "../styles/institutionalVisual";
 
 const TACTIC = '"Tactic Sans", sans-serif' as const;
 
-interface Props {
+interface MetricasProps {
   ruta: IRutaTrabajo | null;
   grupos: IRutaGrupoMin[];
   itemsCount: number;
+  /** Si true, no repite Fecha/Turno (p. ej. cuando ya van en chips del header). */
+  omitFechaTurno?: boolean;
 }
 
-const ResumenRutaTrabajo = ({ ruta, grupos, itemsCount }: Props) => {
+/**
+ * Métricas de resumen (sin tarjeta ni título). Para incrustar en `RutaResumenHeaderCard` u otros layouts.
+ */
+export function RutaResumenMetricasInline({ ruta, grupos, itemsCount, omitFechaTurno = false }: MetricasProps) {
   const totalInspectores = grupos.reduce((acc, grupo) => acc + grupo.inspectores.length, 0);
   if (!ruta) {
     return (
-      <Paper elevation={0} sx={rutasInstitutionalResumenPaperSx}>
-        <Typography sx={rutasResumenTitleSx}>Resumen de ruta</Typography>
-        <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.75 }}>Sin ruta. Crear borrador.</Typography>
-      </Paper>
+      <Typography sx={{ ...planificacionPanelSubtitleSx, mt: 0.75 }}>Sin ruta. Crear borrador.</Typography>
     );
   }
 
   return (
-    <Paper elevation={0} sx={rutasInstitutionalResumenPaperSx}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography sx={rutasResumenTitleSx}>Resumen de ruta</Typography>
-      </Stack>
-      <Stack direction="row" spacing={2.5} flexWrap="wrap">
-        <Box>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
-            Fecha
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
-            {ruta.fecha}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
-            Turno
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
-            {ruta.turno}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
-            Grupos
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
-            {grupos.length}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
-            Items
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
-            {itemsCount}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
-            Inspectores
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
-            {totalInspectores}
-          </Typography>
-        </Box>
-        <Box sx={{ minWidth: 200, flex: 1, maxWidth: 480 }}>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
-            Observaciones
-          </Typography>
-          <Typography variant="body2" sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textSecondary, lineHeight: 1.4 }}>
-            {ruta.observaciones?.trim() || "—"}
-          </Typography>
-        </Box>
-      </Stack>
-    </Paper>
+    <Stack direction="row" spacing={2.5} flexWrap="wrap" rowGap={1.25}>
+      {!omitFechaTurno ? (
+        <>
+          <Box>
+            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+              Fecha
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+              {ruta.fecha}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+              Turno
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+              {ruta.turno}
+            </Typography>
+          </Box>
+        </>
+      ) : null}
+      <Box>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+          Grupos
+        </Typography>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+          {grupos.length}
+        </Typography>
+      </Box>
+      <Box>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+          Items
+        </Typography>
+        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+          {itemsCount}
+        </Typography>
+      </Box>
+      <Box>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+          Inspectores
+        </Typography>
+        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+          {totalInspectores}
+        </Typography>
+      </Box>
+      <Box sx={{ minWidth: 200, flex: 1, maxWidth: 480 }}>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+          Observaciones
+        </Typography>
+        <Typography variant="body2" sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textSecondary, lineHeight: 1.4 }}>
+          {ruta.observaciones?.trim() || "—"}
+        </Typography>
+      </Box>
+    </Stack>
   );
-};
-
-export default ResumenRutaTrabajo;
+}

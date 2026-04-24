@@ -6,10 +6,12 @@ import { GLASS_COLORS } from "../../../../styles/GlassStyles";
 import { AppButton } from "../../../../ui";
 import {
   abrirUbicacionEnMapaExterno,
+  distritoNombrePendiente,
   etiquetaTipoCorta,
+  fechaOrigenPendiente,
   lineaPrincipalPendiente,
   prioridadCategoriaRow,
-  subtituloRubroFecha,
+  rubroLineaPendiente,
   type PrioridadCat,
 } from "../utils/iniciadorDisplay";
 import { parseIniciadorLatLng } from "../utils/iniciadorCoords";
@@ -50,7 +52,7 @@ export type PlanificacionIniciadorCompactCardProps = {
 };
 
 /**
- * Fila compacta operativa: badges prioridad/tipo, domicilio, rubro·fecha, acciones.
+ * Fila compacta operativa: badges prioridad/tipo, domicilio, rubro, distrito, fecha, acciones.
  */
 export function PlanificacionIniciadorCompactCard({
   row,
@@ -61,8 +63,10 @@ export function PlanificacionIniciadorCompactCard({
   showVerEnMapaButton = true,
 }: PlanificacionIniciadorCompactCardProps) {
   const cat = prioridadCategoriaRow(row);
-  const subt = subtituloRubroFecha(row);
   const principal = lineaPrincipalPendiente(row);
+  const rubroTxt = rubroLineaPendiente(row);
+  const distritoTxt = distritoNombrePendiente(row);
+  const fechaTxt = fechaOrigenPendiente(row);
   const tieneCoords = parseIniciadorLatLng(row) != null;
   const puedeMapaInterno = Boolean(onVerEnMapa && tieneCoords);
   const puedeMapaExterno = principal !== "—" && !onVerEnMapa;
@@ -130,11 +134,40 @@ export function PlanificacionIniciadorCompactCard({
         >
           {principal}
         </Typography>
-        {subt ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.72rem", color: GLASS_COLORS.textMuted, lineHeight: 1.3 }}>
-            {subt}
+        <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontFamily: tactic,
+              fontSize: "0.74rem",
+              fontWeight: 700,
+              lineHeight: 1.3,
+              color: GLASS_COLORS.textPrimary,
+              wordBreak: "break-word",
+            }}
+          >
+            {rubroTxt}
           </Typography>
-        ) : null}
+          <Typography
+            sx={{
+              fontFamily: tactic,
+              fontSize: "0.7rem",
+              fontWeight: 500,
+              lineHeight: 1.28,
+              color:
+                distritoTxt !== "—" ? GLASS_COLORS.textSecondary : "rgba(255,255,255,0.28)",
+              wordBreak: "break-word",
+            }}
+          >
+            {distritoTxt}
+          </Typography>
+          {fechaTxt ? (
+            <Typography
+              sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textMuted, lineHeight: 1.25 }}
+            >
+              {fechaTxt}
+            </Typography>
+          ) : null}
+        </Stack>
         <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5} sx={{ pt: 0.25 }}>
           {showVerEnMapaButton ? (
             <Tooltip

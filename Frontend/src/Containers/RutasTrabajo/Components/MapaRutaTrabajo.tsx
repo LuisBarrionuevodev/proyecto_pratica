@@ -135,28 +135,36 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
             icon={createNumberedDivIcon(m.orden, m.color, m.grupoCodigo, m.grupoStyleIndex)}
           >
             <Popup>
-              <div style={{ minWidth: 200 }}>
-                <strong>
-                  Dirección {m.orden} · {m.grupoCodigo}
-                </strong>
-                <div style={{ marginTop: 4, fontSize: 12, opacity: 0.95 }}>{m.nombreGrupo}</div>
-                <div style={{ marginTop: 4, fontSize: 13 }}>{m.etiqueta}</div>
+              <div style={{ minWidth: 200, fontFamily: '"Tactic Sans", sans-serif', color: "#1a1d22" }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "#5c6370",
+                  }}
+                >
+                  Visita {m.orden}
+                </div>
+                <strong style={{ display: "block", marginTop: 4, fontSize: 13, fontWeight: 700, color: "#1a1d22" }}>{m.etiqueta}</strong>
+                <div style={{ marginTop: 4, fontSize: 11, color: "#3d4450" }}>{m.nombreGrupo}</div>
                 {m.rubroNombre ? (
-                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>Rubro: {m.rubroNombre}</div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: "#3d4450" }}>Rubro: {m.rubroNombre}</div>
                 ) : null}
                 {m.distritoNombre ? (
-                  <div style={{ fontSize: 12, opacity: 0.9 }}>Distrito: {m.distritoNombre}</div>
+                  <div style={{ fontSize: 12, color: "#3d4450" }}>Distrito: {m.distritoNombre}</div>
                 ) : null}
                 {m.tipoIniciadorLabel ? (
-                  <div style={{ fontSize: 12, opacity: 0.9 }}>Tipo: {m.tipoIniciadorLabel}</div>
+                  <div style={{ fontSize: 12, color: "#3d4450" }}>Tipo: {m.tipoIniciadorLabel}</div>
                 ) : (
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Tipo: —</div>
+                  <div style={{ fontSize: 12, color: "#5c6370" }}>Tipo: —</div>
                 )}
                 {m.ordenTrabajoLabel ? (
-                  <div style={{ fontSize: 12, opacity: 0.9 }}>{m.ordenTrabajoLabel}</div>
+                  <div style={{ fontSize: 12, color: "#3d4450" }}>{m.ordenTrabajoLabel}</div>
                 ) : null}
                 {m.geoStatusLabel ? (
-                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.8 }}>Ubicación: {m.geoStatusLabel}</div>
+                  <div style={{ marginTop: 4, fontSize: 11, color: "#5c6370" }}>Ubicación: {m.geoStatusLabel}</div>
                 ) : null}
               </div>
             </Popup>

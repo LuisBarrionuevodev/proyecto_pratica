@@ -7,13 +7,15 @@ import {
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
-import { etiquetaTipoCorta, lineaPrincipalPendiente, prioridadCategoriaRow } from "./utils/iniciadorDisplay";
+import {
+  distritoNombrePendiente,
+  etiquetaTipoCorta,
+  lineaPrincipalPendiente,
+  prioridadCategoriaRow,
+  rubroLineaPendiente,
+} from "./utils/iniciadorDisplay";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
-
-function rubroLinea(row: IRutaIniciadorPendienteRow): string {
-  return (row.rubro_nombre ?? row.domicilio?.rubro ?? "").trim() || "—";
-}
 
 export type PoolDelDiaPanelProps = {
   items: IRutaIniciadorPendienteRow[];
@@ -22,7 +24,7 @@ export type PoolDelDiaPanelProps = {
 };
 
 /**
- * Pool local: dirección, rubro, tipo, prioridad; scroll interno.
+ * Pool local: dirección, rubro (negrita), distrito, tipo, prioridad; scroll interno.
  */
 export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: PoolDelDiaPanelProps) {
   return (
@@ -60,7 +62,9 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
           </Typography>
         ) : (
           <Stack spacing={0.75}>
-            {items.map((row) => (
+            {items.map((row) => {
+              const distritoTxt = distritoNombrePendiente(row);
+              return (
               <Stack
                 key={row.id}
                 spacing={0.5}
@@ -83,8 +87,32 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                     >
                       {lineaPrincipalPendiente(row)}
                     </Typography>
-                    <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted }}>
-                      {rubroLinea(row)}
+                    <Typography
+                      sx={{
+                        fontFamily: tactic,
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        lineHeight: 1.3,
+                        color: GLASS_COLORS.textPrimary,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {rubroLineaPendiente(row)}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: tactic,
+                        fontSize: "0.68rem",
+                        fontWeight: 500,
+                        lineHeight: 1.25,
+                        color:
+                          distritoTxt !== "—"
+                            ? GLASS_COLORS.textSecondary
+                            : "rgba(255,255,255,0.28)",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {distritoTxt}
                     </Typography>
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                       <Chip
@@ -119,7 +147,8 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                   </AppButton>
                 </Stack>
               </Stack>
-            ))}
+              );
+            })}
           </Stack>
         )}
       </Box>

@@ -1,6 +1,7 @@
 import type { MutableRefObject } from "react";
 
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
+import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
 
 /** Ejecuta la captura PNG del bloque operativo Mapa final (p. ej. tras publicar). */
 export type CapturaMapaFinalHandle = (opts?: { estadoEtiqueta?: string }) => Promise<void>;
@@ -121,14 +122,14 @@ export type RutasMapaOperativoViewProps = {
   onEliminarGrupo?: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem?: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem?: (item: IRutaItemMin, numeroOt: string) => boolean | Promise<boolean>;
+  onGuardarOtItem?: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
   /** Registro desde el contenedor para disparar captura PNG sin acoplar el árbol al padre. */
   capturaMapaFinalRef?: MutableRefObject<CapturaMapaFinalHandle | null>;
   /** Registro para disparar impresión / PDF vía navegador de la hoja de grupos (MF7). */
   exportGruposPrintRef?: MutableRefObject<ExportGruposPrintHandle | null>;
   /**
-   * Preview histórica: ruta no BORRADOR (p. ej. PUBLICADA). Solo lectura: sin CTAs de edición/publicación;
-   * el bloque bajo `exportOperativoRef` queda como ancla estable para futura reimpresión/captura (PR posterior).
+   * Preview histórica: ruta no BORRADOR (p. ej. PUBLICADA). Solo lectura para edición/publicación;
+   * captura PNG / impresión de grupos siguen disponibles (refs + CTAs en vista mapa).
    */
   vistaHistoricaReadOnly?: boolean;
   /** Con `vistaHistoricaReadOnly`, vuelve al listado inicial (borradores / publicadas). */

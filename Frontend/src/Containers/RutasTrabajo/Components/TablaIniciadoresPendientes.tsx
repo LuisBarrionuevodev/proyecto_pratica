@@ -10,6 +10,7 @@ import {
 } from "material-react-table";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
+import { distritoNombrePendiente, rubroLineaPendiente } from "../planificacion/utils/iniciadorDisplay";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -205,23 +206,31 @@ function IniciadoresPoolTableMrt({
       {
         id: "domicilio",
         header: "Domicilio",
-        size: 300,
+        size: 262,
         Cell: ({ row }) => {
+          const orig = row.original;
           const d =
-            row.original.domicilio_texto ??
-            `${row.original.domicilio?.calle ?? "-"} ${row.original.domicilio?.numero ?? ""}`.trim();
-          const distrito =
-            row.original.distrito_nombre ?? row.original.domicilio?.distrito_nombre ?? null;
+            orig.domicilio_texto ??
+            `${orig.domicilio?.calle ?? "-"} ${orig.domicilio?.numero ?? ""}`.trim();
           const linea1 = d?.trim() || "—";
+          const rubroTxt = rubroLineaPendiente(orig);
+          const distritoTxt = distritoNombrePendiente(orig);
+          const tactic = '"Tactic Sans", sans-serif' as const;
+          const secundaria = {
+            fontFamily: tactic,
+            lineHeight: 1.28,
+            wordBreak: "break-word" as const,
+          };
           return (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.35, minWidth: 0 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3, minWidth: 0, py: 0.125 }}>
               <Typography
                 variant="body2"
                 sx={{
                   fontSize: "0.8125rem",
                   lineHeight: 1.35,
                   color: GLASS_COLORS.textPrimary,
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: tactic,
+                  fontWeight: 600,
                   wordBreak: "break-word",
                 }}
               >
@@ -230,35 +239,29 @@ function IniciadoresPoolTableMrt({
               <Typography
                 variant="caption"
                 sx={{
+                  ...secundaria,
                   fontSize: "0.7rem",
-                  lineHeight: 1.25,
-                  color: distrito ? GLASS_COLORS.textSecondary : "rgba(255,255,255,0.28)",
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontWeight: 500,
+                  color:
+                    distritoTxt !== "—" ? GLASS_COLORS.textSecondary : "rgba(255,255,255,0.28)",
                 }}
               >
-                {distrito?.trim() || "—"}
+                {distritoTxt}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  ...secundaria,
+                  fontSize: "0.68rem",
+                  fontWeight: 500,
+                  color: rubroTxt !== "—" ? GLASS_COLORS.textMuted : "rgba(255,255,255,0.22)",
+                }}
+              >
+                {rubroTxt}
               </Typography>
             </Box>
           );
         },
-      },
-      {
-        id: "rubro",
-        header: "Rubro",
-        size: 148,
-        Cell: ({ row }) => (
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: "0.8125rem",
-              color: GLASS_COLORS.textPrimary,
-              fontFamily: '"Tactic Sans", sans-serif',
-              wordBreak: "break-word",
-            }}
-          >
-            {row.original.rubro_nombre ?? row.original.domicilio?.rubro ?? "—"}
-          </Typography>
-        ),
       },
     ],
     [assignedIniciadorIds]
