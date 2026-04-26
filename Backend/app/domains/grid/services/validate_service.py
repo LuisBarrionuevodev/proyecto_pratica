@@ -121,6 +121,25 @@ class GridValidateService:
                         errors={"_row": f"Duplicado en el lote: misma OT+fecha que {other_row}"},
                         normalized=None,
                     )
+        elif kind == "relevamientos":
+            from app.domains.grid.services.relevamiento_dup_key import build_relevamiento_location_key
+
+            loc_key = build_relevamiento_location_key(row.calle, row.numero)
+            fecha_iso = row.fecha.isoformat()
+            other_row = self.store.upsert_relevamiento_dup(batch_id=batch_id, row_id=row_id, location_key=loc_key, fecha_iso=fecha_iso)
+            if other_row:
+                return ValidateRowResponse(
+                    batch_id=batch_id,
+                    row_id=row_id,
+                    ok=False,
+                    errors={
+                        "_row": (
+                            "La misma calle y número o esquina no puede cargarse con otra fecha "
+                            f"en el lote (conflicto con fila {other_row})."
+                        )
+                    },
+                    normalized=None,
+                )
 
         return ValidateRowResponse(
             batch_id=batch_id,

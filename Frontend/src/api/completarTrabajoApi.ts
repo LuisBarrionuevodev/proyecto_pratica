@@ -71,6 +71,53 @@ export interface IGetCompletarTrabajoPendientesParams {
   per_page?: number;
 }
 
+/** Fila del GET resumen Completar trabajo (carrusel + calendario operativo). */
+export interface ICompletarTrabajoPendienteDiaResumen {
+  fecha: string;
+  /** Ítems EN_PROCESO pendientes de cierre (mismo criterio que el grid por fecha). */
+  total: number;
+  atrasado: boolean;
+  items_con_actuacion?: number;
+  hubo_actividad?: boolean;
+  sin_pendientes_cierre?: boolean;
+  /** `CON_PENDIENTES` | `COMPLETO` — ausencia en `dias` = sin actividad en el módulo para esa fecha. */
+  categoria_calendario?: "CON_PENDIENTES" | "COMPLETO";
+}
+
+export interface ICompletarTrabajoPendientesResumenMeta {
+  fecha_desde: string;
+  fecha_hasta: string;
+  hoy: string;
+}
+
+export interface ICompletarTrabajoPendientesResumenResponse {
+  dias: ICompletarTrabajoPendienteDiaResumen[];
+  meta: ICompletarTrabajoPendientesResumenMeta;
+}
+
+export interface IGetCompletarTrabajoPendientesResumenParams {
+  fecha_desde: string;
+  fecha_hasta: string;
+}
+
+/**
+ * Resumen agregado por día operativo de ruta (pendientes de completar), para chips / preview.
+ */
+export const getCompletarTrabajoPendientesResumen = async (
+  params: IGetCompletarTrabajoPendientesResumenParams
+): Promise<ICompletarTrabajoPendientesResumenResponse> => {
+  const { data } = await apiClient.get<ICompletarTrabajoPendientesResumenResponse>(
+    "/actuaciones/completar-trabajo/pendientes/resumen",
+    {
+      params: {
+        fecha_desde: params.fecha_desde,
+        fecha_hasta: params.fecha_hasta,
+      },
+    }
+  );
+  return data;
+};
+
 /** Inspectores del grupo de ruta (solo lectura en Completar trabajo). */
 export interface ICompletarTrabajoInspectorGrupo {
   ruta_grupo_inspector_id: number;

@@ -9,7 +9,7 @@ import { fetchCompletarTrabajoCatalogsCached } from "./hooks/completarTrabajoCat
 type VistaCompletar = "empty" | "grid";
 
 /**
- * Módulo Completar trabajos: selector de fecha + grilla MRT con datos reales.
+ * Módulo Completar trabajos: resumen por día (preview) + grilla MRT por fecha + modal de cierre.
  * No incluye actas previas (notif./comprob. previa): no obligatorias aquí; el origen va por iniciador.
  */
 const CompletarTrabajos = () => {

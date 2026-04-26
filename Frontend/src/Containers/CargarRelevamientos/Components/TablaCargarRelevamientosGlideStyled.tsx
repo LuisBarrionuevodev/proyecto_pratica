@@ -22,6 +22,7 @@ import {
   fetchInspectores,
   fetchRubros,
 } from "../../../api/gridApi";
+import { ValidationErrorsRail, type ValidationRailEntry } from "./ValidationErrorsRail";
 
 import {
   COLORS,
@@ -41,6 +42,12 @@ import {
   calculateRelevamientoTableHeight,
 } from "../styles/cargarRelevamientosStyles";
 import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
+import {
+  TURNO_DROPDOWN_LABELS,
+  turnoDropdownLabelToStored,
+  turnoStoredToDropdownLabel,
+} from "../config/relevamientoTurnOptions";
+import { formatFechaRelevamientoDisplay, parseFechaRelevamientoInput } from "../utils/relevamientoDateInput";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { gridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 import {
@@ -48,7 +55,6 @@ import {
   rowHasData,
   createEmptyRow,
   createEmptyRows,
-  parseDateValue,
   formatDateToISO,
 } from "../../CargarActuaciones/utils/gridHelpers";
 
@@ -58,6 +64,27 @@ interface TablaCargarRelevamientosGlideStyledProps {
 
 /** Con `rowMarkers="both"`, la primera columna de datos está desplazada en 1 respecto al canvas. */
 const ROW_MARKERS_BOTH_OFFSET = 1;
+
+const CELL_ERROR_META_KEYS = new Set(["_row", "detail", "_global"]);
+
+/**
+ * Construye entradas para el rail lateral a partir del mismo estado de grilla (`_cellErrors` / `_rowError`).
+ * Prioriza mensajes por columna; si no hay, usa el resumen de fila.
+ */
+function buildValidationRailEntries(rows: GridRow[]): ValidationRailEntry[] {
+  const out: ValidationRailEntry[] = [];
+  rows.forEach((row, index) => {
+    if (!rowHasData(row)) return;
+    const ce = row._cellErrors || {};
+    const cellLines = Object.entries(ce)
+      .filter(([k]) => !CELL_ERROR_META_KEYS.has(k))
+      .map(([k, v]) => (v ? `${k}: ${v}` : ""))
+      .filter(Boolean) as string[];
+    const lines = cellLines.length > 0 ? cellLines : row._rowError ? [row._rowError] : [];
+    if (lines.length) out.push({ rowIndex: index, lines });
+  });
+  return out;
+}
 
 const TablaCargarRelevamientosGlideStyled = ({
   showTitle = true,
@@ -351,6 +378,19 @@ const TablaCargarRelevamientosGlideStyled = ({
         value = (newValue as any).data;
       }
 
+      if (columnId === "Fecha") {
+        if (value === "" || value === null || value === undefined) {
+          value = null;
+        } else if (typeof value === "string") {
+          const parsed = parseFechaRelevamientoInput(value);
+          value = parsed ?? value.trim();
+        }
+      }
+      if (columnId === "Turno" && typeof value === "string") {
+        const canon = turnoDropdownLabelToStored(value);
+        value = canon === null ? null : canon;
+      }
+
       let updatedRow: GridRow = {
         ...rowData,
         [columnId]: value,
@@ -414,6 +454,31 @@ const TablaCargarRelevamientosGlideStyled = ({
    * Navegación tipo planilla: Tab en la última columna de datos ("Está abierto") pasa a la primera
    * columna de la fila siguiente; en la última fila útil, dispara appendRow (nueva fila + foco col 0).
    */
+  /** Enfoca la grilla en la primera celda con error de la fila (o la primera columna de datos). */
+  const focusRowInGrid = useCallback((rowIndex: number) => {
+    const row = dataRef.current[rowIndex];
+    let colGrid = ROW_MARKERS_BOTH_OFFSET;
+    if (row && rowHasData(row)) {
+      const ce = row._cellErrors || {};
+      for (let i = 0; i < COLUMN_DEFINITIONS.length; i++) {
+        const id = COLUMN_DEFINITIONS[i].id;
+        if (ce[id]) {
+          colGrid = ROW_MARKERS_BOTH_OFFSET + i;
+          break;
+        }
+      }
+    }
+    setGridSelection({
+      columns: CompactSelection.empty(),
+      rows: CompactSelection.empty(),
+      current: {
+        cell: [colGrid, rowIndex],
+        range: { x: colGrid, y: rowIndex, width: 1, height: 1 },
+        rangeStack: [],
+      },
+    });
+  }, []);
+
   const handleGridKeyDown = useCallback((event: GridKeyEventArgs) => {
     if (event.key !== "Tab" || event.shiftKey) return;
     const loc = event.location;
@@ -453,8 +518,8 @@ const TablaCargarRelevamientosGlideStyled = ({
           title: col.title,
           id: col.id,
           width: col.width,
-          /** Reparte el ancho extra del viewport (evita franja vacía a la derecha). */
-          grow: 1,
+          /** Solo Calle crece: reduce presión de scroll horizontal en notebooks. */
+          grow: col.id === "Calle" ? 1 : 0,
           group: col.group,
           icon: col.icon,
           themeOverride: groupConfig
@@ -522,13 +587,29 @@ const TablaCargarRelevamientosGlideStyled = ({
         };
       }
 
-      if (cellType === "date") {
-        const { date, displayDate } = parseDateValue(value);
+      if (columnId === "Fecha") {
+        const raw = (value ?? "").toString().trim();
+        const normalized = parseFechaRelevamientoInput(raw);
+        const display = normalized ? formatFechaRelevamientoDisplay(normalized) : raw;
+        const errorMsg = hasError ? (cellErrors[columnId] || "") : "";
+        const displayFinal = errorMsg ? (raw ? `${display} (${errorMsg})` : errorMsg) : display;
+        return {
+          kind: GridCellKind.Text,
+          data: raw,
+          displayData: displayFinal,
+          allowOverlay: true,
+          themeOverride,
+        };
+      }
+
+      if (cellType === "dropdown" && columnId === "Turno") {
+        const options = [...TURNO_DROPDOWN_LABELS];
+        const dropdownValue = turnoStoredToDropdownLabel(value ? value.toString() : null);
         return {
           kind: GridCellKind.Custom,
           allowOverlay: true,
-          copyData: displayDate,
-          data: { kind: "date-picker-cell", date, displayDate, format: "date" as const },
+          copyData: dropdownValue || "",
+          data: { kind: "dropdown-cell", allowedValues: options, value: dropdownValue },
           themeOverride,
         } as any;
       }
@@ -578,76 +659,76 @@ const TablaCargarRelevamientosGlideStyled = ({
   const errorCount = rowsWithData.filter((r) => r._state === "ERROR").length;
   const pendingCount = rowsWithData.filter((r) => r._state === "PENDIENTE").length;
   const validatingCount = rowsWithData.filter((r) => r._state === "VALIDANDO").length;
-  const rowErrorText =
-    data
-      .map((row, index) => {
-        if (!rowHasData(row) || !row._rowError) return null;
-        return `Fila ${index + 1}: ${row._rowError}`;
-      })
-      .filter(Boolean)
-      .filter((value, idx, arr) => arr.indexOf(value) === idx)
-      .join(" | ") || null;
+  const validationRailEntries = useMemo(() => buildValidationRailEntries(data), [data]);
 
   const tableHeight = useMemo(() => calculateRelevamientoTableHeight(data.length), [data.length]);
 
   return (
     <Box sx={containerStyles}>
-      <Box sx={wrapperStyles}>
-        {showTitle && <Typography sx={titleStyles}>Cargar iniciadores principales</Typography>}
+      <Box
+        sx={{
+          ...wrapperStyles,
+          flexDirection: { xs: "column", lg: "row" },
+          alignItems: "flex-start",
+        }}
+      >
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            width: { xs: "100%", lg: "auto" },
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            alignItems: "stretch",
+          }}
+        >
+          {showTitle && <Typography sx={titleStyles}>Cargar iniciadores principales</Typography>}
 
-        {globalError && (
-          <Alert severity="error" onClose={() => setGlobalError(null)} sx={alertBaseStyles}>
-            {globalError}
-          </Alert>
-        )}
+          {!batchId && (
+            <Alert severity="warning" sx={alertBaseStyles}>
+              <strong>💡 TIP:</strong> Empieza a cargar datos. El batch se iniciará automáticamente.
+            </Alert>
+          )}
 
-        {!batchId && (
-          <Alert severity="warning" sx={alertBaseStyles}>
-            <strong>💡 TIP:</strong> Empieza a cargar datos. El batch se iniciará automáticamente.
-          </Alert>
-        )}
+          {batchId && (
+            <Alert severity="success" sx={alertBaseStyles}>
+              <strong>BATCH ACTIVO:</strong> {batchId.slice(0, 13)}...
+              {okCount > 0 && (
+                <span style={{ color: COLORS.successText, fontWeight: 700, marginLeft: 8 }}>{okCount} OK</span>
+              )}
+              {errorCount > 0 && (
+                <span style={{ color: COLORS.errorText, fontWeight: 700, marginLeft: 8 }}>{errorCount} ERROR</span>
+              )}
+              {validatingCount > 0 && (
+                <span style={{ color: COLORS.white, fontWeight: 700, marginLeft: 8 }}>
+                  {validatingCount} Validando...
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span style={{ color: COLORS.warningText, fontWeight: 700, marginLeft: 8 }}>
+                  {pendingCount} Pendiente
+                </span>
+              )}
+              {isLoadingBatch && <span style={{ marginLeft: 8 }}>⏳ Iniciando...</span>}
+              {isCommitting && <span style={{ marginLeft: 8 }}>💾 Guardando...</span>}
+            </Alert>
+          )}
 
-        {batchId && (
-          <Alert severity="success" sx={alertBaseStyles}>
-            <strong>BATCH ACTIVO:</strong> {batchId.slice(0, 13)}...
-            {okCount > 0 && (
-              <span style={{ color: COLORS.successText, fontWeight: 700, marginLeft: 8 }}>{okCount} OK</span>
-            )}
-            {errorCount > 0 && (
-              <span style={{ color: COLORS.errorText, fontWeight: 700, marginLeft: 8 }}>{errorCount} ERROR</span>
-            )}
-            {validatingCount > 0 && (
-              <span style={{ color: COLORS.white, fontWeight: 700, marginLeft: 8 }}>
-                {validatingCount} Validando...
-              </span>
-            )}
-            {pendingCount > 0 && (
-              <span style={{ color: COLORS.warningText, fontWeight: 700, marginLeft: 8 }}>
-                {pendingCount} Pendiente
-              </span>
-            )}
-            {isLoadingBatch && <span style={{ marginLeft: 8 }}>⏳ Iniciando...</span>}
-            {isCommitting && <span style={{ marginLeft: 8 }}>💾 Guardando...</span>}
-            {rowErrorText && (
-              <div style={{ color: COLORS.errorText, textAlign: "center", marginTop: 8 }}>{rowErrorText}</div>
-            )}
-          </Alert>
-        )}
+          <Box sx={{ display: "flex", gap: 2, mb: 0, width: "100%" }}>
+            <Button
+              variant="contained"
+              onClick={handleCommitBatch}
+              disabled={isValidatingAll || isCommitting || rowsWithData.length === 0}
+              startIcon={(isValidatingAll || isCommitting) ? <CircularProgress size={16} /> : undefined}
+              sx={buttonMandarTodoStyles}
+            >
+              MANDAR TODO (VALIDAR + CONFIRMAR)
+            </Button>
+          </Box>
 
-        <Box sx={{ display: "flex", gap: 2, mb: 2, width: "100%" }}>
-          <Button
-            variant="contained"
-            onClick={handleCommitBatch}
-            disabled={isValidatingAll || isCommitting || rowsWithData.length === 0}
-            startIcon={(isValidatingAll || isCommitting) ? <CircularProgress size={16} /> : undefined}
-            sx={buttonMandarTodoStyles}
-          >
-            MANDAR TODO (VALIDAR + CONFIRMAR)
-          </Button>
-        </Box>
-
-        <Box sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}>
-          <DataEditor
+          <Box sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}>
+            <DataEditor
             ref={gridRef}
             width="100%"
             height={tableHeight}
@@ -694,27 +775,38 @@ const TablaCargarRelevamientosGlideStyled = ({
                 : { name: groupName };
             }}
             groupHeaderHeight={GRID_DIMENSIONS.groupHeaderHeight}
-          />
+            />
+          </Box>
+
+          <Box sx={legendStyles}>
+            <Typography sx={legendTitleStyles}>CÓMO USAR:</Typography>
+            <Typography sx={legendTextStyles} component="div">
+              <strong>1.</strong> Doble click en una celda o presiona <span style={kbdStyles}>Enter</span><br />
+              <strong>2.</strong> <span style={kbdStyles}>Tab</span> avanza por columnas; desde la última columna pasa a la
+              fila siguiente (o crea una fila nueva al final).<br />
+              <strong>3.</strong> Para agregar filas: también <span style={kbdStyles}>Enter</span> en la grilla<br />
+              <strong>4.</strong> Fecha: escribir <span style={kbdStyles}>DD/MM/AAAA</span> o{" "}
+              <span style={kbdStyles}>AAAA-MM-DD</span> y <span style={kbdStyles}>Enter</span> para confirmar.<br />
+              <strong>5.</strong> Validación automática al editar<br />
+              <strong>6.</strong> Confirmar todo: botón “Mandar todo”<br />
+              <br />
+              <strong>COLORES:</strong>{" "}
+              <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>
+              <span style={getStatusBadgeStyles(COLORS.successLight, COLORS.successText)}>OK</span>
+              <span style={getStatusBadgeStyles(COLORS.warningLight, COLORS.warningText)}>ADVERTENCIA</span>
+              <span style={getStatusBadgeStyles("#1E2127", COLORS.white)}>PENDIENTE</span>
+              <span style={getStatusBadgeStyles(COLORS.primary, COLORS.white)}>VALIDANDO</span>
+            </Typography>
+          </Box>
         </Box>
 
-        <Box sx={legendStyles}>
-          <Typography sx={legendTitleStyles}>CÓMO USAR:</Typography>
-          <Typography sx={legendTextStyles} component="div">
-            <strong>1.</strong> Doble click en una celda o presiona <span style={kbdStyles}>Enter</span><br />
-            <strong>2.</strong> <span style={kbdStyles}>Tab</span> avanza por columnas; desde la última columna pasa a la
-            fila siguiente (o crea una fila nueva al final).<br />
-            <strong>3.</strong> Para agregar filas: también <span style={kbdStyles}>Enter</span> en la grilla<br />
-            <strong>4.</strong> Validación automática al editar<br />
-            <strong>5.</strong> Confirmar todo: botón “Mandar todo”<br />
-            <br />
-            <strong>COLORES:</strong>{" "}
-            <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>
-            <span style={getStatusBadgeStyles(COLORS.successLight, COLORS.successText)}>OK</span>
-            <span style={getStatusBadgeStyles(COLORS.warningLight, COLORS.warningText)}>ADVERTENCIA</span>
-            <span style={getStatusBadgeStyles("#1E2127", COLORS.white)}>PENDIENTE</span>
-            <span style={getStatusBadgeStyles(COLORS.primary, COLORS.white)}>VALIDANDO</span>
-          </Typography>
-        </Box>
+        <ValidationErrorsRail
+          globalError={globalError}
+          onDismissGlobal={() => setGlobalError(null)}
+          entries={validationRailEntries}
+          showEmptyHint={Boolean(batchId)}
+          onGoToRow={focusRowInGrid}
+        />
       </Box>
     </Box>
   );

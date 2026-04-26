@@ -36,6 +36,10 @@ def list_completar_trabajo_pendientes(
 
     Nota: el presenter de cada ítem no expone campos de previas; no forman parte del módulo
     Completar trabajo en esta etapa.
+
+    Para agregados por rango de fechas sin paginar, ver
+    `GET /actuaciones/completar-trabajo/pendientes/resumen` y
+    `list_completar_trabajo_pendientes_resumen_por_dia`.
     """
     base = (
         RutaItem.query.join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)

@@ -126,9 +126,12 @@ class RelevamientoGridRowIn(BaseModel):
         if not s:
             return None
         u = s.strip().upper().replace("Ñ", "N")
-        if u in ("MANIANA", "TARDE"):
-            return u
-        raise ValueError("Turno inválido (MANIANA o TARDE, o vacío).")
+        # "MAÑANA" / "Mañana" → MANANA tras Ñ→N; aceptar como MANIANA canónico de DB
+        if u in ("MANIANA", "MANANA"):
+            return "MANIANA"
+        if u == "TARDE":
+            return "TARDE"
+        raise ValueError("Turno inválido (Mañana/MANIANA o Tarde/TARDE, o vacío).")
 
     @field_validator("esta_abierto", mode="before")
     @classmethod

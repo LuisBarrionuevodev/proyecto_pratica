@@ -3,8 +3,10 @@
  * Contenedor de grilla al 100% del ancho útil; sin caja gris sólida detrás (fondo transparente).
  */
 
+import type { SxProps, Theme } from "@mui/material";
+
 import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { glassCard } from "../../../styles/GlassStyles";
 import { GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 
 /**
@@ -56,6 +58,21 @@ export const wrapperStyles = {
 // CONTENEDOR DE GRILLA — mismo marco que `dataViewportFrameSx` (baseline Cargar relevamiento)
 // =============================================================================
 export const gridContainerStyles = dataViewportFrameSx;
+
+/** Rail lateral de errores de validación (glass, scroll interno, no empuja la grilla). */
+export const validationRailRootSx: SxProps<Theme> = {
+    ...glassCard,
+    p: 1.5,
+    borderRadius: "12px",
+    boxSizing: "border-box",
+    minWidth: 0,
+    width: { xs: "100%", lg: 292 },
+    maxWidth: { xs: "100%", lg: 320 },
+    maxHeight: { xs: 220, sm: 260, lg: "calc(100vh - 140px)" },
+    overflowY: "auto",
+    overflowX: "hidden",
+    flexShrink: 0,
+};
 
 // =============================================================================
 // BOTÓN MANDAR TODO - Azul cuando activo

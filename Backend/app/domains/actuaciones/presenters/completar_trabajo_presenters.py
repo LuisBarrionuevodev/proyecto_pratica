@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from app.models import RutaGrupo, RutaItem
@@ -165,4 +166,48 @@ def ruta_item_completar_trabajo_detalle(
             "previas_visible": False,
             "post_cierre": "POST /actuaciones/completar-trabajo/cerrar/<ruta_item_id>",
         },
+    }
+
+
+def dia_resumen_completar_trabajo_pendientes(
+    *,
+    fecha_dia: date,
+    total: int,
+    items_con_actuacion: int,
+    hoy: date,
+) -> Dict[str, Any]:
+    """
+    Presenta un día del resumen operativo Completar trabajo (carrusel + calendario).
+
+    Parámetros:
+        fecha_dia: día operativo de la ruta (`RutaTrabajo.fecha`).
+        total: ítems EN_PROCESO con actuación (pendientes de cierre), mismo criterio que el listado por fecha.
+        items_con_actuacion: ítems con `actuacion_id` en rutas PUBLICADAS ese día (ámbito del módulo).
+        hoy: fecha de referencia para `atrasado` (día pasado con pendientes de cierre).
+
+    Retorno:
+        Dict con `fecha`, `total`, `atrasado`, `items_con_actuacion`, `hubo_actividad`,
+        `sin_pendientes_cierre`, `categoria_calendario` (`CON_PENDIENTES` | `COMPLETO`).
+
+    Errores:
+        Ninguno. Si `items_con_actuacion` fuera 0, el llamador no debería incluir la fila.
+
+    Nota:
+        Día **sin actividad** en calendario: fecha sin fila en el agregado (no hay ítems con actuación
+        en ruta publicada ese día en el rango consultado).
+    """
+    total_i = int(total)
+    items_i = int(items_con_actuacion)
+    hubo = items_i > 0
+    sin_pend = hubo and total_i == 0
+    categoria = "CON_PENDIENTES" if total_i > 0 else "COMPLETO"
+    atrasado = bool(fecha_dia < hoy and total_i > 0)
+    return {
+        "fecha": fecha_dia.isoformat(),
+        "total": total_i,
+        "atrasado": atrasado,
+        "items_con_actuacion": items_i,
+        "hubo_actividad": hubo,
+        "sin_pendientes_cierre": sin_pend,
+        "categoria_calendario": categoria,
     }
