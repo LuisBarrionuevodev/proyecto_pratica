@@ -52,6 +52,8 @@ class Expediente(db.Model):
         onupdate=db.func.current_timestamp(),
     )
     deleted_at = db.Column(db.DateTime, nullable=True)
+    # Días de prórroga otorgados en esta fila (rama PRORROGA_NOTIFICACION); la suma alinea `Notificacion.prorroga_dias`.
+    prorroga_dias_otorgados = db.Column(db.Integer, nullable=True)
     comprobacion = db.relationship("Comprobacion", back_populates="expediente")
     notificacion = db.relationship("Notificacion", back_populates="expedientes")
     oficio = db.relationship(
@@ -76,6 +78,7 @@ class Expediente(db.Model):
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "deleted_at": self.deleted_at,
+            "prorroga_dias_otorgados": self.prorroga_dias_otorgados,
         }
 
         if include_relations:

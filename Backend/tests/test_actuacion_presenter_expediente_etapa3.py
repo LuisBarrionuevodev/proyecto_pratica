@@ -5,6 +5,7 @@ oficio_* desde tabla Oficio (no vía expediente de respuesta).
 
 from __future__ import annotations
 
+import logging
 import random
 from datetime import date
 
@@ -16,6 +17,10 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     actuacion_to_grid_row,
     expediente_envio_por_comprobacion,
     oficio_por_comprobacion,
+)
+from app.domains.actuaciones.services.expediente_envio_audit import (
+    fetch_comprobaciones_con_multiples_expedientes_envio,
+    fetch_expedientes_envio_por_comprobacion,
 )
 from app.models import Actuaciones, Comprobacion, Expediente, Oficio, OrdenTrabajo
 
@@ -170,5 +175,42 @@ def test_expediente_envio_helper_excluye_respuesta(app_ctx) -> None:
         )
         db.session.flush()
         assert expediente_envio_por_comprobacion(comp.id) is None
+    finally:
+        db.session.rollback()
+
+
+def test_multiples_expedientes_envio_elige_menor_id_y_loguea(caplog: pytest.LogCaptureFixture, app_ctx) -> None:
+    """Datos legados: >1 expediente envío; presenter usa id mínimo y deja rastro en logs."""
+    caplog.set_level(logging.WARNING)
+    try:
+        _, comp = _seed_actuacion_con_comprobacion()
+        db.session.add(
+            Expediente(
+                numero_expediente="000001",
+                anio="2026",
+                tipo_expediente="ENVIO_ACTA",
+                comprobacion_id=comp.id,
+                oficio_id=None,
+            )
+        )
+        db.session.add(
+            Expediente(
+                numero_expediente="000002",
+                anio="2026",
+                tipo_expediente="ENVIO_ACTA",
+                comprobacion_id=comp.id,
+                oficio_id=None,
+            )
+        )
+        db.session.flush()
+        dup = fetch_comprobaciones_con_multiples_expedientes_envio()
+        assert (comp.id, 2) in dup
+        lista = fetch_expedientes_envio_por_comprobacion(comp.id)
+        assert len(lista) == 2
+        got = expediente_envio_por_comprobacion(comp.id)
+        assert got is not None
+        assert got.id == lista[0].id
+        assert got.numero_expediente == lista[0].numero_expediente
+        assert any("Varios expedientes de envío" in r.message for r in caplog.records)
     finally:
         db.session.rollback()

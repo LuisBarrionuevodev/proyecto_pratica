@@ -12,7 +12,7 @@ from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
     estado_recorrido_label,
 )
-from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
+from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
 
 
 def _unique_num() -> str:
@@ -118,6 +118,48 @@ def test_comprobacion_recorrido_detalle_origen_iniciador_excluye_reinspeccion_of
         d = comprobacion_recorrido_detalle(act)
         assert d["origen"]["iniciador"] is not None
         assert d["origen"]["iniciador"]["tipo_iniciador"] == "DENUNCIA"
+        rein = d["reinspeccion_por_oficio"]
+        assert rein is not None
+        assert rein["tipo_iniciador"] == "REINSPECCION_OFICIO"
+        assert rein["documento_pendiente"] == "Reinspección por oficio"
+    finally:
+        db.session.rollback()
+
+
+def test_comprobacion_recorrido_detalle_referencia_actuacion_sin_depender_listado(app_ctx) -> None:
+    """``referencia_actuacion`` expone titular/domicilio/tipo con la misma fuente que el grid."""
+    try:
+        doc = f"{random.randint(20000000, 29999999)}"
+        c = Contribuyente(apellido="Pérez", nombre="Ana", documento=doc)
+        db.session.add(c)
+        db.session.flush()
+        dom = Domicilio(calle="San Martín", numero="100", contribuyente_id=c.id)
+        db.session.add(dom)
+        db.session.flush()
+
+        act, _comp = _mk_actuacion_con_comprobacion()
+        act.domicilio_id = dom.id
+        act.tipo = "INSPECCION"
+        db.session.flush()
+
+        d = comprobacion_recorrido_detalle(act)
+        ref = d["referencia_actuacion"]
+        assert ref["calle"] == "San Martín"
+        assert ref["contrib_apellido"] == "Pérez"
+        assert ref["contrib_nombre"] == "Ana"
+        assert ref["tipo_actuacion"] == "INSPECCION"
+    finally:
+        db.session.rollback()
+
+
+def test_referencia_actuacion_incluye_comprobacion_motivo(app_ctx) -> None:
+    """``referencia_actuacion`` expone el motivo de la comprobación (misma fuente que la grilla)."""
+    try:
+        act, comp = _mk_actuacion_con_comprobacion()
+        comp.motivo = "Control documental UI"
+        db.session.flush()
+        d = comprobacion_recorrido_detalle(act)
+        assert d["referencia_actuacion"]["comprobacion_motivo"] == "Control documental UI"
     finally:
         db.session.rollback()
 

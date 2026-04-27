@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from flask import jsonify, request
 from pydantic import ValidationError
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
@@ -20,10 +21,26 @@ from app.domains.actuaciones.services.comprobacion_actas_bandeja_service import 
     list_comprobacion_recorrido,
     list_pendientes_reinspeccion_oficio,
 )
-from app.models import Actuaciones
+from app.models import Actuaciones, Domicilio
 from app.shared.errors import pydantic_errors_to_cell_map
 
 from . import actuacion
+
+
+def _actuacion_for_recorrido_detalle(actuacion_id: int) -> Actuaciones | None:
+    """Carga la actuación con relaciones usadas por ``actuacion_to_grid_row`` (evita lazy N+1 o filas sin inspectores)."""
+    return (
+        Actuaciones.query.options(
+            joinedload(Actuaciones.orden_trabajo),
+            joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
+            joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),
+            selectinload(Actuaciones.inspector),
+            joinedload(Actuaciones.inspeccion),
+            joinedload(Actuaciones.comprobacion),
+        )
+        .filter(Actuaciones.id == int(actuacion_id))
+        .first()
+    )
 
 
 def _filters_desde_request() -> ActuacionesPendientesFilters:
@@ -109,7 +126,7 @@ def comprobacion_recorrido_list():
 def comprobacion_recorrido_detalle_route(actuacion_id: int):
     """Detalle estructurado del recorrido para una actuación con comprobación."""
     try:
-        act = Actuaciones.query.get(actuacion_id)
+        act = _actuacion_for_recorrido_detalle(actuacion_id)
         if act is None:
             return jsonify({"detail": "Actuación no encontrada"}), 404
         if not act.comprobacion_id:

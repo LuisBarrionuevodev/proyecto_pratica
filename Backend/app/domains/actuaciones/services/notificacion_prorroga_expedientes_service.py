@@ -1,8 +1,8 @@
 """
-Consulta documental de expedientes de prórroga (rama NOTIFICACION).
+Consulta de expedientes de prórroga (rama NOTIFICACION) y estado de plazo/vencimiento.
 
-Los días solicitados en cada alta de expediente **no** se guardan por fila en ``expediente``;
-solo existe el acumulado en ``Notificacion.prorroga_dias`` (ver ``aplicar_prorroga_notificacion``).
+Cada fila ``PRORROGA_NOTIFICACION`` persiste ``prorroga_dias_otorgados``; el total en
+``Notificacion.prorroga_dias`` debe coincidir con la suma de esas filas (recalculado al editar).
 """
 
 from __future__ import annotations
@@ -11,6 +11,10 @@ from typing import Any, Dict, List
 
 from app.database import db
 from app.models import Actuaciones, Expediente, Notificacion
+
+from app.domains.actuaciones.services.notificacion_plazo_expediente_edit_service import (
+    evaluar_notificacion_edicion_permisos,
+)
 
 
 def _expediente_prorroga_to_item(ex: Expediente) -> Dict[str, Any]:
@@ -21,27 +25,21 @@ def _expediente_prorroga_to_item(ex: Expediente) -> Dict[str, Any]:
         "fecha_expediente": ex.fecha_expediente.isoformat() if ex.fecha_expediente else None,
         "created_at": ex.created_at.isoformat() if ex.created_at else None,
         "tipo_expediente": ex.tipo_expediente,
-        # Reservado: hoy el modelo no persiste el delta por fila; migración futura podría llenarlo.
-        "prorroga_dias_solicitada": None,
+        "plazo_otorgado": ex.prorroga_dias_otorgados,
     }
 
 
 def list_notificacion_prorroga_expedientes_for_actuacion(actuacion_id: int) -> Dict[str, Any]:
     """
     Lista expedientes ``PRORROGA_NOTIFICACION`` de la notificación vinculada a la actuación,
-    más métricas consolidadas de plazo en ``Notificacion``.
-
-    Qué hace:
-    - Resuelve ``Actuaciones`` por id.
-    - Exige ``notificacion_id`` (rama con acta de notificación).
-    - Ordena expedientes por ``id`` ascendente (orden de alta / documental).
+    más métricas de plazo en ``Notificacion``.
 
     Parámetros:
         actuacion_id: PK de la actuación (misma clave que usa la bandeja / modal).
 
     Retorno:
         dict serializable con ``actuacion_id``, ``notificacion_id``, ``plazos_otorgados``,
-        ``consolidado`` (plazo/prórroga/fechas de la notificación) e ``items`` (filas expediente).
+        ``plazo_notificacion`` (plazo legal, prórroga total, fechas) e ``items`` (filas expediente).
 
     Errores:
         LookupError: actuación inexistente.
@@ -67,9 +65,9 @@ def list_notificacion_prorroga_expedientes_for_actuacion(actuacion_id: int) -> D
 
     items = [_expediente_prorroga_to_item(ex) for ex in expedientes]
 
-    consolidado: Dict[str, Any] = {
-        "plazo_dias": noti.plazo_dias,
-        "prorroga_dias": noti.prorroga_dias,
+    plazo_notificacion: Dict[str, Any] = {
+        "plazo_legal_dias": noti.plazo_dias,
+        "prorroga_total_dias": noti.prorroga_dias,
         "fecha_notificacion": noti.fecha_notificacion.isoformat() if noti.fecha_notificacion else None,
         "fecha_vencimiento": noti.fecha_vencimiento.isoformat() if noti.fecha_vencimiento else None,
     }
@@ -78,6 +76,7 @@ def list_notificacion_prorroga_expedientes_for_actuacion(actuacion_id: int) -> D
         "actuacion_id": act.id,
         "notificacion_id": noti.id,
         "plazos_otorgados": len(items),
-        "consolidado": consolidado,
+        "plazo_notificacion": plazo_notificacion,
         "items": items,
+        "edicion": evaluar_notificacion_edicion_permisos(act),
     }

@@ -1,8 +1,8 @@
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ImageIcon from "@mui/icons-material/Image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Box, Paper, Stack, Tooltip, Typography } from "@mui/material";
 
+import { downloadOrdenesSalidaPdf, downloadRutaResumenPdf } from "../../../documentos";
 import { MapaFinalResumenLateral } from "../Components/MapaFinalResumenLateral";
 import { MapaRutaTrabajo } from "../Components/MapaRutaTrabajo";
 import { RutaResumenHeaderCard, rutaResumenHeaderAccionButtonSx } from "../Components/RutaResumenHeaderCard";
@@ -15,8 +15,6 @@ import {
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
 import type { RutasMapaOperativoViewProps } from "../types/rutasTrabajoMapa.types";
-import { printMapaFinalGruposOperativo } from "../utils/exportMapaFinalGruposPrint";
-import { buildMapaFinalCapturaFilename, downloadMapaFinalRegionPng } from "../utils/exportMapaFinalCaptura";
 import { estadoRutaVisible, turnoLabel } from "../utils/rutaResumenLabels";
 import { AppButton } from "../../../ui/AppButton";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -29,19 +27,6 @@ const MAPA_FINAL_SECTION_LABEL_SX = {
   textTransform: "uppercase" as const,
   color: GLASS_COLORS.textMuted,
   mb: 1,
-};
-
-/** Estado duplicado en chips; se mantiene en DOM para `estadoCapturaRef` en export PNG. */
-const MAPA_RESUMEN_ESTADO_CAPTURA_SR_ONLY = {
-  position: "absolute" as const,
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: "hidden",
-  clip: "rect(0, 0, 0, 0)",
-  whiteSpace: "nowrap" as const,
-  borderWidth: 0,
 };
 
 /**
@@ -60,14 +45,10 @@ export function RutasMapaOperativoView({
   detailLoading = false,
   onEditarInspectores,
   onMoverItem,
-  capturaMapaFinalRef,
-  exportGruposPrintRef,
   vistaHistoricaReadOnly = false,
   onVolverAlListado,
 }: RutasMapaOperativoViewProps) {
   const mapa = useRutaMapa(grupos, itemsActivos, iniciadorById);
-  const exportOperativoRef = useRef<HTMLDivElement>(null);
-  const estadoCapturaRef = useRef<HTMLSpanElement>(null);
   const { resumenTerritorial } = mapa;
   const rt = resumenTerritorial;
   const coordsCompletas = rt.totalItems > 0 && rt.itemsConCoordenadas === rt.totalItems;
@@ -78,90 +59,33 @@ export function RutasMapaOperativoView({
   const estadoLabel = ruta ? estadoRutaVisible(ruta.estado_ruta) : null;
   const puedeEditarEquipos = Boolean(!vistaHistoricaReadOnly && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
   const readOnly = Boolean(vistaHistoricaReadOnly);
-  const [historicoPngLoading, setHistoricoPngLoading] = useState(false);
-  const [historicoGruposLoading, setHistoricoGruposLoading] = useState(false);
+  const [pdfResumenLoading, setPdfResumenLoading] = useState(false);
+  const [pdfOrdenesLoading, setPdfOrdenesLoading] = useState(false);
+  const puedeDocumentosPdf = Boolean(readOnly && ruta?.estado_ruta === "PUBLICADA");
 
-  const etiquetaImpresionHistorico = estadoLabel ?? ruta?.estado_ruta ?? "Publicada";
-
-  const ejecutarCapturaMapaFinal = useCallback(
-    async (opts?: { estadoEtiqueta?: string }) => {
-      const el = exportOperativoRef.current;
-      if (!el || !ruta) {
-        throw new Error("No hay vista de mapa para capturar.");
-      }
-      const span = estadoCapturaRef.current;
-      const prevText = span?.textContent ?? null;
-      if (opts?.estadoEtiqueta != null && span) {
-        span.textContent = opts.estadoEtiqueta;
-      }
-      try {
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
-        await new Promise<void>((r) => setTimeout(r, 400));
-        const filename = buildMapaFinalCapturaFilename(ruta);
-        await downloadMapaFinalRegionPng(el, filename);
-      } finally {
-        if (span && prevText != null) {
-          span.textContent = prevText;
-        }
-      }
-    },
-    [ruta]
-  );
-
-  const ejecutarExportGruposPrint = useCallback(
-    async (opts?: { estadoEtiqueta?: string }) => {
-      if (!ruta) {
-        throw new Error("No hay ruta cargada para exportar grupos.");
-      }
-      const estadoEtiqueta = opts?.estadoEtiqueta ?? estadoLabel ?? "—";
-      await printMapaFinalGruposOperativo({
-        ruta,
-        gruposVista: mapa.gruposVista,
-        estadoEtiqueta,
-      });
-    },
-    [ruta, mapa.gruposVista, estadoLabel]
-  );
-
-  useEffect(() => {
-    if (!capturaMapaFinalRef) return;
-    capturaMapaFinalRef.current = ejecutarCapturaMapaFinal;
-    return () => {
-      capturaMapaFinalRef.current = null;
-    };
-  }, [capturaMapaFinalRef, ejecutarCapturaMapaFinal]);
-
-  useEffect(() => {
-    if (!exportGruposPrintRef) return;
-    exportGruposPrintRef.current = ejecutarExportGruposPrint;
-    return () => {
-      exportGruposPrintRef.current = null;
-    };
-  }, [exportGruposPrintRef, ejecutarExportGruposPrint]);
-
-  const handleHistoricoDescargarPng = useCallback(async () => {
-    setHistoricoPngLoading(true);
+  const handleDescargarResumenPdf = useCallback(async () => {
+    if (!ruta) return;
+    setPdfResumenLoading(true);
     try {
-      await ejecutarCapturaMapaFinal({ estadoEtiqueta: etiquetaImpresionHistorico });
+      await downloadRutaResumenPdf(ruta, grupos, itemsActivos);
     } catch (e) {
       console.error(e);
     } finally {
-      setHistoricoPngLoading(false);
+      setPdfResumenLoading(false);
     }
-  }, [ejecutarCapturaMapaFinal, etiquetaImpresionHistorico]);
+  }, [ruta, grupos, itemsActivos]);
 
-  const handleHistoricoImprimirGrupos = useCallback(async () => {
-    setHistoricoGruposLoading(true);
+  const handleDescargarOrdenesPdf = useCallback(async () => {
+    if (!ruta) return;
+    setPdfOrdenesLoading(true);
     try {
-      await ejecutarExportGruposPrint({ estadoEtiqueta: etiquetaImpresionHistorico });
+      await downloadOrdenesSalidaPdf(ruta, grupos, itemsActivos);
     } catch (e) {
       console.error(e);
     } finally {
-      setHistoricoGruposLoading(false);
+      setPdfOrdenesLoading(false);
     }
-  }, [ejecutarExportGruposPrint, etiquetaImpresionHistorico]);
+  }, [ruta, grupos, itemsActivos]);
 
   const chips =
     ruta == null
@@ -177,60 +101,53 @@ export function RutasMapaOperativoView({
 
   const resumenIdentificacion =
     ruta == null ? null : (
-      <Box sx={{ position: "relative" }}>
-        <Typography
-          component="div"
-          variant="body2"
-          sx={{
-            fontSize: "0.8125rem",
-            lineHeight: 1.45,
-            color: GLASS_COLORS.textSecondary,
-            fontWeight: 500,
-          }}
-        >
-          <Box component="span" sx={{ color: GLASS_COLORS.textPrimary, fontWeight: 700 }}>
-            Ruta {ruta.numero}
-          </Box>
-        </Typography>
-        <Box component="span" sx={MAPA_RESUMEN_ESTADO_CAPTURA_SR_ONLY} aria-hidden>
-          <Box component="span" ref={estadoCapturaRef}>
-            {estadoLabel ?? "—"}
-          </Box>
+      <Typography
+        component="div"
+        variant="body2"
+        sx={{
+          fontSize: "0.8125rem",
+          lineHeight: 1.45,
+          color: GLASS_COLORS.textSecondary,
+          fontWeight: 500,
+        }}
+      >
+        <Box component="span" sx={{ color: GLASS_COLORS.textPrimary, fontWeight: 700 }}>
+          Ruta {ruta.numero}
         </Box>
-      </Box>
+      </Typography>
     );
 
   const headerActions = readOnly ? (
     <>
-      <Tooltip title="Descarga PNG del bloque mapa + resumen (misma acción que tras publicar)." placement="top">
-        <span style={{ display: "flex", width: "100%" }}>
-          <AppButton
-            dsVariant="secondary"
-            dsSize="md"
-            fullWidth
-            startIcon={<ImageIcon />}
-            loading={historicoPngLoading}
-            disabled={detailLoading || !ruta}
-            onClick={() => void handleHistoricoDescargarPng()}
-            sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
-          >
-            Reimprimir mapa (PNG)
-          </AppButton>
-        </span>
-      </Tooltip>
-      <Tooltip title="Abre el cuadro de impresión de la hoja de grupos (podés guardar como PDF según el navegador)." placement="top">
+      <Tooltip title="PDF con membrete, datos de la ruta, grupos/domicilios y mini-mapa de referencia." placement="top">
         <span style={{ display: "flex", width: "100%" }}>
           <AppButton
             dsVariant="secondary"
             dsSize="md"
             fullWidth
             startIcon={<PictureAsPdfIcon />}
-            loading={historicoGruposLoading}
-            disabled={detailLoading || !ruta}
-            onClick={() => void handleHistoricoImprimirGrupos()}
+            loading={pdfResumenLoading}
+            disabled={detailLoading || !ruta || !puedeDocumentosPdf}
+            onClick={() => void handleDescargarResumenPdf()}
             sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
           >
-            Reimprimir hoja de grupos
+            Descargar resumen (PDF)
+          </AppButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="PDF institucional: una hoja por inspector con orden de salida triplicada (Original / Duplicado / Triplicado)." placement="top">
+        <span style={{ display: "flex", width: "100%" }}>
+          <AppButton
+            dsVariant="secondary"
+            dsSize="md"
+            fullWidth
+            startIcon={<PictureAsPdfIcon />}
+            loading={pdfOrdenesLoading}
+            disabled={detailLoading || !ruta || !puedeDocumentosPdf}
+            onClick={() => void handleDescargarOrdenesPdf()}
+            sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
+          >
+            Descargar órdenes de salida (PDF)
           </AppButton>
         </span>
       </Tooltip>
@@ -258,9 +175,9 @@ export function RutasMapaOperativoView({
       <Tooltip
         title={
           publishingRuta
-            ? "Publicando y generando exportaciones…"
+            ? "Publicando la ruta…"
             : canPublish
-              ? "Publica la ruta, descarga captura PNG del mapa y abre el cuadro de impresión de la hoja de grupos (guardar como PDF según el navegador)."
+              ? "Publica la ruta. Luego podrás descargar desde esta pantalla el resumen y las órdenes de salida en PDF."
               : "Solo con borrador listo."
         }
         placement="top"
@@ -287,12 +204,7 @@ export function RutasMapaOperativoView({
   );
 
   return (
-    <Stack
-      ref={exportOperativoRef}
-      spacing={2}
-      sx={{ minWidth: 0 }}
-      {...(readOnly ? { "data-ruta-historico-preview": "true" } : {})}
-    >
+    <Stack spacing={2} sx={{ minWidth: 0 }} {...(readOnly ? { "data-ruta-historico-preview": "true" } : {})}>
       <RutaResumenHeaderCard
         title={readOnly ? "Resumen ruta histórico" : "Resumen de ruta"}
         subtitle={readOnly ? null : "Revisión final antes de publicar: equipos y direcciones se gestionan en Asignación."}

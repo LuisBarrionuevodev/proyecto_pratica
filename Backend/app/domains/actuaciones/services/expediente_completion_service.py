@@ -132,6 +132,7 @@ def complete_expediente_from_actuacion(
 
     numero, fecha_expediente, anio_str = _parse_expediente_payload(data)
 
+    prorroga_dias: int | None = None
     if source_type == "COMPROBACION":
         if "prorroga_dias" in data:
             raise ValueError("prorroga_dias no aplica para COMPROBACION")
@@ -170,6 +171,7 @@ def complete_expediente_from_actuacion(
         comprobacion_id=act.comprobacion_id if source_type == "COMPROBACION" else None,
         notificacion_id=act.notificacion_id if source_type == "NOTIFICACION" else None,
         oficio_id=None,
+        prorroga_dias_otorgados=prorroga_dias,
     )
 
     db.session.add(ex)

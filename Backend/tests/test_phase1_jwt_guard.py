@@ -47,6 +47,11 @@ def test_get_map_puntos_sin_jwt_401_pr_c1(client):
     assert resp.status_code == 401
 
 
+def test_get_map_osm_static_sin_jwt_401_pr_c1(client):
+    resp = client.get("/map/osm-static?center=-26.8,-65.2&zoom=13&size=520x280")
+    assert resp.status_code == 401
+
+
 def test_get_api_map_pendientes_sin_jwt_401_pr_c1(client):
     resp = client.get("/api/map/pendientes")
     assert resp.status_code == 401

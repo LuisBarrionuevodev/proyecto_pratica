@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Paper, Snackbar } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
@@ -31,7 +31,6 @@ import { rutasInstitutionalHeaderPaperSx } from "./styles/institutionalVisual";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
 import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
-import type { CapturaMapaFinalHandle, ExportGruposPrintHandle } from "./types/rutasTrabajoMapa.types";
 import { PlanificacionView } from "./planificacion/PlanificacionView";
 import type { PlanificacionPoolControl } from "./planificacion/hooks/usePlanificacionController";
 import {
@@ -73,9 +72,6 @@ const RutasTrabajo = () => {
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<IRutaGrupoMin | null>(null);
   const [inspectoresCatalogo, setInspectoresCatalogo] = useState<CatalogItem[]>([]);
   const [publishingRuta, setPublishingRuta] = useState(false);
-  const capturaMapaFinalRef = useRef<CapturaMapaFinalHandle | null>(null);
-  const exportGruposPrintRef = useRef<ExportGruposPrintHandle | null>(null);
-
   const rutaId = ruta?.id ?? null;
   /** Borrador con detalle cargado: habilita la acción (el botón se deshabilita además mientras `publishingRuta`). */
   const puedeIntentarPublicar = Boolean(rutaId && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
@@ -224,59 +220,10 @@ const RutasTrabajo = () => {
     setSuccessMessage(null);
     try {
       await publicarRutaTrabajo(rutaId);
-      let capturePngError: string | null = null;
-      let gruposPrintError: string | null = null;
-
-      try {
-        const runPng = capturaMapaFinalRef.current;
-        if (!runPng) {
-          throw new Error("Vista de captura no disponible.");
-        }
-        await runPng({ estadoEtiqueta: "Publicada" });
-      } catch (capErr) {
-        console.error(capErr);
-        capturePngError =
-          "No se pudo generar ni descargar la captura PNG del mapa. La ruta igual quedó publicada.";
-      }
-
-      try {
-        const runGrupos = exportGruposPrintRef.current;
-        if (!runGrupos) {
-          throw new Error("Exportación de grupos no disponible.");
-        }
-        await runGrupos({ estadoEtiqueta: "Publicada" });
-      } catch (grErr) {
-        console.error(grErr);
-        gruposPrintError =
-          "No se pudo imprimir la hoja de grupos (cuadro de impresión). La ruta quedó publicada.";
-      }
-
-      resetVistaRutaTrabajo();
-
-      const avisosExport: string[] = [];
-      if (capturePngError) avisosExport.push(capturePngError);
-      if (gruposPrintError) avisosExport.push(gruposPrintError);
-      if (avisosExport.length) {
-        setError(avisosExport.join(" "));
-      }
-
-      if (!capturePngError && !gruposPrintError) {
-        setSuccessMessage(
-          "Ruta publicada. Se descargó la captura PNG del mapa y se abrió el cuadro de impresión de la hoja de grupos (podés elegir «Guardar como PDF» según tu navegador)."
-        );
-      } else if (!capturePngError && gruposPrintError) {
-        setSuccessMessage(
-          "Ruta publicada. La captura PNG se descargó; revisá el aviso sobre la hoja de grupos."
-        );
-      } else if (capturePngError && !gruposPrintError) {
-        setSuccessMessage(
-          "Ruta publicada. Se disparó la impresión de la hoja de grupos; revisá el aviso sobre la captura PNG."
-        );
-      } else {
-        setSuccessMessage(
-          "Ruta publicada correctamente. Los trabajos pasaron a ejecución y podés registrarlos en Completar trabajo."
-        );
-      }
+      await loadRutaDetail(rutaId, { showLoading: true });
+      setSuccessMessage(
+        "Ruta publicada. Usá «Descargar resumen (PDF)» y «Descargar órdenes de salida (PDF)» en esta pantalla para la documentación oficial."
+      );
     } catch (err: unknown) {
       const ax = err as { response?: { status?: number; data?: { detail?: unknown } } };
       const status = ax?.response?.status;
@@ -539,8 +486,6 @@ const RutasTrabajo = () => {
             canPublish={puedeIntentarPublicar}
             publishingRuta={publishingRuta}
             detailLoading={detailLoading}
-            capturaMapaFinalRef={capturaMapaFinalRef}
-            exportGruposPrintRef={exportGruposPrintRef}
             vistaHistoricaReadOnly={vistaHistoricaReadOnly}
             onVolverAlListado={resetVistaRutaTrabajo}
             onEditarInspectores={

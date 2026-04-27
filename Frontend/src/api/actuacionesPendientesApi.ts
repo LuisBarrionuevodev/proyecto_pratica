@@ -11,7 +11,7 @@ export interface IActuacionesPendientesSummary {
 }
 
 export interface IActuacionesPendientesItem extends IActuacionListItem {
-  /** Solo rama NOTIFICACION; consolidado en backend desde `Notificacion.fecha_vencimiento`. */
+  /** Solo rama NOTIFICACION; vencimiento operativo desde `Notificacion.fecha_vencimiento`. */
   dias_restantes?: number | null;
   /** Solo rama NOTIFICACION; count expedientes `PRORROGA_NOTIFICACION`. */
   plazos_otorgados?: number | null;
@@ -57,16 +57,27 @@ export interface IPendientesOficioItem {
   id: number;
   fecha_actuacion: string | null;
   orden_trabajo_numero: string | null;
+  tipo_actuacion?: string | null;
   acta_comprobacion_num: string | null;
   comprobacion_motivo: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
+  /** Persona jurídica; si el backend la envía, la bandeja puede mostrarla. */
+  razon_social?: string | null;
+  doc_nro?: string | null;
   calle: string | null;
   numero: string | null;
   rubro_nombre: string | null;
+  acta_inspeccion_num?: string | null;
+  inspectores_texto?: string | null;
+  inspector1?: string | null;
+  inspector2?: string | null;
+  inspector3?: string | null;
   expediente_original_id: number | null;
   expediente_original_numero: string | null;
   expediente_original_anio: string | null;
+  /** Fecha del expediente de envío (ISO día) cuando existe en BD. */
+  expediente_original_fecha?: string | null;
 }
 
 export interface IPendientesOficioResponse {
@@ -255,7 +266,111 @@ export const getJuzgadosCatalogo = async (): Promise<IJuzgadoCatalogItem[]> => {
   return data.items ?? [];
 };
 
-/** Expediente `PRORROGA_NOTIFICACION` (detalle documental por actuación). */
+/** Expediente de envío / respuesta (GET comprobación documental). */
+export interface IComprobacionDocumentalExpedienteItem {
+  id: number;
+  numero_expediente: string;
+  anio: string;
+  fecha_expediente: string | null;
+  tipo_expediente: string | null;
+  oficio_id: number | null;
+}
+
+export interface IComprobacionDocumentalOficioItem {
+  id: number;
+  numero_oficio: string;
+  anio: number;
+  fecha_oficio: string | null;
+  causa: string | null;
+  juzgado_id: number | null;
+  juzgado_nombre: string | null;
+}
+
+export interface IComprobacionDocumentalEdicion {
+  comprobacion_usada_como_iniciador: boolean;
+  puede_editar_expediente_envio: boolean;
+  puede_editar_bloque_oficio: boolean;
+  motivos_bloqueo_expediente_envio: string[];
+  motivos_bloqueo_oficio: string[];
+}
+
+/** Snapshot de referencia/visita (mismo criterio que grid / detalle recorrido). */
+export type IComprobacionDocumentalReferenciaActuacion = Record<string, unknown>;
+
+export interface IComprobacionDocumentalActaComprobacion {
+  numero?: string | null;
+  motivo?: string | null;
+}
+
+export interface IComprobacionDocumentalResponse {
+  actuacion_id: number;
+  comprobacion_id: number;
+  /** Fuente canónica operativa: mismo presenter que recorrido/listado. */
+  referencia_actuacion?: IComprobacionDocumentalReferenciaActuacion | null;
+  acta_comprobacion?: IComprobacionDocumentalActaComprobacion | null;
+  expediente_envio: IComprobacionDocumentalExpedienteItem | null;
+  oficio: IComprobacionDocumentalOficioItem | null;
+  expediente_respuesta: IComprobacionDocumentalExpedienteItem | null;
+  edicion: IComprobacionDocumentalEdicion;
+}
+
+/** GET documental operativo de comprobación (expediente envío, oficio, expediente respuesta, permisos). */
+export async function fetchComprobacionDocumental(actuacionId: number): Promise<IComprobacionDocumentalResponse> {
+  const { data } = await apiClient.get<IComprobacionDocumentalResponse>(
+    `/actuaciones/${actuacionId}/comprobacion/documental`
+  );
+  return data;
+}
+
+export type IComprobacionExpedienteEnvioPatchBody = {
+  numero_expediente: string;
+  fecha_expediente: string;
+};
+
+/** PATCH expediente de envío (`ENVIO_ACTA`, sin oficio). */
+export async function patchComprobacionExpedienteEnvio(
+  actuacionId: number,
+  expedienteId: number,
+  body: IComprobacionExpedienteEnvioPatchBody
+): Promise<{ ok: boolean; item: IComprobacionDocumentalExpedienteItem; expediente_id: number }> {
+  const { data } = await apiClient.patch<{
+    ok: boolean;
+    item: IComprobacionDocumentalExpedienteItem;
+    expediente_id: number;
+  }>(`/actuaciones/${actuacionId}/comprobacion/expediente-envio/${expedienteId}`, body);
+  return data;
+}
+
+export type IComprobacionOficioBloquePatchBody = {
+  numero_oficio: string;
+  fecha_oficio: string;
+  juzgado_id: number;
+  causa?: string | null;
+  numero_expediente_respuesta: string;
+  fecha_expediente_respuesta: string;
+};
+
+/** PATCH oficio + expediente de respuesta (misma comprobación). */
+export async function patchComprobacionOficioBloque(
+  actuacionId: number,
+  oficioId: number,
+  body: IComprobacionOficioBloquePatchBody
+): Promise<{
+  ok: boolean;
+  oficio_item: IComprobacionDocumentalOficioItem;
+  expediente_respuesta_item: IComprobacionDocumentalExpedienteItem;
+  oficio_id: number;
+}> {
+  const { data } = await apiClient.patch<{
+    ok: boolean;
+    oficio_item: IComprobacionDocumentalOficioItem;
+    expediente_respuesta_item: IComprobacionDocumentalExpedienteItem;
+    oficio_id: number;
+  }>(`/actuaciones/${actuacionId}/comprobacion/oficios/${oficioId}`, body);
+  return data;
+}
+
+/** Expediente `PRORROGA_NOTIFICACION` (detalle por actuación). */
 export interface INotificacionProrrogaExpedienteItem {
   id: number;
   numero_expediente: string;
@@ -263,23 +378,32 @@ export interface INotificacionProrrogaExpedienteItem {
   fecha_expediente: string | null;
   created_at: string | null;
   tipo_expediente: string;
-  /** Reservado en backend; hoy suele ser null (delta no persistido por fila). */
-  prorroga_dias_solicitada: number | null;
+  /** Días de prórroga otorgados en esta fila (persistido en expediente). */
+  plazo_otorgado: number | null;
 }
 
-export interface INotificacionProrrogaExpedientesConsolidado {
-  plazo_dias: number;
-  prorroga_dias: number;
+export interface INotificacionPlazoNotificacionResumen {
+  plazo_legal_dias: number | null;
+  prorroga_total_dias: number | null;
   fecha_notificacion: string | null;
   fecha_vencimiento: string | null;
+}
+
+/** Permisos de edición (GET expedientes-prorroga). */
+export interface INotificacionEdicionPermisos {
+  puede_editar_expediente_prorroga: boolean;
+  /** True si existe `IniciadorRuta` no borrado con `notificacion_id` de esta notificación. */
+  notificacion_usada_como_iniciador?: boolean;
+  motivos_bloqueo_expediente: string[];
 }
 
 export interface INotificacionProrrogaExpedientesResponse {
   actuacion_id: number;
   notificacion_id: number;
   plazos_otorgados: number;
-  consolidado: INotificacionProrrogaExpedientesConsolidado;
+  plazo_notificacion: INotificacionPlazoNotificacionResumen;
   items: INotificacionProrrogaExpedienteItem[];
+  edicion?: INotificacionEdicionPermisos | null;
 }
 
 /**
@@ -292,5 +416,31 @@ export async function fetchNotificacionProrrogaExpedientes(
   const { data } = await apiClient.get<INotificacionProrrogaExpedientesResponse>(
     `/actuaciones/${actuacionId}/notificacion/expedientes-prorroga`
   );
+  return data;
+}
+
+export type INotificacionProrrogaExpedientePatchBody = {
+  numero_expediente: string;
+  fecha_expediente: string;
+  plazo_otorgado: number;
+};
+
+/** PATCH expediente `PRORROGA_NOTIFICACION`: número, fecha y plazo otorgado; recalcula vencimiento en servidor. */
+export async function patchNotificacionProrrogaExpediente(
+  actuacionId: number,
+  expedienteId: number,
+  body: INotificacionProrrogaExpedientePatchBody
+): Promise<{
+  ok: boolean;
+  item: INotificacionProrrogaExpedienteItem;
+  expediente_id: number;
+  plazo_notificacion: INotificacionPlazoNotificacionResumen;
+}> {
+  const { data } = await apiClient.patch<{
+    ok: boolean;
+    item: INotificacionProrrogaExpedienteItem;
+    expediente_id: number;
+    plazo_notificacion: INotificacionPlazoNotificacionResumen;
+  }>(`/actuaciones/${actuacionId}/notificacion/expedientes-prorroga/${expedienteId}`, body);
   return data;
 }

@@ -29,6 +29,7 @@ import {
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import type { MRT_ColumnDef } from "material-react-table";
 import type { IActuacionListItem } from "../../api/actuacionesListApi";
+import { ACTUACIONES_COMPOSITE_COLUMN_IDS } from "./Components/actuacionesCompositeColumns";
 
 import {
   wrapperStyles,
@@ -143,7 +144,11 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const pendingColumnVisibility = useMemo(() => {
     if (pendingType !== "domicilios") return {};
+    const hideComposites = Object.fromEntries(
+      ACTUACIONES_COMPOSITE_COLUMN_IDS.map((id) => [id, false])
+    );
     return {
+      ...hideComposites,
       orden_trabajo_numero: true,
       fecha_actuacion: true,
       calle: true,

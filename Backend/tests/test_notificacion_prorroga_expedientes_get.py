@@ -15,6 +15,31 @@ from app.domains.actuaciones.services.notificacion_timing_service import (
     inicializar_timing_notificacion,
 )
 from app.models import Actuaciones, Notificacion, OrdenTrabajo
+from sqlalchemy import inspect, text
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _ensure_expediente_prorroga_dias_otorgados_column(app):
+    """DDL idempotente si la migración Alembic aún no se aplicó en la BD de tests."""
+    with app.app_context():
+        from app.database import db
+
+        try:
+            cols = {c["name"] for c in inspect(db.engine).get_columns("expediente")}
+        except Exception:
+            return
+        if "prorroga_dias_otorgados" in cols:
+            return
+        dialect = db.engine.dialect.name
+        if dialect == "mysql":
+            db.session.execute(text("ALTER TABLE expediente ADD COLUMN prorroga_dias_otorgados INT NULL"))
+        else:
+            db.session.execute(
+                text("ALTER TABLE expediente ADD COLUMN prorroga_dias_otorgados INTEGER NULL")
+            )
+        db.session.commit()
 
 
 def _unique_num() -> str:
@@ -86,7 +111,7 @@ def test_get_prorroga_expedientes_sin_notificacion_400(app, client, auth_headers
             db.session.rollback()
 
 
-def test_get_prorroga_expedientes_lista_y_consolidado(app, client, auth_headers):
+def test_get_prorroga_expedientes_lista_y_plazo_notificacion(app, client, auth_headers):
     with app.app_context():
         try:
             act = _mk_actuacion_solo_notificacion()
@@ -121,12 +146,17 @@ def test_get_prorroga_expedientes_lista_y_consolidado(app, client, auth_headers)
             assert body["notificacion_id"] == nid
             assert body["plazos_otorgados"] == 2
             assert len(body["items"]) == 2
-            assert body["consolidado"]["prorroga_dias"] == 3
-            assert body["consolidado"]["plazo_dias"] is not None
-            assert body["items"][0]["prorroga_dias_solicitada"] is None
+            assert body["plazo_notificacion"]["prorroga_total_dias"] == 3
+            assert body["plazo_notificacion"]["plazo_legal_dias"] is not None
+            assert body["items"][0]["plazo_otorgado"] == 2
+            assert body["items"][1]["plazo_otorgado"] == 1
             assert body["items"][0]["numero_expediente"] is not None
             assert body["items"][0]["anio"] == "2026"
             assert body["items"][0]["fecha_expediente"] == "2026-03-10"
             assert body["items"][1]["fecha_expediente"] == "2026-03-12"
+            ed = body.get("edicion") or {}
+            assert ed.get("puede_editar_expediente_prorroga") is True
+            assert ed.get("notificacion_usada_como_iniciador") is False
+            assert isinstance(ed.get("motivos_bloqueo_expediente"), list)
         finally:
             db.session.rollback()

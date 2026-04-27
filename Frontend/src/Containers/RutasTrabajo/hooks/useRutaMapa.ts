@@ -24,6 +24,7 @@ import {
   grupoEstiloIndex,
   grupoNombreEnMapa,
 } from "../utils/mapaRutaGrupoTrazado";
+import { parseCoord } from "../../../utils/mapCoords";
 
 /** Mismo criterio de acento que `PanelGruposRuta`. */
 export function grupoColorAccent(grupoId: number): string {
@@ -69,8 +70,14 @@ export function useRutaMapa(
 
       const items: RutaMapaItemVista[] = groupItems.map((it, idx) => {
         const poolRow = iniciadorById[it.iniciador_ruta_id];
-        const lat = typeof it.lat === "number" && !Number.isNaN(it.lat) ? it.lat : null;
-        const lng = typeof it.lng === "number" && !Number.isNaN(it.lng) ? it.lng : null;
+        let lat = parseCoord(it.lat);
+        let lng = parseCoord(it.lng);
+        if (lat == null || lng == null) {
+          const pl = parseCoord(poolRow?.lat);
+          const pg = parseCoord(poolRow?.lng);
+          if (lat == null) lat = pl;
+          if (lng == null) lng = pg;
+        }
         const rubroFull = rubroOperativoDesdeItemYPool(it, poolRow);
         const distritoFull = distritoOperativoDesdeItemYPool(it, poolRow);
         const tipoIniciadorLabel = tipoEtiquetaDesdeItemYPool(it, poolRow);

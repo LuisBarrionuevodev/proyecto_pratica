@@ -30,6 +30,7 @@ export interface IReinspeccionOficioPendienteRow {
   numero: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
+  razon_social?: string | null;
   oficio_numero?: string | null;
   oficio_anio?: number | null;
   documento_pendiente: string;
@@ -138,6 +139,28 @@ export interface IComprobacionRecorridoOrigenIniciador {
   fecha_origen: string | null;
 }
 
+/** Snapshot de la actuación (misma fuente que el grid); el modal no depende solo del listado. */
+export interface IComprobacionRecorridoReferenciaActuacion {
+  fecha_actuacion?: string | null;
+  orden_trabajo_numero?: string | null;
+  calle?: string | null;
+  numero?: string | null;
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
+  razon_social?: string | null;
+  doc_nro?: string | null;
+  rubro_nombre?: string | null;
+  /** Motivo de la comprobación (misma fuente que la grilla). */
+  comprobacion_motivo?: string | null;
+  acta_inspeccion_num?: string | null;
+  acta_comprobacion_num?: string | null;
+  inspectores_texto?: string | null;
+  inspector1?: string | null;
+  inspector2?: string | null;
+  inspector3?: string | null;
+  tipo_actuacion?: string | null;
+}
+
 export interface IComprobacionRecorridoOrigen {
   descripcion?: string;
   fecha_actuacion?: string | null;
@@ -172,6 +195,8 @@ export interface IComprobacionRecorridoDetalle {
   expediente_respuesta_oficio: Record<string, unknown> | null;
   reinspeccion_por_oficio: Record<string, unknown> | null;
   resultado_final: IComprobacionRecorridoResultadoFinal;
+  /** Presente desde API actual: datos de visita alineados al grid (priorizar sobre `listRow`). */
+  referencia_actuacion?: IComprobacionRecorridoReferenciaActuacion | null;
 }
 
 export async function fetchComprobacionRecorridoDetalle(

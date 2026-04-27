@@ -31,6 +31,10 @@ import {
 
 import { ConfirmDialog } from "../../../ui";
 import { submitActuacionRow } from "../utils/submitActuacionRow";
+import {
+  ACTUACIONES_COMPOSITE_COLUMN_IDS,
+  buildActuacionesCompositeColumns,
+} from "./actuacionesCompositeColumns";
 
 /** Referencia estable: `= []` en props default crea un array nuevo cada render y rompe el memo de columnas / MRT. */
 const EMPTY_EXTRA_COLUMNS: MRT_ColumnDef<IActuacionListItem>[] = [];
@@ -227,19 +231,21 @@ const TablaActuaciones = ({
   ]);
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
-    const baseColumns: MRT_ColumnDef<IActuacionListItem>[] = [
+    const composite = buildActuacionesCompositeColumns();
+    const detailColumns: MRT_ColumnDef<IActuacionListItem>[] = [
       { accessorKey: "id", header: "ID", enableHiding: true, size: 80 },
 
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 100 },
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 120 },
-      { accessorKey: "tipo_actuacion", header: "Tipo", size: 180 },
-      { accessorKey: "contraproducencia", header: "Contraproducencia", size: 180 },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 200 },
+      { accessorKey: "orden_trabajo_numero", header: "OT", size: 100, enableHiding: true },
+      { accessorKey: "fecha_actuacion", header: "Fecha", size: 120, enableHiding: true },
+      { accessorKey: "tipo_actuacion", header: "Tipo", size: 180, enableHiding: true },
+      { accessorKey: "contraproducencia", header: "Contraproducencia", size: 180, enableHiding: true },
+      { accessorKey: "rubro_nombre", header: "Rubro", size: 200, enableHiding: true },
       { accessorKey: "nombre_local", header: "Nombre local", size: 180 },
       {
         accessorKey: "inspectores_texto",
         header: "Inspectores",
         size: 260,
+        enableHiding: true,
         Cell: ({ row }) =>
           row.original.inspectores_texto?.trim() ||
           row.original.inspectores?.filter(Boolean).join(", ") ||
@@ -247,14 +253,15 @@ const TablaActuaciones = ({
           "",
       },
 
-      { accessorKey: "inspector1", header: "Inspector 1", size: 150 },
-      { accessorKey: "inspector2", header: "Inspector 2", size: 150 },
-      { accessorKey: "inspector3", header: "Inspector 3", size: 150 },
+      { accessorKey: "inspector1", header: "Inspector 1", size: 150, enableHiding: true },
+      { accessorKey: "inspector2", header: "Inspector 2", size: 150, enableHiding: true },
+      { accessorKey: "inspector3", header: "Inspector 3", size: 150, enableHiding: true },
 
       {
         accessorKey: "calle",
         header: "Calle",
         size: 200,
+        enableHiding: true,
         Cell: ({ row }) => {
           if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
             return row.original.calle_normalizada;
@@ -266,6 +273,7 @@ const TablaActuaciones = ({
         accessorKey: "numero",
         header: numeroHeader,
         size: 400,
+        enableHiding: true,
         Cell: ({ row }) => {
           if (
             row.original.numero_tipo === "ESQUINA" &&
@@ -283,34 +291,44 @@ const TablaActuaciones = ({
       { accessorKey: "razon_social", header: "Razón social", size: 200 },
       { accessorKey: "ec5_uuid", header: "EpiCollect ID", size: 260 },
 
-      { accessorKey: "acta_inspeccion_num", header: "Acta Inspección", size: 150 },
-      { accessorKey: "acta_notificacion_num", header: "Acta Notificación", size: 150 },
-      { accessorKey: "notificacion_motivo_1", header: "Motivo Notif. 1", size: 180 },
-      { accessorKey: "notificacion_motivo_2", header: "Motivo Notif. 2", size: 180 },
-      { accessorKey: "notificacion_motivo_3", header: "Motivo Notif. 3", size: 180 },
+      { accessorKey: "acta_inspeccion_num", header: "Acta Inspección", size: 150, enableHiding: true },
+      { accessorKey: "acta_notificacion_num", header: "Acta Notificación", size: 150, enableHiding: true },
+      { accessorKey: "notificacion_motivo_1", header: "Motivo Notif. 1", size: 180, enableHiding: true },
+      { accessorKey: "notificacion_motivo_2", header: "Motivo Notif. 2", size: 180, enableHiding: true },
+      { accessorKey: "notificacion_motivo_3", header: "Motivo Notif. 3", size: 180, enableHiding: true },
 
-      { accessorKey: "acta_comprobacion_num", header: "Acta Comprobación", size: 150 },
-      { accessorKey: "comprobacion_motivo", header: "Motivo Comprob.", size: 180 },
+      { accessorKey: "acta_comprobacion_num", header: "Acta Comprobación", size: 150, enableHiding: true },
+      { accessorKey: "comprobacion_motivo", header: "Motivo Comprob.", size: 180, enableHiding: true },
 
-      { accessorKey: "acta_clausura_num", header: "Acta Clausura", size: 150 },
-      { accessorKey: "acta_decomiso_num", header: "Acta Decomiso", size: 150 },
-      { accessorKey: "decomiso_kilos_total", header: "Kilos Decomisados", size: 150 },
+      { accessorKey: "acta_clausura_num", header: "Acta Clausura", size: 150, enableHiding: true },
+      { accessorKey: "acta_decomiso_num", header: "Acta Decomiso", size: 150, enableHiding: true },
+      { accessorKey: "decomiso_kilos_total", header: "Kilos Decomisados", size: 150, enableHiding: true },
 
-      { accessorKey: "expediente_numero", header: "Expediente Nro", size: 150 },
-      { accessorKey: "expediente_anio", header: "Expediente Año", size: 120 },
+      { accessorKey: "expediente_numero", header: "Expediente Nro", size: 150, enableHiding: true },
+      { accessorKey: "expediente_anio", header: "Expediente Año", size: 120, enableHiding: true },
 
-      { accessorKey: "oficio_numero", header: "Oficio Nro", size: 120 },
-      { accessorKey: "oficio_anio", header: "Oficio Año", size: 120 },
-      { accessorKey: "oficio_causa", header: "Oficio Causa", size: 180 },
+      { accessorKey: "oficio_numero", header: "Oficio Nro", size: 120, enableHiding: true },
+      { accessorKey: "oficio_anio", header: "Oficio Año", size: 120, enableHiding: true },
+      { accessorKey: "oficio_causa", header: "Oficio Causa", size: 180, enableHiding: true },
     ];
-    return [...baseColumns, ...extraColumns];
+    return [...composite, ...detailColumns, ...extraColumns];
   }, [extraColumns, numeroHeader]);
 
-  const columnOrder = useMemo(() => ([
-    "mrt-row-select",
-    ...(hideRowActions ? [] : ["mrt-row-actions"]),
-    ...columns.map((col) => col.accessorKey as string),
-  ]), [columns, hideRowActions]);
+  const columnOrder = useMemo(
+    () => [
+      "mrt-row-select",
+      ...(hideRowActions ? [] : ["mrt-row-actions"]),
+      ...columns
+        .map((col) => {
+          const def = col as MRT_ColumnDef<IActuacionListItem> & { id?: string };
+          if (def.accessorKey != null) return String(def.accessorKey);
+          if (def.id != null) return String(def.id);
+          return "";
+        })
+        .filter(Boolean),
+    ],
+    [columns, hideRowActions]
+  );
 
   /** Objeto estable: un `initialState` nuevo cada render puede hacer que MRT re-sincronice estado interno sin fin. */
   const tableInitialState = useMemo(
@@ -319,14 +337,26 @@ const TablaActuaciones = ({
       columnVisibility: {
         id: false,
         nombre_local: false,
+        orden_trabajo_numero: false,
+        fecha_actuacion: false,
+        tipo_actuacion: false,
+        contraproducencia: false,
+        rubro_nombre: false,
+        inspectores_texto: false,
         inspector1: false,
         inspector2: false,
         inspector3: false,
+        calle: false,
+        numero: false,
         doc_nro: false,
         contrib_apellido: false,
         contrib_nombre: false,
         razon_social: false,
         ec5_uuid: false,
+        acta_inspeccion_num: false,
+        acta_notificacion_num: false,
+        acta_comprobacion_num: false,
+        notificacion_motivo_1: false,
         notificacion_motivo_2: false,
         notificacion_motivo_3: false,
         comprobacion_motivo: false,
@@ -338,6 +368,7 @@ const TablaActuaciones = ({
         oficio_numero: false,
         oficio_anio: false,
         oficio_causa: false,
+        ...Object.fromEntries(ACTUACIONES_COMPOSITE_COLUMN_IDS.map((k) => [k, true])),
         ...initialColumnVisibility,
       },
       density: "compact" as const,

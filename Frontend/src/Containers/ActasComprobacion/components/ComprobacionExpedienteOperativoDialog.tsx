@@ -91,11 +91,8 @@ export function ComprobacionExpedienteOperativoDialog({
         <Box sx={docModalFooterRowSx}>
           <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
           <Box sx={docModalFooterButtonsSx}>
-            <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
-              Cancelar
-            </AppButton>
-            <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onGuardar()} disabled={saving}>
-              {saving ? "Guardando…" : "Guardar expediente"}
+            <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose} disabled={saving}>
+              Cerrar
             </AppButton>
           </Box>
         </Box>
@@ -130,6 +127,11 @@ export function ComprobacionExpedienteOperativoDialog({
                 fullWidth
                 required
               />
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onGuardar()} disabled={saving}>
+                  {saving ? "Guardando…" : "Guardar expediente"}
+                </AppButton>
+              </Box>
             </Stack>
           </DocumentalBloque>
         </Stack>

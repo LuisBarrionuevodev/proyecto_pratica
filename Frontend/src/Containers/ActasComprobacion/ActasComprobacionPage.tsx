@@ -13,14 +13,25 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import {
+  BandejaActaChipCell,
+  BandejaDomicilioYRubroCell,
+  BandejaEllipsisCell,
+  BandejaFechaYChipOtCell,
+  BandejaSegmentChipsCell,
+  BANDEJA_MRT_BODY_CELL_PROPS,
+  splitMiddleDot,
+} from "../Actuaciones/Components/bandejaTableCells";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import {
   createExpedienteDesdeActuacion,
   createOficioDesdeActuacion,
+  fetchComprobacionDocumental,
   getActuacionesPendientesExpediente,
   getJuzgadosCatalogo,
   type IActuacionesPendientesItem,
+  type IComprobacionDocumentalResponse,
   type ICreateExpedienteRequest,
   type IJuzgadoCatalogItem,
   type IPendientesOficioItem,
@@ -56,6 +67,7 @@ import { AppButton, AppSelect, AppTextField } from "../../ui";
 import { humanizarEstadoIniciador } from "./utils/documentalLabelFormat";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
+import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
 import { ComprobacionOficioOperativoDialog } from "./components/ComprobacionOficioOperativoDialog";
 import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
@@ -83,15 +95,75 @@ const actasContentColumnSx = {
 
 type RecPeriodMode = "month" | "range";
 
-function contribText(ap?: string | null, nom?: string | null): string {
-  const t = [ap, nom].map((s) => (s ?? "").trim()).filter(Boolean).join(", ");
-  return t || "—";
-}
-
 function domicilioText(calle?: string | null, num?: string | null): string {
   const t = [calle, num].map((s) => (s ?? "").trim()).filter(Boolean).join(" ");
   return t || "—";
 }
+
+function fechaOtLabel(fecha?: string | null, ot?: string | null): string {
+  const f = (fecha ?? "").toString().trim() || "—";
+  const o = (ot ?? "").toString().trim() || "—";
+  return `${f} · ${o}`;
+}
+
+function contribBandejaFromRow(r: {
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
+  razon_social?: string | null;
+}): string {
+  return contribuyenteBandejaLabel(r.contrib_apellido, r.contrib_nombre, r.razon_social);
+}
+
+function contribDocRecorrido(r: IComprobacionRecorridoRow): string {
+  const c = contribBandejaFromRow(r);
+  const d = (r.doc_nro ?? "").toString().trim();
+  if (d) return `${c} · ${d}`;
+  return c;
+}
+
+function contribDocRecorridoSegments(r: IComprobacionRecorridoRow): string[] {
+  const full = contribDocRecorrido(r);
+  const parts = splitMiddleDot(full);
+  if (parts.length > 0) return parts;
+  return full && full !== "—" ? [full] : [];
+}
+
+function reinOficioActaSegments(r: IReinspeccionOficioPendienteRow): string[] {
+  const n = (r.oficio_numero ?? "").trim();
+  const a = r.oficio_anio != null ? String(r.oficio_anio) : "";
+  const ofi = n || a ? `Oficio ${[n, a].filter(Boolean).join("/")}` : "Oficio —";
+  const comp = (r.acta_comprobacion_num ?? "").trim();
+  const acta = comp ? `Acta ${comp}` : "Acta —";
+  return [ofi, acta];
+}
+
+function reinDocEstadoResumen(r: IReinspeccionOficioPendienteRow): string {
+  const ini = humanizarEstadoIniciador(r.estado_iniciador);
+  const doc = (r.documento_pendiente ?? "").trim() || "—";
+  return `${ini} · ${doc}`;
+}
+
+/** Layout MRT compartido: menos altura de fila y ancho útil sin overflow horizontal del layout. */
+const bandejaComprobacionMrtLayout = {
+  density: "compact" as const,
+  ...BANDEJA_MRT_BODY_CELL_PROPS,
+  muiTablePaperProps: {
+    sx: {
+      ...((DARK_TABLE_CONFIG.muiTablePaperProps as { sx?: Record<string, unknown> })?.sx ?? {}),
+      width: "100%",
+      maxWidth: "100%",
+      minWidth: 0,
+    },
+  },
+  muiTableContainerProps: {
+    sx: {
+      ...((DARK_TABLE_CONFIG.muiTableContainerProps as { sx?: Record<string, unknown> })?.sx ?? {}),
+      minWidth: 0,
+      maxWidth: "100%",
+      maxHeight: { xs: "min(45vh, 360px)", sm: "min(52vh, 440px)", md: "min(58vh, 520px)" },
+    },
+  },
+};
 
 const TIPO_FINAL_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Todos" },
@@ -224,26 +296,56 @@ const ActasComprobacionPage = () => {
 
   const columnsExpediente = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 110 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
       {
         id: "contrib",
         header: "Contribuyente",
-        size: 180,
-        accessorFn: (r) => contribText(r.contrib_apellido, r.contrib_nombre),
+        size: 152,
+        accessorFn: (r) => contribBandejaFromRow(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaEllipsisCell value={contribBandejaFromRow(row.original)} />,
       },
       {
-        id: "domicilio",
-        header: "Domicilio",
-        size: 200,
-        accessorFn: (r) => domicilioText(r.calle, r.numero),
+        id: "domicilio_rubro",
+        header: "Domicilio · rubro",
+        size: 188,
+        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaDomicilioYRubroCell
+            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
       },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 140 },
-      { accessorKey: "acta_comprobacion_num", header: "Nº comprobación", size: 130 },
+      {
+        accessorKey: "acta_comprobacion_num",
+        header: "Nº comp.",
+        size: 96,
+        Cell: ({ row }) => {
+          const n = (row.original.acta_comprobacion_num ?? "").trim();
+          return <BandejaActaChipCell label={n ? `Comp. ${n}` : "—"} />;
+        },
+      },
       {
         id: "acciones",
         header: "Acción",
-        size: 160,
+        size: 152,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
         Cell: ({ row }) => (
           <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalExp(row.original)}>
             Añadir expediente
@@ -279,6 +381,7 @@ const ActasComprobacionPage = () => {
 
   const tableExpediente = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
     columns: columnsExpediente,
     data: expItems,
     enableEditing: false,
@@ -302,6 +405,25 @@ const ActasComprobacionPage = () => {
   const [expFecha, setExpFecha] = useState(defaultRange.hasta);
   const [savingOficio, setSavingOficio] = useState(false);
   const [modalOficioError, setModalOficioError] = useState<string | null>(null);
+  const [modalDoc, setModalDoc] = useState<IComprobacionDocumentalResponse | null>(null);
+  const [modalDocLoading, setModalDocLoading] = useState(false);
+  const [modalDocError, setModalDocError] = useState<string | null>(null);
+
+  const reloadOficioModalDocumental = useCallback(async () => {
+    if (!selectedOficio) return;
+    try {
+      const doc = await fetchComprobacionDocumental(selectedOficio.id);
+      setModalDoc(doc);
+      setModalDocError(null);
+    } catch (err: unknown) {
+      setModalDoc(null);
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setModalDocError(
+        (typeof detail === "string" && detail.trim()) ||
+          "No se pudo recargar la ficha documental (edición no disponible hasta reintentar)."
+      );
+    }
+  }, [selectedOficio]);
 
   const loadOficio = useCallback(async () => {
     setOficioLoading(true);
@@ -323,22 +445,45 @@ const ActasComprobacionPage = () => {
     }
   }, []);
 
-  const openModalOficio = useCallback((row: IPendientesOficioItem) => {
-    setSelectedOficio(row);
-    setNumeroOficio("");
-    setFechaOficio(defaultRange.hasta);
-    setJuzgadoId("");
-    setCausa("");
-    setExpNumero("");
-    setExpFecha(defaultRange.hasta);
-    setModalOficioError(null);
-    setModalOficioOpen(true);
-  }, [defaultRange.hasta]);
+  const openModalOficio = useCallback(
+    async (row: IPendientesOficioItem) => {
+      setSelectedOficio(row);
+      setNumeroOficio("");
+      setFechaOficio(defaultRange.hasta);
+      setJuzgadoId("");
+      setCausa("");
+      setExpNumero("");
+      setExpFecha(defaultRange.hasta);
+      setModalOficioError(null);
+      setModalDoc(null);
+      setModalDocError(null);
+      setModalOficioOpen(true);
+      setModalDocLoading(true);
+      try {
+        const doc = await fetchComprobacionDocumental(row.id);
+        setModalDoc(doc);
+        setModalDocError(null);
+      } catch (err: unknown) {
+        setModalDoc(null);
+        const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+        setModalDocError(
+          (typeof detail === "string" && detail.trim()) ||
+            "No se pudo cargar la ficha documental (no se mostrará edición ni bloqueo por iniciador hasta reintentar)."
+        );
+      } finally {
+        setModalDocLoading(false);
+      }
+    },
+    [defaultRange.hasta]
+  );
 
   const closeModalOficio = () => {
     if (savingOficio) return;
     setModalOficioOpen(false);
     setSelectedOficio(null);
+    setModalDoc(null);
+    setModalDocError(null);
+    setModalDocLoading(false);
   };
 
   const handleSaveOficio = async () => {
@@ -370,34 +515,65 @@ const ActasComprobacionPage = () => {
 
   const columnsOficio = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
     () => [
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 110 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
       {
         id: "contrib",
         header: "Contribuyente",
-        size: 180,
-        accessorFn: (r) => contribText(r.contrib_apellido, r.contrib_nombre),
+        size: 152,
+        accessorFn: (r) => contribBandejaFromRow(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaEllipsisCell value={contribBandejaFromRow(row.original)} />,
       },
       {
-        id: "domicilio",
-        header: "Domicilio",
-        size: 200,
-        accessorFn: (r) => domicilioText(r.calle, r.numero),
+        id: "domicilio_rubro",
+        header: "Domicilio · rubro",
+        size: 188,
+        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaDomicilioYRubroCell
+            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
       },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 140 },
-      { accessorKey: "acta_comprobacion_num", header: "Nº comprobación", size: 130 },
+      {
+        accessorKey: "acta_comprobacion_num",
+        header: "Nº comp.",
+        size: 96,
+        Cell: ({ row }) => {
+          const n = (row.original.acta_comprobacion_num ?? "").trim();
+          return <BandejaActaChipCell label={n ? `Comp. ${n}` : "—"} />;
+        },
+      },
       {
         id: "estado_doc",
-        header: "Estado / documento pendiente",
-        size: 200,
-        accessorFn: () => "Pendiente de oficio (carga manual)",
+        header: "Estado",
+        size: 132,
+        accessorFn: () => "Pendiente oficio (manual)",
+        Cell: () => <BandejaEllipsisCell value="Pendiente oficio (manual)" />,
       },
       {
         id: "acciones",
         header: "Acción",
-        size: 150,
+        size: 128,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
         Cell: ({ row }) => (
-          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalOficio(row.original)}>
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => void openModalOficio(row.original)}>
             Añadir oficio
           </AppButton>
         ),
@@ -431,6 +607,7 @@ const ActasComprobacionPage = () => {
 
   const tableOficio = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
     columns: columnsOficio,
     data: oficioItems,
     enableEditing: false,
@@ -476,47 +653,78 @@ const ActasComprobacionPage = () => {
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
     () => [
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 110 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
       {
         id: "contrib",
         header: "Contribuyente",
-        size: 180,
-        accessorFn: (r) => contribText(r.contrib_apellido, r.contrib_nombre),
+        size: 148,
+        accessorFn: (r) => contribBandejaFromRow(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaEllipsisCell value={contribBandejaFromRow(row.original)} />,
       },
       {
-        id: "domicilio",
-        header: "Domicilio",
-        size: 200,
-        accessorFn: (r) => domicilioText(r.calle, r.numero),
+        id: "domicilio_rubro",
+        header: "Domicilio · rubro",
+        size: 176,
+        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaDomicilioYRubroCell
+            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
       },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 140 },
-      { accessorKey: "acta_comprobacion_num", header: "Nº comprobación", size: 130 },
       {
-        id: "oficio_ref",
-        header: "Nº oficio",
-        size: 130,
-        accessorFn: (r) => {
-          const n = r.oficio_numero ?? "";
-          const a = r.oficio_anio != null ? String(r.oficio_anio) : "";
-          const t = [n, a].filter(Boolean).join(" / ");
-          return t || "—";
+        id: "oficio_acta_comp",
+        header: "Oficio · Acta comp.",
+        size: 132,
+        accessorFn: (r) => reinOficioActaSegments(r).join(" | "),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => {
+          const segs = reinOficioActaSegments(row.original);
+          const ofi = segs[0] ?? "—";
+          const acta = segs[1] ?? "—";
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.65, maxWidth: "100%" }}>
+              <BandejaEllipsisCell value={ofi} />
+              <BandejaActaChipCell label={acta} />
+            </Box>
+          );
         },
       },
-      { accessorKey: "documento_pendiente", header: "Estado / documento pendiente", size: 200 },
       {
-        id: "estado_ini",
-        header: "Estado del iniciador",
-        size: 120,
-        accessorFn: (r) => humanizarEstadoIniciador(r.estado_iniciador),
+        id: "doc_ini",
+        header: "Iniciador · doc.",
+        size: 168,
+        accessorFn: (r) => reinDocEstadoResumen(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaSegmentChipsCell segments={splitMiddleDot(reinDocEstadoResumen(row.original))} />
+        ),
       },
       {
         id: "accion_rein",
         header: "Acción",
-        size: 160,
+        size: 128,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
         Cell: ({ row }) => (
           <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalRein(row.original)}>
-            Ver detalle
+            Ver recorrido
           </AppButton>
         ),
       },
@@ -549,6 +757,7 @@ const ActasComprobacionPage = () => {
 
   const tableRein = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
     columns: columnsRein,
     data: reinItems,
     enableEditing: false,
@@ -579,6 +788,11 @@ const ActasComprobacionPage = () => {
   const [detalleActuacionId, setDetalleActuacionId] = useState<number | null>(null);
   /** Fila del listado Recorrido al abrir detalle (enriquece domicilio / inspectores sin otro endpoint). */
   const [detalleListRow, setDetalleListRow] = useState<IComprobacionRecorridoRow | null>(null);
+
+  const reloadRecorridoDetalle = useCallback(async (actuacionId: number) => {
+    const d = await fetchComprobacionRecorridoDetalle(actuacionId);
+    setDetalle(d);
+  }, []);
 
   const recPeriodParams = useCallback((): IComprobacionRecorridoListParams => {
     const p: IComprobacionRecorridoListParams = {
@@ -630,89 +844,114 @@ const ActasComprobacionPage = () => {
   useEffect(() => {
     if (tab === "oficio") void loadOficio();
     else if (tab === "reinspeccion") void loadRein();
-    else if (tab === "recorrido") {
-      setRecFilterApplied(true);
-      void loadRecorridoSearch();
-    }
+    // Recorrido: no cargar listado al cambiar de pestaña; solo tras "Filtrar".
     // eslint-disable-next-line react-hooks/exhaustive-deps -- carga al cambiar de pestaña (no re-disparar al editar filtros)
   }, [tab]);
 
-  const openDetalle = async (row: IComprobacionRecorridoRow) => {
-    const actuacionId = row.id;
-    setDetalleListRow(row);
-    setDetalleActuacionId(actuacionId);
-    setDetalleOpen(true);
-    setDetalleLoading(true);
-    setDetalle(null);
-    try {
-      const d = await fetchComprobacionRecorridoDetalle(actuacionId);
-      setDetalle(d);
-    } catch (err: unknown) {
-      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setRecError(detail || "No se pudo cargar el detalle");
-      setDetalleOpen(false);
-      setDetalleListRow(null);
-    } finally {
-      setDetalleLoading(false);
-    }
-  };
+  const openDetalle = useCallback(
+    async (row: IComprobacionRecorridoRow) => {
+      const actuacionId = row.id;
+      setDetalleListRow(row);
+      setDetalleActuacionId(actuacionId);
+      setDetalleOpen(true);
+      setDetalleLoading(true);
+      setDetalle(null);
+      try {
+        await reloadRecorridoDetalle(actuacionId);
+      } catch (err: unknown) {
+        const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+        setRecError(detail || "No se pudo cargar el detalle");
+        setDetalleOpen(false);
+        setDetalleListRow(null);
+      } finally {
+        setDetalleLoading(false);
+      }
+    },
+    [reloadRecorridoDetalle]
+  );
 
   const columnsRec = useMemo<MRT_ColumnDef<IComprobacionRecorridoRow>[]>(
     () => [
-      { accessorKey: "fecha_actuacion", header: "Fecha", size: 110 },
-      { accessorKey: "orden_trabajo_numero", header: "OT", size: 110 },
       {
-        id: "contrib",
-        header: "Contribuyente",
-        size: 180,
-        accessorFn: (r) => contribText(r.contrib_apellido, r.contrib_nombre),
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
       },
       {
-        id: "domicilio",
-        header: "Domicilio",
-        size: 200,
-        accessorFn: (r) => domicilioText(r.calle, r.numero),
+        id: "contrib_doc",
+        header: "Titular · doc.",
+        size: 168,
+        accessorFn: (r) => contribDocRecorrido(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => {
+          const segs = contribDocRecorridoSegments(row.original);
+          return segs.length > 1 ? (
+            <BandejaSegmentChipsCell segments={segs} />
+          ) : (
+            <BandejaEllipsisCell value={contribDocRecorrido(row.original)} />
+          );
+        },
       },
-      { accessorKey: "rubro_nombre", header: "Rubro", size: 140 },
-      { accessorKey: "acta_comprobacion_num", header: "Nº comprobación", size: 130 },
-      { accessorKey: "estado_recorrido", header: "Estado del recorrido", size: 260 },
+      {
+        id: "domicilio_rubro",
+        header: "Domicilio · rubro",
+        size: 176,
+        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaDomicilioYRubroCell
+            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
+      },
+      {
+        accessorKey: "acta_comprobacion_num",
+        header: "Nº comp.",
+        size: 88,
+        Cell: ({ row }) => {
+          const n = (row.original.acta_comprobacion_num ?? "").trim();
+          return <BandejaActaChipCell label={n ? `Comp. ${n}` : "—"} />;
+        },
+      },
+      {
+        accessorKey: "estado_recorrido",
+        header: "Recorrido",
+        size: 176,
+        Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "").trim() || "—"} />,
+      },
       {
         id: "ver",
         header: "Acción",
-        size: 120,
+        size: 108,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
         Cell: ({ row }) => (
-          <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void openDetalle(row.original)}>
-            Ver detalle
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => void openDetalle(row.original)}>
+            Ver recorrido
           </AppButton>
         ),
       },
     ],
-    []
+    [openDetalle]
   );
 
   const tableRec = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
     columns: columnsRec,
     data: recItems,
     enableEditing: false,
     enableRowSelection: false,
-    muiTablePaperProps: {
-      sx: {
-        ...((DARK_TABLE_CONFIG.muiTablePaperProps as { sx?: Record<string, unknown> })?.sx ?? {}),
-        width: "100%",
-        maxWidth: "100%",
-        minWidth: 0,
-      },
-    },
-    muiTableContainerProps: {
-      sx: {
-        ...((DARK_TABLE_CONFIG.muiTableContainerProps as { sx?: Record<string, unknown> })?.sx ?? {}),
-        minWidth: 0,
-        maxWidth: "100%",
-        /** Mucho contenido arriba (filtros): altura fija más conservadora para no pelear con el scroll del layout */
-        maxHeight: { xs: "min(45vh, 360px)", sm: "min(52vh, 440px)", md: "min(58vh, 520px)" },
-      },
-    },
   });
 
   const tabIndex =
@@ -858,13 +1097,7 @@ const ActasComprobacionPage = () => {
           {tab === "recorrido" && (
             <>
               <Box sx={filtroContainerStyles}>
-                <Typography sx={filtroTitleStyles}>Recorrido — filtros documentales</Typography>
-                <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.5 }}>
-                  Período calendario o rango de fechas, distrito y criterios opcionales por contribuyente, calle, número
-                  de acta de comprobación o número de oficio. Tipo final acota por resultado del circuito. Los campos de
-                  texto son opcionales. Al entrar a esta pestaña se carga el listado con el mes/año o rango elegido; tocá{" "}
-                  <strong>Filtrar</strong> después de cambiar criterios (máx. 500 filas por consulta en servidor).
-                </Typography>
+                <Typography sx={filtroTitleStyles}>Recorrido del acta de comprobación</Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
                     <AppSelect
@@ -1044,7 +1277,8 @@ const ActasComprobacionPage = () => {
               )}
               {!recFilterApplied ? (
                 <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-                  Tocá <strong>Filtrar</strong> para volver a cargar el listado (p. ej. después de <strong>Limpiar</strong>).
+                  Tocá <strong>Filtrar</strong> para cargar el listado en la tabla (p. ej. después de <strong>Limpiar</strong> o
+                  al entrar por primera vez a esta pestaña).
                 </Typography>
               ) : recLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -1098,6 +1332,10 @@ const ActasComprobacionPage = () => {
         onClose={closeModalOficio}
         row={selectedOficio}
         juzgados={juzgados}
+        documental={modalDoc}
+        documentalLoading={modalDocLoading}
+        documentalError={modalDocError}
+        onDocumentalUpdated={reloadOficioModalDocumental}
         numeroOficio={numeroOficio}
         onNumeroOficioChange={setNumeroOficio}
         fechaOficio={fechaOficio}

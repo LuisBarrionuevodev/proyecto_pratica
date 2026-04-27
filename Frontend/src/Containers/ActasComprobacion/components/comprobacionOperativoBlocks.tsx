@@ -14,7 +14,7 @@ import {
   docModalSubheadingInCardSx,
 } from "../../../styles/documentalModalTokens";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
-import { humanizarEstadoIniciador, humanizarTipoActuacion } from "../utils/documentalLabelFormat";
+import { humanizarTipoActuacion } from "../utils/documentalLabelFormat";
 
 type DocumentalCardShell = "glass" | "actuacion";
 
@@ -159,7 +159,10 @@ export function BloqueReferenciaComprobacionOficio({ row }: { row: ComprobacionO
       <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
       <DocumentalFila etiqueta="Expediente de envío" valor={expedienteEnvioNumeroLinea(row)} />
-      <DocumentalFila etiqueta="Fecha del expediente de envío" valor="—" />
+      <DocumentalFila
+        etiqueta="Fecha del expediente de envío"
+        valor={textoValor(row.expediente_original_fecha)}
+      />
     </DocumentalBloque>
   );
 }

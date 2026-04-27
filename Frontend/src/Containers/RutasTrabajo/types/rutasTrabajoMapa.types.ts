@@ -1,13 +1,5 @@
-import type { MutableRefObject } from "react";
-
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
-
-/** Ejecuta la captura PNG del bloque operativo Mapa final (p. ej. tras publicar). */
-export type CapturaMapaFinalHandle = (opts?: { estadoEtiqueta?: string }) => Promise<void>;
-
-/** Dispara impresión / PDF de la hoja de grupos (MF7, iframe en página; sin ventana emergente). */
-export type ExportGruposPrintHandle = (opts?: { estadoEtiqueta?: string }) => Promise<void>;
 
 /** Punto en el mapa (cuando existan coordenadas en datos). */
 export type RutaMapaMarker = {
@@ -123,13 +115,9 @@ export type RutasMapaOperativoViewProps = {
   onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem?: (item: IRutaItemMin) => void | Promise<void>;
   onGuardarOtItem?: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
-  /** Registro desde el contenedor para disparar captura PNG sin acoplar el árbol al padre. */
-  capturaMapaFinalRef?: MutableRefObject<CapturaMapaFinalHandle | null>;
-  /** Registro para disparar impresión / PDF vía navegador de la hoja de grupos (MF7). */
-  exportGruposPrintRef?: MutableRefObject<ExportGruposPrintHandle | null>;
   /**
    * Preview histórica: ruta no BORRADOR (p. ej. PUBLICADA). Solo lectura para edición/publicación;
-   * captura PNG / impresión de grupos siguen disponibles (refs + CTAs en vista mapa).
+   * documentación PDF oficial desde `documentos/` (resumen + órdenes de salida).
    */
   vistaHistoricaReadOnly?: boolean;
   /** Con `vistaHistoricaReadOnly`, vuelve al listado inicial (borradores / publicadas). */

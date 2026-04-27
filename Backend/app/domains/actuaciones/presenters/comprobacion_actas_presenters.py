@@ -205,11 +205,41 @@ def _juzgado_nombre(ofi: Optional[Oficio]) -> Optional[str]:
     return getattr(jz, "nombre", None) if jz else None
 
 
+def referencia_actuacion_from_grid_row(grid: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Snapshot de la actuación (misma fuente que ``actuacion_to_grid_row``).
+
+    Reutilizable en detalle de recorrido (solo lectura) y en ficha documental operativa de comprobación.
+    """
+    return {
+        "fecha_actuacion": grid.get("fecha_actuacion"),
+        "orden_trabajo_numero": grid.get("orden_trabajo_numero"),
+        "calle": grid.get("calle_mostrar") or grid.get("calle"),
+        "numero": grid.get("numero_mostrar") or grid.get("numero"),
+        "contrib_apellido": grid.get("contrib_apellido"),
+        "contrib_nombre": grid.get("contrib_nombre"),
+        "razon_social": grid.get("razon_social"),
+        "doc_nro": grid.get("doc_nro"),
+        "rubro_nombre": grid.get("rubro_nombre"),
+        "comprobacion_motivo": grid.get("comprobacion_motivo"),
+        "acta_inspeccion_num": grid.get("acta_inspeccion_num"),
+        "acta_comprobacion_num": grid.get("acta_comprobacion_num"),
+        "inspectores_texto": grid.get("inspectores_texto"),
+        "inspector1": grid.get("inspector1"),
+        "inspector2": grid.get("inspector2"),
+        "inspector3": grid.get("inspector3"),
+        "tipo_actuacion": grid.get("tipo_actuacion"),
+    }
+
+
 def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
     """
     Detalle estructurado consultivo (sin PDF): origen, comprobación, expedientes, oficio, reinspección, resultado.
 
     Contrato estable (extensiones UI recorrido):
+    - ``referencia_actuacion``: mismos hechos de visita que la grilla (domicilio mostrable, titular,
+      documento, rubro, inspectores, tipo de actuación, acta de inspección) para que el modal no
+      dependa del listado.
     - ``origen.iniciador``: iniciador de origen de la actuación / primera comprobación
       (excluye ``REINSPECCION_OFICIO`` salvo si es el único).
     - ``oficio``: incluye ``causa``, ``juzgado_id``, ``juzgado_nombre`` cuando hay oficio.
@@ -297,12 +327,15 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         ),
         "reinspeccion_por_oficio": (
             {
+                "tipo_iniciador": ini.tipo_iniciador,
                 "estado_iniciador": ini.estado_iniciador,
                 "fecha_origen": ini.fecha_origen.isoformat() if ini.fecha_origen else None,
+                "documento_pendiente": "Reinspección por oficio",
             }
             if ini
             else None
         ),
+        "referencia_actuacion": referencia_actuacion_from_grid_row(grid),
         "resultado_final": {
             "resultado_cumplimiento_oficio": res_val,
             "estado_recorrido": estado_recorrido_label(act),

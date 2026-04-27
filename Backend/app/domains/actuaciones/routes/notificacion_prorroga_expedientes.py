@@ -16,7 +16,7 @@ from . import actuacion
 @actuacion.get("/<int:actuacion_id>/notificacion/expedientes-prorroga")
 def get_notificacion_expedientes_prorroga(actuacion_id: int):
     """
-    Lista expedientes ``PRORROGA_NOTIFICACION`` y estado consolidado de plazo de la notificación.
+    Lista expedientes ``PRORROGA_NOTIFICACION`` y estado de plazo/vencimiento de la notificación.
 
     No altera contratos de la bandeja ``GET /actuaciones/pendientes/expediente``; es lectura
     adicional para trazabilidad fina (modal / informes).
@@ -26,9 +26,9 @@ def get_notificacion_expedientes_prorroga(actuacion_id: int):
           "actuacion_id": int,
           "notificacion_id": int,
           "plazos_otorgados": int,
-          "consolidado": {
-            "plazo_dias": int,
-            "prorroga_dias": int,
+          "plazo_notificacion": {
+            "plazo_legal_dias": int,
+            "prorroga_total_dias": int,
             "fecha_notificacion": "YYYY-MM-DD" | null,
             "fecha_vencimiento": "YYYY-MM-DD" | null
           },
@@ -40,9 +40,14 @@ def get_notificacion_expedientes_prorroga(actuacion_id: int):
               "fecha_expediente": "YYYY-MM-DD" | null,
               "created_at": ISO-8601,
               "tipo_expediente": "PRORROGA_NOTIFICACION",
-              "prorroga_dias_solicitada": null
+              "plazo_otorgado": int | null
             }
-          ]
+          ],
+          "edicion": {
+            "puede_editar_expediente_prorroga": bool,
+            "notificacion_usada_como_iniciador": bool,
+            "motivos_bloqueo_expediente": [str, ...]
+          }
         }
 
     Errores:

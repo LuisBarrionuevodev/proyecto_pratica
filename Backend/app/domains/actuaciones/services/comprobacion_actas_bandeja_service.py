@@ -59,6 +59,7 @@ def list_comprobacion_recorrido(
     """
     Actuaciones con comprobación para vista consultiva de recorrido.
     Filtros de texto opcionales (subcadena, case-insensitive) aplicados en memoria sobre el grid row.
+    ``contrib_q`` coincide con apellido, nombre y razón social del row.
     ``tipo_final`` filtra por ``resultado_cumplimiento_oficio`` (CUMPLE / NO_CUMPLE).
     """
     q = Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
@@ -74,7 +75,10 @@ def list_comprobacion_recorrido(
     def _keep(act: Actuaciones) -> bool:
         row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
         if contrib_q and contrib_q.strip():
-            blob = f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''}".lower()
+            blob = (
+                f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''} "
+                f"{row.get('razon_social') or ''}"
+            ).lower()
             if contrib_q.strip().lower() not in blob:
                 return False
         if calle_q and calle_q.strip():

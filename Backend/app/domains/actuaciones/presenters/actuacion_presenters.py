@@ -8,6 +8,7 @@ El expediente de respuesta de oficio no se refleja en los campos `expediente_*` 
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, Optional, List
@@ -30,6 +31,8 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
 from app.models import Actuaciones, Expediente, Oficio
+
+logger = logging.getLogger(__name__)
 from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 
@@ -69,13 +72,25 @@ def expediente_envio_por_comprobacion(comprobacion_id: int) -> Optional[Expedien
     Expediente de **comprobación** (envío de acta): `oficio_id` NULL.
     No incluye el expediente de respuesta de oficio (ese lleva `oficio_id`).
 
-    Orden estable por `id` para el caso 0..1 operativo con datos legados.
+    Orden estable por `id` ascendente. Si hay más de un expediente activo (datos legados),
+    se devuelve el de **menor id** y se registra un warning en logs para auditoría.
     """
-    return (
+    rows = (
         Expediente.query.filter_by(comprobacion_id=comprobacion_id, oficio_id=None)
+        .filter(Expediente.deleted_at.is_(None))
         .order_by(Expediente.id.asc())
-        .first()
+        .limit(3)
+        .all()
     )
+    if len(rows) > 1:
+        ids = [r.id for r in rows]
+        logger.warning(
+            "Varios expedientes de envío (comprobacion_id=%s, oficio_id NULL, deleted_at NULL): "
+            "ids=%s (mostrando id mínimo). Revisar con expediente_envio_audit.",
+            comprobacion_id,
+            ids,
+        )
+    return rows[0] if rows else None
 
 
 def _epicollect_value_preview(value: Any, max_len: int = 72) -> str:
@@ -740,14 +755,25 @@ def actuacion_to_pendiente_oficio_row(
         "id": full.get("id"),
         "fecha_actuacion": full.get("fecha_actuacion"),
         "orden_trabajo_numero": full.get("orden_trabajo_numero"),
+        "tipo_actuacion": full.get("tipo_actuacion"),
         "acta_comprobacion_num": full.get("acta_comprobacion_num"),
         "comprobacion_motivo": full.get("comprobacion_motivo"),
         "contrib_apellido": full.get("contrib_apellido"),
         "contrib_nombre": full.get("contrib_nombre"),
+        "razon_social": full.get("razon_social"),
+        "doc_nro": full.get("doc_nro"),
         "calle": full.get("calle"),
         "numero": full.get("numero"),
         "rubro_nombre": full.get("rubro_nombre"),
+        "acta_inspeccion_num": full.get("acta_inspeccion_num"),
+        "inspectores_texto": full.get("inspectores_texto"),
+        "inspector1": full.get("inspector1"),
+        "inspector2": full.get("inspector2"),
+        "inspector3": full.get("inspector3"),
         "expediente_original_id": getattr(exp_original, "id", None),
         "expediente_original_numero": getattr(exp_original, "numero_expediente", None),
         "expediente_original_anio": getattr(exp_original, "anio", None),
+        "expediente_original_fecha": (
+            exp_original.fecha_expediente.isoformat() if exp_original and exp_original.fecha_expediente else None
+        ),
     }

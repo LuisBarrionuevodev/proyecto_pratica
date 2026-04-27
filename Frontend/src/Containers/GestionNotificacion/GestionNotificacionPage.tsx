@@ -12,6 +12,8 @@ import {
   Tabs,
   Tooltip,
   Typography,
+  type SxProps,
+  type Theme,
 } from "@mui/material";
 import {
   MaterialReactTable,
@@ -29,7 +31,16 @@ import {
   type ISyncNotificacionesVencidasResponse,
 } from "../../api/actuacionesPendientesApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
+import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
+import {
+  BandejaActaChipCell,
+  BandejaEllipsisCell,
+  BandejaFechaYChipOtCell,
+  BandejaSegmentChipsCell,
+  BANDEJA_MRT_BODY_CELL_PROPS,
+  splitMiddleDot,
+} from "../Actuaciones/Components/bandejaTableCells";
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
   alertBaseStyles,
@@ -80,10 +91,7 @@ type HistorialAppliedPeriod =
   | { kind: "range"; desde: string; hasta: string };
 
 function contribuyenteText(row: IActuacionesPendientesItem): string {
-  const a = (row.contrib_apellido ?? "").trim();
-  const n = (row.contrib_nombre ?? "").trim();
-  const t = [a, n].filter(Boolean).join(", ");
-  return t || "—";
+  return contribuyenteBandejaLabel(row.contrib_apellido, row.contrib_nombre, row.razon_social);
 }
 
 function domicilioText(row: IActuacionesPendientesItem): string {
@@ -93,6 +101,18 @@ function domicilioText(row: IActuacionesPendientesItem): string {
   return t || "—";
 }
 
+/** Fecha de actuación y orden de trabajo (misma idea que comprobación; dos renglones, sin chips). */
+function notificacionFechaOtCelda(row: IActuacionesPendientesItem): { fecha: string; ot: string } {
+  const fecha = (row.fecha_actuacion ?? "").toString().trim() || "—";
+  const ot = (row.orden_trabajo_numero ?? "").toString().trim() || "—";
+  return { fecha, ot };
+}
+
+function notificacionFechaOtSortKey(row: IActuacionesPendientesItem): string {
+  const { fecha, ot } = notificacionFechaOtCelda(row);
+  return `${fecha} ${ot}`;
+}
+
 function motivosNotif(row: IActuacionesPendientesItem): string {
   const parts = [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3].filter(
     (s): s is string => Boolean(s && String(s).trim())
@@ -100,39 +120,28 @@ function motivosNotif(row: IActuacionesPendientesItem): string {
   return parts.join(", ") || "—";
 }
 
-function diasRestantesCell(row: IActuacionesPendientesItem): string {
-  if (row.dias_restantes === null || row.dias_restantes === undefined) return "—";
-  return String(row.dias_restantes);
+function motivosSegments(row: IActuacionesPendientesItem): string[] {
+  return [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
+    .map((s) => (s ?? "").trim())
+    .filter((s) => s.length > 0);
 }
 
-function plazosOtorgadosCell(row: IActuacionesPendientesItem): string {
-  if (row.plazos_otorgados === null || row.plazos_otorgados === undefined) return "—";
-  return String(row.plazos_otorgados);
-}
-
-/** Celda truncada con tooltip (bandeja compacta). */
-function EllipsisTableCell({ value }: { value: string }) {
-  const body = (
-    <Box
-      component="span"
-      sx={{
-        display: "block",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        maxWidth: "100%",
-        typography: "body2",
-      }}
-    >
-      {value}
-    </Box>
-  );
-  if (!value || value === "—") return body;
-  return (
-    <Tooltip title={value} placement="top-start" enterDelay={400}>
-      {body}
-    </Tooltip>
-  );
+/** Días restantes + prórrogas en una sola celda (menos columnas, más panorama). */
+function plazoResumenText(row: IActuacionesPendientesItem): string {
+  const dPart =
+    row.dias_restantes === null || row.dias_restantes === undefined
+      ? "—"
+      : row.dias_restantes === 1
+        ? "1 día"
+        : `${row.dias_restantes} días`;
+  const pPart =
+    row.plazos_otorgados === null || row.plazos_otorgados === undefined
+      ? "—"
+      : row.plazos_otorgados === 1
+        ? "1 prórroga"
+        : `${row.plazos_otorgados} prórrogas`;
+  if (dPart === "—" && pPart === "—") return "—";
+  return `${dPart} · ${pPart}`;
 }
 
 function trimToNull(s: string): string | null {
@@ -178,20 +187,24 @@ function NotificacionBandejaTable({
       }
     : undefined;
 
-  const table = useMaterialReactTable({
-    ...DARK_TABLE_CONFIG,
-    ...MRT_READ_ONLY_BANDEJA,
-    ...documentalMrtLayout,
-    columns,
-    data: rows,
-    enableColumnFilters: false,
-    enableGlobalFilter: false,
-    renderTopToolbarCustomActions: toolbar,
-    state: {
-      isLoading: loading,
-      showProgressBars: loading,
-    },
-  });
+  const table = useMaterialReactTable(
+    {
+      ...DARK_TABLE_CONFIG,
+      ...MRT_READ_ONLY_BANDEJA,
+      ...documentalMrtLayout,
+      ...BANDEJA_MRT_BODY_CELL_PROPS,
+      columns,
+      data: rows,
+      density: "compact",
+      enableColumnFilters: false,
+      enableGlobalFilter: false,
+      renderTopToolbarCustomActions: toolbar,
+      state: {
+        isLoading: loading,
+        showProgressBars: loading,
+      },
+    } as MRT_TableOptions<IActuacionesPendientesItem>
+  );
   return <MaterialReactTable table={table} />;
 }
 
@@ -511,8 +524,8 @@ const GestionNotificacionPage = () => {
     setModalApiError(null);
   };
 
-  const handleSave = async () => {
-    if (!selected) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!selected) return false;
     const next: Record<string, string> = {};
     if (!expNumero.trim()) next.expNumero = "Completá el número de expediente.";
     if (!expFecha) next.expFecha = "Completá la fecha de expediente.";
@@ -521,7 +534,7 @@ const GestionNotificacionPage = () => {
       next.prorrogaDias = "Indicá un número de días válido (0 o más).";
     }
     setFieldErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0) return false;
 
     setSaving(true);
     setModalApiError(null);
@@ -533,74 +546,92 @@ const GestionNotificacionPage = () => {
         prorroga_dias: Number(prorrogaDias) || 0,
       };
       await createExpedienteDesdeActuacion(selected.id, payload);
-      closeModal();
+      setExpNumero("");
+      setExpFecha(defaultRange.hasta);
+      setProrrogaDias("0");
+      setFieldErrors({});
       await loadData();
       if (plazoSlice === "total" && historialFiltroAplicado) {
         await recargarHistorialSiAplica();
       }
+      return true;
     } catch (err: unknown) {
       const detail =
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
           : null;
       setModalApiError(detail || "No se pudo añadir el expediente de plazo");
+      return false;
     } finally {
       setSaving(false);
     }
-  };
+  }, [
+    selected,
+    expNumero,
+    expFecha,
+    prorrogaDias,
+    defaultRange.hasta,
+    loadData,
+    plazoSlice,
+    historialFiltroAplicado,
+    recargarHistorialSiAplica,
+  ]);
 
   /** Anchos reducidos para dar lugar a la columna Acción (MRT sin resize en bandeja). */
   const columnsDataCompact = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
       {
-        accessorKey: "fecha_actuacion",
-        header: "Fecha",
-        size: 100,
-        Cell: ({ cell }) => <EllipsisTableCell value={String(cell.getValue() ?? "").trim() || "—"} />,
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (row) => notificacionFechaOtSortKey(row),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => {
+          const { fecha, ot } = notificacionFechaOtCelda(row.original);
+          return <BandejaFechaYChipOtCell fecha={fecha} ot={ot === "—" ? "" : ot} />;
+        },
       },
       {
         id: "contribuyente",
         header: "Contribuyente",
-        size: 132,
+        size: 156,
         accessorFn: (row) => contribuyenteText(row),
-        Cell: ({ row }) => <EllipsisTableCell value={contribuyenteText(row.original)} />,
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaEllipsisCell value={contribuyenteText(row.original)} />,
       },
       {
         id: "domicilio",
         header: "Domicilio",
-        size: 148,
+        size: 132,
         accessorFn: (row) => domicilioText(row),
-        Cell: ({ row }) => <EllipsisTableCell value={domicilioText(row.original)} />,
+        Cell: ({ row }) => <BandejaEllipsisCell value={domicilioText(row.original)} />,
       },
       {
         id: "acta_notificacion",
-        header: "Nº notificación",
-        size: 108,
+        header: "Nº notif.",
+        size: 96,
         accessorFn: (row) => row.acta_notificacion_num ?? "—",
-        Cell: ({ row }) => (
-          <EllipsisTableCell value={(row.original.acta_notificacion_num ?? "").trim() || "—"} />
-        ),
+        Cell: ({ row }) => {
+          const n = (row.original.acta_notificacion_num ?? "").trim();
+          return <BandejaActaChipCell label={n ? `Notif. ${n}` : "—"} />;
+        },
       },
       {
         id: "motivos",
         header: "Motivo(s)",
-        size: 124,
+        size: 112,
         accessorFn: (row) => motivosNotif(row),
-        Cell: ({ row }) => <EllipsisTableCell value={motivosNotif(row.original)} />,
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={motivosSegments(row.original)} />,
       },
       {
-        id: "dias_restantes",
-        header: "Días rest.",
-        size: 88,
-        accessorFn: (row) => diasRestantesCell(row),
-        Cell: ({ row }) => <EllipsisTableCell value={diasRestantesCell(row.original)} />,
-      },
-      {
-        id: "plazos_otorgados",
-        header: "Plazos",
-        size: 84,
-        accessorFn: (row) => plazosOtorgadosCell(row),
-        Cell: ({ row }) => <EllipsisTableCell value={plazosOtorgadosCell(row.original)} />,
+        id: "plazo_resumen",
+        header: "Plazo",
+        size: 100,
+        accessorFn: (row) => plazoResumenText(row),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaSegmentChipsCell segments={splitMiddleDot(plazoResumenText(row.original))} />
+        ),
       },
     ],
     []
@@ -612,11 +643,12 @@ const GestionNotificacionPage = () => {
       {
         id: "acciones",
         header: "Acción",
-        size: 196,
+        size: 168,
         grow: false,
+        enableResizing: false,
         Cell: ({ row }) => (
           <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original, "soloExpediente")}>
-            Agregar expediente
+            Prórrogas
           </AppButton>
         ),
       },
@@ -630,8 +662,9 @@ const GestionNotificacionPage = () => {
       {
         id: "ver",
         header: "Acción",
-        size: 128,
+        size: 118,
         grow: false,
+        enableResizing: false,
         Cell: ({ row }) => (
           <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original, "documental")}>
             Ver detalle
@@ -701,7 +734,7 @@ const GestionNotificacionPage = () => {
   const mostrarHistorial = plazoSlice === "total";
 
   return (
-    <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx }}>
+    <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx } as SxProps<Theme>}>
       <Box
         sx={{
           display: "flex",
@@ -815,13 +848,7 @@ const GestionNotificacionPage = () => {
       {mostrarHistorial && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Box sx={filtroContainerStyles}>
-            <Typography sx={filtroTitleStyles}>Historial — filtros documentales</Typography>
-            <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.5 }}>
-              Vista documental consultiva: actuaciones con <strong>notificación pendiente de expediente de plazo</strong>{" "}
-              en el período indicado. Período calendario o rango de fechas, distrito y criterios opcionales (contribuyente,
-              calle, número de acta de notificación, motivos / infracción). Los textos son opcionales. Tocá{" "}
-              <strong>Filtrar</strong> para cargar la tabla.
-            </Typography>
+            <Typography sx={filtroTitleStyles}>Historial notificaciones</Typography>
             <Box sx={filtroGridStyles}>
               <Box sx={filtroItemStyles}>
                 <AppSelect
@@ -1076,6 +1103,7 @@ const GestionNotificacionPage = () => {
         modalApiError={modalApiError}
         saving={saving}
         onGuardar={handleSave}
+        onOperativaListaRefresh={loadData}
       />
     </Box>
   );

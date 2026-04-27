@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from flask import jsonify, request
+import re
+
+from flask import Response, jsonify, request
 
 from app.domains.geolocalizacion.geocode.services.map_service import (
     list_points,
@@ -12,7 +14,80 @@ from app.domains.geolocalizacion.geocode.services.map_service import (
     save_manual_geocode,
 )
 
+from app.domains.geolocalizacion.geocode.services.osm_static_map_proxy_service import (
+    fetch_osm_static_map_bytes,
+)
+
 from . import geolocalizacion_map
+
+_CENTER_RE = re.compile(r"^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$")
+_SIZE_RE = re.compile(r"^(\d{1,4})x(\d{1,4})$")
+_MARKERS_RE = re.compile(r"^[\d.,|a-zA-Z-]+$")
+_MAX_MARKERS_LEN = 4000
+
+
+@geolocalizacion_map.get("/map/osm-static")
+def map_osm_static():
+    """
+    Proxy acotado hacia staticmap.openstreetmap.de para embeber mini-mapas en PDFs.
+
+    El navegador no puede leer la imagen OSM con fetch directo (CORS); el backend
+    reenvía la petición con los mismos parámetros tras validarlos.
+
+    Query: center, zoom, size, maptype, markers (opcional), mismos nombres que OSM.
+
+    Returns:
+        Imagen PNG (bytes) o JSON de error 4xx/502.
+    """
+    center = (request.args.get("center") or "").strip()
+    zoom_s = (request.args.get("zoom") or "14").strip()
+    size = (request.args.get("size") or "520x280").strip()
+    maptype = (request.args.get("maptype") or "mapnik").strip().lower()
+    markers = request.args.get("markers")
+
+    if not _CENTER_RE.fullmatch(center):
+        return jsonify({"detail": "Parámetro center inválido (se espera lat,lng)."}), 400
+    try:
+        zoom = int(zoom_s)
+    except ValueError:
+        return jsonify({"detail": "zoom debe ser entero."}), 400
+    if zoom < 10 or zoom > 18:
+        return jsonify({"detail": "zoom fuera de rango permitido (10–18)."}), 400
+
+    m = _SIZE_RE.match(size)
+    if not m:
+        return jsonify({"detail": "size inválido (ej. 520x280)."}), 400
+    w, h = int(m.group(1)), int(m.group(2))
+    if w < 50 or h < 50 or w > 800 or h > 800:
+        return jsonify({"detail": "dimensiones de size fuera de rango (50–800)."}), 400
+
+    if maptype != "mapnik":
+        return jsonify({"detail": "maptype no permitido."}), 400
+
+    markers_arg: str | None = None
+    if markers is not None:
+        markers = markers.strip()
+        if len(markers) > _MAX_MARKERS_LEN:
+            return jsonify({"detail": "markers demasiado largo."}), 400
+        if not _MARKERS_RE.fullmatch(markers):
+            return jsonify({"detail": "markers con caracteres no permitidos."}), 400
+        markers_arg = markers
+
+    payload = fetch_osm_static_map_bytes(center, zoom, size, markers_arg)
+    if payload[0] is None:
+        _, err = payload
+        return (
+            jsonify(
+                {
+                    "detail": "Servicio de mapa estático no devolvió imagen tras reintentos.",
+                    "hint": err[:240],
+                }
+            ),
+            502,
+        )
+
+    body, ctype = payload
+    return Response(body, mimetype=ctype, status=200)
 
 
 @geolocalizacion_map.get("/map/puntos")
