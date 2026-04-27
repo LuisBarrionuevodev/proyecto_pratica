@@ -37,8 +37,12 @@ export async function downloadRutaResumenPdf(
   let mapImageDataUrl: string | null = null;
   if (view) {
     const size = { width: 520, height: 280 };
+    const n = Math.min(view.markers.length, model.puntosMapa.length);
+    const pinGrupo1Based =
+      n > 0 ? model.puntosMapa.slice(0, n).map((p) => p.grupoIx + 1) : undefined;
+    const pinOrden = n > 0 ? model.puntosMapa.slice(0, n).map((p) => p.ordenEnGrupo) : undefined;
     const apiBase = (apiClient.defaults.baseURL ?? "").replace(/\/+$/, "");
-    const osmFull = buildOsmStaticMapUrl({ ...view, ...size });
+    const osmFull = buildOsmStaticMapUrl({ ...view, ...size, pinGrupo1Based, pinOrden });
     const search = new URL(osmFull).search;
     const proxyAbsoluteUrl = apiBase ? `${apiBase}/map/osm-static${search}` : null;
     const token = typeof localStorage !== "undefined" ? localStorage.getItem("access_token") : null;
@@ -48,6 +52,8 @@ export async function downloadRutaResumenPdf(
     mapImageDataUrl = await fetchStaticMapAsDataUrl(view, size, {
       proxyAbsoluteUrl,
       proxyFetchInit,
+      pinGrupo1Based,
+      pinOrden,
     });
   }
 

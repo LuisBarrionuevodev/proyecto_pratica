@@ -40,6 +40,20 @@ def test_is_ready_for_geocode_esquina():
     assert is_ready_for_geocode(dom) is True
 
 
+def test_is_ready_for_geocode_esquina_solo_texto_manual():
+    dom = Domicilio(
+        calle_normalizada="Calle X",
+        calle_norm_status="OK",
+        numero="Entre Ríos",
+        numero_tipo="ESQUINA",
+        esquina_norm_status="OK",
+        esquina_catalogo_id=None,
+        esquina_normalizada="Entre Ríos",
+        esquina_norm_error="MANUAL",
+    )
+    assert is_ready_for_geocode(dom) is True
+
+
 def test_is_ready_for_geocode_not_ready():
     dom = Domicilio(
         calle_normalizada="Calle San Martin",

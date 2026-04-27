@@ -24,6 +24,29 @@ _CENTER_RE = re.compile(r"^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$")
 _SIZE_RE = re.compile(r"^(\d{1,4})x(\d{1,4})$")
 _MARKERS_RE = re.compile(r"^[\d.,|a-zA-Z-]+$")
 _MAX_MARKERS_LEN = 4000
+_PIN_LBL_MAX_LEN = 2000
+_PIN_LBL_SEG_MAX = 48
+
+
+def _pin_lbl_valid_for_markers(pin_lbl: str, marker_segment_count: int) -> bool:
+    """
+    Valida ``pin_lbl`` (segmentos ``|``): misma cantidad que marcadores, texto imprimible acotado.
+    """
+    if marker_segment_count <= 0 or not pin_lbl:
+        return False
+    if len(pin_lbl) > _PIN_LBL_MAX_LEN:
+        return False
+    parts = pin_lbl.split("|")
+    if len(parts) != marker_segment_count:
+        return False
+    for p in parts:
+        if len(p) > _PIN_LBL_SEG_MAX:
+            return False
+        for ch in p:
+            o = ord(ch)
+            if o < 32 or o == 127:
+                return False
+    return True
 
 
 @geolocalizacion_map.get("/map/osm-static")
@@ -35,6 +58,9 @@ def map_osm_static():
     reenvía la petición con los mismos parámetros tras validarlos.
 
     Query: center, zoom, size, maptype, markers (opcional), mismos nombres que OSM.
+    Opcional para el PDF (fallback teselas): pin_g y pin_o (segmentos ``|`` alineados con markers:
+    grupo 1-based y orden de visita en el grupo). Opcional pin_lbl (mismos segmentos): leyenda por pin
+    para polilínea y etiqueta en el mapa por teselas.
 
     Returns:
         Imagen PNG (bytes) o JSON de error 4xx/502.
@@ -73,7 +99,31 @@ def map_osm_static():
             return jsonify({"detail": "markers con caracteres no permitidos."}), 400
         markers_arg = markers
 
-    payload = fetch_osm_static_map_bytes(center, zoom, size, markers_arg)
+    pin_g = (request.args.get("pin_g") or "").strip() or None
+    pin_o = (request.args.get("pin_o") or "").strip() or None
+    pin_lbl_raw = request.args.get("pin_lbl")
+    pin_lbl = (pin_lbl_raw or "").strip() or None if pin_lbl_raw is not None else None
+    if pin_g and not re.fullmatch(r"[\d|]+", pin_g):
+        pin_g, pin_o = None, None
+    elif pin_o and not re.fullmatch(r"[\d|]+", pin_o):
+        pin_g, pin_o = None, None
+    elif markers_arg and pin_g and pin_o:
+        mc = len([p for p in markers_arg.split("|") if p.strip()])
+        pg = len([p for p in pin_g.split("|") if p.strip()])
+        po = len([p for p in pin_o.split("|") if p.strip()])
+        if pg != mc or po != mc:
+            pin_g, pin_o = None, None
+        elif pin_lbl and not _pin_lbl_valid_for_markers(pin_lbl, mc):
+            pin_lbl = None
+    else:
+        pin_lbl = None
+
+    if not (markers_arg and pin_g and pin_o):
+        pin_lbl = None
+
+    payload = fetch_osm_static_map_bytes(
+        center, zoom, size, markers_arg, pin_g=pin_g, pin_o=pin_o, pin_lbl=pin_lbl
+    )
     if payload[0] is None:
         _, err = payload
         return (

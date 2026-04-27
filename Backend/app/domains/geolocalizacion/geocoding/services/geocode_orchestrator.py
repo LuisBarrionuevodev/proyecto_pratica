@@ -45,12 +45,21 @@ def is_ready_for_geocode(dom: Domicilio) -> bool:
 
     Returns:
         True si está listo, False si falta normalización/datos.
+
+    Esquina: acepta catálogo (``esquina_catalogo_id``) o texto manual
+    (``esquina_normalizada`` / ``esquina_raw`` / ``numero``) con ``esquina_norm_status == OK``.
     """
     if dom.calle_norm_status != "OK":
         return False
     if dom.numero_tipo == "ESQUINA":
-        return dom.esquina_norm_status == "OK" and dom.esquina_catalogo_id is not None
-    return bool(dom.numero)
+        if dom.esquina_norm_status != "OK":
+            return False
+        if dom.esquina_catalogo_id is not None:
+            return True
+        return bool(
+            (dom.esquina_normalizada or dom.esquina_raw or dom.numero or "").strip()
+        )
+    return bool((dom.numero or "").strip())
 
 
 def mark_geocode_pending(domicilio_id: int, addr_hash: str) -> None:

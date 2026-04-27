@@ -5,6 +5,7 @@ import type {
   RutaDocumentoInspector,
   RutaDocumentoInspectorSalida,
   RutaDocumentoItemFila,
+  RutaDocumentoMapaPunto,
   RutaPublicadaDocumentModel,
 } from "../types/rutaPublicadaDocument";
 import { fechaRutaLegiblePdf } from "../utils/fechaArg";
@@ -87,6 +88,9 @@ export function buildRutaPublicadaDocumentModel(
     }
   }
 
+  const grupoIxPorId = new Map<number, number>();
+  grupos.forEach((g, ix) => grupoIxPorId.set(g.id, ix));
+
   for (const it of itemsActivos) {
     const dom = (it.domicilio_texto ?? "").trim();
     if (!dom) continue;
@@ -111,14 +115,22 @@ export function buildRutaPublicadaDocumentModel(
     }))
     .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, "es"));
 
-  const puntosMapa: { lat: number; lng: number }[] = [];
+  const puntosMapa: RutaDocumentoMapaPunto[] = [];
   for (const it of itemsActivos) {
     const la = parseCoord(it.lat);
     const ln = parseCoord(it.lng);
-    if (la != null && ln != null) {
-      puntosMapa.push({ lat: la, lng: ln });
-    }
+    if (la == null || ln == null) continue;
+    const list = itemsByGrupo.get(it.ruta_grupo_id) ?? [];
+    const idxEnGrupo = list.findIndex((x) => x.id === it.id);
+    const ordenEnGrupo = idxEnGrupo >= 0 ? idxEnGrupo + 1 : 1;
+    const grupoIx = grupoIxPorId.get(it.ruta_grupo_id) ?? 0;
+    puntosMapa.push({ lat: la, lng: ln, grupoIx, ordenEnGrupo });
   }
+
+  puntosMapa.sort((a, b) => {
+    if (a.grupoIx !== b.grupoIx) return a.grupoIx - b.grupoIx;
+    return a.ordenEnGrupo - b.ordenEnGrupo;
+  });
 
   const fechaLegible = fechaRutaLegiblePdf(ruta.fecha);
 

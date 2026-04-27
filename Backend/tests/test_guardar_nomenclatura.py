@@ -72,8 +72,9 @@ def test_guardar_calle_catalogo_y_esquina_manual(app_ctx, client, auth_headers, 
     assert dom2.calle_norm_status == "OK"
     assert dom2.numero_tipo == "ESQUINA"
     assert dom2.esquina_catalogo_id is None
-    assert dom2.esquina_norm_status == "NO_MATCH"
-    assert dom2.esquina_norm_error == "manual"
+    assert dom2.esquina_norm_status == "OK"
+    assert dom2.esquina_norm_error == "MANUAL"
+    assert dom2.esquina_normalizada == "Otra Esquina Libre"
 
 
 def test_guardar_calle_manual_y_numero(app_ctx, client, auth_headers, monkeypatch):
@@ -100,8 +101,9 @@ def test_guardar_calle_manual_y_numero(app_ctx, client, auth_headers, monkeypatc
     assert dom2 is not None
     assert dom2.calle == "Calle No Catalogada XYZ"
     assert dom2.calle_catalogo_id is None
-    assert dom2.calle_norm_status == "NO_MATCH"
-    assert dom2.calle_norm_error == "manual"
+    assert dom2.calle_norm_status == "OK"
+    assert dom2.calle_norm_error == "MANUAL"
+    assert dom2.calle_normalizada == "Calle No Catalogada XYZ"
     assert dom2.esquina_catalogo_id is None
     assert dom2.numero == "500"
 

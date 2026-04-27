@@ -52,6 +52,8 @@ pymysql
 
 packaging==25.0
 
+Pillow>=10.4.0,<12
+
 pluggy==1.6.0
 
 pydantic==2.12.5

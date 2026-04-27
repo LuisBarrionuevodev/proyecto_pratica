@@ -16,10 +16,12 @@ interface TabGeolocalizacionTableProps {
 
 const formatDireccion = (item: DomicilioPendienteItem) => {
   const numero = item.numero || item.numero_raw || "";
-  if (item.numero_tipo === "ESQUINA" && item.esquina_normalizada) {
-    return `${item.calle_normalizada || item.calle_raw || ""} y ${item.esquina_normalizada}`;
+  const calle = item.calle_normalizada || item.calle_raw || "";
+  if (item.numero_tipo === "ESQUINA") {
+    const esq = item.esquina_normalizada || item.numero_raw || numero;
+    return esq ? `${calle} y ${esq}`.trim() : calle;
   }
-  return `${item.calle_normalizada || item.calle_raw || ""} ${numero}`.trim();
+  return `${calle} ${numero}`.trim();
 };
 
 const TabGeolocalizacionTable = ({

@@ -13,6 +13,12 @@ export type StaticMapParams = {
   centerLng: number;
   zoom: number;
   markers: { lat: number; lng: number }[];
+  /**
+   * Metadatos alineados con `markers` (misma longitud): grupo 1-based y orden en grupo.
+   * El proxy con teselas colorea y dibuja **Gn** en cada pin; `pin_o` ordena la polilínea por grupo.
+   */
+  pinGrupo1Based?: number[];
+  pinOrden?: number[];
 };
 
 const MAX_MARKERS = 18;
@@ -66,7 +72,7 @@ export function computeStaticMapView(points: { lat: number; lng: number }[]): Om
  * URL de imagen estática (OpenStreetMap staticmap).
  */
 export function buildOsmStaticMapUrl(params: StaticMapParams): string {
-  const { width, height, centerLat, centerLng, zoom, markers } = params;
+  const { width, height, centerLat, centerLng, zoom, markers, pinGrupo1Based, pinOrden } = params;
   const base = "https://staticmap.openstreetmap.de/staticmap.php";
   const q = new URLSearchParams();
   q.set("center", `${roundCoord(centerLat)},${roundCoord(centerLng)}`);
@@ -77,6 +83,16 @@ export function buildOsmStaticMapUrl(params: StaticMapParams): string {
   if (markers.length) {
     const part = markers.map((m) => `${roundCoord(m.lat)},${roundCoord(m.lng)},red-pushpin`).join("|");
     q.set("markers", part);
+    const n = markers.length;
+    if (
+      pinGrupo1Based &&
+      pinOrden &&
+      pinGrupo1Based.length === n &&
+      pinOrden.length === n
+    ) {
+      q.set("pin_g", pinGrupo1Based.join("|"));
+      q.set("pin_o", pinOrden.join("|"));
+    }
   }
 
   return `${base}?${q.toString()}`;
@@ -103,6 +119,9 @@ export type FetchStaticMapOptions = {
   proxyAbsoluteUrl?: string | null;
   /** Headers extra para el proxy (p. ej. Authorization Bearer). */
   proxyFetchInit?: RequestInit;
+  /** Misma semántica que en `buildOsmStaticMapUrl` (colores / Gn en el pin vía proxy teselas). */
+  pinGrupo1Based?: number[];
+  pinOrden?: number[];
 };
 
 /**
@@ -116,7 +135,16 @@ export async function fetchStaticMapAsDataUrl(
   size: { width: number; height: number },
   options?: FetchStaticMapOptions
 ): Promise<string | null> {
-  const directUrl = buildOsmStaticMapUrl({ ...view, ...size });
+  const nPins = view.markers.length;
+  const pinsOk =
+    options?.pinGrupo1Based &&
+    options?.pinOrden &&
+    options.pinGrupo1Based.length === nPins &&
+    options.pinOrden.length === nPins;
+  const pinExtra = pinsOk
+    ? { pinGrupo1Based: options.pinGrupo1Based, pinOrden: options.pinOrden }
+    : {};
+  const directUrl = buildOsmStaticMapUrl({ ...view, ...size, ...pinExtra });
 
   const tryOnce = async (url: string, init?: RequestInit): Promise<string | null> => {
     try {

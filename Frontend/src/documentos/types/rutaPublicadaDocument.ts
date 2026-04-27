@@ -34,6 +34,16 @@ export type RutaDocumentoInspectorSalida = RutaDocumentoInspector & {
   direccionesRuta: string[];
 };
 
+/** Punto para mini-mapa del PDF (misma leyenda de colores que el mapa operativo por índice de grupo). */
+export type RutaDocumentoMapaPunto = {
+  lat: number;
+  lng: number;
+  /** Índice 0-based del grupo en el listado `grupos` de la petición (G1 → 0, G2 → 1, …). */
+  grupoIx: number;
+  /** Orden de visita dentro del grupo (1, 2, …). */
+  ordenEnGrupo: number;
+};
+
 export type RutaPublicadaDocumentModel = {
   rutaId: number;
   numeroRuta: number;
@@ -47,5 +57,5 @@ export type RutaPublicadaDocumentModel = {
   grupos: RutaDocumentoGrupo[];
   inspectoresSalida: RutaDocumentoInspectorSalida[];
   /** Puntos con coordenadas válidas para mini-mapa estático. */
-  puntosMapa: { lat: number; lng: number }[];
+  puntosMapa: RutaDocumentoMapaPunto[];
 };

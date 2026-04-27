@@ -61,15 +61,18 @@ export function RutasMapaOperativoView({
   const readOnly = Boolean(vistaHistoricaReadOnly);
   const [pdfResumenLoading, setPdfResumenLoading] = useState(false);
   const [pdfOrdenesLoading, setPdfOrdenesLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const puedeDocumentosPdf = Boolean(readOnly && ruta?.estado_ruta === "PUBLICADA");
 
   const handleDescargarResumenPdf = useCallback(async () => {
     if (!ruta) return;
+    setPdfError(null);
     setPdfResumenLoading(true);
     try {
       await downloadRutaResumenPdf(ruta, grupos, itemsActivos);
     } catch (e) {
       console.error(e);
+      setPdfError("No se pudo generar el PDF del resumen. Revisá la conexión o intentá de nuevo.");
     } finally {
       setPdfResumenLoading(false);
     }
@@ -77,11 +80,13 @@ export function RutasMapaOperativoView({
 
   const handleDescargarOrdenesPdf = useCallback(async () => {
     if (!ruta) return;
+    setPdfError(null);
     setPdfOrdenesLoading(true);
     try {
       await downloadOrdenesSalidaPdf(ruta, grupos, itemsActivos);
     } catch (e) {
       console.error(e);
+      setPdfError("No se pudo generar el PDF de órdenes de salida. Revisá la conexión o intentá de nuevo.");
     } finally {
       setPdfOrdenesLoading(false);
     }
@@ -212,6 +217,19 @@ export function RutasMapaOperativoView({
         summary={resumenIdentificacion}
         actions={headerActions}
       />
+
+      {pdfError ? (
+        <Alert
+          severity="error"
+          onClose={() => setPdfError(null)}
+          sx={{
+            ...rutasInstitutionalAlertBaseSx,
+            "& .MuiAlert-message": { fontSize: "0.875rem", lineHeight: 1.4 },
+          }}
+        >
+          {pdfError}
+        </Alert>
+      ) : null}
 
       <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5, px: 2 }}>
         <Typography sx={MAPA_FINAL_SECTION_LABEL_SX}>

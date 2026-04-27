@@ -1,11 +1,8 @@
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Line, Page, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 
 import { INSTITUTIONAL_DIRECTION_LINE } from "../core/institutionalCopy";
-import {
-  PDF_FONT_ARCHIVO_BLACK,
-  PDF_FONT_CARLITO,
-  PDF_FONT_LIBRE_BASKERVILLE,
-} from "../core/registerPdfFonts";
+import { PDF_DESIGN_COLORS, PDF_DESIGN_FONT, pdfInformePage, pdfPlanilla } from "../core/pdfDesignTokens";
+import { PDF_FONT_ARCHIVO_BLACK, PDF_FONT_LIBRE_BASKERVILLE } from "../core/registerPdfFonts";
 import type { RutaDocumentoInspectorSalida, RutaPublicadaDocumentModel } from "../types/rutaPublicadaDocument";
 import { fechaOrdenSalidaLegible } from "../utils/fechaOrdenSalida";
 
@@ -14,11 +11,10 @@ const ORDENES_POR_PAGINA = 3;
 
 const styles = StyleSheet.create({
   page: {
+    ...pdfInformePage,
     paddingTop: 10,
     paddingBottom: 4,
     paddingHorizontal: 22,
-    fontFamily: PDF_FONT_CARLITO,
-    color: "#000",
   },
   bloqueInspector: {
     width: "100%",
@@ -27,8 +23,8 @@ const styles = StyleSheet.create({
   bloqueTrasOtra: {
     marginTop: 4,
     paddingTop: 12,
-    borderTopWidth: 0.75,
-    borderTopColor: "#999",
+    borderTopWidth: 1,
+    borderTopColor: PDF_DESIGN_COLORS.separatorBlue,
   },
   /** Solo entre dos órdenes consecutivas (no bajo la última de la página: evita hueco al pie). */
   bloqueMargenAntesDeSiguiente: {
@@ -51,6 +47,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 700,
     textAlign: "center",
+    color: PDF_DESIGN_COLORS.sectionDarkBlue,
   },
   titleRow: {
     flexDirection: "row",
@@ -64,23 +61,25 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     maxWidth: "52%",
     lineHeight: 1.12,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   fechaLine: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 10.5,
     fontWeight: 700,
     maxWidth: "48%",
     textAlign: "right",
     lineHeight: 1.2,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   tableOuter: {
     borderWidth: 1.5,
-    borderColor: "#000",
+    borderColor: pdfPlanilla.ink,
   },
   headerCellsRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#000",
+    borderBottomColor: pdfPlanilla.ink,
     minHeight: 28,
   },
   dataCellsRow: {
@@ -90,51 +89,55 @@ const styles = StyleSheet.create({
   },
   thCell: {
     borderRightWidth: 1,
-    borderRightColor: "#000",
+    borderRightColor: pdfPlanilla.ink,
     padding: 3,
     justifyContent: "center",
   },
   thText: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 9,
     fontWeight: 700,
     textAlign: "center",
     lineHeight: 1.1,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   tdCell: {
     borderRightWidth: 1,
-    borderRightColor: "#000",
+    borderRightColor: pdfPlanilla.ink,
     padding: 4,
     justifyContent: "flex-start",
   },
   tdText: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 8.5,
     lineHeight: 1.2,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   tdTextAfiliado: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 10.5,
     fontWeight: 700,
     lineHeight: 1.15,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   /** Inspector: sin negrita, tamaño moderado para que entren 3 órdenes por hoja. */
   tdTextNombreInspector: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 10.5,
     fontWeight: 400,
     lineHeight: 1.15,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   colAfiliado: { width: "11%" },
   colNombre: { width: "23%" },
-  colMotivo: { width: "43%", flexDirection: "column", borderRightWidth: 1, borderRightColor: "#000" },
+  colMotivo: { width: "43%", flexDirection: "column", borderRightWidth: 1, borderRightColor: pdfPlanilla.ink },
   colHoraSal: { width: "11.5%" },
   colHoraReg: { width: "11.5%" },
   motivoGridRow: {
     flexDirection: "row",
     alignItems: "stretch",
     borderBottomWidth: 1,
-    borderBottomColor: "#000",
+    borderBottomColor: pdfPlanilla.ink,
     minHeight: 18,
   },
   /** Fila Oficial: direcciones compactas para 3 órdenes por hoja. */
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
     borderBottomWidth: 1,
-    borderBottomColor: "#000",
+    borderBottomColor: pdfPlanilla.ink,
     minHeight: 27,
   },
   motivoGridRowLast: {
@@ -156,56 +159,54 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   motivoLabelText: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 8,
     lineHeight: 1.2,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   motivoCheckCol: {
     width: "12%",
     justifyContent: "center",
     alignItems: "center",
     borderLeftWidth: 1,
-    borderLeftColor: "#000",
+    borderLeftColor: pdfPlanilla.ink,
   },
   motivoValueCol: {
     flex: 1,
     borderLeftWidth: 1,
-    borderLeftColor: "#000",
+    borderLeftColor: pdfPlanilla.ink,
     padding: 4,
     justifyContent: "flex-start",
   },
   textoDirecciones: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 7.25,
     fontWeight: 400,
     lineHeight: 1.28,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   checkBox: {
-    width: 8,
-    height: 8,
+    width: 10,
+    height: 10,
     borderWidth: 1,
-    borderColor: "#000",
+    borderColor: pdfPlanilla.ink,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkX: {
-    fontFamily: PDF_FONT_CARLITO,
-    fontSize: 7,
-    fontWeight: 700,
-    marginTop: -1,
-  },
   horaTh: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 9,
     fontWeight: 700,
     textAlign: "center",
     lineHeight: 1.05,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   horaBody: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 9,
     textAlign: "center",
     marginTop: 6,
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
   firmasWrap: {
     marginTop: 28,
@@ -227,17 +228,24 @@ const styles = StyleSheet.create({
   },
   firmaLine: {
     borderTopWidth: 1,
-    borderTopColor: "#000",
+    borderTopColor: pdfPlanilla.ink,
     width: "100%",
     marginTop: 2,
     paddingTop: 5,
   },
   firmaLabel: {
-    fontFamily: PDF_FONT_CARLITO,
+    fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 7.5,
     fontWeight: 700,
     textAlign: "center",
     marginTop: 4,
+    color: PDF_DESIGN_COLORS.textPrimary,
+  },
+  emptyInspectoresText: {
+    marginTop: 12,
+    fontSize: 10,
+    fontFamily: PDF_DESIGN_FONT.ui,
+    color: PDF_DESIGN_COLORS.textMuted,
   },
 });
 
@@ -249,10 +257,21 @@ function chunkInspectores<T>(items: T[], size: number): T[][] {
   return out;
 }
 
+/**
+ * Casilla tipo formulario. La marca «X» se dibuja con SVG: el texto en cuadros
+ * muy chicos suele no renderizarse en @react-pdf/renderer.
+ */
 function CheckCuadrado({ marcado }: { marcado: boolean }) {
+  if (!marcado) {
+    return <View style={styles.checkBox} />;
+  }
+  const stroke = pdfPlanilla.ink;
   return (
     <View style={styles.checkBox}>
-      {marcado ? <Text style={styles.checkX}>X</Text> : null}
+      <Svg width={8} height={8} viewBox="0 0 10 10">
+        <Line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke={stroke} strokeWidth={1.2} />
+        <Line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke={stroke} strokeWidth={1.2} />
+      </Svg>
     </View>
   );
 }
@@ -424,9 +443,7 @@ export function OrdenesSalidaPdfDocument({ model, logoSrc }: Props) {
             <Image src={logoSrc} style={styles.logo} />
             <Text style={styles.municipalTitle}>Municipalidad de San Miguel de Tucumán</Text>
           </View>
-          <Text style={{ marginTop: 12, fontSize: 10, fontFamily: PDF_FONT_CARLITO }}>
-            No hay inspectores asignados a grupos en esta ruta.
-          </Text>
+          <Text style={styles.emptyInspectoresText}>No hay inspectores asignados a grupos en esta ruta.</Text>
         </Page>
       </Document>
     );

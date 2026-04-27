@@ -5,6 +5,7 @@ import {
   INSTITUTIONAL_DIRECTION_LINE,
   INSTITUTIONAL_SECRETARY_LINE,
 } from "./institutionalCopy";
+import { PDF_DESIGN_COLORS } from "./pdfDesignTokens";
 import { PDF_FONT_CARLITO, PDF_FONT_LIBRE_BASKERVILLE } from "./registerPdfFonts";
 
 const styles = StyleSheet.create({
@@ -13,7 +14,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a237e",
+    borderBottomColor: PDF_DESIGN_COLORS.separatorBlue,
     paddingBottom: 8,
   },
   logo: {
@@ -29,21 +30,21 @@ const styles = StyleSheet.create({
   city: {
     fontFamily: PDF_FONT_CARLITO,
     fontSize: 9,
-    color: "#333",
+    color: PDF_DESIGN_COLORS.textSecondary,
     marginBottom: 2,
   },
   secretary: {
     fontFamily: PDF_FONT_LIBRE_BASKERVILLE,
     fontSize: 10,
     fontWeight: 700,
-    color: "#1a237e",
+    color: PDF_DESIGN_COLORS.sectionDarkBlue,
     marginBottom: 2,
   },
   direction: {
     fontFamily: PDF_FONT_CARLITO,
     fontSize: 10,
     fontWeight: 700,
-    color: "#333",
+    color: PDF_DESIGN_COLORS.textPrimary,
   },
 });
 
@@ -59,7 +60,11 @@ type DocumentHeaderPdfProps = {
 export function DocumentHeaderPdf({ logoSrc }: DocumentHeaderPdfProps) {
   return (
     <View style={styles.row} fixed>
-      {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View style={[styles.logo, { backgroundColor: "#eee" }]} />}
+      {logoSrc ? (
+        <Image src={logoSrc} style={styles.logo} />
+      ) : (
+        <View style={[styles.logo, { backgroundColor: PDF_DESIGN_COLORS.grupoCardBg }]} />
+      )}
       <View style={styles.textCol}>
         <Text style={styles.city}>{INSTITUTIONAL_CITY_LINE}</Text>
         <Text style={styles.secretary}>{INSTITUTIONAL_SECRETARY_LINE}</Text>

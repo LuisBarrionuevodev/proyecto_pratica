@@ -80,10 +80,12 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
   const selectedLabel = useMemo(() => {
     if (!selected) return "";
     const numero = selected.numero || selected.numero_raw || "";
-    if (selected.numero_tipo === "ESQUINA" && selected.esquina_normalizada) {
-      return `${selected.calle_normalizada || selected.calle_raw || ""} y ${selected.esquina_normalizada}`;
+    const calle = selected.calle_normalizada || selected.calle_raw || "";
+    if (selected.numero_tipo === "ESQUINA") {
+      const esq = selected.esquina_normalizada || selected.numero_raw || numero;
+      return esq ? `${calle} y ${esq}`.trim() : calle;
     }
-    return `${selected.calle_normalizada || selected.calle_raw || ""} ${numero}`.trim();
+    return `${calle} ${numero}`.trim();
   }, [selected]);
 
   const onSearch = async () => {

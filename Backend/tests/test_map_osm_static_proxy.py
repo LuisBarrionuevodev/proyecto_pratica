@@ -3,6 +3,7 @@
 from app.domains.geolocalizacion.geocode.services.osm_static_map_proxy_service import (
     normalize_osm_center,
     normalize_osm_markers,
+    _trim_pin_strings_to_markers,
 )
 
 
@@ -13,6 +14,28 @@ def test_normalize_osm_center_redondea():
 def test_normalize_osm_markers_acota_y_redondea():
     raw = "-26.8186526,-65.2224545,red-pushpin|-26.8170523,-65.230448,red-pushpin"
     assert normalize_osm_markers(raw, max_segments=1) == "-26.81865,-65.22245,red-pushpin"
+
+
+def test_trim_pins_alinea_con_markers_normalizados():
+    m = normalize_osm_markers(
+        "-26.81,-65.22,red-pushpin|-26.82,-65.23,red-pushpin|-26.83,-65.24,red-pushpin",
+        max_segments=2,
+    )
+    g, o, lbl = _trim_pin_strings_to_markers(m, "1|2|3", "10|20|30", "A|B|C")
+    assert g == "1|2"
+    assert o == "10|20"
+    assert lbl == "A|B"
+
+
+def test_trim_pin_lbl_omitido_si_corto():
+    m = normalize_osm_markers(
+        "-26.81,-65.22,red-pushpin|-26.82,-65.23,red-pushpin",
+        max_segments=2,
+    )
+    g, o, lbl = _trim_pin_strings_to_markers(m, "1|2", "1|2", "solo")
+    assert g == "1|2"
+    assert o == "1|2"
+    assert lbl is None
 
 
 def test_map_osm_static_center_invalido_400(client, auth_headers):

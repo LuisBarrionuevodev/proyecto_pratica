@@ -25,33 +25,38 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 
 def _apply_calle_manual(dom: Any, calle_texto: str) -> None:
     """
-    Persiste calle operativa sin catálogo y sin re-match automático (política manual explícita).
+    Persiste calle operativa sin catálogo (texto libre).
 
-    Estado: ``NO_MATCH``, sin ``OK`` ni ``calle_catalogo_id``.
+    Marca ``calle_norm_status == OK`` y ``calle_normalizada`` = texto tecleado: es la fuente
+    efectiva para hash y geocoding. ``calle_norm_error == MANUAL`` distingue de calle
+    resuelta solo por catálogo (error nulo).
     """
-    dom.calle = calle_texto
-    dom.calle_raw = calle_texto
+    t = (calle_texto or "").strip()
+    dom.calle = t
+    dom.calle_raw = t
     dom.calle_catalogo_id = None
-    dom.calle_normalizada = None
-    dom.calle_key = slug_key(calle_texto)
-    dom.calle_norm_status = "NO_MATCH"
+    dom.calle_normalizada = t
+    dom.calle_key = slug_key(t)
+    dom.calle_norm_status = "OK"
     dom.calle_norm_score = None
-    dom.calle_norm_error = "manual"
+    dom.calle_norm_error = "MANUAL"
     dom.calle_norm_updated_at = datetime.utcnow()
 
 
 def _apply_esquina_manual(dom: Any) -> None:
     """
-    Esquina declarada manual: texto en ``dom.numero``, sin catálogo ni match fuzzy.
+    Esquina manual: el nombre de la calle de cruce vive en ``dom.numero``.
 
-    Estado: ``NO_MATCH`` con ``esquina_norm_error == manual``.
+    Se persiste ``esquina_normalizada`` con ese texto para query/UI/geocoding.
+    ``esquina_norm_error == MANUAL`` indica que no hay ``esquina_catalogo_id``.
     """
-    dom.esquina_raw = dom.numero
+    n = (dom.numero or "").strip()
+    dom.esquina_raw = n
     dom.esquina_catalogo_id = None
-    dom.esquina_normalizada = None
-    dom.esquina_norm_status = "NO_MATCH"
+    dom.esquina_normalizada = n
+    dom.esquina_norm_status = "OK"
     dom.esquina_norm_score = None
-    dom.esquina_norm_error = "manual"
+    dom.esquina_norm_error = "MANUAL"
     dom.esquina_norm_updated_at = datetime.utcnow()
 
 
