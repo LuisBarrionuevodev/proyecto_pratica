@@ -17,6 +17,7 @@ import {
 
 import type { ICompletarTrabajoInspectorGrupo, ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { getCompletarTrabajoDetalle } from "../../../api/completarTrabajoApi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
@@ -49,7 +50,10 @@ function mergeCatalogOpts(catalog: string[], current: string | null | undefined)
 }
 
 function domicilioResumen(r: ICompletarTrabajoPendienteRow): string {
-  return r.domicilio_texto?.trim() || [r.calle, r.numero].filter(Boolean).join(" ").trim() || "—";
+  const fromApi = r.domicilio_texto?.trim();
+  if (fromApi) return fromApi;
+  const line = formatActuacionListDomicilioLinea(r).trim();
+  return line || "—";
 }
 
 function dedupeInspectoresPreserveOrder(names: string[]): string[] {

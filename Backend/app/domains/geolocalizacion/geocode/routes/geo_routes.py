@@ -11,7 +11,7 @@ from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency
     log_barrio_distrito_consistency,
 )
 from app.domains.geolocalizacion.geocode.services.district_events import log_district_event
-from app.models import Domicilio
+from app.models import Domicilio, DomicilioGeocode
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
     compute_addr_hash,
@@ -57,8 +57,12 @@ def geo_pending():
             {
                 "domicilio_id": dom.id,
                 "calle_normalizada": dom.calle_normalizada,
+                "calle_raw": dom.calle_raw,
                 "numero": dom.numero,
+                "numero_raw": dom.numero,
+                "numero_tipo": dom.numero_tipo,
                 "esquina_normalizada": dom.esquina_normalizada,
+                "esquina_raw": dom.esquina_raw,
                 "ciudad": dom.ciudad,
                 "rubro_id": dom.rubro_id,
                 "contribuyente_id": dom.contribuyente_id,

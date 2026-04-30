@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Box, Button, Paper, TextField, Typography } from "@mui/material";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
 import type { DomicilioPendienteItem } from "../types";
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
@@ -79,13 +80,7 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
 
   const selectedLabel = useMemo(() => {
     if (!selected) return "";
-    const numero = selected.numero || selected.numero_raw || "";
-    const calle = selected.calle_normalizada || selected.calle_raw || "";
-    if (selected.numero_tipo === "ESQUINA") {
-      const esq = selected.esquina_normalizada || selected.numero_raw || numero;
-      return esq ? `${calle} y ${esq}`.trim() : calle;
-    }
-    return `${calle} ${numero}`.trim();
+    return formatDomicilioLineaVisible(selected);
   }, [selected]);
 
   const onSearch = async () => {

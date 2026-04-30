@@ -46,6 +46,8 @@ export type PlanificacionMapaDistritosProps = {
   onMapMarkerClick?: (row: IRutaIniciadorPendienteRow) => void;
   onMapPopupClose?: () => void;
   onAgregarDesdeMapa?: (row: IRutaIniciadorPendienteRow) => void;
+  /** Ids en pool (mapa deshabilita “Agregar” si ya está). */
+  poolIniciadorIds?: number[];
 };
 
 /**
@@ -72,6 +74,7 @@ export function PlanificacionMapaDistritos({
   onAgregarDesdeMapa = () => {
     /* noop */
   },
+  poolIniciadorIds = [],
 }: PlanificacionMapaDistritosProps) {
   const geoData = useMemo(() => {
     const base = distritosGeoRaw as FeatureCollection;
@@ -150,6 +153,20 @@ export function PlanificacionMapaDistritos({
             "& .leaflet-div-icon.planif-leaflet-distrito-num": {
               pointerEvents: "none",
             },
+            "& .leaflet-popup-content-wrapper": {
+              background: "transparent",
+              boxShadow: "none",
+              borderRadius: "8px",
+              padding: 0,
+            },
+            "& .leaflet-popup-content": {
+              margin: "6px 8px",
+              minWidth: "auto",
+            },
+            "& .leaflet-popup-tip": {
+              background: "rgba(26,29,34,0.92)",
+              boxShadow: "none",
+            },
             "& .planif-distrito-num-inner": {
               fontSize: "42px",
               fontWeight: 800,
@@ -192,6 +209,7 @@ export function PlanificacionMapaDistritos({
                 popupRow={mapPopupRow}
                 flyToRow={mapFlyToRow}
                 popupOpenNonce={mapPopupOpenNonce}
+                poolIniciadorIds={poolIniciadorIds}
                 onMarkerClick={onMapMarkerClick}
                 onPopupClose={onMapPopupClose}
                 onAgregar={onAgregarDesdeMapa}

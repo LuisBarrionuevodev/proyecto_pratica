@@ -19,17 +19,34 @@ export type UrgentesPanelProps = {
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
   meta: { total: number; page: number; perPage: number };
   onPageChange: (page: number) => void;
+  /** Filas de la página M3 que están en el pool del día (se excluyen de la lista). */
+  ocultosPorPoolEnPagina?: number;
   /** Mismo flujo que pendientes del contexto: mapa interno + distrito si hace falta. */
   onVerEnMapa?: (row: IRutaIniciadorPendienteRow) => void;
 };
 
 /**
- * Bandeja M3: prioridad alta global (misma regla que backend: tipo ≠ RELEVAMIENTO, prioridad ≥ 3, planificables).
- * Scroll interno y paginación liviana; deduplicación con pool en el controller.
+ * Bandeja M3: prioridad alta (tipo ≠ RELEVAMIENTO, prioridad ≥ 3, planificables), acotada al distrito
+ * activo en mapa cuando corresponde (misma lógica territorial que la métrica «alta» de M1).
+ * Scroll interno y paginación; el pool del día oculta filas ya agregadas.
  */
-export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, onVerEnMapa }: UrgentesPanelProps) {
+export function UrgentesPanel({
+  rows,
+  loading,
+  onAgregar,
+  meta,
+  onPageChange,
+  ocultosPorPoolEnPagina = 0,
+  onVerEnMapa,
+}: UrgentesPanelProps) {
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.perPage) || 1);
-  const emptyCopy = meta.total === 0 ? "Sin urgentes." : "Sin ítems en esta página.";
+  const poolHidden = ocultosPorPoolEnPagina > 0;
+  const emptyCopy =
+    meta.total === 0
+      ? "Sin urgentes."
+      : poolHidden && rows.length === 0
+        ? `Las ${ocultosPorPoolEnPagina} fila${ocultosPorPoolEnPagina === 1 ? "" : "s"} de esta página están en el pool del día. Use «Siguiente» o quite ítems del pool.`
+        : "Sin ítems en esta página.";
 
   return (
     <Stack
@@ -37,7 +54,7 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, on
         ...rutasInstitutionalPanelPaperSx,
         flex: 1,
         minHeight: 0,
-        maxHeight: "min(38vh, 360px)",
+        maxHeight: "min(52vh, 520px)",
         display: "flex",
         overflow: "hidden",
       }}
@@ -80,9 +97,24 @@ export function UrgentesPanel({ rows, loading, onAgregar, meta, onPageChange, on
         gap={0.75}
         sx={{ flexShrink: 0, pt: 0.75, borderTop: `1px solid ${GLASS_COLORS.borderLight}` }}
       >
-        <Typography sx={planificacionPanelFooterMetaSx}>
-          {meta.total} · {meta.page}/{totalPages}
-        </Typography>
+        <Stack direction="column" spacing={0.25} sx={{ minWidth: 0, flex: 1 }}>
+          <Typography sx={planificacionPanelFooterMetaSx}>
+            {meta.total} · {meta.page}/{totalPages}
+            {rows.length > 0 ? ` · visibles ${rows.length}` : ""}
+          </Typography>
+          {poolHidden ? (
+            <Typography
+              sx={{
+                ...planificacionPanelFooterMetaSx,
+                fontSize: "0.6875rem",
+                color: GLASS_COLORS.textMuted,
+                lineHeight: 1.35,
+              }}
+            >
+              {ocultosPorPoolEnPagina} en pool del día (no listados aquí)
+            </Typography>
+          ) : null}
+        </Stack>
         <Stack direction="row" spacing={0.5}>
           <AppButton dsVariant="ghost" dsSize="sm" disabled={meta.page <= 1 || loading} onClick={() => onPageChange(meta.page - 1)}>
             Anterior

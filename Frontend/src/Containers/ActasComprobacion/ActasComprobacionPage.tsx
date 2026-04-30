@@ -68,6 +68,10 @@ import { humanizarEstadoIniciador } from "./utils/documentalLabelFormat";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
+import {
+  formatActuacionListDomicilioLinea,
+  type ActuacionListDomicilioLineaInput,
+} from "../../utils/formatDomicilioLineaVisible";
 import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
 import { ComprobacionOficioOperativoDialog } from "./components/ComprobacionOficioOperativoDialog";
 import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
@@ -95,8 +99,8 @@ const actasContentColumnSx = {
 
 type RecPeriodMode = "month" | "range";
 
-function domicilioText(calle?: string | null, num?: string | null): string {
-  const t = [calle, num].map((s) => (s ?? "").trim()).filter(Boolean).join(" ");
+function domicilioTextFromRow(r: ActuacionListDomicilioLineaInput): string {
+  const t = formatActuacionListDomicilioLinea(r).trim();
   return t || "—";
 }
 
@@ -321,11 +325,11 @@ const ActasComprobacionPage = () => {
         id: "domicilio_rubro",
         header: "Domicilio · rubro",
         size: 188,
-        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        accessorFn: (r) => `${domicilioTextFromRow(r)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => (
           <BandejaDomicilioYRubroCell
-            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
             rubro={row.original.rubro_nombre}
           />
         ),
@@ -540,11 +544,11 @@ const ActasComprobacionPage = () => {
         id: "domicilio_rubro",
         header: "Domicilio · rubro",
         size: 188,
-        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        accessorFn: (r) => `${domicilioTextFromRow(r)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => (
           <BandejaDomicilioYRubroCell
-            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
             rubro={row.original.rubro_nombre}
           />
         ),
@@ -678,11 +682,11 @@ const ActasComprobacionPage = () => {
         id: "domicilio_rubro",
         header: "Domicilio · rubro",
         size: 176,
-        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        accessorFn: (r) => `${domicilioTextFromRow(r)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => (
           <BandejaDomicilioYRubroCell
-            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
             rubro={row.original.rubro_nombre}
           />
         ),
@@ -904,11 +908,11 @@ const ActasComprobacionPage = () => {
         id: "domicilio_rubro",
         header: "Domicilio · rubro",
         size: 176,
-        accessorFn: (r) => `${domicilioText(r.calle, r.numero)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        accessorFn: (r) => `${domicilioTextFromRow(r)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => (
           <BandejaDomicilioYRubroCell
-            domicilioLinea={domicilioText(row.original.calle, row.original.numero)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
             rubro={row.original.rubro_nombre}
           />
         ),

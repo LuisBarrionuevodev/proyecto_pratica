@@ -3,8 +3,12 @@ import { apiClient } from "./apiClient";
 export interface GeoPendingItem {
   domicilio_id: number;
   calle_normalizada?: string | null;
+  calle_raw?: string | null;
   numero?: string | null;
+  numero_raw?: string | null;
+  numero_tipo?: string | null;
   esquina_normalizada?: string | null;
+  esquina_raw?: string | null;
   ciudad?: string | null;
   rubro_id?: number | null;
   contribuyente_id?: number | null;

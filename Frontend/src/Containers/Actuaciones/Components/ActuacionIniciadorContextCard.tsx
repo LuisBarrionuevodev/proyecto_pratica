@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 
 function dash(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
@@ -7,18 +8,8 @@ function dash(v: unknown): string {
 }
 
 function domicilioResumen(row: IActuacionListItem): string {
-  const calle =
-    row.calle_estado === "OK" && row.calle_normalizada
-      ? row.calle_normalizada
-      : row.calle ?? "";
-  let numero = "";
-  if (row.numero_tipo === "ESQUINA" && (row.numero_esquina || row.esquina_normalizada)) {
-    numero = row.numero_esquina || row.esquina_normalizada || "";
-  } else {
-    numero = row.numero ?? "";
-  }
-  const line = [calle, numero].filter(Boolean).join(" ");
-  return line.trim() || "—";
+  const line = formatActuacionListDomicilioLinea(row).trim();
+  return line || "—";
 }
 
 function inspectoresLinea(row: IActuacionListItem): string {

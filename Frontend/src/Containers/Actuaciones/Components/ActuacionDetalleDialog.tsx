@@ -4,6 +4,7 @@ import { Box, Chip, Collapse, Divider, IconButton, Link, Stack, Typography } fro
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
@@ -120,15 +121,7 @@ function dash(v: unknown): string {
 }
 
 function domicilioTexto(row: IActuacionListItem): string {
-  const calle =
-    row.calle_estado === "OK" && row.calle_normalizada ? row.calle_normalizada : row.calle ?? "";
-  let numero = "";
-  if (row.numero_tipo === "ESQUINA" && (row.numero_esquina || row.esquina_normalizada)) {
-    numero = row.numero_esquina || row.esquina_normalizada || "";
-  } else {
-    numero = row.numero ?? "";
-  }
-  const line = [calle, numero].filter(Boolean).join(" ").trim();
+  const line = formatActuacionListDomicilioLinea(row).trim();
   return line || "—";
 }
 

@@ -2,6 +2,7 @@ import { Box, Chip, Tooltip, Typography } from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
 
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import {
   BandejaDomicilioYRubroCell,
   BandejaFechaYChipOtCell,
@@ -18,18 +19,6 @@ const actasChipsColumnSx = {
   gap: 0.65,
   maxWidth: "100%",
 };
-
-function displayCalle(r: IActuacionListItem): string {
-  if (r.calle_estado === "OK" && r.calle_normalizada) return r.calle_normalizada;
-  return (r.calle ?? "").trim();
-}
-
-function displayNumero(r: IActuacionListItem): string {
-  if (r.numero_tipo === "ESQUINA" && (r.numero_esquina || r.esquina_normalizada)) {
-    return (r.numero_esquina || r.esquina_normalizada || "").trim();
-  }
-  return (r.numero ?? "").trim();
-}
 
 function inspectoresNombres(r: IActuacionListItem): string[] {
   const fromArr = r.inspectores?.filter((s): s is string => Boolean(s?.trim()));
@@ -135,11 +124,11 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       id: "col_domicilio_rubro",
       header: "Domicilio",
       accessorFn: (row) =>
-        [displayCalle(row), displayNumero(row), row.rubro_nombre ?? ""].filter(Boolean).join(" "),
+        [formatActuacionListDomicilioLinea(row), row.rubro_nombre ?? ""].filter(Boolean).join(" "),
       size: 220,
       Cell: ({ row }) => {
         const r = row.original;
-        const line = [displayCalle(r), displayNumero(r)].filter(Boolean).join(" ").trim() || "—";
+        const line = formatActuacionListDomicilioLinea(r).trim() || "—";
         return <BandejaDomicilioYRubroCell domicilioLinea={line} rubro={r.rubro_nombre} />;
       },
     },

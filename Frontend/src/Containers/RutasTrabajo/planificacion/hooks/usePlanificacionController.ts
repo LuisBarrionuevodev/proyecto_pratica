@@ -207,7 +207,11 @@ export function usePlanificacionController({
     async (page = 1, perPage = 25) => {
       setLoading((s) => ({ ...s, urgentes: true }));
       try {
-        const { items, meta } = await getPlanificacionUrgentes(rutaId, { page, per_page: perPage });
+        const { items, meta } = await getPlanificacionUrgentes(rutaId, {
+          page,
+          per_page: perPage,
+          ...(distritoActivoId != null ? { distrito_id: distritoActivoId } : {}),
+        });
         setUrgentesRaw(items);
         setUrgentesMeta({ total: meta.total, page: meta.page, perPage: meta.per_page });
       } catch (e: unknown) {
@@ -221,7 +225,13 @@ export function usePlanificacionController({
         setLoading((s) => ({ ...s, urgentes: false }));
       }
     },
-    [rutaId]
+    [rutaId, distritoActivoId]
+  );
+
+  /** En la página actual de M3, cuántas filas del servicio están en el pool (no se listan en la bandeja). */
+  const urgentesOcultosPorPoolEnPagina = useMemo(
+    () => urgentesRaw.filter((r) => poolSet.has(r.id)).length,
+    [urgentesRaw, poolSet]
   );
 
   /** Catálogo distritos (IDs reales DB) para mapa — no invasivo, API existente. */
@@ -243,11 +253,14 @@ export function usePlanificacionController({
     };
   }, []);
 
-  /** Montaje: M2, M3; M1 vía efecto de distrito. */
+  /** Montaje: M2; M3 al abrir y al cambiar distrito (alineado con M1 «alta» territorial). */
   useEffect(() => {
     void loadCargaDistritos();
+  }, [loadCargaDistritos]);
+
+  useEffect(() => {
     void loadUrgentes(1, 25);
-  }, [loadCargaDistritos, loadUrgentes]);
+  }, [loadUrgentes]);
 
   /** M1 según distrito activo (null = global). */
   useEffect(() => {
@@ -450,6 +463,7 @@ export function usePlanificacionController({
     cargaPorDistrito,
     urgentesVisibles,
     urgentesMeta,
+    urgentesOcultosPorPoolEnPagina,
     loadUrgentes,
     pendientesContextoVisibles,
     pendientesParaMapa,

@@ -8,6 +8,7 @@ import {
 } from "material-react-table";
 
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { COLORS, DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 
@@ -95,8 +96,9 @@ export function CompletarTrabajosMRT({
         Cell: ({ row }) => (
           <span>
             {dashIfEmpty(
-              row.original.domicilio_texto ||
-                [row.original.calle, row.original.numero].filter(Boolean).join(" ")
+              row.original.domicilio_texto?.trim() ||
+                formatActuacionListDomicilioLinea(row.original).trim() ||
+                null
             )}
           </span>
         ),

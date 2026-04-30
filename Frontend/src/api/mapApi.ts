@@ -33,6 +33,7 @@ export interface PendingItem {
   numero_tipo: string | null;
   esquina_catalogo_id?: number | null;
   esquina_normalizada: string | null;
+  esquina_raw?: string | null;
   calle_status: string | null;
   esquina_status: string | null;
   geo_status: string | null;

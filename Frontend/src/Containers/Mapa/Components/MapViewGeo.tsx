@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import distritosGeo from "../distritos.json";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
 import { fetchRubros, fetchTiposActuacion } from "../../../api/gridApi";
 import {
   getMapPointsV2,
@@ -286,8 +287,14 @@ export default function MapViewGeo() {
               : "Relevamiento"}
           </Typography>
           <div>
-            Domicilio: {selectedDetails.calle || "-"} {selectedDetails.numero || ""}
-            {selectedDetails.esquina ? ` y ${selectedDetails.esquina}` : ""}
+            Domicilio:{" "}
+            {formatDomicilioLineaVisible({
+              calle_normalizada: selectedDetails.calle,
+              numero: selectedDetails.numero,
+              numero_tipo: selectedDetails.numero_tipo,
+              esquina_normalizada: selectedDetails.esquina,
+              esquina_raw: selectedDetails.esquina_raw,
+            }) || "-"}
           </div>
           <div>Contribuyente: {selectedDetails.contribuyente || "-"}</div>
           <div>Rubro: {selectedDetails.rubro || "-"}</div>
@@ -319,7 +326,8 @@ export default function MapViewGeo() {
           {pendientes.map((p) => (
             <Box key={p.domicilio_id} sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
               <span>
-                #{p.domicilio_id} {p.calle_normalizada || "-"} {p.numero || ""}
+                #{p.domicilio_id}{" "}
+                {formatDomicilioLineaVisible(p) || "-"}
               </span>
               <Button
                 size="small"

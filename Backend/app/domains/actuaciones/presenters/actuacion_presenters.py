@@ -432,11 +432,12 @@ def actuacion_to_grid_row(
 
     
     calle_mostrar = calle_normalizada if calle_estado == "OK" and calle_normalizada else calle
-    numero_mostrar = (
-        f"ESQ: {esquina_normalizada}"
-        if numero_tipo == "ESQUINA" and esquina_status == "OK" and esquina_normalizada
-        else numero
-    )
+    if numero_tipo == "ESQUINA" and esquina_status == "OK" and esquina_normalizada:
+        numero_mostrar = esquina_normalizada
+    elif numero_tipo == "ESQUINA":
+        numero_mostrar = numero
+    else:
+        numero_mostrar = numero
     calle_sugerida = calle_normalizada if calle_normalizada else None
 
     _raw_nombre_local = getattr(act, "nombre_local", None)

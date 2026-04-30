@@ -68,6 +68,7 @@ const RutasTrabajo = () => {
 
   const [openCrearGrupo, setOpenCrearGrupo] = useState(false);
   const [openCrearRuta, setOpenCrearRuta] = useState(false);
+  const [crearRutaFechaSugerida, setCrearRutaFechaSugerida] = useState<string | null>(null);
   const [openAsignarInspectores, setOpenAsignarInspectores] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<IRutaGrupoMin | null>(null);
   const [inspectoresCatalogo, setInspectoresCatalogo] = useState<CatalogItem[]>([]);
@@ -176,6 +177,7 @@ const RutasTrabajo = () => {
       });
       await loadRutaDetail(resp.item.id);
       setOpenCrearRuta(false);
+      setCrearRutaFechaSugerida(null);
       setSuccessMessage(`Ruta ${resp.item.numero} creada en BORRADOR.`);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo crear la ruta");
@@ -428,7 +430,10 @@ const RutasTrabajo = () => {
 
         {rutaId == null && (
           <RutasEmptyView
-            onCrearBorrador={() => setOpenCrearRuta(true)}
+            onCrearBorrador={(opts) => {
+              setCrearRutaFechaSugerida(opts?.fecha ?? null);
+              setOpenCrearRuta(true);
+            }}
             onAbrirRuta={(id) => void loadRutaDetail(id)}
           />
         )}
@@ -504,7 +509,15 @@ const RutasTrabajo = () => {
         )}
 
         <ModalCrearGrupoRuta open={openCrearGrupo} onClose={() => setOpenCrearGrupo(false)} onSubmit={handleCreateGrupo} disabled={!canCreateGrupo} />
-        <ModalCrearRutaTrabajo open={openCrearRuta} onClose={() => setOpenCrearRuta(false)} onSubmit={handleCreateRuta} />
+        <ModalCrearRutaTrabajo
+          open={openCrearRuta}
+          fechaSugeridaAlAbrir={crearRutaFechaSugerida}
+          onClose={() => {
+            setOpenCrearRuta(false);
+            setCrearRutaFechaSugerida(null);
+          }}
+          onSubmit={handleCreateRuta}
+        />
 
         <ModalAsignarInspectoresGrupo
           open={openAsignarInspectores}

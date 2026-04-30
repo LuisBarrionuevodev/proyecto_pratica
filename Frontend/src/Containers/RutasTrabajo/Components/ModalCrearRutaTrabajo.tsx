@@ -8,18 +8,26 @@ import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Si se informa al abrir, precarga el campo fecha (p. ej. día elegido en el almanaque). */
+  fechaSugeridaAlAbrir?: string | null;
   onSubmit: (payload: { fecha: string; turno: "MANIANA" | "TARDE"; observaciones?: string }) => Promise<void>;
 }
 
-const ModalCrearRutaTrabajo = ({ open, onClose, onSubmit }: Props) => {
+const ModalCrearRutaTrabajo = ({ open, onClose, fechaSugeridaAlAbrir, onSubmit }: Props) => {
   const [fecha, setFecha] = useState(() => fechaLocalHoyIso());
   const [turno, setTurno] = useState<"MANIANA" | "TARDE">("MANIANA");
   const [observaciones, setObservaciones] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) setFecha(fechaLocalHoyIso());
-  }, [open]);
+    if (!open) return;
+    const raw = fechaSugeridaAlAbrir?.trim();
+    if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      setFecha(raw);
+    } else {
+      setFecha(fechaLocalHoyIso());
+    }
+  }, [open, fechaSugeridaAlAbrir]);
 
   const handleClose = () => {
     if (saving) return;

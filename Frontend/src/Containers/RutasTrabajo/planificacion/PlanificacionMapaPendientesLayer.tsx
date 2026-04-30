@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
-import { Box } from "@mui/material";
+import type { Marker as LeafletMarker } from "leaflet";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
-import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
+import { PlanificacionMapaGeopuntoOperativaCard } from "./components/PlanificacionMapaGeopuntoOperativaCard";
 import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
 import { prioridadCategoriaRow } from "./utils/iniciadorDisplay";
 import { planificacionPendientePinIcon } from "./utils/planificacionMapaPins";
@@ -19,6 +19,81 @@ function MapFlyTo({ target }: { target: IRutaIniciadorPendienteRow | null }) {
   return null;
 }
 
+type PendienteMarkerProps = {
+  row: IRutaIniciadorPendienteRow;
+  lat: number;
+  lng: number;
+  isFocus: boolean;
+  showPopup: boolean;
+  popupOpenNonce: number;
+  inPool: boolean;
+  onMarkerClick: (row: IRutaIniciadorPendienteRow) => void;
+  onPopupClose: () => void;
+  onAgregar: (row: IRutaIniciadorPendienteRow) => void;
+};
+
+/**
+ * Un marcador + popup controlado: abre el popup al primer toque o al foco desde la lista (flyTo + estado).
+ */
+function PendientePlanifMarker({
+  row,
+  lat,
+  lng,
+  isFocus,
+  showPopup,
+  popupOpenNonce,
+  inPool,
+  onMarkerClick,
+  onPopupClose,
+  onAgregar,
+}: PendienteMarkerProps) {
+  const markerRef = useRef<LeafletMarker | null>(null);
+
+  useEffect(() => {
+    if (!showPopup) return;
+    const m = markerRef.current;
+    if (!m) return;
+    const id = window.requestAnimationFrame(() => {
+      m.openPopup();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [showPopup, row.id, popupOpenNonce]);
+
+  const icon = planificacionPendientePinIcon(prioridadCategoriaRow(row), isFocus);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[lat, lng]}
+      icon={icon}
+      zIndexOffset={isFocus ? 800 : 0}
+      eventHandlers={{
+        click: () => onMarkerClick(row),
+      }}
+    >
+      {showPopup ? (
+        <Popup
+          key={`${row.id}-${popupOpenNonce}`}
+          eventHandlers={{
+            remove: onPopupClose,
+          }}
+          maxWidth={248}
+          minWidth={220}
+          autoPan
+          autoPanPadding={[10, 10]}
+          keepInView
+        >
+          <PlanificacionMapaGeopuntoOperativaCard
+            row={row}
+            yaEnPool={inPool}
+            onAgregarAlPool={() => onAgregar(row)}
+          />
+        </Popup>
+      ) : null}
+    </Marker>
+  );
+}
+
 export type PlanificacionMapaPendientesLayerProps = {
   rows: IRutaIniciadorPendienteRow[];
   /** Solo con distrito elegido en el mapa. */
@@ -28,13 +103,15 @@ export type PlanificacionMapaPendientesLayerProps = {
   flyToRow: IRutaIniciadorPendienteRow | null;
   /** Se incrementa al abrir el popup desde la lista para forzar remount estable del Popup de Leaflet. */
   popupOpenNonce?: number;
+  /** Ids ya presentes en el pool del día (botón deshabilitado + leyenda breve). */
+  poolIniciadorIds?: number[];
   onMarkerClick: (row: IRutaIniciadorPendienteRow) => void;
   onPopupClose: () => void;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
 };
 
 /**
- * Marca pendientes con geocodificación cuando hay distrito activo; popup alineado a la card de lista.
+ * Marca pendientes con geocodificación cuando hay distrito activo; card operativa al tocar el geopunto.
  */
 export function PlanificacionMapaPendientesLayer({
   rows,
@@ -43,11 +120,13 @@ export function PlanificacionMapaPendientesLayer({
   popupRow,
   flyToRow,
   popupOpenNonce = 0,
+  poolIniciadorIds = [],
   onMarkerClick,
   onPopupClose,
   onAgregar,
 }: PlanificacionMapaPendientesLayerProps) {
   const puntos = useMemo(() => rows.filter((r) => parseIniciadorLatLng(r) != null), [rows]);
+  const poolSet = useMemo(() => new Set(poolIniciadorIds), [poolIniciadorIds]);
 
   if (!visible) return null;
 
@@ -59,37 +138,21 @@ export function PlanificacionMapaPendientesLayer({
         if (!ll) return null;
         const isFocus = focusIniciadorId === row.id;
         const showPopup = popupRow?.id === row.id;
-        const icon = planificacionPendientePinIcon(prioridadCategoriaRow(row), isFocus);
+        const inPool = poolSet.has(row.id);
         return (
-          <Marker
+          <PendientePlanifMarker
             key={row.id}
-            position={[ll.lat, ll.lng]}
-            icon={icon}
-            zIndexOffset={isFocus ? 800 : 0}
-            eventHandlers={{
-              click: () => onMarkerClick(row),
-            }}
-          >
-            {showPopup ? (
-              <Popup
-                key={`${row.id}-${popupOpenNonce}`}
-                eventHandlers={{
-                  remove: onPopupClose,
-                }}
-                maxWidth={340}
-                minWidth={260}
-              >
-                <Box sx={{ m: -0.5 }}>
-                  <PlanificacionIniciadorCompactCard
-                    row={row}
-                    agregarLabel="Agregar al pool"
-                    onAgregar={() => onAgregar(row)}
-                    showVerEnMapaButton={false}
-                  />
-                </Box>
-              </Popup>
-            ) : null}
-          </Marker>
+            row={row}
+            lat={ll.lat}
+            lng={ll.lng}
+            isFocus={isFocus}
+            showPopup={showPopup}
+            popupOpenNonce={popupOpenNonce}
+            inPool={inPool}
+            onMarkerClick={onMarkerClick}
+            onPopupClose={onPopupClose}
+            onAgregar={onAgregar}
+          />
         );
       })}
     </>

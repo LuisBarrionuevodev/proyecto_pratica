@@ -14,7 +14,10 @@ import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { fechaLocalHoyIso } from "../../../utils/dateRange";
+import { fechaLocalHoyIso, toIsoDateLocal } from "../../../utils/dateRange";
+import {
+  InstitutionalMonthCalendarGrid,
+} from "../../../components/calendar/InstitutionalMonthCalendarGrid";
 import {
   getCompletarTrabajoPendientesResumen,
   type ICompletarTrabajoPendienteDiaResumen,
@@ -53,13 +56,6 @@ const carruselScrollSx = {
   pb: 0.5,
   "&::-webkit-scrollbar": { display: "none" },
 };
-
-function toIsoDateLocal(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 function compareIso(a: string, b: string): number {
   return a.localeCompare(b);
@@ -158,186 +154,6 @@ function titleCeldaCalendario(est: DiaCeldaEstado): string {
     case "sin_dato_fuera":
       return "Fuera del período del resumen cargado";
   }
-}
-
-const CAL_COLS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
-
-function daysInMonth(year: number, monthIndex: number): number {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
-
-function mondayOffsetFirstOfMonth(year: number, monthIndex: number): number {
-  const js = new Date(year, monthIndex, 1).getDay();
-  return (js + 6) % 7;
-}
-
-type OperativoMonthCalendarProps = {
-  mesAncla: Date;
-  onMesChange: (next: Date) => void;
-  diasMap: Map<string, ICompletarTrabajoPendienteDiaResumen>;
-  rangoDesde: string;
-  rangoHasta: string;
-  hoyIso: string;
-  selectedIso: string | null;
-  onSelectDay: (iso: string) => void;
-};
-
-function OperativoMonthCalendar({
-  mesAncla,
-  onMesChange,
-  diasMap,
-  rangoDesde,
-  rangoHasta,
-  hoyIso,
-  selectedIso,
-  onSelectDay,
-}: OperativoMonthCalendarProps) {
-  const y = mesAncla.getFullYear();
-  const m0 = mesAncla.getMonth();
-  const dim = daysInMonth(y, m0);
-  const lead = mondayOffsetFirstOfMonth(y, m0);
-  const totalCells = lead + dim;
-  const rows = Math.ceil(totalCells / 7);
-
-  const tituloMes = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(mesAncla);
-
-  const prev = () => onMesChange(new Date(y, m0 - 1, 1));
-  const next = () => onMesChange(new Date(y, m0 + 1, 1));
-
-  const cells: { key: string; iso: string | null; dayNum: number | null }[] = [];
-  for (let i = 0; i < rows * 7; i++) {
-    if (i < lead || i >= lead + dim) {
-      cells.push({ key: `pad-${y}-${m0}-${i}`, iso: null, dayNum: null });
-    } else {
-      const dayNum = i - lead + 1;
-      const iso = toIsoDateLocal(new Date(y, m0, dayNum));
-      cells.push({ key: iso, iso, dayNum });
-    }
-  }
-
-  return (
-    <Stack spacing={1.25}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
-        <IconButton size="small" onClick={prev} aria-label="Mes anterior" sx={{ color: GLASS_COLORS.textSecondary }}>
-          <ChevronLeft />
-        </IconButton>
-        <Typography
-          sx={{
-            fontFamily: TACTIC,
-            fontWeight: 700,
-            fontSize: "0.88rem",
-            color: GLASS_COLORS.textPrimary,
-            textTransform: "capitalize",
-            flex: 1,
-            textAlign: "center",
-          }}
-        >
-          {tituloMes}
-        </Typography>
-        <IconButton size="small" onClick={next} aria-label="Mes siguiente" sx={{ color: GLASS_COLORS.textSecondary }}>
-          <ChevronRight />
-        </IconButton>
-      </Stack>
-
-      <Box
-        role="grid"
-        aria-label="Calendario operativo: pendiente, completo o sin actividad según el resumen del servidor"
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 0.5,
-          textAlign: "center",
-        }}
-      >
-        {CAL_COLS.map((c) => (
-          <Typography
-            key={c}
-            variant="caption"
-            sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textMuted, fontSize: "0.64rem", fontWeight: 600 }}
-          >
-            {c}
-          </Typography>
-        ))}
-        {cells.map((cell) => {
-          if (cell.iso == null || cell.dayNum == null) {
-            return <Box key={cell.key} sx={{ minHeight: 40 }} />;
-          }
-          const est = estadoCeldaCalendario(cell.iso, diasMap, rangoDesde, rangoHasta);
-          const esHoy = cell.iso === hoyIso;
-          const sel = cell.iso === selectedIso;
-
-          const titleHint = titleCeldaCalendario(est);
-
-          const bg =
-            est === "atrasado"
-              ? "rgba(211, 47, 47, 0.14)"
-              : est === "pendiente"
-                ? "rgba(255, 152, 0, 0.12)"
-                : est === "completo"
-                  ? "rgba(56, 142, 60, 0.12)"
-                  : "rgba(255,255,255,0.025)";
-          const border =
-            est === "atrasado"
-              ? "1px solid rgba(255, 138, 128, 0.5)"
-              : est === "pendiente"
-                ? "1px solid rgba(255, 183, 77, 0.38)"
-                : est === "completo"
-                  ? "1px solid rgba(129, 199, 132, 0.35)"
-                  : `1px solid ${GLASS_COLORS.borderLight}`;
-          const color =
-            est === "sin_actividad" || est === "sin_dato_fuera" ? GLASS_COLORS.textMuted : GLASS_COLORS.textPrimary;
-
-          return (
-            <ButtonBase
-              key={cell.key}
-              title={titleHint}
-              onClick={() => onSelectDay(cell.iso!)}
-              sx={{
-                minHeight: 40,
-                borderRadius: "10px",
-                fontFamily: TACTIC,
-                fontWeight: esHoy ? 800 : 600,
-                fontSize: "0.8rem",
-                color,
-                bgcolor: bg,
-                border,
-                boxShadow: sel ? `0 0 0 2px ${GLASS_COLORS.primary}` : "none",
-                transition: "background-color 0.12s ease, border-color 0.12s ease",
-                "&:hover": {
-                  bgcolor:
-                    est === "sin_actividad" || est === "sin_dato_fuera"
-                      ? "rgba(255,255,255,0.05)"
-                      : "rgba(255,255,255,0.06)",
-                },
-                "&.Mui-focusVisible": {
-                  outline: `2px solid ${GLASS_COLORS.primary}`,
-                  outlineOffset: 2,
-                },
-              }}
-            >
-              <Stack alignItems="center" spacing={0.15}>
-                <span>{cell.dayNum}</span>
-                {esHoy ? (
-                  <Box
-                    component="span"
-                    sx={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      bgcolor: GLASS_COLORS.primary,
-                      opacity: 0.85,
-                    }}
-                  />
-                ) : (
-                  <Box sx={{ height: 5 }} />
-                )}
-              </Stack>
-            </ButtonBase>
-          );
-        })}
-      </Box>
-    </Stack>
-  );
 }
 
 type DiaCarouselCardProps = {
@@ -618,15 +434,52 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
           <Box sx={principalGlassSurfaceSx}>
             <Stack spacing={1.5}>
               <Typography sx={rutasResumenTitleSx}>Calendario operativo</Typography>
-              <OperativoMonthCalendar
-                mesAncla={calMes}
-                onMesChange={setCalMes}
-                diasMap={diasMap}
-                rangoDesde={rangoDesde}
-                rangoHasta={rangoHasta}
+              <InstitutionalMonthCalendarGrid
+                monthAnchor={calMes}
+                onMonthChange={setCalMes}
                 hoyIso={hoyIso}
                 selectedIso={selectedCalDay}
                 onSelectDay={setSelectedCalDay}
+                aria-label="Calendario operativo: pendiente, completo o sin actividad según el resumen del servidor"
+                getDayTitle={(ctx) => {
+                  const est = estadoCeldaCalendario(ctx.iso, diasMap, rangoDesde, rangoHasta);
+                  return titleCeldaCalendario(est);
+                }}
+                getDayButtonSx={(ctx) => {
+                  const est = estadoCeldaCalendario(ctx.iso, diasMap, rangoDesde, rangoHasta);
+                  const bg =
+                    est === "atrasado"
+                      ? "rgba(211, 47, 47, 0.14)"
+                      : est === "pendiente"
+                        ? "rgba(255, 152, 0, 0.12)"
+                        : est === "completo"
+                          ? "rgba(56, 142, 60, 0.12)"
+                          : "rgba(255,255,255,0.025)";
+                  const border =
+                    est === "atrasado"
+                      ? "1px solid rgba(255, 138, 128, 0.5)"
+                      : est === "pendiente"
+                        ? "1px solid rgba(255, 183, 77, 0.38)"
+                        : est === "completo"
+                          ? "1px solid rgba(129, 199, 132, 0.35)"
+                          : `1px solid ${GLASS_COLORS.borderLight}`;
+                  const color =
+                    est === "sin_actividad" || est === "sin_dato_fuera"
+                      ? GLASS_COLORS.textMuted
+                      : GLASS_COLORS.textPrimary;
+                  return {
+                    bgcolor: bg,
+                    border,
+                    color,
+                    minHeight: 40,
+                    "&:hover": {
+                      bgcolor:
+                        est === "sin_actividad" || est === "sin_dato_fuera"
+                          ? "rgba(255,255,255,0.05)"
+                          : "rgba(255,255,255,0.06)",
+                    },
+                  };
+                }}
               />
               <Stack
                 direction={{ xs: "column", sm: "row" }}

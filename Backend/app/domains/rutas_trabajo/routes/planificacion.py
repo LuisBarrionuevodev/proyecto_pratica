@@ -59,7 +59,10 @@ def planificacion_urgentes(ruta_id: int):
     try:
         q = PlanificacionUrgentesQuery.model_validate(params)
         rows, total = get_planificacion_urgentes(
-            ruta_id, page=q.page, per_page=q.per_page
+            ruta_id,
+            page=q.page,
+            per_page=q.per_page,
+            distrito_id=q.distrito_id,
         )
         return jsonify(
             {

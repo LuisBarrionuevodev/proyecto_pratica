@@ -15,6 +15,7 @@ import {
 } from "../../../styles/documentalModalTokens";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 import { humanizarTipoActuacion } from "../utils/documentalLabelFormat";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 
 type DocumentalCardShell = "glass" | "actuacion";
 
@@ -86,9 +87,7 @@ function contribuyenteLineaPendiente(row: IActuacionesPendientesItem): string {
 }
 
 function domicilioLineaPendiente(row: IActuacionesPendientesItem): string {
-  const c = (row.calle ?? "").trim();
-  const n = (row.numero ?? "").trim();
-  const t = [c, n].filter(Boolean).join(" ");
+  const t = formatActuacionListDomicilioLinea(row).trim();
   return t || "—";
 }
 
@@ -131,9 +130,7 @@ function contribOficio(row: ComprobacionOficioReferenciaRow): string {
 }
 
 function domicilioOficio(row: IPendientesOficioItem): string {
-  const c = (row.calle ?? "").trim();
-  const n = (row.numero ?? "").trim();
-  const t = [c, n].filter(Boolean).join(" ");
+  const t = formatActuacionListDomicilioLinea(row).trim();
   return t || "—";
 }
 
@@ -263,9 +260,7 @@ function contribReinspeccion(row: ReinspeccionOperativoDetalleRow): string {
 }
 
 function domicilioReinspeccion(row: ReinspeccionOperativoDetalleRow): string {
-  const c = (row.calle ?? "").trim();
-  const n = (row.numero ?? "").trim();
-  const t = [c, n].filter(Boolean).join(" ");
+  const t = formatActuacionListDomicilioLinea(row).trim();
   return t || "—";
 }
 

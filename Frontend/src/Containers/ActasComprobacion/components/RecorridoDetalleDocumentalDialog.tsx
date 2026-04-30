@@ -25,6 +25,10 @@ import {
 } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog } from "../../../ui";
 import { contribuyenteBandejaLabel } from "../../../utils/contribuyenteBandejaText";
+import {
+  formatActuacionListDomicilioLinea,
+  type ActuacionListDomicilioLineaInput,
+} from "../../../utils/formatDomicilioLineaVisible";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 import {
   humanizarCumplimientoOficio,
@@ -126,9 +130,7 @@ function contribTitular(row: IComprobacionRecorridoRow): string {
 }
 
 function domicilioLinea(row: IComprobacionRecorridoRow): string {
-  const c = (row.calle ?? "").trim();
-  const n = (row.numero ?? "").trim();
-  const t = [c, n].filter(Boolean).join(" ");
+  const t = formatActuacionListDomicilioLinea(row as ActuacionListDomicilioLineaInput).trim();
   return t || "—";
 }
 

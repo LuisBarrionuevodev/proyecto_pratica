@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 from app.domains.rutas_trabajo.utils.planificacion_prioridad import (
@@ -8,10 +9,36 @@ from app.domains.rutas_trabajo.utils.planificacion_prioridad import (
 )
 from app.models import IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
 
+_REF_PREFIX_ESQ = re.compile(r"^ref\.?\s+", re.IGNORECASE)
+
+
+def _s(value: str | None) -> str:
+    return (value or "").strip()
+
+
+def _same_text(a: str, b: str) -> bool:
+    return bool(a) and bool(b) and a.casefold() == b.casefold()
+
+
+def _esquina_display_interseccion(esquina_norm: str, esquina_raw: str, numero: str) -> str:
+    """
+    Texto de cruce para intersección formal: prioriza normalizado, evita duplicar ``numero`` si es igual,
+    y quita prefijo ``ref.`` / ``ref `` solo en modo esquina (etiqueta UI, no altera persistencia).
+    """
+    for cand in (_s(esquina_norm), _s(esquina_raw), _s(numero)):
+        if not cand:
+            continue
+        cleaned = _REF_PREFIX_ESQ.sub("", cand).strip() or cand
+        return cleaned
+    return ""
+
 
 def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
     """
     Construye un domicilio listo para UI priorizando datos normalizados.
+
+    - ``numero_tipo == ESQUINA``: ``<calle> Y <cruce>`` (sin duplicar número y esquina ni ``(ref: …)``).
+    - En caso contrario: ``<calle> <número>`` y, si hay texto en esquina distinto al número, `` ref. …``.
     """
     dom = iniciador.domicilio
     if not dom:
@@ -27,17 +54,37 @@ def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
     elif dom.calle_raw:
         calle = dom.calle_raw
 
-    numero = (dom.numero or "").strip()
-    ref = (dom.esquina_normalizada or dom.esquina_raw or "").strip()
+    calle_s = _s(calle)
+    numero = _s(dom.numero)
+    ref_esq = _s(dom.esquina_normalizada) or _s(dom.esquina_raw)
+    nt = _s(dom.numero_tipo).upper()
 
-    if calle and numero and ref:
-        return f"{calle} {numero} (ref: {ref})"
-    if calle and numero:
-        return f"{calle} {numero}"
-    if calle:
-        return calle
-    if ref:
-        return f"Ref: {ref}"
+    if nt == "ESQUINA":
+        esq = _esquina_display_interseccion(
+            dom.esquina_normalizada or "",
+            dom.esquina_raw or "",
+            numero,
+        )
+        if calle_s and esq:
+            return f"{calle_s} Y {esq}"
+        if calle_s:
+            return calle_s
+        if esq:
+            return esq
+        return None
+
+    if calle_s and numero:
+        if ref_esq and not _same_text(numero, ref_esq):
+            return f"{calle_s} {numero} ref. {ref_esq}"
+        return f"{calle_s} {numero}"
+    if calle_s and ref_esq and not numero:
+        return f"{calle_s} ref. {ref_esq}"
+    if calle_s:
+        return calle_s
+    if numero:
+        return numero
+    if ref_esq:
+        return f"Ref. {ref_esq}"
     return None
 
 

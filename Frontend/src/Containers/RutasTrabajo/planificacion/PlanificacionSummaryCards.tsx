@@ -1,4 +1,4 @@
-import { Box, Grid, Paper, Typography } from "@mui/material";
+import { Grid, Paper, Typography } from "@mui/material";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { IPlanificacionMetricas, PlanificacionCardKey } from "./types/planificacion.types";
 

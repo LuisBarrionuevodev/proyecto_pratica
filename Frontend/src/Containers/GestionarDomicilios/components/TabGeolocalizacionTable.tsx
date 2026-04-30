@@ -5,6 +5,7 @@ import {
   useMaterialReactTable,
 } from "material-react-table";
 import { useMemo } from "react";
+import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
 import { TablePendientesStyle } from "../../../styles/MapStyles";
 import type { DomicilioPendienteItem } from "../types";
 
@@ -13,16 +14,6 @@ interface TabGeolocalizacionTableProps {
   loading: boolean;
   onGeolocalizar: (item: DomicilioPendienteItem) => void;
 }
-
-const formatDireccion = (item: DomicilioPendienteItem) => {
-  const numero = item.numero || item.numero_raw || "";
-  const calle = item.calle_normalizada || item.calle_raw || "";
-  if (item.numero_tipo === "ESQUINA") {
-    const esq = item.esquina_normalizada || item.numero_raw || numero;
-    return esq ? `${calle} y ${esq}`.trim() : calle;
-  }
-  return `${calle} ${numero}`.trim();
-};
 
 const TabGeolocalizacionTable = ({
   items,
@@ -36,7 +27,7 @@ const TabGeolocalizacionTable = ({
         accessorKey: "direccion",
         header: "Dirección",
         size: 240,
-        Cell: ({ row }) => formatDireccion(row.original),
+        Cell: ({ row }) => formatDomicilioLineaVisible(row.original),
       },
       { accessorKey: "score", header: "Score", size: 80 },
       { accessorKey: "quality", header: "Quality", size: 100 },

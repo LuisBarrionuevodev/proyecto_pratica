@@ -311,6 +311,7 @@ export function PlanificacionView({
             onMapMarkerClick={handleMapMarkerClick}
             onMapPopupClose={handleMapPopupClose}
             onAgregarDesdeMapa={handleAgregarDesdeMapa}
+            poolIniciadorIds={poolControl.poolIniciadorIds}
           />
         </Grid>
         <Grid
@@ -329,6 +330,7 @@ export function PlanificacionView({
             loading={ctrl.loading.urgentes}
             onAgregar={ctrl.agregarAlPool}
             meta={ctrl.urgentesMeta}
+            ocultosPorPoolEnPagina={ctrl.urgentesOcultosPorPoolEnPagina}
             onPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
             onVerEnMapa={handleVerEnMapa}
           />

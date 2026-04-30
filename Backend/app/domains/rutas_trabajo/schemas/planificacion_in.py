@@ -26,6 +26,11 @@ class PlanificacionUrgentesQuery(BaseModel):
 
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=25, ge=1, le=100)
+    distrito_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Mismo acote territorial que M1 cuando el mapa tiene distrito activo.",
+    )
 
 
 PlanificacionOrdenLiteral = Literal["prioridad", "fecha_asc", "fecha_desc", "prioridad_asc"]

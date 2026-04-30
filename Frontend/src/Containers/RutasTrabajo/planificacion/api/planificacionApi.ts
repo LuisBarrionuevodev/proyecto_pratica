@@ -34,7 +34,7 @@ export async function getPlanificacionCargaDistritos(
 
 export async function getPlanificacionUrgentes(
   rutaId: number,
-  params: { page?: number; per_page?: number }
+  params: { page?: number; per_page?: number; distrito_id?: number }
 ): Promise<{ items: IRutaIniciadorPendienteRow[]; meta: IPlanificacionListMeta }> {
   const { data } = await apiClient.get<{
     items: IRutaIniciadorPendienteRow[];

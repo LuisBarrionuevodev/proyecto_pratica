@@ -112,9 +112,12 @@ def get_planificacion_urgentes(
     *,
     page: int,
     per_page: int,
+    distrito_id: int | None = None,
 ) -> tuple[list, int]:
     """
     M3: bandeja urgentes — elegible_urgente (tipo != RELEVAMIENTO y prioridad >= 3).
+
+    Si ``distrito_id`` se informa, el universo coincide con M1 (métrica ``alta``) para ese distrito.
 
     Orden: prioridad DESC, fecha_origen ASC, id ASC.
 
@@ -126,6 +129,8 @@ def get_planificacion_urgentes(
         IniciadorRuta.tipo_iniciador != "RELEVAMIENTO",
         IniciadorRuta.prioridad >= 3,
     )
+    if distrito_id is not None:
+        q = q.filter(Domicilio.distrito_id == distrito_id)
     total = q.count()
     items = (
         q.order_by(

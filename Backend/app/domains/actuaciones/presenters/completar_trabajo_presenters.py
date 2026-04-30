@@ -84,10 +84,19 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     if not rubro and ini and ini.relevamiento and ini.relevamiento.rubro:
         rubro = ini.relevamiento.rubro.nombre
 
-    calle_m = base.get("calle_mostrar") or base.get("calle")
-    num_m = base.get("numero_mostrar") or base.get("numero")
-    parts = [p for p in (calle_m, num_m) if p]
-    domicilio_texto = " ".join(parts).strip() or None
+    calle_m = (base.get("calle_mostrar") or base.get("calle") or "").strip()
+    num_m = (base.get("numero_mostrar") or base.get("numero") or "").strip()
+    nt = (base.get("numero_tipo") or "").strip().upper()
+    esq_norm = (base.get("esquina_normalizada") or "").strip()
+    if nt == "ESQUINA":
+        esq_effective = esq_norm or num_m
+        if calle_m and esq_effective:
+            domicilio_texto = f"{calle_m} Y {esq_effective}"
+        else:
+            domicilio_texto = " ".join(p for p in (calle_m, num_m) if p).strip() or None
+    else:
+        parts = [p for p in (calle_m, num_m) if p]
+        domicilio_texto = " ".join(parts).strip() or None
 
     grupo = item.ruta_grupo
     insp1, insp2, insp3 = base.get("inspector1"), base.get("inspector2"), base.get("inspector3")

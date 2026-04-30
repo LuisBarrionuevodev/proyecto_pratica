@@ -21,3 +21,14 @@ def test_elegible_urgente_relevamiento_nunca():
 def test_elegible_urgente_denuncia_alta():
     assert elegible_urgente_planificacion("DENUNCIA", 3) is True
     assert elegible_urgente_planificacion("DENUNCIA", 2) is False
+
+
+def test_planificacion_urgentes_query_distrito_id_optional():
+    from app.domains.rutas_trabajo.schemas.planificacion_in import PlanificacionUrgentesQuery
+
+    q = PlanificacionUrgentesQuery.model_validate({})
+    assert q.distrito_id is None
+    q2 = PlanificacionUrgentesQuery.model_validate({"distrito_id": "12", "page": "2", "per_page": "10"})
+    assert q2.distrito_id == 12
+    assert q2.page == 2
+    assert q2.per_page == 10
