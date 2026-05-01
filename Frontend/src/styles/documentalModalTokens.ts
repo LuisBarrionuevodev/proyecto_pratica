@@ -167,3 +167,12 @@ export function docModalActuacionScrollCardShellSx(borderAccent: string): SxProp
     borderLeft: `3px solid ${borderAccent}`,
   };
 }
+
+/** Alertas dentro de `AppDialog` glass: texto legible y menos contraste brusco con el fondo. */
+export const documentalGlassAlertSx: SxProps<Theme> = {
+  bgcolor: "rgba(0,0,0,0.28)",
+  color: DOC_MODAL_TEXT,
+  border: "1px solid rgba(255,255,255,0.12)",
+  "& .MuiAlert-message": { color: DOC_MODAL_TEXT },
+  "& .MuiAlert-icon": { color: "rgba(255,255,255,0.9)" },
+};

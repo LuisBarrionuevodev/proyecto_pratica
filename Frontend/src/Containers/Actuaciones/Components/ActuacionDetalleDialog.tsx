@@ -29,6 +29,7 @@ import {
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
+import { ActuacionCircuitoDocumentalPuente } from "./ActuacionCircuitoDocumentalPuente";
 
 export type ActuacionEditCatalogs = {
   inspectores: string[];
@@ -954,6 +955,8 @@ export function ActuacionDetalleDialog({
         </DocumentalBloque>
       ) : null}
 
+      <ActuacionCircuitoDocumentalPuente draft={draft} open={open} onBeforeNavigate={handleClose} />
+
       {resultadoSeguimientoHayContenido(draft) ? (
         <DocumentalBloque overline="Resultado y seguimiento">
           <ResultadoSeguimientoLectura draft={draft} />
@@ -978,7 +981,7 @@ export function ActuacionDetalleDialog({
       ) : null}
     </Stack>
     );
-  }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
+  }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros, open]);
 
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? "";
@@ -1407,6 +1410,8 @@ export function ActuacionDetalleDialog({
           </Box>
         </DocumentalBloque>
 
+        <ActuacionCircuitoDocumentalPuente draft={draft} open={open} onBeforeNavigate={handleClose} />
+
         {muestraResultadoSeguimientoEdicion ? (
           <DocumentalBloque overline="Resultado y seguimiento">
             {tieneResultado ? (
@@ -1494,6 +1499,7 @@ export function ActuacionDetalleDialog({
     onDraftChange,
     navigate,
     onClose,
+    open,
   ]);
 
   const dialogContentExtraSx = useMemo(

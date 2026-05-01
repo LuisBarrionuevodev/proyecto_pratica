@@ -10,6 +10,7 @@ import pytest
 from app.database import db
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
+    comprobacion_recorrido_resumen_row,
     estado_recorrido_label,
 )
 from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
@@ -120,8 +121,10 @@ def test_comprobacion_recorrido_detalle_origen_iniciador_excluye_reinspeccion_of
         assert d["origen"]["iniciador"]["tipo_iniciador"] == "DENUNCIA"
         rein = d["reinspeccion_por_oficio"]
         assert rein is not None
+        assert rein["iniciador_id"] == ini_rein.id
         assert rein["tipo_iniciador"] == "REINSPECCION_OFICIO"
         assert rein["documento_pendiente"] == "Reinspección por oficio"
+        assert rein.get("ejecucion_reinspeccion") is None
     finally:
         db.session.rollback()
 
@@ -213,5 +216,17 @@ def test_comprobacion_recorrido_detalle_oficio_incluye_causa_y_juzgado(app_ctx) 
         assert d["oficio"]["causa"] == "Causa test recorrido"
         assert d["oficio"]["juzgado_id"] == jz.id
         assert d["oficio"]["juzgado_nombre"] == "Juzgado Test Recorrido"
+    finally:
+        db.session.rollback()
+
+
+def test_comprobacion_recorrido_resumen_row_estado_y_sin_expediente_respuesta(app_ctx) -> None:
+    """Listado recorrido: ``estado_recorrido`` y campos de expediente de respuesta solo si existen en BD."""
+    try:
+        act, _comp = _mk_actuacion_con_comprobacion()
+        row = comprobacion_recorrido_resumen_row(act)
+        assert row["estado_recorrido"] == estado_recorrido_label(act)
+        assert "expediente_respuesta_numero" not in row
+        assert "expediente_respuesta_anio" not in row
     finally:
         db.session.rollback()

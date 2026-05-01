@@ -23,6 +23,10 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
+from app.domains.establecimientos.services.vincular_establecimiento_operativo_actuacion_service import (
+    try_vincular_establecimiento_operativo_desde_actuacion,
+)
 from app.domains.actuaciones.services.actas_canal_payload_guard import (
     rechazar_oficio_expediente_en_payload_canal_actas,
 )
@@ -75,6 +79,8 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     - Resuelve catálogos (rubro/inspectores) y dominios (contribuyente/domicilio).
     - Resuelve previas (notificación/comprobación) y adjunta actas del día.
     - No adjunta oficio/expediente (flujos Esperando expediente / oficio).
+    - Si hay domicilio y datos mínimos de ficha, intenta vincular ``establecimiento_operativo_id`` (ver
+      ``try_vincular_establecimiento_operativo_desde_actuacion``); si no, queda para Completar trabajo.
     - Persiste con `db.session.commit()` al final.
 
     Args:
@@ -141,6 +147,11 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     attach_comprobacion(act, payload.get("comprobacion"))
     attach_clausura(act, payload.get("clausura"), crear=True)
     attach_decomiso(act, payload.get("decomiso"), crear=True)
+
+    try_vincular_establecimiento_operativo_desde_actuacion(
+        act,
+        created_by_user_id=get_current_user_id_or_fallback(),
+    )
 
     db.session.add(act)
     db.session.commit()

@@ -1,60 +1,102 @@
-import { Box, Chip, Stack, Typography } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Box, CircularProgress, Stack } from "@mui/material";
 
+import {
+  fetchComprobacionDocumental,
+  type IComprobacionDocumentalResponse,
+  type IJuzgadoCatalogItem,
+} from "../../../api/actuacionesPendientesApi";
+import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
-import {
-  docModalChipSx,
-  docModalFooterButtonsSx,
-  docModalFooterRowSx,
-  docModalHeaderStackSx,
-  docModalReferenceSx,
-  docModalSubtitleSx,
-  docModalTitleSx,
-} from "../../../styles/documentalModalTokens";
-import { AppButton, AppDialog } from "../../../ui";
-import { humanizarEstadoIniciador } from "../utils/documentalLabelFormat";
-import {
-  BloqueInspeccionBaseComprobacion,
-  BloqueReferenciaReinspeccionDetalle,
-  BloqueTramitesReinspeccionDetalle,
-  DOC_MODAL_BLOCK_STACK_SPACING,
-  type ReinspeccionOperativoDetalleRow,
-  DocumentalBloque,
-  DocumentalFila,
-  textoValor,
-} from "./comprobacionOperativoBlocks";
+import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
+import { AppDialog } from "../../../ui";
+import { OperativoOficioYRespuestaEditable } from "./ComprobacionOficioOperativoDialog";
+import { DOC_MODAL_BLOCK_STACK_SPACING, type ReinspeccionOperativoDetalleRow } from "./comprobacionOperativoBlocks";
+import { ReinspeccionDocumentalSharedLayout } from "./ReinspeccionDocumentalSharedLayout";
 
 function actaCabecera(row: ReinspeccionOperativoDetalleRow): string {
   const n = (row.acta_comprobacion_num ?? "").trim();
-  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
+  return n ? `Acta de comprobaci?n N? ${n}` : "Acta de comprobaci?n";
 }
 
 export type ComprobacionReinspeccionDetalleDialogProps = {
   open: boolean;
   onClose: () => void;
   row: ReinspeccionOperativoDetalleRow | null;
+  juzgados: IJuzgadoCatalogItem[];
+  /** Tras guardar o recargar documental: refrescar bandejas (p. ej. `loadRein`). */
+  onBandejasActualizadas: () => Promise<void>;
 };
 
 /**
- * Vista consultiva de pendiente de reinspección por oficio: Referencia, visita, trámites e iniciador.
+ * Pendiente de reinspecci?n por oficio: bloques consultivos + edici?n de oficio/causa/expediente de respuesta
+ * (mismo componente que ?Pendientes de oficio? cuando el oficio ya est? cargado).
  */
-export function ComprobacionReinspeccionDetalleDialog({ open, onClose, row }: ComprobacionReinspeccionDetalleDialogProps) {
+export function ComprobacionReinspeccionDetalleDialog({
+  open,
+  onClose,
+  row,
+  juzgados,
+  onBandejasActualizadas,
+}: ComprobacionReinspeccionDetalleDialogProps) {
+  const [documental, setDocumental] = useState<IComprobacionDocumentalResponse | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
+
+  const recargarDocumental = useCallback(async () => {
+    if (!row) return;
+    setDocLoading(true);
+    setDocError(null);
+    try {
+      const doc = await fetchComprobacionDocumental(row.id);
+      setDocumental(doc);
+    } catch (err: unknown) {
+      setDocumental(null);
+      const detail =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      setDocError(
+        (typeof detail === "string" && detail.trim()) ||
+          "No se pudo cargar la ficha documental para editar oficio y expediente de respuesta."
+      );
+    } finally {
+      setDocLoading(false);
+    }
+  }, [row]);
+
+  useEffect(() => {
+    if (!open || !row) {
+      setDocumental(null);
+      setDocError(null);
+      setDocLoading(false);
+      return;
+    }
+    void recargarDocumental();
+  }, [open, row?.id, recargarDocumental]);
+
+  const onDocumentalUpdated = useCallback(async () => {
+    await recargarDocumental();
+    await onBandejasActualizadas();
+  }, [recargarDocumental, onBandejasActualizadas]);
+
   const titleNode =
     row != null ? (
-      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-        <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
-        <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          Reinspección por oficio
-        </Typography>
-        <Typography variant="body2" sx={docModalSubtitleSx}>
-          {actaCabecera(row)}
-        </Typography>
-        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
-          Actuación #{row.id}
-        </Typography>
-      </Box>
+      <DocumentalModalTitleStack
+        dominioChip="Comprobaci?n"
+        titulo="Reinspecci?n por oficio"
+        subtitulo={actaCabecera(row)}
+        actuacionId={row.id}
+      />
     ) : (
-      "Reinspección"
+      "Reinspecci?n por oficio"
     );
+
+  const puedeEditarBloque =
+    documental != null &&
+    documental.oficio != null &&
+    documental.expediente_respuesta != null &&
+    !docLoading;
 
   return (
     <AppDialog
@@ -68,39 +110,34 @@ export function ComprobacionReinspeccionDetalleDialog({ open, onClose, row }: Co
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
-      actions={
-        <Box sx={docModalFooterRowSx}>
-          <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
-          <Box sx={docModalFooterButtonsSx}>
-            <AppButton dsVariant="primary" dsSize="sm" onClick={onClose}>
-              Cerrar
-            </AppButton>
-          </Box>
-        </Box>
-      }
+      actions={<DocumentalModalFooter onCerrar={onClose} />}
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-          <BloqueReferenciaReinspeccionDetalle row={row} />
-          <BloqueInspeccionBaseComprobacion
-            row={{
-              fecha_actuacion: row.fecha_actuacion,
-              acta_inspeccion_num: row.acta_inspeccion_num ?? null,
-              inspectores_texto: row.inspectores_texto ?? null,
-              inspector1: row.inspector1 ?? null,
-              inspector2: row.inspector2 ?? null,
-              inspector3: row.inspector3 ?? null,
-              orden_trabajo_numero: row.orden_trabajo_numero ?? null,
-              tipo_actuacion: row.tipo_actuacion ?? null,
-            }}
-          />
-          <BloqueTramitesReinspeccionDetalle row={row} />
-          <DocumentalBloque overline="Reinspección">
-            <DocumentalFila etiqueta="Estado del iniciador" valor={humanizarEstadoIniciador(row.estado_iniciador)} />
-            <DocumentalFila etiqueta="Fecha de origen" valor={textoValor(row.fecha_origen_iniciador)} />
-            <DocumentalFila etiqueta="Iniciador" valor={row.iniciador_id != null ? `#${row.iniciador_id}` : "—"} />
-            <DocumentalFila etiqueta="Trámite / documento pendiente" valor={textoValor(row.documento_pendiente)} />
-          </DocumentalBloque>
+          <ReinspeccionDocumentalSharedLayout row={row} variant="pendiente" />
+          {docError ? (
+            <Alert severity="warning" sx={documentalGlassAlertSx}>
+              {docError}
+            </Alert>
+          ) : null}
+          {docLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : puedeEditarBloque ? (
+            <OperativoOficioYRespuestaEditable
+              open={open}
+              actuacionId={row.id}
+              documental={documental}
+              juzgados={juzgados}
+              onDocumentalUpdated={onDocumentalUpdated}
+            />
+          ) : !docError ? (
+            <Alert severity="info" sx={documentalGlassAlertSx}>
+              No hay datos completos de oficio y expediente de respuesta para mostrar la edici?n. Reintent? la carga o
+              revis? la actuaci?n en ?Pendientes de oficio?.
+            </Alert>
+          ) : null}
         </Stack>
       )}
     </AppDialog>

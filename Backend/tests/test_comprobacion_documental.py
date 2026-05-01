@@ -82,6 +82,8 @@ def test_get_comprobacion_documental_ok(app, client, auth_headers):
     assert j["comprobacion_id"] == cid
     assert j["expediente_envio"]["id"] == eid
     assert j["edicion"]["puede_editar_expediente_envio"] is True
+    assert j["edicion"]["puede_eliminar_expediente_envio"] is True
+    assert j["edicion"]["puede_eliminar_bloque_oficio"] is False
     assert j["edicion"]["comprobacion_usada_como_iniciador"] is False
     assert isinstance(j.get("referencia_actuacion"), dict)
     assert j["referencia_actuacion"].get("comprobacion_motivo") == "doc test"
@@ -194,3 +196,180 @@ def test_patch_oficio_bloque_ok(app, client, auth_headers):
     j = resp.get_json()
     assert j["oficio_item"]["numero_oficio"] == nuevo_ofi
     assert j["expediente_respuesta_item"]["numero_expediente"] == nuevo_ex
+
+
+def test_delete_expediente_envio_ok(app, client, auth_headers):
+    with app.app_context():
+        try:
+            act, _comp, ex = _act_comp_con_exp_envio()
+            db.session.commit()
+            aid, eid = act.id, ex.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/expediente-envio/{eid}", headers=auth_headers)
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    assert (resp.get_json() or {}).get("ok") is True
+
+    with app.app_context():
+        ex_db = db.session.get(Expediente, eid)
+        assert ex_db is not None
+        assert ex_db.deleted_at is not None
+
+
+def test_delete_expediente_envio_bloqueado_si_hay_oficio(app, client, auth_headers):
+    with app.app_context():
+        try:
+            act, comp, ex = _act_comp_con_exp_envio()
+            jz = JuzgadoCatalogo(codigo=f"JZ{_unique_num()[:4]}", nombre=f"Juzgado del {_unique_num()}")
+            db.session.add(jz)
+            db.session.flush()
+            ofi = Oficio(
+                numero_oficio=f"O{_unique_num()[:5]}",
+                anio=2026,
+                fecha_oficio=date(2026, 4, 1),
+                causa=f"c{_unique_num()[:5]}",
+                comprobacion_id=comp.id,
+                juzgado_id=jz.id,
+            )
+            db.session.add(ofi)
+            db.session.flush()
+            ex_r = Expediente(
+                numero_expediente=_unique_num()[:6],
+                anio="2026",
+                fecha_expediente=date(2026, 4, 2),
+                tipo_expediente="RESPUESTA_OFICIO",
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+            )
+            db.session.add(ex_r)
+            db.session.commit()
+            aid, eid = act.id, ex.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/expediente-envio/{eid}", headers=auth_headers)
+    assert resp.status_code == 400
+    assert "oficio" in (resp.get_json() or {}).get("detail", "").lower()
+
+
+def test_delete_expediente_envio_bloqueado_por_iniciador(app, client, auth_headers):
+    with app.app_context():
+        try:
+            u = _user()
+            dom = Domicilio(calle="DocDel", numero="1")
+            db.session.add(dom)
+            db.session.flush()
+            act, comp, ex = _act_comp_con_exp_envio()
+            act.domicilio_id = dom.id
+            ini = IniciadorRuta(
+                tipo_iniciador="VERIFICAR_INFORMAR_OFICIO",
+                estado_iniciador="PENDIENTE",
+                fecha_origen=date(2026, 3, 1),
+                anio=2026,
+                mes=3,
+                domicilio_id=dom.id,
+                comprobacion_id=comp.id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.commit()
+            aid, eid = act.id, ex.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/expediente-envio/{eid}", headers=auth_headers)
+    assert resp.status_code == 400
+
+
+def test_delete_oficio_bloque_ok(app, client, auth_headers):
+    with app.app_context():
+        try:
+            act, comp, _ex_env = _act_comp_con_exp_envio()
+            jz = JuzgadoCatalogo(codigo=f"JZ{_unique_num()[:4]}", nombre=f"Juzgado doc {_unique_num()}")
+            db.session.add(jz)
+            db.session.flush()
+            ofi_num = f"D{_unique_num()[:5]}"
+            ofi = Oficio(
+                numero_oficio=ofi_num,
+                anio=2026,
+                fecha_oficio=date(2026, 4, 1),
+                causa=f"causa {_unique_num()[:5]}",
+                comprobacion_id=comp.id,
+                juzgado_id=jz.id,
+            )
+            db.session.add(ofi)
+            db.session.flush()
+            ex_r = Expediente(
+                numero_expediente=_unique_num()[:6],
+                anio="2026",
+                fecha_expediente=date(2026, 4, 5),
+                tipo_expediente="RESPUESTA_OFICIO",
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+            )
+            db.session.add(ex_r)
+            db.session.commit()
+            aid, oid, rid = act.id, ofi.id, ex_r.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/oficios/{oid}", headers=auth_headers)
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+
+    with app.app_context():
+        o_db = db.session.get(Oficio, oid)
+        e_db = db.session.get(Expediente, rid)
+        assert o_db is not None and o_db.deleted_at is not None
+        assert e_db is not None and e_db.deleted_at is not None
+
+
+def test_delete_oficio_bloque_bloqueado_por_iniciador(app, client, auth_headers):
+    with app.app_context():
+        try:
+            u = _user()
+            dom = Domicilio(calle="DocDelOfi", numero="2")
+            db.session.add(dom)
+            db.session.flush()
+            act, comp, _ex_env = _act_comp_con_exp_envio()
+            act.domicilio_id = dom.id
+            jz = JuzgadoCatalogo(codigo=f"JZ{_unique_num()[:4]}", nombre=f"Jz {_unique_num()}")
+            db.session.add(jz)
+            db.session.flush()
+            ofi = Oficio(
+                numero_oficio=f"X{_unique_num()[:5]}",
+                anio=2026,
+                fecha_oficio=date(2026, 4, 1),
+                causa=f"c{_unique_num()[:5]}",
+                comprobacion_id=comp.id,
+                juzgado_id=jz.id,
+            )
+            db.session.add(ofi)
+            db.session.flush()
+            ex_r = Expediente(
+                numero_expediente=_unique_num()[:6],
+                anio="2026",
+                fecha_expediente=date(2026, 4, 5),
+                tipo_expediente="RESPUESTA_OFICIO",
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+            )
+            db.session.add(ex_r)
+            ini = IniciadorRuta(
+                tipo_iniciador="VERIFICAR_INFORMAR_OFICIO",
+                estado_iniciador="PENDIENTE",
+                fecha_origen=date(2026, 3, 1),
+                anio=2026,
+                mes=3,
+                domicilio_id=dom.id,
+                comprobacion_id=comp.id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.commit()
+            aid, oid = act.id, ofi.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/oficios/{oid}", headers=auth_headers)
+    assert resp.status_code == 400

@@ -489,10 +489,13 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
               >
                 <AppButton
                   dsVariant="primary"
-                  dsSize="sm"
+                  dsSize="lg"
                   onClick={() => selectedCalDay && abrirGrid(selectedCalDay)}
                   disabled={!selectedCalDay}
-                  sx={{ alignSelf: { xs: "stretch", sm: "flex-start" }, minWidth: { sm: 220 } }}
+                  sx={{
+                    alignSelf: { xs: "stretch", sm: "flex-start" },
+                    minWidth: { sm: 280 },
+                  }}
                 >
                   Ir a la grilla del día
                 </AppButton>

@@ -95,7 +95,8 @@ export interface ICreateOficioRequest {
   juzgado_id: number;
   causa?: string | null;
   numero_expediente_oficio: string;
-  fecha_expediente_oficio: string;
+  /** Opcional: si no se envía, el backend usa ``fecha_oficio`` (misma fecha operativa). */
+  fecha_expediente_oficio?: string;
   // Compat temporal; backend lo ignora.
   anio_expediente_oficio?: number;
 }
@@ -237,15 +238,21 @@ export const createExpedienteDesdeActuacion = async (
   return data;
 };
 
+export type IActuacionesPendientesOficioOpts = {
+  omitirRangoFecha?: boolean;
+};
+
 export const getActuacionesPendientesOficio = async (
   desde?: string | null,
   hasta?: string | null,
-  distritoId?: number | null
+  distritoId?: number | null,
+  opts?: IActuacionesPendientesOficioOpts
 ): Promise<IPendientesOficioResponse> => {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
   if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
+  if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
   return data;
 };
@@ -290,8 +297,12 @@ export interface IComprobacionDocumentalEdicion {
   comprobacion_usada_como_iniciador: boolean;
   puede_editar_expediente_envio: boolean;
   puede_editar_bloque_oficio: boolean;
+  puede_eliminar_expediente_envio: boolean;
+  puede_eliminar_bloque_oficio: boolean;
   motivos_bloqueo_expediente_envio: string[];
   motivos_bloqueo_oficio: string[];
+  motivos_bloqueo_eliminar_expediente_envio: string[];
+  motivos_bloqueo_eliminar_bloque_oficio: string[];
 }
 
 /** Snapshot de referencia/visita (mismo criterio que grid / detalle recorrido). */
@@ -341,13 +352,22 @@ export async function patchComprobacionExpedienteEnvio(
   return data;
 }
 
+/** DELETE expediente de envío (soft delete; bloqueado si hay oficio o iniciador). */
+export async function deleteComprobacionExpedienteEnvio(actuacionId: number, expedienteId: number): Promise<{ ok: boolean }> {
+  const { data } = await apiClient.delete<{ ok: boolean }>(
+    `/actuaciones/${actuacionId}/comprobacion/expediente-envio/${expedienteId}`
+  );
+  return data;
+}
+
 export type IComprobacionOficioBloquePatchBody = {
   numero_oficio: string;
   fecha_oficio: string;
   juzgado_id: number;
   causa?: string | null;
   numero_expediente_respuesta: string;
-  fecha_expediente_respuesta: string;
+  /** Opcional: el backend alinea al expediente con ``fecha_oficio``. */
+  fecha_expediente_respuesta?: string;
 };
 
 /** PATCH oficio + expediente de respuesta (misma comprobación). */
@@ -367,6 +387,12 @@ export async function patchComprobacionOficioBloque(
     expediente_respuesta_item: IComprobacionDocumentalExpedienteItem;
     oficio_id: number;
   }>(`/actuaciones/${actuacionId}/comprobacion/oficios/${oficioId}`, body);
+  return data;
+}
+
+/** DELETE oficio + expediente de respuesta (soft delete; bloqueado si iniciador). */
+export async function deleteComprobacionOficioBloque(actuacionId: number, oficioId: number): Promise<{ ok: boolean }> {
+  const { data } = await apiClient.delete<{ ok: boolean }>(`/actuaciones/${actuacionId}/comprobacion/oficios/${oficioId}`);
   return data;
 }
 
@@ -392,9 +418,11 @@ export interface INotificacionPlazoNotificacionResumen {
 /** Permisos de edición (GET expedientes-prorroga). */
 export interface INotificacionEdicionPermisos {
   puede_editar_expediente_prorroga: boolean;
+  puede_eliminar_expediente_prorroga?: boolean;
   /** True si existe `IniciadorRuta` no borrado con `notificacion_id` de esta notificación. */
   notificacion_usada_como_iniciador?: boolean;
   motivos_bloqueo_expediente: string[];
+  motivos_bloqueo_eliminar_expediente?: string[];
 }
 
 export interface INotificacionProrrogaExpedientesResponse {
@@ -442,5 +470,20 @@ export async function patchNotificacionProrrogaExpediente(
     expediente_id: number;
     plazo_notificacion: INotificacionPlazoNotificacionResumen;
   }>(`/actuaciones/${actuacionId}/notificacion/expedientes-prorroga/${expedienteId}`, body);
+  return data;
+}
+
+/** DELETE expediente `PRORROGA_NOTIFICACION` (soft delete); recalcula prórroga total y vencimiento. */
+export async function deleteNotificacionProrrogaExpediente(
+  actuacionId: number,
+  expedienteId: number
+): Promise<{
+  ok: boolean;
+  plazo_notificacion: INotificacionPlazoNotificacionResumen;
+}> {
+  const { data } = await apiClient.delete<{
+    ok: boolean;
+    plazo_notificacion: INotificacionPlazoNotificacionResumen;
+  }>(`/actuaciones/${actuacionId}/notificacion/expedientes-prorroga/${expedienteId}`);
   return data;
 }

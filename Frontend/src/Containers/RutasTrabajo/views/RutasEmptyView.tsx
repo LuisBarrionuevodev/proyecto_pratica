@@ -19,11 +19,10 @@ import {
   calendarDaysInMonth,
 } from "../../../components/calendar/InstitutionalMonthCalendarGrid";
 import { listRutasBorrador, listRutasTrabajo, type IRutaTrabajo } from "../../../api/rutasTrabajoApi";
-import { GLASS_COLORS, glassSecondaryTabsSx } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../../styles/GlassStyles";
 import { fechaLocalHoyIso, toIsoDateLocal } from "../../../utils/dateRange";
 import { AppButton } from "../../../ui";
 import {
-  planificacionPanelSubtitleSx,
   rutasInstitutionalDividerSx,
   rutasInstitutionalResumenPaperSx,
   rutasResumenTitleSx,
@@ -31,7 +30,24 @@ import {
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
-const CONTENT_MAX = 960;
+/** Misma anchura y superficie que `CompletarEmptyView` → `principalGlassSurfaceSx`. */
+const MODULE_CONTENT_MAX_PX = 1400;
+
+const shellStackSx = {
+  width: "100%",
+  maxWidth: MODULE_CONTENT_MAX_PX,
+  mx: "auto",
+  boxSizing: "border-box" as const,
+};
+
+/** Copia del bloque calendario de Completar trabajo (`principalGlassSurfaceSx`). */
+const calendarPanelSurfaceSx = {
+  ...rutasInstitutionalResumenPaperSx,
+  width: "100%",
+  maxWidth: MODULE_CONTENT_MAX_PX,
+  mx: "auto",
+  boxSizing: "border-box" as const,
+};
 
 export type RutasListaTab = "borradores" | "publicadas";
 
@@ -51,26 +67,22 @@ function labelTurno(t: IRutaTrabajo["turno"]): string {
   return t;
 }
 
-function labelFilaRuta(r: IRutaTrabajo): string {
-  const fecha = r.fecha
-    ? new Date(r.fecha + "T12:00:00").toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "—";
+/** Fila de listado: sin repetir la fecha del día (ya va en el header). */
+function labelFilaRutaListado(r: IRutaTrabajo): string {
   const estado = r.estado_ruta === "PUBLICADA" ? "" : ` · ${r.estado_ruta}`;
-  return `Ruta ${r.numero} · ${fecha} · ${labelTurno(r.turno)}${estado}`;
+  return `Ruta ${r.numero} · ${labelTurno(r.turno)}${estado}`;
 }
 
-function formatFechaLegible(iso: string): string {
+/** Fecha compacta para la banda superior (derecha). */
+function formatoFechaHeader(iso: string | null): string {
+  if (iso == null || iso === "") return "—";
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
   try {
     return new Intl.DateTimeFormat("es-AR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
       year: "numeric",
     }).format(new Date(y, m - 1, d));
   } catch {
@@ -113,22 +125,40 @@ async function fetchAllRutasInMonth(params: {
 }
 
 export type RutasEmptyViewProps = {
-  /** Crear borrador; si se pasa `fecha`, el modal puede abrir con esa fecha. */
   onCrearBorrador: (opts?: { fecha?: string }) => void;
   onAbrirRuta: (rutaId: number) => void;
 };
 
-const principalGlassSurfaceSx = {
-  ...rutasInstitutionalResumenPaperSx,
+const tabsHeaderRowSx = {
+  ...glassTabsSecondaryPanelBarSx,
   width: "100%",
-  maxWidth: CONTENT_MAX,
-  mx: "auto",
   boxSizing: "border-box" as const,
-};
+  borderRadius: 0,
+  border: "none",
+  borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+  p: 0,
+  py: 1,
+  px: 1.25,
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 1,
+  flexWrap: "nowrap",
+} as const;
+
+const countChipSx = {
+  height: 18,
+  minWidth: 22,
+  fontSize: "0.65rem",
+  fontFamily: tactic,
+  fontWeight: 700,
+  borderColor: GLASS_COLORS.borderActive,
+  color: GLASS_COLORS.textPrimary,
+  bgcolor: "rgba(1, 102, 255, 0.16)",
+} as const;
 
 /**
- * Entrada al módulo sin ruta en sesión: slices Borradores / Publicadas + almanaque mensual (misma grilla
- * que Completar trabajo) y listado por día seleccionado (varias rutas por día).
+ * Entrada sin ruta: box superior (tabs + fecha a la derecha), box inferior (misma superficie que Completar trabajo).
  */
 export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewProps) {
   const [tab, setTab] = useState<RutasListaTab>("borradores");
@@ -136,7 +166,7 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
   });
-  const [selectedIso, setSelectedIso] = useState<string>(() => fechaLocalHoyIso());
+  const [selectedIso, setSelectedIso] = useState<string | null>(null);
 
   const [itemsMes, setItemsMes] = useState<IRutaTrabajo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,10 +181,10 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
       const all = await fetchAllRutasInMonth({ tab, desde, hasta });
       setItemsMes(all);
       setSelectedIso((prev) => {
-        if (prev >= desde && prev <= hasta) return prev;
+        if (prev != null && prev >= desde && prev <= hasta) return prev;
         const hoy = fechaLocalHoyIso();
         if (hoy >= desde && hoy <= hasta) return hoy;
-        return desde;
+        return null;
       });
     } catch {
       setItemsMes([]);
@@ -183,45 +213,68 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
   }, [itemsMes]);
 
   const rutasDelDiaSeleccionado = useMemo(() => {
+    if (selectedIso == null) return [];
     return itemsMes
       .filter((r) => r.fecha === selectedIso)
       .sort((a, b) => (b.numero ?? 0) - (a.numero ?? 0) || b.id - a.id);
   }, [itemsMes, selectedIso]);
 
   const hoyIso = fechaLocalHoyIso();
+  const calendarioTitulo = tab === "borradores" ? "Calendario · Planificación" : "Calendario · Publicadas";
+  const diaSeleccionadoListo = selectedIso != null && selectedIso >= desde && selectedIso <= hasta;
 
   return (
-    <Stack spacing={2.25} sx={{ width: "100%", maxWidth: CONTENT_MAX, mx: "auto", alignItems: "stretch" }}>
-      <Box sx={{ ...principalGlassSurfaceSx, p: 0, overflow: "hidden" }}>
-        <Box sx={{ borderBottom: `1px solid ${GLASS_COLORS.borderLight}`, px: 0.5, pt: 0.25 }}>
+    <Stack spacing={2.25} sx={{ ...shellStackSx, alignItems: "stretch" }}>
+      {/* Box superior: solo tabs + fecha a la derecha */}
+      <Box
+        sx={{
+          ...rutasInstitutionalResumenPaperSx,
+          ...shellStackSx,
+          p: 0,
+          overflow: "hidden",
+        }}
+      >
+        <Box sx={tabsHeaderRowSx}>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v as RutasListaTab)}
             variant="fullWidth"
-            sx={glassSecondaryTabsSx}
+            sx={{ ...glassSecondaryTabsSx, flex: 1, minWidth: 0 }}
           >
             <Tab label="Borradores" value="borradores" sx={{ fontFamily: tactic, fontWeight: 600, textTransform: "none" }} />
             <Tab label="Publicadas" value="publicadas" sx={{ fontFamily: tactic, fontWeight: 600, textTransform: "none" }} />
           </Tabs>
-        </Box>
-        <Stack spacing={2} sx={{ p: 2.25 }}>
-          <Typography sx={rutasResumenTitleSx}>Rutas de trabajo</Typography>
-          <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
-            {tab === "borradores"
-              ? "Planificá la semana: elegí un día en el calendario y abrí o creá borradores para esa fecha."
-              : "Consultá rutas ya publicadas por día. Al abrir una verás el detalle y el mapa operativo (solo lectura si ya no es borrador)."}
+          <Typography
+            sx={{
+              flexShrink: 0,
+              fontFamily: tactic,
+              fontWeight: 700,
+              fontSize: { xs: "0.75rem", sm: "0.8125rem" },
+              color: diaSeleccionadoListo ? GLASS_COLORS.textPrimary : GLASS_COLORS.textMuted,
+              textTransform: "capitalize",
+              whiteSpace: "nowrap",
+              maxWidth: { xs: "42%", sm: "38%" },
+              textAlign: "right",
+              lineHeight: 1.25,
+            }}
+            title={selectedIso ?? undefined}
+          >
+            {formatoFechaHeader(selectedIso)}
           </Typography>
-        </Stack>
+        </Box>
       </Box>
 
-      <Box sx={principalGlassSurfaceSx}>
-        <Stack spacing={1.75}>
-          <Typography sx={rutasResumenTitleSx}>{tab === "borradores" ? "Almanaque — borradores" : "Almanaque — publicadas"}</Typography>
+      {/* Box inferior: mismo look que el panel calendario de Completar trabajo */}
+      <Box sx={calendarPanelSurfaceSx}>
+        <Stack spacing={1.5}>
+          <Typography sx={rutasResumenTitleSx}>{calendarioTitulo}</Typography>
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
               <CircularProgress size={32} sx={{ color: GLASS_COLORS.primary }} />
             </Box>
           ) : null}
+
           {error ? (
             <Alert severity="error" variant="outlined" sx={{ borderRadius: 2, fontFamily: tactic }}>
               {error}
@@ -232,22 +285,21 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
               </Box>
             </Alert>
           ) : null}
+
           {!loading && !error ? (
             <InstitutionalMonthCalendarGrid
               monthAnchor={calMes}
               onMonthChange={setCalMes}
               hoyIso={hoyIso}
               selectedIso={selectedIso}
-              onSelectDay={setSelectedIso}
+              onSelectDay={(iso) => setSelectedIso(iso)}
               aria-label={
-                tab === "borradores"
-                  ? "Calendario de borradores: días con actividad y cantidad de rutas"
-                  : "Calendario de rutas publicadas por día"
+                tab === "borradores" ? "Calendario de borradores por día" : "Calendario de rutas publicadas por día"
               }
               getDayTitle={(ctx) => {
                 const n = countPorDia.get(ctx.iso) ?? 0;
-                if (n === 0) return tab === "borradores" ? "Sin borradores este día" : "Sin rutas publicadas este día";
-                return n === 1 ? "1 ruta este día" : `${n} rutas este día`;
+                if (n === 0) return "Sin rutas este día";
+                return n === 1 ? "1 ruta" : `${n} rutas`;
               }}
               getDayButtonSx={(ctx) => {
                 const n = countPorDia.get(ctx.iso) ?? 0;
@@ -255,105 +307,70 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
                   return {
                     border: `1px solid ${GLASS_COLORS.borderActive}`,
                     bgcolor: "rgba(1, 102, 255, 0.1)",
+                    minHeight: 40,
                   };
                 }
-                return {};
+                return { minHeight: 40 };
               }}
               renderDayFooter={(ctx) => {
                 const n = countPorDia.get(ctx.iso) ?? 0;
                 if (n === 0) return undefined;
-                if (n === 1) {
-                  return (
-                    <Box
-                      component="span"
-                      sx={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        bgcolor: GLASS_COLORS.primary,
-                        opacity: 0.9,
-                      }}
-                    />
-                  );
-                }
-                return (
-                  <Chip
-                    size="small"
-                    label={String(n)}
-                    sx={{
-                      height: 18,
-                      minWidth: 22,
-                      fontSize: "0.65rem",
-                      fontFamily: tactic,
-                      fontWeight: 700,
-                      borderColor: GLASS_COLORS.borderActive,
-                      color: GLASS_COLORS.textPrimary,
-                      bgcolor: "rgba(1, 102, 255, 0.16)",
-                    }}
-                    variant="outlined"
-                  />
-                );
+                return <Chip size="small" label={String(n)} sx={countChipSx} variant="outlined" />;
               }}
             />
           ) : null}
-        </Stack>
-      </Box>
 
-      <Box sx={principalGlassSurfaceSx}>
-        <Stack spacing={1.5}>
-          <Typography sx={rutasResumenTitleSx}>Rutas del día</Typography>
-          <Typography
-            sx={{
-              ...planificacionPanelSubtitleSx,
-              fontSize: "0.875rem",
-              color: GLASS_COLORS.textSecondary,
-              textTransform: "capitalize",
-            }}
-          >
-            {formatFechaLegible(selectedIso)}
-          </Typography>
-          <Divider sx={rutasInstitutionalDividerSx} />
+          {!loading && !error ? (
+            <>
+              <Divider sx={rutasInstitutionalDividerSx} />
 
-          {rutasDelDiaSeleccionado.length === 0 ? (
-            <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
-              {tab === "borradores"
-                ? "No hay borradores para esta fecha. Podés crear uno nuevo."
-                : "No hay rutas publicadas para esta fecha."}
-            </Typography>
-          ) : (
-            <Stack spacing={1} sx={{ maxHeight: 320, overflowY: "auto", pr: 0.5 }}>
-              {rutasDelDiaSeleccionado.map((r) => (
+              {rutasDelDiaSeleccionado.length === 0 ? (
+                <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
+                  {selectedIso == null ? "Seleccioná un día en el calendario." : "Sin rutas para esta fecha."}
+                </Typography>
+              ) : (
+                <Stack spacing={1} sx={{ maxHeight: 320, overflowY: "auto", pr: 0.5 }}>
+                  {rutasDelDiaSeleccionado.map((r) => (
+                    <AppButton
+                      key={r.id}
+                      dsVariant="secondary"
+                      dsSize="md"
+                      fullWidth
+                      startIcon={tab === "borradores" ? <FolderOpenIcon /> : <PublishedWithChangesIcon />}
+                      onClick={() => onAbrirRuta(r.id)}
+                      sx={{
+                        fontFamily: tactic,
+                        fontWeight: 600,
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                      }}
+                    >
+                      {labelFilaRutaListado(r)}
+                    </AppButton>
+                  ))}
+                </Stack>
+              )}
+
+              {tab === "borradores" ? (
                 <AppButton
-                  key={r.id}
-                  dsVariant="secondary"
-                  dsSize="md"
+                  dsVariant="primary"
+                  dsSize="lg"
                   fullWidth
-                  startIcon={tab === "borradores" ? <FolderOpenIcon /> : <PublishedWithChangesIcon />}
-                  onClick={() => onAbrirRuta(r.id)}
+                  startIcon={<AddIcon />}
+                  disabled={!diaSeleccionadoListo}
+                  onClick={() => {
+                    if (selectedIso) onCrearBorrador({ fecha: selectedIso });
+                  }}
                   sx={{
                     fontFamily: tactic,
-                    fontWeight: 600,
-                    justifyContent: "flex-start",
-                    textAlign: "left",
+                    fontWeight: 700,
+                    mt: 0.5,
                   }}
                 >
-                  {labelFilaRuta(r)}
+                  Crear ruta para este día
                 </AppButton>
-              ))}
-            </Stack>
-          )}
-
-          {tab === "borradores" ? (
-            <AppButton
-              dsVariant="primary"
-              dsSize="md"
-              fullWidth
-              startIcon={<AddIcon />}
-              onClick={() => onCrearBorrador({ fecha: selectedIso })}
-              sx={{ fontFamily: tactic, fontWeight: 700, mt: 0.5 }}
-            >
-              Crear ruta para este día
-            </AppButton>
+              ) : null}
+            </>
           ) : null}
         </Stack>
       </Box>

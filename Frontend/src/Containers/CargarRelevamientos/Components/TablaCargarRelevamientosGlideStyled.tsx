@@ -47,7 +47,7 @@ import {
   turnoDropdownLabelToStored,
   turnoStoredToDropdownLabel,
 } from "../config/relevamientoTurnOptions";
-import { formatFechaRelevamientoDisplay, parseFechaRelevamientoInput } from "../utils/relevamientoDateInput";
+import { parseFechaRelevamientoInput } from "../utils/relevamientoDateInput";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { gridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 import {
@@ -56,6 +56,7 @@ import {
   createEmptyRow,
   createEmptyRows,
   formatDateToISO,
+  parseDateValue,
 } from "../../CargarActuaciones/utils/gridHelpers";
 
 interface TablaCargarRelevamientosGlideStyledProps {
@@ -359,6 +360,7 @@ const TablaCargarRelevamientosGlideStyled = ({
 
       const columnDef = COLUMN_DEFINITIONS[col];
       const columnId = columnDef.id;
+      const cellType = (columnDef as { cellType?: string }).cellType || "text";
       const rowData = data[row];
 
       let value: any;
@@ -378,7 +380,7 @@ const TablaCargarRelevamientosGlideStyled = ({
         value = (newValue as any).data;
       }
 
-      if (columnId === "Fecha") {
+      if (cellType === "date") {
         if (value === "" || value === null || value === undefined) {
           value = null;
         } else if (typeof value === "string") {
@@ -545,7 +547,7 @@ const TablaCargarRelevamientosGlideStyled = ({
       const rowData = data[row];
       const columnDef = COLUMN_DEFINITIONS[col];
       const columnId = columnDef.id;
-      const cellType = (columnDef as any).cellType || "text";
+      const cellType = (columnDef as { cellType?: string }).cellType || "text";
       const value = rowData[columnId as keyof GridRow];
       const cellErrors = (rowData._cellErrors || {}) as Record<string, string>;
       const hasError = cellErrors[columnId] !== undefined;
@@ -587,19 +589,17 @@ const TablaCargarRelevamientosGlideStyled = ({
         };
       }
 
-      if (columnId === "Fecha") {
+      if (cellType === "date") {
         const raw = (value ?? "").toString().trim();
-        const normalized = parseFechaRelevamientoInput(raw);
-        const display = normalized ? formatFechaRelevamientoDisplay(normalized) : raw;
-        const errorMsg = hasError ? (cellErrors[columnId] || "") : "";
-        const displayFinal = errorMsg ? (raw ? `${display} (${errorMsg})` : errorMsg) : display;
+        const normalizedIso = parseFechaRelevamientoInput(raw);
+        const { date, displayDate } = parseDateValue(normalizedIso ?? raw);
         return {
-          kind: GridCellKind.Text,
-          data: raw,
-          displayData: displayFinal,
+          kind: GridCellKind.Custom,
           allowOverlay: true,
+          copyData: displayDate,
+          data: { kind: "date-picker-cell", date, displayDate, format: "date" as const },
           themeOverride,
-        };
+        } as any;
       }
 
       if (cellType === "dropdown" && columnId === "Turno") {
@@ -785,8 +785,9 @@ const TablaCargarRelevamientosGlideStyled = ({
               <strong>2.</strong> <span style={kbdStyles}>Tab</span> avanza por columnas; desde la última columna pasa a la
               fila siguiente (o crea una fila nueva al final).<br />
               <strong>3.</strong> Para agregar filas: también <span style={kbdStyles}>Enter</span> en la grilla<br />
-              <strong>4.</strong> Fecha: escribir <span style={kbdStyles}>DD/MM/AAAA</span> o{" "}
-              <span style={kbdStyles}>AAAA-MM-DD</span> y <span style={kbdStyles}>Enter</span> para confirmar.<br />
+              <strong>4.</strong> Fecha: mismo editor que en Cargar actas — escribir{" "}
+              <span style={kbdStyles}>DD/MM/AAAA</span> o <span style={kbdStyles}>AAAA-MM-DD</span>, o elegir en el
+              calendario; <span style={kbdStyles}>Enter</span> para confirmar.<br />
               <strong>5.</strong> Validación automática al editar<br />
               <strong>6.</strong> Confirmar todo: botón “Mandar todo”<br />
               <br />

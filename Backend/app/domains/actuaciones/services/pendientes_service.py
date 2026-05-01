@@ -60,7 +60,19 @@ def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
 
 
 def _sin_expediente_query(filters: ActuacionesPendientesFilters):
-    subq = exists().where(Expediente.comprobacion_id == Actuaciones.comprobacion_id)
+    """
+    Comprobación sin **expediente de envío** aún: mismo criterio que ``pendientes-vinc-acta``
+    (expediente ligado a la comprobación con ``oficio_id`` NULL y no borrado).
+    No basta con «ningún expediente»: el de respuesta de oficio lleva ``oficio_id`` y no debe
+    bloquear el alta de envío ni ocultar la fila de esta bandeja por error.
+    """
+    subq = exists().where(
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
+    )
     query = (
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
         .filter(~subq)
@@ -327,13 +339,19 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
     - No debe existir expediente de respuesta de oficio para esa comprobación.
     """
     has_expediente_original = exists().where(
-        (Expediente.comprobacion_id == Actuaciones.comprobacion_id)
-        & (Expediente.oficio_id.is_(None))
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
     )
     has_respuesta_oficio = exists().where(
-        (Expediente.comprobacion_id == Actuaciones.comprobacion_id)
-        & (Expediente.oficio_id.isnot(None))
-        & (func.upper(Expediente.tipo_expediente) == "RESPUESTA_OFICIO")
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.isnot(None),
+            func.upper(Expediente.tipo_expediente) == "RESPUESTA_OFICIO",
+            Expediente.deleted_at.is_(None),
+        )
     )
 
     query = (

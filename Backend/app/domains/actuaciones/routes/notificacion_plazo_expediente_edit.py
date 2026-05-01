@@ -1,5 +1,5 @@
 """
-PATCH: edición controlada del expediente de prórroga (notificación).
+PATCH/DELETE: expedientes de prórroga (notificación).
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from app.domains.actuaciones.schemas.notificacion_plazo_expediente_edit_in impor
     NotificacionProrrogaExpedientePatchIn,
 )
 from app.domains.actuaciones.services.notificacion_plazo_expediente_edit_service import (
+    delete_notificacion_prorroga_expediente,
     update_notificacion_prorroga_expediente,
 )
 
@@ -73,3 +74,34 @@ def patch_notificacion_prorroga_expediente(actuacion_id: int, expediente_id: int
         return jsonify({"detail": str(e)}), 400
     except RuntimeError as e:
         return jsonify({"detail": str(e)}), 409
+
+
+@actuacion.delete("/<int:actuacion_id>/notificacion/expedientes-prorroga/<int:expediente_id>")
+def delete_notificacion_prorroga_expediente_route(actuacion_id: int, expediente_id: int):
+    """
+    Soft delete de un expediente ``PRORROGA_NOTIFICACION``; recalcula ``Notificacion.prorroga_dias`` y vencimiento.
+
+    Errores:
+        400: bloqueo (iniciador) u otra regla de negocio.
+        404: no encontrado.
+    """
+    try:
+        out = delete_notificacion_prorroga_expediente(actuacion_id, expediente_id)
+        noti = out["notificacion"]
+        return jsonify(
+            {
+                "ok": True,
+                "plazo_notificacion": {
+                    "plazo_legal_dias": noti.plazo_dias,
+                    "prorroga_total_dias": noti.prorroga_dias,
+                    "fecha_notificacion": noti.fecha_notificacion.isoformat()
+                    if noti.fecha_notificacion
+                    else None,
+                    "fecha_vencimiento": noti.fecha_vencimiento.isoformat() if noti.fecha_vencimiento else None,
+                },
+            }
+        ), 200
+    except LookupError as e:
+        return jsonify({"detail": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400

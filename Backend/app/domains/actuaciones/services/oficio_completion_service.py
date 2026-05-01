@@ -17,6 +17,7 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     - Exige **expediente de envío** (`oficio_id` NULL) ya creado.
     - Crea o actualiza `Oficio` (misma comprobación) vía `attach_oficio`.
     - Crea **expediente de respuesta de oficio** sin modificar el expediente de envío.
+    - La fecha del expediente de respuesta se alinea siempre con ``fecha_oficio`` (una sola fecha operativa).
 
     Errores:
     - LookupError: 404 (actuación, juzgado o expediente original no encontrados)
@@ -55,7 +56,10 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
         raise RuntimeError("Ya existe expediente de respuesta de oficio para esta actuación")
 
     numero_exp_oficio = acta_6(data.get("numero_expediente_oficio"))
-    fecha_expediente_oficio = data.get("fecha_expediente_oficio")
+    fecha_oficio = data["fecha_oficio"]
+    fecha_expediente_oficio = data.get("fecha_expediente_oficio") or fecha_oficio
+    if fecha_expediente_oficio != fecha_oficio:
+        fecha_expediente_oficio = fecha_oficio
     if not numero_exp_oficio or fecha_expediente_oficio is None:
         raise ValueError("numero_expediente_oficio y fecha_expediente_oficio son obligatorios")
     anio_exp_oficio = str(fecha_expediente_oficio.year)
@@ -67,7 +71,6 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     if dup_expediente:
         raise RuntimeError("Ese expediente de respuesta de oficio ya existe")
 
-    fecha_oficio = data["fecha_oficio"]
     oficio = attach_oficio(
         {
             "numero": data["numero_oficio"],

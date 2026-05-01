@@ -1,0 +1,778 @@
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import axios from "axios";
+import { Alert, Autocomplete, Box, Chip, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import ClearIcon from "@mui/icons-material/Clear";
+import SendIcon from "@mui/icons-material/Send";
+
+import {
+  startBatch,
+  validateRow,
+  commitBatch,
+  type GridRow,
+  fetchInspectores,
+  fetchMotivos,
+  fetchRubros,
+  fetchMotivosComprobacion,
+} from "../../../api/gridApi";
+import { extractDataColumns, generateRowId } from "../utils/gridHelpers";
+import { getDropdownOptions } from "../config/dropdownOptions";
+import { dedupeInspectoresPreserveOrder } from "../utils/inspectoresGridHelpers";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { dialogFormActionsRowSx } from "../../../styles/formDialogStyles";
+import { AppButton, AppDialog, AppTextField, AppSelect, type AppSelectOption, CardGlass } from "../../../ui";
+
+const tactic = '"Tactic Sans", sans-serif' as const;
+
+/** Keys Glide (contrato `COLUMN_MAP_ACTUACIONES` / grilla). */
+const GLIDE_KEYS = [
+  "Fecha actuación",
+  "Orden de trabajo",
+  "Calle",
+  "Número",
+  "Rubro",
+  "Apellido",
+  "Nombre",
+  "Razón social",
+  "DNI",
+  "Acta inspección",
+  "Acta notificación",
+  "Motivo notif 1",
+  "Motivo notif 2",
+  "Motivo notif 3",
+  "Acta comprobación",
+  "Motivo comprobación",
+  "Acta clausura",
+  "Acta decomiso",
+  "Kilos decomiso",
+] as const;
+
+type GlideTextKey = (typeof GLIDE_KEYS)[number];
+
+type TitularModo = "persona" | "razon_social";
+
+const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
+  orden_trabajo_numero: "Orden de trabajo",
+  fecha_actuacion: "Fecha actuación",
+  rubro_nombre: "Rubro",
+  contrib_apellido: "Apellido",
+  contrib_nombre: "Nombre",
+  razon_social: "Razón social",
+  doc_nro: "DNI",
+  acta_inspeccion_num: "Acta inspección",
+  acta_notificacion_num: "Acta notificación",
+  notificacion_motivo_1: "Motivo notif 1",
+  notificacion_motivo_2: "Motivo notif 2",
+  notificacion_motivo_3: "Motivo notif 3",
+  acta_comprobacion_num: "Acta comprobación",
+  comprobacion_motivo: "Motivo comprobación",
+  acta_clausura_num: "Acta clausura",
+  acta_decomiso_num: "Acta decomiso",
+  decomiso_kilos_total: "Kilos decomiso",
+  inspectores: "Inspectores",
+  calle: "Calle",
+  numero: "Número",
+};
+
+function normalizeErrorKeys(errors: Record<string, string> | undefined): Record<string, string> {
+  if (!errors) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(errors)) {
+    if (k === "_row" || k === "detail" || k === "_global") {
+      out[k] = v;
+      continue;
+    }
+    const glide = INTERNAL_ERR_TO_GLIDE[k] ?? k;
+    out[glide] = v;
+  }
+  return out;
+}
+
+function emptyTextFields(): Record<GlideTextKey, string> {
+  return Object.fromEntries(GLIDE_KEYS.map((k) => [k, ""])) as Record<GlideTextKey, string>;
+}
+
+/** Misma columna flexible y labels que `CompletarTrabajoModal`. */
+const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
+const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: tactic } as const;
+
+export function CargarActuacionNuevaModal() {
+  const [open, setOpen] = useState(false);
+  const [rowId, setRowId] = useState(() => generateRowId());
+
+  const [texts, setTexts] = useState<Record<GlideTextKey, string>>(emptyTextFields);
+  const [inspectoresList, setInspectoresList] = useState<string[]>([]);
+  const [titularModo, setTitularModo] = useState<TitularModo>("persona");
+
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [startingBatch, setStartingBatch] = useState(false);
+  const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
+  const [catalogMotivos, setCatalogMotivos] = useState<string[]>([]);
+  const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
+  const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
+  const [catalogsReady, setCatalogsReady] = useState(false);
+
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [rowError, setRowError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const catalogs = useMemo(
+    () => ({
+      inspectores: catalogInspectores,
+      motivos: catalogMotivos,
+      rubros: catalogRubros,
+      tipos: [] as string[],
+      contraproducencias: [] as string[],
+      motivosComprobacion: catalogMotivosComprobacion,
+    }),
+    [catalogInspectores, catalogMotivos, catalogRubros, catalogMotivosComprobacion]
+  );
+
+  const inspectoresDisponiblesParaAgregar = useMemo(() => {
+    const ya = new Set(inspectoresList.map((x) => x.trim()).filter(Boolean));
+    return [...catalogInspectores].filter((n) => !ya.has(n)).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [catalogInspectores, inspectoresList]);
+
+  const ensureBatch = useCallback(async (): Promise<string | null> => {
+    if (batchId) return batchId;
+    setStartingBatch(true);
+    setGlobalError(null);
+    try {
+      const { batch_id } = await startBatch("actuaciones");
+      setBatchId(batch_id);
+      return batch_id;
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e)) {
+        setGlobalError(e.response?.data?.detail ?? e.response?.data?.message ?? "No se pudo iniciar el lote.");
+      } else {
+        setGlobalError("No se pudo iniciar el lote.");
+      }
+      return null;
+    } finally {
+      setStartingBatch(false);
+    }
+  }, [batchId]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [insp, mot, rub, mcomp] = await Promise.all([
+          fetchInspectores(),
+          fetchMotivos(),
+          fetchRubros(),
+          fetchMotivosComprobacion(),
+        ]);
+        setCatalogInspectores([...new Set(insp.items.map((i) => i.nombre))]);
+        setCatalogMotivos([...new Set(mot.items.map((m) => m.nombre))]);
+        setCatalogRubros([...new Set(rub.items.map((r) => r.nombre))]);
+        setCatalogMotivosComprobacion([...new Set(mcomp.items.map((m) => m.nombre))]);
+        setCatalogsReady(true);
+      } catch {
+        setGlobalError("Error cargando catálogos. Probá de nuevo más tarde.");
+        setCatalogsReady(false);
+      }
+    };
+    void load();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    void ensureBatch();
+  }, [open, ensureBatch]);
+
+  const resetForm = useCallback(() => {
+    setTexts(emptyTextFields());
+    setInspectoresList([]);
+    setTitularModo("persona");
+    setFieldErrors({});
+    setRowError(null);
+    setGlobalError(null);
+    setRowId(generateRowId());
+  }, []);
+
+  const errorFor = useCallback((glideKey: string) => fieldErrors[glideKey] ?? "", [fieldErrors]);
+
+  const clearFe = useCallback((glideKey: string) => {
+    setFieldErrors((prev) => {
+      if (!(glideKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[glideKey];
+      return next;
+    });
+  }, []);
+
+  const handleTitularModoChange = useCallback(
+    (_: MouseEvent<HTMLElement>, next: TitularModo | null) => {
+      if (next == null || next === titularModo) return;
+      if (next === "razon_social") {
+        setTexts((prev) => ({ ...prev, Apellido: "", Nombre: "" }));
+      } else {
+        setTexts((prev) => ({ ...prev, "Razón social": "" }));
+      }
+      setTitularModo(next);
+      ["Apellido", "Nombre", "Razón social"].forEach((k) => clearFe(k));
+    },
+    [titularModo, clearFe]
+  );
+
+  const buildGridRow = useCallback((): GridRow => {
+    const kilosRaw = texts["Kilos decomiso"].trim();
+    let kilos: number | null = null;
+    if (kilosRaw !== "") {
+      const n = Number(kilosRaw.replace(",", "."));
+      kilos = Number.isFinite(n) ? n : null;
+    }
+
+    const row: GridRow = {
+      _rowId: rowId,
+      _state: "PENDIENTE",
+      _cellErrors: {},
+      Inspectores: dedupeInspectoresPreserveOrder(inspectoresList),
+    };
+
+    for (const k of GLIDE_KEYS) {
+      if (k === "Kilos decomiso") {
+        row["Kilos decomiso"] = kilos;
+        continue;
+      }
+      if (titularModo === "persona" && k === "Razón social") {
+        (row as Record<string, unknown>)["Razón social"] = null;
+        continue;
+      }
+      if (titularModo === "razon_social" && (k === "Apellido" || k === "Nombre")) {
+        (row as Record<string, unknown>)[k] = null;
+        continue;
+      }
+      const t = texts[k].trim();
+      (row as Record<string, unknown>)[k] = t === "" ? null : t;
+    }
+
+    return row;
+  }, [inspectoresList, rowId, texts, titularModo]);
+
+  const toSelectOptions = (columnId: string): AppSelectOption[] =>
+    getDropdownOptions(columnId, catalogs).map((label) => ({
+      value: label,
+      label: label === "" ? "—" : label,
+    }));
+
+  const handleSubmit = async () => {
+    setFieldErrors({});
+    setRowError(null);
+    setGlobalError(null);
+    setSuccessMsg(null);
+
+    const bid = await ensureBatch();
+    if (!bid) return;
+
+    setLoading(true);
+    try {
+      const gridRow = buildGridRow();
+      const payload = extractDataColumns(gridRow) as Partial<GridRow>;
+
+      const response = await validateRow({
+        batch_id: bid,
+        row_id: rowId,
+        row: payload as GridRow,
+      });
+
+      const normErrors = normalizeErrorKeys(response.errors);
+      setFieldErrors(normErrors);
+      setRowError(normErrors._row ?? normErrors.detail ?? null);
+
+      if (!response.ok || !response.normalized) {
+        return;
+      }
+
+      const commitResp = await commitBatch({
+        batch_id: bid,
+        rows: [{ row_id: rowId, normalized: response.normalized as unknown as GridRow }],
+      });
+
+      const mine = commitResp.results?.find((r) => r.row_id === rowId);
+      if (mine?.ok) {
+        setSuccessMsg("Actuación guardada correctamente.");
+        resetForm();
+        setOpen(false);
+        return;
+      }
+
+      const commitErrs = normalizeErrorKeys(mine?.errors);
+      setFieldErrors(commitErrs);
+      setRowError(commitErrs._row ?? commitErrs.detail ?? "No se pudo confirmar la carga.");
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e)) {
+        const data = e.response?.data as { detail?: string; errors?: Record<string, string> } | undefined;
+        if (data?.errors && typeof data.errors === "object") {
+          setFieldErrors(normalizeErrorKeys(data.errors));
+        }
+        setGlobalError(data?.detail ?? e.message ?? "Error al validar o guardar.");
+      } else {
+        setGlobalError("Error al validar o guardar.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tryClose = () => {
+    if (!loading) setOpen(false);
+  };
+
+  const setText = (key: GlideTextKey, value: string) => {
+    setTexts((prev) => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <Box sx={{ width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+      {successMsg && (
+        <Alert severity="success" sx={{ borderRadius: 2 }} onClose={() => setSuccessMsg(null)}>
+          {successMsg}
+        </Alert>
+      )}
+
+      <CardGlass sx={{ width: "100%", minWidth: 0 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: 2,
+            minWidth: 0,
+          }}
+        >
+          <Box sx={{ minWidth: 0, flex: { sm: "1 1 auto" } }}>
+            <Typography
+              sx={{
+                fontFamily: tactic,
+                fontWeight: 700,
+                fontSize: "1rem",
+                color: GLASS_COLORS.textPrimary,
+                letterSpacing: "0.02em",
+              }}
+            >
+              ¿Querés cargar una nueva actuación?
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: tactic,
+                mt: 0.5,
+                fontSize: "0.875rem",
+                color: GLASS_COLORS.textMuted,
+                lineHeight: 1.45,
+              }}
+            >
+              Validación y guardado con el mismo motor de lote que el resto del sistema (grid / backend).
+            </Typography>
+          </Box>
+          <AppButton
+            dsVariant="primary"
+            onClick={() => {
+              setGlobalError(null);
+              setFieldErrors({});
+              setRowError(null);
+              setSuccessMsg(null);
+              setOpen(true);
+            }}
+            startIcon={<AddIcon />}
+            sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
+            disabled={startingBatch && !batchId}
+          >
+            Nueva actuación
+          </AppButton>
+        </Box>
+      </CardGlass>
+
+      <AppDialog
+        open={open}
+        onClose={() => tryClose()}
+        onCloseButtonClick={() => tryClose()}
+        title="Nueva actuación"
+        maxWidth="sm"
+        fullWidth
+        showCloseButton
+        contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+        actions={
+          <Box sx={dialogFormActionsRowSx}>
+            <AppButton dsVariant="ghost" onClick={resetForm} startIcon={<ClearIcon />} disabled={loading}>
+              Limpiar
+            </AppButton>
+            <AppButton dsVariant="ghost" onClick={() => tryClose()} disabled={loading}>
+              Cancelar
+            </AppButton>
+            <AppButton
+              dsVariant="primary"
+              onClick={() => void handleSubmit()}
+              startIcon={<SendIcon />}
+              loading={loading}
+              disabled={!catalogsReady}
+            >
+              Guardar actuación
+            </AppButton>
+          </Box>
+        }
+      >
+        {globalError && (
+          <Alert severity="error" sx={{ borderRadius: 2, whiteSpace: "pre-line" }} onClose={() => setGlobalError(null)}>
+            {globalError}
+          </Alert>
+        )}
+        {rowError && (
+          <Alert severity="warning" sx={{ borderRadius: 2, whiteSpace: "pre-line" }} onClose={() => setRowError(null)}>
+            {rowError}
+          </Alert>
+        )}
+
+        <Box sx={{ ...col, width: "100%" }}>
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+            Actuación
+          </Typography>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            required
+            type="date"
+            label="Fecha actuación"
+            value={texts["Fecha actuación"]}
+            onChange={(e) => {
+              setText("Fecha actuación", e.target.value);
+              clearFe("Fecha actuación");
+            }}
+            InputLabelProps={{ shrink: true }}
+            variant="outlined"
+            error={Boolean(errorFor("Fecha actuación"))}
+            helperText={errorFor("Fecha actuación") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            required
+            label="Orden de trabajo"
+            value={texts["Orden de trabajo"]}
+            onChange={(e) => {
+              setText("Orden de trabajo", e.target.value);
+              clearFe("Orden de trabajo");
+            }}
+            variant="outlined"
+            error={Boolean(errorFor("Orden de trabajo"))}
+            helperText={errorFor("Orden de trabajo") || undefined}
+          />
+        </Box>
+
+        <Box sx={{ ...col, width: "100%" }}>
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+            Inspectores
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+            {inspectoresList.length === 0 ? (
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                —
+              </Typography>
+            ) : (
+              inspectoresList.map((name, idx) => (
+                <Chip
+                  key={`${idx}-${name}`}
+                  label={name}
+                  size="small"
+                  onDelete={() => {
+                    setInspectoresList((prev) => prev.filter((_, i) => i !== idx));
+                    clearFe("Inspectores");
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                />
+              ))
+            )}
+          </Box>
+          <Autocomplete
+            size="small"
+            options={inspectoresDisponiblesParaAgregar}
+            value={null}
+            onChange={(_, value) => {
+              if (value && !inspectoresList.includes(value)) {
+                setInspectoresList((prev) => dedupeInspectoresPreserveOrder([...prev, value]));
+                clearFe("Inspectores");
+              }
+            }}
+            disabled={!catalogsReady || inspectoresDisponiblesParaAgregar.length === 0}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Agregar"
+                placeholder={catalogsReady ? "Catálogo" : "…"}
+                error={Boolean(errorFor("Inspectores"))}
+                helperText={errorFor("Inspectores") || undefined}
+              />
+            )}
+          />
+        </Box>
+
+        <Box sx={{ ...col, width: "100%" }}>
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+            Domicilio
+          </Typography>
+          <AppTextField
+            appearance="dense"
+            label="Calle"
+            value={texts["Calle"]}
+            onChange={(e) => {
+              setText("Calle", e.target.value);
+              clearFe("Calle");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Calle"))}
+            helperText={errorFor("Calle") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            label="Número"
+            value={texts["Número"]}
+            onChange={(e) => {
+              setText("Número", e.target.value);
+              clearFe("Número");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Número"))}
+            helperText={errorFor("Número") || undefined}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Rubro"
+            value={texts["Rubro"]}
+            onChange={(e) => {
+              setText("Rubro", String(e.target.value));
+              clearFe("Rubro");
+            }}
+            fullWidth
+            disabled={!catalogsReady}
+            options={toSelectOptions("Rubro")}
+            error={Boolean(errorFor("Rubro"))}
+            helperText={errorFor("Rubro") || undefined}
+          />
+        </Box>
+
+        <Box sx={{ ...col, width: "100%" }}>
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+            Titular
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            value={titularModo}
+            onChange={handleTitularModoChange}
+            size="small"
+            fullWidth
+            sx={{
+              "& .MuiToggleButton-root": {
+                flex: 1,
+                textTransform: "none",
+                fontFamily: tactic,
+                fontSize: "0.8125rem",
+                color: "rgba(255,255,255,0.75)",
+                borderColor: "rgba(255,255,255,0.2)",
+              },
+              "& .Mui-selected": {
+                bgcolor: "rgba(255,255,255,0.12) !important",
+                color: "rgba(255,255,255,0.95) !important",
+              },
+            }}
+          >
+            <ToggleButton value="persona">Contribuyente</ToggleButton>
+            <ToggleButton value="razon_social">Razón social</ToggleButton>
+          </ToggleButtonGroup>
+
+          {titularModo === "persona" ? (
+            <>
+              <AppTextField
+                appearance="dense"
+                label="Apellido"
+                value={texts["Apellido"]}
+                onChange={(e) => {
+                  setText("Apellido", e.target.value);
+                  clearFe("Apellido");
+                }}
+                fullWidth
+                error={Boolean(errorFor("Apellido"))}
+                helperText={errorFor("Apellido") || undefined}
+              />
+              <AppTextField
+                appearance="dense"
+                label="Nombre"
+                value={texts["Nombre"]}
+                onChange={(e) => {
+                  setText("Nombre", e.target.value);
+                  clearFe("Nombre");
+                }}
+                fullWidth
+                error={Boolean(errorFor("Nombre"))}
+                helperText={errorFor("Nombre") || undefined}
+              />
+            </>
+          ) : (
+            <AppTextField
+              appearance="dense"
+              label="Razón social"
+              value={texts["Razón social"]}
+              onChange={(e) => {
+                setText("Razón social", e.target.value);
+                clearFe("Razón social");
+              }}
+              fullWidth
+              error={Boolean(errorFor("Razón social"))}
+              helperText={errorFor("Razón social") || undefined}
+            />
+          )}
+
+          <AppTextField
+            appearance="dense"
+            label="CUIT / DNI"
+            value={texts["DNI"]}
+            onChange={(e) => {
+              setText("DNI", e.target.value);
+              clearFe("DNI");
+            }}
+            fullWidth
+            error={Boolean(errorFor("DNI"))}
+            helperText={errorFor("DNI") || undefined}
+          />
+        </Box>
+
+        <Box sx={{ ...col, width: "100%", pt: 0.5 }}>
+          <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", letterSpacing: 0.2 }}>
+            Actas
+          </Typography>
+          <AppTextField
+            appearance="dense"
+            label="N° acta de inspección"
+            value={texts["Acta inspección"]}
+            onChange={(e) => {
+              setText("Acta inspección", e.target.value);
+              clearFe("Acta inspección");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Acta inspección"))}
+            helperText={errorFor("Acta inspección") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            label="N° acta de notificación"
+            value={texts["Acta notificación"]}
+            onChange={(e) => {
+              setText("Acta notificación", e.target.value);
+              clearFe("Acta notificación");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Acta notificación"))}
+            helperText={errorFor("Acta notificación") || undefined}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Motivo notificación 1"
+            value={texts["Motivo notif 1"]}
+            onChange={(e) => {
+              setText("Motivo notif 1", String(e.target.value));
+              clearFe("Motivo notif 1");
+            }}
+            fullWidth
+            disabled={!catalogsReady}
+            options={toSelectOptions("Motivo notif 1")}
+            error={Boolean(errorFor("Motivo notif 1"))}
+            helperText={errorFor("Motivo notif 1") || undefined}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Motivo notificación 2"
+            value={texts["Motivo notif 2"]}
+            onChange={(e) => {
+              setText("Motivo notif 2", String(e.target.value));
+              clearFe("Motivo notif 2");
+            }}
+            fullWidth
+            disabled={!catalogsReady}
+            options={toSelectOptions("Motivo notif 2")}
+            error={Boolean(errorFor("Motivo notif 2"))}
+            helperText={errorFor("Motivo notif 2") || undefined}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Motivo notificación 3"
+            value={texts["Motivo notif 3"]}
+            onChange={(e) => {
+              setText("Motivo notif 3", String(e.target.value));
+              clearFe("Motivo notif 3");
+            }}
+            fullWidth
+            disabled={!catalogsReady}
+            options={toSelectOptions("Motivo notif 3")}
+            error={Boolean(errorFor("Motivo notif 3"))}
+            helperText={errorFor("Motivo notif 3") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            label="N° acta de comprobación"
+            value={texts["Acta comprobación"]}
+            onChange={(e) => {
+              setText("Acta comprobación", e.target.value);
+              clearFe("Acta comprobación");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Acta comprobación"))}
+            helperText={errorFor("Acta comprobación") || undefined}
+          />
+          <AppSelect
+            appearance="dense"
+            label="Motivo de comprobación"
+            value={texts["Motivo comprobación"]}
+            onChange={(e) => {
+              setText("Motivo comprobación", String(e.target.value));
+              clearFe("Motivo comprobación");
+            }}
+            fullWidth
+            disabled={!catalogsReady}
+            options={toSelectOptions("Motivo comprobación")}
+            error={Boolean(errorFor("Motivo comprobación"))}
+            helperText={errorFor("Motivo comprobación") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            label="N° acta de clausura (opcional)"
+            value={texts["Acta clausura"]}
+            onChange={(e) => {
+              setText("Acta clausura", e.target.value);
+              clearFe("Acta clausura");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Acta clausura"))}
+            helperText={errorFor("Acta clausura") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            label="N° acta de decomiso"
+            value={texts["Acta decomiso"]}
+            onChange={(e) => {
+              setText("Acta decomiso", e.target.value);
+              clearFe("Acta decomiso");
+            }}
+            fullWidth
+            error={Boolean(errorFor("Acta decomiso"))}
+            helperText={errorFor("Acta decomiso") || undefined}
+          />
+          <AppTextField
+            appearance="dense"
+            label="Kilos decomisados"
+            value={texts["Kilos decomiso"]}
+            onChange={(e) => {
+              setText("Kilos decomiso", e.target.value);
+              clearFe("Kilos decomiso");
+            }}
+            fullWidth
+            inputProps={{ inputMode: "decimal" }}
+            error={Boolean(errorFor("Kilos decomiso"))}
+            helperText={errorFor("Kilos decomiso") || undefined}
+          />
+        </Box>
+      </AppDialog>
+    </Box>
+  );
+}

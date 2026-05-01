@@ -127,7 +127,7 @@ export function InstitutionalMonthCalendarGrid({
         ))}
         {cells.map((cell) => {
           if (cell.iso == null || cell.dayNum == null) {
-            return <Box key={cell.key} sx={{ minHeight: 44 }} />;
+            return <Box key={cell.key} sx={{ minHeight: 40 }} />;
           }
           const ctx: MonthCalendarDayContext = {
             iso: cell.iso,
@@ -162,7 +162,7 @@ export function InstitutionalMonthCalendarGrid({
               title={title}
               onClick={() => onSelectDay(cell.iso!)}
               sx={{
-                minHeight: 44,
+                minHeight: 40,
                 borderRadius: "10px",
                 fontFamily: TACTIC,
                 fontWeight: ctx.esHoy ? 800 : 600,

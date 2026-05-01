@@ -156,6 +156,7 @@ def test_get_prorroga_expedientes_lista_y_plazo_notificacion(app, client, auth_h
             assert body["items"][1]["fecha_expediente"] == "2026-03-12"
             ed = body.get("edicion") or {}
             assert ed.get("puede_editar_expediente_prorroga") is True
+            assert ed.get("puede_eliminar_expediente_prorroga") is True
             assert ed.get("notificacion_usada_como_iniciador") is False
             assert isinstance(ed.get("motivos_bloqueo_expediente"), list)
         finally:

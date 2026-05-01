@@ -1,16 +1,9 @@
-import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Stack } from "@mui/material";
 
 import type { IActuacionesPendientesItem } from "../../../api/actuacionesPendientesApi";
+import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
-import {
-  docModalChipSx,
-  docModalFooterButtonsSx,
-  docModalFooterRowSx,
-  docModalHeaderStackSx,
-  docModalReferenceSx,
-  docModalSubtitleSx,
-  docModalTitleSx,
-} from "../../../styles/documentalModalTokens";
+import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 import {
   BloqueInspeccionBaseComprobacion,
@@ -59,18 +52,12 @@ export function ComprobacionExpedienteOperativoDialog({
 
   const titleNode =
     row != null ? (
-      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-        <Chip label="Comprobación" size="small" sx={docModalChipSx} variant="outlined" />
-        <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          Registrar expediente de envío
-        </Typography>
-        <Typography variant="body2" sx={docModalSubtitleSx}>
-          {actaComprobacionCabecera(row)}
-        </Typography>
-        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
-          Actuación #{row.id}
-        </Typography>
-      </Box>
+      <DocumentalModalTitleStack
+        dominioChip="Comprobación"
+        titulo="Registrar expediente de envío"
+        subtitulo={actaComprobacionCabecera(row)}
+        actuacionId={row.id}
+      />
     ) : (
       "Expediente de comprobación"
     );
@@ -87,16 +74,7 @@ export function ComprobacionExpedienteOperativoDialog({
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
-      actions={
-        <Box sx={docModalFooterRowSx}>
-          <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
-          <Box sx={docModalFooterButtonsSx}>
-            <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose} disabled={saving}>
-              Cerrar
-            </AppButton>
-          </Box>
-        </Box>
-      }
+      actions={<DocumentalModalFooter onCerrar={handleClose} cerrarDisabled={saving} />}
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
@@ -105,7 +83,7 @@ export function ComprobacionExpedienteOperativoDialog({
           <DocumentalBloque overline="Alta de expediente de envío">
             <Stack spacing={2}>
               {modalApiError ? (
-                <Alert severity="error" sx={{ mb: 0 }}>
+                <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
                   {modalApiError}
                 </Alert>
               ) : null}
@@ -127,11 +105,11 @@ export function ComprobacionExpedienteOperativoDialog({
                 fullWidth
                 required
               />
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 0.5 }}>
                 <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onGuardar()} disabled={saving}>
                   {saving ? "Guardando…" : "Guardar expediente"}
                 </AppButton>
-              </Box>
+              </Stack>
             </Stack>
           </DocumentalBloque>
         </Stack>

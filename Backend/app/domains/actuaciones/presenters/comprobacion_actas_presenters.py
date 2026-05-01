@@ -68,27 +68,49 @@ def iniciador_reinspeccion_to_row(
     *,
     counts_by_eo: dict[int, int] | None = None,
 ) -> Dict[str, Any]:
-    """Fila para bandeja Pendientes de reinspección (oficio ya cargado)."""
+    """
+    Fila para bandeja Pendientes de reinspección (oficio ya cargado).
+
+    Incluye el mismo snapshot que ``actuacion_to_grid_row`` (contribuyente, domicilio, inspección,
+    acta de comprobación, etc.) más los campos del iniciador y el detalle documental de envío /
+    oficio / expediente de respuesta para modales alineados al circuito.
+
+    Además (paridad con recorrido / grilla):
+    - ``tipo_visita_resultado``: tipo de visita desambigüado (p. ej. verificar e informar) o ``None``.
+    - ``estado_recorrido``: etiqueta de circuito documental (misma función que la tabla Recorrido).
+    """
     base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
-    return {
-        "iniciador_id": ini.id,
-        "estado_iniciador": ini.estado_iniciador,
-        "tipo_iniciador": ini.tipo_iniciador,
-        "fecha_origen_iniciador": ini.fecha_origen.isoformat() if ini.fecha_origen else None,
-        "id": base.get("id"),
-        "fecha_actuacion": base.get("fecha_actuacion"),
-        "orden_trabajo_numero": base.get("orden_trabajo_numero"),
-        "acta_comprobacion_num": base.get("acta_comprobacion_num"),
-        "comprobacion_motivo": base.get("comprobacion_motivo"),
-        "rubro_nombre": base.get("rubro_nombre"),
-        "calle": base.get("calle"),
-        "numero": base.get("numero"),
-        "contrib_apellido": base.get("contrib_apellido"),
-        "contrib_nombre": base.get("contrib_nombre"),
-        "oficio_numero": base.get("oficio_numero"),
-        "oficio_anio": base.get("oficio_anio"),
-        "documento_pendiente": "Reinspección por oficio",
-    }
+    row: Dict[str, Any] = dict(base)
+    row["iniciador_id"] = ini.id
+    row["estado_iniciador"] = ini.estado_iniciador
+    row["tipo_iniciador"] = ini.tipo_iniciador
+    row["fecha_origen_iniciador"] = ini.fecha_origen.isoformat() if ini.fecha_origen else None
+    row["documento_pendiente"] = "Reinspección por oficio"
+
+    cid = getattr(act, "comprobacion_id", None)
+    if cid:
+        exp_env = expediente_envio_por_comprobacion(int(cid))
+        if exp_env:
+            row["expediente_envio_numero"] = getattr(exp_env, "numero_expediente", None)
+            row["expediente_envio_anio"] = getattr(exp_env, "anio", None)
+            fe = getattr(exp_env, "fecha_expediente", None)
+            row["fecha_expediente_envio"] = fe.isoformat() if fe is not None else None
+        ofi = oficio_por_comprobacion(int(cid))
+        if ofi:
+            fo = getattr(ofi, "fecha_oficio", None)
+            row["fecha_oficio"] = fo.isoformat() if fo is not None else None
+            row["juzgado_nombre"] = _juzgado_nombre(ofi)
+        exp_resp = _expediente_respuesta_oficio(int(cid))
+        if exp_resp:
+            row["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
+            row["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
+            fr = getattr(exp_resp, "fecha_expediente", None)
+            row["fecha_expediente_respuesta"] = fr.isoformat() if fr is not None else None
+
+    ini_oficio = _iniciador_trabajo_oficio_mas_reciente(act.id)
+    row["tipo_visita_resultado"] = _tipo_visita_resultado_final(base, ini_oficio)
+    row["estado_recorrido"] = estado_recorrido_label(act)
+    return row
 
 
 def comprobacion_recorrido_resumen_row(
@@ -98,6 +120,12 @@ def comprobacion_recorrido_resumen_row(
 ) -> Dict[str, Any]:
     base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     base["estado_recorrido"] = estado_recorrido_label(act)
+    cid = getattr(act, "comprobacion_id", None)
+    if cid:
+        exp_resp = _expediente_respuesta_oficio(int(cid))
+        if exp_resp:
+            base["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
+            base["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
     return base
 
 
@@ -246,6 +274,10 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
     - ``resultado_final.tipo_actuacion``: mismo string que la grilla (``actuacion_to_grid_row``).
     - ``resultado_final.tipo_visita``: actuación resultante (ratificación / verificar e informar) o
       ``None`` si aún no hay tipo concreto (p. ej. ``REINSPECCION`` genérico en ``act.tipo``).
+    - ``reinspeccion_por_oficio``: metadatos del iniciador ``REINSPECCION_OFICIO`` (id, tipo, estado,
+      fecha de origen, documento). Si el trámite está ``CUMPLIDO``, ``ejecucion_reinspeccion`` resume
+      la visita ya labrada (inspectores, fecha, OT, tipo de inspección y cumplimiento) desde el mismo
+      snapshot de grilla de la actuación ancla (misma fila ORM actualizada al cerrar).
     """
     if not act.comprobacion_id:
         raise ValueError("La actuación no tiene comprobación")
@@ -277,6 +309,7 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
 
     resultado = getattr(act, "resultado_cumplimiento_oficio", None)
     res_val = resultado.value if resultado is not None and hasattr(resultado, "value") else resultado
+    tipo_visita_final = _tipo_visita_resultado_final(grid, ini_oficio)
 
     oficio_payload: Optional[Dict[str, Any]] = None
     if ofi is not None:
@@ -327,10 +360,30 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         ),
         "reinspeccion_por_oficio": (
             {
+                "iniciador_id": ini.id,
                 "tipo_iniciador": ini.tipo_iniciador,
                 "estado_iniciador": ini.estado_iniciador,
                 "fecha_origen": ini.fecha_origen.isoformat() if ini.fecha_origen else None,
                 "documento_pendiente": "Reinspección por oficio",
+                "ejecucion_reinspeccion": (
+                    {
+                        "inspectores_texto": grid.get("inspectores_texto"),
+                        "inspector1": grid.get("inspector1"),
+                        "inspector2": grid.get("inspector2"),
+                        "inspector3": grid.get("inspector3"),
+                        "fecha_actuacion": grid.get("fecha_actuacion"),
+                        "orden_trabajo_numero": grid.get("orden_trabajo_numero"),
+                        "tipo_inspeccion_labrada": tipo_visita_final
+                        or (
+                            str(grid.get("tipo_actuacion")).strip()
+                            if grid.get("tipo_actuacion")
+                            else None
+                        ),
+                        "resultado_cumplimiento_oficio": res_val,
+                    }
+                    if ini.estado_iniciador == "CUMPLIDO"
+                    else None
+                ),
             }
             if ini
             else None
@@ -340,6 +393,6 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
             "resultado_cumplimiento_oficio": res_val,
             "estado_recorrido": estado_recorrido_label(act),
             "tipo_actuacion": grid.get("tipo_actuacion"),
-            "tipo_visita": _tipo_visita_resultado_final(grid, ini_oficio),
+            "tipo_visita": tipo_visita_final,
         },
     }

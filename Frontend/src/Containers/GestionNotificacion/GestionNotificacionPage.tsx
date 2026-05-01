@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ClearIcon from "@mui/icons-material/Clear";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
@@ -72,6 +73,9 @@ import {
 
 /** Operativas primero; `total` = Historial (documental), al final. */
 const PLAZO_TAB_ORDER: PlazoOperativoSlice[] = ["en_plazo", "por_vencer", "vencidas_o_hoy", "total"];
+
+/** Pestañas operativas para deep-link desde Actuación (excluye `total` / historial). */
+const NOTIF_DEEPLINK_OPERATIVE_SLICES: PlazoOperativoSlice[] = ["en_plazo", "por_vencer", "vencidas_o_hoy"];
 
 type HistPeriodMode = "month" | "range";
 
@@ -213,6 +217,9 @@ function NotificacionBandejaTable({
  */
 const GestionNotificacionPage = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const notifDeepLinkProcessedKey = useRef<string | null>(null);
+  const [notificacionDeepLinkAviso, setNotificacionDeepLinkAviso] = useState<string | null>(null);
   const defaultMonthYear = useMemo(() => {
     const d = new Date(`${defaultRange.desde}T12:00:00`);
     return { mes: d.getMonth() + 1, anio: d.getFullYear() };
@@ -516,6 +523,54 @@ const GestionNotificacionPage = () => {
     setModalOpen(true);
   }, [defaultRange.hasta]);
 
+  useEffect(() => {
+    const raw = searchParams.get("actuacionId");
+    if (!raw) {
+      notifDeepLinkProcessedKey.current = null;
+      setNotificacionDeepLinkAviso(null);
+      return;
+    }
+    if (loading) return;
+
+    const key = `notif-focus:${raw}`;
+    if (notifDeepLinkProcessedKey.current === key) return;
+
+    const aid = Number.parseInt(raw, 10);
+    if (!Number.isFinite(aid)) return;
+
+    const row = items.find((r) => r.id === aid && r.source_type === "NOTIFICACION");
+    const clearParam = () => {
+      notifDeepLinkProcessedKey.current = key;
+      const next = new URLSearchParams(searchParams);
+      next.delete("actuacionId");
+      setSearchParams(next, { replace: true });
+    };
+
+    if (!row) {
+      setNotificacionDeepLinkAviso(
+        `No encontramos la actuación n.º ${aid} en la bandeja operativa de notificaciones. Si el plazo está en días intermedios (3–4), usá Historial de notificaciones.`
+      );
+      clearParam();
+      return;
+    }
+
+    const sliceHit = NOTIF_DEEPLINK_OPERATIVE_SLICES.find((s) => matchesPlazoSlice(row, s));
+    if (sliceHit) {
+      setPlazoSlice(sliceHit);
+      setNotificacionDeepLinkAviso(null);
+      const variant: NotificacionDetalleModalVariant =
+        row.notificacion_editable === false ? "documental" : "soloExpediente";
+      openModal(row, variant);
+      clearParam();
+      return;
+    }
+
+    setNotificacionDeepLinkAviso(
+      `Actuación n.º ${aid}: el plazo cae en días 3–4 (solo figura en Historial de notificaciones). OT ${(row.orden_trabajo_numero ?? "").trim() || "—"}.`
+    );
+    clearParam();
+  }, [loading, items, searchParams, setSearchParams, openModal]);
+
   const closeModal = () => {
     if (saving) return;
     setModalOpen(false);
@@ -677,12 +732,12 @@ const GestionNotificacionPage = () => {
 
   const renderOperativaToolbarRefresh = useCallback(
     () => (
-      <Tooltip title="Recargar bandeja">
+      <Tooltip title="Actualizar listados">
         <span>
           <IconButton
             type="button"
             size="small"
-            aria-label="Recargar bandeja"
+            aria-label="Actualizar listados"
             disabled={loading}
             onClick={() => void loadData()}
             sx={{
@@ -700,12 +755,12 @@ const GestionNotificacionPage = () => {
 
   const renderHistorialToolbarRefresh = useCallback(
     () => (
-      <Tooltip title="Recargar resultados del historial">
+      <Tooltip title="Actualizar listados">
         <span>
           <IconButton
             type="button"
             size="small"
-            aria-label="Recargar historial"
+            aria-label="Actualizar listados"
             disabled={historialLoading || !historialFiltroAplicado}
             onClick={() => void recargarHistorialSiAplica()}
             sx={{
@@ -767,6 +822,12 @@ const GestionNotificacionPage = () => {
           </AppButton>
         </Box>
       </Box>
+
+      {notificacionDeepLinkAviso ? (
+        <Alert severity="info" sx={{ ...alertBaseStyles, mb: 1.5 }} onClose={() => setNotificacionDeepLinkAviso(null)}>
+          {notificacionDeepLinkAviso}
+        </Alert>
+      ) : null}
 
       {syncFeedback?.kind === "success" && (
         <Alert severity="success" sx={alertBaseStyles} onClose={() => setSyncFeedback(null)}>

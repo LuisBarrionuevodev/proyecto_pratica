@@ -34,6 +34,7 @@ export interface GridRow {
   "Rubro"?: string | null;
   "Apellido"?: string | null;
   "Nombre"?: string | null;
+  "Razón social"?: string | null;
   "DNI"?: string | null;
   "Acta inspección"?: string | null;
   "Acta notificación"?: string | null;

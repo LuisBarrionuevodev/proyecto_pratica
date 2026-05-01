@@ -29,6 +29,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_posterior_comprobacion_por_actuacion_id,
     get_pendientes_expediente,
+    get_pendientes_oficio,
 )
 from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Motivo, Notificacion, OrdenTrabajo
 from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
@@ -393,5 +394,9 @@ def test_comprobacion_bandeja_sin_expediente_luego_excluida_metricas_none(app_ct
         )
         acts1 = get_pendientes_expediente(fl)
         assert act.id not in [a.id for a in acts1]
+
+        fl_ofi = ActuacionesPendientesFilters.model_validate({"omitir_rango_fecha": True})
+        ofi_acts = get_pendientes_oficio(fl_ofi)
+        assert act.id in [a.id for a in ofi_acts]
     finally:
         db.session.rollback()

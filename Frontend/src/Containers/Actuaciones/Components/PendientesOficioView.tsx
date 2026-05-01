@@ -46,7 +46,6 @@ const PendientesOficioView = () => {
   const [juzgadoId, setJuzgadoId] = useState<number | "">("");
   const [causa, setCausa] = useState("");
   const [expNumero, setExpNumero] = useState("");
-  const [expFecha, setExpFecha] = useState(defaultRange.hasta);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [modalApiError, setModalApiError] = useState<string | null>(null);
@@ -92,7 +91,6 @@ const PendientesOficioView = () => {
     setJuzgadoId("");
     setCausa("");
     setExpNumero("");
-    setExpFecha(defaultRange.hasta);
     setFieldErrors({});
     setModalApiError(null);
     setModalOpen(true);
@@ -113,7 +111,6 @@ const PendientesOficioView = () => {
     if (!fechaOficio) next.fechaOficio = "Completá la fecha de oficio.";
     if (!juzgadoId) next.juzgadoId = "Seleccioná un juzgado.";
     if (!expNumero.trim()) next.expNumero = "Completá el número de expediente de oficio.";
-    if (!expFecha) next.expFecha = "Completá la fecha de expediente de oficio.";
     setFieldErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -126,7 +123,7 @@ const PendientesOficioView = () => {
         juzgado_id: Number(juzgadoId),
         causa: causa.trim() || null,
         numero_expediente_oficio: expNumero.trim(),
-        fecha_expediente_oficio: expFecha,
+        fecha_expediente_oficio: fechaOficio,
       });
       closeModal();
       await loadData();
@@ -295,7 +292,7 @@ const PendientesOficioView = () => {
             />
             <AppTextField
               appearance="glass"
-              label="Fecha de oficio"
+              label="Fecha de oficio y expediente de respuesta"
               type="date"
               value={fechaOficio}
               onChange={(e) => {
@@ -310,7 +307,7 @@ const PendientesOficioView = () => {
               fullWidth
               required
               error={Boolean(fieldErrors.fechaOficio)}
-              helperText={fieldErrors.fechaOficio || undefined}
+              helperText={fieldErrors.fechaOficio || "Misma fecha para oficio y expediente de respuesta."}
             />
             <AppSelect
               appearance="glass"
@@ -354,25 +351,6 @@ const PendientesOficioView = () => {
               required
               error={Boolean(fieldErrors.expNumero)}
               helperText={fieldErrors.expNumero || undefined}
-            />
-            <AppTextField
-              appearance="glass"
-              label="Fecha expediente oficio"
-              type="date"
-              value={expFecha}
-              onChange={(e) => {
-                setExpFecha(e.target.value);
-                setFieldErrors((f) => {
-                  const n = { ...f };
-                  delete n.expFecha;
-                  return n;
-                });
-              }}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              required
-              error={Boolean(fieldErrors.expFecha)}
-              helperText={fieldErrors.expFecha || undefined}
             />
           </AppDialog>
         </Box>

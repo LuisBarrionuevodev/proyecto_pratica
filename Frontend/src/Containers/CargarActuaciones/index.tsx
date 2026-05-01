@@ -1,11 +1,10 @@
 import { Box } from "@mui/material";
 
-import TablaCargarActuacionesGlideStyled from "./Components/TablaCargarActuacionesGlideStyled";
-import { CargarActuacionesHowTo } from "./Components/CargarActuacionesHowTo";
+import { CargarActuacionNuevaModal } from "./Components/CargarActuacionNuevaModal";
 
 /**
- * Vista dedicada a la **carga inicial** de actas (batch Glide).
- * La grilla incluye columnas de notificación y comprobación a la vez.
+ * Vista dedicada a la **carga inicial** de actas.
+ * Flujo único: box + modal (motor grid: startBatch → validateRow → commitBatch).
  */
 const CargarActuaciones = () => {
     return (
@@ -19,9 +18,7 @@ const CargarActuaciones = () => {
                 boxSizing: "border-box",
             }}
         >
-            <TablaCargarActuacionesGlideStyled showHowTo={false} />
-
-            <CargarActuacionesHowTo />
+            <CargarActuacionNuevaModal />
         </Box>
     );
 };

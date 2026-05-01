@@ -1,33 +1,31 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
+import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import {
+  deleteNotificacionProrrogaExpediente,
   fetchNotificacionProrrogaExpedientes,
   patchNotificacionProrrogaExpediente,
   type IActuacionesPendientesItem,
   type INotificacionProrrogaExpedienteItem,
   type INotificacionProrrogaExpedientesResponse,
 } from "../../../api/actuacionesPendientesApi";
+import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   docModalActuacionScrollCardShellSx,
   docModalBlockOverlineSx,
   docModalBlockResumenSx,
-  docModalChipSx,
   docModalFilaEtiquetaSx,
   docModalFilaValorSx,
-  docModalFooterButtonsSx,
-  docModalFooterRowSx,
   docModalGlassCardShellSx,
-  docModalHeaderStackSx,
   docModalEmptyStateSx,
   docModalSubheadingInCardSx,
-  docModalSubtitleSx,
-  docModalTitleSx,
+  documentalGlassAlertSx,
 } from "../../../styles/documentalModalTokens";
-import { AppButton, AppDialog, AppTextField } from "../../../ui";
+import { AppButton, AppDialog, AppTextField, ConfirmDialog } from "../../../ui";
+import { humanizarTipoActuacion } from "../../ActasComprobacion/utils/documentalLabelFormat";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 
 function textoValor(val: unknown): string {
@@ -190,7 +188,7 @@ function extractApiDetail(e: unknown): string | null {
 }
 
 /**
- * Lista de prórrogas / expedientes: resumen + ítems; edición inline con PATCH y refresco del GET.
+ * Lista de prórrogas / expedientes: resumen + ítems; edición (PATCH) y eliminación (DELETE) con refresco.
  */
 function NotificacionProrrogaExpedientesCard({
   loading,
@@ -199,7 +197,6 @@ function NotificacionProrrogaExpedientesCard({
   modo,
   actuacionId,
   onAfterPatch,
-  onListaRefresh,
   resumenCompacto = false,
   shell = "glass",
 }: {
@@ -209,8 +206,6 @@ function NotificacionProrrogaExpedientesCard({
   modo: "operativa" | "documental";
   actuacionId?: number;
   onAfterPatch?: () => void;
-  /** Tras PATCH OK: refrescar bandeja (días restantes, etc.). */
-  onListaRefresh?: () => void | Promise<void>;
   /** Oculta filas de resumen pensadas para auditoría / menos ruido en operativa. */
   resumenCompacto?: boolean;
   shell?: DocumentalCardShell;
@@ -223,6 +218,8 @@ function NotificacionProrrogaExpedientesCard({
   const [exPlazo, setExPlazo] = useState("");
   const [savingEx, setSavingEx] = useState(false);
   const [errEx, setErrEx] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [delSaving, setDelSaving] = useState(false);
 
   const beginEdit = (it: INotificacionProrrogaExpedienteItem) => {
     setEditingId(it.id);
@@ -258,7 +255,6 @@ function NotificacionProrrogaExpedientesCard({
       });
       cancelEdit();
       onAfterPatch?.();
-      void onListaRefresh?.();
     } catch (e: unknown) {
       const detail = extractApiDetail(e);
       setErrEx(typeof detail === "string" ? detail : "No se pudo guardar el expediente.");
@@ -268,6 +264,9 @@ function NotificacionProrrogaExpedientesCard({
   };
 
   const puedeEditarItems = Boolean(ed?.puede_editar_expediente_prorroga && actuacionId != null);
+  const puedeEliminarItems = Boolean(
+    (ed?.puede_eliminar_expediente_prorroga ?? ed?.puede_editar_expediente_prorroga) && actuacionId != null
+  );
   const bloqueoGlobal = Boolean(detalle?.items?.length && ed?.notificacion_usada_como_iniciador);
 
   return (
@@ -282,6 +281,11 @@ function NotificacionProrrogaExpedientesCard({
         </Typography>
       ) : detalle ? (
         <>
+          {errEx ? (
+            <Alert severity="error" onClose={() => setErrEx(null)} sx={{ mb: 1, ...documentalGlassAlertSx }}>
+              {errEx}
+            </Alert>
+          ) : null}
           {!resumenCompacto ? (
             <>
               <DocumentalFila
@@ -302,13 +306,13 @@ function NotificacionProrrogaExpedientesCard({
           <DocumentalFila etiqueta="Expedientes de prórroga" valor={String(detalle.plazos_otorgados ?? 0)} />
 
           {bloqueoGlobal ? (
-            <Alert severity="warning" sx={{ mt: 1.5 }}>
+            <Alert severity="warning" sx={{ mt: 1.5, ...documentalGlassAlertSx }}>
               <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                Edición bloqueada
+                Edición y eliminación bloqueadas
               </Typography>
               <Typography variant="body2">
                 {ed?.motivos_bloqueo_expediente?.[0] ??
-                  "Esta notificación ya fue usada como iniciador; no se pueden modificar los expedientes de prórroga."}
+                  "Esta notificación ya fue usada como iniciador; no se pueden modificar ni eliminar los expedientes de prórroga."}
               </Typography>
             </Alert>
           ) : null}
@@ -332,9 +336,24 @@ function NotificacionProrrogaExpedientesCard({
                       Expediente {idx + 1}
                     </Typography>
                     {puedeEditarItems && editingId !== it.id ? (
-                      <AppButton dsVariant="primary" dsSize="sm" onClick={() => beginEdit(it)} disabled={savingEx}>
-                        Editar
-                      </AppButton>
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                        <AppButton dsVariant="primary" dsSize="sm" onClick={() => beginEdit(it)} disabled={savingEx || delSaving}>
+                          Editar
+                        </AppButton>
+                        {puedeEliminarItems ? (
+                          <AppButton
+                            dsVariant="danger"
+                            dsSize="sm"
+                            onClick={() => {
+                              setConfirmDeleteId(it.id);
+                              setErrEx(null);
+                            }}
+                            disabled={savingEx || delSaving}
+                          >
+                            Eliminar
+                          </AppButton>
+                        ) : null}
+                      </Stack>
                     ) : null}
                   </Box>
                   <DocumentalFila
@@ -359,11 +378,6 @@ function NotificacionProrrogaExpedientesCard({
 
                   {puedeEditarItems && editingId === it.id ? (
                     <Stack spacing={1.25} sx={{ mt: 1.25, pt: 1.25, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                      {errEx ? (
-                        <Alert severity="error" onClose={() => setErrEx(null)}>
-                          {errEx}
-                        </Alert>
-                      ) : null}
                       <AppTextField
                         appearance="glass"
                         label="Número de expediente"
@@ -405,6 +419,36 @@ function NotificacionProrrogaExpedientesCard({
           )}
         </>
       ) : null}
+      <ConfirmDialog
+        open={confirmDeleteId != null}
+        onClose={() => {
+          if (!delSaving) setConfirmDeleteId(null);
+        }}
+        title="Eliminar expediente de prórroga"
+        destructive
+        loading={delSaving}
+        onConfirm={async () => {
+          if (confirmDeleteId == null || actuacionId == null) return;
+          setDelSaving(true);
+          setErrEx(null);
+          try {
+            await deleteNotificacionProrrogaExpediente(actuacionId, confirmDeleteId);
+            if (editingId === confirmDeleteId) cancelEdit();
+            setConfirmDeleteId(null);
+            onAfterPatch?.();
+          } catch (e: unknown) {
+            const detail = extractApiDetail(e);
+            setErrEx(typeof detail === "string" ? detail : "No se pudo eliminar el expediente.");
+          } finally {
+            setDelSaving(false);
+          }
+        }}
+      >
+        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
+          Se marcará como eliminado este expediente de prórroga. El plazo total y el vencimiento se recalculan con las
+          prórrogas que queden activas.
+        </Typography>
+      </ConfirmDialog>
     </DocumentalBloque>
   );
 }
@@ -421,7 +465,7 @@ function BloqueReferenciaNotificacion({
 }) {
   if (perfil === "operativa") {
     return (
-      <DocumentalBloque overline="Datos de la notificación" shell={shell}>
+      <DocumentalBloque overline="Referencia de la notificación" shell={shell}>
         <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
         <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
         <DocumentalFila etiqueta="Acta de notificación Nº" valor={actaNotificacionNumValor(row)} />
@@ -570,15 +614,12 @@ export function NotificacionDetalleDocumentalDialog({
 
   const titleNode =
     row != null ? (
-      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-        <Chip label="Notificación" size="small" sx={docModalChipSx} variant="outlined" />
-        <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          {isSoloExpediente ? "Expedientes de prórroga" : "Historial de notificación"}
-        </Typography>
-        <Typography variant="body2" sx={docModalSubtitleSx}>
-          {actaNotificacionCabecera(row)}
-        </Typography>
-      </Box>
+      <DocumentalModalTitleStack
+        dominioChip="Notificación"
+        titulo={isSoloExpediente ? "Expedientes de prórroga" : "Historial de notificación"}
+        subtitulo={actaNotificacionCabecera(row)}
+        actuacionId={row.id}
+      />
     ) : (
       "Detalle"
     );
@@ -596,14 +637,7 @@ export function NotificacionDetalleDocumentalDialog({
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
       actions={
-        <Box sx={docModalFooterRowSx}>
-          <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
-          <Box sx={docModalFooterButtonsSx}>
-            <AppButton dsVariant="primary" dsSize="sm" onClick={handleClose} disabled={isSoloExpediente && saving}>
-              Cerrar
-            </AppButton>
-          </Box>
-        </Box>
+        <DocumentalModalFooter onCerrar={handleClose} cerrarDisabled={isSoloExpediente && saving} />
       }
     >
       {!row ? null : isSoloExpediente ? (
@@ -617,15 +651,14 @@ export function NotificacionDetalleDocumentalDialog({
               modo="operativa"
               actuacionId={row.id}
               resumenCompacto
-              onAfterPatch={() => setProrrogaDetalleRefresh((k) => k + 1)}
-              onListaRefresh={onOperativaListaRefresh}
+              onAfterPatch={refrescarDetalleYBandeja}
             />
           ) : null}
 
           {row.source_type !== "COMPROBACION" ? (
             <Stack spacing={1.5}>
               {altaInlineMsg ? (
-                <Alert severity="success" onClose={() => setAltaInlineMsg(null)}>
+                <Alert severity="success" onClose={() => setAltaInlineMsg(null)} sx={documentalGlassAlertSx}>
                   {altaInlineMsg}
                 </Alert>
               ) : null}
@@ -644,10 +677,10 @@ export function NotificacionDetalleDocumentalDialog({
               ) : (
                 <DocumentalBloque overline="Nuevo expediente de prórroga">
                   <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", mb: 1.5 }}>
-                    Completá los datos y guardá para registrar una nueva prórroga. Podés cancelar para volver al listado.
+                    Número, fecha y días otorgados. Podés cancelar para volver al listado.
                   </Typography>
                   {modalApiError ? (
-                    <Alert severity="error" sx={{ mb: 1.5 }}>
+                    <Alert severity="error" sx={{ mb: 1.5, ...documentalGlassAlertSx }}>
                       {modalApiError}
                     </Alert>
                   ) : null}
@@ -699,7 +732,7 @@ export function NotificacionDetalleDocumentalDialog({
                       Cancelar
                     </AppButton>
                     <AppButton dsVariant="primary" dsSize="sm" disabled={saving} onClick={() => void ejecutarAlta()}>
-                      {saving ? "Guardando…" : "Guardar nuevo expediente"}
+                      {saving ? "Guardando…" : "Guardar expediente"}
                     </AppButton>
                   </Box>
                 </DocumentalBloque>
@@ -713,10 +746,11 @@ export function NotificacionDetalleDocumentalDialog({
 
           {visitaBaseHayContenido(row) ? (
             <DocumentalBloque overline="La visita" shell="actuacion">
+              <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
+              <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
               <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
               <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
-              <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-              <DocumentalFila etiqueta="Tipo de actuación" valor={textoValor(row.tipo_actuacion)} />
+              <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
             </DocumentalBloque>
           ) : null}
 
@@ -737,13 +771,12 @@ export function NotificacionDetalleDocumentalDialog({
               shell="actuacion"
               actuacionId={row.id}
               resumenCompacto={false}
-              onAfterPatch={() => setProrrogaDetalleRefresh((k) => k + 1)}
-              onListaRefresh={onOperativaListaRefresh}
+              onAfterPatch={refrescarDetalleYBandeja}
             />
           ) : null}
 
           {modalApiError ? (
-            <Alert severity="error" sx={{ mb: 0 }}>
+            <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
               {modalApiError}
             </Alert>
           ) : null}

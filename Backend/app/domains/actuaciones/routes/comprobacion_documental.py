@@ -1,5 +1,5 @@
 """
-GET/PATCH documental de comprobación: expediente de envío y bloque oficio + expediente de respuesta.
+GET/PATCH/DELETE documental de comprobación: expediente de envío y bloque oficio + expediente de respuesta.
 """
 
 from __future__ import annotations
@@ -14,6 +14,8 @@ from app.domains.actuaciones.schemas.comprobacion_documental_in import (
     ComprobacionOficioBloquePatchIn,
 )
 from app.domains.actuaciones.services.comprobacion_documental_service import (
+    delete_comprobacion_expediente_envio,
+    delete_comprobacion_oficio_bloque,
     get_comprobacion_documental_for_actuacion,
     update_comprobacion_expediente_envio,
     update_comprobacion_oficio_bloque,
@@ -74,13 +76,32 @@ def patch_comprobacion_expediente_envio(actuacion_id: int, expediente_id: int):
         return jsonify({"detail": str(e)}), 409
 
 
+@actuacion.delete("/<int:actuacion_id>/comprobacion/expediente-envio/<int:expediente_id>")
+def delete_comprobacion_expediente_envio_route(actuacion_id: int, expediente_id: int):
+    """
+    Soft delete del expediente de envío (``ENVIO_ACTA`` sin oficio vinculado a la fila).
+
+    Errores:
+        400: bloqueo (iniciador, oficio ya cargado, etc.).
+        404: no encontrado.
+    """
+    try:
+        delete_comprobacion_expediente_envio(actuacion_id, expediente_id)
+        return jsonify({"ok": True}), 200
+    except LookupError as e:
+        return jsonify({"detail": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
+
+
 @actuacion.patch("/<int:actuacion_id>/comprobacion/oficios/<int:oficio_id>")
 def patch_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int):
     """
     Actualiza oficio y expediente de respuesta (misma comprobación que la actuación).
 
     Body: ``numero_oficio``, ``fecha_oficio``, ``juzgado_id``, ``causa`` (opcional),
-    ``numero_expediente_respuesta``, ``fecha_expediente_respuesta``.
+    ``numero_expediente_respuesta``, ``fecha_expediente_respuesta`` (opcional; si omite o difiere,
+    se usa ``fecha_oficio``).
 
     Errores:
         400 / 404 / 409: mismos patrones que expediente envío.
@@ -116,3 +137,20 @@ def patch_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int):
         return jsonify({"detail": str(e)}), 400
     except RuntimeError as e:
         return jsonify({"detail": str(e)}), 409
+
+
+@actuacion.delete("/<int:actuacion_id>/comprobacion/oficios/<int:oficio_id>")
+def delete_comprobacion_oficio_bloque_route(actuacion_id: int, oficio_id: int):
+    """
+    Soft delete conjunto: expediente de respuesta del oficio y el oficio.
+
+    Errores:
+        400 / 404: mismos patrones que PATCH del bloque.
+    """
+    try:
+        delete_comprobacion_oficio_bloque(actuacion_id, oficio_id)
+        return jsonify({"ok": True}), 200
+    except LookupError as e:
+        return jsonify({"detail": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400

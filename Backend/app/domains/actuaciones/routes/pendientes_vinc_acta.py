@@ -23,6 +23,7 @@ def get_pendientes_vinc_acta():
         and_(
             Expediente.comprobacion_id == Actuaciones.comprobacion_id,
             Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
         )
     )
 

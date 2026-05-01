@@ -1,5 +1,5 @@
 """
-Documental operativo de comprobación: lectura consolidada y edición controlada de expediente de envío
+Documental operativo de comprobación: lectura consolidada y edición/eliminación controlada de expediente de envío
 y bloque oficio + expediente de respuesta.
 
 Regla de bloqueo:
@@ -9,7 +9,7 @@ Regla de bloqueo:
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.database import db
@@ -22,6 +22,11 @@ from app.utils.actas import acta_6
 _MSG_BLOQUEO = (
     "No se puede editar porque la comprobación ya fue usada como iniciador "
     "(existe un registro activo en iniciador_ruta vinculado a esta comprobación)."
+)
+
+_MSG_NO_ELIMINAR_ENVIO_CON_OFICIO = (
+    "No se puede eliminar el expediente de envío: ya existe un oficio activo para esta comprobación. "
+    "Si corresponde, eliminá primero el bloque oficio y expediente de respuesta."
 )
 
 
@@ -66,8 +71,12 @@ def evaluar_comprobacion_edicion_documental(act: Actuaciones) -> Dict[str, Any]:
             "comprobacion_usada_como_iniciador": False,
             "puede_editar_expediente_envio": False,
             "puede_editar_bloque_oficio": False,
+            "puede_eliminar_expediente_envio": False,
+            "puede_eliminar_bloque_oficio": False,
             "motivos_bloqueo_expediente_envio": motivos_exp,
             "motivos_bloqueo_oficio": motivos_ofi,
+            "motivos_bloqueo_eliminar_expediente_envio": list(motivos_exp),
+            "motivos_bloqueo_eliminar_bloque_oficio": list(motivos_ofi),
         }
 
     cid = int(act.comprobacion_id)
@@ -83,12 +92,32 @@ def evaluar_comprobacion_edicion_documental(act: Actuaciones) -> Dict[str, Any]:
     puede_exp = (not usada) and (ex_env is not None)
     puede_ofi = (not usada) and (ofi is not None) and (ex_resp is not None)
 
+    motivos_del_env: List[str] = []
+    if ex_env is None:
+        motivos_del_env.append("No hay expediente de envío activo para eliminar.")
+    if usada:
+        motivos_del_env.append(_MSG_BLOQUEO)
+    elif ofi is not None:
+        motivos_del_env.append(_MSG_NO_ELIMINAR_ENVIO_CON_OFICIO)
+    puede_del_env = (not usada) and (ex_env is not None) and (ofi is None)
+
+    motivos_del_ofi: List[str] = []
+    if usada:
+        motivos_del_ofi.append(_MSG_BLOQUEO)
+    if ofi is None or ex_resp is None:
+        motivos_del_ofi.append("No hay oficio y expediente de respuesta activos para eliminar en bloque.")
+    puede_del_ofi = puede_ofi and (ofi is not None) and (ex_resp is not None)
+
     return {
         "comprobacion_usada_como_iniciador": usada,
         "puede_editar_expediente_envio": puede_exp,
         "puede_editar_bloque_oficio": puede_ofi,
+        "puede_eliminar_expediente_envio": puede_del_env,
+        "puede_eliminar_bloque_oficio": puede_del_ofi,
         "motivos_bloqueo_expediente_envio": motivos_exp,
         "motivos_bloqueo_oficio": motivos_ofi,
+        "motivos_bloqueo_eliminar_expediente_envio": motivos_del_env,
+        "motivos_bloqueo_eliminar_bloque_oficio": motivos_del_ofi,
     }
 
 
@@ -267,6 +296,76 @@ def update_comprobacion_expediente_envio(
     return {"expediente": ex, "item": _expediente_to_item(ex)}
 
 
+def delete_comprobacion_expediente_envio(actuacion_id: int, expediente_id: int) -> None:
+    """
+    Marca como borrado (soft delete) el expediente de envío ``ENVIO_ACTA`` de la comprobación.
+
+    Reglas:
+    - Misma resolución de contexto que ``update_comprobacion_expediente_envio``.
+    - No permitido si la comprobación está usada como iniciador de ruta.
+    - No permitido si ya existe un oficio activo para la comprobación (el circuito documental avanzó).
+
+    Parámetros:
+        actuacion_id: actuación de contexto.
+        expediente_id: PK del expediente de envío.
+
+    Retorno:
+        None.
+
+    Errores:
+        LookupError / ValueError según validación de pertenencia o permisos.
+    """
+    act, ex = _resolver_actuacion_comprobacion_expediente_envio(actuacion_id, expediente_id)
+
+    per = evaluar_comprobacion_edicion_documental(act)
+    if not per["puede_eliminar_expediente_envio"]:
+        raise ValueError(
+            per["motivos_bloqueo_eliminar_expediente_envio"][0]
+            if per["motivos_bloqueo_eliminar_expediente_envio"]
+            else "Eliminación del expediente de envío no permitida"
+        )
+
+    ex.deleted_at = datetime.now(timezone.utc)
+    db.session.add(ex)
+    db.session.commit()
+
+
+def delete_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int) -> None:
+    """
+    Soft delete del oficio y del expediente de respuesta vinculado (misma transacción).
+
+    Reglas:
+    - Misma resolución que ``update_comprobacion_oficio_bloque`` (debe existir expediente de respuesta).
+    - No permitido si la comprobación está usada como iniciador de ruta (misma política que edición).
+
+    Parámetros:
+        actuacion_id: actuación de contexto.
+        oficio_id: PK del oficio.
+
+    Retorno:
+        None.
+
+    Errores:
+        LookupError / ValueError.
+    """
+    act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
+
+    per = evaluar_comprobacion_edicion_documental(act)
+    if not per["puede_eliminar_bloque_oficio"]:
+        raise ValueError(
+            per["motivos_bloqueo_eliminar_bloque_oficio"][0]
+            if per["motivos_bloqueo_eliminar_bloque_oficio"]
+            else "Eliminación del bloque oficio no permitida"
+        )
+
+    now = datetime.now(timezone.utc)
+    ex_resp.deleted_at = now
+    ofi.deleted_at = now
+    db.session.add(ex_resp)
+    db.session.add(ofi)
+    db.session.commit()
+
+
 def _resolver_actuacion_oficio_bloque(actuacion_id: int, oficio_id: int) -> Tuple[Actuaciones, Oficio, Expediente]:
     act = db.session.get(Actuaciones, actuacion_id)
     if act is None:
@@ -309,7 +408,8 @@ def update_comprobacion_oficio_bloque(
         juzgado_id: FK a catálogo de juzgados.
         causa: texto opcional (unicidad por año si no nula).
         numero_expediente_respuesta: número del expediente de respuesta (``acta_6``).
-        fecha_expediente_respuesta: fecha del expediente de respuesta.
+        fecha_expediente_respuesta: fecha del expediente de respuesta; debe coincidir con ``fecha_oficio``
+            (si difiere, el servicio la fuerza a ``fecha_oficio``).
 
     Retorno:
         dict con ``oficio``, ``expediente_respuesta`` e items serializables.
@@ -318,6 +418,9 @@ def update_comprobacion_oficio_bloque(
         LookupError, ValueError, RuntimeError (unicidad).
     """
     act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
+
+    if fecha_expediente_respuesta != fecha_oficio:
+        fecha_expediente_respuesta = fecha_oficio
 
     per = evaluar_comprobacion_edicion_documental(act)
     if not per["puede_editar_bloque_oficio"]:

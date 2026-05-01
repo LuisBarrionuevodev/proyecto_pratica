@@ -16,7 +16,11 @@ from . import actuacion
 def get_pendientes_vinc_oficio():
     """Lista actuaciones pendientes de vinculación de oficio."""
     subq = exists().where(
-        (Expediente.comprobacion_id == Actuaciones.comprobacion_id) & (Expediente.oficio_id.is_(None))
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
     )
 
     acts = (

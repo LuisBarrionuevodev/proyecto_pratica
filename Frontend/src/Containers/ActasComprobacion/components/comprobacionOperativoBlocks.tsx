@@ -227,28 +227,8 @@ export function BloqueInspeccionBaseFromOficioRow({
   return <BloqueInspeccionBaseComprobacion row={pseudo} />;
 }
 
-/** Fila reinspección + campos opcionales del grid / futuros sin cambiar contrato mínimo de API. */
-export type ReinspeccionOperativoDetalleRow = IReinspeccionOficioPendienteRow & {
-  doc_nro?: string | null;
-  razon_social?: string | null;
-  acta_inspeccion_num?: string | null;
-  inspectores_texto?: string | null;
-  inspector1?: string | null;
-  inspector2?: string | null;
-  inspector3?: string | null;
-  tipo_actuacion?: string | null;
-  oficio_causa?: string | null;
-  fecha_oficio?: string | null;
-  juzgado_nombre?: string | null;
-  expediente_numero?: string | null;
-  expediente_anio?: number | null;
-  expediente_envio_numero?: string | null;
-  expediente_envio_anio?: string | number | null;
-  expediente_respuesta_numero?: string | null;
-  expediente_respuesta_anio?: string | number | null;
-  fecha_expediente_respuesta?: string | null;
-  fecha_expediente_envio?: string | null;
-};
+/** Fila pendiente reinspección: contrato API alineado al grid + detalle documental. */
+export type ReinspeccionOperativoDetalleRow = IReinspeccionOficioPendienteRow;
 
 function contribReinspeccion(row: ReinspeccionOperativoDetalleRow): string {
   const rs = (row.razon_social ?? "").trim();
@@ -278,7 +258,7 @@ export function BloqueReferenciaReinspeccionDetalle({ row }: { row: Reinspeccion
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribReinspeccion(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
+      <DocumentalFila etiqueta="Tipo de infracción o motivo" valor={textoValor(row.comprobacion_motivo)} />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
     </DocumentalBloque>
   );

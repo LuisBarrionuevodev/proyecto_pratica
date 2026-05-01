@@ -1,16 +1,23 @@
 import { apiClient } from "./apiClient";
 import type { IPendientesOficioResponse } from "./actuacionesPendientesApi";
 
+export type FetchComprobacionPendientesOficioOpts = {
+  /** Igual que pendientes/expediente: sin acotar por mes cuando es true (evita filas “perdidas” fuera del mes). */
+  omitirRangoFecha?: boolean;
+};
+
 /** Reutiliza el mismo contrato que la bandeja esperando oficio. */
 export async function fetchComprobacionPendientesOficio(
   desde?: string | null,
   hasta?: string | null,
-  distritoId?: number | null
+  distritoId?: number | null,
+  opts?: FetchComprobacionPendientesOficioOpts
 ): Promise<IPendientesOficioResponse> {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
   if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
+  if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
   return data;
 }
@@ -34,6 +41,29 @@ export interface IReinspeccionOficioPendienteRow {
   oficio_numero?: string | null;
   oficio_anio?: number | null;
   documento_pendiente: string;
+  /** Snapshot alineado a `actuacion_to_grid_row` + detalle documental (presenter reinspección). */
+  doc_nro?: string | null;
+  acta_inspeccion_num?: string | null;
+  inspectores_texto?: string | null;
+  inspector1?: string | null;
+  inspector2?: string | null;
+  inspector3?: string | null;
+  tipo_actuacion?: string | null;
+  oficio_causa?: string | null;
+  fecha_oficio?: string | null;
+  juzgado_nombre?: string | null;
+  expediente_numero?: string | null;
+  expediente_anio?: number | null;
+  expediente_envio_numero?: string | null;
+  expediente_envio_anio?: string | number | null;
+  fecha_expediente_envio?: string | null;
+  expediente_respuesta_numero?: string | null;
+  expediente_respuesta_anio?: string | number | null;
+  fecha_expediente_respuesta?: string | null;
+  /** Misma lógica que Recorrido: tipo de visita desambigüado (ratificación / verificar e informar) o ausente. */
+  tipo_visita_resultado?: string | null;
+  /** Etiqueta de circuito documental (misma fuente que la tabla Recorrido). */
+  estado_recorrido?: string | null;
 }
 
 export interface IReinspeccionOficioResponse {
@@ -41,15 +71,22 @@ export interface IReinspeccionOficioResponse {
   meta: { total: number; desde: string | null; hasta: string | null };
 }
 
+export type FetchPendientesReinspeccionOficioOpts = {
+  /** Sin acotar por mes (evita filas fuera del mes corriente; mismo criterio que pendientes/oficio). */
+  omitirRangoFecha?: boolean;
+};
+
 export async function fetchPendientesReinspeccionOficio(
   desde?: string | null,
   hasta?: string | null,
-  distritoId?: number | null
+  distritoId?: number | null,
+  opts?: FetchPendientesReinspeccionOficioOpts
 ): Promise<IReinspeccionOficioResponse> {
   const params: Record<string, string> = {};
   if (desde) params.desde = desde;
   if (hasta) params.hasta = hasta;
   if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
+  if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const { data } = await apiClient.get<IReinspeccionOficioResponse>(
     "/actuaciones/comprobacion/pendientes-reinspeccion-oficio",
     { params }
@@ -82,6 +119,9 @@ export interface IComprobacionRecorridoRow {
   expediente_anio?: number | null;
   oficio_numero?: string | null;
   oficio_anio?: number | null;
+  /** Expediente de respuesta vinculado al oficio (misma semántica que pendientes de reinspección). */
+  expediente_respuesta_numero?: string | null;
+  expediente_respuesta_anio?: number | string | null;
   [key: string]: unknown;
 }
 

@@ -1,20 +1,19 @@
 """
-Edición controlada del expediente de prórroga ligado a una notificación (rama NOTIFICACION).
+Edición y eliminación controladas del expediente de prórroga ligado a una notificación (rama NOTIFICACION).
 
 Regla de negocio:
 - Mientras la notificación **no** haya sido usada como iniciador (``IniciadorRuta`` no borrado con
-  ``notificacion_id``), se puede editar cada expediente ``PRORROGA_NOTIFICACION`` (número, fecha,
-  plazo otorgado en días).
-- Con al menos un iniciador vinculado, la edición queda bloqueada.
+  ``notificacion_id``), se puede editar o eliminar (soft delete) cada expediente ``PRORROGA_NOTIFICACION``.
+- Con al menos un iniciador vinculado, la edición y la eliminación quedan bloqueadas.
 
-Al guardar se actualiza la fila ``expediente``, se recalcula ``Notificacion.prorroga_dias`` como la
-suma de ``prorroga_dias_otorgados`` de todas las prórrogas de esa notificación y se recalcula
+Al guardar o eliminar se recalcula ``Notificacion.prorroga_dias`` como la
+suma de ``prorroga_dias_otorgados`` de todas las prórrogas activas de esa notificación y se recalcula
 ``fecha_vencimiento`` (días hábiles AR).
 """
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from app.database import db
@@ -69,8 +68,9 @@ def evaluar_notificacion_edicion_permisos(act: Actuaciones) -> Dict[str, Any]:
         act: actuación con ``notificacion_id`` (rama gestión notificación).
 
     Retorno:
-        dict con ``puede_editar_expediente_prorroga``, ``notificacion_usada_como_iniciador`` y
-        ``motivos_bloqueo_expediente``.
+        dict con ``puede_editar_expediente_prorroga``, ``puede_eliminar_expediente_prorroga`` (misma regla
+        que edición), ``notificacion_usada_como_iniciador`` y ``motivos_bloqueo_expediente`` /
+        ``motivos_bloqueo_eliminar_expediente``.
 
     Errores:
         Ninguno (solo lectura).
@@ -81,8 +81,10 @@ def evaluar_notificacion_edicion_permisos(act: Actuaciones) -> Dict[str, Any]:
         motivos.append("La actuación no tiene notificación asociada.")
         return {
             "puede_editar_expediente_prorroga": False,
+            "puede_eliminar_expediente_prorroga": False,
             "notificacion_usada_como_iniciador": False,
             "motivos_bloqueo_expediente": motivos,
+            "motivos_bloqueo_eliminar_expediente": list(motivos),
         }
 
     nid = int(act.notificacion_id)
@@ -93,8 +95,10 @@ def evaluar_notificacion_edicion_permisos(act: Actuaciones) -> Dict[str, Any]:
     puede = not usada
     return {
         "puede_editar_expediente_prorroga": puede,
+        "puede_eliminar_expediente_prorroga": puede,
         "notificacion_usada_como_iniciador": usada,
         "motivos_bloqueo_expediente": motivos,
+        "motivos_bloqueo_eliminar_expediente": list(motivos),
     }
 
 
@@ -230,5 +234,50 @@ def update_notificacion_prorroga_expediente(
             "fecha_expediente": ex.fecha_expediente.isoformat() if ex.fecha_expediente else None,
             "tipo_expediente": ex.tipo_expediente,
             "plazo_otorgado": ex.prorroga_dias_otorgados,
+        },
+    }
+
+
+def delete_notificacion_prorroga_expediente(actuacion_id: int, expediente_id: int) -> Dict[str, Any]:
+    """
+    Soft delete de un expediente ``PRORROGA_NOTIFICACION`` y recalculo de plazo/vencimiento.
+
+    Mismas reglas de permiso que ``update_notificacion_prorroga_expediente`` (bloqueo por iniciador).
+    Tras marcar ``deleted_at``, se vuelve a sumar ``prorroga_dias`` solo con filas activas y se
+    recalcula ``fecha_vencimiento``.
+
+    Parámetros:
+        actuacion_id: actuación de contexto.
+        expediente_id: PK del expediente de prórroga.
+
+    Retorno:
+        dict con ``notificacion`` y ``plazo_notificacion`` serializable (alineado al PATCH).
+
+    Errores:
+        LookupError, ValueError, mismos que edición al recalcular vencimiento.
+    """
+    act, noti, ex = _resolver_notificacion_y_expediente_prorroga(actuacion_id, expediente_id)
+
+    per = evaluar_notificacion_edicion_permisos(act)
+    if not per["puede_eliminar_expediente_prorroga"]:
+        raise ValueError(
+            per["motivos_bloqueo_eliminar_expediente"][0]
+            if per["motivos_bloqueo_eliminar_expediente"]
+            else "Eliminación no permitida"
+        )
+
+    ex.deleted_at = datetime.now(timezone.utc)
+    db.session.add(ex)
+
+    _recalcular_prorroga_y_vencimiento(noti)
+    db.session.commit()
+
+    return {
+        "notificacion": noti,
+        "plazo_notificacion": {
+            "plazo_legal_dias": noti.plazo_dias,
+            "prorroga_total_dias": noti.prorroga_dias,
+            "fecha_notificacion": noti.fecha_notificacion.isoformat() if noti.fecha_notificacion else None,
+            "fecha_vencimiento": noti.fecha_vencimiento.isoformat() if noti.fecha_vencimiento else None,
         },
     }

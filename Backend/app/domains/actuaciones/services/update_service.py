@@ -24,6 +24,10 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
+from app.domains.establecimientos.services.vincular_establecimiento_operativo_actuacion_service import (
+    try_vincular_establecimiento_operativo_desde_actuacion,
+)
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_contribuyente_if_orphan,
     soft_delete_domicilio_if_orphan,
@@ -174,6 +178,8 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     - Recalcula `mes/anio/fecha` si viene `fecha_actuacion`.
     - Permite cambiar OT si vienen `orden_trabajo_numero` + `fecha_actuacion` (y respeta la regla 1 OT -> 1 actuación).
     - Delega el núcleo de mutación a `aplicar_payload_actuacion` (misma semántica histórica).
+    - Tras aplicar el payload, intenta vincular ``establecimiento_operativo_id`` si corresponde
+      (``try_vincular_establecimiento_operativo_desde_actuacion``).
     - Persiste con `db.session.commit()` al final.
 
     Cleanup post-update (soft delete):
@@ -215,6 +221,11 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
 
     assert_canal_actas_permite_payload_notificacion_comprobacion(act, payload)
     aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
+
+    try_vincular_establecimiento_operativo_desde_actuacion(
+        act,
+        created_by_user_id=get_current_user_id_or_fallback(),
+    )
 
     db.session.add(act)
     db.session.commit()

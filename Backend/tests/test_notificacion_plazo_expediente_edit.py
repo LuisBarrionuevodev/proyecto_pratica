@@ -194,9 +194,79 @@ def test_evaluar_permisos_bloqueo_si_iniciador_vinculado_a_notificacion(app) -> 
             db.session.flush()
             per = evaluar_notificacion_edicion_permisos(act)
             assert per["puede_editar_expediente_prorroga"] is False
+            assert per.get("puede_eliminar_expediente_prorroga") is False
             assert per.get("notificacion_usada_como_iniciador") is True
         finally:
             db.session.rollback()
+
+
+def test_delete_expediente_prorroga_ok_recuenta_plazo(app, client, auth_headers):
+    with app.app_context():
+        try:
+            act = _act_noti_con_dom()
+            db.session.commit()
+            aid = act.id
+            complete_expediente_from_actuacion(
+                aid,
+                {
+                    "expediente_numero": _unique_num(),
+                    "fecha_expediente": date(2026, 3, 5),
+                    "prorroga_dias": 3,
+                },
+            )
+            act2 = Actuaciones.query.get(aid)
+            ex_row = Expediente.query.filter_by(notificacion_id=act2.notificacion_id).first()
+            eid = ex_row.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/notificacion/expedientes-prorroga/{eid}", headers=auth_headers)
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    j = resp.get_json()
+    assert j["ok"] is True
+    assert j["plazo_notificacion"]["prorroga_total_dias"] == 0
+
+    with app.app_context():
+        ex_db = db.session.get(Expediente, eid)
+        assert ex_db is not None
+        assert ex_db.deleted_at is not None
+
+
+def test_delete_expediente_prorroga_bloqueado_si_iniciador(app, client, auth_headers):
+    with app.app_context():
+        try:
+            u = _user()
+            act = _act_noti_con_dom()
+            db.session.flush()
+            complete_expediente_from_actuacion(
+                act.id,
+                {
+                    "expediente_numero": _unique_num(),
+                    "fecha_expediente": date(2026, 3, 5),
+                    "prorroga_dias": 1,
+                },
+            )
+            ex_row = Expediente.query.filter_by(notificacion_id=act.notificacion_id).first()
+            eid = ex_row.id
+            ini = IniciadorRuta(
+                tipo_iniciador="REINSPECCION_NOTIFICACION",
+                estado_iniciador="PENDIENTE",
+                fecha_origen=date(2026, 3, 20),
+                anio=2026,
+                mes=3,
+                domicilio_id=act.domicilio_id,
+                actuacion_id=act.id,
+                notificacion_id=act.notificacion_id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.commit()
+            aid = act.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/notificacion/expedientes-prorroga/{eid}", headers=auth_headers)
+    assert resp.status_code == 400
 
 
 def test_update_expediente_service_value_error_sin_fecha_notificacion(app) -> None:
