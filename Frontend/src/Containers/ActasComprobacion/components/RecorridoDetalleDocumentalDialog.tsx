@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Stack } from "@mui/material";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import type {
   IComprobacionRecorridoDetalle,
@@ -11,6 +11,7 @@ import {
   DocumentalBloque,
   DocumentalFila,
 } from "./comprobacionOperativoBlocks";
+import { docModalEmptyStateSx } from "../../../styles/documentalModalTokens";
 import { AppDialog } from "../../../ui";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "../utils/documentalLabelFormat";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
@@ -168,12 +169,14 @@ export function RecorridoDetalleDocumentalDialog({
     muestraEjecucion;
 
   const notaReferencia =
-    refAct != null ? (
-      <>Datos de referencia y visita: respuesta de detalle (alineados al listado). La fila de tabla es opcional.</>
-    ) : listRow ? (
-      <>Referencia tomada principalmente de la fila del listado (API sin snapshot extendido).</>
+    refAct != null ? null : listRow ? (
+      <Typography variant="caption" sx={{ ...docModalEmptyStateSx, display: "block", mt: -1, opacity: 0.88 }}>
+        Referencia y visita pueden ampliarse con la fila del listado hasta que el detalle esté completo.
+      </Typography>
     ) : (
-      <>Sin fila de listado ni snapshot en detalle: algunos campos pueden faltar hasta recargar el servidor.</>
+      <Typography variant="caption" sx={{ ...docModalEmptyStateSx, display: "block", mt: -1, opacity: 0.88 }}>
+        Abrí este detalle desde el listado de recorrido para ver la información con mayor consistencia.
+      </Typography>
     );
 
   const circuitRow =
@@ -214,25 +217,6 @@ export function RecorridoDetalleDocumentalDialog({
             ejecucionReinspeccion={ejecPayload}
             notaReferencia={notaReferencia}
           />
-
-          <DocumentalBloque overline="Acta de comprobación">
-            <DocumentalFila
-              etiqueta="Número"
-              valor={
-                campoUtil(detalle.acta_comprobacion?.numero)
-                  ? String(detalle.acta_comprobacion?.numero).trim()
-                  : "Sin número de acta en el registro."
-              }
-            />
-            <DocumentalFila
-              etiqueta="Motivo"
-              valor={
-                campoUtil(detalle.acta_comprobacion?.motivo)
-                  ? String(detalle.acta_comprobacion?.motivo).trim()
-                  : "Sin motivo registrado en la comprobación."
-              }
-            />
-          </DocumentalBloque>
 
           <DocumentalBloque overline="Resultado final">
             <DocumentalFila

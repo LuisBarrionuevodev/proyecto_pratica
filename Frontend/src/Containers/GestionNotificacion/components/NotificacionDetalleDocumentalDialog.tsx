@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
@@ -14,78 +13,20 @@ import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../compo
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
-  docModalActuacionScrollCardShellSx,
-  docModalBlockOverlineSx,
-  docModalBlockResumenSx,
-  docModalFilaEtiquetaSx,
-  docModalFilaValorSx,
-  docModalGlassCardShellSx,
   docModalEmptyStateSx,
   docModalSubheadingInCardSx,
   documentalGlassAlertSx,
 } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog, AppTextField, ConfirmDialog } from "../../../ui";
+import {
+  DocumentalBloque,
+  DocumentalFila,
+  textoValor,
+} from "../../ActasComprobacion/components/comprobacionOperativoBlocks";
 import { humanizarTipoActuacion } from "../../ActasComprobacion/utils/documentalLabelFormat";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 
-function textoValor(val: unknown): string {
-  if (val === null || val === undefined || val === "") return "—";
-  return String(val);
-}
-
-function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: { xs: 0.25, sm: 1 },
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        py: 0.65,
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        "&:last-of-type": { borderBottom: "none", pb: 0 },
-      }}
-    >
-      <Typography component="span" variant="body2" sx={docModalFilaEtiquetaSx}>
-        {etiqueta}
-      </Typography>
-      <Typography component="span" variant="body2" sx={docModalFilaValorSx}>
-        {valor}
-      </Typography>
-    </Box>
-  );
-}
-
 type DocumentalCardShell = "glass" | "actuacion";
-
-function DocumentalBloque({
-  overline,
-  resumen,
-  children,
-  shell = "glass",
-}: {
-  overline: string;
-  resumen?: string;
-  children: ReactNode;
-  shell?: DocumentalCardShell;
-}) {
-  const shellSx =
-    shell === "actuacion" ? docModalActuacionScrollCardShellSx(COLORS.primary) : docModalGlassCardShellSx(COLORS.primary);
-  return (
-    <Box sx={shellSx}>
-      <Typography component="div" sx={docModalBlockOverlineSx}>
-        {overline}
-      </Typography>
-      {resumen ? (
-        <Typography component="div" sx={docModalBlockResumenSx}>
-          {resumen}
-        </Typography>
-      ) : null}
-      {children}
-    </Box>
-  );
-}
 
 function contribuyenteLinea(row: IActuacionesPendientesItem): string {
   const rs = (row.razon_social ?? "").trim();
@@ -675,7 +616,7 @@ export function NotificacionDetalleDocumentalDialog({
                   Añadir expediente de prórroga
                 </AppButton>
               ) : (
-                <DocumentalBloque overline="Nuevo expediente de prórroga">
+                <DocumentalBloque overline="Nuevo expediente de prórroga" shell="glass">
                   <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", mb: 1.5 }}>
                     Número, fecha y días otorgados. Podés cancelar para volver al listado.
                   </Typography>

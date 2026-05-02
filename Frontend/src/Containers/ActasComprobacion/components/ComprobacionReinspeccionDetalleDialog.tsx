@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, CircularProgress, Stack } from "@mui/material";
+import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import {
   fetchComprobacionDocumental,
@@ -16,7 +16,7 @@ import { ReinspeccionDocumentalSharedLayout } from "./ReinspeccionDocumentalShar
 
 function actaCabecera(row: ReinspeccionOperativoDetalleRow): string {
   const n = (row.acta_comprobacion_num ?? "").trim();
-  return n ? `Acta de comprobaci?n N? ${n}` : "Acta de comprobaci?n";
+  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
 }
 
 export type ComprobacionReinspeccionDetalleDialogProps = {
@@ -29,8 +29,8 @@ export type ComprobacionReinspeccionDetalleDialogProps = {
 };
 
 /**
- * Pendiente de reinspecci?n por oficio: bloques consultivos + edici?n de oficio/causa/expediente de respuesta
- * (mismo componente que ?Pendientes de oficio? cuando el oficio ya est? cargado).
+ * Pendiente de reinspección por oficio: bloques consultivos + edición de oficio/causa/expediente de respuesta
+ * (mismo componente que «Pendientes de oficio» cuando el oficio ya está cargado).
  */
 export function ComprobacionReinspeccionDetalleDialog({
   open,
@@ -83,13 +83,13 @@ export function ComprobacionReinspeccionDetalleDialog({
   const titleNode =
     row != null ? (
       <DocumentalModalTitleStack
-        dominioChip="Comprobaci?n"
-        titulo="Reinspecci?n por oficio"
+        dominioChip="Comprobación"
+        titulo="Reinspección por oficio"
         subtitulo={actaCabecera(row)}
         actuacionId={row.id}
       />
     ) : (
-      "Reinspecci?n por oficio"
+      "Reinspección por oficio"
     );
 
   const puedeEditarBloque =
@@ -117,7 +117,10 @@ export function ComprobacionReinspeccionDetalleDialog({
           <ReinspeccionDocumentalSharedLayout row={row} variant="pendiente" />
           {docError ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
-              {docError}
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                No se pudo cargar la ficha documental
+              </Typography>
+              <Typography variant="body2">{docError}</Typography>
             </Alert>
           ) : null}
           {docLoading ? (
@@ -134,8 +137,13 @@ export function ComprobacionReinspeccionDetalleDialog({
             />
           ) : !docError ? (
             <Alert severity="info" sx={documentalGlassAlertSx}>
-              No hay datos completos de oficio y expediente de respuesta para mostrar la edici?n. Reintent? la carga o
-              revis? la actuaci?n en ?Pendientes de oficio?.
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                Edición no disponible
+              </Typography>
+              <Typography variant="body2">
+                No hay datos completos de oficio y expediente de respuesta para mostrar la edición. Reintentá la carga o
+                revisá la actuación en «Pendientes de oficio».
+              </Typography>
             </Alert>
           ) : null}
         </Stack>

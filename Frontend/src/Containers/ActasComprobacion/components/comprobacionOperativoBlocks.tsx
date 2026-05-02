@@ -258,7 +258,7 @@ export function BloqueReferenciaReinspeccionDetalle({ row }: { row: Reinspeccion
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribReinspeccion(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      <DocumentalFila etiqueta="Tipo de infracción o motivo" valor={textoValor(row.comprobacion_motivo)} />
+      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
     </DocumentalBloque>
   );

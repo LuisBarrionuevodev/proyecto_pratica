@@ -149,12 +149,12 @@ export function OperativoOficioYRespuestaEditable({
       <Stack spacing={1.25}>
         {err ? (
           <Alert severity="error" sx={documentalGlassAlertSx} onClose={() => setErr(null)}>
-            {err}
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              Error
+            </Typography>
+            <Typography variant="body2">{err}</Typography>
           </Alert>
         ) : null}
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.45 }}>
-          Los cambios se aplican acá con «Guardar cambios». El detalle de recorrido es solo consulta.
-        </Typography>
         <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 0.5 }}>
           Oficio
         </Typography>
@@ -166,18 +166,23 @@ export function OperativoOficioYRespuestaEditable({
         <Stack spacing={1.5} sx={{ pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           {!puede && (edicion?.comprobacion_usada_como_iniciador || motivos.length > 0) ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
-              {motivos[0] ?? "No se puede editar el oficio ni el expediente de respuesta."}
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                Edición y eliminación bloqueadas
+              </Typography>
+              <Typography variant="body2">
+                {motivos[0] ?? "No se puede editar el oficio ni el expediente de respuesta."}
+              </Typography>
             </Alert>
           ) : null}
           {!editing ? (
             puede ? (
               <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
                 <AppButton dsVariant="primary" dsSize="sm" onClick={() => setEditing(true)}>
-                  Editar oficio y expediente de respuesta
+                  Editar
                 </AppButton>
                 {puedeEliminarBloque ? (
                   <AppButton dsVariant="danger" dsSize="sm" onClick={() => setConfirmDelBloqueOpen(true)}>
-                    Eliminar oficio y respuesta
+                    Eliminar
                   </AppButton>
                 ) : null}
               </Stack>
@@ -380,18 +385,31 @@ function BloqueExpedienteEnvioEditable({
       <Stack spacing={2}>
         {err ? (
           <Alert severity="error" sx={documentalGlassAlertSx} onClose={() => setErr(null)}>
-            {err}
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              Error
+            </Typography>
+            <Typography variant="body2">{err}</Typography>
           </Alert>
         ) : null}
         {soloLecturaLista ? (
           <Alert severity="warning" sx={documentalGlassAlertSx}>
-            {documentalError ??
-              "No se pudieron cargar permisos de edición desde el servidor. Ves el expediente según el listado; cerrá y volvé a abrir o verificá la sesión."}
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              Edición no disponible en el servidor
+            </Typography>
+            <Typography variant="body2">
+              {documentalError ??
+                "No se pudieron cargar los permisos de edición. Ves el expediente según el listado; cerrá y volvé a abrir o verificá la sesión."}
+            </Typography>
           </Alert>
         ) : null}
         {bloqueadoPorIniciador ? (
           <Alert severity="warning" sx={documentalGlassAlertSx}>
-            {motivos[0] ?? "No se puede editar el expediente de envío en este estado."}
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              Edición bloqueada
+            </Typography>
+            <Typography variant="body2">
+              {motivos[0] ?? "No se puede editar el expediente de envío en este estado."}
+            </Typography>
           </Alert>
         ) : null}
         {!editing ? (
@@ -413,7 +431,7 @@ function BloqueExpedienteEnvioEditable({
                 ) : null}
                 {puedeEliminarEnvioApi ? (
                   <AppButton dsVariant="danger" dsSize="sm" onClick={() => setConfirmDelEnvioOpen(true)}>
-                    Eliminar expediente
+                    Eliminar
                   </AppButton>
                 ) : null}
               </Stack>
@@ -596,9 +614,7 @@ export function ComprobacionOficioOperativoDialog({
     displayRow != null ? (
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
-        titulo={
-          tieneOficioCompleto ? "Gestionar oficio y expediente de respuesta" : "Registrar oficio y expediente de respuesta"
-        }
+        titulo={tieneOficioCompleto ? "Oficio y expediente de respuesta" : "Registrar oficio y expediente de respuesta"}
         subtitulo={actaCabecera(displayRow)}
         actuacionId={displayRow.id}
       />
@@ -623,9 +639,14 @@ export function ComprobacionOficioOperativoDialog({
       {!displayRow ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
           {documentalError ? (
-          <Alert severity="warning" sx={documentalGlassAlertSx}>
-            {documentalError} Referencia y visita siguen según el listado; reintentá si hace falta.
-          </Alert>
+            <Alert severity="warning" sx={documentalGlassAlertSx}>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                Carga documental incompleta
+              </Typography>
+              <Typography variant="body2">
+                {documentalError} La referencia y la visita siguen según el listado; reintentá si hace falta.
+              </Typography>
+            </Alert>
           ) : null}
           <BloqueReferenciaComprobacionOficio row={displayRow} />
           <BloqueInspeccionBaseFromOficioRow row={displayRow} />
@@ -660,7 +681,10 @@ export function ComprobacionOficioOperativoDialog({
                 </Typography>
                 {modalApiError ? (
                   <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-                    {modalApiError}
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                      No se pudo guardar
+                    </Typography>
+                    <Typography variant="body2">{modalApiError}</Typography>
                   </Alert>
                 ) : null}
                 <AppTextField

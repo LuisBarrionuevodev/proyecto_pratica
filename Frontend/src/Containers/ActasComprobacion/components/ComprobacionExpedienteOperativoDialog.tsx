@@ -1,4 +1,4 @@
-import { Alert, Stack } from "@mui/material";
+import { Alert, Stack, Typography } from "@mui/material";
 
 import type { IActuacionesPendientesItem } from "../../../api/actuacionesPendientesApi";
 import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
@@ -84,7 +84,10 @@ export function ComprobacionExpedienteOperativoDialog({
             <Stack spacing={2}>
               {modalApiError ? (
                 <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-                  {modalApiError}
+                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                    No se pudo guardar
+                  </Typography>
+                  <Typography variant="body2">{modalApiError}</Typography>
                 </Alert>
               ) : null}
               <AppTextField

@@ -137,7 +137,7 @@ export function ReinspeccionDocumentalSharedLayout({
       <BloqueTramitesReinspeccionDetalle row={row} />
       {variant === "pendiente" ? (
         <DocumentalBloque overline="Trámite: reinspección por oficio">
-          <DocumentalFila etiqueta="Trámite" valor="Reinspección por oficio (oficio administrativo)" />
+          <DocumentalFila etiqueta="Trámite" valor="Reinspección por oficio" />
           <DocumentalFila etiqueta="Estado del trámite" valor={humanizarEstadoIniciador(row.estado_iniciador)} />
           <DocumentalFila etiqueta="Fecha de origen del requerimiento" valor={textoValor(row.fecha_origen_iniciador)} />
           <DocumentalFila etiqueta="Documento o etapa pendiente" valor={textoValor(row.documento_pendiente)} />
