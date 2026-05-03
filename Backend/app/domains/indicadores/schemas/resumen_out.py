@@ -49,7 +49,7 @@ class RubroTopItem(BaseModel):
 
 class RutaItemsEjecucionResumen(BaseModel):
     """
-    Conteos de ítems de ruta por fecha de ruta (no filtrados por distrito/inspector).
+    Conteos de ítems de ruta por fecha de ruta en rutas **PUBLICADAS** (sin borradores).
 
     Útil como vista global del periodo; no se cruza con los filtros de actuación.
     """
@@ -58,6 +58,20 @@ class RutaItemsEjecucionResumen(BaseModel):
     estado_ejecucion_realizado: int = Field(ge=0)
     estado_ejecucion_no_realizado: int = Field(ge=0)
     estado_ejecucion_sin_clasificar: int = Field(ge=0)
+
+
+class MapaOperativoResumen(BaseModel):
+    """
+    Conteos alineados al mapa operativo D1 (mismo criterio que ``/map/operativo/*``).
+
+    ``pendientes_total`` = cola planificable + EN_PROCESO en ruta publicada (geocode OK).
+    ``realizados_visita`` = ítems finalizados con ejecución REALIZADO en ruta publicada (fecha de cierre en rango).
+    """
+
+    pendientes_cola: int = Field(ge=0)
+    pendientes_completar_trabajo: int = Field(ge=0)
+    pendientes_total: int = Field(ge=0)
+    realizados_visita: int = Field(ge=0)
 
 
 class IndicadoresResumenOut(BaseModel):
@@ -69,6 +83,7 @@ class IndicadoresResumenOut(BaseModel):
     contraproducencias_top: list[ContraproducenciaTopItem]
     actas_por_tipo: ActasPorTipo
     ruta_items_ejecucion: RutaItemsEjecucionResumen
+    mapa_operativo: MapaOperativoResumen
     top_rubros: list[RubroTopItem]
     decomiso_kg: DecomisoKgResumen
 

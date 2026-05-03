@@ -1,15 +1,12 @@
 import { Box, Typography } from "@mui/material";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import mapaFondo from "../../../assets/mapa.jpg";
+import { periodoToDateRange } from "../../Dashboard/utils/periodoDateRange";
+import { useIndicadoresResumen } from "../../Dashboard/hooks/useIndicadoresResumen";
 import { StyleTextCard, StyleTextCardSecondary } from "../../../styles/InicioStyles";
 import { GLASS_COLORS, glassCard } from "../../../styles/GlassStyles";
-
-/** KPIs ilustrativos en franja inferior — tres columnas centradas (disposición tipo panel de referencia). */
-const MOCK_KPIS = {
-  actuacionesMes: 86,
-  pendientesTotales: 12,
-} as const;
 
 type KpiFooterItemProps = { label: string; value: string | number; valueColor?: string };
 
@@ -52,12 +49,21 @@ function KpiFooterItem({ label, value, valueColor }: KpiFooterItemProps) {
   );
 }
 
+function fmtKpi(n: number | undefined, loading: boolean): string | number {
+  if (loading) return "…";
+  if (n === undefined) return "—";
+  return n;
+}
+
 /**
- * Card ancha: cabecera título + acceso, mapa y franja con 3 métricas centradas; clic abre `/mapa`.
+ * Card ancha: cabecera, mapa y tres KPIs del mes (resumen API, alineados al mapa operativo); clic abre `/mapa`.
  */
 export default function InicioMapaResumenCard() {
   const navigate = useNavigate();
   const goMapa = () => navigate("/mapa");
+
+  const resumenParams = useMemo(() => periodoToDateRange("Mensual"), []);
+  const { data, loading } = useIndicadoresResumen(resumenParams);
 
   return (
     <Box
@@ -166,52 +172,15 @@ export default function InicioMapaResumenCard() {
           backgroundColor: "rgba(0, 0, 0, 0.45)",
         }}
       >
-        <KpiFooterItem label="Actuaciones del mes" value={MOCK_KPIS.actuacionesMes} />
-        <KpiFooterItem label="Pendientes totales" value={MOCK_KPIS.pendientesTotales} />
-        <Box
-          sx={{
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minWidth: 0,
-            px: 1,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.5 }}>
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: "#2D9F4B",
-                flexShrink: 0,
-              }}
-            />
-            <Typography
-              sx={{
-                fontFamily: '"Tactic Sans", sans-serif',
-                fontWeight: 700,
-                fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                color: GLASS_COLORS.primary,
-                lineHeight: 1.2,
-              }}
-            >
-              Live
-            </Typography>
-          </Box>
-          <Typography
-            sx={{
-              ...StyleTextCardSecondary,
-              fontSize: "10px",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Estado en tiempo real
-          </Typography>
-        </Box>
+        <KpiFooterItem label="Actuaciones del mes" value={fmtKpi(data?.actuaciones.total, loading)} />
+        <KpiFooterItem
+          label="Pendientes (mapa)"
+          value={fmtKpi(data?.mapa_operativo.pendientes_total, loading)}
+        />
+        <KpiFooterItem
+          label="Realizados visita (mapa)"
+          value={fmtKpi(data?.mapa_operativo.realizados_visita, loading)}
+        />
       </Box>
     </Box>
   );

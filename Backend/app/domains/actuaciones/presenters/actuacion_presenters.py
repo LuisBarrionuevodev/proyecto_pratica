@@ -619,7 +619,8 @@ def actuacion_to_pendiente_expediente_row(
     """
     DTO compacto para la bandeja unificada de pendientes de expediente.
 
-    Incluye `source_type` explícito y mantiene campos mínimos para UI administrativa.
+    Incluye ``source_type`` explícito y ``notificacion_id`` / ``comprobacion_id`` para que el cliente
+    pueda validar actuaciones mixtas (notificación + comprobación en la misma fila).
     Rama NOTIFICACION: `dias_restantes` (hábiles hasta `fecha_vencimiento`) y `plazos_otorgados`
     cuando se pasan mapas batch
     (`build_notificacion_expediente_bandeja_metrics`). Rama COMPROBACION: ambos None.
@@ -637,6 +638,8 @@ def actuacion_to_pendiente_expediente_row(
     full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     source_type = _pendiente_expediente_source_type_for_list(act, expediente_list_channel)
     full["source_type"] = source_type
+    full["notificacion_id"] = getattr(act, "notificacion_id", None)
+    full["comprobacion_id"] = getattr(act, "comprobacion_id", None)
 
     plazos_map = plazos_por_notificacion or {}
     venc_map = fecha_vencimiento_por_notificacion or {}

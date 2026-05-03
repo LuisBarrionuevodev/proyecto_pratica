@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Stack } from "@mui/material";
+import { Alert, Snackbar, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
+import { setGeoManual } from "../../api/geoApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
-import { MapaCanvas } from "./components/MapaCanvas";
-import { MapaFiltrosUnificados } from "./components/MapaFiltrosUnificados";
-import { MapaModoTabs } from "./components/MapaModoTabs";
-import { PanelResumenOperativo } from "./components/PanelResumenOperativo";
+import { MapaCanvas, type RelocalOperativoDraft } from "./Components/MapaCanvas";
+import { MapaFiltrosUnificados } from "./Components/MapaFiltrosUnificados";
+import { MapaModoTabs } from "./Components/MapaModoTabs";
+import { PanelResumenOperativo } from "./Components/PanelResumenOperativo";
 import { useMapaOperativo } from "./hooks/useMapaOperativo";
 import { buildDistritoSelectOptions } from "./utils/distritoOptions";
 
@@ -31,6 +32,10 @@ const MapPage = () => {
   const [mapExpanded, setMapExpanded] = useState(false);
   const [inspectores, setInspectores] = useState<CatalogItem[]>([]);
 
+  const [relocalDraft, setRelocalDraft] = useState<RelocalOperativoDraft | null>(null);
+  const [relocalGuardando, setRelocalGuardando] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+
   const distritoOptions = useMemo(() => buildDistritoSelectOptions(), []);
 
   const {
@@ -40,8 +45,17 @@ const MapPage = () => {
     infoMessage,
     loadPendientes,
     loadRealizados,
-    clearForModoSwitch,
   } = useMapaOperativo();
+
+  const filtrosMapa = useMemo(
+    () => ({
+      from: fechaDesde,
+      to: fechaHasta,
+      distritoId,
+      inspectorId,
+    }),
+    [fechaDesde, fechaHasta, distritoId, inspectorId]
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -56,29 +70,89 @@ const MapPage = () => {
   }, []);
 
   useEffect(() => {
-    clearForModoSwitch();
     if (modo === "pendientes") {
-      loadPendientes();
+      void loadPendientes({ ...filtrosMapa, tipo: pendienteTipo });
+    } else {
+      void loadRealizados({ ...filtrosMapa, tipo: realizadoTipoIniciador });
     }
-  }, [modo, clearForModoSwitch, loadPendientes]);
+  }, [
+    modo,
+    loadPendientes,
+    loadRealizados,
+    filtrosMapa,
+    pendienteTipo,
+    realizadoTipoIniciador,
+  ]);
 
   const handleAplicar = useCallback(() => {
     if (modo === "pendientes") {
-      loadPendientes();
+      void loadPendientes({ ...filtrosMapa, tipo: pendienteTipo });
       return;
     }
-    void loadRealizados({
-      from: fechaDesde,
-      to: fechaHasta,
-      distritoId,
-      tipoIniciador: realizadoTipoIniciador,
-    });
-  }, [modo, loadPendientes, loadRealizados, fechaDesde, fechaHasta, distritoId, realizadoTipoIniciador]);
+    void loadRealizados({ ...filtrosMapa, tipo: realizadoTipoIniciador });
+  }, [
+    modo,
+    loadPendientes,
+    loadRealizados,
+    filtrosMapa,
+    pendienteTipo,
+    realizadoTipoIniciador,
+  ]);
 
   const handleModoChange = useCallback((m: "pendientes" | "realizados") => {
     setModo(m);
     setMapExpanded(false);
+    setRelocalDraft(null);
   }, []);
+
+  useEffect(() => {
+    setRelocalDraft(null);
+  }, [fechaDesde, fechaHasta, distritoId, inspectorId, pendienteTipo, realizadoTipoIniciador]);
+
+  const reloadOperativoActual = useCallback(async () => {
+    if (modo === "pendientes") {
+      await loadPendientes({ ...filtrosMapa, tipo: pendienteTipo });
+    } else {
+      await loadRealizados({ ...filtrosMapa, tipo: realizadoTipoIniciador });
+    }
+  }, [modo, loadPendientes, loadRealizados, filtrosMapa, pendienteTipo, realizadoTipoIniciador]);
+
+  const handleIniciarRelocalizacion = useCallback((payload: RelocalOperativoDraft) => {
+    setRelocalDraft({ ...payload });
+  }, []);
+
+  const handleRelocalDraftMove = useCallback((lat: number, lng: number) => {
+    setRelocalDraft((d) => (d ? { ...d, lat, lng } : null));
+  }, []);
+
+  const handleCancelarRelocalizacion = useCallback(() => {
+    setRelocalDraft(null);
+  }, []);
+
+  const handleConfirmarRelocalizacion = useCallback(async () => {
+    if (!relocalDraft) return;
+    setRelocalGuardando(true);
+    try {
+      await setGeoManual(relocalDraft.domicilio_id, relocalDraft.lat, relocalDraft.lng);
+      setRelocalDraft(null);
+      setSnackbar({
+        message: "Ubicación guardada. El mapa y el panel se actualizan con el nuevo geocode del domicilio.",
+        severity: "success",
+      });
+      await reloadOperativoActual();
+    } catch (e: unknown) {
+      const detail =
+        e && typeof e === "object" && "response" in e
+          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      setSnackbar({
+        message: typeof detail === "string" ? detail : "No se pudo guardar la ubicación.",
+        severity: "error",
+      });
+    } finally {
+      setRelocalGuardando(false);
+    }
+  }, [relocalDraft, reloadOperativoActual]);
 
   return (
     <Stack
@@ -96,7 +170,7 @@ const MapPage = () => {
           {error}
         </Alert>
       )}
-      {infoMessage && modo === "pendientes" && (
+      {infoMessage && (
         <Alert severity="info" sx={alertBaseStyles}>
           {infoMessage}
         </Alert>
@@ -138,9 +212,28 @@ const MapPage = () => {
             loading={loading}
             mapExpanded={mapExpanded}
             onToggleExpand={() => setMapExpanded((e) => !e)}
+            relocalDraft={modo === "pendientes" ? relocalDraft : null}
+            onRelocalDraftMove={handleRelocalDraftMove}
+            onIniciarRelocalizacion={handleIniciarRelocalizacion}
+            onCancelarRelocalizacion={handleCancelarRelocalizacion}
+            onConfirmarRelocalizacion={handleConfirmarRelocalizacion}
+            relocalGuardando={relocalGuardando}
           />
         </Grid>
       </Grid>
+
+      <Snackbar
+        open={Boolean(snackbar)}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        {snackbar ? (
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar(null)} sx={{ width: "100%" }} variant="filled">
+            {snackbar.message}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
     </Stack>
   );
 };

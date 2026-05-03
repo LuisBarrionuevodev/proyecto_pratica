@@ -120,3 +120,46 @@ def test_completo_in_no_permite_inspeccion_exige_comprobacion_y_motivo(app) -> N
                 contraproducencia="NO PERMITE INSPECCION",
                 acta_comprobacion_num="111111",
             )
+
+
+def test_completo_in_correctiva_rubro_exige_rubro_nombre(app) -> None:
+    _ensure_catalog_contraproducencia(app, "NO ES EL RUBRO")
+    with app.app_context():
+        with pytest.raises(ValidationError) as exc:
+            CompletarTrabajoCierreCompletoIn(contraproducencia="NO ES EL RUBRO")
+    assert "rubro" in str(exc.value).lower()
+
+
+def test_completo_in_correctiva_rubro_ok(app) -> None:
+    _ensure_catalog_contraproducencia(app, "NO ES EL RUBRO")
+    with app.app_context():
+        m = CompletarTrabajoCierreCompletoIn(
+            contraproducencia="NO ES EL RUBRO",
+            rubro_nombre="Kiosco",
+        )
+    assert m.rubro_nombre == "Kiosco"
+
+
+def test_completo_in_correctiva_direccion_exige_calle_numero(app) -> None:
+    _ensure_catalog_contraproducencia(app, "DIRECCION INCORRECTA")
+    with app.app_context():
+        with pytest.raises(ValidationError) as exc:
+            CompletarTrabajoCierreCompletoIn(
+                contraproducencia="DIRECCION INCORRECTA",
+                rubro_nombre="Kiosco",
+                calle="San Martín",
+            )
+    msg = str(exc.value).lower()
+    assert "calle" in msg or "numero" in msg
+
+
+def test_completo_in_correctiva_direccion_ok(app) -> None:
+    _ensure_catalog_contraproducencia(app, "DIRECCION INCORRECTA")
+    with app.app_context():
+        m = CompletarTrabajoCierreCompletoIn(
+            contraproducencia="DIRECCION INCORRECTA",
+            calle="San Martín",
+            numero="1234",
+        )
+    assert m.calle == "San Martín"
+    assert m.numero == "1234"

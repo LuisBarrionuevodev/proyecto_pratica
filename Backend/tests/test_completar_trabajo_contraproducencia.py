@@ -3,6 +3,8 @@ import pytest
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
     CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL,
     ContrapBucket,
+    STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+    STORED_CORRECTIVA_NO_ES_EL_RUBRO,
     STORED_NO_EXISTE_LOCAL,
     STORED_NO_PERMITE_INSPECCION,
     map_contraproducencia_alias_to_catalog_nombre,
@@ -25,6 +27,8 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
         ("NO EXISTE/NO ES EL RUBRO", STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL),
         ("NO PERMITE INSPECCION", STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION),
         ("NO_PERMITE_INSPECCION", STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION),
+        ("NO ES EL RUBRO", "NO ES EL RUBRO", ContrapBucket.REINGRESO_PRIORIDAD_ALTA),
+        ("DIRECCIÓN INCORRECTA", "DIRECCION INCORRECTA", ContrapBucket.REINGRESO_PRIORIDAD_ALTA),
     ],
 )
 def test_normalize_contraproducencia(raw, stored, bucket) -> None:
@@ -43,6 +47,15 @@ def test_motivo_clima() -> None:
     assert m == "INCLEMENCIA_TIEMPO"
 
 
+def test_motivo_correctivas_reingreso() -> None:
+    m = motivo_no_realizado_para_ruta_item("NO ES EL RUBRO", ContrapBucket.REINGRESO_PRIORIDAD_ALTA)
+    assert m == "OTRO"
+    m2 = motivo_no_realizado_para_ruta_item(
+        STORED_CORRECTIVA_DIRECCION_INCORRECTA, ContrapBucket.REINGRESO_PRIORIDAD_ALTA
+    )
+    assert m2 == "OTRO"
+
+
 def test_motivo_no_permite_inspeccion() -> None:
     m = motivo_no_realizado_para_ruta_item(
         STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION
@@ -57,6 +70,8 @@ def test_motivo_no_permite_inspeccion() -> None:
         ("NO EXISTE / NO COINCIDE RUBRO", CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL),
         ("LOCAL CERRADO", "LOCAL CERRADO"),
         ("NO_PERMITE_INSPECCION", STORED_NO_PERMITE_INSPECCION),
+        ("DIRECCIÓN INCORRECTA", STORED_CORRECTIVA_DIRECCION_INCORRECTA),
+        ("NO ES EL RUBRO", STORED_CORRECTIVA_NO_ES_EL_RUBRO),
     ],
 )
 def test_map_contraproducencia_alias_to_catalog_nombre(raw, expected_catalog) -> None:

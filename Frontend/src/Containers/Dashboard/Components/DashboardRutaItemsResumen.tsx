@@ -6,7 +6,10 @@ interface Props {
 }
 
 /**
- * Resumen textual de ítems de ruta por fecha de ruta (sin filtro distrito/inspector en backend v1).
+ * Resumen textual de ítems de ruta por fecha de ruta en rutas publicadas (sin filtro distrito/inspector).
+ *
+ * Nota: «Ejecución: realizado» cuenta `estado_ejecucion == REALIZADO` por fecha de ruta; no exige
+ * `FINALIZADO` ni fecha de cierre como el mapa operativo. Para cifras alineadas al mapa usar `mapa_operativo` del resumen.
  */
 const DashboardRutaItemsResumen = ({ data }: Props) => {
   const rows = [
@@ -18,6 +21,9 @@ const DashboardRutaItemsResumen = ({ data }: Props) => {
 
   return (
     <Stack spacing={1.5} sx={{ py: 1 }}>
+      <Typography variant="caption" color="rgba(255,255,255,0.5)" sx={{ display: "block", mb: 0.5 }}>
+        Métrica descriptiva global; el KPI «Realizados visita (mapa)» refleja FINALIZADO + REALIZADO + fecha de cierre.
+      </Typography>
       {rows.map((r) => (
         <Box
           key={r.label}

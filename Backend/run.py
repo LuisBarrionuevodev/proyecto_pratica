@@ -110,6 +110,8 @@ def _seed_catalogos_base() -> dict[str, int]:
         "ZONA ROJA",
         "NO_HUBO",
         "OTROS",
+        "NO ES EL RUBRO",
+        "DIRECCION INCORRECTA",
         "NO PERMITE INSPECCION",
     ]:
         upsert_nombre(CatalogContraproducencia, nombre)

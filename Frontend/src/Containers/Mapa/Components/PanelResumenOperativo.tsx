@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import type { MapPointFeature } from "../../../api/mapApi";
@@ -8,31 +9,65 @@ import {
   mapaOperativoInnerCardSx,
 } from "./mapaOperativoStyles";
 import { COLORS } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+import { colorPrioridadBacklog } from "./mapaOperativoMarkers";
 
-function summarize(features: MapPointFeature[]) {
-  let soloAct = 0;
-  let soloRel = 0;
-  let ambos = 0;
+function countTipoIniciador(features: MapPointFeature[]): Record<string, number> {
+  const byTipo: Record<string, number> = {};
+  for (const f of features) {
+    const t = String(f.properties?.tipo_iniciador ?? "").trim();
+    if (t) byTipo[t] = (byTipo[t] ?? 0) + 1;
+  }
+  return byTipo;
+}
+
+function summarizePendientesOperativo(features: MapPointFeature[]) {
+  let backlog = 0;
+  let enRuta = 0;
+  const byTipo: Record<string, number> = {};
   for (const f of features) {
     const p = f.properties ?? {};
-    const ha = Boolean(p.has_act);
-    const hr = Boolean(p.has_rel);
-    if (ha && hr) ambos += 1;
-    else if (ha) soloAct += 1;
-    else if (hr) soloRel += 1;
+    const layer = String(p.map_layer ?? "");
+    if (layer === "iniciador_backlog") backlog += 1;
+    else if (layer === "ruta_en_proceso") enRuta += 1;
+    const t = String(p.tipo_iniciador ?? "").trim();
+    if (t) byTipo[t] = (byTipo[t] ?? 0) + 1;
   }
-  return { soloAct, soloRel, ambos, total: features.length };
+  return { backlog, enRuta, byTipo, total: features.length };
 }
 
 function downloadCsv(features: MapPointFeature[], filename: string) {
-  const header = "domicilio_id,lat,lng,act_count,rel_count\n";
+  const header =
+    "domicilio_id,lat,lng,map_layer,tipo_iniciador,iniciador_id,ruta_item_id,prioridad,prioridad_categoria,fecha_ref," +
+    "distrito_nombre,inspectores,contribuyente_o_razon_social,domicilio_texto," +
+    "acta_inspeccion,acta_notificacion,acta_comprobacion,acta_clausura,acta_decomiso,actuacion_id\n";
   const rows = features
     .map((f) => {
       const c = f.geometry?.coordinates;
       const lat = c?.[1] ?? "";
       const lng = c?.[0] ?? "";
       const p = f.properties ?? {};
-      return [p.domicilio_id, lat, lng, p.act_count ?? "", p.rel_count ?? ""].join(",");
+      return [
+        p.domicilio_id,
+        lat,
+        lng,
+        p.map_layer ?? "",
+        p.tipo_iniciador ?? "",
+        p.iniciador_id ?? "",
+        p.ruta_item_id ?? "",
+        p.prioridad ?? "",
+        p.prioridad_categoria ?? "",
+        p.fecha_ref ?? "",
+        p.distrito_nombre ?? "",
+        p.inspectores ?? "",
+        p.contribuyente_o_razon_social ?? "",
+        p.domicilio_texto ?? "",
+        p.acta_inspeccion ?? "",
+        p.acta_notificacion ?? "",
+        p.acta_comprobacion ?? "",
+        p.acta_clausura ?? "",
+        p.acta_decomiso ?? "",
+        p.actuacion_id ?? "",
+      ].join(",");
     })
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8" });
@@ -44,19 +79,82 @@ function downloadCsv(features: MapPointFeature[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function PrioridadDot({ color, label }: { color: string; label: string }) {
-  return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.35 }}>
+type MapLegendShape = "triangle" | "square" | "pin";
+
+function MapLegendSample({
+  shape,
+  color,
+  label,
+  squareGlyph = "!",
+}: {
+  shape: MapLegendShape;
+  color: string;
+  label: string;
+  /** Contenido del cuadrado leyenda (solo `shape === "square"`). */
+  squareGlyph?: string;
+}) {
+  let inner: ReactNode;
+  if (shape === "triangle") {
+    inner = (
       <Box
         sx={{
-          width: 12,
-          height: 12,
-          borderRadius: "50%",
-          backgroundColor: color,
+          width: 0,
+          height: 0,
+          borderLeft: "7px solid transparent",
+          borderRight: "7px solid transparent",
+          borderBottom: `12px solid ${color}`,
           flexShrink: 0,
-          boxShadow: `0 0 0 2px ${COLORS.border}`,
+          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))",
         }}
       />
+    );
+  } else if (shape === "square") {
+    inner = (
+      <Box
+        sx={{
+          width: 16,
+          height: 16,
+          borderRadius: "4px",
+          backgroundColor: color,
+          border: `2px solid ${COLORS.white}`,
+          flexShrink: 0,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: COLORS.white,
+          fontSize: 12,
+          fontWeight: 900,
+          lineHeight: 1,
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
+        {squareGlyph}
+      </Box>
+    );
+  } else {
+    inner = (
+      <Box
+        component="svg"
+        width={18}
+        height={22}
+        viewBox="0 0 28 34"
+        sx={{ flexShrink: 0, filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}
+      >
+        <path
+          d="M14 2C8 2 3 6.8 3 12.8c0 6.5 9.2 17.4 10.6 19 .2.3.5.5.9.5.4 0 .7-.2.9-.5 1.4-1.6 10.6-12.5 10.6-19C26 6.8 21 2 14 2z"
+          fill={color}
+          stroke={COLORS.white}
+          strokeWidth={2}
+        />
+        <circle cx="14" cy="12" r="3.5" fill={COLORS.white} fillOpacity={0.95} />
+      </Box>
+    );
+  }
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.35 }}>
+      <Box sx={{ width: 22, display: "flex", justifyContent: "center", alignItems: "center" }}>{inner}</Box>
       <Typography variant="body2" sx={{ color: COLORS.grayLight, fontFamily: '"Tactic Sans", sans-serif' }}>
         {label}
       </Typography>
@@ -73,7 +171,8 @@ export type PanelResumenOperativoProps = {
  * Columna izquierda: bloques separados en subcajas según el modo (pendientes / realizados).
  */
 export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoProps) {
-  const stats = summarize(features);
+  const byTipoReal = modo === "realizados" ? countTipoIniciador(features) : {};
+  const statsPend = summarizePendientesOperativo(features);
 
   const distRow = (label: string, value: number | string) => (
     <Stack key={label} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.35 }}>
@@ -113,32 +212,69 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
                 Tareas pendientes
               </Typography>
               <Typography variant="h3" sx={{ color: COLORS.primary, fontWeight: 800, fontFamily: '"Tactic Sans", sans-serif' }}>
-                {stats.total}
+                {statsPend.total}
               </Typography>
               <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 0.5 }}>
-                En mapa según filtros (pendiente de datos operativos).
+                Puntos con geocode OK: cola de iniciadores (planificables) + ítems EN_PROCESO solo en rutas{" "}
+                <strong>publicadas</strong>. Las rutas en <strong>borrador</strong> no se muestran como completar trabajo.
               </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
-                Distribución por tipo
+                Origen en circuito
               </Typography>
               <Stack spacing={0.5}>
-                {distRow("Denuncias", 0)}
-                {distRow("Relevamientos", 0)}
-                {distRow("Reinspecciones", 0)}
-                {distRow("Reinspecciones de oficio", 0)}
+                {distRow("En cola (iniciador PENDIENTE)", statsPend.backlog)}
+                {distRow("En ruta del día (pendiente de completar trabajo)", statsPend.enRuta)}
+              </Stack>
+              <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 1 }}>
+                Conteo «en ruta»: solo ítems en ruta <strong>publicada</strong> (estado EN_PROCESO). Sin borradores.
+              </Typography>
+            </Paper>
+
+            <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+                Por tipo de iniciador
+              </Typography>
+              <Stack spacing={0.5}>
+                {Object.keys(statsPend.byTipo).length === 0 ? (
+                  <Typography variant="body2" sx={{ color: COLORS.grayLight }}>
+                    —
+                  </Typography>
+                ) : (
+                  Object.entries(statsPend.byTipo)
+                    .sort(([a], [b]) => a.localeCompare(b, "es"))
+                    .map(([k, v]) => distRow(k.replace(/_/g, " "), v))
+                )}
               </Stack>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
-                Prioridad en mapa
+                Leyenda del mapa (forma y color)
               </Typography>
-              <PrioridadDot color={COLORS.primary} label="Alta" />
-              <PrioridadDot color={COLORS.warning} label="Media" />
-              <PrioridadDot color={COLORS.grayLight} label="Baja" />
+              <MapLegendSample
+                shape="triangle"
+                color={colorPrioridadBacklog("ALTA")}
+                label="Triángulo rojo: cola · prioridad alta (valor ≥ 3)"
+              />
+              <MapLegendSample
+                shape="triangle"
+                color={colorPrioridadBacklog("MEDIA")}
+                label="Triángulo naranja: cola · prioridad media (2)"
+              />
+              <MapLegendSample
+                shape="triangle"
+                color={colorPrioridadBacklog("BAJA")}
+                label="Triángulo azul: cola · prioridad baja (1)"
+              />
+              <MapLegendSample
+                shape="square"
+                color={COLORS.primary}
+                squareGlyph="!"
+                label="Cuadrado azul con «!»: en ruta publicada · pendiente de completar trabajo (EN_PROCESO)"
+              />
             </Paper>
           </>
         )}
@@ -147,49 +283,40 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
           <>
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
-                Actuaciones realizadas
+                Visitas realizadas
               </Typography>
               <Typography variant="h3" sx={{ color: COLORS.primary, fontWeight: 800, fontFamily: '"Tactic Sans", sans-serif' }}>
-                {stats.total}
+                {features.length}
               </Typography>
               <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 0.5 }}>
-                Puntos en mapa (domicilios con actividad en el período filtrado).
+                Ítems FINALIZADO + REALIZADO en el rango (fecha de cierre o día de ruta si falta ejecutado_at).
               </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
-                Desglose resolutivo
+                Por tipo de iniciador
               </Typography>
               <Stack spacing={0.5}>
-                {distRow("Clausuras", "—")}
-                {distRow("Decomisos", "—")}
-                {distRow("Actas de comprobación", "—")}
-                {distRow("Notificaciones", "—")}
+                {Object.keys(byTipoReal).length === 0 ? (
+                  <Typography variant="body2" sx={{ color: COLORS.grayLight }}>
+                    —
+                  </Typography>
+                ) : (
+                  Object.entries(byTipoReal)
+                    .sort(([a], [b]) => a.localeCompare(b, "es"))
+                    .map(([k, v]) => distRow(k.replace(/_/g, " "), v))
+                )}
               </Stack>
-              <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 1 }}>
-                Valores al conectar endpoint operativo con actas vinculadas.
-              </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
-                Top inspectores
+                Leyenda del mapa
               </Typography>
-              <Stack spacing={1}>
-                {[1, 2, 3].map((i) => (
-                  <Stack key={i} direction="row" justifyContent="space-between">
-                    <Typography variant="body2" sx={{ color: COLORS.grayLight }}>
-                      —
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: COLORS.white, fontWeight: 600 }}>
-                      —
-                    </Typography>
-                  </Stack>
-                ))}
-              </Stack>
+              <MapLegendSample shape="pin" color={COLORS.success} label="Pin verde: visita realizada (FINALIZADO + REALIZADO)" />
               <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 1 }}>
-                Ranking según actuaciones en el período (pendiente de API).
+                Relocalización manual del pin y ranking de inspectores (D2+) quedan fuera de este PR.
               </Typography>
             </Paper>
           </>

@@ -21,7 +21,11 @@ import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicili
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
-import { esNoPermiteInspeccionContraproducencia } from "../utils/completarTrabajoContraproducencia";
+import {
+  esCorrectivaDireccionContraproducencia,
+  esCorrectivaRubroContraproducencia,
+  esNoPermiteInspeccionContraproducencia,
+} from "../utils/completarTrabajoContraproducencia";
 import { getContraproducenciaUxHint } from "../utils/contraproducenciaUxHint";
 import {
   applyCompletarTrabajoFieldErrorsFromApi,
@@ -403,6 +407,18 @@ export function CompletarTrabajoModal({
         preSubmitErrors.comprobacion_motivo = "Con esta contraproducencia el motivo de comprobación es obligatorio.";
       }
     }
+    if (esCorrectivaRubroContraproducencia(contraproducencia) && !rubroNombre.trim()) {
+      preSubmitErrors.rubro_nombre =
+        "Con «no es el rubro» tenés que elegir el rubro corregido antes de guardar.";
+    }
+    if (esCorrectivaDireccionContraproducencia(contraproducencia)) {
+      if (!calle.trim()) {
+        preSubmitErrors.calle = "Con «dirección incorrecta» completá la calle corregida.";
+      }
+      if (!numero.trim()) {
+        preSubmitErrors.numero = "Con «dirección incorrecta» completá el número corregido.";
+      }
+    }
     if (
       visitaRealizada &&
       actaNotificacion.trim() &&
@@ -714,6 +730,22 @@ export function CompletarTrabajoModal({
             </Typography>
             <Typography variant="caption" sx={{ display: "block", opacity: 0.92 }}>
               No se registran actas del día en este cierre.
+            </Typography>
+          </Alert>
+        )}
+        {contraHint === "correctiva_rubro_direccion" && (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Corrección de datos y reingreso
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              El trabajo vuelve a <strong>pendientes</strong> con prioridad alta. Ajustá abajo el rubro y/o la
+              dirección según corresponda y guardá: los cambios quedan en la actuación y en el iniciador para la
+              próxima visita.
+            </Typography>
+            <Typography variant="caption" sx={{ display: "block", opacity: 0.9 }}>
+              No se cargan actas del día en este cierre. Si cambió mucho la dirección, el mapa puede mostrar el punto
+              en revisión hasta que termine la normalización / geocodificación automática.
             </Typography>
           </Alert>
         )}

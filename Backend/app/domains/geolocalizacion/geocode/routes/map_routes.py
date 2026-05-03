@@ -13,6 +13,10 @@ from app.domains.geolocalizacion.geocode.services.map_service import (
     get_details,
     save_manual_geocode,
 )
+from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
+    list_mapa_operativo_pendientes_geo,
+    list_mapa_operativo_realizados_geo,
+)
 
 from app.domains.geolocalizacion.geocode.services.osm_static_map_proxy_service import (
     fetch_osm_static_map_bytes,
@@ -229,6 +233,78 @@ def map_distritos():
         rubro=params.get("rubro"),
     )
     return jsonify({"items": items}), 200
+
+
+def _fc_from_points(items: list[dict]) -> tuple[dict, int]:
+    """Arma FeatureCollection HTTP 200 o JSON de error."""
+    features = []
+    for item in items:
+        if item.get("lat") is None or item.get("lng") is None:
+            continue
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [item["lng"], item["lat"]]},
+                "properties": {k: v for k, v in item.items() if k not in {"lat", "lng"}},
+            }
+        )
+    return {"type": "FeatureCollection", "features": features}, 200
+
+
+@geolocalizacion_map.get("/map/operativo/pendientes")
+def map_operativo_pendientes():
+    """
+    Mapa operativo — pendientes: cola de iniciadores + ítems EN_PROCESO (ruta publicada).
+
+    Query: desde, hasta (ISO date), opcional distrito_id, tipo (filtro UI), inspector_id.
+    """
+    params = request.args.to_dict()
+    distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
+    inspector_id = int(params["inspector_id"]) if params.get("inspector_id") else None
+    try:
+        items = list_mapa_operativo_pendientes_geo(
+            desde=params.get("desde") or params.get("from"),
+            hasta=params.get("hasta") or params.get("to"),
+            distrito_id=distrito_id,
+            tipo=params.get("tipo"),
+            inspector_id=inspector_id,
+        )
+    except ValueError as exc:
+        return jsonify({"detail": str(exc)}), 400
+    body, status = _fc_from_points(items)
+    return jsonify(body), status
+
+
+@geolocalizacion_map.get("/api/map/operativo/pendientes")
+def map_operativo_pendientes_alias():
+    return map_operativo_pendientes()
+
+
+@geolocalizacion_map.get("/map/operativo/realizados")
+def map_operativo_realizados():
+    """
+    Mapa operativo — realizados: ``RutaItem`` finalizado con visita realizada en el rango.
+    """
+    params = request.args.to_dict()
+    distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
+    inspector_id = int(params["inspector_id"]) if params.get("inspector_id") else None
+    try:
+        items = list_mapa_operativo_realizados_geo(
+            desde=params.get("desde") or params.get("from"),
+            hasta=params.get("hasta") or params.get("to"),
+            distrito_id=distrito_id,
+            tipo=params.get("tipo"),
+            inspector_id=inspector_id,
+        )
+    except ValueError as exc:
+        return jsonify({"detail": str(exc)}), 400
+    body, status = _fc_from_points(items)
+    return jsonify(body), status
+
+
+@geolocalizacion_map.get("/api/map/operativo/realizados")
+def map_operativo_realizados_alias():
+    return map_operativo_realizados()
 
 
 @geolocalizacion_map.get("/map/pendientes")

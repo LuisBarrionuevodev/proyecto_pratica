@@ -26,6 +26,14 @@ export interface IndicadoresRutaItemsEjecucion {
   estado_ejecucion_sin_clasificar: number;
 }
 
+/** Conteos alineados al mapa operativo D1 (misma semántica que GeoJSON pendientes/realizados). */
+export interface IndicadoresMapaOperativo {
+  pendientes_cola: number;
+  pendientes_completar_trabajo: number;
+  pendientes_total: number;
+  realizados_visita: number;
+}
+
 export interface IndicadoresRubroTopItem {
   rubro_id: number;
   nombre: string;
@@ -50,6 +58,7 @@ export interface IndicadoresResumenResponse {
   contraproducencias_top: IndicadoresContraproducenciaTopItem[];
   actas_por_tipo: IndicadoresActasPorTipo;
   ruta_items_ejecucion: IndicadoresRutaItemsEjecucion;
+  mapa_operativo: IndicadoresMapaOperativo;
   top_rubros: IndicadoresRubroTopItem[];
   decomiso_kg: IndicadoresDecomisoKg;
 }

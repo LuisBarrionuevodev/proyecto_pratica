@@ -1,4 +1,8 @@
-import { CONTRAPRODUCCION_NO_PERMITE_INSPECCION } from "./completarTrabajoContraproducencia";
+import {
+  CONTRAPRODUCCION_NO_PERMITE_INSPECCION,
+  CORRECTIVA_DIRECCION_INCORRECTA,
+  CORRECTIVA_NO_ES_EL_RUBRO,
+} from "./completarTrabajoContraproducencia";
 
 /**
  * Mensajes UX según contraproducencia elegida (alineado al backend: no existe local vs reingreso).
@@ -6,6 +10,7 @@ import { CONTRAPRODUCCION_NO_PERMITE_INSPECCION } from "./completarTrabajoContra
 export type ContraproducenciaUxHint =
   | "cierra_sin_reingreso"
   | "reingreso_prioridad_alta"
+  | "correctiva_rubro_direccion"
   | "no_permite_inspeccion";
 
 function looseKey(s: string): string {
@@ -15,7 +20,9 @@ function looseKey(s: string): string {
     .replace(/\//g, " ")
     .split(/\s+/)
     .join(" ")
-    .trim();
+    .trim()
+    .normalize("NFD")
+    .replace(/\u0300-\u036f/g, "");
 }
 
 /** Valores de catálogo / alias que el backend trata como cierre sin reingreso. */
@@ -49,6 +56,9 @@ export function getContraproducenciaUxHint(selected: string): ContraproducenciaU
   const k = looseKey(t);
   if (NO_REINGRESO_KEYS.has(k)) return "cierra_sin_reingreso";
   if (k === looseKey(CONTRAPRODUCCION_NO_PERMITE_INSPECCION)) return "no_permite_inspeccion";
+  if (k === looseKey(CORRECTIVA_NO_ES_EL_RUBRO) || k === looseKey(CORRECTIVA_DIRECCION_INCORRECTA)) {
+    return "correctiva_rubro_direccion";
+  }
   if (REINGRESO_KEYS.has(k)) return "reingreso_prioridad_alta";
   return null;
 }

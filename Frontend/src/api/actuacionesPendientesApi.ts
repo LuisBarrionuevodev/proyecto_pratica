@@ -21,6 +21,9 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   comprobacion_posterior_acta_num?: string | null;
   /** Con `source_type=notificacion` en el GET puede ser NOTIFICACION aunque la actuación tenga también comprobación (canal paralelo). */
   source_type?: "NOTIFICACION" | "COMPROBACION";
+  /** FKs de contexto (bandeja expediente); útiles para normalizar canal en UI. */
+  notificacion_id?: number | null;
+  comprobacion_id?: number | null;
   domicilio_id?: number | null;
   numero_esquina?: string | null;
   calle_ingresada?: string | null;

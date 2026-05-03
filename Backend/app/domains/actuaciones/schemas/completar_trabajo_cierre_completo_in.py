@@ -6,6 +6,8 @@ from pydantic import ConfigDict, ValidationError, field_validator, model_validat
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+    es_contraproducencia_correctiva_direccion,
+    es_contraproducencia_correctiva_rubro,
     es_no_permite_inspeccion_contraproducencia,
 )
 
@@ -277,4 +279,24 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                     }
                 ],
             )
+        return self
+
+    @model_validator(mode="after")
+    def correctivas_exigen_datos_corregidos(self) -> "CompletarTrabajoCierreCompletoIn":
+        """
+        Contraproducencias operativas «correctivas»: además del cierre, el body debe traer el dato corregido
+        (rubro y/o domicilio) para persistir en actuación e iniciador.
+        """
+        if not self.contraproducencia:
+            return self
+        if es_contraproducencia_correctiva_rubro(self.contraproducencia):
+            if not (self.rubro_nombre and str(self.rubro_nombre).strip()):
+                raise ValueError(
+                    "Con contraproducencia NO ES EL RUBRO es obligatorio enviar rubro_nombre con el rubro corregido."
+                )
+        if es_contraproducencia_correctiva_direccion(self.contraproducencia):
+            if not (self.calle and str(self.calle).strip()) or not (self.numero and str(self.numero).strip()):
+                raise ValueError(
+                    "Con contraproducencia DIRECCION INCORRECTA es obligatorio enviar calle y número corregidos."
+                )
         return self

@@ -1,18 +1,19 @@
 import type { IActuacionesPendientesItem } from "../../api/actuacionesPendientesApi";
 
-/** En plazo: más de 4 días → d >= 5 */
+/** En plazo: más de 4 días hábiles hasta vencimiento → d >= 5 */
 export const DIAS_EN_PLAZO_MIN = 5;
 
-/** Por vencer: entre 1 y 2 días (inclusive). */
+/** Por vencer: entre 1 y 4 días hábiles (inclusive). Incluye el tramo intermedio 3–4. */
 export const POR_VENCER_MIN = 1;
-export const POR_VENCER_MAX = 2;
+export const POR_VENCER_MAX = 4;
 
 export type PlazoOperativoSlice = "total" | "en_plazo" | "por_vencer" | "vencidas_o_hoy";
 
 /**
  * Clasificación por `dias_restantes` del backend (derivado de `Notificacion.fecha_vencimiento`).
  * Nota: el API devuelve 0 tanto si el plazo venció como si vence hoy.
- * Días 3 y 4 no entran en "En plazo" (>4) ni en "Por vencer" (1–2): solo se ven en **Historial de notificaciones**.
+ * Días 1–4 van a **Por vencer**; desde 5 a **En plazo**; 0 a **Vencidas o hoy**. El tab **Historial**
+ * lista por período documental (filtro aparte), no reemplaza la operativa de plazo.
  */
 export function sliceLabel(slice: PlazoOperativoSlice): string {
   switch (slice) {

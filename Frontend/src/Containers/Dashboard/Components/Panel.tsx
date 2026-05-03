@@ -141,7 +141,11 @@ const Panel = () => {
         { title: "Actuaciones totales", value: data.actuaciones.total },
         { title: "Con contraproducencia", value: data.actuaciones.con_contraproducencia },
         { title: "Sin contraproducencia", value: data.actuaciones.sin_contraproducencia },
-        { title: "Ítems ruta (total)", value: data.ruta_items_ejecucion.total },
+        { title: "Mapa: pendientes cola", value: data.mapa_operativo.pendientes_cola },
+        { title: "Mapa: pendientes en ruta (CT)", value: data.mapa_operativo.pendientes_completar_trabajo },
+        { title: "Mapa: pendientes total", value: data.mapa_operativo.pendientes_total },
+        { title: "Mapa: realizados visita", value: data.mapa_operativo.realizados_visita },
+        { title: "Ítems ruta (total, fecha ruta)", value: data.ruta_items_ejecucion.total },
       ]
     : [{ title: "Sin datos cargados", value: 0 }];
 
@@ -275,28 +279,54 @@ const Panel = () => {
         </Button>
       </Box>
 
-      <Grid container spacing={2} mb={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }}>
+      <Grid container spacing={2} mb={1}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI title="Actuaciones" value={actu?.total ?? "—"} periodo={periodo} icon={""} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI title="Con contraproducencia" value={actu?.con_contraproducencia ?? "—"} periodo={periodo} icon={""} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI title="Sin contraproducencia" value={actu?.sin_contraproducencia ?? "—"} periodo={periodo} icon={""} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
-            title="Ítems de ruta"
-            value={data?.ruta_items_ejecucion.total ?? "—"}
+            title="Pendientes (mapa)"
+            value={data?.mapa_operativo.pendientes_total ?? "—"}
             periodo={periodo}
             icon={""}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4, xl: 2 }}>
+      </Grid>
+      <Grid container spacing={2} mb={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
-            title="Ruta: realizados"
-            value={data?.ruta_items_ejecucion.estado_ejecucion_realizado ?? "—"}
+            title="Cola planificable"
+            value={data?.mapa_operativo.pendientes_cola ?? "—"}
+            periodo={periodo}
+            icon={""}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+          <KPI
+            title="En ruta (completar trabajo)"
+            value={data?.mapa_operativo.pendientes_completar_trabajo ?? "—"}
+            periodo={periodo}
+            icon={""}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+          <KPI
+            title="Realizados visita (mapa)"
+            value={data?.mapa_operativo.realizados_visita ?? "—"}
+            periodo={periodo}
+            icon={""}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+          <KPI
+            title="Ítems ruta (global)"
+            value={data?.ruta_items_ejecucion.total ?? "—"}
             periodo={periodo}
             icon={""}
           />
@@ -330,7 +360,7 @@ const Panel = () => {
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ChartCard title={`Ítems de ruta — ejecución (por fecha de ruta; sin filtro distrito/inspector)`}>
+          <ChartCard title={`Ítems de ruta — ejecución (informativo: por fecha de ruta publicada; sin filtro distrito/inspector; ≠ realizados del mapa)`}>
             {data ? (
               <DashboardRutaItemsResumen data={data.ruta_items_ejecucion} />
             ) : (

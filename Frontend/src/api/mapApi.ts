@@ -61,6 +61,30 @@ export const getMapPointsV2 = async (params?: Record<string, any>) => {
   return data;
 };
 
+/** Mapa operativo DIGITALIZA — pendientes (iniciadores + EN_PROCESO). */
+export const getMapOperativoPendientesFC = async (params: {
+  desde: string;
+  hasta: string;
+  distrito_id?: number;
+  tipo?: string;
+  inspector_id?: number;
+}) => {
+  const { data } = await apiClient.get<MapPointFeatureCollection>("/map/operativo/pendientes", { params });
+  return data;
+};
+
+/** Mapa operativo DIGITALIZA — realizados (visita realizada / ítem finalizado). */
+export const getMapOperativoRealizadosFC = async (params: {
+  desde: string;
+  hasta: string;
+  distrito_id?: number;
+  tipo?: string;
+  inspector_id?: number;
+}) => {
+  const { data } = await apiClient.get<MapPointFeatureCollection>("/map/operativo/realizados", { params });
+  return data;
+};
+
 export const getMapHeatmap = async (params?: Record<string, any>) => {
   const { data } = await apiClient.get<{ items: HeatmapItem[] }>("/map/heatmap", { params });
   return data.items;

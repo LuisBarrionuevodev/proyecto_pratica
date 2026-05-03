@@ -28,7 +28,7 @@ def _query_dict_from_request() -> dict:
 @indicadores_api.get("/resumen")
 def get_indicadores_resumen():
     """
-    Resumen agregado para dashboard operativo (actuaciones, actas, contraproducencias).
+    Resumen agregado para dashboard operativo (actuaciones, actas, contraproducencias, mapa operativo).
 
     Qué hace: valida query params, calcula agregados en lectura (sin commit).
 
@@ -36,7 +36,7 @@ def get_indicadores_resumen():
         Query: desde, hasta (YYYY-MM-DD); opcional distrito_id, inspector_id.
 
     Retorno:
-        200 JSON `IndicadoresResumenOut`; 422 si validación falla.
+        200 JSON `IndicadoresResumenOut` (incluye `mapa_operativo` alineado a D1); 422 si validación falla.
 
     Errores:
         401 si falta JWT (guard global).

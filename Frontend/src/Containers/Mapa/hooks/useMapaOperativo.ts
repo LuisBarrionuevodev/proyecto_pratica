@@ -1,21 +1,23 @@
 import { useCallback, useState } from "react";
 
-import { getMapPointsV2, type MapPointFeature } from "../../../api/mapApi";
+import {
+  getMapOperativoPendientesFC,
+  getMapOperativoRealizadosFC,
+  type MapPointFeature,
+} from "../../../api/mapApi";
 
 export type MapaOperativoModo = "pendientes" | "realizados";
 
-export type LoadRealizadosParams = {
+export type MapaOperativoLoadParams = {
   from: string;
   to: string;
   distritoId: string;
-  tipoIniciador: string;
+  tipo: string;
+  inspectorId: string;
 };
 
 /**
- * Estado y carga del mapa operativo.
- *
- * Pendientes: sin API dedicada aún → lista vacía.
- * Realizados: usa temporalmente `GET /map/points` (getMapPointsV2) con fecha, distrito y origen según tipo.
+ * Estado y carga del mapa operativo (pendientes / realizados) alineado a rutas e iniciadores.
  */
 export function useMapaOperativo() {
   const [features, setFeatures] = useState<MapPointFeature[]>([]);
@@ -23,46 +25,78 @@ export function useMapaOperativo() {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  const loadPendientes = useCallback(() => {
-    setLoading(false);
-    setError(null);
-    setInfoMessage(
-      "Los pendientes operativos se conectarán al endpoint municipal (p. ej. /map/operativo). Por ahora no hay datos en mapa."
-    );
-    setFeatures([]);
-  }, []);
+  const _distritoNum = (distritoId: string): number | undefined => {
+    const n = distritoId ? Number(distritoId) : NaN;
+    return distritoId && !Number.isNaN(n) ? n : undefined;
+  };
 
-  const loadRealizados = useCallback(async (params: LoadRealizadosParams) => {
+  const _inspectorNum = (inspectorId: string): number | undefined => {
+    const n = inspectorId ? Number(inspectorId) : NaN;
+    return inspectorId && !Number.isNaN(n) ? n : undefined;
+  };
+
+  const loadPendientes = useCallback(async (p: MapaOperativoLoadParams) => {
+    setFeatures([]);
     setInfoMessage(null);
     setLoading(true);
     setError(null);
     try {
-      const distrito_id = params.distritoId ? Number(params.distritoId) : undefined;
-      if (params.distritoId && Number.isNaN(distrito_id)) {
-        setError("Distrito no válido.");
+      if (!p.from?.trim() || !p.to?.trim()) {
+        setError("Elegí fecha desde y hasta.");
         setFeatures([]);
         return;
       }
-
-      let origin: string | undefined;
-      if (params.tipoIniciador === "RELEVAMIENTOS") {
-        origin = "relevamientos";
-      } else if (params.tipoIniciador === "TODOS") {
-        origin = undefined;
-      } else {
-        origin = "actuaciones";
-      }
-
-      const fc = await getMapPointsV2({
-        from: params.from || undefined,
-        to: params.to || undefined,
-        distrito_id,
-        origin,
+      const fc = await getMapOperativoPendientesFC({
+        desde: p.from,
+        hasta: p.to,
+        distrito_id: _distritoNum(p.distritoId),
+        tipo: p.tipo === "TODOS" ? undefined : p.tipo,
+        inspector_id: _inspectorNum(p.inspectorId),
       });
-      setFeatures(fc.features ?? []);
+      const feats = fc.features ?? [];
+      setFeatures(feats);
+      if (feats.length === 0) {
+        setInfoMessage(
+          "No hay puntos en mapa para ese rango (¿geocode OK del domicilio?). Ajustá fechas o distrito."
+        );
+      }
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      setError(err?.response?.data?.detail ?? "No se pudieron cargar los puntos.");
+      setError(err?.response?.data?.detail ?? "No se pudieron cargar los pendientes operativos.");
+      setFeatures([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadRealizados = useCallback(async (p: MapaOperativoLoadParams) => {
+    setFeatures([]);
+    setInfoMessage(null);
+    setLoading(true);
+    setError(null);
+    try {
+      if (!p.from?.trim() || !p.to?.trim()) {
+        setError("Elegí fecha desde y hasta.");
+        setFeatures([]);
+        return;
+      }
+      const fc = await getMapOperativoRealizadosFC({
+        desde: p.from,
+        hasta: p.to,
+        distrito_id: _distritoNum(p.distritoId),
+        tipo: p.tipo === "TODOS" ? undefined : p.tipo,
+        inspector_id: _inspectorNum(p.inspectorId),
+      });
+      const feats = fc.features ?? [];
+      setFeatures(feats);
+      if (feats.length === 0) {
+        setInfoMessage(
+          "No hay visitas realizadas en mapa para ese rango (¿geocode OK del domicilio de la actuación?)."
+        );
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      setError(err?.response?.data?.detail ?? "No se pudieron cargar los realizados operativos.");
       setFeatures([]);
     } finally {
       setLoading(false);

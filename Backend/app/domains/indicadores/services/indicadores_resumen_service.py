@@ -13,8 +13,14 @@ from app.domains.indicadores.schemas.resumen_out import (
     DecomisoKgPorMesItem,
     DecomisoKgResumen,
     IndicadoresResumenOut,
+    MapaOperativoResumen,
     RubroTopItem,
     RutaItemsEjecucionResumen,
+)
+from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
+    count_mapa_operativo_pendientes_cola,
+    count_mapa_operativo_pendientes_en_ruta,
+    count_mapa_operativo_realizados_visita,
 )
 from app.models import (
     Actuaciones,
@@ -100,6 +106,7 @@ def _ruta_items_ejecucion_por_fecha_ruta(
             RutaTrabajo.fecha >= desde,
             RutaTrabajo.fecha <= hasta,
             RutaItem.deleted_at.is_(None),
+            RutaTrabajo.estado_ruta == "PUBLICADA",
         )
         .group_by(RutaItem.estado_ejecucion)
         .all()
@@ -143,10 +150,10 @@ def build_indicadores_resumen(
         `IndicadoresResumenOut` listo para serializar JSON.
 
     Notas:
-        El bloque `ruta_items_ejecucion` usa solo fechas de `ruta_trabajo` (mismo rango de
-        calendario que el query), sin aplicar distrito ni inspector.
-        `top_rubros` cuenta actuaciones con `domicilio_id` y `domicilio.rubro_id` no nulos;
-        el resto no aparece en el ranking (no se duplica fila por inspectores: subquery `distinct`).
+        El bloque ``ruta_items_ejecucion`` agrega solo ítems en rutas ``PUBLICADAS`` (no borradores),
+        por fecha de ruta (sin distrito/inspector).
+        ``mapa_operativo`` reutiliza los mismos criterios que ``/map/operativo/pendientes`` y
+        ``/map/operativo/realizados`` (geocode OK; distrito/inspector como en el mapa).
     """
     sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
     has_contra = _has_contraproducencia_expr()
@@ -263,6 +270,32 @@ def build_indicadores_resumen(
 
     ruta_part = _ruta_items_ejecucion_por_fecha_ruta(desde, hasta)
 
+    desde_s = desde.isoformat()
+    hasta_s = hasta.isoformat()
+    n_cola = count_mapa_operativo_pendientes_cola(
+        desde=desde_s, hasta=hasta_s, distrito_id=distrito_id, tipo=None
+    )
+    n_en_ruta = count_mapa_operativo_pendientes_en_ruta(
+        desde=desde_s,
+        hasta=hasta_s,
+        distrito_id=distrito_id,
+        tipo=None,
+        inspector_id=inspector_id,
+    )
+    n_real_mapa = count_mapa_operativo_realizados_visita(
+        desde=desde_s,
+        hasta=hasta_s,
+        distrito_id=distrito_id,
+        tipo=None,
+        inspector_id=inspector_id,
+    )
+    mapa_op = MapaOperativoResumen(
+        pendientes_cola=n_cola,
+        pendientes_completar_trabajo=n_en_ruta,
+        pendientes_total=n_cola + n_en_ruta,
+        realizados_visita=n_real_mapa,
+    )
+
     return IndicadoresResumenOut(
         periodo={"desde": desde.isoformat(), "hasta": hasta.isoformat()},
         filtros={
@@ -283,6 +316,7 @@ def build_indicadores_resumen(
             decomiso=int(n_deco),
         ),
         ruta_items_ejecucion=ruta_part,
+        mapa_operativo=mapa_op,
         top_rubros=top_rubros,
         decomiso_kg=decomiso_kg,
     )

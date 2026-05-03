@@ -21,6 +21,10 @@ STORED_NO_PERMITE_INSPECCION = "NO PERMITE INSPECCION"
 # Nombre en `CatalogContraproducencia` (seed `run.py`) al que se mapean alias viejos antes del coerce Pydantic.
 CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL = "NO EXISTE/NO ES EL RUBRO"
 
+# Contraproducencias correctivas: reingreso a pendientes; el cierre puede traer rubro/domicilio corregidos.
+STORED_CORRECTIVA_NO_ES_EL_RUBRO = "NO ES EL RUBRO"
+STORED_CORRECTIVA_DIRECCION_INCORRECTA = "DIRECCION INCORRECTA"
+
 # Valores de catálogo (seed `run.py`) para reingreso con prioridad alta.
 STORED_REINGRESO_ALTA = frozenset(
     {
@@ -29,6 +33,8 @@ STORED_REINGRESO_ALTA = frozenset(
         "ZONA ROJA",
         "NO_HUBO",
         "OTROS",
+        STORED_CORRECTIVA_NO_ES_EL_RUBRO,
+        STORED_CORRECTIVA_DIRECCION_INCORRECTA,
     }
 )
 
@@ -90,7 +96,25 @@ def map_contraproducencia_alias_to_catalog_nombre(raw: str) -> str:
         return STORED_NO_PERMITE_INSPECCION
     if key in _NO_EXISTE_ALIAS_KEYS:
         return CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL
+    if key in (_loose_key("DIRECCIÓN INCORRECTA"), _loose_key("DIRECCION_INCORRECTA")):
+        return STORED_CORRECTIVA_DIRECCION_INCORRECTA
+    if key == _loose_key("NO ES EL RUBRO"):
+        return STORED_CORRECTIVA_NO_ES_EL_RUBRO
     return raw
+
+
+def es_contraproducencia_correctiva_rubro(nombre: str | None) -> bool:
+    """True si la contraproducencia (valor de catálogo ya coercido) exige corregir rubro."""
+    if not nombre:
+        return False
+    return str(nombre).strip() == STORED_CORRECTIVA_NO_ES_EL_RUBRO
+
+
+def es_contraproducencia_correctiva_direccion(nombre: str | None) -> bool:
+    """True si la contraproducencia exige corregir calle y número."""
+    if not nombre:
+        return False
+    return str(nombre).strip() == STORED_CORRECTIVA_DIRECCION_INCORRECTA
 
 
 def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBucket]:
@@ -129,6 +153,10 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
         _loose_key("NO HUBO"): "NO_HUBO",
         _loose_key("NO_HUBO"): "NO_HUBO",
         _loose_key("OTROS"): "OTROS",
+        _loose_key("NO ES EL RUBRO"): STORED_CORRECTIVA_NO_ES_EL_RUBRO,
+        _loose_key("DIRECCION INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+        _loose_key("DIRECCIÓN INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+        _loose_key("DIRECCION_INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
     }
     if key in candidates:
         stored = candidates[key]
@@ -139,7 +167,7 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
     raise ValueError(
         f"Contraproducencia no reconocida: {raw!r}. "
         "Usá valores del catálogo (p. ej. LOCAL CERRADO, CLIMA, ZONA ROJA, NO_HUBO, OTROS, "
-        "NO PERMITE INSPECCION) o variantes de no existe local normalizables."
+        "NO ES EL RUBRO, DIRECCION INCORRECTA, NO PERMITE INSPECCION) o variantes de no existe local normalizables."
     )
 
 
@@ -162,6 +190,12 @@ def motivo_no_realizado_para_ruta_item(stored_contra: str, bucket: ContrapBucket
         return "LOCAL_CERRADO"
     if stored_contra == "CLIMA":
         return "INCLEMENCIA_TIEMPO"
-    if stored_contra in ("ZONA ROJA", "NO_HUBO", "OTROS"):
+    if stored_contra in (
+        "ZONA ROJA",
+        "NO_HUBO",
+        "OTROS",
+        STORED_CORRECTIVA_NO_ES_EL_RUBRO,
+        STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+    ):
         return "OTRO"
     raise ValueError("No se pudo derivar motivo_no_realizado para la contraproducencia indicada.")

@@ -57,6 +57,16 @@ def test_get_api_map_pendientes_sin_jwt_401_pr_c1(client):
     assert resp.status_code == 401
 
 
+def test_get_map_operativo_pendientes_sin_jwt_401_pr_c1(client):
+    resp = client.get("/map/operativo/pendientes")
+    assert resp.status_code == 401
+
+
+def test_get_map_operativo_realizados_sin_jwt_401_pr_c1(client):
+    resp = client.get("/map/operativo/realizados")
+    assert resp.status_code == 401
+
+
 def test_get_geo_pending_sin_jwt_401_pr_c1(client):
     resp = client.get("/geo/pending")
     assert resp.status_code == 401

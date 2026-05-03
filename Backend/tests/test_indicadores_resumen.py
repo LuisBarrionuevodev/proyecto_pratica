@@ -53,6 +53,16 @@ def test_get_indicadores_resumen_ok_shape(client, auth_headers):
     ri = data["ruta_items_ejecucion"]
     assert "total" in ri
     assert "estado_ejecucion_realizado" in ri
+    assert "mapa_operativo" in data
+    mo = data["mapa_operativo"]
+    for k in (
+        "pendientes_cola",
+        "pendientes_completar_trabajo",
+        "pendientes_total",
+        "realizados_visita",
+    ):
+        assert k in mo
+    assert mo["pendientes_total"] == mo["pendientes_cola"] + mo["pendientes_completar_trabajo"]
     assert "top_rubros" in data
     assert isinstance(data["top_rubros"], list)
     assert "decomiso_kg" in data

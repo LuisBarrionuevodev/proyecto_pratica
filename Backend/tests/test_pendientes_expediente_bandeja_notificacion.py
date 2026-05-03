@@ -140,6 +140,8 @@ def test_notificacion_y_comprobacion_misma_actuacion_aparece_en_ambas_bandas(app
         assert act.id in [a.id for a in acts_n]
         row_n = next(r for r in _rows_expediente(acts_n, channel="notificacion") if r["id"] == act.id)
         assert row_n["source_type"] == "NOTIFICACION"
+        assert row_n["notificacion_id"] == noti.id
+        assert row_n["comprobacion_id"] == comp.id
         assert row_n["plazos_otorgados"] == 0
         assert row_n["dias_restantes"] is not None
         assert row_n["comprobacion_posterior_acta_num"] == comp.numero_acta

@@ -66,6 +66,7 @@ import {
   sliceLabel,
   type PlazoOperativoSlice,
 } from "./gestionNotificacionPlazo";
+import { normalizeNotificacionBandejaItems } from "./normalizeNotificacionBandejaItems";
 import {
   NotificacionDetalleDocumentalDialog,
   type NotificacionDetalleModalVariant,
@@ -308,7 +309,7 @@ const GestionNotificacionPage = () => {
       const resp = await getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
         omitirRangoFecha: true,
       });
-      setItems(resp.items);
+      setItems(normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type));
     } catch (err: unknown) {
       const detail =
         err && typeof err === "object" && "response" in err
@@ -380,7 +381,7 @@ const GestionNotificacionPage = () => {
           ? { kind: "month", mes: histMes, anio: histAnio }
           : { kind: "range", desde: histDesde!, hasta: histHasta! };
 
-      setHistorialRows(resp.items);
+      setHistorialRows(normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type));
       setHistorialMeta({
         total: resp.meta.total,
         desde: resp.meta.desde,
@@ -448,7 +449,7 @@ const GestionNotificacionPage = () => {
               historialApplied.distritoId,
               doc
             );
-      setHistorialRows(resp.items);
+      setHistorialRows(normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type));
       setHistorialMeta({
         total: resp.meta.total,
         desde: resp.meta.desde,
@@ -548,7 +549,7 @@ const GestionNotificacionPage = () => {
 
     if (!row) {
       setNotificacionDeepLinkAviso(
-        `No encontramos la actuación n.º ${aid} en la bandeja operativa de notificaciones. Si el plazo está en días intermedios (3–4), usá Historial de notificaciones.`
+        `No encontramos la actuación n.º ${aid} en la bandeja operativa de notificaciones (revisá pestañas de plazo o recargá la lista).`
       );
       clearParam();
       return;
@@ -566,7 +567,7 @@ const GestionNotificacionPage = () => {
     }
 
     setNotificacionDeepLinkAviso(
-      `Actuación n.º ${aid}: el plazo cae en días 3–4 (solo figura en Historial de notificaciones). OT ${(row.orden_trabajo_numero ?? "").trim() || "—"}.`
+      `Actuación n.º ${aid}: el plazo no coincide con ninguna pestaña operativa actual (revisá «Historial de notificaciones» por período). OT ${(row.orden_trabajo_numero ?? "").trim() || "—"}.`
     );
     clearParam();
   }, [loading, items, searchParams, setSearchParams, openModal]);
