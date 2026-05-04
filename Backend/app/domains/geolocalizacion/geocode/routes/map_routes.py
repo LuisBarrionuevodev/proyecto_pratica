@@ -284,6 +284,8 @@ def map_operativo_pendientes_alias():
 def map_operativo_realizados():
     """
     Mapa operativo — realizados: ``RutaItem`` finalizado con visita realizada en el rango.
+
+    Query opcional: ``definicion`` (``TODOS``, ``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``).
     """
     params = request.args.to_dict()
     distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
@@ -295,6 +297,7 @@ def map_operativo_realizados():
             distrito_id=distrito_id,
             tipo=params.get("tipo"),
             inspector_id=inspector_id,
+            definicion=params.get("definicion"),
         )
     except ValueError as exc:
         return jsonify({"detail": str(exc)}), 400

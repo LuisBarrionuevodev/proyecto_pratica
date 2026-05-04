@@ -19,7 +19,7 @@ export function MapaModoTabs({ modo, onModoChange }: MapaModoTabsProps) {
         variant="body2"
         sx={{ mb: 2, color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
       >
-        Pendientes y realizados en el territorio municipal
+        Mapa operativo
       </Typography>
       <Tabs
         value={modo}

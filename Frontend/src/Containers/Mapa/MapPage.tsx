@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Snackbar, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 
+import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { setGeoManual } from "../../api/geoApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
@@ -10,8 +11,7 @@ import { MapaCanvas, type RelocalOperativoDraft } from "./Components/MapaCanvas"
 import { MapaFiltrosUnificados } from "./Components/MapaFiltrosUnificados";
 import { MapaModoTabs } from "./Components/MapaModoTabs";
 import { PanelResumenOperativo } from "./Components/PanelResumenOperativo";
-import { useMapaOperativo } from "./hooks/useMapaOperativo";
-import { buildDistritoSelectOptions } from "./utils/distritoOptions";
+import { useMapaOperativo, type MapaOperativoLoadOptions } from "./hooks/useMapaOperativo";
 
 /**
  * Vista mapa operativo DIGITALIZA: modos Pendientes / Realizados, filtros institucionales y mapa Leaflet.
@@ -36,7 +36,9 @@ const MapPage = () => {
   const [relocalGuardando, setRelocalGuardando] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
 
-  const distritoOptions = useMemo(() => buildDistritoSelectOptions(), []);
+  const [distritoOptions, setDistritoOptions] = useState<{ value: string; label: string }[]>([
+    { value: "", label: "Todos los distritos" },
+  ]);
 
   const {
     features,
@@ -57,6 +59,45 @@ const MapPage = () => {
     [fechaDesde, fechaHasta, distritoId, inspectorId]
   );
 
+  const loadParamsPendientes = useMemo(
+    () => ({ ...filtrosMapa, tipo: pendienteTipo }),
+    [filtrosMapa, pendienteTipo]
+  );
+
+  const loadParamsRealizados = useMemo(
+    () => ({
+      ...filtrosMapa,
+      tipo: realizadoTipoIniciador,
+      definicion: realizadoDefinicion,
+    }),
+    [filtrosMapa, realizadoTipoIniciador, realizadoDefinicion]
+  );
+
+  /**
+   * Snapshot síncrono de lo que muestra el formulario (un solo ref, actualizado cada render).
+   * Refrescar lee esto tras un microtask para alinear con commits recientes de React.
+   */
+  const filtrosUiRef = useRef({
+    modo,
+    from: fechaDesde,
+    to: fechaHasta,
+    distritoId,
+    inspectorId,
+    pendienteTipo,
+    realizadoTipoIniciador,
+    realizadoDefinicion,
+  });
+  filtrosUiRef.current = {
+    modo,
+    from: fechaDesde,
+    to: fechaHasta,
+    distritoId,
+    inspectorId,
+    pendienteTipo,
+    realizadoTipoIniciador,
+    realizadoDefinicion,
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -70,52 +111,92 @@ const MapPage = () => {
   }, []);
 
   useEffect(() => {
-    if (modo === "pendientes") {
-      void loadPendientes({ ...filtrosMapa, tipo: pendienteTipo });
-    } else {
-      void loadRealizados({ ...filtrosMapa, tipo: realizadoTipoIniciador });
+    let cancelled = false;
+    void fetchDistritosCatalogo()
+      .then((resp) => {
+        if (cancelled) return;
+        setDistritoOptions([
+          { value: "", label: "Todos los distritos" },
+          ...(resp.items ?? []).map((d) => ({ value: String(d.id), label: d.nombre })),
+        ]);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDistritoOptions([{ value: "", label: "Todos los distritos" }]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (distritoOptions.length <= 1) return;
+    if (distritoId && !distritoOptions.some((o) => o.value === distritoId)) {
+      setDistritoId("");
     }
-  }, [
-    modo,
-    loadPendientes,
-    loadRealizados,
-    filtrosMapa,
-    pendienteTipo,
-    realizadoTipoIniciador,
-  ]);
+  }, [distritoOptions, distritoId]);
+
+  useEffect(() => {
+    if (modo === "pendientes") {
+      void loadPendientes(loadParamsPendientes);
+    } else {
+      void loadRealizados(loadParamsRealizados);
+    }
+  }, [modo, loadPendientes, loadRealizados, loadParamsPendientes, loadParamsRealizados]);
 
   const handleAplicar = useCallback(() => {
     if (modo === "pendientes") {
-      void loadPendientes({ ...filtrosMapa, tipo: pendienteTipo });
+      void loadPendientes(loadParamsPendientes);
       return;
     }
-    void loadRealizados({ ...filtrosMapa, tipo: realizadoTipoIniciador });
-  }, [
-    modo,
-    loadPendientes,
-    loadRealizados,
-    filtrosMapa,
-    pendienteTipo,
-    realizadoTipoIniciador,
-  ]);
+    void loadRealizados(loadParamsRealizados);
+  }, [modo, loadPendientes, loadRealizados, loadParamsPendientes, loadParamsRealizados]);
 
   const handleModoChange = useCallback((m: "pendientes" | "realizados") => {
     setModo(m);
     setMapExpanded(false);
     setRelocalDraft(null);
+    if (m === "pendientes") {
+      setInspectorId("");
+    }
   }, []);
 
   useEffect(() => {
     setRelocalDraft(null);
-  }, [fechaDesde, fechaHasta, distritoId, inspectorId, pendienteTipo, realizadoTipoIniciador]);
+  }, [
+    fechaDesde,
+    fechaHasta,
+    distritoId,
+    inspectorId,
+    pendienteTipo,
+    realizadoTipoIniciador,
+    realizadoDefinicion,
+  ]);
 
-  const reloadOperativoActual = useCallback(async () => {
-    if (modo === "pendientes") {
-      await loadPendientes({ ...filtrosMapa, tipo: pendienteTipo });
+  const cargarOperativoConSnapshotUi = useCallback(async (opts?: MapaOperativoLoadOptions) => {
+    const s = filtrosUiRef.current;
+    const base = {
+      from: s.from,
+      to: s.to,
+      distritoId: s.distritoId,
+      inspectorId: s.modo === "pendientes" ? "" : s.inspectorId,
+    };
+    if (s.modo === "pendientes") {
+      await loadPendientes({ ...base, tipo: s.pendienteTipo }, opts);
     } else {
-      await loadRealizados({ ...filtrosMapa, tipo: realizadoTipoIniciador });
+      await loadRealizados(
+        { ...base, tipo: s.realizadoTipoIniciador, definicion: s.realizadoDefinicion },
+        opts
+      );
     }
-  }, [modo, loadPendientes, loadRealizados, filtrosMapa, pendienteTipo, realizadoTipoIniciador]);
+  }, [loadPendientes, loadRealizados]);
+
+  const refrescarOperativoDesdeFormulario = useCallback(() => {
+    queueMicrotask(() => {
+      void cargarOperativoConSnapshotUi({ forceNetwork: true });
+    });
+  }, [cargarOperativoConSnapshotUi]);
 
   const handleIniciarRelocalizacion = useCallback((payload: RelocalOperativoDraft) => {
     setRelocalDraft({ ...payload });
@@ -139,7 +220,7 @@ const MapPage = () => {
         message: "Ubicación guardada. El mapa y el panel se actualizan con el nuevo geocode del domicilio.",
         severity: "success",
       });
-      await reloadOperativoActual();
+      await cargarOperativoConSnapshotUi();
     } catch (e: unknown) {
       const detail =
         e && typeof e === "object" && "response" in e
@@ -152,7 +233,7 @@ const MapPage = () => {
     } finally {
       setRelocalGuardando(false);
     }
-  }, [relocalDraft, reloadOperativoActual]);
+  }, [relocalDraft, cargarOperativoConSnapshotUi]);
 
   return (
     <Stack
@@ -197,15 +278,36 @@ const MapPage = () => {
         onInspectorIdChange={setInspectorId}
         inspectores={inspectores}
         onAplicar={handleAplicar}
+        onRefrescar={refrescarOperativoDesdeFormulario}
       />
 
-      <Grid container spacing={2}>
+      <Grid
+        container
+        spacing={2}
+        sx={
+          mapExpanded
+            ? {
+                alignItems: "stretch",
+                minHeight: { xs: "72vh", md: "min(92vh, 960px)" },
+              }
+            : undefined
+        }
+      >
         {!mapExpanded && (
           <Grid size={{ xs: 12, md: 4 }} sx={{ order: { xs: 2, md: 1 } }}>
             <PanelResumenOperativo modo={modo} features={features} />
           </Grid>
         )}
-        <Grid size={{ xs: 12, md: mapExpanded ? 12 : 8 }} sx={{ order: { xs: 1, md: 2 } }}>
+        <Grid
+          size={{ xs: 12, md: mapExpanded ? 12 : 8 }}
+          sx={{
+            order: { xs: 1, md: 2 },
+            display: "flex",
+            flexDirection: "column",
+            minHeight: mapExpanded ? { xs: "72vh", md: "min(92vh, 960px)" } : undefined,
+            flex: mapExpanded ? 1 : undefined,
+          }}
+        >
           <MapaCanvas
             modo={modo}
             features={features}

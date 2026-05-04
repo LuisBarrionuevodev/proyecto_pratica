@@ -153,7 +153,7 @@ function MapLegendSample({
   }
 
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.35 }}>
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.15 }}>
       <Box sx={{ width: 22, display: "flex", justifyContent: "center", alignItems: "center" }}>{inner}</Box>
       <Typography variant="body2" sx={{ color: COLORS.grayLight, fontFamily: '"Tactic Sans", sans-serif' }}>
         {label}
@@ -214,10 +214,6 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
               <Typography variant="h3" sx={{ color: COLORS.primary, fontWeight: 800, fontFamily: '"Tactic Sans", sans-serif' }}>
                 {statsPend.total}
               </Typography>
-              <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 0.5 }}>
-                Puntos con geocode OK: cola de iniciadores (planificables) + ítems EN_PROCESO solo en rutas{" "}
-                <strong>publicadas</strong>. Las rutas en <strong>borrador</strong> no se muestran como completar trabajo.
-              </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
@@ -225,12 +221,9 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
                 Origen en circuito
               </Typography>
               <Stack spacing={0.5}>
-                {distRow("En cola (iniciador PENDIENTE)", statsPend.backlog)}
-                {distRow("En ruta del día (pendiente de completar trabajo)", statsPend.enRuta)}
+                {distRow("En cola", statsPend.backlog)}
+                {distRow("En ruta del día", statsPend.enRuta)}
               </Stack>
-              <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 1 }}>
-                Conteo «en ruta»: solo ítems en ruta <strong>publicada</strong> (estado EN_PROCESO). Sin borradores.
-              </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
@@ -252,28 +245,16 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
-                Leyenda del mapa (forma y color)
+                Leyenda del mapa
               </Typography>
-              <MapLegendSample
-                shape="triangle"
-                color={colorPrioridadBacklog("ALTA")}
-                label="Triángulo rojo: cola · prioridad alta (valor ≥ 3)"
-              />
-              <MapLegendSample
-                shape="triangle"
-                color={colorPrioridadBacklog("MEDIA")}
-                label="Triángulo naranja: cola · prioridad media (2)"
-              />
-              <MapLegendSample
-                shape="triangle"
-                color={colorPrioridadBacklog("BAJA")}
-                label="Triángulo azul: cola · prioridad baja (1)"
-              />
+              <MapLegendSample shape="triangle" color={colorPrioridadBacklog("ALTA")} label="Prioridad alta" />
+              <MapLegendSample shape="triangle" color={colorPrioridadBacklog("MEDIA")} label="Prioridad media" />
+              <MapLegendSample shape="triangle" color={colorPrioridadBacklog("BAJA")} label="Prioridad baja" />
               <MapLegendSample
                 shape="square"
                 color={COLORS.primary}
                 squareGlyph="!"
-                label="Cuadrado azul con «!»: en ruta publicada · pendiente de completar trabajo (EN_PROCESO)"
+                label="Pendientes de completar"
               />
             </Paper>
           </>
@@ -287,9 +268,6 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
               </Typography>
               <Typography variant="h3" sx={{ color: COLORS.primary, fontWeight: 800, fontFamily: '"Tactic Sans", sans-serif' }}>
                 {features.length}
-              </Typography>
-              <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 0.5 }}>
-                Ítems FINALIZADO + REALIZADO en el rango (fecha de cierre o día de ruta si falta ejecutado_at).
               </Typography>
             </Paper>
 
@@ -314,10 +292,7 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Leyenda del mapa
               </Typography>
-              <MapLegendSample shape="pin" color={COLORS.success} label="Pin verde: visita realizada (FINALIZADO + REALIZADO)" />
-              <Typography variant="caption" sx={{ color: COLORS.grayLight, display: "block", mt: 1 }}>
-                Relocalización manual del pin y ranking de inspectores (D2+) quedan fuera de este PR.
-              </Typography>
+              <MapLegendSample shape="pin" color={COLORS.success} label="Visita realizada" />
             </Paper>
           </>
         )}

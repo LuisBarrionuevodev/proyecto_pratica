@@ -8,7 +8,6 @@ import { MAPA_DEFINICION_OPTIONS, MAPA_TIPO_INICIADOR_OPTIONS } from "../constan
 import type { MapaOperativoModo } from "../hooks/useMapaOperativo";
 import {
   mapaOperativoBarSx,
-  mapaOperativoCaptionSx,
   mapaOperativoFieldSx,
 } from "./mapaOperativoStyles";
 
@@ -31,6 +30,7 @@ export type MapaFiltrosUnificadosProps = {
   onInspectorIdChange: (v: string) => void;
   inspectores: CatalogItem[];
   onAplicar: () => void;
+  onRefrescar: () => void;
 };
 
 /**
@@ -55,6 +55,7 @@ export function MapaFiltrosUnificados({
   onInspectorIdChange,
   inspectores,
   onAplicar,
+  onRefrescar,
 }: MapaFiltrosUnificadosProps) {
   const tipoOptions = MAPA_TIPO_INICIADOR_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
   const inspectorOptions = [
@@ -131,16 +132,15 @@ export function MapaFiltrosUnificados({
             </>
           )}
           <Box sx={{ flex: 1, minWidth: { xs: 0, lg: 8 } }} />
-          <AppButton dsVariant="primary" dsSize="md" onClick={onAplicar}>
-            Aplicar filtros
-          </AppButton>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <AppButton dsVariant="primary" dsSize="md" onClick={onAplicar}>
+              Aplicar filtros
+            </AppButton>
+            <AppButton dsVariant="primary" dsSize="md" onClick={onRefrescar}>
+              Refrescar
+            </AppButton>
+          </Stack>
         </Stack>
-
-        <Typography variant="caption" sx={{ display: "block", ...mapaOperativoCaptionSx }}>
-          {modo === "pendientes"
-            ? "Los pendientes operativos se conectarán al endpoint municipal. Período, distrito y tipo quedan listos para esa integración."
-            : "Definición e inspector se aplicarán con el contrato operativo. La carga actual usa período, distrito y tipo de origen vía /map/points."}
-        </Typography>
       </Stack>
     </Paper>
   );

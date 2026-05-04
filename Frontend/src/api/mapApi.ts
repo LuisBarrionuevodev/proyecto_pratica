@@ -68,6 +68,8 @@ export const getMapOperativoPendientesFC = async (params: {
   distrito_id?: number;
   tipo?: string;
   inspector_id?: number;
+  /** Query opaca (p. ej. timestamp) para evitar respuesta cacheada del navegador al refrescar. */
+  _?: number;
 }) => {
   const { data } = await apiClient.get<MapPointFeatureCollection>("/map/operativo/pendientes", { params });
   return data;
@@ -80,6 +82,9 @@ export const getMapOperativoRealizadosFC = async (params: {
   distrito_id?: number;
   tipo?: string;
   inspector_id?: number;
+  /** Clausura / decomiso / ambos (mismo contrato que UI mapa operativo). */
+  definicion?: string;
+  _?: number;
 }) => {
   const { data } = await apiClient.get<MapPointFeatureCollection>("/map/operativo/realizados", { params });
   return data;

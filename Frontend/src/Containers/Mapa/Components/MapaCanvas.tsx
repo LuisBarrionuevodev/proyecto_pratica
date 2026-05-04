@@ -1,11 +1,13 @@
 import { useEffect } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import type { PathOptions } from "leaflet";
 import { Alert, Box, CircularProgress, Typography } from "@mui/material";
 
 import type { MapPointFeature } from "../../../api/mapApi";
 import { AppButton } from "../../../ui/AppButton";
 import type { MapaOperativoModo } from "../hooks/useMapaOperativo";
+import distritosGeo from "../distritos.json";
 import { mapaOperativoSurfaceSx } from "./mapaOperativoStyles";
 import { createOperativoPointIcon } from "./mapaOperativoMarkers";
 import {
@@ -21,7 +23,29 @@ const DEFAULT_CENTER: [number, number] = [-26.82, -65.22];
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap contributors";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-const popupBoxSx = { minWidth: 220, maxWidth: 340, color: COLORS.grayDark };
+/** Leaflet popup vive fuera del árbol MUI: colores fijos para legibilidad (fondo claro institucional). */
+const POPUP_TEXT = "#0f172a";
+const POPUP_MUTED = "#64748b";
+
+const popupBoxSx = {
+  minWidth: 200,
+  maxWidth: 300,
+  boxSizing: "border-box",
+  color: POPUP_TEXT,
+  bgcolor: "rgba(255, 255, 255, 0.97)",
+  borderRadius: "10px",
+  py: 0.75,
+  px: 1,
+};
+
+/** Popup realizados: ancho fijo compacto tipo ficha. */
+const popupRealizadoBoxSx = {
+  ...popupBoxSx,
+  minWidth: 236,
+  maxWidth: 268,
+  py: 0.45,
+  px: 0.65,
+};
 
 function formatIsoDateAr(iso: unknown): string {
   if (iso == null || String(iso).trim() === "") return "—";
@@ -43,11 +67,65 @@ function MapPopupField({ label, value }: { label: string; value: string }) {
   const v = value.trim();
   if (!v) return null;
   return (
-    <Box sx={{ mt: 1.25 }}>
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
+    <Box sx={{ mt: 0.35 }}>
+      <Typography
+        variant="caption"
+        display="block"
+        sx={{ mb: 0, lineHeight: 1.15, fontSize: "0.7rem", color: POPUP_MUTED, fontWeight: 600 }}
+      >
         {label}
       </Typography>
-      <Typography variant="body2">{v}</Typography>
+      <Typography variant="body2" sx={{ lineHeight: 1.3, mt: 0.05, fontSize: "0.8125rem", color: POPUP_TEXT, fontWeight: 500 }}>
+        {v}
+      </Typography>
+    </Box>
+  );
+}
+
+/** Fila densa etiqueta / valor (popup realizados). */
+function RealizadoCompactRow({ label, value }: { label: string; value: string }) {
+  const v = value.trim();
+  if (!v) return null;
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 0.75,
+        py: 0.12,
+        borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
+        "&:last-of-type": { borderBottom: "none" },
+      }}
+    >
+      <Typography
+        component="span"
+        sx={{
+          flex: "0 0 42%",
+          maxWidth: "42%",
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          color: POPUP_MUTED,
+          lineHeight: 1.2,
+          textTransform: "uppercase",
+          letterSpacing: "0.02em",
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        component="span"
+        sx={{
+          flex: 1,
+          fontSize: "0.74rem",
+          fontWeight: 600,
+          color: POPUP_TEXT,
+          lineHeight: 1.25,
+          textAlign: "right",
+          wordBreak: "break-word",
+        }}
+      >
+        {v}
+      </Typography>
     </Box>
   );
 }
@@ -160,9 +238,8 @@ function RelocalizarControl({
       >
         Relocalizar
       </AppButton>
-      <Typography variant="caption" display="block" sx={{ mt: 0.75, color: "text.secondary", lineHeight: 1.35 }}>
-        Si el pin no coincide con el local, mové la posición y guardá. Se actualiza el geocode del domicilio (MANUAL,
-        OK).
+      <Typography variant="caption" display="block" sx={{ mt: 0.75, color: POPUP_MUTED, lineHeight: 1.35 }}>
+        Mové el pin o tocá el mapa y guardá. Actualiza el geocode del domicilio.
       </Typography>
     </Box>
   );
@@ -191,13 +268,13 @@ function MapaOperativoPopup({
     const ot = (p.orden_trabajo_texto != null && String(p.orden_trabajo_texto).trim()) || "Sin asignar";
     return (
       <Box sx={popupBoxSx}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-          Pendiente de completar trabajo
+        <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.2, color: POPUP_TEXT }}>
+          Pendiente en completar trabajo
         </Typography>
-        <Typography variant="body2" sx={{ mt: 1.25 }}>
+        <Typography variant="body2" sx={{ mt: 0.5, lineHeight: 1.3, color: POPUP_TEXT }}>
           {formatIsoDateAr(p.fecha_ref)}
         </Typography>
-        <Typography variant="body2" sx={{ mt: 1.25 }}>
+        <Typography variant="body2" sx={{ mt: 0.35, lineHeight: 1.3, color: POPUP_TEXT }}>
           {ot}
         </Typography>
       </Box>
@@ -205,7 +282,9 @@ function MapaOperativoPopup({
   }
 
   if (layer === "ruta_realizado") {
-    const otNum = (p.orden_trabajo_numero != null && String(p.orden_trabajo_numero).trim()) || "—";
+    const otNum = (p.orden_trabajo_numero != null && String(p.orden_trabajo_numero).trim()) || "";
+    const otLine = (p.orden_trabajo_texto != null && String(p.orden_trabajo_texto).trim()) || "";
+    const otDisplay = otNum || otLine || "—";
     const actasLines: { label: string; value: string }[] = [];
     for (const [key, label] of Object.entries(ACTA_LABELS)) {
       const v = p[key];
@@ -213,57 +292,43 @@ function MapaOperativoPopup({
         actasLines.push({ label, value: String(v) });
       }
     }
+    const actasResumen =
+      actasLines.length > 0 ? actasLines.map((a) => `${a.label}: ${a.value}`).join(" · ") : "";
     const oficio = p.contexto_oficio != null ? String(p.contexto_oficio).trim() : "";
     const expe = p.contexto_expediente_oficio != null ? String(p.contexto_expediente_oficio).trim() : "";
     const notifO = p.contexto_notificacion_origen != null ? String(p.contexto_notificacion_origen).trim() : "";
+    const dom = String(p.domicilio_texto ?? "").trim();
+    const distNom = String(p.distrito_nombre ?? "").trim();
+    const domicilioConDistrito =
+      dom && distNom ? `${dom} · ${distNom}` : dom || distNom || "";
+    const insp = String(p.inspectores ?? "").trim();
+    const local = String(p.nombre_local ?? "").trim();
+    const contrib = String(p.contribuyente_o_razon_social ?? "").trim();
+    const tipoAct = tipoActuacionMapaLabel(p.tipo_actuacion);
+    const doc = String(p.doc_contribuyente ?? "").trim();
 
     return (
-      <Box sx={popupBoxSx}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-          Orden de trabajo
-        </Typography>
-        <Typography variant="body1" sx={{ mt: 0.5, fontWeight: 600 }}>
-          {otNum}
-        </Typography>
+      <Box sx={popupRealizadoBoxSx}>
+        <Box sx={{ pb: 0.35, mb: 0.25, borderBottom: "1px solid rgba(15, 23, 42, 0.12)" }}>
+          <Typography sx={{ fontSize: "0.62rem", fontWeight: 800, color: POPUP_MUTED, letterSpacing: "0.06em" }}>
+            ORDEN DE TRABAJO
+          </Typography>
+          <Typography sx={{ fontSize: "0.9rem", fontWeight: 800, color: POPUP_TEXT, lineHeight: 1.15, mt: 0.15 }}>
+            {otDisplay}
+          </Typography>
+        </Box>
 
-        {(() => {
-          const t = tipoActuacionMapaLabel(p.tipo_actuacion);
-          if (!t || t === "—") return null;
-          return (
-            <Box sx={{ mt: 1.25 }}>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
-                Tipo de actuación
-              </Typography>
-              <Typography variant="body2">{t}</Typography>
-            </Box>
-          );
-        })()}
+        {tipoAct && tipoAct !== "—" ? <RealizadoCompactRow label="Tipo actuación" value={tipoAct} /> : null}
+        <RealizadoCompactRow label="Nombre fantasía" value={local} />
+        <RealizadoCompactRow label="Contribuyente" value={contrib} />
+        <RealizadoCompactRow label="DNI / CUIT" value={doc} />
+        <RealizadoCompactRow label="Domicilio" value={domicilioConDistrito} />
+        <RealizadoCompactRow label="Inspectores" value={insp} />
+        <RealizadoCompactRow label="Actas" value={actasResumen} />
 
-        <MapPopupField label="Nombre de fantasía del local" value={String(p.nombre_local ?? "").trim()} />
-        <MapPopupField
-          label="Nombre y apellido o razón social"
-          value={String(p.contribuyente_o_razon_social ?? "").trim()}
-        />
-        <MapPopupField label="DNI o CUIT" value={String(p.doc_contribuyente ?? "").trim()} />
-        <MapPopupField label="Domicilio" value={String(p.domicilio_texto ?? "").trim()} />
-        <MapPopupField label="Inspectores" value={String(p.inspectores ?? "").trim()} />
-
-        {actasLines.length > 0 ? (
-          <Box sx={{ mt: 1.25 }}>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.35 }}>
-              Actas labradas
-            </Typography>
-            {actasLines.map((a) => (
-              <Typography key={a.label} variant="body2" display="block">
-                {a.label}: {a.value}
-              </Typography>
-            ))}
-          </Box>
-        ) : null}
-
-        {oficio ? <MapPopupField label="Oficio" value={oficio} /> : null}
-        {expe ? <MapPopupField label="Expediente (oficio)" value={expe} /> : null}
-        {notifO ? <MapPopupField label="Notificación de origen" value={notifO} /> : null}
+        {oficio ? <RealizadoCompactRow label="Oficio" value={oficio} /> : null}
+        {expe ? <RealizadoCompactRow label="Expediente" value={expe} /> : null}
+        {notifO ? <RealizadoCompactRow label="Notif. origen" value={notifO} /> : null}
       </Box>
     );
   }
@@ -275,16 +340,16 @@ function MapaOperativoPopup({
 
   return (
     <Box sx={popupBoxSx}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.2, color: POPUP_TEXT }}>
         Pendiente
       </Typography>
-      <Typography variant="body2" sx={{ mt: 1.25 }}>
+      <Typography variant="body2" sx={{ mt: 0.5, lineHeight: 1.3, color: POPUP_TEXT }}>
         {tipoIni}
       </Typography>
-      <Typography variant="body2" sx={{ mt: 1.25 }}>
+      <Typography variant="body2" sx={{ mt: 0.35, lineHeight: 1.3, color: POPUP_TEXT }}>
         {ubic}
       </Typography>
-      <Typography variant="body2" sx={{ mt: 1.25 }}>
+      <Typography variant="body2" sx={{ mt: 0.35, lineHeight: 1.3, color: POPUP_TEXT }}>
         {fechaCre}
       </Typography>
       <RelocalizarControl
@@ -298,6 +363,61 @@ function MapaOperativoPopup({
       />
     </Box>
   );
+}
+
+/** Color estable por número de distrito (nombre «Distrito N» del GeoJSON). */
+function operativoDistritoPathStyle(feature: { properties?: { nombre?: string } }): PathOptions {
+  const nombre = String(feature?.properties?.nombre ?? "").trim();
+  const m = /^Distrito\s+(\d+)$/i.exec(nombre);
+  const n = m ? parseInt(m[1], 10) : 0;
+  const hue = (n * 41) % 360;
+  return {
+    color: `hsla(${hue}, 58%, 18%, 0.92)`,
+    weight: 1.85,
+    fillColor: `hsl(${hue}, 44%, 44%)`,
+    fillOpacity: 0.1,
+    opacity: 1,
+  };
+}
+
+/** Polígonos de distrito como referencia visual; sin interacción para no tapar marcadores. */
+function OperativoDistritosGeo() {
+  return (
+    <GeoJSON
+      data={distritosGeo as never}
+      interactive={false}
+      style={(f) => operativoDistritoPathStyle(f as { properties?: { nombre?: string } })}
+    />
+  );
+}
+
+/**
+ * Leaflet no recalcula tiles al cambiar el tamaño del contenedor (p. ej. expandir mapa).
+ * Invalida tamaño tras layout y cuando cambian datos o modo expandido.
+ */
+function MapInvalidateSize({
+  mapExpanded,
+  featureCount,
+  loading,
+}: {
+  mapExpanded: boolean;
+  featureCount: number;
+  loading: boolean;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const run = () => {
+      map.invalidateSize({ animate: false });
+    };
+    run();
+    const t1 = window.setTimeout(run, 60);
+    const t2 = window.setTimeout(run, 280);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [map, mapExpanded, featureCount, loading]);
+  return null;
 }
 
 function FitBounds({ features }: { features: MapPointFeature[] }) {
@@ -360,8 +480,11 @@ export function MapaCanvas({
       sx={{
         ...mapaOperativoSurfaceSx,
         position: "relative",
-        minHeight: mapExpanded ? { xs: "70vh", md: "calc(100vh - 220px)" } : 420,
-        height: mapExpanded ? { xs: "70vh", md: "calc(100vh - 220px)" } : 480,
+        flex: mapExpanded ? 1 : undefined,
+        alignSelf: mapExpanded ? "stretch" : undefined,
+        width: "100%",
+        minHeight: mapExpanded ? { xs: "70vh", md: "min(92vh, 920px)" } : 420,
+        height: mapExpanded ? { xs: "70vh", md: "min(92vh, 920px)" } : 480,
         overflow: "hidden",
         "& .leaflet-container": {
           fontFamily: '"Tactic Sans", sans-serif',
@@ -415,7 +538,9 @@ export function MapaCanvas({
       )}
 
       <MapContainer center={DEFAULT_CENTER} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
+        <MapInvalidateSize mapExpanded={mapExpanded} featureCount={features.length} loading={loading} />
         <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
+        <OperativoDistritosGeo />
         <FitBounds features={features} />
         {modo === "pendientes" && relocalDraft != null ? (
           <MapClickToRelocal enabled onPick={onRelocalDraftMove} />
@@ -440,7 +565,7 @@ export function MapaCanvas({
           const icon = createOperativoPointIcon(modo, p as Record<string, unknown>);
           return (
             <Marker key={mk} position={[lat, lng]} icon={icon}>
-              <Popup>
+              <Popup maxWidth={272} minWidth={220}>
                 <MapaOperativoPopup
                   p={p as Record<string, unknown>}
                   modo={modo}
@@ -471,7 +596,7 @@ export function MapaCanvas({
               Relocalización · domicilio #{relocalDraft.domicilio_id}
             </Typography>
             <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-              Arrastrá el pin naranja o tocá el mapa para la nueva posición. Luego confirmá para guardar en el servidor.
+              Arrastrá el pin naranja o tocá el mapa. Confirmá para guardar.
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               <AppButton

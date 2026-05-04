@@ -1,8 +1,8 @@
 import distritosGeo from "../distritos.json";
 
 /**
- * Opciones de distrito para AppSelect: valor numérico como string (id municipal) y etiqueta.
- * Se infieren desde nombres tipo "Distrito N" del GeoJSON local.
+ * Opciones de distrito inferidas del GeoJSON local (solo nombre «Distrito N»).
+ * Preferir `fetchDistritosCatalogo` en pantallas que filtran por `domicilio.distrito_id` (IDs de BD).
  */
 export function buildDistritoSelectOptions(): { value: string; label: string }[] {
   const base = [{ value: "", label: "Todos los distritos" }];

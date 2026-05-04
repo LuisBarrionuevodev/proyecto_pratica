@@ -14,6 +14,14 @@ export type MapaOperativoLoadParams = {
   distritoId: string;
   tipo: string;
   inspectorId: string;
+  /** Solo realizados: clausura / decomiso / ambos. */
+  definicion?: string;
+};
+
+/** Opciones de carga (p. ej. forzar red al pulsar Refrescar). */
+export type MapaOperativoLoadOptions = {
+  /** Agrega `_` en la query para evitar caché HTTP del GET con los mismos filtros. */
+  forceNetwork?: boolean;
 };
 
 /**
@@ -35,7 +43,7 @@ export function useMapaOperativo() {
     return inspectorId && !Number.isNaN(n) ? n : undefined;
   };
 
-  const loadPendientes = useCallback(async (p: MapaOperativoLoadParams) => {
+  const loadPendientes = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
     setFeatures([]);
     setInfoMessage(null);
     setLoading(true);
@@ -52,6 +60,7 @@ export function useMapaOperativo() {
         distrito_id: _distritoNum(p.distritoId),
         tipo: p.tipo === "TODOS" ? undefined : p.tipo,
         inspector_id: _inspectorNum(p.inspectorId),
+        ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       });
       const feats = fc.features ?? [];
       setFeatures(feats);
@@ -69,7 +78,7 @@ export function useMapaOperativo() {
     }
   }, []);
 
-  const loadRealizados = useCallback(async (p: MapaOperativoLoadParams) => {
+  const loadRealizados = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
     setFeatures([]);
     setInfoMessage(null);
     setLoading(true);
@@ -86,6 +95,9 @@ export function useMapaOperativo() {
         distrito_id: _distritoNum(p.distritoId),
         tipo: p.tipo === "TODOS" ? undefined : p.tipo,
         inspector_id: _inspectorNum(p.inspectorId),
+        definicion:
+          p.definicion && p.definicion !== "TODOS" ? p.definicion : undefined,
+        ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       });
       const feats = fc.features ?? [];
       setFeatures(feats);

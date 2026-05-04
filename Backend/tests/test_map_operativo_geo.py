@@ -53,3 +53,15 @@ def test_http_operativo_pendientes_vacio_fc_200(client, auth_headers) -> None:
     data = resp.get_json()
     assert data.get("type") == "FeatureCollection"
     assert data.get("features") == []
+
+
+def test_http_operativo_realizados_con_definicion_vacio_fc_200(client, auth_headers) -> None:
+    """Filtro definición debe aceptarse sin error (sin datos en rango lejano)."""
+    resp = client.get(
+        "/map/operativo/realizados?desde=2099-01-01&hasta=2099-01-07&definicion=CLAUSURA",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("type") == "FeatureCollection"
+    assert data.get("features") == []

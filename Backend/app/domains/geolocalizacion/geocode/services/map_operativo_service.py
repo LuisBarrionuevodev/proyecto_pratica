@@ -15,7 +15,7 @@ import types
 from datetime import date
 from typing import Any, Optional
 
-from sqlalchemy import and_, exists, func
+from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import db
@@ -34,6 +34,7 @@ from app.models import (
     RutaGrupoInspector,
     RutaItem,
     RutaTrabajo,
+    actuaciones_inspector,
 )
 
 
@@ -54,6 +55,32 @@ def _geo_ok_join():
         DomicilioGeocode.lat.isnot(None),
         DomicilioGeocode.lng.isnot(None),
     )
+
+
+def _realizados_inspector_coincide(inspector_id: int):
+    """
+    Filtro de inspector para visitas realizadas.
+
+    Incluye ítems cuyo ``ruta_grupo`` asignó al inspector y también aquellos con ``ruta_grupo_id``
+    nulo pero cuya actuación registra al inspector en ``actuaciones_inspector`` (caso habitual al
+    cerrar la visita sin depender del grupo persistido).
+
+    Parámetros:
+        inspector_id: ID de inspector municipal.
+
+    Retorno:
+        Expresión SQLAlchemy booleana para ``.filter(...)``.
+    """
+    via_grupo = exists().where(
+        RutaGrupoInspector.ruta_grupo_id == RutaItem.ruta_grupo_id,
+        RutaGrupoInspector.inspector_id == inspector_id,
+    )
+    via_actuacion = exists().where(
+        actuaciones_inspector.c.actuaciones_id == Actuaciones.id,
+        actuaciones_inspector.c.inspector_id == inspector_id,
+        actuaciones_inspector.c.deleted_at.is_(None),
+    )
+    return or_(via_grupo, via_actuacion)
 
 
 def _prioridad_categoria(p: int) -> str:
@@ -390,6 +417,29 @@ def list_mapa_operativo_pendientes_geo(
     return points
 
 
+def _definicion_actuacion_filtro(definicion: Optional[str]) -> Optional[str]:
+    """
+    Normaliza el filtro UI «definición» (actas de clausura / decomiso) para la query de realizados.
+
+    Parámetros:
+        definicion: valor crudo del query string (p. ej. ``CLAUSURA``, ``TODOS``).
+
+    Retorno:
+        ``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO`` o ``None`` (sin filtro adicional).
+
+    Errores:
+        Ninguno: valores desconocidos se tratan como sin filtro.
+    """
+    if not definicion:
+        return None
+    key = str(definicion).strip().upper()
+    if key in ("", "TODOS", "ALL"):
+        return None
+    if key in ("CLAUSURA", "DECOMISO", "CLAUSURA_DECOMISO"):
+        return key
+    return None
+
+
 def list_mapa_operativo_realizados_geo(
     *,
     desde: Optional[str],
@@ -397,12 +447,16 @@ def list_mapa_operativo_realizados_geo(
     distrito_id: Optional[int] = None,
     tipo: Optional[str] = None,
     inspector_id: Optional[int] = None,
+    definicion: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """
     Puntos «realizados»: cierres con visita realizada (``RutaItem`` finalizado + ``REALIZADO``).
 
     Fecha operativa: ``coalesce(date(ejecutado_at), RutaTrabajo.fecha)`` dentro del rango inclusive.
     Coordenadas: ``Actuaciones.domicilio_id`` (post-corrección en Completar trabajo) con geocode OK.
+
+    Filtro opcional ``definicion``: restringe a actuaciones con acta de clausura y/o decomiso según UI
+    (``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``).
     """
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
@@ -458,11 +512,15 @@ def list_mapa_operativo_realizados_geo(
     if tipo_db is not None:
         q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
     if inspector_id is not None:
-        ins_match = exists().where(
-            RutaGrupoInspector.ruta_grupo_id == RutaItem.ruta_grupo_id,
-            RutaGrupoInspector.inspector_id == inspector_id,
-        )
-        q = q.filter(ins_match)
+        q = q.filter(_realizados_inspector_coincide(inspector_id))
+
+    definicion_key = _definicion_actuacion_filtro(definicion)
+    if definicion_key == "CLAUSURA":
+        q = q.filter(Actuaciones.clausura.has())
+    elif definicion_key == "DECOMISO":
+        q = q.filter(Actuaciones.decomiso.has())
+    elif definicion_key == "CLAUSURA_DECOMISO":
+        q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
 
     points: list[dict[str, Any]] = []
     for item in q.order_by(RutaItem.id).all():
@@ -633,10 +691,14 @@ def count_mapa_operativo_realizados_visita(
     distrito_id: Optional[int] = None,
     tipo: Optional[str] = None,
     inspector_id: Optional[int] = None,
+    definicion: Optional[str] = None,
 ) -> int:
     """
     Cuenta cierres con visita realizada visibles en mapa (``FINALIZADO`` + ``REALIZADO``, ruta ``PUBLICADA``,
     fecha de cierre en rango, geocode OK). Misma base que ``list_mapa_operativo_realizados_geo`` sin expandir ORM.
+
+    Parámetros:
+        definicion: mismo filtro opcional que el GeoJSON (clausura / decomiso / ambos).
     """
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
@@ -669,9 +731,14 @@ def count_mapa_operativo_realizados_visita(
     if tipo_db is not None:
         q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
     if inspector_id is not None:
-        ins_match = exists().where(
-            RutaGrupoInspector.ruta_grupo_id == RutaItem.ruta_grupo_id,
-            RutaGrupoInspector.inspector_id == inspector_id,
-        )
-        q = q.filter(ins_match)
+        q = q.filter(_realizados_inspector_coincide(inspector_id))
+
+    definicion_key = _definicion_actuacion_filtro(definicion)
+    if definicion_key == "CLAUSURA":
+        q = q.filter(Actuaciones.clausura.has())
+    elif definicion_key == "DECOMISO":
+        q = q.filter(Actuaciones.decomiso.has())
+    elif definicion_key == "CLAUSURA_DECOMISO":
+        q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
+
     return int(q.scalar() or 0)
