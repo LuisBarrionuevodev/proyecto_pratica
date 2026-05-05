@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import db
 from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaGrupo, RutaGrupoInspector, RutaItem
+from app.models import Contribuyente
 
 from app.domains.actuaciones.mappers.completar_trabajo_cierre_mapper import (
     map_completar_trabajo_cierre_to_aplicar_payload,
@@ -50,6 +51,13 @@ _MSG_RESULTADO_SOLO_VISITA_REALIZADA = (
 )
 
 
+def _clean_str_cierre(v: Any) -> str | None:
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
 def _persist_resultado_cumplimiento_oficio(
     act: Actuaciones,
     ini: IniciadorRuta,
@@ -74,20 +82,69 @@ def _persist_resultado_cumplimiento_oficio(
     act.resultado_cumplimiento_oficio = val
 
 
+def _resolve_contribuyente_para_domicilio_cierre(
+    act: Actuaciones,
+    payload: CompletarTrabajoCierreIn | CompletarTrabajoCierreCompletoIn,
+) -> Contribuyente | None:
+    """
+    Titular efectivo para get_or_create_domicilio en cierre Completar trabajo.
+
+    Alineado al mapper de cierre: si el body trae datos de titular, se delega en
+    ``resolve_contribuyente`` con el mismo diccionario que usaría la grilla; si no,
+    se reutiliza el contribuyente ya vinculado al domicilio de la actuación.
+    """
+    from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
+
+    if isinstance(payload, CompletarTrabajoCierreCompletoIn):
+        row = payload
+        if row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
+            data: dict[str, Any] = {
+                "doc_nro": _clean_str_cierre(row.doc_nro),
+                "apellido": _clean_str_cierre(row.contrib_apellido),
+                "nombre": _clean_str_cierre(row.contrib_nombre),
+                "razon_social": _clean_str_cierre(row.razon_social),
+            }
+            return resolve_contribuyente(data)
+    if act.domicilio and act.domicilio.contribuyente:
+        return act.domicilio.contribuyente
+    return None
+
+
+def _domicilio_rubro_patch_solicitado(
+    payload: CompletarTrabajoCierreIn | CompletarTrabajoCierreCompletoIn,
+) -> bool:
+    """True si el cierre trae datos que deben mutar domicilio/rubro/titular vía get_or_create."""
+    if any(getattr(payload, k, None) is not None for k in ("calle", "numero", "rubro_nombre", "numero_tipo")):
+        return True
+    if isinstance(payload, CompletarTrabajoCierreCompletoIn):
+        return any(
+            getattr(payload, k, None) is not None
+            for k in ("doc_nro", "contrib_apellido", "contrib_nombre", "razon_social")
+        )
+    return False
+
+
 def _apply_domicilio_rubro(
     act: Actuaciones,
     payload: CompletarTrabajoCierreIn | CompletarTrabajoCierreCompletoIn,
     *,
     bucket: ContrapBucket,
     ini: IniciadorRuta,
-) -> None:
-    """Replica la lógica mínima de PATCH para calle/número/rubro/contrib (sin commit)."""
-    patch_keys = ("calle", "numero", "rubro_nombre")
-    if not any(getattr(payload, k) is not None for k in patch_keys):
-        return
+) -> bool:
+    """
+    Replica la lógica mínima de PATCH para calle/número/rubro/contrib (sin commit).
+
+    Retorna:
+        True si se invocó get_or_create_domicilio (y se enlazó ``act.domicilio_id``), False si no hubo cambio.
+    """
+    if not _domicilio_rubro_patch_solicitado(payload):
+        return False
 
     from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
     from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
+    from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
+        normalizar_domicilio_en_sesion,
+    )
 
     rubro = None
     if payload.rubro_nombre is not None:
@@ -95,9 +152,7 @@ def _apply_domicilio_rubro(
     elif act.domicilio and act.domicilio.rubro:
         rubro = act.domicilio.rubro
 
-    contrib = None
-    if act.domicilio and act.domicilio.contribuyente:
-        contrib = act.domicilio.contribuyente
+    contrib = _resolve_contribuyente_para_domicilio_cierre(act, payload)
 
     dom_payload: dict[str, Any] = {}
     if payload.calle is not None:
@@ -114,8 +169,11 @@ def _apply_domicilio_rubro(
     elif ini.domicilio:
         dom_payload["numero"] = ini.domicilio.numero
 
-    if not dom_payload:
-        return
+    if getattr(payload, "numero_tipo", None) is not None:
+        dom_payload["numero_tipo"] = payload.numero_tipo
+
+    if not dom_payload or not dom_payload.get("calle") or not dom_payload.get("numero"):
+        return False
 
     # Visita no realizada: no exigir contribuyente/rubro aunque `act.tipo` ya venga seteado (p. ej. al publicar ruta).
     allow_missing_catalogs = bucket != ContrapBucket.NONE
@@ -126,6 +184,9 @@ def _apply_domicilio_rubro(
         allow_missing_catalogs=allow_missing_catalogs,
     )
     act.domicilio_id = dom.id if dom else None
+    if dom:
+        normalizar_domicilio_en_sesion(dom, override_numero_tipo=dom_payload.get("numero_tipo"))
+    return dom is not None
 
 
 def cerrar_completar_trabajo_por_ruta_item(
@@ -207,6 +268,13 @@ def cerrar_completar_trabajo_por_ruta_item(
                 nombres_grupo = list_inspector_nombres_desde_ruta_item_grupo(item)
                 if nombres_grupo:
                     aplicar_payload["inspectores"] = nombres_grupo
+            # Misma vía que correctivas: persistir domicilio/rubro/titular aquí y no repetir
+            # en ``aplicar_payload_actuacion`` (evita desincronía ORM act.domicilio vs act.domicilio_id).
+            dom_vinculado_por_apply = _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if dom_vinculado_por_apply:
+                aplicar_payload.pop("domicilio", None)
+                aplicar_payload.pop("contribuyente", None)
+                aplicar_payload.pop("rubro_nombre", None)
             aplicar_payload_actuacion(
                 act,
                 aplicar_payload,

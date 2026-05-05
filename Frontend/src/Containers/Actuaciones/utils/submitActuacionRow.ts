@@ -44,6 +44,7 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
   Inspectores: "inspectores",
   Calle: "calle",
   Número: "numero",
+  "Tipo de numeración": "numero_tipo",
   Rubro: "rubro_nombre",
   Apellido: "contrib_apellido",
   Nombre: "contrib_nombre",

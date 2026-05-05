@@ -1,10 +1,16 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { ReactNode } from "react";
-import { Box, Chip, Collapse, Divider, IconButton, Link, Stack, Typography } from "@mui/material";
+import { Autocomplete, Box, Chip, Collapse, Divider, IconButton, Link, Stack, TextField, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
+import {
+  MOTIVOS_NOTIFICACION_MAX,
+  mergeMotivosNotifCatalogStrings,
+  motivosNotificacionFromSlots,
+  orderedMotivosNotificacion,
+} from "../../../utils/motivosNotificacionSlots";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
@@ -27,9 +33,17 @@ import {
   docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
+import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
 import { ActuacionCircuitoDocumentalPuente } from "./ActuacionCircuitoDocumentalPuente";
+
+const QUITAR_ACTA_TITLE: Record<ActaCanalQuitarTipo, string> = {
+  INSPECCION: "Quitar acta de inspección",
+  NOTIFICACION: "Quitar acta de notificación",
+  COMPROBACION: "Quitar acta de comprobación",
+  CLAUSURA: "Quitar acta de clausura",
+  DECOMISO: "Quitar acta de decomiso",
+};
 
 export type ActuacionEditCatalogs = {
   inspectores: string[];
@@ -47,12 +61,14 @@ export type ActuacionDetalleDialogProps = {
   saving: boolean;
   catalogs: ActuacionEditCatalogs;
   readOnlyColumns: string[];
-  /** Reservados para una futura edición de domicilio; no usados en el modo edición actual. */
+  /** Opciones de calle para editor de número (p. ej. gestión domicilios); opcional en actuaciones. */
   numeroCallesOptions?: string[];
   numeroEditorLabel?: string;
   numeroAllowFreeSolo?: boolean;
   /** Si es false, no se muestra el paso a edición (p. ej. bandejas restringidas). */
   canEdit?: boolean;
+  /** Si se informa, el modal muestra «Eliminar» por acta y llama aquí tras confirmar (POST quitar-acta). */
+  onQuitarActa?: (tipo: ActaCanalQuitarTipo) => Promise<void>;
   onClose: () => void;
   onDraftChange: (patch: Partial<IActuacionListItem>) => void;
   onSave: () => void | Promise<void>;
@@ -79,7 +95,15 @@ const blockShellSx = {
 };
 
 /** Estilo de inputs deshabilitados en edición; referencia estable (no recrear por render). */
-const roFieldSx = { "& .MuiInputBase-input": { color: "rgba(255,255,255,0.72)" } };
+const roFieldSx = { "& .MuiInputBase-input": { color: "rgba(255,255,255,0.94)" } };
+
+/** Autocomplete / TextField auxiliar: alto contraste sobre fondo oscuro del modal. */
+const modalAuxInputSx = {
+  "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.92)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
+  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.88)" },
+} as const;
 
 const edicionGrid2ColSx = {
   display: "grid",
@@ -133,6 +157,36 @@ function titularLinea(row: IActuacionListItem): string {
   const n = (row.contrib_nombre ?? "").trim();
   const t = [a, n].filter(Boolean).join(", ");
   return t || "—";
+}
+
+function actaInspeccionTieneNumero(d: IActuacionListItem): boolean {
+  const n = d.acta_inspeccion_num;
+  return n != null && String(n).trim() !== "";
+}
+
+function actaNotificacionTieneContenido(d: IActuacionListItem): boolean {
+  const n = d.acta_notificacion_num;
+  const num = n != null && String(n).trim() !== "";
+  return num || motivosNotificacionNoVacios(d).length > 0;
+}
+
+function actaComprobacionTieneContenido(d: IActuacionListItem): boolean {
+  const n = d.acta_comprobacion_num;
+  const num = n != null && String(n).trim() !== "";
+  const m = d.comprobacion_motivo != null && String(d.comprobacion_motivo).trim() !== "";
+  return num || m;
+}
+
+function actaClausuraTieneNumero(d: IActuacionListItem): boolean {
+  const n = d.acta_clausura_num;
+  return n != null && String(n).trim() !== "";
+}
+
+function actaDecomisoTieneContenido(d: IActuacionListItem): boolean {
+  const n = d.acta_decomiso_num;
+  const num = n != null && String(n).trim() !== "";
+  const k = d.decomiso_kilos_total != null && Number(d.decomiso_kilos_total) > 0;
+  return num || k;
 }
 
 function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
@@ -773,6 +827,7 @@ export function ActuacionDetalleDialog({
   catalogs,
   readOnlyColumns,
   canEdit = true,
+  onQuitarActa,
   onClose,
   onDraftChange,
   onSave,
@@ -780,6 +835,8 @@ export function ActuacionDetalleDialog({
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
+  const [quitarConfirmTipo, setQuitarConfirmTipo] = useState<ActaCanalQuitarTipo | null>(null);
+  const [quitarBusy, setQuitarBusy] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -810,8 +867,8 @@ export function ActuacionDetalleDialog({
     ]
   );
 
-  const motivosOptions = useMemo(() => opts(["", ...catalogs.motivos]), [catalogs.motivos]);
   const rubrosOptions = useMemo(() => opts(["", ...catalogs.rubros]), [catalogs.rubros]);
+
   const motivoComprobacionOptions = useMemo(
     () => opts(getDropdownOptions("Motivo comprobación", mergedCatalogs)),
     [mergedCatalogs]
@@ -845,6 +902,54 @@ export function ActuacionDetalleDialog({
   const handleSaveClick = useCallback(() => {
     void onSave();
   }, [onSave]);
+
+  const applyInspectoresNombres = useCallback(
+    (nombres: string[]) => {
+      const dedup = [...new Set(nombres.map((x) => String(x).trim()).filter(Boolean))];
+      onDraftChange({
+        inspectores: dedup.length ? dedup : null,
+        inspectores_texto: dedup.length ? dedup.join(", ") : null,
+        inspector1: dedup[0] ?? null,
+        inspector2: dedup[1] ?? null,
+        inspector3: dedup[2] ?? null,
+      });
+    },
+    [onDraftChange]
+  );
+
+  const applyMotivosNotificacion = useCallback(
+    (sel: string[]) => {
+      const o = orderedMotivosNotificacion(sel);
+      onDraftChange({
+        notificacion_motivo_1: o[0] ?? null,
+        notificacion_motivo_2: o[1] ?? null,
+        notificacion_motivo_3: o[2] ?? null,
+      });
+    },
+    [onDraftChange]
+  );
+
+  const handleAskQuitarActa = useCallback((tipo: ActaCanalQuitarTipo) => {
+    setQuitarConfirmTipo(tipo);
+  }, []);
+
+  const handleDismissQuitar = useCallback(() => {
+    if (!quitarBusy) setQuitarConfirmTipo(null);
+  }, [quitarBusy]);
+
+  const handleConfirmQuitarActa = useCallback(async () => {
+    if (!quitarConfirmTipo || !onQuitarActa) return;
+    setQuitarBusy(true);
+    try {
+      await onQuitarActa(quitarConfirmTipo);
+      setQuitarConfirmTipo(null);
+    } catch (err: unknown) {
+      const msg = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      window.alert(typeof msg === "string" ? msg : "No se pudo quitar el acta.");
+    } finally {
+      setQuitarBusy(false);
+    }
+  }, [quitarConfirmTipo, onQuitarActa]);
 
   const toggleEpicollectOtros = useCallback(() => {
     setEpicollectOtrosExpanded((v) => !v);
@@ -1000,66 +1105,132 @@ export function ActuacionDetalleDialog({
     const tieneResultado = res != null && String(res).trim() !== "";
     const muestraResultadoSeguimientoEdicion = tieneResultado || tieneReferenciaAdmin(draft);
 
+    const motivosNotifSeleccionados = motivosNotificacionFromSlots(
+      draft.notificacion_motivo_1,
+      draft.notificacion_motivo_2,
+      draft.notificacion_motivo_3
+    );
+    const motivosCatalogMerged = mergeMotivosNotifCatalogStrings(mergedCatalogs.motivos ?? [], motivosNotifSeleccionados);
+    const motivosDisponiblesAgregar = motivosCatalogMerged.filter((m) => !motivosNotifSeleccionados.includes(m));
+
+    const inspectoresEnOrdenLocal =
+      draft.inspectores && draft.inspectores.length > 0
+        ? [...new Set(draft.inspectores.map((x) => String(x ?? "").trim()).filter(Boolean))]
+        : [draft.inspector1, draft.inspector2, draft.inspector3]
+            .map((x) => String(x ?? "").trim())
+            .filter(Boolean);
+    const inspectoresCatalogMerged = [
+      ...new Set([...(mergedCatalogs.inspectores ?? []), ...inspectoresEnOrdenLocal]),
+    ].sort((a, b) => a.localeCompare(b, "es"));
+    const inspectoresDisponiblesAgregar = inspectoresCatalogMerged.filter((n) => !inspectoresEnOrdenLocal.includes(n));
+
     const gridNotificacion = (
-      <Box sx={edicionGrid2ColSx}>
-        <AppTextField
-          appearance="glass"
-          label="Número de acta"
-          value={draft.acta_notificacion_num ?? ""}
-          onChange={(ev) => onDraftChange({ acta_notificacion_num: ev.target.value })}
-          disabled={lockedNotif}
-          error={!!e("acta_notificacion_num")}
-          helperText={helperBloqueo("acta_notificacion_num", lockedNotif)}
-          fullWidth
-        />
-        <AppSelect
-          appearance="glass"
-          label="Motivo 1"
-          value={draft.notificacion_motivo_1 ?? ""}
-          onChange={(ev) => onDraftChange({ notificacion_motivo_1: ev.target.value as string })}
-          options={motivosOptions}
-          disabled={lockedNotif}
-          error={!!e("notificacion_motivo_1")}
-          helperText={helperBloqueo("notificacion_motivo_1", lockedNotif)}
-          fullWidth
-        />
-        <AppSelect
-          appearance="glass"
-          label="Motivo 2"
-          value={draft.notificacion_motivo_2 ?? ""}
-          onChange={(ev) => onDraftChange({ notificacion_motivo_2: ev.target.value as string })}
-          options={motivosOptions}
-          disabled={lockedNotif}
-          error={!!e("notificacion_motivo_2")}
-          helperText={helperBloqueo("notificacion_motivo_2", lockedNotif)}
-          fullWidth
-        />
-        <AppSelect
-          appearance="glass"
-          label="Motivo 3"
-          value={draft.notificacion_motivo_3 ?? ""}
-          onChange={(ev) => onDraftChange({ notificacion_motivo_3: ev.target.value as string })}
-          options={motivosOptions}
-          disabled={lockedNotif}
-          error={!!e("notificacion_motivo_3")}
-          helperText={helperBloqueo("notificacion_motivo_3", lockedNotif)}
-          fullWidth
-        />
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
+          <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
+            <AppTextField
+              appearance="glass"
+              label="Número de acta"
+              value={draft.acta_notificacion_num ?? ""}
+              onChange={(ev) => onDraftChange({ acta_notificacion_num: ev.target.value })}
+              disabled={lockedNotif}
+              error={!!e("acta_notificacion_num")}
+              helperText={helperBloqueo("acta_notificacion_num", lockedNotif)}
+              fullWidth
+            />
+          </Box>
+          {onQuitarActa && actaNotificacionTieneContenido(draft) && !lockedNotif ? (
+            <AppButton
+              dsVariant="danger"
+              dsSize="sm"
+              sx={{ flexShrink: 0, mt: 0.5 }}
+              onClick={() => handleAskQuitarActa("NOTIFICACION")}
+              disabled={saving}
+            >
+              Eliminar
+            </AppButton>
+          ) : null}
+        </Box>
+        <Box sx={{ width: "100%" }}>
+          <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 600, mb: 0.75 }}>
+            Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.25, minHeight: 36 }}>
+            {motivosNotifSeleccionados.length === 0 ? (
+              <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, opacity: 0.9 }}>
+                Ninguno — agregá desde el catálogo.
+              </Typography>
+            ) : (
+              motivosNotifSeleccionados.map((name) => (
+                <Chip
+                  key={name}
+                  label={name}
+                  size="small"
+                  disabled={lockedNotif}
+                  onDelete={
+                    lockedNotif
+                      ? undefined
+                      : () => applyMotivosNotificacion(motivosNotifSeleccionados.filter((x) => x !== name))
+                  }
+                  sx={{ color: DOC_MODAL_TEXT, borderColor: "rgba(255,255,255,0.35)" }}
+                  variant="outlined"
+                />
+              ))
+            )}
+          </Box>
+          <Autocomplete
+            size="small"
+            options={motivosDisponiblesAgregar}
+            value={null}
+            disabled={lockedNotif || motivosNotifSeleccionados.length >= MOTIVOS_NOTIFICACION_MAX}
+            onChange={(_, value) => {
+              if (!value || lockedNotif) return;
+              if (motivosNotifSeleccionados.includes(value)) return;
+              if (motivosNotifSeleccionados.length >= MOTIVOS_NOTIFICACION_MAX) return;
+              applyMotivosNotificacion(orderedMotivosNotificacion([...motivosNotifSeleccionados, value]));
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Agregar motivo"
+                placeholder="Catálogo"
+                sx={modalAuxInputSx}
+                error={!!e("notificacion_motivo_1")}
+                helperText={helperBloqueo("notificacion_motivo_1", lockedNotif) || undefined}
+              />
+            )}
+          />
+        </Box>
       </Box>
     );
 
     const gridComprobacion = (
-      <Box sx={edicionGrid2ColSx}>
-        <AppTextField
-          appearance="glass"
-          label="Número de acta"
-          value={draft.acta_comprobacion_num ?? ""}
-          onChange={(ev) => onDraftChange({ acta_comprobacion_num: ev.target.value })}
-          disabled={lockedComp}
-          error={!!e("acta_comprobacion_num")}
-          helperText={helperBloqueo("acta_comprobacion_num", lockedComp)}
-          fullWidth
-        />
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
+          <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
+            <AppTextField
+              appearance="glass"
+              label="Número de acta"
+              value={draft.acta_comprobacion_num ?? ""}
+              onChange={(ev) => onDraftChange({ acta_comprobacion_num: ev.target.value })}
+              disabled={lockedComp}
+              error={!!e("acta_comprobacion_num")}
+              helperText={helperBloqueo("acta_comprobacion_num", lockedComp)}
+              fullWidth
+            />
+          </Box>
+          {onQuitarActa && actaComprobacionTieneContenido(draft) && !lockedComp ? (
+            <AppButton
+              dsVariant="danger"
+              dsSize="sm"
+              sx={{ flexShrink: 0, mt: 0.5 }}
+              onClick={() => handleAskQuitarActa("COMPROBACION")}
+              disabled={saving}
+            >
+              Eliminar
+            </AppButton>
+          ) : null}
+        </Box>
         <AppSelect
           appearance="glass"
           label="Motivo de comprobación"
@@ -1074,47 +1245,46 @@ export function ActuacionDetalleDialog({
       </Box>
     );
 
-    const inspectoresExtras = [draft.inspector1, draft.inspector2, draft.inspector3].filter(
-      (x): x is string => Boolean(x?.trim())
-    );
-    const inspectoresUnion = [
-      ...new Set([...(mergedCatalogs.inspectores ?? []), ...inspectoresExtras]),
-    ].sort((a, b) => a.localeCompare(b, "es"));
-    const inspectoresSelectOptions = opts(["", ...inspectoresUnion]);
-
-    const patchInspectores = (
-      patch: Partial<Pick<IActuacionListItem, "inspector1" | "inspector2" | "inspector3">>
-    ) => {
-      const n1 = patch.inspector1 !== undefined ? patch.inspector1 : draft.inspector1;
-      const n2 = patch.inspector2 !== undefined ? patch.inspector2 : draft.inspector2;
-      const n3 = patch.inspector3 !== undefined ? patch.inspector3 : draft.inspector3;
-      const head = [n1, n2, n3].map((x) => String(x ?? "").trim()).filter(Boolean);
-      const prevFull =
-        draft.inspectores && draft.inspectores.length > 0
-          ? draft.inspectores
-          : [draft.inspector1, draft.inspector2, draft.inspector3]
-              .map((x) => String(x ?? "").trim())
-              .filter(Boolean);
-      const tail = prevFull.length > 3 ? prevFull.slice(3) : [];
-      const merged = [...head, ...tail];
-      onDraftChange({
-        ...patch,
-        inspectores: merged.length ? merged : null,
-        inspectores_texto: merged.length ? merged.join(", ") : null,
-      });
-    };
-
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
         <DocumentalBloque overline="Lugar y titular">
-          <AppTextField
-            appearance="glass"
-            label="Domicilio (calle y número)"
-            value={domicilioTexto(draft)}
-            disabled
-            sx={{ ...roFieldSx, ...edicionGapBloqueAPrimerControlSx }}
-            fullWidth
-          />
+          <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
+            <AppTextField
+              appearance="glass"
+              label="Calle"
+              value={draft.calle ?? ""}
+              onChange={(ev) => onDraftChange({ calle: ev.target.value.trim() ? ev.target.value.trim() : null })}
+              disabled={ro("calle")}
+              error={!!e("calle")}
+              helperText={e("calle")}
+              fullWidth
+            />
+            <AppTextField
+              appearance="glass"
+              label="Número o referencia"
+              value={draft.numero ?? ""}
+              onChange={(ev) => onDraftChange({ numero: ev.target.value.trim() ? ev.target.value.trim() : null })}
+              disabled={ro("numero")}
+              error={!!e("numero")}
+              helperText={e("numero")}
+              fullWidth
+            />
+            <AppSelect
+              appearance="glass"
+              label="Tipo de numeración"
+              value={(draft.numero_tipo ?? "").trim().toUpperCase() || ""}
+              onChange={(ev) => {
+                const v = String(ev.target.value ?? "").trim().toUpperCase();
+                onDraftChange({ numero_tipo: v ? v : null });
+              }}
+              options={opts(["", "NUMERO", "ESQUINA", "OTRO"])}
+              disabled={ro("numero_tipo")}
+              error={!!e("numero_tipo")}
+              helperText={e("numero_tipo")}
+              fullWidth
+              sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+            />
+          </Box>
           <AppTextField
             appearance="glass"
             label="Nombre de fantasía"
@@ -1243,48 +1413,56 @@ export function ActuacionDetalleDialog({
                 sx={roFieldSx}
                 fullWidth
               />
-              <AppSelect
-                appearance="glass"
-                label="Inspector 1"
-                value={draft.inspector1 ?? ""}
-                onChange={(ev) => {
-                  const v = (ev.target.value as string) || null;
-                  patchInspectores({ inspector1: v });
+            </Box>
+            <Box sx={{ mt: 2, width: "100%" }}>
+              <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 600, mb: 0.5 }}>
+                Inspectores a cargo
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ color: DOC_MODAL_TEXT, mb: 1.25, lineHeight: 1.45 }}>
+                Elegí del catálogo; quitá con la cruz. Sin duplicados (orden de carga se conserva).
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.25, minHeight: 36 }}>
+                {inspectoresEnOrdenLocal.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, opacity: 0.92 }}>
+                    Ninguno — agregá desde el catálogo.
+                  </Typography>
+                ) : (
+                  inspectoresEnOrdenLocal.map((name) => (
+                    <Chip
+                      key={name}
+                      label={name}
+                      size="small"
+                      onDelete={
+                        saving
+                          ? undefined
+                          : () => applyInspectoresNombres(inspectoresEnOrdenLocal.filter((x) => x !== name))
+                      }
+                      sx={{ color: DOC_MODAL_TEXT, borderColor: "rgba(255,255,255,0.35)" }}
+                      variant="outlined"
+                    />
+                  ))
+                )}
+              </Box>
+              <Autocomplete
+                size="small"
+                options={inspectoresDisponiblesAgregar}
+                value={null}
+                disabled={saving || inspectoresDisponiblesAgregar.length === 0}
+                onChange={(_, value) => {
+                  if (!value || saving) return;
+                  if (inspectoresEnOrdenLocal.includes(value)) return;
+                  applyInspectoresNombres([...inspectoresEnOrdenLocal, value]);
                 }}
-                options={inspectoresSelectOptions}
-                disabled={ro("inspector1")}
-                error={!!e("inspector1")}
-                helperText={e("inspector1")}
-                fullWidth
-              />
-              <AppSelect
-                appearance="glass"
-                label="Inspector 2"
-                value={draft.inspector2 ?? ""}
-                onChange={(ev) => {
-                  const v = (ev.target.value as string) || null;
-                  patchInspectores({ inspector2: v });
-                }}
-                options={inspectoresSelectOptions}
-                disabled={ro("inspector2")}
-                error={!!e("inspector2")}
-                helperText={e("inspector2")}
-                fullWidth
-              />
-              <AppSelect
-                appearance="glass"
-                label="Inspector 3"
-                value={draft.inspector3 ?? ""}
-                onChange={(ev) => {
-                  const v = (ev.target.value as string) || null;
-                  patchInspectores({ inspector3: v });
-                }}
-                options={inspectoresSelectOptions}
-                disabled={ro("inspector3")}
-                error={!!e("inspector3")}
-                helperText={e("inspector3")}
-                sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}
-                fullWidth
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Agregar inspector"
+                    placeholder="Catálogo"
+                    sx={modalAuxInputSx}
+                    error={!!e("inspectores")}
+                    helperText={e("inspectores") || undefined}
+                  />
+                )}
               />
             </Box>
           </Box>
@@ -1295,16 +1473,29 @@ export function ActuacionDetalleDialog({
             <Typography component="h3" sx={edicionActaSubtituloSx}>
               Acta de inspección
             </Typography>
-            <Box sx={edicionGrid2ColSx}>
-              <AppTextField
-                appearance="glass"
-                label="Número de acta"
-                value={draft.acta_inspeccion_num ?? ""}
-                onChange={(ev) => onDraftChange({ acta_inspeccion_num: ev.target.value })}
-                error={!!e("acta_inspeccion_num")}
-                helperText={e("acta_inspeccion_num")}
-                fullWidth
-              />
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
+              <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
+                <AppTextField
+                  appearance="glass"
+                  label="Número de acta"
+                  value={draft.acta_inspeccion_num ?? ""}
+                  onChange={(ev) => onDraftChange({ acta_inspeccion_num: ev.target.value })}
+                  error={!!e("acta_inspeccion_num")}
+                  helperText={e("acta_inspeccion_num")}
+                  fullWidth
+                />
+              </Box>
+              {onQuitarActa && actaInspeccionTieneNumero(draft) ? (
+                <AppButton
+                  dsVariant="danger"
+                  dsSize="sm"
+                  sx={{ flexShrink: 0, mt: 0.5 }}
+                  onClick={() => handleAskQuitarActa("INSPECCION")}
+                  disabled={saving}
+                >
+                  Eliminar
+                </AppButton>
+              ) : null}
             </Box>
           </Box>
 
@@ -1319,7 +1510,7 @@ export function ActuacionDetalleDialog({
                   component="p"
                   sx={{
                     color: DOC_MODAL_TEXT,
-                    opacity: 0.8,
+                    opacity: 0.96,
                     lineHeight: 1.45,
                     mb: 1.25,
                     maxWidth: 520,
@@ -1345,7 +1536,7 @@ export function ActuacionDetalleDialog({
                   component="p"
                   sx={{
                     color: DOC_MODAL_TEXT,
-                    opacity: 0.8,
+                    opacity: 0.96,
                     lineHeight: 1.45,
                     mb: 1.25,
                     maxWidth: 520,
@@ -1364,16 +1555,29 @@ export function ActuacionDetalleDialog({
             <Typography component="h3" sx={edicionActaSubtituloSx}>
               Acta de clausura
             </Typography>
-            <Box sx={edicionGrid2ColSx}>
-              <AppTextField
-                appearance="glass"
-                label="Número de acta"
-                value={draft.acta_clausura_num ?? ""}
-                onChange={(ev) => onDraftChange({ acta_clausura_num: ev.target.value })}
-                error={!!e("acta_clausura_num")}
-                helperText={e("acta_clausura_num")}
-                fullWidth
-              />
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
+              <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
+                <AppTextField
+                  appearance="glass"
+                  label="Número de acta"
+                  value={draft.acta_clausura_num ?? ""}
+                  onChange={(ev) => onDraftChange({ acta_clausura_num: ev.target.value })}
+                  error={!!e("acta_clausura_num")}
+                  helperText={e("acta_clausura_num")}
+                  fullWidth
+                />
+              </Box>
+              {onQuitarActa && actaClausuraTieneNumero(draft) ? (
+                <AppButton
+                  dsVariant="danger"
+                  dsSize="sm"
+                  sx={{ flexShrink: 0, mt: 0.5 }}
+                  onClick={() => handleAskQuitarActa("CLAUSURA")}
+                  disabled={saving}
+                >
+                  Eliminar
+                </AppButton>
+              ) : null}
             </Box>
           </Box>
 
@@ -1381,32 +1585,46 @@ export function ActuacionDetalleDialog({
             <Typography component="h3" sx={edicionActaSubtituloSx}>
               Acta de decomiso
             </Typography>
-            <Box sx={edicionGrid2ColSx}>
-              <AppTextField
-                appearance="glass"
-                label="Número de acta"
-                value={draft.acta_decomiso_num ?? ""}
-                onChange={(ev) => onDraftChange({ acta_decomiso_num: ev.target.value })}
-                error={!!e("acta_decomiso_num")}
-                helperText={e("acta_decomiso_num")}
-                fullWidth
-              />
-              <AppTextField
-                appearance="glass"
-                label="Kilos decomisados"
-                type="number"
-                value={draft.decomiso_kilos_total ?? ""}
-                onChange={(ev) => {
-                  const v = ev.target.value;
-                  onDraftChange({
-                    decomiso_kilos_total: v === "" ? null : Number(v),
-                  });
-                }}
-                error={!!e("decomiso_kilos_total")}
-                helperText={e("decomiso_kilos_total")}
-                fullWidth
-              />
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1, width: "100%" }}>
+              <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
+                <AppTextField
+                  appearance="glass"
+                  label="Número de acta"
+                  value={draft.acta_decomiso_num ?? ""}
+                  onChange={(ev) => onDraftChange({ acta_decomiso_num: ev.target.value })}
+                  error={!!e("acta_decomiso_num")}
+                  helperText={e("acta_decomiso_num")}
+                  fullWidth
+                />
+              </Box>
+              {onQuitarActa && actaDecomisoTieneContenido(draft) ? (
+                <AppButton
+                  dsVariant="danger"
+                  dsSize="sm"
+                  sx={{ flexShrink: 0, mt: 0.5 }}
+                  onClick={() => handleAskQuitarActa("DECOMISO")}
+                  disabled={saving}
+                >
+                  Eliminar
+                </AppButton>
+              ) : null}
             </Box>
+            <AppTextField
+              appearance="glass"
+              label="Kilos decomisados"
+              type="number"
+              value={draft.decomiso_kilos_total ?? ""}
+              onChange={(ev) => {
+                const v = ev.target.value;
+                onDraftChange({
+                  decomiso_kilos_total: v === "" ? null : Number(v),
+                });
+              }}
+              error={!!e("decomiso_kilos_total")}
+              helperText={e("decomiso_kilos_total")}
+              fullWidth
+              sx={{ mt: 1.5 }}
+            />
           </Box>
         </DocumentalBloque>
 
@@ -1490,16 +1708,20 @@ export function ActuacionDetalleDialog({
     readOnlyColumns,
     lockedNotif,
     lockedComp,
-    motivosOptions,
+    mergedCatalogs,
     rubrosOptions,
     motivoComprobacionOptions,
-    mergedCatalogs.inspectores,
     epicollectOtrosExpanded,
     toggleEpicollectOtros,
     onDraftChange,
     navigate,
     onClose,
     open,
+    onQuitarActa,
+    handleAskQuitarActa,
+    applyMotivosNotificacion,
+    applyInspectoresNombres,
+    saving,
   ]);
 
   const dialogContentExtraSx = useMemo(
@@ -1561,20 +1783,36 @@ export function ActuacionDetalleDialog({
   );
 
   return (
-    <AppDialog
-      open={open}
-      onClose={handleDialogClose}
-      onCloseButtonClick={handleClose}
-      title={isEditing ? documentalTitleEdit : documentalTitleRead}
-      appearance="glass"
-      maxWidth="md"
-      fullWidth
-      contentDividers
-      contentSx={dialogContentSx}
-      showCloseButton
-      actions={dialogActions}
-    >
-      {!isEditing ? detalleVista : edicionVista}
-    </AppDialog>
+    <>
+      <AppDialog
+        open={open}
+        onClose={handleDialogClose}
+        onCloseButtonClick={handleClose}
+        title={isEditing ? documentalTitleEdit : documentalTitleRead}
+        appearance="glass"
+        maxWidth="md"
+        fullWidth
+        contentDividers
+        contentSx={dialogContentSx}
+        showCloseButton
+        actions={dialogActions}
+      >
+        {!isEditing ? detalleVista : edicionVista}
+      </AppDialog>
+      <ConfirmDialog
+        open={quitarConfirmTipo != null}
+        onClose={handleDismissQuitar}
+        onConfirm={() => void handleConfirmQuitarActa()}
+        title={quitarConfirmTipo ? QUITAR_ACTA_TITLE[quitarConfirmTipo] : ""}
+        destructive
+        loading={quitarBusy}
+        confirmLabel="Eliminar"
+      >
+        <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.5 }}>
+          Se quitará el acta de esta actuación. Si tenés otros cambios sin guardar, guardalos antes o perderán
+          consistencia con el servidor.
+        </Typography>
+      </ConfirmDialog>
+    </>
   );
 }

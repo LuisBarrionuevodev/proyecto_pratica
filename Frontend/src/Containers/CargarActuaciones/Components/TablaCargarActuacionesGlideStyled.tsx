@@ -54,7 +54,14 @@ import {
     getInspectoresListFromRow,
     dedupeInspectoresPreserveOrder,
 } from "../utils/inspectoresGridHelpers";
+import {
+    applyMotivosNotificacionToRowPatch,
+    formatMotivosNotificacionCellDisplay,
+    getMotivosNotificacionListFromRow,
+    motivosNotificacionCellError,
+} from "../utils/motivosNotificacionGridHelpers";
 import { InspectoresListaDialog } from "./InspectoresListaDialog";
+import { MotivosNotificacionListaDialog } from "./MotivosNotificacionListaDialog";
 
 export type TablaCargarActuacionesGlideStyledProps = {
     /** Foco de carga: columnas del otro tipo de acta se ocultan (sin borrar datos de fila). */
@@ -95,8 +102,10 @@ const TablaCargarActuacionesGlideStyled = ({
     const batchValidateRef = useRef<number | undefined>(undefined);
     const startingBatchRef = useRef<boolean>(false);
     const inspectoresClickRef = useRef<{ col: number; row: number; time: number } | null>(null);
+    const motivosNotifClickRef = useRef<{ col: number; row: number; time: number } | null>(null);
 
     const [inspectoresDialogRow, setInspectoresDialogRow] = useState<number | null>(null);
+    const [motivosNotifDialogRow, setMotivosNotifDialogRow] = useState<number | null>(null);
 
     // Catálogos combinados para dropdowns
     const catalogs = useMemo(() => ({
@@ -568,6 +577,75 @@ const TablaCargarActuacionesGlideStyled = ({
         [ensureBatchStarted, batchId, handleValidateRow, validateBatchRows]
     );
 
+    const applyMotivosNotificacionListToRow = useCallback(
+        (rowIndex: number, motivos: string[]) => {
+            void ensureBatchStarted();
+            const rowData = dataRef.current[rowIndex];
+            if (!rowData) return;
+
+            let updatedRow: GridRow = {
+                ...applyMotivosNotificacionToRowPatch(rowData, motivos),
+                _rowError: null,
+                _touched: true,
+                _needsCommit: true,
+            };
+
+            if (!rowHasData(updatedRow)) {
+                updatedRow = {
+                    ...updatedRow,
+                    _state: undefined,
+                    _cellErrors: {},
+                    _rowError: null,
+                    _normalized: undefined,
+                    _touched: false,
+                    _needsCommit: false,
+                };
+            } else if (updatedRow._state === "OK") {
+                updatedRow = {
+                    ...updatedRow,
+                    _state: "PENDIENTE",
+                    _normalized: undefined,
+                };
+            }
+
+            setData((prev) => {
+                const next = [...prev];
+                next[rowIndex] = updatedRow;
+                return next;
+            });
+            setMotivosNotifDialogRow(null);
+
+            const rowId = updatedRow._rowId;
+            if (rowId && debounceRef.current[rowId] !== undefined) {
+                clearTimeout(debounceRef.current[rowId]);
+            }
+            if (rowId) {
+                debounceRef.current[rowId] = window.setTimeout(() => {
+                    if (batchId) {
+                        if (rowHasData(updatedRow)) {
+                            handleValidateRow(updatedRow);
+                        } else {
+                            validateRow({
+                                batch_id: batchId,
+                                row_id: rowId,
+                                row: {},
+                            }).catch(() => {
+                                /* limpieza batch */
+                            });
+                        }
+                    }
+                }, 500);
+            }
+            if (batchId) {
+                if (batchValidateRef.current) clearTimeout(batchValidateRef.current);
+                batchValidateRef.current = window.setTimeout(() => {
+                    validateBatchRows(dataRef.current);
+                }, 900);
+            }
+        },
+        [ensureBatchStarted, batchId, handleValidateRow, validateBatchRows]
+    );
+
     const handleAddRow = () => {
         setData((prev) => [...prev, createEmptyRow()]);
     };
@@ -608,7 +686,11 @@ const TablaCargarActuacionesGlideStyled = ({
             const cellType = (columnDef as any).cellType || "text";
             const value = rowData[columnId as keyof GridRow];
             const cellErrors = (rowData._cellErrors || {}) as Record<string, string>;
-            const hasError = cellErrors[columnId] !== undefined;
+            const motivosNotifErr = motivosNotificacionCellError(cellErrors);
+            const hasError =
+                columnId === "Motivos notificación"
+                    ? Boolean(motivosNotifErr)
+                    : cellErrors[columnId] !== undefined;
             const rowState = rowData._state;
             const hasData = rowHasData(rowData);
 
@@ -701,6 +783,25 @@ const TablaCargarActuacionesGlideStyled = ({
                 };
             }
 
+            if (cellType === "motivos_notificacion") {
+                const names = getMotivosNotificacionListFromRow(rowData);
+                const summary = formatMotivosNotificacionCellDisplay(names);
+                const displayData = hasError
+                    ? `${summary || "(sin motivos)"} (${motivosNotifErr || ""})`
+                    : names.length === 0
+                      ? "Doble clic para elegir…"
+                      : summary;
+                return {
+                    kind: GridCellKind.Text,
+                    data: summary,
+                    displayData,
+                    allowOverlay: false,
+                    readonly: true,
+                    copyData: names.join(", "),
+                    themeOverride,
+                };
+            }
+
             // Celda tipo TEXT
             const strValue = value?.toString() || "";
             const errorMsg = hasError ? (cellErrors[columnId] || "") : "";
@@ -723,18 +824,31 @@ const TablaCargarActuacionesGlideStyled = ({
             void ensureBatchStarted();
             const [col, row] = cell;
             const columnId = visibleColumnDefs[col]?.id;
-            if (columnId !== "Inspectores") {
+            if (columnId !== "Inspectores" && columnId !== "Motivos notificación") {
                 inspectoresClickRef.current = null;
+                motivosNotifClickRef.current = null;
                 return;
             }
             const now = Date.now();
-            const prev = inspectoresClickRef.current;
-            if (prev && prev.col === col && prev.row === row && now - prev.time < 450) {
-                inspectoresClickRef.current = null;
-                setInspectoresDialogRow(row);
+            if (columnId === "Inspectores") {
+                motivosNotifClickRef.current = null;
+                const prev = inspectoresClickRef.current;
+                if (prev && prev.col === col && prev.row === row && now - prev.time < 450) {
+                    inspectoresClickRef.current = null;
+                    setInspectoresDialogRow(row);
+                    return;
+                }
+                inspectoresClickRef.current = { col, row, time: now };
                 return;
             }
-            inspectoresClickRef.current = { col, row, time: now };
+            inspectoresClickRef.current = null;
+            const prevM = motivosNotifClickRef.current;
+            if (prevM && prevM.col === col && prevM.row === row && now - prevM.time < 450) {
+                motivosNotifClickRef.current = null;
+                setMotivosNotifDialogRow(row);
+                return;
+            }
+            motivosNotifClickRef.current = { col, row, time: now };
         },
         [ensureBatchStarted, visibleColumnDefs]
     );
@@ -831,6 +945,21 @@ const TablaCargarActuacionesGlideStyled = ({
                     }}
                 />
 
+                <MotivosNotificacionListaDialog
+                    open={motivosNotifDialogRow !== null}
+                    initialMotivos={
+                        motivosNotifDialogRow !== null && data[motivosNotifDialogRow]
+                            ? getMotivosNotificacionListFromRow(data[motivosNotifDialogRow])
+                            : []
+                    }
+                    catalogMotivos={catalogMotivos}
+                    onClose={() => setMotivosNotifDialogRow(null)}
+                    onSave={(motivos) => {
+                        if (motivosNotifDialogRow === null) return;
+                        applyMotivosNotificacionListToRow(motivosNotifDialogRow, motivos);
+                    }}
+                />
+
                 <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <Button
                         variant="contained"
@@ -902,6 +1031,7 @@ const TablaCargarActuacionesGlideStyled = ({
                         <strong>5.</strong> Para confirmar todo: usa el botón <strong>“Mandar todo”</strong><br/>
                         <strong>6.</strong> Para borrar un dropdown: selecciona la opción vacía al inicio de la lista<br/>
                         <strong>7.</strong> <strong>Inspectores:</strong> doble clic en la celda para abrir el editor (lista completa, catálogo del sistema)<br/>
+                        <strong>8.</strong> <strong>Motivos notificación:</strong> doble clic para elegir hasta tres motivos del catálogo en un solo editor<br/>
                         <br/>
                         <strong>COLORES:</strong>{" "}
                         <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>

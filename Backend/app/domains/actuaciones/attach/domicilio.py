@@ -61,6 +61,11 @@ def get_or_create_domicilio(
     calle = str(calle).strip()
     numero = str(numero).strip()
 
+    raw_nt = data.get("numero_tipo")
+    numero_tipo: Optional[str] = None
+    if raw_nt is not None and str(raw_nt).strip():
+        numero_tipo = str(raw_nt).strip().upper()
+
     dom = (
         Domicilio.query.filter(
             Domicilio.calle == calle,
@@ -76,6 +81,9 @@ def get_or_create_domicilio(
         if rubro is not None and dom.rubro_id != rubro.id:
             dom.rubro_id = rubro.id
             changed = True
+        if numero_tipo is not None and dom.numero_tipo != numero_tipo:
+            dom.numero_tipo = numero_tipo
+            changed = True
         if changed:
             db.session.add(dom)
         return dom
@@ -83,6 +91,7 @@ def get_or_create_domicilio(
     dom = Domicilio(
         calle=calle,
         numero=numero,
+        numero_tipo=numero_tipo,
         contribuyente_id=contribuyente.id if contribuyente is not None else None,
         rubro_id=rubro.id if rubro is not None else None,
     )

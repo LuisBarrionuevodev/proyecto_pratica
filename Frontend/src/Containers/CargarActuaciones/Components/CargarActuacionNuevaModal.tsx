@@ -18,6 +18,12 @@ import {
 import { extractDataColumns, generateRowId } from "../utils/gridHelpers";
 import { getDropdownOptions } from "../config/dropdownOptions";
 import { dedupeInspectoresPreserveOrder } from "../utils/inspectoresGridHelpers";
+import {
+  mergeMotivosNotifCatalogStrings,
+  motivosNotificacionFromSlots,
+  MOTIVOS_NOTIFICACION_MAX,
+  slotsToMotivosApi,
+} from "../../../utils/motivosNotificacionSlots";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { dialogFormActionsRowSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField, AppSelect, type AppSelectOption, CardGlass } from "../../../ui";
@@ -37,9 +43,6 @@ const GLIDE_KEYS = [
   "DNI",
   "Acta inspección",
   "Acta notificación",
-  "Motivo notif 1",
-  "Motivo notif 2",
-  "Motivo notif 3",
   "Acta comprobación",
   "Motivo comprobación",
   "Acta clausura",
@@ -101,6 +104,7 @@ export function CargarActuacionNuevaModal() {
   const [rowId, setRowId] = useState(() => generateRowId());
 
   const [texts, setTexts] = useState<Record<GlideTextKey, string>>(emptyTextFields);
+  const [notifMotivosSel, setNotifMotivosSel] = useState<string[]>([]);
   const [inspectoresList, setInspectoresList] = useState<string[]>([]);
   const [titularModo, setTitularModo] = useState<TitularModo>("persona");
 
@@ -128,6 +132,15 @@ export function CargarActuacionNuevaModal() {
       motivosComprobacion: catalogMotivosComprobacion,
     }),
     [catalogInspectores, catalogMotivos, catalogRubros, catalogMotivosComprobacion]
+  );
+
+  const motivosNotifCatalogSorted = useMemo(
+    () => mergeMotivosNotifCatalogStrings(catalogMotivos, notifMotivosSel),
+    [catalogMotivos, notifMotivosSel]
+  );
+  const motivosDisponiblesNueva = useMemo(
+    () => motivosNotifCatalogSorted.filter((m) => !notifMotivosSel.includes(m)),
+    [motivosNotifCatalogSorted, notifMotivosSel]
   );
 
   const inspectoresDisponiblesParaAgregar = useMemo(() => {
@@ -184,6 +197,7 @@ export function CargarActuacionNuevaModal() {
 
   const resetForm = useCallback(() => {
     setTexts(emptyTextFields());
+    setNotifMotivosSel([]);
     setInspectoresList([]);
     setTitularModo("persona");
     setFieldErrors({});
@@ -249,8 +263,13 @@ export function CargarActuacionNuevaModal() {
       (row as Record<string, unknown>)[k] = t === "" ? null : t;
     }
 
+    const slots = slotsToMotivosApi(notifMotivosSel);
+    (row as Record<string, unknown>)["Motivo notif 1"] = slots.m1 || null;
+    (row as Record<string, unknown>)["Motivo notif 2"] = slots.m2 || null;
+    (row as Record<string, unknown>)["Motivo notif 3"] = slots.m3 || null;
+
     return row;
-  }, [inspectoresList, rowId, texts, titularModo]);
+  }, [inspectoresList, rowId, texts, titularModo, notifMotivosSel]);
 
   const toSelectOptions = (columnId: string): AppSelectOption[] =>
     getDropdownOptions(columnId, catalogs).map((label) => ({
@@ -666,47 +685,64 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta notificación"))}
             helperText={errorFor("Acta notificación") || undefined}
           />
-          <AppSelect
-            appearance="dense"
-            label="Motivo notificación 1"
-            value={texts["Motivo notif 1"]}
-            onChange={(e) => {
-              setText("Motivo notif 1", String(e.target.value));
-              clearFe("Motivo notif 1");
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+            Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+            {notifMotivosSel.length === 0 ? (
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                —
+              </Typography>
+            ) : (
+              notifMotivosSel.map((name, idx) => (
+                <Chip
+                  key={`${idx}-${name}`}
+                  label={name}
+                  size="small"
+                  onDelete={() => {
+                    setNotifMotivosSel((prev) => prev.filter((_, i) => i !== idx));
+                    clearFe("Motivo notif 1");
+                    clearFe("Motivo notif 2");
+                    clearFe("Motivo notif 3");
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                />
+              ))
+            )}
+          </Box>
+          <Autocomplete
+            size="small"
+            options={motivosDisponiblesNueva}
+            value={null}
+            onChange={(_, value) => {
+              if (value && !notifMotivosSel.includes(value) && notifMotivosSel.length < MOTIVOS_NOTIFICACION_MAX) {
+                setNotifMotivosSel((prev) => [...prev, value]);
+                clearFe("Motivo notif 1");
+                clearFe("Motivo notif 2");
+                clearFe("Motivo notif 3");
+              }
             }}
-            fullWidth
-            disabled={!catalogsReady}
-            options={toSelectOptions("Motivo notif 1")}
-            error={Boolean(errorFor("Motivo notif 1"))}
-            helperText={errorFor("Motivo notif 1") || undefined}
-          />
-          <AppSelect
-            appearance="dense"
-            label="Motivo notificación 2"
-            value={texts["Motivo notif 2"]}
-            onChange={(e) => {
-              setText("Motivo notif 2", String(e.target.value));
-              clearFe("Motivo notif 2");
-            }}
-            fullWidth
-            disabled={!catalogsReady}
-            options={toSelectOptions("Motivo notif 2")}
-            error={Boolean(errorFor("Motivo notif 2"))}
-            helperText={errorFor("Motivo notif 2") || undefined}
-          />
-          <AppSelect
-            appearance="dense"
-            label="Motivo notificación 3"
-            value={texts["Motivo notif 3"]}
-            onChange={(e) => {
-              setText("Motivo notif 3", String(e.target.value));
-              clearFe("Motivo notif 3");
-            }}
-            fullWidth
-            disabled={!catalogsReady}
-            options={toSelectOptions("Motivo notif 3")}
-            error={Boolean(errorFor("Motivo notif 3"))}
-            helperText={errorFor("Motivo notif 3") || undefined}
+            disabled={
+              !catalogsReady ||
+              motivosDisponiblesNueva.length === 0 ||
+              notifMotivosSel.length >= MOTIVOS_NOTIFICACION_MAX
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Agregar motivo"
+                placeholder={catalogsReady ? "Catálogo" : "…"}
+                error={Boolean(
+                  errorFor("Motivo notif 1") || errorFor("Motivo notif 2") || errorFor("Motivo notif 3")
+                )}
+                helperText={
+                  errorFor("Motivo notif 1") ||
+                  errorFor("Motivo notif 2") ||
+                  errorFor("Motivo notif 3") ||
+                  undefined
+                }
+              />
+            )}
           />
           <AppTextField
             appearance="dense"

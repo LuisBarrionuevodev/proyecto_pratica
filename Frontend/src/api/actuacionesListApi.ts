@@ -141,3 +141,15 @@ export const getActuacionesFiltered = async (
     const { data } = await apiClient.get<IActuacionesListResponse>("/actuaciones", { params });
     return data;
 };
+
+export const ACTA_CANAL_QUITAR_TIPOS = ["INSPECCION", "NOTIFICACION", "COMPROBACION", "CLAUSURA", "DECOMISO"] as const;
+export type ActaCanalQuitarTipo = (typeof ACTA_CANAL_QUITAR_TIPOS)[number];
+
+/** Quita un acta operativa vinculada (POST canal actas). Devuelve la fila grilla actualizada. */
+export async function postQuitarActaCanalActas(
+    actuacionId: number,
+    tipo: ActaCanalQuitarTipo
+): Promise<IActuacionListItem> {
+    const { data } = await apiClient.post<IActuacionListItem>(`/actuaciones/${actuacionId}/quitar-acta`, { tipo });
+    return data;
+}

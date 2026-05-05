@@ -37,9 +37,15 @@ export const COLUMN_DEFINITIONS = [
     { id: "DNI", title: "DNI", width: 120, editable: true, group: "Establecimiento", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
     { id: "Acta inspección", title: "Acta inspección", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
     { id: "Acta notificación", title: "Acta notificación", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
-    { id: "Motivo notif 1", title: "Motivo notif 1", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Motivo notif 2", title: "Motivo notif 2", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
-    { id: "Motivo notif 3", title: "Motivo notif 3", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
+    {
+        id: "Motivos notificación",
+        title: "Motivos notificación",
+        width: 260,
+        editable: true,
+        group: "Actas",
+        icon: GridColumnIcon.HeaderString,
+        cellType: "motivos_notificacion",
+    },
     { id: "Acta comprobación", title: "Acta comprobación", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
     { id: "Motivo comprobación", title: "Motivo comprobación", width: 180, editable: true, group: "Actas", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
     { id: "Acta clausura", title: "Acta clausura", width: 150, editable: true, group: "Actas", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
@@ -53,12 +59,7 @@ export const DATA_COLUMN_IDS = COLUMN_DEFINITIONS
     .map(col => col.id);
 
 /** Columnas propias de acta de notificación (se ocultan en foco Comprobación). */
-const NOTIFICACION_COLUMN_IDS = new Set([
-    "Acta notificación",
-    "Motivo notif 1",
-    "Motivo notif 2",
-    "Motivo notif 3",
-]);
+const NOTIFICACION_COLUMN_IDS = new Set(["Acta notificación", "Motivos notificación"]);
 
 /** Columnas propias de acta de comprobación (se ocultan en foco Notificación). */
 const COMPROBACION_COLUMN_IDS = new Set(["Acta comprobación", "Motivo comprobación"]);

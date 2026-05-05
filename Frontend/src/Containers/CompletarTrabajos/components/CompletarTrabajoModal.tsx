@@ -32,6 +32,12 @@ import {
   COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY,
   formatCompletarTrabajoApiError,
 } from "../utils/completarTrabajoErrors";
+import {
+  MOTIVOS_NOTIFICACION_MAX,
+  mergeMotivosNotifCatalogStrings,
+  motivosNotificacionFromSlots,
+  slotsToMotivosApi,
+} from "../../../utils/motivosNotificacionSlots";
 
 const ACTA_KEYS_EMPTY = {
   acta_inspeccion_num: "",
@@ -106,8 +112,8 @@ function dashIfEmpty(value: unknown): string {
 
 const CUMPLE_OPTS: { value: string; label: string }[] = [
   { value: "", label: "—" },
-  { value: "CUMPLE", label: "CUMPLE" },
-  { value: "NO_CUMPLE", label: "NO_CUMPLE" },
+  { value: "CUMPLE", label: "Cumple" },
+  { value: "NO_CUMPLE", label: "No cumple" },
 ];
 
 /** Catálogo `Actuaciones.tipo` permitido al cerrar `REINSPECCION_OFICIO` (alineado al backend). */
@@ -179,9 +185,7 @@ export function CompletarTrabajoModal({
   const [nombreLocal, setNombreLocal] = useState("");
   const [actaInspeccion, setActaInspeccion] = useState("");
   const [actaNotificacion, setActaNotificacion] = useState("");
-  const [notifM1, setNotifM1] = useState("");
-  const [notifM2, setNotifM2] = useState("");
-  const [notifM3, setNotifM3] = useState("");
+  const [notifMotivosSeleccion, setNotifMotivosSeleccion] = useState<string[]>([]);
   const [actaComprobacion, setActaComprobacion] = useState("");
   const [comprobacionMotivo, setComprobacionMotivo] = useState("");
   const [actaClausura, setActaClausura] = useState("");
@@ -271,9 +275,13 @@ export function CompletarTrabajoModal({
     setNombreLocal(resolvedRow.nombre_local ?? "");
     setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
     setActaNotificacion(resolvedRow.acta_notificacion_num ?? "");
-    setNotifM1(resolvedRow.notificacion_motivo_1 ?? "");
-    setNotifM2(resolvedRow.notificacion_motivo_2 ?? "");
-    setNotifM3(resolvedRow.notificacion_motivo_3 ?? "");
+    setNotifMotivosSeleccion(
+      motivosNotificacionFromSlots(
+        resolvedRow.notificacion_motivo_1,
+        resolvedRow.notificacion_motivo_2,
+        resolvedRow.notificacion_motivo_3
+      )
+    );
     setActaComprobacion(resolvedRow.acta_comprobacion_num ?? "");
     setComprobacionMotivo(resolvedRow.comprobacion_motivo ?? "");
     setActaClausura(resolvedRow.acta_clausura_num ?? "");
@@ -332,7 +340,14 @@ export function CompletarTrabajoModal({
     ],
     [cat.contraproducencias, resolvedRow?.contraproducencia]
   );
-  const motivoNotifOpts = useMemo(() => mergeCatalogOpts(cat.motivos, undefined), [cat.motivos]);
+  const motivosNotifCatalogSorted = useMemo(
+    () => mergeMotivosNotifCatalogStrings(cat.motivos ?? [], notifMotivosSeleccion),
+    [cat.motivos, notifMotivosSeleccion]
+  );
+  const motivosDisponiblesParaAgregar = useMemo(
+    () => motivosNotifCatalogSorted.filter((m) => !notifMotivosSeleccion.includes(m)),
+    [motivosNotifCatalogSorted, notifMotivosSeleccion]
+  );
   const motivoCompOpts = useMemo(
     () => mergeCatalogOpts(cat.motivosComprobacion, undefined),
     [cat.motivosComprobacion]
@@ -419,10 +434,13 @@ export function CompletarTrabajoModal({
         preSubmitErrors.numero = "Con «dirección incorrecta» completá el número corregido.";
       }
     }
+    const notifSlotsPre = slotsToMotivosApi(notifMotivosSeleccion);
     if (
       visitaRealizada &&
       actaNotificacion.trim() &&
-      ![notifM1, notifM2, notifM3].some((x) => x.trim())
+      !notifSlotsPre.m1 &&
+      !notifSlotsPre.m2 &&
+      !notifSlotsPre.m3
     ) {
       preSubmitErrors.notificacion_motivo_1 = "La notificación requiere al menos un motivo.";
     }
@@ -458,13 +476,14 @@ export function CompletarTrabajoModal({
         ...ACTA_KEYS_EMPTY,
       };
 
+      const notifSlots = slotsToMotivosApi(notifMotivosSeleccion);
       if (visitaRealizada) {
         Object.assign(values, {
           acta_inspeccion_num: actaInspeccion,
           acta_notificacion_num: actaNotificacion,
-          notificacion_motivo_1: notifM1,
-          notificacion_motivo_2: notifM2,
-          notificacion_motivo_3: notifM3,
+          notificacion_motivo_1: notifSlots.m1,
+          notificacion_motivo_2: notifSlots.m2,
+          notificacion_motivo_3: notifSlots.m3,
           acta_comprobacion_num: actaComprobacion,
           comprobacion_motivo: comprobacionMotivo,
           acta_clausura_num: actaClausura,
@@ -967,44 +986,68 @@ export function CompletarTrabajoModal({
                 error={Boolean(fe("acta_notificacion_num"))}
                 helperText={fe("acta_notificacion_num") || undefined}
               />
-              <AppSelect
-                label="Motivo notificación 1"
-                value={notifM1}
-                onChange={(e) => {
-                  setNotifM1(e.target.value);
-                  clearFe("notificacion_motivo_1");
+              <Typography variant="caption" sx={labelMuted}>
+                Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+                {notifMotivosSeleccion.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                    —
+                  </Typography>
+                ) : (
+                  notifMotivosSeleccion.map((name, idx) => (
+                    <Chip
+                      key={`${idx}-${name}`}
+                      label={name}
+                      size="small"
+                      onDelete={() => {
+                        setNotifMotivosSeleccion((prev) => prev.filter((_, i) => i !== idx));
+                        clearFe("notificacion_motivo_1");
+                        clearFe("notificacion_motivo_2");
+                        clearFe("notificacion_motivo_3");
+                      }}
+                      sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                    />
+                  ))
+                )}
+              </Box>
+              <Autocomplete
+                size="small"
+                options={motivosDisponiblesParaAgregar}
+                value={null}
+                onChange={(_, value) => {
+                  if (
+                    value &&
+                    !notifMotivosSeleccion.includes(value) &&
+                    notifMotivosSeleccion.length < MOTIVOS_NOTIFICACION_MAX
+                  ) {
+                    setNotifMotivosSeleccion((prev) => [...prev, value]);
+                    clearFe("notificacion_motivo_1");
+                    clearFe("notificacion_motivo_2");
+                    clearFe("notificacion_motivo_3");
+                  }
                 }}
-                fullWidth
-                disabled={!catalogsReady}
-                options={motivoNotifOpts}
-                error={Boolean(fe("notificacion_motivo_1"))}
-                helperText={fe("notificacion_motivo_1") || undefined}
-              />
-              <AppSelect
-                label="Motivo notificación 2"
-                value={notifM2}
-                onChange={(e) => {
-                  setNotifM2(e.target.value);
-                  clearFe("notificacion_motivo_2");
-                }}
-                fullWidth
-                disabled={!catalogsReady}
-                options={motivoNotifOpts}
-                error={Boolean(fe("notificacion_motivo_2"))}
-                helperText={fe("notificacion_motivo_2") || undefined}
-              />
-              <AppSelect
-                label="Motivo notificación 3"
-                value={notifM3}
-                onChange={(e) => {
-                  setNotifM3(e.target.value);
-                  clearFe("notificacion_motivo_3");
-                }}
-                fullWidth
-                disabled={!catalogsReady}
-                options={motivoNotifOpts}
-                error={Boolean(fe("notificacion_motivo_3"))}
-                helperText={fe("notificacion_motivo_3") || undefined}
+                disabled={
+                  !catalogsReady ||
+                  motivosDisponiblesParaAgregar.length === 0 ||
+                  notifMotivosSeleccion.length >= MOTIVOS_NOTIFICACION_MAX
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Agregar motivo"
+                    placeholder={catalogsReady ? "Catálogo" : "…"}
+                    error={Boolean(
+                      fe("notificacion_motivo_1") || fe("notificacion_motivo_2") || fe("notificacion_motivo_3")
+                    )}
+                    helperText={
+                      fe("notificacion_motivo_1") ||
+                      fe("notificacion_motivo_2") ||
+                      fe("notificacion_motivo_3") ||
+                      undefined
+                    }
+                  />
+                )}
               />
             </>
           )}

@@ -43,7 +43,8 @@ const ActuacionesContainer = (): JSX.Element => {
   const navigate = useNavigate();
   const [tab] = useState<"todos" | "pendientes">("todos");
 
-  const { actuaciones, meta, loading, error, hasSearched, buscar } = useActuacionesFiltradas();
+  const { actuaciones, meta, loading, error, hasSearched, buscar, fusionarActuacionEnLista } =
+    useActuacionesFiltradas();
 
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [pendientesDesde, setPendientesDesde] = useState<string>(defaultRange.desde);
@@ -84,6 +85,13 @@ const ActuacionesContainer = (): JSX.Element => {
       .then(setPendingSummary)
       .catch(() => undefined);
   }, [pendientesDesde, pendientesHasta]);
+
+  const fusionarPendienteEnLista = useCallback((row: IActuacionListItem) => {
+    const rid = Number(row.id);
+    setPendingItems((prev) =>
+      prev.map((item) => (Number(item.id) === rid ? { ...item, ...row } : item))
+    );
+  }, []);
 
   const refreshPendientes = useCallback(async (desde: string, hasta: string, tipo: ActuacionesPendientesTipo) => {
     setPendingLoading(true);
@@ -245,6 +253,7 @@ const ActuacionesContainer = (): JSX.Element => {
                 data={actuaciones}
                 loading={loading}
                 onRefresh={handleRefreshListaActuaciones}
+                onActuacionListPatch={fusionarActuacionEnLista}
               />
             )}
         </>
@@ -333,6 +342,7 @@ const ActuacionesContainer = (): JSX.Element => {
                   data={pendingItems}
                   loading={pendingLoading}
                   onRefresh={handleFiltrarPendientes}
+                  onActuacionListPatch={fusionarPendienteEnLista}
                   initialColumnVisibility={pendingColumnVisibility}
                   extraColumns={pendingExtraColumns}
                   enableEditing={pendingType !== "notificaciones" && pendingType !== "domicilios"}

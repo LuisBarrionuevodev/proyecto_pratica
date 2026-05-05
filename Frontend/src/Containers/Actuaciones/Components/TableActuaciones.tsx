@@ -8,7 +8,7 @@ import {
   type MRT_Row,
 } from "material-react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import { postQuitarActaCanalActas, type ActaCanalQuitarTipo, type IActuacionListItem } from "../../../api/actuacionesListApi";
 import { deleteActuacion } from "../../../api/actuacionesApi";
 import {
   fetchInspectores,
@@ -36,6 +36,40 @@ import {
   buildActuacionesCompositeColumns,
 } from "./actuacionesCompositeColumns";
 
+/**
+ * Tras POST quitar-acta, la API devuelve la fila grilla completa; solo debemos pisar en el draft
+ * los campos que reflejan actas/trámite, para no revertir cambios locales sin guardar (calle, contrib., etc.).
+ */
+const DRAFT_PATCH_KEYS_AFTER_QUITAR_ACTA: (keyof IActuacionListItem)[] = [
+  "acta_inspeccion_num",
+  "acta_notificacion_num",
+  "notificacion_motivo_1",
+  "notificacion_motivo_2",
+  "notificacion_motivo_3",
+  "acta_comprobacion_num",
+  "comprobacion_motivo",
+  "acta_clausura_num",
+  "acta_decomiso_num",
+  "decomiso_kilos_total",
+  "expediente_numero",
+  "expediente_anio",
+  "oficio_numero",
+  "oficio_anio",
+  "oficio_causa",
+  "notificacion_editable",
+  "comprobacion_editable",
+  "notificacion_previa_num",
+  "comprobacion_previa_num",
+];
+
+function mergeEditDraftAfterQuitarActa(prev: IActuacionListItem, row: IActuacionListItem): IActuacionListItem {
+  const out: IActuacionListItem = { ...prev };
+  for (const k of DRAFT_PATCH_KEYS_AFTER_QUITAR_ACTA) {
+    (out as Record<string, unknown>)[k] = row[k] as unknown;
+  }
+  return out;
+}
+
 /** Referencia estable: `= []` en props default crea un array nuevo cada render y rompe el memo de columnas / MRT. */
 const EMPTY_EXTRA_COLUMNS: MRT_ColumnDef<IActuacionListItem>[] = [];
 const EMPTY_READ_ONLY_COLUMNS: string[] = [];
@@ -46,6 +80,11 @@ interface TablaActuacionesProps {
   data?: IActuacionListItem[];
   loading?: boolean;
   onRefresh?: () => void;
+  /**
+   * Actualiza la fila en el listado padre sin refetch con loading (evita desmontar la grilla / cerrar el modal).
+   * Tras quitar un acta desde el modal se llama con la fila devuelta por la API.
+   */
+  onActuacionListPatch?: (row: IActuacionListItem) => void;
   initialColumnVisibility?: Record<string, boolean>;
   enableEditing?: boolean;
   hideRowActions?: boolean;
@@ -66,6 +105,7 @@ const TablaActuaciones = ({
   data: externalData,
   loading: externalLoading,
   onRefresh,
+  onActuacionListPatch,
   initialColumnVisibility,
   enableEditing = true,
   hideRowActions = false,
@@ -229,6 +269,18 @@ const TablaActuaciones = ({
     skipValidation,
     skipUpdate,
   ]);
+
+  const handleQuitarActaCanal = useCallback(
+    async (tipo: ActaCanalQuitarTipo) => {
+      if (!editDraft) return;
+      const id = Number(editDraft.id);
+      const row = await postQuitarActaCanalActas(id, tipo);
+      setEditDraft((prev) => (prev ? mergeEditDraftAfterQuitarActa(prev, row) : null));
+      setData((prev) => prev.map((item) => (Number(item.id) === id ? { ...item, ...row } : item)));
+      onActuacionListPatch?.(row);
+    },
+    [editDraft, onActuacionListPatch]
+  );
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
     const composite = buildActuacionesCompositeColumns();
@@ -503,6 +555,7 @@ const TablaActuaciones = ({
           onClose={handleCloseEditDialog}
           onDraftChange={handleEditDraftChange}
           onSave={handleDialogSave}
+          onQuitarActa={enableEditing ? handleQuitarActaCanal : undefined}
         />
       )}
 

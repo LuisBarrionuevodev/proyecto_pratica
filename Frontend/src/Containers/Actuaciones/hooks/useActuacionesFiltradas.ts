@@ -13,6 +13,8 @@ interface UseActuacionesFiltradas {
     error: string | null;
     hasSearched: boolean;
     buscar: (filters: IActuacionesListFilters) => Promise<void>;
+    /** Fusiona una fila devuelta por el servidor (p. ej. POST quitar-acta) sin disparar `loading` ni remontar la grilla. */
+    fusionarActuacionEnLista: (row: IActuacionListItem) => void;
 }
 
 /**
@@ -50,6 +52,13 @@ export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
         }
     }, []);
 
+    const fusionarActuacionEnLista = useCallback((row: IActuacionListItem) => {
+        const rid = Number(row.id);
+        setActuaciones((prev) =>
+            prev.map((item) => (Number(item.id) === rid ? { ...item, ...row } : item))
+        );
+    }, []);
+
     return {
         actuaciones,
         meta,
@@ -57,5 +66,6 @@ export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
         error,
         hasSearched,
         buscar,
+        fusionarActuacionEnLista,
     };
 };

@@ -54,6 +54,67 @@ def test_mapper_incluye_razon_social_en_contribuyente() -> None:
     }
 
 
+def test_mapper_domicilio_agrega_contrib_y_rubro_desde_actuacion_si_body_no_los_repite() -> None:
+    """Visita realizada: ajustar domicilio/rubro sin reenviar titular debe poder resolverse vía actuación actual."""
+    row = CompletarTrabajoCierreCompletoIn.model_construct(
+        rubro_nombre="Panadería",
+    )
+    act = MagicMock()
+    contrib = MagicMock()
+    contrib.documento = "20123456789"
+    contrib.apellido = "López"
+    contrib.nombre = None
+    contrib.razon_social = None
+    dom = MagicMock()
+    dom.calle = "San Martín"
+    dom.numero = "123"
+    dom.contribuyente = contrib
+    rub = MagicMock()
+    rub.nombre = "Carnicería"
+    dom.rubro = rub
+    act.domicilio = dom
+    ini = MagicMock()
+    ini.domicilio = None
+
+    m = map_completar_trabajo_cierre_to_aplicar_payload(row, act=act, ini=ini)
+
+    assert m.get("contribuyente") == {
+        "doc_nro": "20123456789",
+        "apellido": "López",
+        "nombre": None,
+        "razon_social": None,
+    }
+    assert m.get("rubro_nombre") == "Panadería"
+    assert m.get("domicilio") == {"calle": "San Martín", "numero": "123", "numero_tipo": None}
+
+
+def test_mapper_domicilio_usa_rubro_actuacion_si_solo_cambia_calle() -> None:
+    row = CompletarTrabajoCierreCompletoIn.model_construct(calle="Nueva Calle")
+    act = MagicMock()
+    contrib = MagicMock()
+    contrib.documento = "20999888777"
+    contrib.apellido = "García"
+    contrib.nombre = "Ana"
+    contrib.razon_social = None
+    dom = MagicMock()
+    dom.calle = "Vieja"
+    dom.numero = "500"
+    dom.contribuyente = contrib
+    rub = MagicMock()
+    rub.nombre = "Bar"
+    dom.rubro = rub
+    act.domicilio = dom
+    ini = MagicMock()
+    ini.domicilio = None
+
+    m = map_completar_trabajo_cierre_to_aplicar_payload(row, act=act, ini=ini)
+
+    assert m.get("rubro_nombre") == "Bar"
+    assert m.get("contribuyente", {}).get("doc_nro") == "20999888777"
+    assert m.get("domicilio", {}).get("calle") == "Nueva Calle"
+    assert m.get("domicilio", {}).get("numero") == "500"
+
+
 def test_mapper_incluye_inspectores_cuando_vienen_en_body() -> None:
     row = CompletarTrabajoCierreCompletoIn.model_construct(
         tipo_actuacion="INSPECCION",

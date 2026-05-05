@@ -133,6 +133,8 @@ def aplicar_payload_actuacion(
         if dom:
             numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
             normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
+        # Alinear relación cargada con el FK (evita que `act.domicilio` viejo sombra `domicilio_id` al flush).
+        act.domicilio = dom
 
     # Inspectores
     if "inspectores" in payload:

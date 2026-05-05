@@ -4,7 +4,6 @@ from typing import Any, Dict
 
 from app.models import Actuaciones
 from app.domains.actuaciones.schemas.actuacion_patch_in import ActuacionPatchIn
-from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 
 
 def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> Actuaciones:
@@ -142,48 +141,54 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
             act.inspector = get_inspectores_o_falla(inspectores)
         
         # Domicilio/Rubro (si viene alguno de calle/numero/rubro)
-        if any(k in patch_dict for k in ["calle", "numero", "rubro_nombre", "doc_nro", "contrib_apellido", "contrib_nombre"]):
+        if any(
+            k in patch_dict
+            for k in ["calle", "numero", "rubro_nombre", "doc_nro", "contrib_apellido", "contrib_nombre"]
+        ):
             # Construir payload para domicilio
             from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
             from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
             from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
-            
+            from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
+                normalizar_domicilio_en_sesion,
+            )
+
             print(f"[PATCH] Actualizando domicilio/rubro")
-            
+
             # Rubro
             rubro = None
             if "rubro_nombre" in patch_dict:
                 rubro = get_rubro_o_falla(patch_dict["rubro_nombre"])
             elif act.domicilio and act.domicilio.rubro:
                 rubro = act.domicilio.rubro
-            
-            # Contribuyente
-            contrib_payload = {}
+
+            # Contribuyente (misma convención que `resolve_contribuyente`: clave `doc_nro`)
+            contrib_payload: dict[str, Any] = {}
             if "doc_nro" in patch_dict:
-                contrib_payload["documento"] = patch_dict["doc_nro"]
+                contrib_payload["doc_nro"] = patch_dict["doc_nro"]
             if "contrib_apellido" in patch_dict:
                 contrib_payload["apellido"] = patch_dict["contrib_apellido"]
             if "contrib_nombre" in patch_dict:
                 contrib_payload["nombre"] = patch_dict["contrib_nombre"]
-            
+
             contrib = None
             if contrib_payload:
                 contrib = resolve_contribuyente(contrib_payload)
             elif act.domicilio and act.domicilio.contribuyente:
                 contrib = act.domicilio.contribuyente
-            
+
             # Domicilio
-            dom_payload = {}
+            dom_payload: dict[str, Any] = {}
             if "calle" in patch_dict:
                 dom_payload["calle"] = patch_dict["calle"]
             elif act.domicilio:
                 dom_payload["calle"] = act.domicilio.calle
-                
+
             if "numero" in patch_dict:
                 dom_payload["numero"] = patch_dict["numero"]
             elif act.domicilio:
                 dom_payload["numero"] = act.domicilio.numero
-            
+
             if dom_payload:
                 # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
                 allow_missing_catalogs = (
@@ -197,6 +202,11 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
                     allow_missing_catalogs=allow_missing_catalogs,
                 )
                 act.domicilio_id = dom.id if dom else None
+                if dom:
+                    normalizar_domicilio_en_sesion(
+                        dom, override_numero_tipo=dom_payload.get("numero_tipo")
+                    )
+                act.domicilio = dom
         
         # Actas (actualizaciones simples)
         if "acta_inspeccion_num" in patch_dict:
@@ -268,7 +278,17 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
             ran_cleanup = True
         if ran_cleanup:
             db.session.commit()
-        
+
+        try:
+            from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+                on_domicilio_changed,
+            )
+
+            if act.domicilio_id:
+                on_domicilio_changed(act.domicilio_id)
+        except Exception:
+            pass
+
         print(f"[PATCH] Actualización exitosa!")
         return act
         
