@@ -77,7 +77,7 @@ def test_caso1_solo_expediente_comprobacion_en_grid(app_ctx) -> None:
         db.session.rollback()
 
 
-def test_caso2_solo_oficio_y_expediente_respuesta_no_contamina_expediente_star(app_ctx) -> None:
+def test_caso2_comun_comprobacion_no_muestra_oficio_en_plano_aunque_exista_en_db(app_ctx) -> None:
     try:
         act, comp = _seed_actuacion_con_comprobacion()
         of = Oficio(
@@ -100,13 +100,14 @@ def test_caso2_solo_oficio_y_expediente_respuesta_no_contamina_expediente_star(a
         row = actuacion_to_grid_row(act)
         assert row["expediente_numero"] is None
         assert row["expediente_anio"] is None
-        assert row["oficio_numero"] == "55"
-        assert row["oficio_anio"] == 2026
+        assert row["oficio_numero"] is None
+        assert row["oficio_anio"] is None
+        assert row["documentacion_contexto"]["circuito"] == "COMUN_COMPROBACION"
     finally:
         db.session.rollback()
 
 
-def test_caso3_ambos_expedientes_expediente_star_es_solo_envio(app_ctx) -> None:
+def test_caso3_expediente_envio_visible_oficio_no_en_campos_planos(app_ctx) -> None:
     try:
         act, comp = _seed_actuacion_con_comprobacion()
         db.session.add(
@@ -139,7 +140,9 @@ def test_caso3_ambos_expedientes_expediente_star_es_solo_envio(app_ctx) -> None:
         row = actuacion_to_grid_row(act)
         assert row["expediente_numero"] == "001111"
         assert row["expediente_anio"] == "2026"
-        assert row["oficio_numero"] == "77"
+        assert row["oficio_numero"] is None
+        assert row["oficio_anio"] is None
+        assert row["documentacion_contexto"]["circuito"] == "COMUN_COMPROBACION"
     finally:
         db.session.rollback()
 

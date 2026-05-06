@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, OrdenTrabajo
+from app.models import Actuaciones, Domicilio, Notificacion, OrdenTrabajo
 from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
 from app.utils.actas import acta_6
 
@@ -41,6 +41,8 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
         joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),
         joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
         joinedload(Actuaciones.epicollect_detalle),
+        joinedload(Actuaciones.notificacion).joinedload(Notificacion.motivos),
+        joinedload(Actuaciones.comprobacion),
     )
 
     # Filtro por rango de fechas (siempre están presentes tras validator)

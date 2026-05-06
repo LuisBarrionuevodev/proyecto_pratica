@@ -35,7 +35,19 @@ import {
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
-import { ActuacionCircuitoDocumentalPuente } from "./ActuacionCircuitoDocumentalPuente";
+import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
+import { actuacionDocumentacionTramiteSegments } from "../utils/actuacionDocumentacionVisual";
+
+const documentacionTramiteChipModalSx = {
+  ...docModalChipSx,
+  fontSize: "0.72rem",
+  maxWidth: "100%",
+  "& .MuiChip-label": {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    px: 0.75,
+  },
+} as const;
 
 const QUITAR_ACTA_TITLE: Record<ActaCanalQuitarTipo, string> = {
   INSPECCION: "Quitar acta de inspección",
@@ -433,34 +445,6 @@ function DocumentalBloque({
   );
 }
 
-function inspectoresLinea(row: IActuacionListItem): string {
-  const parts = [row.inspector1, row.inspector2, row.inspector3].filter((x) => x?.trim());
-  return parts.length ? parts.join(", ") : "—";
-}
-
-function tieneReferenciaAdmin(row: IActuacionListItem): boolean {
-  return !!(
-    row.expediente_numero ||
-    row.expediente_anio != null ||
-    row.oficio_numero ||
-    row.oficio_anio != null ||
-    (row.oficio_causa != null && String(row.oficio_causa).trim() !== "")
-  );
-}
-
-/** True si hay líneas concretas de expediente, oficio o causa para mostrar. */
-function expedienteOficioTieneContenido(draft: IActuacionListItem): boolean {
-  if (!tieneReferenciaAdmin(draft)) return false;
-  const exp =
-    (draft.expediente_numero != null && String(draft.expediente_numero).trim() !== "") ||
-    draft.expediente_anio != null;
-  const ofi =
-    (draft.oficio_numero != null && String(draft.oficio_numero).trim() !== "") ||
-    draft.oficio_anio != null;
-  const causa = draft.oficio_causa != null && String(draft.oficio_causa).trim() !== "";
-  return exp || ofi || causa;
-}
-
 function tieneRestriccionesEdicion(row: IActuacionListItem): boolean {
   return row.notificacion_editable === false || row.comprobacion_editable === false;
 }
@@ -477,61 +461,33 @@ function textoRestriccionesEdicion(row: IActuacionListItem): string {
   return parts.join(" ");
 }
 
+/** Líneas de trámite / origen (F2.2), sin duplicar «Cumpl. oficio» (va en subsección Resultado). */
+function documentacionTramiteLinesModal(d: IActuacionListItem): string[] {
+  return actuacionDocumentacionTramiteSegments(d, { includeResultadoCumplimiento: false });
+}
+
+function documentacionTramiteModalTieneContenido(d: IActuacionListItem): boolean {
+  return documentacionTramiteLinesModal(d).length > 0;
+}
+
+function inspectoresLinea(row: IActuacionListItem): string {
+  const parts = [row.inspector1, row.inspector2, row.inspector3].filter((x) => x?.trim());
+  return parts.length ? parts.join(", ") : "—";
+}
+
 function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
-  return tieneResultado || expedienteOficioTieneContenido(draft) || tieneRestriccionesEdicion(draft);
+  return tieneResultado || documentacionTramiteModalTieneContenido(draft) || tieneRestriccionesEdicion(draft);
 }
 
-/** Referencias de expediente, oficio y causa; una línea por dato disponible. */
-function ExpedienteOficioLectura({ draft }: { draft: IActuacionListItem }) {
-  if (!expedienteOficioTieneContenido(draft)) {
+/** Trámite propio + origen reinspección como chips (F2.3). */
+function DocumentacionTramiteLectura({ draft }: { draft: IActuacionListItem }) {
+  const lines = documentacionTramiteLinesModal(draft);
+  if (!lines.length) {
     return null;
   }
-
-  const lineas: ReactNode[] = [];
-  if (
-    (draft.expediente_numero != null && String(draft.expediente_numero).trim() !== "") ||
-    draft.expediente_anio != null
-  ) {
-    lineas.push(
-      <Typography key="exp" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.875rem", lineHeight: 1.5 }}>
-        <Box component="span" sx={{ fontWeight: 700 }}>
-          Expediente:{" "}
-        </Box>
-        {dash(draft.expediente_numero)} / {dash(draft.expediente_anio)}
-      </Typography>
-    );
-  }
-  if (
-    (draft.oficio_numero != null && String(draft.oficio_numero).trim() !== "") ||
-    draft.oficio_anio != null
-  ) {
-    lineas.push(
-      <Typography key="ofi" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.875rem", lineHeight: 1.5 }}>
-        <Box component="span" sx={{ fontWeight: 700 }}>
-          Oficio:{" "}
-        </Box>
-        {dash(draft.oficio_numero)} / {dash(draft.oficio_anio)}
-      </Typography>
-    );
-  }
-  if (draft.oficio_causa != null && String(draft.oficio_causa).trim() !== "") {
-    lineas.push(
-      <Typography key="causa" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.875rem", lineHeight: 1.5 }}>
-        <Box component="span" sx={{ fontWeight: 700 }}>
-          Causa:{" "}
-        </Box>
-        {dash(draft.oficio_causa)}
-      </Typography>
-    );
-  }
-
-  return (
-    <Stack component="div" spacing={1}>
-      {lineas}
-    </Stack>
-  );
+  return <ActuacionDocumentacionChips labels={lines} chipSx={documentacionTramiteChipModalSx} />;
 }
 
 /**
@@ -540,10 +496,10 @@ function ExpedienteOficioLectura({ draft }: { draft: IActuacionListItem }) {
 function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
-  const showExp = expedienteOficioTieneContenido(draft);
+  const showDoc = documentacionTramiteModalTieneContenido(draft);
   const showEdicion = tieneRestriccionesEdicion(draft);
 
-  if (!tieneResultado && !showExp && !showEdicion) {
+  if (!tieneResultado && !showDoc && !showEdicion) {
     return null;
   }
 
@@ -560,14 +516,14 @@ function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
       </Box>
     );
   }
-  if (showExp) {
+  if (showDoc) {
     bloques.push(
-      <Box key="exp">
+      <Box key="doc">
         <Typography component="h3" sx={docModalSubheadingInCardSx}>
-          Expediente y oficio
+          Trámite y origen
         </Typography>
         <Box sx={{ mt: 0.75 }}>
-          <ExpedienteOficioLectura draft={draft} />
+          <DocumentacionTramiteLectura draft={draft} />
         </Box>
       </Box>
     );
@@ -1060,8 +1016,6 @@ export function ActuacionDetalleDialog({
         </DocumentalBloque>
       ) : null}
 
-      <ActuacionCircuitoDocumentalPuente draft={draft} open={open} onBeforeNavigate={handleClose} />
-
       {resultadoSeguimientoHayContenido(draft) ? (
         <DocumentalBloque overline="Resultado y seguimiento">
           <ResultadoSeguimientoLectura draft={draft} />
@@ -1086,7 +1040,7 @@ export function ActuacionDetalleDialog({
       ) : null}
     </Stack>
     );
-  }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros, open]);
+  }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
 
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? "";
@@ -1103,7 +1057,8 @@ export function ActuacionDetalleDialog({
 
     const res = draft.resultado_cumplimiento_oficio;
     const tieneResultado = res != null && String(res).trim() !== "";
-    const muestraResultadoSeguimientoEdicion = tieneResultado || tieneReferenciaAdmin(draft);
+    const muestraResultadoSeguimientoEdicion =
+      tieneResultado || documentacionTramiteModalTieneContenido(draft) || tieneRestriccionesEdicion(draft);
 
     const motivosNotifSeleccionados = motivosNotificacionFromSlots(
       draft.notificacion_motivo_1,
@@ -1628,8 +1583,6 @@ export function ActuacionDetalleDialog({
           </Box>
         </DocumentalBloque>
 
-        <ActuacionCircuitoDocumentalPuente draft={draft} open={open} onBeforeNavigate={handleClose} />
-
         {muestraResultadoSeguimientoEdicion ? (
           <DocumentalBloque overline="Resultado y seguimiento">
             {tieneResultado ? (
@@ -1637,21 +1590,31 @@ export function ActuacionDetalleDialog({
                 <DocumentalFila etiqueta="Resultado" valor={dash(res)} />
               </Box>
             ) : null}
-            {expedienteOficioTieneContenido(draft) ? (
+            {documentacionTramiteModalTieneContenido(draft) ? (
               <Box sx={{ mt: tieneResultado ? 2 : 0 }}>
                 <Typography component="h3" sx={edicionActaSubtituloSx}>
-                  Expediente y oficio
+                  Trámite y origen
                 </Typography>
-                <ExpedienteOficioLectura draft={draft} />
+                <Box sx={{ mt: 1 }}>
+                  <DocumentacionTramiteLectura draft={draft} />
+                </Box>
               </Box>
-            ) : tieneReferenciaAdmin(draft) ? (
-              <Box sx={tieneResultado ? { mt: 1.5 } : edicionGapBloqueAPrimerControlSx}>
-                <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, opacity: 0.88 }}>
-                  Expediente: {dash(draft.expediente_numero)} / {dash(draft.expediente_anio)} · Oficio:{" "}
-                  {dash(draft.oficio_numero)} / {dash(draft.oficio_anio)}
-                  {draft.oficio_causa != null && String(draft.oficio_causa).trim() !== ""
-                    ? ` · Causa: ${dash(draft.oficio_causa)}`
-                    : ""}
+            ) : null}
+            {tieneRestriccionesEdicion(draft) ? (
+              <Box
+                sx={{
+                  mt: tieneResultado || documentacionTramiteModalTieneContenido(draft) ? 2 : 0,
+                  p: 1.25,
+                  borderRadius: 1.5,
+                  bgcolor: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <Typography component="h3" sx={{ ...edicionActaSubtituloSx, fontSize: "0.6875rem", opacity: 0.9 }}>
+                  Edición en canal actas
+                </Typography>
+                <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.8125rem", mt: 1, lineHeight: 1.55 }}>
+                  {textoRestriccionesEdicion(draft)}
                 </Typography>
               </Box>
             ) : null}
@@ -1716,7 +1679,6 @@ export function ActuacionDetalleDialog({
     onDraftChange,
     navigate,
     onClose,
-    open,
     onQuitarActa,
     handleAskQuitarActa,
     applyMotivosNotificacion,

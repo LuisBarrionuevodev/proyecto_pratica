@@ -8,7 +8,11 @@ from app.domains.actuaciones.services.list_service import listar_actuaciones_con
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
-from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.actuacion_presenters import (
+    actuacion_to_grid_row,
+    build_actuacion_grid_batch_maps,
+    build_iniciador_ruta_por_actuacion_id,
+)
 
 from . import actuacion
 
@@ -64,7 +68,18 @@ def listar_actuaciones():
         # Transformar items con presenter grid completo (todas las columnas)
         items_raw = result["items"]
         counts_by_eo = build_counts_by_eo_from_actuaciones(items_raw)
-        items_dto = [actuacion_to_grid_row(act, counts_by_eo=counts_by_eo) for act in items_raw]
+        act_ids = [int(a.id) for a in items_raw]
+        iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
+        batch = build_actuacion_grid_batch_maps(items_raw, iniciador_map)
+        items_dto = [
+            actuacion_to_grid_row(
+                act,
+                counts_by_eo=counts_by_eo,
+                iniciador_desde_ruta=iniciador_map.get(int(act.id)),
+                batch=batch,
+            )
+            for act in items_raw
+        ]
         
         return jsonify({
             "items": items_dto,

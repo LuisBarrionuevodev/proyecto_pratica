@@ -1,7 +1,12 @@
-import { Box, Chip, Tooltip, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
 
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import {
+  actuacionActaChipsOnly,
+  actuacionActasYTramiteAccessor,
+  actuacionDocumentacionTramiteSegments,
+} from "../utils/actuacionDocumentacionVisual";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import {
   BandejaDomicilioYRubroCell,
@@ -10,6 +15,7 @@ import {
   bandejaOutlinedChipSx,
   splitCommaList,
 } from "./bandejaTableCells";
+import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
 
 /** Actas / trámite: chips apilados (misma regla que domicilio / listas). */
 const actasChipsColumnSx = {
@@ -26,36 +32,6 @@ function inspectoresNombres(r: IActuacionListItem): string[] {
   const texto = r.inspectores_texto?.trim();
   if (texto) return splitCommaList(texto);
   return [r.inspector1, r.inspector2, r.inspector3].filter((s): s is string => Boolean(s?.trim()));
-}
-
-/** Segmentos que corresponden a **actas** (van en chip); el resto es trámite (texto compacto). */
-function isActaChipSegment(text: string): boolean {
-  const t = text.trim();
-  return /^(Inspección|Notificación|Comprobación|Clausura|Decomiso|Notif\. previa|Comp\. previa)\b/i.test(t);
-}
-
-function actaSegments(r: IActuacionListItem): string[] {
-  const out: string[] = [];
-  if (r.acta_inspeccion_num?.trim()) out.push(`Inspección ${r.acta_inspeccion_num.trim()}`);
-  if (r.acta_notificacion_num?.trim()) out.push(`Notificación ${r.acta_notificacion_num.trim()}`);
-  if (r.acta_comprobacion_num?.trim()) out.push(`Comprobación ${r.acta_comprobacion_num.trim()}`);
-  if (r.acta_clausura_num?.trim()) out.push(`Clausura ${r.acta_clausura_num.trim()}`);
-  if (r.acta_decomiso_num?.trim()) out.push(`Decomiso ${r.acta_decomiso_num.trim()}`);
-  if (r.notificacion_previa_num?.trim()) out.push(`Notif. previa ${r.notificacion_previa_num.trim()}`);
-  if (r.comprobacion_previa_num?.trim()) out.push(`Comp. previa ${r.comprobacion_previa_num.trim()}`);
-  if (r.expediente_numero != null && String(r.expediente_numero).trim()) {
-    const an = r.expediente_anio != null ? `/${r.expediente_anio}` : "";
-    out.push(`Exp. ${String(r.expediente_numero).trim()}${an}`);
-  }
-  if (r.oficio_numero != null && String(r.oficio_numero).trim()) {
-    const oa = r.oficio_anio != null ? `/${r.oficio_anio}` : "";
-    const base = `Oficio ${String(r.oficio_numero).trim()}${oa}`;
-    out.push(r.oficio_causa?.trim() ? `${base} · ${r.oficio_causa.trim()}` : base);
-  }
-  if (r.resultado_cumplimiento_oficio?.trim()) {
-    out.push(`Cumpl. oficio: ${r.resultado_cumplimiento_oficio.trim()}`);
-  }
-  return out;
 }
 
 function motivosNotif(r: IActuacionListItem): string[] {
@@ -142,41 +118,17 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
     {
       id: "col_actas_admin",
       header: "Actas y trámite",
-      accessorFn: (row) => actaSegments(row).join(" | "),
+      accessorFn: (row) => actuacionActasYTramiteAccessor(row),
       size: 280,
       Cell: ({ row }) => {
-        const segs = actaSegments(row.original);
-        if (segs.length === 0) {
+        const r = row.original;
+        const labels = [...actuacionActaChipsOnly(r), ...actuacionDocumentacionTramiteSegments(r)];
+        if (!labels.length) {
           return <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>—</Typography>;
         }
-        const actaSegs = segs.filter(isActaChipSegment);
-        const tramSegs = segs.filter((s) => !isActaChipSegment(s));
         return (
-          <Box sx={{ ...actasChipsColumnSx, gap: actaSegs.length && tramSegs.length ? 0.85 : 0.65 }}>
-            {actaSegs.length > 0 ? (
-              <Box sx={actasChipsColumnSx}>
-                {actaSegs.map((text, idx) => (
-                  <Tooltip key={`a-${idx}-${text.slice(0, 40)}`} title={text} placement="top" enterDelay={350}>
-                    <Chip size="small" variant="outlined" label={text} sx={chipCompactSx} />
-                  </Tooltip>
-                ))}
-              </Box>
-            ) : null}
-            {tramSegs.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.35, alignItems: "flex-start", maxWidth: "100%" }}>
-                {tramSegs.map((text, idx) => (
-                  <Typography
-                    key={`t-${idx}-${text.slice(0, 32)}`}
-                    variant="caption"
-                    sx={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.35, textAlign: "left" }}
-                    noWrap
-                    title={text}
-                  >
-                    {text}
-                  </Typography>
-                ))}
-              </Box>
-            ) : null}
+          <Box sx={actasChipsColumnSx}>
+            <ActuacionDocumentacionChips labels={labels} chipSx={chipCompactSx} />
           </Box>
         );
       },

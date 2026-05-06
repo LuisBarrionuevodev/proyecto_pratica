@@ -89,6 +89,41 @@ export interface IActuacionListItem {
         count: number;
         items: { url: string; orden: number; mime_type?: string | null }[];
     }[];
+
+    /** F2.2 — contexto documental (solo lectura; coherente con backend). */
+    documentacion_contexto?: {
+        circuito:
+            | "COMUN_NOTIFICACION"
+            | "COMUN_COMPROBACION"
+            | "REINSPECCION_OFICIO"
+            | "REINSPECCION_NOTIFICACION"
+            | "DESCONOCIDO";
+        propia: {
+            expediente_numero?: string | null;
+            expediente_anio?: string | number | null;
+            notificacion_plazo_dias?: number | null;
+            notificacion_prorroga_dias?: number | null;
+            notificacion_fecha_vencimiento?: string | null;
+        };
+    };
+    origen_reinspeccion_oficio?: {
+        comprobacion_acta_numero?: string | null;
+        comprobacion_acta_anio?: number | null;
+        expediente_numero?: string | null;
+        expediente_anio?: string | number | null;
+        oficio_numero?: string | null;
+        oficio_anio?: number | null;
+        oficio_causa?: string | null;
+    } | null;
+    origen_reinspeccion_notificacion?: {
+        notificacion_acta_numero?: string | null;
+        notificacion_acta_anio?: number | null;
+        expediente_numero?: string | null;
+        expediente_anio?: string | number | null;
+        plazo_dias?: number | null;
+        prorroga_dias?: number | null;
+        fecha_vencimiento?: string | null;
+    } | null;
 }
 
 export interface IActuacionesListMeta {

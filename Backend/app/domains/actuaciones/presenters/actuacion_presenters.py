@@ -1,17 +1,34 @@
 """
 Presentación de actuaciones hacia grilla / bandejas.
 
-Semántica en `actuacion_to_grid_row`: `expediente_numero` / `expediente_anio` = solo expediente de
-**envío de comprobación** (`oficio_id` NULL). `oficio_*` = tabla `oficio` por `comprobacion_id`.
-El expediente de respuesta de oficio no se refleja en los campos `expediente_*` del canal actas.
+F2.2 — contexto documental (solo lectura):
+- `documentacion_contexto.circuito` clasifica la fila (común notificación / común comprobación /
+  reinspección por oficio o notificación, o desconocido).
+- `documentacion_contexto.propia` = trámite de **esta** actuación según el circuito.
+- `origen_reinspeccion_*` = datos de origen cuando el trabajo nace de un `IniciadorRuta` vinculado
+  por `RutaItem.actuacion_id` (sin inventar origen si no hay ítem de ruta).
+
+Campos planos históricos (compatibilidad exportación / clientes viejos):
+- En **común comprobación**: `expediente_*` = envío de la comprobación actual; `oficio_*` = null
+  aunque exista oficio en BD (el oficio de seguimiento no se mezcla en la vista de actas).
+- En **común notificación**: `expediente_*` = primer expediente asociado a la notificación actual;
+  `oficio_*` = null.
+- En **reinspección** (oficio / notificación): `expediente_*` / `oficio_*` reflejan solo la parte
+  propia de la visita actual; el origen va en `origen_reinspeccion_*`.
+
+`notificacion_previa_num` / `comprobacion_previa_num` quedan reservados en null (no usar el acta
+actual como “previa”).
 """
 
 from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, Optional, List
+
+from sqlalchemy.orm import joinedload
 
 from app.domains.actuaciones.config.epicollect_evidencias_display import (
     EPICOLLECT_EVIDENCIAS_DISPLAY_ORDER,
@@ -30,10 +47,416 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
-from app.models import Actuaciones, Expediente, Oficio
+from app.models import Actuaciones, Comprobacion, Expediente, IniciadorRuta, Notificacion, Oficio, RutaItem
+from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 logger = logging.getLogger(__name__)
-from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
+
+_TIPOS_INICIADOR_ORIGEN_OFICIO_UI = frozenset(
+    {
+        "REINSPECCION_OFICIO",
+        "VERIFICAR_INFORMAR_OFICIO",
+        "RATIFICACION_CLAUSURA_OFICIO",
+        "RATIFICACION_DECOMISO_OFICIO",
+    }
+)
+
+
+@dataclass(frozen=True)
+class ActuacionGridBatchMaps:
+    """
+    Mapas precargados para armar contexto documental sin N+1 en listados.
+
+    Parámetros:
+        expediente_envio_by_comp_id: expediente de envío (`oficio_id` NULL) por comprobación.
+        expediente_primero_by_notif_id: primer expediente no borrado por notificación (id mínimo).
+        expediente_respuesta_by_pair: expediente `RESPUESTA_OFICIO` por (comprobacion_id, oficio_id).
+        comprobacion_by_id: filas `Comprobacion` por id.
+        oficio_by_id: filas `Oficio` por id.
+        notificacion_by_id: filas `Notificacion` por id.
+    """
+
+    expediente_envio_by_comp_id: dict[int, Optional[Expediente]]
+    expediente_primero_by_notif_id: dict[int, Optional[Expediente]]
+    expediente_respuesta_by_pair: dict[tuple[int, int], Optional[Expediente]]
+    comprobacion_by_id: dict[int, Comprobacion]
+    oficio_by_id: dict[int, Oficio]
+    notificacion_by_id: dict[int, Notificacion]
+
+
+def build_iniciador_ruta_por_actuacion_id(act_ids: list[int]) -> dict[int, Optional[IniciadorRuta]]:
+    """
+    Resuelve el iniciador operativo vinculado a cada actuación publicada en ruta.
+
+    Regla:
+    - Se usa `RutaItem.actuacion_id` → `iniciador_ruta` (no `IniciadorRuta.actuacion_id`, que en
+      oficio/notificación vencida apunta a la actuación **base** histórica).
+
+    Parámetros:
+        act_ids: ids de actuaciones del page.
+
+    Retorno:
+        Mapa actuacion_id → iniciador o None si no hay ítem de ruta o está borrado.
+    """
+    if not act_ids:
+        return {}
+    base: dict[int, Optional[IniciadorRuta]] = {int(i): None for i in act_ids}
+    rows = (
+        RutaItem.query.filter(
+            RutaItem.actuacion_id.in_(act_ids),
+            RutaItem.deleted_at.is_(None),
+        )
+        .options(joinedload(RutaItem.iniciador_ruta))
+        .order_by(RutaItem.id.asc())
+        .all()
+    )
+    for ri in rows:
+        aid = ri.actuacion_id
+        if aid is None:
+            continue
+        key = int(aid)
+        if base.get(key) is not None:
+            continue
+        ini = ri.iniciador_ruta
+        if ini is None or ini.deleted_at is not None:
+            continue
+        base[key] = ini
+    return base
+
+
+def _iniciador_desde_ruta_item_single(act_id: int) -> Optional[IniciadorRuta]:
+    """Una consulta: iniciador desde ítem de ruta para respuestas unitarias (update, quitar-acta)."""
+    m = build_iniciador_ruta_por_actuacion_id([act_id])
+    return m.get(act_id)
+
+
+def expediente_primero_por_notificacion(notificacion_id: int) -> Optional[Expediente]:
+    """
+    Primer expediente no borrado vinculado a una notificación (orden estable por `id`).
+
+    Usado para contexto documental de notificación (plazos / trámite), sin inferir desde comprobación.
+    """
+    return (
+        Expediente.query.filter(
+            Expediente.notificacion_id == notificacion_id,
+            Expediente.deleted_at.is_(None),
+        )
+        .order_by(Expediente.id.asc())
+        .first()
+    )
+
+
+def expediente_respuesta_oficio_por_par(comprobacion_id: int, oficio_id: int) -> Optional[Expediente]:
+    """
+    Expediente administrativo de respuesta de oficio para el par comprobación/oficio explícito.
+
+    Orden: `id` descendente (más reciente).
+    """
+    return (
+        Expediente.query.filter(
+            Expediente.comprobacion_id == comprobacion_id,
+            Expediente.oficio_id == oficio_id,
+            Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+            Expediente.deleted_at.is_(None),
+        )
+        .order_by(Expediente.id.desc())
+        .first()
+    )
+
+
+def _batch_expediente_envio(comp_ids: set[int]) -> dict[int, Optional[Expediente]]:
+    if not comp_ids:
+        return {}
+    out: dict[int, Optional[Expediente]] = {int(c): None for c in comp_ids}
+    rows = (
+        Expediente.query.filter(
+            Expediente.comprobacion_id.in_(comp_ids),
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
+        .order_by(Expediente.comprobacion_id.asc(), Expediente.id.asc())
+        .all()
+    )
+    for r in rows:
+        cid = r.comprobacion_id
+        if cid is None:
+            continue
+        key = int(cid)
+        if out.get(key) is None:
+            out[key] = r
+    return out
+
+
+def _batch_expediente_primero_notif(notif_ids: set[int]) -> dict[int, Optional[Expediente]]:
+    if not notif_ids:
+        return {}
+    out: dict[int, Optional[Expediente]] = {int(n): None for n in notif_ids}
+    rows = (
+        Expediente.query.filter(
+            Expediente.notificacion_id.in_(notif_ids),
+            Expediente.deleted_at.is_(None),
+        )
+        .order_by(Expediente.notificacion_id.asc(), Expediente.id.asc())
+        .all()
+    )
+    for r in rows:
+        nid = r.notificacion_id
+        if nid is None:
+            continue
+        key = int(nid)
+        if out.get(key) is None:
+            out[key] = r
+    return out
+
+
+def _batch_expediente_respuesta_pairs(pairs: set[tuple[int, int]]) -> dict[tuple[int, int], Optional[Expediente]]:
+    if not pairs:
+        return {}
+    comp_ids = {p[0] for p in pairs}
+    ofi_ids = {p[1] for p in pairs}
+    out: dict[tuple[int, int], Optional[Expediente]] = {p: None for p in pairs}
+    rows = (
+        Expediente.query.filter(
+            Expediente.comprobacion_id.in_(comp_ids),
+            Expediente.oficio_id.in_(ofi_ids),
+            Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+            Expediente.deleted_at.is_(None),
+        )
+        .order_by(Expediente.id.desc())
+        .all()
+    )
+    for r in rows:
+        if r.comprobacion_id is None or r.oficio_id is None:
+            continue
+        key = (int(r.comprobacion_id), int(r.oficio_id))
+        if key in out and out[key] is None:
+            out[key] = r
+    return out
+
+
+def build_actuacion_grid_batch_maps(
+    acts: List[Actuaciones],
+    iniciador_por_actuacion_id: dict[int, Optional[IniciadorRuta]],
+) -> ActuacionGridBatchMaps:
+    """
+    Arma mapas para `actuacion_to_grid_row` en listados (evita N+1 en expedientes / ORM).
+
+    Parámetros:
+        acts: página de actuaciones.
+        iniciador_por_actuacion_id: resultado de `build_iniciador_ruta_por_actuacion_id` para esos ids.
+
+    Retorno:
+        `ActuacionGridBatchMaps` listo para pasar como `batch=` al presenter.
+    """
+    comp_ids: set[int] = set()
+    notif_ids: set[int] = set()
+    resp_pairs: set[tuple[int, int]] = set()
+
+    for a in acts:
+        if a.comprobacion_id is not None:
+            comp_ids.add(int(a.comprobacion_id))
+        if a.notificacion_id is not None:
+            notif_ids.add(int(a.notificacion_id))
+
+    for ini in iniciador_por_actuacion_id.values():
+        if ini is None:
+            continue
+        if ini.comprobacion_id is not None:
+            comp_ids.add(int(ini.comprobacion_id))
+        if ini.notificacion_id is not None:
+            notif_ids.add(int(ini.notificacion_id))
+        if ini.comprobacion_id is not None and ini.oficio_id is not None:
+            resp_pairs.add((int(ini.comprobacion_id), int(ini.oficio_id)))
+
+    envio = _batch_expediente_envio(comp_ids)
+    ex_not = _batch_expediente_primero_notif(notif_ids)
+    ex_resp = _batch_expediente_respuesta_pairs(resp_pairs)
+
+    comp_map: dict[int, Comprobacion] = {}
+    if comp_ids:
+        for c in Comprobacion.query.filter(Comprobacion.id.in_(comp_ids)).all():
+            comp_map[int(c.id)] = c
+
+    ofi_ids: set[int] = set()
+    for ini in iniciador_por_actuacion_id.values():
+        if ini and ini.oficio_id is not None:
+            ofi_ids.add(int(ini.oficio_id))
+    ofi_map: dict[int, Oficio] = {}
+    if ofi_ids:
+        for o in Oficio.query.filter(Oficio.id.in_(ofi_ids)).all():
+            ofi_map[int(o.id)] = o
+
+    not_map: dict[int, Notificacion] = {}
+    if notif_ids:
+        for n in Notificacion.query.filter(Notificacion.id.in_(notif_ids)).all():
+            not_map[int(n.id)] = n
+
+    return ActuacionGridBatchMaps(
+        expediente_envio_by_comp_id=envio,
+        expediente_primero_by_notif_id=ex_not,
+        expediente_respuesta_by_pair=ex_resp,
+        comprobacion_by_id=comp_map,
+        oficio_by_id=ofi_map,
+        notificacion_by_id=not_map,
+    )
+
+
+def _clasificar_circuito_documental(
+    act: Actuaciones,
+    ini: Optional[IniciadorRuta],
+) -> str:
+    """Retorna clave de circuito para UI (ver `documentacion_contexto.circuito`)."""
+    if ini is not None and ini.tipo_iniciador == "REINSPECCION_NOTIFICACION":
+        return "REINSPECCION_NOTIFICACION"
+    if ini is not None and ini.tipo_iniciador in _TIPOS_INICIADOR_ORIGEN_OFICIO_UI:
+        if ini.comprobacion_id is not None and ini.oficio_id is not None:
+            return "REINSPECCION_OFICIO"
+    if act.comprobacion_id is not None:
+        return "COMUN_COMPROBACION"
+    if act.notificacion_id is not None:
+        return "COMUN_NOTIFICACION"
+    return "DESCONOCIDO"
+
+
+def _expediente_envio_resolved(
+    comprobacion_id: int | None,
+    batch: ActuacionGridBatchMaps | None,
+) -> Optional[Expediente]:
+    if comprobacion_id is None:
+        return None
+    cid = int(comprobacion_id)
+    if batch is not None:
+        return batch.expediente_envio_by_comp_id.get(cid)
+    return expediente_envio_por_comprobacion(cid)
+
+
+def _expediente_notif_resolved(
+    notificacion_id: int | None,
+    batch: ActuacionGridBatchMaps | None,
+) -> Optional[Expediente]:
+    if notificacion_id is None:
+        return None
+    nid = int(notificacion_id)
+    if batch is not None:
+        return batch.expediente_primero_by_notif_id.get(nid)
+    return expediente_primero_por_notificacion(nid)
+
+
+def _expediente_respuesta_resolved(
+    comprobacion_id: int,
+    oficio_id: int,
+    batch: ActuacionGridBatchMaps | None,
+) -> Optional[Expediente]:
+    key = (int(comprobacion_id), int(oficio_id))
+    if batch is not None:
+        return batch.expediente_respuesta_by_pair.get(key)
+    return expediente_respuesta_oficio_por_par(int(comprobacion_id), int(oficio_id))
+
+
+def _comprobacion_resolved(cid: int, batch: ActuacionGridBatchMaps | None) -> Optional[Comprobacion]:
+    if batch is not None:
+        return batch.comprobacion_by_id.get(int(cid))
+    return Comprobacion.query.get(int(cid))
+
+
+def _oficio_resolved(oid: int, batch: ActuacionGridBatchMaps | None) -> Optional[Oficio]:
+    if batch is not None:
+        return batch.oficio_by_id.get(int(oid))
+    return Oficio.query.get(int(oid))
+
+
+def _notificacion_resolved(nid: int, batch: ActuacionGridBatchMaps | None) -> Optional[Notificacion]:
+    if batch is not None:
+        return batch.notificacion_by_id.get(int(nid))
+    return Notificacion.query.get(int(nid))
+
+
+def _date_iso(d: date | None) -> Optional[str]:
+    return d.isoformat() if d is not None else None
+
+
+def _build_origen_reinspeccion_oficio(
+    ini: IniciadorRuta,
+    batch: ActuacionGridBatchMaps | None,
+) -> Optional[Dict[str, Any]]:
+    if ini.comprobacion_id is None or ini.oficio_id is None:
+        return None
+    comp = _comprobacion_resolved(int(ini.comprobacion_id), batch)
+    ofi = _oficio_resolved(int(ini.oficio_id), batch)
+    if comp is None or ofi is None:
+        return None
+    exp_r = _expediente_respuesta_resolved(int(ini.comprobacion_id), int(ini.oficio_id), batch)
+    return {
+        "comprobacion_acta_numero": getattr(comp, "numero_acta", None),
+        "comprobacion_acta_anio": getattr(comp, "anio", None),
+        "expediente_numero": getattr(exp_r, "numero_expediente", None) if exp_r else None,
+        "expediente_anio": getattr(exp_r, "anio", None) if exp_r else None,
+        "oficio_numero": getattr(ofi, "numero_oficio", None),
+        "oficio_anio": getattr(ofi, "anio", None),
+        "oficio_causa": getattr(ofi, "causa", None),
+    }
+
+
+def _build_origen_reinspeccion_notificacion(
+    ini: IniciadorRuta,
+    batch: ActuacionGridBatchMaps | None,
+) -> Optional[Dict[str, Any]]:
+    if ini.notificacion_id is None:
+        return None
+    noti = _notificacion_resolved(int(ini.notificacion_id), batch)
+    if noti is None:
+        return None
+    exp_n = _expediente_notif_resolved(int(ini.notificacion_id), batch)
+    return {
+        "notificacion_acta_numero": getattr(noti, "numero_acta", None),
+        "notificacion_acta_anio": getattr(noti, "anio", None),
+        "expediente_numero": getattr(exp_n, "numero_expediente", None) if exp_n else None,
+        "expediente_anio": getattr(exp_n, "anio", None) if exp_n else None,
+        "plazo_dias": getattr(noti, "plazo_dias", None),
+        "prorroga_dias": getattr(noti, "prorroga_dias", None),
+        "fecha_vencimiento": _date_iso(getattr(noti, "fecha_vencimiento", None)),
+    }
+
+
+def _propia_payload_for_circuito(
+    circuito: str,
+    act: Actuaciones,
+    batch: ActuacionGridBatchMaps | None,
+) -> Dict[str, Any]:
+    """Subdocumento `documentacion_contexto.propia` (solo lectura)."""
+    out: Dict[str, Any] = {
+        "expediente_numero": None,
+        "expediente_anio": None,
+        "notificacion_plazo_dias": None,
+        "notificacion_prorroga_dias": None,
+        "notificacion_fecha_vencimiento": None,
+    }
+    if circuito in ("COMUN_NOTIFICACION", "REINSPECCION_NOTIFICACION") and act.notificacion_id is not None:
+        exp_n = _expediente_notif_resolved(int(act.notificacion_id), batch)
+        if exp_n:
+            out["expediente_numero"] = getattr(exp_n, "numero_expediente", None)
+            out["expediente_anio"] = getattr(exp_n, "anio", None)
+        noti = getattr(act, "notificacion", None) or _notificacion_resolved(int(act.notificacion_id), batch)
+        if noti is not None:
+            out["notificacion_plazo_dias"] = getattr(noti, "plazo_dias", None)
+            out["notificacion_prorroga_dias"] = getattr(noti, "prorroga_dias", None)
+            out["notificacion_fecha_vencimiento"] = _date_iso(getattr(noti, "fecha_vencimiento", None))
+    elif circuito == "REINSPECCION_NOTIFICACION" and act.comprobacion_id is not None:
+        exp_e = _expediente_envio_resolved(int(act.comprobacion_id), batch)
+        if exp_e:
+            out["expediente_numero"] = getattr(exp_e, "numero_expediente", None)
+            out["expediente_anio"] = getattr(exp_e, "anio", None)
+    elif circuito == "COMUN_COMPROBACION" and act.comprobacion_id is not None:
+        exp_e = _expediente_envio_resolved(int(act.comprobacion_id), batch)
+        if exp_e:
+            out["expediente_numero"] = getattr(exp_e, "numero_expediente", None)
+            out["expediente_anio"] = getattr(exp_e, "anio", None)
+    elif circuito == "REINSPECCION_OFICIO" and act.comprobacion_id is not None:
+        exp_e = _expediente_envio_resolved(int(act.comprobacion_id), batch)
+        if exp_e:
+            out["expediente_numero"] = getattr(exp_e, "numero_expediente", None)
+            out["expediente_anio"] = getattr(exp_e, "anio", None)
+    return out
 
 
 def _enum_to_str(value: Any) -> Optional[str]:
@@ -248,6 +671,8 @@ def actuacion_to_grid_row(
     act: Actuaciones,
     *,
     counts_by_eo: dict[int, int] | None = None,
+    iniciador_desde_ruta: IniciadorRuta | None = None,
+    batch: ActuacionGridBatchMaps | None = None,
 ) -> Dict[str, Any]:
     """
     Convierte una Actuación (con relaciones) al formato plano
@@ -256,13 +681,18 @@ def actuacion_to_grid_row(
     IMPORTANTE:
     - fecha_actuacion se entrega como YYYY-MM-DD para input type="date"
     - enum se entrega como string limpio
-    - `expediente_*` refleja solo el expediente de comprobación (envío), nunca el de respuesta de oficio.
-    - `oficio_*` sale del registro `Oficio` de la comprobación, no desde el expediente colateral.
+    - Contexto documental F2.2: `documentacion_contexto`, `origen_reinspeccion_*`; los campos planos
+      `expediente_*` / `oficio_*` reflejan solo la documentación **propia** de la visita según el
+      circuito (sin mezclar oficio de seguimiento ni origen de reinspección).
+    - `notificacion_previa_num` / `comprobacion_previa_num` se dejan en null (no usar acta actual como previa).
 
     Parámetros:
         counts_by_eo: mapa ``establecimiento_operativo_id`` -> cantidad de actuaciones en esa ficha.
             En listados, pasar el resultado de ``build_counts_by_eo_from_actuaciones`` para evitar N+1.
             Si es None y hay ficha, se hace una consulta por actuación (aceptable para alta/baja única).
+        iniciador_desde_ruta: iniciador ya resuelto por ``build_iniciador_ruta_por_actuacion_id`` (listados).
+            Si es None, se intenta una consulta por ``RutaItem.actuacion_id`` (respuestas unitarias).
+        batch: mapas precargados (``build_actuacion_grid_batch_maps``) para listados sin N+1.
     """
 
     # -------------------------
@@ -394,41 +824,35 @@ def actuacion_to_grid_row(
     notificacion_motivo_3 = motivos[2] if len(motivos) > 2 else None
 
     # -------------------------
-    # Previas (según tipo)
+    # Contexto documental (F2.2) — solo lectura
     # -------------------------
-    tipo_val = _enum_to_str(getattr(act, "tipo", None))
-    notificacion_previa_num = None
-    comprobacion_previa_num = None
-    if tipo_val == "REINSPECCION" and acta_notificacion_num:
-        notificacion_previa_num = acta_notificacion_num
-    if tipo_val in (
-        "RATIFICACION DE CLAUSURA",
-        "RATIFICACION DE DECOMISO",
-        "VERIFICAR E INFORMAR",
-    ) and acta_comprobacion_num:
-        comprobacion_previa_num = acta_comprobacion_num
+    ini_ruta = iniciador_desde_ruta
+    if ini_ruta is None:
+        ini_ruta = _iniciador_desde_ruta_item_single(int(act.id))
 
-    # -------------------------
-    # Expediente de comprobación / Oficio (contextos separados)
-    # -------------------------
-    expediente_numero = None
-    expediente_anio = None
+    circuito = _clasificar_circuito_documental(act, ini_ruta)
+    propia_doc = _propia_payload_for_circuito(circuito, act, batch)
+
+    origen_ofi: Optional[Dict[str, Any]] = None
+    origen_notif: Optional[Dict[str, Any]] = None
+    if circuito == "REINSPECCION_OFICIO" and ini_ruta is not None:
+        origen_ofi = _build_origen_reinspeccion_oficio(ini_ruta, batch)
+    if circuito == "REINSPECCION_NOTIFICACION" and ini_ruta is not None:
+        origen_notif = _build_origen_reinspeccion_notificacion(ini_ruta, batch)
+
+    documentacion_contexto: Dict[str, Any] = {
+        "circuito": circuito,
+        "propia": propia_doc,
+    }
+
+    expediente_numero = propia_doc.get("expediente_numero")
+    expediente_anio = propia_doc.get("expediente_anio")
     oficio_numero = None
     oficio_anio = None
     oficio_causa = None
 
-    cid = getattr(act, "comprobacion_id", None)
-    if cid:
-        exp_envio = expediente_envio_por_comprobacion(cid)
-        if exp_envio:
-            expediente_numero = getattr(exp_envio, "numero_expediente", None)
-            expediente_anio = getattr(exp_envio, "anio", None)
-
-        of = oficio_por_comprobacion(cid)
-        if of:
-            oficio_numero = getattr(of, "numero_oficio", None)
-            oficio_anio = getattr(of, "anio", None)
-            oficio_causa = getattr(of, "causa", None)
+    notificacion_previa_num = None
+    comprobacion_previa_num = None
 
     
     calle_mostrar = calle_normalizada if calle_estado == "OK" and calle_normalizada else calle
@@ -521,6 +945,10 @@ def actuacion_to_grid_row(
 
         "notificacion_previa_num": notificacion_previa_num,
         "comprobacion_previa_num": comprobacion_previa_num,
+
+        "documentacion_contexto": documentacion_contexto,
+        "origen_reinspeccion_oficio": origen_ofi,
+        "origen_reinspeccion_notificacion": origen_notif,
 
         "notificacion_editable": notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None)),
         "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
