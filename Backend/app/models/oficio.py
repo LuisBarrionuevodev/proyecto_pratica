@@ -50,11 +50,7 @@ class Oficio(db.Model):
         back_populates="oficio",
         foreign_keys="Expediente.oficio_id",
     )
-    __table_args__ = (
-        db.UniqueConstraint("numero_oficio", "anio", name="uq_of_numero_anio"),
-        # Misma causa no puede repetirse en el mismo año; sí en años distintos.
-        db.UniqueConstraint("causa", "anio", name="uq_of_causa_anio"),
-    )
+    # Unicidades (numero_oficio, anio) y (causa, anio) solo para filas activas: migración ``d4e5f6a7b8c1``.
 
     def to_dict(self, include_relations=False):
         data = {

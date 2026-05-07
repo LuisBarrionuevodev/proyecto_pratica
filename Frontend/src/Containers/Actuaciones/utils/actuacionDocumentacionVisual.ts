@@ -39,14 +39,26 @@ export type OrigenReinspeccionNotificacion = {
   fecha_vencimiento?: string | null;
 };
 
-/** Solo chips de actas operativas (Inspección, Notificación, etc.). */
+/**
+ * Solo chips de actas operativas (Inspección, Notificación, etc.).
+ * Decomiso unifica N.º y kilos cuando hay ambos (F2.4).
+ */
 export function actuacionActaChipsOnly(r: IActuacionListItem): string[] {
   const out: string[] = [];
   if (r.acta_inspeccion_num?.trim()) out.push(`Inspección ${r.acta_inspeccion_num.trim()}`);
   if (r.acta_notificacion_num?.trim()) out.push(`Notificación ${r.acta_notificacion_num.trim()}`);
   if (r.acta_comprobacion_num?.trim()) out.push(`Comprobación ${r.acta_comprobacion_num.trim()}`);
   if (r.acta_clausura_num?.trim()) out.push(`Clausura ${r.acta_clausura_num.trim()}`);
-  if (r.acta_decomiso_num?.trim()) out.push(`Decomiso ${r.acta_decomiso_num.trim()}`);
+  const decomNum = r.acta_decomiso_num?.trim();
+  if (decomNum) {
+    const k = r.decomiso_kilos_total;
+    const kg = k != null && !Number.isNaN(Number(k)) && Number(k) > 0 ? Number(k) : null;
+    if (kg != null) {
+      out.push(`Decomiso N.º ${decomNum} — ${kg} kg`);
+    } else {
+      out.push(`Decomiso N.º ${decomNum}`);
+    }
+  }
   return out;
 }
 
@@ -62,15 +74,18 @@ function _propiaNotificacionTramiteHints(p: DocumentacionPropia): boolean {
   );
 }
 
+function _resultadoCumplimientoSegments(r: IActuacionListItem): string[] {
+  if (r.resultado_cumplimiento_oficio?.trim()) {
+    return [`Cumpl. oficio: ${r.resultado_cumplimiento_oficio.trim()}`];
+  }
+  return [];
+}
+
 /**
- * Chips de documentación propia + origen de reinspección (F2.3).
- * Alineado al presenter F2.2; sin oficio/causa en común comprobación.
+ * Trámite / expediente propio de la actuación (sin origen de reinspección ni «Cumpl. oficio»).
+ * Para el modal F2.4: combinar con `actuacionDocumentacionOrigenReinspeccionSegments`.
  */
-export function actuacionDocumentacionTramiteSegments(
-  r: IActuacionListItem,
-  opts?: { includeResultadoCumplimiento?: boolean },
-): string[] {
-  const includeRes = opts?.includeResultadoCumplimiento !== false;
+export function actuacionDocumentacionPropiaTramiteSegments(r: IActuacionListItem): string[] {
   const out: string[] = [];
   const ctx = r.documentacion_contexto as DocumentacionContexto | undefined;
   const circuit = ctx?.circuito;
@@ -100,7 +115,7 @@ export function actuacionDocumentacionTramiteSegments(
         out.push(`Prórroga +${p.notificacion_prorroga_dias} d`);
       }
       if (p.notificacion_fecha_vencimiento?.trim()) {
-        out.push(`Vencimiento ${p.notificacion_fecha_vencimiento.trim()}`);
+        out.push(`Vencimiento: ${p.notificacion_fecha_vencimiento.trim()}`);
       }
     }
   } else {
@@ -117,6 +132,13 @@ export function actuacionDocumentacionTramiteSegments(
     }
   }
 
+  return out;
+}
+
+/** Solo datos de actas anteriores / origen de reinspección (oficio o notificación). */
+export function actuacionDocumentacionOrigenReinspeccionSegments(r: IActuacionListItem): string[] {
+  const out: string[] = [];
+
   const oo = r.origen_reinspeccion_oficio as OrigenReinspeccionOficio | null | undefined;
   if (oo && (oo.comprobacion_acta_numero || oo.oficio_numero || oo.expediente_numero)) {
     out.push("Origen: Reinspección por oficio");
@@ -127,7 +149,7 @@ export function actuacionDocumentacionTramiteSegments(
     }
     if (oo.expediente_numero != null && String(oo.expediente_numero).trim()) {
       const ea = oo.expediente_anio != null ? `/${oo.expediente_anio}` : "";
-      out.push(`Exp. oficio ${String(oo.expediente_numero).trim()}${ea}`);
+      out.push(`Exp. oficio N.º ${String(oo.expediente_numero).trim()}${ea}`);
     }
     if (oo.oficio_numero != null && String(oo.oficio_numero).trim()) {
       const oa = oo.oficio_anio != null ? `/${oo.oficio_anio}` : "";
@@ -155,7 +177,7 @@ export function actuacionDocumentacionTramiteSegments(
     }
     if (on.expediente_numero != null && String(on.expediente_numero).trim()) {
       const ea = on.expediente_anio != null ? `/${on.expediente_anio}` : "";
-      out.push(`Exp. notificación ${String(on.expediente_numero).trim()}${ea}`);
+      out.push(`Exp. notificación N.º ${String(on.expediente_numero).trim()}${ea}`);
     }
     if (on.plazo_dias != null) {
       out.push(`Plazo origen ${on.plazo_dias} días`);
@@ -164,15 +186,30 @@ export function actuacionDocumentacionTramiteSegments(
       out.push(`Prórroga origen +${on.prorroga_dias} d`);
     }
     if (on.fecha_vencimiento?.trim()) {
-      out.push(`Vencimiento ${on.fecha_vencimiento.trim()}`);
+      out.push(`Vencimiento: ${on.fecha_vencimiento.trim()}`);
     }
   }
 
-  if (includeRes && r.resultado_cumplimiento_oficio?.trim()) {
-    out.push(`Cumpl. oficio: ${r.resultado_cumplimiento_oficio.trim()}`);
-  }
-
   return out;
+}
+
+/**
+ * Chips de documentación propia + origen de reinspección + cumplimiento oficio (F2.3 / F2.4).
+ * Alineado al presenter F2.2; sin oficio/causa en común comprobación salvo origen explícito.
+ */
+export function actuacionDocumentacionTramiteSegments(
+  r: IActuacionListItem,
+  opts?: { includeResultadoCumplimiento?: boolean },
+): string[] {
+  const includeRes = opts?.includeResultadoCumplimiento !== false;
+  const base = [
+    ...actuacionDocumentacionPropiaTramiteSegments(r),
+    ...actuacionDocumentacionOrigenReinspeccionSegments(r),
+  ];
+  if (!includeRes) {
+    return base;
+  }
+  return [...base, ..._resultadoCumplimientoSegments(r)];
 }
 
 export function actuacionActasYTramiteAccessor(r: IActuacionListItem): string {

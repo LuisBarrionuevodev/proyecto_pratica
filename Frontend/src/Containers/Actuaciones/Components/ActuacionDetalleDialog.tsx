@@ -36,7 +36,10 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
 import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
-import { actuacionDocumentacionTramiteSegments } from "../utils/actuacionDocumentacionVisual";
+import {
+  actuacionDocumentacionOrigenReinspeccionSegments,
+  actuacionDocumentacionPropiaTramiteSegments,
+} from "../utils/actuacionDocumentacionVisual";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -48,6 +51,18 @@ const documentacionTramiteChipModalSx = {
     px: 0.75,
   },
 } as const;
+
+/** Líneas de «Trámite origen» en modal (F2.4): lectura documental, sin chips. */
+const tramiteOrigenLineaSx = {
+  color: DOC_MODAL_TEXT,
+  fontSize: "0.8125rem",
+  fontWeight: 400,
+  lineHeight: 1.5,
+  opacity: 0.94,
+  m: 0,
+  fontFamily: '"Tactic Sans", sans-serif',
+  wordBreak: "break-word" as const,
+};
 
 const QUITAR_ACTA_TITLE: Record<ActaCanalQuitarTipo, string> = {
   INSPECCION: "Quitar acta de inspección",
@@ -461,13 +476,12 @@ function textoRestriccionesEdicion(row: IActuacionListItem): string {
   return parts.join(" ");
 }
 
-/** Líneas de trámite / origen (F2.2), sin duplicar «Cumpl. oficio» (va en subsección Resultado). */
-function documentacionTramiteLinesModal(d: IActuacionListItem): string[] {
-  return actuacionDocumentacionTramiteSegments(d, { includeResultadoCumplimiento: false });
-}
-
+/** Trámite propio u origen de reinspección (sin «Cumpl. oficio»; va aparte en Resultado). */
 function documentacionTramiteModalTieneContenido(d: IActuacionListItem): boolean {
-  return documentacionTramiteLinesModal(d).length > 0;
+  return (
+    actuacionDocumentacionPropiaTramiteSegments(d).length > 0 ||
+    actuacionDocumentacionOrigenReinspeccionSegments(d).length > 0
+  );
 }
 
 function inspectoresLinea(row: IActuacionListItem): string {
@@ -481,13 +495,41 @@ function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
   return tieneResultado || documentacionTramiteModalTieneContenido(draft) || tieneRestriccionesEdicion(draft);
 }
 
-/** Trámite propio + origen reinspección como chips (F2.3). */
-function DocumentacionTramiteLectura({ draft }: { draft: IActuacionListItem }) {
-  const lines = documentacionTramiteLinesModal(draft);
-  if (!lines.length) {
+/** F2.4: trámite propio en chips; origen de reinspección en líneas bajo «Trámite origen». */
+function DocumentacionTramiteModalLectura({ draft }: { draft: IActuacionListItem }) {
+  const propia = actuacionDocumentacionPropiaTramiteSegments(draft);
+  const origen = actuacionDocumentacionOrigenReinspeccionSegments(draft);
+  if (!propia.length && !origen.length) {
     return null;
   }
-  return <ActuacionDocumentacionChips labels={lines} chipSx={documentacionTramiteChipModalSx} />;
+  return (
+    <Stack spacing={2} sx={{ width: "100%" }}>
+      {propia.length ? (
+        <Box>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Trámite documental
+          </Typography>
+          <Box sx={{ mt: 0.75 }}>
+            <ActuacionDocumentacionChips labels={propia} chipSx={documentacionTramiteChipModalSx} />
+          </Box>
+        </Box>
+      ) : null}
+      {origen.length ? (
+        <Box>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Trámite origen
+          </Typography>
+          <Stack spacing={0.5} sx={{ mt: 0.75 }}>
+            {origen.map((line, i) => (
+              <Typography key={`${line}-${i}`} component="p" variant="body2" sx={tramiteOrigenLineaSx}>
+                {line}
+              </Typography>
+            ))}
+          </Stack>
+        </Box>
+      ) : null}
+    </Stack>
+  );
 }
 
 /**
@@ -507,10 +549,7 @@ function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
   if (tieneResultado) {
     bloques.push(
       <Box key="res">
-        <Typography component="h3" sx={docModalSubheadingInCardSx}>
-          Resultado
-        </Typography>
-        <Typography component="p" sx={{ ...actaNumeroPrincipalSx, mt: 0.75 }}>
+        <Typography component="p" sx={{ ...actaNumeroPrincipalSx, m: 0 }}>
           {dash(res)}
         </Typography>
       </Box>
@@ -519,12 +558,7 @@ function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
   if (showDoc) {
     bloques.push(
       <Box key="doc">
-        <Typography component="h3" sx={docModalSubheadingInCardSx}>
-          Trámite y origen
-        </Typography>
-        <Box sx={{ mt: 0.75 }}>
-          <DocumentacionTramiteLectura draft={draft} />
-        </Box>
+        <DocumentacionTramiteModalLectura draft={draft} />
       </Box>
     );
   }
@@ -1587,17 +1621,14 @@ export function ActuacionDetalleDialog({
           <DocumentalBloque overline="Resultado y seguimiento">
             {tieneResultado ? (
               <Box sx={edicionGapBloqueAPrimerControlSx}>
-                <DocumentalFila etiqueta="Resultado" valor={dash(res)} />
+                <Typography component="p" sx={{ ...actaNumeroPrincipalSx, m: 0 }}>
+                  {dash(res)}
+                </Typography>
               </Box>
             ) : null}
             {documentacionTramiteModalTieneContenido(draft) ? (
               <Box sx={{ mt: tieneResultado ? 2 : 0 }}>
-                <Typography component="h3" sx={edicionActaSubtituloSx}>
-                  Trámite y origen
-                </Typography>
-                <Box sx={{ mt: 1 }}>
-                  <DocumentacionTramiteLectura draft={draft} />
-                </Box>
+                <DocumentacionTramiteModalLectura draft={draft} />
               </Box>
             ) : null}
             {tieneRestriccionesEdicion(draft) ? (

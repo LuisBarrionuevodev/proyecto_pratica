@@ -509,6 +509,28 @@ const TablaActuaciones = ({
     // Acciones al inicio (después del checkbox de selección)
     positionActionsColumn: "first",
     enableHiding: true,
+    /** Reparte ancho y reduce scroll horizontal en vista principal (F2.4). */
+    layoutMode: "grid",
+    displayColumnDefOptions: {
+      "mrt-row-select": {
+        size: 42,
+        grow: false,
+        muiTableHeadCellProps: { sx: { px: 0.35, py: 0.5 } },
+        muiTableBodyCellProps: { sx: { px: 0.35, py: 0.25 } },
+      },
+      ...(!hideRowActions
+        ? {
+            "mrt-row-actions": {
+              size: 80,
+              grow: false,
+            },
+          }
+        : {}),
+    },
+    muiSelectCheckboxProps: {
+      size: "small",
+      sx: { p: 0.35 },
+    },
 
     muiTableBodyCellProps: muiTableBodyCellPropsMerged,
 

@@ -40,6 +40,26 @@ function motivosNotif(r: IActuacionListItem): string[] {
     .filter(Boolean);
 }
 
+/** Segmentos para columna unificada de motivos (F2.4). */
+function motivosInfraccionSegments(r: IActuacionListItem): string[] {
+  const out: string[] = [];
+  const comp = (r.comprobacion_motivo ?? "").trim();
+  if (comp) {
+    out.push(`Motivo comprobación: ${comp}`);
+  }
+  const mf = motivosNotif(r);
+  if (mf.length === 1) {
+    out.push(`Motivo notificación: ${mf[0]}`);
+  } else if (mf.length > 1) {
+    out.push(`Motivos notificación: ${mf.join(", ")}`);
+  }
+  return out;
+}
+
+function motivosInfraccionAccessor(r: IActuacionListItem): string {
+  return motivosInfraccionSegments(r).join(" · ");
+}
+
 const chipCompactSx = {
   ...bandejaOutlinedChipSx,
   height: 24,
@@ -58,9 +78,7 @@ export const ACTUACIONES_COMPOSITE_COLUMN_IDS = [
   "col_domicilio_rubro",
   "col_inspectores",
   "col_actas_admin",
-  "col_motivos_notif",
-  "col_motivo_comp",
-  "col_decomiso_merc",
+  "col_motivos_infraccion",
 ] as const;
 
 /**
@@ -74,7 +92,8 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       header: "Fecha · OT",
       accessorFn: (row) =>
         [row.fecha_actuacion ?? "", row.orden_trabajo_numero ?? ""].filter(Boolean).join(" "),
-      size: 132,
+      size: 118,
+      grow: false,
       Cell: ({ row }) => {
         const r = row.original;
         const fecha = (r.fecha_actuacion ?? "").trim() || "—";
@@ -87,7 +106,8 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       header: "Tipo y contraproducencia",
       accessorFn: (row) =>
         [row.tipo_actuacion ?? "", row.contraproducencia ?? ""].filter((s) => s?.trim()).join(" · "),
-      size: 200,
+      size: 168,
+      grow: true,
       Cell: ({ row }) => {
         const r = row.original;
         const tipo = (r.tipo_actuacion ?? "").trim();
@@ -101,7 +121,8 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       header: "Domicilio",
       accessorFn: (row) =>
         [formatActuacionListDomicilioLinea(row), row.rubro_nombre ?? ""].filter(Boolean).join(" "),
-      size: 220,
+      size: 200,
+      grow: true,
       Cell: ({ row }) => {
         const r = row.original;
         const line = formatActuacionListDomicilioLinea(r).trim() || "—";
@@ -112,14 +133,16 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       id: "col_inspectores",
       header: "Inspectores",
       accessorFn: (row) => inspectoresNombres(row).join(", "),
-      size: 200,
+      size: 150,
+      grow: true,
       Cell: ({ row }) => <BandejaSegmentChipsCell segments={inspectoresNombres(row.original)} />,
     },
     {
       id: "col_actas_admin",
       header: "Actas y trámite",
       accessorFn: (row) => actuacionActasYTramiteAccessor(row),
-      size: 280,
+      size: 260,
+      grow: true,
       Cell: ({ row }) => {
         const r = row.original;
         const labels = [...actuacionActaChipsOnly(r), ...actuacionDocumentacionTramiteSegments(r)];
@@ -134,46 +157,17 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       },
     },
     {
-      id: "col_motivos_notif",
-      header: "Motivos notificación",
-      accessorFn: (row) => motivosNotif(row).join(", "),
-      size: 200,
-      Cell: ({ row }) => <BandejaSegmentChipsCell segments={motivosNotif(row.original)} />,
-    },
-    {
-      id: "col_motivo_comp",
-      header: "Motivo comprobación",
-      accessorFn: (row) => (row.comprobacion_motivo ?? "").trim(),
-      size: 180,
+      id: "col_motivos_infraccion",
+      header: "Motivos de infracción encontrados en la inspección",
+      accessorFn: (row) => motivosInfraccionAccessor(row),
+      size: 220,
+      grow: true,
       Cell: ({ row }) => {
-        const v = (row.original.comprobacion_motivo ?? "").trim();
-        return v ? (
-          <BandejaSegmentChipsCell segments={[v]} />
-        ) : (
-          <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>—</Typography>
-        );
-      },
-    },
-    {
-      id: "col_decomiso_merc",
-      header: "Decomiso / mercadería",
-      accessorFn: (row) => {
-        const k = row.decomiso_kilos_total;
-        if (k != null && !Number.isNaN(Number(k))) return `${k} kg`;
-        return "";
-      },
-      size: 140,
-      Cell: ({ row }) => {
-        const r = row.original;
-        const k = r.decomiso_kilos_total;
-        const chips: string[] = [];
-        if (k != null && !Number.isNaN(Number(k))) {
-          chips.push(`${k} kg`);
-        }
-        if (!chips.length) {
+        const segs = motivosInfraccionSegments(row.original);
+        if (!segs.length) {
           return <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>—</Typography>;
         }
-        return <BandejaSegmentChipsCell segments={chips} />;
+        return <BandejaSegmentChipsCell segments={segs} />;
       },
     },
   ];

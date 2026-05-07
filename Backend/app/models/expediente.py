@@ -61,9 +61,8 @@ class Expediente(db.Model):
         back_populates="expediente",
         foreign_keys=[oficio_id],
     )
-    __table_args__ = (
-        db.UniqueConstraint("numero_expediente", "anio", name="uq_ex_numero_anio"),
-    )
+    # Unicidad global (numero_expediente, anio) solo para filas activas (deleted_at IS NULL):
+    # migración ``d4e5f6a7b8c1`` — índice único en columna generada ``uq_num_anio_activo``.
 
     def to_dict(self, include_relations=False):
         data = {

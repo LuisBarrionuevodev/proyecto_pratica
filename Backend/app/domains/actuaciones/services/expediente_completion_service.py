@@ -4,6 +4,7 @@ from datetime import date
 from typing import Any, Dict, Tuple
 
 from app.database import db
+from app.domains.actuaciones.queries.expediente_vigente import expedientes_vigentes
 from app.models import Actuaciones, Expediente, Notificacion
 from app.utils.actas import acta_6
 from app.domains.actuaciones.services.notificacion_timing_service import aplicar_prorroga_notificacion
@@ -137,7 +138,9 @@ def complete_expediente_from_actuacion(
         if "prorroga_dias" in data:
             raise ValueError("prorroga_dias no aplica para COMPROBACION")
         existente = (
-            Expediente.query.filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
+            expedientes_vigentes(
+                Expediente.query.filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
+            )
             .order_by(Expediente.id.asc())
             .first()
         )
@@ -155,7 +158,11 @@ def complete_expediente_from_actuacion(
         aplicar_prorroga_notificacion(noti, prorroga_dias)
         db.session.add(noti)
 
-    dup = Expediente.query.filter_by(numero_expediente=numero, anio=anio_str).first()
+    dup = (
+        expedientes_vigentes(
+            Expediente.query.filter_by(numero_expediente=numero, anio=anio_str)
+        ).first()
+    )
     if dup:
         raise RuntimeError("Ese expediente ya existe")
 

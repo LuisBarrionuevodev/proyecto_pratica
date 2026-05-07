@@ -26,7 +26,11 @@ def _conflicto_causa_anio(
     """True si ya existe otro oficio con la misma causa y año (causa no nula)."""
     if causa is None:
         return False
-    q = db.session.query(Oficio).filter(Oficio.anio == anio, Oficio.causa == causa)
+    q = db.session.query(Oficio).filter(
+        Oficio.anio == anio,
+        Oficio.causa == causa,
+        Oficio.deleted_at.is_(None),
+    )
     if exclude_oficio_id is not None:
         q = q.filter(Oficio.id != exclude_oficio_id)
     return q.first() is not None

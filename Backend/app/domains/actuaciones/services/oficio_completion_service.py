@@ -5,6 +5,7 @@ from typing import Any, Dict
 from app.database import db
 from app.domains.actuaciones.attach.oficio import attach_oficio
 from app.domains.actuaciones.services.oficio_iniciador_service import get_or_create_iniciador_from_oficio
+from app.domains.actuaciones.presenters.actuacion_presenters import expediente_envio_por_comprobacion
 from app.models import Actuaciones, Expediente, JuzgadoCatalogo
 from app.utils.actas import acta_6
 
@@ -31,12 +32,7 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     if act.comprobacion_id is None:
         raise RuntimeError("La actuación no pertenece al flujo COMPROBACION")
 
-    expediente_original = (
-        Expediente.query
-        .filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
-        .order_by(Expediente.id.asc())
-        .first()
-    )
+    expediente_original = expediente_envio_por_comprobacion(int(act.comprobacion_id))
     if not expediente_original:
         raise LookupError("No existe expediente original para esta comprobación")
 
@@ -45,12 +41,11 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
         raise LookupError("Juzgado no encontrado")
 
     ya_respuesta = (
-        Expediente.query
-        .filter(
+        Expediente.query.filter(
             Expediente.comprobacion_id == act.comprobacion_id,
             Expediente.oficio_id.isnot(None),
-        )
-        .first()
+            Expediente.deleted_at.is_(None),
+        ).first()
     )
     if ya_respuesta:
         raise RuntimeError("Ya existe expediente de respuesta de oficio para esta actuación")
@@ -64,10 +59,11 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
         raise ValueError("numero_expediente_oficio y fecha_expediente_oficio son obligatorios")
     anio_exp_oficio = str(fecha_expediente_oficio.year)
 
-    dup_expediente = Expediente.query.filter_by(
-        numero_expediente=numero_exp_oficio,
-        anio=anio_exp_oficio,
-    ).first()
+    dup_expediente = (
+        Expediente.query.filter_by(numero_expediente=numero_exp_oficio, anio=anio_exp_oficio)
+        .filter(Expediente.deleted_at.is_(None))
+        .first()
+    )
     if dup_expediente:
         raise RuntimeError("Ese expediente de respuesta de oficio ya existe")
 
