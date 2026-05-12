@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Set, Tuple
+from typing import Dict, Optional, Tuple
 from uuid import UUID, uuid4
 import time
 
@@ -17,9 +17,9 @@ class BatchState:
     row_keys: Dict[str, DupKey] = field(default_factory=dict)
     # dup_key -> row_id (índice rápido para detectar duplicados)
     key_index: Dict[DupKey, str] = field(default_factory=dict)
-    # relevamientos: ubicación -> fecha_iso -> conjunto de row_id (misma fecha+ubicación permitido en N filas)
-    relev_row_loc_fecha: Dict[str, Tuple[str, str]] = field(default_factory=dict)
-    relev_loc_fechas: Dict[str, Dict[str, Set[str]]] = field(default_factory=dict)
+    # relevamientos: misma calle+número (no esquina) → una sola fila por location_key en el lote
+    relev_row_meta: Dict[str, Tuple[str, bool]] = field(default_factory=dict)
+    relev_altura_index: Dict[str, str] = field(default_factory=dict)
 
 
 class InMemoryBatchStore:
@@ -93,65 +93,42 @@ class InMemoryBatchStore:
         if st.key_index.get(old_key) == row_id:
             del st.key_index[old_key]
 
-    @staticmethod
-    def _relev_remove_from_index(st: BatchState, row_id: str, location_key: str, fecha_iso: str) -> None:
-        by_f = st.relev_loc_fechas.get(location_key)
-        if not by_f:
-            return
-        s = by_f.get(fecha_iso)
-        if not s:
-            return
-        s.discard(row_id)
-        if not s:
-            del by_f[fecha_iso]
-        if not by_f:
-            del st.relev_loc_fechas[location_key]
-
-    @staticmethod
-    def _relev_add_to_index(st: BatchState, row_id: str, location_key: str, fecha_iso: str) -> None:
-        st.relev_loc_fechas.setdefault(location_key, {}).setdefault(fecha_iso, set()).add(row_id)
-
-    @staticmethod
-    def _relev_find_other_fecha_conflict(
-        st: BatchState, location_key: str, fecha_iso: str, exclude_row_id: str
-    ) -> Optional[str]:
-        by_f = st.relev_loc_fechas.get(location_key, {})
-        for f2, rset in by_f.items():
-            if f2 == fecha_iso:
-                continue
-            for rid in rset:
-                if rid != exclude_row_id:
-                    return rid
-        return None
-
     def _clear_relevamiento_row(self, st: BatchState, row_id: str) -> None:
-        old = st.relev_row_loc_fecha.pop(row_id, None)
-        if old is None:
+        meta = st.relev_row_meta.pop(row_id, None)
+        if meta is None:
             return
-        oloc, ofecha = old
-        self._relev_remove_from_index(st, row_id, oloc, ofecha)
+        location_key, is_esquina = meta
+        if not is_esquina and st.relev_altura_index.get(location_key) == row_id:
+            del st.relev_altura_index[location_key]
 
-    def upsert_relevamiento_dup(self, batch_id: UUID, row_id: str, location_key: str, fecha_iso: str) -> Optional[str]:
+    def upsert_relevamiento_ubicacion(
+        self, batch_id: UUID, row_id: str, location_key: str, is_esquina: bool
+    ) -> Optional[str]:
         """
-        Regla de duplicado relevamientos en el lote:
-        - Misma calle+número (ubicación) con **otra** fecha ya presente → duplicado (devuelve row_id conflictivo).
-        - Misma ubicación y misma fecha en varias filas → permitido.
+        Duplicados relevamientos en el lote (alineado a regla de negocio):
+        - No esquina: una sola fila por `location_key` (misma calle+número), sin importar fecha/rubro.
+        - Esquina: no se bloquea por ubicación en el lote (pueden coexistir varias filas).
         """
         st = self.get(batch_id)
-        old = st.relev_row_loc_fecha.get(row_id)
+        old_meta = st.relev_row_meta.pop(row_id, None)
+        if old_meta is not None:
+            oloc, oesq = old_meta
+            if not oesq and st.relev_altura_index.get(oloc) == row_id:
+                del st.relev_altura_index[oloc]
 
-        if old is not None:
-            oloc, ofecha = old
-            self._relev_remove_from_index(st, row_id, oloc, ofecha)
+        if is_esquina:
+            st.relev_row_meta[row_id] = (location_key, True)
+            return None
 
-        other = self._relev_find_other_fecha_conflict(st, location_key, fecha_iso, row_id)
-        if other is not None:
-            if old is not None:
-                oloc, ofecha = old
-                st.relev_row_loc_fecha[row_id] = (oloc, ofecha)
-                self._relev_add_to_index(st, row_id, oloc, ofecha)
+        other = st.relev_altura_index.get(location_key)
+        if other is not None and other != row_id:
+            if old_meta is not None:
+                oloc, oesq = old_meta
+                st.relev_row_meta[row_id] = old_meta
+                if not oesq:
+                    st.relev_altura_index[oloc] = row_id
             return other
 
-        st.relev_row_loc_fecha[row_id] = (location_key, fecha_iso)
-        self._relev_add_to_index(st, row_id, location_key, fecha_iso)
+        st.relev_row_meta[row_id] = (location_key, False)
+        st.relev_altura_index[location_key] = row_id
         return None

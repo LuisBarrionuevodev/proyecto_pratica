@@ -43,8 +43,17 @@ const ActuacionesContainer = (): JSX.Element => {
   const navigate = useNavigate();
   const [tab] = useState<"todos" | "pendientes">("todos");
 
-  const { actuaciones, meta, loading, error, hasSearched, buscar, fusionarActuacionEnLista } =
-    useActuacionesFiltradas();
+  const {
+    actuaciones,
+    meta,
+    loading,
+    error,
+    hasSearched,
+    buscar,
+    refrescarUltimaBusqueda,
+    limpiarLista,
+    fusionarActuacionEnLista,
+  } = useActuacionesFiltradas();
 
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [pendientesDesde, setPendientesDesde] = useState<string>(defaultRange.desde);
@@ -71,14 +80,34 @@ const ActuacionesContainer = (): JSX.Element => {
   );
 
   const handleRefreshListaActuaciones = useCallback(() => {
-    handleFiltrarTodos({
-      desde: meta?.desde || null,
-      hasta: meta?.hasta || null,
-      tipo: meta?.tipo || null,
-      contraproducencia: meta?.contraproducencia || null,
-      orden_trabajo: meta?.orden_trabajo || null,
+    void refrescarUltimaBusqueda();
+  }, [refrescarUltimaBusqueda]);
+
+  const handleListaPageChange = useCallback(
+    (page: number, pageSize: number) => {
+      if (!meta) return;
+      void buscar({
+        desde: meta.desde,
+        hasta: meta.hasta,
+        tipo: meta.tipo,
+        contraproducencia: meta.contraproducencia,
+        orden_trabajo: meta.orden_trabajo,
+        page,
+        page_size: pageSize,
+      });
+    },
+    [buscar, meta]
+  );
+
+  useEffect(() => {
+    void buscar({
+      desde: defaultRange.desde,
+      hasta: defaultRange.hasta,
+      tipo: null,
+      contraproducencia: null,
+      orden_trabajo: null,
     });
-  }, [handleFiltrarTodos, meta]);
+  }, [buscar, defaultRange.desde, defaultRange.hasta]);
 
   useEffect(() => {
     getActuacionesPendientesSummary(pendientesDesde, pendientesHasta)
@@ -192,7 +221,12 @@ const ActuacionesContainer = (): JSX.Element => {
         <Typography sx={titleStyles}>Actuaciones</Typography>
 
         <>
-            <FiltroFechas onFiltrar={handleFiltrarTodos} />
+            <FiltroFechas
+              onFiltrar={handleFiltrarTodos}
+              initialDesde={defaultRange.desde}
+              initialHasta={defaultRange.hasta}
+              onLimpiarLista={limpiarLista}
+            />
 
             {error && hasSearched && (
               <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
@@ -200,7 +234,7 @@ const ActuacionesContainer = (): JSX.Element => {
               </Alert>
             )}
 
-            {loading && (
+            {loading && meta === null && (
               <Box
                 sx={{
                   display: "flex",
@@ -214,20 +248,26 @@ const ActuacionesContainer = (): JSX.Element => {
               </Box>
             )}
 
-            {hasSearched && !loading && meta && (
+            {hasSearched && meta && (
               <Box sx={metaInfoStyles}>
                 <Typography sx={metaItemStyles}>
                   <strong>Total:</strong> {meta.total}
                 </Typography>
                 <Typography sx={metaItemStyles}>
-                  <strong>Mostrando:</strong> {actuaciones.length} de {meta.total}
+                  <strong>Mostrando:</strong>{" "}
+                  {loading ? "…" : `${actuaciones.length} de ${meta.total}`}
                 </Typography>
                 <Typography sx={metaItemStyles}>
-                  <strong>Página:</strong> {meta.page}
+                  <strong>Página:</strong> {meta.page} /{" "}
+                  {Math.max(1, Math.ceil(meta.total / meta.page_size))}
                 </Typography>
-                {meta.desde && meta.hasta && (
+                {meta.desde && meta.hasta ? (
                   <Typography sx={metaItemStyles}>
                     <strong>Rango:</strong> {meta.desde} - {meta.hasta}
+                  </Typography>
+                ) : (
+                  <Typography sx={metaItemStyles}>
+                    <strong>Rango:</strong> todas las fechas
                   </Typography>
                 )}
                 {meta.tipo && (
@@ -248,12 +288,18 @@ const ActuacionesContainer = (): JSX.Element => {
               </Box>
             )}
 
-            {hasSearched && !loading && (
+            {hasSearched && meta && (
               <TablaActuaciones
                 data={actuaciones}
                 loading={loading}
                 onRefresh={handleRefreshListaActuaciones}
                 onActuacionListPatch={fusionarActuacionEnLista}
+                listadoServidor={{
+                  totalRowCount: meta.total,
+                  page: meta.page,
+                  pageSize: meta.page_size,
+                  onPageChange: handleListaPageChange,
+                }}
               />
             )}
         </>

@@ -17,6 +17,9 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 from app.domains.relevamientos.services.relevamiento_iniciador_service import (
     get_or_create_iniciador_from_relevamiento,
 )
+from app.domains.relevamientos.services.relevamiento_unicidad_service import (
+    assert_sin_relevamiento_activo_duplicado,
+)
 
 
 def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
@@ -54,6 +57,7 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     dom = get_or_create_domicilio_basico(calle, numero)
     numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
+    assert_sin_relevamiento_activo_duplicado(dom)
 
     turno_carga = payload.get("turno_carga")
     if turno_carga is not None and turno_carga not in ("MANIANA", "TARDE"):

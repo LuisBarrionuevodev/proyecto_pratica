@@ -135,7 +135,8 @@ def _apply_domicilio_rubro(
     Replica la lógica mínima de PATCH para calle/número/rubro/contrib (sin commit).
 
     Retorna:
-        True si se invocó get_or_create_domicilio (y se enlazó ``act.domicilio_id``), False si no hubo cambio.
+        True si se invocó get_or_create_domicilio (y se enlazó ``act.domicilio_id`` y la relación
+        ``act.domicilio``), False si no hubo cambio.
     """
     if not _domicilio_rubro_patch_solicitado(payload):
         return False
@@ -184,6 +185,7 @@ def _apply_domicilio_rubro(
         allow_missing_catalogs=allow_missing_catalogs,
     )
     act.domicilio_id = dom.id if dom else None
+    act.domicilio = dom
     if dom:
         normalizar_domicilio_en_sesion(dom, override_numero_tipo=dom_payload.get("numero_tipo"))
     return dom is not None

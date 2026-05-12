@@ -13,11 +13,10 @@ def _clean_str(v: Any) -> str:
 
 def build_relevamiento_location_key(calle: str, numero: str) -> str:
     """
-    Clave estable para “misma ubicación” (calle + número / texto de esquina).
+    Clave estable para comparar “misma ubicación” en grilla/lote (calle + número o texto de esquina).
 
-    Usada en la regla de duplicados del lote: la misma ubicación no puede
-    aparecer con dos fechas distintas; sí puede repetirse la misma fecha
-    (varios negocios en la misma esquina el mismo día).
+    Usada para detectar duplicados en el lote cuando el domicilio no es ESQUINA (una fila por clave).
+    Para esquinas no se usa para bloquear, pero se guarda por fila para limpiar el índice al editar.
     """
     c = _clean_str(calle).upper()
     c = _SPACE_RE.sub(" ", c)

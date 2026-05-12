@@ -24,6 +24,11 @@ interface FiltroFechasProps {
         contraproducencia: string | null;
         orden_trabajo: string | null;
     }) => void;
+    /** Valores iniciales (p. ej. mes en curso al cargar la vista). */
+    initialDesde?: string;
+    initialHasta?: string;
+    /** Tras limpiar campos, vacía grilla/meta en el padre (evita meta obsoleta). */
+    onLimpiarLista?: () => void;
 }
 
 /**
@@ -35,9 +40,14 @@ interface FiltroFechasProps {
  * - Contraproducencia
  * - Orden de Trabajo
  */
-const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
-    const [desde, setDesde] = useState<string>("");
-    const [hasta, setHasta] = useState<string>("");
+const FiltroFechas = ({
+    onFiltrar,
+    initialDesde = "",
+    initialHasta = "",
+    onLimpiarLista,
+}: FiltroFechasProps) => {
+    const [desde, setDesde] = useState<string>(initialDesde);
+    const [hasta, setHasta] = useState<string>(initialHasta);
     const [tipo, setTipo] = useState<string>("");
     const [contraproducencia, setContraproducencia] = useState<string>("");
     const [ordenTrabajo, setOrdenTrabajo] = useState<string>("");
@@ -71,12 +81,12 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
     };
 
     const handleLimpiar = () => {
-        setDesde("");
-        setHasta("");
+        setDesde(initialDesde);
+        setHasta(initialHasta);
         setTipo("");
         setContraproducencia("");
         setOrdenTrabajo("");
-        // NO llamar a onFiltrar - solo limpiar inputs
+        onLimpiarLista?.();
     };
 
     const tipoOptions = [
@@ -90,7 +100,11 @@ const FiltroFechas = ({ onFiltrar }: FiltroFechasProps) => {
 
     return (
         <Box sx={filtroContainerStyles}>
-            <Typography sx={filtroTitleStyles}>Filtros de Búsqueda</Typography>
+            <Typography sx={filtroTitleStyles}>Filtros de búsqueda</Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.85rem", mb: 1, lineHeight: 1.45 }}>
+                Vista documental: incluye actuaciones aunque tengan expediente u oficio pendiente. Sin fechas = todas
+                las fechas. Si hay más resultados que la página, usá el pie de la tabla o filtrá por OT.
+            </Typography>
 
             <Box sx={filtroGridStyles}>
                 {/* Fecha Desde */}

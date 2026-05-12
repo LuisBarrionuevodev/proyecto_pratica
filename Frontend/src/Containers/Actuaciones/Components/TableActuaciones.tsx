@@ -77,9 +77,19 @@ const EMPTY_READ_ONLY_COLUMNS: string[] = [];
 const EMPTY_ACTUACION_FIELD_ERRORS: Record<string, string> = {};
 
 interface TablaActuacionesProps {
-  data?: IActuacionListItem[];
-  loading?: boolean;
-  onRefresh?: () => void;
+    data?: IActuacionListItem[];
+    loading?: boolean;
+    onRefresh?: () => void;
+    /**
+     * Paginación en servidor: la API devuelve una página; el pie de tabla pide las siguientes.
+     * Si no se pasa, MRT pagina solo sobre las filas recibidas (p. ej. bandejas con pocos ítems).
+     */
+    listadoServidor?: {
+        totalRowCount: number;
+        page: number;
+        pageSize: number;
+        onPageChange: (page: number, pageSize: number) => void;
+    };
   /**
    * Actualiza la fila en el listado padre sin refetch con loading (evita desmontar la grilla / cerrar el modal).
    * Tras quitar un acta desde el modal se llama con la fila devuelta por la API.
@@ -102,11 +112,12 @@ interface TablaActuacionesProps {
 }
 
 const TablaActuaciones = ({
-  data: externalData,
-  loading: externalLoading,
-  onRefresh,
-  onActuacionListPatch,
-  initialColumnVisibility,
+    data: externalData,
+    loading: externalLoading,
+    onRefresh,
+    onActuacionListPatch,
+    listadoServidor,
+    initialColumnVisibility,
   enableEditing = true,
   hideRowActions = false,
   hideDeleteAction = false,
@@ -511,6 +522,26 @@ const TablaActuaciones = ({
     enableHiding: true,
     /** Reparte ancho y reduce scroll horizontal en vista principal (F2.4). */
     layoutMode: "grid",
+    ...(listadoServidor
+      ? {
+          manualPagination: true,
+          rowCount: listadoServidor.totalRowCount,
+          onPaginationChange: (updater) => {
+            const prev = {
+              pageIndex: listadoServidor.page - 1,
+              pageSize: listadoServidor.pageSize,
+            };
+            const next = typeof updater === "function" ? updater(prev) : updater;
+            listadoServidor.onPageChange(next.pageIndex + 1, next.pageSize);
+          },
+          state: {
+            pagination: {
+              pageIndex: listadoServidor.page - 1,
+              pageSize: listadoServidor.pageSize,
+            },
+          },
+        }
+      : {}),
     displayColumnDefOptions: {
       "mrt-row-select": {
         size: 42,

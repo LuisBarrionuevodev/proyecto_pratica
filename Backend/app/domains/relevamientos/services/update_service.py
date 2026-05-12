@@ -20,6 +20,9 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
 from app.domains.relevamientos.services.operational_guard_service import (
     get_iniciador_pendiente_relevamiento,
 )
+from app.domains.relevamientos.services.relevamiento_unicidad_service import (
+    assert_sin_relevamiento_activo_duplicado,
+)
 
 
 def _get_relevamiento_or_404(relevamiento_id: int) -> Relevamiento:
@@ -76,6 +79,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     dom = get_or_create_domicilio_basico(calle, numero)
     numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
+    assert_sin_relevamiento_activo_duplicado(dom, exclude_relevamiento_id=relevamiento_id)
 
     rel.fecha = fecha
     rel.mes = mes

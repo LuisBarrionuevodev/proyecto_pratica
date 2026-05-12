@@ -11,6 +11,8 @@ export const RELEVAMIENTO_ROW_ERROR_KEY_MAP: Record<string, string> = {
   Rubro: "rubro",
   Turno: "turno",
   "Está abierto": "esta_abierto",
+  /** Duplicados / reglas de fila completa (backend grid validate): mostrar junto al domicilio. */
+  _row: "calle",
 };
 
 export function normalizeRelevamientoRowErrors(errors?: Record<string, string>): Record<string, string> {

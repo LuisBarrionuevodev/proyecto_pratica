@@ -63,10 +63,13 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
     if filters.orden_trabajo:
         # Normalizar OT a 6 dígitos (ej: "123" -> "000123")
         ot_normalizado = acta_6(filters.orden_trabajo)
-        
+
         ot = (
-            OrdenTrabajo.query
-            .filter(OrdenTrabajo.numero == ot_normalizado)
+            OrdenTrabajo.query.filter(
+                OrdenTrabajo.numero_acta == ot_normalizado,
+                OrdenTrabajo.deleted_at.is_(None),
+            )
+            .order_by(OrdenTrabajo.id.desc())
             .first()
         )
         if not ot:

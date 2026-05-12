@@ -9,6 +9,13 @@ from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.grid.schemas.batch import ValidateRowResponse
 from app.domains.grid.services.row_normalizer import normalize_row_keys, reverse_map_errors
 from app.domains.grid.services.registry import get_handler
+from app.domains.relevamientos.services.relevamiento_unicidad_service import (
+    RELEVAMIENTO_UNICIDAD_UBICACION_MSG,
+    count_active_relevamientos_por_calle_numero,
+)
+from app.domains.geolocalizacion.normalizacion_calles.services.numero_esquina_detector import (
+    detect_numero_o_esquina,
+)
 
 
 def _normalize_tipo(value: Any) -> Optional[str]:
@@ -26,6 +33,18 @@ def _row_has_any_data(row_internal: Dict[str, Any]) -> bool:
             continue
         return True
     return False
+
+
+def _relevamiento_fila_es_esquina(row: Any) -> bool:
+    """
+    True si el domicilio debe tratarse como esquina para unicidad (misma lógica que el alta:
+    override explícito o detección por texto de número).
+    """
+    if row.numero_tipo == "ESQUINA":
+        return True
+    if row.numero_tipo in ("NUMERO", "OTRO"):
+        return False
+    return detect_numero_o_esquina(row.numero) == "ESQUINA"
 
 
 class GridValidateService:
@@ -125,8 +144,13 @@ class GridValidateService:
             from app.domains.grid.services.relevamiento_dup_key import build_relevamiento_location_key
 
             loc_key = build_relevamiento_location_key(row.calle, row.numero)
-            fecha_iso = row.fecha.isoformat()
-            other_row = self.store.upsert_relevamiento_dup(batch_id=batch_id, row_id=row_id, location_key=loc_key, fecha_iso=fecha_iso)
+            is_esquina = _relevamiento_fila_es_esquina(row)
+            other_row = self.store.upsert_relevamiento_ubicacion(
+                batch_id=batch_id,
+                row_id=row_id,
+                location_key=loc_key,
+                is_esquina=is_esquina,
+            )
             if other_row:
                 return ValidateRowResponse(
                     batch_id=batch_id,
@@ -134,10 +158,22 @@ class GridValidateService:
                     ok=False,
                     errors={
                         "_row": (
-                            "La misma calle y número o esquina no puede cargarse con otra fecha "
-                            f"en el lote (conflicto con fila {other_row})."
+                            "Duplicado en el lote: la misma calle y altura ya está cargada "
+                            f"(fila {other_row}). En esquinas se permiten varias filas con el mismo cruce."
                         )
                     },
+                    normalized=None,
+                )
+            if not is_esquina and count_active_relevamientos_por_calle_numero(
+                row.calle,
+                row.numero,
+                exclude_relevamiento_id=row.id,
+            ) > 0:
+                return ValidateRowResponse(
+                    batch_id=batch_id,
+                    row_id=row_id,
+                    ok=False,
+                    errors={"_row": RELEVAMIENTO_UNICIDAD_UBICACION_MSG},
                     normalized=None,
                 )
 
