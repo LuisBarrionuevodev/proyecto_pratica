@@ -52,10 +52,13 @@ function mergeRecorridoDisplayRow(
   return out as IComprobacionRecorridoRow;
 }
 
-function actaComprobacionCabecera(ctx: IComprobacionRecorridoRow, detalle: IComprobacionRecorridoDetalle): string {
+function actaComprobacionCabecera(
+  ctx: IComprobacionRecorridoRow,
+  detalle: IComprobacionRecorridoDetalle | null
+): string {
   const n =
     (ctx.acta_comprobacion_num ?? "").trim() ||
-    String(detalle.acta_comprobacion?.numero ?? "").trim();
+    (detalle ? String(detalle.acta_comprobacion?.numero ?? "").trim() : "");
   return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
 }
 
@@ -153,9 +156,9 @@ export function RecorridoDetalleDocumentalDialog({
     actuacionId != null ? (
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
-        titulo="Recorrido de la comprobación"
-        subtitulo={detalle ? actaComprobacionCabecera(ctx, detalle) : null}
-        actuacionId={actuacionId}
+        titulo={actaComprobacionCabecera(ctx, detalle)}
+        subtitulo={undefined}
+        actuacionId={undefined}
       />
     ) : (
       "Recorrido"
@@ -218,18 +221,15 @@ export function RecorridoDetalleDocumentalDialog({
             notaReferencia={notaReferencia}
           />
 
-          <DocumentalBloque overline="Resultado final">
-            <DocumentalFila
-              etiqueta="Estado del recorrido"
-              valor={textoValor(detalle.resultado_final?.estado_recorrido)}
-            />
+          <DocumentalBloque overline="Resultado del circuito">
+            <DocumentalFila etiqueta="Situación" valor={textoValor(detalle.resultado_final?.estado_recorrido)} />
             {!ocultarCumplYTipoEnResultadoFinal ? (
               <>
                 {(() => {
                   const cumpl = humanizarCumplimientoOficio(detalle.resultado_final?.resultado_cumplimiento_oficio);
                   return cumpl !== "—" ? <DocumentalFila etiqueta="Cumplimiento del oficio" valor={cumpl} /> : null;
                 })()}
-                <DocumentalFila etiqueta="Tipo de actuación (resultado)" valor={valorTipoActuacionResultadoFinal(detalle)} />
+                <DocumentalFila etiqueta="Tipo de visita final" valor={valorTipoActuacionResultadoFinal(detalle)} />
               </>
             ) : null}
           </DocumentalBloque>

@@ -12,9 +12,10 @@ import {
   humanizarTipoVisitaRecorrido,
 } from "../utils/documentalLabelFormat";
 import {
+  BloqueExpedienteEnvioReinspeccionDetalle,
   BloqueInspeccionBaseComprobacion,
+  BloqueOficioYExpedienteRespuestaDetalle,
   BloqueReferenciaReinspeccionDetalle,
-  BloqueTramitesReinspeccionDetalle,
   DOC_MODAL_BLOCK_STACK_SPACING,
   DocumentalBloque,
   DocumentalFila,
@@ -98,6 +99,12 @@ export type ReinspeccionDocumentalSharedLayoutProps = {
   /** Solo recorrido y solo si el backend envía objeto (p. ej. trámite de reinspección CUMPLIDO). */
   ejecucionReinspeccion?: Record<string, unknown> | null;
   notaReferencia?: ReactNode;
+  /**
+   * Si es true, no se renderiza «Oficio y expediente de respuesta» en solo lectura.
+   * Modal Pendiente de reinspección: el trámite lo muestra `OperativoOficioYRespuestaEditable`.
+   * Recorrido/historial: debe ser false (o omitir) para conservar el trámite consultivo.
+   */
+  ocultarOficioYRespuestaLectura?: boolean;
 };
 
 /**
@@ -109,6 +116,7 @@ export function ReinspeccionDocumentalSharedLayout({
   variant,
   ejecucionReinspeccion,
   notaReferencia,
+  ocultarOficioYRespuestaLectura = false,
 }: ReinspeccionDocumentalSharedLayoutProps) {
   const ej = ejecucionReinspeccion;
   const muestraEjecucion =
@@ -134,8 +142,9 @@ export function ReinspeccionDocumentalSharedLayout({
           tipo_actuacion: row.tipo_actuacion ?? null,
         }}
       />
-      <BloqueTramitesReinspeccionDetalle row={row} />
-      {variant === "pendiente" ? (
+      <BloqueExpedienteEnvioReinspeccionDetalle row={row} />
+      {!ocultarOficioYRespuestaLectura ? <BloqueOficioYExpedienteRespuestaDetalle row={row} /> : null}
+      {variant === "pendiente" && Number(row.iniciador_id) > 0 ? (
         <DocumentalBloque overline="Trámite: reinspección por oficio">
           <DocumentalFila etiqueta="Trámite" valor="Reinspección por oficio" />
           <DocumentalFila etiqueta="Estado del trámite" valor={humanizarEstadoIniciador(row.estado_iniciador)} />
@@ -145,9 +154,9 @@ export function ReinspeccionDocumentalSharedLayout({
       ) : null}
       {muestraEjecucion ? (
         <DocumentalBloque overline="Resultado de la visita de reinspección">
-          <DocumentalFila etiqueta="Inspectores" valor={inspectoresLineaEjecucion(ej)} />
-          <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(ej.fecha_actuacion)} />
           <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(ej.orden_trabajo_numero)} />
+          <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(ej.fecha_actuacion)} />
+          <DocumentalFila etiqueta="Inspectores" valor={inspectoresLineaEjecucion(ej)} />
           <DocumentalFila etiqueta="Tipo de inspección labrada" valor={tipoInspeccionEjecucionLabel(ej.tipo_inspeccion_labrada)} />
           <DocumentalFila
             etiqueta="Cumplimiento del oficio"

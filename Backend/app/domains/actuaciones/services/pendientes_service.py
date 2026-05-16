@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func, exists, or_, and_
+from sqlalchemy import exists, func, or_, and_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
@@ -349,7 +349,10 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
         and_(
             Expediente.comprobacion_id == Actuaciones.comprobacion_id,
             Expediente.oficio_id.isnot(None),
-            func.upper(Expediente.tipo_expediente) == "RESPUESTA_OFICIO",
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            ),
             Expediente.deleted_at.is_(None),
         )
     )

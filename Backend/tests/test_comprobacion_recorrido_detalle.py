@@ -230,3 +230,38 @@ def test_comprobacion_recorrido_resumen_row_estado_y_sin_expediente_respuesta(ap
         assert "expediente_respuesta_anio" not in row
     finally:
         db.session.rollback()
+
+
+def test_comprobacion_recorrido_resumen_row_incluye_numero_oficio_cuando_existe(app_ctx) -> None:
+    """Fila listado recorrido: mismo snapshot de oficio que el detalle (número/año legible en tabla)."""
+    try:
+        act, comp = _mk_actuacion_con_comprobacion()
+        ex = Expediente(
+            numero_expediente=_unique_num()[:6],
+            anio="2026",
+            fecha_expediente=date(2026, 3, 20),
+            tipo_expediente="ENVIO_ACTA",
+            comprobacion_id=comp.id,
+            oficio_id=None,
+        )
+        db.session.add(ex)
+        db.session.flush()
+        jz = JuzgadoCatalogo(codigo=f"JZ{random.randint(1000, 9999)}", nombre="Jz Resumen Oficio")
+        db.session.add(jz)
+        db.session.flush()
+        onum = f"OF{_unique_num()[:4]}"
+        ofi = Oficio(
+            numero_oficio=onum,
+            anio=2026,
+            fecha_oficio=date(2026, 4, 17),
+            causa="Causa UI",
+            comprobacion_id=comp.id,
+            juzgado_id=jz.id,
+        )
+        db.session.add(ofi)
+        db.session.flush()
+        row = comprobacion_recorrido_resumen_row(act)
+        assert row["oficio_numero"] == onum
+        assert row["oficio_anio"] == 2026
+    finally:
+        db.session.rollback()

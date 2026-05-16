@@ -4,8 +4,15 @@ from typing import Any, Dict
 
 from app.database import db
 from app.domains.actuaciones.attach.oficio import attach_oficio
-from app.domains.actuaciones.services.oficio_iniciador_service import get_or_create_iniciador_from_oficio
+from app.domains.actuaciones.queries.expediente_vigente import expedientes_vigentes
+from app.domains.actuaciones.services.expediente_reactivacion_service import (
+    aplicar_reactivacion_respuesta_oficio,
+    buscar_expediente_respuesta_oficio_reactivable,
+)
 from app.domains.actuaciones.presenters.actuacion_presenters import expediente_envio_por_comprobacion
+from app.domains.actuaciones.services.oficio_iniciador_service import (
+    get_or_create_iniciador_from_oficio,
+)
 from app.models import Actuaciones, Expediente, JuzgadoCatalogo
 from app.utils.actas import acta_6
 
@@ -17,8 +24,12 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     - Valida rama COMPROBACION.
     - Exige **expediente de envío** (`oficio_id` NULL) ya creado.
     - Crea o actualiza `Oficio` (misma comprobación) vía `attach_oficio`.
-    - Crea **expediente de respuesta de oficio** sin modificar el expediente de envío.
+    - Crea **expediente de respuesta de oficio** sin modificar el expediente de envío, o **reactiva** el
+      soft-deleted del mismo ``oficio_id``/comprobación si coincide número/año del expediente de respuesta.
     - La fecha del expediente de respuesta se alinea siempre con ``fecha_oficio`` (una sola fecha operativa).
+    - Materializa (idempotente) ``IniciadorRuta`` tipo ``REINSPECCION_OFICIO`` vía
+      ``get_or_create_iniciador_from_oficio`` para que el caso entre en planificación de rutas
+      (mismo criterio de negocio que el servicio dedicado; no duplica si ya existe uno activo).
 
     Errores:
     - LookupError: 404 (actuación, juzgado o expediente original no encontrados)
@@ -59,14 +70,6 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
         raise ValueError("numero_expediente_oficio y fecha_expediente_oficio son obligatorios")
     anio_exp_oficio = str(fecha_expediente_oficio.year)
 
-    dup_expediente = (
-        Expediente.query.filter_by(numero_expediente=numero_exp_oficio, anio=anio_exp_oficio)
-        .filter(Expediente.deleted_at.is_(None))
-        .first()
-    )
-    if dup_expediente:
-        raise RuntimeError("Ese expediente de respuesta de oficio ya existe")
-
     oficio = attach_oficio(
         {
             "numero": data["numero_oficio"],
@@ -80,23 +83,62 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     if not oficio:
         raise ValueError("No se pudo crear/actualizar oficio")
 
-    expediente_respuesta = Expediente(
+    reactivable = buscar_expediente_respuesta_oficio_reactivable(
+        comprobacion_id=int(act.comprobacion_id),
+        oficio_id=int(oficio.id),
         numero_expediente=numero_exp_oficio,
-        fecha_expediente=fecha_expediente_oficio,
         anio=anio_exp_oficio,
-        tipo_expediente="RESPUESTA_OFICIO",
-        comprobacion_id=act.comprobacion_id,
-        oficio_id=oficio.id,
     )
-    db.session.add(expediente_respuesta)
+    if reactivable:
+        dup_otro = (
+            expedientes_vigentes(
+                Expediente.query.filter_by(
+                    numero_expediente=numero_exp_oficio,
+                    anio=anio_exp_oficio,
+                ).filter(Expediente.id != reactivable.id)
+            ).first()
+        )
+        if dup_otro:
+            raise RuntimeError("Ese expediente de respuesta de oficio ya existe")
+        aplicar_reactivacion_respuesta_oficio(
+            reactivable,
+            fecha_expediente=fecha_expediente_oficio,
+            anio_str=anio_exp_oficio,
+        )
+        db.session.add(reactivable)
+        expediente_respuesta = reactivable
+    else:
+        dup_expediente = (
+            expedientes_vigentes(
+                Expediente.query.filter_by(
+                    numero_expediente=numero_exp_oficio,
+                    anio=anio_exp_oficio,
+                )
+            ).first()
+        )
+        if dup_expediente:
+            raise RuntimeError("Ese expediente de respuesta de oficio ya existe")
+
+        expediente_respuesta = Expediente(
+            numero_expediente=numero_exp_oficio,
+            fecha_expediente=fecha_expediente_oficio,
+            anio=anio_exp_oficio,
+            tipo_expediente="RESPUESTA_OFICIO",
+            comprobacion_id=act.comprobacion_id,
+            oficio_id=oficio.id,
+        )
+        db.session.add(expediente_respuesta)
+
     db.session.flush()
 
-    iniciador = get_or_create_iniciador_from_oficio(
+    iniciador_ruta = get_or_create_iniciador_from_oficio(
         actuacion=act,
         oficio=oficio,
         expediente_respuesta=expediente_respuesta,
     )
-    db.session.add(iniciador)
+    if iniciador_ruta.id is None:
+        db.session.add(iniciador_ruta)
+
     db.session.commit()
 
     return {
@@ -104,6 +146,6 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
         "oficio": oficio,
         "expediente_original": expediente_original,
         "expediente_respuesta_oficio": expediente_respuesta,
-        "iniciador_ruta": iniciador,
+        "iniciador_ruta": iniciador_ruta,
     }
 

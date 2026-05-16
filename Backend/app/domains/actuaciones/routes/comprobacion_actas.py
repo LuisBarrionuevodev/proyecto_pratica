@@ -14,7 +14,8 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
     comprobacion_recorrido_resumen_row,
-    iniciador_reinspeccion_to_row,
+    iniciador_reinspeccion_oficio_vigente,
+    reinspeccion_oficio_bandeja_row,
 )
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 from app.domains.actuaciones.services.comprobacion_actas_bandeja_service import (
@@ -51,15 +52,21 @@ def _filters_desde_request() -> ActuacionesPendientesFilters:
 @actuacion.get("/comprobacion/pendientes-reinspeccion-oficio")
 def comprobacion_pendientes_reinspeccion_oficio():
     """
-    Iniciadores REINSPECCION_OFICIO pendientes (oficio ya cargado; falta cerrar reinspección).
+    Comprobaciones con circuito documental completo cuya reinspección por oficio **aún no está en una
+    ruta operativa** (``BORRADOR`` / ``PUBLICADA`` / ``EN_CURSO``). Puede existir ``IniciadorRuta``;
+    la fila sale de bandeja solo al incorporar ese iniciador a un ítem de ruta activo.
     """
     try:
         filters = _filters_desde_request()
-        pairs = list_pendientes_reinspeccion_oficio(filters)
-        acts_only = [act for _, act in pairs]
-        counts_by_eo = build_counts_by_eo_from_actuaciones(acts_only)
+        acts = list_pendientes_reinspeccion_oficio(filters)
+        counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
         items = [
-            iniciador_reinspeccion_to_row(ini, act, counts_by_eo=counts_by_eo) for ini, act in pairs
+            reinspeccion_oficio_bandeja_row(
+                act,
+                counts_by_eo=counts_by_eo,
+                iniciador=iniciador_reinspeccion_oficio_vigente(act.id),
+            )
+            for act in acts
         ]
         return (
             jsonify(

@@ -5,6 +5,15 @@ from typing import Any, Dict, Tuple
 
 from app.database import db
 from app.domains.actuaciones.queries.expediente_vigente import expedientes_vigentes
+from app.domains.actuaciones.services.expediente_reactivacion_service import (
+    aplicar_reactivacion_envio_comprobacion,
+    aplicar_reactivacion_prorroga,
+    buscar_expediente_envio_comprobacion_reactivable,
+    buscar_expediente_prorroga_notificacion_reactivable,
+)
+from app.domains.actuaciones.services.notificacion_plazo_expediente_edit_service import (
+    recalcular_prorroga_y_vencimiento_desde_expedientes_activos,
+)
 from app.models import Actuaciones, Expediente, Notificacion
 from app.utils.actas import acta_6
 from app.domains.actuaciones.services.notificacion_timing_service import aplicar_prorroga_notificacion
@@ -85,9 +94,12 @@ def complete_expediente_from_actuacion(
 
     - Rama COMPROBACION: expediente de envío con `oficio_id` NULL (`ENVIO_ACTA`); no debe existir ya
       otro expediente de envío para esa comprobación (se ignora el expediente de respuesta de oficio).
+      Si existía uno borrado en soft delete con la misma comprobación y mismo número/año, se **reactiva**.
     - Rama NOTIFICACION: expediente(s) `PRORROGA_NOTIFICACION` ligados a la notificación (0..N como
-      historial documental de plazo/prórroga). Cada alta aplica prórroga sobre `Notificacion` y crea una
-      fila adicional; el vencimiento operativo sigue consolidado en la notificación.
+      historial documental de plazo/prórroga). Cada alta nueva aplica prórroga acumulativa sobre
+      `Notificacion` y crea una fila adicional; si la misma notificación ya tenía una prórroga soft-deleted
+      con el mismo número/año, se **reactiva** esa fila y se recalcula el plazo desde las filas activas
+      (sin sumar dos veces la misma carga). El vencimiento operativo sigue consolidado en la notificación.
 
     Si la actuación tiene **notificación y comprobación**, el payload debe incluir ``source_type``
     ``NOTIFICACION`` o ``COMPROBACION`` para indicar el canal; sin eso se rechaza con ``ValueError``.
@@ -133,7 +145,7 @@ def complete_expediente_from_actuacion(
 
     numero, fecha_expediente, anio_str = _parse_expediente_payload(data)
 
-    prorroga_dias: int | None = None
+    ex: Expediente
     if source_type == "COMPROBACION":
         if "prorroga_dias" in data:
             raise ValueError("prorroga_dias no aplica para COMPROBACION")
@@ -148,6 +160,49 @@ def complete_expediente_from_actuacion(
             raise RuntimeError(
                 "Ya existe un expediente de envío (comprobación) vinculado a esta comprobación"
             )
+
+        reactivable = buscar_expediente_envio_comprobacion_reactivable(
+            comprobacion_id=int(act.comprobacion_id),
+            numero_expediente=numero,
+            anio=anio_str,
+        )
+        if reactivable:
+            dup_otro = (
+                expedientes_vigentes(
+                    Expediente.query.filter_by(numero_expediente=numero, anio=anio_str).filter(
+                        Expediente.id != reactivable.id
+                    )
+                ).first()
+            )
+            if dup_otro:
+                raise RuntimeError("Ese expediente ya existe en otro trámite activo")
+            aplicar_reactivacion_envio_comprobacion(
+                reactivable,
+                fecha_expediente=fecha_expediente,
+                anio_str=anio_str,
+            )
+            db.session.add(reactivable)
+            ex = reactivable
+        else:
+            dup = (
+                expedientes_vigentes(
+                    Expediente.query.filter_by(numero_expediente=numero, anio=anio_str)
+                ).first()
+            )
+            if dup:
+                raise RuntimeError("Ese expediente ya existe")
+
+            ex = Expediente(
+                numero_expediente=numero,
+                fecha_expediente=fecha_expediente,
+                anio=anio_str,
+                tipo_expediente="ENVIO_ACTA",
+                comprobacion_id=act.comprobacion_id,
+                notificacion_id=None,
+                oficio_id=None,
+                prorroga_dias_otorgados=None,
+            )
+            db.session.add(ex)
     else:
         prorroga_dias = _parse_prorroga_payload(data)
         if act.notificacion_id is None:
@@ -155,33 +210,56 @@ def complete_expediente_from_actuacion(
         noti = db.session.get(Notificacion, act.notificacion_id)
         if not noti:
             raise ValueError("No se encontró la notificación asociada a la actuación")
-        aplicar_prorroga_notificacion(noti, prorroga_dias)
-        db.session.add(noti)
 
-    dup = (
-        expedientes_vigentes(
-            Expediente.query.filter_by(numero_expediente=numero, anio=anio_str)
-        ).first()
-    )
-    if dup:
-        raise RuntimeError("Ese expediente ya existe")
+        reactivable_n = buscar_expediente_prorroga_notificacion_reactivable(
+            notificacion_id=int(act.notificacion_id),
+            numero_expediente=numero,
+            anio=anio_str,
+        )
+        if reactivable_n:
+            dup_otro = (
+                expedientes_vigentes(
+                    Expediente.query.filter_by(numero_expediente=numero, anio=anio_str).filter(
+                        Expediente.id != reactivable_n.id
+                    )
+                ).first()
+            )
+            if dup_otro:
+                raise RuntimeError("Ese expediente ya existe en otro trámite activo")
+            aplicar_reactivacion_prorroga(
+                reactivable_n,
+                fecha_expediente=fecha_expediente,
+                anio_str=anio_str,
+                prorroga_dias_otorgados=prorroga_dias,
+            )
+            db.session.add(reactivable_n)
+            recalcular_prorroga_y_vencimiento_desde_expedientes_activos(noti)
+            db.session.add(noti)
+            ex = reactivable_n
+        else:
+            aplicar_prorroga_notificacion(noti, prorroga_dias)
+            db.session.add(noti)
 
-    ex = Expediente(
-        numero_expediente=numero,
-        fecha_expediente=fecha_expediente,
-        anio=anio_str,
-        tipo_expediente=(
-            "ENVIO_ACTA"
-            if source_type == "COMPROBACION"
-            else "PRORROGA_NOTIFICACION"
-        ),
-        comprobacion_id=act.comprobacion_id if source_type == "COMPROBACION" else None,
-        notificacion_id=act.notificacion_id if source_type == "NOTIFICACION" else None,
-        oficio_id=None,
-        prorroga_dias_otorgados=prorroga_dias,
-    )
+            dup = (
+                expedientes_vigentes(
+                    Expediente.query.filter_by(numero_expediente=numero, anio=anio_str)
+                ).first()
+            )
+            if dup:
+                raise RuntimeError("Ese expediente ya existe")
 
-    db.session.add(ex)
+            ex = Expediente(
+                numero_expediente=numero,
+                fecha_expediente=fecha_expediente,
+                anio=anio_str,
+                tipo_expediente="PRORROGA_NOTIFICACION",
+                comprobacion_id=None,
+                notificacion_id=act.notificacion_id,
+                oficio_id=None,
+                prorroga_dias_otorgados=prorroga_dias,
+            )
+            db.session.add(ex)
+
     db.session.commit()
 
     next_state_hint = (

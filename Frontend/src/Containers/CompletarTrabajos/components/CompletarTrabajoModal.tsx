@@ -207,6 +207,9 @@ export function CompletarTrabajoModal({
   const [tipoActuacionEsperadoRef, setTipoActuacionEsperadoRef] = useState<string | null>(null);
 
   const [inspectoresList, setInspectoresList] = useState<string[]>([]);
+  /** Búsqueda en Autocompletes de agregar ítem; se limpia tras cada selección. */
+  const [inspectoresAddInput, setInspectoresAddInput] = useState("");
+  const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
   const baselineInspectoresRef = useRef<string[]>([]);
 
   useEffect(() => {
@@ -259,6 +262,8 @@ export function CompletarTrabajoModal({
       setTipoActuacionOficio(tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion));
       setResultadoCumplimientoOficio(resolvedRow.resultado_cumplimiento_oficio ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
+      setInspectoresAddInput("");
+      setNotifMotivosAddInput("");
       return;
     }
     setResultadoCumplimientoOficio("");
@@ -288,6 +293,8 @@ export function CompletarTrabajoModal({
     setActaDecomiso(resolvedRow.acta_decomiso_num ?? "");
     const k = resolvedRow.decomiso_kilos_total;
     setDecomisoKilos(k == null ? "" : String(k));
+    setInspectoresAddInput("");
+    setNotifMotivosAddInput("");
   }, [open, resolvedRow, inspectoresGrupo]);
 
   const fe = useCallback((apiField: string) => fieldErrors[apiField], [fieldErrors]);
@@ -650,10 +657,16 @@ export function CompletarTrabajoModal({
             size="small"
             options={inspectoresDisponiblesParaAgregar}
             value={null}
+            inputValue={inspectoresAddInput}
+            onInputChange={(_, newInput, reason) => {
+              if (reason === "input") setInspectoresAddInput(newInput);
+              else if (reason === "clear" || reason === "reset") setInspectoresAddInput("");
+            }}
             onChange={(_, value) => {
               if (value && !inspectoresList.includes(value)) {
                 setInspectoresList((prev) => [...prev, value]);
                 clearFe("inspectores");
+                setInspectoresAddInput("");
               }
             }}
             disabled={!catalogsReady || inspectoresDisponiblesParaAgregar.length === 0}
@@ -1015,6 +1028,11 @@ export function CompletarTrabajoModal({
                 size="small"
                 options={motivosDisponiblesParaAgregar}
                 value={null}
+                inputValue={notifMotivosAddInput}
+                onInputChange={(_, newInput, reason) => {
+                  if (reason === "input") setNotifMotivosAddInput(newInput);
+                  else if (reason === "clear" || reason === "reset") setNotifMotivosAddInput("");
+                }}
                 onChange={(_, value) => {
                   if (
                     value &&
@@ -1025,6 +1043,7 @@ export function CompletarTrabajoModal({
                     clearFe("notificacion_motivo_1");
                     clearFe("notificacion_motivo_2");
                     clearFe("notificacion_motivo_3");
+                    setNotifMotivosAddInput("");
                   }
                 }}
                 disabled={

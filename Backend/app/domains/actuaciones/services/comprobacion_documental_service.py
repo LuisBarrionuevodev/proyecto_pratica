@@ -17,6 +17,7 @@ from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import referencia_actuacion_from_grid_row
 from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
 from app.utils.actas import acta_6
+from sqlalchemy import or_
 
 
 _MSG_BLOQUEO = (
@@ -142,7 +143,13 @@ def _get_oficio_activo(comprobacion_id: int) -> Optional[Oficio]:
 
 def _get_expediente_respuesta(oficio_id: int) -> Optional[Expediente]:
     return (
-        Expediente.query.filter_by(oficio_id=oficio_id, tipo_expediente="RESPUESTA_OFICIO")
+        Expediente.query.filter_by(oficio_id=oficio_id)
+        .filter(
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            )
+        )
         .filter(Expediente.deleted_at.is_(None))
         .order_by(Expediente.id.asc())
         .first()
@@ -484,6 +491,7 @@ def update_comprobacion_oficio_bloque(
     ex_resp.numero_expediente = num_ex
     ex_resp.fecha_expediente = fecha_expediente_respuesta
     ex_resp.anio = anio_ex
+    ex_resp.tipo_expediente = "RESPUESTA_OFICIO"
     db.session.add(ex_resp)
 
     db.session.commit()

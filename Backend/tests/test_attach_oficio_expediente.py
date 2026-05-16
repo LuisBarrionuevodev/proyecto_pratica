@@ -199,6 +199,31 @@ def test_attach_expediente_oficio_otro_oficio_falla(app_ctx) -> None:
         db.session.rollback()
 
 
+def test_attach_expediente_soft_deleted_mismo_circuito_reactiva(app_ctx) -> None:
+    from datetime import datetime, timezone
+
+    try:
+        c = _flush_comprobacion()
+        e1 = attach_expediente(
+            {"numero": "424242", "anio": 2026},
+            comprobacion_id=c.id,
+            oficio_id=None,
+        )
+        db.session.flush()
+        e1.deleted_at = datetime.now(timezone.utc)
+        db.session.add(e1)
+        db.session.flush()
+        e2 = attach_expediente(
+            {"numero": "424242", "anio": 2026},
+            comprobacion_id=c.id,
+            oficio_id=None,
+        )
+        assert e2.id == e1.id
+        assert e2.deleted_at is None
+    finally:
+        db.session.rollback()
+
+
 def test_attach_expediente_exige_comprobacion(app_ctx) -> None:
     with pytest.raises(ValueError, match="comprobación"):
         attach_expediente({"numero": "1", "anio": 2026}, comprobacion_id=None, oficio_id=None)

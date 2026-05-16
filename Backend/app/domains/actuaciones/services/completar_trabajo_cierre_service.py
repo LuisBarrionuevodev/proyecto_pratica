@@ -38,6 +38,9 @@ from app.models import CatalogTipoActuacion
 
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 
+from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
+)
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
@@ -374,6 +377,8 @@ def cerrar_completar_trabajo_por_ruta_item(
     except Exception:
         db.session.rollback()
         raise
+
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
 
     # Recargar relaciones para presenter
     fresh = (

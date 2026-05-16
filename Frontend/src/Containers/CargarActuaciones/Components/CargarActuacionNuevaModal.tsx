@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import axios from "axios";
-import { Alert, Autocomplete, Box, Chip, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Chip, CircularProgress, LinearProgress, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import ClearIcon from "@mui/icons-material/Clear";
-import SendIcon from "@mui/icons-material/Send";
 
 import {
   startBatch,
@@ -20,13 +18,11 @@ import { getDropdownOptions } from "../config/dropdownOptions";
 import { dedupeInspectoresPreserveOrder } from "../utils/inspectoresGridHelpers";
 import {
   mergeMotivosNotifCatalogStrings,
-  motivosNotificacionFromSlots,
   MOTIVOS_NOTIFICACION_MAX,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { dialogFormActionsRowSx } from "../../../styles/formDialogStyles";
-import { AppButton, AppDialog, AppTextField, AppSelect, type AppSelectOption, CardGlass } from "../../../ui";
+import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -106,6 +102,9 @@ export function CargarActuacionNuevaModal() {
   const [texts, setTexts] = useState<Record<GlideTextKey, string>>(emptyTextFields);
   const [notifMotivosSel, setNotifMotivosSel] = useState<string[]>([]);
   const [inspectoresList, setInspectoresList] = useState<string[]>([]);
+  /** Texto de búsqueda en Autocomplete “agregar ítem”; se limpia tras cada selección para permitir otra búsqueda. */
+  const [inspectoresAddInput, setInspectoresAddInput] = useState("");
+  const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
   const [titularModo, setTitularModo] = useState<TitularModo>("persona");
 
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -115,6 +114,8 @@ export function CargarActuacionNuevaModal() {
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
   const [catalogsReady, setCatalogsReady] = useState(false);
+  /** True hasta que termine el primer fetch de catálogos (éxito o error); para paridad con preload de Completar trabajo. */
+  const [catalogsBootstrapping, setCatalogsBootstrapping] = useState(true);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [rowError, setRowError] = useState<string | null>(null);
@@ -169,7 +170,9 @@ export function CargarActuacionNuevaModal() {
   }, [batchId]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setCatalogsBootstrapping(true);
       try {
         const [insp, mot, rub, mcomp] = await Promise.all([
           fetchInspectores(),
@@ -177,17 +180,26 @@ export function CargarActuacionNuevaModal() {
           fetchRubros(),
           fetchMotivosComprobacion(),
         ]);
+        if (cancelled) return;
         setCatalogInspectores([...new Set(insp.items.map((i) => i.nombre))]);
         setCatalogMotivos([...new Set(mot.items.map((m) => m.nombre))]);
         setCatalogRubros([...new Set(rub.items.map((r) => r.nombre))]);
         setCatalogMotivosComprobacion([...new Set(mcomp.items.map((m) => m.nombre))]);
         setCatalogsReady(true);
+        setGlobalError(null);
       } catch {
-        setGlobalError("Error cargando catálogos. Probá de nuevo más tarde.");
-        setCatalogsReady(false);
+        if (!cancelled) {
+          setGlobalError("Error cargando catálogos. Probá de nuevo más tarde.");
+          setCatalogsReady(false);
+        }
+      } finally {
+        if (!cancelled) setCatalogsBootstrapping(false);
       }
     };
     void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -199,6 +211,8 @@ export function CargarActuacionNuevaModal() {
     setTexts(emptyTextFields());
     setNotifMotivosSel([]);
     setInspectoresList([]);
+    setInspectoresAddInput("");
+    setNotifMotivosAddInput("");
     setTitularModo("persona");
     setFieldErrors({});
     setRowError(null);
@@ -398,7 +412,7 @@ export function CargarActuacionNuevaModal() {
             }}
             startIcon={<AddIcon />}
             sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
-            disabled={startingBatch && !batchId}
+            disabled={(startingBatch && !batchId) || catalogsBootstrapping}
           >
             Nueva actuación
           </AppButton>
@@ -409,31 +423,51 @@ export function CargarActuacionNuevaModal() {
         open={open}
         onClose={() => tryClose()}
         onCloseButtonClick={() => tryClose()}
-        title="Nueva actuación"
+        title="Cargar actuación"
         maxWidth="sm"
         fullWidth
         showCloseButton
         contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
         actions={
-          <Box sx={dialogFormActionsRowSx}>
-            <AppButton dsVariant="ghost" onClick={resetForm} startIcon={<ClearIcon />} disabled={loading}>
+          <>
+            <AppButton
+              dsVariant="ghost"
+              onClick={resetForm}
+              disabled={loading || catalogsBootstrapping}
+              sx={{ mr: "auto" }}
+            >
               Limpiar
             </AppButton>
-            <AppButton dsVariant="ghost" onClick={() => tryClose()} disabled={loading}>
+            <AppButton dsVariant="ghost" onClick={() => tryClose()} disabled={loading || catalogsBootstrapping}>
               Cancelar
             </AppButton>
             <AppButton
               dsVariant="primary"
               onClick={() => void handleSubmit()}
-              startIcon={<SendIcon />}
               loading={loading}
-              disabled={!catalogsReady}
+              disabled={loading || !catalogsReady || catalogsBootstrapping || (startingBatch && !batchId)}
             >
               Guardar actuación
             </AppButton>
-          </Box>
+          </>
         }
       >
+        {open && catalogsBootstrapping && (
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
+            <LinearProgress sx={{ borderRadius: 1 }} />
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, py: 2 }}>
+              <CircularProgress size={32} sx={{ color: "rgba(255,255,255,0.7)" }} />
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", textAlign: "center" }}>
+                Cargando catálogos…
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        {!catalogsBootstrapping && (
+          <>
+        {open && startingBatch && !batchId ? <LinearProgress sx={{ borderRadius: 1 }} /> : null}
+
         {globalError && (
           <Alert severity="error" sx={{ borderRadius: 2, whiteSpace: "pre-line" }} onClose={() => setGlobalError(null)}>
             {globalError}
@@ -461,7 +495,6 @@ export function CargarActuacionNuevaModal() {
               clearFe("Fecha actuación");
             }}
             InputLabelProps={{ shrink: true }}
-            variant="outlined"
             error={Boolean(errorFor("Fecha actuación"))}
             helperText={errorFor("Fecha actuación") || undefined}
           />
@@ -475,7 +508,6 @@ export function CargarActuacionNuevaModal() {
               setText("Orden de trabajo", e.target.value);
               clearFe("Orden de trabajo");
             }}
-            variant="outlined"
             error={Boolean(errorFor("Orden de trabajo"))}
             helperText={errorFor("Orden de trabajo") || undefined}
           />
@@ -509,13 +541,19 @@ export function CargarActuacionNuevaModal() {
             size="small"
             options={inspectoresDisponiblesParaAgregar}
             value={null}
+            inputValue={inspectoresAddInput}
+            onInputChange={(_, newInput, reason) => {
+              if (reason === "input") setInspectoresAddInput(newInput);
+              else if (reason === "clear" || reason === "reset") setInspectoresAddInput("");
+            }}
             onChange={(_, value) => {
               if (value && !inspectoresList.includes(value)) {
                 setInspectoresList((prev) => dedupeInspectoresPreserveOrder([...prev, value]));
                 clearFe("Inspectores");
+                setInspectoresAddInput("");
               }
             }}
-            disabled={!catalogsReady || inspectoresDisponiblesParaAgregar.length === 0}
+            disabled={!catalogsReady || inspectoresDisponiblesParaAgregar.length === 0 || catalogsBootstrapping}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -565,7 +603,7 @@ export function CargarActuacionNuevaModal() {
               clearFe("Rubro");
             }}
             fullWidth
-            disabled={!catalogsReady}
+            disabled={!catalogsReady || catalogsBootstrapping}
             options={toSelectOptions("Rubro")}
             error={Boolean(errorFor("Rubro"))}
             helperText={errorFor("Rubro") || undefined}
@@ -658,7 +696,7 @@ export function CargarActuacionNuevaModal() {
         </Box>
 
         <Box sx={{ ...col, width: "100%", pt: 0.5 }}>
-          <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", letterSpacing: 0.2 }}>
+          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
             Actas
           </Typography>
           <AppTextField
@@ -714,16 +752,23 @@ export function CargarActuacionNuevaModal() {
             size="small"
             options={motivosDisponiblesNueva}
             value={null}
+            inputValue={notifMotivosAddInput}
+            onInputChange={(_, newInput, reason) => {
+              if (reason === "input") setNotifMotivosAddInput(newInput);
+              else if (reason === "clear" || reason === "reset") setNotifMotivosAddInput("");
+            }}
             onChange={(_, value) => {
               if (value && !notifMotivosSel.includes(value) && notifMotivosSel.length < MOTIVOS_NOTIFICACION_MAX) {
                 setNotifMotivosSel((prev) => [...prev, value]);
                 clearFe("Motivo notif 1");
                 clearFe("Motivo notif 2");
                 clearFe("Motivo notif 3");
+                setNotifMotivosAddInput("");
               }
             }}
             disabled={
               !catalogsReady ||
+              catalogsBootstrapping ||
               motivosDisponiblesNueva.length === 0 ||
               notifMotivosSel.length >= MOTIVOS_NOTIFICACION_MAX
             }
@@ -765,7 +810,7 @@ export function CargarActuacionNuevaModal() {
               clearFe("Motivo comprobación");
             }}
             fullWidth
-            disabled={!catalogsReady}
+            disabled={!catalogsReady || catalogsBootstrapping}
             options={toSelectOptions("Motivo comprobación")}
             error={Boolean(errorFor("Motivo comprobación"))}
             helperText={errorFor("Motivo comprobación") || undefined}
@@ -808,6 +853,8 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Kilos decomiso") || undefined}
           />
         </Box>
+          </>
+        )}
       </AppDialog>
     </Box>
   );

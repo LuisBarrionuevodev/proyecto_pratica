@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import {
@@ -22,11 +22,20 @@ import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   DocumentalBloque,
   DocumentalFila,
+  parNumAnio,
   textoValor,
   type ComprobacionOficioReferenciaRow,
 } from "./comprobacionOperativoBlocks";
 
-/** Fila oficio + campos opcionales de inspección si el backend los envía. */
+/** Payload enviado al guardar el alta (misma forma que `createOficioDesdeActuacion`). */
+export type ComprobacionOficioAltaPayload = {
+  numero_oficio: string;
+  fecha_oficio: string;
+  juzgado_id: number;
+  causa: string | null;
+  numero_expediente_oficio: string;
+  fecha_expediente_oficio: string;
+};
 export type OficioOperativoRow = ComprobacionOficioReferenciaRow & {
   acta_inspeccion_num?: string | null;
   inspectores_texto?: string | null;
@@ -73,8 +82,7 @@ function filasOficioDocumental(ofi: IComprobacionDocumentalOficioItem) {
   const juz = (ofi.juzgado_nombre ?? "").trim();
   return (
     <>
-      <DocumentalFila etiqueta="Número de oficio" valor={textoValor(ofi.numero_oficio)} />
-      <DocumentalFila etiqueta="Año" valor={textoValor(ofi.anio)} />
+      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(ofi.numero_oficio ?? null, ofi.anio ?? null)} />
       <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(ofi.fecha_oficio)} />
       <DocumentalFila etiqueta="Causa" valor={textoValor(ofi.causa)} />
       <DocumentalFila etiqueta="Juzgado" valor={juz || "—"} />
@@ -83,14 +91,10 @@ function filasOficioDocumental(ofi: IComprobacionDocumentalOficioItem) {
 }
 
 function filasExpedienteRespuestaDocumental(ex: IComprobacionDocumentalExpedienteItem) {
-  const num = (ex.numero_expediente ?? "").toString().trim();
-  const an = (ex.anio ?? "").toString().trim();
-  const identidad = num || an ? `${num || "—"}/${an || "—"}` : "—";
   return (
     <>
-      <DocumentalFila etiqueta="Expediente (n.º / año)" valor={identidad} />
-      <DocumentalFila etiqueta="Fecha (misma que oficio)" valor={textoValor(ex.fecha_expediente)} />
-      <DocumentalFila etiqueta="Tipo" valor={textoValor(ex.tipo_expediente)} />
+      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(ex.numero_expediente ?? null, ex.anio ?? null)} />
+      <DocumentalFila etiqueta="Fecha" valor={textoValor(ex.fecha_expediente)} />
     </>
   );
 }
@@ -127,6 +131,11 @@ export function OperativoOficioYRespuestaEditable({
   const [confirmDelBloqueOpen, setConfirmDelBloqueOpen] = useState(false);
   const [delBloqueSaving, setDelBloqueSaving] = useState(false);
 
+  const juzgadoSelectOptions = useMemo(
+    () => [{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))],
+    [juzgados]
+  );
+
   useEffect(() => {
     setNumOfi((ofi.numero_oficio ?? "").trim());
     const fo = ofi.fecha_oficio ? ofi.fecha_oficio.slice(0, 10) : "";
@@ -156,13 +165,13 @@ export function OperativoOficioYRespuestaEditable({
           </Alert>
         ) : null}
         <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 0.5 }}>
-          Oficio
-        </Typography>
-        {filasOficioDocumental(ofi)}
-        <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 1 }}>
           Expediente de respuesta
         </Typography>
         {filasExpedienteRespuestaDocumental(exR)}
+        <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 1 }}>
+          Oficio
+        </Typography>
+        {filasOficioDocumental(ofi)}
         <Stack spacing={1.5} sx={{ pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           {!puede && (edicion?.comprobacion_usada_como_iniciador || motivos.length > 0) ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
@@ -189,7 +198,13 @@ export function OperativoOficioYRespuestaEditable({
             ) : null
           ) : (
             <>
-              <AppTextField appearance="glass" label="Número de oficio" value={numOfi} onChange={(e) => setNumOfi(e.target.value)} fullWidth />
+              <AppTextField
+                appearance="glass"
+                label="Número de expediente de respuesta"
+                value={numEx}
+                onChange={(e) => setNumEx(e.target.value)}
+                fullWidth
+              />
               <AppTextField
                 appearance="glass"
                 label="Fecha de oficio y expediente de respuesta"
@@ -199,6 +214,11 @@ export function OperativoOficioYRespuestaEditable({
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
+                Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
+              </Typography>
+              <AppTextField appearance="glass" label="Número de oficio" value={numOfi} onChange={(e) => setNumOfi(e.target.value)} fullWidth />
+              <AppTextField appearance="glass" label="Causa" value={causa} onChange={(e) => setCausa(e.target.value)} fullWidth />
               <AppSelect
                 appearance="glass"
                 label="Juzgado"
@@ -206,15 +226,7 @@ export function OperativoOficioYRespuestaEditable({
                 onChange={(e) => setJuzId(e.target.value === "" ? "" : Number(e.target.value))}
                 fullWidth
                 variant="outlined"
-                options={[{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))]}
-              />
-              <AppTextField appearance="glass" label="Causa" value={causa} onChange={(e) => setCausa(e.target.value)} fullWidth />
-              <AppTextField
-                appearance="glass"
-                label="Número de expediente de respuesta"
-                value={numEx}
-                onChange={(e) => setNumEx(e.target.value)}
-                fullWidth
+                options={juzgadoSelectOptions}
               />
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 <AppButton
@@ -414,14 +426,11 @@ function BloqueExpedienteEnvioEditable({
         ) : null}
         {!editing ? (
           <>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
-              <strong>Expediente (n.º / año):</strong>{" "}
-              {(displayExp.numero_expediente ?? "").toString().trim() || "—"}/
-              {(displayExp.anio ?? "").toString().trim() || "—"}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
-              <strong>Fecha:</strong> {displayExp.fecha_expediente ?? "—"}
-            </Typography>
+            <DocumentalFila
+              etiqueta="N.º y año"
+              valor={parNumAnio(displayExp.numero_expediente ?? null, displayExp.anio ?? null)}
+            />
+            <DocumentalFila etiqueta="Fecha" valor={textoValor(displayExp.fecha_expediente)} />
             {puedeEditarApi || puedeEliminarEnvioApi ? (
               <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
                 {puedeEditarApi ? (
@@ -556,19 +565,11 @@ export type ComprobacionOficioOperativoDialogProps = {
   documentalLoading: boolean;
   documentalError: string | null;
   onDocumentalUpdated: () => Promise<void>;
-  numeroOficio: string;
-  onNumeroOficioChange: (v: string) => void;
-  fechaOficio: string;
-  onFechaOficioChange: (v: string) => void;
-  juzgadoId: number | "";
-  onJuzgadoIdChange: (v: number | "") => void;
-  causa: string;
-  onCausaChange: (v: string) => void;
-  expNumero: string;
-  onExpNumeroChange: (v: string) => void;
+  /** Fecha por defecto del alta (p. ej. fin de mes en curso); no re-renderiza la página al tipear. */
+  defaultFechaAlta: string;
   modalApiError: string | null;
   saving: boolean;
-  onGuardar: () => void | Promise<void>;
+  onGuardarAlta: (payload: ComprobacionOficioAltaPayload) => void | Promise<void>;
 };
 
 /**
@@ -579,19 +580,10 @@ export function ComprobacionOficioOperativoDialog({
   onClose,
   row,
   juzgados,
-  numeroOficio,
-  onNumeroOficioChange,
-  fechaOficio,
-  onFechaOficioChange,
-  juzgadoId,
-  onJuzgadoIdChange,
-  causa,
-  onCausaChange,
-  expNumero,
-  onExpNumeroChange,
+  defaultFechaAlta,
   modalApiError,
   saving,
-  onGuardar,
+  onGuardarAlta,
   documental,
   documentalLoading,
   documentalError,
@@ -602,6 +594,29 @@ export function ComprobacionOficioOperativoDialog({
     onClose();
   };
 
+  const [altaNumEx, setAltaNumEx] = useState("");
+  const [altaFecha, setAltaFecha] = useState("");
+  const [altaNumOfi, setAltaNumOfi] = useState("");
+  const [altaCausa, setAltaCausa] = useState("");
+  const [altaJuzId, setAltaJuzId] = useState<number | "">("");
+
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      setAltaNumEx("");
+      setAltaFecha(defaultFechaAlta);
+      setAltaNumOfi("");
+      setAltaCausa("");
+      setAltaJuzId("");
+    }
+    prevOpenRef.current = open;
+  }, [open, defaultFechaAlta]);
+
+  const juzgadoOptionsAlta = useMemo(
+    () => [{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))],
+    [juzgados]
+  );
+
   const displayRow = useMemo(
     () => (row == null ? null : mergeOficioRowConDocumental(row, documental)),
     [row, documental]
@@ -610,13 +625,25 @@ export function ComprobacionOficioOperativoDialog({
   const tieneOficioCompleto =
     !documentalLoading && documental?.oficio != null && documental?.expediente_respuesta != null;
 
+  const handleGuardarAltaClick = useCallback(() => {
+    if (altaJuzId === "") return;
+    void onGuardarAlta({
+      numero_oficio: altaNumOfi.trim(),
+      fecha_oficio: altaFecha,
+      juzgado_id: Number(altaJuzId),
+      causa: altaCausa.trim() || null,
+      numero_expediente_oficio: altaNumEx.trim(),
+      fecha_expediente_oficio: altaFecha,
+    });
+  }, [altaJuzId, altaNumOfi, altaFecha, altaCausa, altaNumEx, onGuardarAlta]);
+
   const titleNode =
     displayRow != null ? (
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
-        titulo={tieneOficioCompleto ? "Oficio y expediente de respuesta" : "Registrar oficio y expediente de respuesta"}
-        subtitulo={actaCabecera(displayRow)}
-        actuacionId={displayRow.id}
+        titulo={actaCabecera(displayRow)}
+        subtitulo={tieneOficioCompleto ? "Oficio y expediente de respuesta" : "Registrar oficio y expediente de respuesta"}
+        actuacionId={undefined}
       />
     ) : (
       "Oficio"
@@ -677,7 +704,7 @@ export function ComprobacionOficioOperativoDialog({
             <DocumentalBloque overline="Alta de oficio y expediente de respuesta">
               <Stack spacing={2}>
                 <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4 }}>
-                  Completá número, fecha, juzgado y expediente de respuesta antes de guardar.
+                  Primero el expediente de respuesta y la fecha compartida; luego el oficio, la causa y el juzgado.
                 </Typography>
                 {modalApiError ? (
                   <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
@@ -689,9 +716,9 @@ export function ComprobacionOficioOperativoDialog({
                 ) : null}
                 <AppTextField
                   appearance="glass"
-                  label="Número de oficio"
-                  value={numeroOficio}
-                  onChange={(e) => onNumeroOficioChange(e.target.value)}
+                  label="Número de expediente de respuesta"
+                  value={altaNumEx}
+                  onChange={(e) => setAltaNumEx(e.target.value)}
                   fullWidth
                   required
                 />
@@ -699,8 +726,8 @@ export function ComprobacionOficioOperativoDialog({
                   appearance="glass"
                   label="Fecha de oficio y expediente de respuesta"
                   type="date"
-                  value={fechaOficio}
-                  onChange={(e) => onFechaOficioChange(e.target.value)}
+                  value={altaFecha}
+                  onChange={(e) => setAltaFecha(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                   fullWidth
                   required
@@ -708,27 +735,32 @@ export function ComprobacionOficioOperativoDialog({
                 <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
                   Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
                 </Typography>
+                <AppTextField
+                  appearance="glass"
+                  label="Número de oficio"
+                  value={altaNumOfi}
+                  onChange={(e) => setAltaNumOfi(e.target.value)}
+                  fullWidth
+                  required
+                />
+                <AppTextField appearance="glass" label="Causa" value={altaCausa} onChange={(e) => setAltaCausa(e.target.value)} fullWidth />
                 <AppSelect
                   appearance="glass"
                   label="Juzgado"
-                  value={juzgadoId === "" ? "" : String(juzgadoId)}
-                  onChange={(e) => onJuzgadoIdChange(e.target.value === "" ? "" : Number(e.target.value))}
+                  value={altaJuzId === "" ? "" : String(altaJuzId)}
+                  onChange={(e) => setAltaJuzId(e.target.value === "" ? "" : Number(e.target.value))}
                   fullWidth
                   required
                   variant="outlined"
-                  options={[{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))]}
-                />
-                <AppTextField appearance="glass" label="Causa" value={causa} onChange={(e) => onCausaChange(e.target.value)} fullWidth />
-                <AppTextField
-                  appearance="glass"
-                  label="Número de expediente de respuesta"
-                  value={expNumero}
-                  onChange={(e) => onExpNumeroChange(e.target.value)}
-                  fullWidth
-                  required
+                  options={juzgadoOptionsAlta}
                 />
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
-                  <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onGuardar()} disabled={saving}>
+                  <AppButton
+                    dsVariant="primary"
+                    dsSize="sm"
+                    onClick={handleGuardarAltaClick}
+                    disabled={saving || !altaNumOfi.trim() || !altaFecha || altaJuzId === "" || !altaNumEx.trim()}
+                  >
                     {saving ? "Guardando…" : "Guardar"}
                   </AppButton>
                 </Box>

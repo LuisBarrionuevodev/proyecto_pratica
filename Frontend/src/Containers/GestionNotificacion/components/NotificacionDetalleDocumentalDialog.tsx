@@ -14,6 +14,7 @@ import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   docModalEmptyStateSx,
+  docModalFilaValorSx,
   docModalSubheadingInCardSx,
   documentalGlassAlertSx,
 } from "../../../styles/documentalModalTokens";
@@ -59,12 +60,6 @@ function inspectoresLinea(row: IActuacionesPendientesItem): string {
   return parts.length ? parts.join(" · ") : "—";
 }
 
-function distritoNombreSiHay(row: IActuacionesPendientesItem): string | null {
-  const n = (row as { distrito_nombre?: string | null }).distrito_nombre;
-  const s = (n ?? "").trim();
-  return s || null;
-}
-
 function filasResultadoEstado(row: IActuacionesPendientesItem): { etiqueta: string; valor: string }[] {
   const fecha = (row.comprobacion_posterior_fecha ?? "").trim();
   const insp = (row.comprobacion_posterior_inspectores_texto ?? "").trim();
@@ -82,15 +77,18 @@ function campoTextoUtil(s: unknown): boolean {
 
 function visitaBaseHayContenido(row: IActuacionesPendientesItem): boolean {
   return (
-    campoTextoUtil(row.acta_inspeccion_num) ||
+    campoTextoUtil(row.fecha_actuacion) ||
     campoTextoUtil(row.orden_trabajo_numero) ||
     campoTextoUtil(row.tipo_actuacion) ||
+    campoTextoUtil(row.acta_inspeccion_num) ||
     inspectoresLinea(row) !== "—"
   );
 }
 
-function motivosNotificacionHayContenido(row: IActuacionesPendientesItem): boolean {
-  return [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3].some(campoTextoUtil);
+function motivosNotificacionLista(row: IActuacionesPendientesItem): string[] {
+  return [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean);
 }
 
 function resultadoComprobacionPosteriorHayContenido(row: IActuacionesPendientesItem): boolean {
@@ -108,10 +106,6 @@ function actaNotificacionCabecera(row: IActuacionesPendientesItem): string {
 
 function fechaActuacionLinea(row: IActuacionesPendientesItem): string {
   return (row.fecha_actuacion ?? "").trim() || "—";
-}
-
-function actaNotificacionNumValor(row: IActuacionesPendientesItem): string {
-  return (row.acta_notificacion_num ?? "").trim() || "—";
 }
 
 function expedienteActasLinea(row: IActuacionesPendientesItem): string {
@@ -140,6 +134,7 @@ function NotificacionProrrogaExpedientesCard({
   onAfterPatch,
   resumenCompacto = false,
   shell = "glass",
+  documentalResumenBandeja = null,
 }: {
   loading: boolean;
   error: string | null;
@@ -150,8 +145,13 @@ function NotificacionProrrogaExpedientesCard({
   /** Oculta filas de resumen pensadas para auditoría / menos ruido en operativa. */
   resumenCompacto?: boolean;
   shell?: DocumentalCardShell;
+  /** Datos de la fila de bandeja para el bloque documental (días restantes, plazos, expediente en actas). */
+  documentalResumenBandeja?: {
+    diasRestantes: string;
+    plazosOtorgados: string;
+    expedienteEnActas: string;
+  } | null;
 }) {
-  const operativa = modo === "operativa";
   const ed = detalle?.edicion;
   const [editingId, setEditingId] = useState<number | null>(null);
   const [exNum, setExNum] = useState("");
@@ -209,9 +209,10 @@ function NotificacionProrrogaExpedientesCard({
     (ed?.puede_eliminar_expediente_prorroga ?? ed?.puede_editar_expediente_prorroga) && actuacionId != null
   );
   const bloqueoGlobal = Boolean(detalle?.items?.length && ed?.notificacion_usada_como_iniciador);
+  const esDocumentalLecturaCompleta = modo === "documental" && !resumenCompacto;
 
   return (
-    <DocumentalBloque overline="Prórrogas y expedientes" shell={shell}>
+    <DocumentalBloque overline="Plazos y expedientes" shell={shell}>
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
           <CircularProgress size={28} sx={{ color: COLORS.primary }} />
@@ -227,8 +228,14 @@ function NotificacionProrrogaExpedientesCard({
               {errEx}
             </Alert>
           ) : null}
-          {!resumenCompacto ? (
+          {esDocumentalLecturaCompleta && documentalResumenBandeja ? (
             <>
+              <DocumentalFila
+                etiqueta="Fecha de notificación"
+                valor={textoValor(detalle.plazo_notificacion?.fecha_notificacion)}
+              />
+              <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.plazo_notificacion?.fecha_vencimiento)} />
+              <DocumentalFila etiqueta="Días restantes" valor={documentalResumenBandeja.diasRestantes} />
               <DocumentalFila
                 etiqueta="Plazo legal (días hábiles)"
                 valor={textoValor(detalle.plazo_notificacion?.plazo_legal_dias)}
@@ -237,13 +244,30 @@ function NotificacionProrrogaExpedientesCard({
                 etiqueta="Prórroga total (días)"
                 valor={textoValor(detalle.plazo_notificacion?.prorroga_total_dias)}
               />
+              <DocumentalFila etiqueta="Plazos otorgados" valor={documentalResumenBandeja.plazosOtorgados} />
+              <DocumentalFila etiqueta="Expediente en actas" valor={documentalResumenBandeja.expedienteEnActas} />
             </>
-          ) : null}
-          <DocumentalFila
-            etiqueta="Fecha de notificación"
-            valor={textoValor(detalle.plazo_notificacion?.fecha_notificacion)}
-          />
-          <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.plazo_notificacion?.fecha_vencimiento)} />
+          ) : (
+            <>
+              {!resumenCompacto ? (
+                <>
+                  <DocumentalFila
+                    etiqueta="Plazo legal (días hábiles)"
+                    valor={textoValor(detalle.plazo_notificacion?.plazo_legal_dias)}
+                  />
+                  <DocumentalFila
+                    etiqueta="Prórroga total (días)"
+                    valor={textoValor(detalle.plazo_notificacion?.prorroga_total_dias)}
+                  />
+                </>
+              ) : null}
+              <DocumentalFila
+                etiqueta="Fecha de notificación"
+                valor={textoValor(detalle.plazo_notificacion?.fecha_notificacion)}
+              />
+              <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.plazo_notificacion?.fecha_vencimiento)} />
+            </>
+          )}
           <DocumentalFila etiqueta="Expedientes de prórroga" valor={String(detalle.plazos_otorgados ?? 0)} />
 
           {bloqueoGlobal ? (
@@ -306,12 +330,6 @@ function NotificacionProrrogaExpedientesCard({
                     }
                   />
                   <DocumentalFila etiqueta="Fecha de expediente" valor={textoValor(it.fecha_expediente)} />
-                  {operativa ? null : (
-                    <>
-                      <DocumentalFila etiqueta="Tipo" valor={textoValor(it.tipo_expediente)} />
-                      <DocumentalFila etiqueta="Registrado" valor={textoValor(it.created_at)} />
-                    </>
-                  )}
                   <DocumentalFila
                     etiqueta="Plazo otorgado (días)"
                     valor={it.plazo_otorgado != null ? String(it.plazo_otorgado) : "—"}
@@ -409,25 +427,17 @@ function BloqueReferenciaNotificacion({
       <DocumentalBloque overline="Referencia de la notificación" shell={shell}>
         <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
         <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
-        <DocumentalFila etiqueta="Acta de notificación Nº" valor={actaNotificacionNumValor(row)} />
         <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
       </DocumentalBloque>
     );
   }
 
-  const distritoNom = distritoNombreSiHay(row);
   return (
     <DocumentalBloque overline="Referencia de la notificación" shell={shell}>
       <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      {distritoNom ? <DocumentalFila etiqueta="Distrito" valor={distritoNom} /> : null}
-      <DocumentalFila etiqueta="Acta de notificación Nº" valor={actaNotificacionNumValor(row)} />
-      <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
-      <DocumentalFila etiqueta="Días restantes" valor={diasPlazoLinea(row)} />
-      <DocumentalFila etiqueta="Plazos otorgados" valor={textoValor(row.plazos_otorgados)} />
-      <DocumentalFila etiqueta="Expediente en actas" valor={expedienteActasLinea(row)} />
     </DocumentalBloque>
   );
 }
@@ -476,7 +486,6 @@ export function NotificacionDetalleDocumentalDialog({
   onOperativaListaRefresh,
 }: NotificacionDetalleDocumentalDialogProps) {
   const isSoloExpediente = variant === "soloExpediente";
-  const [altaFormVisible, setAltaFormVisible] = useState(false);
   const [altaInlineMsg, setAltaInlineMsg] = useState<string | null>(null);
 
   const handleClose = () => {
@@ -491,7 +500,6 @@ export function NotificacionDetalleDocumentalDialog({
 
   useEffect(() => {
     if (open && isSoloExpediente) {
-      setAltaFormVisible(false);
       setAltaInlineMsg(null);
     }
   }, [open, isSoloExpediente, row?.id]);
@@ -547,7 +555,6 @@ export function NotificacionDetalleDocumentalDialog({
     setAltaInlineMsg(null);
     const ok = await onGuardar();
     if (ok) {
-      setAltaFormVisible(false);
       refrescarDetalleYBandeja();
       setAltaInlineMsg("Expediente registrado correctamente.");
     }
@@ -557,9 +564,9 @@ export function NotificacionDetalleDocumentalDialog({
     row != null ? (
       <DocumentalModalTitleStack
         dominioChip="Notificación"
-        titulo={isSoloExpediente ? "Expedientes de prórroga" : "Historial de notificación"}
-        subtitulo={actaNotificacionCabecera(row)}
-        actuacionId={row.id}
+        titulo={isSoloExpediente ? "Expedientes de prórroga" : actaNotificacionCabecera(row)}
+        subtitulo={isSoloExpediente ? actaNotificacionCabecera(row) : undefined}
+        actuacionId={undefined}
       />
     ) : (
       "Detalle"
@@ -603,81 +610,57 @@ export function NotificacionDetalleDocumentalDialog({
                   {altaInlineMsg}
                 </Alert>
               ) : null}
-              {!altaFormVisible ? (
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="sm"
-                  onClick={() => {
-                    setAltaInlineMsg(null);
-                    setAltaFormVisible(true);
-                  }}
-                  disabled={saving}
-                >
-                  Añadir expediente de prórroga
-                </AppButton>
-              ) : (
-                <DocumentalBloque overline="Nuevo expediente de prórroga" shell="glass">
-                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", mb: 1.5 }}>
-                    Número, fecha y días otorgados. Podés cancelar para volver al listado.
-                  </Typography>
+              <DocumentalBloque overline="Alta de expediente de prórroga" shell="glass">
+                <Stack spacing={2} sx={{ width: "100%" }}>
                   {modalApiError ? (
-                    <Alert severity="error" sx={{ mb: 1.5, ...documentalGlassAlertSx }}>
-                      {modalApiError}
+                    <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
+                      <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                        No se pudo guardar
+                      </Typography>
+                      <Typography variant="body2">{modalApiError}</Typography>
                     </Alert>
                   ) : null}
-                  <Stack spacing={2} sx={{ width: "100%" }}>
-                    <AppTextField
-                      appearance="glass"
-                      label="Número de expediente"
-                      value={expNumero}
-                      onChange={(e) => onExpNumeroChange(e.target.value)}
-                      fullWidth
-                      required
-                      error={Boolean(fieldErrors.expNumero)}
-                      helperText={fieldErrors.expNumero || undefined}
-                    />
-                    <AppTextField
-                      appearance="glass"
-                      label="Fecha de expediente"
-                      type="date"
-                      value={expFecha}
-                      onChange={(e) => onExpFechaChange(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      fullWidth
-                      required
-                      error={Boolean(fieldErrors.expFecha)}
-                      helperText={fieldErrors.expFecha || undefined}
-                    />
-                    <AppTextField
-                      appearance="glass"
-                      label="Días de prórroga otorgados"
-                      type="number"
-                      value={prorrogaDias}
-                      onChange={(e) => onProrrogaDiasChange(e.target.value)}
-                      fullWidth
-                      required
-                      error={Boolean(fieldErrors.prorrogaDias)}
-                      helperText={fieldErrors.prorrogaDias || undefined}
-                    />
-                  </Stack>
-                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2 }}>
-                    <AppButton
-                      dsVariant="ghost"
-                      dsSize="sm"
-                      onClick={() => {
-                        setAltaFormVisible(false);
-                        setAltaInlineMsg(null);
-                      }}
-                      disabled={saving}
-                    >
-                      Cancelar
-                    </AppButton>
+                  <AppTextField
+                    appearance="glass"
+                    label="Número de expediente"
+                    value={expNumero}
+                    onChange={(e) => onExpNumeroChange(e.target.value)}
+                    fullWidth
+                    required
+                    error={Boolean(fieldErrors.expNumero)}
+                    helperText={fieldErrors.expNumero || undefined}
+                  />
+                  <AppTextField
+                    appearance="glass"
+                    label="Fecha de expediente"
+                    type="date"
+                    value={expFecha}
+                    onChange={(e) => onExpFechaChange(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    required
+                    error={Boolean(fieldErrors.expFecha)}
+                    helperText={fieldErrors.expFecha || undefined}
+                  />
+                  <AppTextField
+                    appearance="glass"
+                    label="Plazo otorgado (días)"
+                    type="number"
+                    value={prorrogaDias}
+                    onChange={(e) => onProrrogaDiasChange(e.target.value)}
+                    fullWidth
+                    required
+                    error={Boolean(fieldErrors.prorrogaDias)}
+                    helperText={fieldErrors.prorrogaDias || undefined}
+                    inputProps={{ min: 0 }}
+                  />
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 0.5 }}>
                     <AppButton dsVariant="primary" dsSize="sm" disabled={saving} onClick={() => void ejecutarAlta()}>
                       {saving ? "Guardando…" : "Guardar expediente"}
                     </AppButton>
-                  </Box>
-                </DocumentalBloque>
-              )}
+                  </Stack>
+                </Stack>
+              </DocumentalBloque>
             </Stack>
           ) : null}
         </Stack>
@@ -687,19 +670,28 @@ export function NotificacionDetalleDocumentalDialog({
 
           {visitaBaseHayContenido(row) ? (
             <DocumentalBloque overline="La visita" shell="actuacion">
-              <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
               <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-              <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
+              <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
               <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
               <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
+              <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
             </DocumentalBloque>
           ) : null}
 
-          {motivosNotificacionHayContenido(row) ? (
-            <DocumentalBloque overline="Motivos" shell="actuacion">
-              <DocumentalFila etiqueta="Motivo 1" valor={textoValor(row.notificacion_motivo_1)} />
-              <DocumentalFila etiqueta="Motivo 2" valor={textoValor(row.notificacion_motivo_2)} />
-              <DocumentalFila etiqueta="Motivo 3" valor={textoValor(row.notificacion_motivo_3)} />
+          {motivosNotificacionLista(row).length > 0 ? (
+            <DocumentalBloque overline="Motivos de notificación" shell="actuacion">
+              <Stack component="ul" spacing={0.75} sx={{ m: 0, pl: 2.25, listStyleType: "disc" }}>
+                {motivosNotificacionLista(row).map((motivo, idx) => (
+                  <Typography
+                    component="li"
+                    key={`m-${idx}-${motivo}`}
+                    variant="body2"
+                    sx={{ ...docModalFilaValorSx, display: "list-item" }}
+                  >
+                    {motivo}
+                  </Typography>
+                ))}
+              </Stack>
             </DocumentalBloque>
           ) : null}
 
@@ -712,6 +704,11 @@ export function NotificacionDetalleDocumentalDialog({
               shell="actuacion"
               actuacionId={row.id}
               resumenCompacto={false}
+              documentalResumenBandeja={{
+                diasRestantes: diasPlazoLinea(row),
+                plazosOtorgados: textoValor(row.plazos_otorgados),
+                expedienteEnActas: expedienteActasLinea(row),
+              }}
               onAfterPatch={refrescarDetalleYBandeja}
             />
           ) : null}

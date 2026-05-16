@@ -7,6 +7,8 @@ from __future__ import annotations
 import unicodedata
 from typing import Any, Dict, Optional
 
+from sqlalchemy import or_
+
 from app.domains.actuaciones.presenters.actuacion_presenters import (
     actuacion_to_grid_row,
     expediente_envio_por_comprobacion,
@@ -17,11 +19,45 @@ from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuac
 from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
 
 
+def iniciador_reinspeccion_oficio_vigente(actuacion_id: int) -> Optional[IniciadorRuta]:
+    """
+    Último iniciador ``REINSPECCION_OFICIO`` no soft-deleted para la actuación.
+
+    Parámetros:
+        actuacion_id: PK de ``Actuaciones``.
+
+    Retorno:
+        ``IniciadorRuta`` o ``None`` si no hay iniciador activo de ese tipo.
+
+    Errores:
+        Ninguno (consulta de solo lectura).
+    """
+    return (
+        IniciadorRuta.query.filter(
+            IniciadorRuta.actuacion_id == actuacion_id,
+            IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .order_by(IniciadorRuta.id.desc())
+        .first()
+    )
+
+
 def _expediente_respuesta_oficio(comprobacion_id: int) -> Optional[Expediente]:
+    """
+    Expediente de respuesta vinculado a un oficio de la comprobación.
+
+    Alineado a la bandeja de reinspección: admite ``tipo_expediente`` explícito o ``NULL`` (legado).
+    """
     return (
         Expediente.query.filter_by(comprobacion_id=comprobacion_id)
         .filter(Expediente.oficio_id.isnot(None))
-        .filter(Expediente.tipo_expediente == "RESPUESTA_OFICIO")
+        .filter(
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            )
+        )
         .filter(Expediente.deleted_at.is_(None))
         .order_by(Expediente.id.desc())
         .first()
@@ -44,15 +80,7 @@ def estado_recorrido_label(act: Actuaciones) -> str:
     if not ofi:
         return "Esperando oficio"
 
-    ini = (
-        IniciadorRuta.query.filter(
-            IniciadorRuta.actuacion_id == act.id,
-            IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
-            IniciadorRuta.deleted_at.is_(None),
-        )
-        .order_by(IniciadorRuta.id.desc())
-        .first()
-    )
+    ini = iniciador_reinspeccion_oficio_vigente(act.id)
     if not ini:
         return "Oficio cargado — sin reinspección programada"
     if ini.estado_iniciador == "CUMPLIDO":
@@ -60,6 +88,71 @@ def estado_recorrido_label(act: Actuaciones) -> str:
     if ini.estado_iniciador in inactive_estados():
         return f"Cerrado ({ini.estado_iniciador})"
     return "Pendiente reinspección por oficio"
+
+
+def reinspeccion_oficio_bandeja_row(
+    act: Actuaciones,
+    *,
+    counts_by_eo: dict[int, int] | None = None,
+    iniciador: IniciadorRuta | None = None,
+) -> Dict[str, Any]:
+    """
+    Fila JSON para la bandeja «Pendiente de reinspección» (circuito documental listo).
+
+    Parámetros:
+        act: actuación ancla (con comprobación).
+        counts_by_eo: mapa opcional para ``actuacion_to_grid_row``.
+        iniciador: si se pasa, se incluyen ``iniciador_id`` / estado / tipo (compat. tests y callers legacy).
+
+    Retorno:
+        dict alineado a ``IReinspeccionOficioPendienteRow`` (iniciador ausente → ``iniciador_id`` 0 y strings vacíos).
+
+    Nota:
+        Cuando ``iniciador`` es ``None``, corresponde al caso «oficio cargado — sin reinspección programada»
+        (la bandeja operativa lista antes de crear ``REINSPECCION_OFICIO``).
+    """
+    base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
+    row: Dict[str, Any] = dict(base)
+    if iniciador is not None:
+        row["iniciador_id"] = iniciador.id
+        row["estado_iniciador"] = iniciador.estado_iniciador
+        row["tipo_iniciador"] = iniciador.tipo_iniciador
+        row["fecha_origen_iniciador"] = (
+            iniciador.fecha_origen.isoformat() if iniciador.fecha_origen else None
+        )
+    else:
+        row["iniciador_id"] = 0
+        row["estado_iniciador"] = ""
+        row["tipo_iniciador"] = ""
+        row["fecha_origen_iniciador"] = None
+    row["documento_pendiente"] = "Reinspección por oficio"
+
+    cid = getattr(act, "comprobacion_id", None)
+    if cid:
+        exp_env = expediente_envio_por_comprobacion(int(cid))
+        if exp_env:
+            row["expediente_envio_numero"] = getattr(exp_env, "numero_expediente", None)
+            row["expediente_envio_anio"] = getattr(exp_env, "anio", None)
+            fe = getattr(exp_env, "fecha_expediente", None)
+            row["fecha_expediente_envio"] = fe.isoformat() if fe is not None else None
+        ofi = oficio_por_comprobacion(int(cid))
+        if ofi:
+            row["oficio_numero"] = getattr(ofi, "numero_oficio", None)
+            row["oficio_anio"] = getattr(ofi, "anio", None)
+            fo = getattr(ofi, "fecha_oficio", None)
+            row["fecha_oficio"] = fo.isoformat() if fo is not None else None
+            row["juzgado_nombre"] = _juzgado_nombre(ofi)
+        exp_resp = _expediente_respuesta_oficio(int(cid))
+        if exp_resp:
+            row["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
+            row["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
+            fr = getattr(exp_resp, "fecha_expediente", None)
+            row["fecha_expediente_respuesta"] = fr.isoformat() if fr is not None else None
+
+    ini_oficio = _iniciador_trabajo_oficio_mas_reciente(act.id)
+    row["tipo_visita_resultado"] = _tipo_visita_resultado_final(base, ini_oficio)
+    row["estado_recorrido"] = estado_recorrido_label(act)
+    return row
 
 
 def iniciador_reinspeccion_to_row(
@@ -79,38 +172,7 @@ def iniciador_reinspeccion_to_row(
     - ``tipo_visita_resultado``: tipo de visita desambigüado (p. ej. verificar e informar) o ``None``.
     - ``estado_recorrido``: etiqueta de circuito documental (misma función que la tabla Recorrido).
     """
-    base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
-    row: Dict[str, Any] = dict(base)
-    row["iniciador_id"] = ini.id
-    row["estado_iniciador"] = ini.estado_iniciador
-    row["tipo_iniciador"] = ini.tipo_iniciador
-    row["fecha_origen_iniciador"] = ini.fecha_origen.isoformat() if ini.fecha_origen else None
-    row["documento_pendiente"] = "Reinspección por oficio"
-
-    cid = getattr(act, "comprobacion_id", None)
-    if cid:
-        exp_env = expediente_envio_por_comprobacion(int(cid))
-        if exp_env:
-            row["expediente_envio_numero"] = getattr(exp_env, "numero_expediente", None)
-            row["expediente_envio_anio"] = getattr(exp_env, "anio", None)
-            fe = getattr(exp_env, "fecha_expediente", None)
-            row["fecha_expediente_envio"] = fe.isoformat() if fe is not None else None
-        ofi = oficio_por_comprobacion(int(cid))
-        if ofi:
-            fo = getattr(ofi, "fecha_oficio", None)
-            row["fecha_oficio"] = fo.isoformat() if fo is not None else None
-            row["juzgado_nombre"] = _juzgado_nombre(ofi)
-        exp_resp = _expediente_respuesta_oficio(int(cid))
-        if exp_resp:
-            row["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
-            row["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
-            fr = getattr(exp_resp, "fecha_expediente", None)
-            row["fecha_expediente_respuesta"] = fr.isoformat() if fr is not None else None
-
-    ini_oficio = _iniciador_trabajo_oficio_mas_reciente(act.id)
-    row["tipo_visita_resultado"] = _tipo_visita_resultado_final(base, ini_oficio)
-    row["estado_recorrido"] = estado_recorrido_label(act)
-    return row
+    return reinspeccion_oficio_bandeja_row(act, counts_by_eo=counts_by_eo, iniciador=ini)
 
 
 def comprobacion_recorrido_resumen_row(
@@ -122,6 +184,13 @@ def comprobacion_recorrido_resumen_row(
     base["estado_recorrido"] = estado_recorrido_label(act)
     cid = getattr(act, "comprobacion_id", None)
     if cid:
+        ofi = oficio_por_comprobacion(int(cid))
+        if ofi:
+            base["oficio_numero"] = getattr(ofi, "numero_oficio", None)
+            base["oficio_anio"] = getattr(ofi, "anio", None)
+            fo = getattr(ofi, "fecha_oficio", None)
+            base["fecha_oficio"] = fo.isoformat() if fo is not None else None
+            base["juzgado_nombre"] = _juzgado_nombre(ofi)
         exp_resp = _expediente_respuesta_oficio(int(cid))
         if exp_resp:
             base["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)

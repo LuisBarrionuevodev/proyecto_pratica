@@ -75,6 +75,7 @@ import {
 import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
 import {
   ComprobacionOficioOperativoDialog,
+  type ComprobacionOficioAltaPayload,
   type OficioOperativoRow,
 } from "./components/ComprobacionOficioOperativoDialog";
 import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
@@ -453,11 +454,6 @@ const ActasComprobacionPage = () => {
   const [juzgados, setJuzgados] = useState<IJuzgadoCatalogItem[]>([]);
   const [selectedOficio, setSelectedOficio] = useState<OficioOperativoRow | null>(null);
   const [modalOficioOpen, setModalOficioOpen] = useState(false);
-  const [numeroOficio, setNumeroOficio] = useState("");
-  const [fechaOficio, setFechaOficio] = useState(defaultRange.hasta);
-  const [juzgadoId, setJuzgadoId] = useState<number | "">("");
-  const [causa, setCausa] = useState("");
-  const [expNumero, setExpNumero] = useState("");
   const [savingOficio, setSavingOficio] = useState(false);
   const [modalOficioError, setModalOficioError] = useState<string | null>(null);
   const [modalDoc, setModalDoc] = useState<IComprobacionDocumentalResponse | null>(null);
@@ -486,11 +482,6 @@ const ActasComprobacionPage = () => {
   const openModalOficio = useCallback(
     async (row: OficioOperativoRow) => {
       setSelectedOficio(row);
-      setNumeroOficio("");
-      setFechaOficio(defaultRange.hasta);
-      setJuzgadoId("");
-      setCausa("");
-      setExpNumero("");
       setModalOficioError(null);
       setModalDoc(null);
       setModalDocError(null);
@@ -511,7 +502,7 @@ const ActasComprobacionPage = () => {
         setModalDocLoading(false);
       }
     },
-    [defaultRange.hasta]
+    []
   );
 
   useEffect(() => {
@@ -752,33 +743,41 @@ const ActasComprobacionPage = () => {
     await Promise.all([loadExpediente(), loadOficio(), loadRein()]);
   }, [selectedOficio, loadExpediente, loadOficio, loadRein]);
 
-  const handleSaveOficio = async () => {
-    if (!selectedOficio) return;
-    if (!numeroOficio.trim() || !fechaOficio || !juzgadoId || !expNumero.trim()) {
-      setModalOficioError("Completá número/fecha/juzgado y datos del expediente de oficio");
-      return;
-    }
-    setSavingOficio(true);
-    setModalOficioError(null);
-    try {
-      await createOficioDesdeActuacion(selectedOficio.id, {
-        numero_oficio: numeroOficio.trim(),
-        fecha_oficio: fechaOficio,
-        juzgado_id: Number(juzgadoId),
-        causa: causa.trim() || null,
-        numero_expediente_oficio: expNumero.trim(),
-        fecha_expediente_oficio: fechaOficio,
-      });
-      closeModalOficio();
-      await loadOficio();
-      await loadRein();
-    } catch (err: unknown) {
-      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setModalOficioError(detail || "No se pudo cargar el oficio");
-    } finally {
-      setSavingOficio(false);
-    }
-  };
+  const handleSaveOficio = useCallback(
+    async (payload: ComprobacionOficioAltaPayload) => {
+      if (!selectedOficio) return;
+      if (
+        !payload.numero_oficio.trim() ||
+        !payload.fecha_oficio ||
+        !payload.juzgado_id ||
+        !payload.numero_expediente_oficio.trim()
+      ) {
+        setModalOficioError("Completá número/fecha/juzgado y datos del expediente de oficio");
+        return;
+      }
+      setSavingOficio(true);
+      setModalOficioError(null);
+      try {
+        await createOficioDesdeActuacion(selectedOficio.id, {
+          numero_oficio: payload.numero_oficio.trim(),
+          fecha_oficio: payload.fecha_oficio,
+          juzgado_id: Number(payload.juzgado_id),
+          causa: payload.causa,
+          numero_expediente_oficio: payload.numero_expediente_oficio.trim(),
+          fecha_expediente_oficio: payload.fecha_expediente_oficio,
+        });
+        closeModalOficio();
+        await loadOficio();
+        await loadRein();
+      } catch (err: unknown) {
+        const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+        setModalOficioError(detail || "No se pudo cargar el oficio");
+      } finally {
+        setSavingOficio(false);
+      }
+    },
+    [selectedOficio, loadOficio, loadRein]
+  );
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
     () => [
@@ -1191,6 +1190,10 @@ const ActasComprobacionPage = () => {
                 <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
                   <CircularProgress size={28} sx={{ color: COLORS.primary }} />
                 </Box>
+              ) : !reinLoading && !reinError && reinItems.length === 0 ? (
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 2 }}>
+                  No hay comprobaciones pendientes de reinspección.
+                </Typography>
               ) : (
                 <Box sx={{ position: "relative", opacity: reinLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
                   {reinLoading && reinItems.length > 0 && (
@@ -1456,19 +1459,10 @@ const ActasComprobacionPage = () => {
         documentalLoading={modalDocLoading}
         documentalError={modalDocError}
         onDocumentalUpdated={reloadOficioModalDocumental}
-        numeroOficio={numeroOficio}
-        onNumeroOficioChange={setNumeroOficio}
-        fechaOficio={fechaOficio}
-        onFechaOficioChange={setFechaOficio}
-        juzgadoId={juzgadoId}
-        onJuzgadoIdChange={setJuzgadoId}
-        causa={causa}
-        onCausaChange={setCausa}
-        expNumero={expNumero}
-        onExpNumeroChange={setExpNumero}
+        defaultFechaAlta={defaultRange.hasta}
         modalApiError={modalOficioError}
         saving={savingOficio}
-        onGuardar={handleSaveOficio}
+        onGuardarAlta={handleSaveOficio}
       />
 
       <ComprobacionReinspeccionDetalleDialog

@@ -45,6 +45,9 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
 from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
     log_truncation_risk_if_applicable,
 )
+from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
+)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -268,4 +271,5 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     except Exception:
         pass
 
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
     return act

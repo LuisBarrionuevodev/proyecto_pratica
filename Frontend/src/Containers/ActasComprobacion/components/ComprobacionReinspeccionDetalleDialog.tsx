@@ -84,9 +84,9 @@ export function ComprobacionReinspeccionDetalleDialog({
     row != null ? (
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
-        titulo="Reinspección por oficio"
-        subtitulo={actaCabecera(row)}
-        actuacionId={row.id}
+        titulo={actaCabecera(row)}
+        subtitulo="Reinspección por oficio"
+        actuacionId={undefined}
       />
     ) : (
       "Reinspección por oficio"
@@ -114,7 +114,7 @@ export function ComprobacionReinspeccionDetalleDialog({
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-          <ReinspeccionDocumentalSharedLayout row={row} variant="pendiente" />
+          <ReinspeccionDocumentalSharedLayout row={row} variant="pendiente" ocultarOficioYRespuestaLectura />
           {docError ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
               <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>

@@ -77,11 +77,8 @@ def test_complete_expediente_comprobacion_tras_soft_delete_no_bloquea_por_fila_b
     assert ex2.numero_expediente == num2
 
 
-def test_complete_expediente_mismo_numero_anio_que_borrado_requiere_unique_activo_en_bd(app_ctx) -> None:
-    """
-    Con migración d4e5f6a7b8c1: puede coexistir fila borrada + nueva activa con mismo número/año.
-    Sin migración, MySQL rechaza el INSERT (constraint global); el test documenta el requisito de migración.
-    """
+def test_complete_expediente_mismo_numero_anio_reactiva_fila_envio_borrada(app_ctx) -> None:
+    """Misma clave número/año y mismo circuito (comprobación de envío): reutiliza la fila soft-deleted."""
     act = _setup_actuacion_con_comp_sin_expediente()
     num = _unique_num()[:6]
     fecha = "2026-03-20"
@@ -94,16 +91,14 @@ def test_complete_expediente_mismo_numero_anio_que_borrado_requiere_unique_activ
     db.session.add(ex1)
     db.session.commit()
 
-    try:
-        complete_expediente_from_actuacion(
-            act.id,
-            {"expediente_numero": num, "fecha_expediente": fecha},
-        )
-    except Exception as exc:
-        msg = str(exc).lower()
-        if "duplicate" in msg or "uq_ex" in msg or "integrity" in msg:
-            pytest.skip("BD sin migración parcial de unicidad: aplicar d4e5f6a7b8c1")
-        raise
+    r2 = complete_expediente_from_actuacion(
+        act.id,
+        {"expediente_numero": num, "fecha_expediente": fecha},
+    )
+    ex2 = r2["expediente"]
+    assert ex2.id == ex1.id
+    assert ex2.deleted_at is None
+    assert ex2.numero_expediente == num
 
     activos = (
         Expediente.query.filter_by(comprobacion_id=act.comprobacion_id, oficio_id=None)
@@ -111,4 +106,3 @@ def test_complete_expediente_mismo_numero_anio_que_borrado_requiere_unique_activ
         .all()
     )
     assert len(activos) == 1
-    assert activos[0].numero_expediente == num

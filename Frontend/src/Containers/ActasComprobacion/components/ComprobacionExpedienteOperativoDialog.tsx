@@ -54,9 +54,9 @@ export function ComprobacionExpedienteOperativoDialog({
     row != null ? (
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
-        titulo="Registrar expediente de envío"
-        subtitulo={actaComprobacionCabecera(row)}
-        actuacionId={row.id}
+        titulo={actaComprobacionCabecera(row)}
+        subtitulo="Registrar expediente de envío"
+        actuacionId={undefined}
       />
     ) : (
       "Expediente de comprobación"

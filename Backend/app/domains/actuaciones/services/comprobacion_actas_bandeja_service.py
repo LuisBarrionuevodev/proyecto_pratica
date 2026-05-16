@@ -4,43 +4,106 @@ Bandejas operativas unificadas para actas de comprobación (oficio / reinspecci�
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-from app.database import db
+from sqlalchemy import and_, exists, or_, select
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.domains.actuaciones.services.pendientes_service import _apply_distrito_optional, _apply_fecha
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import estado_recorrido_label
-from app.models import Actuaciones, IniciadorRuta
-from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
+from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio, RutaItem, RutaTrabajo
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 
-_REINSPECCION_OFICIO_TERMINAL: tuple[str, ...] = ("CUMPLIDO",) + tuple(inactive_estados())
+# Rutas donde el trabajo sigue planificable / operativo; CERRADA y CANCELADA no retienen fuera de bandeja.
+_ESTADOS_RUTA_ACTIVA_REINSP_OFICIO = ("BORRADOR", "PUBLICADA", "EN_CURSO")
 
 
 def list_pendientes_reinspeccion_oficio(
     filters: ActuacionesPendientesFilters,
-) -> List[Tuple[IniciadorRuta, Actuaciones]]:
+) -> List[Actuaciones]:
     """
-    Iniciadores ``REINSPECCION_OFICIO`` aún pendientes de cierre operativo.
+    Actuaciones cuya comprobación tiene circuito documental listo y la reinspección por oficio
+    **aún no está incorporada a una ruta operativa**.
 
-    Cada fila es (iniciador, actuación ancla). Rango de fechas sobre ``Actuaciones.fecha``.
+    Criterio documental (igual que antes):
 
-    Importante: usar ``query(IniciadorRuta, Actuaciones)`` para devolver tuplas; ``IniciadorRuta.query.join`` solo
-    devolvía iniciadores y el route desempaquetaba mal (``iniciador_reinspeccion_to_row`` fallaba).
+    - Expediente de envío de acta activo (``oficio_id`` NULL, no borrado).
+    - Oficio administrativo activo (no borrado).
+    - Expediente de respuesta al oficio activo (``oficio_id`` enlazado a oficio de la misma comprobación;
+      ``tipo_expediente`` ``RESPUESTA_OFICIO`` o ``NULL`` en filas legadas sin enum).
+
+    Exclusión (fuera de bandeja): existe ``RutaItem`` no soft-deleted cuyo ``IniciadorRuta`` es
+    ``REINSPECCION_OFICIO`` no borrado para la misma actuación, y la ``RutaTrabajo`` vinculada está en
+    ``BORRADOR``, ``PUBLICADA`` o ``EN_CURSO``. Si el iniciador está solo en memoria/backlog, si la ruta
+    está ``CERRADA``/``CANCELADA``, o el ítem está soft-deleted, la fila **sigue** en bandeja.
+
+    Rango de fechas y distrito: mismos helpers que el resto de bandejas (``Actuaciones.fecha``).
     """
+    has_envio = exists().where(
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
+    )
+    has_oficio = exists().where(
+        and_(
+            Oficio.comprobacion_id == Actuaciones.comprobacion_id,
+            Oficio.deleted_at.is_(None),
+        )
+    )
+    has_respuesta = exists().where(
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.isnot(None),
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            ),
+            Expediente.deleted_at.is_(None),
+            exists().where(
+                and_(
+                    Oficio.id == Expediente.oficio_id,
+                    Oficio.comprobacion_id == Actuaciones.comprobacion_id,
+                    Oficio.deleted_at.is_(None),
+                )
+            ),
+        )
+    )
+    en_ruta_activa = exists(
+        select(1)
+        .select_from(RutaItem)
+        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .where(
+            and_(
+                IniciadorRuta.actuacion_id == Actuaciones.id,
+                IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
+                IniciadorRuta.deleted_at.is_(None),
+                RutaItem.deleted_at.is_(None),
+                RutaTrabajo.estado_ruta.in_(_ESTADOS_RUTA_ACTIVA_REINSP_OFICIO),
+            )
+        )
+    )
     q = (
-        db.session.query(IniciadorRuta, Actuaciones)
-        .join(Actuaciones, Actuaciones.id == IniciadorRuta.actuacion_id)
-        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
-        .filter(IniciadorRuta.deleted_at.is_(None))
-        .filter(~IniciadorRuta.estado_iniciador.in_(_REINSPECCION_OFICIO_TERMINAL))
+        Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
+        .filter(has_envio, has_oficio, has_respuesta, ~en_ruta_activa)
+        .options(
+            joinedload(Actuaciones.orden_trabajo),
+            joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
+            joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),
+            selectinload(Actuaciones.inspector),
+            joinedload(Actuaciones.inspeccion),
+            joinedload(Actuaciones.comprobacion),
+        )
     )
     q = _apply_fecha(q, filters.desde, filters.hasta)
     distrito_id = getattr(filters, "distrito_id", None)
     q = _apply_distrito_optional(q, distrito_id)
-    return q.order_by(IniciadorRuta.id.desc()).all()
+    return q.order_by(Actuaciones.id.desc()).all()
 
 
 def list_comprobacion_recorrido(

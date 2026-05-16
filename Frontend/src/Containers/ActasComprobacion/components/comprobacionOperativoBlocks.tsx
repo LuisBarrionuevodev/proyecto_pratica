@@ -8,6 +8,7 @@ import {
   docModalActuacionScrollCardShellSx,
   docModalBlockOverlineSx,
   docModalBlockResumenSx,
+  docModalEmptyStateSx,
   docModalFilaEtiquetaSx,
   docModalFilaValorSx,
   docModalGlassCardShellSx,
@@ -182,11 +183,11 @@ export function BloqueInspeccionBaseComprobacion({
   const insp = inspectoresLinea(row as IActuacionesPendientesItem);
   return (
     <DocumentalBloque overline="La visita">
-      <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
       <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-      <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
+      <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
       <DocumentalFila etiqueta="Inspectores" valor={insp} />
       <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
+      <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
     </DocumentalBloque>
   );
 }
@@ -244,13 +245,13 @@ function domicilioReinspeccion(row: ReinspeccionOperativoDetalleRow): string {
   return t || "—";
 }
 
-function parNumAnio(num: string | null | undefined, anio: string | number | null | undefined): string {
+export function parNumAnio(num: string | null | undefined, anio: string | number | null | undefined): string {
   if (!num && (anio === null || anio === undefined || anio === "")) return "—";
   if (anio !== null && anio !== undefined && String(anio).length) return `${num ?? "—"} / ${anio}`;
   return String(num ?? "—");
 }
 
-/** Referencia (solo lectura) para detalle de reinspección por oficio. */
+/** Referencia (solo lectura) para detalle de reinspección / recorrido: alineado a cabecera de acta + circuito documental. */
 export function BloqueReferenciaReinspeccionDetalle({ row }: { row: ReinspeccionOperativoDetalleRow }) {
   return (
     <DocumentalBloque overline="Referencia de la comprobación">
@@ -258,34 +259,110 @@ export function BloqueReferenciaReinspeccionDetalle({ row }: { row: Reinspeccion
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribReinspeccion(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
-      <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
+      <DocumentalFila etiqueta="Motivo de comprobación" valor={textoValor(row.comprobacion_motivo)} />
     </DocumentalBloque>
   );
 }
 
-/** Expediente / oficio asociados (solo lectura) en detalle de reinspección. */
+/** Motivo en bloque aparte (solo si se necesita texto largo sin fila de referencia). Preferir fila en `BloqueReferenciaReinspeccionDetalle`. */
+export function BloqueMotivoComprobacionDocumental({ row }: { row: ReinspeccionOperativoDetalleRow }) {
+  const m = (row.comprobacion_motivo ?? "").trim();
+  if (!m) return null;
+  return (
+    <DocumentalBloque overline="Motivo de comprobación">
+      <Typography variant="body2" sx={{ ...docModalFilaValorSx, py: 0.5 }}>
+        {m}
+      </Typography>
+    </DocumentalBloque>
+  );
+}
+
+/** Expediente de envío de acta (solo lectura). */
+export function BloqueExpedienteEnvioReinspeccionDetalle({ row }: { row: ReinspeccionOperativoDetalleRow }) {
+  const envioNum = parNumAnio(row.expediente_envio_numero ?? null, row.expediente_envio_anio);
+  const envioFecha = textoValor(row.fecha_expediente_envio);
+  const tieneEnvio = envioNum !== "—" || envioFecha !== "—";
+
+  return (
+    <DocumentalBloque overline="Expediente de envío">
+      {!tieneEnvio ? (
+        <Typography variant="body2" sx={{ ...docModalEmptyStateSx, py: 0.5 }}>
+          Sin datos de expediente de envío registrados.
+        </Typography>
+      ) : (
+        <>
+          {envioNum !== "—" ? <DocumentalFila etiqueta="N.º y año" valor={envioNum} /> : null}
+          {envioFecha !== "—" ? <DocumentalFila etiqueta="Fecha" valor={envioFecha} /> : null}
+        </>
+      )}
+    </DocumentalBloque>
+  );
+}
+
+/**
+ * Oficio y expediente de respuesta (solo lectura): primero respuesta, luego oficio.
+ * Nota evolutiva: un único par respuesta/oficio por fila; sin múltiples oficios en esta vista.
+ */
+export function BloqueOficioYExpedienteRespuestaDetalle({ row }: { row: ReinspeccionOperativoDetalleRow }) {
+  const ofiNum = parNumAnio(row.oficio_numero ?? null, row.oficio_anio);
+  const ofiFecha = textoValor(row.fecha_oficio);
+  const causa = textoValor(row.oficio_causa);
+  const juzgado = textoValor(row.juzgado_nombre);
+  const tieneOficio = ofiNum !== "—" || ofiFecha !== "—" || causa !== "—" || juzgado !== "—";
+
+  const respNum = parNumAnio(row.expediente_respuesta_numero ?? null, row.expediente_respuesta_anio);
+  const respFecha = textoValor(row.fecha_expediente_respuesta);
+  const tieneRespuesta = respNum !== "—" || respFecha !== "—";
+
+  const hayAlguno = tieneOficio || tieneRespuesta;
+
+  return (
+    <DocumentalBloque overline="Oficio y expediente de respuesta">
+      {!hayAlguno ? (
+        <Typography variant="body2" sx={{ ...docModalEmptyStateSx, py: 0.5 }}>
+          Sin datos de oficio ni expediente de respuesta registrados.
+        </Typography>
+      ) : (
+        <>
+          {tieneRespuesta ? (
+            <>
+              <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.25, mb: 0.5 }}>
+                Expediente de respuesta
+              </Typography>
+              {respNum !== "—" ? <DocumentalFila etiqueta="N.º y año" valor={respNum} /> : null}
+              {respFecha !== "—" ? <DocumentalFila etiqueta="Fecha" valor={respFecha} /> : null}
+            </>
+          ) : null}
+          {tieneOficio ? (
+            <>
+              <Typography
+                component="div"
+                sx={{ ...docModalSubheadingInCardSx, mt: tieneRespuesta ? 1.25 : 0.25, mb: 0.5 }}
+              >
+                Oficio
+              </Typography>
+              {ofiNum !== "—" ? <DocumentalFila etiqueta="N.º y año" valor={ofiNum} /> : null}
+              {ofiFecha !== "—" ? <DocumentalFila etiqueta="Fecha de oficio" valor={ofiFecha} /> : null}
+              {causa !== "—" ? <DocumentalFila etiqueta="Causa" valor={causa} /> : null}
+              {juzgado !== "—" ? <DocumentalFila etiqueta="Juzgado" valor={juzgado} /> : null}
+            </>
+          ) : null}
+        </>
+      )}
+    </DocumentalBloque>
+  );
+}
+
+/**
+ * Compatibilidad: dos tarjetas («Expediente de envío» y «Oficio y expediente de respuesta»).
+ * Preferir usar los bloques exportados por separado en el layout para espaciado homogéneo.
+ */
 export function BloqueTramitesReinspeccionDetalle({ row }: { row: ReinspeccionOperativoDetalleRow }) {
   return (
-    <DocumentalBloque overline="Trámites administrativos">
-      <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 0.25, mb: 0.5 }}>
-        Expediente de envío
-      </Typography>
-      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(row.expediente_envio_numero ?? null, row.expediente_envio_anio)} />
-      <DocumentalFila etiqueta="Fecha" valor={textoValor(row.fecha_expediente_envio)} />
-      <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1, mb: 0.5 }}>
-        Expediente de respuesta
-      </Typography>
-      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(row.expediente_respuesta_numero ?? null, row.expediente_respuesta_anio)} />
-      <DocumentalFila etiqueta="Fecha" valor={textoValor(row.fecha_expediente_respuesta)} />
-      <Typography component="div" sx={{ ...docModalSubheadingInCardSx, mt: 1, mb: 0.5 }}>
-        Oficio
-      </Typography>
-      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(row.oficio_numero ?? null, row.oficio_anio)} />
-      <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(row.fecha_oficio)} />
-      <DocumentalFila etiqueta="Causa" valor={textoValor(row.oficio_causa)} />
-      <DocumentalFila etiqueta="Juzgado" valor={textoValor(row.juzgado_nombre)} />
-    </DocumentalBloque>
+    <>
+      <BloqueExpedienteEnvioReinspeccionDetalle row={row} />
+      <BloqueOficioYExpedienteRespuestaDetalle row={row} />
+    </>
   );
 }
 

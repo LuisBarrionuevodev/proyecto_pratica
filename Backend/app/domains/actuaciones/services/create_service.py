@@ -30,6 +30,9 @@ from app.domains.establecimientos.services.vincular_establecimiento_operativo_ac
 from app.domains.actuaciones.services.actas_canal_payload_guard import (
     rechazar_oficio_expediente_en_payload_canal_actas,
 )
+from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
+)
 
 
 def _resolve_tipo_actuacion(payload: Dict[str, Any]) -> str | None:
@@ -162,4 +165,6 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
             on_domicilio_changed(act.domicilio_id)
     except Exception:
         pass
+
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
     return act

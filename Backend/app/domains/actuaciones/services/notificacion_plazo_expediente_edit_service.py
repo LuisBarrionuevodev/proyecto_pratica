@@ -161,6 +161,23 @@ def _recalcular_prorroga_y_vencimiento(noti: Notificacion) -> None:
     db.session.add(noti)
 
 
+def recalcular_prorroga_y_vencimiento_desde_expedientes_activos(noti: Notificacion) -> None:
+    """
+    Recalcula ``Notificacion.prorroga_dias`` como suma de filas ``PRORROGA_NOTIFICACION`` activas
+    y vuelve a calcular ``fecha_vencimiento``.
+
+    Parámetros:
+        noti: notificación a mutar (debe tener ``fecha_notificacion``).
+
+    Retorno:
+        None.
+
+    Errores:
+        ValueError: si falta ``fecha_notificacion``.
+    """
+    _recalcular_prorroga_y_vencimiento(noti)
+
+
 def update_notificacion_prorroga_expediente(
     actuacion_id: int,
     expediente_id: int,

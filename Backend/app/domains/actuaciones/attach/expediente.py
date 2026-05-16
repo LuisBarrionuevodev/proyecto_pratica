@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.database import db
+from app.domains.actuaciones.services.expediente_reactivacion_service import (
+    buscar_expediente_envio_comprobacion_reactivable,
+    buscar_expediente_respuesta_oficio_reactivable,
+)
 from app.models import Expediente, Oficio
 from app.utils.actas import acta_6
 
@@ -29,8 +33,9 @@ def attach_expediente(
 
     Ante conflicto de contexto: `ValueError` claro; **sin** reasignación silenciosa de FK.
 
-    Nota: los canales CargarActuacion / CompletarTrabajo no envían este attach; quedan rutas
-    especializadas u orquestación interna (p. ej. oficio + respuesta).
+    Reactivación: si existe fila soft-deleted en el **mismo** circuito (misma comprobación / mismo oficio),
+    se reactiva esa fila en lugar de crear otra; no se reutiliza un expediente borrado de otro circuito
+    aunque comparta número/año.
 
     Args:
         data: `numero`, `anio` obligatorios.
@@ -67,23 +72,26 @@ def attach_expediente(
                 "La comprobación del contexto no coincide con la comprobación del oficio indicado."
             )
 
-    ex = db.session.query(Expediente).filter_by(numero_expediente=numero, anio=anio_str).first()
-    if ex:
-        if ex.deleted_at is not None:
-            ex.deleted_at = None
-
+    ex_active = (
+        db.session.query(Expediente)
+        .filter_by(numero_expediente=numero, anio=anio_str)
+        .filter(Expediente.deleted_at.is_(None))
+        .first()
+    )
+    if ex_active:
+        ex = ex_active
         if oficio_id is None:
             if ex.oficio_id is not None:
                 raise ValueError(
-                    f"El Expediente {label} ya está asociado a un oficio."
+                    f"El Expediente {label} ya está asociado a un oficio.",
                 )
             if ex.notificacion_id is not None:
                 raise ValueError(
-                    f"El Expediente {label} ya existe vinculado a otra notificación o contexto."
+                    f"El Expediente {label} ya existe vinculado a otra notificación o contexto.",
                 )
             if ex.comprobacion_id is not None and ex.comprobacion_id != comprobacion_id:
                 raise ValueError(
-                    f"El Expediente {label} ya existe y está asociado a otra comprobación."
+                    f"El Expediente {label} ya existe y está asociado a otra comprobación.",
                 )
             if ex.comprobacion_id is None:
                 ex.comprobacion_id = comprobacion_id
@@ -93,20 +101,60 @@ def attach_expediente(
         if ex.oficio_id is None:
             raise ValueError(
                 f"El Expediente {label} ya existe vinculado solo a comprobación; "
-                "no corresponde al flujo de expediente de oficio."
+                "no corresponde al flujo de expediente de oficio.",
             )
         if ex.oficio_id != oficio_id:
             raise ValueError(
-                f"El Expediente {label} ya existe y está asociado a otro oficio."
+                f"El Expediente {label} ya existe y está asociado a otro oficio.",
             )
         if ex.comprobacion_id is not None and ex.comprobacion_id != comprobacion_id:
             raise ValueError(
-                f"El Expediente {label} ya existe y está asociado a otra comprobación."
+                f"El Expediente {label} ya existe y está asociado a otra comprobación.",
             )
         if ex.comprobacion_id is None:
             ex.comprobacion_id = comprobacion_id
         db.session.add(ex)
         return ex
+
+    if oficio_id is None:
+        ex_del = buscar_expediente_envio_comprobacion_reactivable(
+            comprobacion_id=int(comprobacion_id),
+            numero_expediente=numero,
+            anio=anio_str,
+        )
+        if ex_del:
+            ex_del.deleted_at = None
+            if ex_del.comprobacion_id is None:
+                ex_del.comprobacion_id = comprobacion_id
+            elif ex_del.comprobacion_id != comprobacion_id:
+                raise ValueError(
+                    f"El Expediente {label} estaba borrado en otro circuito de comprobación.",
+                )
+            db.session.add(ex_del)
+            return ex_del
+    else:
+        ex_del = buscar_expediente_respuesta_oficio_reactivable(
+            comprobacion_id=int(comprobacion_id),
+            oficio_id=int(oficio_id),
+            numero_expediente=numero,
+            anio=anio_str,
+        )
+        if ex_del:
+            ex_del.deleted_at = None
+            if ex_del.comprobacion_id is None:
+                ex_del.comprobacion_id = comprobacion_id
+            elif ex_del.comprobacion_id != comprobacion_id:
+                raise ValueError(
+                    f"El Expediente {label} estaba borrado en otra comprobación.",
+                )
+            if ex_del.oficio_id is None:
+                ex_del.oficio_id = oficio_id
+            elif ex_del.oficio_id != oficio_id:
+                raise ValueError(
+                    f"El Expediente {label} estaba borrado asociado a otro oficio.",
+                )
+            db.session.add(ex_del)
+            return ex_del
 
     ex = Expediente(
         numero_expediente=numero,
