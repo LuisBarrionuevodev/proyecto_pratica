@@ -7,6 +7,7 @@ import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { setGeoManual } from "../../api/geoApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
 import { MapaCanvas, type RelocalOperativoDraft } from "./Components/MapaCanvas";
 import { MapaFiltrosUnificados } from "./Components/MapaFiltrosUnificados";
 import { MapaModoTabs } from "./Components/MapaModoTabs";
@@ -237,7 +238,7 @@ const MapPage = () => {
 
   return (
     <Stack
-      spacing={2}
+      spacing={FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING}
       sx={{
         width: "100%",
         maxWidth: "100%",

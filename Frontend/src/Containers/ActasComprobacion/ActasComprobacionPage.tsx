@@ -47,7 +47,7 @@ import {
   type IComprobacionRecorridoRow,
   type IReinspeccionOficioPendienteRow,
 } from "../../api/actuacionesComprobacionActasApi";
-import { containerStyles, wrapperStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { containerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
@@ -66,6 +66,7 @@ import {
 } from "../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect, AppTextField } from "../../ui";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import {
@@ -83,16 +84,6 @@ import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionO
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
-
-/** Evita recortes: `wrapperStyles` usa height 91% y rompe el scroll del layout con muchos filtros (p. ej. Recorrido). */
-const actasPageWrapperSx = {
-  ...wrapperStyles,
-  height: "auto" as const,
-  minHeight: "100%",
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box" as const,
-};
 
 const actasContentColumnSx = {
   ...moduleContentColumnSx,
@@ -1078,8 +1069,7 @@ const ActasComprobacionPage = () => {
 
   return (
     <Box sx={containerStyles}>
-      <Box sx={actasPageWrapperSx}>
-        <Box sx={{ ...actasContentColumnSx, gap: 2 }}>
+      <Box sx={{ ...functionalPageShellSx, ...actasContentColumnSx }}>
           <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
             <Tabs
               value={tabIndex}
@@ -1435,7 +1425,6 @@ const ActasComprobacionPage = () => {
             </>
           )}
         </Box>
-      </Box>
 
       <ComprobacionExpedienteOperativoDialog
         open={modalExpOpen}

@@ -52,7 +52,7 @@ const RelevamientosContainer = (): JSX.Element => {
   }, [buscar, meta]);
 
   return (
-    <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+    <Box sx={moduleContentColumnSx}>
       <FiltroRelevamientos onFiltrar={handleFiltrar} />
 
       <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>

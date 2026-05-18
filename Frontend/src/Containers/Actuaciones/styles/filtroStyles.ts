@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from "@mui/material";
+import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../../styles/functionalPageShell";
 import { GLASS_COLORS, moduleFiltersSurfaceSx } from "../../../styles/GlassStyles";
 
 // =============================================================================
@@ -35,7 +36,7 @@ export const relevamientosSectionOuterSx: SxProps<Theme> = {
   width: "100%",
   display: "flex",
   flexDirection: "column",
-  gap: 2,
+  gap: FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING,
   boxSizing: "border-box",
   padding: { xs: 2, sm: 3 },
   minHeight: 0,
@@ -48,6 +49,7 @@ export const moduleContentColumnSx: SxProps<Theme> = {
   flexDirection: "column",
   minHeight: 0,
   boxSizing: "border-box",
+  gap: FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING,
 };
 
 // Título oculto (ahora en el breadcrumb del AppLayout)
@@ -66,7 +68,7 @@ export const filterPanelSurfaceSx: SxProps<Theme> = {
 
 export const filtroContainerStyles: SxProps<Theme> = {
   ...filterPanelSurfaceSx,
-  mb: 2,
+  mb: FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING,
   p: 2,
   /** En `wrapperStyles` (flex column + height 100%) evita que el panel de filtros se aplaste. */
   flexShrink: 0,

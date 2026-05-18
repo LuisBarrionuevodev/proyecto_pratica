@@ -27,6 +27,7 @@ import {
 } from "../../api/establecimientosOperativosApi";
 import { RubroChip } from "./components/RubroChip";
 import { dataTableShellSx } from "../../styles/mrtGlassDataTablePreset";
+import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -246,7 +247,7 @@ export default function EstablecimientosListPage() {
   }, [contrib, calle, distritoId, rubroId]);
 
   return (
-    <Stack spacing={2} sx={{ width: "100%", maxWidth: "100%" }}>
+    <Stack spacing={FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING} sx={{ width: "100%", maxWidth: "100%" }}>
       {error ? (
         <Alert severity="error" onClose={() => setError(null)}>
           {error}

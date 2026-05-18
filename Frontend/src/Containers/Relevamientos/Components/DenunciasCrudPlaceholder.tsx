@@ -46,7 +46,7 @@ const DenunciasCrudPlaceholder = () => {
   }, [buscar, meta, slice]);
 
   return (
-    <Box sx={{ ...moduleContentColumnSx, gap: 2 }}>
+    <Box sx={moduleContentColumnSx}>
       <FiltroDenuncias variant={slice === "pendientes" ? "pendientes" : "realizados"} onFiltrar={handleFiltrar} />
 
       <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>

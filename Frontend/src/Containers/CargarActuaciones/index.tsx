@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 
 import { CargarActuacionNuevaModal } from "./Components/CargarActuacionNuevaModal";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
 
 /**
  * Vista dedicada a la **carga inicial** de actas.
@@ -8,16 +9,7 @@ import { CargarActuacionNuevaModal } from "./Components/CargarActuacionNuevaModa
  */
 const CargarActuaciones = () => {
   return (
-    <Box
-      sx={{
-        width: "100%",
-        p: { xs: 2, sm: 3 },
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        boxSizing: "border-box",
-      }}
-    >
+    <Box sx={functionalPageShellSx}>
       <CargarActuacionNuevaModal />
     </Box>
   );

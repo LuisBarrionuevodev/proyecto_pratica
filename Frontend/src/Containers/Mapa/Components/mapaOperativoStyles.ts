@@ -1,20 +1,35 @@
 import type { SxProps, Theme } from "@mui/material";
 
-import { glassCard, glassTabsHeaderPanelSx, GLASS_COLORS } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, moduleFiltersSurfaceSx } from "../../../styles/GlassStyles";
 
-/** Panel glass reutilizable (cabecera de modo, barras de filtros, resumen, contenedor de mapa). */
-export const mapaOperativoGlassPanelSx: SxProps<Theme> = glassTabsHeaderPanelSx;
+const MAPA_OPERATIVO_PANEL_PAD = 2;
 
-/** Superficie glass para el canvas Leaflet (sin padding interno en el borde del mapa). */
-export const mapaOperativoSurfaceSx: SxProps<Theme> = {
-  ...glassCard,
-  p: 0,
-  overflow: "hidden",
+/**
+ * Panel modo / resumen lateral: misma superficie glass liviana que filtros/slices del resto del sistema (F3.8c).
+ */
+export const mapaOperativoGlassPanelSx: SxProps<Theme> = {
+  ...moduleFiltersSurfaceSx,
+  p: MAPA_OPERATIVO_PANEL_PAD,
 };
 
-/** Barra de filtros / cabecera de datos con padding. */
+/** Barra de filtros unificados (Mapa operativo). */
 export const mapaOperativoBarSx: SxProps<Theme> = {
-  ...mapaOperativoGlassPanelSx,
+  ...moduleFiltersSurfaceSx,
+  p: MAPA_OPERATIVO_PANEL_PAD,
+};
+
+/**
+ * Marco del canvas Leaflet: fondo/borde institucional, sin sombra tipo “card” Material.
+ */
+export const mapaOperativoSurfaceSx: SxProps<Theme> = {
+  backgroundColor: GLASS_COLORS.cardBg,
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+  border: `1px solid ${GLASS_COLORS.borderLight}`,
+  borderRadius: "12px",
+  boxShadow: "none",
+  p: 0,
+  overflow: "hidden",
 };
 
 /**
@@ -39,12 +54,13 @@ export const mapaOperativoCaptionSx: SxProps<Theme> = {
   fontFamily: '"Tactic Sans", sans-serif',
 };
 
-/** Subcaja dentro del panel lateral (separación visual entre bloques). */
+/** Subcaja dentro del panel lateral (bloques de métricas). */
 export const mapaOperativoInnerCardSx: SxProps<Theme> = {
   border: `1px solid ${GLASS_COLORS.borderLight}`,
   borderRadius: "12px",
   p: 1.75,
-  backgroundColor: GLASS_COLORS.hoverBg,
+  backgroundColor: "rgba(255, 255, 255, 0.035)",
   backdropFilter: "blur(10px)",
   WebkitBackdropFilter: "blur(10px)",
+  boxShadow: "none",
 };

@@ -15,6 +15,7 @@ import {
   fetchRubros,
   type CatalogItem,
 } from "../../api/gridApi";
+import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
 import {
   COLORS,
   gridContainerStyles,
@@ -166,7 +167,7 @@ export default function GestionSistemaPage() {
 
   return (
     <Stack
-      spacing={2}
+      spacing={FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING}
       sx={{
         width: "100%",
         maxWidth: "100%",
