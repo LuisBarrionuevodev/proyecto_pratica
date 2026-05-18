@@ -7,7 +7,8 @@ import { exportMrtRowsToXlsx } from "../../../utils/exportToXlsx";
 type TablaExportButtonsProps = {
   table: MRT_TableInstance<any>;
   filePrefix?: string;
-  data?: any[];
+  /** Reservado para compatibilidad con llamadas existentes; el export usa solo `table`. */
+  data?: unknown[];
 };
 
 const buildFileName = (prefix: string) => {
@@ -54,21 +55,6 @@ export const TablaExportButtons = ({
       sx={TableExportButtonStyles}
     >
       Exportar seleccionados
-    </Button>
-    <Button
-      disabled={table.getRowModel().rows.length === 0}
-      onClick={() =>
-        exportMrtRowsToXlsx({
-          rows: table.getRowModel().rows,
-          columns: getVisibleColumnsInOrder(table),
-          fileName: buildFileName(filePrefix),
-          sheetName: "Datos",
-        })
-      }
-      startIcon={<FileDownloadIcon />}
-      sx={TableExportButtonStyles}
-    >
-      Exportar página
     </Button>
   </Box>
 );

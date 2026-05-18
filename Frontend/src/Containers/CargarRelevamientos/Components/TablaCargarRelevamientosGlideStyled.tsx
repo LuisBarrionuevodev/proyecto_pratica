@@ -12,7 +12,7 @@ import DataEditor, {
 import "@glideapps/glide-data-grid/dist/index.css";
 import { allCells } from "@glideapps/glide-data-grid-cells";
 import "@glideapps/glide-data-grid-cells/dist/index.css";
-import { Box, Typography, Alert, Button, CircularProgress } from "@mui/material";
+import { Box, Typography, CircularProgress, LinearProgress } from "@mui/material";
 import {
   startBatch,
   validateRow,
@@ -24,21 +24,13 @@ import {
 } from "../../../api/gridApi";
 import { ValidationErrorsRail, type ValidationRailEntry } from "./ValidationErrorsRail";
 
-import {
-  COLORS,
-  titleStyles,
-  alertBaseStyles,
-  legendStyles,
-  legendTitleStyles,
-  legendTextStyles,
-  kbdStyles,
-  getStatusBadgeStyles,
-} from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+import { COLORS, titleStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { AppButton } from "../../../ui/AppButton";
 import {
   containerStyles,
   wrapperStyles,
   gridContainerStyles,
-  buttonMandarTodoStyles,
   calculateRelevamientoTableHeight,
 } from "../styles/cargarRelevamientosStyles";
 import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
@@ -58,6 +50,10 @@ import {
   formatDateToISO,
   parseDateValue,
 } from "../../CargarActuaciones/utils/gridHelpers";
+import {
+  formatRelevamientoRailCellLine,
+  translateRelevamientoValidationMessage,
+} from "../utils/relevamientoGridUxMessages";
 
 interface TablaCargarRelevamientosGlideStyledProps {
   showTitle?: boolean;
@@ -67,6 +63,31 @@ interface TablaCargarRelevamientosGlideStyledProps {
 const ROW_MARKERS_BOTH_OFFSET = 1;
 
 const CELL_ERROR_META_KEYS = new Set(["_row", "detail", "_global"]);
+
+/** Campos mínimos solo para color “lista para enviar” en UI — sin llamadas al backend. */
+const MIN_VISUAL_FIELD_IDS = ["Fecha", "Inspector", "Calle", "Numero", "Rubro"] as const;
+
+/**
+ * True si la fila tiene los datos mínimos cargados (parseo local de fecha).
+ * No comprueba duplicados ni catálogo en BD.
+ */
+function relevamientoRowMinimumCompleteForVisual(row: GridRow): boolean {
+  const strOk = (v: unknown) => {
+    if (v === null || v === undefined) return false;
+    return String(v).trim().length > 0;
+  };
+  const fechaRaw = row.Fecha as unknown;
+  if (!strOk(fechaRaw)) return false;
+  const iso = parseFechaRelevamientoInput(String(fechaRaw));
+  if (!iso) return false;
+  return MIN_VISUAL_FIELD_IDS.slice(1).every((id) => strOk(row[id as keyof GridRow]));
+}
+
+function rowHasBackendWideError(rowData: GridRow, cellErrors: Record<string, string>): boolean {
+  if (rowData._state === "ERROR") return true;
+  if (rowData._rowError) return true;
+  return Boolean(cellErrors._row || cellErrors.detail || cellErrors._global);
+}
 
 /**
  * Construye entradas para el rail lateral a partir del mismo estado de grilla (`_cellErrors` / `_rowError`).
@@ -79,9 +100,14 @@ function buildValidationRailEntries(rows: GridRow[]): ValidationRailEntry[] {
     const ce = row._cellErrors || {};
     const cellLines = Object.entries(ce)
       .filter(([k]) => !CELL_ERROR_META_KEYS.has(k))
-      .map(([k, v]) => (v ? `${k}: ${v}` : ""))
+      .map(([k, v]) => (v ? formatRelevamientoRailCellLine(k, v) : ""))
       .filter(Boolean) as string[];
-    const lines = cellLines.length > 0 ? cellLines : row._rowError ? [row._rowError] : [];
+    const lines =
+      cellLines.length > 0
+        ? cellLines
+        : row._rowError
+          ? [translateRelevamientoValidationMessage(row._rowError)]
+          : [];
     if (lines.length) out.push({ rowIndex: index, lines });
   });
   return out;
@@ -93,7 +119,6 @@ const TablaCargarRelevamientosGlideStyled = ({
   const initialRows = useMemo(() => createEmptyRows(5), []);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [data, setData] = useState<GridRow[]>(initialRows);
-  const [isLoadingBatch, setIsLoadingBatch] = useState(false);
   const [isValidatingAll, setIsValidatingAll] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -102,9 +127,7 @@ const TablaCargarRelevamientosGlideStyled = ({
   const [gridSelection, setGridSelection] = useState<GridSelection | undefined>(undefined);
 
   const gridRef = useRef<any>(null);
-  const debounceRef = useRef<Record<string, number>>({});
   const dataRef = useRef<GridRow[]>(initialRows);
-  const batchValidateRef = useRef<number | undefined>(undefined);
   const startingBatchRef = useRef<boolean>(false);
 
   const catalogs = useMemo(
@@ -124,7 +147,6 @@ const TablaCargarRelevamientosGlideStyled = ({
     if (startingBatchRef.current) return null;
     startingBatchRef.current = true;
     try {
-      setIsLoadingBatch(true);
       setGlobalError(null);
       const response = await startBatch("relevamientos");
       setBatchId(response.batch_id);
@@ -133,7 +155,6 @@ const TablaCargarRelevamientosGlideStyled = ({
       setGlobalError(error?.response?.data?.message || error?.message || "Error al iniciar batch");
       return null;
     } finally {
-      setIsLoadingBatch(false);
       startingBatchRef.current = false;
     }
   }, [batchId]);
@@ -159,11 +180,11 @@ const TablaCargarRelevamientosGlideStyled = ({
     if (!errors) return null;
     const messages: string[] = [];
     const topLevel = errors._row || errors.detail || errors._global;
-    if (topLevel) messages.push(topLevel);
+    if (topLevel) messages.push(translateRelevamientoValidationMessage(topLevel));
     Object.entries(errors)
       .filter(([key]) => !["_row", "detail", "_global"].includes(key))
       .forEach(([key, value]) => {
-        if (value) messages.push(`${key}: ${value}`);
+        if (value) messages.push(formatRelevamientoRailCellLine(key, value));
       });
     return messages.length ? messages.join(" | ") : null;
   };
@@ -220,55 +241,6 @@ const TablaCargarRelevamientosGlideStyled = ({
     [batchId]
   );
 
-  const handleValidateRow = useCallback(
-    async (row: GridRow) => {
-      if (!batchId) return;
-      if (!rowHasData(row)) return;
-
-      setData((prev) =>
-        prev.map((r) => (r._rowId === row._rowId ? { ...r, _state: "VALIDANDO" } : r))
-      );
-
-      try {
-        const dataColumns = extractDataColumns(row);
-        const response = await validateRow({
-          batch_id: batchId,
-          row_id: row._rowId!,
-          row: dataColumns,
-        });
-
-        setData((prev) =>
-          prev.map((r) =>
-            r._rowId === row._rowId
-              ? {
-                  ...r,
-                  _state: response.ok ? "OK" : "ERROR",
-                  _cellErrors: response.errors || {},
-                  _rowError: buildRowErrorSummary(response.errors),
-                  _normalized: response.normalized,
-                  _touched: response.ok ? false : r._touched,
-                }
-              : r
-          )
-        );
-      } catch (error: any) {
-        setData((prev) =>
-          prev.map((r) =>
-            r._rowId === row._rowId
-              ? {
-                  ...r,
-                  _state: "ERROR",
-                  _cellErrors: { _global: error?.response?.data?.message || "Error en validación" },
-                  _rowError: error?.response?.data?.message || "Error en validación",
-                }
-              : r
-          )
-        );
-      }
-    },
-    [batchId]
-  );
-
   const handleCommitBatch = useCallback(async () => {
     const startedBatchId = await ensureBatchStarted();
     if (!startedBatchId) return;
@@ -316,12 +288,19 @@ const TablaCargarRelevamientosGlideStyled = ({
           setGlobalError(null);
           return;
         }
+        /** Si el lote ya devolvió errores por fila, no duplicar un mensaje global en el rail. */
+        const batchHadInvalidRows = Boolean(response?.results?.some((r) => !r.ok));
+        if (batchHadInvalidRows) {
+          setGlobalError(null);
+          return;
+        }
         setGlobalError(response ? "No hay filas válidas para confirmar." : "No hay filas para validar.");
         return;
       }
 
       setIsCommitting(true);
       const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
+      // Future: hook global de notificaciones cuando exista el sistema unificado (éxito parcial/total).
       setData((prev) =>
         prev.map((row) => {
           const result = commitResp.results.find((r) => r.row_id === row._rowId);
@@ -356,7 +335,7 @@ const TablaCargarRelevamientosGlideStyled = ({
   const handleCellEdit = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell): Promise<void> => {
       if (row >= data.length) return;
-      await ensureBatchStarted();
+      const batchSessionId = await ensureBatchStarted();
 
       const columnDef = COLUMN_DEFINITIONS[col];
       const columnId = columnDef.id;
@@ -397,6 +376,7 @@ const TablaCargarRelevamientosGlideStyled = ({
         ...rowData,
         [columnId]: value,
         _rowError: null,
+        _cellErrors: {},
         _touched: true,
         _needsCommit: true,
       };
@@ -413,6 +393,8 @@ const TablaCargarRelevamientosGlideStyled = ({
         };
       } else if (updatedRow._state === "OK") {
         updatedRow = { ...updatedRow, _state: "PENDIENTE", _normalized: undefined };
+      } else if (updatedRow._state === "ERROR") {
+        updatedRow = { ...updatedRow, _state: "PENDIENTE", _normalized: undefined };
       }
 
       setData((prev) => {
@@ -422,30 +404,11 @@ const TablaCargarRelevamientosGlideStyled = ({
       });
 
       const rowId = rowData._rowId;
-      if (rowId && debounceRef.current[rowId] !== undefined) {
-        clearTimeout(debounceRef.current[rowId]);
-      }
-
-      if (rowId) {
-        debounceRef.current[rowId] = window.setTimeout(() => {
-          if (batchId) {
-            if (rowHasData(updatedRow)) {
-              handleValidateRow(updatedRow);
-            } else {
-              validateRow({ batch_id: batchId, row_id: rowId, row: {} }).catch(() => {});
-            }
-          }
-        }, 500);
-      }
-
-      if (batchId) {
-        if (batchValidateRef.current) clearTimeout(batchValidateRef.current);
-        batchValidateRef.current = window.setTimeout(() => {
-          validateBatchRows(dataRef.current);
-        }, 900);
+      if (rowId && batchSessionId && !rowHasData(updatedRow)) {
+        void validateRow({ batch_id: batchSessionId, row_id: rowId, row: {} }).catch(() => {});
       }
     },
-    [data, batchId, ensureBatchStarted, handleValidateRow, validateBatchRows]
+    [data, ensureBatchStarted]
   );
 
   const handleAddRow = () => {
@@ -553,30 +516,40 @@ const TablaCargarRelevamientosGlideStyled = ({
       const hasError = cellErrors[columnId] !== undefined;
       const rowState = rowData._state;
       const hasData = rowHasData(rowData);
+      const backendWideError = rowHasBackendWideError(rowData, cellErrors);
+      const cellShowsBackendError = Boolean(cellErrors[columnId]) || backendWideError;
+      const localMinimumOk = hasData && relevamientoRowMinimumCompleteForVisual(rowData);
 
       let bgColor = COLORS.grayDark;
       let textColor = COLORS.white;
 
       if (hasData) {
-        if (hasError) {
+        if (cellShowsBackendError) {
           bgColor = COLORS.errorLight;
           textColor = COLORS.errorText;
-        } else if (rowState === "OK") {
-          bgColor = COLORS.successLight;
-          textColor = COLORS.successText;
-        } else if (rowState === "PENDIENTE") {
-          bgColor = COLORS.warningLight;
-          textColor = COLORS.warningText;
         } else if (rowState === "VALIDANDO") {
           bgColor = COLORS.grayMedium;
           textColor = COLORS.white;
+        } else if (rowState === "OK") {
+          bgColor = COLORS.successLight;
+          textColor = COLORS.successText;
+        } else if (localMinimumOk) {
+          bgColor = COLORS.successLight;
+          textColor = COLORS.successText;
+        } else if (rowState === "PENDIENTE" || rowState === undefined) {
+          bgColor = COLORS.warningLight;
+          textColor = COLORS.warningText;
+        } else {
+          bgColor = COLORS.warningLight;
+          textColor = COLORS.warningText;
         }
       }
 
       const themeOverride = { bgCell: bgColor, textDark: textColor };
 
       if (columnId === "_rowError") {
-        const rowError = hasData ? (rowData._rowError || "") : "";
+        const rowErrorRaw = hasData ? (rowData._rowError || "") : "";
+        const rowError = rowErrorRaw ? translateRelevamientoValidationMessage(rowErrorRaw) : "";
         return {
           kind: GridCellKind.Text,
           data: rowError,
@@ -627,7 +600,8 @@ const TablaCargarRelevamientosGlideStyled = ({
       }
 
       const strValue = value?.toString() || "";
-      const errorMsg = hasError ? (cellErrors[columnId] || "") : "";
+      const errorMsgRaw = hasError ? (cellErrors[columnId] || "") : "";
+      const errorMsg = errorMsgRaw ? translateRelevamientoValidationMessage(errorMsgRaw) : "";
       const displayData = errorMsg ? (strValue ? `${strValue} (${errorMsg})` : errorMsg) : strValue;
       return {
         kind: GridCellKind.Text,
@@ -655,13 +629,11 @@ const TablaCargarRelevamientosGlideStyled = ({
 
   const onRowAppended = useCallback(() => handleAddRow(), []);
   const rowsWithData = data.filter(rowHasData);
-  const okCount = rowsWithData.filter((r) => r._state === "OK").length;
-  const errorCount = rowsWithData.filter((r) => r._state === "ERROR").length;
-  const pendingCount = rowsWithData.filter((r) => r._state === "PENDIENTE").length;
-  const validatingCount = rowsWithData.filter((r) => r._state === "VALIDANDO").length;
   const validationRailEntries = useMemo(() => buildValidationRailEntries(data), [data]);
 
   const tableHeight = useMemo(() => calculateRelevamientoTableHeight(data.length), [data.length]);
+  const overlayBusy = isValidatingAll || isCommitting;
+  const overlayLabel = isCommitting ? "Guardando relevamientos…" : "Validando relevamientos…";
 
   return (
     <Box sx={containerStyles}>
@@ -685,49 +657,71 @@ const TablaCargarRelevamientosGlideStyled = ({
         >
           {showTitle && <Typography sx={titleStyles}>Cargar iniciadores principales</Typography>}
 
-          {!batchId && (
-            <Alert severity="warning" sx={alertBaseStyles}>
-              <strong>💡 TIP:</strong> Empieza a cargar datos. El batch se iniciará automáticamente.
-            </Alert>
-          )}
-
-          {batchId && (
-            <Alert severity="success" sx={alertBaseStyles}>
-              <strong>BATCH ACTIVO:</strong> {batchId.slice(0, 13)}...
-              {okCount > 0 && (
-                <span style={{ color: COLORS.successText, fontWeight: 700, marginLeft: 8 }}>{okCount} OK</span>
-              )}
-              {errorCount > 0 && (
-                <span style={{ color: COLORS.errorText, fontWeight: 700, marginLeft: 8 }}>{errorCount} ERROR</span>
-              )}
-              {validatingCount > 0 && (
-                <span style={{ color: COLORS.white, fontWeight: 700, marginLeft: 8 }}>
-                  {validatingCount} Validando...
-                </span>
-              )}
-              {pendingCount > 0 && (
-                <span style={{ color: COLORS.warningText, fontWeight: 700, marginLeft: 8 }}>
-                  {pendingCount} Pendiente
-                </span>
-              )}
-              {isLoadingBatch && <span style={{ marginLeft: 8 }}>⏳ Iniciando...</span>}
-              {isCommitting && <span style={{ marginLeft: 8 }}>💾 Guardando...</span>}
-            </Alert>
-          )}
-
-          <Box sx={{ display: "flex", gap: 2, mb: 0, width: "100%" }}>
-            <Button
-              variant="contained"
+          <Box sx={{ display: "flex", gap: 2, mb: 0, width: "100%", alignItems: "center" }}>
+            <AppButton
+              dsVariant="primary"
+              dsSize="md"
+              loading={overlayBusy}
               onClick={handleCommitBatch}
-              disabled={isValidatingAll || isCommitting || rowsWithData.length === 0}
-              startIcon={(isValidatingAll || isCommitting) ? <CircularProgress size={16} /> : undefined}
-              sx={buttonMandarTodoStyles}
+              disabled={overlayBusy || rowsWithData.length === 0}
+              sx={{
+                fontFamily: '"Tactic Sans", sans-serif',
+                fontWeight: 600,
+                textTransform: "none",
+                borderRadius: "10px",
+                px: 3,
+              }}
             >
-              MANDAR TODO (VALIDAR + CONFIRMAR)
-            </Button>
+              Mandar todo (validar y guardar)
+            </AppButton>
           </Box>
 
           <Box sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}>
+            {overlayBusy ? (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 6,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  px: 3,
+                  bgcolor: "rgba(10, 12, 18, 0.72)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  pointerEvents: "all",
+                }}
+              >
+                <LinearProgress
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    borderRadius: 0,
+                    bgcolor: "rgba(255,255,255,0.06)",
+                    "& .MuiLinearProgress-bar": { bgcolor: GLASS_COLORS.primary },
+                  }}
+                  variant="indeterminate"
+                />
+                <CircularProgress size={36} thickness={4} sx={{ color: GLASS_COLORS.primary }} />
+                <Typography
+                  sx={{
+                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    color: GLASS_COLORS.textPrimary,
+                    textAlign: "center",
+                  }}
+                >
+                  {overlayLabel}
+                </Typography>
+              </Box>
+            ) : null}
             <DataEditor
             ref={gridRef}
             width="100%"
@@ -755,7 +749,7 @@ const TablaCargarRelevamientosGlideStyled = ({
             trailingRowOptions={{
               sticky: false,
               tint: true,
-              hint: "Presiona Enter o haz clic para agregar fila...",
+              hint: "Presioná Enter o hacé clic para agregar una fila…",
             }}
             getCellsForSelection={true}
             freezeColumns={0}
@@ -778,27 +772,6 @@ const TablaCargarRelevamientosGlideStyled = ({
             />
           </Box>
 
-          <Box sx={legendStyles}>
-            <Typography sx={legendTitleStyles}>CÓMO USAR:</Typography>
-            <Typography sx={legendTextStyles} component="div">
-              <strong>1.</strong> Doble click en una celda o presiona <span style={kbdStyles}>Enter</span><br />
-              <strong>2.</strong> <span style={kbdStyles}>Tab</span> avanza por columnas; desde la última columna pasa a la
-              fila siguiente (o crea una fila nueva al final).<br />
-              <strong>3.</strong> Para agregar filas: también <span style={kbdStyles}>Enter</span> en la grilla<br />
-              <strong>4.</strong> Fecha: mismo editor que en Cargar actas — escribir{" "}
-              <span style={kbdStyles}>DD/MM/AAAA</span> o <span style={kbdStyles}>AAAA-MM-DD</span>, o elegir en el
-              calendario; <span style={kbdStyles}>Enter</span> para confirmar.<br />
-              <strong>5.</strong> Validación automática al editar<br />
-              <strong>6.</strong> Confirmar todo: botón “Mandar todo”<br />
-              <br />
-              <strong>COLORES:</strong>{" "}
-              <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>
-              <span style={getStatusBadgeStyles(COLORS.successLight, COLORS.successText)}>OK</span>
-              <span style={getStatusBadgeStyles(COLORS.warningLight, COLORS.warningText)}>ADVERTENCIA</span>
-              <span style={getStatusBadgeStyles("#1E2127", COLORS.white)}>PENDIENTE</span>
-              <span style={getStatusBadgeStyles(COLORS.primary, COLORS.white)}>VALIDANDO</span>
-            </Typography>
-          </Box>
         </Box>
 
         <ValidationErrorsRail

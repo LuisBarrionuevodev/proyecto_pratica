@@ -13,7 +13,20 @@ from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_resumen_row,
     estado_recorrido_label,
 )
-from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
+from app.models import (
+    Actuaciones,
+    Comprobacion,
+    Contribuyente,
+    Domicilio,
+    Expediente,
+    IniciadorRuta,
+    JuzgadoCatalogo,
+    Oficio,
+    OrdenTrabajo,
+    RutaItem,
+    RutaTrabajo,
+    User,
+)
 
 
 def _unique_num() -> str:
@@ -263,5 +276,210 @@ def test_comprobacion_recorrido_resumen_row_incluye_numero_oficio_cuando_existe(
         row = comprobacion_recorrido_resumen_row(act)
         assert row["oficio_numero"] == onum
         assert row["oficio_anio"] == 2026
+    finally:
+        db.session.rollback()
+
+
+def test_comprobacion_recorrido_detalle_cumplido_sin_ruta_item_sin_ejecucion(app_ctx) -> None:
+    """CUMPLIDO sin ``RutaItem`` que resuelva segunda actuación: no inventar ejecución desde el ancla."""
+    try:
+        u = User(
+            username=f"u_rec_{random.randint(0, 999999)}",
+            email=f"rec_{random.randint(0, 999999)}@t.local",
+            password_hash="x",
+            role="usuario",
+            is_active=True,
+        )
+        db.session.add(u)
+        dom = Domicilio(calle=f"CalleRec{random.randint(0, 99999)}", numero="1")
+        db.session.add(dom)
+        db.session.flush()
+
+        act, _comp = _mk_actuacion_con_comprobacion()
+        actuacion_id = act.id
+
+        ini_den = IniciadorRuta(
+            tipo_iniciador="DENUNCIA",
+            estado_iniciador="CUMPLIDO",
+            fecha_origen=date(2026, 3, 1),
+            anio=2026,
+            mes=3,
+            domicilio_id=dom.id,
+            actuacion_id=actuacion_id,
+            created_by_user_id=u.id,
+        )
+        ini_rein = IniciadorRuta(
+            tipo_iniciador="REINSPECCION_OFICIO",
+            estado_iniciador="CUMPLIDO",
+            fecha_origen=date(2026, 4, 1),
+            anio=2026,
+            mes=4,
+            domicilio_id=dom.id,
+            actuacion_id=actuacion_id,
+            created_by_user_id=u.id,
+        )
+        db.session.add_all([ini_den, ini_rein])
+        db.session.flush()
+
+        d = comprobacion_recorrido_detalle(act)
+        rein = d["reinspeccion_por_oficio"]
+        assert rein is not None
+        assert rein.get("ejecucion_reinspeccion") is None
+    finally:
+        db.session.rollback()
+
+
+def test_comprobacion_recorrido_detalle_ejecucion_desde_actuacion_segunda_visita(app_ctx) -> None:
+    """``ejecucion_reinspeccion`` debe reflejar OT/fecha/tipo de la actuación del ítem, no el ancla."""
+    try:
+        u = User(
+            username=f"u_rec_{random.randint(0, 999999)}",
+            email=f"rec_{random.randint(0, 999999)}@t.local",
+            password_hash="x",
+            role="usuario",
+            is_active=True,
+        )
+        db.session.add(u)
+        dom = Domicilio(calle=f"CalleEj{random.randint(0, 99999)}", numero="2")
+        db.session.add(dom)
+        db.session.flush()
+
+        ot_anchor = OrdenTrabajo(numero_acta="111111", anio=2026, mes=3)
+        ot_rein = OrdenTrabajo(numero_acta="929931", anio=2026, mes=5)
+        db.session.add_all([ot_anchor, ot_rein])
+        db.session.flush()
+
+        comp = Comprobacion(numero_acta=_unique_num(), anio=2026, mes=3, motivo="ejec segunda visita")
+        db.session.add(comp)
+        db.session.flush()
+
+        act = Actuaciones(
+            fecha=date(2026, 3, 15),
+            mes=3,
+            anio=2026,
+            orden_trabajo_id=ot_anchor.id,
+            comprobacion_id=comp.id,
+            tipo="INSPECCION",
+        )
+        act_second = Actuaciones(
+            fecha=date(2026, 5, 17),
+            mes=5,
+            anio=2026,
+            orden_trabajo_id=ot_rein.id,
+            domicilio_id=dom.id,
+            tipo="INSPECCION",
+        )
+        db.session.add_all([act, act_second])
+        db.session.flush()
+
+        ini_rein = IniciadorRuta(
+            tipo_iniciador="REINSPECCION_OFICIO",
+            estado_iniciador="CUMPLIDO",
+            fecha_origen=date(2026, 4, 1),
+            anio=2026,
+            mes=4,
+            domicilio_id=dom.id,
+            actuacion_id=act.id,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ini_rein)
+        db.session.flush()
+
+        ruta_num = random.randint(10, 999)
+        ruta = RutaTrabajo(
+            fecha=date(2026, 5, 17),
+            turno="MANIANA",
+            estado_ruta="CERRADA",
+            numero=ruta_num,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ruta)
+        db.session.flush()
+
+        item = RutaItem(
+            ruta_trabajo_id=ruta.id,
+            iniciador_ruta_id=ini_rein.id,
+            orden_trabajo_id=ot_rein.id,
+            estado_ruta_item="FINALIZADO",
+            estado_ejecucion="REALIZADO",
+            actuacion_id=act_second.id,
+            created_by_user_id=u.id,
+        )
+        db.session.add(item)
+        db.session.flush()
+
+        d = comprobacion_recorrido_detalle(act)
+        ej = d["reinspeccion_por_oficio"]["ejecucion_reinspeccion"]
+        assert ej is not None
+        assert ej["orden_trabajo_numero"] == "929931"
+        assert ej["fecha_actuacion"] == "2026-05-17"
+        assert ej["actuacion_id"] == act_second.id
+        assert d["referencia_actuacion"]["orden_trabajo_numero"] == "111111"
+        assert d["referencia_actuacion"]["fecha_actuacion"] == "2026-03-15"
+    finally:
+        db.session.rollback()
+
+
+def test_comprobacion_recorrido_detalle_item_actuacion_igual_ancla_sin_ejecucion(app_ctx) -> None:
+    """Si el ítem apunta por error al mismo id que el ancla, no mostrar ejecución (evita datos incorrectos)."""
+    try:
+        u = User(
+            username=f"u_rec_{random.randint(0, 999999)}",
+            email=f"rec_{random.randint(0, 999999)}@t.local",
+            password_hash="x",
+            role="usuario",
+            is_active=True,
+        )
+        db.session.add(u)
+        dom = Domicilio(calle=f"CalleBad{random.randint(0, 99999)}", numero="3")
+        db.session.add(dom)
+        db.session.flush()
+
+        ot_anchor = OrdenTrabajo(numero_acta="444444", anio=2026, mes=3)
+        db.session.add(ot_anchor)
+        db.session.flush()
+
+        act, _comp = _mk_actuacion_con_comprobacion()
+        act.orden_trabajo_id = ot_anchor.id
+        db.session.flush()
+
+        ini_rein = IniciadorRuta(
+            tipo_iniciador="REINSPECCION_OFICIO",
+            estado_iniciador="CUMPLIDO",
+            fecha_origen=date(2026, 4, 1),
+            anio=2026,
+            mes=4,
+            domicilio_id=dom.id,
+            actuacion_id=act.id,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ini_rein)
+        db.session.flush()
+
+        ruta_num = random.randint(1000, 9999)
+        ruta = RutaTrabajo(
+            fecha=date(2026, 5, 20),
+            turno="TARDE",
+            estado_ruta="CERRADA",
+            numero=ruta_num,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ruta)
+        db.session.flush()
+
+        item = RutaItem(
+            ruta_trabajo_id=ruta.id,
+            iniciador_ruta_id=ini_rein.id,
+            orden_trabajo_id=ot_anchor.id,
+            estado_ruta_item="FINALIZADO",
+            estado_ejecucion="REALIZADO",
+            actuacion_id=act.id,
+            created_by_user_id=u.id,
+        )
+        db.session.add(item)
+        db.session.flush()
+
+        d = comprobacion_recorrido_detalle(act)
+        assert d["reinspeccion_por_oficio"]["ejecucion_reinspeccion"] is None
     finally:
         db.session.rollback()

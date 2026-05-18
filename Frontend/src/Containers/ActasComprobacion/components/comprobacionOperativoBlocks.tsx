@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { memo } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 
 import type { IActuacionesPendientesItem, IPendientesOficioItem } from "../../../api/actuacionesPendientesApi";
@@ -147,7 +148,11 @@ function expedienteEnvioNumeroLinea(row: IPendientesOficioItem): string {
  * Referencia bandeja oficio: mismas filas base + expediente de envío (número/año).
  * La fecha de expediente de envío no viene en el DTO actual de la API → "—".
  */
-export function BloqueReferenciaComprobacionOficio({ row }: { row: ComprobacionOficioReferenciaRow }) {
+export const BloqueReferenciaComprobacionOficio = memo(function BloqueReferenciaComprobacionOficio({
+  row,
+}: {
+  row: ComprobacionOficioReferenciaRow;
+}) {
   return (
     <DocumentalBloque overline="Referencia de la comprobación">
       <DocumentalFila etiqueta="Domicilio" valor={domicilioOficio(row)} />
@@ -163,7 +168,7 @@ export function BloqueReferenciaComprobacionOficio({ row }: { row: ComprobacionO
       />
     </DocumentalBloque>
   );
-}
+});
 
 export function BloqueInspeccionBaseComprobacion({
   row,
@@ -193,7 +198,7 @@ export function BloqueInspeccionBaseComprobacion({
 }
 
 /** Inspección base desde fila oficio (sin acta inspección en tipo API → opcional desde índice). */
-export function BloqueInspeccionBaseFromOficioRow({
+export const BloqueInspeccionBaseFromOficioRow = memo(function BloqueInspeccionBaseFromOficioRow({
   row,
 }: {
   row: IPendientesOficioItem & {
@@ -226,7 +231,7 @@ export function BloqueInspeccionBaseFromOficioRow({
     | "tipo_actuacion"
   >;
   return <BloqueInspeccionBaseComprobacion row={pseudo} />;
-}
+});
 
 /** Fila pendiente reinspección: contrato API alineado al grid + detalle documental. */
 export type ReinspeccionOperativoDetalleRow = IReinspeccionOficioPendienteRow;

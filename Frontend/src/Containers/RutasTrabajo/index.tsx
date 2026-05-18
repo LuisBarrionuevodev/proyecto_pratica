@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Paper, Snackbar } from "@mui/material";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
-import { GLASS_COLORS } from "../../styles/GlassStyles";
+import { GLASS_COLORS, moduleSlicesPanelPaperSx } from "../../styles/GlassStyles";
 import {
   assignRutaItems,
   createRutaGrupo,
@@ -27,7 +27,6 @@ import {
   useRutasTrabajoSession,
 } from "./hooks";
 import { RutasTrabajoFlowStepper, type RutaFlowStep } from "./Components/RutasTrabajoFlowStepper";
-import { rutasInstitutionalHeaderPaperSx } from "./styles/institutionalVisual";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
 import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
@@ -388,7 +387,7 @@ const RutasTrabajo = () => {
           <Paper
             elevation={0}
             sx={{
-              ...rutasInstitutionalHeaderPaperSx,
+              ...moduleSlicesPanelPaperSx,
               width: "100%",
               minWidth: 0,
               maxWidth: "100%",

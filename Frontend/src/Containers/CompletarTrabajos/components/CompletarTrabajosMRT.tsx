@@ -9,8 +9,11 @@ import {
 
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { COLORS, DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
+import {
+  DATA_TABLE_MRT_GLASS_COLORS,
+  dataTableShellSx,
+  MRT_DATA_TABLE_GLASS_PRESET,
+} from "../../../styles/mrtGlassDataTablePreset";
 
 function dashIfEmpty(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
@@ -78,7 +81,7 @@ export function CompletarTrabajosMRT({
         size: 150,
         Cell: ({ row }) => (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
-            <Typography variant="body2" sx={{ color: COLORS.white, fontSize: "11px" }}>
+            <Typography variant="body2" sx={{ color: DATA_TABLE_MRT_GLASS_COLORS.white, fontSize: "11px" }}>
               {dashIfEmpty(row.original.tipo_actuacion)}
             </Typography>
             {row.original.tipo_actuacion_esperado ? (
@@ -137,7 +140,11 @@ export function CompletarTrabajosMRT({
             label={dashIfEmpty(cell.getValue())}
             color={estadoChipColor(cell.getValue() as string)}
             variant="outlined"
-            sx={{ borderColor: "rgba(255,255,255,0.25)", color: COLORS.white, fontSize: "10px" }}
+            sx={{
+              borderColor: "rgba(255,255,255,0.25)",
+              color: DATA_TABLE_MRT_GLASS_COLORS.white,
+              fontSize: "10px",
+            }}
           />
         ),
       },
@@ -146,33 +153,18 @@ export function CompletarTrabajosMRT({
   );
 
   const table = useMaterialReactTable({
-    ...DARK_TABLE_CONFIG,
+    ...MRT_DATA_TABLE_GLASS_PRESET,
+    enableEditing: false,
     enableRowSelection: false,
+    enableSelectAll: false,
     enableColumnFilters: false,
     enableGlobalFilter: false,
-    enableEditing: false,
-    muiTablePaperProps: {
-      sx: {
-        backgroundColor: "transparent",
-        boxShadow: "none",
-        border: "none",
-        borderRadius: 0,
-        overflow: "visible",
-      },
-    },
+    enablePagination: true,
+    enableSorting: true,
     muiTableContainerProps: {
       sx: {
-        ...((DARK_TABLE_CONFIG.muiTableContainerProps as { sx?: object })?.sx ?? {}),
+        ...((MRT_DATA_TABLE_GLASS_PRESET.muiTableContainerProps as { sx?: object })?.sx ?? {}),
         maxHeight: "calc(100vh - 280px)",
-      },
-    },
-    muiTableHeadCellProps: {
-      sx: {
-        ...((DARK_TABLE_CONFIG.muiTableHeadCellProps as { sx?: object })?.sx ?? {}),
-        textTransform: "uppercase",
-        fontSize: "10px",
-        letterSpacing: "0.06em",
-        color: "rgba(255,255,255,0.6)",
       },
     },
     columns,
@@ -201,8 +193,11 @@ export function CompletarTrabajosMRT({
           size="small"
           disabled={loading}
           sx={{
-            color: COLORS.white,
-            "&:hover": { color: GLASS_COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+            color: DATA_TABLE_MRT_GLASS_COLORS.white,
+            "&:hover": {
+              color: DATA_TABLE_MRT_GLASS_COLORS.primary,
+              backgroundColor: "rgba(1, 102, 255, 0.15)",
+            },
             "&.Mui-disabled": { color: "#555" },
           }}
           onClick={() => onOpenCompletarModal(row.original)}
@@ -229,10 +224,10 @@ export function CompletarTrabajosMRT({
               justifyContent: "center",
               alignItems: "center",
               gap: 1,
-              borderRadius: "12px",
+              borderRadius: "8px",
             }}
           >
-            <CircularProgress size={28} sx={{ color: COLORS.primary }} />
+            <CircularProgress size={28} sx={{ color: DATA_TABLE_MRT_GLASS_COLORS.primary }} />
             <Typography
               variant="body2"
               sx={{ fontFamily: '"Tactic Sans", sans-serif', color: "rgba(255,255,255,0.75)" }}
@@ -241,7 +236,9 @@ export function CompletarTrabajosMRT({
             </Typography>
           </Box>
         )}
-        <MaterialReactTable table={table} />
+        <Box sx={dataTableShellSx}>
+          <MaterialReactTable table={table} />
+        </Box>
       </Box>
       <Typography
         variant="caption"

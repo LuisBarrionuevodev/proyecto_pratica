@@ -5,8 +5,7 @@
 
 import type { SxProps, Theme } from "@mui/material";
 
-import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
-import { glassCard } from "../../../styles/GlassStyles";
+import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import { GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 
 /**
@@ -55,24 +54,36 @@ export const wrapperStyles = {
 };
 
 // =============================================================================
-// CONTENEDOR DE GRILLA — mismo marco que `dataViewportFrameSx` (baseline Cargar relevamiento)
+// CONTENEDOR DE GRILLA — ancho completo; borde sutil alineado al resto de la app
 // =============================================================================
-export const gridContainerStyles = dataViewportFrameSx;
+export const gridContainerStyles = {
+    width: "100%",
+    minWidth: 0,
+    alignSelf: "stretch",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
+    borderRadius: "12px",
+    overflow: "hidden",
+    backgroundColor: GLASS_COLORS.cardBg,
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    backgroundImage: "none",
+    maxWidth: "100%",
+    maxHeight: "100%",
+};
 
-/** Rail lateral de errores de validación (glass, scroll interno, no empuja la grilla). */
-export const validationRailRootSx: SxProps<Theme> = {
+/** Panel lateral de errores — misma estampa glass que el resto del sistema. */
+export const validationRailRootSx = {
     ...glassCard,
     p: 1.5,
-    borderRadius: "12px",
-    boxSizing: "border-box",
-    minWidth: 0,
-    width: { xs: "100%", lg: 292 },
+    minWidth: { xs: "100%", lg: 260 },
     maxWidth: { xs: "100%", lg: 320 },
-    maxHeight: { xs: 220, sm: 260, lg: "calc(100vh - 140px)" },
-    overflowY: "auto",
-    overflowX: "hidden",
     flexShrink: 0,
-};
+    alignSelf: "stretch",
+    maxHeight: { lg: "min(70vh, 640px)" },
+    overflow: "auto",
+    display: "flex",
+    flexDirection: "column",
+} as SxProps<Theme>;
 
 // =============================================================================
 // BOTÓN MANDAR TODO - Azul cuando activo

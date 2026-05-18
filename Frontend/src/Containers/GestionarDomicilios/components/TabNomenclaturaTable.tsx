@@ -1,9 +1,10 @@
-import { Autocomplete, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Autocomplete, Box, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { MaterialReactTable, type MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
 import { useMemo, useRef, useState } from "react";
 import type { GuardarNomenclaturaBody } from "../../../api/geolocalizacionApi";
 import { fetchCallesCatalogo, type CalleCatalogoItem } from "../../../api/geolocalizacionApi";
-import { TablePendientesStyle } from "../../../styles/MapStyles";
+import { dataTableShellSx } from "../../../styles/mrtGlassDataTablePreset";
+import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
 import type {
   DomicilioNomenclaturaEditCache,
   DomicilioPendienteItem,
@@ -618,11 +619,12 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
   );
 
   const table = useMaterialReactTable({
-    ...TablePendientesStyle,
+    ...GESTION_DOMICILIOS_MRT_GLASS_BASE,
     columns,
     data: items,
     enableEditing: true,
     editDisplayMode: "row",
+    initialState: { density: "compact" },
     onEditingRowSave: async ({ row, values, exitEditingMode }) => {
       const cache = ((row as any)?._valuesCache || {}) as DomicilioNomenclaturaEditCache;
       try {
@@ -646,7 +648,11 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
     state: { isLoading: loading },
   });
 
-  return <MaterialReactTable table={table} />;
+  return (
+    <Box sx={dataTableShellSx}>
+      <MaterialReactTable table={table} />
+    </Box>
+  );
 };
 
 export default TabNomenclaturaTable;

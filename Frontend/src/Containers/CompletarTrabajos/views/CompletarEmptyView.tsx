@@ -13,7 +13,7 @@ import {
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { fechaLocalHoyIso, toIsoDateLocal } from "../../../utils/dateRange";
 import {
   InstitutionalMonthCalendarGrid,
@@ -38,8 +38,16 @@ const CARRUSEL_SCROLL_PX = 380;
 /** Ancho máximo del contenido (full-width con cap cómodo en pantallas grandes). */
 const COMPLETAR_CONTENT_MAX_PX = 1400;
 
-/** Misma familia que “Resumen de ruta” / paneles grandes en Rutas (glass + padding institucional). */
+/** Bloque superior (pendientes + carrusel): glass liviano F3.8c; el almanaque usa panel tipo Rutas (`rutasInstitutionalResumenPaperSx`). */
 const principalGlassSurfaceSx = {
+  ...moduleContentPanelPaperSx,
+  maxWidth: COMPLETAR_CONTENT_MAX_PX,
+  mx: "auto",
+  boxSizing: "border-box" as const,
+};
+
+/** Misma superficie que el panel del calendario en Rutas trabajo (`calendarPanelSurfaceSx`). */
+const completarCalendarPanelSurfaceSx = {
   ...rutasInstitutionalResumenPaperSx,
   width: "100%",
   maxWidth: COMPLETAR_CONTENT_MAX_PX,
@@ -72,21 +80,6 @@ function defaultResumenRango(): { desde: string; hasta: string } {
   const hastaDt = new Date(hoy);
   hastaDt.setDate(hastaDt.getDate() + 30);
   return { desde: toIsoDateLocal(desdeDt), hasta: toIsoDateLocal(hastaDt) };
-}
-
-/** Fecha ISO → DD/MM/AAAA (local). */
-function formatFechaLegible(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  try {
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(new Date(y, m - 1, d));
-  } catch {
-    return iso;
-  }
 }
 
 function formatFechaOperativaCorta(iso: string): string {
@@ -357,24 +350,7 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
         <>
           <Box sx={principalGlassSurfaceSx}>
             <Stack spacing={2}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={{ xs: 0.75, sm: 2 }}
-                alignItems={{ xs: "flex-start", sm: "baseline" }}
-                justifyContent="space-between"
-              >
-                <Typography sx={rutasResumenTitleSx}>Trabajos pendientes</Typography>
-                <Typography
-                  sx={{
-                    ...planificacionPanelSubtitleSx,
-                    fontWeight: 600,
-                    fontSize: "0.8125rem",
-                    color: GLASS_COLORS.textSecondary,
-                  }}
-                >
-                  Hoy: {formatFechaLegible(hoyIso)}
-                </Typography>
-              </Stack>
+              <Typography sx={rutasResumenTitleSx}>Trabajos pendientes</Typography>
               <Divider sx={rutasInstitutionalDividerSx} />
               {diasCarrusel.length === 0 ? (
                 <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.78rem" }}>
@@ -431,7 +407,7 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
             </Stack>
           </Box>
 
-          <Box sx={principalGlassSurfaceSx}>
+          <Box sx={completarCalendarPanelSurfaceSx}>
             <Stack spacing={1.5}>
               <Typography sx={rutasResumenTitleSx}>Calendario operativo</Typography>
               <InstitutionalMonthCalendarGrid
@@ -463,10 +439,7 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                         : est === "completo"
                           ? "1px solid rgba(129, 199, 132, 0.35)"
                           : `1px solid ${GLASS_COLORS.borderLight}`;
-                  const color =
-                    est === "sin_actividad" || est === "sin_dato_fuera"
-                      ? GLASS_COLORS.textMuted
-                      : GLASS_COLORS.textPrimary;
+                  const color = "#FFFFFF";
                   return {
                     bgcolor: bg,
                     border,

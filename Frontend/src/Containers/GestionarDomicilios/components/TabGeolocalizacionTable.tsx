@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Box } from "@mui/material";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
@@ -6,7 +6,9 @@ import {
 } from "material-react-table";
 import { useMemo } from "react";
 import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
-import { TablePendientesStyle } from "../../../styles/MapStyles";
+import { dataTableShellSx, DATA_TABLE_MRT_GLASS_COLORS } from "../../../styles/mrtGlassDataTablePreset";
+import { AppButton } from "../../../ui";
+import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
 import type { DomicilioPendienteItem } from "../types";
 
 interface TabGeolocalizacionTableProps {
@@ -37,21 +39,42 @@ const TabGeolocalizacionTable = ({
   );
 
   const table = useMaterialReactTable({
-    ...TablePendientesStyle,
+    ...GESTION_DOMICILIOS_MRT_GLASS_BASE,
     columns,
     data: items,
     enableEditing: false,
+    enableRowSelection: false,
     state: { isLoading: loading },
     enableRowActions: true,
     positionActionsColumn: "last",
     renderRowActions: ({ row }) => (
-      <Button size="small" onClick={() => onGeolocalizar(row.original)}>
+      <AppButton
+        dsVariant="secondary"
+        dsSize="sm"
+        onClick={() => onGeolocalizar(row.original)}
+        sx={{
+          fontFamily: '"Tactic Sans", sans-serif',
+          textTransform: "none",
+          fontSize: "12px",
+          fontWeight: 600,
+          borderColor: DATA_TABLE_MRT_GLASS_COLORS.border,
+          color: DATA_TABLE_MRT_GLASS_COLORS.white,
+          "&:hover": {
+            borderColor: DATA_TABLE_MRT_GLASS_COLORS.primary,
+            color: DATA_TABLE_MRT_GLASS_COLORS.primary,
+          },
+        }}
+      >
         Geolocalizar
-      </Button>
+      </AppButton>
     ),
   });
 
-  return <MaterialReactTable table={table} />;
+  return (
+    <Box sx={dataTableShellSx}>
+      <MaterialReactTable table={table} />
+    </Box>
+  );
 };
 
 export default TabGeolocalizacionTable;

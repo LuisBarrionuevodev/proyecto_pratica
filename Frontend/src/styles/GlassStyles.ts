@@ -121,6 +121,55 @@ export const glassSecondaryTabsSx: SxProps<Theme> = {
     },
 };
 
+// -----------------------------------------------------------------------------
+// F3.8c — Chrome común de módulos (slices/tabs + filtros). Benchmark: Actas de comprobación.
+// -----------------------------------------------------------------------------
+
+/** `Paper` para filas de slices/tabs (full width del área de contenido). */
+export const moduleSlicesPanelPaperSx: SxProps<Theme> = {
+    ...glassTabsSecondaryPanelBarSx,
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+};
+
+/** `Tabs` MUI dentro de `moduleSlicesPanelPaperSx` (activo/inactivo unificado). */
+export const moduleSlicesTabsSx: SxProps<Theme> = glassSecondaryTabsSx;
+
+/** Superficie para paneles de filtros y bloques meta (sin altura mínima de barra de tabs). */
+export const moduleFiltersSurfaceSx: SxProps<Theme> = {
+    ...glassTabsSecondaryPanelSx,
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    /** No heredar `overflow: hidden` de tabs: recorta grillas de filtros en vistas flex (p. ej. Actuaciones). */
+    overflow: "visible",
+};
+
+/** Cajas de resumen/contenido principal bajo slices (p. ej. Completar trabajo). */
+export const moduleContentPanelPaperSx: SxProps<Theme> = {
+    ...glassTabsSecondaryPanelSx,
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    p: { xs: 2, sm: 2.5 },
+    overflow: "visible",
+};
+
+/**
+ * Tarjeta de entrada / CTA alineada al chrome F3.8c (misma superficie que slices/tabs, sin barra de pestañas).
+ * Usar en `CardGlass` con `sx` para sobreescribir `glassCard`.
+ */
+export const moduleHeroCardSx: SxProps<Theme> = {
+    backgroundColor: "rgba(255, 255, 255, 0.035)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
+    borderRadius: "12px",
+    boxShadow: "none",
+    overflow: "visible",
+};
+
 /** Tabs principales: superficie activa un poco más marcada que secundarios, aún por debajo del chip (~0.28). */
 const GLASS_TAB_PRIMARY_SELECTED_BG = "rgba(1, 102, 255, 0.16)";
 const GLASS_TAB_PRIMARY_SELECTED_BG_HOVER = "rgba(1, 102, 255, 0.24)";
@@ -128,7 +177,7 @@ const GLASS_TAB_PRIMARY_SELECTED_BG_HOVER = "rgba(1, 102, 255, 0.24)";
 /**
  * MUI `Tabs` en cabeceras principales (`glassTabsHeaderPanelSx`): misma familia que secundarios,
  * con más jerarquía (altura/tipografía/peso) e indicador explícito — no depender del default del tema.
- * Usar junto a `glassTabsHeaderPanelSx` (p. ej. Mapa modo, sección Relevamientos); benchmark textual: `/cargarRelevamiento`.
+ * Usar junto a `glassTabsHeaderPanelSx` (p. ej. Mapa modo tabs principales).
  */
 export const glassPrimaryTabsSx: SxProps<Theme> = {
     width: "100%",

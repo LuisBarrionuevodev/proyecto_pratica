@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material/Select";
 
 import {
   deleteComprobacionExpedienteEnvio,
@@ -100,7 +102,7 @@ function filasExpedienteRespuestaDocumental(ex: IComprobacionDocumentalExpedient
 }
 
 /** Mismo bloque editable que en «Pendientes de oficio» (oficio, causa, expediente de respuesta). Reutilizable en otros modales documentales. */
-export function OperativoOficioYRespuestaEditable({
+export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYRespuestaEditable({
   open,
   actuacionId,
   documental,
@@ -136,6 +138,26 @@ export function OperativoOficioYRespuestaEditable({
     [juzgados]
   );
 
+  const filasExReadonly = useMemo(() => filasExpedienteRespuestaDocumental(exR), [exR]);
+  const filasOfiReadonly = useMemo(() => filasOficioDocumental(ofi), [ofi]);
+
+  const handleNumExChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setNumEx(e.target.value);
+  }, []);
+  const handleFecOperativaChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setFecOperativa(e.target.value);
+  }, []);
+  const handleNumOfiChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setNumOfi(e.target.value);
+  }, []);
+  const handleCausaChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setCausa(e.target.value);
+  }, []);
+  const handleJuzChange = useCallback((e: SelectChangeEvent<string>) => {
+    const v = e.target.value;
+    setJuzId(v === "" ? "" : Number(v));
+  }, []);
+
   useEffect(() => {
     setNumOfi((ofi.numero_oficio ?? "").trim());
     const fo = ofi.fecha_oficio ? ofi.fecha_oficio.slice(0, 10) : "";
@@ -167,11 +189,11 @@ export function OperativoOficioYRespuestaEditable({
         <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 0.5 }}>
           Expediente de respuesta
         </Typography>
-        {filasExpedienteRespuestaDocumental(exR)}
+        {filasExReadonly}
         <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 1 }}>
           Oficio
         </Typography>
-        {filasOficioDocumental(ofi)}
+        {filasOfiReadonly}
         <Stack spacing={1.5} sx={{ pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           {!puede && (edicion?.comprobacion_usada_como_iniciador || motivos.length > 0) ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
@@ -198,32 +220,26 @@ export function OperativoOficioYRespuestaEditable({
             ) : null
           ) : (
             <>
+              <AppTextField appearance="glass" label="Número de expediente de respuesta" value={numEx} onChange={handleNumExChange} fullWidth />
               <AppTextField
                 appearance="glass"
-                label="Número de expediente de respuesta"
-                value={numEx}
-                onChange={(e) => setNumEx(e.target.value)}
-                fullWidth
-              />
-              <AppTextField
-                appearance="glass"
-                label="Fecha de oficio y expediente de respuesta"
+                label="Fecha"
                 type="date"
                 value={fecOperativa}
-                onChange={(e) => setFecOperativa(e.target.value)}
+                onChange={handleFecOperativaChange}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
               <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
                 Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
               </Typography>
-              <AppTextField appearance="glass" label="Número de oficio" value={numOfi} onChange={(e) => setNumOfi(e.target.value)} fullWidth />
-              <AppTextField appearance="glass" label="Causa" value={causa} onChange={(e) => setCausa(e.target.value)} fullWidth />
+              <AppTextField appearance="glass" label="Número de oficio" value={numOfi} onChange={handleNumOfiChange} fullWidth />
+              <AppTextField appearance="glass" label="Causa" value={causa} onChange={handleCausaChange} fullWidth />
               <AppSelect
                 appearance="glass"
                 label="Juzgado"
                 value={juzId === "" ? "" : String(juzId)}
-                onChange={(e) => setJuzId(e.target.value === "" ? "" : Number(e.target.value))}
+                onChange={handleJuzChange}
                 fullWidth
                 variant="outlined"
                 options={juzgadoSelectOptions}
@@ -318,7 +334,136 @@ export function OperativoOficioYRespuestaEditable({
       </Stack>
     </DocumentalBloque>
   );
-}
+});
+
+/** Estado local del alta: evita re-render del modal completo (referencia, visita, expediente envío) en cada tecla. */
+const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAltaFields({
+  open,
+  defaultFechaAlta,
+  juzgados,
+  modalApiError,
+  saving,
+  onGuardarAlta,
+}: {
+  open: boolean;
+  defaultFechaAlta: string;
+  juzgados: IJuzgadoCatalogItem[];
+  modalApiError: string | null;
+  saving: boolean;
+  onGuardarAlta: (payload: ComprobacionOficioAltaPayload) => void | Promise<void>;
+}) {
+  const [altaNumEx, setAltaNumEx] = useState("");
+  const [altaFecha, setAltaFecha] = useState("");
+  const [altaNumOfi, setAltaNumOfi] = useState("");
+  const [altaCausa, setAltaCausa] = useState("");
+  const [altaJuzId, setAltaJuzId] = useState<number | "">("");
+
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      setAltaNumEx("");
+      setAltaFecha(defaultFechaAlta);
+      setAltaNumOfi("");
+      setAltaCausa("");
+      setAltaJuzId("");
+    }
+    prevOpenRef.current = open;
+  }, [open, defaultFechaAlta]);
+
+  const juzgadoOptionsAlta = useMemo(
+    () => [{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))],
+    [juzgados]
+  );
+
+  const handleGuardarAltaClick = useCallback(() => {
+    if (altaJuzId === "") return;
+    void onGuardarAlta({
+      numero_oficio: altaNumOfi.trim(),
+      fecha_oficio: altaFecha,
+      juzgado_id: Number(altaJuzId),
+      causa: altaCausa.trim() || null,
+      numero_expediente_oficio: altaNumEx.trim(),
+      fecha_expediente_oficio: altaFecha,
+    });
+  }, [altaJuzId, altaNumOfi, altaFecha, altaCausa, altaNumEx, onGuardarAlta]);
+
+  const handleAltaNumExChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaNumEx(e.target.value), []);
+  const handleAltaFechaChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaFecha(e.target.value), []);
+  const handleAltaNumOfiChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaNumOfi(e.target.value), []);
+  const handleAltaCausaChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaCausa(e.target.value), []);
+  const handleAltaJuzChange = useCallback((e: SelectChangeEvent<string>) => {
+    const v = e.target.value;
+    setAltaJuzId(v === "" ? "" : Number(v));
+  }, []);
+
+  return (
+    <DocumentalBloque overline="Alta de oficio y expediente de respuesta">
+      <Stack spacing={2}>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4 }}>
+          Primero el expediente de respuesta y la fecha compartida; luego el oficio, la causa y el juzgado.
+        </Typography>
+        {modalApiError ? (
+          <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              No se pudo guardar
+            </Typography>
+            <Typography variant="body2">{modalApiError}</Typography>
+          </Alert>
+        ) : null}
+        <AppTextField
+          appearance="glass"
+          label="Número de expediente de respuesta"
+          value={altaNumEx}
+          onChange={handleAltaNumExChange}
+          fullWidth
+          required
+        />
+        <AppTextField
+          appearance="glass"
+          label="Fecha"
+          type="date"
+          value={altaFecha}
+          onChange={handleAltaFechaChange}
+          InputLabelProps={{ shrink: true }}
+          fullWidth
+          required
+        />
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
+          Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
+        </Typography>
+        <AppTextField
+          appearance="glass"
+          label="Número de oficio"
+          value={altaNumOfi}
+          onChange={handleAltaNumOfiChange}
+          fullWidth
+          required
+        />
+        <AppTextField appearance="glass" label="Causa" value={altaCausa} onChange={handleAltaCausaChange} fullWidth />
+        <AppSelect
+          appearance="glass"
+          label="Juzgado"
+          value={altaJuzId === "" ? "" : String(altaJuzId)}
+          onChange={handleAltaJuzChange}
+          fullWidth
+          required
+          variant="outlined"
+          options={juzgadoOptionsAlta}
+        />
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            onClick={handleGuardarAltaClick}
+            disabled={saving || !altaNumOfi.trim() || !altaFecha || altaJuzId === "" || !altaNumEx.trim()}
+          >
+            {saving ? "Guardando…" : "Guardar"}
+          </AppButton>
+        </Box>
+      </Stack>
+    </DocumentalBloque>
+  );
+});
 
 function BloqueExpedienteEnvioEditable({
   actuacionId,
@@ -594,29 +739,6 @@ export function ComprobacionOficioOperativoDialog({
     onClose();
   };
 
-  const [altaNumEx, setAltaNumEx] = useState("");
-  const [altaFecha, setAltaFecha] = useState("");
-  const [altaNumOfi, setAltaNumOfi] = useState("");
-  const [altaCausa, setAltaCausa] = useState("");
-  const [altaJuzId, setAltaJuzId] = useState<number | "">("");
-
-  const prevOpenRef = useRef(false);
-  useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      setAltaNumEx("");
-      setAltaFecha(defaultFechaAlta);
-      setAltaNumOfi("");
-      setAltaCausa("");
-      setAltaJuzId("");
-    }
-    prevOpenRef.current = open;
-  }, [open, defaultFechaAlta]);
-
-  const juzgadoOptionsAlta = useMemo(
-    () => [{ value: "", label: "Seleccionar…" }, ...juzgados.map((j) => ({ value: String(j.id), label: j.nombre }))],
-    [juzgados]
-  );
-
   const displayRow = useMemo(
     () => (row == null ? null : mergeOficioRowConDocumental(row, documental)),
     [row, documental]
@@ -624,18 +746,6 @@ export function ComprobacionOficioOperativoDialog({
 
   const tieneOficioCompleto =
     !documentalLoading && documental?.oficio != null && documental?.expediente_respuesta != null;
-
-  const handleGuardarAltaClick = useCallback(() => {
-    if (altaJuzId === "") return;
-    void onGuardarAlta({
-      numero_oficio: altaNumOfi.trim(),
-      fecha_oficio: altaFecha,
-      juzgado_id: Number(altaJuzId),
-      causa: altaCausa.trim() || null,
-      numero_expediente_oficio: altaNumEx.trim(),
-      fecha_expediente_oficio: altaFecha,
-    });
-  }, [altaJuzId, altaNumOfi, altaFecha, altaCausa, altaNumEx, onGuardarAlta]);
 
   const titleNode =
     displayRow != null ? (
@@ -701,71 +811,14 @@ export function ComprobacionOficioOperativoDialog({
               onDocumentalUpdated={onDocumentalUpdated}
             />
           ) : (
-            <DocumentalBloque overline="Alta de oficio y expediente de respuesta">
-              <Stack spacing={2}>
-                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4 }}>
-                  Primero el expediente de respuesta y la fecha compartida; luego el oficio, la causa y el juzgado.
-                </Typography>
-                {modalApiError ? (
-                  <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                      No se pudo guardar
-                    </Typography>
-                    <Typography variant="body2">{modalApiError}</Typography>
-                  </Alert>
-                ) : null}
-                <AppTextField
-                  appearance="glass"
-                  label="Número de expediente de respuesta"
-                  value={altaNumEx}
-                  onChange={(e) => setAltaNumEx(e.target.value)}
-                  fullWidth
-                  required
-                />
-                <AppTextField
-                  appearance="glass"
-                  label="Fecha de oficio y expediente de respuesta"
-                  type="date"
-                  value={altaFecha}
-                  onChange={(e) => setAltaFecha(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  required
-                />
-                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
-                  Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
-                </Typography>
-                <AppTextField
-                  appearance="glass"
-                  label="Número de oficio"
-                  value={altaNumOfi}
-                  onChange={(e) => setAltaNumOfi(e.target.value)}
-                  fullWidth
-                  required
-                />
-                <AppTextField appearance="glass" label="Causa" value={altaCausa} onChange={(e) => setAltaCausa(e.target.value)} fullWidth />
-                <AppSelect
-                  appearance="glass"
-                  label="Juzgado"
-                  value={altaJuzId === "" ? "" : String(altaJuzId)}
-                  onChange={(e) => setAltaJuzId(e.target.value === "" ? "" : Number(e.target.value))}
-                  fullWidth
-                  required
-                  variant="outlined"
-                  options={juzgadoOptionsAlta}
-                />
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
-                  <AppButton
-                    dsVariant="primary"
-                    dsSize="sm"
-                    onClick={handleGuardarAltaClick}
-                    disabled={saving || !altaNumOfi.trim() || !altaFecha || altaJuzId === "" || !altaNumEx.trim()}
-                  >
-                    {saving ? "Guardando…" : "Guardar"}
-                  </AppButton>
-                </Box>
-              </Stack>
-            </DocumentalBloque>
+            <ComprobacionOficioAltaFields
+              open={open}
+              defaultFechaAlta={defaultFechaAlta}
+              juzgados={juzgados}
+              modalApiError={modalApiError}
+              saving={saving}
+              onGuardarAlta={onGuardarAlta}
+            />
           )}
         </Stack>
       )}

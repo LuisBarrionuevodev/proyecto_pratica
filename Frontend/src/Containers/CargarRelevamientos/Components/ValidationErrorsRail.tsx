@@ -2,6 +2,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { Alert, Box, ButtonBase, Stack, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { translateRelevamientoGlobalMessage } from "../utils/relevamientoGridUxMessages";
 import { rutasInstitutionalScrollSx } from "../../RutasTrabajo/styles/institutionalVisual";
 import { validationRailRootSx } from "../styles/cargarRelevamientosStyles";
 
@@ -50,12 +51,12 @@ export function ValidationErrorsRail({
           mb: 1,
         }}
       >
-        Validación
+        Errores de carga
       </Typography>
 
       {globalError ? (
         <Alert severity="error" onClose={onDismissGlobal} variant="outlined" sx={{ mb: 1.25, borderRadius: "10px", py: 0.5 }}>
-          {globalError}
+          {translateRelevamientoGlobalMessage(globalError)}
         </Alert>
       ) : null}
 
@@ -129,7 +130,7 @@ export function ValidationErrorsRail({
 
       {showEmpty ? (
         <Typography sx={{ fontFamily: TACTIC, fontSize: "0.72rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
-          Sin errores de validación en filas cargadas.
+          Sin incidencias en las filas cargadas.
         </Typography>
       ) : null}
     </Box>

@@ -3,8 +3,10 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { Box } from "@mui/material";
 import { useMemo } from "react";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
+import { dataTableShellSx } from "../../../styles/mrtGlassDataTablePreset";
 
 export type Inspector = {
   id: number;
@@ -58,15 +60,19 @@ const RankingInspectores = ({ data }: Props) => {
     enableSorting: false,
     enableTopToolbar: false,
     enableBottomToolbar: true,
-     muiTableContainerProps: {
-    sx: {
-      maxHeight: 350,
-      minHeight: 300,
+    muiTableContainerProps: {
+      sx: {
+        maxHeight: 350,
+        minHeight: 300,
+      },
     },
-  },
   });
 
-  return <MaterialReactTable table={table} />;
+  return (
+    <Box sx={dataTableShellSx}>
+      <MaterialReactTable table={table} />
+    </Box>
+  );
 };
 
 export default RankingInspectores;

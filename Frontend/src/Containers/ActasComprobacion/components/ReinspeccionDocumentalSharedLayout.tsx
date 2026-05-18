@@ -6,11 +6,7 @@ import type {
   IComprobacionRecorridoRow,
 } from "../../../api/actuacionesComprobacionActasApi";
 import { docModalEmptyStateSx } from "../../../styles/documentalModalTokens";
-import {
-  humanizarCumplimientoOficio,
-  humanizarEstadoIniciador,
-  humanizarTipoVisitaRecorrido,
-} from "../utils/documentalLabelFormat";
+import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "../utils/documentalLabelFormat";
 import {
   BloqueExpedienteEnvioReinspeccionDetalle,
   BloqueInspeccionBaseComprobacion,
@@ -101,15 +97,15 @@ export type ReinspeccionDocumentalSharedLayoutProps = {
   notaReferencia?: ReactNode;
   /**
    * Si es true, no se renderiza «Oficio y expediente de respuesta» en solo lectura.
-   * Modal Pendiente de reinspección: el trámite lo muestra `OperativoOficioYRespuestaEditable`.
-   * Recorrido/historial: debe ser false (o omitir) para conservar el trámite consultivo.
+   * Modal Pendiente de reinspección: la edición va en `OperativoOficioYRespuestaEditable`.
+   * Recorrido/historial: debe ser false (o omitir) para conservar el bloque consultivo.
    */
   ocultarOficioYRespuestaLectura?: boolean;
 };
 
 /**
- * Circuito documental: referencia, visita, trámites; en pendiente también el trámite de reinspección por oficio.
- * En recorrido, opcional bloque final con datos de la visita ya ejecutada (sin cajas de origen ni trámite duplicado).
+ * Circuito documental: referencia, visita, trámites.
+ * En recorrido, opcional bloque final con datos de la visita ya ejecutada.
  */
 export function ReinspeccionDocumentalSharedLayout({
   row,
@@ -144,27 +140,18 @@ export function ReinspeccionDocumentalSharedLayout({
       />
       <BloqueExpedienteEnvioReinspeccionDetalle row={row} />
       {!ocultarOficioYRespuestaLectura ? <BloqueOficioYExpedienteRespuestaDetalle row={row} /> : null}
-      {variant === "pendiente" && Number(row.iniciador_id) > 0 ? (
-        <DocumentalBloque overline="Trámite: reinspección por oficio">
-          <DocumentalFila etiqueta="Trámite" valor="Reinspección por oficio" />
-          <DocumentalFila etiqueta="Estado del trámite" valor={humanizarEstadoIniciador(row.estado_iniciador)} />
-          <DocumentalFila etiqueta="Fecha de origen del requerimiento" valor={textoValor(row.fecha_origen_iniciador)} />
-          <DocumentalFila etiqueta="Documento o etapa pendiente" valor={textoValor(row.documento_pendiente)} />
-        </DocumentalBloque>
-      ) : null}
       {muestraEjecucion ? (
         <DocumentalBloque overline="Resultado de la visita de reinspección">
           <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(ej.orden_trabajo_numero)} />
           <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(ej.fecha_actuacion)} />
           <DocumentalFila etiqueta="Inspectores" valor={inspectoresLineaEjecucion(ej)} />
           <DocumentalFila etiqueta="Tipo de inspección labrada" valor={tipoInspeccionEjecucionLabel(ej.tipo_inspeccion_labrada)} />
-          <DocumentalFila
-            etiqueta="Cumplimiento del oficio"
-            valor={(() => {
-              const c = humanizarCumplimientoOficio(ej.resultado_cumplimiento_oficio);
-              return c !== "—" ? c : "Sin registrar";
-            })()}
-          />
+          {(() => {
+            const cumpl = humanizarCumplimientoOficio(ej.resultado_cumplimiento_oficio);
+            return cumpl !== "—" ? (
+              <DocumentalFila etiqueta="Cumplimiento del oficio" valor={cumpl} />
+            ) : null;
+          })()}
         </DocumentalBloque>
       ) : null}
     </Stack>

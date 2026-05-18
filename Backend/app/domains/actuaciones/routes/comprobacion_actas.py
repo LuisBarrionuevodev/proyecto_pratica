@@ -52,9 +52,9 @@ def _filters_desde_request() -> ActuacionesPendientesFilters:
 @actuacion.get("/comprobacion/pendientes-reinspeccion-oficio")
 def comprobacion_pendientes_reinspeccion_oficio():
     """
-    Comprobaciones con circuito documental completo cuya reinspección por oficio **aún no está en una
-    ruta operativa** (``BORRADOR`` / ``PUBLICADA`` / ``EN_CURSO``). Puede existir ``IniciadorRuta``;
-    la fila sale de bandeja solo al incorporar ese iniciador a un ítem de ruta activo.
+    Reinspección por oficio: circuito documental completo y **aún sin ítem incorporado** en una ruta
+    operativa (F3.6b). La existencia de ``IniciadorRuta`` no oculta la fila; solo un ``RutaItem`` activo
+    (no borrado) en ``BORRADOR`` / ``PUBLICADA`` / ``EN_CURSO``.
     """
     try:
         filters = _filters_desde_request()

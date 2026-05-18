@@ -85,7 +85,7 @@ export function InstitutionalMonthCalendarGrid({
   return (
     <Stack spacing={1.25}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
-        <IconButton size="small" onClick={prev} aria-label="Mes anterior" sx={{ color: GLASS_COLORS.textSecondary }}>
+        <IconButton size="small" onClick={prev} aria-label="Mes anterior" sx={{ color: "rgba(255,255,255,0.85)" }}>
           <ChevronLeft />
         </IconButton>
         <Typography
@@ -93,7 +93,7 @@ export function InstitutionalMonthCalendarGrid({
             fontFamily: TACTIC,
             fontWeight: 700,
             fontSize: "0.88rem",
-            color: GLASS_COLORS.textPrimary,
+            color: "#FFFFFF",
             textTransform: "capitalize",
             flex: 1,
             textAlign: "center",
@@ -101,7 +101,7 @@ export function InstitutionalMonthCalendarGrid({
         >
           {tituloMes}
         </Typography>
-        <IconButton size="small" onClick={next} aria-label="Mes siguiente" sx={{ color: GLASS_COLORS.textSecondary }}>
+        <IconButton size="small" onClick={next} aria-label="Mes siguiente" sx={{ color: "rgba(255,255,255,0.85)" }}>
           <ChevronRight />
         </IconButton>
       </Stack>
@@ -120,7 +120,7 @@ export function InstitutionalMonthCalendarGrid({
           <Typography
             key={c}
             variant="caption"
-            sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textMuted, fontSize: "0.64rem", fontWeight: 600 }}
+            sx={{ fontFamily: TACTIC, color: "#FFFFFF", fontSize: "0.64rem", fontWeight: 600 }}
           >
             {c}
           </Typography>
@@ -167,7 +167,7 @@ export function InstitutionalMonthCalendarGrid({
                 fontFamily: TACTIC,
                 fontWeight: ctx.esHoy ? 800 : 600,
                 fontSize: "0.8rem",
-                color: GLASS_COLORS.textPrimary,
+                color: "#FFFFFF",
                 bgcolor: "rgba(255,255,255,0.025)",
                 border: `1px solid ${GLASS_COLORS.borderLight}`,
                 boxShadow: ctx.selected ? `0 0 0 2px ${GLASS_COLORS.primary}` : "none",

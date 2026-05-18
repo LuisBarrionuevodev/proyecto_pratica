@@ -4,23 +4,23 @@ import { CargarActuacionNuevaModal } from "./Components/CargarActuacionNuevaModa
 
 /**
  * Vista dedicada a la **carga inicial** de actas.
- * Flujo único: box + modal (motor grid: startBatch → validateRow → commitBatch).
+ * Card principal con mismo vidrio que barras F3.8c (sin tabs en página).
  */
 const CargarActuaciones = () => {
-    return (
-        <Box
-            sx={{
-                width: "100%",
-                p: { xs: 2, sm: 3 },
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                boxSizing: "border-box",
-            }}
-        >
-            <CargarActuacionNuevaModal />
-        </Box>
-    );
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        p: { xs: 2, sm: 3 },
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        boxSizing: "border-box",
+      }}
+    >
+      <CargarActuacionNuevaModal />
+    </Box>
+  );
 };
 
 export default CargarActuaciones;

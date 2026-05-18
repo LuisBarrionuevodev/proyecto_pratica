@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Paper, Tab, Tabs } from "@mui/material";
 import TablaCargarRelevamientosGlideStyled from "./Components/TablaCargarRelevamientosGlideStyled";
 import DenunciaForm from "./Components/DenunciaForm";
-import { glassPrimaryTabsSx, glassTabsHeaderPanelSx, GLASS_COLORS } from "../../styles/GlassStyles";
+import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 
 const CargarRelevamientos = () => {
   const [section, setSection] = useState<"relevamientos" | "denuncias">("relevamientos");
@@ -18,11 +18,8 @@ const CargarRelevamientos = () => {
         boxSizing: "border-box",
       }}
     >
-      <Paper elevation={0} sx={glassTabsHeaderPanelSx}>
-        <Typography variant="body2" sx={{ mb: 2, color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}>
-          Incluye relevamientos y denuncias
-        </Typography>
-        <Tabs value={section} onChange={(_, value) => setSection(value)} sx={glassPrimaryTabsSx}>
+      <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
+        <Tabs value={section} onChange={(_, value) => setSection(value)} sx={moduleSlicesTabsSx}>
           <Tab label="Relevamientos" value="relevamientos" />
           <Tab label="Denuncias" value="denuncias" />
         </Tabs>

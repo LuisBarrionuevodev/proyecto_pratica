@@ -21,7 +21,7 @@ import {
   MOTIVOS_NOTIFICACION_MAX,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
@@ -366,7 +366,7 @@ export function CargarActuacionNuevaModal() {
         </Alert>
       )}
 
-      <CardGlass sx={{ width: "100%", minWidth: 0 }}>
+      <CardGlass sx={{ ...moduleHeroCardSx, width: "100%", minWidth: 0 }}>
         <Box
           sx={{
             display: "flex",
@@ -398,7 +398,8 @@ export function CargarActuacionNuevaModal() {
                 lineHeight: 1.45,
               }}
             >
-              Validación y guardado con el mismo motor de lote que el resto del sistema (grid / backend).
+              Podés cargar actas de notificación y/o comprobación en el mismo envío. Validación y guardado con el mismo
+              motor de lote que el resto del sistema (grid / backend).
             </Typography>
           </Box>
           <AppButton

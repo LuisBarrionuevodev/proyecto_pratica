@@ -1,7 +1,11 @@
 import type { MRT_TableOptions } from "material-react-table";
 import type { SxProps, Theme } from "@mui/material";
 
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import {
+  DATA_TABLE_MRT_GLASS_COLORS,
+  dataTableMrtLoadingMessageSx,
+  MRT_DATA_TABLE_GLASS_PRESET,
+} from "../../../styles/mrtGlassDataTablePreset";
 
 /**
  * Bandejas / listados solo lectura: sin edición ni selección de filas (formularios en modal glass).
@@ -15,164 +19,26 @@ export const MRT_READ_ONLY_BANDEJA: Partial<MRT_TableOptions<any>> = {
 
 // =============================================================================
 // ESTILOS NEO-BRUTALISTAS PARA ACTUACIONES - Material React Table
+// Preset visual compartido: `styles/mrtGlassDataTablePreset.ts` (F3.7b).
 // =============================================================================
 
-export const COLORS = {
-    primary: "#0166FF",
-    black: "#000000",
-    white: "#FFFFFF",
-    grayDark: "#2B2E34",
-    grayMedium: "#353535",
-    grayLight: "#D9D9D9",
-    grayLighter: "#F5F5F5",
-    success: "#2D9F4B",
-    successLight: "#1E3D2F",
-    error: "#E53935",
-    errorLight: "#5C2323",
-    warning: "#FF9800",
-    warningLight: "#3D2E1E",
-    rowEven: "#2B2E34",
-    rowOdd: "#1E2127",
-    border: "#3a3d44",
-} as const;
+/** @deprecated Preferir importar `DATA_TABLE_MRT_GLASS_COLORS` desde `styles/mrtGlassDataTablePreset` en código nuevo. */
+export const COLORS = DATA_TABLE_MRT_GLASS_COLORS;
 
-// Configuración completa de la tabla con tema oscuro
+/**
+ * Defaults de Actuaciones (listado principal): preset glass + flags de edición/selección/filtros del módulo.
+ * Otras pantallas suelen hacer `...MRT_DATA_TABLE_GLASS_PRESET` y sobrescriben solo lo necesario.
+ */
 export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
-    enableEditing: true,
-    editDisplayMode: "cell" as const,
-    enableFullScreenToggle: false,
-    enableDensityToggle: false,
-    enableSelectAll: true,
-    enableRowSelection: true,
-    enableColumnFilters: true,
-    enableGlobalFilter: true,
-    enablePagination: true,
-    enableSorting: true,
-    enableColumnDragging: false,
-    enableGrouping: false,
-    enableColumnResizing: false,
-    globalFilterFn: "contains",
-    positionToolbarAlertBanner: "bottom",
-
-    muiTopToolbarProps: {
-        sx: {
-            backgroundColor: GLASS_COLORS.cardBg,
-            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-            "& .MuiIconButton-root": {
-                color: COLORS.white,
-                transition: "color 0.2s ease",
-                "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.1)" },
-            },
-            "& .MuiInputBase-root": {
-                backgroundColor: COLORS.rowOdd,
-                color: COLORS.white,
-                "& input": {
-                    color: COLORS.white,
-                    "&::placeholder": { color: GLASS_COLORS.textMuted, opacity: 1 },
-                },
-                "& .MuiSvgIcon-root": { color: COLORS.white },
-            },
-        },
-    },
-
-    muiBottomToolbarProps: {
-        sx: {
-            backgroundColor: GLASS_COLORS.cardBg,
-            borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
-            "& .MuiTablePagination-root": { color: COLORS.white },
-            "& .MuiIconButton-root": {
-                color: COLORS.white,
-                transition: "color 0.2s ease, background-color 0.2s ease",
-                "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-                "&.Mui-disabled": { color: GLASS_COLORS.textMuted },
-            },
-            "& .MuiSelect-select": { color: COLORS.white },
-            "& .MuiSelect-icon": { color: COLORS.white },
-        },
-    },
-
-    muiTableHeadCellProps: {
-        sx: {
-            backgroundColor: GLASS_COLORS.cardBg,
-            color: COLORS.white,
-            fontWeight: 600,
-            fontSize: "12px",
-            fontFamily: '"Tactic Sans", sans-serif',
-            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-            borderRight: `1px solid ${GLASS_COLORS.borderLight}`,
-            "& .MuiTableSortLabel-root": { 
-                color: COLORS.white, 
-                "&:hover": { color: COLORS.primary }, 
-                "&.Mui-active": { color: COLORS.primary, "& .MuiTableSortLabel-icon": { color: COLORS.primary } } 
-            },
-            "& .MuiCheckbox-root": { color: COLORS.white, "&.Mui-checked": { color: COLORS.primary } },
-            "& .MuiIconButton-root": {
-                color: COLORS.white,
-                transition: "color 0.2s ease, background-color 0.2s ease",
-                "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-            },
-        },
-    },
-
-    muiTableBodyCellProps: ({ row }: { row: any }) => ({
-        sx: {
-            backgroundColor: row.index % 2 === 0 ? COLORS.rowEven : COLORS.rowOdd,
-            color: COLORS.white,
-            fontSize: "11px",
-            fontFamily: '"Tactic Sans", sans-serif',
-            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-            borderRight: `1px solid ${GLASS_COLORS.borderLight}`,
-            "& .MuiCheckbox-root": { color: COLORS.white, "&.Mui-checked": { color: COLORS.primary } },
-            "& .MuiIconButton-root": {
-                color: COLORS.white,
-                transition: "color 0.2s ease, background-color 0.2s ease",
-                "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-            },
-        },
-    }),
-
-    muiTableBodyRowProps: ({ row }: { row: any }) => ({
-        sx: {
-            backgroundColor: row.index % 2 === 0 ? COLORS.rowEven : COLORS.rowOdd,
-            "&:hover": { backgroundColor: "#3a3d44" },
-            "&.Mui-selected": {
-                backgroundColor: "#1a3a5c",
-                "&:hover": { backgroundColor: "#1a4a6c" },
-            },
-            transition: "none",
-        },
-    }),
-
-    muiTableContainerProps: {
-        sx: {
-            maxHeight: "calc(100vh - 350px)",
-            minHeight: "300px",
-            width: "100%",
-            maxWidth: "100%",
-            overflowX: "auto",
-            overflowY: "auto",
-            backgroundColor: GLASS_COLORS.cardBg,
-            border: `1px solid ${GLASS_COLORS.borderLight}`,
-            borderRadius: "8px",
-            "&::-webkit-scrollbar": { width: "8px", height: "8px" },
-            "&::-webkit-scrollbar-track": { background: COLORS.rowOdd },
-            "&::-webkit-scrollbar-thumb": {
-                backgroundColor: GLASS_COLORS.borderMedium,
-                borderRadius: "4px",
-            },
-            "&::-webkit-scrollbar-thumb:hover": { backgroundColor: GLASS_COLORS.borderLight },
-        },
-    },
-
-    muiTablePaperProps: {
-        sx: {
-            backgroundColor: GLASS_COLORS.cardBg,
-            boxShadow: "none",
-            border: `1px solid ${GLASS_COLORS.borderLight}`,
-            borderRadius: "8px",
-            overflow: "hidden",
-        },
-    },
+  ...MRT_DATA_TABLE_GLASS_PRESET,
+  enableEditing: true,
+  editDisplayMode: "cell" as const,
+  enableSelectAll: true,
+  enableRowSelection: true,
+  enableColumnFilters: true,
+  enableGlobalFilter: true,
+  enablePagination: true,
+  enableSorting: true,
 };
 
 // =============================================================================
@@ -213,13 +79,7 @@ export const titleStyles: SxProps<Theme> = {
     marginBottom: "16px",
 };
 
-export const loadingStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
-    fontSize: "18px",
-    color: COLORS.white,
-    textAlign: "center",
-    padding: "40px",
-};
+export const loadingStyles: SxProps<Theme> = dataTableMrtLoadingMessageSx;
 
 export const exportBoxStyles: SxProps<Theme> = {
     display: "flex",

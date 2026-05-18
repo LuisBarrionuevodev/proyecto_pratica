@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 from sqlalchemy import or_
 
+from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import (
     actuacion_to_grid_row,
     expediente_envio_por_comprobacion,
@@ -16,12 +17,15 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
 )
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuacion_para_iniciador
-from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
+from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, RutaItem
 
 
 def iniciador_reinspeccion_oficio_vigente(actuacion_id: int) -> Optional[IniciadorRuta]:
     """
     Último iniciador ``REINSPECCION_OFICIO`` no soft-deleted para la actuación.
+
+    Solo alimenta columnas del presenter (F3.6b): **no** determina si la fila entra o sale de la bandeja;
+    eso lo resuelve ``list_pendientes_reinspeccion_oficio`` (ítem en ruta activa).
 
     Parámetros:
         actuacion_id: PK de ``Actuaciones``.
@@ -295,6 +299,68 @@ def _tipo_visita_resultado_final(
     return None
 
 
+def _actuacion_visita_reinspeccion_desde_ruta_item(
+    ini: IniciadorRuta,
+    *,
+    actuacion_ancla_id: int,
+) -> Optional[Actuaciones]:
+    """
+    Actuación labrada al cerrar el trabajo del iniciador (segunda visita), distinta del ancla.
+
+    Último ``RutaItem`` FINALIZADO y REALIZADO con ``actuacion_id`` para este ``iniciador_ruta_id``.
+    No usa la actuación ancla como sustituto.
+
+    Parámetros:
+        ini: iniciador ``REINSPECCION_OFICIO``.
+        actuacion_ancla_id: PK de la actuación con acta de comprobación (GET recorrido).
+
+    Retorno:
+        ``Actuaciones`` de la visita posterior o ``None``.
+    """
+    item = (
+        RutaItem.query.filter(
+            RutaItem.iniciador_ruta_id == ini.id,
+            RutaItem.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion == "REALIZADO",
+        )
+        .order_by(RutaItem.id.desc())
+        .first()
+    )
+    if item is None or item.actuacion_id is None:
+        return None
+    if int(item.actuacion_id) == int(actuacion_ancla_id):
+        return None
+    return db.session.get(Actuaciones, int(item.actuacion_id))
+
+
+def _payload_ejecucion_reinspeccion(
+    act_visita: Actuaciones,
+    *,
+    ini_oficio: Optional[IniciadorRuta],
+) -> Dict[str, Any]:
+    """Snapshot de grilla de la segunda visita + cumplimiento persistido en esa actuación."""
+    grid_v = actuacion_to_grid_row(act_visita)
+    resultado = getattr(act_visita, "resultado_cumplimiento_oficio", None)
+    res_val_v = resultado.value if resultado is not None and hasattr(resultado, "value") else resultado
+    tipo_tv = _tipo_visita_resultado_final(grid_v, ini_oficio)
+    tipo_lab = tipo_tv or (
+        str(grid_v.get("tipo_actuacion")).strip() if grid_v.get("tipo_actuacion") else None
+    )
+    return {
+        "actuacion_id": act_visita.id,
+        "inspectores_texto": grid_v.get("inspectores_texto"),
+        "inspector1": grid_v.get("inspector1"),
+        "inspector2": grid_v.get("inspector2"),
+        "inspector3": grid_v.get("inspector3"),
+        "fecha_actuacion": grid_v.get("fecha_actuacion"),
+        "orden_trabajo_numero": grid_v.get("orden_trabajo_numero"),
+        "tipo_inspeccion_labrada": tipo_lab,
+        "resultado_cumplimiento_oficio": res_val_v,
+    }
+
+
 def _juzgado_nombre(ofi: Optional[Oficio]) -> Optional[str]:
     if not ofi or not getattr(ofi, "juzgado_id", None):
         return None
@@ -344,9 +410,10 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
     - ``resultado_final.tipo_visita``: actuación resultante (ratificación / verificar e informar) o
       ``None`` si aún no hay tipo concreto (p. ej. ``REINSPECCION`` genérico en ``act.tipo``).
     - ``reinspeccion_por_oficio``: metadatos del iniciador ``REINSPECCION_OFICIO`` (id, tipo, estado,
-      fecha de origen, documento). Si el trámite está ``CUMPLIDO``, ``ejecucion_reinspeccion`` resume
-      la visita ya labrada (inspectores, fecha, OT, tipo de inspección y cumplimiento) desde el mismo
-      snapshot de grilla de la actuación ancla (misma fila ORM actualizada al cerrar).
+      fecha de origen, documento). Si el trámite está ``CUMPLIDO`` y existe una actuación distinta del ancla
+      vinculada por ``RutaItem`` FINALIZADO/REALIZADO, ``ejecucion_reinspeccion`` resume esa segunda visita
+      (inspectores, fecha, OT, tipo y cumplimiento). Si no hay actuación resultante resoluble, ``None``
+      (sin usar el ancla como sustituto).
     """
     if not act.comprobacion_id:
         raise ValueError("La actuación no tiene comprobación")
@@ -366,6 +433,13 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         .order_by(IniciadorRuta.id.desc())
         .first()
     )
+
+    act_visita_rein: Optional[Actuaciones] = None
+    if ini is not None:
+        act_visita_rein = _actuacion_visita_reinspeccion_desde_ruta_item(
+            ini,
+            actuacion_ancla_id=int(act.id),
+        )
 
     ini_origen = _iniciador_origen_primera_actuacion(act)
     iniciador_payload: Optional[Dict[str, Any]] = None
@@ -435,22 +509,8 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
                 "fecha_origen": ini.fecha_origen.isoformat() if ini.fecha_origen else None,
                 "documento_pendiente": "Reinspección por oficio",
                 "ejecucion_reinspeccion": (
-                    {
-                        "inspectores_texto": grid.get("inspectores_texto"),
-                        "inspector1": grid.get("inspector1"),
-                        "inspector2": grid.get("inspector2"),
-                        "inspector3": grid.get("inspector3"),
-                        "fecha_actuacion": grid.get("fecha_actuacion"),
-                        "orden_trabajo_numero": grid.get("orden_trabajo_numero"),
-                        "tipo_inspeccion_labrada": tipo_visita_final
-                        or (
-                            str(grid.get("tipo_actuacion")).strip()
-                            if grid.get("tipo_actuacion")
-                            else None
-                        ),
-                        "resultado_cumplimiento_oficio": res_val,
-                    }
-                    if ini.estado_iniciador == "CUMPLIDO"
+                    _payload_ejecucion_reinspeccion(act_visita_rein, ini_oficio=ini_oficio)
+                    if ini.estado_iniciador == "CUMPLIDO" and act_visita_rein is not None
                     else None
                 ),
             }

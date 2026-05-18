@@ -26,6 +26,7 @@ import {
   type IEstablecimientoOperativoListItem,
 } from "../../api/establecimientosOperativosApi";
 import { RubroChip } from "./components/RubroChip";
+import { dataTableShellSx } from "../../styles/mrtGlassDataTablePreset";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -155,7 +156,7 @@ function EstablecimientosListResults({
   }, [total, pagination.pageIndex, pagination.pageSize]);
 
   return (
-    <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+    <Box sx={dataTableShellSx}>
       <MaterialReactTable table={table} />
       <Typography
         variant="caption"

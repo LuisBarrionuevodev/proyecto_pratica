@@ -2,7 +2,7 @@ import { Alert, Box, Paper, Tab, Tabs } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 import { alertBaseStyles, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
-import { glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import type { GuardarNomenclaturaBody } from "../../api/geolocalizacionApi";
 import ManualMapPanel from "./components/ManualMapPanel";
 import TabGeolocalizacionTable from "./components/TabGeolocalizacionTable";
@@ -60,13 +60,13 @@ const GestionarDomiciliosContainer = () => {
 
   return (
     <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx }}>
-          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
+          <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
             <Tabs
               value={activeTab}
               onChange={handleTabChange}
               variant="scrollable"
               allowScrollButtonsMobile
-              sx={glassSecondaryTabsSx}
+              sx={moduleSlicesTabsSx}
             >
               <Tab
                 label={`Nomenclatura · ${loading ? "…" : nomenclaturaItems.length}`}

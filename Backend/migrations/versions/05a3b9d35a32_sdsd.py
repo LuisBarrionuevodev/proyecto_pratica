@@ -1,16 +1,17 @@
-"""buenas
+"""sdsd
 
-Revision ID: c378dcc33cd0
+Revision ID: 05a3b9d35a32
 Revises: 
-Create Date: 2026-04-20 08:10:08.640426
+Create Date: 2026-05-16 22:20:00.214328
 
 """
 from alembic import op
 import sqlalchemy as sa
 import geoalchemy2
 
+
 # revision identifiers, used by Alembic.
-revision = 'c378dcc33cd0'
+revision = '05a3b9d35a32'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -280,9 +281,7 @@ def upgrade():
     sa.Column('comprobacion_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['juzgado_id'], ['juzgado_catalogo.id'], onupdate='CASCADE', ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('causa', 'anio', name='uq_of_causa_anio'),
-    sa.UniqueConstraint('numero_oficio', 'anio', name='uq_of_numero_anio')
+    sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('oficio', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_oficio_anio'), ['anio'], unique=False)
@@ -428,11 +427,11 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('prorroga_dias_otorgados', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['comprobacion_id'], ['comprobacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['notificacion_id'], ['notificacion.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['oficio_id'], ['oficio.id'], onupdate='CASCADE', ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('numero_expediente', 'anio', name='uq_ex_numero_anio')
+    sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('expediente', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_expediente_anio'), ['anio'], unique=False)

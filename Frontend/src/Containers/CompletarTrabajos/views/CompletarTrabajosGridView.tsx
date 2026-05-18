@@ -4,7 +4,7 @@ import { Alert, Box, Typography } from "@mui/material";
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { alertBaseStyles, COLORS } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton } from "../../../ui";
-import { glassCard } from "../../../styles/GlassStyles";
+import { moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { CompletarTrabajoModal } from "../components/CompletarTrabajoModal";
 import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
 import { useCompletarTrabajoCatalogs, useTrabajosDelDia } from "../hooks";
@@ -41,7 +41,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minHeight: 0 }}>
-      <Box sx={{ ...glassCard, p: 2 }}>
+      <Box sx={{ ...moduleContentPanelPaperSx, p: 2 }}>
         <Box
           sx={{
             display: "flex",

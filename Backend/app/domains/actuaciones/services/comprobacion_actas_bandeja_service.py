@@ -17,6 +17,9 @@ from app.domains.actuaciones.presenters.comprobacion_actas_presenters import est
 from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio, RutaItem, RutaTrabajo
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 
+# F3.6b: la bandeja es «pendiente de planificar en ruta», no «sin iniciador».
+# — No se excluye por la mera existencia de IniciadorRuta REINSPECCION_OFICIO.
+# — Solo se excluye si hay un RutaItem no borrado ligado a ese iniciador en una RutaTrabajo activa.
 # Rutas donde el trabajo sigue planificable / operativo; CERRADA y CANCELADA no retienen fuera de bandeja.
 _ESTADOS_RUTA_ACTIVA_REINSP_OFICIO = ("BORRADOR", "PUBLICADA", "EN_CURSO")
 
@@ -25,22 +28,27 @@ def list_pendientes_reinspeccion_oficio(
     filters: ActuacionesPendientesFilters,
 ) -> List[Actuaciones]:
     """
-    Actuaciones cuya comprobación tiene circuito documental listo y la reinspección por oficio
-    **aún no está incorporada a una ruta operativa**.
+    Reinspecciones por oficio **pendientes de planificación en ruta** (F3.6b).
 
-    Criterio documental (igual que antes):
+    Documental:
 
     - Expediente de envío de acta activo (``oficio_id`` NULL, no borrado).
     - Oficio administrativo activo (no borrado).
-    - Expediente de respuesta al oficio activo (``oficio_id`` enlazado a oficio de la misma comprobación;
-      ``tipo_expediente`` ``RESPUESTA_OFICIO`` o ``NULL`` en filas legadas sin enum).
+    - Expediente de respuesta al oficio activo (``oficio_id`` al oficio de la misma comprobación;
+      ``tipo_expediente`` ``RESPUESTA_OFICIO`` o ``NULL`` legado).
 
-    Exclusión (fuera de bandeja): existe ``RutaItem`` no soft-deleted cuyo ``IniciadorRuta`` es
-    ``REINSPECCION_OFICIO`` no borrado para la misma actuación, y la ``RutaTrabajo`` vinculada está en
-    ``BORRADOR``, ``PUBLICADA`` o ``EN_CURSO``. Si el iniciador está solo en memoria/backlog, si la ruta
-    está ``CERRADA``/``CANCELADA``, o el ítem está soft-deleted, la fila **sigue** en bandeja.
+    Puede existir o no ``IniciadorRuta`` tipo ``REINSPECCION_OFICIO``; eso **no** oculta la fila.
 
-    Rango de fechas y distrito: mismos helpers que el resto de bandejas (``Actuaciones.fecha``).
+    Fuera de bandeja solo si existe un ``RutaItem`` **incorporado** a planificación operativa:
+
+    - ``IniciadorRuta`` mismo ``actuacion_id``, tipo ``REINSPECCION_OFICIO``, no soft-deleted.
+    - ``RutaItem`` no soft-deleted.
+    - ``RutaTrabajo.estado_ruta`` en ``BORRADOR`` | ``PUBLICADA`` | ``EN_CURSO``.
+
+    Si la ruta está ``CERRADA`` / ``CANCELADA``, el ítem está borrado en soft delete, o el iniciador no
+    tiene ítem en esa ruta, la actuación **sigue** en bandeja (puede tener o no iniciador materializado).
+
+    Fechas / distrito: ``Actuaciones.fecha`` vía ``_apply_fecha`` / ``_apply_distrito_optional``.
     """
     has_envio = exists().where(
         and_(

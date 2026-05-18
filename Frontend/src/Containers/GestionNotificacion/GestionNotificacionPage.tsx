@@ -57,7 +57,7 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
-import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { AppButton, AppSelect, AppTextField } from "../../ui";
 import {
@@ -845,13 +845,13 @@ const GestionNotificacionPage = () => {
         </Alert>
       )}
 
-      <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
+      <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
         <Tabs
           value={plazoSlice}
           onChange={(_, v) => setPlazoSlice(v as PlazoOperativoSlice)}
           variant="scrollable"
           allowScrollButtonsMobile
-          sx={glassSecondaryTabsSx}
+          sx={moduleSlicesTabsSx}
         >
           {PLAZO_TAB_ORDER.map((slice) => (
             <Tab

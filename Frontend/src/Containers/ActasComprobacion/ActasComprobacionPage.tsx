@@ -65,7 +65,7 @@ import {
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect, AppTextField } from "../../ui";
-import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import {
@@ -1080,7 +1080,7 @@ const ActasComprobacionPage = () => {
     <Box sx={containerStyles}>
       <Box sx={actasPageWrapperSx}>
         <Box sx={{ ...actasContentColumnSx, gap: 2 }}>
-          <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
+          <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
             <Tabs
               value={tabIndex}
               onChange={(_, v) => {
@@ -1090,7 +1090,7 @@ const ActasComprobacionPage = () => {
               }}
               variant="scrollable"
               allowScrollButtonsMobile
-              sx={glassSecondaryTabsSx}
+              sx={moduleSlicesTabsSx}
             >
               <Tab
                 label={`Pendientes de expediente · ${

@@ -4,13 +4,7 @@
  */
 import type { SxProps, Theme } from "@mui/material";
 
-import { glassCard, glassDivider, glassTabsHeaderPanelSx, GLASS_COLORS } from "../../../styles/GlassStyles";
-
-/** Cabecera principal (tabs, descripción) — mismo glass base que Mapa; padding ligeramente mayor. */
-export const rutasInstitutionalHeaderPaperSx: SxProps<Theme> = {
-  ...glassTabsHeaderPanelSx,
-  p: 2.2,
-};
+import { glassCard, glassDivider, GLASS_COLORS } from "../../../styles/GlassStyles";
 
 /** Paneles de planificación, mapa placeholder y columnas. */
 export const rutasInstitutionalPanelPaperSx: SxProps<Theme> = {

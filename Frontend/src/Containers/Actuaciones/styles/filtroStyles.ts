@@ -1,5 +1,5 @@
 import type { SxProps, Theme } from "@mui/material";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, moduleFiltersSurfaceSx } from "../../../styles/GlassStyles";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA FILTROS DE ACTUACIONES
@@ -56,22 +56,20 @@ export const titleStyles: SxProps<Theme> = {
 };
 
 // =============================================================================
-// CONTENEDOR DE FILTROS - Sin blur para rendimiento
-// Jerarquía: 16px = panel principal (glassTabsHeaderPanelSx), 12px = subpanel filtros/meta, 8px = dataViewportFrameSx
+// CONTENEDOR DE FILTROS — superficie F3.8c (`moduleFiltersSurfaceSx`), coherente con slices/tabs de Actas.
 // =============================================================================
 
-/** Superficie base de subpaneles (filtros, bloques meta): alineado a shell `gap`/`p` del tema. */
+/** Superficie base de subpaneles (filtros, bloques meta). */
 export const filterPanelSurfaceSx: SxProps<Theme> = {
-  backgroundColor: GLASS_COLORS.cardBg,
-  borderRadius: "12px",
-  border: `1px solid ${GLASS_COLORS.borderLight}`,
-  boxSizing: "border-box",
+  ...moduleFiltersSurfaceSx,
 };
 
 export const filtroContainerStyles: SxProps<Theme> = {
   ...filterPanelSurfaceSx,
   mb: 2,
   p: 2,
+  /** En `wrapperStyles` (flex column + height 100%) evita que el panel de filtros se aplaste. */
+  flexShrink: 0,
 };
 
 export const filtroTitleStyles: SxProps<Theme> = {
@@ -184,6 +182,7 @@ export const metaInfoStyles: SxProps<Theme> = {
   alignItems: "center",
   gap: 2,
   flexWrap: "wrap",
+  flexShrink: 0,
 };
 
 export const metaItemStyles: SxProps<Theme> = {

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { resolveBreadcrumbLabel } from "../utils/breadcrumbLabel";
-import { Box, Typography } from "@mui/material";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Box } from "@mui/material";
+import { InstitutionalViewHeaderBar } from "./InstitutionalViewHeaderBar";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
 import { TRANSITION, GLASS_COLORS } from "../styles/GlassStyles";
@@ -101,36 +101,8 @@ const AppLayout = () => {
                             flexDirection: "column",
                         }}
                     >
-                        {/* Header breadcrumb "> Vista" */}
-                        <Box
-                            sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 0.5,
-                                paddingX: 2.5,
-                                paddingY: 1.25,
-                                borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-                                flexShrink: 0,
-                            }}
-                        >
-                            <ChevronRightIcon 
-                                sx={{ 
-                                    fontSize: 14, 
-                                    color: GLASS_COLORS.textMuted,
-                                }} 
-                            />
-                            <Typography
-                                sx={{
-                                    fontFamily: '"Tactic Sans", sans-serif',
-                                    fontSize: "12px",
-                                    fontWeight: 500,
-                                    color: GLASS_COLORS.textSecondary,
-                                    letterSpacing: "0.3px",
-                                }}
-                            >
-                                {currentLabel}
-                            </Typography>
-                        </Box>
+                        {/* Header institucional: vista + fecha de hoy (F3.8a) */}
+                        <InstitutionalViewHeaderBar title={currentLabel} />
 
                         {/* Área scrolleable */}
                         <Box
