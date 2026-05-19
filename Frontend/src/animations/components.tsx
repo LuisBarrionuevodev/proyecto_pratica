@@ -3,6 +3,8 @@
  */
 
 import { motion, type HTMLMotionProps } from 'framer-motion';
+import { Box } from '@mui/material';
+import { dataTableMrtTypographyScopeSx } from '../styles/mrtGlassDataTablePreset';
 import { fadeInUp, fadeIn, tableRefresh } from './variants';
 
 /**
@@ -35,7 +37,7 @@ export const AnimatedTable = ({
     animate={isRefreshing ? "initial" : "animate"}
     {...props}
   >
-    {children}
+    <Box sx={{ width: "100%", ...dataTableMrtTypographyScopeSx }}>{children}</Box>
   </motion.div>
 );
 

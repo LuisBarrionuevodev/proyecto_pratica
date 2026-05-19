@@ -1,8 +1,9 @@
-import { Paper, Tab, Tabs, Typography } from "@mui/material";
+import { Paper, Tab, Tabs } from "@mui/material";
 
-import { GLASS_COLORS, glassPrimaryTabsSx } from "../../../styles/GlassStyles";
+import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
 import type { MapaOperativoModo } from "../hooks/useMapaOperativo";
-import { mapaOperativoGlassPanelSx } from "./mapaOperativoStyles";
+
+const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type MapaModoTabsProps = {
   modo: MapaOperativoModo;
@@ -10,24 +11,19 @@ export type MapaModoTabsProps = {
 };
 
 /**
- * Selector de modo con el mismo patrón que CargarRelevamientos (Relevamientos / Denuncias): Tabs + tipografía auxiliar.
+ * Slice de modo: mismo Paper + Tabs secundarios que Actas de comprobación / Relevamientos (F3.8c).
  */
 export function MapaModoTabs({ modo, onModoChange }: MapaModoTabsProps) {
   return (
-    <Paper elevation={0} sx={mapaOperativoGlassPanelSx}>
-      <Typography
-        variant="body2"
-        sx={{ mb: 2, color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
-      >
-        Mapa operativo
-      </Typography>
+    <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
       <Tabs
         value={modo}
         onChange={(_, value) => onModoChange(value as MapaOperativoModo)}
-        sx={glassPrimaryTabsSx}
+        variant="fullWidth"
+        sx={{ ...moduleSlicesTabsSx, width: "100%" }}
       >
-        <Tab label="Pendientes" value="pendientes" />
-        <Tab label="Realizados" value="realizados" />
+        <Tab label="Pendientes" value="pendientes" sx={{ fontFamily: tactic, fontWeight: 500, textTransform: "none" }} />
+        <Tab label="Realizados" value="realizados" sx={{ fontFamily: tactic, fontWeight: 500, textTransform: "none" }} />
       </Tabs>
     </Paper>
   );

@@ -1,36 +1,61 @@
-import { Card, CardContent, Typography } from "@mui/material";
+import { Box, Card, CardContent, LinearProgress, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
+import {
+  dashboardCardTitleSx,
+  dashboardGlassCardSx,
+} from "../../../styles/DashboardStyles";
+import { DashboardDemoBadge } from "./DashboardDemoBadge";
+
 interface ChartCardProps {
-    title: string;
-    children: ReactNode;
+  title: string;
+  children: ReactNode;
+  /** Muestra badge «Demo» — datos no conectados al backend. */
+  demo?: boolean;
+  loading?: boolean;
 }
 
-
-const ChartCard = ({ title, children }: ChartCardProps) => (
-    <Card
+const ChartCard = ({ title, children, demo = false, loading = false }: ChartCardProps) => (
+  <Card
+    sx={{
+      ...dashboardGlassCardSx,
+      p: { xs: 2, sm: 2.5 },
+      position: "relative",
+      overflow: "hidden",
+      minWidth: 260,
+    }}
+  >
+    {loading ? (
+      <LinearProgress
         sx={{
-            bgcolor: "#2B2E34",
-            borderRadius: 3,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-            p: 2,
-            minWidth:"260px",
-            height: "90%",
-            transition: "0.3s",
-            "&:hover": {
-                boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-
-            }
-        }
-    }
-            >
-        <Typography variant="h6" sx={{ color: "white", mb: 2, fontWeight: 600 }}>
-            {title}
-        </Typography>
-        <CardContent sx={{ p: 0 }}>
-            {children}
-        </CardContent>
-    </Card >
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          borderRadius: 0,
+        }}
+      />
+    ) : null}
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 1,
+        mb: 2,
+        flexWrap: "wrap",
+      }}
+    >
+      <Typography component="h3" sx={dashboardCardTitleSx}>
+        {title}
+      </Typography>
+      {demo ? <DashboardDemoBadge /> : null}
+    </Box>
+    <CardContent sx={{ p: 0, "&:last-child": { pb: 0 }, opacity: loading ? 0.72 : 1, transition: "opacity 0.2s" }}>
+      {children}
+    </CardContent>
+  </Card>
 );
 
 export default ChartCard;

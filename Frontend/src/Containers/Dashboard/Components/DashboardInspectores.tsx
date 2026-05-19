@@ -3,47 +3,35 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
+
+import type { IndicadoresRankingInspector } from "../../../api/indicadoresApi";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { dataTableShellSx } from "../../../styles/mrtGlassDataTablePreset";
+import { dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
 
-export type Inspector = {
-  id: number;
-  nombre: string;
-  inspecciones: number;
-};
+type RankingRow = IndicadoresRankingInspector & { posicion: number };
 
 type Props = {
-  data: Inspector[];
+  items: IndicadoresRankingInspector[];
 };
 
-const RankingInspectores = ({ data }: Props) => {
-  // Ordenar y agregar posición
-  const ranking = useMemo(() => {
-    return [...data]
-      .sort((a, b) => b.inspecciones - a.inspecciones)
-      .map((item, index) => ({
+const RankingInspectores = ({ items }: Props) => {
+  const ranking = useMemo<RankingRow[]>(
+    () =>
+      items.map((item, index) => ({
         ...item,
         posicion: index + 1,
-      }));
-  }, [data]);
+      })),
+    [items]
+  );
 
-  const columns = useMemo<MRT_ColumnDef<typeof ranking[0]>[]>(
+  const columns = useMemo<MRT_ColumnDef<RankingRow>[]>(
     () => [
-      {
-        accessorKey: "posicion",
-        header: "#",
-        size: 10,
-      },
-      {
-        accessorKey: "nombre",
-        header: "Inspector",
-      },
-      {
-        accessorKey: "inspecciones",
-        header: "Inspecciones",
-      },
+      { accessorKey: "posicion", header: "#", size: 48 },
+      { accessorKey: "inspector_nombre", header: "Inspector" },
+      { accessorKey: "total_actuaciones", header: "Actuaciones" },
     ],
     []
   );
@@ -59,14 +47,21 @@ const RankingInspectores = ({ data }: Props) => {
     enableGlobalFilter: false,
     enableSorting: false,
     enableTopToolbar: false,
-    enableBottomToolbar: true,
+    enableBottomToolbar: ranking.length > 8,
     muiTableContainerProps: {
       sx: {
-        maxHeight: 350,
-        minHeight: 300,
+        maxHeight: Math.min(320, Math.max(160, ranking.length * 40 + 48)),
       },
     },
   });
+
+  if (!items.length) {
+    return (
+      <Box sx={dashboardEmptyStateSx}>
+        <Typography variant="body2">Sin actuaciones con inspectores en el periodo.</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={dataTableShellSx}>

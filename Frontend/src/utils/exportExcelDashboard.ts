@@ -1,29 +1,33 @@
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-// Interfaz opcional para tipar los datos
-interface DashboardData {
+/** Solo KPIs reales del resumen — sin series mock (D1b). */
+interface DashboardExportData {
   tarjetas: { title: string; value: number }[];
-  lineChart: { mes: string; actu: number }[];
-  pieChart: { rubro: string; clausuras: number }[];
+  periodoLabel?: string;
 }
 
-export const exportDashboardToExcel = (data: DashboardData) => {
+/**
+ * Exporta únicamente tarjetas/KPIs con datos del servidor.
+ * Gráficos demo no se incluyen hasta D1c/D1d.
+ */
+export const exportDashboardToExcel = (data: DashboardExportData) => {
   const wb = XLSX.utils.book_new();
 
-  // Hoja de Tarjetas
-  const tarjetasWs = XLSX.utils.json_to_sheet(data.tarjetas);
-  XLSX.utils.book_append_sheet(wb, tarjetasWs, "Tarjetas");
+  const tarjetasRows: { Indicador: string; Valor: string | number }[] = [];
+  if (data.periodoLabel) {
+    tarjetasRows.push({ Indicador: "Periodo", Valor: data.periodoLabel });
+  }
+  tarjetasRows.push(
+    ...data.tarjetas.map((t) => ({
+      Indicador: t.title,
+      Valor: t.value,
+    }))
+  );
 
-  // Hoja de LineChart
-  const lineChartWs = XLSX.utils.json_to_sheet(data.lineChart);
-  XLSX.utils.book_append_sheet(wb, lineChartWs, "Actuaciones x mes");
+  const tarjetasWs = XLSX.utils.json_to_sheet(tarjetasRows);
+  XLSX.utils.book_append_sheet(wb, tarjetasWs, "Indicadores");
 
-  // Hoja de PieChart
-  const pieChartWs = XLSX.utils.json_to_sheet(data.pieChart);
-  XLSX.utils.book_append_sheet(wb, pieChartWs, "Rubros");
-
-  // Generar archivo
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), "dashboard.xlsx");
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), "indicadores-resumen.xlsx");
 };

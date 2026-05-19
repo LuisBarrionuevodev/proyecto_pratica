@@ -60,6 +60,44 @@ class RutaItemsEjecucionResumen(BaseModel):
     estado_ejecucion_sin_clasificar: int = Field(ge=0)
 
 
+class ActasLabradasMesItem(BaseModel):
+    """Actas efectivamente labradas en actuaciones del mes (sin previas/origen)."""
+
+    anio: int
+    mes: int = Field(ge=1, le=12)
+    total: int = Field(ge=0)
+    inspeccion: int = Field(ge=0)
+    notificacion: int = Field(ge=0)
+    comprobacion: int = Field(ge=0)
+    clausura: int = Field(ge=0)
+    decomiso: int = Field(ge=0)
+
+
+class RankingInspectorItem(BaseModel):
+    inspector_id: int
+    inspector_nombre: str
+    total_actuaciones: int = Field(ge=0)
+
+
+class ReinspeccionesRealizadas(BaseModel):
+    """Reinspecciones cerradas con visita realizada (ruta publicada, actuación vinculada)."""
+
+    notificacion: int = Field(ge=0)
+    oficio: int = Field(ge=0)
+
+
+class ContraproducenciaPorTipoItem(BaseModel):
+    """Agrupación por valor de contraproducencia (incluye bucket sin contraproducencia)."""
+
+    valor: str
+    count: int = Field(ge=0)
+
+
+class ActuacionPorTipoOperativoItem(BaseModel):
+    tipo: str
+    count: int = Field(ge=0)
+
+
 class MapaOperativoResumen(BaseModel):
     """
     Conteos alineados al mapa operativo D1 (mismo criterio que ``/map/operativo/*``).
@@ -82,6 +120,11 @@ class IndicadoresResumenOut(BaseModel):
     actuaciones: ActuacionesResumen
     contraproducencias_top: list[ContraproducenciaTopItem]
     actas_por_tipo: ActasPorTipo
+    actas_labradas_mensual: list[ActasLabradasMesItem]
+    ranking_inspectores: list[RankingInspectorItem]
+    reinspecciones_realizadas: ReinspeccionesRealizadas
+    contraproducencias_por_tipo: list[ContraproducenciaPorTipoItem]
+    actuaciones_por_tipo_operativo: list[ActuacionPorTipoOperativoItem]
     ruta_items_ejecucion: RutaItemsEjecucionResumen
     mapa_operativo: MapaOperativoResumen
     top_rubros: list[RubroTopItem]

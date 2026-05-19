@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { useCallback, useState } from "react";
-import { Alert, Box, CircularProgress, Paper, Tab, Tabs, Typography } from "@mui/material";
+import { Alert, Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import TablaRelevamientos from "./Components/TableRelevamientos";
 import FiltroRelevamientos from "./Components/FiltroRelevamientos";
 import { useRelevamientosBandeja } from "./hooks/useRelevamientosBandeja";
@@ -89,13 +89,7 @@ const RelevamientosContainer = (): JSX.Element => {
         </Typography>
       )}
 
-      {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-          <CircularProgress sx={{ color: "#0166FF" }} />
-        </Box>
-      )}
-
-      {hasSearched && !loading && meta && (
+      {hasSearched && meta && (
         <Box sx={metaInfoStyles}>
           <Typography sx={metaItemStyles}>
             <strong>Total:</strong> {meta.total}
@@ -129,7 +123,7 @@ const RelevamientosContainer = (): JSX.Element => {
         </Box>
       )}
 
-      {hasSearched && !loading && (
+      {hasSearched && (
         <TablaRelevamientos
           data={relevamientos}
           loading={loading}

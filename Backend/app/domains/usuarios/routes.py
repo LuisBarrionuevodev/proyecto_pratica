@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
@@ -13,7 +15,7 @@ from app.domains.usuarios.schemas import (
     PasswordResetRequest,
     ProfileUpdateRequest,
 )
-from app.domains.usuarios.security.decorators import require_role
+from app.domains.usuarios.security.decorators import require_role, resolve_user_from_identity
 from app.domains.usuarios.services.auth_service import login_user
 from app.domains.usuarios.services.password_reset_service import (
     confirm_password_reset,
@@ -25,9 +27,11 @@ from app.domains.usuarios.services.profile_service import (
     update_my_profile,
 )
 from app.domains.usuarios.services.users_service import (
+    UserEstadoFilter,
     create_user_admin,
     deactivate_user_admin,
     list_users_admin,
+    reactivate_user_admin,
     update_user_admin,
 )
 from app.shared.errors import pydantic_errors_to_cell_map
@@ -39,6 +43,26 @@ from app.security.rate_limiter import (
 )
 
 usuarios_api = Blueprint("usuarios_api", __name__)
+
+
+def _admin_actor_user_id() -> int:
+    """ID del admin autenticado (``require_role`` ya validó JWT y rol)."""
+    user = resolve_user_from_identity()
+    if not user:
+        raise ValueError("No autorizado.")
+    return user.id
+
+
+def _user_admin_error_status(message: str) -> int:
+    """Mapea errores de negocio de administración de usuarios a HTTP."""
+    lower = message.lower()
+    if "no encontrado" in lower:
+        return 404
+    if "propio usuario" in lower or "último administrador" in lower:
+        return 409
+    if "estado inválido" in lower:
+        return 400
+    return 400
 
 
 @usuarios_api.post("/api/auth/login")
@@ -154,8 +178,18 @@ def profile_change_password():
 def admin_users_list():
     """
     Lista usuarios para panel de administración.
+
+    Query:
+        estado: ``activos`` (default) | ``inactivos`` | ``todos``
     """
-    return jsonify(list_users_admin()), 200
+    estado = cast(
+        UserEstadoFilter,
+        (request.args.get("estado") or "activos").strip().lower(),
+    )
+    try:
+        return jsonify(list_users_admin(estado=estado)), 200
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), _user_admin_error_status(str(e))
 
 
 @usuarios_api.post("/api/admin/users")
@@ -206,15 +240,41 @@ def admin_users_update(user_id: int):
         return jsonify({"detail": message}), status
 
 
+@usuarios_api.patch("/api/admin/users/<int:user_id>/inactivar")
+@require_role("admin")
+def admin_users_inactivar(user_id: int):
+    """
+    Inactiva un usuario (``is_active=False``) sin borrar la fila.
+    """
+    try:
+        deactivate_user_admin(user_id, actor_user_id=_admin_actor_user_id())
+        return jsonify({"ok": True}), 200
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), _user_admin_error_status(str(e))
+
+
+@usuarios_api.patch("/api/admin/users/<int:user_id>/reactivar")
+@require_role("admin")
+def admin_users_reactivar(user_id: int):
+    """
+    Reactiva un usuario inactivo (``is_active=True``).
+    """
+    try:
+        reactivate_user_admin(user_id)
+        return jsonify({"ok": True}), 200
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), _user_admin_error_status(str(e))
+
+
 @usuarios_api.delete("/api/admin/users/<int:user_id>")
 @require_role("admin")
 def admin_users_delete(user_id: int):
     """
-    Desactiva (soft delete) un usuario.
+    Legacy: alias de inactivación. Preferir ``PATCH .../inactivar``.
     """
     try:
-        deactivate_user_admin(user_id)
+        deactivate_user_admin(user_id, actor_user_id=_admin_actor_user_id())
         return jsonify({"ok": True}), 200
     except ValueError as e:
-        return jsonify({"detail": str(e)}), 404
+        return jsonify({"detail": str(e)}), _user_admin_error_status(str(e))
 

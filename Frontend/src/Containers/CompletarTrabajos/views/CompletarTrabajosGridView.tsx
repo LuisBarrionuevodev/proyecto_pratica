@@ -60,7 +60,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
               letterSpacing: "0.02em",
             }}
           >
-            {fecha}
+            Total de trabajos pendientes del día: {total} · {fecha}
           </Typography>
           <AppButton dsVariant="ghost" onClick={onVolver} sx={{ alignSelf: { xs: "stretch", sm: "center" } }}>
             Volver
@@ -77,19 +77,6 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
         <Alert severity="warning" sx={{ ...alertBaseStyles, mb: 0 }}>
           {catalogsError}
         </Alert>
-      )}
-      {!error && meta != null && (
-        <Typography
-          variant="caption"
-          sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
-            color: "rgba(255,255,255,0.5)",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          Total trabajos: {meta.total}
-        </Typography>
       )}
       {!error && total === 0 && !loading && (
         <Typography

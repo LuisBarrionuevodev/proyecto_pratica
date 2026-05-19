@@ -1,26 +1,52 @@
-import { Alert, Box, Button, CircularProgress, FormControl, Grid, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
-import { exportDashboardToExcel } from "../../../utils/exportExcelDashboard";
-import ActuacionesMensualesChart from "./DashboardActuacionMensual";
-import DecomisoMensualChart from "./DashboardDecomiso";
-import { type Inspector } from "./DashboardInspectores";
-import DistribucionTipoChart from "./DashboardDistribucion";
-import ComparacionTurnoChart from "./DashboardTurnos";
-import PipelineChart from "./DashboardEmbudo";
-import ChartCard from "./ChartCard";
-import EfectivasInefectivasChart from "./DashboardFunnel";
-import KPI from "./DashboardKPI";
-import DashboardContraproducenciasTop from "./DashboardContraproducenciasTop";
-import DashboardRutaItemsResumen from "./DashboardRutaItemsResumen";
-import TopRubrosChart from "./DashboardTopRubros";
-import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
+import {
+  Alert,
+  Box,
+  FormControl,
+  Grid,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Paper,
+  Select,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { useEffect, useMemo, useState } from "react";
-import type { Periodo } from "../../../types/periodos";
-import RankingInspectores from "./DashboardInspectores";
-import { periodoToDateRange } from "../utils/periodoDateRange";
-import { useIndicadoresResumen } from "../hooks/useIndicadoresResumen";
+
+import { exportDashboardToExcel } from "../../../utils/exportExcelDashboard";
+import { functionalPageShellSx } from "../../../styles/functionalPageShell";
+import {
+  GLASS_COLORS,
+  moduleFiltersSurfaceSx,
+  moduleSlicesPanelPaperSx,
+  moduleSlicesTabsSx,
+} from "../../../styles/GlassStyles";
+import { AppButton } from "../../../ui";
+import { alertBaseStyles, filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
+import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
 import { fetchDistritosCatalogo } from "../../../api/geolocalizacionApi";
 import { fetchInspectores } from "../../../api/gridApi";
-import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
+import type { Periodo } from "../../../types/periodos";
+import { useIndicadoresResumen } from "../hooks/useIndicadoresResumen";
+import { periodoToDateRange } from "../utils/periodoDateRange";
+import ActuacionesMensualesChart from "./DashboardActuacionMensual";
+import ActuacionesPorTipoChart from "./DashboardActuacionesPorTipo";
+import ChartCard from "./ChartCard";
+import ContraproducenciaPorTipoChart from "./DashboardContraproducenciaPorTipo";
+import DashboardContraproducenciasTop from "./DashboardContraproducenciasTop";
+import DecomisoMensualChart from "./DashboardDecomiso";
+import DistribucionTipoChart from "./DashboardDistribucion";
+import EfectivasInefectivasChart from "./DashboardFunnel";
+import KPI from "./DashboardKPI";
+import RankingInspectores from "./DashboardInspectores";
+import DashboardRutaItemsResumen from "./DashboardRutaItemsResumen";
+import ReinspeccionesRealizadasChart from "./DashboardReinspecciones";
+import TopRubrosChart from "./DashboardTopRubros";
+import { dashboardDemoCaptionSx } from "./DashboardDemoBadge";
 
 const ACTAS_VACIAS: IndicadoresActasPorTipo = {
   inspeccion: 0,
@@ -29,6 +55,8 @@ const ACTAS_VACIAS: IndicadoresActasPorTipo = {
   clausura: 0,
   decomiso: 0,
 };
+
+const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
 
 const Panel = () => {
   const [periodo, setPeriodo] = useState<Periodo>("Mensual");
@@ -93,46 +121,6 @@ const Panel = () => {
 
   const { data, loading, error } = useIndicadoresResumen(resumenParams);
 
-  const inspectores: Inspector[] = [
-    { id: 1, nombre: "Gómez", inspecciones: 124 },
-    { id: 2, nombre: "Luna", inspecciones: 98 },
-    { id: 3, nombre: "Pérez", inspecciones: 156 },
-    { id: 4, nombre: "Sosa", inspecciones: 87 },
-    { id: 5, nombre: "Díaz", inspecciones: 142 },
-    { id: 6, nombre: "Romero", inspecciones: 110 },
-    { id: 7, nombre: "Torres", inspecciones: 76 },
-    { id: 8, nombre: "Rojas", inspecciones: 133 },
-    { id: 9, nombre: "Fernández", inspecciones: 123 },
-    { id: 10, nombre: "Gutiérrez", inspecciones: 52 },
-    { id: 11, nombre: "Martínez", inspecciones: 23 },
-    { id: 12, nombre: "Acosta", inspecciones: 41 },
-    { id: 13, nombre: "Benítez", inspecciones: 53 },
-    { id: 14, nombre: "Herrera", inspecciones: 26 },
-    { id: 15, nombre: "Silva", inspecciones: 22 },
-    { id: 16, nombre: "Molina", inspecciones: 11 },
-    { id: 17, nombre: "Castro", inspecciones: 64 },
-    { id: 18, nombre: "Vera", inspecciones: 22 },
-    { id: 19, nombre: "Navarro", inspecciones: 43 },
-    { id: 20, nombre: "Ibarra", inspecciones: 57 },
-  ];
-
-  const lineChartData = [
-    { mes: "Ene", actu: 40 },
-    { mes: "Feb", actu: 55 },
-    { mes: "Mar", actu: 90 },
-    { mes: "Abr", actu: 75 },
-    { mes: "May", actu: 120 },
-  ];
-
-  const pieChartData = [
-    { rubro: "Panaderia", clausuras: 120 },
-    { rubro: "Carniceria", clausuras: 90 },
-    { rubro: "Drugstore", clausuras: 70 },
-    { rubro: "Kiosco", clausuras: 50 },
-    { rubro: "Fiambreria", clausuras: 40 },
-    { rubro: "Otros", clausuras: 30 },
-  ];
-
   const actas = data?.actas_por_tipo ?? ACTAS_VACIAS;
   const actu = data?.actuaciones;
 
@@ -146,247 +134,307 @@ const Panel = () => {
         { title: "Mapa: pendientes total", value: data.mapa_operativo.pendientes_total },
         { title: "Mapa: realizados visita", value: data.mapa_operativo.realizados_visita },
         { title: "Ítems ruta (total, fecha ruta)", value: data.ruta_items_ejecucion.total },
+        {
+          title: "Reinspecciones por notificación (hechas)",
+          value: data.reinspecciones_realizadas.notificacion,
+        },
+        {
+          title: "Reinspecciones por oficio (hechas)",
+          value: data.reinspecciones_realizadas.oficio,
+        },
       ]
-    : [{ title: "Sin datos cargados", value: 0 }];
+    : [];
+
+  const periodoTabIndex = PERIODOS.indexOf(periodo);
 
   return (
-    <Box p={3} ml={3}>
-      {loading && (
-        <Box sx={{ mb: 2 }}>
-          <CircularProgress size={28} sx={{ color: "#0166FF" }} />
-        </Box>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+    <Box sx={functionalPageShellSx}>
+      {loading ? (
+        <LinearProgress
+          sx={{
+            position: "sticky",
+            top: 0,
+            zIndex: 2,
+            borderRadius: 1,
+            mb: -1,
+          }}
+        />
+      ) : null}
+
+      {error ? (
+        <Alert severity="error" sx={alertBaseStyles}>
           {error}
         </Alert>
-      )}
+      ) : null}
 
-      <Box display={"flex"} flexDirection={{ xs: "column", md: "column", lg: "row" }} justifyContent={"space-between"} alignItems={"center"}>
-        <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.65)", maxWidth: { xs: "100%", lg: 280 } }}>
-          Indicadores según el período y filtros seleccionados (datos reales del servidor).
-        </Typography>
-        <Box
-          display="flex"
-          flexDirection={{ xs: "column", md: "row" }}
-          bgcolor="#2B2E34"
-          borderRadius={3}
-          height={{ xs: "auto", md: "50px" }}
+      <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
+        <Tabs
+          value={periodoTabIndex}
+          onChange={(_, v) => setPeriodo(PERIODOS[v] ?? "Mensual")}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={moduleSlicesTabsSx}
         >
-          {(["Semanal", "Mensual", "Trimestral", "Anual"] as const).map((item) => (
-            <Button
-              key={item}
-              onClick={() => setPeriodo(item)}
-              variant={periodo === item ? "contained" : "text"}
-              sx={{
-                color: periodo === item ? "#000" : "#fff",
-                backgroundColor: periodo === item ? "#fff" : "transparent",
-                borderRadius: 2,
-
-                fontWeight: 500,
-                "&:hover": {
-                  backgroundColor: periodo === item ? "#fff" : "rgba(255,255,255,0.1)",
-                },
-              }}
-            >
-              {item}
-            </Button>
+          {PERIODOS.map((p) => (
+            <Tab key={p} label={p} />
           ))}
-        </Box>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", xl: "row" }, flexWrap: "wrap", gap: 2, m: 2, alignItems: "flex-end" }}>
-          <TextField
-            type="date"
-            label="Desde"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            slotProps={{
-              inputLabel: { shrink: true },
-            }}
-            variant="outlined"
-            sx={filtroItemStyles}
-          />
-          <TextField
-            type="date"
-            label="Hasta"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            slotProps={{
-              inputLabel: { shrink: true },
-            }}
-            variant="outlined"
-            sx={filtroItemStyles}
-          />
-          <FormControl variant="outlined" sx={[filtroItemStyles, { minWidth: 200 }]}>
-            <InputLabel id="dash-distrito-label" shrink>
-              Distrito
-            </InputLabel>
-            <Select
-              labelId="dash-distrito-label"
-              label="Distrito"
-              notched
-              displayEmpty
-              value={distritoId}
-              onChange={(e) => setDistritoId(String(e.target.value))}
-              sx={{ color: "#fff" }}
-            >
-              <MenuItem value="">
-                <em>Todos</em>
-              </MenuItem>
-              {distritoOptions.map((d) => (
-                <MenuItem key={d.id} value={String(d.id)}>
-                  {d.nombre}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl variant="outlined" sx={[filtroItemStyles, { minWidth: 200 }]}>
-            <InputLabel id="dash-inspector-label" shrink>
-              Inspector
-            </InputLabel>
-            <Select
-              labelId="dash-inspector-label"
-              label="Inspector"
-              notched
-              displayEmpty
-              value={inspectorId}
-              onChange={(e) => setInspectorId(String(e.target.value))}
-              sx={{ color: "#fff" }}
-            >
-              <MenuItem value="">
-                <em>Todos</em>
-              </MenuItem>
-              {inspectorOptions.map((i) => (
-                <MenuItem key={i.id} value={String(i.id)}>
-                  {i.nombre}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-        <Button
-          sx={{ height: "50px", mb: { xs: 3, lg: 0 }, fontSize: { xs: "10px", sm: "14px", backgroundColor: "#0166FF", borderRadius: 10 } }}
-          variant="contained"
-          color="primary"
-          onClick={() =>
-            exportDashboardToExcel({
-              tarjetas: tarjetasExport,
-              lineChart: lineChartData,
-              pieChart: pieChartData,
-            })
-          }
-        >
-          Descargar Informe
-        </Button>
-      </Box>
+        </Tabs>
+      </Paper>
 
-      <Grid container spacing={2} mb={1}>
+      <Paper elevation={0} sx={moduleFiltersSurfaceSx}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: '"Tactic Sans", sans-serif',
+              color: GLASS_COLORS.textSecondary,
+              fontSize: "0.8125rem",
+            }}
+          >
+            Indicadores según el período y filtros seleccionados (datos reales del servidor).
+          </Typography>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", lg: "row" },
+              flexWrap: "wrap",
+              gap: 2,
+              alignItems: { xs: "stretch", lg: "flex-end" },
+            }}
+          >
+            <TextField
+              type="date"
+              label="Desde"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              variant="outlined"
+              sx={filtroItemStyles}
+            />
+            <TextField
+              type="date"
+              label="Hasta"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              variant="outlined"
+              sx={filtroItemStyles}
+            />
+            <FormControl variant="outlined" sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 } }]}>
+              <InputLabel id="dash-distrito-label" shrink>
+                Distrito
+              </InputLabel>
+              <Select
+                labelId="dash-distrito-label"
+                label="Distrito"
+                notched
+                displayEmpty
+                value={distritoId}
+                onChange={(e) => setDistritoId(String(e.target.value))}
+              >
+                <MenuItem value="">
+                  <em>Todos</em>
+                </MenuItem>
+                {distritoOptions.map((d) => (
+                  <MenuItem key={d.id} value={String(d.id)}>
+                    {d.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl variant="outlined" sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 } }]}>
+              <InputLabel id="dash-inspector-label" shrink>
+                Inspector
+              </InputLabel>
+              <Select
+                labelId="dash-inspector-label"
+                label="Inspector"
+                notched
+                displayEmpty
+                value={inspectorId}
+                onChange={(e) => setInspectorId(String(e.target.value))}
+              >
+                <MenuItem value="">
+                  <em>Todos</em>
+                </MenuItem>
+                {inspectorOptions.map((i) => (
+                  <MenuItem key={i.id} value={String(i.id)}>
+                    {i.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip
+              title={
+                data
+                  ? "Exporta KPIs reales del periodo (incluye reinspecciones realizadas)."
+                  : "Cargá indicadores antes de exportar."
+              }
+            >
+              <span>
+                <AppButton
+                  dsVariant="primary"
+                  dsSize="sm"
+                  startIcon={<FileDownloadOutlinedIcon />}
+                  disabled={!data || loading}
+                  onClick={() =>
+                    exportDashboardToExcel({
+                      tarjetas: tarjetasExport,
+                      periodoLabel: `${desde} → ${hasta}`,
+                    })
+                  }
+                  sx={{ alignSelf: { xs: "stretch", lg: "center" }, whiteSpace: "nowrap" }}
+                >
+                  Exportar KPIs
+                </AppButton>
+              </span>
+            </Tooltip>
+          </Box>
+        </Box>
+      </Paper>
+
+      <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI title="Actuaciones" value={actu?.total ?? "—"} periodo={periodo} icon={""} />
+          <KPI title="Actuaciones" value={loading && !data ? "…" : (actu?.total ?? "—")} periodo={periodo} icon={null} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI title="Con contraproducencia" value={actu?.con_contraproducencia ?? "—"} periodo={periodo} icon={""} />
+          <KPI
+            title="Con contraproducencia"
+            value={loading && !data ? "…" : (actu?.con_contraproducencia ?? "—")}
+            periodo={periodo}
+            icon={null}
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI title="Sin contraproducencia" value={actu?.sin_contraproducencia ?? "—"} periodo={periodo} icon={""} />
+          <KPI
+            title="Sin contraproducencia"
+            value={loading && !data ? "…" : (actu?.sin_contraproducencia ?? "—")}
+            periodo={periodo}
+            icon={null}
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
             title="Pendientes (mapa)"
-            value={data?.mapa_operativo.pendientes_total ?? "—"}
+            value={loading && !data ? "…" : (data?.mapa_operativo.pendientes_total ?? "—")}
             periodo={periodo}
-            icon={""}
+            icon={null}
           />
         </Grid>
-      </Grid>
-      <Grid container spacing={2} mb={2}>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
             title="Cola planificable"
-            value={data?.mapa_operativo.pendientes_cola ?? "—"}
+            value={loading && !data ? "…" : (data?.mapa_operativo.pendientes_cola ?? "—")}
             periodo={periodo}
-            icon={""}
+            icon={null}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
             title="En ruta (completar trabajo)"
-            value={data?.mapa_operativo.pendientes_completar_trabajo ?? "—"}
+            value={loading && !data ? "…" : (data?.mapa_operativo.pendientes_completar_trabajo ?? "—")}
             periodo={periodo}
-            icon={""}
+            icon={null}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
             title="Realizados visita (mapa)"
-            value={data?.mapa_operativo.realizados_visita ?? "—"}
+            value={loading && !data ? "…" : (data?.mapa_operativo.realizados_visita ?? "—")}
             periodo={periodo}
-            icon={""}
+            icon={null}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <KPI
             title="Ítems ruta (global)"
-            value={data?.ruta_items_ejecucion.total ?? "—"}
+            value={loading && !data ? "…" : (data?.ruta_items_ejecucion.total ?? "—")}
             periodo={periodo}
-            icon={""}
+            icon={null}
           />
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title={`Actas labradas ${periodo} (tendencia — demo)`}>
-            <ActuacionesMensualesChart periodo={periodo} />
+          <ChartCard title={`Actas labradas — tendencia (${desde} → ${hasta})`} loading={loading && !data}>
+            <ActuacionesMensualesChart
+              items={data?.actas_labradas_mensual ?? []}
+              loading={loading}
+            />
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
-          <ChartCard title={`Kilos decomisados (${desde} → ${hasta})`}>
+          <ChartCard title={`Kilos decomisados (${desde} → ${hasta})`} loading={loading && !data}>
             <DecomisoMensualChart decomisoKg={data?.decomiso_kg ?? null} loading={loading} />
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 7 }}>
-          <ChartCard title={`Top contraproducencias (${desde} → ${hasta})`}>
+          <ChartCard title={`Top contraproducencias (${desde} → ${hasta})`} loading={loading && !data}>
             <DashboardContraproducenciasTop items={data?.contraproducencias_top ?? []} />
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 5 }}>
-          <ChartCard title={`Actas por tipo (${desde} → ${hasta})`}>
+          <ChartCard title={`Actas por tipo (${desde} → ${hasta})`} loading={loading && !data}>
             <DistribucionTipoChart actas={actas} />
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12 }}>
-          <ChartCard title={`Top rubros por actuaciones (${desde} → ${hasta})`}>
+        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+          <ChartCard title={`Top rubros (${desde} → ${hasta})`} loading={loading && !data}>
             <TopRubrosChart items={data?.top_rubros ?? []} />
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ChartCard title={`Ítems de ruta — ejecución (informativo: por fecha de ruta publicada; sin filtro distrito/inspector; ≠ realizados del mapa)`}>
+          <ChartCard
+            title="Ítems de ruta — ejecución"
+            loading={loading && !data}
+          >
             {data ? (
-              <DashboardRutaItemsResumen data={data.ruta_items_ejecucion} />
+              <>
+                <Typography variant="caption" sx={{ ...dashboardDemoCaptionSx, mt: 0, mb: 1.5 }}>
+                  Por fecha de ruta publicada; sin filtro distrito/inspector. ≠ realizados del mapa.
+                </Typography>
+                <DashboardRutaItemsResumen data={data.ruta_items_ejecucion} />
+              </>
             ) : (
-              <Typography variant="body2" color="rgba(255,255,255,0.6)" sx={{ py: 2 }}>
+              <Typography variant="body2" sx={{ ...dashboardDemoCaptionSx, py: 2 }}>
                 {loading ? "Cargando…" : "Sin datos."}
               </Typography>
             )}
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title={`Ranking inspectores ${periodo} (demo)`}>
-            <RankingInspectores data={inspectores} />
+          <ChartCard title={`Ranking inspectores (${desde} → ${hasta})`} loading={loading && !data}>
+            <RankingInspectores items={data?.ranking_inspectores ?? []} />
           </ChartCard>
         </Grid>
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <ChartCard title={`Comparación por turno ${periodo} (demo)`}>
-            <ComparacionTurnoChart />
+        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+          <ChartCard title={`Tipo de contraproducencia (${desde} → ${hasta})`} loading={loading && !data}>
+            <ContraproducenciaPorTipoChart items={data?.contraproducencias_por_tipo ?? []} />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+          <ChartCard title={`Tipo de actuación (${desde} → ${hasta})`} loading={loading && !data}>
+            <ActuacionesPorTipoChart items={data?.actuaciones_por_tipo_operativo ?? []} />
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+          <ChartCard title={`Reinspecciones realizadas (${desde} → ${hasta})`} loading={loading && !data}>
+            <ReinspeccionesRealizadasChart data={data?.reinspecciones_realizadas ?? null} />
+            <Typography component="span" sx={dashboardDemoCaptionSx}>
+              Fecha de cierre de ruta (visita realizada con actuación vinculada).
+            </Typography>
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 6 }}>
-          <ChartCard title="Resueltos por expediente (demo)">
-            <PipelineChart />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <ChartCard title={`Actuaciones sin / con contraproducencia (${desde} → ${hasta})`}>
+          <ChartCard title={`Actuaciones sin / con contraproducencia (${desde} → ${hasta})`} loading={loading && !data}>
             <EfectivasInefectivasChart
               sinContraproducencia={actu?.sin_contraproducencia ?? 0}
               conContraproducencia={actu?.con_contraproducencia ?? 0}

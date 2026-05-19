@@ -1,52 +1,71 @@
+import { Box, Typography } from "@mui/material";
 import { BarChart } from "@mui/x-charts/BarChart";
-import { ChartStyle } from "../../../styles/DashboardStyles";
-import type { Periodo } from "../../../types/periodos";
 import { useMemo } from "react";
 
-interface Props {
-  periodo: Periodo;
+import type { IndicadoresActasLabradasMes } from "../../../api/indicadoresApi";
+import { ChartStyle, dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+
+const MESES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+function mesLabel(anio: number, mes: number): string {
+  const m = MESES_CORTO[mes - 1] ?? String(mes);
+  return `${m} ${String(anio).slice(-2)}`;
 }
 
+interface Props {
+  items: IndicadoresActasLabradasMes[];
+  loading?: boolean;
+}
 
-const ActuacionesMensualesChart =  ({periodo}: Props) => {
-  const meses = [
-    "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
-  ];
+/**
+ * Tendencia mensual de actas labradas (sin previas/origen).
+ */
+const ActuacionesMensualesChart = ({ items, loading }: Props) => {
+  const chart = useMemo(() => {
+    if (!items.length) return null;
+    const labels = items.map((i) => mesLabel(i.anio, i.mes));
+    return {
+      labels,
+      inspeccion: items.map((i) => i.inspeccion),
+      notificacion: items.map((i) => i.notificacion),
+      comprobacion: items.map((i) => i.comprobacion),
+      clausura: items.map((i) => i.clausura),
+      decomiso: items.map((i) => i.decomiso),
+    };
+  }, [items]);
+
+  if (loading && !items.length) {
+    return (
+      <Box sx={{ ...dashboardEmptyStateSx, minHeight: 220 }}>
+        <Typography variant="body2">Cargando…</Typography>
+      </Box>
+    );
+  }
+
+  if (!chart) {
+    return (
+      <Box sx={{ ...dashboardEmptyStateSx, minHeight: 220 }}>
+        <Typography variant="body2">Sin actas labradas en el periodo seleccionado.</Typography>
+      </Box>
+    );
+  }
+
+  const height = Math.min(320, Math.max(200, chart.labels.length * 36 + 80));
 
   return (
     <BarChart
-      xAxis={[{ scaleType: "band", data: meses }]}
+      xAxis={[{ scaleType: "band", data: chart.labels }]}
       series={[
-        {
-          label: "Clausuras",
-          data: [30, 40, 35, 50, 45, 60],
-          stack: "total",
-        },
-        {
-          label: "Decomiso",
-          data: [30, 40, 35, 50, 45, 60],
-          stack: "total",
-        },
-        {
-          label: "Comprobacion",
-          data: [30, 40, 35, 50, 45, 60],
-          stack: "total",
-        },
-        {
-          label: "Notificaciones",
-          data: [80, 70, 75, 90, 85, 95],
-          stack: "total",
-        },
-        {
-          label: "Inspecciones",
-          data: [120, 130, 125, 140, 150, 160],
-          stack: "total",
-        },
+        { label: "Inspección", data: chart.inspeccion, stack: "total" },
+        { label: "Notificación", data: chart.notificacion, stack: "total" },
+        { label: "Comprobación", data: chart.comprobacion, stack: "total" },
+        { label: "Clausura", data: chart.clausura, stack: "total" },
+        { label: "Decomiso", data: chart.decomiso, stack: "total" },
       ]}
-      height={350}
-        sx={ChartStyle}
+      height={height}
+      sx={ChartStyle}
     />
   );
-}
+};
 
 export default ActuacionesMensualesChart;

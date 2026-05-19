@@ -1,32 +1,33 @@
 import type { SxProps, Theme } from "@mui/material";
 
-import { GLASS_COLORS, moduleFiltersSurfaceSx } from "../../../styles/GlassStyles";
-
-const MAPA_OPERATIVO_PANEL_PAD = 2;
+import {
+  GLASS_COLORS,
+  moduleContentPanelPaperSx,
+  moduleFiltersSurfaceSx,
+  moduleHeroCardSx,
+} from "../../../styles/GlassStyles";
 
 /**
- * Panel modo / resumen lateral: misma superficie glass liviana que filtros/slices del resto del sistema (F3.8c).
+ * Panel lateral resumen: mismo preset que bloques de contenido F3.8c (Completar / bandejas).
  */
 export const mapaOperativoGlassPanelSx: SxProps<Theme> = {
-  ...moduleFiltersSurfaceSx,
-  p: MAPA_OPERATIVO_PANEL_PAD,
+  ...moduleContentPanelPaperSx,
 };
 
-/** Barra de filtros unificados (Mapa operativo). */
+/** Barra de filtros: superficie estándar de filtros (sin padding extra respecto al sistema). */
 export const mapaOperativoBarSx: SxProps<Theme> = {
   ...moduleFiltersSurfaceSx,
-  p: MAPA_OPERATIVO_PANEL_PAD,
 };
 
 /**
- * Marco del canvas Leaflet: fondo/borde institucional, sin sombra tipo “card” Material.
+ * Marco del canvas Leaflet: alineado a `glassCard` (borde medio, radio 16px, sin sombra fuerte).
  */
 export const mapaOperativoSurfaceSx: SxProps<Theme> = {
   backgroundColor: GLASS_COLORS.cardBg,
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-  border: `1px solid ${GLASS_COLORS.borderLight}`,
-  borderRadius: "12px",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  borderRadius: "16px",
   boxShadow: "none",
   p: 0,
   overflow: "hidden",
@@ -54,13 +55,8 @@ export const mapaOperativoCaptionSx: SxProps<Theme> = {
   fontFamily: '"Tactic Sans", sans-serif',
 };
 
-/** Subcaja dentro del panel lateral (bloques de métricas). */
+/** Subcaja dentro del panel lateral (métricas / leyenda): mismo baseline que `moduleHeroCardSx`. */
 export const mapaOperativoInnerCardSx: SxProps<Theme> = {
-  border: `1px solid ${GLASS_COLORS.borderLight}`,
-  borderRadius: "12px",
+  ...moduleHeroCardSx,
   p: 1.75,
-  backgroundColor: "rgba(255, 255, 255, 0.035)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-  boxShadow: "none",
 };

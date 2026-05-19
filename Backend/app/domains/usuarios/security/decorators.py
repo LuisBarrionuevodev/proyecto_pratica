@@ -9,7 +9,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.models.user import User
 
 
-def _resolve_user_from_identity() -> User | None:
+def resolve_user_from_identity() -> User | None:
     identity = get_jwt_identity()
     if isinstance(identity, dict):
         user_id = identity.get("user_id")
@@ -38,7 +38,7 @@ def require_role(role: str) -> Callable:
         @wraps(fn)
         @jwt_required()
         def wrapper(*args: Any, **kwargs: Any):
-            user = _resolve_user_from_identity()
+            user = resolve_user_from_identity()
             if not user or not user.is_active:
                 return jsonify({"detail": "No autorizado"}), 401
             if user.role != role:

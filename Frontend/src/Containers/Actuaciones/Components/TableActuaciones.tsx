@@ -21,6 +21,7 @@ import {
 import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
+import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { ActuacionDetalleDialog } from "./ActuacionDetalleDialog";
 
 import {
@@ -439,29 +440,14 @@ const TablaActuaciones = ({
     [columnOrder, initialColumnVisibility]
   );
 
-  /**
-   * El override de `muiTableBodyCellProps` debe componerse con el de `DARK_TABLE_CONFIG`;
-   * si no, las celdas sin error pierden zebra, bordes y tipografía (layout “roto”).
-   */
-  const baseMuiTableBodyCellProps = DARK_TABLE_CONFIG.muiTableBodyCellProps;
-
-  const muiTableBodyCellPropsMerged = useCallback(
-    ({ row, column }: { row: MRT_Row<IActuacionListItem>; column: { id?: string } }) => {
-      const base =
-        typeof baseMuiTableBodyCellProps === "function"
-          ? baseMuiTableBodyCellProps({ row } as Parameters<typeof baseMuiTableBodyCellProps>[0])
-          : {};
-      const rid = Number(row.original.id);
-      const err = rowErrors[rid]?.[String(column.id)];
-      if (!err) return base;
-      const prev = base as { sx?: Record<string, unknown> };
-      const sx = prev.sx;
-      const mergedSx =
-        sx && typeof sx === "object" && !Array.isArray(sx)
-          ? { ...sx, backgroundColor: "rgba(255, 68, 68, 0.15)" }
-          : { backgroundColor: "rgba(255, 68, 68, 0.15)" };
-      return { ...base, sx: mergedSx };
-    },
+  const muiTableBodyCellPropsMerged = useMemo(
+    () =>
+      mergeMrtBodyCellPropsWithActuacionesPreset(DARK_TABLE_CONFIG.muiTableBodyCellProps, ({ row, column }) => {
+        const rid = Number((row.original as IActuacionListItem).id);
+        const err = rowErrors[rid]?.[String(column.id)];
+        if (!err) return;
+        return { sx: { backgroundColor: "rgba(255, 68, 68, 0.15)" } };
+      }),
     [rowErrors]
   );
 

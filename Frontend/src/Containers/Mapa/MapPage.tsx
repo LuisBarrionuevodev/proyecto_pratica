@@ -7,7 +7,7 @@ import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { setGeoManual } from "../../api/geoApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
-import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { MapaCanvas, type RelocalOperativoDraft } from "./Components/MapaCanvas";
 import { MapaFiltrosUnificados } from "./Components/MapaFiltrosUnificados";
 import { MapaModoTabs } from "./Components/MapaModoTabs";
@@ -237,16 +237,7 @@ const MapPage = () => {
   }, [relocalDraft, cargarOperativoConSnapshotUi]);
 
   return (
-    <Stack
-      spacing={FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING}
-      sx={{
-        width: "100%",
-        maxWidth: "100%",
-        boxSizing: "border-box",
-        px: { xs: 1, sm: 2 },
-        py: 2,
-      }}
-    >
+    <Stack sx={functionalPageShellSx}>
       {error && (
         <Alert severity="error" sx={alertBaseStyles}>
           {error}

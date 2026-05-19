@@ -51,12 +51,49 @@ export interface IndicadoresDecomisoKg {
   por_mes: IndicadoresDecomisoKgPorMes[];
 }
 
+export interface IndicadoresActasLabradasMes {
+  anio: number;
+  mes: number;
+  total: number;
+  inspeccion: number;
+  notificacion: number;
+  comprobacion: number;
+  clausura: number;
+  decomiso: number;
+}
+
+export interface IndicadoresRankingInspector {
+  inspector_id: number;
+  inspector_nombre: string;
+  total_actuaciones: number;
+}
+
+export interface IndicadoresReinspeccionesRealizadas {
+  notificacion: number;
+  oficio: number;
+}
+
+export interface IndicadoresContraproducenciaPorTipo {
+  valor: string;
+  count: number;
+}
+
+export interface IndicadoresActuacionPorTipoOperativo {
+  tipo: string;
+  count: number;
+}
+
 export interface IndicadoresResumenResponse {
   periodo: { desde: string; hasta: string };
   filtros: { distrito_id: number | null; inspector_id: number | null };
   actuaciones: IndicadoresActuacionesResumen;
   contraproducencias_top: IndicadoresContraproducenciaTopItem[];
   actas_por_tipo: IndicadoresActasPorTipo;
+  actas_labradas_mensual: IndicadoresActasLabradasMes[];
+  ranking_inspectores: IndicadoresRankingInspector[];
+  reinspecciones_realizadas: IndicadoresReinspeccionesRealizadas;
+  contraproducencias_por_tipo: IndicadoresContraproducenciaPorTipo[];
+  actuaciones_por_tipo_operativo: IndicadoresActuacionPorTipoOperativo[];
   ruta_items_ejecucion: IndicadoresRutaItemsEjecucion;
   mapa_operativo: IndicadoresMapaOperativo;
   top_rubros: IndicadoresRubroTopItem[];

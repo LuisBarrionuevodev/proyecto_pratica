@@ -1,9 +1,17 @@
 import { Box, Typography } from "@mui/material";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { ChartStyle } from "../../../styles/DashboardStyles";
-import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
 
-const COLORS = ["#0166FF", "#22BF75", "#F5A623", "#FA4F58", "#9B59B6"];
+import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
+import { ChartStyle, dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+
+const COLORS = [
+  GLASS_COLORS.primary,
+  "#22BF75",
+  "#F5A623",
+  "#FA4F58",
+  "#9B59B6",
+];
 
 function actasToPieData(actas: IndicadoresActasPorTipo) {
   const pairs: { label: string; value: number }[] = [
@@ -33,10 +41,8 @@ const DistribucionTipoChart = ({ actas }: Props) => {
   const data = actasToPieData(actas);
   if (!data.length) {
     return (
-      <Box sx={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Typography variant="body2" color="rgba(255,255,255,0.6)">
-          Sin actas en el periodo seleccionado.
-        </Typography>
+      <Box sx={dashboardEmptyStateSx}>
+        <Typography variant="body2">Sin actas en el periodo seleccionado.</Typography>
       </Box>
     );
   }

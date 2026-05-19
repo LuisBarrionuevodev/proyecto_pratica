@@ -20,13 +20,17 @@ import {
   filtroItemStyles,
   filtroTitleStyles,
 } from "../Actuaciones/styles/filtroStyles";
-import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
+import { DARK_TABLE_CONFIG, exportButtonStyles } from "../Actuaciones/styles/actuacionesTableStyles";
+import {
+  BandejaEllipsisCell,
+  BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
+} from "../Actuaciones/Components/bandejaTableCells";
 import {
   getEstablecimientosOperativos,
   type IEstablecimientoOperativoListItem,
 } from "../../api/establecimientosOperativosApi";
 import { RubroChip } from "./components/RubroChip";
-import { dataTableShellSx } from "../../styles/mrtGlassDataTablePreset";
+import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
 import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -60,12 +64,17 @@ function EstablecimientosListResults({
 
   const columns = useMemo<MRT_ColumnDef<IEstablecimientoOperativoListItem>[]>(
     () => [
-      { accessorKey: "calle", header: "CALLE", size: 200 },
+      {
+        accessorKey: "calle",
+        header: "CALLE",
+        size: 200,
+        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
+      },
       {
         accessorKey: "numero",
         header: "NÚMERO",
         size: 120,
-        Cell: ({ cell }) => (cell.getValue() as string | null) ?? "—",
+        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
       },
       {
         accessorKey: "rubro_nombre",
@@ -80,25 +89,25 @@ function EstablecimientosListResults({
         accessorKey: "contrib_nombre",
         header: "NOMBRE",
         size: 120,
-        Cell: ({ cell }) => (cell.getValue() as string | null) ?? "—",
+        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
       },
       {
         accessorKey: "contrib_apellido",
         header: "APELLIDO",
         size: 120,
-        Cell: ({ cell }) => (cell.getValue() as string | null) ?? "—",
+        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
       },
       {
         accessorKey: "documento",
         header: "DOCUMENTO",
         size: 120,
-        Cell: ({ cell }) => (cell.getValue() as string | null) ?? "—",
+        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
       },
       {
         accessorKey: "distrito_nombre",
         header: "DISTRITO",
         size: 140,
-        Cell: ({ cell }) => (cell.getValue() as string | null) ?? "—",
+        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
       },
     ],
     []
@@ -106,6 +115,7 @@ function EstablecimientosListResults({
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
     columns,
     data: rows,
     getRowId: (row) => String(row.id),
@@ -134,15 +144,7 @@ function EstablecimientosListResults({
         dsVariant="secondary"
         dsSize="sm"
         onClick={() => navigate(`/establecimientos/${row.original.id}`)}
-        sx={{
-          fontFamily: '"Tactic Sans", sans-serif',
-          textTransform: "uppercase",
-          fontSize: "10px",
-          fontWeight: 600,
-          letterSpacing: "0.06em",
-          borderColor: COLORS.border,
-          color: COLORS.white,
-        }}
+        sx={exportButtonStyles}
       >
         Ver ficha
       </AppButton>
@@ -157,20 +159,23 @@ function EstablecimientosListResults({
   }, [total, pagination.pageIndex, pagination.pageSize]);
 
   return (
-    <Box sx={dataTableShellSx}>
+    <DataTableMrtShell loading={loading} loadingMode="progress"
+      footer={
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            mt: 1,
+            fontFamily: '"Tactic Sans", sans-serif',
+            color: "rgba(255,255,255,0.45)",
+          }}
+        >
+          {rangeLabel} · datos de establecimientos operativos
+        </Typography>
+      }
+    >
       <MaterialReactTable table={table} />
-      <Typography
-        variant="caption"
-        sx={{
-          display: "block",
-          mt: 1,
-          fontFamily: '"Tactic Sans", sans-serif',
-          color: "rgba(255,255,255,0.45)",
-        }}
-      >
-        {rangeLabel} · datos de establecimientos operativos
-      </Typography>
-    </Box>
+    </DataTableMrtShell>
   );
 }
 

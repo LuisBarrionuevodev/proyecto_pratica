@@ -791,39 +791,6 @@ const GestionNotificacionPage = () => {
 
   return (
     <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx } as SxProps<Theme>}>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          flexWrap: "wrap",
-          alignItems: { xs: "stretch", sm: "flex-start" },
-          gap: 2,
-          pb: 1,
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <Box sx={{ flex: "1 1 280px", minWidth: 0 }}>
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)", mb: 0.75 }}>
-            <strong>Sincronizar vencimientos</strong> materializa en el sistema la cola de reinspección por
-            notificaciones vencidas (iniciadores para planificación). Esta tabla sigue siendo la bandeja de{" "}
-            <strong>expedientes de plazo</strong> y <strong>días restantes</strong>: el resultado del sync{" "}
-            <strong>no siempre cambia</strong> las filas visibles.
-          </Typography>
-          <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.55)", mb: 1.25 }}>
-            Tras <strong>Sincronizar vencimientos</strong> correcto, la bandeja se recarga sola. El ícono de actualizar
-            en la barra de la tabla solo <strong>recarga esta bandeja</strong>; no ejecuta la sincronización.
-          </Typography>
-          <AppButton
-            dsVariant="primary"
-            dsSize="sm"
-            onClick={() => void handleSyncNotificacionesVencidas()}
-            disabled={syncLoading || loading}
-          >
-            {syncLoading ? "Sincronizando…" : "Sincronizar vencimientos"}
-          </AppButton>
-        </Box>
-      </Box>
-
       {notificacionDeepLinkAviso ? (
         <Alert severity="info" sx={{ ...alertBaseStyles, mb: 1.5 }} onClose={() => setNotificacionDeepLinkAviso(null)}>
           {notificacionDeepLinkAviso}
@@ -845,13 +812,21 @@ const GestionNotificacionPage = () => {
         </Alert>
       )}
 
-      <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
+      <Paper
+        elevation={0}
+        sx={{
+          ...moduleSlicesPanelPaperSx,
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: { xs: 1.25, sm: 1 },
+        }}
+      >
         <Tabs
           value={plazoSlice}
           onChange={(_, v) => setPlazoSlice(v as PlazoOperativoSlice)}
           variant="scrollable"
           allowScrollButtonsMobile
-          sx={moduleSlicesTabsSx}
+          sx={{ ...moduleSlicesTabsSx, flex: 1, minWidth: 0 }}
         >
           {PLAZO_TAB_ORDER.map((slice) => (
             <Tab
@@ -865,6 +840,23 @@ const GestionNotificacionPage = () => {
             />
           ))}
         </Tabs>
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
+          onClick={() => void handleSyncNotificacionesVencidas()}
+          disabled={syncLoading || loading}
+          sx={{
+            alignSelf: { xs: "stretch", sm: "center" },
+            flexShrink: 0,
+            mx: { xs: 0, sm: 0.5 },
+            mb: { xs: 0.25, sm: 0 },
+            fontFamily: '"Tactic Sans", sans-serif',
+            fontWeight: 600,
+            whiteSpace: { xs: "normal", sm: "nowrap" },
+          }}
+        >
+          {syncLoading ? "Sincronizando…" : "Sincronizar vencimientos"}
+        </AppButton>
       </Paper>
 
       {error && (

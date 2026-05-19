@@ -1,4 +1,4 @@
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -14,10 +14,21 @@ import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
 import { RelevamientoEditDialog } from "./RelevamientoEditDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
-  loadingStyles,
+  BandejaEllipsisCell,
+  BANDEJA_MRT_BODY_CELL_PROPS,
+  BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
+} from "../../Actuaciones/Components/bandejaTableCells";
+import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
+import {
   DARK_TABLE_CONFIG,
   COLORS,
 } from "../../Actuaciones/styles/actuacionesTableStyles";
+
+function relevamientoCellText(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  return String(value);
+}
 
 interface TablaRelevamientosProps {
   data?: IRelevamientoListItem[];
@@ -175,17 +186,27 @@ const TablaRelevamientos = ({
   const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => {
     const baseColumns: MRT_ColumnDef<IRelevamientoListItem>[] = [
       { accessorKey: "id", header: "ID", enableHiding: true, size: 80 },
-      { accessorKey: "fecha", header: "Fecha", size: 120 },
-      { accessorKey: "inspector", header: "Inspector", size: 200 },
+      {
+        accessorKey: "fecha",
+        header: "Fecha",
+        size: 120,
+        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
+      },
+      {
+        accessorKey: "inspector",
+        header: "Inspector",
+        size: 200,
+        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
+      },
       {
         accessorKey: "calle",
         header: "Calle",
         size: 200,
         Cell: ({ row }) => {
           if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
-            return row.original.calle_normalizada;
+            return <BandejaEllipsisCell value={row.original.calle_normalizada} />;
           }
-          return row.original.calle ?? "";
+          return <BandejaEllipsisCell value={relevamientoCellText(row.original.calle)} />;
         },
       },
       {
@@ -197,20 +218,28 @@ const TablaRelevamientos = ({
             row.original.numero_tipo === "ESQUINA" &&
             (row.original.numero_esquina || row.original.esquina_normalizada)
           ) {
-            return row.original.numero_esquina || row.original.esquina_normalizada || "";
+            return (
+              <BandejaEllipsisCell
+                value={relevamientoCellText(
+                  row.original.numero_esquina || row.original.esquina_normalizada
+                )}
+              />
+            );
           }
-          return row.original.numero ?? "";
+          return <BandejaEllipsisCell value={relevamientoCellText(row.original.numero)} />;
         },
       },
-      { accessorKey: "rubro", header: "Rubro", size: 180 },
+      {
+        accessorKey: "rubro",
+        header: "Rubro",
+        size: 180,
+        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
+      },
       {
         accessorKey: "turno",
         header: "Turno",
         size: 130,
-        Cell: ({ cell }) => {
-          const v = cell.getValue() as string | null | undefined;
-          return v || "—";
-        },
+        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
       },
       {
         accessorKey: "esta_abierto",
@@ -218,9 +247,9 @@ const TablaRelevamientos = ({
         size: 130,
         Cell: ({ cell }) => {
           const v = cell.getValue() as boolean | string | null | undefined;
-          if (v === true || v === "Sí") return "Sí";
-          if (v === false || v === "No") return "No";
-          return "—";
+          if (v === true || v === "Sí") return <BandejaEllipsisCell value="Sí" />;
+          if (v === false || v === "No") return <BandejaEllipsisCell value="No" />;
+          return <BandejaEllipsisCell value="—" />;
         },
       },
     ];
@@ -232,8 +261,20 @@ const TablaRelevamientos = ({
     ...columns.map((col) => col.accessorKey as string),
   ]), [columns, hideRowActions]);
 
+  const muiTableBodyCellPropsMerged = useMemo(
+    () =>
+      mergeMrtBodyCellPropsWithActuacionesPreset(BANDEJA_MRT_BODY_CELL_PROPS.muiTableBodyCellProps, ({ row, column }) => {
+        const rid = Number((row.original as IRelevamientoListItem).id);
+        const err = rowErrors[rid]?.[String(column.id)];
+        if (!err) return;
+        return { sx: { backgroundColor: "rgba(255, 68, 68, 0.15)" } };
+      }),
+    [rowErrors]
+  );
+
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
     columns,
     data,
     /** La grilla es solo lectura; la prop `enableEditing` habilita el botón y el diálogo. */
@@ -244,11 +285,7 @@ const TablaRelevamientos = ({
     enableRowActions: !hideRowActions,
     positionActionsColumn: "first",
     enableHiding: true,
-    muiTableBodyCellProps: ({ row, column }) => {
-      const rid = Number(row.original.id);
-      const err = rowErrors[rid]?.[column.id];
-      return err ? { sx: { backgroundColor: "rgba(255, 68, 68, 0.15)" } } : {};
-    },
+    muiTableBodyCellProps: muiTableBodyCellPropsMerged,
     initialState: {
       columnOrder,
       density: "compact",
@@ -257,6 +294,10 @@ const TablaRelevamientos = ({
         rubro: true,
         ...initialColumnVisibility,
       },
+    },
+    state: {
+      isLoading: loading,
+      showProgressBars: loading,
     },
     renderRowActions: hideRowActions ? undefined : ({ row }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
@@ -297,17 +338,11 @@ const TablaRelevamientos = ({
     ),
   });
 
-  if (loading) {
-    return (
-      <Box sx={{ padding: "40px", textAlign: "center" }}>
-        <Typography sx={loadingStyles}>Cargando relevamientos...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box>
-      <MaterialReactTable table={table} />
+      <DataTableMrtShell loading={loading} loadingMode="progress">
+        <MaterialReactTable table={table} />
+      </DataTableMrtShell>
 
       {editDraft && (
         <RelevamientoEditDialog

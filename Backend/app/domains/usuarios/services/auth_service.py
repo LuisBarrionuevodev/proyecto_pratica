@@ -28,7 +28,7 @@ def login_user(*, username: str, password: str) -> dict:
     if not user or not verify_password(user.password_hash, password):
         raise ValueError("Credenciales inválidas.")
     if not user.is_active:
-        raise ValueError("Usuario desactivado.")
+        raise ValueError("Usuario inactivo. Contacte al administrador.")
 
     profile: Profile = _ensure_profile(user)
     db.session.commit()

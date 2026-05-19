@@ -13,8 +13,13 @@ import {
 import { isAxiosError } from "axios";
 
 import { AppButton } from "../../ui";
+import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
+import {
+  BandejaEllipsisCell,
+  BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
+} from "../Actuaciones/Components/bandejaTableCells";
 import { glassCard } from "../../styles/GlassStyles";
 import {
   getEstablecimientoOperativoActuaciones,
@@ -192,37 +197,37 @@ export default function EstablecimientoDetallePage() {
         accessorKey: "fecha",
         header: "FECHA",
         size: 130,
-        Cell: ({ row }) => formatFecha(row.original.fecha),
+        Cell: ({ row }) => <BandejaEllipsisCell value={formatFecha(row.original.fecha)} />,
       },
       {
         accessorKey: "tipo_actuacion",
         header: "TIPO DE ACTUACIÓN",
         size: 160,
-        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
       },
       {
         accessorKey: "contraproducencia",
         header: "CONTRAPRODUCENCIA",
         size: 160,
-        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
       },
       {
         accessorKey: "nombre_local",
         header: "NOMBRE LOCAL",
         size: 180,
-        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
       },
       {
         accessorKey: "orden_trabajo_numero",
         header: "ORDEN DE TRABAJO",
         size: 140,
-        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
       },
       {
         accessorKey: "acta_inspeccion_num",
         header: "Nº ACTA INSPECCIÓN",
         size: 150,
-        Cell: ({ cell }) => dash(cell.getValue() as string | null),
+        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
       },
     ],
     []
@@ -230,6 +235,7 @@ export default function EstablecimientoDetallePage() {
 
   const tableHistorial = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
     columns: colsHistorial,
     data: historialRows,
     getRowId: (r) => String(r.id),
@@ -245,7 +251,6 @@ export default function EstablecimientoDetallePage() {
       showProgressBars: loadingHistorial,
     },
     onPaginationChange: setPagination,
-    initialState: { density: "compact" },
     enableRowActions: false,
   });
 
@@ -432,19 +437,14 @@ export default function EstablecimientoDetallePage() {
             Historial de actuaciones
           </Typography>
           {errorHistorial ? <Alert severity="error">{errorHistorial}</Alert> : null}
-          {historialTotal === null && !errorHistorial ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-              Cargando historial…
-            </Typography>
-          ) : historialTotal === 0 && !errorHistorial ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-              No hay actuaciones vinculadas a esta ficha.
-            </Typography>
-          ) : (
-            <Box sx={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+          {!errorHistorial ? (
+            <DataTableMrtShell
+              loading={loadingHistorial || historialTotal === null}
+              loadingMode="progress"
+            >
               <MaterialReactTable table={tableHistorial} />
-            </Box>
-          )}
+            </DataTableMrtShell>
+          ) : null}
         </Stack>
       </Paper>
     </Stack>

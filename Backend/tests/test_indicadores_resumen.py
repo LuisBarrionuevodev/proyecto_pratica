@@ -70,3 +70,13 @@ def test_get_indicadores_resumen_ok_shape(client, auth_headers):
     assert "total_kg" in dk
     assert "por_mes" in dk
     assert isinstance(dk["por_mes"], list)
+    assert "actas_labradas_mensual" in data
+    assert isinstance(data["actas_labradas_mensual"], list)
+    assert "ranking_inspectores" in data
+    assert isinstance(data["ranking_inspectores"], list)
+    rr = data["reinspecciones_realizadas"]
+    assert "notificacion" in rr and "oficio" in rr
+    assert "contraproducencias_por_tipo" in data
+    assert isinstance(data["contraproducencias_por_tipo"], list)
+    assert "actuaciones_por_tipo_operativo" in data
+    assert isinstance(data["actuaciones_por_tipo_operativo"], list)

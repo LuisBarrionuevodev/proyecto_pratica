@@ -3,38 +3,49 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import and_, extract, func
+from sqlalchemy import and_, exists, extract, func
 
 from app.database import db
+from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
+    _realizados_inspector_coincide,
+    count_mapa_operativo_pendientes_cola,
+    count_mapa_operativo_pendientes_en_ruta,
+    count_mapa_operativo_realizados_visita,
+)
 from app.domains.indicadores.schemas.resumen_out import (
+    ActasLabradasMesItem,
     ActasPorTipo,
+    ActuacionPorTipoOperativoItem,
     ActuacionesResumen,
+    ContraproducenciaPorTipoItem,
     ContraproducenciaTopItem,
     DecomisoKgPorMesItem,
     DecomisoKgResumen,
     IndicadoresResumenOut,
     MapaOperativoResumen,
+    RankingInspectorItem,
+    ReinspeccionesRealizadas,
     RubroTopItem,
     RutaItemsEjecucionResumen,
-)
-from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
-    count_mapa_operativo_pendientes_cola,
-    count_mapa_operativo_pendientes_en_ruta,
-    count_mapa_operativo_realizados_visita,
 )
 from app.models import (
     Actuaciones,
     Clausura,
+    Comprobacion,
     Decomiso,
     Domicilio,
+    IniciadorRuta,
     Inspeccion,
+    Inspector,
     Rubro,
     RutaItem,
     RutaTrabajo,
     actuaciones_inspector,
 )
+from app.models.notificacion_motivo import notificacion_motivo
 
 _TOP_RUBROS_LIMIT = 10
+_RANKING_INSPECTORES_LIMIT = 15
 
 
 def _float_kg(value) -> float:
@@ -84,6 +95,299 @@ def _has_contraproducencia_expr():
         Actuaciones.contraproducencia.isnot(None),
         func.trim(Actuaciones.contraproducencia) != "",
     )
+
+
+def _notificacion_labarda_exists():
+    """
+    Subquery: la actuación tiene notificación con al menos un motivo cargado.
+
+    Excluye previas documentales (notificación sin filas en `notificacion_motivo`).
+    """
+    return exists().where(
+        notificacion_motivo.c.notificacion_id == Actuaciones.notificacion_id,
+        notificacion_motivo.c.deleted_at.is_(None),
+    )
+
+
+def _comprobacion_labarda_filter():
+    """
+    Filtro de comprobación labrada en la visita (no previa/origen).
+
+    Previas usan motivo placeholder ``PENDIENTE`` en ``previas_service``.
+    """
+    return and_(
+        Actuaciones.comprobacion_id.isnot(None),
+        exists().where(
+            Comprobacion.id == Actuaciones.comprobacion_id,
+            Comprobacion.deleted_at.is_(None),
+            Comprobacion.motivo.isnot(None),
+            func.trim(Comprobacion.motivo) != "",
+            Comprobacion.motivo != "PENDIENTE",
+        ),
+    )
+
+
+def _count_actas_labradas(sq) -> ActasPorTipo:
+    """Cuenta actas labradas (no referencias) en el conjunto filtrado."""
+    n_insp = (
+        db.session.query(func.count(Inspeccion.id))
+        .join(sq, sq.c.id == Inspeccion.actuacion_id)
+        .scalar()
+        or 0
+    )
+    n_notif = (
+        db.session.query(func.count(func.distinct(Actuaciones.id)))
+        .join(sq, sq.c.id == Actuaciones.id)
+        .filter(
+            Actuaciones.notificacion_id.isnot(None),
+            _notificacion_labarda_exists(),
+        )
+        .scalar()
+        or 0
+    )
+    n_comp = (
+        db.session.query(func.count(func.distinct(Actuaciones.id)))
+        .join(sq, sq.c.id == Actuaciones.id)
+        .filter(_comprobacion_labarda_filter())
+        .scalar()
+        or 0
+    )
+    n_clau = (
+        db.session.query(func.count(Clausura.id))
+        .join(sq, sq.c.id == Clausura.actuacion_id)
+        .scalar()
+        or 0
+    )
+    n_deco = (
+        db.session.query(func.count(Decomiso.id))
+        .join(sq, sq.c.id == Decomiso.actuacion_id)
+        .scalar()
+        or 0
+    )
+    return ActasPorTipo(
+        inspeccion=int(n_insp),
+        notificacion=int(n_notif),
+        comprobacion=int(n_comp),
+        clausura=int(n_clau),
+        decomiso=int(n_deco),
+    )
+
+
+def _iter_months_in_range(desde: date, hasta: date):
+    y, m = desde.year, desde.month
+    end_y, end_m = hasta.year, hasta.month
+    while (y, m) <= (end_y, end_m):
+        yield y, m
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+
+
+def _monthly_acta_counts(sq, acta_kind: str) -> dict[tuple[int, int], int]:
+    """
+    Agrega conteos por año-mes de fecha de actuación para un tipo de acta labrada.
+
+    Parámetros:
+        sq: subquery de actuaciones filtradas.
+        acta_kind: ``inspeccion`` | ``notificacion`` | ``comprobacion`` | ``clausura`` | ``decomiso``.
+
+    Retorno:
+        Mapa ``(anio, mes) -> count``.
+    """
+    ym = (
+        extract("year", Actuaciones.fecha).label("anio"),
+        extract("month", Actuaciones.fecha).label("mes"),
+    )
+    if acta_kind == "inspeccion":
+        q = (
+            db.session.query(*ym, func.count(Inspeccion.id))
+            .join(Inspeccion, Inspeccion.actuacion_id == Actuaciones.id)
+            .join(sq, sq.c.id == Actuaciones.id)
+        )
+    elif acta_kind == "notificacion":
+        q = (
+            db.session.query(*ym, func.count(func.distinct(Actuaciones.id)))
+            .join(sq, sq.c.id == Actuaciones.id)
+            .filter(
+                Actuaciones.notificacion_id.isnot(None),
+                _notificacion_labarda_exists(),
+            )
+        )
+    elif acta_kind == "comprobacion":
+        q = (
+            db.session.query(*ym, func.count(func.distinct(Actuaciones.id)))
+            .join(sq, sq.c.id == Actuaciones.id)
+            .filter(_comprobacion_labarda_filter())
+        )
+    elif acta_kind == "clausura":
+        q = (
+            db.session.query(*ym, func.count(Clausura.id))
+            .join(Clausura, Clausura.actuacion_id == Actuaciones.id)
+            .join(sq, sq.c.id == Actuaciones.id)
+        )
+    elif acta_kind == "decomiso":
+        q = (
+            db.session.query(*ym, func.count(Decomiso.id))
+            .join(Decomiso, Decomiso.actuacion_id == Actuaciones.id)
+            .join(sq, sq.c.id == Actuaciones.id)
+        )
+    else:
+        raise ValueError(f"Tipo de acta desconocido: {acta_kind}")
+
+    rows = q.group_by(*ym).all()
+    return {(int(y), int(m)): int(c) for y, m, c in rows}
+
+
+def _actas_labradas_mensual(
+    sq,
+    desde: date,
+    hasta: date,
+) -> list[ActasLabradasMesItem]:
+    """Serie mensual de actas labradas (sin previas/origen) en el conjunto filtrado."""
+    by_kind = {
+        kind: _monthly_acta_counts(sq, kind)
+        for kind in ("inspeccion", "notificacion", "comprobacion", "clausura", "decomiso")
+    }
+    out: list[ActasLabradasMesItem] = []
+    for anio, mes in _iter_months_in_range(desde, hasta):
+        key = (anio, mes)
+        inspeccion = by_kind["inspeccion"].get(key, 0)
+        notificacion = by_kind["notificacion"].get(key, 0)
+        comprobacion = by_kind["comprobacion"].get(key, 0)
+        clausura = by_kind["clausura"].get(key, 0)
+        decomiso = by_kind["decomiso"].get(key, 0)
+        total = inspeccion + notificacion + comprobacion + clausura + decomiso
+        if total == 0:
+            continue
+        out.append(
+            ActasLabradasMesItem(
+                anio=anio,
+                mes=mes,
+                total=total,
+                inspeccion=inspeccion,
+                notificacion=notificacion,
+                comprobacion=comprobacion,
+                clausura=clausura,
+                decomiso=decomiso,
+            )
+        )
+    return out
+
+
+def _ranking_inspectores(sq) -> list[RankingInspectorItem]:
+    """Actuaciones del periodo agrupadas por inspector interviniente."""
+    rows = (
+        db.session.query(
+            Inspector.id,
+            Inspector.nombre,
+            func.count(func.distinct(actuaciones_inspector.c.actuaciones_id)),
+        )
+        .join(
+            actuaciones_inspector,
+            actuaciones_inspector.c.inspector_id == Inspector.id,
+        )
+        .join(sq, sq.c.id == actuaciones_inspector.c.actuaciones_id)
+        .filter(actuaciones_inspector.c.deleted_at.is_(None))
+        .group_by(Inspector.id, Inspector.nombre)
+        .order_by(func.count(func.distinct(actuaciones_inspector.c.actuaciones_id)).desc())
+        .limit(_RANKING_INSPECTORES_LIMIT)
+        .all()
+    )
+    return [
+        RankingInspectorItem(
+            inspector_id=int(iid),
+            inspector_nombre=str(nombre),
+            total_actuaciones=int(cnt),
+        )
+        for iid, nombre, cnt in rows
+    ]
+
+
+def _reinspecciones_realizadas(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int],
+    inspector_id: Optional[int],
+) -> ReinspeccionesRealizadas:
+    """
+    Reinspecciones efectivamente realizadas (visita cerrada con actuación).
+
+    Criterio alineado al mapa operativo: ``FINALIZADO`` + ``REALIZADO``, ruta ``PUBLICADA``,
+    ``actuacion_id`` no nulo, fecha de cierre ``coalesce(date(ejecutado_at), ruta.fecha)`` en rango.
+    """
+    fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
+    q = (
+        db.session.query(IniciadorRuta.tipo_iniciador, func.count(func.distinct(IniciadorRuta.id)))
+        .select_from(RutaItem)
+        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
+        .filter(
+            RutaItem.deleted_at.is_(None),
+            IniciadorRuta.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion == "REALIZADO",
+            RutaTrabajo.estado_ruta == "PUBLICADA",
+            IniciadorRuta.tipo_iniciador.in_(
+                ("REINSPECCION_NOTIFICACION", "REINSPECCION_OFICIO")
+            ),
+            fecha_cierre >= desde,
+            fecha_cierre <= hasta,
+        )
+    )
+    if distrito_id is not None:
+        q = q.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id).filter(
+            Domicilio.distrito_id == distrito_id,
+            Domicilio.deleted_at.is_(None),
+        )
+    if inspector_id is not None:
+        q = q.filter(_realizados_inspector_coincide(inspector_id))
+
+    rows = q.group_by(IniciadorRuta.tipo_iniciador).all()
+    counts = {str(tipo): int(cnt) for tipo, cnt in rows}
+    return ReinspeccionesRealizadas(
+        notificacion=counts.get("REINSPECCION_NOTIFICACION", 0),
+        oficio=counts.get("REINSPECCION_OFICIO", 0),
+    )
+
+
+def _contraproducencias_por_tipo(sq, total: int) -> list[ContraproducenciaPorTipoItem]:
+    """Distribución completa por valor de contraproducencia (incluye sin CP)."""
+    has_contra = _has_contraproducencia_expr()
+    con_rows = (
+        db.session.query(Actuaciones.contraproducencia, func.count(Actuaciones.id))
+        .join(sq, sq.c.id == Actuaciones.id)
+        .filter(has_contra)
+        .group_by(Actuaciones.contraproducencia)
+        .order_by(func.count(Actuaciones.id).desc())
+        .all()
+    )
+    sin_cp = max(0, total - sum(int(c) for _, c in con_rows))
+    out: list[ContraproducenciaPorTipoItem] = []
+    if sin_cp > 0:
+        out.append(ContraproducenciaPorTipoItem(valor="Sin contraproducencia", count=sin_cp))
+    out.extend(
+        ContraproducenciaPorTipoItem(valor=str(v).strip(), count=int(c))
+        for v, c in con_rows
+    )
+    return out
+
+
+def _actuaciones_por_tipo_operativo(sq) -> list[ActuacionPorTipoOperativoItem]:
+    """Agrupa actuaciones filtradas por `Actuaciones.tipo` (valores reales del enum)."""
+    rows = (
+        db.session.query(Actuaciones.tipo, func.count(Actuaciones.id))
+        .join(sq, sq.c.id == Actuaciones.id)
+        .group_by(Actuaciones.tipo)
+        .order_by(func.count(Actuaciones.id).desc())
+        .all()
+    )
+    return [
+        ActuacionPorTipoOperativoItem(tipo=str(tipo), count=int(cnt))
+        for tipo, cnt in rows
+    ]
 
 
 def _ruta_items_ejecucion_por_fecha_ruta(
@@ -150,10 +454,10 @@ def build_indicadores_resumen(
         `IndicadoresResumenOut` listo para serializar JSON.
 
     Notas:
-        El bloque ``ruta_items_ejecucion`` agrega solo ítems en rutas ``PUBLICADAS`` (no borradores),
-        por fecha de ruta (sin distrito/inspector).
-        ``mapa_operativo`` reutiliza los mismos criterios que ``/map/operativo/pendientes`` y
-        ``/map/operativo/realizados`` (geocode OK; distrito/inspector como en el mapa).
+        ``actas_por_tipo`` y ``actas_labradas_mensual`` excluyen previas/origen (notificación sin
+        motivos; comprobación con motivo ``PENDIENTE``).
+        ``reinspecciones_realizadas`` usa fecha de cierre de ruta (no fecha de actuación).
+        El bloque ``ruta_items_ejecucion`` agrega solo ítems en rutas ``PUBLICADAS``.
     """
     sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
     has_contra = _has_contraproducencia_expr()
@@ -184,38 +488,14 @@ def build_indicadores_resumen(
         ContraproducenciaTopItem(valor=str(v), count=int(c)) for v, c in top_rows
     ]
 
-    n_insp = (
-        db.session.query(func.count(Inspeccion.id))
-        .join(sq, sq.c.id == Inspeccion.actuacion_id)
-        .scalar()
-        or 0
+    actas_por_tipo = _count_actas_labradas(sq)
+    actas_labradas_mensual = _actas_labradas_mensual(sq, desde, hasta)
+    ranking_inspectores = _ranking_inspectores(sq)
+    reinspecciones_realizadas = _reinspecciones_realizadas(
+        desde, hasta, distrito_id, inspector_id
     )
-    n_notif = (
-        db.session.query(func.count(Actuaciones.id))
-        .join(sq, sq.c.id == Actuaciones.id)
-        .filter(Actuaciones.notificacion_id.isnot(None))
-        .scalar()
-        or 0
-    )
-    n_comp = (
-        db.session.query(func.count(Actuaciones.id))
-        .join(sq, sq.c.id == Actuaciones.id)
-        .filter(Actuaciones.comprobacion_id.isnot(None))
-        .scalar()
-        or 0
-    )
-    n_clau = (
-        db.session.query(func.count(Clausura.id))
-        .join(sq, sq.c.id == Clausura.actuacion_id)
-        .scalar()
-        or 0
-    )
-    n_deco = (
-        db.session.query(func.count(Decomiso.id))
-        .join(sq, sq.c.id == Decomiso.actuacion_id)
-        .scalar()
-        or 0
-    )
+    contraproducencias_por_tipo = _contraproducencias_por_tipo(sq, total)
+    actuaciones_por_tipo_operativo = _actuaciones_por_tipo_operativo(sq)
 
     rubro_rows = (
         db.session.query(Rubro.id, Rubro.nombre, func.count(Actuaciones.id))
@@ -308,13 +588,12 @@ def build_indicadores_resumen(
             sin_contraproducencia=sin_cp,
         ),
         contraproducencias_top=contraproducencias_top,
-        actas_por_tipo=ActasPorTipo(
-            inspeccion=int(n_insp),
-            notificacion=int(n_notif),
-            comprobacion=int(n_comp),
-            clausura=int(n_clau),
-            decomiso=int(n_deco),
-        ),
+        actas_por_tipo=actas_por_tipo,
+        actas_labradas_mensual=actas_labradas_mensual,
+        ranking_inspectores=ranking_inspectores,
+        reinspecciones_realizadas=reinspecciones_realizadas,
+        contraproducencias_por_tipo=contraproducencias_por_tipo,
+        actuaciones_por_tipo_operativo=actuaciones_por_tipo_operativo,
         ruta_items_ejecucion=ruta_part,
         mapa_operativo=mapa_op,
         top_rubros=top_rubros,

@@ -3,7 +3,7 @@ import { MaterialReactTable, type MRT_ColumnDef, useMaterialReactTable } from "m
 import { useMemo, useRef, useState } from "react";
 import type { GuardarNomenclaturaBody } from "../../../api/geolocalizacionApi";
 import { fetchCallesCatalogo, type CalleCatalogoItem } from "../../../api/geolocalizacionApi";
-import { dataTableShellSx } from "../../../styles/mrtGlassDataTablePreset";
+import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
 import type {
   DomicilioNomenclaturaEditCache,
@@ -645,13 +645,13 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
         window.alert(fromApi);
       }
     },
-    state: { isLoading: loading },
+    state: { isLoading: loading, showProgressBars: loading },
   });
 
   return (
-    <Box sx={dataTableShellSx}>
+    <DataTableMrtShell loading={loading} loadingMode="progress">
       <MaterialReactTable table={table} />
-    </Box>
+    </DataTableMrtShell>
   );
 };
 

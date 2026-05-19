@@ -2,9 +2,10 @@ import { Box, Chip, Tooltip, Typography } from "@mui/material";
 import type { MRT_TableOptions } from "material-react-table";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { COLORS, DARK_TABLE_CONFIG } from "../styles/actuacionesTableStyles";
 
-/** Texto de valor en celdas de bandeja (comprobación / notificación). */
+/** Texto de valor en celdas de bandeja (comprobación / notificación / tablas F3.10). */
 export const bandejaValueTextSx = {
   fontWeight: 600,
   fontSize: "0.8125rem",
@@ -12,6 +13,9 @@ export const bandejaValueTextSx = {
   color: GLASS_COLORS.textPrimary,
   fontFamily: '"Tactic Sans", sans-serif',
 } as const;
+
+/** Alias explícito para renderers custom que no heredan del TableCell (F3.10). */
+export const dataTableCellTextSx = bandejaValueTextSx;
 
 /** Chip outlined reutilizable en bandejas y grilla compacta de actuaciones. */
 export const bandejaOutlinedChipSx = {
@@ -174,21 +178,24 @@ export function BandejaActaChipCell({ label }: { label: string }) {
   );
 }
 
-/** Refuerza tipografía del cuerpo en tablas solo lectura (MRT). */
 export const BANDEJA_MRT_BODY_CELL_PROPS = {
-  muiTableBodyCellProps: (ctx: { row: { index: number } }) => {
-    const base = DARK_TABLE_CONFIG.muiTableBodyCellProps;
-    const resolved =
-      typeof base === "function" ? (base as (c: typeof ctx) => Record<string, unknown>)(ctx) : (base ?? {});
-    const prevSx = (resolved as { sx?: Record<string, unknown> }).sx ?? {};
-    return {
-      ...resolved,
+  muiTableBodyCellProps: mergeMrtBodyCellPropsWithActuacionesPreset(
+    DARK_TABLE_CONFIG.muiTableBodyCellProps,
+    () => ({
       sx: {
-        ...prevSx,
         fontWeight: 600,
         fontSize: "12px",
         color: COLORS.white,
       },
-    };
-  },
+    })
+  ),
 } as Partial<MRT_TableOptions<any>>;
+
+/**
+ * Layout MRT de bandeja (Actas Comprobación / Notificación): body 12px seminegrita + densidad compact.
+ * Usar con `...DARK_TABLE_CONFIG` en tablas de gestión F3.10.
+ */
+export const BANDEJA_MRT_READ_ONLY_TABLE_PROPS: Partial<MRT_TableOptions<any>> = {
+  ...BANDEJA_MRT_BODY_CELL_PROPS,
+  initialState: { density: "compact" },
+};

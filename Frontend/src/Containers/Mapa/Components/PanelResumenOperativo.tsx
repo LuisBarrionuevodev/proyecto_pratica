@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import type { MapPointFeature } from "../../../api/mapApi";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui/AppButton";
 import type { MapaOperativoModo } from "../hooks/useMapaOperativo";
 import {
@@ -155,7 +156,7 @@ function MapLegendSample({
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.15 }}>
       <Box sx={{ width: 22, display: "flex", justifyContent: "center", alignItems: "center" }}>{inner}</Box>
-      <Typography variant="body2" sx={{ color: COLORS.grayLight, fontFamily: '"Tactic Sans", sans-serif' }}>
+      <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}>
         {label}
       </Typography>
     </Stack>
@@ -176,10 +177,10 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
 
   const distRow = (label: string, value: number | string) => (
     <Stack key={label} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.35 }}>
-      <Typography variant="body2" sx={{ color: COLORS.grayLight, fontFamily: '"Tactic Sans", sans-serif' }}>
+      <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}>
         {label}
       </Typography>
-      <Typography variant="body2" sx={{ fontWeight: 600, color: COLORS.white }}>
+      <Typography variant="body2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary }}>
         {value}
       </Typography>
     </Stack>
@@ -190,7 +191,6 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
       elevation={0}
       sx={{
         ...mapaOperativoGlassPanelSx,
-        p: 2,
         height: "100%",
         minHeight: 360,
         display: "flex",
@@ -199,7 +199,14 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
     >
       <Typography
         variant="subtitle1"
-        sx={{ fontWeight: 700, mb: 2, color: COLORS.white, fontFamily: '"Tactic Sans", sans-serif' }}
+        sx={{
+          fontWeight: 700,
+          mb: 2,
+          color: GLASS_COLORS.textPrimary,
+          fontFamily: '"Tactic Sans", sans-serif',
+          fontSize: "1rem",
+          letterSpacing: "0.02em",
+        }}
       >
         Resumen operativo
       </Typography>
@@ -208,16 +215,16 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
         {modo === "pendientes" && (
           <>
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Tareas pendientes
               </Typography>
-              <Typography variant="h3" sx={{ color: COLORS.primary, fontWeight: 800, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="h3" sx={{ color: GLASS_COLORS.primary, fontWeight: 700, fontFamily: '"Tactic Sans", sans-serif' }}>
                 {statsPend.total}
               </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Origen en circuito
               </Typography>
               <Stack spacing={0.5}>
@@ -227,12 +234,12 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Por tipo de iniciador
               </Typography>
               <Stack spacing={0.5}>
                 {Object.keys(statsPend.byTipo).length === 0 ? (
-                  <Typography variant="body2" sx={{ color: COLORS.grayLight }}>
+                  <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
                     —
                   </Typography>
                 ) : (
@@ -244,7 +251,7 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Leyenda del mapa
               </Typography>
               <MapLegendSample shape="triangle" color={colorPrioridadBacklog("ALTA")} label="Prioridad alta" />
@@ -263,21 +270,21 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
         {modo === "realizados" && (
           <>
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Visitas realizadas
               </Typography>
-              <Typography variant="h3" sx={{ color: COLORS.primary, fontWeight: 800, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="h3" sx={{ color: GLASS_COLORS.primary, fontWeight: 700, fontFamily: '"Tactic Sans", sans-serif' }}>
                 {features.length}
               </Typography>
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Por tipo de iniciador
               </Typography>
               <Stack spacing={0.5}>
                 {Object.keys(byTipoReal).length === 0 ? (
-                  <Typography variant="body2" sx={{ color: COLORS.grayLight }}>
+                  <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
                     —
                   </Typography>
                 ) : (
@@ -289,7 +296,7 @@ export function PanelResumenOperativo({ modo, features }: PanelResumenOperativoP
             </Paper>
 
             <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: COLORS.white, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
                 Leyenda del mapa
               </Typography>
               <MapLegendSample shape="pin" color={COLORS.success} label="Visita realizada" />

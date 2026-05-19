@@ -1,18 +1,18 @@
 import type { MRT_TableOptions } from "material-react-table";
 
-import { MRT_DATA_TABLE_GLASS_PRESET } from "../../styles/mrtGlassDataTablePreset";
+import { BANDEJA_MRT_BODY_CELL_PROPS } from "../Actuaciones/Components/bandejaTableCells";
+import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 
 /**
- * Base visual MRT para Gestión de domicilios (F3.7c): preset glass institucional + toolbar
- * apilable en viewport angosto (comportamiento previo de `TablePendientesStyle`).
- * Las tablas del módulo hacen spread y añaden solo flags/edit/display propios.
+ * Base visual MRT para Gestión de domicilios (F3.7c / F3.10): preset Actuaciones + bandeja 12px/600
+ * + toolbar apilable en viewport angosto.
  */
 export const GESTION_DOMICILIOS_MRT_GLASS_BASE: Partial<MRT_TableOptions<any>> = {
-  ...MRT_DATA_TABLE_GLASS_PRESET,
+  ...DARK_TABLE_CONFIG,
+  ...BANDEJA_MRT_BODY_CELL_PROPS,
   muiTopToolbarProps: {
     sx: {
-      ...((MRT_DATA_TABLE_GLASS_PRESET.muiTopToolbarProps as { sx?: Record<string, unknown> })?.sx ??
-        {}),
+      ...((DARK_TABLE_CONFIG.muiTopToolbarProps as { sx?: Record<string, unknown> })?.sx ?? {}),
       flexDirection: { xs: "column", md: "row" },
     },
   },

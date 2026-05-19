@@ -1,7 +1,9 @@
 import { Box, Typography } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
-import { ChartStyle } from "../../../styles/DashboardStyles";
+
 import type { IndicadoresDecomisoKg } from "../../../api/indicadoresApi";
+import { ChartStyle, dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
@@ -28,21 +30,17 @@ interface Props {
 const DecomisoMensualChart = ({ decomisoKg, loading }: Props) => {
   if (loading || decomisoKg === null) {
     return (
-      <Box sx={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Typography variant="body2" color="rgba(255,255,255,0.6)">
-          {loading ? "Cargando…" : "Sin datos."}
-        </Typography>
+      <Box sx={dashboardEmptyStateSx}>
+        <Typography variant="body2">{loading ? "Cargando…" : "Sin datos."}</Typography>
       </Box>
     );
   }
 
   if (decomisoKg.por_mes.length === 0) {
     return (
-      <Box sx={{ minHeight: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-        <Typography variant="body2" color="rgba(255,255,255,0.6)">
-          Sin decomisos en el periodo seleccionado.
-        </Typography>
-        <Typography variant="caption" color="rgba(255,255,255,0.45)">
+      <Box sx={{ ...dashboardEmptyStateSx, flexDirection: "column", gap: 1 }}>
+        <Typography variant="body2">Sin decomisos en el periodo seleccionado.</Typography>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary }}>
           Total: {formatKg(decomisoKg.total_kg)} kg
         </Typography>
       </Box>
@@ -54,14 +52,14 @@ const DecomisoMensualChart = ({ decomisoKg, loading }: Props) => {
 
   return (
     <Box>
-      <Typography variant="caption" color="rgba(255,255,255,0.65)" display="block" sx={{ mb: 1 }}>
-        Total periodo: <strong style={{ color: "#fff" }}>{formatKg(decomisoKg.total_kg)} kg</strong>
+      <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+        Total periodo: <strong style={{ color: GLASS_COLORS.textPrimary }}>{formatKg(decomisoKg.total_kg)} kg</strong>
       </Typography>
       <LineChart
         xAxis={[{ scaleType: "point", data: labels }]}
         series={[
           {
-            color: "#0166FF",
+            color: GLASS_COLORS.primary,
             label: "Kg decomisados",
             data: values,
           },

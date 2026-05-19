@@ -1,5 +1,9 @@
 import { Box, Stack, Typography } from "@mui/material";
+
 import type { IndicadoresRutaItemsEjecucion } from "../../../api/indicadoresApi";
+import { dashboardDemoCaptionSx } from "./DashboardDemoBadge";
+import { dashboardKpiValueSx } from "../../../styles/DashboardStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 interface Props {
   data: IndicadoresRutaItemsEjecucion;
@@ -21,7 +25,7 @@ const DashboardRutaItemsResumen = ({ data }: Props) => {
 
   return (
     <Stack spacing={1.5} sx={{ py: 1 }}>
-      <Typography variant="caption" color="rgba(255,255,255,0.5)" sx={{ display: "block", mb: 0.5 }}>
+      <Typography variant="caption" sx={{ ...dashboardDemoCaptionSx, mt: 0, mb: 0.5 }}>
         Métrica descriptiva global; el KPI «Realizados visita (mapa)» refleja FINALIZADO + REALIZADO + fecha de cierre.
       </Typography>
       {rows.map((r) => (
@@ -31,16 +35,14 @@ const DashboardRutaItemsResumen = ({ data }: Props) => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
             pb: 1,
           }}
         >
-          <Typography variant="body2" color="rgba(255,255,255,0.75)">
+          <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, fontFamily: '"Tactic Sans", sans-serif' }}>
             {r.label}
           </Typography>
-          <Typography variant="h6" color="#fff" fontWeight={600}>
-            {r.value}
-          </Typography>
+          <Typography sx={{ ...dashboardKpiValueSx, fontSize: "1.25rem" }}>{r.value}</Typography>
         </Box>
       ))}
     </Stack>
