@@ -4,24 +4,14 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Box,
-  Chip,
-  IconButton,
-  Paper,
-  Snackbar,
-  Tab,
-  Tabs,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Chip, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { apiClient } from "../../../api/apiClient";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import { useAppFeedback } from "../../../components/feedback/useAppFeedback";
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
 import {
   bandejaOutlinedChipSx,
@@ -57,13 +47,13 @@ function extractApiDetail(error: unknown, fallback: string): string {
 }
 
 const TableGestionDeUsuarios = () => {
+  const feedback = useAppFeedback();
   const [slice, setSlice] = useState<UsuarioSlice>("activos");
   const [data, setData] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const fetchUsuarios = useCallback(async (estado: UsuarioSlice) => {
@@ -90,7 +80,7 @@ const TableGestionDeUsuarios = () => {
       await apiClient.patch(`/api/admin/users/${id}/inactivar`);
       await fetchUsuarios(slice);
       setServerError("");
-      setSuccessMessage("Usuario inactivado correctamente.");
+      feedback.success("Usuario inactivado correctamente.");
     } catch (error) {
       console.error("Error al inactivar usuario:", error);
       setServerError(extractApiDetail(error, "No se pudo inactivar el usuario."));
@@ -105,7 +95,7 @@ const TableGestionDeUsuarios = () => {
       await apiClient.patch(`/api/admin/users/${id}/reactivar`);
       await fetchUsuarios(slice);
       setServerError("");
-      setSuccessMessage("Usuario reactivado correctamente.");
+      feedback.success("Usuario reactivado correctamente.");
     } catch (error) {
       console.error("Error al reactivar usuario:", error);
       setServerError(extractApiDetail(error, "No se pudo reactivar el usuario."));
@@ -151,7 +141,7 @@ const TableGestionDeUsuarios = () => {
         role: values.role === "admin" ? "admin" : "usuario",
       });
       await fetchUsuarios(slice);
-      setSuccessMessage("Usuario creado correctamente.");
+      feedback.success("Usuario creado correctamente.");
       return true;
     } catch (error) {
       console.error("Error al crear usuario:", error);
@@ -178,7 +168,7 @@ const TableGestionDeUsuarios = () => {
         role: values.role === "admin" ? "admin" : "usuario",
       });
       await fetchUsuarios(slice);
-      setSuccessMessage("Usuario actualizado correctamente.");
+      feedback.success("Usuario actualizado correctamente.");
       return true;
     } catch (error) {
       console.error("Error al editar usuario:", error);
@@ -502,17 +492,6 @@ const TableGestionDeUsuarios = () => {
           </Box>
         </Box>
       </Box>
-
-      <Snackbar
-        open={!!successMessage}
-        autoHideDuration={2500}
-        onClose={() => setSuccessMessage("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert severity="success" variant="filled" onClose={() => setSuccessMessage("")}>
-          {successMessage}
-        </Alert>
-      </Snackbar>
 
       <ConfirmDialog
         open={confirmAction?.kind === "inactivar"}

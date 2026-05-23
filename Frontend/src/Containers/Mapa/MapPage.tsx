@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Snackbar, Stack } from "@mui/material";
+import { Alert, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 
 import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { setGeoManual } from "../../api/geoApi";
+import { useAppFeedback } from "../../components/feedback/useAppFeedback";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
@@ -18,6 +19,7 @@ import { useMapaOperativo, type MapaOperativoLoadOptions } from "./hooks/useMapa
  * Vista mapa operativo DIGITALIZA: modos Pendientes / Realizados, filtros institucionales y mapa Leaflet.
  */
 const MapPage = () => {
+  const feedback = useAppFeedback();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
 
   const [modo, setModo] = useState<"pendientes" | "realizados">("pendientes");
@@ -35,7 +37,6 @@ const MapPage = () => {
 
   const [relocalDraft, setRelocalDraft] = useState<RelocalOperativoDraft | null>(null);
   const [relocalGuardando, setRelocalGuardando] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
 
   const [distritoOptions, setDistritoOptions] = useState<{ value: string; label: string }[]>([
     { value: "", label: "Todos los distritos" },
@@ -217,24 +218,20 @@ const MapPage = () => {
     try {
       await setGeoManual(relocalDraft.domicilio_id, relocalDraft.lat, relocalDraft.lng);
       setRelocalDraft(null);
-      setSnackbar({
-        message: "Ubicación guardada. El mapa y el panel se actualizan con el nuevo geocode del domicilio.",
-        severity: "success",
-      });
+      feedback.success(
+        "Ubicación guardada. El mapa y el panel se actualizan con el nuevo geocode del domicilio."
+      );
       await cargarOperativoConSnapshotUi();
     } catch (e: unknown) {
       const detail =
         e && typeof e === "object" && "response" in e
           ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
           : null;
-      setSnackbar({
-        message: typeof detail === "string" ? detail : "No se pudo guardar la ubicación.",
-        severity: "error",
-      });
+      feedback.error(typeof detail === "string" ? detail : "No se pudo guardar la ubicación.");
     } finally {
       setRelocalGuardando(false);
     }
-  }, [relocalDraft, cargarOperativoConSnapshotUi]);
+  }, [relocalDraft, cargarOperativoConSnapshotUi, feedback]);
 
   return (
     <Stack sx={functionalPageShellSx}>
@@ -315,19 +312,6 @@ const MapPage = () => {
           />
         </Grid>
       </Grid>
-
-      <Snackbar
-        open={Boolean(snackbar)}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        {snackbar ? (
-          <Alert severity={snackbar.severity} onClose={() => setSnackbar(null)} sx={{ width: "100%" }} variant="filled">
-            {snackbar.message}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
     </Stack>
   );
 };
