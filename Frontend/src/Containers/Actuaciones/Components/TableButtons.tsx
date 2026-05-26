@@ -9,6 +9,11 @@ type TablaExportButtonsProps = {
   filePrefix?: string;
   /** Reservado para compatibilidad con llamadas existentes; el export usa solo `table`. */
   data?: unknown[];
+  /**
+   * Si es `false`, no se muestra el botón basado en filas seleccionadas (p. ej. Actuaciones sin selección).
+   * Default `true` para bandejas que siguen usando `enableRowSelection`.
+   */
+  includeSelectionExport?: boolean;
 };
 
 const buildFileName = (prefix: string) => {
@@ -25,6 +30,7 @@ const getVisibleColumnsInOrder = (table: MRT_TableInstance<any>): MRT_ColumnDef<
 export const TablaExportButtons = ({
   table,
   filePrefix = "actuaciones",
+  includeSelectionExport = true,
 }: TablaExportButtonsProps) => (
   <Box sx={TableExportBoxStyles}>
     <Button
@@ -41,20 +47,22 @@ export const TablaExportButtons = ({
     >
       Exportar todo
     </Button>
-    <Button
-      disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
-      onClick={() =>
-        exportMrtRowsToXlsx({
-          rows: table.getSelectedRowModel().rows,
-          columns: getVisibleColumnsInOrder(table),
-          fileName: buildFileName(filePrefix),
-          sheetName: "Datos",
-        })
-      }
-      startIcon={<FileDownloadIcon />}
-      sx={TableExportButtonStyles}
-    >
-      Exportar seleccionados
-    </Button>
+    {includeSelectionExport ? (
+      <Button
+        disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
+        onClick={() =>
+          exportMrtRowsToXlsx({
+            rows: table.getSelectedRowModel().rows,
+            columns: getVisibleColumnsInOrder(table),
+            fileName: buildFileName(filePrefix),
+            sheetName: "Datos",
+          })
+        }
+        startIcon={<FileDownloadIcon />}
+        sx={TableExportButtonStyles}
+      >
+        Exportar seleccionados
+      </Button>
+    ) : null}
   </Box>
 );

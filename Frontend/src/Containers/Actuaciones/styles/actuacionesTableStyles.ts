@@ -26,7 +26,7 @@ export const MRT_READ_ONLY_BANDEJA: Partial<MRT_TableOptions<any>> = {
 export const COLORS = DATA_TABLE_MRT_GLASS_COLORS;
 
 /**
- * Defaults de Actuaciones (listado principal): preset glass + flags de edición/selección/filtros del módulo.
+ * Defaults preset glass compartidos; `TablaActuaciones` fuerza localmente sin selección (G1c-hotfix).
  * Otras pantallas suelen hacer `...MRT_DATA_TABLE_GLASS_PRESET` y sobrescriben solo lo necesario.
  */
 export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {

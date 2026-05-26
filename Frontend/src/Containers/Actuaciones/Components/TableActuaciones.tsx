@@ -495,7 +495,9 @@ const TablaActuaciones = ({
       if (exportToolbar !== undefined) {
         return exportToolbar;
       }
-      return <TablaExportButtons table={table} filePrefix="actuaciones" />;
+      return (
+        <TablaExportButtons table={table} filePrefix="actuaciones" includeSelectionExport={false} />
+      );
     },
     [exportToolbar]
   );
@@ -506,11 +508,14 @@ const TablaActuaciones = ({
     data,
     /** La grilla es solo lectura; `enableEditing` (prop) solo habilita el botón y el diálogo. */
     enableEditing: false,
+    /** G1c: export por modal/rango — la selección de filas ya no aplica en Actuaciones. */
+    enableRowSelection: false,
+    enableSelectAll: false,
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
     enableRowActions: !hideRowActions,
-    // Acciones al inicio (después del checkbox de selección)
+    /** Acciones a la izquierda (primera columna de datos cuando no hay selección). */
     positionActionsColumn: "first",
     enableHiding: true,
     /** Reparte ancho y reduce scroll horizontal en vista principal (F2.4). */
@@ -536,12 +541,6 @@ const TablaActuaciones = ({
         }
       : {}),
     displayColumnDefOptions: {
-      "mrt-row-select": {
-        size: 42,
-        grow: false,
-        muiTableHeadCellProps: { sx: { px: 0.35, py: 0.5 } },
-        muiTableBodyCellProps: { sx: { px: 0.35, py: 0.25 } },
-      },
       ...(!hideRowActions
         ? {
             "mrt-row-actions": {
@@ -550,10 +549,6 @@ const TablaActuaciones = ({
             },
           }
         : {}),
-    },
-    muiSelectCheckboxProps: {
-      size: "small",
-      sx: { p: 0.35 },
     },
 
     muiTableBodyCellProps: muiTableBodyCellPropsMerged,
