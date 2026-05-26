@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import {
   Alert,
   Box,
@@ -30,18 +31,28 @@ import { getCurrentMonthRange } from "../../utils/dateRange";
 import type { MRT_ColumnDef } from "material-react-table";
 import type { IActuacionListItem } from "../../api/actuacionesListApi";
 import { ACTUACIONES_COMPOSITE_COLUMN_IDS } from "./Components/actuacionesCompositeColumns";
+import { useAppFeedback } from "../../components/feedback";
+import { ExportDataDialog } from "../../ui";
+import { applyFormErrorsFromApi } from "../../utils/parseApiError";
+import { exportActuacionesDataset } from "./utils/exportActuacionesDataset";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 
 import {
-  wrapperStyles,
   titleStyles,
   metaInfoStyles,
   metaItemStyles,
   errorAlertStyles,
 } from "./styles/filtroStyles";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
 
 const ActuacionesContainer = (): JSX.Element => {
   const navigate = useNavigate();
+  const feedback = useAppFeedback();
   const [tab] = useState<"todos" | "pendientes">("todos");
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const {
     actuaciones,
@@ -216,8 +227,60 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const handleBeforeSavePendiente = useCallback(async (_fullRow: IActuacionListItem) => {}, []);
 
+  const actuacionesExportToolbar = useMemo(
+    () => (
+      <Box sx={TableExportBoxStyles}>
+        <Button
+          onClick={() => {
+            setExportError(null);
+            setExportOpen(true);
+          }}
+          startIcon={<FileDownloadOutlinedIcon />}
+          sx={TableExportButtonStyles}
+          disabled={!meta || exportLoading}
+        >
+          Exportar datos
+        </Button>
+      </Box>
+    ),
+    [exportLoading, meta]
+  );
+
+  const handleExportActuaciones = useCallback(
+    async (options: {
+      format: "excel" | "pdf";
+      periodMode: "workweek" | "month" | "custom";
+      desde: string;
+      hasta: string;
+    }) => {
+      if (!meta) return;
+      setExportLoading(true);
+      setExportError(null);
+      try {
+        await exportActuacionesDataset({
+          format: options.format,
+          desde: options.desde,
+          hasta: options.hasta,
+          tipo: meta.tipo,
+          contraproducencia: meta.contraproducencia,
+          orden_trabajo: meta.orden_trabajo,
+        });
+        feedback.success("Exportación generada");
+        setExportOpen(false);
+      } catch (err: unknown) {
+        const parsed = applyFormErrorsFromApi(err, {
+          fallbackMessage: "No se pudo completar la exportación.",
+        });
+        setExportError(parsed.globalMessage ?? parsed.fieldErrors._global ?? "No se pudo completar la exportación.");
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [feedback, meta]
+  );
+
   return (
-    <Box sx={wrapperStyles}>
+    <Box sx={functionalPageShellSx}>
         <Typography sx={titleStyles}>Actuaciones</Typography>
 
         <>
@@ -300,8 +363,24 @@ const ActuacionesContainer = (): JSX.Element => {
                   pageSize: meta.page_size,
                   onPageChange: handleListaPageChange,
                 }}
+                exportToolbar={actuacionesExportToolbar}
               />
             )}
+
+            <ExportDataDialog
+              open={exportOpen}
+              onClose={() => {
+                if (exportLoading) return;
+                setExportOpen(false);
+              }}
+              title="Exportar datos"
+              subtitle="Actuaciones"
+              scopeHint="La exportación usará el rango elegido y no las filas visibles en la grilla."
+              loading={exportLoading}
+              error={exportError}
+              onClearError={() => setExportError(null)}
+              onExport={handleExportActuaciones}
+            />
         </>
 
         {tab === "pendientes" && (

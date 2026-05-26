@@ -13,6 +13,7 @@ import {
   updateDenunciaGestion,
 } from "../../../api/denunciasApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
+import { ConfirmDialog } from "../../../ui";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   COLORS,
@@ -36,36 +37,48 @@ const TablaDenuncias = ({
 }: TablaDenunciasProps) => {
   const [data, setData] = useState<IDenunciaGestionItem[]>(externalData || []);
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState<IDenunciaGestionItem | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
   const loading = externalLoading || false;
 
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
 
-  const handleDeleteRow = useCallback(
-    async (rowItem: IDenunciaGestionItem) => {
-      const id = Number(rowItem.id);
+  const requestDeleteRow = useCallback(
+    (rowItem: IDenunciaGestionItem) => {
       if (rowItem.editable === false) {
         alert("Esta denuncia ya no está operativa y no puede eliminarse.");
         onRefresh?.();
         return;
       }
-      if (!window.confirm("¿Estás seguro de eliminar esta denuncia?")) return;
-      const prev = [...data];
-      setData((prevData) => prevData.filter((item) => item.id !== id));
-      try {
-        await deleteDenunciaGestion(id);
-        onRefresh?.();
-      } catch (error: any) {
-        console.error("Error al eliminar denuncia:", error);
-        const msg = error?.response?.data?.detail || "No se pudo eliminar la denuncia. Se restaurará la lista.";
-        alert(msg);
-        setData(prev);
-        onRefresh?.();
-      }
+      setDeleteConfirmRow(rowItem);
     },
-    [data, onRefresh]
+    [onRefresh]
   );
+
+  const performDeleteRow = useCallback(async () => {
+    if (!deleteConfirmRow) return;
+    const id = Number(deleteConfirmRow.id);
+    const prev = [...data];
+    setDeleteInProgress(true);
+    setData((prevData) => prevData.filter((item) => item.id !== id));
+    try {
+      await deleteDenunciaGestion(id);
+      onRefresh?.();
+    } catch (error: unknown) {
+      console.error("Error al eliminar denuncia:", error);
+      const err = error as { response?: { data?: { detail?: string } } };
+      const msg =
+        err?.response?.data?.detail || "No se pudo eliminar la denuncia. Se restaurará la lista.";
+      alert(msg);
+      setData(prev);
+      onRefresh?.();
+    } finally {
+      setDeleteInProgress(false);
+      setDeleteConfirmRow(null);
+    }
+  }, [data, deleteConfirmRow, onRefresh]);
 
   const handleSaveRow = useCallback(
     async ({ exitEditingMode, row, values }: any) => {
@@ -214,7 +227,7 @@ const TablaDenuncias = ({
               "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
             }}
             disabled={row.original.editable === false}
-            onClick={() => handleDeleteRow(row.original)}
+            onClick={() => requestDeleteRow(row.original)}
           >
             <DeleteIcon />
           </IconButton>
@@ -234,7 +247,22 @@ const TablaDenuncias = ({
     );
   }
 
-  return <MaterialReactTable table={table} />;
+  return (
+    <>
+      <MaterialReactTable table={table} />
+      <ConfirmDialog
+        open={deleteConfirmRow !== null}
+        onClose={() => setDeleteConfirmRow(null)}
+        onConfirm={performDeleteRow}
+        title="Eliminar denuncia"
+        destructive
+        loading={deleteInProgress}
+        confirmLabel="Eliminar"
+      >
+        Esta acción quitará la denuncia del listado. No se podrá deshacer desde esta vista.
+      </ConfirmDialog>
+    </>
+  );
 };
 
 export default TablaDenuncias;

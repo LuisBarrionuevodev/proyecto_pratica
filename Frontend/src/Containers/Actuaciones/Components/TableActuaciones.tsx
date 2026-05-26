@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Alert, Box, Typography, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -110,6 +111,8 @@ interface TablaActuacionesProps {
   readOnlyColumns?: string[];
   numeroCallesOptions?: string[];
   numeroAllowFreeSolo?: boolean;
+  /** Si se define, reemplaza `TablaExportButtons` en la toolbar MRT. */
+  exportToolbar?: ReactNode;
 }
 
 const TablaActuaciones = ({
@@ -130,8 +133,9 @@ const TablaActuaciones = ({
   onBeforeSave,
   onAfterSave,
   readOnlyColumns = EMPTY_READ_ONLY_COLUMNS,
-  numeroCallesOptions,
-  numeroAllowFreeSolo = false,
+    numeroCallesOptions,
+    numeroAllowFreeSolo = false,
+    exportToolbar,
 }: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -487,10 +491,13 @@ const TablaActuaciones = ({
   );
 
   const renderTopToolbarCustomActionsCb = useCallback(
-    ({ table }: { table: Parameters<typeof TablaExportButtons>[0]["table"] }) => (
-      <TablaExportButtons table={table} filePrefix="actuaciones" />
-    ),
-    []
+    ({ table }: { table: Parameters<typeof TablaExportButtons>[0]["table"] }) => {
+      if (exportToolbar !== undefined) {
+        return exportToolbar;
+      }
+      return <TablaExportButtons table={table} filePrefix="actuaciones" />;
+    },
+    [exportToolbar]
   );
 
   const table = useMaterialReactTable({

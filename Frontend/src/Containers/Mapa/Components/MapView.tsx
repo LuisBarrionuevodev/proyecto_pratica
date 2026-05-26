@@ -1,3 +1,6 @@
+/**
+ * Vista legacy de mapa (locales/polígonos mock). No está enrutada en App.tsx; la ruta `/mapa` usa `MapPage`.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from "react-leaflet";
 import L from "leaflet";
@@ -17,6 +20,7 @@ import { usePoligonos } from "../../../hooks/usePoligonos";
 import wellknown from "wellknown"
 import { filterLocales } from "../../../utils/filtersMap";
 import MapClickHandler from "./MapClickHandler";
+import { ConfirmDialog } from "../../../ui";
 
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
@@ -40,6 +44,8 @@ export default function MapaView() {
   const [mode, setMode] = useState<"normal" | "addLocal" | "draw">("normal");
   const [filterDistrito, setFilterDistrito] = useState("");
   const [search, setSearch] = useState("");
+  const [deleteLocalId, setDeleteLocalId] = useState<number | null>(null);
+  const [deleteLocalInProgress, setDeleteLocalInProgress] = useState(false);
   const distritosList = useMemo(() => {
     const names = new Set<string>();
     (distritosGeo as any).features?.forEach((f: any) => {
@@ -88,14 +94,17 @@ export default function MapaView() {
     }
   };
 
-  const handleDeleteLocal = async (id: number) => {
-    if (!confirm("¿Seguro que querés eliminar este local?")) return;
-
+  const performDeleteLocal = async () => {
+    if (deleteLocalId == null) return;
+    setDeleteLocalInProgress(true);
     try {
-      await deleteLocal(id);
-      setLocales(prev => prev.filter(loc => loc.id !== id));
+      await deleteLocal(deleteLocalId);
+      setLocales((prev) => prev.filter((loc) => loc.id !== deleteLocalId));
     } catch (error) {
       console.error("Error eliminando local:", error);
+    } finally {
+      setDeleteLocalInProgress(false);
+      setDeleteLocalId(null);
     }
   };
 
@@ -249,7 +258,7 @@ export default function MapaView() {
 
                 <button
                   style={{ marginTop: "8px", color: "red", cursor: "pointer" }}
-                  onClick={() => handleDeleteLocal(loc.id)}
+                  onClick={() => setDeleteLocalId(loc.id)}
                 >
                   🗑 Eliminar
                 </button>
@@ -337,6 +346,18 @@ export default function MapaView() {
           setPendingPolygon(null);
         }}
       />
+
+      <ConfirmDialog
+        open={deleteLocalId !== null}
+        onClose={() => setDeleteLocalId(null)}
+        onConfirm={performDeleteLocal}
+        title="Eliminar local"
+        destructive
+        loading={deleteLocalInProgress}
+        confirmLabel="Eliminar"
+      >
+        Esta acción quitará el local del mapa. No se podrá deshacer desde esta vista.
+      </ConfirmDialog>
     </Box>
   );
 }

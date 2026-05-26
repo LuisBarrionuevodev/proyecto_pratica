@@ -20,6 +20,7 @@ import {
 } from "../../Actuaciones/Components/bandejaTableCells";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
+import { ConfirmDialog } from "../../../ui";
 import {
   DARK_TABLE_CONFIG,
   COLORS,
@@ -77,6 +78,8 @@ const TablaRelevamientos = ({
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [editDraft, setEditDraft] = useState<IRelevamientoListItem | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState<IRelevamientoListItem | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
@@ -106,27 +109,40 @@ const TablaRelevamientos = ({
     loadCatalogs();
   }, []);
 
-  const handleDeleteRow = useCallback(async (rowItem: IRelevamientoListItem) => {
-    const id = Number(rowItem.id);
-    if (rowItem.editable === false) {
-      alert("Este relevamiento ya no está operativo y no puede eliminarse.");
-      onRefresh?.();
-      return;
-    }
-    if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+  const requestDeleteRow = useCallback(
+    (rowItem: IRelevamientoListItem) => {
+      if (rowItem.editable === false) {
+        alert("Este relevamiento ya no está operativo y no puede eliminarse.");
+        onRefresh?.();
+        return;
+      }
+      setDeleteConfirmRow(rowItem);
+    },
+    [onRefresh]
+  );
+
+  const performDeleteRow = useCallback(async () => {
+    if (!deleteConfirmRow) return;
+    const id = Number(deleteConfirmRow.id);
     const prev = [...data];
+    setDeleteInProgress(true);
     setData((prevData) => prevData.filter((item) => item.id !== id));
     try {
       await deleteRelevamiento(id);
       onRefresh?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error al eliminar:", error);
-      const msg = error?.response?.data?.detail || "No se pudo eliminar el registro. Se restaurará la lista.";
+      const err = error as { response?: { data?: { detail?: string } } };
+      const msg =
+        err?.response?.data?.detail || "No se pudo eliminar el registro. Se restaurará la lista.";
       alert(msg);
       setData(prev);
       onRefresh?.();
+    } finally {
+      setDeleteInProgress(false);
+      setDeleteConfirmRow(null);
     }
-  }, [data, onRefresh]);
+  }, [data, deleteConfirmRow, onRefresh]);
 
   const catalogs = useMemo(
     () => ({ inspectores: catalogInspectores, rubros: catalogRubros }),
@@ -325,7 +341,7 @@ const TablaRelevamientos = ({
                 "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
               }}
               disabled={row.original.editable === false}
-              onClick={() => handleDeleteRow(row.original)}
+              onClick={() => requestDeleteRow(row.original)}
             >
               <DeleteIcon />
             </IconButton>
@@ -362,6 +378,18 @@ const TablaRelevamientos = ({
           onSave={handleDialogSave}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteConfirmRow !== null}
+        onClose={() => setDeleteConfirmRow(null)}
+        onConfirm={performDeleteRow}
+        title="Eliminar relevamiento"
+        destructive
+        loading={deleteInProgress}
+        confirmLabel="Eliminar"
+      >
+        Esta acción quitará el relevamiento del listado. No se podrá deshacer desde esta vista.
+      </ConfirmDialog>
     </Box>
   );
 };

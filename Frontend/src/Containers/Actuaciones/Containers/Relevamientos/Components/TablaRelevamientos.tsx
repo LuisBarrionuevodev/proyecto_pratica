@@ -14,12 +14,15 @@ import { deleteRelevamiento, updateRelevamiento } from "../../../../../api/relev
 import { TablaExportButtons } from "../../../Components/TableButtons";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
 import { validateRelevamiento } from "../../../../../utils/validations";
+import { ConfirmDialog } from "../../../../../ui";
 
 const TablaRelevamientos = () => {
 
   const { relevamientos, setRelevamientos, loading } = useRelevamientos();
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [data, setData] = useState<IRelevamiento[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
 
   const validateRow = (row: MRT_Row<IRelevamiento>) => {
     setValidationErrors(validateRelevamiento(row._valuesCache));
@@ -29,10 +32,12 @@ const TablaRelevamientos = () => {
     setData(relevamientos ?? []);
   }, [relevamientos]);
 
-  const handleDeleteRow = useCallback(async (id: number) => {
-    if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+  const performDeleteRow = useCallback(async () => {
+    if (deleteConfirmId == null) return;
+    const id = deleteConfirmId;
     const prev = data;
-    setData(prev => prev.filter(item => item.id !== id));
+    setDeleteInProgress(true);
+    setData((items) => items.filter((item) => item.id !== id));
     try {
       await deleteRelevamiento(id);
     } catch (error) {
@@ -40,8 +45,11 @@ const TablaRelevamientos = () => {
       alert("No se pudo eliminar el registro. Se restaurará la lista.");
       setData(prev);
       setRelevamientos(prev);
+    } finally {
+      setDeleteInProgress(false);
+      setDeleteConfirmId(null);
     }
-  }, [data, setRelevamientos]);
+  }, [data, deleteConfirmId, setRelevamientos]);
 
   const handleEditCell = useCallback(
     async (id: number, key: keyof IRelevamiento, value: any) => {
@@ -164,7 +172,7 @@ const TablaRelevamientos = () => {
     renderRowActions: ({ row }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
         <Tooltip title="Eliminar">
-          <IconButton color="error" onClick={() => handleDeleteRow(Number(row.original.id))}>
+          <IconButton color="error" onClick={() => setDeleteConfirmId(Number(row.original.id))}>
             <DeleteIcon />
           </IconButton>
         </Tooltip>
@@ -193,6 +201,18 @@ const TablaRelevamientos = () => {
         <CardsExpedientes />
         <MaterialReactTable table={table} />
       </Box>
+
+      <ConfirmDialog
+        open={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={performDeleteRow}
+        title="Eliminar relevamiento"
+        destructive
+        loading={deleteInProgress}
+        confirmLabel="Eliminar"
+      >
+        Esta acción quitará el relevamiento del listado. No se podrá deshacer desde esta vista.
+      </ConfirmDialog>
     </Box>
   );
 };

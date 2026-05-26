@@ -39,7 +39,7 @@ export const GridLegend = () => {
                     </li>
                     <li style={{ marginBottom: "8px" }}>
                         <FileDownloadIcon sx={{ color: COLORS.white, verticalAlign: "middle", mr: 0.5, fontSize: 18 }} />
-                        <strong>EXPORTAR:</strong> Exporta todas las actuaciones, solo las seleccionadas, o la página actual a un archivo Excel.
+                        <strong>EXPORTAR:</strong> Usá «Exportar datos» para descargar Excel o PDF del rango elegido (no depende de la página visible).
                     </li>
                     <li style={{ marginBottom: "8px" }}>
                         <EditIcon sx={{ color: COLORS.white, verticalAlign: "middle", mr: 0.5, fontSize: 18 }} />

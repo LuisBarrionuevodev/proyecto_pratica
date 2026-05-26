@@ -23,7 +23,7 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 
-import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass } from "../../ui";
+import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass, ConfirmDialog } from "../../ui";
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import { getInitialCapacitacionesMock } from "./mocks/capacitacionesMock";
@@ -82,6 +82,7 @@ export default function GestionCapacitacionesPage() {
   const [promotorInputs, setPromotorInputs] = useState<string[]>([]);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmCapId, setDeleteConfirmCapId] = useState<string | null>(null);
   const [editing, setEditing] = useState<CapacitacionRow | null>(null);
   const [editForm, setEditForm] = useState<CapacitacionFormValues>(emptyForm);
   const [editPromotorInputs, setEditPromotorInputs] = useState<string[]>([]);
@@ -204,11 +205,16 @@ export default function GestionCapacitacionesPage() {
     setSnack("Cambios guardados (mock).");
   }, [editing, editForm, editPromotorInputs, nPromotoresEdicion]);
 
-  const deleteRow = useCallback((id: string) => {
-    if (!window.confirm("¿Eliminar esta capacitación del listado mock?")) return;
-    setRows((prev) => prev.filter((r) => r.id !== id));
-    setSnack("Registro eliminado (mock).");
+  const confirmDeleteRow = useCallback((id: string) => {
+    setDeleteConfirmCapId(id);
   }, []);
+
+  const performDeleteRow = useCallback(() => {
+    if (!deleteConfirmCapId) return;
+    setRows((prev) => prev.filter((r) => r.id !== deleteConfirmCapId));
+    setSnack("Registro eliminado (mock).");
+    setDeleteConfirmCapId(null);
+  }, [deleteConfirmCapId]);
 
   const openAddParticipant = useCallback((capId: string) => {
     setCapIdForPart(capId);
@@ -422,7 +428,7 @@ export default function GestionCapacitacionesPage() {
         <Tooltip title="Eliminar">
           <IconButton
             size="small"
-            onClick={() => deleteRow(row.original.id)}
+            onClick={() => confirmDeleteRow(row.original.id)}
             sx={{ color: COLORS.white, "&:hover": { color: COLORS.error } }}
           >
             <DeleteOutlineIcon fontSize="small" />
@@ -836,6 +842,17 @@ export default function GestionCapacitacionesPage() {
           {snack}
         </Alert>
       </Snackbar>
+
+      <ConfirmDialog
+        open={deleteConfirmCapId !== null}
+        onClose={() => setDeleteConfirmCapId(null)}
+        onConfirm={performDeleteRow}
+        title="Eliminar capacitación"
+        destructive
+        confirmLabel="Eliminar"
+      >
+        Esta acción quitará la capacitación del listado mock. No se podrá deshacer desde esta vista.
+      </ConfirmDialog>
     </Stack>
   );
 }

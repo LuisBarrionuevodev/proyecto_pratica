@@ -13,6 +13,7 @@ import {
   fetchRubros,
   fetchMotivosComprobacion,
 } from "../../../api/gridApi";
+import { useAppFeedback } from "../../../components/feedback";
 import { extractDataColumns, generateRowId } from "../utils/gridHelpers";
 import { getDropdownOptions } from "../config/dropdownOptions";
 import { dedupeInspectoresPreserveOrder } from "../utils/inspectoresGridHelpers";
@@ -21,6 +22,7 @@ import {
   MOTIVOS_NOTIFICACION_MAX,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
+import { applyFormErrorsFromApi, applyFormErrorsFromMap } from "../../../utils/parseApiError";
 import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
 
@@ -73,19 +75,10 @@ const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
   numero: "Número",
 };
 
-function normalizeErrorKeys(errors: Record<string, string> | undefined): Record<string, string> {
-  if (!errors) return {};
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(errors)) {
-    if (k === "_row" || k === "detail" || k === "_global") {
-      out[k] = v;
-      continue;
-    }
-    const glide = INTERNAL_ERR_TO_GLIDE[k] ?? k;
-    out[glide] = v;
-  }
-  return out;
-}
+const CARGAR_ACTUACION_ERROR_OPTIONS = {
+  fieldKeyAliases: INTERNAL_ERR_TO_GLIDE,
+  fallbackMessage: "Error al validar o guardar.",
+} as const;
 
 function emptyTextFields(): Record<GlideTextKey, string> {
   return Object.fromEntries(GLIDE_KEYS.map((k) => [k, ""])) as Record<GlideTextKey, string>;
@@ -96,6 +89,7 @@ const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
 const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: tactic } as const;
 
 export function CargarActuacionNuevaModal() {
+  const feedback = useAppFeedback();
   const [open, setOpen] = useState(false);
   const [rowId, setRowId] = useState(() => generateRowId());
 
@@ -118,9 +112,7 @@ export function CargarActuacionNuevaModal() {
   const [catalogsBootstrapping, setCatalogsBootstrapping] = useState(true);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [rowError, setRowError] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const catalogs = useMemo(
@@ -215,7 +207,6 @@ export function CargarActuacionNuevaModal() {
     setNotifMotivosAddInput("");
     setTitularModo("persona");
     setFieldErrors({});
-    setRowError(null);
     setGlobalError(null);
     setRowId(generateRowId());
   }, []);
@@ -293,9 +284,7 @@ export function CargarActuacionNuevaModal() {
 
   const handleSubmit = async () => {
     setFieldErrors({});
-    setRowError(null);
     setGlobalError(null);
-    setSuccessMsg(null);
 
     const bid = await ensureBatch();
     if (!bid) return;
@@ -311,9 +300,9 @@ export function CargarActuacionNuevaModal() {
         row: payload as GridRow,
       });
 
-      const normErrors = normalizeErrorKeys(response.errors);
-      setFieldErrors(normErrors);
-      setRowError(normErrors._row ?? normErrors.detail ?? null);
+      const validation = applyFormErrorsFromMap(response.errors, CARGAR_ACTUACION_ERROR_OPTIONS);
+      setFieldErrors(validation.fieldErrors);
+      setGlobalError(validation.globalMessage);
 
       if (!response.ok || !response.normalized) {
         return;
@@ -326,25 +315,19 @@ export function CargarActuacionNuevaModal() {
 
       const mine = commitResp.results?.find((r) => r.row_id === rowId);
       if (mine?.ok) {
-        setSuccessMsg("Actuación guardada correctamente.");
+        feedback.success("Actuación guardada correctamente.");
         resetForm();
         setOpen(false);
         return;
       }
 
-      const commitErrs = normalizeErrorKeys(mine?.errors);
-      setFieldErrors(commitErrs);
-      setRowError(commitErrs._row ?? commitErrs.detail ?? "No se pudo confirmar la carga.");
+      const commit = applyFormErrorsFromMap(mine?.errors, CARGAR_ACTUACION_ERROR_OPTIONS);
+      setFieldErrors(commit.fieldErrors);
+      setGlobalError(commit.globalMessage ?? "No se pudo confirmar la carga.");
     } catch (e: unknown) {
-      if (axios.isAxiosError(e)) {
-        const data = e.response?.data as { detail?: string; errors?: Record<string, string> } | undefined;
-        if (data?.errors && typeof data.errors === "object") {
-          setFieldErrors(normalizeErrorKeys(data.errors));
-        }
-        setGlobalError(data?.detail ?? e.message ?? "Error al validar o guardar.");
-      } else {
-        setGlobalError("Error al validar o guardar.");
-      }
+      const parsed = applyFormErrorsFromApi(e, CARGAR_ACTUACION_ERROR_OPTIONS);
+      setFieldErrors(parsed.fieldErrors);
+      setGlobalError(parsed.globalMessage);
     } finally {
       setLoading(false);
     }
@@ -360,12 +343,6 @@ export function CargarActuacionNuevaModal() {
 
   return (
     <Box sx={{ width: "100%", minWidth: 0, boxSizing: "border-box" }}>
-      {successMsg && (
-        <Alert severity="success" sx={{ borderRadius: 2 }} onClose={() => setSuccessMsg(null)}>
-          {successMsg}
-        </Alert>
-      )}
-
       <CardGlass sx={{ ...moduleHeroCardSx, width: "100%", minWidth: 0 }}>
         <Box
           sx={{
@@ -472,11 +449,6 @@ export function CargarActuacionNuevaModal() {
         {globalError && (
           <Alert severity="error" sx={{ borderRadius: 2, whiteSpace: "pre-line" }} onClose={() => setGlobalError(null)}>
             {globalError}
-          </Alert>
-        )}
-        {rowError && (
-          <Alert severity="warning" sx={{ borderRadius: 2, whiteSpace: "pre-line" }} onClose={() => setRowError(null)}>
-            {rowError}
           </Alert>
         )}
 
