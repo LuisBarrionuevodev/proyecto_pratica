@@ -384,8 +384,6 @@ export function CargarActuacionNuevaModal() {
             onClick={() => {
               setGlobalError(null);
               setFieldErrors({});
-              setRowError(null);
-              setSuccessMsg(null);
               setOpen(true);
             }}
             startIcon={<AddIcon />}
