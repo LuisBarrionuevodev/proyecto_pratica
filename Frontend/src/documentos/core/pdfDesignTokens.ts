@@ -140,6 +140,19 @@ export const pdfInformeTypography = {
   },
 } as const;
 
+/** Bordes de tablas exportadas (informes PDF — modelo G1 Actuaciones y futuros módulos). */
+export const PDF_TABLE_BORDER_COLOR = "#000000";
+export const PDF_TABLE_BORDER_WIDTH = 0.6;
+
+/** Estilo de borde fino negro para celdas `View` en @react-pdf/renderer. */
+export const pdfTableCellBorder = {
+  borderTopWidth: PDF_TABLE_BORDER_WIDTH,
+  borderRightWidth: PDF_TABLE_BORDER_WIDTH,
+  borderBottomWidth: PDF_TABLE_BORDER_WIDTH,
+  borderLeftWidth: PDF_TABLE_BORDER_WIDTH,
+  borderColor: PDF_TABLE_BORDER_COLOR,
+} as const;
+
 /** Filas de tabla tipo informe (cabecera negra / cuerpo blanco). */
 export const pdfInformeTable = {
   headerRow: {

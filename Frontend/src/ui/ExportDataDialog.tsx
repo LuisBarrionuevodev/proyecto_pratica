@@ -44,19 +44,28 @@ const DEFAULT_FORMATS: ExportFormat[] = ["excel", "pdf"];
 
 const sectionLabelSx = {
   fontFamily: '"Tactic Sans", sans-serif',
-  fontSize: "0.72rem",
-  fontWeight: 600,
+  fontSize: "0.75rem",
+  fontWeight: 700,
   letterSpacing: "0.08em",
   textTransform: "uppercase" as const,
-  color: GLASS_COLORS.textMuted,
-  mb: 0.75,
+  color: GLASS_COLORS.textPrimary,
+  mb: 0.85,
 };
 
 const radioLabelSx = {
   "& .MuiFormControlLabel-label": {
     fontFamily: '"Tactic Sans", sans-serif',
-    fontSize: "0.875rem",
-    color: "rgba(255,255,255,0.9)",
+    fontSize: "0.92rem",
+    fontWeight: 600,
+    color: GLASS_COLORS.textPrimary,
+    lineHeight: 1.35,
+  },
+};
+
+const radioSx = {
+  color: "rgba(255,255,255,0.45)",
+  "&.Mui-checked": {
+    color: GLASS_COLORS.primary,
   },
 };
 
@@ -67,9 +76,9 @@ const formatLabel: Record<ExportFormat, string> = {
 
 function FormatIcon({ format }: { format: ExportFormat }) {
   if (format === "pdf") {
-    return <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, mr: 0.5, verticalAlign: "middle" }} />;
+    return <PictureAsPdfOutlinedIcon sx={{ fontSize: 19, mr: 0.5, verticalAlign: "middle", opacity: 0.95 }} />;
   }
-  return <FileDownloadOutlinedIcon sx={{ fontSize: 18, mr: 0.5, verticalAlign: "middle" }} />;
+  return <FileDownloadOutlinedIcon sx={{ fontSize: 19, mr: 0.5, verticalAlign: "middle", opacity: 0.95 }} />;
 }
 
 /**
@@ -246,8 +255,13 @@ export function ExportDataDialog({
       <Box sx={formDialogContentStackSx}>
         {subtitle ? (
           <Typography
-            variant="body2"
-            sx={{ color: "rgba(255,255,255,0.75)", fontFamily: '"Tactic Sans", sans-serif' }}
+            variant="subtitle1"
+            sx={{
+              color: GLASS_COLORS.textPrimary,
+              fontFamily: '"Tactic Sans", sans-serif',
+              fontWeight: 600,
+              lineHeight: 1.35,
+            }}
           >
             {subtitle}
           </Typography>
@@ -256,7 +270,12 @@ export function ExportDataDialog({
         {scopeHint ? (
           <Typography
             variant="caption"
-            sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif', display: "block" }}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              fontFamily: '"Tactic Sans", sans-serif',
+              display: "block",
+              fontWeight: 500,
+            }}
           >
             {scopeHint}
           </Typography>
@@ -267,15 +286,12 @@ export function ExportDataDialog({
             <FormLabel component="legend" sx={sectionLabelSx}>
               Período
             </FormLabel>
-            <RadioGroup
-              value={periodMode}
-              onChange={(_, value) => handlePeriodChange(value as ExportPeriodMode)}
-            >
+            <RadioGroup value={periodMode} onChange={(_, value) => handlePeriodChange(value as ExportPeriodMode)}>
               {periodModes.map((mode) => (
                 <FormControlLabel
                   key={mode}
                   value={mode}
-                  control={<Radio size="small" sx={{ color: "rgba(255,255,255,0.5)" }} />}
+                  control={<Radio size="small" sx={radioSx} />}
                   label={exportPeriodModeLabel(mode)}
                   sx={radioLabelSx}
                 />
@@ -284,12 +300,14 @@ export function ExportDataDialog({
 
             {presetPreview && periodMode !== "custom" ? (
               <Typography
-                variant="caption"
+                variant="body2"
                 sx={{
-                  mt: 0.5,
+                  mt: 0.75,
                   ml: 4,
-                  color: GLASS_COLORS.textSecondary,
+                  color: GLASS_COLORS.textPrimary,
                   fontFamily: '"Tactic Sans", sans-serif',
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
                 }}
               >
                 Del {formatExportDatePreview(presetPreview.desde)} al {formatExportDatePreview(presetPreview.hasta)}
@@ -316,7 +334,10 @@ export function ExportDataDialog({
                     setCustomDesde(e.target.value);
                   }}
                   disabled={loading}
-                  error={Boolean(desdeFieldError) || (periodMode === "custom" && !customValidation.ok && !customDesde.trim())}
+                  error={
+                    Boolean(desdeFieldError) ||
+                    (periodMode === "custom" && !customValidation.ok && !customDesde.trim())
+                  }
                   helperText={desdeFieldError}
                   slotProps={{ inputLabel: { shrink: true } }}
                   inputProps={{ min: minDate, max: maxDate }}
@@ -332,13 +353,31 @@ export function ExportDataDialog({
                     setCustomHasta(e.target.value);
                   }}
                   disabled={loading}
-                  error={Boolean(hastaFieldError) || (periodMode === "custom" && !customValidation.ok && !customHasta.trim())}
+                  error={
+                    Boolean(hastaFieldError) ||
+                    (periodMode === "custom" && !customValidation.ok && !customHasta.trim())
+                  }
                   helperText={hastaFieldError}
                   slotProps={{ inputLabel: { shrink: true } }}
                   inputProps={{ min: minDate, max: maxDate }}
                   fullWidth
                 />
               </Box>
+            ) : null}
+            {periodMode === "custom" && customDesde.trim() && customHasta.trim() && customValidation.ok ? (
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 1,
+                  ml: { xs: 0, sm: 2 },
+                  color: GLASS_COLORS.textPrimary,
+                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                }}
+              >
+                Del {formatExportDatePreview(customDesde)} al {formatExportDatePreview(customHasta)}
+              </Typography>
             ) : null}
           </FormControl>
         ) : null}
@@ -361,7 +400,7 @@ export function ExportDataDialog({
                   key={f}
                   value={f}
                   disabled={Boolean(disabledReason)}
-                  control={<Radio size="small" sx={{ color: "rgba(255,255,255,0.5)" }} />}
+                  control={<Radio size="small" sx={radioSx} />}
                   label={label}
                   sx={radioLabelSx}
                 />

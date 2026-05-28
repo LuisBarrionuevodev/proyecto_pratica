@@ -2,7 +2,8 @@ import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import {
   actuacionActaChipsOnly,
-  actuacionActasYTramiteAccessor,
+  actuacionDocumentacionOrigenReinspeccionSegments,
+  actuacionDocumentacionPropiaTramiteSegments,
   actuacionDocumentacionTramiteSegments,
 } from "./actuacionDocumentacionVisual";
 import { splitCommaList } from "../Components/bandejaTableCells";
@@ -24,16 +25,31 @@ function inspectoresNombres(row: IActuacionListItem): string[] {
   return [row.inspector1, row.inspector2, row.inspector3].filter((s): s is string => Boolean(s?.trim()));
 }
 
-function motivosInfraccionSegments(row: IActuacionListItem): string[] {
+function tieneNotifMotivosReales(row: IActuacionListItem): boolean {
+  return [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3].some((s) =>
+    Boolean((s ?? "").trim())
+  );
+}
+
+/** Motivos de actas labradas en la visita (no previas sin acta ni comprobación PENDIENTE). */
+function motivosPdfDisplay(row: IActuacionListItem): string {
   const out: string[] = [];
-  const comp = (row.comprobacion_motivo ?? "").trim();
-  if (comp) out.push(`Motivo comprobación: ${comp}`);
-  const mf = [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
-    .map((s) => (s ?? "").trim())
-    .filter(Boolean);
-  if (mf.length === 1) out.push(`Motivo notificación: ${mf[0]}`);
-  else if (mf.length > 1) out.push(`Motivos notificación: ${mf.join(", ")}`);
-  return out;
+  const compLabrada =
+    Boolean(row.acta_comprobacion_num?.trim()) &&
+    (row.comprobacion_motivo ?? "").trim() &&
+    (row.comprobacion_motivo ?? "").trim() !== "PENDIENTE";
+  if (compLabrada) {
+    out.push(`Motivo comprobación: ${(row.comprobacion_motivo ?? "").trim()}`);
+  }
+  const notifLabrada = Boolean(row.acta_notificacion_num?.trim()) && tieneNotifMotivosReales(row);
+  if (notifLabrada) {
+    const mf = [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
+      .map((s) => (s ?? "").trim())
+      .filter(Boolean);
+    if (mf.length === 1) out.push(`Motivo notificación: ${mf[0]}`);
+    else if (mf.length > 1) out.push(`Motivos notificación: ${mf.join(", ")}`);
+  }
+  return out.length ? out.join("\n") : "—";
 }
 
 function fechaOtText(row: IActuacionListItem): string {
@@ -42,14 +58,17 @@ function fechaOtText(row: IActuacionListItem): string {
   return ot ? `${fecha} · OT ${ot}` : fecha;
 }
 
-function tipoContraproducenciaText(row: IActuacionListItem): string {
+/** Tipo, contraproducencia y segmentos de origen de reinspección (referencia contextual en columna tipo). */
+function tipoTramiteConOrigenText(row: IActuacionListItem): string {
   const tipo = (row.tipo_actuacion ?? "").trim();
   const contra = (row.contraproducencia ?? "").trim();
-  const parts = [
+  const baseParts = [
     tipo ? `Tipo: ${tipo}` : "",
     contra ? `Contraproducencia: ${contra}` : "",
   ].filter(Boolean);
-  return parts.join(" · ") || "—";
+  const origenSegs = actuacionDocumentacionOrigenReinspeccionSegments(row);
+  const lines = [...baseParts, ...origenSegs];
+  return lines.length ? lines.join("\n") : "—";
 }
 
 function domicilioRubroText(row: IActuacionListItem): string {
@@ -58,8 +77,9 @@ function domicilioRubroText(row: IActuacionListItem): string {
   return rubro ? `${line} · ${rubro}` : line;
 }
 
-function actasTramiteText(row: IActuacionListItem): string {
-  const labels = [...actuacionActaChipsOnly(row), ...actuacionDocumentacionTramiteSegments(row)];
+/** Actas y trámite propio de la visita (sin bloque de origen documental de reinspección). */
+function actasTramiteSoloPropias(row: IActuacionListItem): string {
+  const labels = [...actuacionActaChipsOnly(row), ...actuacionDocumentacionPropiaTramiteSegments(row)];
   if (!labels.length) return "—";
   return labels.join("\n");
 }
@@ -68,15 +88,15 @@ function actasTramiteText(row: IActuacionListItem): string {
 export function buildActuacionesVisualPdfRows(items: IActuacionListItem[]): ActuacionVisualPdfRow[] {
   return items.map((row) => ({
     fechaOt: fechaOtText(row),
-    tipoContraproducencia: tipoContraproducenciaText(row),
+    tipoContraproducencia: tipoTramiteConOrigenText(row),
     domicilioRubro: domicilioRubroText(row),
     inspectores: inspectoresNombres(row).join(", ") || "—",
-    actasTramite: actasTramiteText(row),
-    motivos: motivosInfraccionSegments(row).join("\n") || "—",
+    actasTramite: actasTramiteSoloPropias(row),
+    motivos: motivosPdfDisplay(row),
   }));
 }
 
 /** Accessor compacto útil para logs / tests. */
 export function actuacionVisualSummaryLine(row: IActuacionListItem): string {
-  return actuacionActasYTramiteAccessor(row);
+  return [...actuacionActaChipsOnly(row), ...actuacionDocumentacionTramiteSegments(row)].join(" | ");
 }

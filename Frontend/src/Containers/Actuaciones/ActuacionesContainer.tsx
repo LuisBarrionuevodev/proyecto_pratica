@@ -375,7 +375,6 @@ const ActuacionesContainer = (): JSX.Element => {
               }}
               title="Exportar datos"
               subtitle="Actuaciones"
-              scopeHint="La exportación usará el rango elegido y no las filas visibles en la grilla."
               loading={exportLoading}
               error={exportError}
               onClearError={() => setExportError(null)}

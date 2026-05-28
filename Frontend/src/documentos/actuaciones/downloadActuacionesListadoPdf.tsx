@@ -2,8 +2,10 @@ import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 
 import type { IActuacionListItem } from "../../api/actuacionesListApi";
-import { fechaLocalHoyIso } from "../../utils/dateRange";
+import { computeActuacionesPdfResumenRows } from "../../Containers/Actuaciones/utils/actuacionesExportPdfResumen";
 import { buildActuacionesVisualPdfRows } from "../../Containers/Actuaciones/utils/actuacionesExportVisualRows";
+import { fechaLocalHoyIso } from "../../utils/dateRange";
+import { formatExportDatePreview } from "../../utils/exportPeriodRange";
 import { registerDocumentosPdfFonts } from "../core/registerPdfFonts";
 import { ActuacionesListadoPdfDocument } from "../renderers/ActuacionesListadoPdfDocument";
 
@@ -26,22 +28,26 @@ function formatGeneradoEl(isoDate: string): string {
 }
 
 /**
- * Genera y descarga PDF institucional del listado de actuaciones (vista compuesta).
+ * Genera y descarga PDF institucional del listado de actuaciones con resumen y detalle tipo grilla.
  */
 export async function downloadActuacionesListadoPdf(options: DownloadActuacionesPdfOptions): Promise<void> {
   registerDocumentosPdfFonts();
 
   const rows = buildActuacionesVisualPdfRows(options.items);
   const generadoEl = formatGeneradoEl(fechaLocalHoyIso());
+  const periodoExportadoLine = `${formatExportDatePreview(options.desde)} al ${formatExportDatePreview(options.hasta)}`;
+  const resumen = computeActuacionesPdfResumenRows(options.items);
 
   const blob = await pdf(
     <ActuacionesListadoPdfDocument
       model={{
         desde: options.desde,
         hasta: options.hasta,
+        periodoExportadoLine,
         generadoEl,
         totalRegistros: options.items.length,
         filtrosResumen: options.filtrosResumen ?? [],
+        resumen,
         rows,
       }}
       membreteSrc={membretePngUrl}

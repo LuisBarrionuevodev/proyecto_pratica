@@ -1,6 +1,10 @@
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import {
+  applyBlackBordersToWorksheet,
+  writeStyledWorkbook,
+} from "../../../utils/xlsxWorksheetBlackBorders";
 import {
   buildActuacionesNormalizedExcelRows,
   type ActuacionNormalizedExcelRow,
@@ -11,7 +15,7 @@ function buildFileName(desde: string, hasta: string): string {
 }
 
 /**
- * Descarga Excel normalizado de actuaciones (columnas atómicas administrativas).
+ * Descarga Excel normalizado de actuaciones (columnas atómicas + bordes negros en toda la grilla).
  */
 export function downloadActuacionesExcel(
   items: IActuacionListItem[],
@@ -19,7 +23,8 @@ export function downloadActuacionesExcel(
 ): void {
   const rows: ActuacionNormalizedExcelRow[] = buildActuacionesNormalizedExcelRows(items);
   const worksheet = XLSX.utils.json_to_sheet(rows);
+  applyBlackBordersToWorksheet(worksheet);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Actuaciones");
-  XLSX.writeFile(workbook, buildFileName(range.desde, range.hasta));
+  writeStyledWorkbook(workbook, buildFileName(range.desde, range.hasta));
 }
