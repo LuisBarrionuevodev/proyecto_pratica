@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ClearIcon from "@mui/icons-material/Clear";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   IconButton,
   Paper,
@@ -59,7 +61,10 @@ import {
 } from "../Actuaciones/styles/filtroStyles";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
-import { AppButton, AppSelect, AppTextField } from "../../ui";
+import { useAppFeedback } from "../../components/feedback";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
+import { applyFormErrorsFromApi } from "../../utils/parseApiError";
+import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
 import {
   countByPlazoSlice,
   matchesPlazoSlice,
@@ -71,6 +76,7 @@ import {
   NotificacionDetalleDocumentalDialog,
   type NotificacionDetalleModalVariant,
 } from "./components/NotificacionDetalleDocumentalDialog";
+import { exportNotificacionesDataset } from "./utils/exportNotificacionesDataset";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
 const PLAZO_TAB_ORDER: PlazoOperativoSlice[] = ["en_plazo", "por_vencer", "vencidas_o_hoy", "total"];
@@ -217,6 +223,7 @@ function NotificacionBandejaTable({
  * Bandeja: operativa con GET omitir_rango_fecha; historial con mes/año tras aplicar filtro.
  */
 const GestionNotificacionPage = () => {
+  const feedback = useAppFeedback();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const [searchParams, setSearchParams] = useSearchParams();
   const notifDeepLinkProcessedKey = useRef<string | null>(null);
@@ -301,6 +308,10 @@ const GestionNotificacionPage = () => {
     | { kind: "success"; metrics: ISyncNotificacionesVencidasResponse }
     | { kind: "error"; message: string }
   >(null);
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -789,6 +800,48 @@ const GestionNotificacionPage = () => {
   const mostrarTablaOperativa = plazoSlice !== "total";
   const mostrarHistorial = plazoSlice === "total";
 
+  const handleExportNotificaciones = useCallback(
+    async (options: {
+      format: "excel" | "pdf";
+      periodMode: "workweek" | "month" | "custom";
+      desde: string;
+      hasta: string;
+    }) => {
+      setExportLoading(true);
+      setExportError(null);
+      try {
+        const historialCtx =
+          plazoSlice === "total" && historialApplied
+            ? {
+                distritoId: historialApplied.distritoId,
+                contribuyenteQ: historialApplied.contribuyenteQ,
+                calleQ: historialApplied.calleQ,
+                numeroNotificacion: historialApplied.numeroNotificacion,
+                motivoQ: historialApplied.motivoQ,
+              }
+            : {};
+
+        await exportNotificacionesDataset({
+          format: options.format,
+          desde: options.desde,
+          hasta: options.hasta,
+          plazoSlice,
+          ...historialCtx,
+        });
+        feedback.success("Exportación generada");
+        setExportOpen(false);
+      } catch (err: unknown) {
+        const parsed = applyFormErrorsFromApi(err, {
+          fallbackMessage: "No se pudo completar la exportación.",
+        });
+        setExportError(parsed.globalMessage ?? parsed.fieldErrors._global ?? "No se pudo completar la exportación.");
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [feedback, historialApplied, plazoSlice]
+  );
+
   return (
     <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx } as SxProps<Theme>}>
       {notificacionDeepLinkAviso ? (
@@ -840,23 +893,44 @@ const GestionNotificacionPage = () => {
             />
           ))}
         </Tabs>
-        <AppButton
-          dsVariant="primary"
-          dsSize="sm"
-          onClick={() => void handleSyncNotificacionesVencidas()}
-          disabled={syncLoading || loading}
+        <Box
           sx={{
-            alignSelf: { xs: "stretch", sm: "center" },
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: { xs: 0.75, sm: 0.5 },
             flexShrink: 0,
-            mx: { xs: 0, sm: 0.5 },
             mb: { xs: 0.25, sm: 0 },
-            fontFamily: '"Tactic Sans", sans-serif',
-            fontWeight: 600,
-            whiteSpace: { xs: "normal", sm: "nowrap" },
           }}
         >
-          {syncLoading ? "Sincronizando…" : "Sincronizar vencimientos"}
-        </AppButton>
+          <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row" }}>
+            <Button
+              onClick={() => {
+                setExportError(null);
+                setExportOpen(true);
+              }}
+              startIcon={<FileDownloadOutlinedIcon />}
+              sx={TableExportButtonStyles}
+              disabled={exportLoading}
+            >
+              Exportar datos
+            </Button>
+          </Box>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            onClick={() => void handleSyncNotificacionesVencidas()}
+            disabled={syncLoading || loading}
+            sx={{
+              alignSelf: { xs: "stretch", sm: "center" },
+              fontFamily: '"Tactic Sans", sans-serif',
+              fontWeight: 600,
+              whiteSpace: { xs: "normal", sm: "nowrap" },
+            }}
+          >
+            {syncLoading ? "Sincronizando…" : "Sincronizar vencimientos"}
+          </AppButton>
+        </Box>
       </Paper>
 
       {error && (
@@ -1120,6 +1194,20 @@ const GestionNotificacionPage = () => {
           )}
         </Box>
       )}
+
+      <ExportDataDialog
+        open={exportOpen}
+        onClose={() => {
+          if (exportLoading) return;
+          setExportOpen(false);
+        }}
+        title="Exportar datos"
+        subtitle="Notificaciones"
+        loading={exportLoading}
+        error={exportError}
+        onClearError={() => setExportError(null)}
+        onExport={handleExportNotificaciones}
+      />
 
       <NotificacionDetalleDocumentalDialog
         open={modalOpen}

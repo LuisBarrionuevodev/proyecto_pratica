@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ClearIcon from "@mui/icons-material/Clear";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   IconButton,
   Paper,
@@ -64,10 +66,13 @@ import {
   metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
-import { AppButton, AppSelect, AppTextField } from "../../ui";
+import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
+import { useAppFeedback } from "../../components/feedback";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
+import { applyFormErrorsFromApi } from "../../utils/parseApiError";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import {
   formatActuacionListDomicilioLinea,
@@ -82,6 +87,7 @@ import {
 import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
 import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionOperativoBlocks";
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
+import { exportComprobacionesDataset } from "./utils/exportComprobacionesDataset";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
 
@@ -235,6 +241,7 @@ function yearOptions(center: number): { value: string; label: string }[] {
  * Actas de comprobación: cuatro slices (expediente → oficio → reinspección → recorrido consultivo).
  */
 const ActasComprobacionPage = () => {
+  const feedback = useAppFeedback();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
   const defaultMonthYear = useMemo(() => {
     const d = new Date(`${defaultRange.desde}T12:00:00`);
@@ -895,6 +902,10 @@ const ActasComprobacionPage = () => {
   /** Fila del listado Recorrido al abrir detalle (enriquece domicilio / inspectores sin otro endpoint). */
   const [detalleListRow, setDetalleListRow] = useState<IComprobacionRecorridoRow | null>(null);
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
   const reloadRecorridoDetalle = useCallback(async (actuacionId: number) => {
     const d = await fetchComprobacionRecorridoDetalle(actuacionId);
     setDetalle(d);
@@ -1067,10 +1078,73 @@ const ActasComprobacionPage = () => {
   const tabIndex =
     tab === "expediente" ? 0 : tab === "oficio" ? 1 : tab === "reinspeccion" ? 2 : 3;
 
+  const handleExportComprobaciones = useCallback(
+    async (options: {
+      format: "excel" | "pdf";
+      periodMode: "workweek" | "month" | "custom";
+      desde: string;
+      hasta: string;
+    }) => {
+      setExportLoading(true);
+      setExportError(null);
+      try {
+        const recorridoCtx =
+          tab === "recorrido" && recFilterApplied
+            ? {
+                distritoId: recDistritoId === "" ? null : recDistritoId,
+                contribuyenteQ: recContrib.trim() || null,
+                calleQ: recCalle.trim() || null,
+                actaComprobacion: recActa.trim() || null,
+                oficioNumero: recOfi.trim() || null,
+                tipoFinal: recTipoFinal || null,
+              }
+            : tab === "recorrido" && recDistritoId !== ""
+              ? { distritoId: recDistritoId }
+              : {};
+
+        await exportComprobacionesDataset({
+          format: options.format,
+          desde: options.desde,
+          hasta: options.hasta,
+          slice: tab,
+          ...recorridoCtx,
+        });
+        feedback.success("Exportación generada");
+        setExportOpen(false);
+      } catch (err: unknown) {
+        const parsed = applyFormErrorsFromApi(err, {
+          fallbackMessage: "No se pudo completar la exportación.",
+        });
+        setExportError(parsed.globalMessage ?? parsed.fieldErrors._global ?? "No se pudo completar la exportación.");
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [
+      feedback,
+      tab,
+      recFilterApplied,
+      recDistritoId,
+      recContrib,
+      recCalle,
+      recActa,
+      recOfi,
+      recTipoFinal,
+    ]
+  );
+
   return (
     <Box sx={containerStyles}>
       <Box sx={{ ...functionalPageShellSx, ...actasContentColumnSx }}>
-          <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
+          <Paper
+            elevation={0}
+            sx={{
+              ...moduleSlicesPanelPaperSx,
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "center" },
+              gap: { xs: 1.25, sm: 1 },
+            }}
+          >
             <Tabs
               value={tabIndex}
               onChange={(_, v) => {
@@ -1080,7 +1154,7 @@ const ActasComprobacionPage = () => {
               }}
               variant="scrollable"
               allowScrollButtonsMobile
-              sx={moduleSlicesTabsSx}
+              sx={{ ...moduleSlicesTabsSx, flex: 1, minWidth: 0 }}
             >
               <Tab
                 label={`Pendientes de expediente · ${
@@ -1099,6 +1173,19 @@ const ActasComprobacionPage = () => {
               />
               <Tab label="Recorrido" />
             </Tabs>
+            <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row", flexShrink: 0 }}>
+              <Button
+                onClick={() => {
+                  setExportError(null);
+                  setExportOpen(true);
+                }}
+                startIcon={<FileDownloadOutlinedIcon />}
+                sx={TableExportButtonStyles}
+                disabled={exportLoading}
+              >
+                Exportar datos
+              </Button>
+            </Box>
           </Paper>
 
           {tab === "expediente" && (
@@ -1425,6 +1512,20 @@ const ActasComprobacionPage = () => {
             </>
           )}
         </Box>
+
+      <ExportDataDialog
+        open={exportOpen}
+        onClose={() => {
+          if (exportLoading) return;
+          setExportOpen(false);
+        }}
+        title="Exportar datos"
+        subtitle="Actas de comprobación"
+        loading={exportLoading}
+        error={exportError}
+        onClearError={() => setExportError(null)}
+        onExport={handleExportComprobaciones}
+      />
 
       <ComprobacionExpedienteOperativoDialog
         open={modalExpOpen}
