@@ -13,16 +13,18 @@ interface ChartCardProps {
   /** Muestra badge «Demo» — datos no conectados al backend. */
   demo?: boolean;
   loading?: boolean;
+  /** Padding y título reducidos (dashboard compacto). */
+  compact?: boolean;
 }
 
-const ChartCard = ({ title, children, demo = false, loading = false }: ChartCardProps) => (
+const ChartCard = ({ title, children, demo = false, loading = false, compact = false }: ChartCardProps) => (
   <Card
     sx={{
       ...dashboardGlassCardSx,
-      p: { xs: 2, sm: 2.5 },
+      p: compact ? { xs: 1.25, sm: 1.5 } : { xs: 2, sm: 2.5 },
       position: "relative",
       overflow: "hidden",
-      minWidth: 260,
+      minWidth: compact ? 0 : 260,
     }}
   >
     {loading ? (
@@ -43,11 +45,14 @@ const ChartCard = ({ title, children, demo = false, loading = false }: ChartCard
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 1,
-        mb: 2,
+        mb: compact ? 1 : 2,
         flexWrap: "wrap",
       }}
     >
-      <Typography component="h3" sx={dashboardCardTitleSx}>
+      <Typography
+        component="h3"
+        sx={{ ...dashboardCardTitleSx, fontSize: compact ? "0.9rem" : undefined }}
+      >
         {title}
       </Typography>
       {demo ? <DashboardDemoBadge /> : null}

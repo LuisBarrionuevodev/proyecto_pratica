@@ -1,4 +1,7 @@
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   FormControl,
@@ -14,6 +17,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { useEffect, useMemo, useState } from "react";
 
@@ -25,6 +29,7 @@ import {
   moduleSlicesPanelPaperSx,
   moduleSlicesTabsSx,
 } from "../../../styles/GlassStyles";
+import { dashboardGlassCardSx } from "../../../styles/DashboardStyles";
 import { AppButton } from "../../../ui";
 import { alertBaseStyles, filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
@@ -35,17 +40,15 @@ import { useIndicadoresResumen } from "../hooks/useIndicadoresResumen";
 import { periodoToDateRange } from "../utils/periodoDateRange";
 import ActuacionesMensualesChart from "./DashboardActuacionMensual";
 import ActuacionesPorTipoChart from "./DashboardActuacionesPorTipo";
+import { DashboardActasPorTipoMini, totalActasLabradas } from "./DashboardActasPorTipoChips";
+import { DashboardCompactRankingCard } from "./DashboardCompactRankingCard";
 import ChartCard from "./ChartCard";
-import ContraproducenciaPorTipoChart from "./DashboardContraproducenciaPorTipo";
-import DashboardContraproducenciasTop from "./DashboardContraproducenciasTop";
 import DecomisoMensualChart from "./DashboardDecomiso";
-import DistribucionTipoChart from "./DashboardDistribucion";
-import EfectivasInefectivasChart from "./DashboardFunnel";
+import { DashboardExecutiveKpiGrid } from "./DashboardExecutiveKpiGrid";
 import KPI from "./DashboardKPI";
 import RankingInspectores from "./DashboardInspectores";
 import DashboardRutaItemsResumen from "./DashboardRutaItemsResumen";
-import ReinspeccionesRealizadasChart from "./DashboardReinspecciones";
-import TopRubrosChart from "./DashboardTopRubros";
+import { DashboardSectionBlock } from "./DashboardSectionBlock";
 import { dashboardDemoCaptionSx } from "./DashboardDemoBadge";
 
 const ACTAS_VACIAS: IndicadoresActasPorTipo = {
@@ -122,13 +125,37 @@ const Panel = () => {
   const { data, loading, error } = useIndicadoresResumen(resumenParams);
 
   const actas = data?.actas_por_tipo ?? ACTAS_VACIAS;
-  const actu = data?.actuaciones;
+  const actasLabradasTotal = useMemo(() => totalActasLabradas(actas), [actas]);
+
+  const reinspeccionesTotal = useMemo(() => {
+    if (!data) return null;
+    return data.reinspecciones_realizadas.notificacion + data.reinspecciones_realizadas.oficio;
+  }, [data]);
+
+  const topRubrosRanking = useMemo(
+    () => (data?.top_rubros ?? []).map((r) => ({ label: r.nombre, value: r.count })),
+    [data?.top_rubros],
+  );
+
+  const topContraproducenciasRanking = useMemo(
+    () => (data?.contraproducencias_top ?? []).map((c) => ({ label: c.valor, value: c.count })),
+    [data?.contraproducencias_top],
+  );
 
   const tarjetasExport = data
     ? [
         { title: "Actuaciones totales", value: data.actuaciones.total },
-        { title: "Con contraproducencia", value: data.actuaciones.con_contraproducencia },
-        { title: "Sin contraproducencia", value: data.actuaciones.sin_contraproducencia },
+        { title: "Actas labradas (total)", value: actasLabradasTotal },
+        { title: "Kg decomisados", value: data.decomiso_kg.total_kg },
+        {
+          title: "Reinspecciones realizadas (total)",
+          value: data.reinspecciones_realizadas.notificacion + data.reinspecciones_realizadas.oficio,
+        },
+        { title: "Actas inspección", value: data.actas_por_tipo.inspeccion },
+        { title: "Actas notificación", value: data.actas_por_tipo.notificacion },
+        { title: "Actas comprobación", value: data.actas_por_tipo.comprobacion },
+        { title: "Actas clausura", value: data.actas_por_tipo.clausura },
+        { title: "Actas decomiso", value: data.actas_por_tipo.decomiso },
         { title: "Mapa: pendientes cola", value: data.mapa_operativo.pendientes_cola },
         { title: "Mapa: pendientes en ruta (CT)", value: data.mapa_operativo.pendientes_completar_trabajo },
         { title: "Mapa: pendientes total", value: data.mapa_operativo.pendientes_total },
@@ -146,6 +173,7 @@ const Panel = () => {
     : [];
 
   const periodoTabIndex = PERIODOS.indexOf(periodo);
+  const kpiLoading = loading && !data;
 
   return (
     <Box sx={functionalPageShellSx}>
@@ -182,13 +210,7 @@ const Panel = () => {
       </Paper>
 
       <Paper elevation={0} sx={moduleFiltersSurfaceSx}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography
             variant="body2"
             sx={{
@@ -300,148 +322,135 @@ const Panel = () => {
         </Box>
       </Paper>
 
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI title="Actuaciones" value={loading && !data ? "…" : (actu?.total ?? "—")} periodo={periodo} icon={null} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+      {/* —— 1. Resumen ejecutivo —— */}
+      <DashboardSectionBlock first title="Resumen ejecutivo">
+        <DashboardExecutiveKpiGrid>
+          <KPI compact title="Actuaciones totales" value={kpiLoading ? "…" : (data?.actuaciones.total ?? "—")} />
+          <KPI compact title="Actas labradas" value={kpiLoading ? "…" : actasLabradasTotal} />
+          <KPI compact title="Kg decomisados" value={kpiLoading ? "…" : (data?.decomiso_kg.total_kg ?? "—")} />
           <KPI
-            title="Con contraproducencia"
-            value={loading && !data ? "…" : (actu?.con_contraproducencia ?? "—")}
-            periodo={periodo}
-            icon={null}
+            compact
+            title="Reinspecciones realizadas"
+            value={kpiLoading ? "…" : (reinspeccionesTotal ?? "—")}
           />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI
-            title="Sin contraproducencia"
-            value={loading && !data ? "…" : (actu?.sin_contraproducencia ?? "—")}
-            periodo={periodo}
-            icon={null}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI
-            title="Pendientes (mapa)"
-            value={loading && !data ? "…" : (data?.mapa_operativo.pendientes_total ?? "—")}
-            periodo={periodo}
-            icon={null}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI
-            title="Cola planificable"
-            value={loading && !data ? "…" : (data?.mapa_operativo.pendientes_cola ?? "—")}
-            periodo={periodo}
-            icon={null}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI
-            title="En ruta (completar trabajo)"
-            value={loading && !data ? "…" : (data?.mapa_operativo.pendientes_completar_trabajo ?? "—")}
-            periodo={periodo}
-            icon={null}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI
-            title="Realizados visita (mapa)"
-            value={loading && !data ? "…" : (data?.mapa_operativo.realizados_visita ?? "—")}
-            periodo={periodo}
-            icon={null}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-          <KPI
-            title="Ítems ruta (global)"
-            value={loading && !data ? "…" : (data?.ruta_items_ejecucion.total ?? "—")}
-            periodo={periodo}
-            icon={null}
-          />
-        </Grid>
-      </Grid>
+        </DashboardExecutiveKpiGrid>
+        <Box sx={{ mt: 1.25 }}>
+          <DashboardActasPorTipoMini actas={actas} loading={kpiLoading} />
+        </Box>
+      </DashboardSectionBlock>
 
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title={`Actas labradas — tendencia (${desde} → ${hasta})`} loading={loading && !data}>
-            <ActuacionesMensualesChart
-              items={data?.actas_labradas_mensual ?? []}
-              loading={loading}
-            />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <ChartCard title={`Kilos decomisados (${desde} → ${hasta})`} loading={loading && !data}>
-            <DecomisoMensualChart decomisoKg={data?.decomiso_kg ?? null} loading={loading} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 7 }}>
-          <ChartCard title={`Top contraproducencias (${desde} → ${hasta})`} loading={loading && !data}>
-            <DashboardContraproducenciasTop items={data?.contraproducencias_top ?? []} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <ChartCard title={`Actas por tipo (${desde} → ${hasta})`} loading={loading && !data}>
-            <DistribucionTipoChart actas={actas} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <ChartCard title={`Top rubros (${desde} → ${hasta})`} loading={loading && !data}>
-            <TopRubrosChart items={data?.top_rubros ?? []} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <ChartCard
-            title="Ítems de ruta — ejecución"
-            loading={loading && !data}
-          >
+      {/* —— 2. Operativo / pendientes —— */}
+      <DashboardSectionBlock title="Operativo / pendientes">
+        <DashboardExecutiveKpiGrid
+          columns={{ xs: "1fr 1fr", sm: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
+        >
+          <KPI compact title="Cola planificable" value={kpiLoading ? "…" : (data?.mapa_operativo.pendientes_cola ?? "—")} />
+          <KPI
+            compact
+            title="En ruta (CT)"
+            value={kpiLoading ? "…" : (data?.mapa_operativo.pendientes_completar_trabajo ?? "—")}
+          />
+          <KPI compact title="Pendientes (mapa)" value={kpiLoading ? "…" : (data?.mapa_operativo.pendientes_total ?? "—")} />
+          <KPI compact title="Realizados visita" value={kpiLoading ? "…" : (data?.mapa_operativo.realizados_visita ?? "—")} />
+          <KPI compact title="Ítems ruta" value={kpiLoading ? "…" : (data?.ruta_items_ejecucion.total ?? "—")} />
+        </DashboardExecutiveKpiGrid>
+        <Box sx={{ mt: 1.25 }}>
+          <ChartCard compact title="Ítems de ruta — ejecución" loading={kpiLoading}>
             {data ? (
               <>
-                <Typography variant="caption" sx={{ ...dashboardDemoCaptionSx, mt: 0, mb: 1.5 }}>
-                  Por fecha de ruta publicada; sin filtro distrito/inspector. ≠ realizados del mapa.
+                <Typography variant="caption" sx={{ ...dashboardDemoCaptionSx, mt: 0, mb: 1 }}>
+                  Por fecha de ruta publicada; sin filtro distrito/inspector.
                 </Typography>
                 <DashboardRutaItemsResumen data={data.ruta_items_ejecucion} />
               </>
             ) : (
-              <Typography variant="body2" sx={{ ...dashboardDemoCaptionSx, py: 2 }}>
+              <Typography variant="body2" sx={{ ...dashboardDemoCaptionSx, py: 1 }}>
                 {loading ? "Cargando…" : "Sin datos."}
               </Typography>
             )}
           </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title={`Ranking inspectores (${desde} → ${hasta})`} loading={loading && !data}>
-            <RankingInspectores items={data?.ranking_inspectores ?? []} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <ChartCard title={`Tipo de contraproducencia (${desde} → ${hasta})`} loading={loading && !data}>
-            <ContraproducenciaPorTipoChart items={data?.contraproducencias_por_tipo ?? []} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <ChartCard title={`Tipo de actuación (${desde} → ${hasta})`} loading={loading && !data}>
-            <ActuacionesPorTipoChart items={data?.actuaciones_por_tipo_operativo ?? []} />
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <ChartCard title={`Reinspecciones realizadas (${desde} → ${hasta})`} loading={loading && !data}>
-            <ReinspeccionesRealizadasChart data={data?.reinspecciones_realizadas ?? null} />
-            <Typography component="span" sx={dashboardDemoCaptionSx}>
-              Fecha de cierre de ruta (visita realizada con actuación vinculada).
-            </Typography>
-          </ChartCard>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <ChartCard title={`Actuaciones sin / con contraproducencia (${desde} → ${hasta})`} loading={loading && !data}>
-            <EfectivasInefectivasChart
-              sinContraproducencia={actu?.sin_contraproducencia ?? 0}
-              conContraproducencia={actu?.con_contraproducencia ?? 0}
+        </Box>
+      </DashboardSectionBlock>
+
+      {/* —— 3. Riesgo bromatológico —— */}
+      <DashboardSectionBlock title="Riesgo bromatológico">
+        <Grid container spacing={1.5}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <DashboardCompactRankingCard
+              title="Top rubros"
+              items={topRubrosRanking}
+              loading={kpiLoading}
+              emptyMessage="Sin rubros con actividad en el período."
             />
-          </ChartCard>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <DashboardCompactRankingCard
+              title="Top contraproducencias"
+              items={topContraproducenciasRanking}
+              loading={kpiLoading}
+              emptyMessage="Sin contraproducencias en el período."
+            />
+          </Grid>
         </Grid>
-      </Grid>
+      </DashboardSectionBlock>
+
+      {/* —— 4. Productividad —— */}
+      <DashboardSectionBlock title="Productividad">
+        <ChartCard compact title="Ranking inspectores" loading={kpiLoading}>
+          <RankingInspectores items={data?.ranking_inspectores ?? []} />
+        </ChartCard>
+      </DashboardSectionBlock>
+
+      {/* —— 5. Tendencias —— */}
+      <DashboardSectionBlock title="Tendencias">
+        <Grid container spacing={1.5}>
+          <Grid size={{ xs: 12, lg: 8 }}>
+            <ChartCard compact title="Actas labradas — tendencia mensual" loading={kpiLoading}>
+              <ActuacionesMensualesChart items={data?.actas_labradas_mensual ?? []} loading={loading} />
+            </ChartCard>
+          </Grid>
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <ChartCard compact title="Kg decomisados" loading={kpiLoading}>
+              <DecomisoMensualChart decomisoKg={data?.decomiso_kg ?? null} loading={loading} />
+            </ChartCard>
+          </Grid>
+        </Grid>
+      </DashboardSectionBlock>
+
+      {/* Detalle secundario: tipo operativo (colapsable) */}
+      <Accordion
+        disableGutters
+        elevation={0}
+        sx={{
+          mt: 1.5,
+          ...dashboardGlassCardSx,
+          "&:before": { display: "none" },
+          borderRadius: "12px !important",
+          overflow: "hidden",
+        }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon sx={{ color: GLASS_COLORS.textPrimary }} />}
+          sx={{
+            minHeight: 48,
+            "& .MuiAccordionSummary-content": { my: 1 },
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: '"Tactic Sans", sans-serif',
+              fontWeight: 600,
+              fontSize: "0.9375rem",
+              color: GLASS_COLORS.textPrimary,
+            }}
+          >
+            Detalle: actuaciones por tipo operativo
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+          <ActuacionesPorTipoChart items={data?.actuaciones_por_tipo_operativo ?? []} />
+        </AccordionDetails>
+      </Accordion>
     </Box>
   );
 };

@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 import type { IndicadoresDecomisoKg } from "../../../api/indicadoresApi";
-import { ChartStyle, dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+import { ChartStyle, dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -30,7 +30,7 @@ interface Props {
 const DecomisoMensualChart = ({ decomisoKg, loading }: Props) => {
   if (loading || decomisoKg === null) {
     return (
-      <Box sx={dashboardEmptyStateSx}>
+      <Box sx={dashboardEmptyStateCompactSx}>
         <Typography variant="body2">{loading ? "Cargando…" : "Sin datos."}</Typography>
       </Box>
     );
@@ -38,10 +38,14 @@ const DecomisoMensualChart = ({ decomisoKg, loading }: Props) => {
 
   if (decomisoKg.por_mes.length === 0) {
     return (
-      <Box sx={{ ...dashboardEmptyStateSx, flexDirection: "column", gap: 1 }}>
-        <Typography variant="body2">Sin decomisos en el periodo seleccionado.</Typography>
+      <Box sx={{ ...dashboardEmptyStateCompactSx, flexDirection: "column", gap: 0.5 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary }}>
+          {formatKg(decomisoKg.total_kg)} kg
+        </Typography>
         <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary }}>
-          Total: {formatKg(decomisoKg.total_kg)} kg
+          {decomisoKg.total_kg === 0
+            ? "Sin decomisos en el período."
+            : "Total del período (sin serie mensual)."}
         </Typography>
       </Box>
     );
@@ -64,7 +68,7 @@ const DecomisoMensualChart = ({ decomisoKg, loading }: Props) => {
             data: values,
           },
         ]}
-        height={300}
+        height={220}
         sx={ChartStyle}
       />
     </Box>

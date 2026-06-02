@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   dashboardGlassCardSx,
   dashboardKpiLabelSx,
+  dashboardKpiValueCompactSx,
   dashboardKpiValueSx,
 } from "../../../styles/DashboardStyles";
 import type { Periodo } from "../../../types/periodos";
@@ -15,11 +16,23 @@ interface KPIProps {
   value: number | string;
   /** Si se omite, no se muestra la franja de tendencia (datos reales sin variación). */
   percentage?: number;
-  icon: ReactNode;
-  periodo: Periodo;
+  icon?: ReactNode | null;
+  periodo?: Periodo;
+  /** KPI más bajo para grillas operativas / ejecutivas. */
+  compact?: boolean;
+  /** Muestra «Último mes» etc.; por defecto oculto (el rango lo define el filtro de fechas). */
+  showPeriodFootnote?: boolean;
 }
 
-const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
+const KPI = ({
+  title,
+  value,
+  percentage,
+  icon = null,
+  periodo = "Mensual",
+  compact = false,
+  showPeriodFootnote = false,
+}: KPIProps) => {
   const labelPeriodo = {
     Semanal: "Semana",
     Mensual: "Mes",
@@ -34,23 +47,25 @@ const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
     <Card
       sx={{
         ...dashboardGlassCardSx,
-        p: { xs: 1.75, sm: 2 },
+        p: compact ? { xs: 1.25, sm: 1.35 } : { xs: 1.75, sm: 2 },
       }}
     >
       <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-        <Box display="flex" alignItems="center" gap={1} mb={1}>
+        <Box display="flex" alignItems="center" gap={0.75} mb={compact ? 0.5 : 1}>
           {icon}
-          <Typography sx={dashboardKpiLabelSx}>{title}</Typography>
+          <Typography sx={{ ...dashboardKpiLabelSx, fontSize: compact ? "0.7rem" : undefined }}>
+            {title}
+          </Typography>
         </Box>
 
-        <Typography sx={dashboardKpiValueSx}>{value}</Typography>
+        <Typography sx={compact ? dashboardKpiValueCompactSx : dashboardKpiValueSx}>{value}</Typography>
 
         {showTrend ? (
-          <Box display="flex" alignItems="center" gap={0.5} mt={1}>
+          <Box display="flex" alignItems="center" gap={0.5} mt={0.75}>
             {isPositive ? (
-              <TrendingUpIcon sx={{ fontSize: 18, color: "success.main" }} />
+              <TrendingUpIcon sx={{ fontSize: 16, color: "success.main" }} />
             ) : (
-              <TrendingDownIcon sx={{ fontSize: 18, color: "error.main" }} />
+              <TrendingDownIcon sx={{ fontSize: 16, color: "error.main" }} />
             )}
             <Typography
               variant="body2"
@@ -58,19 +73,22 @@ const KPI = ({ title, value, percentage, icon, periodo }: KPIProps) => {
                 color: isPositive ? "success.main" : "error.main",
                 fontWeight: 600,
                 fontFamily: '"Tactic Sans", sans-serif',
+                fontSize: "0.75rem",
               }}
             >
               {percentage}%
             </Typography>
-            <Typography variant="body2" sx={{ ...dashboardKpiLabelSx, fontWeight: 500 }}>
-              {periodo === "Semanal" ? "Última" : "Último"} {labelPeriodo[periodo]}
-            </Typography>
+            {showPeriodFootnote ? (
+              <Typography variant="body2" sx={{ ...dashboardKpiLabelSx, fontWeight: 500, fontSize: "0.7rem" }}>
+                {periodo === "Semanal" ? "Última" : "Último"} {labelPeriodo[periodo]}
+              </Typography>
+            ) : null}
           </Box>
-        ) : (
-          <Typography variant="body2" sx={{ ...dashboardKpiLabelSx, mt: 1, fontWeight: 500 }}>
-            {periodo === "Semanal" ? "Última" : "Último"} {labelPeriodo[periodo]}
+        ) : showPeriodFootnote ? (
+          <Typography variant="body2" sx={{ ...dashboardKpiLabelSx, mt: 0.75, fontWeight: 500, fontSize: "0.7rem" }}>
+            Período seleccionado
           </Typography>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

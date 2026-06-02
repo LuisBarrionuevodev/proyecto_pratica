@@ -9,7 +9,30 @@ export const dashboardGlassCardSx = {
   borderRadius: "12px",
   boxShadow: "none",
   boxSizing: "border-box",
-  height: "100%",
+  height: "auto",
+} as const;
+
+/** Sección del dashboard: bloque integrado (título + contenido). */
+export const dashboardSectionSurfaceSx = {
+  backgroundColor: "rgba(255, 255, 255, 0.028)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+  border: `1px solid ${GLASS_COLORS.borderLight}`,
+  borderRadius: "12px",
+  boxShadow: "none",
+  overflow: "hidden",
+} as const;
+
+export const dashboardSectionHeaderSx = {
+  px: 2,
+  pt: 1.25,
+  pb: 1,
+  borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+  backgroundColor: "rgba(255,255,255,0.02)",
+} as const;
+
+export const dashboardSectionBodySx = {
+  p: { xs: 1.5, sm: 2 },
 } as const;
 
 export const dashboardCardTitleSx = {
@@ -26,6 +49,11 @@ export const dashboardKpiValueSx = {
   fontSize: "1.75rem",
   lineHeight: 1.15,
   color: GLASS_COLORS.textPrimary,
+} as const;
+
+export const dashboardKpiValueCompactSx = {
+  ...dashboardKpiValueSx,
+  fontSize: "1.45rem",
 } as const;
 
 export const dashboardKpiLabelSx = {
@@ -45,6 +73,20 @@ export const dashboardEmptyStateSx = {
   color: GLASS_COLORS.textSecondary,
   textAlign: "center",
   px: 2,
+} as const;
+
+/** Empty state para rankings / bloques pequeños (D1d.2-hotfix). */
+export const dashboardEmptyStateCompactSx = {
+  minHeight: 72,
+  py: 1.5,
+  px: 1.5,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontSize: "0.8125rem",
+  color: GLASS_COLORS.textSecondary,
+  textAlign: "center",
 } as const;
 
 export const ChartStyle = {

@@ -9,7 +9,7 @@ import { useMemo } from "react";
 import type { IndicadoresRankingInspector } from "../../../api/indicadoresApi";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { dataTableShellSx } from "../../../styles/mrtGlassDataTablePreset";
-import { dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+import { dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 
 type RankingRow = IndicadoresRankingInspector & { posicion: number };
 
@@ -57,7 +57,7 @@ const RankingInspectores = ({ items }: Props) => {
 
   if (!items.length) {
     return (
-      <Box sx={dashboardEmptyStateSx}>
+      <Box sx={dashboardEmptyStateCompactSx}>
         <Typography variant="body2">Sin actuaciones con inspectores en el periodo.</Typography>
       </Box>
     );

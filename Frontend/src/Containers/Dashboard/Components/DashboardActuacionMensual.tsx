@@ -3,7 +3,7 @@ import { BarChart } from "@mui/x-charts/BarChart";
 import { useMemo } from "react";
 
 import type { IndicadoresActasLabradasMes } from "../../../api/indicadoresApi";
-import { ChartStyle, dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+import { ChartStyle, dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 
 const MESES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -36,7 +36,7 @@ const ActuacionesMensualesChart = ({ items, loading }: Props) => {
 
   if (loading && !items.length) {
     return (
-      <Box sx={{ ...dashboardEmptyStateSx, minHeight: 220 }}>
+      <Box sx={dashboardEmptyStateCompactSx}>
         <Typography variant="body2">Cargando…</Typography>
       </Box>
     );
@@ -44,13 +44,13 @@ const ActuacionesMensualesChart = ({ items, loading }: Props) => {
 
   if (!chart) {
     return (
-      <Box sx={{ ...dashboardEmptyStateSx, minHeight: 220 }}>
-        <Typography variant="body2">Sin actas labradas en el periodo seleccionado.</Typography>
+      <Box sx={dashboardEmptyStateCompactSx}>
+        <Typography variant="body2">Sin actas labradas en el período.</Typography>
       </Box>
     );
   }
 
-  const height = Math.min(320, Math.max(200, chart.labels.length * 36 + 80));
+  const height = Math.min(260, Math.max(180, chart.labels.length * 32 + 72));
 
   return (
     <BarChart
