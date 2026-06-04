@@ -2,10 +2,8 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Alert,
   Box,
   FormControl,
-  Grid,
   InputLabel,
   LinearProgress,
   MenuItem,
@@ -31,33 +29,25 @@ import {
 } from "../../../styles/GlassStyles";
 import { dashboardGlassCardSx } from "../../../styles/DashboardStyles";
 import { AppButton } from "../../../ui";
-import { alertBaseStyles, filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
-import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
+import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { fetchDistritosCatalogo } from "../../../api/geolocalizacionApi";
 import { fetchInspectores } from "../../../api/gridApi";
 import type { Periodo } from "../../../types/periodos";
+import { useIndicadoresEjecutivo } from "../hooks/useIndicadoresEjecutivo";
+import { useIndicadoresPendientes } from "../hooks/useIndicadoresPendientes";
+import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas";
+import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
+import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
 import { useIndicadoresResumen } from "../hooks/useIndicadoresResumen";
 import { periodoToDateRange } from "../utils/periodoDateRange";
-import ActuacionesMensualesChart from "./DashboardActuacionMensual";
 import ActuacionesPorTipoChart from "./DashboardActuacionesPorTipo";
-import { DashboardActasPorTipoMini, totalActasLabradas } from "./DashboardActasPorTipoChips";
-import { DashboardCompactRankingCard } from "./DashboardCompactRankingCard";
-import ChartCard from "./ChartCard";
-import DecomisoMensualChart from "./DashboardDecomiso";
-import { DashboardExecutiveKpiGrid } from "./DashboardExecutiveKpiGrid";
-import KPI from "./DashboardKPI";
-import RankingInspectores from "./DashboardInspectores";
-import DashboardRutaItemsResumen from "./DashboardRutaItemsResumen";
+import { DashboardEjecutivoSection } from "./DashboardEjecutivoSection";
+import { DashboardPendientesSection } from "./DashboardPendientesSection";
+import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
+import { DashboardProductividadSection } from "./DashboardProductividadSection";
+import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
+import { DashboardTendenciasSection } from "./DashboardTendenciasSection";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
-import { dashboardDemoCaptionSx } from "./DashboardDemoBadge";
-
-const ACTAS_VACIAS: IndicadoresActasPorTipo = {
-  inspeccion: 0,
-  notificacion: 0,
-  comprobacion: 0,
-  clausura: 0,
-  decomiso: 0,
-};
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
 
@@ -105,7 +95,7 @@ const Panel = () => {
     };
   }, []);
 
-  const resumenParams = useMemo(() => {
+  const indicadoresParams = useMemo(() => {
     if (!desde || !hasta) return null;
     const p: {
       desde: string;
@@ -122,62 +112,187 @@ const Panel = () => {
     return p;
   }, [desde, hasta, distritoId, inspectorId]);
 
-  const { data, loading, error } = useIndicadoresResumen(resumenParams);
+  const {
+    data: ejecutivoData,
+    loading: ejecutivoLoading,
+    error: ejecutivoError,
+  } = useIndicadoresEjecutivo(indicadoresParams);
 
-  const actas = data?.actas_por_tipo ?? ACTAS_VACIAS;
-  const actasLabradasTotal = useMemo(() => totalActasLabradas(actas), [actas]);
+  const {
+    data: pendientesData,
+    loading: pendientesLoading,
+    error: pendientesError,
+  } = useIndicadoresPendientes(indicadoresParams);
 
-  const reinspeccionesTotal = useMemo(() => {
-    if (!data) return null;
-    return data.reinspecciones_realizadas.notificacion + data.reinspecciones_realizadas.oficio;
-  }, [data]);
+  const {
+    data: riesgoData,
+    loading: riesgoLoading,
+    error: riesgoError,
+  } = useIndicadoresRiesgo(indicadoresParams);
 
-  const topRubrosRanking = useMemo(
-    () => (data?.top_rubros ?? []).map((r) => ({ label: r.nombre, value: r.count })),
-    [data?.top_rubros],
-  );
+  const {
+    data: noRealizadasData,
+    loading: noRealizadasLoading,
+    error: noRealizadasError,
+  } = useIndicadoresNoRealizadas(indicadoresParams);
 
-  const topContraproducenciasRanking = useMemo(
-    () => (data?.contraproducencias_top ?? []).map((c) => ({ label: c.valor, value: c.count })),
-    [data?.contraproducencias_top],
-  );
+  const {
+    data: productividadData,
+    loading: productividadLoading,
+    error: productividadError,
+  } = useIndicadoresProductividad(indicadoresParams);
 
-  const tarjetasExport = data
-    ? [
-        { title: "Actuaciones totales", value: data.actuaciones.total },
-        { title: "Actas labradas (total)", value: actasLabradasTotal },
-        { title: "Kg decomisados", value: data.decomiso_kg.total_kg },
-        {
-          title: "Reinspecciones realizadas (total)",
-          value: data.reinspecciones_realizadas.notificacion + data.reinspecciones_realizadas.oficio,
-        },
-        { title: "Actas inspección", value: data.actas_por_tipo.inspeccion },
-        { title: "Actas notificación", value: data.actas_por_tipo.notificacion },
-        { title: "Actas comprobación", value: data.actas_por_tipo.comprobacion },
-        { title: "Actas clausura", value: data.actas_por_tipo.clausura },
-        { title: "Actas decomiso", value: data.actas_por_tipo.decomiso },
-        { title: "Mapa: pendientes cola", value: data.mapa_operativo.pendientes_cola },
-        { title: "Mapa: pendientes en ruta (CT)", value: data.mapa_operativo.pendientes_completar_trabajo },
-        { title: "Mapa: pendientes total", value: data.mapa_operativo.pendientes_total },
-        { title: "Mapa: realizados visita", value: data.mapa_operativo.realizados_visita },
-        { title: "Ítems ruta (total, fecha ruta)", value: data.ruta_items_ejecucion.total },
+  const {
+    data: resumenData,
+    loading: resumenLoading,
+    error: resumenError,
+  } = useIndicadoresResumen(indicadoresParams);
+
+  const tarjetasExport = useMemo(() => {
+    const cards: { title: string; value: number | string }[] = [];
+    if (ejecutivoData) {
+      const k = ejecutivoData.kpis;
+      const a = ejecutivoData.actas_por_tipo;
+      cards.push(
+        { title: "Actuaciones realizadas", value: k.actuaciones_realizadas },
+        { title: "Actas labradas (total)", value: k.actas_labradas },
+        { title: "Kg decomisados", value: k.mercaderia_decomisada_kg },
         {
           title: "Reinspecciones por notificación (hechas)",
-          value: data.reinspecciones_realizadas.notificacion,
+          value: k.reinspecciones_notificacion_realizadas,
         },
         {
-          title: "Reinspecciones por oficio (hechas)",
-          value: data.reinspecciones_realizadas.oficio,
+          title: "Ratificaciones de clausura (hechas)",
+          value: k.ratificaciones_clausura_realizadas,
         },
-      ]
-    : [];
+        {
+          title: "Ratificaciones de decomiso (hechas)",
+          value: k.ratificaciones_decomiso_realizadas,
+        },
+        { title: "Verificar e informar (hechas)", value: k.verificar_informar_realizadas },
+        { title: "Actas inspección", value: a.inspeccion },
+        { title: "Actas notificación", value: a.notificacion },
+        { title: "Actas comprobación", value: a.comprobacion },
+        { title: "Actas clausura", value: a.clausura },
+        { title: "Actas decomiso", value: a.decomiso }
+      );
+    }
+    if (pendientesData) {
+      const p = pendientesData.kpis;
+      cards.push(
+        { title: "Relevamientos pendientes", value: p.relevamientos_pendientes },
+        { title: "Reinspecciones oficio pendientes", value: p.reinspecciones_oficio_pendientes },
+        {
+          title: "Reinspecciones notificación pendientes",
+          value: p.reinspecciones_notificacion_pendientes,
+        },
+        { title: "Denuncias pendientes", value: p.denuncias_pendientes },
+        { title: "Pendientes sin geolocalización", value: p.pendientes_geolocalizacion }
+      );
+    }
+    if (noRealizadasData) {
+      const pt = noRealizadasData.por_tipo;
+      const total =
+        pt.inspeccion +
+        pt.reinspeccion_oficio +
+        pt.reinspeccion_notificacion +
+        pt.denuncia;
+      const topCp = noRealizadasData.top_contraproducencias[0];
+      const topDist = noRealizadasData.distritos_con_mas_no_realizadas[0];
+      cards.push(
+        { title: "Total no realizadas", value: total },
+        { title: "No realizadas inspección", value: pt.inspeccion },
+        { title: "No realizadas reins. oficio", value: pt.reinspeccion_oficio },
+        {
+          title: "No realizadas reins. notificación",
+          value: pt.reinspeccion_notificacion,
+        },
+        { title: "No realizadas denuncia", value: pt.denuncia }
+      );
+      if (topCp) {
+        cards.push({
+          title: "Principal contraproducencia (no realizadas)",
+          value: `${topCp.contraproducencia} (${topCp.cantidad})`,
+        });
+      }
+      if (topDist) {
+        cards.push({
+          title: "Distrito con más no realizadas",
+          value: `${topDist.distrito_nombre} (${topDist.cantidad})`,
+        });
+      }
+    }
+    if (productividadData) {
+      const topReal = productividadData.inspectores_realizadas[0];
+      const topNoReal = productividadData.inspectores_no_realizadas[0];
+      const topActas = productividadData.actas_por_inspector[0];
+      if (topReal) {
+        cards.push({
+          title: "Top inspector por actuaciones realizadas",
+          value: `${topReal.inspector} (${topReal.total_realizadas})`,
+        });
+      }
+      if (topNoReal) {
+        cards.push({
+          title: "Top inspector por no realizadas",
+          value: `${topNoReal.inspector} (${topNoReal.total_no_realizadas})`,
+        });
+      }
+      if (topActas) {
+        cards.push({
+          title: "Top inspector por actas labradas",
+          value: `${topActas.inspector} (${topActas.total_actas})`,
+        });
+      }
+    }
+    if (riesgoData) {
+      const r = riesgoData.top_rubros[0];
+      const mn = riesgoData.top_motivos_notificacion[0];
+      const mc = riesgoData.top_motivos_comprobacion[0];
+      const dk = riesgoData.decomiso_kg_por_rubro;
+      const totalKgRubro = dk.reduce((sum, row) => sum + row.kg, 0);
+      const topKgRubro = dk[0];
+      if (r) {
+        cards.push({ title: "Riesgo: top rubro", value: `${r.rubro} (${r.cantidad})` });
+      }
+      if (mn) {
+        cards.push({
+          title: "Riesgo: top motivo notificación",
+          value: `${mn.motivo} (${mn.cantidad})`,
+        });
+      }
+      if (mc) {
+        cards.push({
+          title: "Riesgo: top motivo comprobación",
+          value: `${mc.motivo} (${mc.cantidad})`,
+        });
+      }
+      if (totalKgRubro > 0) {
+        cards.push({ title: "Riesgo: kg decomisados (total por rubro)", value: totalKgRubro });
+      }
+      if (topKgRubro) {
+        cards.push({
+          title: "Riesgo: rubro con más kg decomisados",
+          value: `${topKgRubro.rubro} (${topKgRubro.kg} kg)`,
+        });
+      }
+    }
+    return cards;
+  }, [ejecutivoData, pendientesData, riesgoData, noRealizadasData, productividadData]);
 
   const periodoTabIndex = PERIODOS.indexOf(periodo);
-  const kpiLoading = loading && !data;
+  const tendenciasLoading = resumenLoading && !resumenData;
+  const anyLoading =
+    tendenciasLoading ||
+    (ejecutivoLoading && !ejecutivoData) ||
+    (pendientesLoading && !pendientesData) ||
+    (riesgoLoading && !riesgoData) ||
+    (noRealizadasLoading && !noRealizadasData) ||
+    (productividadLoading && !productividadData);
 
   return (
     <Box sx={functionalPageShellSx}>
-      {loading ? (
+      {anyLoading ? (
         <LinearProgress
           sx={{
             position: "sticky",
@@ -187,12 +302,6 @@ const Panel = () => {
             mb: -1,
           }}
         />
-      ) : null}
-
-      {error ? (
-        <Alert severity="error" sx={alertBaseStyles}>
-          {error}
-        </Alert>
       ) : null}
 
       <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
@@ -295,8 +404,8 @@ const Panel = () => {
             </FormControl>
             <Tooltip
               title={
-                data
-                  ? "Exporta KPIs reales del periodo (incluye reinspecciones realizadas)."
+                tarjetasExport.length > 0
+                  ? "Exporta KPIs visibles del periodo (ejecutivo, pendientes, riesgo, no realizadas y productividad)."
                   : "Cargá indicadores antes de exportar."
               }
             >
@@ -305,7 +414,7 @@ const Panel = () => {
                   dsVariant="primary"
                   dsSize="sm"
                   startIcon={<FileDownloadOutlinedIcon />}
-                  disabled={!data || loading}
+                  disabled={tarjetasExport.length === 0 || anyLoading}
                   onClick={() =>
                     exportDashboardToExcel({
                       tarjetas: tarjetasExport,
@@ -322,100 +431,41 @@ const Panel = () => {
         </Box>
       </Paper>
 
-      {/* —— 1. Resumen ejecutivo —— */}
-      <DashboardSectionBlock first title="Resumen ejecutivo">
-        <DashboardExecutiveKpiGrid>
-          <KPI compact title="Actuaciones totales" value={kpiLoading ? "…" : (data?.actuaciones.total ?? "—")} />
-          <KPI compact title="Actas labradas" value={kpiLoading ? "…" : actasLabradasTotal} />
-          <KPI compact title="Kg decomisados" value={kpiLoading ? "…" : (data?.decomiso_kg.total_kg ?? "—")} />
-          <KPI
-            compact
-            title="Reinspecciones realizadas"
-            value={kpiLoading ? "…" : (reinspeccionesTotal ?? "—")}
-          />
-        </DashboardExecutiveKpiGrid>
-        <Box sx={{ mt: 1.25 }}>
-          <DashboardActasPorTipoMini actas={actas} loading={kpiLoading} />
-        </Box>
-      </DashboardSectionBlock>
+      <DashboardEjecutivoSection
+        data={ejecutivoData}
+        loading={ejecutivoLoading}
+        error={ejecutivoError}
+      />
 
-      {/* —— 2. Operativo / pendientes —— */}
-      <DashboardSectionBlock title="Operativo / pendientes">
-        <DashboardExecutiveKpiGrid
-          columns={{ xs: "1fr 1fr", sm: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
-        >
-          <KPI compact title="Cola planificable" value={kpiLoading ? "…" : (data?.mapa_operativo.pendientes_cola ?? "—")} />
-          <KPI
-            compact
-            title="En ruta (CT)"
-            value={kpiLoading ? "…" : (data?.mapa_operativo.pendientes_completar_trabajo ?? "—")}
-          />
-          <KPI compact title="Pendientes (mapa)" value={kpiLoading ? "…" : (data?.mapa_operativo.pendientes_total ?? "—")} />
-          <KPI compact title="Realizados visita" value={kpiLoading ? "…" : (data?.mapa_operativo.realizados_visita ?? "—")} />
-          <KPI compact title="Ítems ruta" value={kpiLoading ? "…" : (data?.ruta_items_ejecucion.total ?? "—")} />
-        </DashboardExecutiveKpiGrid>
-        <Box sx={{ mt: 1.25 }}>
-          <ChartCard compact title="Ítems de ruta — ejecución" loading={kpiLoading}>
-            {data ? (
-              <>
-                <Typography variant="caption" sx={{ ...dashboardDemoCaptionSx, mt: 0, mb: 1 }}>
-                  Por fecha de ruta publicada; sin filtro distrito/inspector.
-                </Typography>
-                <DashboardRutaItemsResumen data={data.ruta_items_ejecucion} />
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ ...dashboardDemoCaptionSx, py: 1 }}>
-                {loading ? "Cargando…" : "Sin datos."}
-              </Typography>
-            )}
-          </ChartCard>
-        </Box>
-      </DashboardSectionBlock>
+      <DashboardPendientesSection
+        data={pendientesData}
+        loading={pendientesLoading}
+        error={pendientesError}
+      />
 
-      {/* —— 3. Riesgo bromatológico —— */}
-      <DashboardSectionBlock title="Riesgo bromatológico">
-        <Grid container spacing={1.5}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <DashboardCompactRankingCard
-              title="Top rubros"
-              items={topRubrosRanking}
-              loading={kpiLoading}
-              emptyMessage="Sin rubros con actividad en el período."
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <DashboardCompactRankingCard
-              title="Top contraproducencias"
-              items={topContraproducenciasRanking}
-              loading={kpiLoading}
-              emptyMessage="Sin contraproducencias en el período."
-            />
-          </Grid>
-        </Grid>
-      </DashboardSectionBlock>
+      <DashboardRiesgoSection
+        data={riesgoData}
+        loading={riesgoLoading}
+        error={riesgoError}
+      />
 
-      {/* —— 4. Productividad —— */}
-      <DashboardSectionBlock title="Productividad">
-        <ChartCard compact title="Ranking inspectores" loading={kpiLoading}>
-          <RankingInspectores items={data?.ranking_inspectores ?? []} />
-        </ChartCard>
-      </DashboardSectionBlock>
+      <DashboardNoRealizadasSection
+        data={noRealizadasData}
+        loading={noRealizadasLoading}
+        error={noRealizadasError}
+      />
 
-      {/* —— 5. Tendencias —— */}
-      <DashboardSectionBlock title="Tendencias">
-        <Grid container spacing={1.5}>
-          <Grid size={{ xs: 12, lg: 8 }}>
-            <ChartCard compact title="Actas labradas — tendencia mensual" loading={kpiLoading}>
-              <ActuacionesMensualesChart items={data?.actas_labradas_mensual ?? []} loading={loading} />
-            </ChartCard>
-          </Grid>
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <ChartCard compact title="Kg decomisados" loading={kpiLoading}>
-              <DecomisoMensualChart decomisoKg={data?.decomiso_kg ?? null} loading={loading} />
-            </ChartCard>
-          </Grid>
-        </Grid>
-      </DashboardSectionBlock>
+      <DashboardProductividadSection
+        data={productividadData}
+        loading={productividadLoading}
+        error={productividadError}
+      />
+
+      <DashboardTendenciasSection
+        data={resumenData}
+        loading={resumenLoading}
+        error={resumenError}
+      />
 
       {/* Detalle secundario: tipo operativo (colapsable) */}
       <Accordion
@@ -448,7 +498,7 @@ const Panel = () => {
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
-          <ActuacionesPorTipoChart items={data?.actuaciones_por_tipo_operativo ?? []} />
+          <ActuacionesPorTipoChart items={resumenData?.actuaciones_por_tipo_operativo ?? []} />
         </AccordionDetails>
       </Accordion>
     </Box>

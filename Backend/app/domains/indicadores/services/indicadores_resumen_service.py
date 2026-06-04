@@ -6,6 +6,9 @@ from typing import Optional
 from sqlalchemy import and_, exists, extract, func
 
 from app.database import db
+from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+    _loose_key,
+)
 from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
     _realizados_inspector_coincide,
     count_mapa_operativo_pendientes_cola,
@@ -37,6 +40,7 @@ from app.models import (
     IniciadorRuta,
     Inspeccion,
     Inspector,
+    Motivo,
     Rubro,
     RutaItem,
     RutaTrabajo,
@@ -45,13 +49,45 @@ from app.models import (
 from app.models.notificacion_motivo import notificacion_motivo
 
 _TOP_RUBROS_LIMIT = 10
+_TOP_MOTIVOS_LIMIT = 10
 _RANKING_INSPECTORES_LIMIT = 15
+_TOP_CONTRAPRODUCCIONES_LIMIT = 10
+_SIN_RUBRO_LABEL = "Sin rubro"
+_COMP_MOTIVO_PENDIENTE_KEYS = frozenset({_loose_key("PENDIENTE")})
+
+# Valores excluidos del top de contraproducencias (bloque no-realizadas).
+_CONTRAP_EXCLUIDAS_TOP = frozenset(
+    {
+        _loose_key("NO_HUBO"),
+        _loose_key("NO HUBO"),
+    }
+)
+
+_TIPOS_INICIADOR_VISITA_REALIZADA = (
+    "REINSPECCION_NOTIFICACION",
+    "REINSPECCION_OFICIO",
+    "VERIFICAR_INFORMAR_OFICIO",
+    "RATIFICACION_CLAUSURA_OFICIO",
+    "RATIFICACION_DECOMISO_OFICIO",
+)
 
 
 def _float_kg(value) -> float:
     if value is None:
         return 0.0
     return float(value)
+
+
+def _normalize_motivo_label(raw: str) -> str:
+    """
+    Etiqueta legible para motivos (trim, espacios).
+
+    Reemplaza ``_`` por espacio solo en enums tipo ``SNAKE_CASE`` / MAYÚSCULAS.
+    """
+    s = " ".join(str(raw).strip().split())
+    if "_" in s and " " not in s and (s.isupper() or s.upper() == s):
+        s = s.replace("_", " ")
+    return s
 
 
 def _actuacion_ids_subquery(
@@ -304,17 +340,42 @@ def _ranking_inspectores(sq) -> list[RankingInspectorItem]:
     ]
 
 
-def _reinspecciones_realizadas(
+def count_actuaciones_realizadas_visita(
     desde: date,
     hasta: date,
-    distrito_id: Optional[int],
-    inspector_id: Optional[int],
-) -> ReinspeccionesRealizadas:
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+) -> int:
     """
-    Reinspecciones efectivamente realizadas (visita cerrada con actuación).
+    Actuaciones con visita realizada (mapa operativo): FINALIZADO + REALIZADO, ruta PUBLICADA.
 
-    Criterio alineado al mapa operativo: ``FINALIZADO`` + ``REALIZADO``, ruta ``PUBLICADA``,
-    ``actuacion_id`` no nulo, fecha de cierre ``coalesce(date(ejecutado_at), ruta.fecha)`` en rango.
+    Parámetros:
+        desde, hasta: rango inclusive sobre fecha de cierre de ruta.
+        distrito_id, inspector_id: filtros opcionales (misma semántica que mapa D1).
+
+    Retorno:
+        Cantidad de ítems de ruta cerrados con actuación vinculada.
+    """
+    return count_mapa_operativo_realizados_visita(
+        desde=desde.isoformat(),
+        hasta=hasta.isoformat(),
+        distrito_id=distrito_id,
+        tipo=None,
+        inspector_id=inspector_id,
+    )
+
+
+def visitas_realizadas_por_tipo_iniciador(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+) -> dict[str, int]:
+    """
+    Cuenta visitas realizadas agrupadas por ``IniciadorRuta.tipo_iniciador``.
+
+    Incluye reinspecciones, verificar e informar y ratificaciones de oficio.
+    Misma base que ``_reinspecciones_realizadas`` (fecha de cierre en rango).
     """
     fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
     q = (
@@ -330,9 +391,7 @@ def _reinspecciones_realizadas(
             RutaItem.estado_ruta_item == "FINALIZADO",
             RutaItem.estado_ejecucion == "REALIZADO",
             RutaTrabajo.estado_ruta == "PUBLICADA",
-            IniciadorRuta.tipo_iniciador.in_(
-                ("REINSPECCION_NOTIFICACION", "REINSPECCION_OFICIO")
-            ),
+            IniciadorRuta.tipo_iniciador.in_(_TIPOS_INICIADOR_VISITA_REALIZADA),
             fecha_cierre >= desde,
             fecha_cierre <= hasta,
         )
@@ -346,10 +405,203 @@ def _reinspecciones_realizadas(
         q = q.filter(_realizados_inspector_coincide(inspector_id))
 
     rows = q.group_by(IniciadorRuta.tipo_iniciador).all()
-    counts = {str(tipo): int(cnt) for tipo, cnt in rows}
+    return {str(tipo): int(cnt) for tipo, cnt in rows}
+
+
+def top_contraproducencias_sin_no_hubo(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+    *,
+    limit: int = _TOP_CONTRAPRODUCCIONES_LIMIT,
+) -> list[tuple[str, int]]:
+    """
+    Top contraproducencias en actuaciones del periodo, excluyendo NO_HUBO y equivalentes.
+
+    Parámetros:
+        desde, hasta, distrito_id, inspector_id: mismo filtro que resumen de actuaciones.
+        limit: máximo de filas.
+
+    Retorno:
+        Lista de (label normalizado, count) ordenada por frecuencia descendente.
+    """
+    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    has_contra = _has_contraproducencia_expr()
+    rows = (
+        db.session.query(Actuaciones.contraproducencia, func.count(Actuaciones.id))
+        .join(sq, sq.c.id == Actuaciones.id)
+        .filter(has_contra)
+        .group_by(Actuaciones.contraproducencia)
+        .order_by(func.count(Actuaciones.id).desc())
+        .all()
+    )
+    out: list[tuple[str, int]] = []
+    for valor, cnt in rows:
+        label = str(valor).strip()
+        if _loose_key(label) in _CONTRAP_EXCLUIDAS_TOP:
+            continue
+        out.append((label, int(cnt)))
+        if len(out) >= limit:
+            break
+    return out
+
+
+def query_top_rubros_actuaciones(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+    *,
+    limit: int = _TOP_RUBROS_LIMIT,
+) -> list[tuple[int, str, int]]:
+    """
+    Top rubros por cantidad de actuaciones en el periodo (con domicilio y rubro).
+
+    Retorno:
+        Lista de (rubro_id, nombre, count).
+    """
+    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    rows = (
+        db.session.query(Rubro.id, Rubro.nombre, func.count(Actuaciones.id))
+        .join(sq, sq.c.id == Actuaciones.id)
+        .join(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
+        .join(Rubro, Rubro.id == Domicilio.rubro_id)
+        .group_by(Rubro.id, Rubro.nombre)
+        .order_by(func.count(Actuaciones.id).desc())
+        .limit(limit)
+        .all()
+    )
+    return [(int(rid), str(nombre), int(cnt)) for rid, nombre, cnt in rows]
+
+
+def query_top_motivos_notificacion(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+    *,
+    limit: int = _TOP_MOTIVOS_LIMIT,
+) -> list[tuple[str, int]]:
+    """
+    Top motivos de notificaciones labradas (cada fila de ``notificacion_motivo`` cuenta).
+
+    Parámetros:
+        desde, hasta, distrito_id, inspector_id: mismos filtros que actuaciones del periodo.
+
+    Retorno:
+        Lista de (nombre catálogo, ocurrencias) ordenada por frecuencia.
+    """
+    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    rows = (
+        db.session.query(Motivo.nombre, func.count(notificacion_motivo.c.motivo))
+        .select_from(notificacion_motivo)
+        .join(Actuaciones, Actuaciones.notificacion_id == notificacion_motivo.c.notificacion_id)
+        .join(sq, sq.c.id == Actuaciones.id)
+        .join(Motivo, Motivo.id == notificacion_motivo.c.motivo)
+        .filter(
+            notificacion_motivo.c.deleted_at.is_(None),
+            Actuaciones.notificacion_id.isnot(None),
+            Motivo.nombre.isnot(None),
+            func.trim(Motivo.nombre) != "",
+        )
+        .group_by(Motivo.id, Motivo.nombre)
+        .order_by(func.count(notificacion_motivo.c.motivo).desc())
+        .limit(limit)
+        .all()
+    )
+    return [(_normalize_motivo_label(nombre), int(cnt)) for nombre, cnt in rows]
+
+
+def query_top_motivos_comprobacion(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+    *,
+    limit: int = _TOP_MOTIVOS_LIMIT,
+) -> list[tuple[str, int]]:
+    """
+    Top motivos de comprobaciones labradas (excluye ``PENDIENTE`` y vacíos).
+
+    Agrupa por etiqueta normalizada para unificar variantes de texto.
+    """
+    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    rows = (
+        db.session.query(Comprobacion.motivo, func.count(Comprobacion.id))
+        .join(Actuaciones, Actuaciones.comprobacion_id == Comprobacion.id)
+        .join(sq, sq.c.id == Actuaciones.id)
+        .filter(
+            Comprobacion.deleted_at.is_(None),
+            Comprobacion.motivo.isnot(None),
+            func.trim(Comprobacion.motivo) != "",
+            func.upper(func.trim(Comprobacion.motivo)) != "PENDIENTE",
+        )
+        .group_by(Comprobacion.motivo)
+        .all()
+    )
+    merged: dict[str, int] = {}
+    for raw, cnt in rows:
+        if _loose_key(str(raw)) in _COMP_MOTIVO_PENDIENTE_KEYS:
+            continue
+        label = _normalize_motivo_label(str(raw))
+        if not label:
+            continue
+        merged[label] = merged.get(label, 0) + int(cnt)
+    return sorted(merged.items(), key=lambda item: item[1], reverse=True)[:limit]
+
+
+def query_decomiso_kg_por_rubro(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+) -> list[tuple[str, float]]:
+    """
+    Suma ``decomiso.cantidad`` (kg) por rubro del domicilio de la actuación.
+
+    Actuaciones sin rubro se agrupan en ``Sin rubro``.
+    """
+    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    rubro_label = func.coalesce(Rubro.nombre, _SIN_RUBRO_LABEL)
+    rows = (
+        db.session.query(rubro_label, func.sum(Decomiso.cantidad))
+        .select_from(Decomiso)
+        .join(Actuaciones, Actuaciones.id == Decomiso.actuacion_id)
+        .join(sq, sq.c.id == Actuaciones.id)
+        .outerjoin(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
+        .outerjoin(Rubro, Rubro.id == Domicilio.rubro_id)
+        .filter(Decomiso.cantidad.isnot(None))
+        .group_by(rubro_label)
+        .order_by(func.sum(Decomiso.cantidad).desc())
+        .all()
+    )
+    out: list[tuple[str, float]] = []
+    for rubro, kg in rows:
+        val = _float_kg(kg)
+        if val > 0:
+            out.append((str(rubro), val))
+    return out
+
+
+def _reinspecciones_realizadas(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int],
+    inspector_id: Optional[int],
+) -> ReinspeccionesRealizadas:
+    """
+    Reinspecciones efectivamente realizadas (visita cerrada con actuación).
+
+    Criterio alineado al mapa operativo: ``FINALIZADO`` + ``REALIZADO``, ruta ``PUBLICADA``,
+    ``actuacion_id`` no nulo, fecha de cierre ``coalesce(date(ejecutado_at), ruta.fecha)`` en rango.
+    """
+    por_tipo = visitas_realizadas_por_tipo_iniciador(
+        desde, hasta, distrito_id, inspector_id
+    )
     return ReinspeccionesRealizadas(
-        notificacion=counts.get("REINSPECCION_NOTIFICACION", 0),
-        oficio=counts.get("REINSPECCION_OFICIO", 0),
+        notificacion=por_tipo.get("REINSPECCION_NOTIFICACION", 0),
+        oficio=por_tipo.get("REINSPECCION_OFICIO", 0),
     )
 
 

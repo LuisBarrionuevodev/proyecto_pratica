@@ -1,15 +1,14 @@
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-/** Solo KPIs reales del resumen — sin series mock (D1b). */
+/** KPIs visibles del Dashboard (bloques dedicados + tendencias vía resumen). */
 interface DashboardExportData {
-  tarjetas: { title: string; value: number }[];
+  tarjetas: { title: string; value: number | string }[];
   periodoLabel?: string;
 }
 
 /**
- * Exporta únicamente tarjetas/KPIs con datos del servidor.
- * Gráficos demo no se incluyen hasta D1c/D1d.
+ * Exporta tarjetas/KPIs del periodo filtrado (sin tablas completas ni datos legacy).
  */
 export const exportDashboardToExcel = (data: DashboardExportData) => {
   const wb = XLSX.utils.book_new();
@@ -29,5 +28,5 @@ export const exportDashboardToExcel = (data: DashboardExportData) => {
   XLSX.utils.book_append_sheet(wb, tarjetasWs, "Indicadores");
 
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), "indicadores-resumen.xlsx");
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), "indicadores-dashboard.xlsx");
 };

@@ -1,28 +1,12 @@
 from __future__ import annotations
 
-from flask import jsonify, request
-from pydantic import ValidationError
+from flask import jsonify
 
 from . import indicadores_api
-from app.domains.indicadores.schemas.resumen_query import IndicadoresResumenQuery
+from ._common import parse_indicadores_filtros_query
 from app.domains.indicadores.services.indicadores_resumen_service import (
     build_indicadores_resumen,
 )
-from app.shared.errors import pydantic_errors_to_cell_map
-
-
-def _query_dict_from_request() -> dict:
-    """Arma dict para Pydantic desde query string (GET)."""
-    args = request.args
-    raw: dict = {
-        "desde": args.get("desde"),
-        "hasta": args.get("hasta"),
-    }
-    if args.get("distrito_id") not in (None, ""):
-        raw["distrito_id"] = args.get("distrito_id")
-    if args.get("inspector_id") not in (None, ""):
-        raw["inspector_id"] = args.get("inspector_id")
-    return raw
 
 
 @indicadores_api.get("/resumen")
@@ -42,13 +26,9 @@ def get_indicadores_resumen():
         401 si falta JWT (guard global).
         422 ValidationError → mapa de errores por campo.
     """
-    try:
-        q = IndicadoresResumenQuery.model_validate(_query_dict_from_request())
-    except ValidationError as e:
-        return (
-            jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}),
-            422,
-        )
+    q, err = parse_indicadores_filtros_query()
+    if err is not None:
+        return err
 
     out = build_indicadores_resumen(
         desde=q.desde,

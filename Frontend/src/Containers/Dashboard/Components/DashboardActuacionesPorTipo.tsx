@@ -3,7 +3,7 @@ import { BarChart } from "@mui/x-charts/BarChart";
 
 import type { IndicadoresActuacionPorTipoOperativo } from "../../../api/indicadoresApi";
 import { humanizarTipoActuacion } from "../../ActasComprobacion/utils/documentalLabelFormat";
-import { ChartStyle, dashboardEmptyStateSx } from "../../../styles/DashboardStyles";
+import { ChartStyle, dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 interface Props {
@@ -13,8 +13,8 @@ interface Props {
 const ActuacionesPorTipoChart = ({ items }: Props) => {
   if (!items.length) {
     return (
-      <Box sx={dashboardEmptyStateSx}>
-        <Typography variant="body2">Sin actuaciones en el periodo.</Typography>
+      <Box sx={dashboardEmptyStateCompactSx}>
+        <Typography variant="body2">Sin actuaciones por tipo operativo en el período.</Typography>
       </Box>
     );
   }
