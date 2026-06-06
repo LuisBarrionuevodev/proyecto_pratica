@@ -12,6 +12,24 @@ export const dashboardGlassCardSx = {
   height: "auto",
 } as const;
 
+/** Card analytics dark (D1d.11-hotfix) — inspirada en MUI Dashboard Template. */
+export const dashboardAnalyticsCardSx = {
+  backgroundColor: "rgba(12, 18, 32, 0.72)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  border: `1px solid ${GLASS_COLORS.borderLight}`,
+  borderRadius: "10px",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.24)",
+  boxSizing: "border-box",
+  transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+  "&:hover": {
+    borderColor: GLASS_COLORS.borderMedium,
+    boxShadow: "0 4px 14px rgba(0,0,0,0.28)",
+  },
+} as const;
+
+export const DASHBOARD_KPI_CARD_MIN_HEIGHT = 108;
+
 /** Sección del dashboard: bloque integrado (título + contenido). */
 export const dashboardSectionSurfaceSx = {
   backgroundColor: "rgba(255, 255, 255, 0.028)",
@@ -63,6 +81,35 @@ export const dashboardKpiLabelSx = {
   color: GLASS_COLORS.textSecondary,
 } as const;
 
+/** KPI analytics (D1d.11): etiqueta superior, número dominante. */
+export const dashboardAnalyticsKpiLabelSx = {
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 600,
+  fontSize: "0.7rem",
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: GLASS_COLORS.textMuted,
+  lineHeight: 1.3,
+  mb: 0.5,
+} as const;
+
+export const dashboardAnalyticsKpiValueSx = {
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 700,
+  fontSize: { xs: "1.65rem", sm: "1.85rem" },
+  lineHeight: 1.1,
+  color: GLASS_COLORS.textPrimary,
+} as const;
+
+export const dashboardAnalyticsChartTitleSx = {
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 600,
+  fontSize: "0.875rem",
+  lineHeight: 1.35,
+  color: GLASS_COLORS.textPrimary,
+  mb: 1,
+} as const;
+
 export const dashboardEmptyStateSx = {
   minHeight: 200,
   display: "flex",
@@ -94,19 +141,32 @@ export const ChartStyle = {
   "&& .MuiChartsAxis-line": {
     stroke: GLASS_COLORS.borderMedium,
   },
+  "&& .MuiChartsAxis-tick": {
+    stroke: GLASS_COLORS.borderLight,
+  },
   "&& .MuiChartsAxis-tickLabel": {
     fill: GLASS_COLORS.textSecondary,
     textOverflow: "unset",
     whiteSpace: "normal",
     overflow: "visible",
     fontFamily: '"Tactic Sans", sans-serif',
-    fontSize: "0.75rem",
+    fontSize: "0.7rem",
+  },
+  "&& .MuiChartsGrid-line": {
+    stroke: "rgba(255,255,255,0.06)",
+    strokeDasharray: "4 4",
   },
   "&& .MuiChartsLegend-root": {
     color: GLASS_COLORS.textPrimary,
     fontSize: "0.8125rem",
     fontWeight: 500,
     fontFamily: '"Tactic Sans", sans-serif',
+  },
+  "&& .MuiBarLabel-root": {
+    fill: GLASS_COLORS.textPrimary,
+    fontFamily: '"Tactic Sans", sans-serif',
+    fontSize: "0.7rem",
+    fontWeight: 600,
   },
 } as const;
 

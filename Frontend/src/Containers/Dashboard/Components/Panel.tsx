@@ -1,7 +1,4 @@
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Box,
   FormControl,
   InputLabel,
@@ -11,11 +8,8 @@ import {
   Select,
   Tab,
   Tabs,
-  TextField,
   Tooltip,
-  Typography,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { useEffect, useMemo, useState } from "react";
 
@@ -27,7 +21,7 @@ import {
   moduleSlicesPanelPaperSx,
   moduleSlicesTabsSx,
 } from "../../../styles/GlassStyles";
-import { dashboardGlassCardSx } from "../../../styles/DashboardStyles";
+import { dashboardAnalyticsCardSx } from "../../../styles/DashboardStyles";
 import { AppButton } from "../../../ui";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { fetchDistritosCatalogo } from "../../../api/geolocalizacionApi";
@@ -38,34 +32,24 @@ import { useIndicadoresPendientes } from "../hooks/useIndicadoresPendientes";
 import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas";
 import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
-import { useIndicadoresResumen } from "../hooks/useIndicadoresResumen";
 import { periodoToDateRange } from "../utils/periodoDateRange";
-import ActuacionesPorTipoChart from "./DashboardActuacionesPorTipo";
+import { DashboardActasPorTipoSection } from "./DashboardActasPorTipoSection";
 import { DashboardEjecutivoSection } from "./DashboardEjecutivoSection";
 import { DashboardPendientesSection } from "./DashboardPendientesSection";
 import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
 import { DashboardProductividadSection } from "./DashboardProductividadSection";
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
-import { DashboardTendenciasSection } from "./DashboardTendenciasSection";
-import { DashboardSectionBlock } from "./DashboardSectionBlock";
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
 
 const Panel = () => {
   const [periodo, setPeriodo] = useState<Periodo>("Mensual");
-  const initialRange = useMemo(() => periodoToDateRange("Mensual"), []);
-  const [desde, setDesde] = useState(initialRange.desde);
-  const [hasta, setHasta] = useState(initialRange.hasta);
   const [distritoId, setDistritoId] = useState<string>("");
   const [inspectorId, setInspectorId] = useState<string>("");
   const [distritoOptions, setDistritoOptions] = useState<{ id: number; nombre: string }[]>([]);
   const [inspectorOptions, setInspectorOptions] = useState<{ id: number; nombre: string }[]>([]);
 
-  useEffect(() => {
-    const r = periodoToDateRange(periodo);
-    setDesde(r.desde);
-    setHasta(r.hasta);
-  }, [periodo]);
+  const { desde, hasta } = useMemo(() => periodoToDateRange(periodo), [periodo]);
 
   useEffect(() => {
     let cancel = false;
@@ -96,7 +80,6 @@ const Panel = () => {
   }, []);
 
   const indicadoresParams = useMemo(() => {
-    if (!desde || !hasta) return null;
     const p: {
       desde: string;
       hasta: string;
@@ -142,11 +125,11 @@ const Panel = () => {
     error: productividadError,
   } = useIndicadoresProductividad(indicadoresParams);
 
-  const {
-    data: resumenData,
-    loading: resumenLoading,
-    error: resumenError,
-  } = useIndicadoresResumen(indicadoresParams);
+  const noRealizadasTotal = useMemo(() => {
+    if (!noRealizadasData) return null;
+    const pt = noRealizadasData.por_tipo;
+    return pt.inspeccion + pt.reinspeccion_oficio + pt.reinspeccion_notificacion + pt.denuncia;
+  }, [noRealizadasData]);
 
   const tarjetasExport = useMemo(() => {
     const cards: { title: string; value: number | string }[] = [];
@@ -156,26 +139,29 @@ const Panel = () => {
       cards.push(
         { title: "Actuaciones realizadas", value: k.actuaciones_realizadas },
         { title: "Actas labradas (total)", value: k.actas_labradas },
-        { title: "Kg decomisados", value: k.mercaderia_decomisada_kg },
         {
-          title: "Reinspecciones por notificación (hechas)",
+          title: "Reinspecciones por notificación (realizadas)",
           value: k.reinspecciones_notificacion_realizadas,
         },
+        { title: "Mercadería decomisada (kg)", value: k.mercaderia_decomisada_kg },
         {
-          title: "Ratificaciones de clausura (hechas)",
+          title: "Ratificaciones de clausura (realizadas)",
           value: k.ratificaciones_clausura_realizadas,
         },
         {
-          title: "Ratificaciones de decomiso (hechas)",
+          title: "Ratificaciones de decomiso (realizadas)",
           value: k.ratificaciones_decomiso_realizadas,
         },
-        { title: "Verificar e informar (hechas)", value: k.verificar_informar_realizadas },
+        { title: "Verificar e informar (realizadas)", value: k.verificar_informar_realizadas },
         { title: "Actas inspección", value: a.inspeccion },
         { title: "Actas notificación", value: a.notificacion },
         { title: "Actas comprobación", value: a.comprobacion },
         { title: "Actas clausura", value: a.clausura },
-        { title: "Actas decomiso", value: a.decomiso }
+        { title: "Actas decomiso", value: a.decomiso },
       );
+    }
+    if (noRealizadasTotal != null) {
+      cards.push({ title: "Total no realizadas", value: noRealizadasTotal });
     }
     if (pendientesData) {
       const p = pendientesData.kpis;
@@ -187,38 +173,32 @@ const Panel = () => {
           value: p.reinspecciones_notificacion_pendientes,
         },
         { title: "Denuncias pendientes", value: p.denuncias_pendientes },
-        { title: "Pendientes sin geolocalización", value: p.pendientes_geolocalizacion }
+        { title: "Pendientes sin geolocalización", value: p.pendientes_geolocalizacion },
       );
     }
-    if (noRealizadasData) {
-      const pt = noRealizadasData.por_tipo;
-      const total =
-        pt.inspeccion +
-        pt.reinspeccion_oficio +
-        pt.reinspeccion_notificacion +
-        pt.denuncia;
-      const topCp = noRealizadasData.top_contraproducencias[0];
-      const topDist = noRealizadasData.distritos_con_mas_no_realizadas[0];
-      cards.push(
-        { title: "Total no realizadas", value: total },
-        { title: "No realizadas inspección", value: pt.inspeccion },
-        { title: "No realizadas reins. oficio", value: pt.reinspeccion_oficio },
-        {
-          title: "No realizadas reins. notificación",
-          value: pt.reinspeccion_notificacion,
-        },
-        { title: "No realizadas denuncia", value: pt.denuncia }
-      );
-      if (topCp) {
+    if (riesgoData) {
+      const r = riesgoData.top_rubros[0];
+      const mn = riesgoData.top_motivos_notificacion[0];
+      const mc = riesgoData.top_motivos_comprobacion[0];
+      if (r) {
+        cards.push({ title: "Riesgo: top rubro", value: `${r.rubro} (${r.cantidad})` });
+      }
+      if (mn) {
         cards.push({
-          title: "Principal contraproducencia (no realizadas)",
-          value: `${topCp.contraproducencia} (${topCp.cantidad})`,
+          title: "Riesgo: top motivo notificación",
+          value: `${mn.motivo} (${mn.cantidad})`,
         });
       }
-      if (topDist) {
+      if (mc) {
         cards.push({
-          title: "Distrito con más no realizadas",
-          value: `${topDist.distrito_nombre} (${topDist.cantidad})`,
+          title: "Riesgo: top motivo comprobación",
+          value: `${mc.motivo} (${mc.cantidad})`,
+        });
+      }
+      if (ejecutivoData) {
+        cards.push({
+          title: "Riesgo: mercadería decomisada total (kg)",
+          value: ejecutivoData.kpis.mercaderia_decomisada_kg,
         });
       }
     }
@@ -245,45 +225,11 @@ const Panel = () => {
         });
       }
     }
-    if (riesgoData) {
-      const r = riesgoData.top_rubros[0];
-      const mn = riesgoData.top_motivos_notificacion[0];
-      const mc = riesgoData.top_motivos_comprobacion[0];
-      const dk = riesgoData.decomiso_kg_por_rubro;
-      const totalKgRubro = dk.reduce((sum, row) => sum + row.kg, 0);
-      const topKgRubro = dk[0];
-      if (r) {
-        cards.push({ title: "Riesgo: top rubro", value: `${r.rubro} (${r.cantidad})` });
-      }
-      if (mn) {
-        cards.push({
-          title: "Riesgo: top motivo notificación",
-          value: `${mn.motivo} (${mn.cantidad})`,
-        });
-      }
-      if (mc) {
-        cards.push({
-          title: "Riesgo: top motivo comprobación",
-          value: `${mc.motivo} (${mc.cantidad})`,
-        });
-      }
-      if (totalKgRubro > 0) {
-        cards.push({ title: "Riesgo: kg decomisados (total por rubro)", value: totalKgRubro });
-      }
-      if (topKgRubro) {
-        cards.push({
-          title: "Riesgo: rubro con más kg decomisados",
-          value: `${topKgRubro.rubro} (${topKgRubro.kg} kg)`,
-        });
-      }
-    }
     return cards;
-  }, [ejecutivoData, pendientesData, riesgoData, noRealizadasData, productividadData]);
+  }, [ejecutivoData, pendientesData, riesgoData, noRealizadasTotal, productividadData]);
 
   const periodoTabIndex = PERIODOS.indexOf(periodo);
-  const tendenciasLoading = resumenLoading && !resumenData;
   const anyLoading =
-    tendenciasLoading ||
     (ejecutivoLoading && !ejecutivoData) ||
     (pendientesLoading && !pendientesData) ||
     (riesgoLoading && !riesgoData) ||
@@ -304,135 +250,132 @@ const Panel = () => {
         />
       ) : null}
 
-      <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
+      <Paper
+        elevation={0}
+        sx={{
+          ...dashboardAnalyticsCardSx,
+          ...moduleSlicesPanelPaperSx,
+          p: 0,
+          overflow: "hidden",
+        }}
+      >
         <Tabs
           value={periodoTabIndex}
           onChange={(_, v) => setPeriodo(PERIODOS[v] ?? "Mensual")}
           variant="scrollable"
           allowScrollButtonsMobile
-          sx={moduleSlicesTabsSx}
+          sx={{
+            ...moduleSlicesTabsSx,
+            minHeight: 42,
+            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+          }}
         >
           {PERIODOS.map((p) => (
-            <Tab key={p} label={p} />
+            <Tab key={p} label={p} sx={{ minHeight: 42, py: 0.75 }} />
           ))}
         </Tabs>
-      </Paper>
-
-      <Paper elevation={0} sx={moduleFiltersSurfaceSx}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
-              color: GLASS_COLORS.textSecondary,
-              fontSize: "0.8125rem",
-            }}
+        <Box
+          sx={{
+            ...moduleFiltersSurfaceSx,
+            border: "none",
+            borderRadius: 0,
+            boxShadow: "none",
+            backgroundColor: "transparent",
+            p: { xs: 1.25, sm: 1.5 },
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            flexWrap: "wrap",
+            gap: 1.25,
+            alignItems: { xs: "stretch", md: "flex-end" },
+          }}
+        >
+          <FormControl
+            variant="outlined"
+            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 }, flex: { md: "1 1 180px" } }]}
           >
-            Indicadores según el período y filtros seleccionados (datos reales del servidor).
-          </Typography>
-
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", lg: "row" },
-              flexWrap: "wrap",
-              gap: 2,
-              alignItems: { xs: "stretch", lg: "flex-end" },
-            }}
-          >
-            <TextField
-              type="date"
-              label="Desde"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-              variant="outlined"
-              sx={filtroItemStyles}
-            />
-            <TextField
-              type="date"
-              label="Hasta"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-              variant="outlined"
-              sx={filtroItemStyles}
-            />
-            <FormControl variant="outlined" sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 } }]}>
-              <InputLabel id="dash-distrito-label" shrink>
-                Distrito
-              </InputLabel>
-              <Select
-                labelId="dash-distrito-label"
-                label="Distrito"
-                notched
-                displayEmpty
-                value={distritoId}
-                onChange={(e) => setDistritoId(String(e.target.value))}
-              >
-                <MenuItem value="">
-                  <em>Todos</em>
-                </MenuItem>
-                {distritoOptions.map((d) => (
-                  <MenuItem key={d.id} value={String(d.id)}>
-                    {d.nombre}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl variant="outlined" sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 } }]}>
-              <InputLabel id="dash-inspector-label" shrink>
-                Inspector
-              </InputLabel>
-              <Select
-                labelId="dash-inspector-label"
-                label="Inspector"
-                notched
-                displayEmpty
-                value={inspectorId}
-                onChange={(e) => setInspectorId(String(e.target.value))}
-              >
-                <MenuItem value="">
-                  <em>Todos</em>
-                </MenuItem>
-                {inspectorOptions.map((i) => (
-                  <MenuItem key={i.id} value={String(i.id)}>
-                    {i.nombre}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Tooltip
-              title={
-                tarjetasExport.length > 0
-                  ? "Exporta KPIs visibles del periodo (ejecutivo, pendientes, riesgo, no realizadas y productividad)."
-                  : "Cargá indicadores antes de exportar."
-              }
+            <InputLabel id="dash-distrito-label" shrink>
+              Distrito
+            </InputLabel>
+            <Select
+              labelId="dash-distrito-label"
+              label="Distrito"
+              notched
+              displayEmpty
+              value={distritoId}
+              onChange={(e) => setDistritoId(String(e.target.value))}
             >
-              <span>
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="sm"
-                  startIcon={<FileDownloadOutlinedIcon />}
-                  disabled={tarjetasExport.length === 0 || anyLoading}
-                  onClick={() =>
-                    exportDashboardToExcel({
-                      tarjetas: tarjetasExport,
-                      periodoLabel: `${desde} → ${hasta}`,
-                    })
-                  }
-                  sx={{ alignSelf: { xs: "stretch", lg: "center" }, whiteSpace: "nowrap" }}
-                >
-                  Exportar KPIs
-                </AppButton>
-              </span>
-            </Tooltip>
-          </Box>
+              <MenuItem value="">
+                <em>Todos</em>
+              </MenuItem>
+              {distritoOptions.map((d) => (
+                <MenuItem key={d.id} value={String(d.id)}>
+                  {d.nombre}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl
+            variant="outlined"
+            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 }, flex: { md: "1 1 180px" } }]}
+          >
+            <InputLabel id="dash-inspector-label" shrink>
+              Inspector
+            </InputLabel>
+            <Select
+              labelId="dash-inspector-label"
+              label="Inspector"
+              notched
+              displayEmpty
+              value={inspectorId}
+              onChange={(e) => setInspectorId(String(e.target.value))}
+            >
+              <MenuItem value="">
+                <em>Todos</em>
+              </MenuItem>
+              {inspectorOptions.map((i) => (
+                <MenuItem key={i.id} value={String(i.id)}>
+                  {i.nombre}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Tooltip
+            title={
+              tarjetasExport.length > 0
+                ? "Exporta KPIs visibles del período seleccionado."
+                : "Cargá indicadores antes de exportar."
+            }
+          >
+            <span>
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                startIcon={<FileDownloadOutlinedIcon />}
+                disabled={tarjetasExport.length === 0 || anyLoading}
+                onClick={() =>
+                  exportDashboardToExcel({
+                    tarjetas: tarjetasExport,
+                    periodoLabel: `${periodo} (${desde} → ${hasta})`,
+                  })
+                }
+                sx={{ alignSelf: { xs: "stretch", md: "center" }, whiteSpace: "nowrap" }}
+              >
+                Exportar KPIs
+              </AppButton>
+            </span>
+          </Tooltip>
         </Box>
       </Paper>
 
       <DashboardEjecutivoSection
         data={ejecutivoData}
+        noRealizadasTotal={noRealizadasTotal}
+        loading={ejecutivoLoading}
+        error={ejecutivoError}
+      />
+
+      <DashboardActasPorTipoSection
+        actas={ejecutivoData?.actas_por_tipo}
         loading={ejecutivoLoading}
         error={ejecutivoError}
       />
@@ -445,6 +388,7 @@ const Panel = () => {
 
       <DashboardRiesgoSection
         data={riesgoData}
+        mercaderiaDecomisadaKg={ejecutivoData?.kpis.mercaderia_decomisada_kg}
         loading={riesgoLoading}
         error={riesgoError}
       />
@@ -460,47 +404,6 @@ const Panel = () => {
         loading={productividadLoading}
         error={productividadError}
       />
-
-      <DashboardTendenciasSection
-        data={resumenData}
-        loading={resumenLoading}
-        error={resumenError}
-      />
-
-      {/* Detalle secundario: tipo operativo (colapsable) */}
-      <Accordion
-        disableGutters
-        elevation={0}
-        sx={{
-          mt: 1.5,
-          ...dashboardGlassCardSx,
-          "&:before": { display: "none" },
-          borderRadius: "12px !important",
-          overflow: "hidden",
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon sx={{ color: GLASS_COLORS.textPrimary }} />}
-          sx={{
-            minHeight: 48,
-            "& .MuiAccordionSummary-content": { my: 1 },
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
-              fontWeight: 600,
-              fontSize: "0.9375rem",
-              color: GLASS_COLORS.textPrimary,
-            }}
-          >
-            Detalle: actuaciones por tipo operativo
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
-          <ActuacionesPorTipoChart items={resumenData?.actuaciones_por_tipo_operativo ?? []} />
-        </AccordionDetails>
-      </Accordion>
     </Box>
   );
 };

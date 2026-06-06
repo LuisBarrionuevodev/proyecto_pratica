@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-/** KPIs visibles del Dashboard (bloques dedicados + tendencias vía resumen). */
+/** KPIs visibles del Dashboard (bloques dedicados D1d.11). */
 interface DashboardExportData {
   tarjetas: { title: string; value: number | string }[];
   periodoLabel?: string;

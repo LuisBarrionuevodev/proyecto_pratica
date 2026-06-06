@@ -14,7 +14,7 @@ import type {
   IndicadoresProductividadResponse,
 } from "../../../api/indicadoresApi";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
-import { dashboardEmptyStateCompactSx, dashboardGlassCardSx } from "../../../styles/DashboardStyles";
+import { dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { BANDEJA_MRT_READ_ONLY_TABLE_PROPS } from "../../Actuaciones/Components/bandejaTableCells";
 import {
@@ -23,6 +23,7 @@ import {
   MRT_READ_ONLY_BANDEJA,
 } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
+import { DashboardAnalyticsChartCard } from "./DashboardAnalyticsChartCard";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
 
 const PAGE_SIZE = 5;
@@ -109,15 +110,6 @@ function DiscreteChip({ label }: { label: string | null }) {
   );
 }
 
-function tableShellSx() {
-  return {
-    ...dashboardGlassCardSx,
-    p: { xs: 0.75, sm: 1 },
-    minWidth: 0,
-    overflow: "hidden",
-    overflowX: "auto",
-  };
-}
 
 function baseTableOptions<T extends { inspector_id: number }>(
   columns: MRT_ColumnDef<T>[],
@@ -136,10 +128,16 @@ function baseTableOptions<T extends { inspector_id: number }>(
     enableRowActions: false,
     enableRowSelection: false,
     enableColumnFilters: true,
-    enableGlobalFilter: true,
+    enableGlobalFilter: false,
     enableSorting: true,
     enablePagination: true,
+    enableDensityToggle: false,
+    enableFullScreenToggle: false,
+    enableHiding: false,
     layoutMode: "grid",
+    muiTopToolbarProps: {
+      sx: { minHeight: 36, px: 0.5 },
+    },
     muiTableContainerProps: {
       sx: {
         maxHeight: TABLE_MAX_HEIGHT,
@@ -236,26 +234,11 @@ function RealizadasTable({
   );
 
   return (
-    <Box sx={tableShellSx()}>
-      <Typography
-        variant="caption"
-        sx={{
-          display: "block",
-          mb: 0.75,
-          fontFamily: '"Tactic Sans", sans-serif',
-          fontWeight: 600,
-          color: GLASS_COLORS.textMuted,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          fontSize: "0.65rem",
-        }}
-      >
-        Actuaciones realizadas por inspector
-      </Typography>
+    <DashboardAnalyticsChartCard title="Actuaciones realizadas por inspector" loading={loading}>
       <DataTableMrtShell loading={loading} loadingMode="progress">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
-    </Box>
+    </DashboardAnalyticsChartCard>
   );
 }
 
@@ -337,26 +320,11 @@ function NoRealizadasTable({
   );
 
   return (
-    <Box sx={tableShellSx()}>
-      <Typography
-        variant="caption"
-        sx={{
-          display: "block",
-          mb: 0.75,
-          fontFamily: '"Tactic Sans", sans-serif',
-          fontWeight: 600,
-          color: GLASS_COLORS.textMuted,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          fontSize: "0.65rem",
-        }}
-      >
-        Actuaciones no realizadas por inspector
-      </Typography>
+    <DashboardAnalyticsChartCard title="Actuaciones no realizadas por inspector" loading={loading}>
       <DataTableMrtShell loading={loading} loadingMode="progress">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
-    </Box>
+    </DashboardAnalyticsChartCard>
   );
 }
 
@@ -430,26 +398,11 @@ function ActasTable({
   );
 
   return (
-    <Box sx={tableShellSx()}>
-      <Typography
-        variant="caption"
-        sx={{
-          display: "block",
-          mb: 0.75,
-          fontFamily: '"Tactic Sans", sans-serif',
-          fontWeight: 600,
-          color: GLASS_COLORS.textMuted,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          fontSize: "0.65rem",
-        }}
-      >
-        Actas labradas por inspector
-      </Typography>
+    <DashboardAnalyticsChartCard title="Actas labradas por inspector" loading={loading}>
       <DataTableMrtShell loading={loading} loadingMode="progress">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
-    </Box>
+    </DashboardAnalyticsChartCard>
   );
 }
 

@@ -1,101 +1,122 @@
-import { Alert, Box } from "@mui/material";
+import { Alert } from "@mui/material";
 
-import type { IndicadoresActasPorTipo, IndicadoresEjecutivoResponse } from "../../../api/indicadoresApi";
+import type { IndicadoresEjecutivoResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
-import { DashboardActasPorTipoMini } from "./DashboardActasPorTipoChips";
-import { DashboardExecutiveKpiGrid } from "./DashboardExecutiveKpiGrid";
-import KPI from "./DashboardKPI";
-import { dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
+import {
+  DashboardAnalyticsKpiCard,
+  type DashboardKpiAccent,
+} from "./DashboardAnalyticsKpiCard";
+import { DashboardMetricGrid } from "./DashboardMetricGrid";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
-
-const ACTAS_VACIAS: IndicadoresActasPorTipo = {
-  inspeccion: 0,
-  notificacion: 0,
-  comprobacion: 0,
-  clausura: 0,
-  decomiso: 0,
-};
 
 type Props = {
   data: IndicadoresEjecutivoResponse | null;
+  noRealizadasTotal: number | null;
   loading: boolean;
   error: string | null;
 };
 
-function formatKg(kg: number): string {
-  if (Number.isInteger(kg)) {
-    return String(kg);
-  }
-  return kg.toLocaleString("es-AR", { maximumFractionDigits: 2 });
-}
+const OVERVIEW_ACCENTS: DashboardKpiAccent[] = [
+  "primary",
+  "teal",
+  "primary",
+  "amber",
+  "teal",
+  "primary",
+  "amber",
+  "neutral",
+];
 
 /**
- * Resumen ejecutivo: KPIs desde `/api/indicadores/ejecutivo` y actas por tipo.
+ * Overview operativo: KPIs analytics desde `/api/indicadores/ejecutivo` + total no realizadas.
+ *
+ * Nota: «Reinspecciones por oficio realizadas» no está en el contrato de ejecutivo (pendiente backend).
  */
-export function DashboardEjecutivoSection({ data, loading, error }: Props) {
+export function DashboardEjecutivoSection({
+  data,
+  noRealizadasTotal,
+  loading,
+  error,
+}: Props) {
   const kpis = data?.kpis;
-  const actas = data?.actas_por_tipo ?? ACTAS_VACIAS;
   const showValues = !loading && !error && data != null;
+  const sectionLoading = loading && !data;
 
   const kpiValue = (value: number | undefined): number | string => {
-    if (loading) return "…";
+    if (sectionLoading) return "…";
     if (!showValues || value == null) return "—";
     return value;
   };
 
+  const cards = [
+    { label: "Actuaciones realizadas", value: kpiValue(kpis?.actuaciones_realizadas) },
+    { label: "Actas labradas", value: kpiValue(kpis?.actas_labradas) },
+    {
+      label: "Reins. notificación realizadas",
+      value: kpiValue(kpis?.reinspecciones_notificacion_realizadas),
+    },
+    {
+      label: "No realizadas",
+      value:
+        sectionLoading
+          ? "…"
+          : noRealizadasTotal != null && showValues
+            ? noRealizadasTotal
+            : "—",
+    },
+    {
+      label: "Mercadería decomisada",
+      value:
+        sectionLoading
+          ? "…"
+          : showValues && kpis != null
+            ? kpis.mercaderia_decomisada_kg.toLocaleString("es-AR", {
+                maximumFractionDigits: 2,
+              })
+            : "—",
+      unit: sectionLoading || !showValues ? undefined : "kg",
+    },
+    {
+      label: "Ratif. clausura realizadas",
+      value: kpiValue(kpis?.ratificaciones_clausura_realizadas),
+    },
+    {
+      label: "Ratif. decomiso realizadas",
+      value: kpiValue(kpis?.ratificaciones_decomiso_realizadas),
+    },
+    {
+      label: "Verificar e informar realizadas",
+      value: kpiValue(kpis?.verificar_informar_realizadas),
+    },
+  ];
+
   return (
-    <DashboardSectionBlock first title="Resumen ejecutivo">
+    <DashboardSectionBlock first title="Overview operativo">
       {error ? (
         <Alert severity="warning" sx={{ ...alertBaseStyles, mb: 1.25 }}>
           {error}
         </Alert>
       ) : null}
 
-      <DashboardExecutiveKpiGrid
-        columns={{ xs: "1fr 1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" }}
+      <DashboardMetricGrid
+        columns={{
+          xs: "1fr",
+          sm: "repeat(2, 1fr)",
+          md: "repeat(3, 1fr)",
+          lg: "repeat(4, 1fr)",
+        }}
       >
-        <KPI compact title="Actuaciones realizadas" value={kpiValue(kpis?.actuaciones_realizadas)} />
-        <KPI compact title="Actas labradas" value={kpiValue(kpis?.actas_labradas)} />
-        <KPI
-          compact
-          title="Reins. notificación realizadas"
-          value={kpiValue(kpis?.reinspecciones_notificacion_realizadas)}
-        />
-        <KPI
-          compact
-          title="Ratif. clausura realizadas"
-          value={kpiValue(kpis?.ratificaciones_clausura_realizadas)}
-        />
-        <KPI
-          compact
-          title="Ratif. decomiso realizadas"
-          value={kpiValue(kpis?.ratificaciones_decomiso_realizadas)}
-        />
-        <KPI
-          compact
-          title="Verificar e informar realizadas"
-          value={kpiValue(kpis?.verificar_informar_realizadas)}
-        />
-        <KPI
-          compact
-          title="Kg decomisados"
-          value={
-            loading
-              ? "…"
-              : showValues && kpis != null
-                ? formatKg(kpis.mercaderia_decomisada_kg)
-                : "—"
-          }
-        />
-      </DashboardExecutiveKpiGrid>
-
-      <Box sx={{ mt: 1.25 }}>
-        {error && !data ? (
-          <Box sx={dashboardEmptyStateCompactSx}>Actas por tipo no disponibles.</Box>
-        ) : (
-          <DashboardActasPorTipoMini actas={actas} loading={loading} />
-        )}
-      </Box>
+        {cards.map((card, idx) => (
+          <DashboardAnalyticsKpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            unit={"unit" in card ? card.unit : undefined}
+            loading={sectionLoading}
+            accent={OVERVIEW_ACCENTS[idx] ?? "neutral"}
+          />
+        ))}
+      </DashboardMetricGrid>
     </DashboardSectionBlock>
   );
 }

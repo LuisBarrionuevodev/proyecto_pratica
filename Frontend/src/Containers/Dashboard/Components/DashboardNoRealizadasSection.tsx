@@ -3,13 +3,12 @@ import { useMemo } from "react";
 
 import type { IndicadoresNoRealizadasResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
-import {
-  DashboardCompactRankingCard,
-  type DashboardRankingItem,
-} from "./DashboardCompactRankingCard";
-import { DashboardExecutiveKpiGrid } from "./DashboardExecutiveKpiGrid";
-import KPI from "./DashboardKPI";
+import { DashboardAnalyticsKpiCard } from "./DashboardAnalyticsKpiCard";
+import { DashboardHorizontalBarChartCard } from "./DashboardHorizontalBarChartCard";
+import type { DashboardRankingChartItem } from "./DashboardRankingBarChart";
+import { DashboardMetricGrid } from "./DashboardMetricGrid";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
 type Props = {
   data: IndicadoresNoRealizadasResponse | null;
@@ -31,7 +30,7 @@ function formatDistritoNombre(nombre: string): string {
 }
 
 /**
- * No realizadas: por tipo, motivos y distritos desde `/api/indicadores/no-realizadas`.
+ * No realizadas: KPIs + rankings en barras horizontales.
  */
 export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
   const porTipo = data?.por_tipo;
@@ -39,7 +38,7 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
   const sectionLoading = loading && !data;
 
   const kpiValue = (value: number | undefined): number | string => {
-    if (loading) return "…";
+    if (sectionLoading) return "…";
     if (!showValues || value == null) return "—";
     return value;
   };
@@ -54,7 +53,7 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
     );
   }, [porTipo]);
 
-  const topContraproducencias = useMemo<DashboardRankingItem[]>(
+  const topContraproducencias = useMemo<DashboardRankingChartItem[]>(
     () =>
       (data?.top_contraproducencias ?? [])
         .filter((r) => !isNoHuboLabel(r.contraproducencia))
@@ -62,16 +61,16 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
           label: r.contraproducencia,
           value: r.cantidad,
         })),
-    [data?.top_contraproducencias]
+    [data?.top_contraproducencias],
   );
 
-  const distritosRanking = useMemo<DashboardRankingItem[]>(
+  const distritosRanking = useMemo<DashboardRankingChartItem[]>(
     () =>
       (data?.distritos_con_mas_no_realizadas ?? []).map((d) => ({
         label: formatDistritoNombre(d.distrito_nombre),
         value: d.cantidad,
       })),
-    [data?.distritos_con_mas_no_realizadas]
+    [data?.distritos_con_mas_no_realizadas],
   );
 
   return (
@@ -82,35 +81,58 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
         </Alert>
       ) : null}
 
-      <DashboardExecutiveKpiGrid
+      <DashboardMetricGrid
         columns={{ xs: "1fr 1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
       >
-        <KPI compact title="Total no realizadas" value={kpiValue(showValues ? totalNoRealizadas : undefined)} />
-        <KPI compact title="Inspección" value={kpiValue(porTipo?.inspeccion)} />
-        <KPI compact title="Reins. oficio" value={kpiValue(porTipo?.reinspeccion_oficio)} />
-        <KPI
-          compact
-          title="Reins. notificación"
-          value={kpiValue(porTipo?.reinspeccion_notificacion)}
+        <DashboardAnalyticsKpiCard
+          label="Total no realizadas"
+          value={kpiValue(showValues ? totalNoRealizadas : undefined)}
+          loading={sectionLoading}
+          accent="amber"
         />
-        <KPI compact title="Denuncia" value={kpiValue(porTipo?.denuncia)} />
-      </DashboardExecutiveKpiGrid>
+        <DashboardAnalyticsKpiCard
+          label="Inspección"
+          value={kpiValue(porTipo?.inspeccion)}
+          loading={sectionLoading}
+          accent="primary"
+        />
+        <DashboardAnalyticsKpiCard
+          label="Reins. oficio"
+          value={kpiValue(porTipo?.reinspeccion_oficio)}
+          loading={sectionLoading}
+          accent="teal"
+        />
+        <DashboardAnalyticsKpiCard
+          label="Reins. notificación"
+          value={kpiValue(porTipo?.reinspeccion_notificacion)}
+          loading={sectionLoading}
+          accent="primary"
+        />
+        <DashboardAnalyticsKpiCard
+          label="Denuncia"
+          value={kpiValue(porTipo?.denuncia)}
+          loading={sectionLoading}
+          accent="neutral"
+        />
+      </DashboardMetricGrid>
 
-      <Grid container spacing={1.5} sx={{ mt: 0.25 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <DashboardCompactRankingCard
+      <Grid container spacing={1.5} sx={{ mt: 0.25 }} alignItems="stretch">
+        <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
+          <DashboardHorizontalBarChartCard
             title="Motivos de no realización"
             items={topContraproducencias}
             loading={sectionLoading}
-            emptyMessage="Sin contraproducencias registradas en el período."
+            emptyMessage="Sin motivos registrados en el período."
+            color="#F5A623"
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <DashboardCompactRankingCard
+        <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
+          <DashboardHorizontalBarChartCard
             title="Distritos con más no realizadas"
             items={distritosRanking}
             loading={sectionLoading}
-            emptyMessage="Sin no realizadas agrupadas por distrito para el período seleccionado."
+            emptyMessage="Sin no realizadas por distrito en el período."
+            color={GLASS_COLORS.primary}
           />
         </Grid>
       </Grid>
