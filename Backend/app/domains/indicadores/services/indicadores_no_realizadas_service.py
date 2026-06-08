@@ -22,10 +22,10 @@ def build_indicadores_no_realizadas(
     inspector_id: Optional[int] = None,
 ) -> IndicadoresNoRealizadasOut:
     """
-    Bloque no realizadas: cierres con visita no realizada (contraproducencia real, sin NO_HUBO).
+    Bloque no realizadas: trabajos no realizados con contraproducencia real en el período.
 
     Parámetros:
-        desde, hasta: rango sobre fecha de cierre de ruta (``ejecutado_at`` o fecha de ruta).
+        desde, hasta: rango sobre ``RutaTrabajo.fecha`` (período operativo de la ruta).
         distrito_id, inspector_id: filtros opcionales.
 
     Retorno:

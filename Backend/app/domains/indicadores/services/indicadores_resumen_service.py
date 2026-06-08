@@ -15,6 +15,11 @@ from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
     count_mapa_operativo_pendientes_en_ruta,
     count_mapa_operativo_realizados_visita,
 )
+from app.domains.indicadores.services.indicadores_operativos_queries import (
+    actuacion_ids_realizadas_subquery,
+    query_top_rubros_cierres_realizados,
+    visitas_realizadas_por_tipo_iniciador as _visitas_realizadas_por_tipo_iniciador,
+)
 from app.domains.indicadores.schemas.resumen_out import (
     ActasLabradasMesItem,
     ActasPorTipo,
@@ -62,15 +67,6 @@ _CONTRAP_EXCLUIDAS_TOP = frozenset(
         _loose_key("NO HUBO"),
     }
 )
-
-_TIPOS_INICIADOR_VISITA_REALIZADA = (
-    "REINSPECCION_NOTIFICACION",
-    "REINSPECCION_OFICIO",
-    "VERIFICAR_INFORMAR_OFICIO",
-    "RATIFICACION_CLAUSURA_OFICIO",
-    "RATIFICACION_DECOMISO_OFICIO",
-)
-
 
 def _float_kg(value) -> float:
     if value is None:
@@ -372,40 +368,13 @@ def visitas_realizadas_por_tipo_iniciador(
     inspector_id: Optional[int] = None,
 ) -> dict[str, int]:
     """
-    Cuenta visitas realizadas agrupadas por ``IniciadorRuta.tipo_iniciador``.
+    Cuenta visitas realizadas agrupadas por ``tipo_iniciador`` canónico.
 
-    Incluye reinspecciones, verificar e informar y ratificaciones de oficio.
-    Misma base que ``_reinspecciones_realizadas`` (fecha de cierre en rango).
+    Delega en ``indicadores_operativos_queries`` (cierre operativo + normalización).
     """
-    fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
-    q = (
-        db.session.query(IniciadorRuta.tipo_iniciador, func.count(func.distinct(IniciadorRuta.id)))
-        .select_from(RutaItem)
-        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
-        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
-        .filter(
-            RutaItem.deleted_at.is_(None),
-            IniciadorRuta.deleted_at.is_(None),
-            RutaItem.actuacion_id.isnot(None),
-            RutaItem.estado_ruta_item == "FINALIZADO",
-            RutaItem.estado_ejecucion == "REALIZADO",
-            RutaTrabajo.estado_ruta == "PUBLICADA",
-            IniciadorRuta.tipo_iniciador.in_(_TIPOS_INICIADOR_VISITA_REALIZADA),
-            fecha_cierre >= desde,
-            fecha_cierre <= hasta,
-        )
+    return _visitas_realizadas_por_tipo_iniciador(
+        desde, hasta, distrito_id, inspector_id
     )
-    if distrito_id is not None:
-        q = q.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id).filter(
-            Domicilio.distrito_id == distrito_id,
-            Domicilio.deleted_at.is_(None),
-        )
-    if inspector_id is not None:
-        q = q.filter(_realizados_inspector_coincide(inspector_id))
-
-    rows = q.group_by(IniciadorRuta.tipo_iniciador).all()
-    return {str(tipo): int(cnt) for tipo, cnt in rows}
 
 
 def top_contraproducencias_sin_no_hubo(
@@ -456,23 +425,14 @@ def query_top_rubros_actuaciones(
     limit: int = _TOP_RUBROS_LIMIT,
 ) -> list[tuple[int, str, int]]:
     """
-    Top rubros por cantidad de actuaciones en el periodo (con domicilio y rubro).
+    Top rubros por cierres realizados (domicilio efectivo actuación o iniciador).
 
     Retorno:
         Lista de (rubro_id, nombre, count).
     """
-    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
-    rows = (
-        db.session.query(Rubro.id, Rubro.nombre, func.count(Actuaciones.id))
-        .join(sq, sq.c.id == Actuaciones.id)
-        .join(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
-        .join(Rubro, Rubro.id == Domicilio.rubro_id)
-        .group_by(Rubro.id, Rubro.nombre)
-        .order_by(func.count(Actuaciones.id).desc())
-        .limit(limit)
-        .all()
+    return query_top_rubros_cierres_realizados(
+        desde, hasta, distrito_id, inspector_id, limit=limit
     )
-    return [(int(rid), str(nombre), int(cnt)) for rid, nombre, cnt in rows]
 
 
 def query_top_motivos_notificacion(
@@ -492,7 +452,7 @@ def query_top_motivos_notificacion(
     Retorno:
         Lista de (nombre catálogo, ocurrencias) ordenada por frecuencia.
     """
-    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
     rows = (
         db.session.query(Motivo.nombre, func.count(notificacion_motivo.c.motivo))
         .select_from(notificacion_motivo)
@@ -526,7 +486,7 @@ def query_top_motivos_comprobacion(
 
     Agrupa por etiqueta normalizada para unificar variantes de texto.
     """
-    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
     rows = (
         db.session.query(Comprobacion.motivo, func.count(Comprobacion.id))
         .join(Actuaciones, Actuaciones.comprobacion_id == Comprobacion.id)
@@ -562,7 +522,7 @@ def query_decomiso_kg_por_rubro(
 
     Actuaciones sin rubro se agrupan en ``Sin rubro``.
     """
-    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
     rubro_label = func.coalesce(Rubro.nombre, _SIN_RUBRO_LABEL)
     rows = (
         db.session.query(rubro_label, func.sum(Decomiso.cantidad))
@@ -594,7 +554,7 @@ def _reinspecciones_realizadas(
     Reinspecciones efectivamente realizadas (visita cerrada con actuación).
 
     Criterio alineado al mapa operativo: ``FINALIZADO`` + ``REALIZADO``, ruta ``PUBLICADA``,
-    ``actuacion_id`` no nulo, fecha de cierre ``coalesce(date(ejecutado_at), ruta.fecha)`` en rango.
+    ``actuacion_id`` no nulo, período ``RutaTrabajo.fecha`` en rango.
     """
     por_tipo = visitas_realizadas_por_tipo_iniciador(
         desde, hasta, distrito_id, inspector_id

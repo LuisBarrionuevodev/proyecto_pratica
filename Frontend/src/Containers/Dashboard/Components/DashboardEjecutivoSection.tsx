@@ -105,6 +105,7 @@ export function DashboardEjecutivoSection({
           md: "repeat(3, 1fr)",
           lg: "repeat(4, 1fr)",
         }}
+        gap={1.5}
       >
         {cards.map((card, idx) => (
           <DashboardAnalyticsKpiCard

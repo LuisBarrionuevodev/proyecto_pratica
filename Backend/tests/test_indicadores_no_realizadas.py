@@ -11,7 +11,11 @@ from uuid import uuid4
 import pytest
 
 from app.database import db
+from sqlalchemy import func
+
 from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
+    _no_realizadas_administrativas_base_query,
+    _no_realizadas_base_query,
     format_contraproducencia_label,
     is_contraproducencia_excluida_valor,
 )
@@ -19,6 +23,7 @@ from app.domains.indicadores.services.indicadores_no_realizadas_service import (
     build_indicadores_no_realizadas,
 )
 from app.domains.indicadores.services.indicadores_resumen_service import build_indicadores_resumen
+from tests.indicadores_cierre_fixtures import estado_iniciador_tras_no_realizado
 from app.models import (
     Actuaciones,
     Contribuyente,
@@ -80,9 +85,10 @@ def _mk_no_realizada(
     *,
     distrito_id: int | None = None,
     inspector_id: int | None = None,
+    estado_iniciador: str | None = None,
 ) -> tuple[RutaItem, Actuaciones]:
     """
-    Cierre operativo no realizado: RutaItem NO_REALIZADO + actuación con contraproducencia real.
+    Cierre NO_REALIZADO; por defecto el estado del iniciador sigue Completar trabajo.
     """
     rub = Rubro.query.first()
     if rub is None:
@@ -122,9 +128,14 @@ def _mk_no_realizada(
                 inspector_id=inspector_id,
             )
         )
+    ini_estado = (
+        estado_iniciador
+        if estado_iniciador is not None
+        else estado_iniciador_tras_no_realizado(contraproducencia)
+    )
     ini = IniciadorRuta(
         tipo_iniciador=tipo_iniciador,
-        estado_iniciador="PENDIENTE",
+        estado_iniciador=ini_estado,
         fecha_origen=fecha_cierre,
         anio=2026,
         mes=7,
@@ -212,18 +223,65 @@ def test_format_contraproducencia_label_normaliza_enum_y_camel(app_ctx) -> None:
     assert is_contraproducencia_excluida_valor("LOCAL_CERRADO") is False
 
 
-def test_top_contraproducencias_agrupa_etiqueta_legible(app_ctx) -> None:
+def test_local_cerrado_pendiente_cuenta(app_ctx) -> None:
+    try:
+        before = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
+        _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 17))
+        db.session.flush()
+        after = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
+        assert after["inspeccion"] == before["inspeccion"] + 1
+        out = build_indicadores_no_realizadas(_DESDE, _HASTA)
+        labels = {r.contraproducencia for r in out.top_contraproducencias}
+        assert "Local cerrado" in labels
+    finally:
+        db.session.rollback()
+
+
+def test_no_existe_local_cerrado_cuenta(app_ctx) -> None:
+    try:
+        before = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
+        _mk_no_realizada("RELEVAMIENTO", "NO_EXISTE_LOCAL", date(2026, 7, 18))
+        db.session.flush()
+        after = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
+        assert after["inspeccion"] == before["inspeccion"] + 1
+    finally:
+        db.session.rollback()
+
+
+def test_top_contraproducencias_incluye_local_cerrado(app_ctx) -> None:
     try:
         _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 17))
-        _mk_no_realizada("DENUNCIA", "LOCAL_CERRADO", date(2026, 7, 18))
+        _mk_no_realizada("RELEVAMIENTO", "NO_EXISTE_LOCAL", date(2026, 7, 18))
+        _mk_no_realizada("DENUNCIA", "LOCAL_CERRADO", date(2026, 7, 19))
         db.session.flush()
         out = build_indicadores_no_realizadas(_DESDE, _HASTA)
-        row = next(
-            (r for r in out.top_contraproducencias if r.contraproducencia == "Local cerrado"),
-            None,
+        by_label = {r.contraproducencia: r.cantidad for r in out.top_contraproducencias}
+        assert by_label.get("Local cerrado", 0) >= 2
+        assert by_label.get("No existe local", 0) >= 1
+    finally:
+        db.session.rollback()
+
+
+def test_helper_administrativo_excluye_reencolables(app_ctx) -> None:
+    try:
+        _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 20))
+        _mk_no_realizada("RELEVAMIENTO", "NO_EXISTE_LOCAL", date(2026, 7, 21))
+        db.session.flush()
+        operativo = (
+            _no_realizadas_base_query(_DESDE, _HASTA)
+            .with_entities(func.count(func.distinct(RutaItem.id)))
+            .scalar()
+            or 0
         )
-        assert row is not None
-        assert row.cantidad >= 2
+        administrativo = (
+            _no_realizadas_administrativas_base_query(_DESDE, _HASTA)
+            .with_entities(func.count(func.distinct(RutaItem.id)))
+            .scalar()
+            or 0
+        )
+        assert operativo >= 2
+        assert administrativo >= 1
+        assert operativo > administrativo
     finally:
         db.session.rollback()
 
@@ -234,9 +292,13 @@ def test_distritos_agrupa_y_sin_distrito(app_ctx) -> None:
         if not distritos:
             pytest.skip("Se requiere al menos un distrito en BD.")
         dist = distritos[0]
-        _mk_no_realizada("RELEVAMIENTO", "NO_SE_ENCUENTRA", date(2026, 7, 10), distrito_id=dist.id)
-        _mk_no_realizada("RELEVAMIENTO", "NO_SE_ENCUENTRA", date(2026, 7, 11), distrito_id=dist.id)
-        _mk_no_realizada("DENUNCIA", "DOMICILIO_INCORRECTO", date(2026, 7, 12), distrito_id=None)
+        _mk_no_realizada(
+            "RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 10), distrito_id=dist.id
+        )
+        _mk_no_realizada(
+            "RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 11), distrito_id=dist.id
+        )
+        _mk_no_realizada("DENUNCIA", "NO_EXISTE_LOCAL", date(2026, 7, 12), distrito_id=None)
         db.session.flush()
         out = build_indicadores_no_realizadas(_DESDE, _HASTA)
         by_id = {r.distrito_id: r for r in out.distritos_con_mas_no_realizadas}
@@ -262,7 +324,9 @@ def test_filtro_distrito_id(app_ctx) -> None:
         d_a, d_b = distritos[0], distritos[1]
         if d_a.id == d_b.id:
             pytest.skip("Se requieren 2 distritos distintos.")
-        _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 14), distrito_id=d_a.id)
+        _mk_no_realizada(
+            "RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 14), distrito_id=d_a.id
+        )
         _mk_no_realizada("DENUNCIA", "LOCAL_CERRADO", date(2026, 7, 14), distrito_id=d_b.id)
         db.session.flush()
         out_a = build_indicadores_no_realizadas(_DESDE, _HASTA, distrito_id=d_a.id)
@@ -291,7 +355,7 @@ def test_filtro_inspector_id_sin_duplicar(app_ctx) -> None:
         )
         item2, act2 = _mk_no_realizada(
             "RELEVAMIENTO",
-            "NO_SE_ENCUENTRA",
+            "NO_EXISTE_LOCAL",
             date(2026, 7, 13),
             inspector_id=ins_a.id,
         )
@@ -301,7 +365,7 @@ def test_filtro_inspector_id_sin_duplicar(app_ctx) -> None:
                 inspector_id=ins_b.id,
             )
         )
-        _mk_no_realizada("DENUNCIA", "LOCAL_CERRADO", date(2026, 7, 13))
+        _mk_no_realizada("DENUNCIA", "NO_EXISTE_LOCAL", date(2026, 7, 13))
         db.session.flush()
         out = build_indicadores_no_realizadas(_DESDE, _HASTA, inspector_id=ins_a.id)
         assert out.por_tipo.inspeccion == 2

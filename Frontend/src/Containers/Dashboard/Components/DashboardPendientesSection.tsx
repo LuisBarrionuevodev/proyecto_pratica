@@ -37,14 +37,9 @@ export function DashboardPendientesSection({ data, loading, error }: Props) {
       ) : null}
 
       <DashboardMetricGrid
-        columns={{ xs: "1fr 1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
+        columns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }}
+        gap={1.5}
       >
-        <DashboardAnalyticsKpiCard
-          label="Relevamientos pendientes"
-          value={kpiValue(kpis?.relevamientos_pendientes)}
-          loading={sectionLoading}
-          accent="primary"
-        />
         <DashboardAnalyticsKpiCard
           label="Reins. oficio pendientes"
           value={kpiValue(kpis?.reinspecciones_oficio_pendientes)}
@@ -63,15 +58,9 @@ export function DashboardPendientesSection({ data, loading, error }: Props) {
           loading={sectionLoading}
           accent="amber"
         />
-        <DashboardAnalyticsKpiCard
-          label="Sin geolocalización"
-          value={kpiValue(kpis?.pendientes_geolocalizacion)}
-          loading={sectionLoading}
-          accent="neutral"
-        />
       </DashboardMetricGrid>
 
-      <Box sx={{ mt: 1.25 }}>
+      <Box sx={{ mt: 2 }}>
         <DashboardAnalyticsChartCard
           title="Distritos con más pendientes"
           loading={sectionLoading}

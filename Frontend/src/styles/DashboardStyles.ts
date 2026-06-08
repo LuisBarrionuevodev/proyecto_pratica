@@ -30,6 +30,19 @@ export const dashboardAnalyticsCardSx = {
 
 export const DASHBOARD_KPI_CARD_MIN_HEIGHT = 108;
 
+/** Ajustes mínimos de tabs de período (base: ``moduleSlicesTabsSx`` / slices Comprobación). */
+export const dashboardPeriodTabsSx = {
+  flexShrink: 0,
+  "& .MuiTab-root": {
+    minWidth: { xs: 72, sm: 88 },
+    px: { xs: 1.25, sm: 2 },
+  },
+  "& .MuiTabs-indicator": {
+    height: 3,
+    borderRadius: "2px",
+  },
+} as const;
+
 /** Sección del dashboard: bloque integrado (título + contenido). */
 export const dashboardSectionSurfaceSx = {
   backgroundColor: "rgba(255, 255, 255, 0.028)",
@@ -84,13 +97,13 @@ export const dashboardKpiLabelSx = {
 /** KPI analytics (D1d.11): etiqueta superior, número dominante. */
 export const dashboardAnalyticsKpiLabelSx = {
   fontFamily: '"Tactic Sans", sans-serif',
-  fontWeight: 600,
+  fontWeight: 700,
   fontSize: "0.7rem",
-  letterSpacing: "0.05em",
+  letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: GLASS_COLORS.textMuted,
-  lineHeight: 1.3,
-  mb: 0.5,
+  color: GLASS_COLORS.textPrimary,
+  lineHeight: 1.35,
+  mb: 0.75,
 } as const;
 
 export const dashboardAnalyticsKpiValueSx = {
@@ -103,11 +116,19 @@ export const dashboardAnalyticsKpiValueSx = {
 
 export const dashboardAnalyticsChartTitleSx = {
   fontFamily: '"Tactic Sans", sans-serif',
-  fontWeight: 600,
+  fontWeight: 700,
   fontSize: "0.875rem",
   lineHeight: 1.35,
   color: GLASS_COLORS.textPrimary,
   mb: 1,
+} as const;
+
+/** Leyendas y etiquetas principales en rankings / donuts. */
+export const dashboardLegendLabelSx = {
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 700,
+  fontSize: "0.75rem",
+  color: GLASS_COLORS.textPrimary,
 } as const;
 
 export const dashboardEmptyStateSx = {
@@ -145,12 +166,13 @@ export const ChartStyle = {
     stroke: GLASS_COLORS.borderLight,
   },
   "&& .MuiChartsAxis-tickLabel": {
-    fill: GLASS_COLORS.textSecondary,
+    fill: GLASS_COLORS.textPrimary,
     textOverflow: "unset",
     whiteSpace: "normal",
     overflow: "visible",
     fontFamily: '"Tactic Sans", sans-serif',
-    fontSize: "0.7rem",
+    fontSize: "0.72rem",
+    fontWeight: 700,
   },
   "&& .MuiChartsGrid-line": {
     stroke: "rgba(255,255,255,0.06)",
@@ -179,7 +201,7 @@ export const dashboardGlassTableSx = {
   },
   "& .MuiTableCell-head": {
     fontWeight: 700,
-    color: GLASS_COLORS.textSecondary,
+    color: GLASS_COLORS.textPrimary,
     backgroundColor: "rgba(255,255,255,0.03)",
   },
 } as const;

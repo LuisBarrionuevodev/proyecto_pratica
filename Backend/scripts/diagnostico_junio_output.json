@@ -1,0 +1,544 @@
+﻿python : C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\scripts\diagnostico_indicadores_junio.py:346: 
+LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy 
+construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 
+at: https://sqlalche.me/e/b8d9)
+En C:\Users\pablo\AppData\Local\Temp\ps-script-aededb07-ce14-4df7-b935-1f8150839a80.ps1: 87 Carácter: 88
++ ... ONPATH="."; python scripts/diagnostico_indicadores_junio.py --desde 2 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\pablo\...lche.me/e/b8d9):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  d = Domicilio.query.get(dom_id)
+C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\scripts\diagnostico_indicadores_junio.py:350: 
+LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy 
+construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 
+at: https://sqlalche.me/e/b8d9)
+  rub = Rubro.query.get(d.rubro_id) if d.rubro_id else None
+{
+  "periodo": {
+    "desde": "2026-06-01",
+    "hasta": "2026-06-30"
+  },
+  "B_base_cierres": {
+    "ruta_items_realizados": 14,
+    "actuaciones_distinct": 14,
+    "iniciadores_distinct": 14,
+    "por_tipo_iniciador": {
+      "RELEVAMIENTO": 10,
+      "DENUNCIA": 2,
+      "REINSPECCION_OFICIO": 1,
+      "REINSPECCION_NOTIFICACION": 1
+    },
+    "por_actuaciones_tipo": {
+      "INSPECCION": 12,
+      "RATIFICACION DE CLAUSURA": 1,
+      "REINSPECCION": 1
+    },
+    "tabla_cruce": [
+      {
+        "tipo_iniciador": "RELEVAMIENTO",
+        "estado_iniciador": "CUMPLIDO",
+        "actuaciones_tipo": "INSPECCION",
+        "ruta_items": 10,
+        "actuaciones_distinct": 10
+      },
+      {
+        "tipo_iniciador": "DENUNCIA",
+        "estado_iniciador": "CUMPLIDO",
+        "actuaciones_tipo": "INSPECCION",
+        "ruta_items": 2,
+        "actuaciones_distinct": 2
+      },
+      {
+        "tipo_iniciador": "REINSPECCION_OFICIO",
+        "estado_iniciador": "CUMPLIDO",
+        "actuaciones_tipo": "RATIFICACION DE CLAUSURA",
+        "ruta_items": 1,
+        "actuaciones_distinct": 1
+      },
+      {
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado_iniciador": "CUMPLIDO",
+        "actuaciones_tipo": "REINSPECCION",
+        "ruta_items": 1,
+        "actuaciones_distinct": 1
+      }
+    ],
+    "estado_iniciador_x_tipo": [
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "RELEVAMIENTO",
+        "cierres": 10
+      },
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "DENUNCIA",
+        "cierres": 2
+      },
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "REINSPECCION_OFICIO",
+        "cierres": 1
+      },
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "cierres": 1
+      }
+    ],
+    "inconsistencias_realizado_sin_cumplido": [],
+    "total_inconsistencias": 0
+  },
+  "C_actas_labradas": {
+    "por_tipo_cierre_script": {
+      "inspeccion": 13,
+      "notificacion": 12,
+      "comprobacion": 4,
+      "clausura": 2,
+      "decomiso": 1,
+      "total": 32
+    },
+    "por_tipo_endpoint_ejecutivo": {
+      "inspeccion": 13,
+      "notificacion": 12,
+      "comprobacion": 4,
+      "clausura": 2,
+      "decomiso": 1,
+      "total": 32
+    },
+    "comparacion": {
+      "inspeccion": {
+        "script": 13,
+        "endpoint": 13,
+        "diferencia": 0
+      },
+      "notificacion": {
+        "script": 12,
+        "endpoint": 12,
+        "diferencia": 0
+      },
+      "comprobacion": {
+        "script": 4,
+        "endpoint": 4,
+        "diferencia": 0
+      },
+      "clausura": {
+        "script": 2,
+        "endpoint": 2,
+        "diferencia": 0
+      },
+      "decomiso": {
+        "script": 1,
+        "endpoint": 1,
+        "diferencia": 0
+      },
+      "total": {
+        "script": 32,
+        "endpoint": 32,
+        "diferencia": 0
+      }
+    },
+    "actas_con_fecha_cruda_resumen": {
+      "inspeccion": 1,
+      "notificacion": 0,
+      "comprobacion": 1,
+      "clausura": 0,
+      "decomiso": 0,
+      "total": 2
+    },
+    "kpis_ejecutivo": {
+      "actuaciones_realizadas": 14,
+      "actas_labradas": 32
+    }
+  },
+  "D_motivos_notificacion": {
+    "notificaciones_labradas": 12,
+    "motivos_total_join": 21,
+    "motivos_distinct_notif_motivo_pair": 21,
+    "motivos_con_join_inspector": 52,
+    "duplicacion_por_inspector": 31,
+    "promedio_motivos_por_notificacion": 1.75,
+    "top_motivos": [
+      {
+        "motivo": "Carnet de Sanidad",
+        "cantidad_motivos": 9,
+        "notificaciones_distinct": 9
+      },
+      {
+        "motivo": "Desinfeccion",
+        "cantidad_motivos": 7,
+        "notificaciones_distinct": 7
+      },
+      {
+        "motivo": "Refacciones",
+        "cantidad_motivos": 5,
+        "notificaciones_distinct": 5
+      }
+    ]
+  },
+  "E_motivos_comprobacion": {
+    "comprobaciones_labradas": 4,
+    "motivos_comprobacion_validos_query": 4,
+    "pendiente_excluidos": 0,
+    "vacios_excluidos": 0,
+    "con_join_inspector": 11,
+    "duplicacion_por_inspector": 7,
+    "top_motivos": [
+      {
+        "motivo": "Falta de Higiene",
+        "cantidad": 2,
+        "comprobaciones_distinct": 2
+      },
+      {
+        "motivo": "Incumplimiento de Notificaci¾n",
+        "cantidad": 1,
+        "comprobaciones_distinct": 1
+      },
+      {
+        "motivo": "MercaderÝa Vencida",
+        "cantidad": 1,
+        "comprobaciones_distinct": 1
+      }
+    ]
+  },
+  "F_rubros": {
+    "ruta_items_realizados": 14,
+    "actuaciones_distinct": 14,
+    "con_domicilio_actuacion": 14,
+    "con_domicilio_iniciador": 14,
+    "con_domicilio_efectivo": 14,
+    "sin_rubro_efectivo": 0,
+    "con_rubro_actuacion": 14,
+    "con_rubro_iniciador": 14,
+    "recuperables_por_fallback_ini": 0,
+    "top_rubros_por_ruta_item": {
+      "Comestibles": 5,
+      "CervecerÝa": 3,
+      "CarnicerÝa": 2,
+      "Bar": 2,
+      "PollerÝa": 1,
+      "PanaderÝa": 1
+    },
+    "top_rubros_por_actuacion_distinct": {
+      "Comestibles": 5,
+      "CervecerÝa": 3,
+      "CarnicerÝa": 2,
+      "Bar": 2,
+      "PollerÝa": 1,
+      "PanaderÝa": 1
+    },
+    "top_rubros_service": [
+      {
+        "rubro_id": 1,
+        "nombre": "Comestibles",
+        "count": 5
+      },
+      {
+        "rubro_id": 9,
+        "nombre": "CervecerÝa",
+        "count": 3
+      },
+      {
+        "rubro_id": 2,
+        "nombre": "CarnicerÝa",
+        "count": 2
+      },
+      {
+        "rubro_id": 8,
+        "nombre": "Bar",
+        "count": 2
+      },
+      {
+        "rubro_id": 6,
+        "nombre": "PollerÝa",
+        "count": 1
+      },
+      {
+        "rubro_id": 13,
+        "nombre": "PanaderÝa",
+        "count": 1
+      }
+    ],
+    "sq_actuaciones_count": 14
+  },
+  "G_riesgo_endpoint": {
+    "top_rubros": [
+      {
+        "rubro": "Comestibles",
+        "cantidad": 5
+      },
+      {
+        "rubro": "CervecerÝa",
+        "cantidad": 3
+      },
+      {
+        "rubro": "CarnicerÝa",
+        "cantidad": 2
+      },
+      {
+        "rubro": "Bar",
+        "cantidad": 2
+      },
+      {
+        "rubro": "PollerÝa",
+        "cantidad": 1
+      },
+      {
+        "rubro": "PanaderÝa",
+        "cantidad": 1
+      }
+    ],
+    "top_motivos_notificacion": [
+      {
+        "motivo": "Carnet de Sanidad",
+        "cantidad": 9
+      },
+      {
+        "motivo": "Desinfeccion",
+        "cantidad": 7
+      },
+      {
+        "motivo": "Refacciones",
+        "cantidad": 5
+      }
+    ],
+    "top_motivos_comprobacion": [
+      {
+        "motivo": "Falta de Higiene",
+        "cantidad": 2
+      },
+      {
+        "motivo": "MercaderÝa Vencida",
+        "cantidad": 1
+      },
+      {
+        "motivo": "Incumplimiento de Notificaci¾n",
+        "cantidad": 1
+      }
+    ],
+    "decomiso_kg_por_rubro": [
+      {
+        "rubro": "Comestibles",
+        "kg": 17.0
+      }
+    ],
+    "comparacion": [
+      {
+        "indicador": "top_rubros:Comestibles",
+        "endpoint": 5,
+        "script": 5,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_rubros:CervecerÝa",
+        "endpoint": 3,
+        "script": 3,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_rubros:CarnicerÝa",
+        "endpoint": 2,
+        "script": 2,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_rubros:Bar",
+        "endpoint": 2,
+        "script": 2,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_rubros:PollerÝa",
+        "endpoint": 1,
+        "script": 1,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_rubros:PanaderÝa",
+        "endpoint": 1,
+        "script": 1,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_motivos_notificacion:Carnet de Sanidad",
+        "endpoint": 9,
+        "script": 9,
+        "diferencia": 0,
+        "posible_causa": "motivos por acta (no actas)"
+      },
+      {
+        "indicador": "top_motivos_notificacion:Desinfeccion",
+        "endpoint": 7,
+        "script": 7,
+        "diferencia": 0,
+        "posible_causa": "motivos por acta (no actas)"
+      },
+      {
+        "indicador": "top_motivos_notificacion:Refacciones",
+        "endpoint": 5,
+        "script": 5,
+        "diferencia": 0,
+        "posible_causa": "motivos por acta (no actas)"
+      },
+      {
+        "indicador": "top_motivos_comprobacion:Falta de Higiene",
+        "endpoint": 2,
+        "script": 2,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_motivos_comprobacion:MercaderÝa Vencida",
+        "endpoint": 1,
+        "script": 1,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      },
+      {
+        "indicador": "top_motivos_comprobacion:Incumplimiento de Notificaci¾n",
+        "endpoint": 1,
+        "script": 1,
+        "diferencia": 0,
+        "posible_causa": "ok"
+      }
+    ],
+    "service_queries": {
+      "top_motivos_notificacion": [
+        [
+          "Carnet de Sanidad",
+          9
+        ],
+        [
+          "Desinfeccion",
+          7
+        ],
+        [
+          "Refacciones",
+          5
+        ]
+      ],
+      "top_motivos_comprobacion": [
+        [
+          "Falta de Higiene",
+          2
+        ],
+        [
+          "MercaderÝa Vencida",
+          1
+        ],
+        [
+          "Incumplimiento de Notificaci¾n",
+          1
+        ]
+      ],
+      "decomiso_kg": [
+        [
+          "Comestibles",
+          17.0
+        ]
+      ]
+    }
+  },
+  "H_queries_audit": {
+    "actuaciones_fecha_cruda_junio": 57,
+    "actuaciones_cierre_junio": 14,
+    "solo_en_fecha_cruda_no_en_cierre": 56,
+    "solo_en_cierre_fuera_fecha_actuacion": 13,
+    "resumen_top_rubros_usa_fecha_cruda": [
+      {
+        "rubro": "CarnicerÝa",
+        "count": 7
+      },
+      {
+        "rubro": "PollerÝa",
+        "count": 6
+      },
+      {
+        "rubro": "PanaderÝa",
+        "count": 4
+      },
+      {
+        "rubro": "Comestibles",
+        "count": 4
+      },
+      {
+        "rubro": "Bar",
+        "count": 3
+      },
+      {
+        "rubro": "CervecerÝa",
+        "count": 3
+      },
+      {
+        "rubro": "CafeterÝa",
+        "count": 3
+      },
+      {
+        "rubro": "Kiosco",
+        "count": 1
+      }
+    ],
+    "riesgo_top_rubros_usa_cierre": [
+      {
+        "rubro": "Comestibles",
+        "count": 5
+      },
+      {
+        "rubro": "CervecerÝa",
+        "count": 3
+      },
+      {
+        "rubro": "CarnicerÝa",
+        "count": 2
+      },
+      {
+        "rubro": "Bar",
+        "count": 2
+      },
+      {
+        "rubro": "PollerÝa",
+        "count": 1
+      },
+      {
+        "rubro": "PanaderÝa",
+        "count": 1
+      }
+    ],
+    "notas": [
+      "ejecutivo/riesgo motivos y rubros usan actuacion_ids_realizadas_subquery (cierre)",
+      "resumen total actuaciones y top_rubros interno usan _actuacion_ids_subquery (Actuaciones.fecha)",
+      "query_top_motivos_notificacion cuenta filas notificacion_motivo, no actas",
+      "query_top_motivos_comprobacion agrupa por motivo texto; 1 motivo por comprobacion"
+    ]
+  },
+  "I_estado_iniciador": {
+    "agrupado": [
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "RELEVAMIENTO",
+        "cierres_realizados": 10
+      },
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "DENUNCIA",
+        "cierres_realizados": 2
+      },
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "REINSPECCION_OFICIO",
+        "cierres_realizados": 1
+      },
+      {
+        "estado_iniciador": "CUMPLIDO",
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "cierres_realizados": 1
+      }
+    ]
+  }
+}

@@ -11,12 +11,14 @@ from app.domains.indicadores.schemas.ejecutivo_out import (
     IndicadoresEjecutivoOut,
     IndicadoresPeriodo,
 )
+from app.domains.indicadores.services.indicadores_operativos_queries import (
+    actuacion_ids_realizadas_subquery,
+    count_cierres_realizados,
+    visitas_realizadas_por_tipo_iniciador,
+)
 from app.domains.indicadores.services.indicadores_resumen_service import (
-    _actuacion_ids_subquery,
     _count_actas_labradas,
     _float_kg,
-    count_actuaciones_realizadas_visita,
-    visitas_realizadas_por_tipo_iniciador,
 )
 from app.models import Decomiso
 
@@ -28,7 +30,11 @@ def build_indicadores_ejecutivo(
     inspector_id: Optional[int] = None,
 ) -> IndicadoresEjecutivoOut:
     """
-    Bloque ejecutivo del dashboard: realizadas (mapa) + actas labradas (fecha actuación).
+    Bloque ejecutivo del dashboard: cierres realizados + actas labradas alineadas.
+
+    Criterio «realizada»: ruta PUBLICADA con ``RutaTrabajo.fecha`` en rango,
+    ``RutaItem`` FINALIZADO + REALIZADO con ``actuacion_id``.
+    Actas y kg se restringen a esas actuaciones (no ``Actuaciones.fecha`` ni ``ejecutado_at``).
 
     Parámetros:
         desde, hasta: rango inclusive.
@@ -37,14 +43,14 @@ def build_indicadores_ejecutivo(
     Retorno:
         ``IndicadoresEjecutivoOut`` listo para JSON.
     """
-    realizadas = count_actuaciones_realizadas_visita(
+    realizadas = count_cierres_realizados(
         desde, hasta, distrito_id, inspector_id
     )
     por_tipo_ini = visitas_realizadas_por_tipo_iniciador(
         desde, hasta, distrito_id, inspector_id
     )
 
-    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
     actas_por_tipo = _count_actas_labradas(sq)
     actas_labradas = (
         actas_por_tipo.inspeccion

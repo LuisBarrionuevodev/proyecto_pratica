@@ -6,12 +6,12 @@ import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
 import { ChartStyle, dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
-const ACTA_ITEMS: { key: keyof IndicadoresActasPorTipo; label: string; color: string }[] = [
-  { key: "inspeccion", label: "Inspección", color: GLASS_COLORS.primary },
-  { key: "notificacion", label: "Notificación", color: "#4A9FD4" },
-  { key: "comprobacion", label: "Comprobación", color: "#22BF75" },
-  { key: "clausura", label: "Clausura", color: "#F5A623" },
-  { key: "decomiso", label: "Decomiso", color: "#9B7EDE" },
+const ACTA_ITEMS: { key: keyof IndicadoresActasPorTipo; label: string }[] = [
+  { key: "inspeccion", label: "Inspección" },
+  { key: "notificacion", label: "Notificación" },
+  { key: "comprobacion", label: "Comprobación" },
+  { key: "clausura", label: "Clausura" },
+  { key: "decomiso", label: "Decomiso" },
 ];
 
 type Props = {
@@ -36,10 +36,9 @@ export function DashboardActasPorTipoChart({ actas, loading }: Props) {
   const chart = useMemo(() => {
     const labels = ACTA_ITEMS.map((i) => i.label);
     const values = ACTA_ITEMS.map((i) => actas[i.key]);
-    const colors = ACTA_ITEMS.map((i) => i.color);
     const total = totalActas(actas);
     if (total === 0) return null;
-    return { labels, values, colors };
+    return { labels, values };
   }, [actas]);
 
   if (loading) {
@@ -64,10 +63,15 @@ export function DashboardActasPorTipoChart({ actas, loading }: Props) {
         {
           scaleType: "band",
           data: chart.labels,
-          tickLabelStyle: { fontSize: 11, angle: 0 },
+          tickLabelStyle: { fontSize: 11 },
         },
       ]}
-      yAxis={[{ disableLine: false, tickMinStep: 1 }]}
+      yAxis={[
+        {
+          tickMinStep: 1,
+          disableLine: false,
+        },
+      ]}
       series={[
         {
           data: chart.values,
@@ -77,8 +81,8 @@ export function DashboardActasPorTipoChart({ actas, loading }: Props) {
       ]}
       barLabel="value"
       grid={{ horizontal: true }}
-      height={220}
-      margin={{ left: 40, right: 16, top: 12, bottom: 36 }}
+      height={240}
+      margin={{ left: 36, right: 12, top: 16, bottom: 40 }}
       sx={ChartStyle}
     />
   );

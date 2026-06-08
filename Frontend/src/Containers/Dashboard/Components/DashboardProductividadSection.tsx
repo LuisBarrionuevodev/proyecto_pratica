@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, Grid, Typography } from "@mui/material";
+import { Alert, Box, Grid, Typography } from "@mui/material";
 import { useMemo } from "react";
 import {
   MaterialReactTable,
@@ -15,7 +15,6 @@ import type {
 } from "../../../api/indicadoresApi";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 import { dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { BANDEJA_MRT_READ_ONLY_TABLE_PROPS } from "../../Actuaciones/Components/bandejaTableCells";
 import {
   COLORS,
@@ -34,19 +33,6 @@ type Props = {
   loading: boolean;
   error: string | null;
 };
-
-function isNoHuboLabel(label: string): boolean {
-  const n = label.trim().toUpperCase().replace(/_/g, " ");
-  return n === "NO HUBO" || n === "NOHUBO";
-}
-
-function displayChipLabel(raw: string | null | undefined): string | null {
-  const t = (raw ?? "").trim();
-  if (!t || t === "—" || t.toLowerCase() === "sin datos" || isNoHuboLabel(t)) {
-    return null;
-  }
-  return t;
-}
 
 function NumericCell({ value }: { value: number }) {
   return (
@@ -83,34 +69,6 @@ function InspectorCell({ name }: { name: string }) {
   );
 }
 
-function DiscreteChip({ label }: { label: string | null }) {
-  if (!label) {
-    return (
-      <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
-        —
-      </Typography>
-    );
-  }
-  return (
-    <Chip
-      size="small"
-      variant="outlined"
-      label={label}
-      sx={{
-        maxWidth: "100%",
-        height: 22,
-        fontFamily: '"Tactic Sans", sans-serif',
-        fontSize: "0.7rem",
-        fontWeight: 600,
-        color: GLASS_COLORS.textSecondary,
-        borderColor: GLASS_COLORS.borderLight,
-        "& .MuiChip-label": { px: 0.75 },
-      }}
-    />
-  );
-}
-
-
 function baseTableOptions<T extends { inspector_id: number }>(
   columns: MRT_ColumnDef<T>[],
   data: T[],
@@ -134,13 +92,19 @@ function baseTableOptions<T extends { inspector_id: number }>(
     enableDensityToggle: false,
     enableFullScreenToggle: false,
     enableHiding: false,
-    layoutMode: "grid",
+    enableColumnActions: false,
+    layoutMode: "semantic",
     muiTopToolbarProps: {
-      sx: { minHeight: 36, px: 0.5 },
+      sx: { minHeight: 32, px: 0, py: 0 },
+    },
+    muiTablePaperProps: {
+      elevation: 0,
+      sx: { background: "transparent", overflow: "hidden" },
     },
     muiTableContainerProps: {
       sx: {
         maxHeight: TABLE_MAX_HEIGHT,
+        overflowX: { xs: "auto", md: "hidden" },
       },
     },
     initialState: {
@@ -170,54 +134,49 @@ function RealizadasTable({
       {
         accessorKey: "inspector",
         header: "Inspector",
-        size: 160,
+        size: 140,
+        grow: true,
         Cell: ({ cell }) => <InspectorCell name={String(cell.getValue() ?? "")} />,
       },
       {
         accessorKey: "total_realizadas",
-        header: "Total realizadas",
-        size: 110,
+        header: "Total",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "inspecciones",
-        header: "Inspecciones",
-        size: 95,
+        header: "Insp.",
+        size: 48,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "reinspecciones_oficio",
-        header: "Reins. oficio",
-        size: 95,
+        header: "R. of.",
+        size: 48,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "reinspecciones_notificacion",
-        header: "Reins. notificación",
-        size: 115,
+        header: "R. notif.",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "denuncias",
-        header: "Denuncias",
-        size: 85,
+        header: "Den.",
+        size: 44,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
-      },
-      {
-        accessorKey: "tipo_principal",
-        header: "Tipo principal",
-        size: 130,
-        Cell: ({ cell }) => <DiscreteChip label={displayChipLabel(String(cell.getValue() ?? ""))} />,
       },
     ],
     []
@@ -254,53 +213,46 @@ function NoRealizadasTable({
       {
         accessorKey: "inspector",
         header: "Inspector",
-        size: 160,
+        size: 140,
+        grow: true,
         Cell: ({ cell }) => <InspectorCell name={String(cell.getValue() ?? "")} />,
       },
       {
         accessorKey: "total_no_realizadas",
-        header: "Total no realizadas",
-        size: 120,
+        header: "Total",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
-        accessorKey: "contraproducencia_principal",
-        header: "Contraproducencia principal",
-        size: 150,
-        Cell: ({ cell }) => (
-          <DiscreteChip label={displayChipLabel(String(cell.getValue() ?? ""))} />
-        ),
-      },
-      {
         accessorKey: "inspecciones",
-        header: "Inspecciones",
-        size: 95,
+        header: "Insp.",
+        size: 48,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "reinspecciones_oficio",
-        header: "Reins. oficio",
-        size: 95,
+        header: "R. of.",
+        size: 48,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "reinspecciones_notificacion",
-        header: "Reins. notificación",
-        size: 115,
+        header: "R. notif.",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "denuncias",
-        header: "Denuncias",
-        size: 85,
+        header: "Den.",
+        size: 44,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
@@ -340,45 +292,46 @@ function ActasTable({
       {
         accessorKey: "inspector",
         header: "Inspector",
-        size: 180,
+        size: 140,
+        grow: true,
         Cell: ({ cell }) => <InspectorCell name={String(cell.getValue() ?? "")} />,
       },
       {
         accessorKey: "notificacion",
-        header: "Notificación",
-        size: 100,
+        header: "Notif.",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "comprobacion",
-        header: "Comprobación",
-        size: 105,
+        header: "Compr.",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "clausura",
-        header: "Clausura",
-        size: 85,
+        header: "Claus.",
+        size: 52,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "decomiso",
-        header: "Decomiso",
-        size: 85,
+        header: "Decom.",
+        size: 52,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
         accessorKey: "total_actas",
-        header: "Total actas",
-        size: 95,
+        header: "Total",
+        size: 56,
         muiTableBodyCellProps: { align: "right" },
         muiTableHeadCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,

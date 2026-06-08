@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 type Props = {
   children: ReactNode;
   columns?: { xs?: string; sm?: string; md?: string; lg?: string };
+  gap?: number | string;
 };
 
 /**
@@ -17,13 +18,14 @@ export function DashboardMetricGrid({
     md: "repeat(3, 1fr)",
     lg: "repeat(3, 1fr)",
   },
+  gap = 1.5,
 }: Props) {
   return (
     <Box
       sx={{
         display: "grid",
         gridTemplateColumns: columns,
-        gap: 1.25,
+        gap,
         alignItems: "stretch",
       }}
     >

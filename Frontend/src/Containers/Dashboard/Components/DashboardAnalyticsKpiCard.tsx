@@ -106,8 +106,8 @@ export function DashboardAnalyticsKpiCard({
                 variant="caption"
                 sx={{
                   fontFamily: '"Tactic Sans", sans-serif',
-                  color: GLASS_COLORS.textMuted,
-                  fontWeight: 600,
+                  color: GLASS_COLORS.textPrimary,
+                  fontWeight: 700,
                   fontSize: "0.7rem",
                 }}
               >

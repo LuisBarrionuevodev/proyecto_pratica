@@ -50,6 +50,7 @@ def _mk_actuacion(fecha: date | None = None) -> Actuaciones:
 
 def test_actas_labradas_excluye_notificacion_previa_sin_motivos(app_ctx) -> None:
     try:
+        antes = build_indicadores_resumen(date(2026, 3, 1), date(2026, 3, 31))
         act = _mk_actuacion()
         n = Notificacion(numero_acta=_unique_ot_num(), anio=2026, mes=3)
         db.session.add(n)
@@ -58,7 +59,7 @@ def test_actas_labradas_excluye_notificacion_previa_sin_motivos(app_ctx) -> None
         db.session.flush()
 
         res = build_indicadores_resumen(date(2026, 3, 1), date(2026, 3, 31))
-        assert res.actas_por_tipo.notificacion == 0
+        assert res.actas_por_tipo.notificacion == antes.actas_por_tipo.notificacion
     finally:
         db.session.rollback()
 
@@ -83,6 +84,7 @@ def test_actas_labradas_cuenta_notificacion_con_motivos(app_ctx) -> None:
 
 def test_actas_labradas_excluye_comprobacion_previa_pendiente(app_ctx) -> None:
     try:
+        antes = build_indicadores_resumen(date(2026, 3, 1), date(2026, 3, 31))
         act = _mk_actuacion()
         resolver_previas(
             act,
@@ -98,7 +100,7 @@ def test_actas_labradas_excluye_comprobacion_previa_pendiente(app_ctx) -> None:
         assert comp.motivo == "PENDIENTE"
 
         res = build_indicadores_resumen(date(2026, 3, 1), date(2026, 3, 31))
-        assert res.actas_por_tipo.comprobacion == 0
+        assert res.actas_por_tipo.comprobacion == antes.actas_por_tipo.comprobacion
     finally:
         db.session.rollback()
 

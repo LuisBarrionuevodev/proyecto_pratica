@@ -1,11 +1,11 @@
-import { Alert, Grid } from "@mui/material";
+import { Alert, Box, Grid } from "@mui/material";
 import { useMemo } from "react";
 
 import type { IndicadoresNoRealizadasResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
 import { DashboardAnalyticsKpiCard } from "./DashboardAnalyticsKpiCard";
 import { DashboardHorizontalBarChartCard } from "./DashboardHorizontalBarChartCard";
-import type { DashboardRankingChartItem } from "./DashboardRankingBarChart";
+import type { DashboardRankingBarItem } from "./DashboardRankingBarList";
 import { DashboardMetricGrid } from "./DashboardMetricGrid";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -53,7 +53,7 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
     );
   }, [porTipo]);
 
-  const topContraproducencias = useMemo<DashboardRankingChartItem[]>(
+  const topContraproducencias = useMemo<DashboardRankingBarItem[]>(
     () =>
       (data?.top_contraproducencias ?? [])
         .filter((r) => !isNoHuboLabel(r.contraproducencia))
@@ -64,7 +64,7 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
     [data?.top_contraproducencias],
   );
 
-  const distritosRanking = useMemo<DashboardRankingChartItem[]>(
+  const distritosRanking = useMemo<DashboardRankingBarItem[]>(
     () =>
       (data?.distritos_con_mas_no_realizadas ?? []).map((d) => ({
         label: formatDistritoNombre(d.distrito_nombre),
@@ -81,8 +81,10 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
         </Alert>
       ) : null}
 
+      <Box sx={{ mb: 2.5 }}>
       <DashboardMetricGrid
         columns={{ xs: "1fr 1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
+        gap={1.5}
       >
         <DashboardAnalyticsKpiCard
           label="Total no realizadas"
@@ -115,8 +117,9 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
           accent="neutral"
         />
       </DashboardMetricGrid>
+      </Box>
 
-      <Grid container spacing={1.5} sx={{ mt: 0.25 }} alignItems="stretch">
+      <Grid container spacing={1.5} alignItems="stretch">
         <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
           <DashboardHorizontalBarChartCard
             title="Motivos de no realización"

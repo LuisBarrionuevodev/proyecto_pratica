@@ -24,6 +24,10 @@ from app.domains.indicadores.services.indicadores_productividad_service import (
     build_indicadores_productividad,
 )
 from app.domains.indicadores.services.indicadores_resumen_service import build_indicadores_resumen
+from tests.indicadores_cierre_fixtures import (
+    estado_iniciador_tras_no_realizado,
+    vincular_cierre_realizado,
+)
 from app.models import (
     Actuaciones,
     Contribuyente,
@@ -145,9 +149,12 @@ def _mk_visita_cierre(
             inspector_id=inspector_id,
         )
     )
+    ini_estado = "CUMPLIDO" if realizada else estado_iniciador_tras_no_realizado(
+        contraproducencia or "LOCAL_CERRADO"
+    )
     ini = IniciadorRuta(
         tipo_iniciador=tipo_iniciador,
-        estado_iniciador="CUMPLIDO" if realizada else "PENDIENTE",
+        estado_iniciador=ini_estado,
         fecha_origen=fecha_cierre,
         anio=2026,
         mes=8,
@@ -261,6 +268,25 @@ def test_no_realizada_suma_y_contraproducencia_principal(app_ctx) -> None:
         db.session.rollback()
 
 
+def test_no_existe_local_suma_productividad(app_ctx) -> None:
+    try:
+        _, _, ins = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="NO_EXISTE_LOCAL",
+        )
+        assert ins is not None
+        db.session.flush()
+        out = build_indicadores_productividad(_DESDE, _HASTA)
+        row = _find_realizada(ins.id, out.inspectores_no_realizadas)
+        assert row is not None
+        assert row.total_no_realizadas >= 1
+        assert row.contraproducencia_principal == "No existe local"
+    finally:
+        db.session.rollback()
+
+
 def test_no_hubo_no_suma(app_ctx) -> None:
     try:
         _, _, ins = _mk_visita_cierre(
@@ -285,6 +311,41 @@ def test_principal_bucket_label_empate_prioridad() -> None:
     assert format_contraproducencia_label("DOMICILIO_INCORRECTO") == "Domicilio incorrecto"
 
 
+def _actuacion_con_cierre(inspector_id: int, fecha: date) -> Actuaciones:
+    """Actuación con domicilio, inspector y cierre REALIZADO en fecha."""
+    rub = Rubro.query.first()
+    if rub is None:
+        pytest.skip("Se requiere al menos un rubro en catálogo")
+    doc = str(random.randint(10_000_000, 40_000_000))
+    c = Contribuyente(apellido="Actas", nombre="T", documento=doc)
+    db.session.add(c)
+    db.session.flush()
+    dom = Domicilio(calle=_unique_name("CalleActas"), numero="1", rubro_id=rub.id, contribuyente_id=c.id)
+    db.session.add(dom)
+    db.session.flush()
+    ot = OrdenTrabajo(numero_acta=_unique_ot_num(), anio=2026, mes=8)
+    db.session.add(ot)
+    db.session.flush()
+    act = Actuaciones(
+        fecha=fecha,
+        mes=8,
+        anio=2026,
+        tipo="INSPECCION",
+        orden_trabajo_id=ot.id,
+        domicilio_id=dom.id,
+    )
+    db.session.add(act)
+    db.session.flush()
+    db.session.execute(
+        actuaciones_inspector.insert().values(
+            actuaciones_id=act.id,
+            inspector_id=inspector_id,
+        )
+    )
+    vincular_cierre_realizado(act, fecha, inspector_id=inspector_id)
+    return act
+
+
 def test_actas_notificacion_con_motivos(app_ctx) -> None:
     try:
         ins = _mk_inspector()
@@ -293,7 +354,7 @@ def test_actas_notificacion_con_motivos(app_ctx) -> None:
             m = Motivo(nombre=_unique_name("MotProd"))
             db.session.add(m)
             db.session.flush()
-        act = _mk_actuacion_con_inspector(_FECHA, ins.id)
+        act = _actuacion_con_cierre(ins.id, _FECHA)
         attach_notificacion(act, {"acta_num": _unique_ot_num(), "motivos": [m.nombre]})
         db.session.flush()
         out = build_indicadores_productividad(_DESDE, _HASTA)
@@ -308,7 +369,7 @@ def test_actas_notificacion_con_motivos(app_ctx) -> None:
 def test_actas_comprobacion_pendiente_no_suma(app_ctx) -> None:
     try:
         ins = _mk_inspector()
-        act = _mk_actuacion_con_inspector(_FECHA, ins.id)
+        act = _actuacion_con_cierre(ins.id, _FECHA)
         resolver_previas(
             act,
             {"comprobacion_previa_num": _unique_ot_num(), "comprobacion_previa_motivo": None},
@@ -324,7 +385,7 @@ def test_actas_comprobacion_pendiente_no_suma(app_ctx) -> None:
 def test_actas_comprobacion_labrada(app_ctx) -> None:
     try:
         ins = _mk_inspector()
-        act = _mk_actuacion_con_inspector(_FECHA, ins.id)
+        act = _actuacion_con_cierre(ins.id, _FECHA)
         attach_comprobacion(act, {"acta_num": _unique_ot_num(), "motivo": "Falta higiene"})
         db.session.flush()
         out = build_indicadores_productividad(_DESDE, _HASTA)
@@ -338,9 +399,9 @@ def test_actas_comprobacion_labrada(app_ctx) -> None:
 def test_actas_clausura_y_decomiso(app_ctx) -> None:
     try:
         ins = _mk_inspector()
-        act_c = _mk_actuacion_con_inspector(_FECHA, ins.id)
+        act_c = _actuacion_con_cierre(ins.id, _FECHA)
         attach_clausura(act_c, {"acta_num": _unique_ot_num()})
-        act_d = _mk_actuacion_con_inspector(date(2026, 8, 16), ins.id)
+        act_d = _actuacion_con_cierre(ins.id, date(2026, 8, 16))
         attach_decomiso(act_d, {"acta_num": _unique_ot_num(), "kilos_total": 5})
         db.session.flush()
         out = build_indicadores_productividad(_DESDE, _HASTA)

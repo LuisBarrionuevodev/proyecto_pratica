@@ -16,6 +16,7 @@ from app.domains.actuaciones.attach.notificacion import attach_notificacion
 from app.domains.actuaciones.services.previas_service import resolver_previas
 from app.domains.indicadores.services.indicadores_riesgo_service import build_indicadores_riesgo
 from app.domains.indicadores.services.indicadores_resumen_service import build_indicadores_resumen
+from tests.indicadores_cierre_fixtures import vincular_cierre_realizado
 from app.models import (
     Actuaciones,
     Distrito,
@@ -25,7 +26,6 @@ from app.models import (
     OrdenTrabajo,
     Rubro,
     Turno,
-    actuaciones_inspector,
 )
 from app.models.turno import TipoTurno
 
@@ -48,10 +48,18 @@ def app_ctx():
         db.session.rollback()
 
 
+_FECHA = date(2026, 3, 15)
+_PERIODO_DESDE = date(2026, 3, 1)
+_PERIODO_HASTA = date(2026, 3, 31)
+
+
 def _mk_actuacion(
     fecha: date | None = None,
     *,
     domicilio_id: int | None = None,
+    con_cierre: bool = True,
+    tipo_iniciador: str = "RELEVAMIENTO",
+    inspector_id: int | None = None,
 ) -> Actuaciones:
     ot = OrdenTrabajo(numero_acta=_unique_ot_num(), anio=2026, mes=3)
     db.session.add(ot)
@@ -66,6 +74,19 @@ def _mk_actuacion(
     )
     db.session.add(act)
     db.session.flush()
+    if con_cierre:
+        if domicilio_id is None:
+            dom = Domicilio(calle=_unique_name("CalleRiesgo"), numero="1")
+            db.session.add(dom)
+            db.session.flush()
+            act.domicilio_id = dom.id
+            db.session.flush()
+        vincular_cierre_realizado(
+            act,
+            fecha or _FECHA,
+            tipo_iniciador=tipo_iniciador,
+            inspector_id=inspector_id,
+        )
     return act
 
 
@@ -97,7 +118,7 @@ def test_top_motivos_notificacion_cuenta_motivos_reales(app_ctx) -> None:
         attach_notificacion(act, {"acta_num": _unique_ot_num(), "motivos": [m.nombre]})
         db.session.flush()
 
-        out = build_indicadores_riesgo(date(2026, 3, 1), date(2026, 3, 31))
+        out = build_indicadores_riesgo(_PERIODO_DESDE, _PERIODO_HASTA)
         labels = [row.motivo for row in out.top_motivos_notificacion]
         assert nombre in labels
         row = next(r for r in out.top_motivos_notificacion if r.motivo == nombre)
@@ -117,7 +138,7 @@ def test_notificacion_multiples_motivos_cuenta_cada_uno(app_ctx) -> None:
         )
         db.session.flush()
 
-        out = build_indicadores_riesgo(date(2026, 3, 1), date(2026, 3, 31))
+        out = build_indicadores_riesgo(_PERIODO_DESDE, _PERIODO_HASTA)
         counts = {r.motivo: r.cantidad for r in out.top_motivos_notificacion}
         assert counts.get(m1.nombre, 0) >= 1
         assert counts.get(m2.nombre, 0) >= 1
@@ -137,7 +158,7 @@ def test_top_motivos_comprobacion_excluye_pendiente(app_ctx) -> None:
         )
         db.session.flush()
 
-        out = build_indicadores_riesgo(date(2026, 3, 1), date(2026, 3, 31))
+        out = build_indicadores_riesgo(_PERIODO_DESDE, _PERIODO_HASTA)
         motivos = [r.motivo.upper() for r in out.top_motivos_comprobacion]
         assert "PENDIENTE" not in motivos
     finally:
@@ -151,7 +172,7 @@ def test_top_motivos_comprobacion_cuenta_labrada(app_ctx) -> None:
         attach_comprobacion(act, {"acta_num": _unique_ot_num(), "motivo": motivo_txt})
         db.session.flush()
 
-        out = build_indicadores_riesgo(date(2026, 3, 1), date(2026, 3, 31))
+        out = build_indicadores_riesgo(_PERIODO_DESDE, _PERIODO_HASTA)
         assert any(r.motivo == motivo_txt for r in out.top_motivos_comprobacion)
     finally:
         db.session.rollback()
@@ -176,7 +197,7 @@ def test_decomiso_kg_por_rubro_suma_correctamente(app_ctx) -> None:
         attach_decomiso(act2, {"acta_num": _unique_ot_num(), "kilos_total": 24.5})
         db.session.flush()
 
-        out = build_indicadores_riesgo(date(2026, 3, 1), date(2026, 3, 31))
+        out = build_indicadores_riesgo(_PERIODO_DESDE, _PERIODO_HASTA)
         by_rubro = {r.rubro: r.kg for r in out.decomiso_kg_por_rubro}
         assert abs(by_rubro.get(rubro_nombre, 0) - 75.0) < 0.01
     finally:
@@ -185,11 +206,14 @@ def test_decomiso_kg_por_rubro_suma_correctamente(app_ctx) -> None:
 
 def test_decomiso_sin_rubro_usa_sin_rubro(app_ctx) -> None:
     try:
-        act = _mk_actuacion(domicilio_id=None)
+        dom = Domicilio(calle=_unique_name("SinRubro"), numero="9", rubro_id=None)
+        db.session.add(dom)
+        db.session.flush()
+        act = _mk_actuacion(domicilio_id=dom.id)
         attach_decomiso(act, {"acta_num": _unique_ot_num(), "kilos_total": 10})
         db.session.flush()
 
-        out = build_indicadores_riesgo(date(2026, 3, 1), date(2026, 3, 31))
+        out = build_indicadores_riesgo(_PERIODO_DESDE, _PERIODO_HASTA)
         assert any(r.rubro == "Sin rubro" and r.kg == 10.0 for r in out.decomiso_kg_por_rubro)
     finally:
         db.session.rollback()
@@ -218,10 +242,10 @@ def test_filtro_distrito_id_riesgo(app_ctx) -> None:
         db.session.flush()
 
         out_a = build_indicadores_riesgo(
-            date(2026, 3, 1), date(2026, 3, 31), distrito_id=dist_a.id
+            _PERIODO_DESDE, _PERIODO_HASTA, distrito_id=dist_a.id
         )
         out_b = build_indicadores_riesgo(
-            date(2026, 3, 1), date(2026, 3, 31), distrito_id=dist_b.id
+            _PERIODO_DESDE, _PERIODO_HASTA, distrito_id=dist_b.id
         )
         labels_a = {r.motivo for r in out_a.top_motivos_notificacion}
         labels_b = {r.motivo for r in out_b.top_motivos_notificacion}
@@ -246,24 +270,18 @@ def test_filtro_inspector_id_riesgo(app_ctx) -> None:
         db.session.flush()
 
         m = _get_or_create_motivo(_unique_name("SoloInsp"))
-        act = _mk_actuacion()
+        act = _mk_actuacion(inspector_id=ins.id)
         attach_notificacion(act, {"acta_num": _unique_ot_num(), "motivos": [m.nombre]})
-        db.session.execute(
-            actuaciones_inspector.insert().values(
-                actuaciones_id=act.id,
-                inspector_id=ins.id,
-            )
-        )
         db.session.flush()
 
         out_ok = build_indicadores_riesgo(
-            date(2026, 3, 1), date(2026, 3, 31), inspector_id=ins.id
+            _PERIODO_DESDE, _PERIODO_HASTA, inspector_id=ins.id
         )
         other_ins = Inspector.query.filter(Inspector.id != ins.id).first()
         if other_ins is None:
             pytest.skip("Se requiere otro inspector en BD para contrastar filtro.")
         out_other = build_indicadores_riesgo(
-            date(2026, 3, 1), date(2026, 3, 31), inspector_id=other_ins.id
+            _PERIODO_DESDE, _PERIODO_HASTA, inspector_id=other_ins.id
         )
         assert any(r.motivo == m.nombre for r in out_ok.top_motivos_notificacion)
         assert not any(r.motivo == m.nombre for r in out_other.top_motivos_notificacion)

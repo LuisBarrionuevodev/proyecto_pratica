@@ -1,9 +1,9 @@
 """
 Agregaciones para GET /api/indicadores/productividad (por inspector).
 
-Realizadas: misma base que ejecutivo (RutaItem FINALIZADO + REALIZADO, ruta PUBLICADA).
-No realizadas: misma base que D1d.8a (NO_REALIZADO + contraproducencia real).
-Actas: ``Actuaciones.fecha`` en rango + reglas de actas labradas (sin previas/origen).
+Realizadas: misma base que ejecutivo (ruta del período + FINALIZADO + REALIZADO).
+No realizadas: mismas no realizadas con contraproducencia que ``/no-realizadas``.
+Actas: actuaciones de rutas del período con cierre REALIZADO + reglas de actas labradas.
 """
 
 from __future__ import annotations
@@ -21,13 +21,15 @@ from app.domains.indicadores.schemas.productividad_out import (
     InspectorRealizadasItem,
 )
 from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
-    _contraproducencia_real_expr,
-    _fecha_cierre_ruta_expr,
+    _intentos_no_realizados_con_contraproducencia_filters,
     format_contraproducencia_label,
     is_contraproducencia_excluida_valor,
 )
+from app.domains.indicadores.services.indicadores_operativos_queries import (
+    _fecha_periodo_operativo_expr,
+    actuacion_ids_realizadas_subquery,
+)
 from app.domains.indicadores.services.indicadores_resumen_service import (
-    _actuacion_ids_subquery,
     _comprobacion_labarda_filter,
     _notificacion_labarda_exists,
     _realizados_inspector_coincide,
@@ -144,7 +146,7 @@ def _realizadas_visita_subquery(
 
     Columnas: ``ruta_item_id``, ``actuacion_id``, ``tipo_iniciador``.
     """
-    fecha_cierre = _fecha_cierre_ruta_expr()
+    fecha_periodo = _fecha_periodo_operativo_expr()
     q = (
         db.session.query(
             RutaItem.id.label("ruta_item_id"),
@@ -163,8 +165,8 @@ def _realizadas_visita_subquery(
             RutaItem.estado_ejecucion == "REALIZADO",
             RutaTrabajo.estado_ruta == "PUBLICADA",
             IniciadorRuta.tipo_iniciador.in_(_TIPOS_PRODUCTIVIDAD),
-            fecha_cierre >= desde,
-            fecha_cierre <= hasta,
+            fecha_periodo >= desde,
+            fecha_periodo <= hasta,
         )
     )
     q = _apply_distrito_filter(q, distrito_id)
@@ -179,8 +181,7 @@ def _no_realizadas_visita_subquery(
     distrito_id: Optional[int] = None,
     inspector_id: Optional[int] = None,
 ):
-    """Subquery de visitas no realizadas (D1d.8a) para agregar por inspector."""
-    fecha_cierre = _fecha_cierre_ruta_expr()
+    """Subquery de no realizadas con contraproducencia (misma base que ``/no-realizadas``)."""
     q = (
         db.session.query(
             RutaItem.id.label("ruta_item_id"),
@@ -192,18 +193,7 @@ def _no_realizadas_visita_subquery(
         .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
         .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
         .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
-        .filter(
-            RutaItem.deleted_at.is_(None),
-            IniciadorRuta.deleted_at.is_(None),
-            RutaItem.actuacion_id.isnot(None),
-            RutaItem.estado_ruta_item == "NO_REALIZADO",
-            RutaItem.estado_ejecucion == "NO_REALIZADO",
-            RutaTrabajo.estado_ruta == "PUBLICADA",
-            _contraproducencia_real_expr(),
-            fecha_cierre >= desde,
-            fecha_cierre <= hasta,
-            IniciadorRuta.tipo_iniciador.in_(_TIPOS_PRODUCTIVIDAD),
-        )
+        .filter(*_intentos_no_realizados_con_contraproducencia_filters(desde, hasta))
     )
     q = _apply_distrito_filter(q, distrito_id)
     if inspector_id is not None:
@@ -379,9 +369,9 @@ def query_actas_por_inspector(
     """
     Actas labradas por inspector (participación: cada inspector de la actuación suma la acta).
 
-    Fecha: ``Actuaciones.fecha`` en rango (misma subquery que resumen/ejecutivo).
+    Solo actuaciones de rutas del período con cierre REALIZADO (misma base que ejecutivo/riesgo).
     """
-    sq = _actuacion_ids_subquery(desde, hasta, distrito_id, inspector_id)
+    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
 
     notif = _actas_count_por_inspector(
         sq,

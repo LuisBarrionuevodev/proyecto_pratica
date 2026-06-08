@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   FormControl,
   InputLabel,
   LinearProgress,
@@ -15,14 +16,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { exportDashboardToExcel } from "../../../utils/exportExcelDashboard";
 import { functionalPageShellSx } from "../../../styles/functionalPageShell";
-import {
-  GLASS_COLORS,
-  moduleFiltersSurfaceSx,
-  moduleSlicesPanelPaperSx,
-  moduleSlicesTabsSx,
-} from "../../../styles/GlassStyles";
-import { dashboardAnalyticsCardSx } from "../../../styles/DashboardStyles";
-import { AppButton } from "../../../ui";
+import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
+import { dashboardPeriodTabsSx } from "../../../styles/DashboardStyles";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../../styles/TablasStyle";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { fetchDistritosCatalogo } from "../../../api/geolocalizacionApi";
 import { fetchInspectores } from "../../../api/gridApi";
@@ -41,6 +37,13 @@ import { DashboardProductividadSection } from "./DashboardProductividadSection";
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
+
+/**
+ * Pendiente D1d.12 — Tribunal de falta (no implementar en este PR):
+ * cohorte por inicio de trámite, comprobaciones/multas en rango, respuestas del tribunal
+ * (ratificación decomiso, verificar e informar, ratificación clausura, etc.) y ejecución exitosa.
+ * Requiere relevamiento y endpoints propios.
+ */
 
 const Panel = () => {
   const [periodo, setPeriodo] = useState<Periodo>("Mensual");
@@ -166,14 +169,12 @@ const Panel = () => {
     if (pendientesData) {
       const p = pendientesData.kpis;
       cards.push(
-        { title: "Relevamientos pendientes", value: p.relevamientos_pendientes },
         { title: "Reinspecciones oficio pendientes", value: p.reinspecciones_oficio_pendientes },
         {
           title: "Reinspecciones notificación pendientes",
           value: p.reinspecciones_notificacion_pendientes,
         },
         { title: "Denuncias pendientes", value: p.denuncias_pendientes },
-        { title: "Pendientes sin geolocalización", value: p.pendientes_geolocalizacion },
       );
     }
     if (riesgoData) {
@@ -253,45 +254,48 @@ const Panel = () => {
       <Paper
         elevation={0}
         sx={{
-          ...dashboardAnalyticsCardSx,
           ...moduleSlicesPanelPaperSx,
-          p: 0,
-          overflow: "hidden",
+          flexDirection: { xs: "column", md: "row" },
+          alignItems: { xs: "stretch", md: "center" },
+          gap: { xs: 1.25, md: 1.5 },
+          px: { xs: 0.5, sm: 1 },
+          overflow: "visible",
         }}
       >
-        <Tabs
-          value={periodoTabIndex}
-          onChange={(_, v) => setPeriodo(PERIODOS[v] ?? "Mensual")}
-          variant="scrollable"
-          allowScrollButtonsMobile
-          sx={{
-            ...moduleSlicesTabsSx,
-            minHeight: 42,
-            borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-          }}
-        >
-          {PERIODOS.map((p) => (
-            <Tab key={p} label={p} sx={{ minHeight: 42, py: 0.75 }} />
-          ))}
-        </Tabs>
-        <Box
-          sx={{
-            ...moduleFiltersSurfaceSx,
-            border: "none",
-            borderRadius: 0,
-            boxShadow: "none",
-            backgroundColor: "transparent",
-            p: { xs: 1.25, sm: 1.5 },
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            flexWrap: "wrap",
-            gap: 1.25,
-            alignItems: { xs: "stretch", md: "flex-end" },
-          }}
-        >
+          <Tabs
+            value={periodoTabIndex}
+            onChange={(_, v) => setPeriodo(PERIODOS[v] ?? "Mensual")}
+            variant="scrollable"
+            allowScrollButtonsMobile
+            sx={{
+              ...moduleSlicesTabsSx,
+              ...dashboardPeriodTabsSx,
+              flex: 1,
+              minWidth: 0,
+              alignSelf: { md: "stretch" },
+            }}
+          >
+            {PERIODOS.map((p) => (
+              <Tab key={p} label={p} />
+            ))}
+          </Tabs>
+
+          <Box
+            sx={{
+              ...TableExportBoxStyles,
+              p: 0,
+              flexDirection: { xs: "column", sm: "row" },
+              flexWrap: "wrap",
+              alignItems: { xs: "stretch", sm: "center" },
+              justifyContent: { sm: "flex-end" },
+              flexShrink: 0,
+              gap: 1.25,
+              width: { xs: "100%", md: "auto" },
+            }}
+          >
           <FormControl
             variant="outlined"
-            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 }, flex: { md: "1 1 180px" } }]}
+            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 168 }, flex: { sm: "0 1 168px" } }]}
           >
             <InputLabel id="dash-distrito-label" shrink>
               Distrito
@@ -316,7 +320,7 @@ const Panel = () => {
           </FormControl>
           <FormControl
             variant="outlined"
-            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 200 }, flex: { md: "1 1 180px" } }]}
+            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 168 }, flex: { sm: "0 1 168px" } }]}
           >
             <InputLabel id="dash-inspector-label" shrink>
               Inspector
@@ -347,9 +351,7 @@ const Panel = () => {
             }
           >
             <span>
-              <AppButton
-                dsVariant="primary"
-                dsSize="sm"
+              <Button
                 startIcon={<FileDownloadOutlinedIcon />}
                 disabled={tarjetasExport.length === 0 || anyLoading}
                 onClick={() =>
@@ -358,13 +360,18 @@ const Panel = () => {
                     periodoLabel: `${periodo} (${desde} → ${hasta})`,
                   })
                 }
-                sx={{ alignSelf: { xs: "stretch", md: "center" }, whiteSpace: "nowrap" }}
+                sx={{
+                  ...TableExportButtonStyles,
+                  fontWeight: 700,
+                  alignSelf: { xs: "stretch", sm: "center" },
+                  whiteSpace: "nowrap",
+                }}
               >
                 Exportar KPIs
-              </AppButton>
+              </Button>
             </span>
           </Tooltip>
-        </Box>
+          </Box>
       </Paper>
 
       <DashboardEjecutivoSection
