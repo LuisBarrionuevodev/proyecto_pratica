@@ -3,6 +3,9 @@ from __future__ import annotations
 from flask_jwt_extended import get_jwt_identity
 
 from app.models import IniciadorRuta, Relevamiento, User
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    resolve_domicilio_operativo_para_iniciador,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
@@ -66,6 +69,7 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
         raise ValueError("El relevamiento no tiene domicilio para crear iniciador")
 
     fecha_origen = relevamiento.fecha
+    domicilio_operativo_id = resolve_domicilio_operativo_para_iniciador(int(relevamiento.domicilio_id))
     created_by_user_id = _get_current_user_id()
     return IniciadorRuta(
         tipo_iniciador="RELEVAMIENTO",
@@ -73,7 +77,7 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
         fecha_origen=fecha_origen,
         anio=int(fecha_origen.year),
         mes=int(fecha_origen.month),
-        domicilio_id=int(relevamiento.domicilio_id),
+        domicilio_id=domicilio_operativo_id,
         prioridad=priority_for_tipo("RELEVAMIENTO"),
         relevamiento_id=relevamiento.id,
         created_by_user_id=created_by_user_id,

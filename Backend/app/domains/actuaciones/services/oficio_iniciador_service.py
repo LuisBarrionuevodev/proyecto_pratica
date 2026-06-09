@@ -5,6 +5,10 @@ from datetime import date
 from flask_jwt_extended import get_jwt_identity
 
 from app.models import Actuaciones, Expediente, IniciadorRuta, Oficio, User
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    assign_iniciador_domicilio_desde_origen,
+    resolve_domicilio_operativo_para_iniciador,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
@@ -72,6 +76,11 @@ def get_or_create_iniciador_from_oficio(
         .first()
     )
     if existente:
+        assign_iniciador_domicilio_desde_origen(
+            existente,
+            getattr(actuacion, "domicilio_id", None),
+            allow_update_existing=True,
+        )
         return existente
 
     fecha_origen: date | None = oficio.fecha_oficio or expediente_respuesta.fecha_expediente
@@ -82,6 +91,8 @@ def get_or_create_iniciador_from_oficio(
     if domicilio_id is None:
         raise ValueError("La actuación asociada al oficio no tiene domicilio para crear iniciador")
 
+    domicilio_operativo_id = resolve_domicilio_operativo_para_iniciador(int(domicilio_id))
+
     created_by_user_id = _get_current_user_id()
     iniciador = IniciadorRuta(
         tipo_iniciador="REINSPECCION_OFICIO",
@@ -89,7 +100,7 @@ def get_or_create_iniciador_from_oficio(
         fecha_origen=fecha_origen,
         anio=int(fecha_origen.year),
         mes=int(fecha_origen.month),
-        domicilio_id=int(domicilio_id),
+        domicilio_id=domicilio_operativo_id,
         prioridad=priority_for_tipo("REINSPECCION_OFICIO"),
         oficio_id=oficio.id,
         comprobacion_id=actuacion.comprobacion_id,

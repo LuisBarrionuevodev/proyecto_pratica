@@ -17,6 +17,21 @@ from app.models import Actuaciones, Expediente, JuzgadoCatalogo
 from app.utils.actas import acta_6
 
 
+def _expediente_respuesta_activo_por_oficio(
+    comprobacion_id: int,
+    oficio_id: int,
+) -> Expediente | None:
+    """Expediente de respuesta vigente vinculado a un oficio concreto de la comprobación."""
+    return (
+        Expediente.query.filter(
+            Expediente.comprobacion_id == comprobacion_id,
+            Expediente.oficio_id == oficio_id,
+            Expediente.deleted_at.is_(None),
+        )
+        .first()
+    )
+
+
 def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
     """
     **Esperando oficio:** flujo sobre actuación con comprobación.
@@ -24,8 +39,10 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     - Valida rama COMPROBACION.
     - Exige **expediente de envío** (`oficio_id` NULL) ya creado.
     - Crea o actualiza `Oficio` (misma comprobación) vía `attach_oficio`.
-    - Crea **expediente de respuesta de oficio** sin modificar el expediente de envío, o **reactiva** el
-      soft-deleted del mismo ``oficio_id``/comprobación si coincide número/año del expediente de respuesta.
+    - Permite **varios oficios** distintos por comprobación (clave global ``numero_oficio`` + ``anio``).
+    - Crea **expediente de respuesta de oficio** por ``oficio_id`` sin modificar el expediente de envío,
+      o **reactiva** el soft-deleted del mismo ``oficio_id``/comprobación si coincide número/año del
+      expediente de respuesta. Si ya existe respuesta activa para ese oficio, reintento idempotente.
     - La fecha del expediente de respuesta se alinea siempre con ``fecha_oficio`` (una sola fecha operativa).
     - Materializa (idempotente) ``IniciadorRuta`` tipo ``REINSPECCION_OFICIO`` vía
       ``get_or_create_iniciador_from_oficio`` para que el caso entre en planificación de rutas
@@ -51,16 +68,6 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     if not juzgado:
         raise LookupError("Juzgado no encontrado")
 
-    ya_respuesta = (
-        Expediente.query.filter(
-            Expediente.comprobacion_id == act.comprobacion_id,
-            Expediente.oficio_id.isnot(None),
-            Expediente.deleted_at.is_(None),
-        ).first()
-    )
-    if ya_respuesta:
-        raise RuntimeError("Ya existe expediente de respuesta de oficio para esta actuación")
-
     numero_exp_oficio = acta_6(data.get("numero_expediente_oficio"))
     fecha_oficio = data["fecha_oficio"]
     fecha_expediente_oficio = data.get("fecha_expediente_oficio") or fecha_oficio
@@ -83,13 +90,24 @@ def complete_oficio_from_actuacion(actuacion_id: int, data: Dict[str, Any]) -> D
     if not oficio:
         raise ValueError("No se pudo crear/actualizar oficio")
 
-    reactivable = buscar_expediente_respuesta_oficio_reactivable(
-        comprobacion_id=int(act.comprobacion_id),
-        oficio_id=int(oficio.id),
-        numero_expediente=numero_exp_oficio,
-        anio=anio_exp_oficio,
+    activo = _expediente_respuesta_activo_por_oficio(
+        int(act.comprobacion_id),
+        int(oficio.id),
     )
-    if reactivable:
+    if activo:
+        if activo.fecha_expediente != fecha_expediente_oficio:
+            activo.fecha_expediente = fecha_expediente_oficio
+            activo.anio = anio_exp_oficio
+            db.session.add(activo)
+        expediente_respuesta = activo
+    elif (
+        reactivable := buscar_expediente_respuesta_oficio_reactivable(
+            comprobacion_id=int(act.comprobacion_id),
+            oficio_id=int(oficio.id),
+            numero_expediente=numero_exp_oficio,
+            anio=anio_exp_oficio,
+        )
+    ):
         dup_otro = (
             expedientes_vigentes(
                 Expediente.query.filter_by(

@@ -3,6 +3,10 @@ from __future__ import annotations
 from sqlalchemy import or_
 from sqlalchemy.orm import Query, joinedload
 
+from app.database import db
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    resolve_domicilio_efectivo_para_iniciador,
+)
 from app.models import Domicilio, IniciadorRuta, Relevamiento, RutaItem, RutaTrabajo
 
 
@@ -29,7 +33,7 @@ def planificable_iniciadores_base_query() -> Query:
     Requiere llamar antes assert_ruta_borrador_para_planificacion si se necesita validar ruta.
     """
     return (
-        IniciadorRuta.query.join(Domicilio, Domicilio.id == IniciadorRuta.domicilio_id)
+        IniciadorRuta.query.outerjoin(Domicilio, Domicilio.id == IniciadorRuta.domicilio_id)
         .options(
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.calle_catalogo),
@@ -127,8 +131,6 @@ def get_iniciadores_pendientes_para_ruta(
         query = query.filter(IniciadorRuta.prioridad >= 3)
     elif prioridad is not None:
         query = query.filter(IniciadorRuta.prioridad == prioridad)
-    if distrito is not None:
-        query = query.filter(Domicilio.distrito_id == distrito)
     if calle_catalogo_id is not None:
         query = query.filter(Domicilio.calle_catalogo_id == calle_catalogo_id)
     if turno_sugerido:
@@ -143,7 +145,6 @@ def get_iniciadores_pendientes_para_ruta(
             )
         )
 
-    total = query.count()
     if orden_planificacion:
         order = _orden_planificacion_sql(planificacion_orden)
     else:
@@ -152,10 +153,33 @@ def get_iniciadores_pendientes_para_ruta(
             IniciadorRuta.prioridad.asc(),
             IniciadorRuta.id.asc(),
         )
+
+    if distrito is not None:
+        candidatos = query.order_by(*order).all()
+        filtrados: list[IniciadorRuta] = []
+        for ini in candidatos:
+            efectivo = resolve_domicilio_efectivo_para_iniciador(
+                ini,
+                apply_backfill=True,
+                try_sync=True,
+            )
+            dom_ef = db.session.get(Domicilio, efectivo.domicilio_id) if efectivo.domicilio_id else None
+            if dom_ef and dom_ef.distrito_id == distrito:
+                filtrados.append(ini)
+        total = len(filtrados)
+        start = (page - 1) * per_page
+        items = filtrados[start : start + per_page]
+        db.session.commit()
+        return items, total
+
+    total = query.count()
     items = (
         query.order_by(*order)
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
     )
+    for ini in items:
+        resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=True)
+    db.session.commit()
     return items, total

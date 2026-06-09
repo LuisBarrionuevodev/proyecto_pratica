@@ -48,6 +48,9 @@ from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
 )
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    propagar_domicilio_a_iniciadores_activos,
+)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -234,6 +237,15 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
 
     db.session.add(act)
     db.session.commit()
+
+    if old_domicilio_id != act.domicilio_id and act.domicilio_id:
+        prop_outcome = propagar_domicilio_a_iniciadores_activos(
+            "ACTUACION",
+            act.id,
+            int(act.domicilio_id),
+        )
+        if prop_outcome.actualizados > 0:
+            db.session.commit()
 
     # Garbage collector post-update:
     # - si cambió el domicilio, intentar soft-delete del domicilio viejo si quedó huérfano.

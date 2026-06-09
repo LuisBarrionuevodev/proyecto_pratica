@@ -22,6 +22,7 @@ from . import pendientes_oficio  # noqa: E402,F401
 from . import comprobacion_actas  # noqa: E402,F401
 from . import comprobacion_documental  # noqa: E402,F401
 from . import oficio_from_acta  # noqa: E402,F401
+from . import list_oficios_comprobacion  # noqa: E402,F401
 from . import completar_trabajo_pendientes  # noqa: E402,F401
 from . import completar_trabajo_pendientes_resumen  # noqa: E402,F401
 from . import completar_trabajo_cerrar  # noqa: E402,F401

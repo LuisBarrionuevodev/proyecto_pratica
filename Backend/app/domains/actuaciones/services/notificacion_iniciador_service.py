@@ -13,6 +13,9 @@ from sqlalchemy.orm import aliased
 
 from app.database import db
 from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, RutaItem, User
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    resolve_domicilio_operativo_para_iniciador,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
@@ -341,13 +344,15 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
                 " | Misma actuación con acta de comprobación; canal notificación en paralelo (PR3)."
             )
 
+        domicilio_operativo_id = resolve_domicilio_operativo_para_iniciador(int(act.domicilio_id))
+
         iniciador = IniciadorRuta(
             tipo_iniciador="REINSPECCION_NOTIFICACION",
             estado_iniciador="PENDIENTE",
             fecha_origen=noti.fecha_vencimiento,
             anio=int(noti.fecha_vencimiento.year),
             mes=int(noti.fecha_vencimiento.month),
-            domicilio_id=int(act.domicilio_id),
+            domicilio_id=domicilio_operativo_id,
             prioridad=priority_for_tipo("REINSPECCION_NOTIFICACION"),
             notificacion_id=notificacion_id,
             actuacion_id=act.id,

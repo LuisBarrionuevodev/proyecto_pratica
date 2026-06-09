@@ -148,3 +148,88 @@ def run_distrito_backfill(*, limit: Optional[int] = None, force: bool = False) -
     db.session.commit()
     return summary
 
+
+def backfill_distrito_for_domicilio_if_needed(domicilio_id: int) -> bool:
+    """
+    Asigna ``distrito_id`` a un domicilio si tiene geocode OK con coordenadas y distrito nulo.
+
+    No hace commit: el caller persiste en su transacción.
+
+    Args:
+        domicilio_id: id del domicilio a evaluar.
+
+    Returns:
+        True si se asignó distrito en esta llamada; False en caso contrario.
+
+    Raises:
+        ValueError: si el domicilio no existe o está eliminado.
+    """
+    domicilio = db.session.get(Domicilio, domicilio_id)
+    if not domicilio or domicilio.deleted_at is not None:
+        raise ValueError("Domicilio no encontrado.")
+
+    if domicilio.distrito_id is not None:
+        return False
+
+    geo = (
+        DomicilioGeocode.query.filter(
+            DomicilioGeocode.domicilio_id == domicilio_id,
+            DomicilioGeocode.deleted_at.is_(None),
+            DomicilioGeocode.geo_status == "OK",
+            DomicilioGeocode.lat.isnot(None),
+            DomicilioGeocode.lng.isnot(None),
+        )
+        .first()
+    )
+    if not geo:
+        return False
+
+    lat = float(geo.lat)
+    lng = float(geo.lng)
+    geo_status = str(geo.geo_status or "")
+    try:
+        resolved_distrito_id = resolve_distrito_id(lat, lng)
+    except Exception as exc:
+        log_district_event(
+            event="district_error",
+            domicilio_id=int(domicilio.id),
+            lat=lat,
+            lng=lng,
+            source="BACKFILL",
+            geo_status=geo_status,
+            distrito_id=None,
+            error=str(exc),
+        )
+        return False
+
+    if resolved_distrito_id is None:
+        log_district_event(
+            event="district_no_match",
+            domicilio_id=int(domicilio.id),
+            lat=lat,
+            lng=lng,
+            source="BACKFILL",
+            geo_status=geo_status,
+            distrito_id=None,
+        )
+        return False
+
+    domicilio.distrito_id = resolved_distrito_id
+    db.session.add(domicilio)
+    log_barrio_distrito_consistency(
+        domicilio=domicilio,
+        source="BACKFILL",
+        lat=lat,
+        lng=lng,
+    )
+    log_district_event(
+        event="district_assigned",
+        domicilio_id=int(domicilio.id),
+        lat=lat,
+        lng=lng,
+        source="BACKFILL",
+        geo_status=geo_status,
+        distrito_id=int(resolved_distrito_id),
+    )
+    return True
+

@@ -84,6 +84,11 @@ def _patch_session_sync_unit(monkeypatch):
         "_revoke_obsolete_reinspeccion_notificacion_iniciadores",
         lambda _today: 0,
     )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "resolve_domicilio_operativo_para_iniciador",
+        lambda dom_id: int(dom_id),
+    )
 
 
 def test_sync_segunda_corrida_no_agrega_cuando_existe_bloqueo(monkeypatch):

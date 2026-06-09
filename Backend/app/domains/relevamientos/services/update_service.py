@@ -20,6 +20,9 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
 from app.domains.relevamientos.services.operational_guard_service import (
     get_iniciador_pendiente_relevamiento,
 )
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    propagar_domicilio_a_iniciadores_activos,
+)
 from app.domains.relevamientos.services.relevamiento_unicidad_service import (
     assert_sin_relevamiento_activo_duplicado,
 )
@@ -95,6 +98,12 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     rel.esta_abierto = payload.get("esta_abierto")
 
     db.session.add(rel)
+    if old_domicilio_id != rel.domicilio_id and rel.domicilio_id:
+        propagar_domicilio_a_iniciadores_activos(
+            "RELEVAMIENTO",
+            relevamiento_id,
+            int(rel.domicilio_id),
+        )
     db.session.commit()
 
     if old_domicilio_id is not None and old_domicilio_id != rel.domicilio_id:

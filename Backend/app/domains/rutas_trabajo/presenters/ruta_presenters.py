@@ -3,11 +3,14 @@ from __future__ import annotations
 import re
 from decimal import Decimal
 
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    cargar_domicilio_efectivo_orm,
+)
 from app.domains.rutas_trabajo.utils.planificacion_prioridad import (
     elegible_urgente_planificacion,
     prioridad_categoria_from_value,
 )
-from app.models import IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
+from app.models import Domicilio, IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
 
 _REF_PREFIX_ESQ = re.compile(r"^ref\.?\s+", re.IGNORECASE)
 
@@ -33,14 +36,13 @@ def _esquina_display_interseccion(esquina_norm: str, esquina_raw: str, numero: s
     return ""
 
 
-def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
+def _build_domicilio_texto_desde_dom(dom: Domicilio | None) -> str | None:
     """
     Construye un domicilio listo para UI priorizando datos normalizados.
 
     - ``numero_tipo == ESQUINA``: ``<calle> Y <cruce>`` (sin duplicar número y esquina ni ``(ref: …)``).
     - En caso contrario: ``<calle> <número>`` y, si hay texto en esquina distinto al número, `` ref. …``.
     """
-    dom = iniciador.domicilio
     if not dom:
         return None
 
@@ -88,6 +90,16 @@ def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
     return None
 
 
+def _build_domicilio_texto(iniciador: IniciadorRuta) -> str | None:
+    """Texto de domicilio usando fuente efectiva (PR5)."""
+    dom, _ef = cargar_domicilio_efectivo_orm(
+        iniciador,
+        apply_backfill=True,
+        try_sync=False,
+    )
+    return _build_domicilio_texto_desde_dom(dom)
+
+
 def _numeric_to_float(value: Decimal | float | int | None) -> float | None:
     """Convierte un valor numérico de DB a float para JSON; None si falta."""
     if value is None:
@@ -102,8 +114,11 @@ def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
     lat/lng solo se exponen cuando existen ambos en `domicilio_geocode` (fuente operativa de coords).
     """
     ini = item.iniciador_ruta
-    domicilio_texto = _build_domicilio_texto(ini) if ini else None
-    dom = ini.domicilio if ini else None
+    dom = None
+    domicilio_texto = None
+    if ini:
+        dom, _ef = cargar_domicilio_efectivo_orm(ini, apply_backfill=True, try_sync=False)
+        domicilio_texto = _build_domicilio_texto_desde_dom(dom)
 
     lat: float | None = None
     lng: float | None = None
@@ -191,7 +206,11 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
     """
     Serializa un iniciador pendiente para tabla operativa de planificación.
     """
-    dom = iniciador.domicilio
+    dom, _efectivo = cargar_domicilio_efectivo_orm(
+        iniciador,
+        apply_backfill=True,
+        try_sync=True,
+    )
     origen = None
     if iniciador.denuncia_id:
         origen = "DENUNCIA"
@@ -202,7 +221,7 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
     elif iniciador.oficio_id:
         origen = "OFICIO"
 
-    domicilio_texto = _build_domicilio_texto(iniciador)
+    domicilio_texto = _build_domicilio_texto_desde_dom(dom)
     rubro_nombre = dom.rubro.nombre if dom and dom.rubro else None
     if not rubro_nombre and iniciador.relevamiento and iniciador.relevamiento.rubro:
         rubro_nombre = iniciador.relevamiento.rubro.nombre

@@ -3,6 +3,9 @@ from __future__ import annotations
 from sqlalchemy.orm import joinedload
 
 from app.database import db
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    resolve_domicilio_efectivo_para_iniciador,
+)
 from app.models import Actuaciones, RutaGrupo, RutaItem, RutaTrabajo
 
 
@@ -142,6 +145,17 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
             except KeyError as exc:
                 raise RuntimeError(str(exc)) from exc
 
+            efectivo = resolve_domicilio_efectivo_para_iniciador(
+                ini,
+                apply_backfill=True,
+                try_sync=True,
+            )
+            domicilio_publicar = efectivo.domicilio_id or ini.domicilio_id
+            if not domicilio_publicar:
+                raise RuntimeError(
+                    f"El iniciador {ini.id} no tiene domicilio efectivo para publicar la ruta"
+                )
+
             act = Actuaciones(
                 fecha=fecha,
                 mes=mes,
@@ -149,7 +163,7 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                 tipo=tipo_act,
                 contraproducencia=None,
                 orden_trabajo_id=item.orden_trabajo_id,
-                domicilio_id=ini.domicilio_id,
+                domicilio_id=int(domicilio_publicar),
             )
             db.session.add(act)
             db.session.flush()

@@ -19,6 +19,11 @@ from sqlalchemy import and_, func, or_
 
 from app import create_app
 from app.database import db
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    diagnose_domicilio_efectivo_pr5,
+    diagnose_iniciador_domicilio_desalineaciones,
+    diagnose_propagacion_domicilio_pr2,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.models import (
     Actuaciones,
@@ -231,6 +236,50 @@ def main() -> None:
         print(f"Comprobaciones con mas de un oficio activo: {len(multi_ofi)}")
         for cid, cnt in multi_ofi[:5]:
             print(f"  comprobacion_id={cid} oficios={cnt}")
+
+        print()
+        print("Resumen PR1 (helper diagnose_iniciador_domicilio_desalineaciones):")
+        pr1 = diagnose_iniciador_domicilio_desalineaciones(limit_ejemplos=args.limite_ejemplos)
+        print(
+            f"  activos derivados={pr1['total_activos_derivados']} | "
+            f"desalineados={pr1['desalineados_con_origen']} | "
+            f"sin domicilio recuperable={pr1['sin_domicilio_recuperable_desde_origen']} | "
+            f"distrito recuperable={pr1['distrito_recuperable_desde_geocode']} | "
+            f"geocode recuperable origen={pr1['geocode_recuperable_desde_origen']}"
+        )
+
+        print()
+        print("Resumen PR2 (propagación CRUD corregible vs bloqueada):")
+        pr2 = diagnose_propagacion_domicilio_pr2(limit_ejemplos=args.limite_ejemplos)
+        print(
+            f"  relevamiento desalineados={pr2['relevamiento_desalineados']} | "
+            f"actuacion desalineados={pr2['actuacion_desalineados']} | "
+            f"corregibles PR2={pr2['corregibles_pr2']} | "
+            f"no corregibles terminal={pr2['no_corregibles_terminal']} | "
+            f"no corregibles ruta publicada={pr2['no_corregibles_ruta_publicada']}"
+        )
+        if pr2.get("ejemplos_corregibles"):
+            print("  Ejemplos corregibles PR2:", pr2["ejemplos_corregibles"][:3])
+        if pr2.get("ejemplos_no_corregibles_ruta_publicada"):
+            print(
+                "  Ejemplos bloqueados por ruta publicada:",
+                pr2["ejemplos_no_corregibles_ruta_publicada"][:3],
+            )
+
+        print()
+        print("Resumen PR5 (fuente efectiva unificada):")
+        print("tipo_iniciador | total | source_iniciador | source_origen | sin_resolver | recuperables | bloqueados")
+        pr5 = diagnose_domicilio_efectivo_pr5(limit_ejemplos=args.limite_ejemplos)
+        for tipo in sorted(pr5["stats_by_tipo"].keys()):
+            s = pr5["stats_by_tipo"][tipo]
+            print(
+                f"{tipo} | {s['total']} | {s['source_iniciador']} | {s['source_origen']} | "
+                f"{s['sin_resolver']} | {s['recuperables']} | {s['bloqueados_sync']}"
+            )
+        if pr5.get("ejemplos"):
+            print("Ejemplos PR5 (primeros):")
+            for ex in pr5["ejemplos"][: args.limite_ejemplos]:
+                print(ex)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import db
+from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+    resolve_domicilio_efectivo_para_iniciador,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     VALOR_PRIORIDAD_ALTA,
     VALOR_PRIORIDAD_MEDIA,
@@ -55,6 +58,97 @@ def _geo_ok_join():
         DomicilioGeocode.lat.isnot(None),
         DomicilioGeocode.lng.isnot(None),
     )
+
+
+def _borrador_item_exists_clause():
+    return exists().where(
+        RutaItem.iniciador_ruta_id == IniciadorRuta.id,
+        RutaItem.deleted_at.is_(None),
+        RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"),
+    )
+
+
+def _coords_desde_domicilio_id(
+    domicilio_id: int,
+    *,
+    apply_backfill: bool = False,
+) -> tuple[float | None, float | None, int | None, str | None]:
+    """
+    Obtiene lat/lng/distrito y línea de dirección si el domicilio tiene geocode OK.
+
+    Returns:
+        (lat, lng, distrito_id, ubicacion_texto) o Nones si no hay geocode OK.
+    """
+    if apply_backfill:
+        from app.domains.geolocalizacion.geocode.services.distrito_backfill_service import (
+            backfill_distrito_for_domicilio_if_needed,
+        )
+
+        backfill_distrito_for_domicilio_if_needed(int(domicilio_id))
+
+    dom = db.session.get(Domicilio, domicilio_id)
+    if not dom or dom.deleted_at is not None:
+        return None, None, None, None
+
+    geo = (
+        DomicilioGeocode.query.filter(
+            DomicilioGeocode.domicilio_id == domicilio_id,
+            DomicilioGeocode.deleted_at.is_(None),
+            DomicilioGeocode.geo_status == "OK",
+            DomicilioGeocode.lat.isnot(None),
+            DomicilioGeocode.lng.isnot(None),
+        )
+        .first()
+    )
+    if not geo:
+        return None, None, None, None
+    ubic = _domicilio_linea(dom)
+    dist_id = int(dom.distrito_id) if dom.distrito_id is not None else None
+    return float(geo.lat), float(geo.lng), dist_id, ubic
+
+
+def _map_point_desde_iniciador_backlog(
+    ini: IniciadorRuta,
+    *,
+    distrito_id: Optional[int],
+) -> Optional[dict[str, Any]]:
+    """Arma punto de mapa backlog usando domicilio efectivo (PR5)."""
+    efectivo = resolve_domicilio_efectivo_para_iniciador(
+        ini,
+        apply_backfill=True,
+        try_sync=False,
+    )
+    if not efectivo.domicilio_id:
+        return None
+    lat, lng, dist_id, ubic = _coords_desde_domicilio_id(int(efectivo.domicilio_id))
+    if lat is None or lng is None:
+        return None
+
+    if distrito_id is not None and dist_id != distrito_id:
+        return None
+
+    pr = int(ini.prioridad or 1)
+    creado = ini.created_at
+    creado_iso = creado.date().isoformat() if creado is not None else None
+    return {
+        "domicilio_id": int(efectivo.domicilio_id),
+        "lat": lat,
+        "lng": lng,
+        "distrito_id": dist_id,
+        "map_layer": "iniciador_backlog",
+        "iniciador_id": int(ini.id),
+        "ruta_item_id": None,
+        "tipo_iniciador": str(ini.tipo_iniciador),
+        "prioridad": pr,
+        "prioridad_categoria": _prioridad_categoria(pr),
+        "fecha_ref": ini.fecha_origen.isoformat() if ini.fecha_origen else None,
+        "ubicacion_texto": ubic,
+        "iniciador_creado_en": creado_iso,
+        "has_act": True,
+        "has_rel": str(ini.tipo_iniciador) == "RELEVAMIENTO",
+        "act_count": 0,
+        "rel_count": 0,
+    }
 
 
 def _realizados_inspector_coincide(inspector_id: int):
@@ -275,93 +369,27 @@ def list_mapa_operativo_pendientes_geo(
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
     tipo_db = _map_tipo_filtro_front(tipo)
 
-    borrador_item_exists = exists().where(
-        RutaItem.iniciador_ruta_id == IniciadorRuta.id,
-        RutaItem.deleted_at.is_(None),
-        RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"),
-    )
-
     points: list[dict[str, Any]] = []
 
-    q_backlog = (
-        db.session.query(
-            IniciadorRuta.id,
-            IniciadorRuta.tipo_iniciador,
-            IniciadorRuta.prioridad,
-            IniciadorRuta.fecha_origen,
-            IniciadorRuta.created_at,
-            Domicilio.calle_normalizada,
-            Domicilio.calle,
-            Domicilio.numero,
-            Domicilio.id.label("domicilio_id"),
-            Domicilio.distrito_id,
-            DomicilioGeocode.lat,
-            DomicilioGeocode.lng,
-        )
-        .join(Domicilio, IniciadorRuta.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, _geo_ok_join())
-        .filter(
-            IniciadorRuta.deleted_at.is_(None),
-            IniciadorRuta.estado_iniciador == "PENDIENTE",
-            IniciadorRuta.fecha_origen >= d_desde,
-            IniciadorRuta.fecha_origen <= d_hasta,
-            ~borrador_item_exists,
-            Domicilio.deleted_at.is_(None),
-        )
+    q_backlog = IniciadorRuta.query.filter(
+        IniciadorRuta.deleted_at.is_(None),
+        IniciadorRuta.estado_iniciador == "PENDIENTE",
+        IniciadorRuta.fecha_origen >= d_desde,
+        IniciadorRuta.fecha_origen <= d_hasta,
+        ~_borrador_item_exists_clause(),
     )
-    if distrito_id is not None:
-        q_backlog = q_backlog.filter(Domicilio.distrito_id == distrito_id)
     if tipo_db is not None:
         q_backlog = q_backlog.filter(IniciadorRuta.tipo_iniciador == tipo_db)
 
-    for row in q_backlog.all():
-        pr = int(row.prioridad or 1)
-        ubic = _domicilio_linea_desde_campos(
-            row.calle_normalizada, row.calle, row.numero
-        )
-        creado = row.created_at
-        creado_iso = creado.date().isoformat() if creado is not None else None
-        points.append(
-            {
-                "domicilio_id": int(row.domicilio_id),
-                "lat": float(row.lat),
-                "lng": float(row.lng),
-                "distrito_id": int(row.distrito_id) if row.distrito_id is not None else None,
-                "map_layer": "iniciador_backlog",
-                "iniciador_id": int(row.id),
-                "ruta_item_id": None,
-                "tipo_iniciador": str(row.tipo_iniciador),
-                "prioridad": pr,
-                "prioridad_categoria": _prioridad_categoria(pr),
-                "fecha_ref": row.fecha_origen.isoformat() if row.fecha_origen else None,
-                "ubicacion_texto": ubic,
-                "iniciador_creado_en": creado_iso,
-                "has_act": True,
-                "has_rel": str(row.tipo_iniciador) == "RELEVAMIENTO",
-                "act_count": 0,
-                "rel_count": 0,
-            }
-        )
+    for ini in q_backlog.all():
+        pt = _map_point_desde_iniciador_backlog(ini, distrito_id=distrito_id)
+        if pt:
+            points.append(pt)
 
     q_ruta = (
-        db.session.query(
-            RutaItem.id.label("ruta_item_id"),
-            IniciadorRuta.id.label("iniciador_id"),
-            IniciadorRuta.tipo_iniciador,
-            IniciadorRuta.prioridad,
-            RutaTrabajo.fecha.label("fecha_ruta"),
-            Domicilio.id.label("domicilio_id"),
-            Domicilio.distrito_id,
-            DomicilioGeocode.lat,
-            DomicilioGeocode.lng,
-            OrdenTrabajo.numero_acta.label("ot_numero"),
-            OrdenTrabajo.mes.label("ot_mes"),
-            OrdenTrabajo.anio.label("ot_anio"),
-        )
+        db.session.query(RutaItem, IniciadorRuta, RutaTrabajo, OrdenTrabajo)
         .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
         .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .join(Domicilio, IniciadorRuta.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, _geo_ok_join())
         .outerjoin(
             OrdenTrabajo,
             and_(
@@ -376,11 +404,8 @@ def list_mapa_operativo_pendientes_geo(
             RutaTrabajo.fecha >= d_desde,
             RutaTrabajo.fecha <= d_hasta,
             IniciadorRuta.deleted_at.is_(None),
-            Domicilio.deleted_at.is_(None),
         )
     )
-    if distrito_id is not None:
-        q_ruta = q_ruta.filter(Domicilio.distrito_id == distrito_id)
     if tipo_db is not None:
         q_ruta = q_ruta.filter(IniciadorRuta.tipo_iniciador == tipo_db)
     if inspector_id is not None:
@@ -390,25 +415,37 @@ def list_mapa_operativo_pendientes_geo(
         )
         q_ruta = q_ruta.filter(ins_match)
 
-    for row in q_ruta.all():
-        pr = int(row.prioridad or 1)
-        ot_linea = _orden_trabajo_linea(row.ot_numero, row.ot_mes, row.ot_anio)
+    for item, ini, ruta, ot in q_ruta.all():
+        efectivo = resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=False)
+        if not efectivo.domicilio_id:
+            continue
+        lat, lng, dist_id, _ubic = _coords_desde_domicilio_id(int(efectivo.domicilio_id))
+        if lat is None or lng is None:
+            continue
+        if distrito_id is not None and dist_id != distrito_id:
+            continue
+        pr = int(ini.prioridad or 1)
+        ot_linea = _orden_trabajo_linea(
+            ot.numero_acta if ot else None,
+            ot.mes if ot else None,
+            ot.anio if ot else None,
+        )
         points.append(
             {
-                "domicilio_id": int(row.domicilio_id),
-                "lat": float(row.lat),
-                "lng": float(row.lng),
-                "distrito_id": int(row.distrito_id) if row.distrito_id is not None else None,
+                "domicilio_id": int(efectivo.domicilio_id),
+                "lat": lat,
+                "lng": lng,
+                "distrito_id": dist_id,
                 "map_layer": "ruta_en_proceso",
-                "iniciador_id": int(row.iniciador_id),
-                "ruta_item_id": int(row.ruta_item_id),
-                "tipo_iniciador": str(row.tipo_iniciador),
+                "iniciador_id": int(ini.id),
+                "ruta_item_id": int(item.id),
+                "tipo_iniciador": str(ini.tipo_iniciador),
                 "prioridad": pr,
                 "prioridad_categoria": None,
-                "fecha_ref": row.fecha_ruta.isoformat() if row.fecha_ruta else None,
+                "fecha_ref": ruta.fecha.isoformat() if ruta.fecha else None,
                 "orden_trabajo_texto": ot_linea,
                 "has_act": True,
-                "has_rel": str(row.tipo_iniciador) == "RELEVAMIENTO",
+                "has_rel": str(ini.tipo_iniciador) == "RELEVAMIENTO",
                 "act_count": 0,
                 "rel_count": 0,
             }
@@ -610,30 +647,21 @@ def count_mapa_operativo_pendientes_cola(
     if d_desde is None or d_hasta is None:
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
     tipo_db = _map_tipo_filtro_front(tipo)
-    borrador_item_exists = exists().where(
-        RutaItem.iniciador_ruta_id == IniciadorRuta.id,
-        RutaItem.deleted_at.is_(None),
-        RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"),
+    q = IniciadorRuta.query.filter(
+        IniciadorRuta.deleted_at.is_(None),
+        IniciadorRuta.estado_iniciador == "PENDIENTE",
+        IniciadorRuta.fecha_origen >= d_desde,
+        IniciadorRuta.fecha_origen <= d_hasta,
+        ~_borrador_item_exists_clause(),
     )
-    q = (
-        db.session.query(func.count(IniciadorRuta.id))
-        .select_from(IniciadorRuta)
-        .join(Domicilio, IniciadorRuta.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, _geo_ok_join())
-        .filter(
-            IniciadorRuta.deleted_at.is_(None),
-            IniciadorRuta.estado_iniciador == "PENDIENTE",
-            IniciadorRuta.fecha_origen >= d_desde,
-            IniciadorRuta.fecha_origen <= d_hasta,
-            ~borrador_item_exists,
-            Domicilio.deleted_at.is_(None),
-        )
-    )
-    if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
     if tipo_db is not None:
         q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
-    return int(q.scalar() or 0)
+
+    total = 0
+    for ini in q.all():
+        if _map_point_desde_iniciador_backlog(ini, distrito_id=distrito_id):
+            total += 1
+    return total
 
 
 def count_mapa_operativo_pendientes_en_ruta(
@@ -655,12 +683,9 @@ def count_mapa_operativo_pendientes_en_ruta(
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
     tipo_db = _map_tipo_filtro_front(tipo)
     q = (
-        db.session.query(func.count(RutaItem.id))
-        .select_from(RutaItem)
+        db.session.query(RutaItem, IniciadorRuta, RutaTrabajo)
         .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
         .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .join(Domicilio, IniciadorRuta.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, _geo_ok_join())
         .filter(
             RutaItem.deleted_at.is_(None),
             RutaItem.estado_ruta_item == "EN_PROCESO",
@@ -668,11 +693,8 @@ def count_mapa_operativo_pendientes_en_ruta(
             RutaTrabajo.fecha >= d_desde,
             RutaTrabajo.fecha <= d_hasta,
             IniciadorRuta.deleted_at.is_(None),
-            Domicilio.deleted_at.is_(None),
         )
     )
-    if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
     if tipo_db is not None:
         q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
     if inspector_id is not None:
@@ -681,7 +703,19 @@ def count_mapa_operativo_pendientes_en_ruta(
             RutaGrupoInspector.inspector_id == inspector_id,
         )
         q = q.filter(ins_match)
-    return int(q.scalar() or 0)
+
+    total = 0
+    for _item, ini, _ruta in q.all():
+        efectivo = resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=False)
+        if not efectivo.domicilio_id:
+            continue
+        lat, lng, dist_id, _ = _coords_desde_domicilio_id(int(efectivo.domicilio_id))
+        if lat is None:
+            continue
+        if distrito_id is not None and dist_id != distrito_id:
+            continue
+        total += 1
+    return total
 
 
 def count_mapa_operativo_realizados_visita(
