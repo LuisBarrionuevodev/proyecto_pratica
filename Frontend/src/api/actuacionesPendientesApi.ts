@@ -328,6 +328,44 @@ export interface IComprobacionDocumentalResponse {
   edicion: IComprobacionDocumentalEdicion;
 }
 
+/** Oficio activo de una comprobación (GET ``/comprobaciones/{id}/oficios``). */
+export interface OficioComprobacionItem {
+  id: number;
+  numero_oficio: string | number;
+  anio: number;
+  causa?: string | number | null;
+  fecha_oficio?: string | null;
+  juzgado_id?: number | null;
+  tribunal?: string | null;
+  comprobacion_id?: number | null;
+  expediente_id?: number | null;
+  expediente_numero?: string | null;
+  expediente_anio?: number | string | null;
+  fecha_expediente_respuesta?: string | null;
+  iniciador_id?: number | null;
+  iniciador_estado?: string | null;
+  ruta_item_id?: number | null;
+  ruta_estado?: string | null;
+  estado_ejecucion?: string | null;
+  editable?: boolean;
+  bloqueado_motivo?: string | null;
+  deleted_at?: string | null;
+}
+
+export interface OficiosByComprobacionResponse {
+  comprobacion_id: number;
+  total: number;
+  oficios: OficioComprobacionItem[];
+}
+
+/** Lista oficios activos de una comprobación (PR4; no altera contratos legacy). */
+export async function fetchOficiosByComprobacion(comprobacionId: number): Promise<OficiosByComprobacionResponse> {
+  const { data } = await apiClient.get<OficiosByComprobacionResponse>(
+    `/actuaciones/comprobaciones/${comprobacionId}/oficios`
+  );
+  return data;
+}
+
 /** GET documental operativo de comprobación (expediente envío, oficio, expediente respuesta, permisos). */
 export async function fetchComprobacionDocumental(actuacionId: number): Promise<IComprobacionDocumentalResponse> {
   const { data } = await apiClient.get<IComprobacionDocumentalResponse>(

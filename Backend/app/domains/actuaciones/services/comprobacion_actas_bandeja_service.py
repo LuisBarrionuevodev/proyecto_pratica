@@ -4,52 +4,23 @@ Bandejas operativas unificadas para actas de comprobación (oficio / reinspecci�
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from sqlalchemy import and_, exists, or_, select
+from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import joinedload, selectinload
 
+from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_activa
+from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
 from app.domains.actuaciones.services.pendientes_service import _apply_distrito_optional, _apply_fecha
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import estado_recorrido_label
-from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio, RutaItem, RutaTrabajo
+from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 
-# F3.6b: la bandeja es «pendiente de planificar en ruta», no «sin iniciador».
-# — No se excluye por la mera existencia de IniciadorRuta REINSPECCION_OFICIO.
-# — Solo se excluye si hay un RutaItem no borrado ligado a ese iniciador en una RutaTrabajo activa.
-# Rutas donde el trabajo sigue planificable / operativo; CERRADA y CANCELADA no retienen fuera de bandeja.
-_ESTADOS_RUTA_ACTIVA_REINSP_OFICIO = ("BORRADOR", "PUBLICADA", "EN_CURSO")
-
-
-def list_pendientes_reinspeccion_oficio(
-    filters: ActuacionesPendientesFilters,
-) -> List[Actuaciones]:
-    """
-    Reinspecciones por oficio **pendientes de planificación en ruta** (F3.6b).
-
-    Documental:
-
-    - Expediente de envío de acta activo (``oficio_id`` NULL, no borrado).
-    - Oficio administrativo activo (no borrado).
-    - Expediente de respuesta al oficio activo (``oficio_id`` al oficio de la misma comprobación;
-      ``tipo_expediente`` ``RESPUESTA_OFICIO`` o ``NULL`` legado).
-
-    Puede existir o no ``IniciadorRuta`` tipo ``REINSPECCION_OFICIO``; eso **no** oculta la fila.
-
-    Fuera de bandeja solo si existe un ``RutaItem`` **incorporado** a planificación operativa:
-
-    - ``IniciadorRuta`` mismo ``actuacion_id``, tipo ``REINSPECCION_OFICIO``, no soft-deleted.
-    - ``RutaItem`` no soft-deleted.
-    - ``RutaTrabajo.estado_ruta`` en ``BORRADOR`` | ``PUBLICADA`` | ``EN_CURSO``.
-
-    Si la ruta está ``CERRADA`` / ``CANCELADA``, el ítem está borrado en soft delete, o el iniciador no
-    tiene ítem en esa ruta, la actuación **sigue** en bandeja (puede tener o no iniciador materializado).
-
-    Fechas / distrito: ``Actuaciones.fecha`` vía ``_apply_fecha`` / ``_apply_distrito_optional``.
-    """
+def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilters):
+    """Actuaciones con envío + oficio + respuesta (sin filtrar por ruta a nivel actuación)."""
     has_envio = exists().where(
         and_(
             Expediente.comprobacion_id == Actuaciones.comprobacion_id,
@@ -81,24 +52,9 @@ def list_pendientes_reinspeccion_oficio(
             ),
         )
     )
-    en_ruta_activa = exists(
-        select(1)
-        .select_from(RutaItem)
-        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
-        .where(
-            and_(
-                IniciadorRuta.actuacion_id == Actuaciones.id,
-                IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
-                IniciadorRuta.deleted_at.is_(None),
-                RutaItem.deleted_at.is_(None),
-                RutaTrabajo.estado_ruta.in_(_ESTADOS_RUTA_ACTIVA_REINSP_OFICIO),
-            )
-        )
-    )
     q = (
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
-        .filter(has_envio, has_oficio, has_respuesta, ~en_ruta_activa)
+        .filter(has_envio, has_oficio, has_respuesta)
         .options(
             joinedload(Actuaciones.orden_trabajo),
             joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
@@ -111,7 +67,114 @@ def list_pendientes_reinspeccion_oficio(
     q = _apply_fecha(q, filters.desde, filters.hasta)
     distrito_id = getattr(filters, "distrito_id", None)
     q = _apply_distrito_optional(q, distrito_id)
-    return q.order_by(Actuaciones.id.desc()).all()
+    return q.order_by(Actuaciones.id.desc())
+
+
+def _iniciador_reinspeccion_por_oficio(oficio_id: int) -> IniciadorRuta | None:
+    return (
+        IniciadorRuta.query.filter_by(oficio_id=int(oficio_id))
+        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
+        .filter(IniciadorRuta.deleted_at.is_(None))
+        .order_by(IniciadorRuta.id.desc())
+        .first()
+    )
+
+
+def _iniciador_reinspeccion_legacy_actuacion(actuacion_id: int) -> IniciadorRuta | None:
+    """Iniciador REINSPECCION_OFICIO sin ``oficio_id`` (datos legados / tests)."""
+    return (
+        IniciadorRuta.query.filter_by(actuacion_id=int(actuacion_id))
+        .filter(IniciadorRuta.oficio_id.is_(None))
+        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
+        .filter(IniciadorRuta.deleted_at.is_(None))
+        .order_by(IniciadorRuta.id.desc())
+        .first()
+    )
+
+
+def _iniciador_para_oficio_en_actuacion(oficio: Oficio, act: Actuaciones) -> IniciadorRuta | None:
+    ini = _iniciador_reinspeccion_por_oficio(oficio.id)
+    if ini is not None:
+        return ini
+    oficios = list_oficios_by_comprobacion(int(act.comprobacion_id))
+    if len(oficios) == 1 and oficios[0].id == oficio.id:
+        return _iniciador_reinspeccion_legacy_actuacion(act.id)
+    return None
+
+
+def _expediente_respuesta_por_oficio(oficio_id: int) -> Expediente | None:
+    return (
+        Expediente.query.filter_by(oficio_id=int(oficio_id))
+        .filter(
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            )
+        )
+        .filter(Expediente.deleted_at.is_(None))
+        .order_by(Expediente.id.asc())
+        .first()
+    )
+
+
+def list_pendientes_reinspeccion_oficio_filas(
+    filters: ActuacionesPendientesFilters,
+) -> List[Tuple[Actuaciones, Oficio, Optional[IniciadorRuta]]]:
+    """
+    Filas pendientes de reinspección **por oficio/iniciador** (PR4b).
+
+    Una actuación con dos oficios puede generar dos filas si ninguno (o solo uno) está en ruta activa.
+    """
+    acts = _query_actuaciones_circuito_reinspeccion(filters).all()
+    filas: List[Tuple[Actuaciones, Oficio, Optional[IniciadorRuta]]] = []
+    for act in acts:
+        if act.comprobacion_id is None:
+            continue
+        for ofi in list_oficios_by_comprobacion(int(act.comprobacion_id)):
+            if _expediente_respuesta_por_oficio(ofi.id) is None:
+                continue
+            ini = _iniciador_para_oficio_en_actuacion(ofi, act)
+            if iniciador_en_ruta_activa(ini):
+                continue
+            filas.append((act, ofi, ini))
+    return filas
+
+
+def list_pendientes_reinspeccion_oficio(
+    filters: ActuacionesPendientesFilters,
+) -> List[Actuaciones]:
+    """
+    Reinspecciones por oficio **pendientes de planificación en ruta** (F3.6b).
+
+    Documental:
+
+    - Expediente de envío de acta activo (``oficio_id`` NULL, no borrado).
+    - Oficio administrativo activo (no borrado).
+    - Expediente de respuesta al oficio activo (``oficio_id`` al oficio de la misma comprobación;
+      ``tipo_expediente`` ``RESPUESTA_OFICIO`` o ``NULL`` legado).
+
+    Puede existir o no ``IniciadorRuta`` tipo ``REINSPECCION_OFICIO``; eso **no** oculta la fila.
+
+    Fuera de bandeja solo si existe un ``RutaItem`` **incorporado** a planificación operativa:
+
+    - ``IniciadorRuta`` mismo ``actuacion_id``, tipo ``REINSPECCION_OFICIO``, no soft-deleted.
+    - ``RutaItem`` no soft-deleted.
+    - ``RutaTrabajo.estado_ruta`` en ``BORRADOR`` | ``PUBLICADA`` | ``EN_CURSO``.
+
+    Si la ruta está ``CERRADA`` / ``CANCELADA``, el ítem está borrado en soft delete, o el iniciador no
+    tiene ítem en esa ruta, la actuación **sigue** en bandeja (puede tener o no iniciador materializado).
+
+    Fechas / distrito: ``Actuaciones.fecha`` vía ``_apply_fecha`` / ``_apply_distrito_optional``.
+
+    Compat: devuelve actuaciones únicas presentes en ``list_pendientes_reinspeccion_oficio_filas``.
+    """
+    seen: set[int] = set()
+    out: List[Actuaciones] = []
+    for act, _ofi, _ini in list_pendientes_reinspeccion_oficio_filas(filters):
+        if act.id not in seen:
+            seen.add(act.id)
+            out.append(act)
+    return out
 
 
 def list_comprobacion_recorrido(

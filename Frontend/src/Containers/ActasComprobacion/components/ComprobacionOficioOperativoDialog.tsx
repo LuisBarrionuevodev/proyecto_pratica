@@ -18,6 +18,7 @@ import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../compo
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
+import { ComprobacionOficiosTribunalSection } from "./ComprobacionOficiosTribunalSection";
 import {
   BloqueInspeccionBaseFromOficioRow,
   BloqueReferenciaComprobacionOficio,
@@ -28,6 +29,7 @@ import {
   textoValor,
   type ComprobacionOficioReferenciaRow,
 } from "./comprobacionOperativoBlocks";
+import type { OficioComprobacionItem } from "../../../api/actuacionesPendientesApi";
 
 /** Payload enviado al guardar el alta (misma forma que `createOficioDesdeActuacion`). */
 export type ComprobacionOficioAltaPayload = {
@@ -108,12 +110,17 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   documental,
   juzgados,
   onDocumentalUpdated,
+  oficioEditable,
+  bloqueadoMotivo,
 }: {
   open: boolean;
   actuacionId: number;
   documental: IComprobacionDocumentalResponse;
   juzgados: IJuzgadoCatalogItem[];
   onDocumentalUpdated: () => Promise<void>;
+  /** Si viene del listado por oficio (PR4b), prevalece sobre permisos legacy del documental. */
+  oficioEditable?: boolean | null;
+  bloqueadoMotivo?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [numOfi, setNumOfi] = useState("");
@@ -127,9 +134,21 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   const ofi = documental.oficio!;
   const exR = documental.expediente_respuesta!;
   const edicion = documental.edicion;
-  const puede = edicion?.puede_editar_bloque_oficio === true;
-  const puedeEliminarBloque = edicion?.puede_eliminar_bloque_oficio === true;
   const motivos = edicion?.motivos_bloqueo_oficio ?? [];
+  const puede =
+    oficioEditable !== undefined && oficioEditable !== null
+      ? oficioEditable
+      : edicion?.puede_editar_bloque_oficio === true;
+  const puedeEliminarBloque =
+    oficioEditable !== undefined && oficioEditable !== null
+      ? oficioEditable
+      : edicion?.puede_eliminar_bloque_oficio === true;
+  const motivoBloqueo =
+    (bloqueadoMotivo ?? "").trim() ||
+    motivos[0] ||
+    (edicion?.comprobacion_usada_como_iniciador
+      ? "No se puede editar el oficio ni el expediente de respuesta."
+      : null);
   const [confirmDelBloqueOpen, setConfirmDelBloqueOpen] = useState(false);
   const [delBloqueSaving, setDelBloqueSaving] = useState(false);
 
@@ -195,14 +214,12 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
         </Typography>
         {filasOfiReadonly}
         <Stack spacing={1.5} sx={{ pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          {!puede && (edicion?.comprobacion_usada_como_iniciador || motivos.length > 0) ? (
+          {!puede && motivoBloqueo ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
               <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                Edición y eliminación bloqueadas
+                No editable
               </Typography>
-              <Typography variant="body2">
-                {motivos[0] ?? "No se puede editar el oficio ni el expediente de respuesta."}
-              </Typography>
+              <Typography variant="body2">{motivoBloqueo}</Typography>
             </Alert>
           ) : null}
           {!editing ? (
@@ -337,7 +354,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
 });
 
 /** Estado local del alta: evita re-render del modal completo (referencia, visita, expediente envío) en cada tecla. */
-const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAltaFields({
+export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAltaFields({
   open,
   defaultFechaAlta,
   juzgados,
@@ -709,6 +726,9 @@ export type ComprobacionOficioOperativoDialogProps = {
   documental: IComprobacionDocumentalResponse | null;
   documentalLoading: boolean;
   documentalError: string | null;
+  oficios: OficioComprobacionItem[];
+  oficiosLoading: boolean;
+  oficiosError: string | null;
   onDocumentalUpdated: () => Promise<void>;
   /** Fecha por defecto del alta (p. ej. fin de mes en curso); no re-renderiza la página al tipear. */
   defaultFechaAlta: string;
@@ -732,6 +752,9 @@ export function ComprobacionOficioOperativoDialog({
   documental,
   documentalLoading,
   documentalError,
+  oficios,
+  oficiosLoading,
+  oficiosError,
   onDocumentalUpdated,
 }: ComprobacionOficioOperativoDialogProps) {
   const handleClose = () => {
@@ -744,15 +767,15 @@ export function ComprobacionOficioOperativoDialog({
     [row, documental]
   );
 
-  const tieneOficioCompleto =
-    !documentalLoading && documental?.oficio != null && documental?.expediente_respuesta != null;
+  const tieneOficios =
+    oficios.length > 0 || (documental?.oficio != null && documental?.expediente_respuesta != null);
 
   const titleNode =
     displayRow != null ? (
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
         titulo={actaCabecera(displayRow)}
-        subtitulo={tieneOficioCompleto ? "Oficio y expediente de respuesta" : "Registrar oficio y expediente de respuesta"}
+        subtitulo={tieneOficios ? "Oficios y respuestas del tribunal" : "Registrar oficio y expediente de respuesta"}
         actuacionId={undefined}
       />
     ) : (
@@ -796,30 +819,21 @@ export function ComprobacionOficioOperativoDialog({
             pendienteRow={displayRow}
             documentalError={documentalError}
           />
-          {documentalLoading ? (
-            <DocumentalBloque overline="Oficio y expediente de respuesta">
-              <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                <CircularProgress size={28} />
-              </Box>
-            </DocumentalBloque>
-          ) : tieneOficioCompleto && documental ? (
-            <OperativoOficioYRespuestaEditable
-              open={open}
-              actuacionId={displayRow.id}
-              documental={documental}
-              juzgados={juzgados}
-              onDocumentalUpdated={onDocumentalUpdated}
-            />
-          ) : (
-            <ComprobacionOficioAltaFields
-              open={open}
-              defaultFechaAlta={defaultFechaAlta}
-              juzgados={juzgados}
-              modalApiError={modalApiError}
-              saving={saving}
-              onGuardarAlta={onGuardarAlta}
-            />
-          )}
+          <ComprobacionOficiosTribunalSection
+            open={open}
+            actuacionId={displayRow.id}
+            documental={documental}
+            documentalLoading={documentalLoading}
+            oficios={oficios}
+            oficiosLoading={oficiosLoading}
+            oficiosError={oficiosError}
+            juzgados={juzgados}
+            defaultFechaAlta={defaultFechaAlta}
+            modalApiError={modalApiError}
+            saving={saving}
+            onGuardarAlta={onGuardarAlta}
+            onDocumentalUpdated={onDocumentalUpdated}
+          />
         </Stack>
       )}
     </AppDialog>

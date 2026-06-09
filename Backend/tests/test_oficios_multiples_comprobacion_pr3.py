@@ -11,7 +11,10 @@ from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import oficio_por_comprobacion
 from app.domains.actuaciones.services.expediente_completion_service import complete_expediente_from_actuacion
 from app.domains.actuaciones.services.oficio_completion_service import complete_oficio_from_actuacion
-from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
+from app.domains.actuaciones.services.oficio_list_service import (
+    list_oficios_by_comprobacion,
+    oficios_comprobacion_payload,
+)
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_operativo_para_iniciador,
 )
@@ -221,6 +224,28 @@ def test_segundo_oficio_hereda_domicilio_operativo(app_ctx) -> None:
 
     assert r1["iniciador_ruta"].domicilio_id == esperado
     assert r2["iniciador_ruta"].domicilio_id == esperado
+
+
+def test_oficios_comprobacion_payload_incluye_expediente_e_iniciador(app_ctx) -> None:
+    act, juz = _actuacion_comprobacion_con_domicilio()
+    db.session.commit()
+    _setup_con_envio(act)
+
+    num1 = _num_oficio()
+    r1 = complete_oficio_from_actuacion(
+        act.id,
+        _payload_oficio(juz.id, numero=num1, fecha=date(2026, 4, 1), num_exp=_unique_num()[:6]),
+    )
+
+    payload = oficios_comprobacion_payload(int(act.comprobacion_id))
+    assert len(payload) == 1
+    item = payload[0]
+    assert item["id"] == r1["oficio"].id
+    assert item["numero_oficio"] == num1
+    assert item["expediente_id"] == r1["expediente_respuesta_oficio"].id
+    assert item["expediente_numero"] == r1["expediente_respuesta_oficio"].numero_expediente
+    assert item["iniciador_id"] == r1["iniciador_ruta"].id
+    assert item["iniciador_estado"] == "PENDIENTE"
 
 
 def test_list_oficios_by_comprobacion_devuelve_ambos(app_ctx) -> None:

@@ -94,11 +94,27 @@ def estado_recorrido_label(act: Actuaciones) -> str:
     return "Pendiente reinspección por oficio"
 
 
+def _expediente_respuesta_por_oficio_id(oficio_id: int) -> Optional[Expediente]:
+    return (
+        Expediente.query.filter_by(oficio_id=int(oficio_id))
+        .filter(
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            )
+        )
+        .filter(Expediente.deleted_at.is_(None))
+        .order_by(Expediente.id.asc())
+        .first()
+    )
+
+
 def reinspeccion_oficio_bandeja_row(
     act: Actuaciones,
     *,
     counts_by_eo: dict[int, int] | None = None,
     iniciador: IniciadorRuta | None = None,
+    oficio: Oficio | None = None,
 ) -> Dict[str, Any]:
     """
     Fila JSON para la bandeja «Pendiente de reinspección» (circuito documental listo).
@@ -131,6 +147,7 @@ def reinspeccion_oficio_bandeja_row(
         row["fecha_origen_iniciador"] = None
     row["documento_pendiente"] = "Reinspección por oficio"
 
+    ofi_ref = oficio
     cid = getattr(act, "comprobacion_id", None)
     if cid:
         exp_env = expediente_envio_por_comprobacion(int(cid))
@@ -139,14 +156,17 @@ def reinspeccion_oficio_bandeja_row(
             row["expediente_envio_anio"] = getattr(exp_env, "anio", None)
             fe = getattr(exp_env, "fecha_expediente", None)
             row["fecha_expediente_envio"] = fe.isoformat() if fe is not None else None
-        ofi = oficio_por_comprobacion(int(cid))
+        ofi = oficio if oficio is not None else oficio_por_comprobacion(int(cid))
+        ofi_ref = ofi
         if ofi:
+            row["oficio_id"] = ofi.id
             row["oficio_numero"] = getattr(ofi, "numero_oficio", None)
             row["oficio_anio"] = getattr(ofi, "anio", None)
             fo = getattr(ofi, "fecha_oficio", None)
             row["fecha_oficio"] = fo.isoformat() if fo is not None else None
             row["juzgado_nombre"] = _juzgado_nombre(ofi)
-        exp_resp = _expediente_respuesta_oficio(int(cid))
+            row["oficio_causa"] = getattr(ofi, "causa", None)
+        exp_resp = _expediente_respuesta_por_oficio_id(ofi.id) if ofi else _expediente_respuesta_oficio(int(cid))
         if exp_resp:
             row["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
             row["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
@@ -156,6 +176,9 @@ def reinspeccion_oficio_bandeja_row(
     ini_oficio = _iniciador_trabajo_oficio_mas_reciente(act.id)
     row["tipo_visita_resultado"] = _tipo_visita_resultado_final(base, ini_oficio)
     row["estado_recorrido"] = estado_recorrido_label(act)
+    oid = ofi_ref.id if ofi_ref is not None else 0
+    iid = iniciador.id if iniciador is not None else 0
+    row["bandeja_row_key"] = f"{act.id}-{oid}-{iid}"
     return row
 
 

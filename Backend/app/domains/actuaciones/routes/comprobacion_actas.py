@@ -14,13 +14,12 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
     comprobacion_recorrido_resumen_row,
-    iniciador_reinspeccion_oficio_vigente,
     reinspeccion_oficio_bandeja_row,
 )
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 from app.domains.actuaciones.services.comprobacion_actas_bandeja_service import (
     list_comprobacion_recorrido,
-    list_pendientes_reinspeccion_oficio,
+    list_pendientes_reinspeccion_oficio_filas,
 )
 from app.models import Actuaciones, Domicilio
 from app.shared.errors import pydantic_errors_to_cell_map
@@ -58,15 +57,17 @@ def comprobacion_pendientes_reinspeccion_oficio():
     """
     try:
         filters = _filters_desde_request()
-        acts = list_pendientes_reinspeccion_oficio(filters)
+        filas = list_pendientes_reinspeccion_oficio_filas(filters)
+        acts = [f[0] for f in filas]
         counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
         items = [
             reinspeccion_oficio_bandeja_row(
                 act,
                 counts_by_eo=counts_by_eo,
-                iniciador=iniciador_reinspeccion_oficio_vigente(act.id),
+                iniciador=ini,
+                oficio=ofi,
             )
-            for act in acts
+            for act, ofi, ini in filas
         ]
         return (
             jsonify(

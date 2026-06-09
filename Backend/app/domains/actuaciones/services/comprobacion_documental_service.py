@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import referencia_actuacion_from_grid_row
 from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
 from app.utils.actas import acta_6
@@ -355,14 +356,12 @@ def delete_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int) -> None
     Errores:
         LookupError / ValueError.
     """
-    act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
+    _act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
 
-    per = evaluar_comprobacion_edicion_documental(act)
-    if not per["puede_eliminar_bloque_oficio"]:
+    policy = evaluar_editable_oficio(ofi.id)
+    if not policy.get("editable"):
         raise ValueError(
-            per["motivos_bloqueo_eliminar_bloque_oficio"][0]
-            if per["motivos_bloqueo_eliminar_bloque_oficio"]
-            else "Eliminación del bloque oficio no permitida"
+            policy.get("bloqueado_motivo") or "Eliminación del bloque oficio no permitida"
         )
 
     now = datetime.now(timezone.utc)
@@ -424,16 +423,14 @@ def update_comprobacion_oficio_bloque(
     Errores:
         LookupError, ValueError, RuntimeError (unicidad).
     """
-    act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
+    _act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
 
     if fecha_expediente_respuesta != fecha_oficio:
         fecha_expediente_respuesta = fecha_oficio
 
-    per = evaluar_comprobacion_edicion_documental(act)
-    if not per["puede_editar_bloque_oficio"]:
-        raise ValueError(
-            per["motivos_bloqueo_oficio"][0] if per["motivos_bloqueo_oficio"] else "Edición del oficio no permitida"
-        )
+    policy = evaluar_editable_oficio(ofi.id)
+    if not policy.get("editable"):
+        raise ValueError(policy.get("bloqueado_motivo") or "Edición del oficio no permitida")
 
     j = db.session.get(JuzgadoCatalogo, int(juzgado_id))
     if j is None:

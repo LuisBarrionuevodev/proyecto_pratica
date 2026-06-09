@@ -31,6 +31,7 @@ import {
   createExpedienteDesdeActuacion,
   createOficioDesdeActuacion,
   fetchComprobacionDocumental,
+  fetchOficiosByComprobacion,
   getActuacionesPendientesExpediente,
   getJuzgadosCatalogo,
   type IActuacionesPendientesItem,
@@ -38,6 +39,7 @@ import {
   type ICreateExpedienteRequest,
   type IJuzgadoCatalogItem,
   type IPendientesOficioItem,
+  type OficioComprobacionItem,
 } from "../../api/actuacionesPendientesApi";
 import {
   fetchComprobacionPendientesOficio,
@@ -72,7 +74,7 @@ import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { useAppFeedback } from "../../components/feedback";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
-import { applyFormErrorsFromApi } from "../../utils/parseApiError";
+import { applyFormErrorsFromApi, parseApiError } from "../../utils/parseApiError";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import {
   formatActuacionListDomicilioLinea,
@@ -166,6 +168,10 @@ function reinCompInfraccionChips(r: IReinspeccionOficioPendienteRow): string[] {
 
 function reinCompInfraccionSortKey(r: IReinspeccionOficioPendienteRow): string {
   return reinCompInfraccionChips(r).join(" | ");
+}
+
+function reinBandejaRowKey(r: IReinspeccionOficioPendienteRow): string {
+  return r.bandeja_row_key ?? `${r.id}-${r.oficio_id ?? 0}-${r.iniciador_id ?? 0}`;
 }
 
 function recOficioNumCompact(r: IComprobacionRecorridoRow): string {
@@ -457,6 +463,24 @@ const ActasComprobacionPage = () => {
   const [modalDoc, setModalDoc] = useState<IComprobacionDocumentalResponse | null>(null);
   const [modalDocLoading, setModalDocLoading] = useState(false);
   const [modalDocError, setModalDocError] = useState<string | null>(null);
+  const [modalOficios, setModalOficios] = useState<OficioComprobacionItem[]>([]);
+  const [modalOficiosLoading, setModalOficiosLoading] = useState(false);
+  const [modalOficiosError, setModalOficiosError] = useState<string | null>(null);
+
+  const loadOficiosForComprobacion = useCallback(async (comprobacionId: number) => {
+    setModalOficiosLoading(true);
+    setModalOficiosError(null);
+    try {
+      const resp = await fetchOficiosByComprobacion(comprobacionId);
+      setModalOficios(resp.oficios ?? []);
+    } catch (err: unknown) {
+      setModalOficios([]);
+      const parsed = parseApiError(err, "No se pudo cargar el historial de oficios");
+      setModalOficiosError(parsed.message);
+    } finally {
+      setModalOficiosLoading(false);
+    }
+  }, []);
 
   const loadOficio = useCallback(async () => {
     setOficioLoading(true);
@@ -483,24 +507,28 @@ const ActasComprobacionPage = () => {
       setModalOficioError(null);
       setModalDoc(null);
       setModalDocError(null);
+      setModalOficios([]);
+      setModalOficiosError(null);
       setModalOficioOpen(true);
       setModalDocLoading(true);
+      setModalOficiosLoading(false);
       try {
         const doc = await fetchComprobacionDocumental(row.id);
         setModalDoc(doc);
         setModalDocError(null);
+        void loadOficiosForComprobacion(doc.comprobacion_id);
       } catch (err: unknown) {
         setModalDoc(null);
-        const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-        setModalDocError(
-          (typeof detail === "string" && detail.trim()) ||
-            "No se pudo cargar la ficha documental (no se mostrará edición ni el bloqueo por trámite en ruta hasta reintentar)."
+        const parsed = parseApiError(
+          err,
+          "No se pudo cargar la ficha documental (no se mostrará edición ni el bloqueo por trámite en ruta hasta reintentar)."
         );
+        setModalDocError(parsed.message);
       } finally {
         setModalDocLoading(false);
       }
     },
-    []
+    [loadOficiosForComprobacion]
   );
 
   useEffect(() => {
@@ -572,6 +600,9 @@ const ActasComprobacionPage = () => {
     setModalDoc(null);
     setModalDocError(null);
     setModalDocLoading(false);
+    setModalOficios([]);
+    setModalOficiosError(null);
+    setModalOficiosLoading(false);
   };
 
   const columnsOficio = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
@@ -717,12 +748,12 @@ const ActasComprobacionPage = () => {
     await loadRein();
   }, [loadRein]);
 
-  const selectedReinId = selectedRein?.id ?? null;
+  const selectedReinKey = selectedRein != null ? reinBandejaRowKey(selectedRein) : null;
   useEffect(() => {
-    if (!modalReinOpen || selectedReinId == null) return;
-    const found = reinItems.find((r) => r.id === selectedReinId);
+    if (!modalReinOpen || selectedReinKey == null) return;
+    const found = reinItems.find((r) => reinBandejaRowKey(r) === selectedReinKey);
     if (found) setSelectedRein(found as ReinspeccionOperativoDetalleRow);
-  }, [reinItems, modalReinOpen, selectedReinId]);
+  }, [reinItems, modalReinOpen, selectedReinKey]);
 
   const reloadOficioModalDocumental = useCallback(async () => {
     if (!selectedOficio) return;
@@ -730,16 +761,14 @@ const ActasComprobacionPage = () => {
       const doc = await fetchComprobacionDocumental(selectedOficio.id);
       setModalDoc(doc);
       setModalDocError(null);
+      await loadOficiosForComprobacion(doc.comprobacion_id);
     } catch (err: unknown) {
       setModalDoc(null);
-      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setModalDocError(
-        (typeof detail === "string" && detail.trim()) ||
-          "No se pudo recargar la ficha documental (edición no disponible hasta reintentar)."
-      );
+      const parsed = parseApiError(err, "No se pudo recargar la ficha documental (edición no disponible hasta reintentar).");
+      setModalDocError(parsed.message);
     }
     await Promise.all([loadExpediente(), loadOficio(), loadRein()]);
-  }, [selectedOficio, loadExpediente, loadOficio, loadRein]);
+  }, [selectedOficio, loadExpediente, loadOficio, loadRein, loadOficiosForComprobacion]);
 
   const handleSaveOficio = useCallback(
     async (payload: ComprobacionOficioAltaPayload) => {
@@ -764,17 +793,19 @@ const ActasComprobacionPage = () => {
           numero_expediente_oficio: payload.numero_expediente_oficio.trim(),
           fecha_expediente_oficio: payload.fecha_expediente_oficio,
         });
-        closeModalOficio();
+        feedback.success("Oficio registrado correctamente.");
+        setModalOficioError(null);
+        await reloadOficioModalDocumental();
         await loadOficio();
         await loadRein();
       } catch (err: unknown) {
-        const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-        setModalOficioError(detail || "No se pudo cargar el oficio");
+        const parsed = parseApiError(err, "No se pudo cargar el oficio");
+        setModalOficioError(parsed.message);
       } finally {
         setSavingOficio(false);
       }
     },
-    [selectedOficio, loadOficio, loadRein]
+    [selectedOficio, loadOficio, loadRein, reloadOficioModalDocumental, feedback]
   );
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
@@ -873,6 +904,7 @@ const ActasComprobacionPage = () => {
     ...bandejaComprobacionMrtLayout,
     columns: columnsRein,
     data: reinItems,
+    getRowId: (row) => reinBandejaRowKey(row),
     enableEditing: false,
     enableRowSelection: false,
     renderTopToolbarCustomActions: renderReinToolbarRefresh,
@@ -1548,6 +1580,9 @@ const ActasComprobacionPage = () => {
         documental={modalDoc}
         documentalLoading={modalDocLoading}
         documentalError={modalDocError}
+        oficios={modalOficios}
+        oficiosLoading={modalOficiosLoading}
+        oficiosError={modalOficiosError}
         onDocumentalUpdated={reloadOficioModalDocumental}
         defaultFechaAlta={defaultRange.hasta}
         modalApiError={modalOficioError}
@@ -1560,6 +1595,7 @@ const ActasComprobacionPage = () => {
         onClose={closeModalRein}
         row={selectedRein}
         juzgados={juzgados}
+        defaultFechaAlta={defaultRange.hasta}
         onBandejasActualizadas={onReinBandejasActualizadas}
       />
 

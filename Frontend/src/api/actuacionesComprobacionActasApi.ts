@@ -64,6 +64,10 @@ export interface IReinspeccionOficioPendienteRow {
   tipo_visita_resultado?: string | null;
   /** Etiqueta de circuito documental (misma fuente que la tabla Recorrido). */
   estado_recorrido?: string | null;
+  /** FK del oficio de la fila (PR4b: una fila por oficio/iniciador). */
+  oficio_id?: number | null;
+  /** Clave estable para tablas con varias filas por actuación. */
+  bandeja_row_key?: string | null;
 }
 
 export interface IReinspeccionOficioResponse {
