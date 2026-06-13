@@ -137,6 +137,10 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
         return None, ContrapBucket.NONE
 
     key = _loose_key(s)
+    if key in (_loose_key("NO HUBO"), _loose_key("NO_HUBO")):
+        raise ValueError(
+            "NO_HUBO no aplica en Completar trabajo. Dejá la visita como realizada o elegí otra contraproducencia."
+        )
     if key in _NO_EXISTE_ALIAS_KEYS:
         return STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL
 
@@ -150,8 +154,6 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
         _loose_key("CLIMA"): "CLIMA",
         _loose_key("ZONA ROJA"): "ZONA ROJA",
         _loose_key("ZONA_ROJA"): "ZONA ROJA",
-        _loose_key("NO HUBO"): "NO_HUBO",
-        _loose_key("NO_HUBO"): "NO_HUBO",
         _loose_key("OTROS"): "OTROS",
         _loose_key("NO ES EL RUBRO"): STORED_CORRECTIVA_NO_ES_EL_RUBRO,
         _loose_key("DIRECCION INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
@@ -166,7 +168,7 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
 
     raise ValueError(
         f"Contraproducencia no reconocida: {raw!r}. "
-        "Usá valores del catálogo (p. ej. LOCAL CERRADO, CLIMA, ZONA ROJA, NO_HUBO, OTROS, "
+        "Usá valores del catálogo (p. ej. LOCAL CERRADO, CLIMA, ZONA ROJA, OTROS, "
         "NO ES EL RUBRO, DIRECCION INCORRECTA, NO PERMITE INSPECCION) o variantes de no existe local normalizables."
     )
 

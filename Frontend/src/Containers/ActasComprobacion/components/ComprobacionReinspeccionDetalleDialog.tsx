@@ -15,6 +15,10 @@ import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { AppDialog } from "../../../ui";
 import { parseApiError } from "../../../utils/parseApiError";
+import {
+  applyOficioAltaErrorsFromApi,
+  validateOficioAltaPayloadClient,
+} from "../../../utils/oficioFormErrors";
 import { ComprobacionOficiosTribunalSection } from "./ComprobacionOficiosTribunalSection";
 import { type ComprobacionOficioAltaPayload } from "./ComprobacionOficioOperativoDialog";
 import { DOC_MODAL_BLOCK_STACK_SPACING, type ReinspeccionOperativoDetalleRow } from "./comprobacionOperativoBlocks";
@@ -54,6 +58,7 @@ export function ComprobacionReinspeccionDetalleDialog({
   const [oficiosLoading, setOficiosLoading] = useState(false);
   const [oficiosError, setOficiosError] = useState<string | null>(null);
   const [modalApiError, setModalApiError] = useState<string | null>(null);
+  const [modalFieldErrors, setModalFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const loadOficios = useCallback(async (comprobacionId: number) => {
@@ -70,7 +75,7 @@ export function ComprobacionReinspeccionDetalleDialog({
     }
   }, []);
 
-  const recargarDocumental = useCallback(async () => {
+  const recargarModalData = useCallback(async () => {
     if (!row) return;
     setDocLoading(true);
     setDocError(null);
@@ -99,28 +104,26 @@ export function ComprobacionReinspeccionDetalleDialog({
       setSaving(false);
       return;
     }
-    void recargarDocumental();
-  }, [open, row?.id, recargarDocumental]);
+    void recargarModalData();
+  }, [open, row?.id, recargarModalData]);
 
   const onDocumentalUpdated = useCallback(async () => {
-    await recargarDocumental();
+    await recargarModalData();
     await onBandejasActualizadas();
-  }, [recargarDocumental, onBandejasActualizadas]);
+  }, [recargarModalData, onBandejasActualizadas]);
 
   const handleGuardarAlta = useCallback(
     async (payload: ComprobacionOficioAltaPayload) => {
       if (!row) return;
-      if (
-        !payload.numero_oficio.trim() ||
-        !payload.fecha_oficio ||
-        !payload.juzgado_id ||
-        !payload.numero_expediente_oficio.trim()
-      ) {
-        setModalApiError("Completá número/fecha/juzgado y datos del expediente de oficio");
+      const clientFe = validateOficioAltaPayloadClient(payload);
+      setModalFieldErrors(clientFe);
+      if (Object.keys(clientFe).length > 0) {
+        setModalApiError(null);
         return;
       }
       setSaving(true);
       setModalApiError(null);
+      setModalFieldErrors({});
       try {
         await createOficioDesdeActuacion(row.id, {
           numero_oficio: payload.numero_oficio.trim(),
@@ -133,7 +136,9 @@ export function ComprobacionReinspeccionDetalleDialog({
         feedback.success("Oficio registrado correctamente.");
         await onDocumentalUpdated();
       } catch (err: unknown) {
-        setModalApiError(parseApiError(err, "No se pudo cargar el oficio").message);
+        const parsed = applyOficioAltaErrorsFromApi(err);
+        setModalFieldErrors(parsed.fieldErrors);
+        setModalApiError(parsed.globalMessage);
       } finally {
         setSaving(false);
       }
@@ -189,6 +194,7 @@ export function ComprobacionReinspeccionDetalleDialog({
             juzgados={juzgados}
             defaultFechaAlta={defaultFechaAlta}
             modalApiError={modalApiError}
+            modalFieldErrors={modalFieldErrors}
             saving={saving}
             onGuardarAlta={handleGuardarAlta}
             onDocumentalUpdated={onDocumentalUpdated}

@@ -24,9 +24,10 @@ interface FiltroRelevamientosProps {
     calle: string | null;
     numero: string | null;
   }) => void;
+  onLimpiarLista?: () => void;
 }
 
-const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
+const FiltroRelevamientos = ({ onFiltrar, onLimpiarLista }: FiltroRelevamientosProps) => {
   const [desde, setDesde] = useState<string>("");
   const [hasta, setHasta] = useState<string>("");
   const [inspector, setInspector] = useState<string>("");
@@ -75,6 +76,7 @@ const FiltroRelevamientos = ({ onFiltrar }: FiltroRelevamientosProps) => {
     setInspector("");
     setCalle("");
     setNumero("");
+    onLimpiarLista?.();
   };
 
   return (

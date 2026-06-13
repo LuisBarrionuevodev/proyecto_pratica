@@ -2,11 +2,20 @@ from __future__ import annotations
 
 from typing import Dict, Any, List
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, Notificacion, OrdenTrabajo
+from app.models import (
+    Actuaciones,
+    Comprobacion,
+    Contribuyente,
+    Domicilio,
+    Inspeccion,
+    Notificacion,
+    OrdenTrabajo,
+    Rubro,
+)
 from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
 from app.utils.actas import acta_6
 
@@ -45,11 +54,51 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
         joinedload(Actuaciones.comprobacion),
     )
 
-    # Filtro por rango de fechas (siempre están presentes tras validator)
+    busqueda_global = bool(filters.q or filters.orden_trabajo or filters.actuacion_id)
+
     if filters.desde:
         query = query.filter(Actuaciones.fecha >= filters.desde)
     if filters.hasta:
         query = query.filter(Actuaciones.fecha <= filters.hasta)
+
+    if filters.actuacion_id:
+        query = query.filter(Actuaciones.id == int(filters.actuacion_id))
+
+    if filters.q:
+        term = filters.q.strip()
+        like = f"%{term}%"
+        ot_norm = acta_6(term) if term.replace(" ", "").isdigit() else None
+        acta_norm = acta_6(term) if term.replace(" ", "").isdigit() else None
+        query = (
+            query.outerjoin(OrdenTrabajo, Actuaciones.orden_trabajo_id == OrdenTrabajo.id)
+            .outerjoin(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
+            .outerjoin(Contribuyente, Domicilio.contribuyente_id == Contribuyente.id)
+            .outerjoin(Rubro, Domicilio.rubro_id == Rubro.id)
+            .outerjoin(Inspeccion, Inspeccion.actuacion_id == Actuaciones.id)
+            .outerjoin(Notificacion, Actuaciones.notificacion_id == Notificacion.id)
+            .outerjoin(Comprobacion, Actuaciones.comprobacion_id == Comprobacion.id)
+        )
+        conds = [
+            OrdenTrabajo.numero_acta.ilike(like),
+            Domicilio.calle.ilike(like),
+            Domicilio.numero.ilike(like),
+            Contribuyente.apellido.ilike(like),
+            Contribuyente.nombre.ilike(like),
+            Contribuyente.documento.ilike(like),
+            Rubro.nombre.ilike(like),
+            Actuaciones.nombre_local.ilike(like),
+        ]
+        if ot_norm:
+            conds.append(OrdenTrabajo.numero_acta == ot_norm)
+        if acta_norm:
+            conds.extend(
+                [
+                    Inspeccion.numero_acta == acta_norm,
+                    Notificacion.numero_acta == acta_norm,
+                    Comprobacion.numero_acta == acta_norm,
+                ]
+            )
+        query = query.filter(or_(*conds))
     
     # Filtro por tipo
     if filters.tipo:
@@ -96,5 +145,8 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
             "tipo": filters.tipo,
             "contraproducencia": filters.contraproducencia,
             "orden_trabajo": filters.orden_trabajo,
+            "actuacion_id": filters.actuacion_id,
+            "q": filters.q,
+            "busqueda_global": busqueda_global,
         }
     }

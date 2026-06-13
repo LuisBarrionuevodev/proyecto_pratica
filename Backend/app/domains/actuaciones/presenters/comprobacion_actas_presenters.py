@@ -179,6 +179,25 @@ def reinspeccion_oficio_bandeja_row(
     oid = ofi_ref.id if ofi_ref is not None else 0
     iid = iniciador.id if iniciador is not None else 0
     row["bandeja_row_key"] = f"{act.id}-{oid}-{iid}"
+
+    if ofi_ref is not None:
+        from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
+
+        policy = evaluar_editable_oficio(ofi_ref.id)
+        for key in (
+            "editable",
+            "bloqueado_motivo",
+            "ruta_estado",
+            "estado_ejecucion",
+            "en_ruta_borrador",
+            "estado_operativo",
+            "acciones_permitidas",
+        ):
+            if policy.get(key) is not None:
+                row[key] = policy[key]
+        if "editable" not in row:
+            row["editable"] = policy.get("editable", True)
+
     return row
 
 

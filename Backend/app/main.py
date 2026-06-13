@@ -30,6 +30,7 @@ from app.domains.establecimientos.routes.establecimientos_operativos import (
 )
 from app.domains.rutas_trabajo.routes import rutas_trabajo as rutas_trabajo_bp
 from app.domains.indicadores.routes import indicadores_api as indicadores_api_bp
+from app.domains.catalogos.routes import catalogos as catalogos_bp
 from app.domains.usuarios.security.jwt import init_jwt
 from app.domains.usuarios.services.users_service import ensure_dev_admin_seed
 
@@ -94,6 +95,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(establecimientos_operativos_bp, url_prefix="/establecimientos-operativos")
     app.register_blueprint(rutas_trabajo_bp, url_prefix="/rutas-trabajo")
     app.register_blueprint(indicadores_api_bp, url_prefix="/api/indicadores")
+    app.register_blueprint(catalogos_bp, url_prefix="/catalogos")
 
     # Seed opcional de admin solo en desarrollo.
     if os.getenv("FLASK_ENV", "development").lower() == "development":

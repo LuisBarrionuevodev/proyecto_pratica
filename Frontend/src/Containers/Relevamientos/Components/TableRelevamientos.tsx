@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Alert, Box, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,7 +9,11 @@ import {
 } from "material-react-table";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { deleteRelevamiento } from "../../../api/relevamientosApi";
-import { startBatch, fetchInspectores, fetchRubros } from "../../../api/gridApi";
+import { startBatch, fetchInspectores } from "../../../api/gridApi";
+import {
+  fetchRubrosCatalogoCached,
+  rubroItemsToNombres,
+} from "../../../utils/rubrosCatalogCache";
 import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
 import { RelevamientoEditDialog } from "./RelevamientoEditDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
@@ -21,6 +25,9 @@ import {
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { ConfirmDialog } from "../../../ui";
+import { useAppFeedback } from "../../../components/feedback";
+import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
+import { shouldRefreshRelevamientosAfterSaveFailure } from "../utils/refreshOnSavePolicy";
 import {
   DARK_TABLE_CONFIG,
   COLORS,
@@ -70,6 +77,7 @@ const TablaRelevamientos = ({
   numeroCallesOptions,
   numeroAllowFreeSolo = false,
 }: TablaRelevamientosProps) => {
+  const feedback = useAppFeedback();
   const [data, setData] = useState<IRelevamientoListItem[]>(externalData || []);
   const loading = externalLoading || false;
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
@@ -78,6 +86,7 @@ const TablaRelevamientos = ({
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [editDraft, setEditDraft] = useState<IRelevamientoListItem | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [editGlobalError, setEditGlobalError] = useState<string | null>(null);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<IRelevamientoListItem | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   useEffect(() => {
@@ -99,9 +108,9 @@ const TablaRelevamientos = ({
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectores, rubros] = await Promise.all([fetchInspectores(), fetchRubros()]);
+        const [inspectores, rubrosItems] = await Promise.all([fetchInspectores(), fetchRubrosCatalogoCached()]);
         setCatalogInspectores([...new Set(inspectores.items.map((i: any) => i.nombre))]);
-        setCatalogRubros([...new Set(rubros.items.map((r: any) => r.nombre))]);
+        setCatalogRubros(rubroItemsToNombres(rubrosItems));
       } catch (error) {
         console.error("Error cargando catálogos:", error);
       }
@@ -112,13 +121,12 @@ const TablaRelevamientos = ({
   const requestDeleteRow = useCallback(
     (rowItem: IRelevamientoListItem) => {
       if (rowItem.editable === false) {
-        alert("Este relevamiento ya no está operativo y no puede eliminarse.");
-        onRefresh?.();
+        feedback.error("Este relevamiento ya no está operativo y no puede eliminarse.");
         return;
       }
       setDeleteConfirmRow(rowItem);
     },
-    [onRefresh]
+    [onRefresh, feedback]
   );
 
   const performDeleteRow = useCallback(async () => {
@@ -135,18 +143,21 @@ const TablaRelevamientos = ({
       const err = error as { response?: { data?: { detail?: string } } };
       const msg =
         err?.response?.data?.detail || "No se pudo eliminar el registro. Se restaurará la lista.";
-      alert(msg);
+      feedback.error(msg);
       setData(prev);
       onRefresh?.();
     } finally {
       setDeleteInProgress(false);
       setDeleteConfirmRow(null);
     }
-  }, [data, deleteConfirmRow, onRefresh]);
+  }, [data, deleteConfirmRow, onRefresh, feedback]);
 
   const catalogs = useMemo(
-    () => ({ inspectores: catalogInspectores, rubros: catalogRubros }),
-    [catalogInspectores, catalogRubros]
+    () => ({
+      inspectores: catalogInspectores,
+      rubros: mergeLegacyRubroNames(catalogRubros, editDraft?.rubro),
+    }),
+    [catalogInspectores, catalogRubros, editDraft?.rubro]
   );
 
   const handleDialogSave = useCallback(async () => {
@@ -154,11 +165,11 @@ const TablaRelevamientos = ({
     const id = Number(editDraft.id);
     const fullRow = editDraft;
     if (fullRow.editable === false) {
-      alert("Este relevamiento ya no está operativo y no puede editarse.");
-      onRefresh?.();
+      feedback.error("Este relevamiento ya no está operativo y no puede editarse.");
       return;
     }
 
+    setEditGlobalError(null);
     setEditSaving(true);
     try {
       const result = await submitRelevamientoRow({
@@ -177,15 +188,19 @@ const TablaRelevamientos = ({
       if (!result.ok) {
         if (result.kind === "validation" || result.kind === "backend_fields") {
           setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
+          setEditGlobalError(null);
           return;
         }
-        alert(result.message);
-        onRefresh?.();
+        setEditGlobalError(result.message);
+        feedback.error(result.message);
         return;
       }
 
       setEditDraft(null);
-      onRefresh?.();
+      setEditGlobalError(null);
+      if (shouldRefreshRelevamientosAfterSaveFailure(result)) {
+        onRefresh?.();
+      }
     } finally {
       setEditSaving(false);
     }
@@ -197,6 +212,7 @@ const TablaRelevamientos = ({
     onAfterSave,
     skipValidation,
     skipUpdate,
+    feedback,
   ]);
 
   const columns = useMemo<MRT_ColumnDef<IRelevamientoListItem>[]>(() => {
@@ -371,10 +387,15 @@ const TablaRelevamientos = ({
           numeroCallesOptions={numeroCallesOptions}
           numeroEditorLabel={numeroEditorLabel}
           numeroAllowFreeSolo={numeroAllowFreeSolo}
-          onClose={() => setEditDraft(null)}
-          onDraftChange={(patch) =>
-            setEditDraft((prev) => (prev ? { ...prev, ...patch } : null))
-          }
+          onClose={() => {
+            setEditDraft(null);
+            setEditGlobalError(null);
+          }}
+          onDraftChange={(patch) => {
+            setEditGlobalError(null);
+            setEditDraft((prev) => (prev ? { ...prev, ...patch } : null));
+          }}
+          globalError={editGlobalError}
           onSave={handleDialogSave}
         />
       )}

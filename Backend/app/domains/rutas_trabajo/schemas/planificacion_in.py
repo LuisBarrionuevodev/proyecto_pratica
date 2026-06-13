@@ -14,6 +14,8 @@ from app.domains.rutas_trabajo.schemas.iniciadores_filters_in import (
     PrioridadCategoriaLiteral,
 )
 
+TipoUrgenteLiteral = Literal["DENUNCIA", "NOTIFICACION", "OFICIO"]
+
 
 class PlanificacionMetricasQuery(BaseModel):
     """M1: métricas globales o acotadas a un distrito."""
@@ -31,6 +33,25 @@ class PlanificacionUrgentesQuery(BaseModel):
         ge=1,
         description="Mismo acote territorial que M1 cuando el mapa tiene distrito activo.",
     )
+    tipo_urgente: Optional[TipoUrgenteLiteral] = Field(default=None)
+    q: Optional[str] = Field(default=None, max_length=200)
+    numero_oficio: Optional[str] = Field(default=None, max_length=60)
+    numero_comprobacion: Optional[str] = Field(default=None, max_length=20)
+
+    @field_validator("q", "numero_oficio", "numero_comprobacion")
+    @classmethod
+    def normalize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        trimmed = v.strip()
+        return trimmed or None
+
+    @field_validator("tipo_urgente", mode="before")
+    @classmethod
+    def normalize_tipo_urgente(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        return str(v).strip().upper() or None
 
 
 PlanificacionOrdenLiteral = Literal["prioridad", "fecha_asc", "fecha_desc", "prioridad_asc"]

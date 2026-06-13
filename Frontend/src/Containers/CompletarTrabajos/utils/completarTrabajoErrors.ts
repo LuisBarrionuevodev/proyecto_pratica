@@ -41,10 +41,10 @@ export function applyCompletarTrabajoFieldErrorsFromApi(err: unknown): {
   generalMessage: string | null;
 } {
   const { fieldErrors, globalMessage } = applyFormErrorsFromApi(err, COMPLETAR_OPTIONS);
-  if (globalMessage) {
+  if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, generalMessage: globalMessage };
   }
-  return { fieldErrors, generalMessage: formatCompletarTrabajoApiError(err) };
+  return { fieldErrors, generalMessage: globalMessage ?? formatCompletarTrabajoApiError(err) };
 }
 
 /**

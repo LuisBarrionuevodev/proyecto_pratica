@@ -55,7 +55,7 @@ def test_attach_oficio_crea_nuevo(app_ctx) -> None:
         db.session.rollback()
 
 
-def test_attach_oficio_mismo_contexto_actualiza_sin_conflicto(app_ctx) -> None:
+def test_attach_oficio_mismo_contexto_misma_causa_idempotente(app_ctx) -> None:
     try:
         c = _flush_comprobacion()
         o1 = attach_oficio(
@@ -64,12 +64,29 @@ def test_attach_oficio_mismo_contexto_actualiza_sin_conflicto(app_ctx) -> None:
         )
         db.session.flush()
         o2 = attach_oficio(
-            {"numero": "45", "anio": 2026, "causa": "segunda"},
+            {"numero": "45", "anio": 2026, "causa": "primera"},
             comprobacion_id=c.id,
         )
         assert o1.id == o2.id
-        assert o2.causa == "segunda"
+        assert o2.causa == "primera"
         assert o2.comprobacion_id == c.id
+    finally:
+        db.session.rollback()
+
+
+def test_attach_oficio_mismo_numero_causa_distinta_bloquea(app_ctx) -> None:
+    try:
+        c = _flush_comprobacion()
+        attach_oficio(
+            {"numero": "45", "anio": 2026, "causa": "primera"},
+            comprobacion_id=c.id,
+        )
+        db.session.flush()
+        with pytest.raises(ValueError, match="ya existe con otra causa"):
+            attach_oficio(
+                {"numero": "45", "anio": 2026, "causa": "segunda"},
+                comprobacion_id=c.id,
+            )
     finally:
         db.session.rollback()
 

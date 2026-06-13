@@ -12,6 +12,7 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_domicilio_if_orphan,
 )
 from app.shared.services.domicilio_repo import get_or_create_domicilio_basico
+from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
@@ -368,7 +369,17 @@ def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> 
     iniciador_operativo = get_iniciador_pendiente_denuncia(denuncia_id)
     old_domicilio_id = denuncia.domicilio_id
 
-    dom = get_or_create_domicilio_basico(row.calle, row.numero)
+    outcome = aplicar_edicion_domicilio_operativo(
+        domicilio_id_actual=denuncia.domicilio_id,
+        cambios={"calle": row.calle, "numero": row.numero, "numero_tipo": row.numero_tipo},
+        contexto="DENUNCIA",
+        origen_id=denuncia_id,
+        modo_explicito=getattr(row, "modo_domicilio", None),
+        usar_basico=True,
+    )
+    dom = outcome.domicilio
+    if dom is None:
+        raise ValueError("No se pudo resolver domicilio.")
     override = row.numero_tipo
     if not override:
         override = "ESQUINA" if any(ch.isalpha() for ch in row.numero) else "NUMERO"

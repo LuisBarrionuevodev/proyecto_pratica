@@ -37,12 +37,72 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function firstStringMessage(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const s = firstStringMessage(item);
+      if (s) return s;
+    }
+  }
+  return null;
+}
+
+function pydanticArrayToFieldMap(errors: unknown[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const err of errors) {
+    if (!isRecord(err)) continue;
+    const loc = err.loc;
+    const msg = firstStringMessage(err.msg) ?? "Error";
+    if (Array.isArray(loc) && loc.length > 0) {
+      const field = String(loc[loc.length - 1]);
+      if (!out[field]) out[field] = msg;
+      continue;
+    }
+    if (!out._row) out._row = msg;
+  }
+  return out;
+}
+
 function stringFieldErrors(raw: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
-    if (typeof v === "string" && v.trim()) out[k] = v.trim();
+    const msg = firstStringMessage(v);
+    if (msg) out[k] = msg;
   }
   return out;
+}
+
+function extractRawFieldErrors(data: Record<string, unknown>): Record<string, string> | undefined {
+  const errorsRaw = data.errors;
+  if (Array.isArray(errorsRaw) && errorsRaw.length > 0) {
+    const mapped = pydanticArrayToFieldMap(errorsRaw);
+    return Object.keys(mapped).length > 0 ? mapped : undefined;
+  }
+  if (isRecord(errorsRaw) && Object.keys(errorsRaw).length > 0) {
+    const mapped = stringFieldErrors(errorsRaw);
+    return Object.keys(mapped).length > 0 ? mapped : undefined;
+  }
+  return undefined;
+}
+
+/** Intenta mapear mensajes de negocio (400 detail) a un campo cuando el backend no envía `errors`. */
+export function mapBusinessDetailToFieldErrors(message: string): Record<string, string> | null {
+  const m = message.toLowerCase();
+  if (
+    m.includes("numero_oficio") ||
+    (m.includes("número") && m.includes("oficio")) ||
+    (m.includes("numero") && m.includes("oficio") && m.includes("existe"))
+  ) {
+    return { numero_oficio: message };
+  }
+  if (m.includes("causa")) return { causa: message };
+  if (m.includes("juzgado")) return { juzgado_id: message };
+  if (m.includes("expediente")) return { numero_expediente_oficio: message };
+  if (m.includes("contraproducencia")) return { contraproducencia: message };
+  if (m.includes("rubro")) return { rubro_nombre: message };
+  if (m.includes("domicilio") || m.includes("calle")) return { calle: message };
+  return null;
 }
 
 /**
@@ -53,11 +113,7 @@ export function parseApiError(err: unknown, fallbackMessage = "Ocurrió un error
   const data = ax?.response?.data;
 
   if (isRecord(data)) {
-    const errorsRaw = data.errors;
-    const rawFieldErrors =
-      isRecord(errorsRaw) && Object.keys(errorsRaw).length > 0
-        ? stringFieldErrors(errorsRaw)
-        : undefined;
+    const rawFieldErrors = extractRawFieldErrors(data);
 
     const detail = data.detail;
     if (typeof detail === "string" && detail.trim()) {
@@ -118,7 +174,7 @@ export function applyFormErrorsFromMap(
 
   if (hasInline) {
     const globalMessage =
-      rowChunks.length > 0 ? `${fieldErrorSummary}\n${rowChunks.join("\n")}` : fieldErrorSummary;
+      rowChunks.length > 0 ? `${fieldErrorSummary} ${rowChunks.join(" ")}`.trim() : fieldErrorSummary;
     return { fieldErrors, globalMessage };
   }
 
@@ -143,5 +199,38 @@ export function applyFormErrorsFromApi(
     return applyFormErrorsFromMap(parsed.rawFieldErrors, options);
   }
 
+  const detailFields = mapBusinessDetailToFieldErrors(parsed.message);
+  if (detailFields) {
+    return {
+      fieldErrors: detailFields,
+      globalMessage: options.fieldErrorSummary ?? DEFAULT_FIELD_ERROR_SUMMARY,
+    };
+  }
+
   return { fieldErrors: {}, globalMessage: parsed.message || fallback };
+}
+
+/** HTTP status de una respuesta axios, si existe. */
+export function getHttpStatusFromApiError(err: unknown): number | undefined {
+  return (err as { response?: { status?: number } })?.response?.status;
+}
+
+/**
+ * Indica si el error corresponde a validación de entrada (400/422) sin cambio persistido.
+ */
+export function isApiValidationError(err: unknown): boolean {
+  const status = getHttpStatusFromApiError(err);
+  return status === 422 || status === 400;
+}
+
+export type MapApiErrorsToFormStateOptions = ApplyFormErrorsOptions;
+
+/**
+ * Punto único: parsea error HTTP → errores por campo + mensaje global breve (sin duplicar inline).
+ */
+export function mapApiErrorsToFormState(
+  err: unknown,
+  options: MapApiErrorsToFormStateOptions = {}
+): FormErrorsFromApi {
+  return applyFormErrorsFromApi(err, options);
 }

@@ -190,17 +190,25 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
                 dom_payload["numero"] = act.domicilio.numero
 
             if dom_payload:
-                # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
                 allow_missing_catalogs = (
                     (patch_dict.get("tipo_actuacion", act.tipo) is None)
                     and (patch_dict.get("contraproducencia", act.contraproducencia) is not None)
                 )
-                dom = get_or_create_domicilio(
-                    dom_payload,
-                    contrib,
-                    rubro,
+                from app.domains.domicilios.services.domicilio_update_service import (
+                    aplicar_edicion_domicilio_operativo,
+                )
+
+                outcome = aplicar_edicion_domicilio_operativo(
+                    domicilio_id_actual=act.domicilio_id,
+                    cambios=dom_payload,
+                    contribuyente=contrib,
+                    rubro=rubro,
+                    contexto="ACTUACION",
+                    origen_id=int(act.id),
+                    modo_explicito=patch_dict.get("modo_domicilio"),
                     allow_missing_catalogs=allow_missing_catalogs,
                 )
+                dom = outcome.domicilio
                 act.domicilio_id = dom.id if dom else None
                 if dom:
                     normalizar_domicilio_en_sesion(

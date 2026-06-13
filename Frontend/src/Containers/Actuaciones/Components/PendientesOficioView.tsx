@@ -27,6 +27,11 @@ import {
   filtroTitleStyles,
 } from "../styles/filtroStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
+import {
+  applyOficioPendientesErrorsFromApi,
+  validateOficioAltaPayloadClient,
+  OFICIO_PENDIENTES_FIELD_ALIASES,
+} from "../../../utils/oficioFormErrors";
 
 const PendientesOficioView = () => {
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
@@ -106,29 +111,32 @@ const PendientesOficioView = () => {
 
   const handleSave = async () => {
     if (!selected) return;
-    const next: Record<string, string> = {};
-    if (!numeroOficio.trim()) next.numeroOficio = "Completá el número de oficio.";
-    if (!fechaOficio) next.fechaOficio = "Completá la fecha de oficio.";
-    if (!juzgadoId) next.juzgadoId = "Seleccioná un juzgado.";
-    if (!expNumero.trim()) next.expNumero = "Completá el número de expediente de oficio.";
+    const payload = {
+      numero_oficio: numeroOficio.trim(),
+      fecha_oficio: fechaOficio,
+      juzgado_id: Number(juzgadoId),
+      causa: causa.trim() || null,
+      numero_expediente_oficio: expNumero.trim(),
+      fecha_expediente_oficio: fechaOficio,
+    };
+    const next = validateOficioAltaPayloadClient(payload, OFICIO_PENDIENTES_FIELD_ALIASES);
     setFieldErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0) {
+      setModalApiError(null);
+      return;
+    }
 
     setSaving(true);
     setModalApiError(null);
+    setFieldErrors({});
     try {
-      await createOficioDesdeActuacion(selected.id, {
-        numero_oficio: numeroOficio.trim(),
-        fecha_oficio: fechaOficio,
-        juzgado_id: Number(juzgadoId),
-        causa: causa.trim() || null,
-        numero_expediente_oficio: expNumero.trim(),
-        fecha_expediente_oficio: fechaOficio,
-      });
+      await createOficioDesdeActuacion(selected.id, payload);
       closeModal();
       await loadData();
-    } catch (err: any) {
-      setModalApiError(err?.response?.data?.detail || "No se pudo cargar el oficio");
+    } catch (err: unknown) {
+      const parsed = applyOficioPendientesErrorsFromApi(err);
+      setFieldErrors(parsed.fieldErrors);
+      setModalApiError(parsed.globalMessage);
     } finally {
       setSaving(false);
     }
@@ -254,9 +262,13 @@ const PendientesOficioView = () => {
               </>
             }
           >
-            {modalApiError ? (
+            {modalApiError && Object.keys(fieldErrors).length === 0 ? (
               <Alert severity="error" sx={{ mb: 0 }}>
                 {modalApiError}
+              </Alert>
+            ) : Object.keys(fieldErrors).length > 0 ? (
+              <Alert severity="error" sx={{ mb: 0 }}>
+                Revisá los campos marcados abajo.
               </Alert>
             ) : null}
             <AppTextField
@@ -332,8 +344,17 @@ const PendientesOficioView = () => {
               appearance="glass"
               label="Causa"
               value={causa}
-              onChange={(e) => setCausa(e.target.value)}
+              onChange={(e) => {
+                setCausa(e.target.value);
+                setFieldErrors((f) => {
+                  const n = { ...f };
+                  delete n.causa;
+                  return n;
+                });
+              }}
               fullWidth
+              error={Boolean(fieldErrors.causa)}
+              helperText={fieldErrors.causa || undefined}
             />
             <AppTextField
               appearance="glass"

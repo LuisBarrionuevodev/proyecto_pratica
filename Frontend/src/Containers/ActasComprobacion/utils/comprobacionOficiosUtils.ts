@@ -2,7 +2,44 @@ import type {
   IComprobacionDocumentalResponse,
   OficioComprobacionItem,
 } from "../../../api/actuacionesPendientesApi";
-import { humanizarEstadoIniciador } from "./documentalLabelFormat";
+import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./documentalLabelFormat";
+
+export type OficioOperativoChip = {
+  label: string;
+  color: "default" | "success" | "warning" | "info" | "error";
+};
+
+/** Chips de estado operativo para un oficio en lista/modal (STAB-3). */
+export function oficioOperativoChips(item: OficioComprobacionItem): OficioOperativoChip[] {
+  const chips: OficioOperativoChip[] = [];
+  const estado = (item.estado_operativo ?? "").trim();
+  if (estado) {
+    const color: OficioOperativoChip["color"] =
+      estado === "ruta_borrador"
+        ? "info"
+        : estado === "en_ruta"
+          ? "warning"
+          : estado === "cumplido"
+            ? "success"
+            : estado === "bloqueado" || estado === "cerrado"
+              ? "error"
+              : estado === "pendiente"
+                ? "warning"
+                : "default";
+    chips.push({ label: humanizarEstadoOperativoOficio(estado), color });
+  } else if (item.iniciador_estado) {
+    chips.push({
+      label: humanizarEstadoIniciador(item.iniciador_estado),
+      color: item.iniciador_estado.toUpperCase() === "CUMPLIDO" ? "success" : "warning",
+    });
+  } else if (item.en_ruta_borrador) {
+    chips.push({ label: "Ruta borrador", color: "info" });
+  }
+  if (item.editable === false) {
+    chips.push({ label: "Edición bloqueada", color: "error" });
+  }
+  return chips;
+}
 
 /** Etiqueta compacta ``Oficio N/Año · Exp. N/Año``. */
 export function oficioComprobacionEtiquetaCompacta(item: OficioComprobacionItem): string {

@@ -1,5 +1,5 @@
 import type { IPlanificacionPendiente } from "../types/planificacion.types";
-import type { PlanificacionCardKey } from "../types/planificacion.types";
+import type { IPlanificacionMetricas, PlanificacionCardKey } from "../types/planificacion.types";
 
 /** Tipos “oficio” alineados al backend (card Oficios urgentes / métricas). */
 export const TIPOS_OFICIO_PLANIFICACION: readonly string[] = [
@@ -40,6 +40,18 @@ export function aplicarCardContextoLista(
     return rows.filter((r) => r.tipo_iniciador === "RELEVAMIENTO");
   }
   return rows;
+}
+
+/** KPIs derivados del dataset visible en mapa (distrito + filtros panel, sin card activa). */
+export function computeMetricasDesdeFilas(rows: IPlanificacionPendiente[]): IPlanificacionMetricas {
+  return {
+    total: rows.length,
+    alta: rows.filter((r) => r.tipo_iniciador !== "RELEVAMIENTO" && (r.prioridad ?? 0) >= 3).length,
+    oficios_urgentes: rows.filter((r) => TIPOS_OFICIO_PLANIFICACION.includes(r.tipo_iniciador)).length,
+    denuncias: rows.filter((r) => r.tipo_iniciador === "DENUNCIA").length,
+    notificaciones: rows.filter((r) => r.tipo_iniciador === "REINSPECCION_NOTIFICACION").length,
+    relevamientos: rows.filter((r) => r.tipo_iniciador === "RELEVAMIENTO").length,
+  };
 }
 
 /** Orden operativo: prioridad desc, fecha asc, id asc. */

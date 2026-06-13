@@ -11,6 +11,7 @@ import {
 } from "../api/planificacionApi";
 import {
   aplicarCardContextoLista,
+  computeMetricasDesdeFilas,
   sinPool,
   toPoolSet,
 } from "../selectors/planificacionSelectors";
@@ -19,6 +20,7 @@ import type {
   IPlanificacionMetricas,
   PlanificacionCardKey,
   PlanificacionFiltrosLista,
+  UrgentesFiltrosAplicados,
 } from "../types/planificacion.types";
 
 const FILTROS_VACIOS: PlanificacionFiltrosLista = {
@@ -26,6 +28,11 @@ const FILTROS_VACIOS: PlanificacionFiltrosLista = {
   prioridad_categoria: "",
   q: "",
   orden: "prioridad",
+};
+
+const URGENTES_FILTROS_VACIOS: UrgentesFiltrosAplicados = {
+  tipo_urgente: "",
+  q: "",
 };
 
 /** Tamaño de página de la lista “Pendientes del contexto”. */
@@ -118,6 +125,9 @@ export function usePlanificacionController({
   const [distritoActivoId, setDistritoActivoId] = useState<number | null>(null);
   const [cardActiva, setCardActivaState] = useState<PlanificacionCardKey>(null);
   const [filtros, setFiltros] = useState<PlanificacionFiltrosLista>({ ...FILTROS_VACIOS });
+  const [urgentesFiltrosAplicados, setUrgentesFiltrosAplicados] = useState<UrgentesFiltrosAplicados>({
+    ...URGENTES_FILTROS_VACIOS,
+  });
 
   const [metricas, setMetricas] = useState<IPlanificacionMetricas | null>(null);
   const [cargaPorDistrito, setCargaPorDistrito] = useState<ICargaDistritoRow[]>([]);
@@ -166,6 +176,17 @@ export function usePlanificacionController({
     return aplicarCardContextoLista(sinP, cardActiva);
   }, [pendientesMapaRaw, poolSet, cardActiva]);
 
+  /**
+   * KPIs alineados al mapa visible: con distrito activo, cuenta el dataset M4 filtrado (panel + pool).
+   * Sin distrito, conserva M1 global del backend.
+   */
+  const metricasVisibles = useMemo(() => {
+    if (distritoActivoId == null) {
+      return metricas;
+    }
+    return computeMetricasDesdeFilas(sinPool(pendientesMapaRaw, poolSet));
+  }, [distritoActivoId, pendientesMapaRaw, poolSet, metricas]);
+
   const loadMetricas = useCallback(
     async (distritoId: number | null) => {
       setLoading((s) => ({ ...s, metricas: true }));
@@ -204,13 +225,15 @@ export function usePlanificacionController({
   }, [rutaId]);
 
   const loadUrgentes = useCallback(
-    async (page = 1, perPage = 25) => {
+    async (page = 1, perPage = 25, filtrosUrg = urgentesFiltrosAplicados) => {
       setLoading((s) => ({ ...s, urgentes: true }));
       try {
         const { items, meta } = await getPlanificacionUrgentes(rutaId, {
           page,
           per_page: perPage,
           ...(distritoActivoId != null ? { distrito_id: distritoActivoId } : {}),
+          ...(filtrosUrg.tipo_urgente ? { tipo_urgente: filtrosUrg.tipo_urgente } : {}),
+          ...(filtrosUrg.q ? { q: filtrosUrg.q } : {}),
         });
         setUrgentesRaw(items);
         setUrgentesMeta({ total: meta.total, page: meta.page, perPage: meta.per_page });
@@ -225,8 +248,21 @@ export function usePlanificacionController({
         setLoading((s) => ({ ...s, urgentes: false }));
       }
     },
-    [rutaId, distritoActivoId]
+    [rutaId, distritoActivoId, urgentesFiltrosAplicados]
   );
+
+  const aplicarFiltrosUrgentes = useCallback(
+    (filtrosUrg: UrgentesFiltrosAplicados) => {
+      setUrgentesFiltrosAplicados(filtrosUrg);
+      void loadUrgentes(1, urgentesMeta.perPage, filtrosUrg);
+    },
+    [loadUrgentes, urgentesMeta.perPage]
+  );
+
+  const limpiarFiltrosUrgentes = useCallback(() => {
+    setUrgentesFiltrosAplicados({ ...URGENTES_FILTROS_VACIOS });
+    void loadUrgentes(1, urgentesMeta.perPage, URGENTES_FILTROS_VACIOS);
+  }, [loadUrgentes, urgentesMeta.perPage]);
 
   /** En la página actual de M3, cuántas filas del servicio están en el pool (no se listan en la bandeja). */
   const urgentesOcultosPorPoolEnPagina = useMemo(
@@ -460,11 +496,14 @@ export function usePlanificacionController({
     agregarAlPool,
     quitarDelPool,
     metricas,
+    metricasVisibles,
     cargaPorDistrito,
     urgentesVisibles,
     urgentesMeta,
     urgentesOcultosPorPoolEnPagina,
     loadUrgentes,
+    aplicarFiltrosUrgentes,
+    limpiarFiltrosUrgentes,
     pendientesContextoVisibles,
     pendientesParaMapa,
     pendientesMeta,

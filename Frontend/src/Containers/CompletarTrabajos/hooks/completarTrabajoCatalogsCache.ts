@@ -3,8 +3,11 @@ import {
   fetchInspectores,
   fetchMotivos,
   fetchMotivosComprobacion,
-  fetchRubros,
 } from "../../../api/gridApi";
+import {
+  fetchRubrosCatalogoCached,
+  rubroItemsToNombres,
+} from "../../../utils/rubrosCatalogCache";
 
 export type CompletarTrabajoCatalogs = {
   motivos: string[];
@@ -19,19 +22,19 @@ let memoryCache: CompletarTrabajoCatalogs | null = null;
 let inflight: Promise<CompletarTrabajoCatalogs> | null = null;
 
 async function loadFromApi(): Promise<CompletarTrabajoCatalogs> {
-  const [motivos, motivosComp, contras, insp, rubros] = await Promise.all([
+  const [motivos, motivosComp, contras, insp, rubrosItems] = await Promise.all([
     fetchMotivos(),
     fetchMotivosComprobacion(),
     fetchContraproducencias(),
     fetchInspectores(),
-    fetchRubros(),
+    fetchRubrosCatalogoCached(),
   ]);
   return {
     motivos: [...new Set(motivos.items.map((i) => i.nombre))],
     motivosComprobacion: [...new Set(motivosComp.items.map((i) => i.nombre))],
     contraproducencias: [...new Set(contras.items.map((i) => i.nombre))],
     inspectores: [...new Set(insp.items.map((i) => i.nombre))],
-    rubros: [...new Set(rubros.items.map((r) => r.nombre))],
+    rubros: rubroItemsToNombres(rubrosItems),
   };
 }
 

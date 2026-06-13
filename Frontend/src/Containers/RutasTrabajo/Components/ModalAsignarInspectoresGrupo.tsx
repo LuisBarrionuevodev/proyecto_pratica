@@ -1,5 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
   Button,
@@ -15,6 +16,7 @@ import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
+import { filterCatalogItemsByQuery } from "../../../utils/filterCatalogByQuery";
 import { rutasAsignacionNeutralContainedButtonSx } from "../styles/institutionalVisual";
 
 /** Transición más corta + sin autofocus agresivo al abrir (menos trabajo en el frame de apertura). */
@@ -112,8 +114,10 @@ const ESTIMATE_ROW_PX = 56;
  */
 function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, inspectoresCatalogo, grupos }: Props) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const listParentRef = useRef<HTMLDivElement>(null);
+  const openedGrupoIdRef = useRef<number | null>(null);
 
   const selectedIdsSafe = useMemo(() => selectedIds.filter((id) => Number.isFinite(id) && id > 0), [selectedIds]);
   const selectedSet = useMemo(() => new Set(selectedIdsSafe), [selectedIdsSafe]);
@@ -126,8 +130,11 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
         .flatMap((g) => g.inspectores.map((i) => i.inspector_id))
     );
     const selectedInCurrent = new Set(grupo.inspectores.map((i) => i.inspector_id));
-    return inspectoresCatalogo.filter((i) => !usedInOtherGroups.has(i.id) || selectedInCurrent.has(i.id));
-  }, [open, grupo, grupos, inspectoresCatalogo]);
+    const base = inspectoresCatalogo.filter(
+      (i) => !usedInOtherGroups.has(i.id) || selectedInCurrent.has(i.id)
+    );
+    return filterCatalogItemsByQuery(base, searchQuery);
+  }, [open, grupo, grupos, inspectoresCatalogo, searchQuery]);
 
   const rowVirtualizer = useVirtualizer({
     count: availableInspectores.length,
@@ -137,9 +144,16 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
   });
 
   useEffect(() => {
-    if (!open || !grupo) return;
+    if (!open) {
+      openedGrupoIdRef.current = null;
+      return;
+    }
+    if (!grupo) return;
+    if (openedGrupoIdRef.current === grupo.id) return;
+    openedGrupoIdRef.current = grupo.id;
     setSelectedIds(grupo.inspectores.map((i) => i.inspector_id));
-  }, [open, grupo]);
+    setSearchQuery("");
+  }, [open, grupo?.id, grupo]);
 
   const handleClose = useCallback(() => {
     if (saving) return;
@@ -208,6 +222,17 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
           >
             Selección reemplaza el equipo del grupo. Excluye inspectores ya asignados a otros grupos.
           </Typography>
+          <AppTextField
+            label="Buscar inspector"
+            placeholder="Nombre o apellido…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            fullWidth
+            appearance="glass"
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ color: GLASS_COLORS.textMuted, mr: 1, fontSize: 20 }} />,
+            }}
+          />
           <Box ref={listParentRef} sx={LIST_VIEWPORT_SX}>
             <Box
               sx={{

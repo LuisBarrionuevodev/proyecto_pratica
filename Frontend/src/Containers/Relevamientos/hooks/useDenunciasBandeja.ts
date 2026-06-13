@@ -15,6 +15,7 @@ interface UseDenunciasBandeja {
   error: string | null;
   hasSearched: boolean;
   buscar: (filters: IDenunciasGestionFilters) => Promise<void>;
+  limpiarLista: () => void;
 }
 
 /**
@@ -73,6 +74,13 @@ export const useDenunciasBandeja = (slice: DenunciasBandejaSlice): UseDenunciasB
     setError(null);
   }, [slice]);
 
+  const limpiarLista = useCallback(() => {
+    setHasSearched(false);
+    setDenuncias([]);
+    setMeta(null);
+    setError(null);
+  }, []);
+
   return {
     denuncias,
     meta,
@@ -80,5 +88,6 @@ export const useDenunciasBandeja = (slice: DenunciasBandejaSlice): UseDenunciasB
     error,
     hasSearched,
     buscar,
+    limpiarLista,
   };
 };

@@ -8,11 +8,10 @@ import {
   validateRow,
   commitBatch,
   type GridRow,
-  fetchInspectores,
-  fetchMotivos,
-  fetchRubros,
-  fetchMotivosComprobacion,
 } from "../../../api/gridApi";
+import { fetchCompletarTrabajoCatalogsCached } from "../../CompletarTrabajos/hooks/completarTrabajoCatalogsCache";
+import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
+import { OrdenTrabajoSearchAutocomplete } from "../../../components/search/OrdenTrabajoSearchAutocomplete";
 import { useAppFeedback } from "../../../components/feedback";
 import { extractDataColumns, generateRowId } from "../utils/gridHelpers";
 import { getDropdownOptions } from "../config/dropdownOptions";
@@ -136,6 +135,11 @@ export function CargarActuacionNuevaModal() {
     [motivosNotifCatalogSorted, notifMotivosSel]
   );
 
+  const rubroAutocompleteOptions = useMemo(
+    () => mergeLegacyRubroNames(catalogRubros, texts["Rubro"]),
+    [catalogRubros, texts["Rubro"]]
+  );
+
   const inspectoresDisponiblesParaAgregar = useMemo(() => {
     const ya = new Set(inspectoresList.map((x) => x.trim()).filter(Boolean));
     return [...catalogInspectores].filter((n) => !ya.has(n)).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
@@ -166,17 +170,12 @@ export function CargarActuacionNuevaModal() {
     const load = async () => {
       setCatalogsBootstrapping(true);
       try {
-        const [insp, mot, rub, mcomp] = await Promise.all([
-          fetchInspectores(),
-          fetchMotivos(),
-          fetchRubros(),
-          fetchMotivosComprobacion(),
-        ]);
+        const data = await fetchCompletarTrabajoCatalogsCached();
         if (cancelled) return;
-        setCatalogInspectores([...new Set(insp.items.map((i) => i.nombre))]);
-        setCatalogMotivos([...new Set(mot.items.map((m) => m.nombre))]);
-        setCatalogRubros([...new Set(rub.items.map((r) => r.nombre))]);
-        setCatalogMotivosComprobacion([...new Set(mcomp.items.map((m) => m.nombre))]);
+        setCatalogInspectores(data.inspectores);
+        setCatalogMotivos(data.motivos);
+        setCatalogRubros(data.rubros);
+        setCatalogMotivosComprobacion(data.motivosComprobacion);
         setCatalogsReady(true);
         setGlobalError(null);
       } catch {
@@ -469,16 +468,13 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Fecha actuación"))}
             helperText={errorFor("Fecha actuación") || undefined}
           />
-          <AppTextField
-            appearance="dense"
-            fullWidth
-            required
-            label="Orden de trabajo"
+          <OrdenTrabajoSearchAutocomplete
             value={texts["Orden de trabajo"]}
-            onChange={(e) => {
-              setText("Orden de trabajo", e.target.value);
+            onChange={(next) => {
+              setText("Orden de trabajo", next);
               clearFe("Orden de trabajo");
             }}
+            disabled={catalogsBootstrapping}
             error={Boolean(errorFor("Orden de trabajo"))}
             helperText={errorFor("Orden de trabajo") || undefined}
           />
@@ -565,19 +561,25 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Número"))}
             helperText={errorFor("Número") || undefined}
           />
-          <AppSelect
-            appearance="dense"
-            label="Rubro"
-            value={texts["Rubro"]}
-            onChange={(e) => {
-              setText("Rubro", String(e.target.value));
+          <Autocomplete
+            size="small"
+            fullWidth
+            options={rubroAutocompleteOptions}
+            value={texts["Rubro"] || null}
+            onChange={(_, next) => {
+              setText("Rubro", next ?? "");
               clearFe("Rubro");
             }}
-            fullWidth
             disabled={!catalogsReady || catalogsBootstrapping}
-            options={toSelectOptions("Rubro")}
-            error={Boolean(errorFor("Rubro"))}
-            helperText={errorFor("Rubro") || undefined}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Rubro"
+                placeholder="Buscar rubro…"
+                error={Boolean(errorFor("Rubro"))}
+                helperText={errorFor("Rubro") || undefined}
+              />
+            )}
           />
         </Box>
 

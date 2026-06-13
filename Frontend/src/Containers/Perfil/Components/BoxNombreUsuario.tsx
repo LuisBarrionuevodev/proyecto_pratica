@@ -3,28 +3,14 @@ import { Box, Typography, Avatar, Popover, IconButton } from "@mui/material";
 import { AppTextField } from "../../../ui";
 import EditIcon from "@mui/icons-material/Edit";
 import { AvatarPerfilStye, BoxPerfilStyle, EditNombreStyle, NombrePerfilStyle, RolPerfilStyle } from "../../../styles/PerfilStyles";
-
-type AvatarType =
-    | "avatar1"
-    | "avatar2"
-    | "avatar3"
-    | "avatar4"
-    | "avatar5";
-
-const avatars: AvatarType[] = [
-    "avatar1",
-    "avatar2",
-    "avatar3",
-    "avatar4",
-    "avatar5",
-];
+import { AVATAR_KEYS, getAvatarUrl, type AvatarKey } from "../../../utils/avatarUrl";
 
 interface Props {
     user?: string;
     nombre?: string;
     rol?: string;
-    avatarInicial?: AvatarType;
-    onAvatarChange?: (avatar: AvatarType) => void;
+    avatarInicial?: AvatarKey;
+    onAvatarChange?: (avatar: AvatarKey) => void;
     onNameChange?: (name: string) => void;
 }
 
@@ -36,7 +22,7 @@ const BoxNombreUsuario = ({
     onAvatarChange,
     onNameChange,
 }: Props) => {
-    const [avatar, setAvatar] = useState<AvatarType>(avatarInicial);
+    const [avatar, setAvatar] = useState<AvatarKey>(avatarInicial);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     const [editing, setEditing] = useState(false);
@@ -52,7 +38,7 @@ const BoxNombreUsuario = ({
 
     const open = Boolean(anchorEl);
 
-    const handleSelectAvatar = (selected: AvatarType) => {
+    const handleSelectAvatar = (selected: AvatarKey) => {
         setAvatar(selected);
         setAnchorEl(null);
         onAvatarChange?.(selected);
@@ -79,7 +65,7 @@ const BoxNombreUsuario = ({
         >
             {/* Avatar clickeable */}
             <Avatar
-                src={`https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=${avatar}`}
+                src={getAvatarUrl(avatar)}
                 alt={nombre}
                 onClick={handleOpen}
                 sx={AvatarPerfilStye}
@@ -103,10 +89,11 @@ const BoxNombreUsuario = ({
                         backgroundColor: "#1A1C20",
                     }}
                 >
-                    {avatars.map((av) => (
+                    {AVATAR_KEYS.map((av) => (
                         <Avatar
                             key={av}
-                            src={`/avatars/${av}.png`}
+                            src={getAvatarUrl(av)}
+                            alt={av}
                             onClick={() => handleSelectAvatar(av)}
                             sx={{
                                 width: 70,

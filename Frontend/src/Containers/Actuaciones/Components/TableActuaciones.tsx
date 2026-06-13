@@ -14,11 +14,14 @@ import { deleteActuacion } from "../../../api/actuacionesApi";
 import {
   fetchInspectores,
   fetchMotivos,
-  fetchRubros,
   fetchTiposActuacion,
   fetchContraproducencias,
   fetchMotivosComprobacion,
 } from "../../../api/gridApi";
+import {
+  fetchRubrosCatalogoCached,
+  rubroItemsToNombres,
+} from "../../../utils/rubrosCatalogCache";
 import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
@@ -32,6 +35,7 @@ import {
 } from "../styles/actuacionesTableStyles";
 
 import { ConfirmDialog } from "../../../ui";
+import { useAppFeedback } from "../../../components/feedback";
 import { submitActuacionRow } from "../utils/submitActuacionRow";
 import {
   ACTUACIONES_COMPOSITE_COLUMN_IDS,
@@ -152,7 +156,9 @@ const TablaActuaciones = ({
     motivosComprobacion: string[];
   } | null>(null);
   // ✅ errores por celda por idActuacion
+  const feedback = useAppFeedback();
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
+  const [editGlobalError, setEditGlobalError] = useState<string | null>(null);
   /** Actuación pendiente de confirmar borrado en `ConfirmDialog` (solo si no `hideDeleteAction`). */
   const [deleteConfirmActuacionId, setDeleteConfirmActuacionId] = useState<number | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
@@ -168,10 +174,10 @@ const TablaActuaciones = ({
     let cancelled = false;
     const loadCatalogs = async () => {
       try {
-        const [inspectores, motivos, rubros, tipos, contras, motivosComp] = await Promise.all([
+        const [inspectores, motivos, rubrosItems, tipos, contras, motivosComp] = await Promise.all([
           fetchInspectores(),
           fetchMotivos(),
-          fetchRubros(),
+          fetchRubrosCatalogoCached(),
           fetchTiposActuacion(),
           fetchContraproducencias(),
           fetchMotivosComprobacion(),
@@ -180,7 +186,7 @@ const TablaActuaciones = ({
         setCatalogBundle({
           inspectores: [...new Set(inspectores.items.map((i: any) => i.nombre))],
           motivos: [...new Set(motivos.items.map((m: any) => m.nombre))],
-          rubros: [...new Set(rubros.items.map((r: any) => r.nombre))],
+          rubros: rubroItemsToNombres(rubrosItems),
           tipos: [...new Set(tipos.items.map((t: any) => t.nombre))],
           contras: [...new Set(contras.items.map((c: any) => c.nombre))],
           motivosComprobacion: [...new Set(motivosComp.items.map((m: any) => m.nombre))],
@@ -227,13 +233,13 @@ const TablaActuaciones = ({
         onRefresh?.();
       } catch (error) {
         console.error("Error al eliminar:", error);
-        alert("No se pudo eliminar el registro. Se restaurará la lista.");
+        feedback.error("No se pudo eliminar el registro. Se restaurará la lista.");
         setData(prev);
       } finally {
         setDeleteInProgress(false);
       }
     },
-    [data, onRefresh]
+    [data, onRefresh, feedback]
   );
 
   const handleEditDraftChange = useCallback((patch: Partial<IActuacionListItem>) => {
@@ -242,12 +248,14 @@ const TablaActuaciones = ({
 
   const handleCloseEditDialog = useCallback(() => {
     setEditDraft(null);
+    setEditGlobalError(null);
   }, []);
 
   const handleDialogSave = useCallback(async () => {
     if (!editDraft) return;
     const id = Number(editDraft.id);
     setEditSaving(true);
+    setEditGlobalError(null);
     try {
       const result = await submitActuacionRow({
         id,
@@ -264,13 +272,16 @@ const TablaActuaciones = ({
       if (!result.ok) {
         if (result.kind === "validation" || result.kind === "backend_fields") {
           setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
+          setEditGlobalError(result.globalMessage ?? null);
           return;
         }
-        alert(result.message);
+        setEditGlobalError(result.message);
+        feedback.error(result.message);
         return;
       }
 
       setEditDraft(null);
+      setEditGlobalError(null);
       triggerRefresh();
       setTimeout(() => onRefresh?.(), 100);
     } finally {
@@ -586,6 +597,7 @@ const TablaActuaciones = ({
           open
           draft={editDraft}
           fieldErrors={rowErrors[editDraft.id] ?? EMPTY_ACTUACION_FIELD_ERRORS}
+          formGlobalError={editGlobalError}
           saving={editSaving}
           catalogs={catalogs}
           readOnlyColumns={readOnlyColumns}

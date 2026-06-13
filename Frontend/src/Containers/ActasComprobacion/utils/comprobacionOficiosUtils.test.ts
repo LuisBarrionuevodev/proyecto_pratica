@@ -6,6 +6,7 @@ import {
   mergeOficiosConLegacyDocumental,
   oficioComprobacionEtiquetaCompacta,
   oficioComprobacionSubtituloIniciador,
+  oficioOperativoChips,
 } from "./comprobacionOficiosUtils";
 
 const baseEdicion: IComprobacionDocumentalResponse["edicion"] = {
@@ -67,6 +68,27 @@ describe("comprobacionOficiosUtils", () => {
     expect(merged).toHaveLength(1);
     expect(merged[0].id).toBe(7);
     expect(merged[0].expediente_numero).toBe("50");
+  });
+
+  it("genera chips de estado operativo (STAB-3)", () => {
+    expect(
+      oficioOperativoChips({
+        id: 1,
+        numero_oficio: "1",
+        anio: 2026,
+        estado_operativo: "ruta_borrador",
+        editable: true,
+      }).map((c) => c.label)
+    ).toEqual(["Ruta borrador"]);
+    expect(
+      oficioOperativoChips({
+        id: 2,
+        numero_oficio: "2",
+        anio: 2026,
+        estado_operativo: "en_ruta",
+        editable: false,
+      }).map((c) => c.label)
+    ).toEqual(["En ruta", "Edición bloqueada"]);
   });
 
   it("arma documental por oficio seleccionado", () => {

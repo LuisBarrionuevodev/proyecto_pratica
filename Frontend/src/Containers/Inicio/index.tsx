@@ -1,5 +1,4 @@
 import { useEffect, useState, type JSX } from "react";
-import InicioMapaResumenCard from "./Components/InicioMapaResumenCard";
 import InicioOperacionesGrid from "./Components/InicioOperacionesGrid";
 import TopBar from "../../Componets/TopBar";
 import { Box, Grid, Typography } from "@mui/material";
@@ -143,9 +142,6 @@ const Inicio = (): JSX.Element => {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12 }}>
                 <InicioOperacionesGrid />
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <InicioMapaResumenCard />
               </Grid>
             </Grid>
         </Box>

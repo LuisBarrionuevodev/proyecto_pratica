@@ -17,34 +17,25 @@ def _normalize_causa(value: Any) -> Optional[str]:
     return s or None
 
 
-def _conflicto_causa_anio(
-    causa: Optional[str],
-    anio: int,
-    *,
-    exclude_oficio_id: Optional[int] = None,
-) -> bool:
-    """True si ya existe otro oficio con la misma causa y año (causa no nula)."""
-    if causa is None:
-        return False
-    q = db.session.query(Oficio).filter(
-        Oficio.anio == anio,
-        Oficio.causa == causa,
-        Oficio.deleted_at.is_(None),
-    )
-    if exclude_oficio_id is not None:
-        q = q.filter(Oficio.id != exclude_oficio_id)
-    return q.first() is not None
+def _raise_if_numero_anio_unique_violation(exc: IntegrityError, label: str) -> None:
+    """Traduce violación de unicidad ``(numero_oficio, anio)`` a mensaje de negocio."""
+    orig_s = str(getattr(exc, "orig", exc)).lower()
+    if "uq_of_numero" in orig_s or "numero_oficio" in orig_s:
+        raise ValueError(f"El Oficio {label} ya existe.") from exc
 
 
-def _raise_if_causa_anio_unique_violation(exc: IntegrityError, causa: Optional[str], anio: int) -> None:
-    """Traduce violación de uq_of_causa_anio a mensaje de negocio."""
-    orig_s = str(getattr(exc, "orig", exc))
-    if "uq_of_causa_anio" not in orig_s:
+def _raise_if_causa_inconsistent(
+    causa_existente: Optional[str],
+    causa_nueva: Optional[str],
+    label: str,
+) -> None:
+    """Bloquea reutilizar un oficio existente con otra causa distinta."""
+    if causa_existente is None or causa_nueva is None:
         return
-    c = causa if causa is not None else "?"
-    raise ValueError(
-        f'La causa "{c}" ya existe para el año {anio}.'
-    ) from exc
+    if causa_existente != causa_nueva:
+        raise ValueError(
+            f'El Oficio {label} ya existe con otra causa ("{causa_existente}").'
+        )
 
 
 def _parse_fecha_oficio(value: Any) -> Optional[date]:
@@ -81,8 +72,8 @@ def attach_oficio(data: Optional[Dict[str, Any]], comprobacion_id: Optional[int]
     - Misma clave + misma comprobación: actualización no destructiva (`fecha_oficio`, `juzgado_id`,
       `causa`) y restauración de soft-delete; **nunca** cambiar `comprobacion_id` a otra distinta.
     - Misma clave + otra comprobación: `ValueError` (no reutilizar oficio entre comprobaciones).
-    - Unicidad de negocio `(causa, anio)`: la misma causa no puede repetirse en el mismo año entre
-      oficios distintos; sí puede repetirse en otros años.
+    - Misma clave + causa distinta a la ya persistida: `ValueError` (inconsistencia de identidad).
+    - La causa **no** es única por año: varios oficios distintos pueden compartir causa.
 
     Args:
         data: `numero`, `anio`, opcionalmente `fecha_oficio`, `juzgado_id`, `causa`.
@@ -92,7 +83,7 @@ def attach_oficio(data: Optional[Dict[str, Any]], comprobacion_id: Optional[int]
         `Oficio` existente o creado, o `None` si no hay `data`.
 
     Raises:
-        ValueError: validación, conflicto de contexto o causa duplicada para el año.
+        ValueError: validación, conflicto de contexto o inconsistencia de causa en oficio existente.
     """
     if not data:
         return None
@@ -126,24 +117,17 @@ def attach_oficio(data: Optional[Dict[str, Any]], comprobacion_id: Optional[int]
             of.juzgado_id = data.get("juzgado_id")
         if "causa" in data:
             causa_n = _normalize_causa(data.get("causa"))
-            if _conflicto_causa_anio(causa_n, of.anio, exclude_oficio_id=of.id):
-                raise ValueError(
-                    f'La causa "{causa_n}" ya existe para el año {of.anio}.'
-                )
+            _raise_if_causa_inconsistent(of.causa, causa_n, label)
             of.causa = causa_n
         db.session.add(of)
         try:
             db.session.flush()
         except IntegrityError as exc:
-            cn = _normalize_causa(of.causa)
-            _raise_if_causa_anio_unique_violation(exc, cn, of.anio)
+            _raise_if_numero_anio_unique_violation(exc, label)
             raise
         return of
 
     causa_n = _normalize_causa(data.get("causa"))
-    if _conflicto_causa_anio(causa_n, anio_i):
-        raise ValueError(f'La causa "{causa_n}" ya existe para el año {anio_i}.')
-
     of = Oficio(
         numero_oficio=numero_s,
         anio=anio_i,
@@ -156,6 +140,6 @@ def attach_oficio(data: Optional[Dict[str, Any]], comprobacion_id: Optional[int]
     try:
         db.session.flush()
     except IntegrityError as exc:
-        _raise_if_causa_anio_unique_violation(exc, causa_n, anio_i)
+        _raise_if_numero_anio_unique_violation(exc, label)
         raise
     return of

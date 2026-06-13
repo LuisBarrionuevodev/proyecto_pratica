@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
 import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 
 import type {
@@ -15,6 +16,7 @@ import {
   oficioComprobacionEtiquetaCompacta,
   oficioComprobacionSubtituloIniciador,
   oficioComprobacionTieneBloqueCompleto,
+  oficioOperativoChips,
 } from "../utils/comprobacionOficiosUtils";
 import {
   ComprobacionOficioAltaFields,
@@ -22,6 +24,31 @@ import {
   type ComprobacionOficioAltaPayload,
 } from "./ComprobacionOficioOperativoDialog";
 import { DocumentalBloque, DocumentalFila, parNumAnio, textoValor } from "./comprobacionOperativoBlocks";
+
+const agregarOficioButtonSx = { fontWeight: 700 } as const;
+
+function AgregarOficioButton({
+  onClick,
+  disabled,
+  tieneOficios,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  tieneOficios?: boolean;
+}) {
+  return (
+    <AppButton
+      dsVariant="primary"
+      dsSize="sm"
+      startIcon={<AddIcon fontSize="small" />}
+      onClick={onClick}
+      disabled={disabled}
+      sx={agregarOficioButtonSx}
+    >
+      {tieneOficios ? "Agregar otro oficio" : "Agregar oficio"}
+    </AppButton>
+  );
+}
 
 function chipColorForIniciador(estado: string | null | undefined): "default" | "success" | "warning" | "info" {
   const u = (estado ?? "").toUpperCase();
@@ -41,6 +68,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
   onSelect: () => void;
 }) {
   const subtitulo = oficioComprobacionSubtituloIniciador(item);
+  const chips = oficioOperativoChips(item);
   return (
     <Box
       role="button"
@@ -70,17 +98,28 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
         <Typography variant="body2" fontWeight={600} sx={{ color: "rgba(255,255,255,0.92)" }}>
           {oficioComprobacionEtiquetaCompacta(item)}
         </Typography>
-        {item.iniciador_estado ? (
-          <Chip
-            size="small"
-            label={humanizarEstadoIniciador(item.iniciador_estado)}
-            color={chipColorForIniciador(item.iniciador_estado)}
-            variant="outlined"
-            sx={{ height: 22, fontSize: "0.7rem" }}
-          />
-        ) : null}
+        {chips.length > 0
+          ? chips.map((chip) => (
+              <Chip
+                key={chip.label}
+                size="small"
+                label={chip.label}
+                color={chip.color}
+                variant="outlined"
+                sx={{ height: 22, fontSize: "0.7rem" }}
+              />
+            ))
+          : item.iniciador_estado ? (
+              <Chip
+                size="small"
+                label={humanizarEstadoIniciador(item.iniciador_estado)}
+                color={chipColorForIniciador(item.iniciador_estado)}
+                variant="outlined"
+                sx={{ height: 22, fontSize: "0.7rem" }}
+              />
+            ) : null}
       </Stack>
-      {subtitulo && !item.iniciador_estado ? (
+      {subtitulo && chips.length === 0 && !item.iniciador_estado ? (
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", display: "block", mt: 0.5 }}>
           {subtitulo}
         </Typography>
@@ -124,6 +163,7 @@ export type ComprobacionOficiosTribunalSectionProps = {
   juzgados: IJuzgadoCatalogItem[];
   defaultFechaAlta: string;
   modalApiError: string | null;
+  modalFieldErrors?: Record<string, string>;
   saving: boolean;
   onGuardarAlta: (payload: ComprobacionOficioAltaPayload) => void | Promise<void>;
   onDocumentalUpdated: () => Promise<void>;
@@ -145,6 +185,7 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
   juzgados,
   defaultFechaAlta,
   modalApiError,
+  modalFieldErrors = {},
   saving,
   onGuardarAlta,
   onDocumentalUpdated,
@@ -232,9 +273,11 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
 
         {!oficiosLoading && !documentalLoading && items.length > 0 ? (
           <Box>
-            <AppButton dsVariant="ghost" dsSize="sm" onClick={handleAgregarOficio} disabled={saving || modoAlta}>
-              Agregar oficio
-            </AppButton>
+            <AgregarOficioButton
+              onClick={handleAgregarOficio}
+              disabled={saving || modoAlta}
+              tieneOficios
+            />
           </Box>
         ) : null}
 
@@ -244,6 +287,7 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
             defaultFechaAlta={defaultFechaAlta}
             juzgados={juzgados}
             modalApiError={modalApiError}
+            fieldErrors={modalFieldErrors}
             saving={saving}
             onGuardarAlta={onGuardarAlta}
           />
@@ -267,9 +311,7 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
         ) : null}
 
         {showAltaPrimeraVez ? null : showEmpty ? (
-          <AppButton dsVariant="primary" dsSize="sm" onClick={handleAgregarOficio} disabled={saving}>
-            Agregar oficio
-          </AppButton>
+          <AgregarOficioButton onClick={handleAgregarOficio} disabled={saving} />
         ) : null}
       </Stack>
     </DocumentalBloque>

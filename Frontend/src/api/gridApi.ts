@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { fetchRubrosCatalogo } from "./rubrosCatalogApi";
 
 // ============= TYPES =============
 
@@ -216,11 +217,11 @@ export const fetchMotivos = async (): Promise<CatalogResponse> => {
 };
 
 /**
- * Catálogo de rubros (para dropdowns)
+ * Catálogo de rubros (para dropdowns). Delega en /catalogos/rubros (STAB-8).
  */
 export const fetchRubros = async (): Promise<CatalogResponse> => {
-  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/rubros");
-  return data;
+  const items = await fetchRubrosCatalogo();
+  return { items };
 };
 
 /**

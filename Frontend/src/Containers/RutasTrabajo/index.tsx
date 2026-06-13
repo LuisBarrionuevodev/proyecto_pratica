@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Paper, Snackbar } from "@mui/material";
-import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
+import type { CatalogItem } from "../../api/gridApi";
+import { fetchInspectoresCatalogItemsCached } from "../../utils/inspectoresCatalogCache";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx } from "../../styles/GlassStyles";
 import {
   assignRutaItems,
@@ -246,8 +247,8 @@ const RutasTrabajo = () => {
   useEffect(() => {
     const loadInspectores = async () => {
       try {
-        const resp = await fetchInspectores();
-        setInspectoresCatalogo(resp.items ?? []);
+        const items = await fetchInspectoresCatalogItemsCached();
+        setInspectoresCatalogo(items);
       } catch {
         setInspectoresCatalogo([]);
       }

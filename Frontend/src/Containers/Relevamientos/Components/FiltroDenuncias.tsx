@@ -1,8 +1,7 @@
 import { Box, Typography } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
-import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import {
   filtroButtonPrimaryStyles,
@@ -15,19 +14,18 @@ import {
 } from "../../Actuaciones/styles/filtroStyles";
 
 interface FiltroDenunciasProps {
-  /** En pendientes solo aplica rango (API gestion-operativa). En realizados, estado filtra vía gestion. */
   variant?: "pendientes" | "realizados";
   onFiltrar: (filters: {
     desde: string | null;
     hasta: string | null;
     estado: "all" | "hechas" | "no_hechas";
   }) => void;
+  onLimpiarLista?: () => void;
 }
 
-const FiltroDenuncias = ({ variant = "pendientes", onFiltrar }: FiltroDenunciasProps) => {
-  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
-  const [desde, setDesde] = useState<string>(defaultRange.desde);
-  const [hasta, setHasta] = useState<string>(defaultRange.hasta);
+const FiltroDenuncias = ({ variant = "pendientes", onFiltrar, onLimpiarLista }: FiltroDenunciasProps) => {
+  const [desde, setDesde] = useState<string>("");
+  const [hasta, setHasta] = useState<string>("");
   const [estado, setEstado] = useState<"all" | "hechas" | "no_hechas">("all");
 
   const handleFiltrar = () => {
@@ -39,15 +37,10 @@ const FiltroDenuncias = ({ variant = "pendientes", onFiltrar }: FiltroDenunciasP
   };
 
   const handleLimpiar = () => {
-    const range = getCurrentMonthRange();
-    setDesde(range.desde);
-    setHasta(range.hasta);
+    setDesde("");
+    setHasta("");
     setEstado("all");
-    onFiltrar({
-      desde: range.desde,
-      hasta: range.hasta,
-      estado: "all",
-    });
+    onLimpiarLista?.();
   };
 
   return (

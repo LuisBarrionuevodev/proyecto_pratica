@@ -15,7 +15,8 @@ import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from
 
 const RelevamientosContainer = (): JSX.Element => {
   const [slice, setSlice] = useState<RelevamientosBandejaSlice>("pendientes");
-  const { relevamientos, meta, loading, error, hasSearched, buscar } = useRelevamientosBandeja(slice);
+  const { relevamientos, meta, loading, error, hasSearched, buscar, limpiarLista } =
+    useRelevamientosBandeja(slice);
 
   const handleFiltrar = useCallback(
     (filtros: {
@@ -53,7 +54,7 @@ const RelevamientosContainer = (): JSX.Element => {
 
   return (
     <Box sx={moduleContentColumnSx}>
-      <FiltroRelevamientos onFiltrar={handleFiltrar} />
+      <FiltroRelevamientos onFiltrar={handleFiltrar} onLimpiarLista={limpiarLista} />
 
       <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
         <Tabs

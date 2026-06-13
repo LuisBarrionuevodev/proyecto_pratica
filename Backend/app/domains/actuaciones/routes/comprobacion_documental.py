@@ -13,6 +13,7 @@ from app.domains.actuaciones.schemas.comprobacion_documental_in import (
     ComprobacionExpedienteEnvioPatchIn,
     ComprobacionOficioBloquePatchIn,
 )
+from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.services.comprobacion_documental_service import (
     delete_comprobacion_expediente_envio,
     delete_comprobacion_oficio_bloque,
@@ -58,8 +59,7 @@ def patch_comprobacion_expediente_envio(actuacion_id: int, expediente_id: int):
     try:
         body = ComprobacionExpedienteEnvioPatchIn.model_validate(data)
     except ValidationError as e:
-        err = e.errors()[0] if e.errors() else {}
-        return jsonify({"detail": str(err.get("msg", "Datos inválidos"))}), 422
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     try:
         out = update_comprobacion_expediente_envio(
             actuacion_id,
@@ -110,8 +110,7 @@ def patch_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int):
     try:
         body = ComprobacionOficioBloquePatchIn.model_validate(data)
     except ValidationError as e:
-        err = e.errors()[0] if e.errors() else {}
-        return jsonify({"detail": str(err.get("msg", "Datos inválidos"))}), 422
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     try:
         out = update_comprobacion_oficio_bloque(
             actuacion_id,

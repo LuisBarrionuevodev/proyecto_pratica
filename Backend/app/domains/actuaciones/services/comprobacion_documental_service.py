@@ -412,7 +412,7 @@ def update_comprobacion_oficio_bloque(
         numero_oficio: número de oficio (texto).
         fecha_oficio: fecha del oficio; el año contable del oficio se alinea con ``fecha_oficio.year``.
         juzgado_id: FK a catálogo de juzgados.
-        causa: texto opcional (unicidad por año si no nula).
+        causa: texto opcional (puede repetirse entre oficios del mismo año).
         numero_expediente_respuesta: número del expediente de respuesta (``acta_6``).
         fecha_expediente_respuesta: fecha del expediente de respuesta; debe coincidir con ``fecha_oficio``
             (si difiere, el servicio la fuerza a ``fecha_oficio``).
@@ -454,15 +454,6 @@ def update_comprobacion_oficio_bloque(
     causa_n = str(causa).strip() if causa is not None else None
     if causa_n == "":
         causa_n = None
-    if causa_n is not None:
-        dup_causa = (
-            Oficio.query.filter(Oficio.causa == causa_n, Oficio.anio == anio_ofi)
-            .filter(Oficio.id != ofi.id)
-            .filter(Oficio.deleted_at.is_(None))
-            .first()
-        )
-        if dup_causa:
-            raise ValueError(f'La causa "{causa_n}" ya existe para el año {anio_ofi}.')
 
     num_ex = acta_6(numero_expediente_respuesta)
     if not num_ex:

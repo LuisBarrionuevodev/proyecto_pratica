@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import { Alert, Box, Stack, Typography } from "@mui/material";
 import {
   MaterialReactTable,
@@ -10,10 +11,13 @@ import {
   type MRT_Updater,
 } from "material-react-table";
 
-import { AppButton, AppTextField } from "../../ui";
+import { AppButton, AppSelect, AppTextField } from "../../ui";
+import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
+import { fetchRubrosCatalogoCached } from "../../utils/rubrosCatalogCache";
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import {
   filtroButtonPrimaryStyles,
+  filtroButtonSecondaryStyles,
   filtroButtonsStyles,
   filtroContainerStyles,
   filtroGridStyles,
@@ -195,6 +199,43 @@ export default function EstablecimientosListPage() {
   const [calle, setCalle] = useState("");
   const [distritoId, setDistritoId] = useState("");
   const [rubroId, setRubroId] = useState("");
+  const [distritosCatalogo, setDistritosCatalogo] = useState<{ id: number; nombre: string }[]>([]);
+  const [rubrosCatalogo, setRubrosCatalogo] = useState<{ id: number; nombre: string }[]>([]);
+
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const [distritosRes, rubrosItems] = await Promise.all([
+          fetchDistritosCatalogo(),
+          fetchRubrosCatalogoCached(),
+        ]);
+        setDistritosCatalogo(distritosRes.items ?? []);
+        setRubrosCatalogo(
+          rubrosItems.map((r) => ({ id: r.id, nombre: r.nombre })).filter((r) => r.nombre.trim())
+        );
+      } catch {
+        setDistritosCatalogo([]);
+        setRubrosCatalogo([]);
+      }
+    };
+    void loadCatalogs();
+  }, []);
+
+  const distritoOptions = useMemo(
+    () => [
+      { value: "", label: "Todos los distritos" },
+      ...distritosCatalogo.map((d) => ({ value: String(d.id), label: d.nombre })),
+    ],
+    [distritosCatalogo]
+  );
+
+  const rubroOptions = useMemo(
+    () => [
+      { value: "", label: "Todos los rubros" },
+      ...rubrosCatalogo.map((r) => ({ value: String(r.id), label: r.nombre })),
+    ],
+    [rubrosCatalogo]
+  );
 
   const [applied, setApplied] = useState({
     contrib: "",
@@ -251,6 +292,18 @@ export default function EstablecimientosListPage() {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [contrib, calle, distritoId, rubroId]);
 
+  const onLimpiar = useCallback(() => {
+    setContrib("");
+    setCalle("");
+    setDistritoId("");
+    setRubroId("");
+    setFiltroAplicado(false);
+    setRows([]);
+    setTotal(0);
+    setError(null);
+    setPagination({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
+  }, []);
+
   return (
     <Stack spacing={FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING} sx={{ width: "100%", maxWidth: "100%" }}>
       {error ? (
@@ -284,31 +337,38 @@ export default function EstablecimientosListPage() {
             />
           </Box>
           <Box sx={filtroItemStyles}>
-            <AppTextField
+            <AppSelect
               appearance="dense"
               fullWidth
-              label="ID distrito"
-              placeholder="Opcional"
+              label="Distrito"
               value={distritoId}
               onChange={(e) => setDistritoId(e.target.value)}
               variant="outlined"
-              inputProps={{ inputMode: "numeric" }}
+              options={distritoOptions}
             />
           </Box>
           <Box sx={filtroItemStyles}>
-            <AppTextField
+            <AppSelect
               appearance="dense"
               fullWidth
-              label="ID rubro"
-              placeholder="Opcional"
+              label="Rubro"
               value={rubroId}
               onChange={(e) => setRubroId(e.target.value)}
               variant="outlined"
-              inputProps={{ inputMode: "numeric" }}
+              options={rubroOptions}
             />
           </Box>
         </Box>
         <Box sx={filtroButtonsStyles}>
+          <AppButton
+            dsVariant="ghost"
+            dsSize="sm"
+            startIcon={<ClearIcon sx={{ fontSize: 18 }} />}
+            onClick={onLimpiar}
+            sx={filtroButtonSecondaryStyles}
+          >
+            Limpiar
+          </AppButton>
           <AppButton
             dsVariant="primary"
             dsSize="sm"

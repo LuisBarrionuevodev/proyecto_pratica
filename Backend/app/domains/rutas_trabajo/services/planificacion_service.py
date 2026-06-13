@@ -14,6 +14,7 @@ from app.domains.rutas_trabajo.services.iniciadores_pendientes_service import (
     get_iniciadores_pendientes_para_ruta,
     planificable_iniciadores_base_query,
 )
+from app.domains.rutas_trabajo.utils.urgentes_filtros import apply_urgentes_filtros
 
 # Desglose "Oficios urgentes" en cards: tipos derivados de oficio (no incluye notificación).
 TIPOS_OFICIO_METRICA: tuple[str, ...] = (
@@ -113,6 +114,10 @@ def get_planificacion_urgentes(
     page: int,
     per_page: int,
     distrito_id: int | None = None,
+    tipo_urgente: str | None = None,
+    q: str | None = None,
+    numero_oficio: str | None = None,
+    numero_comprobacion: str | None = None,
 ) -> tuple[list, int]:
     """
     M3: bandeja urgentes — elegible_urgente (tipo != RELEVAMIENTO y prioridad >= 3).
@@ -125,15 +130,22 @@ def get_planificacion_urgentes(
         (lista IniciadorRuta, total)
     """
     assert_ruta_borrador_para_planificacion(ruta_id)
-    q = planificable_iniciadores_base_query().filter(
+    query = planificable_iniciadores_base_query().filter(
         IniciadorRuta.tipo_iniciador != "RELEVAMIENTO",
         IniciadorRuta.prioridad >= 3,
     )
     if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
-    total = q.count()
+        query = query.filter(Domicilio.distrito_id == distrito_id)
+    query = apply_urgentes_filtros(
+        query,
+        tipo_urgente=tipo_urgente,
+        q=q,
+        numero_oficio=numero_oficio,
+        numero_comprobacion=numero_comprobacion,
+    )
+    total = query.count()
     items = (
-        q.order_by(
+        query.order_by(
             IniciadorRuta.prioridad.desc(),
             IniciadorRuta.fecha_origen.asc(),
             IniciadorRuta.id.asc(),

@@ -18,7 +18,9 @@ import {
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
 } from "../../Actuaciones/Components/bandejaTableCells";
 import { COLORS, DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
+import { wrapperStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton, ConfirmDialog } from "../../../ui";
+import FiltroUsuarios, { type UsuariosFiltroAplicado } from "./FiltroUsuarios";
 
 type UsuarioSlice = "activos" | "inactivos";
 
@@ -55,6 +57,10 @@ const TableGestionDeUsuarios = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [appliedFiltros, setAppliedFiltros] = useState<UsuariosFiltroAplicado>({
+    texto: "",
+    rol: "",
+  });
 
   const fetchUsuarios = useCallback(async (estado: UsuarioSlice) => {
     try {
@@ -73,6 +79,19 @@ const TableGestionDeUsuarios = () => {
   useEffect(() => {
     void fetchUsuarios(slice);
   }, [slice, fetchUsuarios]);
+
+  const filteredData = useMemo(() => {
+    const q = appliedFiltros.texto.trim().toLowerCase();
+    return data.filter((u) => {
+      if (appliedFiltros.rol && u.role !== appliedFiltros.rol) return false;
+      if (!q) return true;
+      return (
+        u.username.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        String(u.role).toLowerCase().includes(q)
+      );
+    });
+  }, [data, appliedFiltros]);
 
   const handleInactivar = async (id: number) => {
     try {
@@ -311,10 +330,9 @@ const TableGestionDeUsuarios = () => {
     ...DARK_TABLE_CONFIG,
     ...BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
     columns,
-    data,
+    data: filteredData,
     enableColumnFilters: false,
-    enableRowSelection: false,
-    positionGlobalFilter: "right",
+    enableGlobalFilter: false,
     enableEditing: isActivosSlice,
     createDisplayMode: "modal",
     editDisplayMode: "modal",
@@ -420,20 +438,13 @@ const TableGestionDeUsuarios = () => {
 
   return (
     <>
-      <Box
-        sx={{
-          m: { xs: 1, sm: 0 },
-          minHeight: "90vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "flex-start",
-          flexDirection: "column",
-          gap: 2,
-          width: "100%",
-        }}
-      >
-        <Box width={{ xs: "100%", sm: 600, md: 1200 }} sx={{ maxWidth: "100%" }}>
-          <Paper elevation={0} sx={{ ...moduleSlicesPanelPaperSx, mb: 2 }}>
+      <Box sx={wrapperStyles}>
+        <FiltroUsuarios
+          onFiltrar={setAppliedFiltros}
+          onLimpiar={() => setAppliedFiltros({ texto: "", rol: "" })}
+        />
+
+        <Paper elevation={0} sx={{ ...moduleSlicesPanelPaperSx, mb: 2 }}>
             <Tabs
               value={tabIndex}
               onChange={(_, v) => setSlice(v === 0 ? "activos" : "inactivos")}
@@ -455,7 +466,6 @@ const TableGestionDeUsuarios = () => {
           <DataTableMrtShell loading={loading} loadingMode="progress">
             <MaterialReactTable table={table} />
           </DataTableMrtShell>
-        </Box>
 
         <Box
           sx={{
@@ -464,7 +474,7 @@ const TableGestionDeUsuarios = () => {
             border: "1px solid #2c2f36",
             p: 3,
             mb: 3,
-            width: { xs: "100%", sm: 600, md: 1200 },
+            width: "100%",
             maxWidth: "100%",
           }}
         >

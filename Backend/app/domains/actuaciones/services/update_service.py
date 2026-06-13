@@ -16,7 +16,7 @@ from app.domains.actuaciones.attach.decomiso import attach_decomiso
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
-from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
+from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
@@ -129,17 +129,23 @@ def aplicar_payload_actuacion(
 
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
         allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
-        dom = get_or_create_domicilio(
-            payload.get("domicilio"),
-            contrib,
-            rubro,
+        dom_payload = payload.get("domicilio") or {}
+        modo_domicilio = payload.get("modo_domicilio")
+        outcome = aplicar_edicion_domicilio_operativo(
+            domicilio_id_actual=act.domicilio_id,
+            cambios=dom_payload,
+            contribuyente=contrib,
+            rubro=rubro,
+            contexto="ACTUACION",
+            origen_id=int(act.id) if getattr(act, "id", None) else 0,
+            modo_explicito=payload.get("modo_domicilio"),
             allow_missing_catalogs=allow_missing_catalogs,
         )
+        dom = outcome.domicilio
         act.domicilio_id = dom.id if dom else None
         if dom:
-            numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
+            numero_tipo_override = dom_payload.get("numero_tipo")
             normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
-        # Alinear relación cargada con el FK (evita que `act.domicilio` viejo sombra `domicilio_id` al flush).
         act.domicilio = dom
 
     # Inspectores
@@ -246,6 +252,9 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         )
         if prop_outcome.actualizados > 0:
             db.session.commit()
+    elif act.domicilio_id and old_domicilio_id == act.domicilio_id:
+        # STAB-7: corrección in-place — iniciadores ya apuntan al mismo id; datos actualizados en fila.
+        pass
 
     # Garbage collector post-update:
     # - si cambió el domicilio, intentar soft-delete del domicilio viejo si quedó huérfano.

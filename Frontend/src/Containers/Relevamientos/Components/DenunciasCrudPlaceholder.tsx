@@ -15,7 +15,7 @@ import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from
 
 const DenunciasCrudPlaceholder = () => {
   const [slice, setSlice] = useState<DenunciasBandejaSlice>("pendientes");
-  const { denuncias, meta, loading, error, hasSearched, buscar } = useDenunciasBandeja(slice);
+  const { denuncias, meta, loading, error, hasSearched, buscar, limpiarLista } = useDenunciasBandeja(slice);
   const lastEstadoRealizados = useRef<"all" | "hechas" | "no_hechas">("all");
 
   const handleFiltrar = useCallback(
@@ -47,7 +47,11 @@ const DenunciasCrudPlaceholder = () => {
 
   return (
     <Box sx={moduleContentColumnSx}>
-      <FiltroDenuncias variant={slice === "pendientes" ? "pendientes" : "realizados"} onFiltrar={handleFiltrar} />
+      <FiltroDenuncias
+        variant={slice === "pendientes" ? "pendientes" : "realizados"}
+        onFiltrar={handleFiltrar}
+        onLimpiarLista={limpiarLista}
+      />
 
       <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
         <Tabs

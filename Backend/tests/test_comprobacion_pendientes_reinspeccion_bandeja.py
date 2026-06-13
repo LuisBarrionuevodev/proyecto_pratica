@@ -319,8 +319,44 @@ def test_pendiente_reinspeccion_incluye_con_iniciador_sin_item_en_ruta(app, clie
     assert row.get("tipo_iniciador") == "REINSPECCION_OFICIO"
 
 
-def test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_activa(app, client, auth_headers) -> None:
-    for estado in ("BORRADOR", "PUBLICADA", "EN_CURSO"):
+def test_pendiente_reinspeccion_incluye_con_ruta_borrador(app, client, auth_headers) -> None:
+    """STAB-3: ruta BORRADOR no oculta la fila (oficio sigue accionable)."""
+    aid: int | None = None
+    with app.app_context():
+        try:
+            aid, _, _ = _mk_circuito_completo()
+            act = Actuaciones.query.get(aid)
+            assert act is not None
+            u = _mk_user()
+            db.session.flush()
+            ini = IniciadorRuta(
+                tipo_iniciador="REINSPECCION_OFICIO",
+                estado_iniciador="PENDIENTE",
+                fecha_origen=date(2026, 3, 20),
+                anio=2026,
+                mes=3,
+                domicilio_id=act.domicilio_id,
+                actuacion_id=act.id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.flush()
+            _mk_ruta_item_reinspeccion_oficio(act, ini, u, estado_ruta="BORRADOR")
+            db.session.commit()
+        finally:
+            db.session.rollback()
+    assert aid is not None
+    resp = client.get(
+        "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    ids = {x["id"] for x in resp.get_json()["items"]}
+    assert aid in ids
+
+
+def test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_operativa(app, client, auth_headers) -> None:
+    for estado in ("PUBLICADA", "EN_CURSO"):
         aid: int | None = None
         with app.app_context():
             try:

@@ -26,6 +26,7 @@ import {
   esCorrectivaRubroContraproducencia,
   esNoPermiteInspeccionContraproducencia,
 } from "../utils/completarTrabajoContraproducencia";
+import { filtrarContraproducenciasPorTipoIniciador } from "../utils/contraproducenciasPorTipoIniciador";
 import { getContraproducenciaUxHint } from "../utils/contraproducenciaUxHint";
 import {
   applyCompletarTrabajoFieldErrorsFromApi,
@@ -340,12 +341,21 @@ export function CompletarTrabajoModal({
     [titularModo, clearFe]
   );
 
+  const contraCatalogFiltrado = useMemo(
+    () =>
+      filtrarContraproducenciasPorTipoIniciador(
+        cat.contraproducencias ?? [],
+        resolvedRow?.tipo_iniciador,
+        resolvedRow?.contraproducencia
+      ),
+    [cat.contraproducencias, resolvedRow?.tipo_iniciador, resolvedRow?.contraproducencia]
+  );
   const contraOpts = useMemo(
     () => [
       { value: "", label: "Sin contraproducencia (visita realizada)" },
-      ...mergeCatalogOpts(cat.contraproducencias, resolvedRow?.contraproducencia).filter((o) => o.value !== ""),
+      ...mergeCatalogOpts(contraCatalogFiltrado, resolvedRow?.contraproducencia).filter((o) => o.value !== ""),
     ],
-    [cat.contraproducencias, resolvedRow?.contraproducencia]
+    [contraCatalogFiltrado, resolvedRow?.contraproducencia]
   );
   const motivosNotifCatalogSorted = useMemo(
     () => mergeMotivosNotifCatalogStrings(cat.motivos ?? [], notifMotivosSeleccion),
@@ -417,6 +427,9 @@ export function CompletarTrabajoModal({
     }
 
     const preSubmitErrors: Record<string, string> = {};
+    if (!visitaRealizada && !contraproducencia.trim()) {
+      preSubmitErrors.contraproducencia = "Elegí una contraproducencia para visita no realizada.";
+    }
     if (visitaRealizada && actaComprobacion.trim() && !comprobacionMotivo.trim()) {
       preSubmitErrors.comprobacion_motivo =
         "Si cargás acta de comprobación, elegí un motivo de comprobación.";

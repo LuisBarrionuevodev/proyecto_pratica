@@ -98,6 +98,8 @@ class ActuacionesListFilters(BaseModel):
     tipo: Optional[str] = None
     contraproducencia: Optional[str] = None
     orden_trabajo: Optional[str] = None
+    actuacion_id: Optional[int] = None
+    q: Optional[str] = None
     page: int = 1
     page_size: int = 50
 
@@ -127,6 +129,25 @@ class ActuacionesListFilters(BaseModel):
             CatalogContraproducencia,
             "contraproducencia",
         )
+
+    @field_validator("actuacion_id")
+    @classmethod
+    def validate_actuacion_id(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return None
+        if int(v) < 1:
+            raise ValueError("actuacion_id debe ser >= 1")
+        return int(v)
+
+    @field_validator("q")
+    @classmethod
+    def validate_q(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        s = str(v).strip()
+        if len(s) < 2:
+            raise ValueError("q debe tener al menos 2 caracteres")
+        return s
 
     @field_validator("page")
     @classmethod
@@ -159,13 +180,14 @@ class ActuacionesListFilters(BaseModel):
         Los filtros son independientes: se puede buscar solo por tipo, contraproducencia u orden_trabajo
         sin necesidad de especificar fechas.
         """
-        # Si solo desde está presente, hasta = hoy
-        if self.desde is not None and self.hasta is None:
-            self.hasta = date.today()
-        
-        # Si solo hasta está presente, desde = primer día del mes de hasta
-        elif self.desde is None and self.hasta is not None:
-            self.desde = date(self.hasta.year, self.hasta.month, 1)
+        busqueda_global = bool(self.q or self.orden_trabajo or self.actuacion_id)
+
+        # STAB-6: búsqueda por OT / id / texto no fuerza rango de fechas
+        if not busqueda_global:
+            if self.desde is not None and self.hasta is None:
+                self.hasta = date.today()
+            elif self.desde is None and self.hasta is not None:
+                self.desde = date(self.hasta.year, self.hasta.month, 1)
         
         # Validar que desde <= hasta (solo si ambos están presentes)
         if self.desde and self.hasta and self.desde > self.hasta:

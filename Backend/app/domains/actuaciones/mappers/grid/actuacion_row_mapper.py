@@ -56,11 +56,13 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         "orden_trabajo_numero": _zfill6_if_digit(_clean_str(row.orden_trabajo_numero)),
         "fecha_actuacion": fecha_iso,
         "tipo_actuacion": _enum_value(row.tipo_actuacion),
-        "contraproducencia": _enum_value(row.contraproducencia),
         "rubro_nombre": _clean_str(row.rubro_nombre),
         "nombre_local": _clean_str(row.nombre_local),
         "inspectores": inspectores_payload,
     }
+    contra = _enum_value(row.contraproducencia)
+    if contra is not None:
+        payload["contraproducencia"] = contra
 
     # Domicilio
     if row.calle or row.numero:

@@ -18,11 +18,14 @@ import {
     type GridRow,
     fetchInspectores,
     fetchMotivos,
-    fetchRubros,
     fetchTiposActuacion,
     fetchContraproducencias,
     fetchMotivosComprobacion,
 } from "../../../api/gridApi";
+import {
+    fetchRubrosCatalogoCached,
+    rubroItemsToNombres,
+} from "../../../utils/rubrosCatalogCache";
 
 // Imports modulares
 import {
@@ -147,10 +150,10 @@ const TablaCargarActuacionesGlideStyled = ({
     useEffect(() => {
         const loadCatalogs = async () => {
             try {
-                const [inspectoresResp, motivosResp, rubrosResp, tiposResp, contrasResp, motivosCompResp] = await Promise.all([
+                const [inspectoresResp, motivosResp, rubrosItems, tiposResp, contrasResp, motivosCompResp] = await Promise.all([
                     fetchInspectores(),
                     fetchMotivos(),
-                    fetchRubros(),
+                    fetchRubrosCatalogoCached(),
                     fetchTiposActuacion(),
                     fetchContraproducencias(),
                     fetchMotivosComprobacion(),
@@ -158,7 +161,7 @@ const TablaCargarActuacionesGlideStyled = ({
                 // Deduplicar catálogos para evitar nombres repetidos
                 setCatalogInspectores([...new Set(inspectoresResp.items.map((i) => i.nombre))]);
                 setCatalogMotivos([...new Set(motivosResp.items.map((m) => m.nombre))]);
-                setCatalogRubros([...new Set(rubrosResp.items.map((r) => r.nombre))]);
+                setCatalogRubros(rubroItemsToNombres(rubrosItems));
                 setCatalogTipos([...new Set(tiposResp.items.map((t) => t.nombre))]);
                 setCatalogContras([...new Set(contrasResp.items.map((c) => c.nombre))]);
                 setCatalogMotivosComprobacion([...new Set(motivosCompResp.items.map((m) => m.nombre))]);

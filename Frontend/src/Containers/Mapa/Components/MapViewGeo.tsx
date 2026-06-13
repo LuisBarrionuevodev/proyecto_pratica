@@ -23,7 +23,8 @@ import {
 import distritosGeo from "../distritos.json";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
-import { fetchRubros, fetchTiposActuacion } from "../../../api/gridApi";
+import { fetchTiposActuacion } from "../../../api/gridApi";
+import { fetchRubrosCatalogoCached } from "../../../utils/rubrosCatalogCache";
 import {
   getMapPointsV2,
   getMapHeatmap,
@@ -79,12 +80,12 @@ export default function MapViewGeo() {
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [tiposResp, rubrosResp] = await Promise.all([
+        const [tiposResp, rubrosItems] = await Promise.all([
           fetchTiposActuacion(),
-          fetchRubros(),
+          fetchRubrosCatalogoCached(),
         ]);
         setTipos(tiposResp.items.map((t: any) => t.nombre));
-        setRubros(rubrosResp.items.map((r: any) => ({ id: r.id, nombre: r.nombre })));
+        setRubros(rubrosItems.map((r) => ({ id: r.id, nombre: r.nombre })));
       } catch (err) {
         console.error(err);
       }

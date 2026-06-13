@@ -50,7 +50,8 @@ class Oficio(db.Model):
         back_populates="oficio",
         foreign_keys="Expediente.oficio_id",
     )
-    # Unicidades (numero_oficio, anio) y (causa, anio) solo para filas activas: migración ``d4e5f6a7b8c1``.
+    # Unicidad (numero_oficio, anio) solo para filas activas (soft delete).
+    # La causa no es única: varios oficios pueden compartir la misma causa en un año (STAB-2).
 
     def to_dict(self, include_relations=False):
         data = {

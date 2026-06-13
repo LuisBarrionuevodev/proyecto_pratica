@@ -51,9 +51,18 @@ export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
             const response = await getActuacionesFiltered(merged);
             setActuaciones(response.items);
             setMeta(response.meta);
-            if (filters?.orden_trabajo && response.items.length === 0 && response.meta.total === 0) {
+            const globalLookup = Boolean(
+                filters?.orden_trabajo || filters?.actuacion_id || filters?.q
+            );
+            if (
+                filters?.orden_trabajo &&
+                response.items.length === 0 &&
+                response.meta.total === 0
+            ) {
                 setError(
-                    `Sin actuaciones para la OT ${filters.orden_trabajo} con el rango y filtros actuales. Ampliá fechas o quitá otros filtros.`
+                    globalLookup
+                        ? `Sin actuaciones para la OT ${filters.orden_trabajo}.`
+                        : `Sin actuaciones para la OT ${filters.orden_trabajo} con el rango y filtros actuales. Ampliá fechas o quitá otros filtros.`
                 );
             }
         } catch (err: any) {

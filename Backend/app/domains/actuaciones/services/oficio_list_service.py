@@ -87,6 +87,9 @@ def oficio_comprobacion_item_payload(oficio: Oficio) -> dict[str, Any]:
         "estado_ejecucion",
         "editable",
         "bloqueado_motivo",
+        "en_ruta_borrador",
+        "estado_operativo",
+        "acciones_permitidas",
     ):
         if policy.get(key) is not None:
             data[key] = policy[key]

@@ -153,6 +153,83 @@ def test_oficio_en_ruta_publicada_no_editable(app_ctx) -> None:
     assert policy["ruta_estado"] == "PUBLICADA"
 
 
+def _mk_ruta_item(act: Actuaciones, ini: IniciadorRuta, u: User, *, estado_ruta: str) -> None:
+    ruta = RutaTrabajo(
+        fecha=date(2026, 6, 15),
+        turno="TARDE",
+        estado_ruta=estado_ruta,
+        created_by_user_id=u.id,
+        numero=random.randint(2, 32000),
+    )
+    db.session.add(ruta)
+    db.session.flush()
+    db.session.add(
+        RutaItem(
+            ruta_trabajo_id=ruta.id,
+            iniciador_ruta_id=ini.id,
+            orden_trabajo_id=act.orden_trabajo_id,
+            estado_ruta_item="PENDIENTE_ASIGNACION",
+            actuacion_id=act.id,
+            created_by_user_id=u.id,
+        )
+    )
+
+
+def test_oficio_en_ruta_borrador_editable_y_visible_bandeja(app_ctx) -> None:
+    act, jz = _circuito_con_envio()
+    u = _mk_user()
+    db.session.commit()
+    r = complete_oficio_from_actuacion(
+        act.id,
+        _payload_oficio(jz.id, numero=f"O{_unique_num()[:4]}", fecha=date(2026, 4, 1), num_exp=_unique_num()[:6]),
+    )
+    _mk_ruta_item(act, r["iniciador_ruta"], u, estado_ruta="BORRADOR")
+    db.session.commit()
+
+    policy = evaluar_editable_oficio(r["oficio"].id)
+    assert policy["editable"] is True
+    assert policy["en_ruta_borrador"] is True
+    assert policy["estado_operativo"] == "ruta_borrador"
+    assert "editar_oficio" in policy["acciones_permitidas"]
+
+    filas = list_pendientes_reinspeccion_oficio_filas(
+        ActuacionesPendientesFilters(omitir_rango_fecha=True)
+    )
+    assert any(f[1].id == r["oficio"].id for f in filas if f[0].id == act.id)
+
+
+def test_oficio_en_ruta_en_curso_no_editable(app_ctx) -> None:
+    act, jz = _circuito_con_envio()
+    u = _mk_user()
+    db.session.commit()
+    r = complete_oficio_from_actuacion(
+        act.id,
+        _payload_oficio(jz.id, numero=f"O{_unique_num()[:4]}", fecha=date(2026, 4, 1), num_exp=_unique_num()[:6]),
+    )
+    _mk_ruta_item(act, r["iniciador_ruta"], u, estado_ruta="EN_CURSO")
+    db.session.commit()
+
+    policy = evaluar_editable_oficio(r["oficio"].id)
+    assert policy["editable"] is False
+    assert policy["ruta_estado"] == "EN_CURSO"
+
+
+def test_oficio_en_ruta_cerrada_no_editable(app_ctx) -> None:
+    act, jz = _circuito_con_envio()
+    u = _mk_user()
+    db.session.commit()
+    r = complete_oficio_from_actuacion(
+        act.id,
+        _payload_oficio(jz.id, numero=f"O{_unique_num()[:4]}", fecha=date(2026, 4, 1), num_exp=_unique_num()[:6]),
+    )
+    _mk_ruta_item(act, r["iniciador_ruta"], u, estado_ruta="CERRADA")
+    db.session.commit()
+
+    policy = evaluar_editable_oficio(r["oficio"].id)
+    assert policy["editable"] is False
+    assert policy["ruta_estado"] == "CERRADA"
+
+
 def test_dos_oficios_dos_filas_bandeja_si_uno_en_ruta(app_ctx) -> None:
     act, jz = _circuito_con_envio()
     u = _mk_user()

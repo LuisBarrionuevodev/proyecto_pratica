@@ -84,6 +84,8 @@ const ActuacionesContainer = (): JSX.Element => {
       tipo: string | null;
       contraproducencia: string | null;
       orden_trabajo: string | null;
+      actuacion_id?: number | null;
+      q?: string | null;
     }) => {
       void buscar(filtros);
     },
@@ -103,22 +105,14 @@ const ActuacionesContainer = (): JSX.Element => {
         tipo: meta.tipo,
         contraproducencia: meta.contraproducencia,
         orden_trabajo: meta.orden_trabajo,
+        actuacion_id: meta.actuacion_id ?? null,
+        q: meta.q ?? null,
         page,
         page_size: pageSize,
       });
     },
     [buscar, meta]
   );
-
-  useEffect(() => {
-    void buscar({
-      desde: defaultRange.desde,
-      hasta: defaultRange.hasta,
-      tipo: null,
-      contraproducencia: null,
-      orden_trabajo: null,
-    });
-  }, [buscar, defaultRange.desde, defaultRange.hasta]);
 
   useEffect(() => {
     getActuacionesPendientesSummary(pendientesDesde, pendientesHasta)
@@ -286,8 +280,8 @@ const ActuacionesContainer = (): JSX.Element => {
         <>
             <FiltroFechas
               onFiltrar={handleFiltrarTodos}
-              initialDesde={defaultRange.desde}
-              initialHasta={defaultRange.hasta}
+              initialDesde=""
+              initialHasta=""
               onLimpiarLista={limpiarLista}
             />
 
@@ -297,7 +291,7 @@ const ActuacionesContainer = (): JSX.Element => {
               </Alert>
             )}
 
-            {loading && meta === null && (
+            {loading && hasSearched && meta === null && (
               <Box
                 sx={{
                   display: "flex",
@@ -308,6 +302,31 @@ const ActuacionesContainer = (): JSX.Element => {
                 }}
               >
                 <CircularProgress sx={{ color: "#0166FF" }} />
+              </Box>
+            )}
+
+            {!hasSearched && !loading && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: 200,
+                  width: "100%",
+                  px: 2,
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: "rgba(255,255,255,0.65)",
+                    fontFamily: '"Tactic Sans", sans-serif',
+                    textAlign: "center",
+                    maxWidth: 480,
+                  }}
+                >
+                  Usá los filtros para buscar actuaciones. Podés combinar rango de fechas, OT, tipo o
+                  búsqueda global sin depender del mes actual.
+                </Typography>
               </Box>
             )}
 

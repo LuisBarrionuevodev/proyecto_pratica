@@ -25,6 +25,11 @@ export type PlanificacionFiltrosLista = {
   orden: PlanificacionOrdenM4;
 };
 
+export type UrgentesFiltrosAplicados = {
+  tipo_urgente: "" | "DENUNCIA" | "NOTIFICACION" | "OFICIO";
+  q: string;
+};
+
 export interface IPlanificacionMetricas {
   total: number;
   alta: number;

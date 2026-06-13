@@ -21,10 +21,10 @@ from app.domains.grid.services.validate_service import GridValidateService
 from app.domains.geolocalizacion.geocode.services.pipeline_service import (
     pipeline_post_commit,
 )
+from app.domains.catalogos.services.rubros_catalog_service import listar_rubros_catalogo
 from app.models import (
     Inspector,
     Motivo,
-    Rubro,
     CatalogTipoActuacion,
     CatalogContraproducencia,
     CatalogMotivoComprobacion,
@@ -251,16 +251,11 @@ def list_motivos_comprobacion():
 @grid.get("/catalogs/rubros")
 def list_rubros():
     """
-    Devuelve catálogo de rubros para dropdowns del grid.
+    Devuelve catálogo de rubros para dropdowns del grid (delega en servicio STAB-8).
 
-    Response: [{"id": int, "nombre": str}]
+    Response: {"items": [{"id": int, "nombre": str, "activo": bool}]}
     """
-    # Orden por nombre para UX consistente en frontend
-    return _fetch_catalog(
-        "rubros",
-        lambda: Rubro.query.order_by(Rubro.nombre.asc()).all(),
-        lambda r: {"id": r.id, "nombre": r.nombre},
-    )
+    return jsonify({"items": listar_rubros_catalogo()}), 200
 
 
 @grid.get("/catalogs/juzgados")

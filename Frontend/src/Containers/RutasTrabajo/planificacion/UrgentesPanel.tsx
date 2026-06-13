@@ -4,6 +4,8 @@ import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
 import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
+import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
+import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 import {
   planificacionPanelFooterMetaSx,
   planificacionPanelTitleSx,
@@ -23,6 +25,8 @@ export type UrgentesPanelProps = {
   ocultosPorPoolEnPagina?: number;
   /** Mismo flujo que pendientes del contexto: mapa interno + distrito si hace falta. */
   onVerEnMapa?: (row: IRutaIniciadorPendienteRow) => void;
+  onFiltrar?: (filtros: UrgentesFiltrosAplicados) => void;
+  onLimpiarFiltros?: () => void;
 };
 
 /**
@@ -38,6 +42,8 @@ export function UrgentesPanel({
   onPageChange,
   ocultosPorPoolEnPagina = 0,
   onVerEnMapa,
+  onFiltrar,
+  onLimpiarFiltros,
 }: UrgentesPanelProps) {
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.perPage) || 1);
   const poolHidden = ocultosPorPoolEnPagina > 0;
@@ -62,6 +68,11 @@ export function UrgentesPanel({
     >
       <Box sx={{ flexShrink: 0 }}>
         <Typography sx={planificacionPanelTitleSx}>Urgentes</Typography>
+        {onFiltrar && onLimpiarFiltros ? (
+          <Box sx={{ mt: 1 }}>
+            <UrgentesFiltroPanel onFiltrar={onFiltrar} onLimpiar={onLimpiarFiltros} loading={loading} />
+          </Box>
+        ) : null}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>

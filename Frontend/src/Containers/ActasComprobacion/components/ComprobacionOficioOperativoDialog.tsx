@@ -17,6 +17,7 @@ import {
 import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
+import { applyOficioAltaErrorsFromApi } from "../../../utils/oficioFormErrors";
 import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
 import { ComprobacionOficiosTribunalSection } from "./ComprobacionOficiosTribunalSection";
 import {
@@ -130,6 +131,8 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   const [numEx, setNumEx] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fe = useCallback((key: string) => fieldErrors[key] ?? "", [fieldErrors]);
 
   const ofi = documental.oficio!;
   const exR = documental.expediente_respuesta!;
@@ -191,6 +194,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
     if (!open) {
       setEditing(false);
       setErr(null);
+      setFieldErrors({});
     }
   }, [open]);
 
@@ -237,7 +241,15 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
             ) : null
           ) : (
             <>
-              <AppTextField appearance="glass" label="Número de expediente de respuesta" value={numEx} onChange={handleNumExChange} fullWidth />
+              <AppTextField
+                appearance="glass"
+                label="Número de expediente de respuesta"
+                value={numEx}
+                onChange={handleNumExChange}
+                fullWidth
+                error={Boolean(fe("numero_expediente_oficio"))}
+                helperText={fe("numero_expediente_oficio") || undefined}
+              />
               <AppTextField
                 appearance="glass"
                 label="Fecha"
@@ -246,12 +258,30 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
                 onChange={handleFecOperativaChange}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
+                error={Boolean(fe("fecha_oficio"))}
+                helperText={fe("fecha_oficio") || undefined}
               />
               <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
                 Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
               </Typography>
-              <AppTextField appearance="glass" label="Número de oficio" value={numOfi} onChange={handleNumOfiChange} fullWidth />
-              <AppTextField appearance="glass" label="Causa" value={causa} onChange={handleCausaChange} fullWidth />
+              <AppTextField
+                appearance="glass"
+                label="Número de oficio"
+                value={numOfi}
+                onChange={handleNumOfiChange}
+                fullWidth
+                error={Boolean(fe("numero_oficio"))}
+                helperText={fe("numero_oficio") || undefined}
+              />
+              <AppTextField
+                appearance="glass"
+                label="Causa"
+                value={causa}
+                onChange={handleCausaChange}
+                fullWidth
+                error={Boolean(fe("causa"))}
+                helperText={fe("causa") || undefined}
+              />
               <AppSelect
                 appearance="glass"
                 label="Juzgado"
@@ -259,6 +289,8 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
                 onChange={handleJuzChange}
                 fullWidth
                 variant="outlined"
+                error={Boolean(fe("juzgado_id"))}
+                helperText={fe("juzgado_id") || undefined}
                 options={juzgadoSelectOptions}
               />
               <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -270,6 +302,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
                     void (async () => {
                       setSaving(true);
                       setErr(null);
+                      setFieldErrors({});
                       try {
                         await patchComprobacionOficioBloque(actuacionId, ofi.id, {
                           numero_oficio: numOfi.trim(),
@@ -282,11 +315,9 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
                         setEditing(false);
                         await onDocumentalUpdated();
                       } catch (e: unknown) {
-                        const detail =
-                          e && typeof e === "object" && "response" in e
-                            ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
-                            : null;
-                        setErr(detail || "No se pudo guardar");
+                        const parsed = applyOficioAltaErrorsFromApi(e);
+                        setFieldErrors(parsed.fieldErrors);
+                        setErr(parsed.globalMessage);
                       } finally {
                         setSaving(false);
                       }
@@ -359,6 +390,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
   defaultFechaAlta,
   juzgados,
   modalApiError,
+  fieldErrors = {},
   saving,
   onGuardarAlta,
 }: {
@@ -366,6 +398,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
   defaultFechaAlta: string;
   juzgados: IJuzgadoCatalogItem[];
   modalApiError: string | null;
+  fieldErrors?: Record<string, string>;
   saving: boolean;
   onGuardarAlta: (payload: ComprobacionOficioAltaPayload) => void | Promise<void>;
 }) {
@@ -404,6 +437,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
     });
   }, [altaJuzId, altaNumOfi, altaFecha, altaCausa, altaNumEx, onGuardarAlta]);
 
+  const fe = useCallback((key: string) => fieldErrors[key] ?? "", [fieldErrors]);
+
   const handleAltaNumExChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaNumEx(e.target.value), []);
   const handleAltaFechaChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaFecha(e.target.value), []);
   const handleAltaNumOfiChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setAltaNumOfi(e.target.value), []);
@@ -421,9 +456,6 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
         </Typography>
         {modalApiError ? (
           <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-              No se pudo guardar
-            </Typography>
             <Typography variant="body2">{modalApiError}</Typography>
           </Alert>
         ) : null}
@@ -434,6 +466,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           onChange={handleAltaNumExChange}
           fullWidth
           required
+          error={Boolean(fe("numero_expediente_oficio"))}
+          helperText={fe("numero_expediente_oficio") || undefined}
         />
         <AppTextField
           appearance="glass"
@@ -444,6 +478,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           InputLabelProps={{ shrink: true }}
           fullWidth
           required
+          error={Boolean(fe("fecha_oficio"))}
+          helperText={fe("fecha_oficio") || undefined}
         />
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
           Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
@@ -455,8 +491,18 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           onChange={handleAltaNumOfiChange}
           fullWidth
           required
+          error={Boolean(fe("numero_oficio"))}
+          helperText={fe("numero_oficio") || undefined}
         />
-        <AppTextField appearance="glass" label="Causa" value={altaCausa} onChange={handleAltaCausaChange} fullWidth />
+        <AppTextField
+          appearance="glass"
+          label="Causa"
+          value={altaCausa}
+          onChange={handleAltaCausaChange}
+          fullWidth
+          error={Boolean(fe("causa"))}
+          helperText={fe("causa") || undefined}
+        />
         <AppSelect
           appearance="glass"
           label="Juzgado"
@@ -465,14 +511,18 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           fullWidth
           required
           variant="outlined"
+          error={Boolean(fe("juzgado_id"))}
+          helperText={fe("juzgado_id") || undefined}
           options={juzgadoOptionsAlta}
         />
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
           <AppButton
             dsVariant="primary"
             dsSize="sm"
+            loading={saving}
             onClick={handleGuardarAltaClick}
             disabled={saving || !altaNumOfi.trim() || !altaFecha || altaJuzId === "" || !altaNumEx.trim()}
+            sx={{ fontWeight: 700 }}
           >
             {saving ? "Guardando…" : "Guardar"}
           </AppButton>
@@ -733,6 +783,7 @@ export type ComprobacionOficioOperativoDialogProps = {
   /** Fecha por defecto del alta (p. ej. fin de mes en curso); no re-renderiza la página al tipear. */
   defaultFechaAlta: string;
   modalApiError: string | null;
+  modalFieldErrors?: Record<string, string>;
   saving: boolean;
   onGuardarAlta: (payload: ComprobacionOficioAltaPayload) => void | Promise<void>;
 };
@@ -747,6 +798,7 @@ export function ComprobacionOficioOperativoDialog({
   juzgados,
   defaultFechaAlta,
   modalApiError,
+  modalFieldErrors = {},
   saving,
   onGuardarAlta,
   documental,
@@ -830,6 +882,7 @@ export function ComprobacionOficioOperativoDialog({
             juzgados={juzgados}
             defaultFechaAlta={defaultFechaAlta}
             modalApiError={modalApiError}
+            modalFieldErrors={modalFieldErrors}
             saving={saving}
             onGuardarAlta={onGuardarAlta}
             onDocumentalUpdated={onDocumentalUpdated}

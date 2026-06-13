@@ -135,6 +135,9 @@ export interface IActuacionesListMeta {
     tipo: string | null;
     contraproducencia: string | null;
     orden_trabajo: string | null;
+    actuacion_id?: number | null;
+    q?: string | null;
+    busqueda_global?: boolean;
 }
 
 export interface IActuacionesListResponse {
@@ -148,6 +151,8 @@ export interface IActuacionesListFilters {
     tipo?: string | null;
     contraproducencia?: string | null;
     orden_trabajo?: string | null;
+    actuacion_id?: number | null;
+    q?: string | null;
     page?: number;
     page_size?: number;
 }
@@ -170,6 +175,8 @@ export const getActuacionesFiltered = async (
     if (filters?.tipo) params.tipo = filters.tipo;
     if (filters?.contraproducencia) params.contraproducencia = filters.contraproducencia;
     if (filters?.orden_trabajo) params.orden_trabajo = filters.orden_trabajo;
+    if (filters?.actuacion_id) params.actuacion_id = String(filters.actuacion_id);
+    if (filters?.q) params.q = filters.q;
     if (filters?.page) params.page = String(filters.page);
     if (filters?.page_size) params.page_size = String(filters.page_size);
 

@@ -276,6 +276,32 @@ export const getJuzgadosCatalogo = async (): Promise<IJuzgadoCatalogItem[]> => {
   return data.items ?? [];
 };
 
+let juzgadosCatalogCache: IJuzgadoCatalogItem[] | null = null;
+let juzgadosCatalogInflight: Promise<IJuzgadoCatalogItem[]> | null = null;
+
+/**
+ * Catálogo de juzgados con cache en memoria (sesión) para evitar refetch en cada modal/bandeja.
+ */
+export async function getJuzgadosCatalogoCached(invalidate = false): Promise<IJuzgadoCatalogItem[]> {
+  if (invalidate) {
+    juzgadosCatalogCache = null;
+    juzgadosCatalogInflight = null;
+  }
+  if (juzgadosCatalogCache) return juzgadosCatalogCache;
+  if (juzgadosCatalogInflight) return juzgadosCatalogInflight;
+  juzgadosCatalogInflight = getJuzgadosCatalogo()
+    .then((items) => {
+      juzgadosCatalogCache = items;
+      juzgadosCatalogInflight = null;
+      return items;
+    })
+    .catch((err) => {
+      juzgadosCatalogInflight = null;
+      throw err;
+    });
+  return juzgadosCatalogInflight;
+}
+
 /** Expediente de envío / respuesta (GET comprobación documental). */
 export interface IComprobacionDocumentalExpedienteItem {
   id: number;
@@ -349,6 +375,9 @@ export interface OficioComprobacionItem {
   estado_ejecucion?: string | null;
   editable?: boolean;
   bloqueado_motivo?: string | null;
+  en_ruta_borrador?: boolean;
+  estado_operativo?: string | null;
+  acciones_permitidas?: string[];
   deleted_at?: string | null;
 }
 

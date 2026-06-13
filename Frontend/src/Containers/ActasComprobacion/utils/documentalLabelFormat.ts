@@ -20,6 +20,16 @@ const ESTADO_INICIADOR_LABEL: Record<string, string> = {
   PENDIENTE: "Pendiente",
 };
 
+const ESTADO_OPERATIVO_OFICIO_LABEL: Record<string, string> = {
+  sin_iniciador: "Sin iniciador",
+  pendiente: "Pendiente",
+  ruta_borrador: "Ruta borrador",
+  en_ruta: "En ruta",
+  cerrado: "Ruta cerrada",
+  cumplido: "Cumplido",
+  bloqueado: "Bloqueado",
+};
+
 function esTokenBackend(s: string): boolean {
   return /^[A-Z0-9_]+$/.test(s) && s.length > 1;
 }
@@ -50,6 +60,13 @@ export function humanizarCumplimientoOficio(val: unknown): string {
   if (!s) return "—";
   const u = s.toUpperCase();
   return CUMPLIMIENTO_OFICIO_LABEL[u] ?? (esTokenBackend(u) ? humanizarTokenBackend(u) : s);
+}
+
+export function humanizarEstadoOperativoOficio(val: unknown): string {
+  if (val === null || val === undefined) return "—";
+  const s = String(val).trim();
+  if (!s) return "—";
+  return ESTADO_OPERATIVO_OFICIO_LABEL[s] ?? humanizarTokenBackend(s);
 }
 
 export function humanizarEstadoIniciador(val: unknown): string {

@@ -6,7 +6,16 @@ from typing import Any
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaGrupo, RutaGrupoInspector, RutaItem
+from app.models import (
+    Actuaciones,
+    Domicilio,
+    IniciadorRuta,
+    Relevamiento,
+    RutaGrupo,
+    RutaGrupoInspector,
+    RutaItem,
+    RutaTrabajo,
+)
 from app.models import Contribuyente
 
 from app.domains.actuaciones.mappers.completar_trabajo_cierre_mapper import (
@@ -37,6 +46,63 @@ from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio
 from app.models import CatalogTipoActuacion
 
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
+from app.domains.actuaciones.utils.contraproducencia_por_tipo_iniciador import (
+    contraproducencia_permitida_en_completar_trabajo,
+)
+
+_ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
+
+
+def _iniciador_tiene_item_abierto_en_ruta_operativa(
+    iniciador_id: int,
+    *,
+    excluir_ruta_item_id: int | None = None,
+) -> bool:
+    """
+    True si el iniciador tiene otro ítem no finalizado en ruta PUBLICADA o EN_CURSO.
+
+    Parámetros:
+        iniciador_id: iniciador a evaluar.
+        excluir_ruta_item_id: ítem que se está cerrando (no cuenta).
+
+    Retorno:
+        False si solo quedan ítems finalizados o la ruta no es operativa.
+    """
+    q = (
+        RutaItem.query.join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .filter(
+            RutaItem.iniciador_ruta_id == int(iniciador_id),
+            RutaItem.deleted_at.is_(None),
+            RutaItem.estado_ruta_item.in_(_ESTADOS_RUTA_ITEM_ABIERTOS),
+            RutaTrabajo.estado_ruta.in_(("PUBLICADA", "EN_CURSO")),
+        )
+    )
+    if excluir_ruta_item_id is not None:
+        q = q.filter(RutaItem.id != int(excluir_ruta_item_id))
+    return q.first() is not None
+
+
+def _reencolar_iniciador_si_oficio_no_cumple(
+    *,
+    ini: IniciadorRuta,
+    act: Actuaciones,
+    item: RutaItem,
+) -> None:
+    """
+    STAB-4: reinspección por oficio con resultado NO_CUMPLE vuelve a pendientes si no hay otra ruta activa.
+
+    Conservador: no duplica iniciador; no reencola si queda otro ítem abierto en ruta operativa.
+    """
+    if ini.tipo_iniciador != "REINSPECCION_OFICIO":
+        return
+    if getattr(act, "resultado_cumplimiento_oficio", None) != "NO_CUMPLE":
+        return
+    if _iniciador_tiene_item_abierto_en_ruta_operativa(ini.id, excluir_ruta_item_id=item.id):
+        return
+    ini.estado_iniciador = "PENDIENTE"
+    ini.prioridad = max(int(ini.prioridad or 0), 5)
+    ini.cerrado_at = None
+    ini.cerrado_motivo = "OFICIO_NO_CUMPLE"
 
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
@@ -144,7 +210,7 @@ def _apply_domicilio_rubro(
     if not _domicilio_rubro_patch_solicitado(payload):
         return False
 
-    from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
+    from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
     from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
     from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
         normalizar_domicilio_en_sesion,
@@ -181,12 +247,18 @@ def _apply_domicilio_rubro(
 
     # Visita no realizada: no exigir contribuyente/rubro aunque `act.tipo` ya venga seteado (p. ej. al publicar ruta).
     allow_missing_catalogs = bucket != ContrapBucket.NONE
-    dom = get_or_create_domicilio(
-        dom_payload,
-        contrib,
-        rubro,
+    modo_domicilio = getattr(payload, "modo_domicilio", None)
+    outcome = aplicar_edicion_domicilio_operativo(
+        domicilio_id_actual=act.domicilio_id or (ini.domicilio_id if ini else None),
+        cambios=dom_payload,
+        contribuyente=contrib,
+        rubro=rubro,
+        contexto="COMPLETAR_TRABAJO",
+        origen_id=int(act.id),
+        modo_explicito=modo_domicilio,
         allow_missing_catalogs=allow_missing_catalogs,
     )
+    dom = outcome.domicilio
     act.domicilio_id = dom.id if dom else None
     act.domicilio = dom
     if dom:
@@ -258,6 +330,12 @@ def cerrar_completar_trabajo_por_ruta_item(
     )
 
     stored_contra, bucket = normalize_contraproducencia(payload.contraproducencia)
+    if bucket != ContrapBucket.NONE and stored_contra:
+        if not contraproducencia_permitida_en_completar_trabajo(ini.tipo_iniciador, stored_contra):
+            raise ValueError(
+                f"La contraproducencia {stored_contra!r} no aplica al tipo de trabajo "
+                f"{ini.tipo_iniciador!r}."
+            )
 
     now = datetime.utcnow()
 
@@ -343,6 +421,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.estado_iniciador = "CUMPLIDO"
             ini.cerrado_at = None
             ini.cerrado_motivo = None
+            _reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item)
         elif bucket == ContrapBucket.NO_EXISTE_LOCAL:
             assert stored_contra is not None
             item.estado_ejecucion = "NO_REALIZADO"

@@ -18,6 +18,7 @@ interface UseRelevamientosBandeja {
   error: string | null;
   hasSearched: boolean;
   buscar: (filters: IRelevamientosListFilters) => Promise<void>;
+  limpiarLista: () => void;
 }
 
 /**
@@ -62,6 +63,13 @@ export const useRelevamientosBandeja = (slice: RelevamientosBandejaSlice): UseRe
     setError(null);
   }, [slice]);
 
+  const limpiarLista = useCallback(() => {
+    setHasSearched(false);
+    setRelevamientos([]);
+    setMeta(null);
+    setError(null);
+  }, []);
+
   return {
     relevamientos,
     meta,
@@ -69,5 +77,6 @@ export const useRelevamientosBandeja = (slice: RelevamientosBandejaSlice): UseRe
     error,
     hasSearched,
     buscar,
+    limpiarLista,
   };
 };

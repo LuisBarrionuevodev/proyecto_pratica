@@ -68,6 +68,14 @@ export interface IReinspeccionOficioPendienteRow {
   oficio_id?: number | null;
   /** Clave estable para tablas con varias filas por actuación. */
   bandeja_row_key?: string | null;
+  /** STAB-3: policy por oficio (presenter reinspección). */
+  editable?: boolean;
+  bloqueado_motivo?: string | null;
+  ruta_estado?: string | null;
+  estado_ejecucion?: string | null;
+  en_ruta_borrador?: boolean;
+  estado_operativo?: string | null;
+  acciones_permitidas?: string[];
 }
 
 export interface IReinspeccionOficioResponse {

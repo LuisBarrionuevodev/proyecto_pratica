@@ -20,8 +20,11 @@ import {
   commitBatch,
   type GridRow,
   fetchInspectores,
-  fetchRubros,
 } from "../../../api/gridApi";
+import {
+  fetchRubrosCatalogoCached,
+  rubroItemsToNombres,
+} from "../../../utils/rubrosCatalogCache";
 import { ValidationErrorsRail, type ValidationRailEntry } from "./ValidationErrorsRail";
 
 import { COLORS, titleStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
@@ -166,9 +169,12 @@ const TablaCargarRelevamientosGlideStyled = ({
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectoresResp, rubrosResp] = await Promise.all([fetchInspectores(), fetchRubros()]);
+        const [inspectoresResp, rubrosItems] = await Promise.all([
+          fetchInspectores(),
+          fetchRubrosCatalogoCached(),
+        ]);
         setCatalogInspectores([...new Set(inspectoresResp.items.map((i) => i.nombre))]);
-        setCatalogRubros([...new Set(rubrosResp.items.map((r) => r.nombre))]);
+        setCatalogRubros(rubroItemsToNombres(rubrosItems));
       } catch (error: any) {
         setGlobalError("Error cargando catálogos (inspectores/rubros).");
       }

@@ -1,6 +1,18 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { ReactNode } from "react";
-import { Autocomplete, Box, Chip, Collapse, Divider, IconButton, Link, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Chip,
+  Collapse,
+  Divider,
+  IconButton,
+  Link,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
@@ -12,6 +24,8 @@ import {
   orderedMotivosNotificacion,
 } from "../../../utils/motivosNotificacionSlots";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
+import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
+import { applyActuacionErrorsFromApi } from "../utils/submitActuacionRow";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
@@ -85,6 +99,8 @@ export type ActuacionDetalleDialogProps = {
   open: boolean;
   draft: IActuacionListItem;
   fieldErrors: Record<string, string>;
+  /** Resumen breve cuando hay errores por campo; error global si no hay mapeo inline. */
+  formGlobalError?: string | null;
   saving: boolean;
   catalogs: ActuacionEditCatalogs;
   readOnlyColumns: string[];
@@ -813,6 +829,7 @@ export function ActuacionDetalleDialog({
   open,
   draft,
   fieldErrors,
+  formGlobalError = null,
   saving,
   catalogs,
   readOnlyColumns,
@@ -827,6 +844,7 @@ export function ActuacionDetalleDialog({
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
   const [quitarConfirmTipo, setQuitarConfirmTipo] = useState<ActaCanalQuitarTipo | null>(null);
   const [quitarBusy, setQuitarBusy] = useState(false);
+  const [quitarActaError, setQuitarActaError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -857,7 +875,10 @@ export function ActuacionDetalleDialog({
     ]
   );
 
-  const rubrosOptions = useMemo(() => opts(["", ...catalogs.rubros]), [catalogs.rubros]);
+  const rubrosOptions = useMemo(
+    () => opts(["", ...mergeLegacyRubroNames(catalogs.rubros, draft.rubro_nombre)]),
+    [catalogs.rubros, draft.rubro_nombre]
+  );
 
   const motivoComprobacionOptions = useMemo(
     () => opts(getDropdownOptions("Motivo comprobación", mergedCatalogs)),
@@ -930,12 +951,13 @@ export function ActuacionDetalleDialog({
   const handleConfirmQuitarActa = useCallback(async () => {
     if (!quitarConfirmTipo || !onQuitarActa) return;
     setQuitarBusy(true);
+    setQuitarActaError(null);
     try {
       await onQuitarActa(quitarConfirmTipo);
       setQuitarConfirmTipo(null);
     } catch (err: unknown) {
-      const msg = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      window.alert(typeof msg === "string" ? msg : "No se pudo quitar el acta.");
+      const { globalMessage } = applyActuacionErrorsFromApi(err);
+      setQuitarActaError(globalMessage ?? "No se pudo quitar el acta.");
     } finally {
       setQuitarBusy(false);
     }
@@ -1236,6 +1258,11 @@ export function ActuacionDetalleDialog({
 
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
+        {formGlobalError ? (
+          <Alert severity="error" sx={{ borderRadius: 2 }}>
+            {formGlobalError}
+          </Alert>
+        ) : null}
         <DocumentalBloque overline="Lugar y titular">
           <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
             <AppTextField
@@ -1699,6 +1726,7 @@ export function ActuacionDetalleDialog({
   }, [
     draft,
     fieldErrors,
+    formGlobalError,
     readOnlyColumns,
     lockedNotif,
     lockedComp,
@@ -1801,10 +1829,17 @@ export function ActuacionDetalleDialog({
         loading={quitarBusy}
         confirmLabel="Eliminar"
       >
-        <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.5 }}>
-          Se quitará el acta de esta actuación. Si tenés otros cambios sin guardar, guardalos antes o perderán
-          consistencia con el servidor.
-        </Typography>
+        <Stack spacing={1.5}>
+          <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.5 }}>
+            Se quitará el acta de esta actuación. Si tenés otros cambios sin guardar, guardalos antes o perderán
+            consistencia con el servidor.
+          </Typography>
+          {quitarActaError ? (
+            <Alert severity="error" sx={{ borderRadius: 1 }}>
+              {quitarActaError}
+            </Alert>
+          ) : null}
+        </Stack>
       </ConfirmDialog>
     </>
   );

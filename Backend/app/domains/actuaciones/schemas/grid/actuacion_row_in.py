@@ -299,13 +299,9 @@ class ActuacionGridRowIn(BaseModel):
     @field_validator("contraproducencia", mode="before")
     @classmethod
     def parse_contra(cls, v: Any) -> Any:
-        # Regla: si no se carga contraproducencia, por default NO_HUBO
+        # STAB-4: sin default NO_HUBO; vacío → None (no pisa valor existente en update).
         if v is None or v == "":
-            return _coerce_catalog_value(
-                "NO_HUBO",
-                CatalogContraproducencia,
-                "contraproducencia",
-            )
+            return None
         return _coerce_catalog_value(v, CatalogContraproducencia, "contraproducencia")
 
     @field_validator("comprobacion_motivo", mode="before")
@@ -404,12 +400,11 @@ class ActuacionGridRowIn(BaseModel):
                 ]
             )
 
-        # 1) Si la fila está “vacía” (solo OT+fecha), exigir contraproducencia
-        # Nota: contraproducencia tiene default NO_HUBO, pero dejamos la regla explícita
+        # 1) Si la fila está “vacía” (solo OT+fecha), exigir contraproducencia explícita
         if self.orden_trabajo_numero and not has_any_actuation_data():
             if self.contraproducencia is None:
                 field_errors["contraproducencia"] = (
-                    "Si solo cargás OT/fecha, debés justificar con contraproducencia."
+                    "Si solo cargás OT/fecha, debés elegir una contraproducencia (p. ej. NO_HUBO)."
                 )
 
         # 2) Contribuyente: si hay nombre/apellido/razón social, doc obligatorio

@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_activa
+from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_operativa
 from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
 from app.domains.actuaciones.services.pendientes_service import _apply_distrito_optional, _apply_fecha
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
@@ -134,7 +134,7 @@ def list_pendientes_reinspeccion_oficio_filas(
             if _expediente_respuesta_por_oficio(ofi.id) is None:
                 continue
             ini = _iniciador_para_oficio_en_actuacion(ofi, act)
-            if iniciador_en_ruta_activa(ini):
+            if iniciador_en_ruta_operativa(ini):
                 continue
             filas.append((act, ofi, ini))
     return filas
@@ -159,9 +159,9 @@ def list_pendientes_reinspeccion_oficio(
 
     - ``IniciadorRuta`` mismo ``actuacion_id``, tipo ``REINSPECCION_OFICIO``, no soft-deleted.
     - ``RutaItem`` no soft-deleted.
-    - ``RutaTrabajo.estado_ruta`` en ``BORRADOR`` | ``PUBLICADA`` | ``EN_CURSO``.
+    - ``RutaTrabajo.estado_ruta`` en ``PUBLICADA`` | ``EN_CURSO`` (STAB-3: ``BORRADOR`` no oculta).
 
-    Si la ruta está ``CERRADA`` / ``CANCELADA``, el ítem está borrado en soft delete, o el iniciador no
+    Si la ruta está ``BORRADOR`` / ``CERRADA`` / ``CANCELADA``, el ítem está borrado en soft delete, o el iniciador no
     tiene ítem en esa ruta, la actuación **sigue** en bandeja (puede tener o no iniciador materializado).
 
     Fechas / distrito: ``Actuaciones.fecha`` vía ``_apply_fecha`` / ``_apply_distrito_optional``.

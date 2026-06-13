@@ -4,12 +4,9 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import MapIcon from "@mui/icons-material/Map";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import BadgeIcon from "@mui/icons-material/Badge";
-import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RouteIcon from "@mui/icons-material/Route";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import StorefrontIcon from "@mui/icons-material/Storefront";
@@ -28,11 +25,8 @@ export interface MenuSection {
   items: MenuItem[];
 }
 
+/** UX-FILTROS-NAV-1: estructura operativa unificada (Configuración oculta en nav). */
 export const menuSections: MenuSection[] = [
-  {
-    label: "TRABAJO",
-    items: [{ text: "Ruta de trabajo", icon: <RouteIcon />, path: "/rutasTrabajo" }],
-  },
   {
     label: "MAIN",
     items: [{ text: "Inicio", icon: <HomeIcon />, path: "/inicio" }],
@@ -41,32 +35,56 @@ export const menuSections: MenuSection[] = [
     label: "CARGA",
     items: [
       {
-        text: "Cargar actas de notificación/comprobación",
+        text: "Cargar actuaciones",
         icon: <CreateNewFolderIcon />,
         path: "/cargarActuacion",
       },
-      { text: "Cargar relevamiento o denuncia", icon: <NoteAddIcon />, path: "/cargarRelevamiento" },
-      { text: "Gestión de capacitaciones", icon: <PersonAddIcon />, path: "/cargarPersonasCapacitadas" },
+      {
+        text: "Cargar relevamientos y denuncias",
+        icon: <NoteAddIcon />,
+        path: "/cargarRelevamiento",
+      },
     ],
   },
   {
-    label: "GESTIÓN",
+    label: "OPERATIVA",
+    items: [
+      { text: "Ruta de trabajo", icon: <RouteIcon />, path: "/rutasTrabajo" },
+      { text: "Completar trabajo", icon: <TaskAltIcon />, path: "/completarTrabajos" },
+      {
+        text: "Notificaciones gestión",
+        icon: <NotificationsActiveIcon />,
+        path: "/gestionNotificacion",
+      },
+      {
+        text: "Comprobaciones gestión",
+        icon: <FactCheckOutlinedIcon />,
+        path: "/actasComprobacion",
+      },
+    ],
+  },
+  {
+    label: "LISTAS",
     items: [
       { text: "Actuaciones", icon: <DashboardIcon />, path: "/actuaciones" },
-      { text: "Gestión de notificación", icon: <NotificationsActiveIcon />, path: "/gestionNotificacion" },
-      { text: "Actas de comprobación", icon: <FactCheckOutlinedIcon />, path: "/actasComprobacion" },
-      { text: "Relevamientos", icon: <ListAltIcon />, path: "/relevamientos" },
+      {
+        text: "Relevamientos y denuncias",
+        icon: <ListAltIcon />,
+        path: "/relevamientos",
+      },
       { text: "Establecimientos", icon: <StorefrontIcon />, path: "/establecimientos" },
-      { text: "Completar trabajos", icon: <TaskAltIcon />, path: "/completarTrabajos" },
-      { text: "Gestionar domicilios", icon: <LocationOnIcon />, path: "/gestionarDomicilios" },
-      { text: "Gestión de usuarios", icon: <BadgeIcon />, path: "/gestionDeUsuarios" },
+    ],
+  },
+  {
+    label: "INDICADORES Y MAPA",
+    items: [
       { text: "Indicadores", icon: <BarChartIcon />, path: "/dashboard" },
       { text: "Mapa", icon: <MapIcon />, path: "/mapa" },
     ],
   },
   {
-    label: "CONFIGURACIÓN",
-    items: [{ text: "Configuración del sistema", icon: <SettingsIcon />, path: "/gestionSistema" }],
+    label: "ADMINISTRACIÓN",
+    items: [{ text: "Gestión de usuarios", icon: <BadgeIcon />, path: "/gestionDeUsuarios" }],
   },
 ];
 
@@ -78,16 +96,16 @@ export const logoutItem: MenuItem = {
 
 export const routeLabels: Record<string, string> = {
   "/inicio": "Inicio",
-  "/cargarActuacion": "Cargar actas de notificación/comprobación",
-  "/cargarRelevamiento": "Cargar relevamiento o denuncia",
+  "/cargarActuacion": "Cargar actuaciones",
+  "/cargarRelevamiento": "Cargar relevamientos y denuncias",
   "/cargarPersonasCapacitadas": "Gestión de capacitaciones",
   "/actuaciones": "Actuaciones",
-  "/gestionNotificacion": "Gestión de notificación",
-  "/actasComprobacion": "Actas de comprobación",
-  "/relevamientos": "Relevamientos",
+  "/gestionNotificacion": "Notificaciones gestión",
+  "/actasComprobacion": "Comprobaciones gestión",
+  "/relevamientos": "Relevamientos y denuncias",
   "/establecimientos": "Establecimientos",
   "/rutasTrabajo": "Ruta de trabajo",
-  "/completarTrabajos": "Completar trabajos",
+  "/completarTrabajos": "Completar trabajo",
   "/gestionPersonasBpm": "Gestión Personas BPM",
   "/gestionDeUsuarios": "Gestión de usuarios",
   "/dashboard": "Indicadores",

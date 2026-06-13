@@ -263,10 +263,10 @@ export function PlanificacionView({
       />
 
       <PlanificacionSummaryCards
-        metricas={ctrl.metricas}
+        metricas={ctrl.metricasVisibles}
         cardActiva={ctrl.cardActiva}
         onCardChange={ctrl.setCardActiva}
-        loading={ctrl.loading.metricas || ctrl.loading.metricasInicial}
+        loading={ctrl.loading.metricas || ctrl.loading.metricasInicial || ctrl.loading.pendientesContexto}
       />
 
       <Grid
@@ -333,6 +333,8 @@ export function PlanificacionView({
             ocultosPorPoolEnPagina={ctrl.urgentesOcultosPorPoolEnPagina}
             onPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
             onVerEnMapa={handleVerEnMapa}
+            onFiltrar={ctrl.aplicarFiltrosUrgentes}
+            onLimpiarFiltros={ctrl.limpiarFiltrosUrgentes}
           />
           <PoolDelDiaPanel
             items={ctrl.poolItemsOrdenados}

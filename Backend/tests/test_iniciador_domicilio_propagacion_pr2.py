@@ -108,8 +108,12 @@ def test_editar_relevamiento_pendiente_actualiza_iniciador(app_ctx) -> None:
 
         db.session.refresh(rel)
         db.session.refresh(ini)
-        assert rel.domicilio_id != dom_antes
+        assert rel.domicilio_id == dom_antes
         assert ini.domicilio_id == rel.domicilio_id
+        dom_db = db.session.get(Domicilio, dom_antes)
+        assert dom_db is not None
+        assert dom_db.calle == nueva_calle
+        assert dom_db.numero == "20"
     finally:
         db.session.rollback()
 

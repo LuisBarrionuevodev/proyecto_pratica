@@ -33,7 +33,7 @@ import {
   fetchComprobacionDocumental,
   fetchOficiosByComprobacion,
   getActuacionesPendientesExpediente,
-  getJuzgadosCatalogo,
+  getJuzgadosCatalogoCached,
   type IActuacionesPendientesItem,
   type IComprobacionDocumentalResponse,
   type ICreateExpedienteRequest,
@@ -75,6 +75,10 @@ import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geo
 import { useAppFeedback } from "../../components/feedback";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 import { applyFormErrorsFromApi, parseApiError } from "../../utils/parseApiError";
+import {
+  applyOficioAltaErrorsFromApi,
+  validateOficioAltaPayloadClient,
+} from "../../utils/oficioFormErrors";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import {
   formatActuacionListDomicilioLinea,
@@ -90,6 +94,7 @@ import { ComprobacionReinspeccionDetalleDialog } from "./components/Comprobacion
 import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionOperativoBlocks";
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
 import { exportComprobacionesDataset } from "./utils/exportComprobacionesDataset";
+import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
 
@@ -172,6 +177,23 @@ function reinCompInfraccionSortKey(r: IReinspeccionOficioPendienteRow): string {
 
 function reinBandejaRowKey(r: IReinspeccionOficioPendienteRow): string {
   return r.bandeja_row_key ?? `${r.id}-${r.oficio_id ?? 0}-${r.iniciador_id ?? 0}`;
+}
+
+function reinEstadoOficioChips(r: IReinspeccionOficioPendienteRow): string[] {
+  const chips: string[] = [];
+  if (r.estado_operativo) {
+    chips.push(humanizarEstadoOperativoOficio(r.estado_operativo));
+  } else if (r.en_ruta_borrador) {
+    chips.push("Ruta borrador");
+  } else if ((r.estado_iniciador ?? "").trim()) {
+    chips.push(`Iniciador ${humanizarEstadoIniciador(r.estado_iniciador)}`);
+  } else {
+    chips.push("Sin iniciador");
+  }
+  if (r.editable === false && r.bloqueado_motivo) {
+    chips.push("Bloqueado");
+  }
+  return chips;
 }
 
 function recOficioNumCompact(r: IComprobacionRecorridoRow): string {
@@ -460,12 +482,27 @@ const ActasComprobacionPage = () => {
   const [modalOficioOpen, setModalOficioOpen] = useState(false);
   const [savingOficio, setSavingOficio] = useState(false);
   const [modalOficioError, setModalOficioError] = useState<string | null>(null);
+  const [modalOficioFieldErrors, setModalOficioFieldErrors] = useState<Record<string, string>>({});
   const [modalDoc, setModalDoc] = useState<IComprobacionDocumentalResponse | null>(null);
   const [modalDocLoading, setModalDocLoading] = useState(false);
   const [modalDocError, setModalDocError] = useState<string | null>(null);
   const [modalOficios, setModalOficios] = useState<OficioComprobacionItem[]>([]);
   const [modalOficiosLoading, setModalOficiosLoading] = useState(false);
   const [modalOficiosError, setModalOficiosError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getJuzgadosCatalogoCached()
+      .then((jz) => {
+        if (!cancelled) setJuzgados(jz);
+      })
+      .catch(() => {
+        if (!cancelled) setJuzgados([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadOficiosForComprobacion = useCallback(async (comprobacionId: number) => {
     setModalOficiosLoading(true);
@@ -486,8 +523,6 @@ const ActasComprobacionPage = () => {
     setOficioLoading(true);
     setOficioError(null);
     try {
-      const jz = await getJuzgadosCatalogo();
-      setJuzgados(jz);
       const resp = await fetchComprobacionPendientesOficio(null, null, null, { omitirRangoFecha: true });
       setOficioApiTotal(resp.meta.total);
       setOficioItems(resp.items);
@@ -603,6 +638,8 @@ const ActasComprobacionPage = () => {
     setModalOficios([]);
     setModalOficiosError(null);
     setModalOficiosLoading(false);
+    setModalOficioError(null);
+    setModalOficioFieldErrors({});
   };
 
   const columnsOficio = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
@@ -729,8 +766,6 @@ const ActasComprobacionPage = () => {
     setReinLoading(true);
     setReinError(null);
     try {
-      const jz = await getJuzgadosCatalogo();
-      setJuzgados(jz);
       const resp = await fetchPendientesReinspeccionOficio(null, null, null, { omitirRangoFecha: true });
       setReinApiTotal(resp.meta.total);
       setReinItems(resp.items);
@@ -755,7 +790,8 @@ const ActasComprobacionPage = () => {
     if (found) setSelectedRein(found as ReinspeccionOperativoDetalleRow);
   }, [reinItems, modalReinOpen, selectedReinKey]);
 
-  const reloadOficioModalDocumental = useCallback(async () => {
+  /** Refetch puntual del modal de oficio (documental + lista de oficios de la comprobación). */
+  const refreshModalOficioData = useCallback(async () => {
     if (!selectedOficio) return;
     try {
       const doc = await fetchComprobacionDocumental(selectedOficio.id);
@@ -767,23 +803,32 @@ const ActasComprobacionPage = () => {
       const parsed = parseApiError(err, "No se pudo recargar la ficha documental (edición no disponible hasta reintentar).");
       setModalDocError(parsed.message);
     }
-    await Promise.all([loadExpediente(), loadOficio(), loadRein()]);
-  }, [selectedOficio, loadExpediente, loadOficio, loadRein, loadOficiosForComprobacion]);
+  }, [selectedOficio, loadOficiosForComprobacion]);
+
+  /** Refresca solo la bandeja del slice activo (sin catálogos ni otras pestañas). */
+  const refreshActiveBandeja = useCallback(async () => {
+    if (tab === "oficio") await loadOficio();
+    else if (tab === "reinspeccion") await loadRein();
+    else if (tab === "expediente") await loadExpediente();
+  }, [tab, loadOficio, loadRein, loadExpediente]);
+
+  const reloadOficioModalDocumental = useCallback(async () => {
+    await refreshModalOficioData();
+    await refreshActiveBandeja();
+  }, [refreshModalOficioData, refreshActiveBandeja]);
 
   const handleSaveOficio = useCallback(
     async (payload: ComprobacionOficioAltaPayload) => {
       if (!selectedOficio) return;
-      if (
-        !payload.numero_oficio.trim() ||
-        !payload.fecha_oficio ||
-        !payload.juzgado_id ||
-        !payload.numero_expediente_oficio.trim()
-      ) {
-        setModalOficioError("Completá número/fecha/juzgado y datos del expediente de oficio");
+      const clientFe = validateOficioAltaPayloadClient(payload);
+      setModalOficioFieldErrors(clientFe);
+      if (Object.keys(clientFe).length > 0) {
+        setModalOficioError(null);
         return;
       }
       setSavingOficio(true);
       setModalOficioError(null);
+      setModalOficioFieldErrors({});
       try {
         await createOficioDesdeActuacion(selectedOficio.id, {
           numero_oficio: payload.numero_oficio.trim(),
@@ -795,17 +840,18 @@ const ActasComprobacionPage = () => {
         });
         feedback.success("Oficio registrado correctamente.");
         setModalOficioError(null);
-        await reloadOficioModalDocumental();
-        await loadOficio();
-        await loadRein();
+        setModalOficioFieldErrors({});
+        await refreshModalOficioData();
+        await refreshActiveBandeja();
       } catch (err: unknown) {
-        const parsed = parseApiError(err, "No se pudo cargar el oficio");
-        setModalOficioError(parsed.message);
+        const parsed = applyOficioAltaErrorsFromApi(err);
+        setModalOficioFieldErrors(parsed.fieldErrors);
+        setModalOficioError(parsed.globalMessage);
       } finally {
         setSavingOficio(false);
       }
     },
-    [selectedOficio, loadOficio, loadRein, reloadOficioModalDocumental, feedback]
+    [selectedOficio, refreshModalOficioData, refreshActiveBandeja, feedback]
   );
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
@@ -860,15 +906,23 @@ const ActasComprobacionPage = () => {
         Cell: ({ row }) => <BandejaSegmentChipsCell segments={reinCompInfraccionChips(row.original)} />,
       },
       {
+        id: "estado_oficio",
+        header: "Estado oficio",
+        size: 150,
+        accessorFn: (r) => reinEstadoOficioChips(r).join(" · "),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={reinEstadoOficioChips(row.original)} />,
+      },
+      {
         id: "accion_rein",
         header: "Acción",
-        size: 128,
+        size: 148,
         grow: false,
         enableResizing: false,
         enableSorting: false,
         Cell: ({ row }) => (
           <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalRein(row.original)}>
-            Ver detalle
+            Gestionar oficio
           </AppButton>
         ),
       },
@@ -989,10 +1043,6 @@ const ActasComprobacionPage = () => {
     setRecFilterApplied(true);
     void loadRecorridoSearch();
   }, [loadRecorridoSearch]);
-
-  useEffect(() => {
-    void loadOficio();
-  }, [loadOficio]);
 
   useEffect(() => {
     if (tab === "expediente") void loadExpediente();
@@ -1256,6 +1306,11 @@ const ActasComprobacionPage = () => {
 
           {tab === "oficio" && (
             <>
+              <Alert severity="info" sx={{ ...alertBaseStyles, mb: 1.5 }}>
+                Esta bandeja lista actas <strong>sin ningún oficio</strong>. Si ya cargaste un oficio y necesitás
+                agregar otro, usá <strong>Pendiente de reinspección</strong> → «Gestionar oficio» → «Agregar otro
+                oficio».
+              </Alert>
               {oficioError && (
                 <Alert severity="error" sx={alertBaseStyles}>
                   {oficioError}
@@ -1586,6 +1641,7 @@ const ActasComprobacionPage = () => {
         onDocumentalUpdated={reloadOficioModalDocumental}
         defaultFechaAlta={defaultRange.hasta}
         modalApiError={modalOficioError}
+        modalFieldErrors={modalOficioFieldErrors}
         saving={savingOficio}
         onGuardarAlta={handleSaveOficio}
       />

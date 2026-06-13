@@ -1,9 +1,14 @@
-import { Autocomplete, Box, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { MaterialReactTable, type MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
 import { useMemo, useRef, useState } from "react";
 import type { GuardarNomenclaturaBody } from "../../../api/geolocalizacionApi";
 import { fetchCallesCatalogo, type CalleCatalogoItem } from "../../../api/geolocalizacionApi";
+import { useAppFeedback } from "../../../components/feedback";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import {
+  applyNomenclaturaErrorsFromApi,
+  mapClientNomenclaturaError,
+} from "../utils/nomenclaturaFormErrors";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
 import type {
   DomicilioNomenclaturaEditCache,
@@ -32,23 +37,6 @@ function effectiveEsquinaMode(
 ): NomenclaturaEsquinaMode {
   if (numeroTipo !== "ESQUINA") return "MANUAL";
   return cache.esquinaMode ?? (row.esquina_catalogo_id ? "CATALOGO" : "MANUAL");
-}
-
-function formatSaveErrorDetail(detail: unknown): string {
-  if (detail == null) return "Error al guardar.";
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    return detail
-      .map((item) => {
-        if (item && typeof item === "object" && "msg" in item) {
-          return String((item as { msg?: string }).msg);
-        }
-        return JSON.stringify(item);
-      })
-      .join("\n");
-  }
-  if (typeof detail === "object") return JSON.stringify(detail);
-  return String(detail);
 }
 
 function buildNomenclaturaPayload(
@@ -127,6 +115,7 @@ function buildNomenclaturaPayload(
 }
 
 const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTableProps) => {
+  const feedback = useAppFeedback();
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   /**
    * MRT no re-renderiza las celdas en edición cuando solo se muta `row._valuesCache`.
@@ -145,6 +134,23 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
   const [esquinaCatalogInputByRow, setEsquinaCatalogInputByRow] = useState<Record<number, string>>(
     {}
   );
+  const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
+  const [tableGlobalError, setTableGlobalError] = useState<string | null>(null);
+
+  const applySaveErrors = (domicilioId: number, fieldErrors: Record<string, string>, globalMessage: string | null) => {
+    if (Object.keys(fieldErrors).length > 0) {
+      setRowErrors((prev) => ({ ...prev, [domicilioId]: fieldErrors }));
+      setTableGlobalError(globalMessage);
+      return;
+    }
+    setRowErrors((prev) => {
+      const next = { ...prev };
+      delete next[domicilioId];
+      return next;
+    });
+    setTableGlobalError(globalMessage);
+    if (globalMessage) feedback.error(globalMessage);
+  };
 
   const setRowCache = (
     row: any,
@@ -276,6 +282,7 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
           const domicilioId = row.original.domicilio_id;
           const cache = ((row as any)?._valuesCache || {}) as DomicilioNomenclaturaEditCache;
           const calleM = effectiveCalleMode(cache, row.original);
+          const calleErr = rowErrors[domicilioId]?.calle_input;
           const options = calleOptionsByRow[domicilioId] || [];
           const selectedId = cache.calle_catalogo_id ?? row.original.calle_catalogo_id;
           const selected = selectedOptionFrom(
@@ -304,8 +311,20 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
               label="Calle"
               fullWidth
               value={cache.calleSearchText ?? row.original.calle_raw ?? ""}
+              error={!!calleErr}
+              helperText={calleErr ?? ""}
               onChange={(e) => {
                 const value = e.target.value;
+                setTableGlobalError(null);
+                setRowErrors((prev) => {
+                  const next = { ...prev };
+                  if (next[domicilioId]) {
+                    const rowMap = { ...next[domicilioId] };
+                    delete rowMap.calle_input;
+                    next[domicilioId] = rowMap;
+                  }
+                  return next;
+                });
                 setRowCache(row, (prev) => ({
                   ...prev,
                   calleSearchText: value,
@@ -389,7 +408,14 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
                   calleSearchText: selectedOption?.nombre ?? prev.calleSearchText,
                 }));
               }}
-              renderInput={(params) => <TextField {...params} label="Catálogo" />}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Catálogo"
+                  error={!!rowErrors[domicilioId]?.calle_input}
+                  helperText={rowErrors[domicilioId]?.calle_input ?? ""}
+                />
+              )}
             />
           );
         },
@@ -448,16 +474,30 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
           return cache.numero || row.original.numero || row.original.numero_raw || "";
         },
         Edit: ({ row }) => {
+          const domicilioId = row.original.domicilio_id;
           const cache = ((row as any)?._valuesCache || {}) as DomicilioNomenclaturaEditCache;
           const currentMode = (cache.numero_tipo ?? row.original.numero_tipo ?? "NUMERO") as
             | "NUMERO"
             | "ESQUINA";
+          const numeroErr = rowErrors[domicilioId]?.numero;
           return (
             <TextField
               size="small"
               label={currentMode === "ESQUINA" ? "Esquina" : "Número"}
               value={cache.numero ?? row.original.numero ?? row.original.numero_raw ?? ""}
+              error={!!numeroErr}
+              helperText={numeroErr ?? ""}
               onChange={(e) => {
+                setTableGlobalError(null);
+                setRowErrors((prev) => {
+                  const next = { ...prev };
+                  if (next[domicilioId]) {
+                    const rowMap = { ...next[domicilioId] };
+                    delete rowMap.numero;
+                    next[domicilioId] = rowMap;
+                  }
+                  return next;
+                });
                 setRowCache(row, (prev) => ({
                   ...prev,
                   numero_tipo: currentMode,
@@ -615,6 +655,7 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
       calleCatalogInputByRow,
       esquinaCatalogInputByRow,
       nomenclaturaEditRevision,
+      rowErrors,
     ]
   );
 
@@ -626,23 +667,29 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
     editDisplayMode: "row",
     initialState: { density: "compact" },
     onEditingRowSave: async ({ row, values, exitEditingMode }) => {
+      const domicilioId = row.original.domicilio_id;
       const cache = ((row as any)?._valuesCache || {}) as DomicilioNomenclaturaEditCache;
+      setTableGlobalError(null);
+      setRowErrors((prev) => ({ ...prev, [domicilioId]: {} }));
       try {
         const body = buildNomenclaturaPayload(row.original, cache, values as Record<string, unknown>);
-        await onGuardar({ domicilio_id: row.original.domicilio_id, ...body });
+        await onGuardar({ domicilio_id: domicilioId, ...body });
+        setRowErrors((prev) => {
+          const next = { ...prev };
+          delete next[domicilioId];
+          return next;
+        });
+        feedback.success("Nomenclatura guardada.");
         exitEditingMode();
       } catch (e: unknown) {
-        const detail =
-          e && typeof e === "object" && "response" in e
-            ? (e as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
-            : undefined;
-        const fromApi =
-          detail !== undefined
-            ? formatSaveErrorDetail(detail)
-            : e instanceof Error
-              ? e.message
-              : "No se pudo guardar la nomenclatura.";
-        window.alert(fromApi);
+        const hasResponse = typeof e === "object" && e !== null && "response" in e;
+        if (!hasResponse && e instanceof Error) {
+          const { fieldErrors, globalMessage } = mapClientNomenclaturaError(e.message);
+          applySaveErrors(domicilioId, fieldErrors, globalMessage);
+          return;
+        }
+        const { fieldErrors, globalMessage } = applyNomenclaturaErrorsFromApi(e);
+        applySaveErrors(domicilioId, fieldErrors, globalMessage);
       }
     },
     state: { isLoading: loading, showProgressBars: loading },
@@ -650,6 +697,11 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
 
   return (
     <DataTableMrtShell loading={loading} loadingMode="progress">
+      {tableGlobalError ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {tableGlobalError}
+        </Alert>
+      ) : null}
       <MaterialReactTable table={table} />
     </DataTableMrtShell>
   );

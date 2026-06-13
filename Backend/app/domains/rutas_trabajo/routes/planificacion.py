@@ -63,6 +63,10 @@ def planificacion_urgentes(ruta_id: int):
             page=q.page,
             per_page=q.per_page,
             distrito_id=q.distrito_id,
+            tipo_urgente=q.tipo_urgente,
+            q=q.q,
+            numero_oficio=q.numero_oficio,
+            numero_comprobacion=q.numero_comprobacion,
         )
         return jsonify(
             {

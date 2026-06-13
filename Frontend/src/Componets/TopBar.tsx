@@ -7,6 +7,7 @@ import {
     MenuItem,
     Divider,
 } from "@mui/material";
+import { getAvatarUrl } from "../utils/avatarUrl";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -141,7 +142,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                 sx={AvatarButtonStyles}
             >
                 <Avatar
-                    src={`https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=${avatarSeed}`}
+                    src={getAvatarUrl(avatarSeed)}
                     alt={userName}
                     sx={AvatarStyles}
                 />

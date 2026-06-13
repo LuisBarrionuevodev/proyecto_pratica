@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
@@ -19,6 +19,7 @@ export type RelevamientoEditDialogProps = {
   numeroCallesOptions?: string[];
   numeroEditorLabel: string;
   numeroAllowFreeSolo?: boolean;
+  globalError?: string | null;
   onClose: () => void;
   onDraftChange: (patch: Partial<IRelevamientoListItem>) => void;
   onSave: () => void | Promise<void>;
@@ -42,6 +43,7 @@ export function RelevamientoEditDialog({
   numeroCallesOptions,
   numeroEditorLabel,
   numeroAllowFreeSolo = false,
+  globalError = null,
   onClose,
   onDraftChange,
   onSave,
@@ -85,6 +87,12 @@ export function RelevamientoEditDialog({
       <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", fontFamily: '"Tactic Sans", sans-serif' }}>
         ID: {draft.id}
       </Typography>
+
+      {globalError ? (
+        <Alert severity="error" sx={{ width: "100%" }}>
+          {globalError}
+        </Alert>
+      ) : null}
 
       <Box
         sx={{

@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, IconButton, Tooltip, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -14,6 +14,9 @@ import {
 } from "../../../api/denunciasApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { ConfirmDialog } from "../../../ui";
+import { useAppFeedback } from "../../../components/feedback";
+import { applyDenunciaErrorsFromApi } from "../utils/denunciaFormErrors";
+import { shouldRefreshDenunciasAfterSaveFailure } from "../utils/refreshOnSavePolicy";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   COLORS,
@@ -35,8 +38,10 @@ const TablaDenuncias = ({
   onRefresh,
   readOnly = false,
 }: TablaDenunciasProps) => {
+  const feedback = useAppFeedback();
   const [data, setData] = useState<IDenunciaGestionItem[]>(externalData || []);
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
+  const [tableGlobalError, setTableGlobalError] = useState<string | null>(null);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<IDenunciaGestionItem | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const loading = externalLoading || false;
@@ -48,13 +53,12 @@ const TablaDenuncias = ({
   const requestDeleteRow = useCallback(
     (rowItem: IDenunciaGestionItem) => {
       if (rowItem.editable === false) {
-        alert("Esta denuncia ya no está operativa y no puede eliminarse.");
-        onRefresh?.();
+        feedback.error("Esta denuncia ya no está operativa y no puede eliminarse.");
         return;
       }
       setDeleteConfirmRow(rowItem);
     },
-    [onRefresh]
+    [onRefresh, feedback]
   );
 
   const performDeleteRow = useCallback(async () => {
@@ -68,44 +72,48 @@ const TablaDenuncias = ({
       onRefresh?.();
     } catch (error: unknown) {
       console.error("Error al eliminar denuncia:", error);
-      const err = error as { response?: { data?: { detail?: string } } };
-      const msg =
-        err?.response?.data?.detail || "No se pudo eliminar la denuncia. Se restaurará la lista.";
-      alert(msg);
+      const { globalMessage } = applyDenunciaErrorsFromApi(error);
+      const msg = globalMessage ?? "No se pudo eliminar la denuncia. Se restaurará la lista.";
+      setTableGlobalError(msg);
+      feedback.error(msg);
       setData(prev);
       onRefresh?.();
     } finally {
       setDeleteInProgress(false);
       setDeleteConfirmRow(null);
     }
-  }, [data, deleteConfirmRow, onRefresh]);
+  }, [data, deleteConfirmRow, onRefresh, feedback]);
 
   const handleSaveRow = useCallback(
     async ({ exitEditingMode, row, values }: any) => {
       const id = Number(row.original.id);
       const fullRow: IDenunciaGestionItem = { ...row.original, ...values };
       if (fullRow.editable === false) {
-        alert("Esta denuncia ya no está operativa y no puede editarse.");
-        onRefresh?.();
+        feedback.error("Esta denuncia ya no está operativa y no puede editarse.");
         return;
       }
       try {
+        setTableGlobalError(null);
         setRowErrors((prev) => ({ ...prev, [id]: {} }));
         await updateDenunciaGestion(id, fullRow);
         exitEditingMode();
         onRefresh?.();
-      } catch (error: any) {
-        const backendErrors = error?.response?.data?.errors;
-        if (backendErrors && typeof backendErrors === "object") {
-          setRowErrors((prev) => ({ ...prev, [id]: backendErrors }));
+      } catch (error: unknown) {
+        const { fieldErrors, globalMessage } = applyDenunciaErrorsFromApi(error);
+        if (Object.keys(fieldErrors).length > 0) {
+          setRowErrors((prev) => ({ ...prev, [id]: fieldErrors }));
+          setTableGlobalError(null);
           return;
         }
-        const msg = error?.response?.data?.detail || "No se pudo actualizar la denuncia.";
-        alert(msg);
-        onRefresh?.();
+        const msg = globalMessage ?? "No se pudo actualizar la denuncia.";
+        setTableGlobalError(msg);
+        feedback.error(msg);
+        if (shouldRefreshDenunciasAfterSaveFailure(error, fieldErrors)) {
+          onRefresh?.();
+        }
       }
     },
-    [onRefresh]
+    [onRefresh, feedback]
   );
 
   const columns = useMemo<MRT_ColumnDef<IDenunciaGestionItem>[]>(
@@ -249,6 +257,11 @@ const TablaDenuncias = ({
 
   return (
     <>
+      {tableGlobalError ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {tableGlobalError}
+        </Alert>
+      ) : null}
       <MaterialReactTable table={table} />
       <ConfirmDialog
         open={deleteConfirmRow !== null}

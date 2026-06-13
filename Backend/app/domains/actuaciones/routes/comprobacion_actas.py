@@ -53,7 +53,7 @@ def comprobacion_pendientes_reinspeccion_oficio():
     """
     Reinspección por oficio: circuito documental completo y **aún sin ítem incorporado** en una ruta
     operativa (F3.6b). La existencia de ``IniciadorRuta`` no oculta la fila; solo un ``RutaItem`` activo
-    (no borrado) en ``BORRADOR`` / ``PUBLICADA`` / ``EN_CURSO``.
+    (no borrado) en ``PUBLICADA`` / ``EN_CURSO`` (``BORRADOR`` sigue visible; STAB-3).
     """
     try:
         filters = _filters_desde_request()
