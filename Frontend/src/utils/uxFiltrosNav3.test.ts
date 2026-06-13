@@ -29,11 +29,12 @@ describe("UX-FILTROS-NAV-3 Inicio", () => {
     expect(inicioSrc).not.toContain("InicioMapaResumenCard");
   });
 
-  it("12 cards alineadas al menú sin Configuración", () => {
-    expect(INICIO_ACCESOS).toHaveLength(12);
+  it("13 cards alineadas al menú sin Configuración", () => {
+    expect(INICIO_ACCESOS).toHaveLength(13);
     const labels = menuSections.map((s) => s.label);
     expect(labels).not.toContain("CONFIGURACIÓN");
     const paths = INICIO_ACCESOS.map((c) => c.to);
+    expect(paths).toContain("/gestionarDomicilios");
     expect(paths).toContain("/rutasTrabajo");
     expect(paths).toContain("/dashboard");
     expect(paths).toContain("/mapa");

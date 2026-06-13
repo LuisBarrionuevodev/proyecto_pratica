@@ -4,7 +4,7 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Chip, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Chip, IconButton, Paper, Tab, Tabs, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
@@ -466,41 +466,6 @@ const TableGestionDeUsuarios = () => {
           <DataTableMrtShell loading={loading} loadingMode="progress">
             <MaterialReactTable table={table} />
           </DataTableMrtShell>
-
-        <Box
-          sx={{
-            backgroundColor: "#1E2127",
-            borderRadius: "16px",
-            border: "1px solid #2c2f36",
-            p: 3,
-            mb: 3,
-            width: "100%",
-            maxWidth: "100%",
-          }}
-        >
-          <Typography variant="h6" sx={{ color: "white", mb: 2, fontWeight: 700 }}>
-            CÓMO USAR
-          </Typography>
-
-          <Typography sx={{ mb: 1, color: "white" }}>
-            1. En <b>Usuarios activos</b>, usá <b>Crear nuevo user</b> para dar de alta un usuario.
-          </Typography>
-          <Typography sx={{ mb: 1, color: "white" }}>
-            2. Usá el ícono <b>Editar</b> para modificar datos de un usuario activo.
-          </Typography>
-          <Typography sx={{ mb: 1, color: "white" }}>
-            3. Usá el ícono <b>Inactivar</b> para impedir el ingreso sin borrar el historial.
-          </Typography>
-          <Typography sx={{ mb: 2, color: "white" }}>
-            4. En <b>Usuarios inactivos</b>, usá <b>Reactivar</b> para volver a habilitar el acceso.
-          </Typography>
-
-          <Box display="flex" gap={1} flexWrap="wrap">
-            <Chip label="CARGANDO" sx={{ background: "#1976d2", color: "#fff" }} />
-            <Chip label="ERROR" sx={{ background: "#d32f2f", color: "#fff" }} />
-            <Chip label="ACTUALIZADO" sx={{ background: "#2e7d32", color: "#fff" }} />
-          </Box>
-        </Box>
       </Box>
 
       <ConfirmDialog

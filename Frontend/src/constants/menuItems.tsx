@@ -12,6 +12,7 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import type { JSX } from "react";
 
 export interface MenuItem {
@@ -60,6 +61,11 @@ export const menuSections: MenuSection[] = [
         text: "Comprobaciones gestión",
         icon: <FactCheckOutlinedIcon />,
         path: "/actasComprobacion",
+      },
+      {
+        text: "Gestionar domicilios",
+        icon: <HomeWorkIcon />,
+        path: "/gestionarDomicilios",
       },
     ],
   },

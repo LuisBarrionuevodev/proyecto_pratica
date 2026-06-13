@@ -13,12 +13,13 @@ describe("menuItems UX-FILTROS-NAV-1", () => {
     expect(paths).not.toContain("/gestionSistema");
   });
 
-  it("agrupa Operativa con notificaciones y comprobaciones", () => {
+  it("agrupa Operativa con notificaciones, comprobaciones y domicilios", () => {
     const operativa = menuSections.find((s) => s.label === "OPERATIVA");
     expect(operativa).toBeDefined();
     const texts = operativa!.items.map((i) => i.text);
     expect(texts).toContain("Notificaciones gestión");
     expect(texts).toContain("Comprobaciones gestión");
+    expect(texts).toContain("Gestionar domicilios");
     expect(texts).toContain("Completar trabajo");
   });
 
@@ -31,9 +32,10 @@ describe("menuItems UX-FILTROS-NAV-1", () => {
 });
 
 describe("inicioAccesosData", () => {
-  it("tiene 12 cards sin configuración", () => {
-    expect(INICIO_ACCESOS).toHaveLength(12);
+  it("tiene 13 cards sin configuración", () => {
+    expect(INICIO_ACCESOS).toHaveLength(13);
     expect(INICIO_ACCESOS.some((c) => c.to === "/gestionSistema")).toBe(false);
+    expect(INICIO_ACCESOS.some((c) => c.to === "/gestionarDomicilios")).toBe(true);
   });
 
   it("incluye módulos operativos principales", () => {

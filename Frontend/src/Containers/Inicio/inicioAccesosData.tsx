@@ -8,6 +8,7 @@ import RouteIcon from "@mui/icons-material/Route";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import MapIcon from "@mui/icons-material/Map";
@@ -56,6 +57,12 @@ export const INICIO_ACCESOS: InicioAccesoItem[] = [
     Icon: FactCheckOutlinedIcon,
     title: "Comprobaciones gestión",
     description: "Expedientes, oficios y recorrido",
+  },
+  {
+    to: "/gestionarDomicilios",
+    Icon: HomeWorkIcon,
+    title: "Gestionar domicilios",
+    description: "Nomenclatura y geolocalización de domicilios",
   },
   {
     to: "/actuaciones",
