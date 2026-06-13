@@ -14,7 +14,7 @@ import {
 import type { CatalogItem } from "../../../api/gridApi";
 import type { IRutaGrupoMin } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { dialogFormActionsRowSx, formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import { dialogFormActionsRowSx, formDialogFlexScrollBodySx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 import { filterCatalogItemsByQuery } from "../../../utils/filterCatalogByQuery";
 import { rutasAsignacionNeutralContainedButtonSx } from "../styles/institutionalVisual";
@@ -25,14 +25,12 @@ const DIALOG_OPEN_PERF = {
   disableAutoFocus: true,
 } as const;
 
-/** Altura fija del viewport: el virtualizer necesita clientHeight > 0; solo maxHeight en flex + `contain` rompía el layout. */
-const LIST_VIEWPORT_HEIGHT_PX = 360;
+/** Mínimo usable para el virtualizer; el resto lo ocupa flex dentro del DialogContent sin scroll externo. */
+const LIST_VIEWPORT_MIN_HEIGHT_PX = 200;
 
 const LIST_VIEWPORT_SX = {
-  height: LIST_VIEWPORT_HEIGHT_PX,
-  maxHeight: LIST_VIEWPORT_HEIGHT_PX,
-  minHeight: LIST_VIEWPORT_HEIGHT_PX,
-  flexShrink: 0,
+  flex: "1 1 auto",
+  minHeight: LIST_VIEWPORT_MIN_HEIGHT_PX,
   overflow: "auto" as const,
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
   borderRadius: "12px",
@@ -180,13 +178,14 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
       keepMounted={false}
       maxWidth="md"
       fullWidth
+      scroll="paper"
       {...DIALOG_OPEN_PERF}
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={handleClose}
       title="Inspectores del grupo"
       contentDividers
-      contentSx={formDialogContentStackSx}
+      contentSx={formDialogFlexScrollBodySx}
       actions={
         <Box sx={dialogFormActionsRowSx}>
           <Button
@@ -210,6 +209,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
             fullWidth
             appearance="glass"
             InputProps={{ readOnly: true }}
+            sx={{ flexShrink: 0 }}
           />
           <Typography
             variant="caption"
@@ -218,6 +218,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
               fontFamily: '"Tactic Sans", sans-serif',
               display: "block",
               lineHeight: 1.4,
+              flexShrink: 0,
             }}
           >
             Selección reemplaza el equipo del grupo. Excluye inspectores ya asignados a otros grupos.
@@ -229,6 +230,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
             onChange={(e) => setSearchQuery(e.target.value)}
             fullWidth
             appearance="glass"
+            sx={{ flexShrink: 0 }}
             InputProps={{
               startAdornment: <SearchIcon sx={{ color: GLASS_COLORS.textMuted, mr: 1, fontSize: 20 }} />,
             }}
@@ -267,7 +269,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
               })}
             </Box>
           </Box>
-          <Box sx={{ pt: 0.5 }}>
+          <Box sx={{ pt: 0.5, flexShrink: 0 }}>
             <AppButton
               dsVariant="primary"
               fullWidth

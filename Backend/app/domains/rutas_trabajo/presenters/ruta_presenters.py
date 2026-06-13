@@ -202,6 +202,65 @@ def ruta_grupo_to_min_dict(grupo: RutaGrupo) -> dict:
     }
 
 
+def _build_identificadores_iniciador(iniciador: IniciadorRuta) -> dict:
+    """
+    Números operativos para cards de planificación (STAB-10c).
+
+    Usa relaciones ya cargadas en ``planificable_iniciadores_base_query`` (oficio, notificación, comprobación).
+    """
+    out: dict = {
+        "numero_oficio": None,
+        "anio_oficio": None,
+        "numero_comprobacion": None,
+        "anio_comprobacion": None,
+        "numero_notificacion": None,
+        "anio_notificacion": None,
+        "fecha_vencimiento_notificacion": None,
+        "numero_denuncia": None,
+    }
+
+    ofi = iniciador.oficio
+    if ofi is not None:
+        nof = _s(ofi.numero_oficio)
+        if nof:
+            out["numero_oficio"] = nof
+        out["anio_oficio"] = ofi.anio
+        comp_ofi = ofi.comprobacion
+        if comp_ofi is not None:
+            ncomp = _s(comp_ofi.numero_acta)
+            if ncomp:
+                out["numero_comprobacion"] = ncomp
+            out["anio_comprobacion"] = comp_ofi.anio
+
+    comp = iniciador.comprobacion
+    if comp is not None:
+        if not out["numero_comprobacion"]:
+            ncomp = _s(comp.numero_acta)
+            if ncomp:
+                out["numero_comprobacion"] = ncomp
+            out["anio_comprobacion"] = comp.anio
+        if not out["numero_oficio"]:
+            oficios_rel = getattr(comp, "oficio", None)
+            if oficios_rel is not None:
+                first_ofi = oficios_rel[0] if isinstance(oficios_rel, list) else oficios_rel
+                if first_ofi is not None:
+                    nof = _s(getattr(first_ofi, "numero_oficio", None))
+                    if nof:
+                        out["numero_oficio"] = nof
+                    out["anio_oficio"] = getattr(first_ofi, "anio", None)
+
+    noti = iniciador.notificacion
+    if noti is not None:
+        nnot = _s(noti.numero_acta)
+        if nnot:
+            out["numero_notificacion"] = nnot
+        out["anio_notificacion"] = noti.anio
+        if noti.fecha_vencimiento is not None:
+            out["fecha_vencimiento_notificacion"] = noti.fecha_vencimiento.isoformat()
+
+    return out
+
+
 def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
     """
     Serializa un iniciador pendiente para tabla operativa de planificación.
@@ -291,7 +350,52 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
             "origen_label": origen or "SIN_ORIGEN",
             "prioridad_label": f"P{iniciador.prioridad}" if iniciador.prioridad else "S/P",
         },
+        "identificadores": _build_identificadores_iniciador(iniciador),
     }
+
+
+_MAP_PIN_KEYS: tuple[str, ...] = (
+    "id",
+    "tipo_iniciador",
+    "estado_iniciador",
+    "fecha_origen",
+    "prioridad",
+    "prioridad_categoria",
+    "domicilio_texto",
+    "distrito_id",
+    "distrito_nombre",
+    "rubro_nombre",
+    "domicilio",
+    "origen",
+    "lat",
+    "lng",
+    "geo_status",
+    "badges",
+    "identificadores",
+)
+
+
+def iniciador_pendiente_to_map_pin(iniciador: IniciadorRuta) -> dict:
+    """
+    Payload mínimo para pins del mapa de planificación (STAB-10b).
+
+    Reutiliza la resolución de domicilio/geocode de `iniciador_pendiente_to_row`
+    y recorta campos no usados en mapa/popup/pool.
+    """
+    full = iniciador_pendiente_to_row(iniciador)
+    return {k: full[k] for k in _MAP_PIN_KEYS if k in full}
+
+
+def iniciador_pendiente_present(iniciador: IniciadorRuta, *, fields: str = "full") -> dict:
+    """
+    Presenta un iniciador pendiente según el modo solicitado.
+
+    Parámetros:
+        fields: ``full`` (lista/tabla) o ``minimal`` (mapa).
+    """
+    if (fields or "full").strip().lower() == "minimal":
+        return iniciador_pendiente_to_map_pin(iniciador)
+    return iniciador_pendiente_to_row(iniciador)
 
 
 def ruta_item_to_min_dict(item: RutaItem) -> dict:

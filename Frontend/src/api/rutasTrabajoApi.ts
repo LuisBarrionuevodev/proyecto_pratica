@@ -108,6 +108,17 @@ export interface IRutaIniciadorPendienteRow {
   lat?: number | null;
   lng?: number | null;
   geo_status?: string | null;
+  /** Números operativos para cards (STAB-10c). */
+  identificadores?: {
+    numero_oficio?: string | null;
+    anio_oficio?: number | null;
+    numero_comprobacion?: string | null;
+    anio_comprobacion?: number | null;
+    numero_notificacion?: string | null;
+    anio_notificacion?: number | null;
+    fecha_vencimiento_notificacion?: string | null;
+    numero_denuncia?: string | null;
+  };
 }
 
 export interface IGetRutaIniciadoresPendientesResponse {

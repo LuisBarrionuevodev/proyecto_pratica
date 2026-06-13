@@ -6,6 +6,7 @@ import type {
   PlanificacionOrdenM4,
   UrgentesFiltrosAplicados,
 } from "../types/planificacion.types";
+import { buildUrgentesQueryParams } from "../utils/buildUrgentesQueryParams";
 
 export interface IPlanificacionListMeta {
   total: number;
@@ -38,21 +39,12 @@ export async function getPlanificacionUrgentes(
   params: {
     page?: number;
     per_page?: number;
-    distrito_id?: number;
-    tipo_urgente?: UrgentesFiltrosAplicados["tipo_urgente"];
-    q?: string;
-    numero_oficio?: string;
-    numero_comprobacion?: string;
+    /** Solo para filtros explícitos; no enviar por distrito del mapa. */
+    distrito_id?: number | null;
+    filtros?: UrgentesFiltrosAplicados;
   }
 ): Promise<{ items: IRutaIniciadorPendienteRow[]; meta: IPlanificacionListMeta }> {
-  const query: Record<string, string | number> = {};
-  if (params.page) query.page = params.page;
-  if (params.per_page) query.per_page = params.per_page;
-  if (params.distrito_id != null) query.distrito_id = params.distrito_id;
-  if (params.tipo_urgente) query.tipo_urgente = params.tipo_urgente;
-  if (params.q) query.q = params.q;
-  if (params.numero_oficio) query.numero_oficio = params.numero_oficio;
-  if (params.numero_comprobacion) query.numero_comprobacion = params.numero_comprobacion;
+  const query = buildUrgentesQueryParams(params);
   const { data } = await apiClient.get<{
     items: IRutaIniciadorPendienteRow[];
     meta: IPlanificacionListMeta;
@@ -71,6 +63,8 @@ export interface IPendientesContextoParams {
   page?: number;
   per_page?: number;
   orden?: PlanificacionOrdenM4;
+  /** STAB-10b: minimal para carga de pins en mapa. */
+  fields?: "full" | "minimal";
 }
 
 export async function getPlanificacionPendientesContexto(

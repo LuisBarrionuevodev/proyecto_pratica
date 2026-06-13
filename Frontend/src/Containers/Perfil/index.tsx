@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import BoxCambiarInfo from "./Components/BoxCambiarInfo";
 import BoxNombreUsuario from "./Components/BoxNombreUsuario";
 import { apiClient } from "../../api/apiClient";
+import { ROLE_LABELS, normalizeAppRole } from "../../auth/roles";
 
 type MeResponse = {
   user: {
     id: number;
     username: string;
     email: string;
-    role: "admin" | "usuario";
+    role: string;
   };
   profile: {
     nickname: string | null;
@@ -67,7 +68,7 @@ const Perfil = () => {
             <BoxNombreUsuario
                 user={me?.user.username ?? ""}
                 nombre={me?.profile.nickname ?? ""}
-                rol={me?.user.role === "admin" ? "Administrador" : "Usuario"}
+                rol={me ? ROLE_LABELS[normalizeAppRole(me.user.role)] : "Usuario"}
                 avatarInicial={me?.profile.avatar_key ?? "avatar1"}
                 onAvatarChange={async (newAvatar) => {
                     try {

@@ -10,6 +10,7 @@ import {
   etiquetaTipoCorta,
   fechaOrigenPendiente,
   lineaPrincipalPendiente,
+  lineasIdentificadoresPendiente,
   prioridadCategoriaRow,
   rubroLineaPendiente,
   type PrioridadCat,
@@ -67,6 +68,7 @@ export function PlanificacionIniciadorCompactCard({
   const rubroTxt = rubroLineaPendiente(row);
   const distritoTxt = distritoNombrePendiente(row);
   const fechaTxt = fechaOrigenPendiente(row);
+  const identificadores = lineasIdentificadoresPendiente(row);
   const tieneCoords = parseIniciadorLatLng(row) != null;
   const puedeMapaInterno = Boolean(onVerEnMapa && tieneCoords);
   const puedeMapaExterno = principal !== "—" && !onVerEnMapa;
@@ -134,6 +136,25 @@ export function PlanificacionIniciadorCompactCard({
         >
           {principal}
         </Typography>
+        {identificadores.length > 0 ? (
+          <Stack spacing={0.15} sx={{ minWidth: 0 }}>
+            {identificadores.map((line) => (
+              <Typography
+                key={line}
+                sx={{
+                  fontFamily: tactic,
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                  color: GLASS_COLORS.textSecondary,
+                  wordBreak: "break-word",
+                }}
+              >
+                {line}
+              </Typography>
+            ))}
+          </Stack>
+        ) : null}
         <Stack spacing={0.25} sx={{ minWidth: 0 }}>
           <Typography
             sx={{

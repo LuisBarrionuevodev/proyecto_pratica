@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
+import type { IRubroCatalogItem } from "../../../../api/rubrosCatalogApi";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../../../api/geolocalizacionApi";
+import { fetchRubrosCatalogoCached } from "../../../../utils/rubrosCatalogCache";
 import {
   getPlanificacionCargaDistritos,
   getPlanificacionMetricas,
@@ -10,8 +12,12 @@ import {
   type IPendientesContextoParams,
 } from "../api/planificacionApi";
 import {
-  aplicarCardContextoLista,
-  computeMetricasDesdeFilas,
+  aplicarFiltrosPendientesContexto as filtrarPendientesMapaPorFiltros,
+  computeMetricasCardsDesdeMapa,
+  filasConPinMapa,
+  filtrarPendientesMapaPorCard,
+  filtrarUrgentesVisibles,
+  ordenarPendientes,
   sinPool,
   toPoolSet,
 } from "../selectors/planificacionSelectors";
@@ -24,15 +30,15 @@ import type {
 } from "../types/planificacion.types";
 
 const FILTROS_VACIOS: PlanificacionFiltrosLista = {
-  tipo: "",
-  prioridad_categoria: "",
   q: "",
-  orden: "prioridad",
+  rubro_id: null,
 };
 
 const URGENTES_FILTROS_VACIOS: UrgentesFiltrosAplicados = {
   tipo_urgente: "",
-  q: "",
+  rubro_id: null,
+  q_identificador: "",
+  q_domicilio: "",
 };
 
 /** Tamaño de página de la lista “Pendientes del contexto”. */
@@ -43,57 +49,12 @@ const M4_PAGE_MAP_CHUNK = 500;
 const M4_MAP_MAX_PAGES = 40;
 
 /**
- * Deriva filtros de API M4 según la KPI card activa.
- *
- * Nota: `OFICIOS_URGENTES` no puede expresarse con un solo `tipo` en la API (varios tipos
- * de oficio). Lista y mapa piden M4 sin `tipo` de card y aplican el mismo criterio en
- * cliente con `aplicarCardContextoLista`.
+ * Parámetros M4 para carga del mapa (solo distrito; filtros panel en cliente — STAB-10d).
  */
-function mapCardToM4Params(card: PlanificacionCardKey): {
-  tipo?: string;
-  prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
-} {
-  if (card == null || card === "OFICIOS_URGENTES") {
-    return {};
-  }
-  if (card === "ALTA_PRIORIDAD") {
-    return { prioridad_categoria: "ALTA" };
-  }
-  if (card === "DENUNCIAS") {
-    return { tipo: "DENUNCIA" };
-  }
-  if (card === "NOTIFICACIONES") {
-    return { tipo: "REINSPECCION_NOTIFICACION" };
-  }
-  if (card === "RELEVAMIENTOS") {
-    return { tipo: "RELEVAMIENTO" };
-  }
-  return {};
-}
-
-/**
- * Parámetros M4 comunes para lista y mapa (mismo criterio backend; sin paginación).
- *
- * Parámetros:
- * - `distritoActivoId`: distrito seleccionado.
- * - `cardActiva`: KPI card (se fusiona con filtros del panel).
- * - `filtros`: búsqueda / tipo / prioridad / orden del panel.
- *
- * Retorno: objeto listo para spread en `getPlanificacionPendientesContexto` junto con `page` y `per_page`.
- */
-function buildM4QueryBase(
-  distritoActivoId: number,
-  cardActiva: PlanificacionCardKey,
-  filtros: PlanificacionFiltrosLista
-): Omit<IPendientesContextoParams, "page" | "per_page"> {
-  const cardParams = mapCardToM4Params(cardActiva);
+function buildM4QueryBase(distritoActivoId: number): Omit<IPendientesContextoParams, "page" | "per_page"> {
   return {
     distrito_id: distritoActivoId,
-    q: filtros.q.trim() || undefined,
-    tipo: filtros.tipo || cardParams.tipo || undefined,
-    prioridad_categoria:
-      filtros.prioridad_categoria || cardParams.prioridad_categoria || undefined,
-    orden: filtros.orden,
+    orden: "prioridad",
   };
 }
 
@@ -128,17 +89,18 @@ export function usePlanificacionController({
   const [urgentesFiltrosAplicados, setUrgentesFiltrosAplicados] = useState<UrgentesFiltrosAplicados>({
     ...URGENTES_FILTROS_VACIOS,
   });
+  const urgentesFiltrosRef = useRef(urgentesFiltrosAplicados);
+  urgentesFiltrosRef.current = urgentesFiltrosAplicados;
 
   const [metricas, setMetricas] = useState<IPlanificacionMetricas | null>(null);
   const [cargaPorDistrito, setCargaPorDistrito] = useState<ICargaDistritoRow[]>([]);
   const [urgentesRaw, setUrgentesRaw] = useState<IRutaIniciadorPendienteRow[]>([]);
   const [urgentesMeta, setUrgentesMeta] = useState({ total: 0, page: 1, perPage: 25 });
-  const [pendientesRaw, setPendientesRaw] = useState<IRutaIniciadorPendienteRow[]>([]);
-  /** Misma query M4 con per_page alto: puntos en mapa al elegir distrito (no limitado a la página de la lista). */
   const [pendientesMapaRaw, setPendientesMapaRaw] = useState<IRutaIniciadorPendienteRow[]>([]);
-  const [pendientesMeta, setPendientesMeta] = useState({ total: 0, page: 1, perPage: 25 });
+  const [listaContextoPage, setListaContextoPage] = useState(1);
   const [distritoCatalogo, setDistritoCatalogo] = useState<DistritoCatalogoItem[]>([]);
   const [loadingDistritoCatalogo, setLoadingDistritoCatalogo] = useState(true);
+  const [rubrosCatalogo, setRubrosCatalogo] = useState<IRubroCatalogItem[]>([]);
 
   const [loading, setLoading] = useState({
     metricas: false,
@@ -151,41 +113,58 @@ export function usePlanificacionController({
 
   const poolSet = useMemo(() => toPoolSet(poolIniciadorIds), [poolIniciadorIds]);
 
-  /**
-   * M3: backend ya filtra tipo≠RELEVAMIENTO y prioridad≥3; alineamos con `elegible_urgente` del presenter si viene.
-   * Pool excluye filas en ambas columnas.
-   */
+  const rubroNombrePorId = useCallback(
+    (id: number) => rubrosCatalogo.find((r) => r.id === id)?.nombre ?? null,
+    [rubrosCatalogo]
+  );
+
+  /** Pins con geocode, sin pool, sin filtros panel. */
+  const pendientesMapaPins = useMemo(() => {
+    return filasConPinMapa(sinPool(pendientesMapaRaw, poolSet));
+  }, [pendientesMapaRaw, poolSet]);
+
+  /** Universo visible: pins + filtros panel (rubro, domicilio, orden rubro). */
+  const pendientesMapaBase = useMemo(() => {
+    return filtrarPendientesMapaPorFiltros(pendientesMapaPins, filtros, rubroNombrePorId);
+  }, [pendientesMapaPins, filtros, rubroNombrePorId]);
+
+  const pendientesFiltradosPorCard = useMemo(() => {
+    return ordenarPendientes(filtrarPendientesMapaPorCard(pendientesMapaBase, cardActiva));
+  }, [pendientesMapaBase, cardActiva]);
+
+  const pendientesMeta = useMemo(() => {
+    if (distritoActivoId == null) {
+      return { total: 0, page: 1, perPage: M4_PAGE_LIST_SIZE };
+    }
+    return {
+      total: pendientesFiltradosPorCard.length,
+      page: listaContextoPage,
+      perPage: M4_PAGE_LIST_SIZE,
+    };
+  }, [distritoActivoId, pendientesFiltradosPorCard.length, listaContextoPage]);
+
+  const pendientesContextoVisibles = useMemo(() => {
+    if (distritoActivoId == null) return [];
+    const start = (listaContextoPage - 1) * M4_PAGE_LIST_SIZE;
+    return pendientesFiltradosPorCard.slice(start, start + M4_PAGE_LIST_SIZE);
+  }, [distritoActivoId, pendientesFiltradosPorCard, listaContextoPage]);
+
+  /** Mapa y lista comparten filtro por card sobre el mismo universo de pins. */
+  const pendientesParaMapa = pendientesFiltradosPorCard;
+
+  /** M3: backend ya filtra urgentes; solo excluir ítems en pool del día (cardActiva no aplica). */
   const urgentesVisibles = useMemo(
-    () =>
-      sinPool(urgentesRaw, poolSet).filter((r) => {
-        if (r.tipo_iniciador === "RELEVAMIENTO") return false;
-        if (r.elegible_urgente === false) return false;
-        return true;
-      }),
+    () => filtrarUrgentesVisibles(urgentesRaw, poolSet),
     [urgentesRaw, poolSet]
   );
 
-  const pendientesContextoVisibles = useMemo(() => {
-    const sinP = sinPool(pendientesRaw, poolSet);
-    return aplicarCardContextoLista(sinP, cardActiva);
-  }, [pendientesRaw, poolSet, cardActiva]);
-
-  /** Mismo universo que la lista respecto a card + pool; datos M4 del mapa ya alineados con `buildM4QueryBase`. */
-  const pendientesParaMapa = useMemo(() => {
-    const sinP = sinPool(pendientesMapaRaw, poolSet);
-    return aplicarCardContextoLista(sinP, cardActiva);
-  }, [pendientesMapaRaw, poolSet, cardActiva]);
-
-  /**
-   * KPIs alineados al mapa visible: con distrito activo, cuenta el dataset M4 filtrado (panel + pool).
-   * Sin distrito, conserva M1 global del backend.
-   */
+  /** KPIs: con distrito, desde pins visibles en mapa; sin distrito, M1 global. */
   const metricasVisibles = useMemo(() => {
     if (distritoActivoId == null) {
       return metricas;
     }
-    return computeMetricasDesdeFilas(sinPool(pendientesMapaRaw, poolSet));
-  }, [distritoActivoId, pendientesMapaRaw, poolSet, metricas]);
+    return computeMetricasCardsDesdeMapa(pendientesMapaBase);
+  }, [distritoActivoId, pendientesMapaBase, metricas]);
 
   const loadMetricas = useCallback(
     async (distritoId: number | null) => {
@@ -225,30 +204,40 @@ export function usePlanificacionController({
   }, [rutaId]);
 
   const loadUrgentes = useCallback(
-    async (page = 1, perPage = 25, filtrosUrg = urgentesFiltrosAplicados) => {
+    async (page = 1, perPage = 25, filtrosUrg?: UrgentesFiltrosAplicados) => {
+      const f = filtrosUrg ?? urgentesFiltrosRef.current;
       setLoading((s) => ({ ...s, urgentes: true }));
       try {
         const { items, meta } = await getPlanificacionUrgentes(rutaId, {
           page,
           per_page: perPage,
-          ...(distritoActivoId != null ? { distrito_id: distritoActivoId } : {}),
-          ...(filtrosUrg.tipo_urgente ? { tipo_urgente: filtrosUrg.tipo_urgente } : {}),
-          ...(filtrosUrg.q ? { q: filtrosUrg.q } : {}),
+          filtros: f,
         });
         setUrgentesRaw(items);
         setUrgentesMeta({ total: meta.total, page: meta.page, perPage: meta.per_page });
       } catch (e: unknown) {
-        const ax = e as { response?: { data?: { detail?: string } } };
-        onErrorRef.current(
-          typeof ax?.response?.data?.detail === "string"
-            ? ax.response.data.detail
-            : "No se pudieron cargar urgentes"
-        );
+        const ax = e as {
+          response?: { status?: number; data?: { detail?: string; errors?: unknown } };
+        };
+        const status = ax?.response?.status;
+        const detail = ax?.response?.data?.detail;
+        if (import.meta.env.DEV && status != null) {
+          console.warn("[planificacion/urgentes]", status, ax?.response?.data);
+        }
+        if (status === 422) {
+          onErrorRef.current(
+            "No se pudieron cargar los urgentes. Revisá los filtros aplicados."
+          );
+        } else if (typeof detail === "string" && detail.trim()) {
+          onErrorRef.current(detail);
+        } else {
+          onErrorRef.current("No se pudieron cargar los urgentes.");
+        }
       } finally {
         setLoading((s) => ({ ...s, urgentes: false }));
       }
     },
-    [rutaId, distritoActivoId, urgentesFiltrosAplicados]
+    [rutaId]
   );
 
   const aplicarFiltrosUrgentes = useCallback(
@@ -263,6 +252,16 @@ export function usePlanificacionController({
     setUrgentesFiltrosAplicados({ ...URGENTES_FILTROS_VACIOS });
     void loadUrgentes(1, urgentesMeta.perPage, URGENTES_FILTROS_VACIOS);
   }, [loadUrgentes, urgentesMeta.perPage]);
+
+  const aplicarFiltrosPendientesContexto = useCallback((f: PlanificacionFiltrosLista) => {
+    setFiltros(f);
+    setListaContextoPage(1);
+  }, []);
+
+  const reiniciarFiltrosPendientesContexto = useCallback(() => {
+    setFiltros({ ...FILTROS_VACIOS });
+    setListaContextoPage(1);
+  }, []);
 
   /** En la página actual de M3, cuántas filas del servicio están en el pool (no se listan en la bandeja). */
   const urgentesOcultosPorPoolEnPagina = useMemo(
@@ -289,7 +288,21 @@ export function usePlanificacionController({
     };
   }, []);
 
-  /** Montaje: M2; M3 al abrir y al cambiar distrito (alineado con M1 «alta» territorial). */
+  useEffect(() => {
+    let cancel = false;
+    void fetchRubrosCatalogoCached()
+      .then((items) => {
+        if (!cancel) setRubrosCatalogo(items);
+      })
+      .catch(() => {
+        if (!cancel) setRubrosCatalogo([]);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
+  /** Montaje: M2; M3 global al abrir (no depende del distrito del mapa). */
   useEffect(() => {
     void loadCargaDistritos();
   }, [loadCargaDistritos]);
@@ -298,100 +311,46 @@ export function usePlanificacionController({
     void loadUrgentes(1, 25);
   }, [loadUrgentes]);
 
-  /** M1 según distrito activo (null = global). */
+  /** M1 solo sin distrito activo; con distrito los KPIs salen de `metricasVisibles` (M4 mapa). */
   useEffect(() => {
-    void loadMetricas(distritoActivoId);
+    if (distritoActivoId != null) {
+      setLoading((s) => ({ ...s, metricasInicial: false }));
+      return;
+    }
+    void loadMetricas(null);
   }, [distritoActivoId, loadMetricas]);
 
-  const pendientesReqSeq = useRef(0);
   const pendientesMapaReqSeq = useRef(0);
-  /**
-   * Evita mostrar pins de un contexto M4 anterior (otro distrito, card o filtros) hasta recibir
-   * la nueva carga; la clave debe coincidir con las dependencias del efecto M4 mapa.
-   */
-  const lastMapContextKeyRef = useRef<string>("");
+  const lastDistritoLoadedRef = useRef<number | null>(null);
 
-  /**
-   * Se incrementa al reiniciar el panel (botón o equivalente) para forzar nuevo M4 aunque los
-   * filtros ya estén vacíos — evita mapa/lista “pegados” tras errores o estados raros.
-   */
-  const [pendientesContextoRefetchSignal, setPendientesContextoRefetchSignal] = useState(0);
-
-  /** M4: distrito + card + filtros (página 1). */
   useEffect(() => {
-    if (distritoActivoId == null) {
-      setPendientesRaw([]);
-      setPendientesMapaRaw([]);
-      setPendientesMeta({ total: 0, page: 1, perPage: 25 });
-      return;
-    }
-    const seq = ++pendientesReqSeq.current;
-    const run = async () => {
-      setLoading((s) => ({ ...s, pendientesContexto: true }));
-      try {
-        const base = buildM4QueryBase(distritoActivoId, cardActiva, filtros);
-        const { items, meta } = await getPlanificacionPendientesContexto(rutaId, {
-          ...base,
-          page: 1,
-          per_page: M4_PAGE_LIST_SIZE,
-        });
-        if (seq !== pendientesReqSeq.current) return;
-        setPendientesRaw(items);
-        setPendientesMeta({ total: meta.total, page: meta.page, perPage: meta.per_page });
-      } catch (e: unknown) {
-        if (seq !== pendientesReqSeq.current) return;
-        const ax = e as { response?: { data?: { detail?: string } } };
-        onErrorRef.current(
-          typeof ax?.response?.data?.detail === "string"
-            ? ax.response.data.detail
-            : "No se pudieron cargar pendientes del distrito"
-        );
-      } finally {
-        if (seq === pendientesReqSeq.current) {
-          setLoading((s) => ({ ...s, pendientesContexto: false }));
-        }
-      }
-    };
-    void run();
-  }, [
-    distritoActivoId,
-    cardActiva,
-    filtros.q,
-    filtros.tipo,
-    filtros.prioridad_categoria,
-    filtros.orden,
-    rutaId,
-    pendientesContextoRefetchSignal,
-  ]);
+    setListaContextoPage(1);
+    setFiltros({ ...FILTROS_VACIOS });
+  }, [distritoActivoId]);
+
+  useEffect(() => {
+    setListaContextoPage(1);
+  }, [cardActiva, filtros.q, filtros.rubro_id]);
 
   /**
-   * M4 mapa: mismo criterio que la lista (`buildM4QueryBase`), con paginación hasta cubrir `meta.total`
-   * o hasta `M4_MAP_MAX_PAGES`. Los pins visibles aplican además `aplicarCardContextoLista` vía
-   * `pendientesParaMapa` (alineación con OFICIOS_URGENTES y similares).
+   * M4 mapa: solo distrito (filtros panel en cliente). Lista y KPIs derivan del mismo dataset.
    */
   useEffect(() => {
     if (distritoActivoId == null) {
-      lastMapContextKeyRef.current = "";
+      lastDistritoLoadedRef.current = null;
       setPendientesMapaRaw([]);
+      setLoading((s) => ({ ...s, pendientesContexto: false }));
       return;
     }
-    const mapContextKey = JSON.stringify({
-      distritoId: distritoActivoId,
-      card: cardActiva,
-      q: filtros.q.trim(),
-      tipo: filtros.tipo,
-      prioridad_categoria: filtros.prioridad_categoria,
-      orden: filtros.orden,
-      refetch: pendientesContextoRefetchSignal,
-    });
-    if (lastMapContextKeyRef.current !== mapContextKey) {
-      lastMapContextKeyRef.current = mapContextKey;
+    if (lastDistritoLoadedRef.current !== distritoActivoId) {
+      lastDistritoLoadedRef.current = distritoActivoId;
       setPendientesMapaRaw([]);
     }
     const seq = ++pendientesMapaReqSeq.current;
     const run = async () => {
+      setLoading((s) => ({ ...s, pendientesContexto: true }));
       try {
-        const base = buildM4QueryBase(distritoActivoId, cardActiva, filtros);
+        const base = buildM4QueryBase(distritoActivoId);
         const merged = new Map<number, IRutaIniciadorPendienteRow>();
         let page = 1;
         let totalReported = 0;
@@ -400,6 +359,7 @@ export function usePlanificacionController({
             ...base,
             page,
             per_page: M4_PAGE_MAP_CHUNK,
+            fields: "minimal",
           });
           if (seq !== pendientesMapaReqSeq.current) return;
           if (page === 1) totalReported = meta.total;
@@ -424,59 +384,31 @@ export function usePlanificacionController({
         const detail =
           typeof ax?.response?.data?.detail === "string" ? ax.response.data.detail : null;
         onErrorRef.current(detail ?? "No se pudieron cargar los puntos del mapa para este distrito");
+      } finally {
+        if (seq === pendientesMapaReqSeq.current) {
+          setLoading((s) => ({ ...s, pendientesContexto: false }));
+        }
       }
     };
     void run();
-  }, [
-    distritoActivoId,
-    cardActiva,
-    filtros.q,
-    filtros.tipo,
-    filtros.prioridad_categoria,
-    filtros.orden,
-    rutaId,
-    pendientesContextoRefetchSignal,
-  ]);
-
-  /** Limpia búsqueda y filtros del panel izquierdo (no cambia distrito ni KPI card) y relanza M4 lista + mapa. */
-  const reiniciarFiltrosPendientesContexto = useCallback(() => {
-    setFiltros({ ...FILTROS_VACIOS });
-    setPendientesContextoRefetchSignal((n) => n + 1);
-  }, []);
+  }, [distritoActivoId, rutaId]);
 
   const seleccionarDistrito = useCallback((id: number | null) => {
     setDistritoActivoId(id);
+    setListaContextoPage(1);
   }, []);
 
   const setCardActiva = useCallback((card: PlanificacionCardKey) => {
     setCardActivaState(card);
+    setListaContextoPage(1);
   }, []);
 
   const loadPendientesContextoPage = useCallback(
-    async (page: number) => {
+    (page: number) => {
       if (distritoActivoId == null) return;
-      setLoading((s) => ({ ...s, pendientesContexto: true }));
-      try {
-        const base = buildM4QueryBase(distritoActivoId, cardActiva, filtros);
-        const { items, meta } = await getPlanificacionPendientesContexto(rutaId, {
-          ...base,
-          page,
-          per_page: pendientesMeta.perPage,
-        });
-        setPendientesRaw(items);
-        setPendientesMeta({ total: meta.total, page: meta.page, perPage: meta.per_page });
-      } catch (e: unknown) {
-        const ax = e as { response?: { data?: { detail?: string } } };
-        onErrorRef.current(
-          typeof ax?.response?.data?.detail === "string"
-            ? ax.response.data.detail
-            : "No se pudieron cargar pendientes"
-        );
-      } finally {
-        setLoading((s) => ({ ...s, pendientesContexto: false }));
-      }
+      setListaContextoPage(page);
     },
-    [distritoActivoId, rutaId, cardActiva, filtros, pendientesMeta.perPage]
+    [distritoActivoId]
   );
 
   const poolItemsOrdenados = useMemo(() => {
@@ -489,7 +421,7 @@ export function usePlanificacionController({
     cardActiva,
     setCardActiva,
     filtros,
-    setFiltros,
+    aplicarFiltrosPendientesContexto,
     reiniciarFiltrosPendientesContexto,
     poolIniciadorIds,
     poolItemsOrdenados,

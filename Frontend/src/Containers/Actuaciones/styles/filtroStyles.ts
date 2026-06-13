@@ -137,7 +137,12 @@ export const filtroButtonsStyles: SxProps<Theme> = {
   display: "flex",
   gap: 1.5,
   justifyContent: "flex-end",
+  alignItems: "center",
+  flexWrap: "wrap",
 };
+
+/** Alias canónicos STAB-10 — mismo sistema en todos los filtros. */
+export const filterActionsSx = filtroButtonsStyles;
 
 export const filtroButtonPrimaryStyles: SxProps<Theme> = {
   fontFamily: '"Tactic Sans", sans-serif',
@@ -170,6 +175,34 @@ export const filtroButtonSecondaryStyles: SxProps<Theme> = {
     backgroundColor: COLORS.rowOdd,
     borderColor: GLASS_COLORS.borderLight,
   },
+};
+
+export const filterPrimaryButtonSx = filtroButtonPrimaryStyles;
+export const filterSecondaryButtonSx = filtroButtonSecondaryStyles;
+
+/** Fila de acciones en filtros compactos (urgentes, panel contexto). */
+export const filterCompactActionsSx: SxProps<Theme> = {
+  display: "flex",
+  gap: 1,
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+
+/** Botón primary compacto alineado a inputs `size="small"`. */
+export const filterCompactPrimaryButtonSx: SxProps<Theme> = {
+  ...filtroButtonPrimaryStyles,
+  fontSize: "13px",
+  padding: "7px 16px",
+  minHeight: 36,
+  flexShrink: 0,
+};
+
+export const filterCompactSecondaryButtonSx: SxProps<Theme> = {
+  ...filtroButtonSecondaryStyles,
+  fontSize: "13px",
+  padding: "7px 16px",
+  minHeight: 36,
+  flexShrink: 0,
 };
 
 // =============================================================================

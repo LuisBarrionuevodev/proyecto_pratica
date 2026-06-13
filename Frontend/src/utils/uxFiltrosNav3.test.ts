@@ -67,7 +67,7 @@ describe("UX-FILTROS-NAV-3 Urgentes Ruta", () => {
     const view = resolve(process.cwd(), "src/Containers/RutasTrabajo/planificacion/PlanificacionView.tsx");
     const ctrlSrc = readFileSync(ctrl, "utf8");
     const viewSrc = readFileSync(view, "utf8");
-    expect(ctrlSrc).toContain("computeMetricasDesdeFilas");
+    expect(ctrlSrc).toContain("computeMetricasCardsDesdeMapa");
     expect(ctrlSrc).toContain("metricasVisibles");
     expect(viewSrc).toContain("ctrl.metricasVisibles");
   });

@@ -23,22 +23,32 @@ export const StyleDivider = {
     marginY: 1,
 };
 
-// Contenedor de la lista con espaciado interno
-export const StyleListItems = {
-    flexGrow: 1,
+// Contenedor de la lista con espaciado interno y scroll oscuro (HOTFIX-UI-LAYOUT)
+export const StyleListItems = (open: boolean): SxProps<Theme> => ({
+    flex: "1 1 auto",
+    minHeight: 0,
     width: "100%",
     paddingTop: 0,
     paddingBottom: 1,
     overflowY: "auto",
     overflowX: "hidden",
-    "&::-webkit-scrollbar": {
-        width: "4px",
-    },
-    "&::-webkit-scrollbar-thumb": {
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
-        borderRadius: "4px",
-    },
-};
+    ...(open
+        ? {
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(255,255,255,0.22) transparent",
+              "&::-webkit-scrollbar": { width: "6px" },
+              "&::-webkit-scrollbar-track": { background: "transparent" },
+              "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "rgba(255,255,255,0.22)",
+                  borderRadius: "999px",
+              },
+          }
+        : {
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              "&::-webkit-scrollbar": { display: "none", width: 0, height: 0 },
+          }),
+});
 
 // Drawer principal - misma altura que ContentShell
 export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
@@ -47,6 +57,7 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
     "& .MuiDrawer-paper": {
         width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
         transition: TRANSITION.css,
+        overflow: "hidden",
         overflowX: "hidden",
         backgroundColor: GLASS_COLORS.sidebarBg,
         color: "white",
@@ -58,6 +69,7 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
         alignItems:"center",
         display: "flex",
         flexDirection: "column",
+        minHeight: 0,
         border: `1px solid ${GLASS_COLORS.borderLight}`,
     },
 });

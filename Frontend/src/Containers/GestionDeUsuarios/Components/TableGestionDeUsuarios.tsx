@@ -28,7 +28,7 @@ type Usuario = {
   id: number;
   username: string;
   email: string;
-  role: "admin" | "usuario";
+  role: "admin" | "usuario" | "relevador";
   is_active?: boolean;
   password?: string;
 };
@@ -157,7 +157,7 @@ const TableGestionDeUsuarios = () => {
         username: String(values.username ?? ""),
         email: String(values.email ?? ""),
         password: String(values.password ?? ""),
-        role: values.role === "admin" ? "admin" : "usuario",
+        role: values.role === "admin" ? "admin" : values.role === "relevador" ? "relevador" : "usuario",
       });
       await fetchUsuarios(slice);
       feedback.success("Usuario creado correctamente.");
@@ -184,7 +184,7 @@ const TableGestionDeUsuarios = () => {
         username: String(values.username ?? ""),
         email: String(values.email ?? ""),
         password: String(values.password ?? "").trim() || undefined,
-        role: values.role === "admin" ? "admin" : "usuario",
+        role: values.role === "admin" ? "admin" : values.role === "relevador" ? "relevador" : "usuario",
       });
       await fetchUsuarios(slice);
       feedback.success("Usuario actualizado correctamente.");
@@ -290,6 +290,7 @@ const TableGestionDeUsuarios = () => {
         editSelectOptions: [
           { value: "admin", label: "admin" },
           { value: "usuario", label: "usuario" },
+          { value: "relevador", label: "relevador" },
         ],
         Cell: ({ cell }) => (
           <Chip size="small" variant="outlined" label={String(cell.getValue() ?? "—")} sx={bandejaOutlinedChipSx} />

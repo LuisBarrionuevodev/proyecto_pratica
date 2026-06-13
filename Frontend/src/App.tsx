@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AppSessionProvider } from "./auth/AppSessionProvider";
 import Login from "./Containers/Login";
 import RecuperarCuenta from "./Containers/RecuperarCuenta";
 import Inicio from "./Containers/Inicio";
@@ -38,6 +39,7 @@ import ActasComprobacionPage from "./Containers/ActasComprobacion/ActasComprobac
 function App() {
   return (
     <Router>
+      <AppSessionProvider>
       <Routes>
         {/* Rutas públicas - SIN layout (sin NavLeft ni TopBar) */}
         <Route path="/" element={<Navigate to="/login" />} />
@@ -71,6 +73,7 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      </AppSessionProvider>
     </Router>
   );
 }

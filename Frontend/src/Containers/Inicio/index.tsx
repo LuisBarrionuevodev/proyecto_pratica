@@ -1,18 +1,9 @@
-import { useEffect, useState, type JSX } from "react";
+import { type JSX } from "react";
 import InicioOperacionesGrid from "./Components/InicioOperacionesGrid";
 import TopBar from "../../Componets/TopBar";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid, Skeleton, Typography } from "@mui/material";
 import { GLASS_COLORS, glassContent } from "../../styles/GlassStyles";
-import { apiClient } from "../../api/apiClient";
-
-type MeResponse = {
-  user: {
-    username: string;
-  };
-  profile: {
-    nickname: string | null;
-  };
-};
+import { useAppSession } from "../../auth/AppSessionProvider";
 
 function formatFechaHoy(): string {
   return new Intl.DateTimeFormat("es-AR", {
@@ -24,22 +15,14 @@ function formatFechaHoy(): string {
 }
 
 /**
- * Inicio — panel bajo TopBar: bienvenida + fecha, accesos, ruta, actas pendientes, indicadores y mapa.
+ * Inicio — panel bajo TopBar: bienvenida + fecha, accesos filtrados por rol.
  */
 const Inicio = (): JSX.Element => {
-  const [displayName, setDisplayName] = useState("Usuario");
-
-  useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await apiClient.get<MeResponse>("/api/profile/me");
-        setDisplayName(res.data.profile.nickname || res.data.user.username || "Usuario");
-      } catch {
-        setDisplayName("Usuario");
-      }
-    };
-    fetchMe();
-  }, []);
+  const session = useAppSession();
+  const welcomeName =
+    session.status === "loading"
+      ? null
+      : session.displayName ?? session.toolbarPrimary;
 
   return (
     <Box
@@ -73,10 +56,8 @@ const Inicio = (): JSX.Element => {
             borderTopRightRadius: 0,
             borderBottom: "none",
             overflow: "auto",
-            // Sin backdrop-filter en el scroll: el blur recalcula cada frame y encarece el scroll (Chrome/Edge).
             backdropFilter: "none",
             WebkitBackdropFilter: "none",
-            // Capa sólida equivalente al glass sin depender del fondo detrás del panel.
             backgroundColor: GLASS_COLORS.contentBg,
             "&::-webkit-scrollbar": {
               width: "6px",
@@ -109,7 +90,11 @@ const Inicio = (): JSX.Element => {
                     mb: 0.75,
                   }}
                 >
-                  Bienvenido, {displayName}
+                  {session.status === "loading" ? (
+                    <Skeleton variant="text" width={280} sx={{ fontSize: "inherit" }} />
+                  ) : (
+                    <>Bienvenido, {welcomeName}</>
+                  )}
                 </Typography>
                 <Typography
                   sx={{

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, Typography, Tooltip } from "@mui/material";
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
@@ -15,14 +15,9 @@ import {
     StyleLogoutContainer,
     StyleLogoutButton,
 } from "../styles/NavBarStyles";
-import { menuSections, logoutItem } from "../constants/menuItems";
-import { apiClient } from "../api/apiClient";
-
-type MeResponse = {
-    user: {
-        role: "admin" | "usuario";
-    };
-};
+import { logoutItem } from "../constants/menuItems";
+import { getVisibleMenuSections } from "../auth/accessConfig";
+import { useAppSession } from "../auth/AppSessionProvider";
 
 interface NavLeftProps {
     onToggle?: (open: boolean) => void;
@@ -32,29 +27,11 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [open, setOpen] = useState(false);
-    const [role, setRole] = useState<"admin" | "usuario">("usuario");
-
-    useEffect(() => {
-        const fetchRole = async () => {
-            try {
-                const res = await apiClient.get<MeResponse>("/api/profile/me");
-                setRole(res.data.user.role || "usuario");
-            } catch {
-                setRole("usuario");
-            }
-        };
-        fetchRole();
-    }, []);
+    const { status, role } = useAppSession();
 
     const visibleSections = useMemo(() => {
-        return menuSections
-            .map((section) => ({
-                ...section,
-                items: section.items.filter((item) =>
-                    item.path === "/gestionDeUsuarios" ? role === "admin" : true
-                ),
-            }))
-            .filter((section) => section.items.length > 0);
+        if (!role) return [];
+        return getVisibleMenuSections(role);
     }, [role]);
 
     const isActive = (path: string) => location.pathname === path;
@@ -66,7 +43,6 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
                 open={open}
                 sx={StyleDrawer(open)}
             >
-                {/* Botón de expansión */}
                 <IconButton
                     onClick={() => {
                         const next = !open;
@@ -78,16 +54,12 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
                     {open ? <KeyboardDoubleArrowLeftIcon /> : <KeyboardDoubleArrowRightIcon />}
                 </IconButton>
 
-                {/* Lista de secciones con items agrupados */}
-                <List sx={StyleListItems}>
-                    {visibleSections.map((section) => (
+                <List sx={StyleListItems(open)}>
+                    {status === "loading" ? null : visibleSections.map((section) => (
                         <Box key={section.label}>
-                            {/* Header de sección */}
                             <Typography sx={StyleSectionHeader(open)}>
                                 {section.label}
                             </Typography>
-                            
-                            {/* Items de la sección */}
                             {section.items.map(({ text, icon, path }) => {
                                 const active = isActive(path);
                                 return (
@@ -113,7 +85,6 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
                     ))}
                 </List>
 
-                {/* Logout al final (sticky bottom) */}
                 <Box sx={StyleLogoutContainer(open)}>
                     <Tooltip title={!open ? logoutItem.text : ""} placement="right" arrow>
                         <ListItemButton
@@ -125,7 +96,6 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
                                 minWidth: 0, 
                                 marginRight: open ? 1.5 : 0,
                                 justifyContent: "center",
-                                "& .MuiSvgIcon-root": { fontSize: "1.3rem" }
                             }}>
                                 {logoutItem.icon}
                             </ListItemIcon>
@@ -133,15 +103,12 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
                                 primary={logoutItem.text}
                                 sx={{
                                     opacity: open ? 1 : 0,
-                                    width: open ? "auto" : 0,
-                                    overflow: "hidden",
-                                    whiteSpace: "nowrap",
-                                    transition: "opacity 0.15s ease-out, width 0.2s ease-out",
+                                    transition: "opacity 0.2s ease",
                                     "& .MuiTypography-root": {
+                                        color: "#FF6B6B",
                                         fontFamily: '"Tactic Sans", sans-serif',
                                         fontSize: "13px",
-                                        fontWeight: 500,
-                                        color: "#FF6B6B",
+                                        fontWeight: 600,
                                     },
                                 }}
                             />

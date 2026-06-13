@@ -5,6 +5,7 @@ import { Box } from "@mui/material";
 import { InstitutionalViewHeaderBar } from "./InstitutionalViewHeaderBar";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
+import { RoleRouteGuard } from "./RoleRouteGuard";
 import { TRANSITION, GLASS_COLORS } from "../styles/GlassStyles";
 import { layoutShell } from "../theme/tokens";
 
@@ -125,7 +126,9 @@ const AppLayout = () => {
                                 },
                             }}
                         >
-                            <Outlet />
+                            <RoleRouteGuard>
+                                <Outlet />
+                            </RoleRouteGuard>
                         </Box>
                     </Box>
                 </Box>

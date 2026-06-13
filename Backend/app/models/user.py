@@ -13,7 +13,7 @@ class User(db.Model):
     email = db.Column(db.String(150), nullable=False, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(
-        db.Enum("admin", "usuario", name="user_role_enum"),
+        db.Enum("admin", "usuario", "relevador", name="user_role_enum"),
         nullable=False,
         default="usuario",
         server_default="usuario",

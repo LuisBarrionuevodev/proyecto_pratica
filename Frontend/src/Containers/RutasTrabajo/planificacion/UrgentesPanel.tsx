@@ -7,7 +7,11 @@ import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIni
 import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
 import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 import {
+  planificacionFixedSectionSx,
+  planificacionListViewportSx,
+  planificacionPanelColumnSx,
   planificacionPanelFooterMetaSx,
+  planificacionPanelSubtitleSx,
   planificacionPanelTitleSx,
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
@@ -21,18 +25,15 @@ export type UrgentesPanelProps = {
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
   meta: { total: number; page: number; perPage: number };
   onPageChange: (page: number) => void;
-  /** Filas de la página M3 que están en el pool del día (se excluyen de la lista). */
+  /** Filas de la página M3 ya en pool (solo ese ítem se oculta, no toda la bandeja). */
   ocultosPorPoolEnPagina?: number;
-  /** Mismo flujo que pendientes del contexto: mapa interno + distrito si hace falta. */
   onVerEnMapa?: (row: IRutaIniciadorPendienteRow) => void;
   onFiltrar?: (filtros: UrgentesFiltrosAplicados) => void;
   onLimpiarFiltros?: () => void;
 };
 
 /**
- * Bandeja M3: prioridad alta (tipo ≠ RELEVAMIENTO, prioridad ≥ 3, planificables), acotada al distrito
- * activo en mapa cuando corresponde (misma lógica territorial que la métrica «alta» de M1).
- * Scroll interno y paginación; el pool del día oculta filas ya agregadas.
+ * Bandeja M3 global: independiente del distrito del mapa y de KPIs.
  */
 export function UrgentesPanel({
   rows,
@@ -58,24 +59,24 @@ export function UrgentesPanel({
     <Stack
       sx={{
         ...rutasInstitutionalPanelPaperSx,
-        flex: 1,
-        minHeight: 0,
-        maxHeight: "min(52vh, 520px)",
-        display: "flex",
-        overflow: "hidden",
+        ...planificacionPanelColumnSx,
       }}
-      spacing={1}
+      spacing={1.1}
     >
-      <Box sx={{ flexShrink: 0 }}>
+      <Box sx={planificacionFixedSectionSx}>
         <Typography sx={planificacionPanelTitleSx}>Urgentes</Typography>
-        {onFiltrar && onLimpiarFiltros ? (
-          <Box sx={{ mt: 1 }}>
-            <UrgentesFiltroPanel onFiltrar={onFiltrar} onLimpiar={onLimpiarFiltros} loading={loading} />
-          </Box>
-        ) : null}
+        <Typography sx={{ ...planificacionPanelSubtitleSx, color: GLASS_COLORS.textSecondary }}>
+          Urgentes globales
+        </Typography>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5, ...rutasInstitutionalScrollSx }}>
+      {onFiltrar && onLimpiarFiltros ? (
+        <Box sx={planificacionFixedSectionSx}>
+          <UrgentesFiltroPanel onFiltrar={onFiltrar} onLimpiar={onLimpiarFiltros} loading={loading} />
+        </Box>
+      ) : null}
+
+      <Box sx={{ ...planificacionListViewportSx, ...rutasInstitutionalScrollSx }}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />
@@ -106,7 +107,11 @@ export function UrgentesPanel({
         justifyContent="space-between"
         flexWrap="wrap"
         gap={0.75}
-        sx={{ flexShrink: 0, pt: 0.75, borderTop: `1px solid ${GLASS_COLORS.borderLight}` }}
+        sx={{
+          ...planificacionFixedSectionSx,
+          pt: 0.75,
+          borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
+        }}
       >
         <Stack direction="column" spacing={0.25} sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={planificacionPanelFooterMetaSx}>

@@ -47,3 +47,16 @@ export const formDialogShortContentSx: SxProps<Theme> = {
   flex: "0 1 auto",
   overflowY: "visible",
 };
+
+/**
+ * Modal con lista interna scrolleable: evita doble scroll (DialogContent + lista).
+ */
+export const formDialogFlexScrollBodySx: SxProps<Theme> = {
+  ...formDialogContentStackSx,
+  display: "flex",
+  flexDirection: "column",
+  flex: "1 1 auto",
+  minHeight: 0,
+  overflow: "hidden",
+  maxHeight: { xs: "calc(100vh - 10rem)", sm: "min(70vh, 640px)" },
+};

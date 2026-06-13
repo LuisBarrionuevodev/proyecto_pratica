@@ -29,9 +29,11 @@ const GestionarDomiciliosContainer = () => {
   const [activeTab, setActiveTab] = useState<DomiciliosTab>("nomenclatura");
   const [selectedForManual, setSelectedForManual] = useState<DomicilioPendienteItem | null>(null);
 
-  const { nomenclaturaItems, geolocalizacionItems, loading, error, refetch } = useDomiciliosPendientes(filters, {
-    enabled: true,
-  });
+  const { nomenclaturaItems, geolocalizacionItems, loading, error, refetch } = useDomiciliosPendientes(
+    filters,
+    activeTab,
+    { enabled: true }
+  );
 
   const { guardarNormalizacion } = useDomicilioNormalizationActions();
   const { guardarPuntoManual } = useDomicilioGeolocalizacionActions();

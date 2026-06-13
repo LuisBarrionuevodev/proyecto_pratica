@@ -16,7 +16,7 @@ import {
 
 export type UsuariosFiltroAplicado = {
   texto: string;
-  rol: "" | "admin" | "usuario";
+  rol: "" | "admin" | "usuario" | "relevador";
 };
 
 interface FiltroUsuariosProps {
@@ -29,7 +29,7 @@ interface FiltroUsuariosProps {
  */
 const FiltroUsuarios = ({ onFiltrar, onLimpiar }: FiltroUsuariosProps) => {
   const [texto, setTexto] = useState("");
-  const [rol, setRol] = useState<"" | "admin" | "usuario">("");
+  const [rol, setRol] = useState<"" | "admin" | "usuario" | "relevador">("");
 
   const handleFiltrar = () => {
     onFiltrar({ texto: texto.trim(), rol });
@@ -64,12 +64,13 @@ const FiltroUsuarios = ({ onFiltrar, onLimpiar }: FiltroUsuariosProps) => {
             fullWidth
             label="Rol"
             value={rol}
-            onChange={(e) => setRol(e.target.value as "" | "admin" | "usuario")}
+            onChange={(e) => setRol(e.target.value as "" | "admin" | "usuario" | "relevador")}
             variant="outlined"
             options={[
               { value: "", label: "Todos" },
               { value: "admin", label: "Admin" },
               { value: "usuario", label: "Usuario" },
+              { value: "relevador", label: "Relevador" },
             ]}
           />
         </Box>

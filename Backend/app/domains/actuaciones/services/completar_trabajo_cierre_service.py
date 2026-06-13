@@ -266,6 +266,30 @@ def _apply_domicilio_rubro(
     return dom is not None
 
 
+def _vincular_notificacion_reinspeccion_en_acta(
+    *,
+    act: Actuaciones,
+    ini: IniciadorRuta,
+    bucket: ContrapBucket,
+) -> None:
+    """
+    REINSPECCION_NOTIFICACION realizada: enlaza ``notificacion_id`` en la acta de trabajo.
+
+    Permite que ``list_reinspeccion_notificacion_operativas`` detecte la reinspección vía
+    ``subq_reinsp`` aunque el acta se haya creado sin FK al publicar la ruta.
+    """
+    if bucket != ContrapBucket.NONE:
+        return
+    if ini.tipo_iniciador != "REINSPECCION_NOTIFICACION":
+        return
+    if ini.notificacion_id is None:
+        return
+    if act.notificacion_id is None:
+        act.notificacion_id = ini.notificacion_id
+    if act.tipo != "REINSPECCION":
+        act.tipo = "REINSPECCION"
+
+
 def cerrar_completar_trabajo_por_ruta_item(
     *,
     ruta_item_id: int,
@@ -422,6 +446,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.cerrado_at = None
             ini.cerrado_motivo = None
             _reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item)
+            _vincular_notificacion_reinspeccion_en_acta(act=act, ini=ini, bucket=bucket)
         elif bucket == ContrapBucket.NO_EXISTE_LOCAL:
             assert stored_contra is not None
             item.estado_ejecucion = "NO_REALIZADO"

@@ -418,6 +418,14 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
             A2.tipo == "REINSPECCION",
         )
     )
+    subq_item_realizado = exists().where(
+        and_(
+            RutaItem.iniciador_ruta_id == IniciadorRuta.id,
+            RutaItem.deleted_at.is_(None),
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion == "REALIZADO",
+        )
+    )
     return (
         Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
         .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
@@ -429,6 +437,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
         .filter(Notificacion.fecha_vencimiento.isnot(None))
         .filter(Notificacion.fecha_vencimiento <= today)
         .filter(~subq_reinsp)
+        .filter(~subq_item_realizado)
         .order_by(Actuaciones.id.desc())
         .all()
     )

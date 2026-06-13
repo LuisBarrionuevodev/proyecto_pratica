@@ -1,16 +1,15 @@
 import { useState } from "react";
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-} from "@mui/material";
+import { Stack, TextField } from "@mui/material";
 
-import { AppButton } from "../../../ui";
-import { planificacionTextFieldSx } from "../styles/institutionalVisual";
-import type { UrgentesFiltrosAplicados } from "../types/planificacion.types";
+import { AppButton, AppSelect } from "../../../ui";
+import {
+  filterCompactActionsSx,
+  filterCompactPrimaryButtonSx,
+  filterCompactSecondaryButtonSx,
+} from "../../Actuaciones/styles/filtroStyles";
+import { PlanificacionRubroSelect } from "./components/PlanificacionRubroSelect";
+import { planificacionFilterSelectSx, planificacionTextFieldSx } from "../styles/institutionalVisual";
+import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 
 const TIPO_URGENTE_OPCIONES: { value: UrgentesFiltrosAplicados["tipo_urgente"]; label: string }[] = [
   { value: "", label: "Todos" },
@@ -26,58 +25,85 @@ export type UrgentesFiltroPanelProps = {
 };
 
 /**
- * Filtro compacto para bandeja urgentes (M3): tipo + búsqueda por botón.
+ * Filtro compacto para bandeja urgentes (M3): tipo, rubro, identificador único y domicilio.
+ * Busca solo por botón o Enter (STAB-10d).
  */
 export function UrgentesFiltroPanel({ onFiltrar, onLimpiar, loading }: UrgentesFiltroPanelProps) {
   const [tipoUrgente, setTipoUrgente] = useState<UrgentesFiltrosAplicados["tipo_urgente"]>("");
-  const [q, setQ] = useState("");
+  const [rubroId, setRubroId] = useState<number | null>(null);
+  const [qIdentificador, setQIdentificador] = useState("");
+  const [qDomicilio, setQDomicilio] = useState("");
 
   const handleFiltrar = () => {
-    onFiltrar({ tipo_urgente: tipoUrgente, q: q.trim() });
+    onFiltrar({
+      tipo_urgente: tipoUrgente,
+      rubro_id: rubroId,
+      q_identificador: qIdentificador.trim(),
+      q_domicilio: qDomicilio.trim(),
+    });
   };
 
   const handleLimpiar = () => {
     setTipoUrgente("");
-    setQ("");
+    setRubroId(null);
+    setQIdentificador("");
+    setQDomicilio("");
     onLimpiar();
   };
 
   return (
     <Stack spacing={1} sx={{ flexShrink: 0 }}>
-      <FormControl size="small" fullWidth>
-        <InputLabel id="urg-tipo-label" sx={{ fontFamily: '"Tactic Sans", sans-serif' }}>
-          Tipo urgente
-        </InputLabel>
-        <Select
-          labelId="urg-tipo-label"
-          label="Tipo urgente"
-          value={tipoUrgente}
-          onChange={(e) => setTipoUrgente(e.target.value as UrgentesFiltrosAplicados["tipo_urgente"])}
-          sx={{ fontFamily: '"Tactic Sans", sans-serif', borderRadius: "10px" }}
-        >
-          {TIPO_URGENTE_OPCIONES.map((o) => (
-            <MenuItem key={o.value || "all"} value={o.value} sx={{ fontFamily: '"Tactic Sans", sans-serif' }}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <AppSelect
+        appearance="dense"
+        size="small"
+        fullWidth
+        label="Tipo urgente"
+        value={tipoUrgente}
+        onChange={(e) => setTipoUrgente(e.target.value as UrgentesFiltrosAplicados["tipo_urgente"])}
+        options={TIPO_URGENTE_OPCIONES.map((o) => ({ value: o.value, label: o.label }))}
+        sx={planificacionFilterSelectSx}
+      />
 
-      <Stack direction="row" spacing={1} alignItems="flex-start">
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="Nº acta, oficio, domicilio, rubro…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleFiltrar()}
-          sx={planificacionTextFieldSx}
-        />
-        <AppButton dsVariant="primary" dsSize="sm" onClick={handleFiltrar} disabled={loading}>
-          Buscar
-        </AppButton>
-        <AppButton dsVariant="ghost" dsSize="sm" onClick={handleLimpiar} disabled={loading}>
+      <PlanificacionRubroSelect value={rubroId} onChange={setRubroId} disabled={loading} />
+
+      <TextField
+        size="small"
+        fullWidth
+        label="Nº oficio / comprobación / notificación"
+        value={qIdentificador}
+        onChange={(e) => setQIdentificador(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleFiltrar()}
+        sx={planificacionTextFieldSx}
+      />
+
+      <TextField
+        size="small"
+        fullWidth
+        label="Domicilio"
+        value={qDomicilio}
+        onChange={(e) => setQDomicilio(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleFiltrar()}
+        sx={planificacionTextFieldSx}
+      />
+
+      <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end" sx={filterCompactActionsSx}>
+        <AppButton
+          dsVariant="ghost"
+          dsSize="sm"
+          onClick={handleLimpiar}
+          disabled={loading}
+          sx={filterCompactSecondaryButtonSx}
+        >
           Limpiar
+        </AppButton>
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
+          onClick={handleFiltrar}
+          disabled={loading}
+          sx={filterCompactPrimaryButtonSx}
+        >
+          Buscar
         </AppButton>
       </Stack>
     </Stack>

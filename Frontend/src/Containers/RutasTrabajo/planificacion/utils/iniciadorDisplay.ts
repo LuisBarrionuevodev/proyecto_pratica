@@ -117,3 +117,38 @@ export function abrirUbicacionEnMapaExterno(row: IRutaIniciadorPendienteRow): vo
   const url = `https://www.openstreetmap.org/search?query=${encodeURIComponent(q)}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }
+
+/** Formato operativo `número/año` o solo número. */
+export function formatoNumeroConAnio(numero: string | null | undefined, anio?: number | null): string | null {
+  const n = numero?.trim();
+  if (!n) return null;
+  if (anio != null && Number.isFinite(anio)) return `${n}/${anio}`;
+  return n;
+}
+
+/**
+ * Líneas compactas de identificación (oficio, comprobación, notificación) para cards.
+ * Solo devuelve entradas con valor; nunca null/undefined en texto.
+ */
+export function lineasIdentificadoresPendiente(row: IRutaIniciadorPendienteRow): string[] {
+  const id = row.identificadores;
+  if (!id) return [];
+
+  const lines: string[] = [];
+  const oficioTxt = formatoNumeroConAnio(id.numero_oficio, id.anio_oficio);
+  if (oficioTxt) lines.push(`Nº oficio: ${oficioTxt}`);
+
+  const compTxt = formatoNumeroConAnio(id.numero_comprobacion, id.anio_comprobacion);
+  if (compTxt) lines.push(`Nº comprobación: ${compTxt}`);
+
+  const notiTxt = formatoNumeroConAnio(id.numero_notificacion, id.anio_notificacion);
+  if (notiTxt) lines.push(`Nº notificación: ${notiTxt}`);
+
+  const venc = id.fecha_vencimiento_notificacion?.trim();
+  if (venc) lines.push(`Vence: ${venc}`);
+
+  const den = id.numero_denuncia?.trim();
+  if (den) lines.push(`Nº denuncia: ${den}`);
+
+  return lines;
+}

@@ -7,7 +7,7 @@ from __future__ import annotations
 from flask import jsonify, request
 from pydantic import ValidationError
 
-from app.domains.rutas_trabajo.presenters.ruta_presenters import iniciador_pendiente_to_row
+from app.domains.rutas_trabajo.presenters.ruta_presenters import iniciador_pendiente_present
 from app.domains.rutas_trabajo.schemas.planificacion_in import (
     PlanificacionMetricasQuery,
     PlanificacionPendientesContextoQuery,
@@ -67,10 +67,15 @@ def planificacion_urgentes(ruta_id: int):
             q=q.q,
             numero_oficio=q.numero_oficio,
             numero_comprobacion=q.numero_comprobacion,
+            q_identificador=q.q_identificador,
+            q_domicilio=q.q_domicilio,
+            rubro_id=q.rubro_id,
         )
         return jsonify(
             {
-                "items": [iniciador_pendiente_to_row(row) for row in rows],
+                "items": [
+                    iniciador_pendiente_present(row, fields="full") for row in rows
+                ],
                 "meta": {"total": total, "page": q.page, "per_page": q.per_page},
             }
         ), 200
@@ -103,11 +108,14 @@ def planificacion_pendientes_contexto(ruta_id: int):
         )
         return jsonify(
             {
-                "items": [iniciador_pendiente_to_row(row) for row in rows],
+                "items": [
+                    iniciador_pendiente_present(row, fields=q.fields or "full") for row in rows
+                ],
                 "meta": {
                     "total": total,
                     "page": q.page,
                     "per_page": q.per_page,
+                    "fields": q.fields,
                 },
             }
         ), 200

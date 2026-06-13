@@ -7,7 +7,7 @@ from app.database import db
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_efectivo_para_iniciador,
 )
-from app.models import Domicilio, IniciadorRuta, Relevamiento, RutaItem, RutaTrabajo
+from app.models import Domicilio, IniciadorRuta, Oficio, Relevamiento, RutaItem, RutaTrabajo
 
 
 def assert_ruta_borrador_para_planificacion(ruta_id: int) -> RutaTrabajo:
@@ -40,6 +40,9 @@ def planificable_iniciadores_base_query() -> Query:
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.distrito),
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.geocode),
             joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+            joinedload(IniciadorRuta.oficio).joinedload(Oficio.comprobacion),
+            joinedload(IniciadorRuta.notificacion),
+            joinedload(IniciadorRuta.comprobacion),
         )
         .filter(
             IniciadorRuta.estado_iniciador == "PENDIENTE",
@@ -47,6 +50,11 @@ def planificable_iniciadores_base_query() -> Query:
             ~IniciadorRuta.ruta_items.any(
                 (RutaItem.deleted_at.is_(None))
                 & (RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"))
+            ),
+            ~IniciadorRuta.ruta_items.any(
+                (RutaItem.deleted_at.is_(None))
+                & (RutaItem.estado_ruta_item == "FINALIZADO")
+                & (RutaItem.estado_ejecucion == "REALIZADO")
             ),
         )
     )

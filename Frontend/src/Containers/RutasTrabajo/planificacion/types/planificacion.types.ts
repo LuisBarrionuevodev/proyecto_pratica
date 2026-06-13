@@ -18,16 +18,18 @@ export type PlanificacionOrdenM4 =
   | "fecha_desc"
   | "prioridad_asc";
 
+/** Filtros panel Pendientes del contexto (aplicación frontend sobre dataset M4). */
 export type PlanificacionFiltrosLista = {
-  tipo: string;
-  prioridad_categoria: "" | "BAJA" | "MEDIA" | "ALTA";
+  /** Búsqueda por domicilio / calle / texto. */
   q: string;
-  orden: PlanificacionOrdenM4;
+  rubro_id: number | null;
 };
 
 export type UrgentesFiltrosAplicados = {
   tipo_urgente: "" | "DENUNCIA" | "NOTIFICACION" | "OFICIO";
-  q: string;
+  rubro_id: number | null;
+  q_identificador: string;
+  q_domicilio: string;
 };
 
 export interface IPlanificacionMetricas {

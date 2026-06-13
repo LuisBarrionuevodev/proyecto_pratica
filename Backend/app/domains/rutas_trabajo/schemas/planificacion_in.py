@@ -37,8 +37,11 @@ class PlanificacionUrgentesQuery(BaseModel):
     q: Optional[str] = Field(default=None, max_length=200)
     numero_oficio: Optional[str] = Field(default=None, max_length=60)
     numero_comprobacion: Optional[str] = Field(default=None, max_length=20)
+    q_identificador: Optional[str] = Field(default=None, max_length=60)
+    q_domicilio: Optional[str] = Field(default=None, max_length=200)
+    rubro_id: Optional[int] = Field(default=None, ge=1)
 
-    @field_validator("q", "numero_oficio", "numero_comprobacion")
+    @field_validator("q", "numero_oficio", "numero_comprobacion", "q_identificador", "q_domicilio")
     @classmethod
     def normalize_text(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
@@ -51,10 +54,14 @@ class PlanificacionUrgentesQuery(BaseModel):
     def normalize_tipo_urgente(cls, v: Optional[str]) -> Optional[str]:
         if v is None or v == "":
             return None
-        return str(v).strip().upper() or None
+        s = str(v).strip().upper()
+        if s in ("TODOS", "ALL", "__ALL__"):
+            return None
+        return s or None
 
 
 PlanificacionOrdenLiteral = Literal["prioridad", "fecha_asc", "fecha_desc", "prioridad_asc"]
+PlanificacionFieldsLiteral = Literal["full", "minimal"]
 
 
 class PlanificacionPendientesContextoQuery(BaseModel):
@@ -75,6 +82,18 @@ class PlanificacionPendientesContextoQuery(BaseModel):
     # Listado paginado (25) + carga mapa planificación (hasta 500 filas con coords en un solo request).
     per_page: int = Field(default=25, ge=1, le=500)
     orden: PlanificacionOrdenLiteral = Field(default="prioridad")
+    fields: PlanificacionFieldsLiteral = Field(
+        default="full",
+        description="minimal: payload liviano para pins de mapa; full: tabla/lista.",
+    )
+
+    @field_validator("fields", mode="before")
+    @classmethod
+    def normalize_fields(cls, v: object) -> str:
+        if v is None or v == "":
+            return "full"
+        s = str(v).strip().lower()
+        return s if s in ("full", "minimal") else "full"
 
     @field_validator("q")
     @classmethod

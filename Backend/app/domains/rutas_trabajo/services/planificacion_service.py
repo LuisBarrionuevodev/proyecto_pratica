@@ -118,6 +118,9 @@ def get_planificacion_urgentes(
     q: str | None = None,
     numero_oficio: str | None = None,
     numero_comprobacion: str | None = None,
+    q_identificador: str | None = None,
+    q_domicilio: str | None = None,
+    rubro_id: int | None = None,
 ) -> tuple[list, int]:
     """
     M3: bandeja urgentes — elegible_urgente (tipo != RELEVAMIENTO y prioridad >= 3).
@@ -142,6 +145,9 @@ def get_planificacion_urgentes(
         q=q,
         numero_oficio=numero_oficio,
         numero_comprobacion=numero_comprobacion,
+        q_identificador=q_identificador,
+        q_domicilio=q_domicilio,
+        rubro_id=rubro_id,
     )
     total = query.count()
     items = (

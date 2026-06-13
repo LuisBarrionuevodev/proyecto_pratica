@@ -17,6 +17,11 @@ import { PlanificacionSummaryCards } from "./PlanificacionSummaryCards";
 import { PoolDelDiaPanel } from "./PoolDelDiaPanel";
 import { UrgentesPanel } from "./UrgentesPanel";
 import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
+import {
+  planificacionPoolSlotSx,
+  planificacionRightColumnSx,
+  planificacionUrgentesSlotSx,
+} from "../styles/institutionalVisual";
 
 export type PlanificacionViewProps = {
   ruta: IRutaTrabajo;
@@ -60,13 +65,6 @@ export function PlanificacionView({
     const hit = ctrl.cargaPorDistrito.find((c) => c.distrito_id === ctrl.distritoActivoId);
     return hit?.distrito_nombre ?? null;
   }, [ctrl.distritoCatalogo, ctrl.cargaPorDistrito, ctrl.distritoActivoId]);
-
-  const handleApplyBusqueda = useCallback(
-    (q: string) => {
-      ctrl.setFiltros((f) => ({ ...f, q }));
-    },
-    [ctrl]
-  );
 
   const handleContinuar = useCallback(() => {
     onContinuarAsignacion();
@@ -266,7 +264,12 @@ export function PlanificacionView({
         metricas={ctrl.metricasVisibles}
         cardActiva={ctrl.cardActiva}
         onCardChange={ctrl.setCardActiva}
-        loading={ctrl.loading.metricas || ctrl.loading.metricasInicial || ctrl.loading.pendientesContexto}
+        usaDatasetVisible={ctrl.distritoActivoId != null}
+        loading={
+          ctrl.distritoActivoId == null
+            ? ctrl.loading.metricas || ctrl.loading.metricasInicial
+            : ctrl.loading.pendientesContexto
+        }
       />
 
       <Grid
@@ -283,13 +286,11 @@ export function PlanificacionView({
           <PendientesContextoPanel
             distritoActivoId={ctrl.distritoActivoId}
             distritoNombre={distritoNombreActivo}
-            filtros={ctrl.filtros}
-            onFiltrosChange={(patch) => ctrl.setFiltros((f) => ({ ...f, ...patch }))}
             rows={ctrl.pendientesContextoVisibles}
             meta={ctrl.pendientesMeta}
             loading={ctrl.loading.pendientesContexto}
-            onApplyBusqueda={handleApplyBusqueda}
-            onReiniciarContextoPanel={handleReiniciarPendientesContexto}
+            onFiltrar={ctrl.aplicarFiltrosPendientesContexto}
+            onLimpiar={handleReiniciarPendientesContexto}
             onPageChange={ctrl.loadPendientesContextoPage}
             onAgregar={ctrl.agregarAlPool}
             onVerEnMapa={handleVerEnMapa}
@@ -317,30 +318,30 @@ export function PlanificacionView({
         <Grid
           size={{ xs: 12, lg: 3 }}
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            minWidth: 0,
-            minHeight: 0,
-            maxHeight: "min(78vh, 820px)",
+            ...planificacionRightColumnSx,
+            alignSelf: "stretch",
           }}
         >
-          <UrgentesPanel
-            rows={ctrl.urgentesVisibles}
-            loading={ctrl.loading.urgentes}
-            onAgregar={ctrl.agregarAlPool}
-            meta={ctrl.urgentesMeta}
-            ocultosPorPoolEnPagina={ctrl.urgentesOcultosPorPoolEnPagina}
-            onPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
-            onVerEnMapa={handleVerEnMapa}
-            onFiltrar={ctrl.aplicarFiltrosUrgentes}
-            onLimpiarFiltros={ctrl.limpiarFiltrosUrgentes}
-          />
-          <PoolDelDiaPanel
-            items={ctrl.poolItemsOrdenados}
-            onQuitar={ctrl.quitarDelPool}
-            onContinuarAsignacion={handleContinuar}
-          />
+          <Box sx={planificacionUrgentesSlotSx}>
+            <UrgentesPanel
+              rows={ctrl.urgentesVisibles}
+              loading={ctrl.loading.urgentes}
+              onAgregar={ctrl.agregarAlPool}
+              meta={ctrl.urgentesMeta}
+              ocultosPorPoolEnPagina={ctrl.urgentesOcultosPorPoolEnPagina}
+              onPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
+              onVerEnMapa={handleVerEnMapa}
+              onFiltrar={ctrl.aplicarFiltrosUrgentes}
+              onLimpiarFiltros={ctrl.limpiarFiltrosUrgentes}
+            />
+          </Box>
+          <Box sx={planificacionPoolSlotSx}>
+            <PoolDelDiaPanel
+              items={ctrl.poolItemsOrdenados}
+              onQuitar={ctrl.quitarDelPool}
+              onContinuarAsignacion={handleContinuar}
+            />
+          </Box>
         </Grid>
       </Grid>
     </Box>

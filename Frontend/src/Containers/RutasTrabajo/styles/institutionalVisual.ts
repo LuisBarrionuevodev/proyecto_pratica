@@ -13,6 +13,50 @@ export const rutasInstitutionalPanelPaperSx: SxProps<Theme> = {
   overflow: "hidden",
 };
 
+/** Columna flex interna: header/lista/footer sin desbordar (HOTFIX-UI-LAYOUT). */
+export const planificacionPanelColumnSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+  height: "100%",
+  overflow: "hidden",
+};
+
+export const planificacionFixedSectionSx: SxProps<Theme> = {
+  flexShrink: 0,
+};
+
+export const planificacionListViewportSx: SxProps<Theme> = {
+  flex: "1 1 auto",
+  minHeight: 0,
+  overflowY: "auto",
+  overflowX: "hidden",
+};
+
+/** Columna derecha planificación: Urgentes y Pool en slots flex independientes. */
+export const planificacionRightColumnSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+  minWidth: 0,
+  minHeight: 0,
+  height: "100%",
+  overflow: "hidden",
+};
+
+/** Slot superior: Urgentes absorbe espacio restante sin empujar pool. */
+export const planificacionUrgentesSlotSx: SxProps<Theme> = {
+  ...planificacionPanelColumnSx,
+  flex: "1 1 0",
+};
+
+/** Slot inferior: pool con tope fijo y scroll interno. */
+export const planificacionPoolSlotSx: SxProps<Theme> = {
+  ...planificacionPanelColumnSx,
+  flex: "0 0 auto",
+  maxHeight: "min(36vh, 240px)",
+};
+
 /** Bloque de resumen de ruta. */
 export const rutasInstitutionalResumenPaperSx: SxProps<Theme> = {
   ...glassCard,
@@ -43,6 +87,26 @@ export const rutasInstitutionalDividerSx: SxProps<Theme> = {
   ...glassDivider,
 };
 
+const TACTIC = '"Tactic Sans", sans-serif' as const;
+
+/** Select / AppSelect en filtros de planificación (misma altura y fuente que TextField). */
+export const planificacionFilterSelectSx: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    fontFamily: TACTIC,
+    fontSize: "0.85rem",
+    borderRadius: "10px",
+    "& fieldset": { borderColor: GLASS_COLORS.borderLight },
+    "&:hover fieldset": { borderColor: GLASS_COLORS.borderMedium },
+    "&.Mui-focused fieldset": { borderColor: GLASS_COLORS.primary },
+  },
+  "& .MuiInputLabel-root": {
+    fontFamily: TACTIC,
+    fontSize: "0.85rem",
+    color: GLASS_COLORS.textSecondary,
+  },
+  "& .MuiSelect-select": { fontSize: "0.85rem" },
+};
+
 /** Campo de búsqueda en paneles Planificación (alineado a glass / Digitaliza). */
 export const planificacionTextFieldSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
@@ -55,8 +119,6 @@ export const planificacionTextFieldSx: SxProps<Theme> = {
   },
   "& .MuiInputBase-input": { fontSize: "0.85rem" },
 };
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
 
 /** Título de panel en Planificación (pendientes, urgentes, pool) — misma jerarquía en todas las columnas. */
 export const planificacionPanelTitleSx: SxProps<Theme> = {
