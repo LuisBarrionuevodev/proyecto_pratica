@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -64,9 +64,18 @@ export function UrgentesPanel({
       spacing={1.1}
     >
       <Box sx={planificacionFixedSectionSx}>
-        <Typography sx={planificacionPanelTitleSx}>Urgentes</Typography>
+        <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
+          <Typography sx={planificacionPanelTitleSx}>Urgentes</Typography>
+          <Chip
+            label="Global"
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ height: 22, fontSize: "0.6875rem", fontWeight: 600 }}
+          />
+        </Stack>
         <Typography sx={{ ...planificacionPanelSubtitleSx, color: GLASS_COLORS.textSecondary }}>
-          Urgentes globales
+          Sin filtro territorial · no cambia al seleccionar distrito en el mapa
         </Typography>
       </Box>
 
@@ -115,7 +124,7 @@ export function UrgentesPanel({
       >
         <Stack direction="column" spacing={0.25} sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={planificacionPanelFooterMetaSx}>
-            {meta.total} · {meta.page}/{totalPages}
+            {meta.total} total global · {meta.page}/{totalPages}
             {rows.length > 0 ? ` · visibles ${rows.length}` : ""}
           </Typography>
           {poolHidden ? (

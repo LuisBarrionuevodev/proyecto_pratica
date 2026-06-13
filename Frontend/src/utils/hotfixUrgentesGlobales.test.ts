@@ -68,7 +68,8 @@ describe("HOTFIX urgentes globales — sin distrito del mapa", () => {
 
   it("UrgentesPanel no muestra acotado al distrito", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
-    expect(src).toContain("Urgentes globales");
+    expect(src).toContain("Sin filtro territorial");
+    expect(src).toContain('label="Global"');
     expect(src).not.toContain("Acotado al distrito");
     expect(src).not.toContain("distritoActivoNombre");
   });
