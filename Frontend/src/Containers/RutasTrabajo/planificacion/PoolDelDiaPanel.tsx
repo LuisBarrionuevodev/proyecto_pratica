@@ -4,9 +4,9 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
 import {
   planificacionFixedSectionSx,
-  planificacionListViewportSx,
   planificacionPanelColumnSx,
   planificacionPanelTitleSx,
+  planificacionPoolListViewportSx,
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
@@ -59,7 +59,7 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
         </Typography>
       </Stack>
 
-      <Box sx={{ ...planificacionListViewportSx, ...rutasInstitutionalScrollSx }}>
+      <Box sx={{ ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx }}>
         {items.length === 0 ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
             Sin ítems.

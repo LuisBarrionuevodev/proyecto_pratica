@@ -68,7 +68,8 @@ describe("HOTFIX urgentes globales — sin distrito del mapa", () => {
 
   it("UrgentesPanel no muestra acotado al distrito", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
-    expect(src).toContain("Sin filtro territorial");
+    expect(src).toContain("Urgentes globales");
+    expect(src).toContain("No cambia al seleccionar distrito");
     expect(src).toContain('label="Global"');
     expect(src).not.toContain("Acotado al distrito");
     expect(src).not.toContain("distritoActivoNombre");
@@ -92,5 +93,32 @@ describe("HOTFIX urgentes globales — sin distrito del mapa", () => {
     const dataset = [row(1), row(2), row(3)];
     const visibles = filtrarUrgentesVisibles(dataset, new Set([2]));
     expect(visibles.map((r) => r.id)).toEqual([1, 3]);
+  });
+});
+
+describe("FIX FINAL urgentes — layout y filtros", () => {
+  it("Urgentes usa viewport con altura mínima definida", () => {
+    const urgentes = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
+    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
+    expect(styles).toContain("planificacionUrgentesListViewportSx");
+    expect(styles).toContain("minHeight");
+    expect(urgentes).toContain("planificacionUrgentesListViewportSx");
+    expect(urgentes).toContain("planificacionFixedSectionSx");
+  });
+
+  it("slot Urgentes tiene minHeight para no colapsar con pool", () => {
+    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
+    expect(styles).toContain("planificacionUrgentesSlotSx");
+    expect(styles).toMatch(/planificacionUrgentesSlotSx[\s\S]*minHeight/);
+    expect(styles).toContain("planificacionPoolListViewportSx");
+  });
+
+  it("UrgentesFiltroPanel indica Buscar/Enter y Limpiar global", () => {
+    const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
+    expect(src).toContain("onClick={handleFiltrar}");
+    expect(src).toContain('e.key === "Enter"');
+    expect(src).toContain("onLimpiar()");
+    expect(src).toContain("placeholder=");
+    expect(src).not.toContain("useDebouncedValue");
   });
 });

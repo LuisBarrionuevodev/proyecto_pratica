@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Stack, TextField } from "@mui/material";
+import { Stack, TextField, Typography } from "@mui/material";
 
 import { AppButton, AppSelect } from "../../../ui";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import {
   filterCompactActionsSx,
   filterCompactPrimaryButtonSx,
@@ -10,6 +11,8 @@ import {
 import { PlanificacionRubroSelect } from "./components/PlanificacionRubroSelect";
 import { planificacionFilterSelectSx, planificacionTextFieldSx } from "../styles/institutionalVisual";
 import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
+
+const tactic = '"Tactic Sans", sans-serif' as const;
 
 const TIPO_URGENTE_OPCIONES: { value: UrgentesFiltrosAplicados["tipo_urgente"]; label: string }[] = [
   { value: "", label: "Todos" },
@@ -53,6 +56,17 @@ export function UrgentesFiltroPanel({ onFiltrar, onLimpiar, loading }: UrgentesF
 
   return (
     <Stack spacing={1} sx={{ flexShrink: 0 }}>
+      <Typography
+        sx={{
+          fontFamily: tactic,
+          fontSize: "0.6875rem",
+          lineHeight: 1.35,
+          color: GLASS_COLORS.textMuted,
+        }}
+      >
+        Filtros sobre urgentes globales. Usá Buscar o Enter; Limpiar restaura la bandeja completa.
+      </Typography>
+
       <AppSelect
         appearance="dense"
         size="small"
@@ -70,6 +84,7 @@ export function UrgentesFiltroPanel({ onFiltrar, onLimpiar, loading }: UrgentesF
         size="small"
         fullWidth
         label="Nº oficio / comprobación / notificación"
+        placeholder="Ej. 204, 456/2026 o nº notificación"
         value={qIdentificador}
         onChange={(e) => setQIdentificador(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleFiltrar()}
@@ -80,6 +95,7 @@ export function UrgentesFiltroPanel({ onFiltrar, onLimpiar, loading }: UrgentesF
         size="small"
         fullWidth
         label="Domicilio"
+        placeholder="Calle, número o texto del domicilio"
         value={qDomicilio}
         onChange={(e) => setQDomicilio(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleFiltrar()}
@@ -93,6 +109,7 @@ export function UrgentesFiltroPanel({ onFiltrar, onLimpiar, loading }: UrgentesF
           onClick={handleLimpiar}
           disabled={loading}
           sx={filterCompactSecondaryButtonSx}
+          title="Quitar filtros y volver a urgentes globales"
         >
           Limpiar
         </AppButton>
@@ -102,6 +119,7 @@ export function UrgentesFiltroPanel({ onFiltrar, onLimpiar, loading }: UrgentesF
           onClick={handleFiltrar}
           disabled={loading}
           sx={filterCompactPrimaryButtonSx}
+          title="Aplicar filtros (también con Enter en los campos de texto)"
         >
           Buscar
         </AppButton>

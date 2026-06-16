@@ -20,25 +20,26 @@ describe("HOTFIX-UI-LAYOUT — Urgentes/Pool sin encimar", () => {
     const urgentes = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
     const pool = read("src/Containers/RutasTrabajo/planificacion/PoolDelDiaPanel.tsx");
     expect(urgentes).toContain("planificacionPanelColumnSx");
-    expect(urgentes).toContain("planificacionListViewportSx");
+    expect(urgentes).toContain("planificacionUrgentesListViewportSx");
     expect(urgentes).toContain("planificacionFixedSectionSx");
-    expect(pool).toContain("planificacionListViewportSx");
+    expect(pool).toContain("planificacionPoolListViewportSx");
     expect(pool).toContain("Continuar a asignación");
     expect(pool).toContain("planificacionFixedSectionSx");
   });
 
-  it("pool tiene maxHeight propio y no compite con flex:1 global", () => {
+  it("pool tiene maxHeight propio y Urgentes minHeight garantizado", () => {
     const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
     expect(styles).toContain('flex: "0 0 auto"');
     expect(styles).toContain("maxHeight");
     expect(styles).toContain('flex: "1 1 0"');
+    expect(styles).toContain("planificacionUrgentesListViewportSx");
   });
 
   it("solo listas internas tienen overflowY auto", () => {
     const urgentes = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
     const pool = read("src/Containers/RutasTrabajo/planificacion/PoolDelDiaPanel.tsx");
-    expect(urgentes).toContain("planificacionListViewportSx");
-    expect(pool).toContain("planificacionListViewportSx");
+    expect(urgentes).toContain("planificacionUrgentesListViewportSx");
+    expect(pool).toContain("planificacionPoolListViewportSx");
     expect(urgentes).not.toMatch(/Stack[\s\S]*overflow:\s*"auto"/);
   });
 });

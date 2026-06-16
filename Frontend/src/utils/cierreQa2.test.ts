@@ -20,8 +20,8 @@ describe("CIERRE-QA-2 A — Pool no achica Urgentes", () => {
   it("Urgentes y Pool usan list viewport con scroll propio", () => {
     const urgentes = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
     const pool = read("src/Containers/RutasTrabajo/planificacion/PoolDelDiaPanel.tsx");
-    expect(urgentes).toContain("planificacionListViewportSx");
-    expect(pool).toContain("planificacionListViewportSx");
+    expect(urgentes).toContain("planificacionUrgentesListViewportSx");
+    expect(pool).toContain("planificacionPoolListViewportSx");
     expect(pool).toContain("planificacionFixedSectionSx");
   });
 });

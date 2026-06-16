@@ -319,6 +319,10 @@ export function PlanificacionView({
           size={{ xs: 12, lg: 3 }}
           sx={{
             ...planificacionRightColumnSx,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            minWidth: 0,
             alignSelf: "stretch",
           }}
         >

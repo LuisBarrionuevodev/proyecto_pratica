@@ -8,11 +8,11 @@ import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
 import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 import {
   planificacionFixedSectionSx,
-  planificacionListViewportSx,
   planificacionPanelColumnSx,
   planificacionPanelFooterMetaSx,
   planificacionPanelSubtitleSx,
   planificacionPanelTitleSx,
+  planificacionUrgentesListViewportSx,
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
@@ -65,7 +65,7 @@ export function UrgentesPanel({
     >
       <Box sx={planificacionFixedSectionSx}>
         <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <Typography sx={planificacionPanelTitleSx}>Urgentes</Typography>
+          <Typography sx={planificacionPanelTitleSx}>Urgentes globales</Typography>
           <Chip
             label="Global"
             size="small"
@@ -75,7 +75,17 @@ export function UrgentesPanel({
           />
         </Stack>
         <Typography sx={{ ...planificacionPanelSubtitleSx, color: GLASS_COLORS.textSecondary }}>
-          Sin filtro territorial · no cambia al seleccionar distrito en el mapa
+          No cambia al seleccionar distrito.
+        </Typography>
+        <Typography
+          sx={{
+            ...planificacionPanelSubtitleSx,
+            fontSize: "0.6875rem",
+            color: GLASS_COLORS.textMuted,
+            mt: 0.25,
+          }}
+        >
+          Mapa, pendientes del contexto e indicadores sí dependen del distrito.
         </Typography>
       </Box>
 
@@ -85,7 +95,7 @@ export function UrgentesPanel({
         </Box>
       ) : null}
 
-      <Box sx={{ ...planificacionListViewportSx, ...rutasInstitutionalScrollSx }}>
+      <Box sx={{ ...planificacionUrgentesListViewportSx, ...rutasInstitutionalScrollSx }}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />

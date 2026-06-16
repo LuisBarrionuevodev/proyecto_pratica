@@ -33,6 +33,19 @@ export const planificacionListViewportSx: SxProps<Theme> = {
   overflowX: "hidden",
 };
 
+/** Lista Urgentes: altura mínima + scroll (filtros/pool no la colapsan a 0). */
+export const planificacionUrgentesListViewportSx: SxProps<Theme> = {
+  ...planificacionListViewportSx,
+  minHeight: "min(11rem, 22vh)",
+};
+
+/** Lista Pool del día: scroll acotado sin invadir slot Urgentes. */
+export const planificacionPoolListViewportSx: SxProps<Theme> = {
+  ...planificacionListViewportSx,
+  minHeight: "4.5rem",
+  maxHeight: "min(16vh, 132px)",
+};
+
 /** Columna derecha planificación: Urgentes y Pool en slots flex independientes. */
 export const planificacionRightColumnSx: SxProps<Theme> = {
   display: "flex",
@@ -44,16 +57,18 @@ export const planificacionRightColumnSx: SxProps<Theme> = {
   overflow: "hidden",
 };
 
-/** Slot superior: Urgentes absorbe espacio restante sin empujar pool. */
+/** Slot superior: Urgentes absorbe espacio restante con altura mínima garantizada. */
 export const planificacionUrgentesSlotSx: SxProps<Theme> = {
   ...planificacionPanelColumnSx,
   flex: "1 1 0",
+  minHeight: "min(22rem, 40vh)",
 };
 
 /** Slot inferior: pool con tope fijo y scroll interno. */
 export const planificacionPoolSlotSx: SxProps<Theme> = {
   ...planificacionPanelColumnSx,
   flex: "0 0 auto",
+  minHeight: "min(9.5rem, 16vh)",
   maxHeight: "min(36vh, 240px)",
 };
 

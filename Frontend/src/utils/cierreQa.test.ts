@@ -75,7 +75,7 @@ describe("CIERRE-QA H — Urgentes visibles", () => {
 
   it("UrgentesPanel tiene viewport de lista con scroll propio", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
-    expect(src).toContain("planificacionListViewportSx");
+    expect(src).toContain("planificacionUrgentesListViewportSx");
     expect(src).toContain("PlanificacionIniciadorCompactCard");
   });
 
