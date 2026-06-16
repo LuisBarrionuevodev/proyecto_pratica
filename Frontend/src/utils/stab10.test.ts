@@ -32,15 +32,15 @@ describe("STAB-10 estilos filtros comunes", () => {
     expect(src).not.toContain("useDebouncedValue");
   });
 
-  it("urgentes expone buscador identificador único y domicilio", () => {
+  it("urgentes expone domicilio compacto (sin identificador en vista)", () => {
     const path = resolve(
       process.cwd(),
       "src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx"
     );
     const src = readFileSync(path, "utf8");
-    expect(src).toContain("Nº oficio / comprobación / notificación");
-    expect(src).toContain("q_identificador");
+    expect(src).toContain('label="Domicilio"');
     expect(src).toContain("q_domicilio");
+    expect(src).not.toContain("Nº oficio / comprobación / notificación");
   });
 });
 

@@ -33,10 +33,17 @@ export const planificacionListViewportSx: SxProps<Theme> = {
   overflowX: "hidden",
 };
 
-/** Lista Urgentes: altura mínima + scroll (filtros/pool no la colapsan a 0). */
+/** Fila compacta de filtros Urgentes (una línea en desktop). */
+export const planificacionUrgentesFiltrosSx: SxProps<Theme> = {
+  flexShrink: 0,
+  width: "100%",
+};
+
+/** Lista Urgentes: altura mínima + scroll (filtros compactos arriba). */
 export const planificacionUrgentesListViewportSx: SxProps<Theme> = {
   ...planificacionListViewportSx,
-  minHeight: "min(11rem, 22vh)",
+  flex: "1 1 auto",
+  minHeight: "16rem",
 };
 
 /** Lista Pool del día: scroll acotado sin invadir slot Urgentes. */

@@ -1,4 +1,4 @@
-import { Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, Stack, Tooltip, Typography } from "@mui/material";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -10,7 +10,6 @@ import {
   planificacionFixedSectionSx,
   planificacionPanelColumnSx,
   planificacionPanelFooterMetaSx,
-  planificacionPanelSubtitleSx,
   planificacionPanelTitleSx,
   planificacionUrgentesListViewportSx,
   rutasInstitutionalPanelPaperSx,
@@ -61,32 +60,21 @@ export function UrgentesPanel({
         ...rutasInstitutionalPanelPaperSx,
         ...planificacionPanelColumnSx,
       }}
-      spacing={1.1}
+      spacing={0.75}
     >
       <Box sx={planificacionFixedSectionSx}>
         <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
           <Typography sx={planificacionPanelTitleSx}>Urgentes globales</Typography>
-          <Chip
-            label="Global"
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ height: 22, fontSize: "0.6875rem", fontWeight: 600 }}
-          />
+          <Tooltip title="Bandeja global: no cambia al seleccionar distrito en el mapa." arrow placement="top">
+            <Chip
+              label="Global"
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ height: 22, fontSize: "0.6875rem", fontWeight: 600, cursor: "help" }}
+            />
+          </Tooltip>
         </Stack>
-        <Typography sx={{ ...planificacionPanelSubtitleSx, color: GLASS_COLORS.textSecondary }}>
-          No cambia al seleccionar distrito.
-        </Typography>
-        <Typography
-          sx={{
-            ...planificacionPanelSubtitleSx,
-            fontSize: "0.6875rem",
-            color: GLASS_COLORS.textMuted,
-            mt: 0.25,
-          }}
-        >
-          Mapa, pendientes del contexto e indicadores sí dependen del distrito.
-        </Typography>
       </Box>
 
       {onFiltrar && onLimpiarFiltros ? (

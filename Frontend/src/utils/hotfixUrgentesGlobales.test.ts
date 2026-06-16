@@ -69,8 +69,10 @@ describe("HOTFIX urgentes globales — sin distrito del mapa", () => {
   it("UrgentesPanel no muestra acotado al distrito", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
     expect(src).toContain("Urgentes globales");
-    expect(src).toContain("No cambia al seleccionar distrito");
     expect(src).toContain('label="Global"');
+    expect(src).toContain("Tooltip");
+    expect(src).not.toContain("No cambia al seleccionar distrito.");
+    expect(src).not.toContain("pendientes del contexto");
     expect(src).not.toContain("Acotado al distrito");
     expect(src).not.toContain("distritoActivoNombre");
   });
@@ -101,7 +103,7 @@ describe("FIX FINAL urgentes — layout y filtros", () => {
     const urgentes = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
     const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
     expect(styles).toContain("planificacionUrgentesListViewportSx");
-    expect(styles).toContain("minHeight");
+    expect(styles).toContain("16rem");
     expect(urgentes).toContain("planificacionUrgentesListViewportSx");
     expect(urgentes).toContain("planificacionFixedSectionSx");
   });
@@ -112,13 +114,48 @@ describe("FIX FINAL urgentes — layout y filtros", () => {
     expect(styles).toMatch(/planificacionUrgentesSlotSx[\s\S]*minHeight/);
     expect(styles).toContain("planificacionPoolListViewportSx");
   });
+});
 
-  it("UrgentesFiltroPanel indica Buscar/Enter y Limpiar global", () => {
+describe("FIX UX urgentes compacto — vista principal", () => {
+  it("UrgentesPanel muestra título Urgentes globales", () => {
+    const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
+    expect(src).toContain("Urgentes globales");
+  });
+
+  it("filtros compactos: tipo, domicilio, limpiar y buscar", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
+    expect(src).toContain('label="Tipo urgente"');
+    expect(src).toContain('label="Domicilio"');
+    expect(src).toContain("Limpiar");
+    expect(src).toContain("Buscar");
     expect(src).toContain("onClick={handleFiltrar}");
     expect(src).toContain('e.key === "Enter"');
+  });
+
+  it("no muestra textos explicativos largos ni filtros avanzados", () => {
+    const panel = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
+    const filtro = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
+    expect(panel).not.toContain("pendientes del contexto");
+    expect(filtro).not.toContain("Filtros sobre urgentes globales");
+    expect(filtro).not.toContain("PlanificacionRubroSelect");
+    expect(filtro).not.toContain("Nº oficio / comprobación / notificación");
+    expect(filtro).not.toContain("setRubroId");
+    expect(filtro).not.toContain("setQIdentificador");
+  });
+
+  it("filtros en fila compacta con flexShrink 0", () => {
+    const filtro = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
+    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
+    expect(filtro).toContain("planificacionUrgentesFiltrosSx");
+    expect(filtro).toContain('direction="row"');
+    expect(styles).toContain("planificacionUrgentesFiltrosSx");
+  });
+
+  it("limpiar resetea domicilio y delega al controller", () => {
+    const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
+    expect(src).toContain("setQDomicilio");
     expect(src).toContain("onLimpiar()");
-    expect(src).toContain("placeholder=");
-    expect(src).not.toContain("useDebouncedValue");
+    expect(src).toContain("rubro_id: null");
+    expect(src).toContain('q_identificador: ""');
   });
 });

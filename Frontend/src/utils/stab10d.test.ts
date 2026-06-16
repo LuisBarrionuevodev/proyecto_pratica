@@ -131,13 +131,13 @@ describe("STAB-10d PendientesContextoPanel", () => {
 });
 
 describe("STAB-10d UrgentesFiltroPanel", () => {
-  it("muestra input identificador único y domicilio", () => {
+  it("vista principal: tipo urgente y domicilio en fila compacta", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
-    expect(src).toContain("Nº oficio / comprobación / notificación");
     expect(src).toContain('label="Domicilio"');
-    expect(src).toContain("PlanificacionRubroSelect");
-    expect(src).not.toContain('label="Nº oficio"');
-    expect(src).not.toContain('label="Nº comprobación"');
+    expect(src).toContain('label="Tipo urgente"');
+    expect(src).toContain('direction="row"');
+    expect(src).not.toContain("PlanificacionRubroSelect");
+    expect(src).not.toContain("Nº oficio / comprobación / notificación");
   });
 
   it("busca solo por botón o Enter", () => {
@@ -146,11 +146,11 @@ describe("STAB-10d UrgentesFiltroPanel", () => {
     expect(src).not.toContain("useDebouncedValue");
   });
 
-  it("limpiar resetea rubro e identificador", () => {
+  it("limpiar resetea domicilio y limpia filtros avanzados en payload", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/UrgentesFiltroPanel.tsx");
-    expect(src).toContain("setRubroId(null)");
-    expect(src).toContain("setQIdentificador");
     expect(src).toContain("setQDomicilio");
+    expect(src).toContain("rubro_id: null");
+    expect(src).toContain('q_identificador: ""');
   });
 });
 
