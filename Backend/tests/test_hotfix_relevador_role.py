@@ -31,6 +31,12 @@ def test_relevador_permite_relevamientos_y_denuncias() -> None:
     assert relevador_may_access("GET", "/api/profile/me")
 
 
+def test_relevador_no_lista_actuaciones() -> None:
+    assert not relevador_may_access("GET", "/actuaciones")
+    assert not relevador_may_access("GET", "/actuaciones/42")
+    assert relevador_may_access("PUT", "/actuaciones/42")
+
+
 def test_relevador_bloquea_rutas_y_admin() -> None:
     assert not relevador_may_access("GET", "/rutas-trabajo/1/planificacion/metricas")
     assert not relevador_may_access("POST", "/actuaciones/completar-trabajo/cerrar/1")

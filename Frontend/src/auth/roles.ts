@@ -15,11 +15,12 @@ export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
   "/perfil",
 ];
 
-/** Cards de Inicio visibles para RELEVADOR. */
+/** Cards de Inicio visibles para RELEVADOR (incluye Mi perfil). */
 export const RELEVADOR_INICIO_PATHS: readonly string[] = [
   "/cargarActuacion",
   "/cargarRelevamiento",
   "/relevamientos",
+  "/perfil",
 ];
 
 /**

@@ -12,6 +12,7 @@ import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import MapIcon from "@mui/icons-material/Map";
+import PersonIcon from "@mui/icons-material/Person";
 
 export type InicioAccesoItem = {
   to: string;
@@ -93,6 +94,12 @@ export const INICIO_ACCESOS: InicioAccesoItem[] = [
     Icon: MapIcon,
     title: "Mapa",
     description: "Vista territorial operativa",
+  },
+  {
+    to: "/perfil",
+    Icon: PersonIcon,
+    title: "Mi perfil",
+    description: "Usuario actual y datos de sesión",
   },
   {
     to: "/gestionDeUsuarios",

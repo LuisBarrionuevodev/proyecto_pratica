@@ -23,11 +23,12 @@ describe("HOTFIX-CIERRE-DIA RELEVADOR roles", () => {
     expect(isPathAllowedForRole("relevador", "/mapa")).toBe(false);
   });
 
-  it("RELEVADOR inicio solo 3 cards", () => {
+  it("RELEVADOR inicio solo 4 cards (incluye perfil)", () => {
     expect(RELEVADOR_INICIO_PATHS).toEqual([
       "/cargarActuacion",
       "/cargarRelevamiento",
       "/relevamientos",
+      "/perfil",
     ]);
     expect(isMenuPathVisibleForRole("relevador", "/cargarActuacion")).toBe(true);
     expect(isMenuPathVisibleForRole("relevador", "/completarTrabajos")).toBe(false);

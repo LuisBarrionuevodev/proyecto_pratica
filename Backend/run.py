@@ -105,6 +105,7 @@ def _seed_catalogos_base() -> dict[str, int]:
     # Contraproducencias: ver también migración f1e2d3c4b5a6 (insert idempotente en deploy).
     for nombre in [
         "LOCAL CERRADO",
+        "NO EXISTE LOCAL",
         "NO EXISTE/NO ES EL RUBRO",
         "CLIMA",
         "ZONA ROJA",

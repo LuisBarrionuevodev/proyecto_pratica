@@ -164,6 +164,11 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                 contraproducencia=None,
                 orden_trabajo_id=item.orden_trabajo_id,
                 domicilio_id=int(domicilio_publicar),
+                notificacion_id=(
+                    ini.notificacion_id
+                    if ini.tipo_iniciador == "REINSPECCION_NOTIFICACION"
+                    else None
+                ),
             )
             db.session.add(act)
             db.session.flush()

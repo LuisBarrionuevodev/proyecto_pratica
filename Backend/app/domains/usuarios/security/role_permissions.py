@@ -37,12 +37,18 @@ def relevador_may_access(method: str, path: str) -> bool:
     Retorno:
         True si el acceso está permitido.
     """
-    _ = method
+    m = (method or "GET").upper()
     p = path.rstrip("/") or "/"
 
     for rx in _RELEVADOR_DENIED:
         if rx.match(p):
             return False
+
+    # Listado/edición masiva de actuaciones: solo carga vía POST /actuaciones y grid.
+    if p == "/actuaciones" and m != "POST":
+        return False
+    if re.match(r"^/actuaciones/\d+$", p) and m in ("GET", "DELETE"):
+        return False
 
     return any(rx.match(p) for rx in _RELEVADOR_ALLOWED)
 

@@ -74,7 +74,8 @@ describe("CIERRE-QA-2 C/D — Permisos unificados sin flicker", () => {
     expect(home).not.toContain("/gestionDeUsuarios");
     expect(home).not.toContain("/rutasTrabajo");
     expect(nav).not.toContain("/gestionDeUsuarios");
-    expect(home).toHaveLength(3);
+    expect(home).toHaveLength(4);
+    expect(home).toContain("/perfil");
   });
 
   it("Inicio default deny: skeleton mientras carga", () => {

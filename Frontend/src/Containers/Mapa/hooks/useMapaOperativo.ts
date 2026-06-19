@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   getMapOperativoPendientesFC,
@@ -43,13 +43,17 @@ export function useMapaOperativo() {
     return inspectorId && !Number.isNaN(n) ? n : undefined;
   };
 
+  const loadSeqRef = useRef(0);
+
   const loadPendientes = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
+    const seq = ++loadSeqRef.current;
     setFeatures([]);
     setInfoMessage(null);
     setLoading(true);
     setError(null);
     try {
       if (!p.from?.trim() || !p.to?.trim()) {
+        if (seq !== loadSeqRef.current) return;
         setError("Elegí fecha desde y hasta.");
         setFeatures([]);
         return;
@@ -62,6 +66,7 @@ export function useMapaOperativo() {
         inspector_id: _inspectorNum(p.inspectorId),
         ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       });
+      if (seq !== loadSeqRef.current) return;
       const feats = fc.features ?? [];
       setFeatures(feats);
       if (feats.length === 0) {
@@ -70,21 +75,26 @@ export function useMapaOperativo() {
         );
       }
     } catch (e: unknown) {
+      if (seq !== loadSeqRef.current) return;
       const err = e as { response?: { data?: { detail?: string } } };
       setError(err?.response?.data?.detail ?? "No se pudieron cargar los pendientes operativos.");
       setFeatures([]);
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
   const loadRealizados = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
+    const seq = ++loadSeqRef.current;
     setFeatures([]);
     setInfoMessage(null);
     setLoading(true);
     setError(null);
     try {
       if (!p.from?.trim() || !p.to?.trim()) {
+        if (seq !== loadSeqRef.current) return;
         setError("Elegí fecha desde y hasta.");
         setFeatures([]);
         return;
@@ -99,6 +109,7 @@ export function useMapaOperativo() {
           p.definicion && p.definicion !== "TODOS" ? p.definicion : undefined,
         ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       });
+      if (seq !== loadSeqRef.current) return;
       const feats = fc.features ?? [];
       setFeatures(feats);
       if (feats.length === 0) {
@@ -107,11 +118,14 @@ export function useMapaOperativo() {
         );
       }
     } catch (e: unknown) {
+      if (seq !== loadSeqRef.current) return;
       const err = e as { response?: { data?: { detail?: string } } };
       setError(err?.response?.data?.detail ?? "No se pudieron cargar los realizados operativos.");
       setFeatures([]);
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 

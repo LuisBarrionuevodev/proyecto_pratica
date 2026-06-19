@@ -27,3 +27,8 @@ export function turnoDropdownLabelToStored(label: string | null | undefined): st
   if (n === "TARDE") return TURNO_CANON.TARDE;
   return null;
 }
+
+/** Etiqueta visible para bandejas / listados (MANIANA → Mañana). */
+export function turnoCargaLabel(value: string | null | undefined): string {
+  return turnoStoredToDropdownLabel(value) ?? (value?.trim() ? value.trim() : "—");
+}

@@ -13,6 +13,7 @@ import StorefrontIcon from "@mui/icons-material/Storefront";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import HomeWorkIcon from "@mui/icons-material/HomeWork";
+import PersonIcon from "@mui/icons-material/Person";
 import type { JSX } from "react";
 
 export interface MenuItem {
@@ -30,7 +31,10 @@ export interface MenuSection {
 export const menuSections: MenuSection[] = [
   {
     label: "MAIN",
-    items: [{ text: "Inicio", icon: <HomeIcon />, path: "/inicio" }],
+    items: [
+      { text: "Inicio", icon: <HomeIcon />, path: "/inicio" },
+      { text: "Mi perfil", icon: <PersonIcon />, path: "/perfil" },
+    ],
   },
   {
     label: "CARGA",

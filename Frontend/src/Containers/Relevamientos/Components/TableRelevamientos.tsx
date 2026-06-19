@@ -17,6 +17,7 @@ import {
 import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
 import { RelevamientoEditDialog } from "./RelevamientoEditDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
+import { turnoCargaLabel } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
 import {
   BandejaEllipsisCell,
   BANDEJA_MRT_BODY_CELL_PROPS,
@@ -271,7 +272,9 @@ const TablaRelevamientos = ({
         accessorKey: "turno",
         header: "Turno",
         size: 130,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
+        Cell: ({ cell }) => (
+          <BandejaEllipsisCell value={turnoCargaLabel(cell.getValue() as string | null)} />
+        ),
       },
       {
         accessorKey: "esta_abierto",

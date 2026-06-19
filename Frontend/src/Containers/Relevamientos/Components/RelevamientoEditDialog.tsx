@@ -3,6 +3,7 @@ import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
+import { TURNO_CANON } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
 
 export type RelevamientoEditCatalogs = {
   inspectores: string[];
@@ -157,7 +158,11 @@ export function RelevamientoEditDialog({
             const v = ev.target.value as string;
             onDraftChange({ turno: v === "" ? null : v });
           }}
-          options={opts(["", "MANIANA", "TARDE"])}
+          options={[
+            { value: "", label: "—" },
+            { value: TURNO_CANON.MANIANA, label: "Mañana" },
+            { value: TURNO_CANON.TARDE, label: "Tarde" },
+          ]}
           fullWidth
           error={!!e("turno")}
           helperText={e("turno")}
