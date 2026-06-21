@@ -21,6 +21,7 @@ import {
   COLORS,
   DARK_TABLE_CONFIG,
 } from "../../Actuaciones/styles/actuacionesTableStyles";
+import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 
 function domicilioLinea(row: ICompletarTrabajoPendienteRow): string {
@@ -39,9 +40,9 @@ function inspectoresNombres(row: ICompletarTrabajoPendienteRow): string[] {
 
 function origenTipoSegments(row: ICompletarTrabajoPendienteRow): string[] {
   const segs: string[] = [];
-  const origen = (row.tipo_iniciador ?? "").trim();
+  const origenLabel = tipoIniciadorDesdeCodigoApi(row.tipo_iniciador);
   const tipo = (row.tipo_actuacion ?? "").trim();
-  if (origen) segs.push(`Origen: ${origen}`);
+  if (origenLabel) segs.push(`Origen: ${origenLabel}`);
   if (tipo) segs.push(`Tipo: ${tipo}`);
   return segs;
 }

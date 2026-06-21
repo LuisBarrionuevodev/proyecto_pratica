@@ -1,5 +1,6 @@
 import {
   getActuacionesPendientesExpediente,
+  getPendientesReinspeccionNotificacion,
   type IActuacionesPendientesItem,
 } from "./actuacionesPendientesApi";
 import { normalizeNotificacionBandejaItems } from "../Containers/GestionNotificacion/normalizeNotificacionBandejaItems";
@@ -26,6 +27,11 @@ export type NotificacionesExportFilters = {
 export async function fetchAllNotificacionesForExport(
   filters: NotificacionesExportFilters
 ): Promise<IActuacionesPendientesItem[]> {
+  if (filters.plazoSlice === "vencidas_o_hoy") {
+    const rein = await getPendientesReinspeccionNotificacion();
+    return normalizeNotificacionBandejaItems(rein, "notificacion");
+  }
+
   const docOpts = {
     contribuyenteQ: filters.contribuyenteQ?.trim() || undefined,
     calleQ: filters.calleQ?.trim() || undefined,

@@ -28,6 +28,7 @@ import {
 import {
   createExpedienteDesdeActuacion,
   getActuacionesPendientesExpediente,
+  getPendientesReinspeccionNotificacion,
   postSyncNotificacionesVencidas,
   type IActuacionesPendientesItem,
   type ICreateExpedienteRequest,
@@ -72,6 +73,8 @@ import {
   type PlazoOperativoSlice,
 } from "./gestionNotificacionPlazo";
 import { normalizeNotificacionBandejaItems } from "./normalizeNotificacionBandejaItems";
+import { subscribeGestionNotificacionReinspeccionRefresh } from "./gestionNotificacionReinspeccionRefresh";
+import { reinspeccionNotificacionBandejaRowKey } from "./gestionNotificacionReinspeccionRowKey";
 import {
   NotificacionDetalleDocumentalDialog,
   type NotificacionDetalleModalVariant,
@@ -167,6 +170,7 @@ type NotificacionBandejaTableProps = {
   toolbar?: () => React.ReactNode;
   /** Misma acotación de altura que Recorrido bajo panel documental (scroll del layout). */
   documentalListViewport?: boolean;
+  getRowId?: (row: IActuacionesPendientesItem) => string;
 };
 
 /** Tabla MRT reutilizable (operativa vs historial). */
@@ -176,6 +180,7 @@ function NotificacionBandejaTable({
   columns,
   toolbar,
   documentalListViewport,
+  getRowId,
 }: NotificacionBandejaTableProps) {
   const documentalMrtLayout: Partial<MRT_TableOptions<IActuacionesPendientesItem>> | undefined = documentalListViewport
     ? {
@@ -209,6 +214,7 @@ function NotificacionBandejaTable({
       density: "compact",
       enableColumnFilters: false,
       enableGlobalFilter: false,
+      ...(getRowId ? { getRowId: (row) => getRowId(row.original) } : {}),
       renderTopToolbarCustomActions: toolbar,
       state: {
         isLoading: loading,
@@ -236,6 +242,9 @@ const GestionNotificacionPage = () => {
   const [items, setItems] = useState<IActuacionesPendientesItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reinspeccionItems, setReinspeccionItems] = useState<IActuacionesPendientesItem[]>([]);
+  const [reinspeccionLoading, setReinspeccionLoading] = useState(false);
+  const [reinspeccionError, setReinspeccionError] = useState<string | null>(null);
   const [plazoSlice, setPlazoSlice] = useState<PlazoOperativoSlice>("en_plazo");
 
   const [histPeriodMode, setHistPeriodMode] = useState<HistPeriodMode>("month");
@@ -333,9 +342,34 @@ const GestionNotificacionPage = () => {
     }
   }, []);
 
+  const loadPendientesReinspeccionNotificacion = useCallback(async () => {
+    setReinspeccionLoading(true);
+    setReinspeccionError(null);
+    try {
+      const rows = await getPendientesReinspeccionNotificacion();
+      setReinspeccionItems(normalizeNotificacionBandejaItems(rows, "notificacion"));
+    } catch (err: unknown) {
+      const detail =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      setReinspeccionError(detail || "Error al cargar pendientes de reinspección");
+      setReinspeccionItems([]);
+    } finally {
+      setReinspeccionLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadData();
-  }, [loadData]);
+    void loadPendientesReinspeccionNotificacion();
+  }, [loadData, loadPendientesReinspeccionNotificacion]);
+
+  useEffect(() => {
+    return subscribeGestionNotificacionReinspeccionRefresh(() => {
+      void loadPendientesReinspeccionNotificacion();
+    });
+  }, [loadPendientesReinspeccionNotificacion]);
 
   /** Al volver a entrar en Historial desde otra pestaña, se pide de nuevo aplicar filtro (sin tabla inicial). */
   useEffect(() => {
@@ -484,6 +518,7 @@ const GestionNotificacionPage = () => {
       const metrics = await postSyncNotificacionesVencidas();
       setSyncFeedback({ kind: "success", metrics });
       await loadData();
+      await loadPendientesReinspeccionNotificacion();
       if (historialFiltroAplicado) {
         await recargarHistorialSiAplica();
       }
@@ -510,19 +545,27 @@ const GestionNotificacionPage = () => {
     } finally {
       setSyncLoading(false);
     }
-  }, [loadData, historialFiltroAplicado, recargarHistorialSiAplica]);
+  }, [loadData, loadPendientesReinspeccionNotificacion, historialFiltroAplicado, recargarHistorialSiAplica]);
 
   const notificacionRows = useMemo(
     () => items.filter((r) => r.source_type === "NOTIFICACION"),
     [items]
   );
 
-  const sliceCounts = useMemo(() => countByPlazoSlice(notificacionRows), [notificacionRows]);
-
-  const filteredRowsOperativa = useMemo(
-    () => notificacionRows.filter((r) => matchesPlazoSlice(r, plazoSlice)),
-    [notificacionRows, plazoSlice]
+  const sliceCounts = useMemo(
+    () => countByPlazoSlice(notificacionRows, reinspeccionItems.length),
+    [notificacionRows, reinspeccionItems.length]
   );
+
+  const esTabReinspeccionOperativa = plazoSlice === "vencidas_o_hoy";
+
+  const filteredRowsOperativa = useMemo(() => {
+    if (esTabReinspeccionOperativa) return reinspeccionItems;
+    return notificacionRows.filter((r) => matchesPlazoSlice(r, plazoSlice));
+  }, [notificacionRows, plazoSlice, reinspeccionItems, esTabReinspeccionOperativa]);
+
+  const operativaLoading = esTabReinspeccionOperativa ? reinspeccionLoading : loading;
+  const operativaError = esTabReinspeccionOperativa ? reinspeccionError : error;
 
   const openModal = useCallback((row: IActuacionesPendientesItem, variant: NotificacionDetalleModalVariant) => {
     setModalVariant(variant);
@@ -542,7 +585,7 @@ const GestionNotificacionPage = () => {
       setNotificacionDeepLinkAviso(null);
       return;
     }
-    if (loading) return;
+    if (loading && reinspeccionLoading) return;
 
     const key = `notif-focus:${raw}`;
     if (notifDeepLinkProcessedKey.current === key) return;
@@ -550,7 +593,9 @@ const GestionNotificacionPage = () => {
     const aid = Number.parseInt(raw, 10);
     if (!Number.isFinite(aid)) return;
 
-    const row = items.find((r) => r.id === aid && r.source_type === "NOTIFICACION");
+    const rowPlazo = items.find((r) => r.id === aid && r.source_type === "NOTIFICACION");
+    const rowRein = reinspeccionItems.find((r) => r.id === aid);
+    const row = rowRein ?? rowPlazo;
     const clearParam = () => {
       notifDeepLinkProcessedKey.current = key;
       const next = new URLSearchParams(searchParams);
@@ -562,6 +607,14 @@ const GestionNotificacionPage = () => {
       setNotificacionDeepLinkAviso(
         `No encontramos la actuación n.º ${aid} en la bandeja operativa de notificaciones (revisá pestañas de plazo o recargá la lista).`
       );
+      clearParam();
+      return;
+    }
+
+    if (rowRein) {
+      setPlazoSlice("vencidas_o_hoy");
+      setNotificacionDeepLinkAviso(null);
+      openModal(rowRein, "documental");
       clearParam();
       return;
     }
@@ -581,7 +634,7 @@ const GestionNotificacionPage = () => {
       `Actuación n.º ${aid}: el plazo no coincide con ninguna pestaña operativa actual (revisá «Historial de notificaciones» por período). OT ${(row.orden_trabajo_numero ?? "").trim() || "—"}.`
     );
     clearParam();
-  }, [loading, items, searchParams, setSearchParams, openModal]);
+  }, [loading, reinspeccionLoading, items, reinspeccionItems, searchParams, setSearchParams, openModal]);
 
   const closeModal = () => {
     if (saving) return;
@@ -742,6 +795,33 @@ const GestionNotificacionPage = () => {
     [columnsDataCompact, openModal]
   );
 
+  const columnsReinspeccionOperativa = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
+    () => [
+      ...columnsDataCompact,
+      {
+        id: "acciones",
+        header: "Acción",
+        size: 168,
+        grow: false,
+        enableResizing: false,
+        Cell: ({ row }) => (
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original, "documental")}>
+            Ver detalle
+          </AppButton>
+        ),
+      },
+    ],
+    [columnsDataCompact, openModal]
+  );
+
+  const refreshOperativaActiva = useCallback(async () => {
+    if (esTabReinspeccionOperativa) {
+      await loadPendientesReinspeccionNotificacion();
+      return;
+    }
+    await loadData();
+  }, [esTabReinspeccionOperativa, loadPendientesReinspeccionNotificacion, loadData]);
+
   const renderOperativaToolbarRefresh = useCallback(
     () => (
       <Tooltip title="Actualizar listados">
@@ -750,8 +830,8 @@ const GestionNotificacionPage = () => {
             type="button"
             size="small"
             aria-label="Actualizar listados"
-            disabled={loading}
-            onClick={() => void loadData()}
+            disabled={operativaLoading}
+            onClick={() => void refreshOperativaActiva()}
             sx={{
               color: GLASS_COLORS.textSecondary,
               "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
@@ -762,7 +842,7 @@ const GestionNotificacionPage = () => {
         </span>
       </Tooltip>
     ),
-    [loading, loadData]
+    [operativaLoading, refreshOperativaActiva]
   );
 
   const renderHistorialToolbarRefresh = useCallback(
@@ -788,13 +868,16 @@ const GestionNotificacionPage = () => {
     [historialLoading, historialFiltroAplicado, recargarHistorialSiAplica]
   );
 
-  /** Contador solo para pestañas operativas (no historial). */
   const tabSuffixOperativa = useCallback(
     (slice: Exclude<PlazoOperativoSlice, "total">): string => {
+      if (slice === "vencidas_o_hoy") {
+        if (reinspeccionLoading) return "…";
+        return String(reinspeccionItems.length);
+      }
       if (loading) return "…";
       return String(sliceCounts[slice]);
     },
-    [loading, sliceCounts]
+    [loading, reinspeccionLoading, reinspeccionItems.length, sliceCounts]
   );
 
   const mostrarTablaOperativa = plazoSlice !== "total";
@@ -920,7 +1003,7 @@ const GestionNotificacionPage = () => {
             dsVariant="primary"
             dsSize="sm"
             onClick={() => void handleSyncNotificacionesVencidas()}
-            disabled={syncLoading || loading}
+            disabled={syncLoading || loading || reinspeccionLoading}
             sx={{
               alignSelf: { xs: "stretch", sm: "center" },
               fontFamily: '"Tactic Sans", sans-serif',
@@ -933,21 +1016,27 @@ const GestionNotificacionPage = () => {
         </Box>
       </Paper>
 
-      {error && (
+      {operativaError && (
         <Alert severity="error" sx={alertBaseStyles}>
-          {error}
+          {operativaError}
         </Alert>
       )}
 
       {mostrarTablaOperativa && (
         <>
-          {loading && notificacionRows.length === 0 && !error ? (
+          {operativaLoading && filteredRowsOperativa.length === 0 && !operativaError ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
               <CircularProgress size={28} sx={{ color: COLORS.primary }} />
             </Box>
           ) : (
-            <Box sx={{ position: "relative", opacity: loading ? 0.65 : 1, transition: "opacity 0.2s" }}>
-              {loading && notificacionRows.length > 0 && (
+            <Box
+              sx={{
+                position: "relative",
+                opacity: operativaLoading ? 0.65 : 1,
+                transition: "opacity 0.2s",
+              }}
+            >
+              {operativaLoading && filteredRowsOperativa.length > 0 && (
                 <Box
                   sx={{
                     position: "absolute",
@@ -964,9 +1053,12 @@ const GestionNotificacionPage = () => {
               )}
               <NotificacionBandejaTable
                 rows={filteredRowsOperativa}
-                loading={loading}
-                columns={columnsOperativa}
+                loading={operativaLoading}
+                columns={esTabReinspeccionOperativa ? columnsReinspeccionOperativa : columnsOperativa}
                 toolbar={renderOperativaToolbarRefresh}
+                getRowId={
+                  esTabReinspeccionOperativa ? (row) => reinspeccionNotificacionBandejaRowKey(row) : undefined
+                }
               />
             </Box>
           )}

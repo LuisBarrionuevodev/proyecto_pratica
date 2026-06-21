@@ -25,6 +25,10 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   notificacion_id?: number | null;
   comprobacion_id?: number | null;
   domicilio_id?: number | null;
+  /** Cola operativa `/pendientes-notificacion`. */
+  iniciador_id?: number | null;
+  /** Clave estable para MRT (p. ej. `{actuacion_id}-{iniciador_id}`). */
+  bandeja_row_key?: string | null;
   numero_esquina?: string | null;
   calle_ingresada?: string | null;
   calle_normalizada?: string | null;
@@ -165,6 +169,14 @@ export const postSyncNotificacionesVencidas = async (): Promise<ISyncNotificacio
   const { data } = await apiClient.post<ISyncNotificacionesVencidasResponse>(
     "/actuaciones/pendientes/sync-notificaciones-vencidas"
   );
+  return data;
+};
+
+/**
+ * Cola operativa de reinspecciones por notificación vencida (iniciador PENDIENTE).
+ */
+export const getPendientesReinspeccionNotificacion = async (): Promise<IActuacionesPendientesItem[]> => {
+  const { data } = await apiClient.get<IActuacionesPendientesItem[]>("/actuaciones/pendientes-notificacion");
   return data;
 };
 

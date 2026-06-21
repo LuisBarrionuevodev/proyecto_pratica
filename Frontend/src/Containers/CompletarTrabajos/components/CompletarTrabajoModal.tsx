@@ -20,6 +20,8 @@ import { getCompletarTrabajoDetalle } from "../../../api/completarTrabajoApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
+import { emitGestionNotificacionReinspeccionRefresh } from "../../GestionNotificacion/gestionNotificacionReinspeccionRefresh";
+import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
 import {
   esCorrectivaDireccionContraproducencia,
@@ -267,6 +269,16 @@ export function CompletarTrabajoModal({
       setNotifMotivosAddInput("");
       return;
     }
+    if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
+      setContraproducencia(resolvedRow.contraproducencia ?? "");
+      setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
+      setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
+      setActaNotificacion("");
+      setNotifMotivosSeleccion([]);
+      setInspectoresAddInput("");
+      setNotifMotivosAddInput("");
+      return;
+    }
     setResultadoCumplimientoOficio("");
     setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
     setContraproducencia(resolvedRow.contraproducencia ?? "");
@@ -312,6 +324,8 @@ export function CompletarTrabajoModal({
   const visitaRealizada = !contraproducencia.trim();
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
+  const esReinspeccionNotificacion = resolvedRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
+  const tipoIniciadorLabel = tipoIniciadorDesdeCodigoApi(resolvedRow?.tipo_iniciador) ?? "—";
 
   /** Inspectores del catálogo que aún no están en la lista (agregar). */
   const inspectoresDisponiblesParaAgregar = useMemo(() => {
@@ -414,6 +428,9 @@ export function CompletarTrabajoModal({
             ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
             : {}),
         });
+        if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
+          emitGestionNotificacionReinspeccionRefresh();
+        }
         onSuccess(resolvedRow.ruta_item_id);
         onClose();
       } catch (e) {
@@ -457,6 +474,7 @@ export function CompletarTrabajoModal({
     const notifSlotsPre = slotsToMotivosApi(notifMotivosSeleccion);
     if (
       visitaRealizada &&
+      !esReinspeccionNotificacion &&
       actaNotificacion.trim() &&
       !notifSlotsPre.m1 &&
       !notifSlotsPre.m2 &&
@@ -500,16 +518,20 @@ export function CompletarTrabajoModal({
       if (visitaRealizada) {
         Object.assign(values, {
           acta_inspeccion_num: actaInspeccion,
-          acta_notificacion_num: actaNotificacion,
-          notificacion_motivo_1: notifSlots.m1,
-          notificacion_motivo_2: notifSlots.m2,
-          notificacion_motivo_3: notifSlots.m3,
           acta_comprobacion_num: actaComprobacion,
           comprobacion_motivo: comprobacionMotivo,
           acta_clausura_num: actaClausura,
           acta_decomiso_num: actaDecomiso,
           decomiso_kilos_total: decomisoKilos,
         });
+        if (!esReinspeccionNotificacion) {
+          Object.assign(values, {
+            acta_notificacion_num: actaNotificacion,
+            notificacion_motivo_1: notifSlots.m1,
+            notificacion_motivo_2: notifSlots.m2,
+            notificacion_motivo_3: notifSlots.m3,
+          });
+        }
       } else if (esNoPermiteInspeccion) {
         Object.assign(values, {
           acta_comprobacion_num: actaComprobacion,
@@ -526,6 +548,9 @@ export function CompletarTrabajoModal({
           ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
           : {}),
       });
+      if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
+        emitGestionNotificacionReinspeccionRefresh();
+      }
       onSuccess(resolvedRow.ruta_item_id);
       onClose();
     } catch (e) {
@@ -610,7 +635,7 @@ export function CompletarTrabajoModal({
             Fecha: {dashIfEmpty(resolvedRow.fecha_actuacion)}
           </Typography>
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-            Tipo de iniciador: {dashIfEmpty(resolvedRow.tipo_iniciador)}
+            Tipo de iniciador: {tipoIniciadorLabel}
           </Typography>
           {resolvedRow.grupo_nombre?.trim() ? (
             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
@@ -986,7 +1011,40 @@ export function CompletarTrabajoModal({
               Actas para este cierre
             </Typography>
           )}
-          {visitaRealizada && (
+          {visitaRealizada && esReinspeccionNotificacion && (
+            <>
+              <AppTextField
+                appearance="dense"
+                label="N° acta de inspección"
+                value={actaInspeccion}
+                onChange={(e) => {
+                  setActaInspeccion(e.target.value);
+                  clearFe("acta_inspeccion_num");
+                }}
+                fullWidth
+                error={Boolean(fe("acta_inspeccion_num"))}
+                helperText={fe("acta_inspeccion_num") || undefined}
+              />
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: "rgba(255,255,255,0.06)",
+                  fontFamily: '"Tactic Sans", sans-serif',
+                }}
+              >
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                  Notificación origen (solo lectura)
+                </Typography>
+                <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
+                  {(resolvedRow?.acta_notificacion_num ?? "").trim()
+                    ? `Notif. ${(resolvedRow?.acta_notificacion_num ?? "").trim()}`
+                    : "—"}
+                </Typography>
+              </Box>
+            </>
+          )}
+          {visitaRealizada && !esReinspeccionNotificacion && (
             <>
               <AppTextField
                 appearance="dense"
@@ -1083,60 +1141,64 @@ export function CompletarTrabajoModal({
               />
             </>
           )}
-          <AppTextField
-            appearance="dense"
-            label={
-              esNoPermiteInspeccion && !visitaRealizada
-                ? "N° acta de comprobación (obligatorio)"
-                : "N° acta de comprobación"
-            }
-            value={actaComprobacion}
-            onChange={(e) => {
-              setActaComprobacion(e.target.value);
-              clearFe("acta_comprobacion_num");
-            }}
-            fullWidth
-            required={esNoPermiteInspeccion && !visitaRealizada}
-            error={Boolean(fe("acta_comprobacion_num"))}
-            helperText={
-              fe("acta_comprobacion_num") ||
-              (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
-            }
-          />
-          <AppSelect
-            label={
-              esNoPermiteInspeccion && !visitaRealizada
-                ? "Motivo de comprobación (obligatorio)"
-                : "Motivo de comprobación"
-            }
-            value={comprobacionMotivo}
-            onChange={(e) => {
-              setComprobacionMotivo(e.target.value);
-              clearFe("comprobacion_motivo");
-            }}
-            fullWidth
-            disabled={!catalogsReady}
-            options={motivoCompOpts}
-            required={esNoPermiteInspeccion && !visitaRealizada}
-            error={Boolean(fe("comprobacion_motivo"))}
-            helperText={
-              fe("comprobacion_motivo") ||
-              (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
-            }
-          />
-          <AppTextField
-            appearance="dense"
-            label="N° acta de clausura (opcional)"
-            value={actaClausura}
-            onChange={(e) => {
-              setActaClausura(e.target.value);
-              clearFe("acta_clausura_num");
-            }}
-            fullWidth
-            error={Boolean(fe("acta_clausura_num"))}
-            helperText={fe("acta_clausura_num") || undefined}
-          />
-          {visitaRealizada && (
+          {!esReinspeccionNotificacion && (
+            <>
+              <AppTextField
+                appearance="dense"
+                label={
+                  esNoPermiteInspeccion && !visitaRealizada
+                    ? "N° acta de comprobación (obligatorio)"
+                    : "N° acta de comprobación"
+                }
+                value={actaComprobacion}
+                onChange={(e) => {
+                  setActaComprobacion(e.target.value);
+                  clearFe("acta_comprobacion_num");
+                }}
+                fullWidth
+                required={esNoPermiteInspeccion && !visitaRealizada}
+                error={Boolean(fe("acta_comprobacion_num"))}
+                helperText={
+                  fe("acta_comprobacion_num") ||
+                  (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
+                }
+              />
+              <AppSelect
+                label={
+                  esNoPermiteInspeccion && !visitaRealizada
+                    ? "Motivo de comprobación (obligatorio)"
+                    : "Motivo de comprobación"
+                }
+                value={comprobacionMotivo}
+                onChange={(e) => {
+                  setComprobacionMotivo(e.target.value);
+                  clearFe("comprobacion_motivo");
+                }}
+                fullWidth
+                disabled={!catalogsReady}
+                options={motivoCompOpts}
+                required={esNoPermiteInspeccion && !visitaRealizada}
+                error={Boolean(fe("comprobacion_motivo"))}
+                helperText={
+                  fe("comprobacion_motivo") ||
+                  (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
+                }
+              />
+              <AppTextField
+                appearance="dense"
+                label="N° acta de clausura (opcional)"
+                value={actaClausura}
+                onChange={(e) => {
+                  setActaClausura(e.target.value);
+                  clearFe("acta_clausura_num");
+                }}
+                fullWidth
+                error={Boolean(fe("acta_clausura_num"))}
+                helperText={fe("acta_clausura_num") || undefined}
+              />
+            </>
+          )}
+          {visitaRealizada && !esReinspeccionNotificacion && (
             <>
               <AppTextField
                 appearance="dense"

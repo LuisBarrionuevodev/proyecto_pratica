@@ -12,8 +12,9 @@ export type PlazoOperativoSlice = "total" | "en_plazo" | "por_vencer" | "vencida
 /**
  * Clasificación por `dias_restantes` del backend (derivado de `Notificacion.fecha_vencimiento`).
  * Nota: el API devuelve 0 tanto si el plazo venció como si vence hoy.
- * Días 1–4 van a **Por vencer**; desde 5 a **En plazo**; 0 a **Vencidas o hoy**. El tab **Historial**
- * lista por período documental (filtro aparte), no reemplaza la operativa de plazo.
+ * Días 1–4 van a **Por vencer**; desde 5 a **En plazo**.
+ * La tab **Pendiente reinspección** (`vencidas_o_hoy`) usa `/actuaciones/pendientes-notificacion`, no este filtro.
+ * El tab **Historial** lista por período documental (filtro aparte).
  */
 export function sliceLabel(slice: PlazoOperativoSlice): string {
   switch (slice) {
@@ -24,7 +25,7 @@ export function sliceLabel(slice: PlazoOperativoSlice): string {
     case "por_vencer":
       return "Por vencer";
     case "vencidas_o_hoy":
-      return "Vencidas o hoy";
+      return "Pendiente reinspección";
     default:
       return slice;
   }
@@ -32,23 +33,24 @@ export function sliceLabel(slice: PlazoOperativoSlice): string {
 
 export function matchesPlazoSlice(row: IActuacionesPendientesItem, slice: PlazoOperativoSlice): boolean {
   if (row.source_type !== "NOTIFICACION") return false;
+  if (slice === "vencidas_o_hoy") return false;
   const d = row.dias_restantes;
   if (slice === "total") return true;
   if (d === null || d === undefined) return false;
   if (slice === "en_plazo") return d >= DIAS_EN_PLAZO_MIN;
   if (slice === "por_vencer") return d >= POR_VENCER_MIN && d <= POR_VENCER_MAX;
-  if (slice === "vencidas_o_hoy") return d === 0;
   return true;
 }
 
 export function countByPlazoSlice(
-  rows: IActuacionesPendientesItem[]
+  rows: IActuacionesPendientesItem[],
+  pendienteReinspeccionCount = 0
 ): Record<PlazoOperativoSlice, number> {
   const noti = rows.filter((r) => r.source_type === "NOTIFICACION");
   return {
     total: noti.length,
     en_plazo: noti.filter((r) => matchesPlazoSlice(r, "en_plazo")).length,
     por_vencer: noti.filter((r) => matchesPlazoSlice(r, "por_vencer")).length,
-    vencidas_o_hoy: noti.filter((r) => matchesPlazoSlice(r, "vencidas_o_hoy")).length,
+    vencidas_o_hoy: pendienteReinspeccionCount,
   };
 }
