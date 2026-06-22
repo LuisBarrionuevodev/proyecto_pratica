@@ -11,7 +11,9 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
     STORED_CORRECTIVA_DIRECCION_INCORRECTA,
     STORED_CORRECTIVA_NO_ES_EL_RUBRO,
     STORED_NO_EXISTE_LOCAL,
+    STORED_NO_PAGO_DECOMISO,
     STORED_NO_PERMITE_INSPECCION,
+    STORED_NO_SE_RATIFICO,
     _loose_key,
 )
 
@@ -41,14 +43,42 @@ _REINSPECCION = frozenset(
     }
 )
 
+_REINSPECCION_OFICIO = _REINSPECCION | frozenset(
+    {
+        STORED_NO_SE_RATIFICO,
+        STORED_NO_PAGO_DECOMISO,
+    }
+)
+
 _DENUNCIA = _BASE_INSPECCION
 
 _TIPO_A_SET: dict[str, frozenset[str]] = {
     "RELEVAMIENTO": _BASE_INSPECCION,
     "DENUNCIA": _DENUNCIA,
     "REINSPECCION_NOTIFICACION": _REINSPECCION,
-    "REINSPECCION_OFICIO": _REINSPECCION,
+    "REINSPECCION_OFICIO": _REINSPECCION_OFICIO,
 }
+
+_TIPO_ACTUACION_RATIFICACION_CLAUSURA = "RATIFICACION DE CLAUSURA"
+_TIPO_ACTUACION_RATIFICACION_DECOMISO = "RATIFICACION DE DECOMISO"
+
+
+def _normalizar_tipo_actuacion_oficio(tipo_actuacion: str | None) -> str:
+    return _loose_key((tipo_actuacion or "").strip())
+
+
+def _contraproducencia_oficio_coherente_con_tipo_actuacion(
+    nombre: str,
+    tipo_actuacion: str | None,
+) -> bool:
+    """Filtra contras de oficio según subtipo (ratificación clausura / decomiso)."""
+    key = _loose_key(nombre)
+    tipo = _normalizar_tipo_actuacion_oficio(tipo_actuacion)
+    if key == _loose_key(STORED_NO_SE_RATIFICO):
+        return tipo == _loose_key(_TIPO_ACTUACION_RATIFICACION_CLAUSURA)
+    if key == _loose_key(STORED_NO_PAGO_DECOMISO):
+        return tipo == _loose_key(_TIPO_ACTUACION_RATIFICACION_DECOMISO)
+    return True
 
 
 def _keys_permitidos(tipo_iniciador: str | None) -> frozenset[str]:
@@ -60,6 +90,8 @@ def _keys_permitidos(tipo_iniciador: str | None) -> frozenset[str]:
 def contraproducencia_permitida_en_completar_trabajo(
     tipo_iniciador: str | None,
     nombre: str | None,
+    *,
+    tipo_actuacion: str | None = None,
 ) -> bool:
     """
     True si la contraproducencia (nombre de catálogo o valor persistido) aplica al tipo de iniciador.
@@ -67,6 +99,7 @@ def contraproducencia_permitida_en_completar_trabajo(
     Parámetros:
         tipo_iniciador: p. ej. REINSPECCION_OFICIO.
         nombre: valor coercido de catálogo o persistido (LOCAL CERRADO, NO_EXISTE_LOCAL, …).
+        tipo_actuacion: subtipo de actuación en REINSPECCION_OFICIO (ratificación / verificar).
 
     Retorno:
         False para NO_HUBO y valores fuera del set del tipo.
@@ -75,7 +108,12 @@ def contraproducencia_permitida_en_completar_trabajo(
         return True
     if _loose_key(str(nombre)) == _loose_key("NO_HUBO"):
         return False
-    return _loose_key(str(nombre)) in _keys_permitidos(tipo_iniciador)
+    if _loose_key(str(nombre)) not in _keys_permitidos(tipo_iniciador):
+        return False
+    t = (tipo_iniciador or "").strip().upper()
+    if t == "REINSPECCION_OFICIO":
+        return _contraproducencia_oficio_coherente_con_tipo_actuacion(str(nombre), tipo_actuacion)
+    return True
 
 
 def nombres_contraproducencia_completar_trabajo(tipo_iniciador: str | None) -> list[str]:

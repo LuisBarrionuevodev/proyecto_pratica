@@ -24,11 +24,17 @@ const REINSPECCION = new Set([
   "NO PERMITE INSPECCION",
 ]);
 
+const REINSPECCION_OFICIO = new Set([
+  ...REINSPECCION,
+  "NO SE RATIFICÓ",
+  "NO PAGÓ TODAVÍA EL DECOMISO",
+]);
+
 const TIPO_A_SET: Record<string, Set<string>> = {
   RELEVAMIENTO: BASE_INSPECCION,
   DENUNCIA: BASE_INSPECCION,
   REINSPECCION_NOTIFICACION: REINSPECCION,
-  REINSPECCION_OFICIO: REINSPECCION,
+  REINSPECCION_OFICIO,
 };
 
 function looseKey(s: string): string {
@@ -60,19 +66,35 @@ export function contraproducenciaPermitidaCompletarTrabajo(
 
 /**
  * Filtra catálogo para el select; conserva valor legacy guardado aunque no esté en el set del tipo.
+ * Para REINSPECCION_OFICIO, opcionalmente filtra contras específicas por subtipo de actuación.
  */
 export function filtrarContraproducenciasPorTipoIniciador(
   catalog: string[],
   tipoIniciador: string | null | undefined,
-  valorGuardado?: string | null
+  valorGuardado?: string | null,
+  tipoActuacionOficio?: string | null
 ): string[] {
   const permitidos = keysPermitidos(tipoIniciador);
-  const out = catalog.filter((n) => {
+  let out = catalog.filter((n) => {
     const t = (n ?? "").trim();
     if (!t) return false;
     if (looseKey(t) === looseKey("NO_HUBO")) return false;
     return permitidos.has(looseKey(t));
   });
+  const tIni = (tipoIniciador ?? "").trim().toUpperCase();
+  if (tIni === "REINSPECCION_OFICIO" && tipoActuacionOficio) {
+    const tipo = looseKey(tipoActuacionOficio);
+    out = out.filter((n) => {
+      const key = looseKey(n);
+      if (key === looseKey("NO SE RATIFICÓ")) {
+        return tipo === looseKey("RATIFICACION DE CLAUSURA");
+      }
+      if (key === looseKey("NO PAGÓ TODAVÍA EL DECOMISO")) {
+        return tipo === looseKey("RATIFICACION DE DECOMISO");
+      }
+      return true;
+    });
+  }
   const legacy = (valorGuardado ?? "").trim();
   if (legacy && !out.some((x) => looseKey(x) === looseKey(legacy))) {
     out.push(legacy);

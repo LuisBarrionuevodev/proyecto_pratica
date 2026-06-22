@@ -25,6 +25,10 @@ CATALOG_CONTRAPRODUCCION_NO_EXISTE_CANONICAL = "NO EXISTE/NO ES EL RUBRO"
 STORED_CORRECTIVA_NO_ES_EL_RUBRO = "NO ES EL RUBRO"
 STORED_CORRECTIVA_DIRECCION_INCORRECTA = "DIRECCION INCORRECTA"
 
+# Oficio: no cumplimiento con visita efectuada → reingreso (Completar trabajo REINSPECCION_OFICIO).
+STORED_NO_SE_RATIFICO = "NO SE RATIFICÓ"
+STORED_NO_PAGO_DECOMISO = "NO PAGÓ TODAVÍA EL DECOMISO"
+
 # Valores de catálogo (seed `run.py`) para reingreso con prioridad alta.
 STORED_REINGRESO_ALTA = frozenset(
     {
@@ -35,6 +39,8 @@ STORED_REINGRESO_ALTA = frozenset(
         "OTROS",
         STORED_CORRECTIVA_NO_ES_EL_RUBRO,
         STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+        STORED_NO_SE_RATIFICO,
+        STORED_NO_PAGO_DECOMISO,
     }
 )
 
@@ -159,6 +165,10 @@ def normalize_contraproducencia(raw: str | None) -> tuple[str | None, ContrapBuc
         _loose_key("DIRECCION INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
         _loose_key("DIRECCIÓN INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
         _loose_key("DIRECCION_INCORRECTA"): STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+        _loose_key("NO SE RATIFICO"): STORED_NO_SE_RATIFICO,
+        _loose_key("NO SE RATIFICÓ"): STORED_NO_SE_RATIFICO,
+        _loose_key("NO PAGO TODAVIA EL DECOMISO"): STORED_NO_PAGO_DECOMISO,
+        _loose_key("NO PAGÓ TODAVÍA EL DECOMISO"): STORED_NO_PAGO_DECOMISO,
     }
     if key in candidates:
         stored = candidates[key]
@@ -198,6 +208,8 @@ def motivo_no_realizado_para_ruta_item(stored_contra: str, bucket: ContrapBucket
         "OTROS",
         STORED_CORRECTIVA_NO_ES_EL_RUBRO,
         STORED_CORRECTIVA_DIRECCION_INCORRECTA,
+        STORED_NO_SE_RATIFICO,
+        STORED_NO_PAGO_DECOMISO,
     ):
         return "OTRO"
     raise ValueError("No se pudo derivar motivo_no_realizado para la contraproducencia indicada.")

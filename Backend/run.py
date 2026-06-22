@@ -114,6 +114,8 @@ def _seed_catalogos_base() -> dict[str, int]:
         "NO ES EL RUBRO",
         "DIRECCION INCORRECTA",
         "NO PERMITE INSPECCION",
+        "NO SE RATIFICÓ",
+        "NO PAGÓ TODAVÍA EL DECOMISO",
     ]:
         upsert_nombre(CatalogContraproducencia, nombre)
 

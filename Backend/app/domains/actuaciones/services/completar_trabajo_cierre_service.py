@@ -355,7 +355,11 @@ def cerrar_completar_trabajo_por_ruta_item(
 
     stored_contra, bucket = normalize_contraproducencia(payload.contraproducencia)
     if bucket != ContrapBucket.NONE and stored_contra:
-        if not contraproducencia_permitida_en_completar_trabajo(ini.tipo_iniciador, stored_contra):
+        if not contraproducencia_permitida_en_completar_trabajo(
+            ini.tipo_iniciador,
+            stored_contra,
+            tipo_actuacion=payload.tipo_actuacion,
+        ):
             raise ValueError(
                 f"La contraproducencia {stored_contra!r} no aplica al tipo de trabajo "
                 f"{ini.tipo_iniciador!r}."

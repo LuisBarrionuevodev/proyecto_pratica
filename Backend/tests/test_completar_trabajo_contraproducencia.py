@@ -29,6 +29,8 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
         ("NO_PERMITE_INSPECCION", STORED_NO_PERMITE_INSPECCION, ContrapBucket.NO_PERMITE_INSPECCION),
         ("NO ES EL RUBRO", "NO ES EL RUBRO", ContrapBucket.REINGRESO_PRIORIDAD_ALTA),
         ("DIRECCIÓN INCORRECTA", "DIRECCION INCORRECTA", ContrapBucket.REINGRESO_PRIORIDAD_ALTA),
+        ("NO SE RATIFICÓ", "NO SE RATIFICÓ", ContrapBucket.REINGRESO_PRIORIDAD_ALTA),
+        ("NO PAGÓ TODAVÍA EL DECOMISO", "NO PAGÓ TODAVÍA EL DECOMISO", ContrapBucket.REINGRESO_PRIORIDAD_ALTA),
     ],
 )
 def test_normalize_contraproducencia(raw, stored, bucket) -> None:
@@ -40,6 +42,15 @@ def test_normalize_contraproducencia(raw, stored, bucket) -> None:
 def test_motivo_no_existe() -> None:
     m = motivo_no_realizado_para_ruta_item(STORED_NO_EXISTE_LOCAL, ContrapBucket.NO_EXISTE_LOCAL)
     assert m == "NO_EXISTE_LOCAL"
+
+
+def test_motivo_oficio_no_cumple_reingreso() -> None:
+    m = motivo_no_realizado_para_ruta_item("NO SE RATIFICÓ", ContrapBucket.REINGRESO_PRIORIDAD_ALTA)
+    assert m == "OTRO"
+    m2 = motivo_no_realizado_para_ruta_item(
+        "NO PAGÓ TODAVÍA EL DECOMISO", ContrapBucket.REINGRESO_PRIORIDAD_ALTA
+    )
+    assert m2 == "OTRO"
 
 
 def test_motivo_clima() -> None:

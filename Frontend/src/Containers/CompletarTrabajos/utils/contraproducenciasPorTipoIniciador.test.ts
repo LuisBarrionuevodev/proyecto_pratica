@@ -15,6 +15,8 @@ const CATALOG = [
   "DIRECCION INCORRECTA",
   "NO EXISTE/NO ES EL RUBRO",
   "NO PERMITE INSPECCION",
+  "NO SE RATIFICÓ",
+  "NO PAGÓ TODAVÍA EL DECOMISO",
 ];
 
 describe("contraproducenciasPorTipoIniciador", () => {
@@ -26,8 +28,36 @@ describe("contraproducenciasPorTipoIniciador", () => {
   it("reinspección oficio no incluye correctivas de rubro", () => {
     const out = filtrarContraproducenciasPorTipoIniciador(CATALOG, "REINSPECCION_OFICIO");
     expect(out).toContain("LOCAL CERRADO");
+    expect(out).toContain("NO SE RATIFICÓ");
+    expect(out).toContain("NO PAGÓ TODAVÍA EL DECOMISO");
     expect(out).not.toContain("NO ES EL RUBRO");
     expect(out).not.toContain("DIRECCION INCORRECTA");
+  });
+
+  it("reinspección notificación no incluye contras exclusivas de oficio", () => {
+    const out = filtrarContraproducenciasPorTipoIniciador(CATALOG, "REINSPECCION_NOTIFICACION");
+    expect(out).not.toContain("NO SE RATIFICÓ");
+    expect(out).not.toContain("NO PAGÓ TODAVÍA EL DECOMISO");
+  });
+
+  it("filtra contras de oficio por subtipo de actuación", () => {
+    const clausura = filtrarContraproducenciasPorTipoIniciador(
+      CATALOG,
+      "REINSPECCION_OFICIO",
+      null,
+      "RATIFICACION DE CLAUSURA"
+    );
+    expect(clausura).toContain("NO SE RATIFICÓ");
+    expect(clausura).not.toContain("NO PAGÓ TODAVÍA EL DECOMISO");
+
+    const decomiso = filtrarContraproducenciasPorTipoIniciador(
+      CATALOG,
+      "REINSPECCION_OFICIO",
+      null,
+      "RATIFICACION DE DECOMISO"
+    );
+    expect(decomiso).toContain("NO PAGÓ TODAVÍA EL DECOMISO");
+    expect(decomiso).not.toContain("NO SE RATIFICÓ");
   });
 
   it("conserva valor legacy guardado aunque no esté en el set del tipo", () => {

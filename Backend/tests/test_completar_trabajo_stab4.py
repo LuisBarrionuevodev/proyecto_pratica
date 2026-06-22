@@ -22,6 +22,7 @@ from app.domains.actuaciones.utils.contraproducencia_por_tipo_iniciador import (
 )
 from app.models import (
     Actuaciones,
+    CatalogContraproducencia,
     Contribuyente,
     Domicilio,
     IniciadorRuta,
@@ -41,8 +42,26 @@ def test_normalize_rechaza_no_hubo() -> None:
 
 def test_contraproducencia_por_tipo_reinspeccion_sin_rubro_correctivo() -> None:
     assert contraproducencia_permitida_en_completar_trabajo("REINSPECCION_OFICIO", "LOCAL CERRADO")
+    assert contraproducencia_permitida_en_completar_trabajo(
+        "REINSPECCION_OFICIO",
+        "NO SE RATIFICÓ",
+        tipo_actuacion="RATIFICACION DE CLAUSURA",
+    )
+    assert not contraproducencia_permitida_en_completar_trabajo(
+        "REINSPECCION_OFICIO",
+        "NO SE RATIFICÓ",
+        tipo_actuacion="RATIFICACION DE DECOMISO",
+    )
+    assert contraproducencia_permitida_en_completar_trabajo(
+        "REINSPECCION_OFICIO",
+        "NO PAGÓ TODAVÍA EL DECOMISO",
+        tipo_actuacion="RATIFICACION DE DECOMISO",
+    )
     assert not contraproducencia_permitida_en_completar_trabajo(
         "REINSPECCION_OFICIO", "NO ES EL RUBRO"
+    )
+    assert not contraproducencia_permitida_en_completar_trabajo(
+        "REINSPECCION_NOTIFICACION", "NO SE RATIFICÓ"
     )
     assert not contraproducencia_permitida_en_completar_trabajo("REINSPECCION_OFICIO", "NO_HUBO")
 
@@ -189,3 +208,56 @@ def test_no_cumple_no_mezcla_con_contraproducencia(app_ctx) -> None:
             }
         )
     assert "resultado_cumplimiento_oficio" in str(exc.value) or "contraproducencia" in str(exc.value).lower()
+
+
+def _ensure_catalog_contraproducencia(app, nombre: str) -> None:
+    if not CatalogContraproducencia.query.filter_by(nombre=nombre).first():
+        db.session.add(CatalogContraproducencia(nombre=nombre))
+        db.session.commit()
+
+
+def test_no_se_ratifico_reencola_iniciador(app_ctx) -> None:
+    suf = uuid4().hex[:8]
+    item, act, ini, u = _mk_reinspeccion_oficio_item(suf)
+    _ensure_catalog_contraproducencia(app_ctx, "NO SE RATIFICÓ")
+    payload = CompletarTrabajoCierreCompletoIn.model_validate(
+        {
+            "tipo_actuacion": "RATIFICACION DE CLAUSURA",
+            "contraproducencia": "NO SE RATIFICÓ",
+        }
+    )
+    cerrar_completar_trabajo_por_ruta_item(
+        ruta_item_id=item.id,
+        payload=payload,
+        ejecutado_por_user_id=u.id,
+    )
+    db.session.expunge_all()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    act_db = Actuaciones.query.get(act.id)
+    item_db = RutaItem.query.get(item.id)
+    assert item_db is not None and item_db.estado_ejecucion == "NO_REALIZADO"
+    assert act_db is not None and act_db.contraproducencia == "NO SE RATIFICÓ"
+    assert ini_db is not None and ini_db.estado_iniciador == "PENDIENTE"
+    assert int(ini_db.prioridad or 0) >= 5
+
+
+def test_no_pago_decomiso_reencola_iniciador(app_ctx) -> None:
+    suf = uuid4().hex[:8]
+    item, act, ini, u = _mk_reinspeccion_oficio_item(suf)
+    _ensure_catalog_contraproducencia(app_ctx, "NO PAGÓ TODAVÍA EL DECOMISO")
+    payload = CompletarTrabajoCierreCompletoIn.model_validate(
+        {
+            "tipo_actuacion": "RATIFICACION DE DECOMISO",
+            "contraproducencia": "NO PAGÓ TODAVÍA EL DECOMISO",
+        }
+    )
+    cerrar_completar_trabajo_por_ruta_item(
+        ruta_item_id=item.id,
+        payload=payload,
+        ejecutado_por_user_id=u.id,
+    )
+    db.session.expunge_all()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    act_db = Actuaciones.query.get(act.id)
+    assert act_db is not None and act_db.contraproducencia == "NO PAGÓ TODAVÍA EL DECOMISO"
+    assert ini_db is not None and ini_db.estado_iniciador == "PENDIENTE"

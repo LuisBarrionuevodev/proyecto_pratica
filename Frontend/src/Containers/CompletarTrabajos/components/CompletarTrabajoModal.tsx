@@ -25,6 +25,12 @@ import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/ut
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
 import { prefillOperativoReinspeccionNotificacion } from "../utils/completarTrabajoReinspeccionNotificacionPrefill";
 import {
+  OFICIO_CUMPLE_OPTS,
+  TIPO_ACTUACION_REINSPECCION_OFICIO,
+  tipoActuacionInicialReinspeccionOficio,
+  tipoActuacionReinspeccionOficioOpts,
+} from "../utils/completarTrabajoReinspeccionOficioUi";
+import {
   esCorrectivaDireccionContraproducencia,
   esCorrectivaRubroContraproducencia,
   esNoPermiteInspeccionContraproducencia,
@@ -114,31 +120,10 @@ function dashIfEmpty(value: unknown): string {
   return String(value);
 }
 
-const CUMPLE_OPTS: { value: string; label: string }[] = [
-  { value: "", label: "—" },
-  { value: "CUMPLE", label: "Cumple" },
-  { value: "NO_CUMPLE", label: "No cumple" },
-];
-
-/** Catálogo `Actuaciones.tipo` permitido al cerrar `REINSPECCION_OFICIO` (alineado al backend). */
-const TIPO_ACTUACION_REINSPECCION_OFICIO = [
-  "RATIFICACION DE CLAUSURA",
-  "RATIFICACION DE DECOMISO",
-  "VERIFICAR E INFORMAR",
-] as const;
-
-const TIPO_ACTUACION_REINSPECCION_OFICIO_OPTS: { value: string; label: string }[] = [
-  { value: "", label: "—" },
-  ...TIPO_ACTUACION_REINSPECCION_OFICIO.map((v) => ({ value: v, label: v })),
-];
-
-function tipoActuacionInicialReinspeccionOficio(tipo: string | null | undefined): string {
-  const t = (tipo ?? "").trim();
-  return (TIPO_ACTUACION_REINSPECCION_OFICIO as readonly string[]).includes(t) ? t : "";
-}
-
 /** Titular del domicilio: persona física (apellido + nombre) o razón social (PJ). */
 type TitularModoCompletarTrabajo = "persona" | "razon_social";
+
+const TIPO_ACTUACION_REINSPECCION_OFICIO_OPTS = tipoActuacionReinspeccionOficioOpts();
 
 function titularModoInicialDesdeRow(r: ICompletarTrabajoPendienteRow): TitularModoCompletarTrabajo {
   const rs = (r.razon_social ?? "").trim();
@@ -263,8 +248,11 @@ export function CompletarTrabajoModal({
     setError(null);
     setFieldErrors({});
     if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
-      setTipoActuacionOficio(tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion));
+      const fromRow = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion);
+      const fromEsperado = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion_esperado);
+      setTipoActuacionOficio(fromRow || fromEsperado);
       setResultadoCumplimientoOficio(resolvedRow.resultado_cumplimiento_oficio ?? "");
+      setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
@@ -342,6 +330,7 @@ export function CompletarTrabajoModal({
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
   const esReinspeccionNotificacion = resolvedRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
+  const oficioNoCumple = esReinspeccionOficio && resultadoCumplimientoOficio === "NO_CUMPLE";
   const tipoIniciadorLabel = tipoIniciadorDesdeCodigoApi(resolvedRow?.tipo_iniciador) ?? "—";
 
   /** Inspectores del catálogo que aún no están en la lista (agregar). */
@@ -377,16 +366,28 @@ export function CompletarTrabajoModal({
       filtrarContraproducenciasPorTipoIniciador(
         cat.contraproducencias ?? [],
         resolvedRow?.tipo_iniciador,
-        resolvedRow?.contraproducencia
+        resolvedRow?.contraproducencia,
+        esReinspeccionOficio ? tipoActuacionOficio : undefined
       ),
-    [cat.contraproducencias, resolvedRow?.tipo_iniciador, resolvedRow?.contraproducencia]
+    [
+      cat.contraproducencias,
+      resolvedRow?.tipo_iniciador,
+      resolvedRow?.contraproducencia,
+      esReinspeccionOficio,
+      tipoActuacionOficio,
+    ]
   );
   const contraOpts = useMemo(
-    () => [
-      { value: "", label: "Sin contraproducencia (visita realizada)" },
-      ...mergeCatalogOpts(contraCatalogFiltrado, resolvedRow?.contraproducencia).filter((o) => o.value !== ""),
-    ],
-    [contraCatalogFiltrado, resolvedRow?.contraproducencia]
+    () => {
+      const sinRealizadaLabel = oficioNoCumple
+        ? "— Elegí contraproducencia —"
+        : "Sin contraproducencia (visita realizada)";
+      return [
+        { value: "", label: sinRealizadaLabel },
+        ...mergeCatalogOpts(contraCatalogFiltrado, resolvedRow?.contraproducencia).filter((o) => o.value !== ""),
+      ];
+    },
+    [contraCatalogFiltrado, resolvedRow?.contraproducencia, oficioNoCumple]
   );
   const motivosNotifCatalogSorted = useMemo(
     () => mergeMotivosNotifCatalogStrings(cat.motivos ?? [], notifMotivosSeleccion),
@@ -422,6 +423,19 @@ export function CompletarTrabajoModal({
       if (!resultadoCumplimientoOficio || !["CUMPLE", "NO_CUMPLE"].includes(resultadoCumplimientoOficio)) {
         preSubmitErrors.resultado_cumplimiento_oficio = "Seleccioná si dio cumplimiento o no.";
       }
+      const contraTrim = contraproducencia.trim();
+      if (resultadoCumplimientoOficio === "NO_CUMPLE" && contraTrim) {
+        if (
+          !filtrarContraproducenciasPorTipoIniciador(
+            cat.contraproducencias ?? [],
+            "REINSPECCION_OFICIO",
+            contraTrim,
+            tipoActuacionOficio
+          ).some((x) => x.trim() === contraTrim)
+        ) {
+          preSubmitErrors.contraproducencia = "La contraproducencia no aplica al tipo de actuación elegido.";
+        }
+      }
       if (Object.keys(preSubmitErrors).length > 0) {
         setFieldErrors(preSubmitErrors);
         setError(COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY);
@@ -429,10 +443,13 @@ export function CompletarTrabajoModal({
       }
       setSaving(true);
       try {
+        const usaContraReencolado = resultadoCumplimientoOficio === "NO_CUMPLE" && contraTrim;
         const values: Record<string, unknown> = {
-          contraproducencia: "",
+          contraproducencia: usaContraReencolado ? contraTrim : "",
           tipo_actuacion: tipoActuacionOficio,
-          resultado_cumplimiento_oficio: resultadoCumplimientoOficio,
+          ...(usaContraReencolado
+            ? {}
+            : { resultado_cumplimiento_oficio: resultadoCumplimientoOficio }),
           observaciones_ejecucion: observacionesEjecucion.trim(),
           ...ACTA_KEYS_EMPTY,
         };
@@ -750,7 +767,19 @@ export function CompletarTrabajoModal({
             label="Tipo de actuación"
             value={tipoActuacionOficio}
             onChange={(e) => {
-              setTipoActuacionOficio(e.target.value as string);
+              const next = e.target.value as string;
+              setTipoActuacionOficio(next);
+              if (contraproducencia.trim()) {
+                const validas = filtrarContraproducenciasPorTipoIniciador(
+                  cat.contraproducencias ?? [],
+                  "REINSPECCION_OFICIO",
+                  contraproducencia,
+                  next
+                );
+                if (!validas.some((x) => x.trim() === contraproducencia.trim())) {
+                  setContraproducencia("");
+                }
+              }
               clearFe("tipo_actuacion");
             }}
             fullWidth
@@ -759,19 +788,54 @@ export function CompletarTrabajoModal({
             helperText={fe("tipo_actuacion") || "Obligatorio."}
           />
           <AppSelect
-            label="Dio cumplimiento"
+            label="¿Dio cumplimiento?"
             value={resultadoCumplimientoOficio}
             onChange={(e) => {
-              setResultadoCumplimientoOficio(e.target.value as string);
+              const next = e.target.value as string;
+              setResultadoCumplimientoOficio(next);
+              if (next !== "NO_CUMPLE") {
+                setContraproducencia("");
+                clearFe("contraproducencia");
+              }
               clearFe("resultado_cumplimiento_oficio");
             }}
             fullWidth
-            options={CUMPLE_OPTS}
+            options={OFICIO_CUMPLE_OPTS}
             error={Boolean(fe("resultado_cumplimiento_oficio"))}
             helperText={
-              fe("resultado_cumplimiento_oficio") || "Seleccioná si dio cumplimiento o no."
+              fe("resultado_cumplimiento_oficio") || "Indicá si el establecimiento dio cumplimiento al oficio."
             }
           />
+          {oficioNoCumple && (
+            <>
+              <AppSelect
+                label="Contraproducencia"
+                value={contraproducencia}
+                onChange={(e) => {
+                  setContraproducencia(e.target.value as string);
+                  clearFe("contraproducencia");
+                }}
+                fullWidth
+                disabled={!catalogsReady}
+                options={contraOpts}
+                error={Boolean(fe("contraproducencia"))}
+                helperText={
+                  fe("contraproducencia") ||
+                  "Opcional: elegí el motivo operativo. Si no elegís ninguna, el caso vuelve a pendientes por no cumplimiento."
+                }
+              />
+              {contraHint === "reingreso_prioridad_alta" && (
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    Reingreso a pendientes
+                  </Typography>
+                  <Typography variant="body2">
+                    El trabajo vuelve a <strong>pendientes</strong> con prioridad alta para una nueva visita.
+                  </Typography>
+                </Alert>
+              )}
+            </>
+          )}
           <AppTextField
             appearance="dense"
             label="Observaciones de ejecución (opcional)"
