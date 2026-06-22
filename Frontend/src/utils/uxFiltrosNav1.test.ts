@@ -32,8 +32,8 @@ describe("menuItems UX-FILTROS-NAV-1", () => {
 });
 
 describe("inicioAccesosData", () => {
-  it("tiene 13 cards sin configuración", () => {
-    expect(INICIO_ACCESOS).toHaveLength(13);
+  it("tiene 14 cards sin configuración (incluye Mi perfil)", () => {
+    expect(INICIO_ACCESOS).toHaveLength(14);
     expect(INICIO_ACCESOS.some((c) => c.to === "/gestionSistema")).toBe(false);
     expect(INICIO_ACCESOS.some((c) => c.to === "/gestionarDomicilios")).toBe(true);
   });

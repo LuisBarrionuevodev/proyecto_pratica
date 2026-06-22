@@ -7,6 +7,7 @@ import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { apiClient } from "../../../api/apiClient";
+import { notifyAuthSessionRefresh } from "../../../auth/AppSessionProvider";
 import {
     consumeSessionEndFeedback,
     sessionEndUserMessage,
@@ -40,6 +41,7 @@ const LoginBox = (): JSX.Element => {
             }
             setError("");
             setSessionInfo(null);
+            notifyAuthSessionRefresh();
             navigate("/inicio");
         } catch {
             setError("Cuenta inválida");

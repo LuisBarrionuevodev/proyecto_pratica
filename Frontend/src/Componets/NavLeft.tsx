@@ -30,9 +30,9 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
     const { status, role } = useAppSession();
 
     const visibleSections = useMemo(() => {
-        if (!role) return [];
+        if (status !== "ready" || !role) return [];
         return getVisibleMenuSections(role);
-    }, [role]);
+    }, [status, role]);
 
     const isActive = (path: string) => location.pathname === path;
 

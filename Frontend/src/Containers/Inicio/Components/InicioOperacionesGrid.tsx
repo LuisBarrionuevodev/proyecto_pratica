@@ -1,5 +1,6 @@
 import { useMemo, type JSX } from "react";
 import { Box, Grid, Skeleton, Stack } from "@mui/material";
+import { Navigate } from "react-router-dom";
 
 import { getVisibleHomeCards } from "../../../auth/accessConfig";
 import { useAppSession } from "../../../auth/AppSessionProvider";
@@ -16,9 +17,9 @@ export default function InicioOperacionesGrid(): JSX.Element {
   const { status, role } = useAppSession();
 
   const cards = useMemo(() => {
-    if (!role) return [];
+    if (status !== "ready" || !role) return [];
     return getVisibleHomeCards(role);
-  }, [role]);
+  }, [status, role]);
 
   if (status === "loading") {
     return (
@@ -34,7 +35,11 @@ export default function InicioOperacionesGrid(): JSX.Element {
     );
   }
 
-  if (!role) {
+  if (status === "unauthenticated") {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (status === "error" || !role) {
     return (
       <TypographyFallback message="No se pudo cargar tu perfil. Volvé a iniciar sesión." />
     );

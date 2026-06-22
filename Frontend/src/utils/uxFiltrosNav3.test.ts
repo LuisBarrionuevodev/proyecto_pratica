@@ -29,8 +29,8 @@ describe("UX-FILTROS-NAV-3 Inicio", () => {
     expect(inicioSrc).not.toContain("InicioMapaResumenCard");
   });
 
-  it("13 cards alineadas al menú sin Configuración", () => {
-    expect(INICIO_ACCESOS).toHaveLength(13);
+  it("14 cards alineadas al menú sin Configuración", () => {
+    expect(INICIO_ACCESOS).toHaveLength(14);
     const labels = menuSections.map((s) => s.label);
     expect(labels).not.toContain("CONFIGURACIÓN");
     const paths = INICIO_ACCESOS.map((c) => c.to);

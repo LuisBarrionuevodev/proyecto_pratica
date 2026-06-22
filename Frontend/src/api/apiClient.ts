@@ -4,6 +4,7 @@ import {
   parseJwt401Reason,
   setSessionEndFeedback,
 } from "../auth/sessionEndFeedback";
+import { notifyAuthSessionRefresh } from "../auth/AppSessionProvider";
 
 function resolveApiBaseUrl(): string {
   const raw = import.meta.env.VITE_API_BASE_URL?.trim();
@@ -71,6 +72,7 @@ apiClient.interceptors.response.use(
           : undefined;
       const reason = parseJwt401Reason(data);
       localStorage.removeItem("access_token");
+      notifyAuthSessionRefresh();
       scheduleAuthRedirectToLogin(reason, msg);
     }
     return Promise.reject(error);

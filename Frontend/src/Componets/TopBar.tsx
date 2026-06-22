@@ -32,7 +32,7 @@ import TextDigitaliza from "../assets/TextDigitaliza.svg"
 
 import LogoSMT from "../assets/LogoSMT.svg"
 
-import { useAppSession } from "../auth/AppSessionProvider";
+import { useAppSession, notifyAuthSessionRefresh } from "../auth/AppSessionProvider";
 
 import {
 
@@ -125,7 +125,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
         handleClose();
 
         localStorage.removeItem("access_token");
-
+        notifyAuthSessionRefresh();
         navigate("/login");
 
     };
