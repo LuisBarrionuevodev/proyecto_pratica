@@ -140,11 +140,15 @@ def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, Iniciad
     return item, act_work, ini, u, noti
 
 
-def test_pendiente_reinspeccion_aparece_si_estado_pendiente(app_ctx) -> None:
-    _item, _act, ini, _u, _noti = _mk_reinspeccion_notificacion_item()
+def test_pendiente_reinspeccion_aparece_si_estado_pendiente_sin_ruta_reinspeccion(app_ctx) -> None:
+    """PENDIENTE sin ítem de ruta con actuación REINSPECCION sí entra en cola operativa."""
+    item, act_work, ini, _u, _noti = _mk_reinspeccion_notificacion_item()
     ini_db = IniciadorRuta.query.get(ini.id)
     assert ini_db is not None
     ini_db.estado_iniciador = "PENDIENTE"
+    db.session.delete(item)
+    if act_work:
+        db.session.delete(act_work)
     db.session.commit()
 
     pendientes = list_reinspeccion_notificacion_operativas()
@@ -189,6 +193,34 @@ def test_cierre_realizada_saca_de_pendientes_y_vincula_notificacion(app_ctx) -> 
     assert ini.id not in planif_ids
 
 
+def test_reinspeccion_notificacion_cierre_con_comprobacion_sin_nueva_notificacion(app_ctx) -> None:
+    """Visita realizada: permite otras actas; no crea notificación nueva; vincula origen."""
+    item, act, ini, u, noti = _mk_reinspeccion_notificacion_item()
+    comp_num = _unique_num()
+    payload = CompletarTrabajoCierreCompletoIn.model_validate(
+        {
+            "tipo_actuacion": "REINSPECCION",
+            "acta_inspeccion_num": _unique_num(),
+            "acta_comprobacion_num": comp_num,
+            "comprobacion_motivo": "Motivo prueba hotfix",
+        }
+    )
+    cerrar_completar_trabajo_por_ruta_item(
+        ruta_item_id=item.id,
+        payload=payload,
+        ejecutado_por_user_id=u.id,
+    )
+    db.session.expunge_all()
+    act_db = Actuaciones.query.get(act.id)
+    assert act_db is not None
+    assert act_db.notificacion_id == noti.id
+    assert act_db.comprobacion_id is not None
+    assert act_db.comprobacion is not None
+    assert str(act_db.comprobacion.numero_acta) == comp_num
+    pendientes = list_reinspeccion_notificacion_operativas()
+    assert ini.actuacion_id not in {a.id for a in pendientes}
+
+
 def test_iniciador_cumplido_no_aparece_en_planificable(app_ctx) -> None:
     item, act, ini, u, _noti = _mk_reinspeccion_notificacion_item()
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
@@ -203,3 +235,40 @@ def test_iniciador_cumplido_no_aparece_en_planificable(app_ctx) -> None:
     assert IniciadorRuta.query.get(ini.id).estado_iniciador == "CUMPLIDO"
     q = planificable_iniciadores_base_query().filter(IniciadorRuta.id == ini.id).all()
     assert q == []
+
+
+def test_pendiente_no_aparece_si_reinspeccion_via_ruta_item_sin_notificacion_id(app_ctx) -> None:
+    """
+    Caso 107/1034: REINSPECCION en RutaItem con notificacion_id NULL no debe dejar
+    la actuación base en la cola operativa.
+    """
+    item, act_work, ini, _u, noti = _mk_reinspeccion_notificacion_item()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    assert ini_db is not None
+    ini_db.estado_iniciador = "PENDIENTE"
+    act_work.notificacion_id = None
+    db.session.commit()
+
+    pendientes = list_reinspeccion_notificacion_operativas()
+    act_ids = {a.id for a in pendientes}
+    assert ini.actuacion_id not in act_ids
+    assert not any(a.notificacion_id == noti.id for a in pendientes)
+
+
+def test_pendiente_legitimo_sin_ruta_item_sigue_apareciendo(app_ctx) -> None:
+    """Backlog real: PENDIENTE sin ítem de ruta con REINSPECCION sigue en cola."""
+    _item, _act, ini, _u, _noti = _mk_reinspeccion_notificacion_item()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    assert ini_db is not None
+    ini_db.estado_iniciador = "PENDIENTE"
+    item_db = RutaItem.query.filter(RutaItem.iniciador_ruta_id == ini.id).first()
+    assert item_db is not None
+    db.session.delete(item_db)
+    act_work = Actuaciones.query.get(_item.actuacion_id)
+    if act_work:
+        db.session.delete(act_work)
+    db.session.commit()
+
+    pendientes = list_reinspeccion_notificacion_operativas()
+    act_ids = {a.id for a in pendientes}
+    assert ini.actuacion_id in act_ids

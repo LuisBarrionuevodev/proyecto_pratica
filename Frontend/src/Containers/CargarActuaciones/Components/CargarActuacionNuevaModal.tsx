@@ -11,7 +11,6 @@ import {
 } from "../../../api/gridApi";
 import { fetchCompletarTrabajoCatalogsCached } from "../../CompletarTrabajos/hooks/completarTrabajoCatalogsCache";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
-import { OrdenTrabajoSearchAutocomplete } from "../../../components/search/OrdenTrabajoSearchAutocomplete";
 import { useAppFeedback } from "../../../components/feedback";
 import { extractDataColumns, generateRowId } from "../utils/gridHelpers";
 import { getDropdownOptions } from "../config/dropdownOptions";
@@ -468,10 +467,14 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Fecha actuación"))}
             helperText={errorFor("Fecha actuación") || undefined}
           />
-          <OrdenTrabajoSearchAutocomplete
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            required
+            label="Orden de trabajo"
             value={texts["Orden de trabajo"]}
-            onChange={(next) => {
-              setText("Orden de trabajo", next);
+            onChange={(e) => {
+              setText("Orden de trabajo", e.target.value);
               clearFe("Orden de trabajo");
             }}
             disabled={catalogsBootstrapping}

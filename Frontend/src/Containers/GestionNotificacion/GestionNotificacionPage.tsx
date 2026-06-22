@@ -75,6 +75,7 @@ import {
 import { normalizeNotificacionBandejaItems } from "./normalizeNotificacionBandejaItems";
 import { subscribeGestionNotificacionReinspeccionRefresh } from "./gestionNotificacionReinspeccionRefresh";
 import { reinspeccionNotificacionBandejaRowKey } from "./gestionNotificacionReinspeccionRowKey";
+import { mapPendienteReinspeccionNotificacionToGestionRow } from "./mapPendienteReinspeccionNotificacionToGestionRow";
 import {
   NotificacionDetalleDocumentalDialog,
   type NotificacionDetalleModalVariant,
@@ -214,7 +215,7 @@ function NotificacionBandejaTable({
       density: "compact",
       enableColumnFilters: false,
       enableGlobalFilter: false,
-      ...(getRowId ? { getRowId: (row) => getRowId(row.original) } : {}),
+      ...(getRowId ? { getRowId: (row) => getRowId(row) } : {}),
       renderTopToolbarCustomActions: toolbar,
       state: {
         isLoading: loading,
@@ -347,7 +348,9 @@ const GestionNotificacionPage = () => {
     setReinspeccionError(null);
     try {
       const rows = await getPendientesReinspeccionNotificacion();
-      setReinspeccionItems(normalizeNotificacionBandejaItems(rows, "notificacion"));
+      setReinspeccionItems(
+        normalizeNotificacionBandejaItems(rows, "notificacion").map(mapPendienteReinspeccionNotificacionToGestionRow)
+      );
     } catch (err: unknown) {
       const detail =
         err && typeof err === "object" && "response" in err

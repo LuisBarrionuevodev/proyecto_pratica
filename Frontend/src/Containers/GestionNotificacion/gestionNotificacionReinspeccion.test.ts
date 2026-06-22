@@ -6,6 +6,7 @@ import {
   sliceLabel,
 } from "./gestionNotificacionPlazo";
 import { reinspeccionNotificacionBandejaRowKey } from "./gestionNotificacionReinspeccionRowKey";
+import { mapPendienteReinspeccionNotificacionToGestionRow } from "./mapPendienteReinspeccionNotificacionToGestionRow";
 import {
   emitGestionNotificacionReinspeccionRefresh,
   GESTION_NOTIF_REINSPECCION_REFRESH_EVENT,
@@ -49,6 +50,34 @@ describe("reinspeccionNotificacionBandejaRowKey", () => {
     expect(
       reinspeccionNotificacionBandejaRowKey(row({ id: 10, iniciador_id: 301, bandeja_row_key: "10-301" }))
     ).toBe("10-301");
+  });
+});
+
+describe("mapPendienteReinspeccionNotificacionToGestionRow", () => {
+  it("normaliza plazo operativo para columnas de bandeja", () => {
+    const mapped = mapPendienteReinspeccionNotificacionToGestionRow(
+      row({
+        id: 1034,
+        acta_notificacion_num: "809198",
+        calle: "Av. Test",
+        numero: "100",
+        dias_restantes: undefined,
+        plazos_otorgados: undefined,
+        iniciador_id: 301,
+      })
+    );
+    expect(mapped.source_type).toBe("NOTIFICACION");
+    expect(mapped.dias_restantes).toBe(0);
+    expect(mapped.plazos_otorgados).toBe(0);
+    expect(mapped.acta_notificacion_num).toBe("809198");
+    expect(mapped.calle).toBe("Av. Test");
+  });
+
+  it("getRowId operativo recibe fila directa (no row.original)", () => {
+    const dataRow = row({ id: 10, iniciador_id: 301, bandeja_row_key: "10-301" });
+    const mrtGetRowId = (rowData: IActuacionesPendientesItem) =>
+      reinspeccionNotificacionBandejaRowKey(rowData);
+    expect(mrtGetRowId(dataRow)).toBe("10-301");
   });
 });
 

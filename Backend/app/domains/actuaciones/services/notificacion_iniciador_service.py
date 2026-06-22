@@ -142,6 +142,55 @@ def _get_current_user_id() -> int:
     raise ValueError("No hay usuario activo para registrar created_by_user_id")
 
 
+def _subq_reinsp_misma_notificacion():
+    """Existe actuación REINSPECCION con el mismo ``notificacion_id`` que la fila base."""
+    A2 = aliased(Actuaciones)
+    return exists().where(
+        and_(
+            A2.notificacion_id == Actuaciones.notificacion_id,
+            A2.tipo == "REINSPECCION",
+        )
+    )
+
+
+def _subq_reinsp_via_ruta_item_iniciador():
+    """
+    Existe RutaItem activo del iniciador con actuación de trabajo tipo REINSPECCION,
+    aunque esa actuación tenga ``notificacion_id`` NULL (reinspección huérfana en datos).
+    """
+    A_rein = aliased(Actuaciones)
+    return exists().where(
+        and_(
+            RutaItem.iniciador_ruta_id == IniciadorRuta.id,
+            RutaItem.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            RutaItem.actuacion_id == A_rein.id,
+            A_rein.tipo == "REINSPECCION",
+        )
+    )
+
+
+def _subq_reinsp_via_ruta_item_misma_notificacion():
+    """
+    Para elegibilidad de sync: existe iniciador REINSPECCION_NOTIFICACION de la misma
+    notificación con ítem de ruta apuntando a actuación REINSPECCION.
+    """
+    A_rein = aliased(Actuaciones)
+    Ini = aliased(IniciadorRuta)
+    return exists().where(
+        and_(
+            Ini.notificacion_id == Actuaciones.notificacion_id,
+            Ini.tipo_iniciador == "REINSPECCION_NOTIFICACION",
+            Ini.deleted_at.is_(None),
+            RutaItem.iniciador_ruta_id == Ini.id,
+            RutaItem.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            RutaItem.actuacion_id == A_rein.id,
+            A_rein.tipo == "REINSPECCION",
+        )
+    )
+
+
 def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     """
     Retorna actuaciones base INSPECCION elegibles para crear iniciador por
@@ -162,13 +211,8 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     elegible si cumple lo anterior (canal notificación en paralelo al de comprobación; PR3).
     """
     today = date.today()
-    A2 = aliased(Actuaciones)
-    subq_reinsp = exists().where(
-        and_(
-            A2.notificacion_id == Actuaciones.notificacion_id,
-            A2.tipo == "REINSPECCION",
-        )
-    )
+    subq_reinsp = _subq_reinsp_misma_notificacion()
+    subq_reinsp_via_ruta = _subq_reinsp_via_ruta_item_misma_notificacion()
     return (
         Actuaciones.query.join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
         .join(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
@@ -180,6 +224,7 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
         .filter(Notificacion.fecha_vencimiento.isnot(None))
         .filter(Notificacion.fecha_vencimiento <= today)
         .filter(~subq_reinsp)
+        .filter(~subq_reinsp_via_ruta)
         .all()
     )
 
@@ -411,13 +456,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
     esa actuación (alineado con PR1/PR3).
     """
     today = date.today()
-    A2 = aliased(Actuaciones)
-    subq_reinsp = exists().where(
-        and_(
-            A2.notificacion_id == Actuaciones.notificacion_id,
-            A2.tipo == "REINSPECCION",
-        )
-    )
+    subq_reinsp = _subq_reinsp_misma_notificacion()
     subq_item_realizado = exists().where(
         and_(
             RutaItem.iniciador_ruta_id == IniciadorRuta.id,
@@ -426,6 +465,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
             RutaItem.estado_ejecucion == "REALIZADO",
         )
     )
+    subq_reinsp_via_item = _subq_reinsp_via_ruta_item_iniciador()
     return (
         Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
         .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
@@ -438,6 +478,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
         .filter(Notificacion.fecha_vencimiento <= today)
         .filter(~subq_reinsp)
         .filter(~subq_item_realizado)
+        .filter(~subq_reinsp_via_item)
         .order_by(Actuaciones.id.desc())
         .all()
     )
