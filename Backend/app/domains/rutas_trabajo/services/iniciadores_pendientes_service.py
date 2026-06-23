@@ -30,6 +30,9 @@ def planificable_iniciadores_base_query() -> Query:
     """
     Query base: iniciadores PENDIENTE, no eliminados, no asignados a ítem activo en ruta BORRADOR.
 
+    No excluye iniciadores reencolados con visitas previas FINALIZADO+REALIZADO (p. ej. oficio NO_CUMPLE):
+    el filtro operativo es ``estado_iniciador == PENDIENTE``.
+
     Requiere llamar antes assert_ruta_borrador_para_planificacion si se necesita validar ruta.
     """
     return (
@@ -50,11 +53,6 @@ def planificable_iniciadores_base_query() -> Query:
             ~IniciadorRuta.ruta_items.any(
                 (RutaItem.deleted_at.is_(None))
                 & (RutaItem.ruta_trabajo.has(RutaTrabajo.estado_ruta == "BORRADOR"))
-            ),
-            ~IniciadorRuta.ruta_items.any(
-                (RutaItem.deleted_at.is_(None))
-                & (RutaItem.estado_ruta_item == "FINALIZADO")
-                & (RutaItem.estado_ejecucion == "REALIZADO")
             ),
         )
     )

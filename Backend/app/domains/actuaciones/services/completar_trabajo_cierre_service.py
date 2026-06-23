@@ -87,6 +87,7 @@ def _reencolar_iniciador_si_oficio_no_cumple(
     ini: IniciadorRuta,
     act: Actuaciones,
     item: RutaItem,
+    now: datetime,
 ) -> None:
     """
     STAB-4: reinspección por oficio con resultado NO_CUMPLE vuelve a pendientes si no hay otra ruta activa.
@@ -99,10 +100,36 @@ def _reencolar_iniciador_si_oficio_no_cumple(
         return
     if _iniciador_tiene_item_abierto_en_ruta_operativa(ini.id, excluir_ruta_item_id=item.id):
         return
+    _aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo="OFICIO_NO_CUMPLE")
+
+
+def _aplicar_reencolado_iniciador(
+    ini: IniciadorRuta,
+    now: datetime,
+    *,
+    act: Actuaciones | None = None,
+    cerrado_motivo: str | None = None,
+) -> None:
+    """
+    Devuelve un iniciador al backlog planificable con prioridad alta y fecha de reingreso actualizada.
+
+    Parámetros:
+        ini: iniciador a reactivar.
+        now: timestamp de cierre (UTC naive, coherente con el resto del servicio).
+        act: actuación del cierre; define ``fecha_origen`` operativa (mínimo hoy UTC).
+        cerrado_motivo: traza opcional (p. ej. OFICIO_NO_CUMPLE); None limpia cierre previo.
+    """
+    hoy = now.date()
+    act_fecha = getattr(act, "fecha", None) if act is not None else None
+    fecha_reencolado = act_fecha if act_fecha is not None and act_fecha >= hoy else hoy
+
     ini.estado_iniciador = "PENDIENTE"
     ini.prioridad = max(int(ini.prioridad or 0), 5)
     ini.cerrado_at = None
-    ini.cerrado_motivo = "OFICIO_NO_CUMPLE"
+    ini.cerrado_motivo = cerrado_motivo
+    ini.fecha_origen = fecha_reencolado
+    ini.anio = fecha_reencolado.year
+    ini.mes = fecha_reencolado.month
 
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
@@ -366,6 +393,8 @@ def cerrar_completar_trabajo_por_ruta_item(
             )
 
     now = datetime.utcnow()
+    domicilio_id_inicial = act.domicilio_id
+    domicilio_mutado = False
 
     try:
         # 1) Actuación
@@ -383,6 +412,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             # en ``aplicar_payload_actuacion`` (evita desincronía ORM act.domicilio vs act.domicilio_id).
             dom_vinculado_por_apply = _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
             if dom_vinculado_por_apply:
+                domicilio_mutado = True
                 aplicar_payload.pop("domicilio", None)
                 aplicar_payload.pop("contribuyente", None)
                 aplicar_payload.pop("rubro_nombre", None)
@@ -400,7 +430,8 @@ def cerrar_completar_trabajo_por_ruta_item(
                     strip_prefix="TIPO.",
                 )
             act.contraproducencia = stored_contra
-            _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini):
+                domicilio_mutado = True
             if payload.inspectores is not None:
                 nombres = payload.inspectores or []
                 act.inspector = get_inspectores_o_falla(nombres) if nombres else []
@@ -420,7 +451,8 @@ def cerrar_completar_trabajo_por_ruta_item(
                     strip_prefix="TIPO.",
                 )
             act.contraproducencia = stored_contra
-            _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini):
+                domicilio_mutado = True
             if payload.inspectores is not None:
                 nombres = payload.inspectores or []
                 act.inspector = get_inspectores_o_falla(nombres) if nombres else []
@@ -449,12 +481,12 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.estado_iniciador = "CUMPLIDO"
             ini.cerrado_at = None
             ini.cerrado_motivo = None
-            _reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item)
+            _reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item, now=now)
             _vincular_notificacion_reinspeccion_en_acta(act=act, ini=ini, bucket=bucket)
         elif bucket == ContrapBucket.NO_EXISTE_LOCAL:
             assert stored_contra is not None
             item.estado_ejecucion = "NO_REALIZADO"
-            item.estado_ruta_item = "NO_REALIZADO"
+            item.estado_ruta_item = "FINALIZADO"
             item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
             ini.estado_iniciador = "CERRADO_NO_EXISTE_LOCAL"
             ini.cerrado_at = now
@@ -462,12 +494,9 @@ def cerrar_completar_trabajo_por_ruta_item(
         else:
             assert stored_contra is not None
             item.estado_ejecucion = "NO_REALIZADO"
-            item.estado_ruta_item = "NO_REALIZADO"
+            item.estado_ruta_item = "FINALIZADO"
             item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
-            ini.estado_iniciador = "PENDIENTE"
-            ini.prioridad = max(int(ini.prioridad), 5)
-            ini.cerrado_at = None
-            ini.cerrado_motivo = None
+            _aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
 
         if bucket == ContrapBucket.NONE:
             eid = resolve_establecimiento_por_domicilio(
@@ -508,7 +537,9 @@ def cerrar_completar_trabajo_por_ruta_item(
         raise RuntimeError("No se pudo recargar el ítem tras el cierre.")
     try:
         dom_id = fresh.actuacion.domicilio_id if fresh.actuacion else None
-        if dom_id:
+        if dom_id and (
+            domicilio_mutado or dom_id != domicilio_id_inicial
+        ):
             on_domicilio_changed(dom_id)
     except Exception:
         pass

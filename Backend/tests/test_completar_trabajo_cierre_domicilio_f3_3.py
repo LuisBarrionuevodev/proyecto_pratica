@@ -198,7 +198,7 @@ def test_f33_direccion_incorrecta_cambio_domicilio_y_geo(app_ctx) -> None:
     assert act_db.domicilio is not None
     assert act_db.domicilio.id == act_db.domicilio_id
     assert ini_db.estado_iniciador == "PENDIENTE"
-    assert item_db.estado_ruta_item == "NO_REALIZADO"
+    assert item_db.estado_ruta_item == "FINALIZADO"
 
 
 def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx) -> None:
@@ -243,4 +243,4 @@ def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx)
     assert act_db.domicilio.id == act_db.domicilio_id
     assert act_db.domicilio.rubro_id == rub2.id
     assert ini_db.estado_iniciador == "PENDIENTE"
-    assert item_db.estado_ruta_item == "NO_REALIZADO"
+    assert item_db.estado_ruta_item == "FINALIZADO"

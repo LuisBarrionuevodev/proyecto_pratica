@@ -121,10 +121,11 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         soft_delete_domicilio_if_orphan(old_domicilio_id)
         db.session.commit()
 
-    # Best-effort geocode (no bloquea la actualización)
-    try:
-        if rel.domicilio_id:
+    if rel.domicilio_id and (
+        outcome.domicilio_id_cambio or outcome.policy.requiere_geocode_refresh
+    ):
+        try:
             on_domicilio_changed(rel.domicilio_id)
-    except Exception:
-        pass
+        except Exception:
+            pass
     return rel
