@@ -1,9 +1,58 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import {
   ACTUACION_ROW_ERROR_KEY_MAP,
   normalizeActuacionRowErrors,
+  sanitizeActuacionRowForCanalActasPut,
+  submitActuacionRow,
 } from "./submitActuacionRow";
+import {
+  buildActuacionFormGlobalError,
+  finalizeActuacionFormErrors,
+  splitActuacionFormErrors,
+} from "./actuacionFormErrors";
+import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+
+vi.mock("../../../api/gridApi", () => ({
+  validateRow: vi.fn(),
+}));
+
+vi.mock("../../../api/actuacionesApi", () => ({
+  updateActuacion: vi.fn(),
+}));
+
+vi.mock("../../../api/actuacionesListApi", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../../api/actuacionesListApi")>();
+  return {
+    ...mod,
+    postQuitarActaCanalActas: vi.fn(),
+  };
+});
+
+import { validateRow } from "../../../api/gridApi";
+import { updateActuacion } from "../../../api/actuacionesApi";
+import { postQuitarActaCanalActas } from "../../../api/actuacionesListApi";
+
+const mockedValidateRow = vi.mocked(validateRow);
+const mockedUpdateActuacion = vi.mocked(updateActuacion);
+const mockedPostQuitarActa = vi.mocked(postQuitarActaCanalActas);
+
+const baseRow: IActuacionListItem = {
+  id: 1,
+  orden_trabajo_numero: "123456",
+  fecha_actuacion: "2026-05-10",
+  tipo_actuacion: "INSPECCION",
+  rubro_nombre: "Bar",
+  inspector1: "García",
+  inspector2: "López",
+  calle: "San Martín",
+  numero: "100",
+  doc_nro: "20345678901",
+  contrib_apellido: "Pérez",
+  contrib_nombre: "Juan",
+  contraproducencia: "NO_HUBO",
+  acta_inspeccion_num: "42",
+};
 
 describe("submitActuacionRow error map", () => {
   it("mapea claves Glide españolas a snake_case del modal", () => {
@@ -33,5 +82,324 @@ describe("submitActuacionRow error map", () => {
 
   it("incluye alias nro_acta en el mapa", () => {
     expect(ACTUACION_ROW_ERROR_KEY_MAP.nro_acta_notificacion).toBe("acta_notificacion_num");
+  });
+});
+
+describe("actuacionFormErrors", () => {
+  it("resume campos visibles con nombres humanos", () => {
+    const msg = buildActuacionFormGlobalError({
+      calle: "Calle obligatoria",
+      rubro_nombre: "Rubro obligatorio",
+    });
+    expect(msg).toContain("Revisá:");
+    expect(msg).toContain("Calle");
+    expect(msg).toContain("Rubro");
+  });
+
+  it("filtra error de actas previas obsoletas en CRUD", () => {
+    const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(
+      {
+        notificacion_previa_num: "Obligatorio para REINSPECCIÓN.",
+        calle: "Calle obligatoria",
+      },
+      { ignoreCrudObsoleteFields: true }
+    );
+    expect(fieldErrors.notificacion_previa_num).toBeUndefined();
+    expect(fieldErrors.calle).toBe("Calle obligatoria");
+    expect(rowMessages).toHaveLength(0);
+  });
+
+  it("campo oculto incluye detalle en resumen global cuando no se ignora", () => {
+    const { fieldErrors, rowMessages } = splitActuacionFormErrors({
+      notificacion_previa_num: "Obligatorio para REINSPECCIÓN.",
+    });
+    const msg = buildActuacionFormGlobalError(fieldErrors, rowMessages);
+    expect(msg).toContain("Acta notificación previa");
+  });
+
+  it("_row queda como mensaje global sin fieldErrors", () => {
+    const { fieldErrors, rowMessages } = splitActuacionFormErrors({
+      _row: "Duplicado en el lote",
+    });
+    expect(Object.keys(fieldErrors)).toHaveLength(0);
+    expect(rowMessages).toContain("Duplicado en el lote");
+    expect(buildActuacionFormGlobalError(fieldErrors, rowMessages)).toBe("Duplicado en el lote");
+  });
+
+  it("filtra error de oficio del canal actas como mensaje informativo", () => {
+    const { fieldErrors, rowMessages } = finalizeActuacionFormErrors({
+      oficio_numero: "El canal de carga de actas no admite oficio. Use el flujo específico de oficio (Esperando oficio).",
+    });
+    expect(Object.keys(fieldErrors)).toHaveLength(0);
+    expect(rowMessages.join(" ")).toContain("Esperando oficio");
+  });
+
+  it("numero_oficio obligatorio no bloquea como campo editable del modal", () => {
+    const { fieldErrors, rowMessages } = finalizeActuacionFormErrors({
+      numero_oficio: "numero_oficio es obligatorio",
+    });
+    expect(fieldErrors.oficio_numero).toBeUndefined();
+    expect(rowMessages.join(" ")).toContain("Número de oficio");
+  });
+});
+
+describe("submitActuacionRow pipeline", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("guardado válido no devuelve error", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow: baseRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
+
+  it("validación cliente fallida no llama validateRow del backend", async () => {
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow: { ...baseRow, fecha_actuacion: "" },
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.kind).toBe("validation");
+    expect(result.fieldErrors.fecha_actuacion).toBeTruthy();
+    expect(mockedValidateRow).not.toHaveBeenCalled();
+    expect(mockedUpdateActuacion).not.toHaveBeenCalled();
+  });
+
+  it("validación fallida devuelve resumen con nombres de campo", async () => {
+    mockedValidateRow.mockResolvedValue({
+      ok: false,
+      errors: { contraproducencia: "Debés elegir una contraproducencia." },
+    } as any);
+
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow: baseRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.kind).toBe("validation");
+    expect(result.fieldErrors.contraproducencia).toBe("Debés elegir una contraproducencia.");
+    expect(result.globalMessage).toContain("Contraproducencia");
+  });
+
+  it("sanitize omite oficio/expediente y metadatos de lectura del PUT", () => {
+    const sanitized = sanitizeActuacionRowForCanalActasPut({
+      ...baseRow,
+      oficio_numero: "88",
+      oficio_anio: 2024,
+      oficio_causa: "Causa X",
+      expediente_numero: "99",
+      documentacion_contexto: { circuito: "COMUN_COMPROBACION", propia: {} },
+      origen_reinspeccion_oficio: { oficio_numero: "12" },
+    } as any);
+    expect(sanitized.calle).toBe("San Martín");
+    expect(sanitized.oficio_numero).toBeNull();
+    expect(sanitized.oficio_anio).toBeNull();
+    expect(sanitized.oficio_causa).toBeNull();
+    expect(sanitized.expediente_numero).toBeNull();
+    expect((sanitized as any).documentacion_contexto).toBeUndefined();
+    expect((sanitized as any).origen_reinspeccion_oficio).toBeUndefined();
+  });
+
+  it("normaliza actas antes del PUT", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: baseRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.acta_inspeccion_num).toBe("000042");
+  });
+
+  it("borrar acta de inspección la omite del payload", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...baseRow, acta_inspeccion_num: "" },
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.acta_inspeccion_num).toBeNull();
+  });
+
+  it("acta existente borrada llama POST quitar-acta antes del PUT", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedPostQuitarActa.mockResolvedValue({ ...baseRow, acta_inspeccion_num: null } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = { ...baseRow, acta_inspeccion_num: "000123" };
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...original, acta_inspeccion_num: "" },
+      originalRow: original,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(mockedPostQuitarActa).toHaveBeenCalledWith(1, "INSPECCION");
+    expect(mockedPostQuitarActa.mock.invocationCallOrder[0]).toBeLessThan(
+      mockedUpdateActuacion.mock.invocationCallOrder[0]!
+    );
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
+
+  it("acta existente borrada no usa fallback al original en PUT", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedPostQuitarActa.mockResolvedValue({ ...baseRow, acta_inspeccion_num: null } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = { ...baseRow, acta_inspeccion_num: "000123" };
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...original, acta_inspeccion_num: "" },
+      originalRow: original,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.acta_inspeccion_num).toBeNull();
+  });
+
+  it("acta bloqueada por expediente no llama quitar-acta y bloquea guardado", async () => {
+    const original = {
+      ...baseRow,
+      notificacion_editable: false,
+      acta_notificacion_num: "000100",
+      notificacion_motivo_1: "Motivo",
+    };
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...original,
+        acta_notificacion_num: "",
+        notificacion_motivo_1: null,
+        notificacion_motivo_2: null,
+        notificacion_motivo_3: null,
+      },
+      originalRow: original,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.globalMessage).toContain("modificarse desde la sección correspondiente");
+    expect(mockedPostQuitarActa).not.toHaveBeenCalled();
+    expect(mockedUpdateActuacion).not.toHaveBeenCalled();
+  });
+
+  it("borrar comprobación limpia número y motivo en payload y llama quitar-acta", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedPostQuitarActa.mockResolvedValue({ ...baseRow } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = {
+      ...baseRow,
+      acta_comprobacion_num: "000200",
+      comprobacion_motivo: "Incumplimiento",
+    };
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...original,
+        acta_comprobacion_num: "",
+        comprobacion_motivo: "",
+      },
+      originalRow: original,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(mockedPostQuitarActa).toHaveBeenCalledWith(1, "COMPROBACION");
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.acta_comprobacion_num).toBeNull();
+    expect(putBody.comprobacion_motivo).toBeNull();
+  });
+
+  it("borrar acta de comprobación sin motivo la omite del payload", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        acta_comprobacion_num: "",
+        comprobacion_motivo: "",
+      },
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.acta_comprobacion_num).toBeNull();
+    expect(putBody.comprobacion_motivo).toBeNull();
+  });
+
+  it("backend error de acta previa no bloquea CRUD", async () => {
+    mockedValidateRow.mockResolvedValue({
+      ok: false,
+      errors: { notificacion_previa_num: "Obligatorio para REINSPECCIÓN." },
+    } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow: baseRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
+
+  it("guardado válido con oficio en lectura no envía oficio al PUT", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        oficio_numero: "204",
+        oficio_anio: 2026,
+        oficio_causa: "Test",
+      },
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.oficio_numero).toBeNull();
+    expect(putBody.oficio_anio).toBeNull();
+    expect(putBody.oficio_causa).toBeNull();
   });
 });

@@ -170,7 +170,7 @@ export function ComprobacionReinspeccionDetalleDialog({
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
-      actions={<DocumentalModalFooter onCerrar={onClose} cerrarDisabled={saving} />}
+      actions={undefined}
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>

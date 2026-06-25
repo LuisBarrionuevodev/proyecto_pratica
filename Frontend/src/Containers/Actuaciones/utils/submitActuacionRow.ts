@@ -1,32 +1,74 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
-import { updateActuacion } from "../../../api/actuacionesApi";
-import { validateRow } from "../../../api/gridApi";
+import { postQuitarActaCanalActas } from "../../../api/actuacionesListApi";
+import { updateActuacion } from "../../../api/actuacionesApi";import { validateRow } from "../../../api/gridApi";
 import {
   DEFAULT_FIELD_ERROR_SUMMARY,
   mapApiErrorsToFormState,
   type FormErrorsFromApi,
 } from "../../../utils/parseApiError";
+import {
+  ACTUACION_ROW_ONLY_ERROR_KEYS,
+  buildActuacionFormGlobalError,
+  finalizeActuacionFormErrors,
+} from "./actuacionFormErrors";
 import { buildInspectoresForCanal } from "./buildInspectoresForCanal";
-
+import {
+  actuacionCrudValidationContext,
+  validateActuacionFormForSubmit,
+} from "../validations/actuacionFormValidation";
+import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
+import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
 /**
  * El canal **Cargar actuación** (PUT grilla) no admite expediente/oficio administrativos en el cuerpo;
- * el presenter los incluye en GET para lectura. Se deben anular antes de validar y enviar.
+ * el presenter los incluye en GET para lectura. Se deben omitir antes de validar y enviar.
  */
+const ACTUACION_CANAL_PUT_OMIT_KEYS = [
+  "ec5_uuid",
+  "has_epicollect_detalle",
+  "epicollect_non_media_field_count",
+  "epicollect_preview",
+  "epicollect_sectores_condiciones",
+  "epicollect_otros_preview",
+  "epicollect_evidencias_total",
+  "epicollect_evidencias_grupos",
+  "documentacion_contexto",
+  "origen_reinspeccion_oficio",
+  "origen_reinspeccion_notificacion",
+  "inspectores_texto",
+  "numero_mostrar",
+  "esquina_raw",
+  "esquina_normalizada",
+  "esquina_catalogo_id",
+  "esquina_status",
+  "esquina_score",
+  "calle_normalizada",
+  "calle_estado",
+  "calle_score",
+  "calle_sugerida",
+  "calle_mostrar",
+  "calle_catalogo_id",
+  "calle_ingresada",
+  "numero_esquina",
+  "notificacion_editable",
+  "comprobacion_editable",
+  "establecimiento_operativo_id",
+  "establecimiento_actuaciones_en_ficha",
+  "resultado_cumplimiento_oficio",
+  "notificacion_previa_num",
+  "comprobacion_previa_num",
+] as const;
+
 export function sanitizeActuacionRowForCanalActasPut(row: IActuacionListItem): IActuacionListItem {
-  const {
-    ec5_uuid: _omitEc5,
-    has_epicollect_detalle: _omitDet,
-    epicollect_non_media_field_count: _omitCnt,
-    epicollect_preview: _omitPrev,
-    epicollect_sectores_condiciones: _omitSec,
-    epicollect_otros_preview: _omitOtros,
-    epicollect_evidencias_total: _omitEviTot,
-    epicollect_evidencias_grupos: _omitEviGrp,
-    ...rowSinEc5
-  } = row;
-  const contra = (rowSinEc5.contraproducencia ?? "").trim();
+  const copy: Record<string, unknown> = { ...row };
+
+  for (const key of ACTUACION_CANAL_PUT_OMIT_KEYS) {
+    delete copy[key];
+  }
+
+  const contra = String(copy.contraproducencia ?? "").trim();
+
   return {
-    ...rowSinEc5,
+    ...(copy as IActuacionListItem),
     contraproducencia: contra || null,
     expediente_numero: null,
     expediente_anio: null,
@@ -103,6 +145,7 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
   "Oficio número": "oficio_numero",
   "Oficio causa": "oficio_causa",
   oficio_numero: "oficio_numero",
+  numero_oficio: "oficio_numero",
   oficio_anio: "oficio_anio",
   oficio_causa: "oficio_causa",
   oficio: "oficio_numero",
@@ -113,6 +156,7 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
 
 export const ACTUACION_FORM_ERROR_OPTIONS = {
   fieldKeyAliases: ACTUACION_ROW_ERROR_KEY_MAP,
+  rowOnlyKeys: ACTUACION_ROW_ONLY_ERROR_KEYS,
   fieldErrorSummary: DEFAULT_FIELD_ERROR_SUMMARY,
   fallbackMessage: "No se pudo actualizar el registro.",
 } as const;
@@ -135,9 +179,19 @@ export function normalizeActuacionRowErrors(errors?: Record<string, string>): Re
 
 export function applyActuacionErrorsFromApi(err: unknown): FormErrorsFromApi {
   const parsed = mapApiErrorsToFormState(err, ACTUACION_FORM_ERROR_OPTIONS);
+  const normalized = normalizeActuacionRowErrors(parsed.fieldErrors);
+  const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(normalized, {
+    ignoreCrudObsoleteFields: true,
+  });
+  const extraRow =
+    parsed.globalMessage &&
+    parsed.globalMessage !== DEFAULT_FIELD_ERROR_SUMMARY &&
+    !rowMessages.includes(parsed.globalMessage)
+      ? [parsed.globalMessage]
+      : [];
   return {
-    fieldErrors: normalizeActuacionRowErrors(parsed.fieldErrors),
-    globalMessage: parsed.globalMessage,
+    fieldErrors,
+    globalMessage: buildActuacionFormGlobalError(fieldErrors, [...rowMessages, ...extraRow]),
   };
 }
 
@@ -150,6 +204,8 @@ export type SubmitActuacionRowResult =
 export type SubmitActuacionRowParams = {
   id: number;
   fullRow: IActuacionListItem;
+  /** Fila al abrir edición; necesaria para detectar actas vaciadas y llamar quitar-acta. */
+  originalRow?: IActuacionListItem | null;
   skipValidation: boolean;
   skipUpdate: boolean;
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
@@ -166,9 +222,42 @@ export type SubmitActuacionRowParams = {
  * Sin UI: el llamador aplica `setRowErrors` / `alert` según el resultado.
  */
 export async function submitActuacionRow(params: SubmitActuacionRowParams): Promise<SubmitActuacionRowResult> {
-  const { id, fullRow, skipValidation, skipUpdate, onBeforeSave, onAfterSave, onValidationPassed } = params;
+  const { id, fullRow, originalRow, skipValidation, skipUpdate, onBeforeSave, onAfterSave, onValidationPassed } =
+    params;
 
-  const rowForCanal = sanitizeActuacionRowForCanalActasPut(fullRow);
+  let rowToSubmit = fullRow;
+
+  if (!skipValidation) {
+    const clientValidation = validateActuacionFormForSubmit(
+      fullRow,
+      actuacionCrudValidationContext(fullRow)
+    );
+    if (!clientValidation.canSubmit) {
+      return {
+        ok: false,
+        kind: "validation",
+        fieldErrors: clientValidation.fieldErrors,
+        globalMessage: clientValidation.globalError,
+      };
+    }
+    rowToSubmit = normalizeActuacionRowForCrudSubmit(fullRow);
+  }
+
+  if (originalRow) {
+    const blockedMsg = detectBlockedActaClearAttempt(rowToSubmit, originalRow);
+    if (blockedMsg) {
+      return {
+        ok: false,
+        kind: "validation",
+        fieldErrors: {},
+        globalMessage: blockedMsg,
+      };
+    }
+  }
+
+  const actasToClear = originalRow ? detectActasClearedByUser(originalRow, rowToSubmit) : [];
+
+  const rowForCanal = sanitizeActuacionRowForCanalActasPut(rowToSubmit);
   const inspectores = buildInspectoresForCanal(rowForCanal);
   const rowWithInspectores = { ...rowForCanal, inspectores };
 
@@ -180,16 +269,19 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     });
 
     if (!v.ok) {
-      const fe = normalizeActuacionRowErrors(v.errors || {});
-      const hasFe = Object.keys(fe).length > 0;
-      return {
-        ok: false,
-        kind: "validation",
-        fieldErrors: fe,
-        globalMessage: hasFe ? DEFAULT_FIELD_ERROR_SUMMARY : (v.errors?._row ?? null),
-      };
+      const rawFe = normalizeActuacionRowErrors(v.errors || {});
+      const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(rawFe, {
+        ignoreCrudObsoleteFields: true,
+      });
+      if (Object.keys(fieldErrors).length > 0 || rowMessages.length > 0) {
+        return {
+          ok: false,
+          kind: "validation",
+          fieldErrors,
+          globalMessage: buildActuacionFormGlobalError(fieldErrors, rowMessages),
+        };
+      }
     }
-
     onValidationPassed?.();
   }
 
@@ -199,6 +291,9 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     }
 
     if (!skipUpdate) {
+      for (const { tipo } of actasToClear) {
+        await postQuitarActaCanalActas(id, tipo);
+      }
       await updateActuacion(id, rowWithInspectores as any);
     }
 

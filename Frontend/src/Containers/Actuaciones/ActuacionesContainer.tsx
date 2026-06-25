@@ -23,10 +23,6 @@ import {
   type IActuacionesPendientesItem,
   type IActuacionesPendientesSummary,
 } from "../../api/actuacionesPendientesApi";
-import {
-  fetchCallesCatalogo,
-  type CalleCatalogoItem,
-} from "../../api/geolocalizacionApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import type { MRT_ColumnDef } from "material-react-table";
 import type { IActuacionListItem } from "../../api/actuacionesListApi";
@@ -74,8 +70,6 @@ const ActuacionesContainer = (): JSX.Element => {
   const [pendingItems, setPendingItems] = useState<IActuacionesPendientesItem[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingError, setPendingError] = useState<string | null>(null);
-
-  const [callesCatalogo, setCallesCatalogo] = useState<CalleCatalogoItem[]>([]);
 
   const handleFiltrarTodos = useCallback(
     (filtros: {
@@ -166,21 +160,6 @@ const ActuacionesContainer = (): JSX.Element => {
     setPendingType(tipo);
     refreshPendientes(pendientesDesde, pendientesHasta, tipo);
   };
-
-  const handleSearchCalles = useCallback(async (value: string) => {
-    try {
-      const resp = await fetchCallesCatalogo(value, 25);
-      setCallesCatalogo(resp.items);
-    } finally {
-      // no-op
-    }
-  }, []);
-
-  useEffect(() => {
-    if (tab === "pendientes" && pendingType === "domicilios") {
-      handleSearchCalles("");
-    }
-  }, [tab, pendingType, handleSearchCalles]);
 
   const pendingExtraColumns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => [], []);
 
@@ -497,8 +476,6 @@ const ActuacionesContainer = (): JSX.Element => {
                   numeroEditorLabel="Número/Esquina"
                   onBeforeSave={handleBeforeSavePendiente}
                   readOnlyColumns={pendingType === "domicilios" ? ["orden_trabajo_numero", "fecha_actuacion"] : []}
-                  numeroCallesOptions={callesCatalogo.map((c) => c.nombre)}
-                  numeroAllowFreeSolo
                 />
               </>
             )}

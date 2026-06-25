@@ -1,70 +1,58 @@
-import { Box, Chip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import type { ReactNode } from "react";
 
-import {
-  docModalChipSx,
-  docModalFooterButtonsSx,
-  docModalFooterRowSx,
-  docModalHeaderStackSx,
-  docModalReferenceSx,
-  docModalSubtitleSx,
-  docModalTitleSx,
-} from "../../styles/documentalModalTokens";
-import { AppButton } from "../../ui";
+import { docModalFooterButtonsSx, docModalFooterRowSx } from "../../styles/documentalModalTokens";
 
 export type DocumentalModalTitleStackProps = {
   /** Texto del chip de dominio (p. ej. «Notificación», «Comprobación»). */
   dominioChip: string;
   titulo: string;
   subtitulo?: string | null;
-  /** Misma referencia que en modales de comprobación: actuación base del circuito. */
+  /** @deprecated No mostrar IDs en modales CRUD. Ignorado. */
   actuacionId?: number | null;
 };
 
 /**
- * Cabecera estándar de modales documentales (chip dominio → título → subtítulo → actuación).
- * Unifica jerarquía visual entre Notificación y Comprobación.
+ * Cabecera estándar de modales documentales (chip dominio → título → subtítulo).
  */
 export function DocumentalModalTitleStack({
   dominioChip,
   titulo,
   subtitulo,
-  actuacionId,
 }: DocumentalModalTitleStackProps) {
   return (
-    <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-      <Chip label={dominioChip} size="small" sx={docModalChipSx} variant="outlined" />
-      <Typography component="span" variant="h6" sx={docModalTitleSx}>
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5, width: "100%" }}>
+      <Box component="span" sx={{ fontSize: "0.6875rem", fontWeight: 600, opacity: 0.86 }}>
+        {dominioChip}
+      </Box>
+      <Box component="span" sx={{ fontWeight: 700, fontSize: "1.05rem", lineHeight: 1.25 }}>
         {titulo}
-      </Typography>
+      </Box>
       {subtitulo ? (
-        <Typography variant="body2" sx={docModalSubtitleSx}>
+        <Box component="span" sx={{ fontSize: "0.875rem", opacity: 0.86, lineHeight: 1.4 }}>
           {subtitulo}
-        </Typography>
-      ) : null}
-      {actuacionId != null ? (
-        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
-          Actuación #{actuacionId}
-        </Typography>
+        </Box>
       ) : null}
     </Box>
   );
 }
 
 export type DocumentalModalFooterProps = {
-  onCerrar: () => void;
+  /** @deprecated Cierre solo con la X del header. */
+  onCerrar?: () => void;
   cerrarDisabled?: boolean;
+  children?: ReactNode;
 };
 
-/** Pie estándar: solo «Cerrar» (el refresco de bandejas queda en la barra de la página). */
-export function DocumentalModalFooter({ onCerrar, cerrarDisabled }: DocumentalModalFooterProps) {
+/**
+ * Pie documental: acciones custom alineadas a la derecha. Sin botón Cerrar (cierre vía X).
+ */
+export function DocumentalModalFooter({ children }: DocumentalModalFooterProps) {
+  if (!children) return null;
   return (
     <Box sx={docModalFooterRowSx}>
       <Box sx={{ flex: "1 1 120px", minWidth: 0 }} />
-      <Box sx={docModalFooterButtonsSx}>
-        <AppButton dsVariant="primary" dsSize="sm" onClick={onCerrar} disabled={cerrarDisabled}>
-          Cerrar
-        </AppButton>
-      </Box>
+      <Box sx={docModalFooterButtonsSx}>{children}</Box>
     </Box>
   );
 }

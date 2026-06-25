@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import {
   Alert,
   Autocomplete,
@@ -9,6 +9,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Stack,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -18,7 +19,28 @@ import {
 import type { ICompletarTrabajoInspectorGrupo, ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { getCompletarTrabajoDetalle } from "../../../api/completarTrabajoApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
-import { AppButton, AppDialog, AppSelect, AppTextField } from "../../../ui";
+import {
+  CrudDialogActions,
+  CrudDialogHeader,
+  CrudDialogSection,
+  CrudGlassDialog,
+  useCrudDialogScrollContainer,
+} from "../../../components/crudDialog";
+import {
+  DOC_MODAL_BLOCK_STACK_SPACING,
+  DOC_MODAL_TEXT,
+  documentalGlassWarningAlertSx,
+} from "../../../styles/documentalModalTokens";
+import { AppSelect, AppTextField } from "../../../ui";
+import { useAppFeedback } from "../../../components/feedback";
+import { ActaNumFieldLazy } from "../../Actuaciones/Components/ActaNumFieldLazy";
+import { NumeroEsquinaFreeEditor } from "../../Actuaciones/Components/NumeroEsquinaFreeEditor";
+import {
+  MENSAJE_VALIDACION_LOCAL,
+  notifyActuacionFormValidationResult,
+} from "../../Actuaciones/utils/actuacionSaveFeedback";
+import { scrollActuacionFormToFirstFieldError } from "../../Actuaciones/utils/actuacionFormScroll";
+import { commitActaNumInputValue } from "../../Actuaciones/validations/actuacionFormNormalize";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
 import { emitGestionNotificacionReinspeccionRefresh } from "../../GestionNotificacion/gestionNotificacionReinspeccionRefresh";
 import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
@@ -30,16 +52,15 @@ import {
   tipoActuacionInicialReinspeccionOficio,
   tipoActuacionReinspeccionOficioOpts,
 } from "../utils/completarTrabajoReinspeccionOficioUi";
+import { esNoPermiteInspeccionContraproducencia } from "../utils/completarTrabajoContraproducencia";
 import {
-  esCorrectivaDireccionContraproducencia,
-  esCorrectivaRubroContraproducencia,
-  esNoPermiteInspeccionContraproducencia,
-} from "../utils/completarTrabajoContraproducencia";
+  actuacionCompletarTrabajoValidationContext,
+  validateActuacionFormForSubmit,
+} from "../../Actuaciones/validations/actuacionFormValidation";
 import { filtrarContraproducenciasPorTipoIniciador } from "../utils/contraproducenciasPorTipoIniciador";
 import { getContraproducenciaUxHint } from "../utils/contraproducenciaUxHint";
 import {
   applyCompletarTrabajoFieldErrorsFromApi,
-  COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY,
   formatCompletarTrabajoApiError,
 } from "../utils/completarTrabajoErrors";
 import {
@@ -48,6 +69,98 @@ import {
   motivosNotificacionFromSlots,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
+
+const modalAuxInputSx = {
+  "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.92)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
+  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.88)" },
+} as const;
+
+const edicionGrid2ColSx = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+  gap: 2,
+  width: "100%",
+} as const;
+
+function CompletarBloque({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <CrudDialogSection title={title} variant="plain">
+      {children}
+    </CrudDialogSection>
+  );
+}
+
+function actaNumForPayload(value: string): string {
+  return commitActaNumInputValue(value) ?? "";
+}
+
+function buildCompletarTrabajoValidationForm(
+  resolvedRow: ICompletarTrabajoPendienteRow,
+  params: {
+    contraproducencia: string;
+    calle: string;
+    numero: string;
+    rubroNombre: string;
+    docNro: string;
+    contribApellido: string;
+    contribNombre: string;
+    razonSocial: string;
+    titularModo: TitularModoCompletarTrabajo;
+    nombreLocal: string;
+    actaInspeccion: string;
+    actaNotificacion: string;
+    notifMotivosSeleccion: string[];
+    actaComprobacion: string;
+    comprobacionMotivo: string;
+    actaClausura: string;
+    actaDecomiso: string;
+    decomisoKilos: string;
+    inspectoresList: string[];
+  }
+) {
+  const notifSlotsPre = slotsToMotivosApi(params.notifMotivosSeleccion);
+  const titular =
+    params.titularModo === "persona"
+      ? {
+          contrib_apellido: params.contribApellido,
+          contrib_nombre: params.contribNombre,
+          razon_social: null as string | null,
+        }
+      : {
+          contrib_apellido: null as string | null,
+          contrib_nombre: null as string | null,
+          razon_social: params.razonSocial,
+        };
+
+  return {
+    contraproducencia: params.contraproducencia,
+    calle: params.calle,
+    numero: params.numero,
+    rubro_nombre: params.rubroNombre,
+    doc_nro: params.docNro,
+    ...titular,
+    nombre_local: params.nombreLocal,
+    fecha_actuacion: resolvedRow.fecha_actuacion,
+    tipo_actuacion: resolvedRow.tipo_actuacion,
+    acta_inspeccion_num: params.actaInspeccion,
+    acta_comprobacion_num: params.actaComprobacion,
+    comprobacion_motivo: params.comprobacionMotivo,
+    acta_notificacion_num: params.actaNotificacion,
+    notificacion_motivo_1: notifSlotsPre.m1,
+    notificacion_motivo_2: notifSlotsPre.m2,
+    notificacion_motivo_3: notifSlotsPre.m3,
+    acta_clausura_num: params.actaClausura,
+    acta_decomiso_num: params.actaDecomiso,
+    decomiso_kilos_total:
+      params.decomisoKilos === "" ? null : Number(params.decomisoKilos),
+    inspector1: params.inspectoresList[0] ?? null,
+    inspector2: params.inspectoresList[1] ?? null,
+    inspector3: params.inspectoresList[2] ?? null,
+    inspectores: params.inspectoresList,
+  };
+}
 
 const ACTA_KEYS_EMPTY = {
   acta_inspeccion_num: "",
@@ -138,6 +251,8 @@ export type CompletarTrabajoModalProps = {
   catalogsReady: boolean;
   onClose: () => void;
   onSuccess: (rutaItemId: number) => void;
+  /** SSR/tests: evita portal MUI para renderizar título y acciones en el markup. */
+  disablePortal?: boolean;
 };
 
 /**
@@ -154,7 +269,10 @@ export function CompletarTrabajoModal({
   catalogsReady,
   onClose,
   onSuccess,
+  disablePortal,
 }: CompletarTrabajoModalProps) {
+  const feedback = useAppFeedback();
+  const scrollContainerRef = useCrudDialogScrollContainer();
   const cat = catalogs ?? {
     motivos: [],
     motivosComprobacion: [],
@@ -165,6 +283,7 @@ export function CompletarTrabajoModal({
   const [contraproducencia, setContraproducencia] = useState("");
   const [calle, setCalle] = useState("");
   const [numero, setNumero] = useState("");
+  const [numeroTipo, setNumeroTipo] = useState<"NUMERO" | "ESQUINA">("NUMERO");
   const [rubroNombre, setRubroNombre] = useState("");
   const [docNro, setDocNro] = useState("");
   const [contribApellido, setContribApellido] = useState("");
@@ -184,7 +303,6 @@ export function CompletarTrabajoModal({
   const [resultadoCumplimientoOficio, setResultadoCumplimientoOficio] = useState("");
   const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -200,6 +318,11 @@ export function CompletarTrabajoModal({
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
   const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
   const baselineInspectoresRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (!open || Object.keys(fieldErrors).length === 0) return;
+    scrollActuacionFormToFirstFieldError(scrollContainerRef?.current ?? null, fieldErrors);
+  }, [open, fieldErrors, scrollContainerRef]);
 
   useEffect(() => {
     if (!open || !row) {
@@ -245,7 +368,6 @@ export function CompletarTrabajoModal({
     setInspectoresList(initial);
     baselineInspectoresRef.current = initial;
 
-    setError(null);
     setFieldErrors({});
     if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
       const fromRow = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion);
@@ -265,6 +387,7 @@ export function CompletarTrabajoModal({
       const pre = prefillOperativoReinspeccionNotificacion(resolvedRow);
       setCalle(pre.calle);
       setNumero(pre.numero);
+      setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
       setRubroNombre(pre.rubroNombre);
       setDocNro(pre.docNro);
       setContribApellido(pre.contribApellido);
@@ -289,6 +412,7 @@ export function CompletarTrabajoModal({
     setContraproducencia(resolvedRow.contraproducencia ?? "");
     setCalle(resolvedRow.calle ?? "");
     setNumero(resolvedRow.numero ?? "");
+    setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
     setRubroNombre(resolvedRow.rubro_nombre ?? "");
     setDocNro(resolvedRow.doc_nro ?? "");
     setContribApellido(resolvedRow.contrib_apellido ?? "");
@@ -407,10 +531,17 @@ export function CompletarTrabajoModal({
     onClose();
   }, [saving, onClose]);
 
+  const handleDialogClose = useCallback(
+    (_event: unknown, _reason: string) => {
+      if (saving) return;
+      onClose();
+    },
+    [saving, onClose]
+  );
+
   const handleSubmit = async () => {
-    if (!resolvedRow) return;
+    if (!resolvedRow || detalleLoading) return;
     setFieldErrors({});
-    setError(null);
 
     if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
       const preSubmitErrors: Record<string, string> = {};
@@ -438,7 +569,7 @@ export function CompletarTrabajoModal({
       }
       if (Object.keys(preSubmitErrors).length > 0) {
         setFieldErrors(preSubmitErrors);
-        setError(COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY);
+        feedback.warning(MENSAJE_VALIDACION_LOCAL);
         return;
       }
       setSaving(true);
@@ -465,60 +596,46 @@ export function CompletarTrabajoModal({
         if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
           emitGestionNotificacionReinspeccionRefresh();
         }
+        feedback.success("Trabajo completado correctamente.");
         onSuccess(resolvedRow.ruta_item_id);
         onClose();
       } catch (e) {
         const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
         setFieldErrors(nextFe);
-        setError(generalMessage);
+        feedback.error(generalMessage);
       } finally {
         setSaving(false);
       }
       return;
     }
 
-    const preSubmitErrors: Record<string, string> = {};
-    if (!visitaRealizada && !contraproducencia.trim()) {
-      preSubmitErrors.contraproducencia = "Elegí una contraproducencia para visita no realizada.";
-    }
-    if (visitaRealizada && actaComprobacion.trim() && !comprobacionMotivo.trim()) {
-      preSubmitErrors.comprobacion_motivo =
-        "Si cargás acta de comprobación, elegí un motivo de comprobación.";
-    }
-    if (esNoPermiteInspeccion) {
-      if (!actaComprobacion.trim()) {
-        preSubmitErrors.acta_comprobacion_num = "Con esta contraproducencia el acta de comprobación es obligatoria.";
-      }
-      if (!comprobacionMotivo.trim()) {
-        preSubmitErrors.comprobacion_motivo = "Con esta contraproducencia el motivo de comprobación es obligatorio.";
-      }
-    }
-    if (esCorrectivaRubroContraproducencia(contraproducencia) && !rubroNombre.trim()) {
-      preSubmitErrors.rubro_nombre =
-        "Con «no es el rubro» tenés que elegir el rubro corregido antes de guardar.";
-    }
-    if (esCorrectivaDireccionContraproducencia(contraproducencia)) {
-      if (!calle.trim()) {
-        preSubmitErrors.calle = "Con «dirección incorrecta» completá la calle corregida.";
-      }
-      if (!numero.trim()) {
-        preSubmitErrors.numero = "Con «dirección incorrecta» completá el número corregido.";
-      }
-    }
-    const notifSlotsPre = slotsToMotivosApi(notifMotivosSeleccion);
-    if (
-      visitaRealizada &&
-      !esReinspeccionNotificacion &&
-      actaNotificacion.trim() &&
-      !notifSlotsPre.m1 &&
-      !notifSlotsPre.m2 &&
-      !notifSlotsPre.m3
-    ) {
-      preSubmitErrors.notificacion_motivo_1 = "La notificación requiere al menos un motivo.";
-    }
-    if (Object.keys(preSubmitErrors).length > 0) {
-      setFieldErrors(preSubmitErrors);
-      setError(COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY);
+    const preValidation = validateActuacionFormForSubmit(
+      buildCompletarTrabajoValidationForm(resolvedRow, {
+        contraproducencia,
+        calle,
+        numero,
+        rubroNombre,
+        docNro,
+        contribApellido,
+        contribNombre,
+        razonSocial,
+        titularModo,
+        nombreLocal,
+        actaInspeccion,
+        actaNotificacion,
+        notifMotivosSeleccion,
+        actaComprobacion,
+        comprobacionMotivo,
+        actaClausura,
+        actaDecomiso,
+        decomisoKilos,
+        inspectoresList,
+      }),
+      actuacionCompletarTrabajoValidationContext(visitaRealizada, esReinspeccionNotificacion)
+    );
+    if (!preValidation.canSubmit) {
+      setFieldErrors(preValidation.fieldErrors);
+      notifyActuacionFormValidationResult(preValidation, feedback);
       return;
     }
     setSaving(true);
@@ -541,6 +658,7 @@ export function CompletarTrabajoModal({
         rubro_nombre: rubroNombre,
         calle,
         numero,
+        numero_tipo: numeroTipo,
         doc_nro: docNro,
         ...titularPayload,
         nombre_local: nombreLocal,
@@ -551,16 +669,16 @@ export function CompletarTrabajoModal({
       const notifSlots = slotsToMotivosApi(notifMotivosSeleccion);
       if (visitaRealizada) {
         Object.assign(values, {
-          acta_inspeccion_num: actaInspeccion,
-          acta_comprobacion_num: actaComprobacion,
+          acta_inspeccion_num: actaNumForPayload(actaInspeccion),
+          acta_comprobacion_num: actaNumForPayload(actaComprobacion),
           comprobacion_motivo: comprobacionMotivo,
-          acta_clausura_num: actaClausura,
-          acta_decomiso_num: actaDecomiso,
+          acta_clausura_num: actaNumForPayload(actaClausura),
+          acta_decomiso_num: actaNumForPayload(actaDecomiso),
           decomiso_kilos_total: decomisoKilos,
         });
         if (!esReinspeccionNotificacion) {
           Object.assign(values, {
-            acta_notificacion_num: actaNotificacion,
+            acta_notificacion_num: actaNumForPayload(actaNotificacion),
             notificacion_motivo_1: notifSlots.m1,
             notificacion_motivo_2: notifSlots.m2,
             notificacion_motivo_3: notifSlots.m3,
@@ -568,9 +686,9 @@ export function CompletarTrabajoModal({
         }
       } else if (esNoPermiteInspeccion) {
         Object.assign(values, {
-          acta_comprobacion_num: actaComprobacion,
+          acta_comprobacion_num: actaNumForPayload(actaComprobacion),
           comprobacion_motivo: comprobacionMotivo,
-          acta_clausura_num: actaClausura,
+          acta_clausura_num: actaNumForPayload(actaClausura),
         });
       }
 
@@ -585,12 +703,13 @@ export function CompletarTrabajoModal({
       if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
         emitGestionNotificacionReinspeccionRefresh();
       }
+      feedback.success("Trabajo completado correctamente.");
       onSuccess(resolvedRow.ruta_item_id);
       onClose();
     } catch (e) {
       const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
       setFieldErrors(nextFe);
-      setError(generalMessage);
+      feedback.error(generalMessage);
     } finally {
       setSaving(false);
     }
@@ -600,31 +719,31 @@ export function CompletarTrabajoModal({
   const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' } as const;
 
   return (
-    <AppDialog
+    <CrudGlassDialog
       open={open && row != null}
-      onClose={handleClose}
+      onClose={handleDialogClose}
       onCloseButtonClick={handleClose}
-      title="Completar trabajo"
-      maxWidth="sm"
-      fullWidth
-      showCloseButton
-      contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+      maxWidth="md"
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
+      title={
+        <CrudDialogHeader
+          domainChip="Completar trabajo"
+          mode="edit"
+          titulo="Completar trabajo"
+          subtitulo="Cierre operativo"
+        />
+      }
       actions={
-        <>
-          <AppButton dsVariant="ghost" onClick={handleClose} disabled={saving}>
-            Cancelar
-          </AppButton>
-          <AppButton
-            dsVariant="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saving || !resolvedRow || detalleLoading}
-            loading={saving}
-          >
-            Guardar cierre
-          </AppButton>
-        </>
+        <CrudDialogActions
+          mode="edit"
+          onSave={() => void handleSubmit()}
+          loading={saving}
+          saveLabel="Guardar cierre"
+        />
       }
     >
+      <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} ref={scrollContainerRef}>
       {row && detalleLoading && !resolvedRow && (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
           <LinearProgress sx={{ borderRadius: 1 }} />
@@ -745,8 +864,9 @@ export function CompletarTrabajoModal({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Agregar"
+                label="Agregar inspector"
                 placeholder={catalogsReady ? "Catálogo" : "…"}
+                sx={modalAuxInputSx}
                 error={Boolean(fe("inspectores"))}
                 helperText={fe("inspectores") || undefined}
               />
@@ -755,15 +875,10 @@ export function CompletarTrabajoModal({
         </Box>
       )}
 
-      {resolvedRow && error && (
-        <Alert severity="error" sx={{ borderRadius: 2, whiteSpace: "pre-line" }}>
-          {error}
-        </Alert>
-      )}
-
       {resolvedRow && esReinspeccionOficio && (
         <Box sx={col}>
           <AppSelect
+            appearance="glass"
             label="Tipo de actuación"
             value={tipoActuacionOficio}
             onChange={(e) => {
@@ -788,6 +903,7 @@ export function CompletarTrabajoModal({
             helperText={fe("tipo_actuacion") || "Obligatorio."}
           />
           <AppSelect
+            appearance="glass"
             label="¿Dio cumplimiento?"
             value={resultadoCumplimientoOficio}
             onChange={(e) => {
@@ -837,7 +953,7 @@ export function CompletarTrabajoModal({
             </>
           )}
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="Observaciones de ejecución (opcional)"
             value={observacionesEjecucion}
             onChange={(e) => {
@@ -858,6 +974,7 @@ export function CompletarTrabajoModal({
         <>
       <Box sx={col}>
         <AppSelect
+          appearance="glass"
           label="Contraproducencia"
           value={contraproducencia}
           onChange={(e) => {
@@ -945,36 +1062,35 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
 
-        <Typography variant="caption" sx={labelMuted}>
-          Domicilio
-        </Typography>
-        <AppTextField
-          appearance="dense"
-          label="Calle"
-          value={calle}
-          onChange={(e) => {
-            setCalle(e.target.value);
-            clearFe("calle");
-          }}
-          fullWidth
-          error={Boolean(fe("calle"))}
-          helperText={fe("calle") || undefined}
-        />
-        <AppTextField
-          appearance="dense"
-          label="Número"
-          value={numero}
-          onChange={(e) => {
-            setNumero(e.target.value);
-            clearFe("numero");
-          }}
-          fullWidth
-          error={Boolean(fe("numero"))}
-          helperText={fe("numero") || undefined}
-        />
+        <Box sx={edicionGrid2ColSx}>
+          <AppTextField
+            appearance="glass"
+            label="Calle"
+            value={calle}
+            onChange={(e) => {
+              setCalle(e.target.value);
+              clearFe("calle");
+            }}
+            fullWidth
+            error={Boolean(fe("calle"))}
+            helperText={fe("calle") || undefined}
+          />
+          <NumeroEsquinaFreeEditor
+            value={numero || null}
+            onChange={(v) => {
+              setNumero(v ?? "");
+              clearFe("numero");
+            }}
+            onModeChange={setNumeroTipo}
+            label="Número o referencia"
+            error={Boolean(fe("numero"))}
+            helperText={fe("numero") || undefined}
+            initialMode={numeroTipo}
+          />
+        </Box>
 
         <AppSelect
-          appearance="dense"
+          appearance="glass"
           label="Rubro"
           value={rubroNombre}
           onChange={(e) => {
@@ -1019,7 +1135,7 @@ export function CompletarTrabajoModal({
         {titularModo === "persona" ? (
           <>
             <AppTextField
-              appearance="dense"
+              appearance="glass"
               label="Apellido"
               value={contribApellido}
               onChange={(e) => {
@@ -1031,7 +1147,7 @@ export function CompletarTrabajoModal({
               helperText={fe("contrib_apellido") || undefined}
             />
             <AppTextField
-              appearance="dense"
+              appearance="glass"
               label="Nombre"
               value={contribNombre}
               onChange={(e) => {
@@ -1045,7 +1161,7 @@ export function CompletarTrabajoModal({
           </>
         ) : (
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="Razón social"
             value={razonSocial}
             onChange={(e) => {
@@ -1059,7 +1175,7 @@ export function CompletarTrabajoModal({
         )}
 
         <AppTextField
-          appearance="dense"
+          appearance="glass"
           label="CUIT / DNI"
           value={docNro}
           onChange={(e) => {
@@ -1071,7 +1187,7 @@ export function CompletarTrabajoModal({
           helperText={fe("doc_nro") || undefined}
         />
         <AppTextField
-          appearance="dense"
+          appearance="glass"
           label="Nombre del local"
           value={nombreLocal}
           onChange={(e) => {
@@ -1094,15 +1210,14 @@ export function CompletarTrabajoModal({
           )}
           {visitaRealizada && (
             <>
-              <AppTextField
-                appearance="dense"
+              <ActaNumFieldLazy
+                appearance="glass"
                 label="N° acta de inspección"
-                value={actaInspeccion}
-                onChange={(e) => {
-                  setActaInspeccion(e.target.value);
+                value={actaInspeccion || null}
+                onCommit={(v) => {
+                  setActaInspeccion(v ?? "");
                   clearFe("acta_inspeccion_num");
                 }}
-                fullWidth
                 error={Boolean(fe("acta_inspeccion_num"))}
                 helperText={fe("acta_inspeccion_num") || undefined}
               />
@@ -1126,15 +1241,14 @@ export function CompletarTrabajoModal({
                 </Box>
               ) : (
                 <>
-                  <AppTextField
-                    appearance="dense"
+                  <ActaNumFieldLazy
+                    appearance="glass"
                     label="N° acta de notificación"
-                    value={actaNotificacion}
-                    onChange={(e) => {
-                      setActaNotificacion(e.target.value);
+                    value={actaNotificacion || null}
+                    onCommit={(v) => {
+                      setActaNotificacion(v ?? "");
                       clearFe("acta_notificacion_num");
                     }}
-                    fullWidth
                     error={Boolean(fe("acta_notificacion_num"))}
                     helperText={fe("acta_notificacion_num") || undefined}
                   />
@@ -1212,20 +1326,18 @@ export function CompletarTrabajoModal({
             </>
           )}
           <>
-            <AppTextField
-              appearance="dense"
+            <ActaNumFieldLazy
+              appearance="glass"
               label={
                 esNoPermiteInspeccion && !visitaRealizada
                   ? "N° acta de comprobación (obligatorio)"
                   : "N° acta de comprobación"
               }
-              value={actaComprobacion}
-              onChange={(e) => {
-                setActaComprobacion(e.target.value);
+              value={actaComprobacion || null}
+              onCommit={(v) => {
+                setActaComprobacion(v ?? "");
                 clearFe("acta_comprobacion_num");
               }}
-              fullWidth
-              required={esNoPermiteInspeccion && !visitaRealizada}
               error={Boolean(fe("acta_comprobacion_num"))}
               helperText={
                 fe("acta_comprobacion_num") ||
@@ -1233,11 +1345,8 @@ export function CompletarTrabajoModal({
               }
             />
             <AppSelect
-              label={
-                esNoPermiteInspeccion && !visitaRealizada
-                  ? "Motivo de comprobación (obligatorio)"
-                  : "Motivo de comprobación"
-              }
+              appearance="glass"
+              label="Motivo de comprobación"
               value={comprobacionMotivo}
               onChange={(e) => {
                 setComprobacionMotivo(e.target.value);
@@ -1253,35 +1362,33 @@ export function CompletarTrabajoModal({
                 (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
               }
             />
-            <AppTextField
-              appearance="dense"
+            <ActaNumFieldLazy
+              appearance="glass"
               label="N° acta de clausura (opcional)"
-              value={actaClausura}
-              onChange={(e) => {
-                setActaClausura(e.target.value);
+              value={actaClausura || null}
+              onCommit={(v) => {
+                setActaClausura(v ?? "");
                 clearFe("acta_clausura_num");
               }}
-              fullWidth
               error={Boolean(fe("acta_clausura_num"))}
               helperText={fe("acta_clausura_num") || undefined}
             />
           </>
           {visitaRealizada && (
             <>
-              <AppTextField
-                appearance="dense"
+              <ActaNumFieldLazy
+                appearance="glass"
                 label="N° acta de decomiso"
-                value={actaDecomiso}
-                onChange={(e) => {
-                  setActaDecomiso(e.target.value);
+                value={actaDecomiso || null}
+                onCommit={(v) => {
+                  setActaDecomiso(v ?? "");
                   clearFe("acta_decomiso_num");
                 }}
-                fullWidth
                 error={Boolean(fe("acta_decomiso_num"))}
                 helperText={fe("acta_decomiso_num") || undefined}
               />
               <AppTextField
-                appearance="dense"
+                appearance="glass"
                 label="Kilos decomisados"
                 value={decomisoKilos}
                 onChange={(e) => {
@@ -1297,7 +1404,7 @@ export function CompletarTrabajoModal({
         </Box>
       )}
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="Observaciones de ejecución (opcional)"
             value={observacionesEjecucion}
             onChange={(e) => {
@@ -1313,6 +1420,7 @@ export function CompletarTrabajoModal({
           />
         </>
       )}
-    </AppDialog>
+      </Stack>
+    </CrudGlassDialog>
   );
 }

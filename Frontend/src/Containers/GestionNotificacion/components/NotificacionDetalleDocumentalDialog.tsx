@@ -584,9 +584,7 @@ export function NotificacionDetalleDocumentalDialog({
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
-      actions={
-        <DocumentalModalFooter onCerrar={handleClose} cerrarDisabled={isSoloExpediente && saving} />
-      }
+      actions={undefined}
     >
       {!row ? null : isSoloExpediente ? (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Expedientes de prórroga">

@@ -176,3 +176,27 @@ export const documentalGlassAlertSx: SxProps<Theme> = {
   "& .MuiAlert-message": { color: DOC_MODAL_TEXT },
   "& .MuiAlert-icon": { color: "rgba(255,255,255,0.9)" },
 };
+
+/** Advertencia inline/toast: acento amarillo institucional sobre fondo glass. */
+export const documentalGlassWarningAlertSx: SxProps<Theme> = {
+  bgcolor: "rgba(234, 179, 8, 0.14)",
+  border: "1px solid rgba(234, 179, 8, 0.45)",
+  "& .MuiAlert-message": { color: DOC_MODAL_TEXT },
+  "& .MuiAlert-icon": { color: "rgba(250, 204, 21, 0.95)" },
+};
+
+/** Éxito toast: acento azul primario (no verde MUI por defecto). */
+export const documentalGlassSuccessAlertSx: SxProps<Theme> = {
+  bgcolor: "rgba(1, 102, 255, 0.16)",
+  border: "1px solid rgba(1, 102, 255, 0.45)",
+  "& .MuiAlert-message": { color: DOC_MODAL_TEXT },
+  "& .MuiAlert-icon": { color: "rgba(96, 165, 250, 0.98)" },
+};
+
+/** Error toast: acento rojo sobre fondo glass. */
+export const documentalGlassErrorAlertSx: SxProps<Theme> = {
+  bgcolor: "rgba(239, 68, 68, 0.14)",
+  border: "1px solid rgba(239, 68, 68, 0.45)",
+  "& .MuiAlert-message": { color: DOC_MODAL_TEXT },
+  "& .MuiAlert-icon": { color: "rgba(248, 113, 113, 0.98)" },
+};

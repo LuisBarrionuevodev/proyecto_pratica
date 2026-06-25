@@ -102,6 +102,12 @@ export function isRatificacionDecomiso(row: IActuacionListItem): boolean {
   return u.includes("DECOMISO");
 }
 
+/** Visita «Verificar e informar» (oficio / seguimiento administrativo). */
+export function isVerificarEInformar(row: IActuacionListItem): boolean {
+  const u = normalizeTipoRatificacion(row.tipo_actuacion);
+  return u.includes("VERIFICAR") && u.includes("INFORMAR");
+}
+
 export function tieneNotificacionLabradaMotivos(row: IActuacionListItem): boolean {
   const num = row.acta_notificacion_num?.trim();
   if (!num) return false;

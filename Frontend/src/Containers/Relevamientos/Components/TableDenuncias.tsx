@@ -1,6 +1,6 @@
 import { Alert, Box, IconButton, Tooltip, Typography } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MaterialReactTable,
@@ -12,12 +12,16 @@ import {
   type IDenunciaGestionItem,
   updateDenunciaGestion,
 } from "../../../api/denunciasApi";
-import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { applyDenunciaErrorsFromApi } from "../utils/denunciaFormErrors";
 import { shouldRefreshDenunciasAfterSaveFailure } from "../utils/refreshOnSavePolicy";
+import { DenunciaCrudDialog } from "./DenunciaCrudDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
+import {
+  BandejaEllipsisCell,
+  BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
+} from "../../Actuaciones/Components/bandejaTableCells";
 import {
   COLORS,
   DARK_TABLE_CONFIG,
@@ -32,6 +36,11 @@ interface TablaDenunciasProps {
   readOnly?: boolean;
 }
 
+function denunciaCellText(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  return String(value);
+}
+
 const TablaDenuncias = ({
   data: externalData,
   loading: externalLoading,
@@ -44,11 +53,27 @@ const TablaDenuncias = ({
   const [tableGlobalError, setTableGlobalError] = useState<string | null>(null);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<IDenunciaGestionItem | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
+  const [crudDraft, setCrudDraft] = useState<IDenunciaGestionItem | null>(null);
+  const [crudMode, setCrudMode] = useState<"view" | "edit" | null>(null);
+  const [crudSaving, setCrudSaving] = useState(false);
+  const [crudGlobalError, setCrudGlobalError] = useState<string | null>(null);
   const loading = externalLoading || false;
 
   useEffect(() => {
     if (externalData) setData(externalData);
   }, [externalData]);
+
+  const closeCrudDialog = useCallback(() => {
+    setCrudDraft(null);
+    setCrudMode(null);
+    setCrudGlobalError(null);
+  }, []);
+
+  const openCrudView = useCallback((row: IDenunciaGestionItem) => {
+    setCrudGlobalError(null);
+    setCrudDraft({ ...row });
+    setCrudMode("view");
+  }, []);
 
   const requestDeleteRow = useCallback(
     (rowItem: IDenunciaGestionItem) => {
@@ -58,7 +83,7 @@ const TablaDenuncias = ({
       }
       setDeleteConfirmRow(rowItem);
     },
-    [onRefresh, feedback]
+    [feedback]
   );
 
   const performDeleteRow = useCallback(async () => {
@@ -84,120 +109,83 @@ const TablaDenuncias = ({
     }
   }, [data, deleteConfirmRow, onRefresh, feedback]);
 
-  const handleSaveRow = useCallback(
-    async ({ exitEditingMode, row, values }: any) => {
-      const id = Number(row.original.id);
-      const fullRow: IDenunciaGestionItem = { ...row.original, ...values };
-      if (fullRow.editable === false) {
-        feedback.error("Esta denuncia ya no está operativa y no puede editarse.");
+  const handleDialogSave = useCallback(async () => {
+    if (!crudDraft) return;
+    const id = Number(crudDraft.id);
+    const fullRow = crudDraft;
+    if (fullRow.editable === false) {
+      feedback.error("Esta denuncia ya no está operativa y no puede editarse.");
+      return;
+    }
+
+    setCrudGlobalError(null);
+    setCrudSaving(true);
+    try {
+      setRowErrors((prev) => ({ ...prev, [id]: {} }));
+      await updateDenunciaGestion(id, fullRow);
+      closeCrudDialog();
+      onRefresh?.();
+    } catch (error: unknown) {
+      const { fieldErrors, globalMessage } = applyDenunciaErrorsFromApi(error);
+      if (Object.keys(fieldErrors).length > 0) {
+        setRowErrors((prev) => ({ ...prev, [id]: fieldErrors }));
+        setCrudGlobalError(null);
         return;
       }
-      try {
-        setTableGlobalError(null);
-        setRowErrors((prev) => ({ ...prev, [id]: {} }));
-        await updateDenunciaGestion(id, fullRow);
-        exitEditingMode();
+      const msg = globalMessage ?? "No se pudo actualizar la denuncia.";
+      setCrudGlobalError(msg);
+      feedback.error(msg);
+      if (shouldRefreshDenunciasAfterSaveFailure(error, fieldErrors)) {
         onRefresh?.();
-      } catch (error: unknown) {
-        const { fieldErrors, globalMessage } = applyDenunciaErrorsFromApi(error);
-        if (Object.keys(fieldErrors).length > 0) {
-          setRowErrors((prev) => ({ ...prev, [id]: fieldErrors }));
-          setTableGlobalError(null);
-          return;
-        }
-        const msg = globalMessage ?? "No se pudo actualizar la denuncia.";
-        setTableGlobalError(msg);
-        feedback.error(msg);
-        if (shouldRefreshDenunciasAfterSaveFailure(error, fieldErrors)) {
-          onRefresh?.();
-        }
       }
-    },
-    [onRefresh, feedback]
-  );
+    } finally {
+      setCrudSaving(false);
+    }
+  }, [crudDraft, closeCrudDialog, onRefresh, feedback]);
 
   const columns = useMemo<MRT_ColumnDef<IDenunciaGestionItem>[]>(
     () => [
-      { accessorKey: "id", header: "ID", enableEditing: false, size: 80 },
+      { accessorKey: "id", header: "ID", enableHiding: true, size: 80 },
       {
         accessorKey: "fecha",
         header: "Fecha",
         size: 140,
-        muiEditTextFieldProps: ({ row }) => {
-          const rid = Number(row.original.id);
-          const err = rowErrors[rid]?.["fecha"];
-          return { type: "date", required: true, error: !!err, helperText: err ?? "" };
-        },
+        Cell: ({ cell }) => <BandejaEllipsisCell value={denunciaCellText(cell.getValue())} />,
       },
       {
         accessorKey: "calle",
         header: "Calle",
         size: 220,
-        muiEditTextFieldProps: ({ row }) => {
-          const rid = Number(row.original.id);
-          const err = rowErrors[rid]?.["calle"];
-          return { required: true, error: !!err, helperText: err ?? "" };
-        },
+        Cell: ({ cell }) => <BandejaEllipsisCell value={denunciaCellText(cell.getValue())} />,
       },
       {
         accessorKey: "numero",
         header: "Número/Esquina",
         size: 380,
-        Edit: ({ row }) => {
-          const rid = Number(row.original.id);
-          const err = rowErrors[rid]?.["numero"];
-          const currentValue = (row as any)?._valuesCache?.numero ?? row.original.numero ?? null;
-          return (
-            <NumeroEsquinaEditor
-              value={currentValue}
-              onChange={(newValue) => {
-                (row as any)._valuesCache = {
-                  ...(row as any)._valuesCache,
-                  numero: newValue,
-                };
-              }}
-              onModeChange={(mode) => {
-                (row as any)._valuesCache = {
-                  ...(row as any)._valuesCache,
-                  numero_tipo: mode,
-                };
-              }}
-              label="Número/Esquina"
-              error={!!err}
-              helperText={err ?? ""}
-              allowFreeSolo
-              initialMode={(row.original as any).numero_tipo || undefined}
-            />
-          );
-        },
+        Cell: ({ cell }) => <BandejaEllipsisCell value={denunciaCellText(cell.getValue())} />,
       },
       {
         accessorKey: "motivo",
         header: "Motivo",
         size: 260,
-        muiEditTextFieldProps: ({ row }) => {
-          const rid = Number(row.original.id);
-          const err = rowErrors[rid]?.["motivo"];
-          return { required: true, error: !!err, helperText: err ?? "" };
-        },
+        Cell: ({ cell }) => <BandejaEllipsisCell value={denunciaCellText(cell.getValue())} />,
       },
       {
         accessorKey: "estado",
         header: "Estado",
         size: 160,
-        editVariant: "select",
-        editSelectOptions: ["ABIERTA", "CERRADA", "DESCARTADA"],
+        Cell: ({ cell }) => <BandejaEllipsisCell value={denunciaCellText(cell.getValue())} />,
       },
     ],
-    [rowErrors]
+    []
   );
 
   const table = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
+    ...BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
     columns,
     data,
-    enableEditing: !readOnly,
-    editDisplayMode: "row",
+    enableEditing: false,
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
@@ -209,39 +197,37 @@ const TablaDenuncias = ({
         id: false,
       },
     },
-    onEditingRowSave: handleSaveRow,
     renderRowActions: readOnly
       ? undefined
-      : ({ row, table }) => (
-      <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        <Tooltip title={row.original.editable === false ? "No editable (fuera de gestión operativa)" : "Editar"}>
-          <IconButton
-            sx={{
-              color: COLORS.white,
-              transition: "color 0.2s ease, background-color 0.2s ease",
-              "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-            }}
-            disabled={row.original.editable === false}
-            onClick={() => table.setEditingRow(row)}
-          >
-            <EditIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
-          <IconButton
-            sx={{
-              color: COLORS.white,
-              transition: "color 0.2s ease, background-color 0.2s ease",
-              "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
-            }}
-            disabled={row.original.editable === false}
-            onClick={() => requestDeleteRow(row.original)}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    ),
+      : ({ row }) => (
+          <Box sx={{ display: "flex", gap: "0.5rem" }}>
+            <Tooltip title="Ver">
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  transition: "color 0.2s ease, background-color 0.2s ease",
+                  "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+                }}
+                onClick={() => openCrudView(row.original)}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  transition: "color 0.2s ease, background-color 0.2s ease",
+                  "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
+                }}
+                disabled={row.original.editable === false}
+                onClick={() => requestDeleteRow(row.original)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        ),
     renderTopToolbarCustomActions: ({ table }) => (
       <TablaExportButtons table={table} filePrefix="denuncias" />
     ),
@@ -263,6 +249,38 @@ const TablaDenuncias = ({
         </Alert>
       ) : null}
       <MaterialReactTable table={table} />
+
+      {crudDraft && crudMode ? (
+        <DenunciaCrudDialog
+          open
+          mode={crudMode}
+          draft={crudDraft}
+          fieldErrors={rowErrors[crudDraft.id] ?? {}}
+          saving={crudSaving}
+          globalError={crudGlobalError}
+          canEdit={crudDraft.editable !== false && !readOnly}
+          showDelete={crudMode === "edit" && !readOnly}
+          onClose={closeCrudDialog}
+          onModeChange={(nextMode) => {
+            setCrudGlobalError(null);
+            setCrudMode(nextMode);
+          }}
+          onDelete={
+            crudDraft.editable !== false
+              ? () => {
+                  requestDeleteRow(crudDraft);
+                  closeCrudDialog();
+                }
+              : undefined
+          }
+          onDraftChange={(patch) => {
+            setCrudGlobalError(null);
+            setCrudDraft((prev) => (prev ? { ...prev, ...patch } : null));
+          }}
+          onSave={handleDialogSave}
+        />
+      ) : null}
+
       <ConfirmDialog
         open={deleteConfirmRow !== null}
         onClose={() => setDeleteConfirmRow(null)}
@@ -279,4 +297,3 @@ const TablaDenuncias = ({
 };
 
 export default TablaDenuncias;
-

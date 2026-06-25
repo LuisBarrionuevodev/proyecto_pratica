@@ -2,7 +2,12 @@ import { createContext, useCallback, useMemo, useState, type ReactNode } from "r
 
 import { Alert, Snackbar } from "@mui/material";
 
-import { documentalGlassAlertSx } from "../../styles/documentalModalTokens";
+import {
+  documentalGlassAlertSx,
+  documentalGlassErrorAlertSx,
+  documentalGlassSuccessAlertSx,
+  documentalGlassWarningAlertSx,
+} from "../../styles/documentalModalTokens";
 import { layoutShell } from "../../theme/tokens";
 
 export type FeedbackSeverity = "success" | "error" | "warning" | "info";
@@ -87,6 +92,9 @@ export function GlobalFeedbackProvider({ children }: { children: ReactNode }) {
               maxWidth: 560,
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.45)",
               ...documentalGlassAlertSx,
+              ...(toast.severity === "success" ? documentalGlassSuccessAlertSx : {}),
+              ...(toast.severity === "error" ? documentalGlassErrorAlertSx : {}),
+              ...(toast.severity === "warning" ? documentalGlassWarningAlertSx : {}),
             }}
           >
             {toast.message}

@@ -74,7 +74,7 @@ export function ComprobacionExpedienteOperativoDialog({
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
-      actions={<DocumentalModalFooter onCerrar={handleClose} cerrarDisabled={saving} />}
+      actions={undefined}
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>

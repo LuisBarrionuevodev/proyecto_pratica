@@ -201,7 +201,7 @@ export function RecorridoDetalleDocumentalDialog({
       appearance="glass"
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
-      actions={<DocumentalModalFooter onCerrar={handleClose} />}
+      actions={undefined}
     >
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>

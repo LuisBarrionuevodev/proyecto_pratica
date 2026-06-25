@@ -846,7 +846,7 @@ export function ComprobacionOficioOperativoDialog({
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
       showCloseButton
-      actions={<DocumentalModalFooter onCerrar={handleClose} cerrarDisabled={saving} />}
+      actions={undefined}
     >
       {!displayRow ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>

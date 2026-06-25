@@ -9,7 +9,7 @@ import {
   type MRT_Row,
 } from "material-react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { postQuitarActaCanalActas, type ActaCanalQuitarTipo, type IActuacionListItem } from "../../../api/actuacionesListApi";
+import { type IActuacionListItem } from "../../../api/actuacionesListApi";
 import { deleteActuacion } from "../../../api/actuacionesApi";
 import {
   fetchInspectores,
@@ -37,44 +37,11 @@ import {
 import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { submitActuacionRow } from "../utils/submitActuacionRow";
+import { notifyActuacionSaveResult } from "../utils/actuacionSaveFeedback";
 import {
   ACTUACIONES_COMPOSITE_COLUMN_IDS,
   buildActuacionesCompositeColumns,
 } from "./actuacionesCompositeColumns";
-
-/**
- * Tras POST quitar-acta, la API devuelve la fila grilla completa; solo debemos pisar en el draft
- * los campos que reflejan actas/trámite, para no revertir cambios locales sin guardar (calle, contrib., etc.).
- */
-const DRAFT_PATCH_KEYS_AFTER_QUITAR_ACTA: (keyof IActuacionListItem)[] = [
-  "acta_inspeccion_num",
-  "acta_notificacion_num",
-  "notificacion_motivo_1",
-  "notificacion_motivo_2",
-  "notificacion_motivo_3",
-  "acta_comprobacion_num",
-  "comprobacion_motivo",
-  "acta_clausura_num",
-  "acta_decomiso_num",
-  "decomiso_kilos_total",
-  "expediente_numero",
-  "expediente_anio",
-  "oficio_numero",
-  "oficio_anio",
-  "oficio_causa",
-  "notificacion_editable",
-  "comprobacion_editable",
-  "notificacion_previa_num",
-  "comprobacion_previa_num",
-];
-
-function mergeEditDraftAfterQuitarActa(prev: IActuacionListItem, row: IActuacionListItem): IActuacionListItem {
-  const out: IActuacionListItem = { ...prev };
-  for (const k of DRAFT_PATCH_KEYS_AFTER_QUITAR_ACTA) {
-    (out as Record<string, unknown>)[k] = row[k] as unknown;
-  }
-  return out;
-}
 
 /** Referencia estable: `= []` en props default crea un array nuevo cada render y rompe el memo de columnas / MRT. */
 const EMPTY_EXTRA_COLUMNS: MRT_ColumnDef<IActuacionListItem>[] = [];
@@ -98,7 +65,6 @@ interface TablaActuacionesProps {
     };
   /**
    * Actualiza la fila en el listado padre sin refetch con loading (evita desmontar la grilla / cerrar el modal).
-   * Tras quitar un acta desde el modal se llama con la fila devuelta por la API.
    */
   onActuacionListPatch?: (row: IActuacionListItem) => void;
   initialColumnVisibility?: Record<string, boolean>;
@@ -113,8 +79,6 @@ interface TablaActuacionesProps {
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
   onAfterSave?: (fullRow: IActuacionListItem) => Promise<void>;
   readOnlyColumns?: string[];
-  numeroCallesOptions?: string[];
-  numeroAllowFreeSolo?: boolean;
   /** Si se define, reemplaza `TablaExportButtons` en la toolbar MRT. */
   exportToolbar?: ReactNode;
 }
@@ -123,7 +87,6 @@ const TablaActuaciones = ({
     data: externalData,
     loading: externalLoading,
     onRefresh,
-    onActuacionListPatch,
     listadoServidor,
     initialColumnVisibility,
   enableEditing = true,
@@ -137,8 +100,6 @@ const TablaActuaciones = ({
   onBeforeSave,
   onAfterSave,
   readOnlyColumns = EMPTY_READ_ONLY_COLUMNS,
-    numeroCallesOptions,
-    numeroAllowFreeSolo = false,
     exportToolbar,
 }: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
@@ -158,12 +119,12 @@ const TablaActuaciones = ({
   // ✅ errores por celda por idActuacion
   const feedback = useAppFeedback();
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
-  const [editGlobalError, setEditGlobalError] = useState<string | null>(null);
   /** Actuación pendiente de confirmar borrado en `ConfirmDialog` (solo si no `hideDeleteAction`). */
   const [deleteConfirmActuacionId, setDeleteConfirmActuacionId] = useState<number | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   /** Fila abierta en modal de detalle/edición; la tabla es solo lectura. */
   const [editDraft, setEditDraft] = useState<IActuacionListItem | null>(null);
+  const [editOriginalRow, setEditOriginalRow] = useState<IActuacionListItem | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
@@ -248,18 +209,18 @@ const TablaActuaciones = ({
 
   const handleCloseEditDialog = useCallback(() => {
     setEditDraft(null);
-    setEditGlobalError(null);
+    setEditOriginalRow(null);
   }, []);
 
   const handleDialogSave = useCallback(async () => {
     if (!editDraft) return;
     const id = Number(editDraft.id);
     setEditSaving(true);
-    setEditGlobalError(null);
     try {
       const result = await submitActuacionRow({
         id,
         fullRow: editDraft,
+        originalRow: editOriginalRow,
         skipValidation,
         skipUpdate,
         onBeforeSave,
@@ -272,16 +233,16 @@ const TablaActuaciones = ({
       if (!result.ok) {
         if (result.kind === "validation" || result.kind === "backend_fields") {
           setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
-          setEditGlobalError(result.globalMessage ?? null);
+          notifyActuacionSaveResult(result, feedback);
           return;
         }
-        setEditGlobalError(result.message);
-        feedback.error(result.message);
+        notifyActuacionSaveResult(result, feedback);
         return;
       }
 
+      notifyActuacionSaveResult(result, feedback);
       setEditDraft(null);
-      setEditGlobalError(null);
+      setEditOriginalRow(null);
       triggerRefresh();
       setTimeout(() => onRefresh?.(), 100);
     } finally {
@@ -289,25 +250,15 @@ const TablaActuaciones = ({
     }
   }, [
     editDraft,
+    editOriginalRow,
     onRefresh,
     triggerRefresh,
     onBeforeSave,
     onAfterSave,
     skipValidation,
     skipUpdate,
+    feedback,
   ]);
-
-  const handleQuitarActaCanal = useCallback(
-    async (tipo: ActaCanalQuitarTipo) => {
-      if (!editDraft) return;
-      const id = Number(editDraft.id);
-      const row = await postQuitarActaCanalActas(id, tipo);
-      setEditDraft((prev) => (prev ? mergeEditDraftAfterQuitarActa(prev, row) : null));
-      setData((prev) => prev.map((item) => (Number(item.id) === id ? { ...item, ...row } : item)));
-      onActuacionListPatch?.(row);
-    },
-    [editDraft, onActuacionListPatch]
-  );
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
     const composite = buildActuacionesCompositeColumns();
@@ -476,7 +427,10 @@ const TablaActuaciones = ({
               transition: "color 0.2s ease, background-color 0.2s ease",
               "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
             }}
-            onClick={() => setEditDraft({ ...row.original })}
+            onClick={() => {
+              setEditDraft({ ...row.original });
+              setEditOriginalRow({ ...row.original });
+            }}
           >
             <VisibilityIcon />
           </IconButton>
@@ -597,18 +551,14 @@ const TablaActuaciones = ({
           open
           draft={editDraft}
           fieldErrors={rowErrors[editDraft.id] ?? EMPTY_ACTUACION_FIELD_ERRORS}
-          formGlobalError={editGlobalError}
           saving={editSaving}
           catalogs={catalogs}
           readOnlyColumns={readOnlyColumns}
-          numeroCallesOptions={numeroCallesOptions}
           numeroEditorLabel={numeroEditorLabel}
-          numeroAllowFreeSolo={numeroAllowFreeSolo}
           canEdit={enableEditing}
           onClose={handleCloseEditDialog}
           onDraftChange={handleEditDraftChange}
           onSave={handleDialogSave}
-          onQuitarActa={enableEditing ? handleQuitarActaCanal : undefined}
         />
       )}
 

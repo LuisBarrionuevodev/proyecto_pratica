@@ -32,6 +32,12 @@ export type AppDialogProps = Omit<DialogProps, "title"> & {
   tone?: AppDialogTone;
   appearance?: AppDialogAppearance;
   contentSx?: SxProps<Theme>;
+  /** Estilos extra para `DialogTitle` (p. ej. header CRUD azul). */
+  titleSx?: SxProps<Theme>;
+  /** Estilos extra para `DialogActions`. */
+  actionsSx?: SxProps<Theme>;
+  /** Botón X claro sobre header de color (p. ej. header CRUD azul). */
+  closeButtonOnPrimary?: boolean;
   /** Activa bordes entre título / contenido / acciones (paridad con `DialogContent dividers` de MUI). */
   contentDividers?: boolean;
   paperSx?: SxProps<Theme>;
@@ -61,6 +67,9 @@ export function AppDialog({
   fullWidth = true,
   scroll = "paper",
   contentSx,
+  titleSx: titleSxProp,
+  actionsSx: actionsSxProp,
+  closeButtonOnPrimary = false,
   contentDividers,
   paperSx,
   onCloseButtonClick,
@@ -100,6 +109,7 @@ export function AppDialog({
     pr: showHeaderClose ? 1 : 2,
     ...(appearance === "glass" ? glassDialogTitleSx : {}),
     ...(tone === "danger" ? { color: theme.palette.error.main } : {}),
+    ...titleSxProp,
   };
 
   const dialogContentLayoutSx: SxProps<Theme> = {
@@ -123,8 +133,10 @@ export function AppDialog({
     contentSx,
   ];
 
-  const mergedActionsSx: SxProps<Theme> | undefined =
-    appearance === "glass" ? glassDialogActionsSx : undefined;
+  const mergedActionsSx: SxProps<Theme> = [
+    appearance === "glass" ? glassDialogActionsSx : undefined,
+    actionsSxProp,
+  ];
 
   return (
     <Dialog
@@ -153,7 +165,12 @@ export function AppDialog({
               size="small"
               sx={
                 appearance === "glass"
-                  ? { color: "rgba(255,255,255,0.75)", "&:hover": { color: theme.palette.primary.main } }
+                  ? closeButtonOnPrimary
+                    ? {
+                        color: "rgba(255,255,255,0.85)",
+                        "&:hover": { color: "#ffffff", backgroundColor: "rgba(255,255,255,0.12)" },
+                      }
+                    : { color: "rgba(255,255,255,0.75)", "&:hover": { color: theme.palette.primary.main } }
                   : undefined
               }
             >

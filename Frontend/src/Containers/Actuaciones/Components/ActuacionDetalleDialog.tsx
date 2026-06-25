@@ -1,7 +1,7 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { ReactNode } from "react";
+import type { SxProps, Theme } from "@mui/material/styles";
 import {
-  Alert,
   Autocomplete,
   Box,
   Chip,
@@ -13,10 +13,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
-import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
+import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import {
   MOTIVOS_NOTIFICACION_MAX,
   mergeMotivosNotifCatalogStrings,
@@ -25,35 +24,40 @@ import {
 } from "../../../utils/motivosNotificacionSlots";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
-import { applyActuacionErrorsFromApi } from "../utils/submitActuacionRow";
-import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import { useAppFeedback } from "../../../components/feedback";
+import {
+  CrudDialogActions,
+  CrudDialogHeader,
+  CrudDialogSection,
+  CrudFormSlot,
+  CrudGlassDialog,
+  useCrudDialogScrollContainer,
+} from "../../../components/crudDialog";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   DOC_MODAL_TEXT,
-  docModalBlockOverlineSx,
   docModalBlockResumenSx,
   docModalChipSx,
-  docModalFilaEtiquetaSx,
-  docModalFilaValorSx,
-  docModalFooterButtonsSx,
-  docModalFooterHintSx,
-  docModalFooterRowSx,
-  docModalActuacionScrollCardShellSx,
-  docModalHeaderStackSx,
   docModalIntroParagraphSx,
-  docModalReferenceSx,
   docModalSubheadingInCardSx,
-  docModalSubtitleSx,
-  docModalTitleSx,
 } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
+import { NumeroEsquinaFreeEditor } from "./NumeroEsquinaFreeEditor";
+import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
+import { ActaNumFieldLazy } from "./ActaNumFieldLazy";
 import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
 import {
   actuacionDocumentacionOrigenReinspeccionSegments,
   actuacionDocumentacionPropiaTramiteSegments,
 } from "../utils/actuacionDocumentacionVisual";
+import {
+  detectBlockedActaClearAttempt,
+  getActuacionEditableFields,
+  resolveActuacionEditStart,
+  tieneExpedienteBloqueoEdicion,
+} from "../utils/actuacionEditRules";
+import { scrollActuacionFormToFirstFieldError } from "../utils/actuacionFormScroll";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -78,14 +82,6 @@ const tramiteOrigenLineaSx = {
   wordBreak: "break-word" as const,
 };
 
-const QUITAR_ACTA_TITLE: Record<ActaCanalQuitarTipo, string> = {
-  INSPECCION: "Quitar acta de inspección",
-  NOTIFICACION: "Quitar acta de notificación",
-  COMPROBACION: "Quitar acta de comprobación",
-  CLAUSURA: "Quitar acta de clausura",
-  DECOMISO: "Quitar acta de decomiso",
-};
-
 export type ActuacionEditCatalogs = {
   inspectores: string[];
   motivos: string[];
@@ -99,22 +95,20 @@ export type ActuacionDetalleDialogProps = {
   open: boolean;
   draft: IActuacionListItem;
   fieldErrors: Record<string, string>;
-  /** Resumen breve cuando hay errores por campo; error global si no hay mapeo inline. */
-  formGlobalError?: string | null;
   saving: boolean;
   catalogs: ActuacionEditCatalogs;
   readOnlyColumns: string[];
   /** Opciones de calle para editor de número (p. ej. gestión domicilios); opcional en actuaciones. */
-  numeroCallesOptions?: string[];
   numeroEditorLabel?: string;
-  numeroAllowFreeSolo?: boolean;
   /** Si es false, no se muestra el paso a edición (p. ej. bandejas restringidas). */
   canEdit?: boolean;
-  /** Si se informa, el modal muestra «Eliminar» por acta y llama aquí tras confirmar (POST quitar-acta). */
-  onQuitarActa?: (tipo: ActaCanalQuitarTipo) => Promise<void>;
   onClose: () => void;
   onDraftChange: (patch: Partial<IActuacionListItem>) => void;
   onSave: () => void | Promise<void>;
+  /** Solo tests SSR; evita portal de MUI Dialog. */
+  disablePortal?: boolean;
+  /** Solo tests: abrir directamente en edición. */
+  initialEditing?: boolean;
 };
 
 function opts(strings: string[]) {
@@ -155,14 +149,6 @@ const edicionGrid2ColSx = {
   width: "100%",
 } as const;
 
-/** Marco discreto para datos de visita de solo contexto en edición. */
-const edicionContextoVisitaSx = {
-  p: 1.5,
-  borderRadius: 1.5,
-  bgcolor: "rgba(255,255,255,0.03)",
-  border: "1px solid rgba(255,255,255,0.06)",
-} as const;
-
 /** Acta de notificación / comprobación bloqueada por expediente (misma semántica que `lockedNotif` / `lockedComp`). */
 const edicionActaBloqueadaShellSx = {
   mt: 0,
@@ -176,7 +162,21 @@ const edicionActaBloqueadaShellSx = {
  * Modo edición: separa el título de subsección (h3 de acta) del contenido siguiente,
  * para que el label flotante del primer control no compita con el heading.
  */
-const edicionActaSubtituloSx = { ...docModalSubheadingInCardSx, mb: 1.5 } as const;
+const actaSubtituloMenorSx = {
+  ...docModalSubheadingInCardSx,
+  fontSize: "0.6875rem",
+  fontWeight: 600,
+  opacity: 0.9,
+  mb: 1.25,
+} as const;
+
+/** Título principal de la sección «Actas labradas» (mayor jerarquía que cada acta). */
+const actasLabradasSectionTitleSx = {
+  fontSize: "0.875rem",
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  mb: 1.75,
+} as const;
 
 /** Aire entre el overline/resumen del bloque documental y el primer control (p. ej. Lugar y titular, formulario). */
 const edicionGapBloqueAPrimerControlSx = { mt: 2 } as const;
@@ -188,95 +188,15 @@ function dash(v: unknown): string {
   return String(v);
 }
 
-function domicilioTexto(row: IActuacionListItem): string {
-  const line = formatActuacionListDomicilioLinea(row).trim();
-  return line || "—";
+/** Texto de vinculación a establecimiento sin exponer IDs internos. */
+function establecimientoVinculacionTexto(row: IActuacionListItem): string {
+  if (row.establecimiento_operativo_id == null) return "—";
+  if (row.establecimiento_actuaciones_en_ficha != null) {
+    const n = row.establecimiento_actuaciones_en_ficha;
+    return n === 1 ? "1 actuación en ficha vinculada" : `${n} actuaciones en ficha vinculada`;
+  }
+  return "Vinculado a ficha de establecimiento";
 }
-
-function titularLinea(row: IActuacionListItem): string {
-  const rs = (row.razon_social ?? "").trim();
-  if (rs) return rs;
-  const a = (row.contrib_apellido ?? "").trim();
-  const n = (row.contrib_nombre ?? "").trim();
-  const t = [a, n].filter(Boolean).join(", ");
-  return t || "—";
-}
-
-function actaInspeccionTieneNumero(d: IActuacionListItem): boolean {
-  const n = d.acta_inspeccion_num;
-  return n != null && String(n).trim() !== "";
-}
-
-function actaNotificacionTieneContenido(d: IActuacionListItem): boolean {
-  const n = d.acta_notificacion_num;
-  const num = n != null && String(n).trim() !== "";
-  return num || motivosNotificacionNoVacios(d).length > 0;
-}
-
-function actaComprobacionTieneContenido(d: IActuacionListItem): boolean {
-  const n = d.acta_comprobacion_num;
-  const num = n != null && String(n).trim() !== "";
-  const m = d.comprobacion_motivo != null && String(d.comprobacion_motivo).trim() !== "";
-  return num || m;
-}
-
-function actaClausuraTieneNumero(d: IActuacionListItem): boolean {
-  const n = d.acta_clausura_num;
-  return n != null && String(n).trim() !== "";
-}
-
-function actaDecomisoTieneContenido(d: IActuacionListItem): boolean {
-  const n = d.acta_decomiso_num;
-  const num = n != null && String(n).trim() !== "";
-  const k = d.decomiso_kilos_total != null && Number(d.decomiso_kilos_total) > 0;
-  return num || k;
-}
-
-function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: { xs: 0.25, sm: 1 },
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        py: 0.65,
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        "&:last-of-type": { borderBottom: "none", pb: 0 },
-      }}
-    >
-      <Typography component="span" variant="body2" sx={docModalFilaEtiquetaSx}>
-        {etiqueta}
-      </Typography>
-      <Typography component="span" variant="body2" sx={docModalFilaValorSx}>
-        {valor}
-      </Typography>
-    </Box>
-  );
-}
-
-/** Número de acta como lectura principal en la card "Actas de la visita". */
-const actaNumeroPrincipalSx = {
-  color: DOC_MODAL_TEXT,
-  fontWeight: 700,
-  fontSize: "1.0625rem",
-  lineHeight: 1.35,
-  letterSpacing: "0.02em",
-  fontFamily: '"Tactic Sans", sans-serif',
-  mt: 0.75,
-  wordBreak: "break-word" as const,
-};
-
-/** Motivos, kilos y complementos bajo el número de acta. */
-const actaDetalleSecundarioSx = {
-  color: DOC_MODAL_TEXT,
-  fontSize: "0.8125rem",
-  fontWeight: 400,
-  lineHeight: 1.5,
-  opacity: 0.92,
-  mt: 1,
-};
 
 const actaGrupoWrapperSx = {
   pb: 1.75,
@@ -354,97 +274,59 @@ function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
     <Box component="div" sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {showInspeccion ? (
         <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          <Typography component="h3" sx={actaSubtituloMenorSx}>
             Acta de inspección
           </Typography>
-          <Typography component="p" sx={actaNumeroPrincipalSx}>
-            {dash(nIns)}
-          </Typography>
+          <CrudFormSlot label="Número de acta" mode="view" value={dash(nIns)} />
         </Box>
       ) : null}
 
       {showNotificacion ? (
         <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          <Typography component="h3" sx={actaSubtituloMenorSx}>
             Acta de notificación
           </Typography>
-          <Typography component="p" sx={actaNumeroPrincipalSx}>
-            {numNot}
-          </Typography>
+          <CrudFormSlot label="Número de acta" mode="view" value={numNot} />
           {motivosNoti.length > 0 ? (
-            <Box sx={{ mt: 1.25, pl: 0.25 }}>
-              <Typography
-                variant="caption"
-                component="p"
-                sx={{
-                  color: DOC_MODAL_TEXT,
-                  opacity: 0.65,
-                  fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  fontSize: "0.6875rem",
-                  mb: 0.75,
-                }}
-              >
-                Motivos
-              </Typography>
-              <Stack spacing={0.5} component="div">
-                {motivosNoti.map((m, i) => (
-                  <Typography key={i} sx={{ ...actaDetalleSecundarioSx, pl: 1, borderLeft: "2px solid rgba(255,255,255,0.12)" }}>
-                    {m}
-                  </Typography>
-                ))}
-              </Stack>
-            </Box>
+            <CrudFormSlot
+              label="Motivos de notificación"
+              mode="view"
+              value={motivosNoti.join(" · ")}
+              sx={{ mt: 2 }}
+            />
           ) : null}
         </Box>
       ) : null}
 
       {showComprobacion ? (
         <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          <Typography component="h3" sx={actaSubtituloMenorSx}>
             Acta de comprobación
           </Typography>
-          <Typography component="p" sx={actaNumeroPrincipalSx}>
-            {numComp}
-          </Typography>
+          <CrudFormSlot label="Número de acta" mode="view" value={numComp} />
           {mComp ? (
-            <Typography component="p" sx={actaDetalleSecundarioSx}>
-              <Box component="span" sx={{ opacity: 0.75, fontWeight: 600 }}>
-                Motivo:{" "}
-              </Box>
-              {mComp}
-            </Typography>
+            <CrudFormSlot label="Motivo de comprobación" mode="view" value={mComp} sx={{ mt: 2 }} />
           ) : null}
         </Box>
       ) : null}
 
       {showClausura ? (
         <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          <Typography component="h3" sx={actaSubtituloMenorSx}>
             Acta de clausura
           </Typography>
-          <Typography component="p" sx={actaNumeroPrincipalSx}>
-            {dash(nClau)}
-          </Typography>
+          <CrudFormSlot label="Número de acta" mode="view" value={dash(nClau)} />
         </Box>
       ) : null}
 
       {showDecomiso ? (
         <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+          <Typography component="h3" sx={actaSubtituloMenorSx}>
             Acta de decomiso
           </Typography>
-          <Typography component="p" sx={actaNumeroPrincipalSx}>
-            {numDec}
-          </Typography>
+          <CrudFormSlot label="Número de acta" mode="view" value={numDec} />
           {kg != null ? (
-            <Typography component="p" sx={{ ...actaDetalleSecundarioSx, mt: 1 }}>
-              <Box component="span" sx={{ opacity: 0.75, fontWeight: 600 }}>
-                Kilos decomisados:{" "}
-              </Box>
-              {kg} kg
-            </Typography>
+            <CrudFormSlot label="Kilos decomisados" mode="view" value={`${kg} kg`} sx={{ mt: 2 }} />
           ) : null}
         </Box>
       ) : null}
@@ -455,29 +337,28 @@ function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
 function DocumentalBloque({
   overline,
   resumen,
+  sectionTitleSx,
   children,
 }: {
   overline: string;
   resumen?: string;
+  sectionTitleSx?: SxProps<Theme>;
   children: ReactNode;
 }) {
   return (
-    <Box sx={docModalActuacionScrollCardShellSx(COLORS.primary)}>
-      <Typography component="div" sx={docModalBlockOverlineSx}>
-        {overline}
-      </Typography>
+    <CrudDialogSection title={overline} variant="plain" titleSx={sectionTitleSx}>
       {resumen ? (
-        <Typography component="div" sx={docModalBlockResumenSx}>
+        <Typography component="div" sx={{ ...docModalBlockResumenSx, mb: 1 }}>
           {resumen}
         </Typography>
       ) : null}
       {children}
-    </Box>
+    </CrudDialogSection>
   );
 }
 
 function tieneRestriccionesEdicion(row: IActuacionListItem): boolean {
-  return row.notificacion_editable === false || row.comprobacion_editable === false;
+  return tieneExpedienteBloqueoEdicion(row);
 }
 
 /** Texto de restricciones cuando hay bloqueo; solo se usa si `tieneRestriccionesEdicion`. */
@@ -564,11 +445,12 @@ function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
   const bloques: ReactNode[] = [];
   if (tieneResultado) {
     bloques.push(
-      <Box key="res">
-        <Typography component="p" sx={{ ...actaNumeroPrincipalSx, m: 0 }}>
-          {dash(res)}
-        </Typography>
-      </Box>
+      <CrudFormSlot
+        key="res"
+        label="Resultado cumplimiento oficio"
+        mode="view"
+        value={dash(res)}
+      />
     );
   }
   if (showDoc) {
@@ -829,29 +711,49 @@ export function ActuacionDetalleDialog({
   open,
   draft,
   fieldErrors,
-  formGlobalError = null,
   saving,
   catalogs,
   readOnlyColumns,
   canEdit = true,
-  onQuitarActa,
+  numeroEditorLabel = "Número o referencia",
   onClose,
   onDraftChange,
   onSave,
+  disablePortal,
+  initialEditing = false,
 }: ActuacionDetalleDialogProps) {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
+  const feedback = useAppFeedback();
+  const scrollContainerRef = useCrudDialogScrollContainer();
+  const actaFlushRegistry = useRef<Set<() => void>>(new Set());
+  const [isEditing, setIsEditing] = useState(initialEditing);
+  const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
-  const [quitarConfirmTipo, setQuitarConfirmTipo] = useState<ActaCanalQuitarTipo | null>(null);
-  const [quitarBusy, setQuitarBusy] = useState(false);
-  const [quitarActaError, setQuitarActaError] = useState<string | null>(null);
+  const [inspectoresAddInput, setInspectoresAddInput] = useState("");
+
+  const editableFields = useMemo(() => getActuacionEditableFields(draft), [draft]);
+
+  const registerActaFlush = useCallback((fn: () => void) => {
+    actaFlushRegistry.current.add(fn);
+    return () => {
+      actaFlushRegistry.current.delete(fn);
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
-      setIsEditing(false);
+      setIsEditing(initialEditing);
+      setEditBaseline(initialEditing ? { ...draft } : null);
       setEpicollectOtrosExpanded(false);
+      setInspectoresAddInput("");
+      actaFlushRegistry.current.clear();
     }
-  }, [open, draft.id]);
+  }, [open, draft.id, initialEditing]);
+
+  useEffect(() => {
+    if (!open || !isEditing) return;
+    scrollActuacionFormToFirstFieldError(scrollContainerRef?.current ?? null, fieldErrors);
+  }, [open, isEditing, fieldErrors, scrollContainerRef]);
 
   const lockedNotif = draft.notificacion_editable === false;
   const lockedComp = draft.comprobacion_editable === false;
@@ -908,11 +810,26 @@ export function ActuacionDetalleDialog({
     window.print();
   }, [saving]);
 
-  const handleStartEditing = useCallback(() => setIsEditing(true), []);
+  const handleStartEditing = useCallback(() => {
+    const result = resolveActuacionEditStart(draft);
+    if (!result.allowed) {
+      feedback.warning(result.message);
+      return;
+    }
+    setEditBaseline({ ...draft });
+    setIsEditing(true);
+  }, [draft, feedback]);
 
   const handleSaveClick = useCallback(() => {
+    actaFlushRegistry.current.forEach((fn) => fn());
+    const baseline = editBaseline ?? draft;
+    const blockedMsg = detectBlockedActaClearAttempt(draft, baseline);
+    if (blockedMsg) {
+      feedback.warning(blockedMsg);
+      return;
+    }
     void onSave();
-  }, [onSave]);
+  }, [draft, editBaseline, feedback, onSave]);
 
   const applyInspectoresNombres = useCallback(
     (nombres: string[]) => {
@@ -940,81 +857,48 @@ export function ActuacionDetalleDialog({
     [onDraftChange]
   );
 
-  const handleAskQuitarActa = useCallback((tipo: ActaCanalQuitarTipo) => {
-    setQuitarConfirmTipo(tipo);
-  }, []);
-
-  const handleDismissQuitar = useCallback(() => {
-    if (!quitarBusy) setQuitarConfirmTipo(null);
-  }, [quitarBusy]);
-
-  const handleConfirmQuitarActa = useCallback(async () => {
-    if (!quitarConfirmTipo || !onQuitarActa) return;
-    setQuitarBusy(true);
-    setQuitarActaError(null);
-    try {
-      await onQuitarActa(quitarConfirmTipo);
-      setQuitarConfirmTipo(null);
-    } catch (err: unknown) {
-      const { globalMessage } = applyActuacionErrorsFromApi(err);
-      setQuitarActaError(globalMessage ?? "No se pudo quitar el acta.");
-    } finally {
-      setQuitarBusy(false);
-    }
-  }, [quitarConfirmTipo, onQuitarActa]);
+  const commitActaInspeccion = useCallback(
+    (value: string | null) => onDraftChange({ acta_inspeccion_num: value }),
+    [onDraftChange]
+  );
+  const commitActaNotificacion = useCallback(
+    (value: string | null) =>
+      onDraftChange({
+        acta_notificacion_num: value,
+        ...(value == null
+          ? {
+              notificacion_motivo_1: null,
+              notificacion_motivo_2: null,
+              notificacion_motivo_3: null,
+            }
+          : {}),
+      }),
+    [onDraftChange]
+  );
+  const commitActaComprobacion = useCallback(
+    (value: string | null) =>
+      onDraftChange({
+        acta_comprobacion_num: value,
+        ...(value == null ? { comprobacion_motivo: null } : {}),
+      }),
+    [onDraftChange]
+  );
+  const commitActaDecomiso = useCallback(
+    (value: string | null) =>
+      onDraftChange({
+        acta_decomiso_num: value,
+        ...(value == null ? { decomiso_kilos_total: null } : {}),
+      }),
+    [onDraftChange]
+  );
+  const commitActaClausura = useCallback(
+    (value: string | null) => onDraftChange({ acta_clausura_num: value }),
+    [onDraftChange]
+  );
 
   const toggleEpicollectOtros = useCallback(() => {
     setEpicollectOtrosExpanded((v) => !v);
   }, []);
-
-  const documentalTitleRead = useMemo(
-    () => (
-      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-        <Chip label="Actuaciones" size="small" sx={docModalChipSx} variant="outlined" />
-        <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          {`OT ${dash(draft.orden_trabajo_numero)}`}
-        </Typography>
-        <Typography variant="body2" sx={docModalSubtitleSx}>
-          {dash(draft.tipo_actuacion)}
-        </Typography>
-        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
-          Actuación #{draft.id}
-        </Typography>
-      </Box>
-    ),
-    [draft.id, draft.orden_trabajo_numero, draft.tipo_actuacion]
-  );
-
-  /** Misma identidad que lectura, con marca discreta de modo edición. */
-  const documentalTitleEdit = useMemo(
-    () => (
-      <Box sx={{ ...docModalHeaderStackSx, width: "100%" }}>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
-          <Chip label="Actuaciones" size="small" sx={docModalChipSx} variant="outlined" />
-          <Chip
-            label="Edición"
-            size="small"
-            sx={{
-              ...docModalChipSx,
-              borderColor: "rgba(255,255,255,0.38)",
-              bgcolor: "rgba(255,255,255,0.08)",
-            }}
-            variant="outlined"
-          />
-        </Box>
-        <Typography component="span" variant="h6" sx={docModalTitleSx}>
-          {`OT ${dash(draft.orden_trabajo_numero)}`}
-        </Typography>
-        <Typography variant="body2" sx={docModalSubtitleSx}>
-          {dash(draft.tipo_actuacion)}
-        </Typography>
-        <Typography variant="caption" component="div" sx={{ ...docModalReferenceSx, maxWidth: "100%" }}>
-          Actuación #{draft.id}
-        </Typography>
-      </Box>
-    ),
-    [draft.id, draft.orden_trabajo_numero, draft.tipo_actuacion]
-  );
 
   const detalleVista = useMemo(() => {
     const tieneSnapshotEpicollectLectura = epicollectSnapshotLecturaHayContenido(draft);
@@ -1024,25 +908,35 @@ export function ActuacionDetalleDialog({
 
     return (
     <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Ficha de la actuación">
-      <DocumentalBloque overline="Lugar y titular">
-        <DocumentalFila etiqueta="Domicilio (calle y número)" valor={domicilioTexto(draft)} />
-        <DocumentalFila etiqueta="Nombre de fantasía" valor={dash(draft.nombre_local)} />
-        <DocumentalFila etiqueta="Titular o razón social" valor={titularLinea(draft)} />
-        <DocumentalFila etiqueta="N.º de documento" valor={dash(draft.doc_nro)} />
-        <DocumentalFila etiqueta="Rubro" valor={dash(draft.rubro_nombre)} />
-        <DocumentalFila
-          etiqueta="Vinculación a ficha de establecimiento"
-          valor={
-            draft.establecimiento_operativo_id != null
-              ? `Ficha n.º ${draft.establecimiento_operativo_id}${
-                  draft.establecimiento_actuaciones_en_ficha != null
-                    ? ` · ${draft.establecimiento_actuaciones_en_ficha} actuación${
-                        draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "es"
-                      } en esa ficha`
-                    : ""
-                }`
-              : "—"
-          }
+      <DocumentalBloque overline="Domicilio y establecimiento">
+        <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
+          <CrudFormSlot label="Calle" mode="view" value={dash(draft.calle)} />
+          <CrudFormSlot label="Número o referencia" mode="view" value={dash(draft.numero)} />
+          <CrudFormSlot
+            label="Tipo de numeración"
+            mode="view"
+            value={dash(draft.numero_tipo)}
+            sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+          />
+        </Box>
+        <CrudFormSlot label="Nombre de fantasía" mode="view" value={dash(draft.nombre_local)} sx={{ mt: 2 }} />
+        <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
+          <CrudFormSlot label="Rubro" mode="view" value={dash(draft.rubro_nombre)} />
+          <CrudFormSlot label="N.º de documento" mode="view" value={dash(draft.doc_nro)} />
+          <CrudFormSlot label="Apellido" mode="view" value={dash(draft.contrib_apellido)} />
+          <CrudFormSlot label="Nombre" mode="view" value={dash(draft.contrib_nombre)} />
+          <CrudFormSlot
+            label="Razón social"
+            mode="view"
+            value={dash(draft.razon_social)}
+            sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+          />
+        </Box>
+        <CrudFormSlot
+          label="Vinculación a ficha de establecimiento"
+          mode="view"
+          value={establecimientoVinculacionTexto(draft)}
+          sx={{ mt: 2 }}
         />
         {draft.establecimiento_operativo_id != null ? (
           <Box sx={{ mt: 1.5 }}>
@@ -1060,20 +954,29 @@ export function ActuacionDetalleDialog({
         ) : null}
       </DocumentalBloque>
 
-      <DocumentalBloque overline="La visita">
-        <DocumentalFila etiqueta="Fecha de la visita" valor={dash(draft.fecha_actuacion)} />
-        <DocumentalFila etiqueta="Inspectores a cargo" valor={draft.inspectores_texto?.trim() || inspectoresLinea(draft)} />
-        <DocumentalFila etiqueta="Contraproducencia" valor={dash(draft.contraproducencia)} />
+      <DocumentalBloque overline="Datos de la actuación">
+        <Box sx={edicionGrid2ColSx}>
+          <CrudFormSlot label="OT" mode="view" value={dash(draft.orden_trabajo_numero)} />
+          <CrudFormSlot label="Fecha de la visita" mode="view" value={dash(draft.fecha_actuacion)} />
+          <CrudFormSlot label="Tipo de actuación" mode="view" value={dash(draft.tipo_actuacion)} />
+          <CrudFormSlot label="Contraproducencia" mode="view" value={dash(draft.contraproducencia)} />
+        </Box>
+        <CrudFormSlot
+          label="Inspectores a cargo"
+          mode="view"
+          value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
+          sx={{ mt: 2, width: "100%" }}
+        />
       </DocumentalBloque>
 
       {actasVisitaHayContenido(draft) ? (
-        <DocumentalBloque overline="Actas de la visita">
+        <DocumentalBloque overline="Actas labradas" sectionTitleSx={actasLabradasSectionTitleSx}>
           <ActasVisitaLectura draft={draft} />
         </DocumentalBloque>
       ) : null}
 
       {resultadoSeguimientoHayContenido(draft) ? (
-        <DocumentalBloque overline="Resultado y seguimiento">
+        <DocumentalBloque overline="Resultado operativo">
           <ResultadoSeguimientoLectura draft={draft} />
         </DocumentalBloque>
       ) : null}
@@ -1100,8 +1003,15 @@ export function ActuacionDetalleDialog({
 
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? "";
+    const fieldHelper = (key: string) => e(key) || "\u00a0";
     const ro = (key: string) => readOnlyColumns.includes(key);
-    const helperBloqueo = (key: string, locked: boolean) => (locked ? e(key) || undefined : e(key));
+    const canContrib = editableFields.canEditContribuyente;
+    const canDom = editableFields.canEditDomicilio;
+    const canNotifEdit = editableFields.canEditNotificacion;
+    const helperBloqueo = (key: string, locked: boolean) => {
+      const msg = locked ? e(key) : e(key);
+      return msg || "\u00a0";
+    };
 
     const tieneSnapshotEpicollectLectura = epicollectSnapshotLecturaHayContenido(draft);
     const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
@@ -1137,31 +1047,15 @@ export function ActuacionDetalleDialog({
 
     const gridNotificacion = (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
-          <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
-            <AppTextField
-              appearance="glass"
-              label="Número de acta"
-              value={draft.acta_notificacion_num ?? ""}
-              onChange={(ev) => onDraftChange({ acta_notificacion_num: ev.target.value })}
-              disabled={lockedNotif}
-              error={!!e("acta_notificacion_num")}
-              helperText={helperBloqueo("acta_notificacion_num", lockedNotif)}
-              fullWidth
-            />
-          </Box>
-          {onQuitarActa && actaNotificacionTieneContenido(draft) && !lockedNotif ? (
-            <AppButton
-              dsVariant="danger"
-              dsSize="sm"
-              sx={{ flexShrink: 0, mt: 0.5 }}
-              onClick={() => handleAskQuitarActa("NOTIFICACION")}
-              disabled={saving}
-            >
-              Eliminar
-            </AppButton>
-          ) : null}
-        </Box>
+        <ActaNumFieldLazy
+          value={draft.acta_notificacion_num}
+          onCommit={commitActaNotificacion}
+          disabled={lockedNotif}
+          saving={saving}
+          registerFlush={registerActaFlush}
+          error={!!e("acta_notificacion_num")}
+          helperText={helperBloqueo("acta_notificacion_num", lockedNotif)}
+        />
         <Box sx={{ width: "100%" }}>
           <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 600, mb: 0.75 }}>
             Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
@@ -1207,7 +1101,7 @@ export function ActuacionDetalleDialog({
                 placeholder="Catálogo"
                 sx={modalAuxInputSx}
                 error={!!e("notificacion_motivo_1")}
-                helperText={helperBloqueo("notificacion_motivo_1", lockedNotif) || undefined}
+                helperText={helperBloqueo("notificacion_motivo_1", lockedNotif)}
               />
             )}
           />
@@ -1217,31 +1111,15 @@ export function ActuacionDetalleDialog({
 
     const gridComprobacion = (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
-          <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
-            <AppTextField
-              appearance="glass"
-              label="Número de acta"
-              value={draft.acta_comprobacion_num ?? ""}
-              onChange={(ev) => onDraftChange({ acta_comprobacion_num: ev.target.value })}
-              disabled={lockedComp}
-              error={!!e("acta_comprobacion_num")}
-              helperText={helperBloqueo("acta_comprobacion_num", lockedComp)}
-              fullWidth
-            />
-          </Box>
-          {onQuitarActa && actaComprobacionTieneContenido(draft) && !lockedComp ? (
-            <AppButton
-              dsVariant="danger"
-              dsSize="sm"
-              sx={{ flexShrink: 0, mt: 0.5 }}
-              onClick={() => handleAskQuitarActa("COMPROBACION")}
-              disabled={saving}
-            >
-              Eliminar
-            </AppButton>
-          ) : null}
-        </Box>
+        <ActaNumFieldLazy
+          value={draft.acta_comprobacion_num}
+          onCommit={commitActaComprobacion}
+          disabled={lockedComp}
+          saving={saving}
+          registerFlush={registerActaFlush}
+          error={!!e("acta_comprobacion_num")}
+          helperText={helperBloqueo("acta_comprobacion_num", lockedComp)}
+        />
         <AppSelect
           appearance="glass"
           label="Motivo de comprobación"
@@ -1258,47 +1136,28 @@ export function ActuacionDetalleDialog({
 
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
-        {formGlobalError ? (
-          <Alert severity="error" sx={{ borderRadius: 2 }}>
-            {formGlobalError}
-          </Alert>
-        ) : null}
-        <DocumentalBloque overline="Lugar y titular">
+        <DocumentalBloque overline="Domicilio y establecimiento">
           <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
             <AppTextField
               appearance="glass"
               label="Calle"
               value={draft.calle ?? ""}
               onChange={(ev) => onDraftChange({ calle: ev.target.value.trim() ? ev.target.value.trim() : null })}
-              disabled={ro("calle")}
+              disabled={ro("calle") || !canDom}
               error={!!e("calle")}
-              helperText={e("calle")}
+              helperText={fieldHelper("calle")}
+              sx={!canDom ? roFieldSx : undefined}
               fullWidth
             />
-            <AppTextField
-              appearance="glass"
-              label="Número o referencia"
-              value={draft.numero ?? ""}
-              onChange={(ev) => onDraftChange({ numero: ev.target.value.trim() ? ev.target.value.trim() : null })}
-              disabled={ro("numero")}
+            <NumeroEsquinaFreeEditor
+              value={draft.numero ?? null}
+              onChange={(newValue) => onDraftChange({ numero: newValue })}
+              onModeChange={(editorMode) => onDraftChange({ numero_tipo: editorMode })}
+              label={numeroEditorLabel}
               error={!!e("numero")}
-              helperText={e("numero")}
-              fullWidth
-            />
-            <AppSelect
-              appearance="glass"
-              label="Tipo de numeración"
-              value={(draft.numero_tipo ?? "").trim().toUpperCase() || ""}
-              onChange={(ev) => {
-                const v = String(ev.target.value ?? "").trim().toUpperCase();
-                onDraftChange({ numero_tipo: v ? v : null });
-              }}
-              options={opts(["", "NUMERO", "ESQUINA", "OTRO"])}
-              disabled={ro("numero_tipo")}
-              error={!!e("numero_tipo")}
-              helperText={e("numero_tipo")}
-              fullWidth
-              sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+              helperText={fieldHelper("numero")}
+              disabled={ro("numero") || !canDom}
+              initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </Box>
           <AppTextField
@@ -1306,9 +1165,10 @@ export function ActuacionDetalleDialog({
             label="Nombre de fantasía"
             value={draft.nombre_local ?? ""}
             onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
+            disabled={!canContrib}
             error={!!e("nombre_local")}
-            helperText={e("nombre_local")}
-            sx={{ mt: 2 }}
+            helperText={fieldHelper("nombre_local")}
+            sx={{ mt: 2, ...(!canContrib ? roFieldSx : {}) }}
             fullWidth
           />
           <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
@@ -1318,9 +1178,9 @@ export function ActuacionDetalleDialog({
               value={draft.rubro_nombre ?? ""}
               onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
               options={rubrosOptions}
-              disabled={ro("rubro_nombre")}
+              disabled={ro("rubro_nombre") || !canDom}
               error={!!e("rubro_nombre")}
-              helperText={e("rubro_nombre")}
+              helperText={fieldHelper("rubro_nombre")}
               fullWidth
             />
             <AppTextField
@@ -1328,8 +1188,10 @@ export function ActuacionDetalleDialog({
               label="N.º de documento"
               value={draft.doc_nro ?? ""}
               onChange={(ev) => onDraftChange({ doc_nro: ev.target.value })}
+              disabled={!canContrib}
               error={!!e("doc_nro")}
-              helperText={e("doc_nro")}
+              helperText={fieldHelper("doc_nro")}
+              sx={!canContrib ? roFieldSx : undefined}
               fullWidth
             />
             <AppTextField
@@ -1337,8 +1199,10 @@ export function ActuacionDetalleDialog({
               label="Apellido"
               value={draft.contrib_apellido ?? ""}
               onChange={(ev) => onDraftChange({ contrib_apellido: ev.target.value })}
+              disabled={!canContrib}
               error={!!e("contrib_apellido")}
-              helperText={e("contrib_apellido")}
+              helperText={fieldHelper("contrib_apellido")}
+              sx={!canContrib ? roFieldSx : undefined}
               fullWidth
             />
             <AppTextField
@@ -1346,8 +1210,10 @@ export function ActuacionDetalleDialog({
               label="Nombre"
               value={draft.contrib_nombre ?? ""}
               onChange={(ev) => onDraftChange({ contrib_nombre: ev.target.value })}
+              disabled={!canContrib}
               error={!!e("contrib_nombre")}
-              helperText={e("contrib_nombre")}
+              helperText={fieldHelper("contrib_nombre")}
+              sx={!canContrib ? roFieldSx : undefined}
               fullWidth
             />
             <AppTextField
@@ -1355,51 +1221,25 @@ export function ActuacionDetalleDialog({
               label="Razón social"
               value={draft.razon_social ?? ""}
               onChange={(ev) => onDraftChange({ razon_social: ev.target.value || null })}
+              disabled={!canContrib}
               error={!!e("razon_social")}
-              helperText={e("razon_social")}
-              sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+              helperText={fieldHelper("razon_social")}
+              sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" }, ...(!canContrib ? roFieldSx : {}) }}
               fullWidth
             />
           </Box>
-          <DocumentalFila etiqueta="Titular o razón social" valor={titularLinea(draft)} />
-          <DocumentalFila
-            etiqueta="Vinculación a ficha de establecimiento"
-            valor={
-              draft.establecimiento_operativo_id != null
-                ? `Ficha n.º ${draft.establecimiento_operativo_id}${
-                    draft.establecimiento_actuaciones_en_ficha != null
-                      ? ` · ${draft.establecimiento_actuaciones_en_ficha} actuación${
-                          draft.establecimiento_actuaciones_en_ficha === 1 ? "" : "es"
-                        } en esa ficha`
-                      : ""
-                  }`
-                : "—"
-            }
-          />
-          {draft.establecimiento_operativo_id != null ? (
-            <Box sx={{ mt: 1.5 }}>
-              <AppButton
-                dsVariant="secondary"
-                dsSize="sm"
-                onClick={() => {
-                  onClose();
-                  navigate(`/establecimientos/${draft.establecimiento_operativo_id}`);
-                }}
-              >
-                Ver establecimiento
-              </AppButton>
-            </Box>
-          ) : null}
         </DocumentalBloque>
 
-        <DocumentalBloque overline="La visita">
-          <Box sx={{ ...edicionContextoVisitaSx, ...edicionGapBloqueAPrimerControlSx }}>
+        <DocumentalBloque overline="Datos de la actuación">
+          <Box sx={edicionGapBloqueAPrimerControlSx}>
             <Box sx={edicionGrid2ColSx}>
               <AppTextField
                 appearance="glass"
                 label="OT"
                 value={draft.orden_trabajo_numero ?? ""}
                 disabled
+                error={!!e("orden_trabajo_numero")}
+                helperText={fieldHelper("orden_trabajo_numero")}
                 sx={roFieldSx}
                 fullWidth
               />
@@ -1409,6 +1249,8 @@ export function ActuacionDetalleDialog({
                 type="date"
                 value={draft.fecha_actuacion ?? ""}
                 disabled
+                error={!!e("fecha_actuacion")}
+                helperText={fieldHelper("fecha_actuacion")}
                 sx={roFieldSx}
                 InputLabelProps={dateFieldShrinkLabelProps}
                 fullWidth
@@ -1418,6 +1260,8 @@ export function ActuacionDetalleDialog({
                 label="Tipo de actuación"
                 value={draft.tipo_actuacion ?? ""}
                 disabled
+                error={!!e("tipo_actuacion")}
+                helperText={fieldHelper("tipo_actuacion")}
                 sx={roFieldSx}
                 fullWidth
               />
@@ -1426,6 +1270,8 @@ export function ActuacionDetalleDialog({
                 label="Contraproducencia"
                 value={draft.contraproducencia ?? ""}
                 disabled
+                error={!!e("contraproducencia")}
+                helperText={fieldHelper("contraproducencia")}
                 sx={roFieldSx}
                 fullWidth
               />
@@ -1433,9 +1279,6 @@ export function ActuacionDetalleDialog({
             <Box sx={{ mt: 2, width: "100%" }}>
               <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 600, mb: 0.5 }}>
                 Inspectores a cargo
-              </Typography>
-              <Typography variant="caption" component="div" sx={{ color: DOC_MODAL_TEXT, mb: 1.25, lineHeight: 1.45 }}>
-                Elegí del catálogo; quitá con la cruz. Sin duplicados (orden de carga se conserva).
               </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.25, minHeight: 36 }}>
                 {inspectoresEnOrdenLocal.length === 0 ? (
@@ -1463,11 +1306,17 @@ export function ActuacionDetalleDialog({
                 size="small"
                 options={inspectoresDisponiblesAgregar}
                 value={null}
+                inputValue={inspectoresAddInput}
+                onInputChange={(_, newInput, reason) => {
+                  if (reason === "input") setInspectoresAddInput(newInput);
+                  else if (reason === "clear" || reason === "reset") setInspectoresAddInput("");
+                }}
                 disabled={saving || inspectoresDisponiblesAgregar.length === 0}
                 onChange={(_, value) => {
                   if (!value || saving) return;
                   if (inspectoresEnOrdenLocal.includes(value)) return;
                   applyInspectoresNombres([...inspectoresEnOrdenLocal, value]);
+                  setInspectoresAddInput("");
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -1476,7 +1325,7 @@ export function ActuacionDetalleDialog({
                     placeholder="Catálogo"
                     sx={modalAuxInputSx}
                     error={!!e("inspectores")}
-                    helperText={e("inspectores") || undefined}
+                    helperText={fieldHelper("inspectores")}
                   />
                 )}
               />
@@ -1484,39 +1333,24 @@ export function ActuacionDetalleDialog({
           </Box>
         </DocumentalBloque>
 
-        <DocumentalBloque overline="Actas de la visita">
+        <DocumentalBloque overline="Actas labradas" sectionTitleSx={actasLabradasSectionTitleSx}>
           <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={edicionActaSubtituloSx}>
+            <Typography component="h3" sx={actaSubtituloMenorSx}>
               Acta de inspección
             </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
-              <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
-                <AppTextField
-                  appearance="glass"
-                  label="Número de acta"
-                  value={draft.acta_inspeccion_num ?? ""}
-                  onChange={(ev) => onDraftChange({ acta_inspeccion_num: ev.target.value })}
-                  error={!!e("acta_inspeccion_num")}
-                  helperText={e("acta_inspeccion_num")}
-                  fullWidth
-                />
-              </Box>
-              {onQuitarActa && actaInspeccionTieneNumero(draft) ? (
-                <AppButton
-                  dsVariant="danger"
-                  dsSize="sm"
-                  sx={{ flexShrink: 0, mt: 0.5 }}
-                  onClick={() => handleAskQuitarActa("INSPECCION")}
-                  disabled={saving}
-                >
-                  Eliminar
-                </AppButton>
-              ) : null}
-            </Box>
+            <ActaNumFieldLazy
+              value={draft.acta_inspeccion_num}
+              onCommit={commitActaInspeccion}
+              saving={saving}
+              registerFlush={registerActaFlush}
+              error={!!e("acta_inspeccion_num")}
+              helperText={fieldHelper("acta_inspeccion_num")}
+            />
           </Box>
 
+          {canNotifEdit ? (
           <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={edicionActaSubtituloSx}>
+            <Typography component="h3" sx={actaSubtituloMenorSx}>
               Acta de notificación
             </Typography>
             {lockedNotif ? (
@@ -1540,9 +1374,10 @@ export function ActuacionDetalleDialog({
               gridNotificacion
             )}
           </Box>
+          ) : null}
 
           <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={edicionActaSubtituloSx}>
+            <Typography component="h3" sx={actaSubtituloMenorSx}>
               Acta de comprobación
             </Typography>
             {lockedComp ? (
@@ -1568,63 +1403,31 @@ export function ActuacionDetalleDialog({
           </Box>
 
           <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={edicionActaSubtituloSx}>
+            <Typography component="h3" sx={actaSubtituloMenorSx}>
               Acta de clausura
             </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1 }}>
-              <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
-                <AppTextField
-                  appearance="glass"
-                  label="Número de acta"
-                  value={draft.acta_clausura_num ?? ""}
-                  onChange={(ev) => onDraftChange({ acta_clausura_num: ev.target.value })}
-                  error={!!e("acta_clausura_num")}
-                  helperText={e("acta_clausura_num")}
-                  fullWidth
-                />
-              </Box>
-              {onQuitarActa && actaClausuraTieneNumero(draft) ? (
-                <AppButton
-                  dsVariant="danger"
-                  dsSize="sm"
-                  sx={{ flexShrink: 0, mt: 0.5 }}
-                  onClick={() => handleAskQuitarActa("CLAUSURA")}
-                  disabled={saving}
-                >
-                  Eliminar
-                </AppButton>
-              ) : null}
-            </Box>
+            <ActaNumFieldLazy
+              value={draft.acta_clausura_num}
+              onCommit={commitActaClausura}
+              saving={saving}
+              registerFlush={registerActaFlush}
+              error={!!e("acta_clausura_num")}
+              helperText={fieldHelper("acta_clausura_num")}
+            />
           </Box>
 
           <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={edicionActaSubtituloSx}>
+            <Typography component="h3" sx={actaSubtituloMenorSx}>
               Acta de decomiso
             </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 1, width: "100%" }}>
-              <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
-                <AppTextField
-                  appearance="glass"
-                  label="Número de acta"
-                  value={draft.acta_decomiso_num ?? ""}
-                  onChange={(ev) => onDraftChange({ acta_decomiso_num: ev.target.value })}
-                  error={!!e("acta_decomiso_num")}
-                  helperText={e("acta_decomiso_num")}
-                  fullWidth
-                />
-              </Box>
-              {onQuitarActa && actaDecomisoTieneContenido(draft) ? (
-                <AppButton
-                  dsVariant="danger"
-                  dsSize="sm"
-                  sx={{ flexShrink: 0, mt: 0.5 }}
-                  onClick={() => handleAskQuitarActa("DECOMISO")}
-                  disabled={saving}
-                >
-                  Eliminar
-                </AppButton>
-              ) : null}
-            </Box>
+            <ActaNumFieldLazy
+              value={draft.acta_decomiso_num}
+              onCommit={commitActaDecomiso}
+              saving={saving}
+              registerFlush={registerActaFlush}
+              error={!!e("acta_decomiso_num")}
+              helperText={fieldHelper("acta_decomiso_num")}
+            />
             <AppTextField
               appearance="glass"
               label="Kilos decomisados"
@@ -1637,7 +1440,7 @@ export function ActuacionDetalleDialog({
                 });
               }}
               error={!!e("decomiso_kilos_total")}
-              helperText={e("decomiso_kilos_total")}
+              helperText={fieldHelper("decomiso_kilos_total")}
               fullWidth
               sx={{ mt: 1.5 }}
             />
@@ -1645,12 +1448,10 @@ export function ActuacionDetalleDialog({
         </DocumentalBloque>
 
         {muestraResultadoSeguimientoEdicion ? (
-          <DocumentalBloque overline="Resultado y seguimiento">
+          <DocumentalBloque overline="Resultado operativo">
             {tieneResultado ? (
               <Box sx={edicionGapBloqueAPrimerControlSx}>
-                <Typography component="p" sx={{ ...actaNumeroPrincipalSx, m: 0 }}>
-                  {dash(res)}
-                </Typography>
+                <CrudFormSlot label="Resultado cumplimiento oficio" mode="view" value={dash(res)} />
               </Box>
             ) : null}
             {documentacionTramiteModalTieneContenido(draft) ? (
@@ -1668,7 +1469,7 @@ export function ActuacionDetalleDialog({
                   border: "1px solid rgba(255,255,255,0.08)",
                 }}
               >
-                <Typography component="h3" sx={{ ...edicionActaSubtituloSx, fontSize: "0.6875rem", opacity: 0.9 }}>
+                <Typography component="h3" sx={actaSubtituloMenorSx}>
                   Edición en canal actas
                 </Typography>
                 <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontSize: "0.8125rem", mt: 1, lineHeight: 1.55 }}>
@@ -1726,8 +1527,10 @@ export function ActuacionDetalleDialog({
   }, [
     draft,
     fieldErrors,
-    formGlobalError,
     readOnlyColumns,
+    editableFields,
+    registerActaFlush,
+    numeroEditorLabel,
     lockedNotif,
     lockedComp,
     mergedCatalogs,
@@ -1736,111 +1539,49 @@ export function ActuacionDetalleDialog({
     epicollectOtrosExpanded,
     toggleEpicollectOtros,
     onDraftChange,
-    navigate,
-    onClose,
-    onQuitarActa,
-    handleAskQuitarActa,
+    commitActaInspeccion,
+    commitActaNotificacion,
+    commitActaComprobacion,
+    commitActaClausura,
+    commitActaDecomiso,
     applyMotivosNotificacion,
     applyInspectoresNombres,
     saving,
   ]);
 
-  const dialogContentExtraSx = useMemo(
-    () => ({
-      maxHeight: "min(72vh, 720px)",
-      overflowY: "auto" as const,
-      gap: 0,
-      pt: isEditing ? undefined : 2,
-      pb: isEditing ? undefined : 2,
-    }),
-    [isEditing]
-  );
-
-  const dialogContentSx = useMemo(
-    () => [formDialogContentStackSx, dialogContentExtraSx],
-    [dialogContentExtraSx]
-  );
-
-  const dialogActions = useMemo(
-    () => (
-      <Box sx={docModalFooterRowSx}>
-        <Typography variant="caption" component="div" sx={{ ...docModalFooterHintSx, flex: "1 1 200px" }}>
-          {isEditing
-            ? "Guardar aplica en canal actas."
-            : "Impresión: usa el menú del navegador si el diálogo no aparece en la vista previa."}
-        </Typography>
-        <Box sx={docModalFooterButtonsSx}>
-          {!isEditing ? (
-            <>
-              <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
-                Cerrar
-              </AppButton>
-              {canEdit ? (
-                <AppButton dsVariant="secondary" dsSize="sm" onClick={handleStartEditing} disabled={saving}>
-                  Editar
-                </AppButton>
-              ) : null}
-              <AppButton dsVariant="primary" dsSize="sm" onClick={handlePrint} disabled={saving}>
-                Imprimir
-              </AppButton>
-            </>
-          ) : (
-            <>
-              <AppButton dsVariant="ghost" dsSize="sm" onClick={handleBackToDetail} disabled={saving}>
-                Volver al detalle
-              </AppButton>
-              <AppButton dsVariant="secondary" dsSize="sm" onClick={handlePrint} disabled={saving}>
-                Imprimir
-              </AppButton>
-              <AppButton dsVariant="primary" dsSize="sm" onClick={handleSaveClick} loading={saving} disabled={saving}>
-                Guardar
-              </AppButton>
-            </>
-          )}
-        </Box>
-      </Box>
-    ),
-    [isEditing, saving, canEdit, handleClose, handleBackToDetail, handlePrint, handleStartEditing, handleSaveClick]
-  );
-
   return (
-    <>
-      <AppDialog
-        open={open}
-        onClose={handleDialogClose}
-        onCloseButtonClick={handleClose}
-        title={isEditing ? documentalTitleEdit : documentalTitleRead}
-        appearance="glass"
-        maxWidth="md"
-        fullWidth
-        contentDividers
-        contentSx={dialogContentSx}
-        showCloseButton
-        actions={dialogActions}
-      >
-        {!isEditing ? detalleVista : edicionVista}
-      </AppDialog>
-      <ConfirmDialog
-        open={quitarConfirmTipo != null}
-        onClose={handleDismissQuitar}
-        onConfirm={() => void handleConfirmQuitarActa()}
-        title={quitarConfirmTipo ? QUITAR_ACTA_TITLE[quitarConfirmTipo] : ""}
-        destructive
-        loading={quitarBusy}
-        confirmLabel="Eliminar"
-      >
-        <Stack spacing={1.5}>
-          <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.5 }}>
-            Se quitará el acta de esta actuación. Si tenés otros cambios sin guardar, guardalos antes o perderán
-            consistencia con el servidor.
-          </Typography>
-          {quitarActaError ? (
-            <Alert severity="error" sx={{ borderRadius: 1 }}>
-              {quitarActaError}
-            </Alert>
-          ) : null}
-        </Stack>
-      </ConfirmDialog>
-    </>
+    <CrudGlassDialog
+      open={open}
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
+      onClose={handleDialogClose}
+      onCloseButtonClick={handleClose}
+      maxWidth="md"
+      title={
+        <CrudDialogHeader
+          domainChip="Actuaciones"
+          mode={isEditing ? "edit" : "view"}
+          titulo={isEditing ? "Editar actuación" : "Ver actuación"}
+          subtitulo="Detalle operativo"
+        />
+      }
+      actions={
+        <CrudDialogActions
+          mode={isEditing ? "edit" : "view"}
+          onEdit={canEdit ? handleStartEditing : undefined}
+          onSave={handleSaveClick}
+          loading={saving}
+          canEdit={canEdit}
+          saveLabel="Guardar cambios"
+          extraActions={
+            <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
+              Imprimir
+            </AppButton>
+          }
+        />
+      }
+    >
+      {!isEditing ? detalleVista : edicionVista}
+    </CrudGlassDialog>
   );
 }

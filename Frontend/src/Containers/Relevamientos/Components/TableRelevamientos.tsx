@@ -1,6 +1,6 @@
 import { Alert, Box, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MaterialReactTable,
@@ -15,7 +15,7 @@ import {
   rubroItemsToNombres,
 } from "../../../utils/rubrosCatalogCache";
 import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
-import { RelevamientoEditDialog } from "./RelevamientoEditDialog";
+import { RelevamientoCrudDialog } from "./RelevamientoCrudDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import { turnoCargaLabel } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
 import {
@@ -85,7 +85,8 @@ const TablaRelevamientos = ({
   const [batchId, setBatchId] = useState<string | null>(null);
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
-  const [editDraft, setEditDraft] = useState<IRelevamientoListItem | null>(null);
+  const [crudDraft, setCrudDraft] = useState<IRelevamientoListItem | null>(null);
+  const [crudMode, setCrudMode] = useState<"view" | "edit" | null>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editGlobalError, setEditGlobalError] = useState<string | null>(null);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<IRelevamientoListItem | null>(null);
@@ -156,15 +157,27 @@ const TablaRelevamientos = ({
   const catalogs = useMemo(
     () => ({
       inspectores: catalogInspectores,
-      rubros: mergeLegacyRubroNames(catalogRubros, editDraft?.rubro),
+      rubros: mergeLegacyRubroNames(catalogRubros, crudDraft?.rubro),
     }),
-    [catalogInspectores, catalogRubros, editDraft?.rubro]
+    [catalogInspectores, catalogRubros, crudDraft?.rubro]
   );
 
+  const closeCrudDialog = useCallback(() => {
+    setCrudDraft(null);
+    setCrudMode(null);
+    setEditGlobalError(null);
+  }, []);
+
+  const openCrudView = useCallback((row: IRelevamientoListItem) => {
+    setEditGlobalError(null);
+    setCrudDraft({ ...row });
+    setCrudMode("view");
+  }, []);
+
   const handleDialogSave = useCallback(async () => {
-    if (!editDraft) return;
-    const id = Number(editDraft.id);
-    const fullRow = editDraft;
+    if (!crudDraft) return;
+    const id = Number(crudDraft.id);
+    const fullRow = crudDraft;
     if (fullRow.editable === false) {
       feedback.error("Este relevamiento ya no está operativo y no puede editarse.");
       return;
@@ -197,7 +210,8 @@ const TablaRelevamientos = ({
         return;
       }
 
-      setEditDraft(null);
+      setCrudDraft(null);
+      setCrudMode(null);
       setEditGlobalError(null);
       if (shouldRefreshRelevamientosAfterSaveFailure(result)) {
         onRefresh?.();
@@ -206,7 +220,7 @@ const TablaRelevamientos = ({
       setEditSaving(false);
     }
   }, [
-    editDraft,
+    crudDraft,
     batchId,
     onRefresh,
     onBeforeSave,
@@ -336,21 +350,18 @@ const TablaRelevamientos = ({
     },
     renderRowActions: hideRowActions ? undefined : ({ row }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        {enableEditing && (
-          <Tooltip title={row.original.editable === false ? "No editable (fuera de gestión operativa)" : "Editar"}>
-            <IconButton
-              sx={{
-                color: COLORS.white,
-                transition: "color 0.2s ease, background-color 0.2s ease",
-                "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-              }}
-              disabled={row.original.editable === false}
-              onClick={() => setEditDraft({ ...row.original })}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-        )}
+        <Tooltip title="Ver">
+          <IconButton
+            sx={{
+              color: COLORS.white,
+              transition: "color 0.2s ease, background-color 0.2s ease",
+              "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+            }}
+            onClick={() => openCrudView(row.original)}
+          >
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         {!hideDeleteAction && (
           <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
             <IconButton
@@ -379,29 +390,41 @@ const TablaRelevamientos = ({
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
 
-      {editDraft && (
-        <RelevamientoEditDialog
+      {crudDraft && crudMode ? (
+        <RelevamientoCrudDialog
           open
-          draft={editDraft}
-          fieldErrors={rowErrors[editDraft.id] ?? {}}
+          mode={crudMode}
+          draft={crudDraft}
+          fieldErrors={rowErrors[crudDraft.id] ?? {}}
           saving={editSaving}
           catalogs={catalogs}
           readOnlyColumns={readOnlyColumns}
           numeroCallesOptions={numeroCallesOptions}
           numeroEditorLabel={numeroEditorLabel}
           numeroAllowFreeSolo={numeroAllowFreeSolo}
-          onClose={() => {
-            setEditDraft(null);
+          globalError={editGlobalError}
+          canEdit={crudDraft.editable !== false && enableEditing}
+          showDelete={!hideDeleteAction && crudMode === "edit"}
+          onClose={closeCrudDialog}
+          onDelete={
+            !hideDeleteAction && crudDraft.editable !== false
+              ? () => {
+                  requestDeleteRow(crudDraft);
+                  closeCrudDialog();
+                }
+              : undefined
+          }
+          onModeChange={(nextMode) => {
             setEditGlobalError(null);
+            setCrudMode(nextMode);
           }}
           onDraftChange={(patch) => {
             setEditGlobalError(null);
-            setEditDraft((prev) => (prev ? { ...prev, ...patch } : null));
+            setCrudDraft((prev) => (prev ? { ...prev, ...patch } : null));
           }}
-          globalError={editGlobalError}
           onSave={handleDialogSave}
         />
-      )}
+      ) : null}
 
       <ConfirmDialog
         open={deleteConfirmRow !== null}
