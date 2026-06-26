@@ -1667,6 +1667,17 @@ const ActasComprobacionPage = () => {
         listRow={detalleListRow}
         detalle={detalle}
         loading={detalleLoading}
+        juzgados={juzgados}
+        defaultFechaAlta={defaultRange.hasta}
+        onBandejasActualizadas={async () => {
+          await onReinBandejasActualizadas();
+          if (detalleActuacionId != null) {
+            await reloadRecorridoDetalle(detalleActuacionId);
+          }
+          if (recFilterApplied) {
+            await loadRecorridoSearch();
+          }
+        }}
       />
     </Box>
   );

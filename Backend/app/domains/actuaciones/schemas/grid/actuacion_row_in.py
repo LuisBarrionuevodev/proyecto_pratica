@@ -166,6 +166,8 @@ class ActuacionGridRowIn(BaseModel):
     nombre_local: Optional[str] = None
     tipo_actuacion: Optional[str] = None
     contraproducencia: Optional[str] = None
+    # True cuando el usuario borró contraproducencia en edición (PUT no debe omitir el clear).
+    limpiar_contraproducencia: bool = False
 
     # Inspectores (catálogo DB)
     # Lista canónica para persistir (sin tope). Si viene, tiene prioridad sobre inspector1/2/3.

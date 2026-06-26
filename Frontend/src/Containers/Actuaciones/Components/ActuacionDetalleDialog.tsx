@@ -57,6 +57,8 @@ import {
   resolveActuacionEditStart,
   tieneExpedienteBloqueoEdicion,
 } from "../utils/actuacionEditRules";
+import { buildContraproducenciaCrudSelectOptions } from "../utils/contraproducenciaCrudOptions";
+import { getContraproducenciaUxHint } from "../../CompletarTrabajos/utils/contraproducenciaUxHint";
 import { scrollActuacionFormToFirstFieldError } from "../utils/actuacionFormScroll";
 
 const documentacionTramiteChipModalSx = {
@@ -787,6 +789,16 @@ export function ActuacionDetalleDialog({
     [mergedCatalogs]
   );
 
+  const contraCrudOptions = useMemo(
+    () => buildContraproducenciaCrudSelectOptions(mergedCatalogs.contraproducencias, draft.contraproducencia),
+    [mergedCatalogs.contraproducencias, draft.contraproducencia]
+  );
+
+  const contraUxHint = useMemo(
+    () => getContraproducenciaUxHint(draft.contraproducencia ?? ""),
+    [draft.contraproducencia]
+  );
+
   const handleClose = useCallback(() => {
     if (saving) return;
     onClose();
@@ -1265,14 +1277,21 @@ export function ActuacionDetalleDialog({
                 sx={roFieldSx}
                 fullWidth
               />
-              <AppTextField
+              <AppSelect
                 appearance="glass"
                 label="Contraproducencia"
                 value={draft.contraproducencia ?? ""}
-                disabled
+                onChange={(ev) => {
+                  const v = String(ev.target.value ?? "").trim();
+                  onDraftChange({ contraproducencia: v || null });
+                }}
+                options={contraCrudOptions}
+                disabled={saving}
                 error={!!e("contraproducencia")}
-                helperText={fieldHelper("contraproducencia")}
-                sx={roFieldSx}
+                helperText={
+                  fieldHelper("contraproducencia") ||
+                  (contraUxHint && !e("contraproducencia") ? contraUxHint : undefined)
+                }
                 fullWidth
               />
             </Box>

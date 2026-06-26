@@ -11,6 +11,9 @@ from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridR
 from app.domains.actuaciones.schemas.actuacion_patch_in import ActuacionPatchIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
+from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
+    CorregirCierreOperativoError,
+)
 from app.domains.actuaciones.services.patch_service import actualizar_actuacion_parcial
 
 from . import actuacion
@@ -32,6 +35,8 @@ def actualizar_actuacion_route(actuacion_id: int):
 
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except CorregirCierreOperativoError as e:
+        return jsonify({"detail": str(e)}), 409
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
     except Exception as e:

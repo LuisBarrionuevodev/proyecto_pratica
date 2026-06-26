@@ -24,6 +24,8 @@ export interface IActuacionListItem {
     calle_ingresada?: string | null;
     tipo_actuacion: string | null;
     contraproducencia: string | null;
+    /** Flag explícito al corregir cierre operativo (borrar contraproducencia reencolada). */
+    limpiar_contraproducencia?: boolean;
     /** Presente en respuesta API (reinspección por oficio, etc.). */
     resultado_cumplimiento_oficio?: string | null;
     doc_nro: string | null;

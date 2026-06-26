@@ -299,11 +299,19 @@ export function validateActuacionFormForSubmit(
 }
 
 /** Contexto por defecto para el CRUD de Actuaciones (modal detalle). */
-export function actuacionCrudValidationContext(row: IActuacionListItem): ActuacionFormValidationContext {
+export function actuacionCrudValidationContext(
+  row: IActuacionListItem,
+  opts?: { originalRow?: IActuacionListItem | null }
+): ActuacionFormValidationContext {
   const editable = getActuacionEditableFields(row);
+  const hadContra = Boolean(String(opts?.originalRow?.contraproducencia ?? "").trim());
+  const clearingContra = hadContra && !String(row.contraproducencia ?? "").trim();
+
   return {
     includeCrudEditRules: true,
     includeSharedFormRules: true,
+    includeCompletarTrabajoRules: clearingContra,
+    visitaRealizada: clearingContra ? true : undefined,
     canEditContribuyente: editable.canEditContribuyente,
     canEditDomicilio: editable.canEditDomicilio,
     omitNumeroManual: false,

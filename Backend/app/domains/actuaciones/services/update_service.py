@@ -51,6 +51,11 @@ from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     propagar_domicilio_a_iniciadores_activos,
 )
+from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
+    CorregirCierreOperativoError,
+    aplicar_sincronizacion_tras_limpiar_contraproducencia,
+    assert_puede_limpiar_contraproducencia,
+)
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -233,8 +238,21 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         if old_dom is not None:
             old_contribuyente_id = old_dom.contribuyente_id
 
+    limpiar_contra = bool(payload.get("limpiar_contraproducencia"))
+    item_correccion = None
+    ini_correccion = None
+    if limpiar_contra:
+        item_correccion, ini_correccion = assert_puede_limpiar_contraproducencia(act)
+
     assert_canal_actas_permite_payload_notificacion_comprobacion(act, payload)
     aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
+
+    if limpiar_contra:
+        aplicar_sincronizacion_tras_limpiar_contraproducencia(
+            act,
+            item=item_correccion,
+            ini=ini_correccion,
+        )
 
     try_vincular_establecimiento_operativo_desde_actuacion(
         act,

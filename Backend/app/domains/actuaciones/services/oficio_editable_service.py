@@ -16,6 +16,7 @@ _ESTADOS_RUTA_OCULTAN_BANDEJA = ("PUBLICADA", "EN_CURSO")
 _ESTADOS_RUTA_BLOQUEAN_EDICION = ("PUBLICADA", "EN_CURSO", "CERRADA")
 _ESTADOS_INICIADOR_BLOQUEAN_EDICION = ("CUMPLIDO",) + inactive_estados()
 _ESTADOS_EJECUCION_BLOQUEAN_EDICION = ("REALIZADO", "NO_REALIZADO")
+_ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
 
 
 def _iniciador_reinspeccion_oficio(oficio_id: int) -> IniciadorRuta | None:
@@ -39,17 +40,23 @@ def _ruta_item_vigente_por_iniciador(iniciador_id: int) -> RutaItem | None:
     )
 
 
-def _ruta_item_en_estados(iniciador_id: int, estados_ruta: tuple[str, ...]) -> RutaItem | None:
-    return (
+def _ruta_item_en_estados(
+    iniciador_id: int,
+    estados_ruta: tuple[str, ...],
+    *,
+    solo_abiertos: bool = True,
+) -> RutaItem | None:
+    q = (
         RutaItem.query.join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
         .filter(
             RutaItem.iniciador_ruta_id == int(iniciador_id),
             RutaItem.deleted_at.is_(None),
             RutaTrabajo.estado_ruta.in_(estados_ruta),
         )
-        .order_by(RutaItem.id.desc())
-        .first()
     )
+    if solo_abiertos:
+        q = q.filter(RutaItem.estado_ruta_item.in_(_ESTADOS_RUTA_ITEM_ABIERTOS))
+    return q.order_by(RutaItem.id.desc()).first()
 
 
 def iniciador_en_ruta_borrador(ini: IniciadorRuta | None) -> bool:
@@ -65,13 +72,14 @@ def iniciador_en_ruta_borrador(ini: IniciadorRuta | None) -> bool:
 
 def iniciador_en_ruta_operativa(ini: IniciadorRuta | None) -> bool:
     """
-    True si el iniciador está en ruta ``PUBLICADA`` o ``EN_CURSO``.
+    True si el iniciador tiene un ítem **abierto** en ruta ``PUBLICADA`` o ``EN_CURSO``.
 
-    Usado para ocultar filas de bandeja reinspección (STAB-3: ``BORRADOR`` no oculta).
+    Ítems ``FINALIZADO`` (visita ya cerrada, p. ej. contraproducencia reencolada) no ocultan
+    la bandeja ni bloquean nueva gestión documental.
     """
     if ini is None:
         return False
-    return _ruta_item_en_estados(ini.id, _ESTADOS_RUTA_OCULTAN_BANDEJA) is not None
+    return _ruta_item_en_estados(ini.id, _ESTADOS_RUTA_OCULTAN_BANDEJA, solo_abiertos=True) is not None
 
 
 def iniciador_en_ruta_activa(ini: IniciadorRuta | None) -> bool:
@@ -151,7 +159,11 @@ def evaluar_editable_oficio(oficio_id: int) -> dict[str, Any]:
         if ini.estado_iniciador in _ESTADOS_INICIADOR_BLOQUEAN_EDICION:
             motivos.append(f"Iniciador en estado {ini.estado_iniciador}.")
 
-        ri = _ruta_item_vigente_por_iniciador(ini.id)
+        ri = _ruta_item_en_estados(
+            ini.id,
+            ("BORRADOR", "PUBLICADA", "EN_CURSO", "CERRADA"),
+            solo_abiertos=True,
+        )
         if ri is not None:
             ruta_item_id = ri.id
             estado_ejecucion = ri.estado_ejecucion
@@ -200,6 +212,7 @@ def existe_iniciador_en_ruta_activa_para_actuacion(actuacion_id: int) -> bool:
                     IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
                     IniciadorRuta.deleted_at.is_(None),
                     RutaItem.deleted_at.is_(None),
+                    RutaItem.estado_ruta_item.in_(_ESTADOS_RUTA_ITEM_ABIERTOS),
                     RutaTrabajo.estado_ruta.in_(_ESTADOS_RUTA_OCULTAN_BANDEJA),
                 )
             )

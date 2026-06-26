@@ -1,24 +1,41 @@
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import type {
   IComprobacionRecorridoDetalle,
   IComprobacionRecorridoRow,
 } from "../../../api/actuacionesComprobacionActasApi";
-import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
+import {
+  createOficioDesdeActuacion,
+  fetchComprobacionDocumental,
+  fetchOficiosByComprobacion,
+  type IComprobacionDocumentalResponse,
+  type IJuzgadoCatalogItem,
+  type OficioComprobacionItem,
+} from "../../../api/actuacionesPendientesApi";
+import { useAppFeedback } from "../../../components/feedback";
+import { DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
 import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   DocumentalBloque,
   DocumentalFila,
 } from "./comprobacionOperativoBlocks";
-import { docModalEmptyStateSx } from "../../../styles/documentalModalTokens";
+import { docModalEmptyStateSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { AppDialog } from "../../../ui";
+import { parseApiError } from "../../../utils/parseApiError";
+import {
+  applyOficioAltaErrorsFromApi,
+  validateOficioAltaPayloadClient,
+} from "../../../utils/oficioFormErrors";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "../utils/documentalLabelFormat";
 import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 import {
   reinspeccionCircuitoRowFromRecorrido,
   ReinspeccionDocumentalSharedLayout,
 } from "./ReinspeccionDocumentalSharedLayout";
+import { ComprobacionOficiosTribunalSection } from "./ComprobacionOficiosTribunalSection";
+import { type ComprobacionOficioAltaPayload } from "./ComprobacionOficioOperativoDialog";
 
 function textoValor(val: unknown): string {
   if (val === null || val === undefined || val === "") return "—";
@@ -72,11 +89,6 @@ function reinspeccionTieneContenido(data: Record<string, unknown> | null | undef
   );
 }
 
-/**
- * Circuito en espera de la visita posterior (reinspección por oficio): el `tipo_actuacion` del
- * grid sigue siendo el de la actuación ya labrada (p. ej. reinspección), pero en resultado final
- * debe leerse como trabajo pendiente, no como “tipo final” del circuito.
- */
 function esRecorridoPendienteReinspeccionPorOficio(estadoRecorrido: unknown): boolean {
   const s = String(estadoRecorrido ?? "")
     .trim()
@@ -86,7 +98,6 @@ function esRecorridoPendienteReinspeccionPorOficio(estadoRecorrido: unknown): bo
   return s.includes("pendiente reinspeccion por oficio");
 }
 
-/** ``REINSPECCION`` genérico = paso del circuito, no la actuación hija (ratificación / verificar e informar). */
 function esReinspeccionGenericaResultado(val: unknown): boolean {
   const n = String(val ?? "")
     .trim()
@@ -129,13 +140,15 @@ export type RecorridoDetalleDocumentalDialogProps = {
   listRow: IComprobacionRecorridoRow | null;
   detalle: IComprobacionRecorridoDetalle | null;
   loading: boolean;
+  juzgados: IJuzgadoCatalogItem[];
+  defaultFechaAlta: string;
+  /** Tras alta/edición de oficio: refrescar bandejas y recorrido. */
+  onBandejasActualizadas?: () => Promise<void>;
 };
 
 /**
  * Modal de detalle consultivo del recorrido documental (comprobación → oficio → reinspección).
- * Los datos de visita y titular se leen de ``GET .../recorrido/:id`` (``referencia_actuacion`` + ``origen``);
- * ``listRow`` solo complementa si el servidor es antiguo o hay campos extra en la tabla.
- * Solo lectura: la edición documental vive en el flujo operativo (p. ej. bandeja Oficio).
+ * Incluye gestión de oficios (alta múltiple) reutilizando el flujo operativo existente.
  */
 export function RecorridoDetalleDocumentalDialog({
   open,
@@ -144,7 +157,109 @@ export function RecorridoDetalleDocumentalDialog({
   listRow,
   detalle,
   loading,
+  juzgados,
+  defaultFechaAlta,
+  onBandejasActualizadas,
 }: RecorridoDetalleDocumentalDialogProps) {
+  const feedback = useAppFeedback();
+  const [documental, setDocumental] = useState<IComprobacionDocumentalResponse | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
+  const [oficios, setOficios] = useState<OficioComprobacionItem[]>([]);
+  const [oficiosLoading, setOficiosLoading] = useState(false);
+  const [oficiosError, setOficiosError] = useState<string | null>(null);
+  const [modalApiError, setModalApiError] = useState<string | null>(null);
+  const [modalFieldErrors, setModalFieldErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const loadOficios = useCallback(async (comprobacionId: number) => {
+    setOficiosLoading(true);
+    setOficiosError(null);
+    try {
+      const resp = await fetchOficiosByComprobacion(comprobacionId);
+      setOficios(resp.oficios ?? []);
+    } catch (err: unknown) {
+      setOficios([]);
+      setOficiosError(parseApiError(err, "No se pudo cargar el historial de oficios").message);
+    } finally {
+      setOficiosLoading(false);
+    }
+  }, []);
+
+  const recargarOficiosDocumental = useCallback(async () => {
+    if (actuacionId == null) return;
+    setDocLoading(true);
+    setDocError(null);
+    try {
+      const doc = await fetchComprobacionDocumental(actuacionId);
+      setDocumental(doc);
+      await loadOficios(doc.comprobacion_id);
+    } catch (err: unknown) {
+      setDocumental(null);
+      setDocError(
+        parseApiError(err, "No se pudo cargar la ficha documental para gestionar oficios.").message
+      );
+    } finally {
+      setDocLoading(false);
+    }
+  }, [actuacionId, loadOficios]);
+
+  useEffect(() => {
+    if (!open || actuacionId == null) {
+      setDocumental(null);
+      setDocError(null);
+      setDocLoading(false);
+      setOficios([]);
+      setOficiosError(null);
+      setModalApiError(null);
+      setModalFieldErrors({});
+      setSaving(false);
+      return;
+    }
+    void recargarOficiosDocumental();
+  }, [open, actuacionId, recargarOficiosDocumental]);
+
+  const onDocumentalUpdated = useCallback(async () => {
+    await recargarOficiosDocumental();
+    if (onBandejasActualizadas) {
+      await onBandejasActualizadas();
+    }
+  }, [recargarOficiosDocumental, onBandejasActualizadas]);
+
+  const handleGuardarAlta = useCallback(
+    async (payload: ComprobacionOficioAltaPayload) => {
+      if (actuacionId == null) return;
+      const clientFe = validateOficioAltaPayloadClient(payload);
+      setModalFieldErrors(clientFe);
+      if (Object.keys(clientFe).length > 0) {
+        setModalApiError(null);
+        return;
+      }
+      setSaving(true);
+      setModalApiError(null);
+      setModalFieldErrors({});
+      try {
+        await createOficioDesdeActuacion(actuacionId, {
+          numero_oficio: payload.numero_oficio.trim(),
+          fecha_oficio: payload.fecha_oficio,
+          juzgado_id: Number(payload.juzgado_id),
+          causa: payload.causa,
+          numero_expediente_oficio: payload.numero_expediente_oficio.trim(),
+          fecha_expediente_oficio: payload.fecha_expediente_oficio,
+        });
+        feedback.success("Oficio registrado correctamente.");
+        await onDocumentalUpdated();
+      } catch (err: unknown) {
+        const parsed = applyOficioAltaErrorsFromApi(err);
+        setModalFieldErrors(parsed.fieldErrors);
+        setModalApiError(parsed.globalMessage);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [actuacionId, onDocumentalUpdated, feedback]
+  );
+
   const handleClose = () => {
     onClose();
   };
@@ -157,7 +272,7 @@ export function RecorridoDetalleDocumentalDialog({
       <DocumentalModalTitleStack
         dominioChip="Comprobación"
         titulo={actaComprobacionCabecera(ctx, detalle)}
-        subtitulo={undefined}
+        subtitulo="Historial / recorrido"
         actuacionId={undefined}
       />
     ) : (
@@ -190,6 +305,8 @@ export function RecorridoDetalleDocumentalDialog({
       ? (reinsData.ejecucion_reinspeccion as Record<string, unknown>)
       : null;
 
+  const puedeGestionarOficios = actuacionId != null && documental?.expediente_envio != null;
+
   return (
     <AppDialog
       open={open}
@@ -201,6 +318,7 @@ export function RecorridoDetalleDocumentalDialog({
       appearance="glass"
       contentDividers
       contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
+      showCloseButton
       actions={undefined}
     >
       {loading && (
@@ -219,6 +337,7 @@ export function RecorridoDetalleDocumentalDialog({
             variant="recorrido"
             ejecucionReinspeccion={ejecPayload}
             notaReferencia={notaReferencia}
+            ocultarOficioYRespuestaLectura
           />
 
           <DocumentalBloque overline="Resultado del circuito">
@@ -233,6 +352,41 @@ export function RecorridoDetalleDocumentalDialog({
               </>
             ) : null}
           </DocumentalBloque>
+
+          {actuacionId != null ? (
+            docError ? (
+              <Alert severity="warning" sx={documentalGlassAlertSx}>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                  No se pudo cargar la ficha documental
+                </Typography>
+                <Typography variant="body2">{docError}</Typography>
+              </Alert>
+            ) : puedeGestionarOficios ? (
+              <ComprobacionOficiosTribunalSection
+                open={open}
+                actuacionId={actuacionId}
+                documental={documental}
+                documentalLoading={docLoading}
+                oficios={oficios}
+                oficiosLoading={oficiosLoading}
+                oficiosError={oficiosError}
+                juzgados={juzgados}
+                defaultFechaAlta={defaultFechaAlta}
+                modalApiError={modalApiError}
+                modalFieldErrors={modalFieldErrors}
+                saving={saving}
+                onGuardarAlta={handleGuardarAlta}
+                onDocumentalUpdated={onDocumentalUpdated}
+                initialOficioId={detalle.oficio?.id ?? null}
+              />
+            ) : !docLoading ? (
+              <Alert severity="info" sx={documentalGlassAlertSx}>
+                <Typography variant="body2">
+                  Para agregar un oficio primero debe existir el expediente de envío de la comprobación.
+                </Typography>
+              </Alert>
+            ) : null
+          ) : null}
         </Stack>
       )}
     </AppDialog>

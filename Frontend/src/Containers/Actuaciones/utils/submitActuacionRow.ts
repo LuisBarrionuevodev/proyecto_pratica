@@ -17,6 +17,7 @@ import {
   validateActuacionFormForSubmit,
 } from "../validations/actuacionFormValidation";
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
+import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
 /**
  * El canal **Cargar actuación** (PUT grilla) no admite expediente/oficio administrativos en el cuerpo;
@@ -196,9 +197,10 @@ export function applyActuacionErrorsFromApi(err: unknown): FormErrorsFromApi {
 }
 
 export type SubmitActuacionRowResult =
-  | { ok: true }
+  | { ok: true; correccionCierre?: boolean }
   | { ok: false; kind: "validation"; fieldErrors: Record<string, string>; globalMessage?: string | null }
   | { ok: false; kind: "backend_fields"; fieldErrors: Record<string, string>; globalMessage?: string | null }
+  | { ok: false; kind: "reingreso_blocked"; message: string }
   | { ok: false; kind: "generic"; message: string };
 
 export type SubmitActuacionRowParams = {
@@ -230,7 +232,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   if (!skipValidation) {
     const clientValidation = validateActuacionFormForSubmit(
       fullRow,
-      actuacionCrudValidationContext(fullRow)
+      actuacionCrudValidationContext(fullRow, { originalRow })
     );
     if (!clientValidation.canSubmit) {
       return {
@@ -242,6 +244,9 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     }
     rowToSubmit = normalizeActuacionRowForCrudSubmit(fullRow);
   }
+
+  rowToSubmit = applyContraproducenciaClearFlag(originalRow, rowToSubmit);
+  const correccionCierre = Boolean(rowToSubmit.limpiar_contraproducencia);
 
   if (originalRow) {
     const blockedMsg = detectBlockedActaClearAttempt(rowToSubmit, originalRow);
@@ -301,9 +306,15 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
       await onAfterSave(rowWithInspectores);
     }
 
-    return { ok: true };
+    return { ok: true, correccionCierre };
   } catch (error: unknown) {
     console.error("Error al actualizar actuación:", error);
+    const axiosLike = error as { response?: { status?: number; data?: { detail?: string } } };
+    const status = axiosLike.response?.status;
+    const detail = axiosLike.response?.data?.detail;
+    if (status === 409 && detail) {
+      return { ok: false, kind: "reingreso_blocked", message: String(detail) };
+    }
     const parsed = applyActuacionErrorsFromApi(error);
     if (Object.keys(parsed.fieldErrors).length > 0) {
       return {

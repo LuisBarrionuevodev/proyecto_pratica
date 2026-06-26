@@ -60,9 +60,13 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         "nombre_local": _clean_str(row.nombre_local),
         "inspectores": inspectores_payload,
     }
-    contra = _enum_value(row.contraproducencia)
-    if contra is not None:
-        payload["contraproducencia"] = contra
+    if row.limpiar_contraproducencia:
+        payload["limpiar_contraproducencia"] = True
+        payload["contraproducencia"] = None
+    else:
+        contra = _enum_value(row.contraproducencia)
+        if contra is not None:
+            payload["contraproducencia"] = contra
 
     # Domicilio
     if row.calle or row.numero:

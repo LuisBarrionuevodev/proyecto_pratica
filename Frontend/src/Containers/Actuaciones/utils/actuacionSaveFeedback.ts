@@ -4,6 +4,7 @@ import type { ActuacionFormValidationResult } from "../validations/actuacionForm
 import type { SubmitActuacionRowResult } from "./submitActuacionRow";
 
 export const MENSAJE_GUARDADO_OK = "Actuación guardada correctamente.";
+export const MENSAJE_CORRECCION_OK = "Actuación corregida correctamente.";
 export const MENSAJE_VALIDACION_LOCAL = "Revisá los campos marcados antes de guardar.";
 export const MENSAJE_ERROR_GRAVE = "No se pudo guardar la actuación.";
 
@@ -16,7 +17,14 @@ export function buildActuacionSaveFeedbackMessage(result: SubmitActuacionRowResu
   message: string;
 } | null {
   if (result.ok) {
-    return { severity: "success", message: MENSAJE_GUARDADO_OK };
+    return {
+      severity: "success",
+      message: result.correccionCierre ? MENSAJE_CORRECCION_OK : MENSAJE_GUARDADO_OK,
+    };
+  }
+
+  if (result.kind === "reingreso_blocked") {
+    return { severity: "warning", message: result.message };
   }
 
   if (result.kind === "validation" || result.kind === "backend_fields") {
