@@ -25,6 +25,9 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
 _TIPOS: Final[frozenset[str]] = frozenset(
     {"INSPECCION", "NOTIFICACION", "COMPROBACION", "CLAUSURA", "DECOMISO"}
 )
+_MSG_DOC_ASOCIADA = (
+    "Esta acta tiene documentación asociada y debe modificarse desde su sección correspondiente."
+)
 
 
 def quitar_acta_canal_actas(actuacion_id: int, tipo: str) -> Actuaciones:
@@ -55,9 +58,7 @@ def quitar_acta_canal_actas(actuacion_id: int, tipo: str) -> Actuaciones:
             if nid is None:
                 raise ValueError("No hay acta de notificación vinculada.")
             if not notificacion_editable_desde_canal_actas(nid):
-                raise ValueError(
-                    "La notificación tiene expediente asociado y no puede quitarse desde este canal."
-                )
+                raise ValueError(_MSG_DOC_ASOCIADA)
             act.notificacion_id = None
             db.session.add(act)
             db.session.flush()
@@ -68,9 +69,7 @@ def quitar_acta_canal_actas(actuacion_id: int, tipo: str) -> Actuaciones:
             if cid is None:
                 raise ValueError("No hay acta de comprobación vinculada.")
             if not comprobacion_editable_desde_canal_actas(cid):
-                raise ValueError(
-                    "La comprobación tiene expediente de envío y no puede quitarse desde este canal."
-                )
+                raise ValueError(_MSG_DOC_ASOCIADA)
             act.comprobacion_id = None
             db.session.add(act)
             db.session.flush()

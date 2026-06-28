@@ -36,9 +36,72 @@ def _norm_str(v: Any) -> str | None:
     return s or None
 
 
-def _cambios_afectan_geocode(cambios: dict[str, Any]) -> bool:
+def _norm_numero_tipo(v: Any) -> str | None:
+    s = _norm_str(v)
+    return s.upper() if s else None
+
+
+def domicilio_payload_cambia_texto_geografico(
+    dom: Domicilio | None,
+    cambios: dict[str, Any] | None,
+) -> bool:
+    """
+    True si el payload trae calle/número/tipo distinto al domicilio persistido.
+
+    Usado para evitar normalización/geocode en updates documentales que reenvían
+    la misma dirección (p. ej. PUT Actuaciones al cargar actas).
+    """
+    c = dict(cambios or {})
+    if dom is None:
+        return bool(_norm_str(c.get("calle")) and _norm_str(c.get("numero")))
+    for field, normalizer in (
+        ("calle", _norm_str),
+        ("numero", _norm_str),
+        ("numero_tipo", _norm_numero_tipo),
+    ):
+        if field not in c:
+            continue
+        new_v = normalizer(c.get(field))
+        old_raw = getattr(dom, field, None)
+        old_v = normalizer(old_raw) if field == "numero_tipo" else _norm_str(old_raw)
+        if new_v is not None and new_v != (old_v or ""):
+            return True
+    return False
+
+
+def _valor_campo_geo_en_domicilio(dom: Domicilio, campo: str) -> Any:
+    if campo == "esquina_normalizada":
+        return dom.esquina_normalizada or dom.esquina_raw
+    return getattr(dom, campo, None)
+
+
+def _cambios_afectan_geocode(
+    cambios: dict[str, Any],
+    dom_actual: Domicilio | None = None,
+) -> bool:
+    """
+    True si algún campo geográfico del payload difiere del domicilio actual.
+
+    Si no hay domicilio actual, cualquier campo geo presente implica refresh.
+    """
     for k in _CAMPOS_GEO:
-        if k in cambios and cambios[k] is not None:
+        if k not in cambios or cambios[k] is None:
+            continue
+        if dom_actual is None:
+            return True
+        if k == "barrio_id":
+            if cambios[k] != dom_actual.barrio_id:
+                return True
+            continue
+        if k == "numero_tipo":
+            nuevo = _norm_numero_tipo(cambios[k])
+            actual = _norm_numero_tipo(dom_actual.numero_tipo)
+            if nuevo != actual:
+                return True
+            continue
+        nuevo = _norm_str(cambios[k])
+        actual = _norm_str(_valor_campo_geo_en_domicilio(dom_actual, k))
+        if nuevo != actual:
             return True
     return False
 
@@ -93,7 +156,12 @@ def resolver_policy_edicion_domicilio(
     """
     cambios = dict(cambios or {})
     modo_exp = (modo_explicito or "").strip().upper()
-    afecta_geo = _cambios_afectan_geocode(cambios)
+    dom_actual = None
+    if domicilio_id is not None:
+        dom_actual = db.session.get(Domicilio, int(domicilio_id))
+        if dom_actual is not None and dom_actual.deleted_at is not None:
+            dom_actual = None
+    afecta_geo = _cambios_afectan_geocode(cambios, dom_actual)
 
     calle_nueva = _norm_str(cambios.get("calle"))
     numero_nuevo = _norm_str(cambios.get("numero"))

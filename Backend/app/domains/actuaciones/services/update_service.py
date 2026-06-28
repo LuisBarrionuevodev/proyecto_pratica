@@ -17,13 +17,10 @@ from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
 from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
+from app.domains.domicilios.services.domicilio_edit_policy_service import (
+    domicilio_payload_cambia_texto_geografico,
+)
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
-from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
-    normalizar_domicilio_en_sesion,
-)
-from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
-    on_domicilio_changed,
-)
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
 from app.domains.establecimientos.services.vincular_establecimiento_operativo_actuacion_service import (
     try_vincular_establecimiento_operativo_desde_actuacion,
@@ -135,10 +132,13 @@ def aplicar_payload_actuacion(
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
         allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
         dom_payload = payload.get("domicilio") or {}
-        modo_domicilio = payload.get("modo_domicilio")
+        dom_actual = db.session.get(Domicilio, int(act.domicilio_id)) if act.domicilio_id else None
+        texto_cambia = domicilio_payload_cambia_texto_geografico(dom_actual, dom_payload)
+        cambios_domicilio = dom_payload if texto_cambia or dom_actual is None else {}
+
         outcome = aplicar_edicion_domicilio_operativo(
             domicilio_id_actual=act.domicilio_id,
-            cambios=dom_payload,
+            cambios=cambios_domicilio,
             contribuyente=contrib,
             rubro=rubro,
             contexto="ACTUACION",
@@ -148,10 +148,8 @@ def aplicar_payload_actuacion(
         )
         dom = outcome.domicilio
         act.domicilio_id = dom.id if dom else None
-        if dom:
-            numero_tipo_override = dom_payload.get("numero_tipo")
-            normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
         act.domicilio = dom
+        # Canal Actuaciones: editar texto ≠ recalcular geocode (Nomenclatura / Gestión Domicilios aparte).
 
     # Inspectores
     if "inspectores" in payload:
@@ -302,13 +300,6 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
 
     if ran_cleanup:
         db.session.commit()
-
-    # Best-effort geocode (no bloquea la actualización)
-    try:
-        if act.domicilio_id:
-            on_domicilio_changed(act.domicilio_id)
-    except Exception:
-        pass
 
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
     return act

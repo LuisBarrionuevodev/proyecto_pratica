@@ -17,6 +17,7 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
 )
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import estado_recorrido_label
 from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio
+from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 
 def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilters):
@@ -117,6 +118,19 @@ def _expediente_respuesta_por_oficio(oficio_id: int) -> Expediente | None:
     )
 
 
+def _tramite_reinspeccion_oficio_cumplido(ini: IniciadorRuta | None) -> bool:
+    """
+    True si el trámite de reinspección por oficio ya cerró operativamente.
+
+    Reencolados por contraproducencia quedan en ``PENDIENTE`` y siguen listables.
+    """
+    if ini is None:
+        return False
+    if ini.estado_iniciador == "CUMPLIDO":
+        return True
+    return ini.estado_iniciador in inactive_estados()
+
+
 def list_pendientes_reinspeccion_oficio_filas(
     filters: ActuacionesPendientesFilters,
 ) -> List[Tuple[Actuaciones, Oficio, Optional[IniciadorRuta]]]:
@@ -135,6 +149,8 @@ def list_pendientes_reinspeccion_oficio_filas(
                 continue
             ini = _iniciador_para_oficio_en_actuacion(ofi, act)
             if iniciador_en_ruta_operativa(ini):
+                continue
+            if _tramite_reinspeccion_oficio_cumplido(ini):
                 continue
             filas.append((act, ofi, ini))
     return filas

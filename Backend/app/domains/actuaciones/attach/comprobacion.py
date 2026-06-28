@@ -5,6 +5,9 @@ from typing import Any, Dict, Optional
 from app.database import db
 from app.models import Actuaciones, Comprobacion
 from app.utils.actas import acta_6
+from app.domains.actuaciones.attach.acta_reactivation_helpers import (
+    otra_actuacion_usa_comprobacion,
+)
 
 
 def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
@@ -64,12 +67,23 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             db.session.add(comp)
 
     if not comp:
-        if db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first():
-            raise ValueError(
-                f"La Comprobación {acta_num}/{anio} ya existe y está asociada a otra actuación."
-            )
-        comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
-        db.session.add(comp)
+        existente = db.session.query(Comprobacion).filter_by(numero_acta=acta_num, anio=anio).first()
+        if existente:
+            if otra_actuacion_usa_comprobacion(int(existente.id), int(actuacion.id)):
+                raise ValueError(
+                    f"La Comprobación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+                )
+            if existente.deleted_at is not None:
+                existente.deleted_at = None
+            existente.numero_acta = acta_num
+            existente.anio = anio
+            existente.mes = mes
+            existente.motivo = motivo
+            comp = existente
+            db.session.add(comp)
+        else:
+            comp = Comprobacion(numero_acta=acta_num, anio=anio, mes=mes, motivo=motivo)
+            db.session.add(comp)
 
     db.session.flush()
 

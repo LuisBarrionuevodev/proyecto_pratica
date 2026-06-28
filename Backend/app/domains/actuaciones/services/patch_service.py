@@ -287,16 +287,6 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
         if ran_cleanup:
             db.session.commit()
 
-        try:
-            from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
-                on_domicilio_changed,
-            )
-
-            if act.domicilio_id:
-                on_domicilio_changed(act.domicilio_id)
-        except Exception:
-            pass
-
         print(f"[PATCH] Actualización exitosa!")
         return act
         

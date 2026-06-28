@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from app.database import db
-from app.models import Actuaciones, Expediente
+from app.models import Actuaciones, Expediente, Oficio
 
 
 def notificacion_tiene_expediente_asociado(notificacion_id: int | None) -> bool:
@@ -58,9 +58,26 @@ def notificacion_editable_desde_canal_actas(notificacion_id: int | None) -> bool
     return not notificacion_tiene_expediente_asociado(notificacion_id)
 
 
+def comprobacion_tiene_documentacion_bloqueante(comprobacion_id: int | None) -> bool:
+    """
+    True si la comprobación tiene expediente de envío u oficio activo (no editable desde canal actas).
+    """
+    if not comprobacion_id:
+        return False
+    if comprobacion_tiene_expediente_envio(comprobacion_id):
+        return True
+    return (
+        Oficio.query.filter(
+            Oficio.comprobacion_id == int(comprobacion_id),
+            Oficio.deleted_at.is_(None),
+        ).first()
+        is not None
+    )
+
+
 def comprobacion_editable_desde_canal_actas(comprobacion_id: int | None) -> bool:
     """Puede editarse la comprobación desde la grilla de actuaciones."""
-    return not comprobacion_tiene_expediente_envio(comprobacion_id)
+    return not comprobacion_tiene_documentacion_bloqueante(comprobacion_id)
 
 
 def assert_canal_actas_permite_payload_notificacion_comprobacion(

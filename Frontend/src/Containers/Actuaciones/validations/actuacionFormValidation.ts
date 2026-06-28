@@ -324,8 +324,10 @@ export function actuacionCrudValidationContext(
 /** Contexto por defecto para Completar trabajo (formulario de cierre). */
 export function actuacionCompletarTrabajoValidationContext(
   visitaRealizada: boolean,
-  esReinspeccionNotificacion: boolean
+  esReinspeccionNotificacion: boolean,
+  esReinspeccionOficio = false
 ): ActuacionFormValidationContext {
+  const omitContribDom = esReinspeccionNotificacion || esReinspeccionOficio;
   return {
     source: "completarTrabajo",
     includeCrudEditRules: false,
@@ -334,6 +336,8 @@ export function actuacionCompletarTrabajoValidationContext(
     visitaRealizada,
     omitNumeroManual: false,
     skipNotificacionActaRules: esReinspeccionNotificacion,
+    canEditContribuyente: omitContribDom ? false : undefined,
+    canEditDomicilio: omitContribDom ? false : undefined,
   };
 }
 

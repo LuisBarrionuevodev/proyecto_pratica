@@ -29,27 +29,41 @@ function render(ui: React.ReactElement) {
   return renderToStaticMarkup(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 }
 
-const baseRow: ICompletarTrabajoPendienteRow = {
-  ruta_item_id: 9,
-  actuacion_id: 42,
-  tipo_iniciador: "RELEVAMIENTO",
-  fecha_actuacion: "2026-05-10",
-  orden_trabajo_numero: "123456",
-  calle: "San Martín",
-  numero: "450",
-  rubro_nombre: "Carnicería",
-  doc_nro: "1234567",
-  contrib_apellido: "Pérez",
-  contrib_nombre: "Juan",
-  razon_social: null,
-  nombre_local: null,
-  tipo_actuacion: null,
-  contraproducencia: null,
-  inspectores: ["García", "López"],
-  inspector1: "García",
-  inspector2: "López",
-  inspector3: null,
-};
+function buildRow(
+  overrides: Partial<ICompletarTrabajoPendienteRow> = {}
+): ICompletarTrabajoPendienteRow {
+  return {
+    id: 9,
+    ruta_item_id: 9,
+    actuacion_id: 42,
+    ruta_trabajo_id: 1,
+    ruta_grupo_id: 1,
+    iniciador_ruta_id: 1,
+    grupo_nombre: "Grupo Norte",
+    tipo_iniciador: "RELEVAMIENTO",
+    fecha_actuacion: "2026-05-10",
+    orden_trabajo_numero: "123456",
+    iniciador_estado: "EN_PROCESO",
+    domicilio_texto: "San Martín 450",
+    estado_operativo: "PENDIENTE",
+    observaciones_ejecucion: null,
+    calle: "San Martín",
+    numero: "450",
+    rubro_nombre: "Carnicería",
+    doc_nro: "1234567",
+    contrib_apellido: "Pérez",
+    contrib_nombre: "Juan",
+    razon_social: null,
+    nombre_local: null,
+    tipo_actuacion: null,
+    contraproducencia: null,
+    inspectores: ["García", "López"],
+    inspector1: "García",
+    inspector2: "López",
+    inspector3: null,
+    ...overrides,
+  };
+}
 
 const catalogs = {
   motivos: ["Falta de habilitación"],
@@ -65,7 +79,7 @@ describe("CompletarTrabajoModal", () => {
       <CompletarTrabajoModal
         open
         disablePortal
-        row={baseRow}
+        row={buildRow()}
         catalogs={catalogs}
         catalogsReady
         onClose={() => undefined}
@@ -82,7 +96,7 @@ describe("CompletarTrabajoModal", () => {
       <CompletarTrabajoModal
         open
         disablePortal
-        row={baseRow}
+        row={buildRow()}
         catalogs={catalogs}
         catalogsReady
         onClose={() => undefined}
@@ -90,5 +104,40 @@ describe("CompletarTrabajoModal", () => {
       />
     );
     expect(html).not.toContain("MuiAlert-standardError");
+  });
+
+  it("header muestra chip Completar trabajo sin chip Edición", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({ tipo_iniciador: "REINSPECCION_OFICIO", fecha_actuacion: "2026-06-28" })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Completar trabajo");
+    expect(html).not.toContain("Edición");
+    expect(html.match(/Completar trabajo/g)?.length).toBe(1);
+  });
+
+  it("header usa tipo de iniciador como título y fecha como subtítulo", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({ tipo_iniciador: "REINSPECCION_OFICIO", fecha_actuacion: "2026-06-28" })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Reinspección por oficio");
+    expect(html).toContain("Fecha: 2026-06-28");
+    expect(html).not.toContain("Cierre operativo");
+    expect(html).not.toContain("Tipo de iniciador:");
   });
 });

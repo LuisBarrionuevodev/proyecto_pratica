@@ -7,6 +7,9 @@ from app.models import Actuaciones, Notificacion
 from app.utils.actas import acta_6
 from app.domains.actuaciones.catalogs.motivo import get_motivo_o_falla
 from app.domains.actuaciones.services.notificacion_timing_service import inicializar_timing_notificacion
+from app.domains.actuaciones.attach.acta_reactivation_helpers import (
+    otra_actuacion_usa_notificacion,
+)
 
 _MSG_NOTIF_MOTIVO = "La notificación requiere al menos un motivo."
 
@@ -78,11 +81,26 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             actuacion.notificacion_id = noti.id
             return
 
-    # 2) Primera asociación: crear acta nueva; no reenganchar fila existente.
-    if db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first():
-        raise ValueError(
-            f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
-        )
+    # 2) Primera asociación: reutilizar fila inactiva/huérfana o crear nueva.
+    existente = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
+    if existente:
+        if otra_actuacion_usa_notificacion(int(existente.id), int(actuacion.id)):
+            raise ValueError(
+                f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+            )
+        if existente.deleted_at is not None:
+            existente.deleted_at = None
+        existente.numero_acta = acta_num
+        existente.anio = anio
+        existente.mes = mes
+        inicializar_timing_notificacion(existente, fecha_notificacion=actuacion.fecha)
+        if "motivos" in data:
+            motivos = data.get("motivos") or []
+            existente.motivos = [get_motivo_o_falla(m) for m in motivos]
+        _notificacion_exige_al_menos_un_motivo(existente)
+        db.session.add(existente)
+        actuacion.notificacion_id = existente.id
+        return
 
     noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
     inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)

@@ -45,8 +45,14 @@ export type OrigenReinspeccionNotificacion = {
  */
 export function actuacionActaChipsOnly(r: IActuacionListItem): string[] {
   const out: string[] = [];
+  const circuit = (r.documentacion_contexto as DocumentacionContexto | undefined)?.circuito;
   if (r.acta_inspeccion_num?.trim()) out.push(`Inspección ${r.acta_inspeccion_num.trim()}`);
-  if (r.acta_notificacion_num?.trim()) out.push(`Notificación ${r.acta_notificacion_num.trim()}`);
+  if (
+    r.acta_notificacion_num?.trim() &&
+    circuit !== "REINSPECCION_NOTIFICACION"
+  ) {
+    out.push(`Notificación ${r.acta_notificacion_num.trim()}`);
+  }
   if (r.acta_comprobacion_num?.trim()) out.push(`Comprobación ${r.acta_comprobacion_num.trim()}`);
   if (r.acta_clausura_num?.trim()) out.push(`Clausura ${r.acta_clausura_num.trim()}`);
   const decomNum = r.acta_decomiso_num?.trim();
@@ -107,7 +113,7 @@ export function actuacionDocumentacionPropiaTramiteSegments(r: IActuacionListIte
         out.push(`Expediente N.º ${num}`);
       }
     }
-    if (circuit === "COMUN_NOTIFICACION" || circuit === "REINSPECCION_NOTIFICACION") {
+    if (circuit === "COMUN_NOTIFICACION") {
       if (p.notificacion_plazo_dias != null) {
         out.push(`Plazo ${p.notificacion_plazo_dias} días`);
       }
@@ -163,11 +169,7 @@ export function actuacionDocumentacionOrigenReinspeccionSegments(r: IActuacionLi
   const on = r.origen_reinspeccion_notificacion as OrigenReinspeccionNotificacion | null | undefined;
   if (
     on &&
-    (on.notificacion_acta_numero ||
-      on.expediente_numero ||
-      on.fecha_vencimiento?.trim() ||
-      on.plazo_dias != null ||
-      (on.prorroga_dias != null && on.prorroga_dias > 0))
+    (on.notificacion_acta_numero || on.expediente_numero)
   ) {
     out.push("Origen: Reinspección por notificación");
     const nn = on.notificacion_acta_numero?.trim();
@@ -178,15 +180,6 @@ export function actuacionDocumentacionOrigenReinspeccionSegments(r: IActuacionLi
     if (on.expediente_numero != null && String(on.expediente_numero).trim()) {
       const ea = on.expediente_anio != null ? `/${on.expediente_anio}` : "";
       out.push(`Exp. notificación N.º ${String(on.expediente_numero).trim()}${ea}`);
-    }
-    if (on.plazo_dias != null) {
-      out.push(`Plazo origen ${on.plazo_dias} días`);
-    }
-    if (on.prorroga_dias != null && on.prorroga_dias > 0) {
-      out.push(`Prórroga origen +${on.prorroga_dias} d`);
-    }
-    if (on.fecha_vencimiento?.trim()) {
-      out.push(`Vencimiento: ${on.fecha_vencimiento.trim()}`);
     }
   }
 

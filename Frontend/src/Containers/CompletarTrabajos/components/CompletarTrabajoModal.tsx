@@ -43,9 +43,14 @@ import { scrollActuacionFormToFirstFieldError } from "../../Actuaciones/utils/ac
 import { commitActaNumInputValue } from "../../Actuaciones/validations/actuacionFormNormalize";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
 import { emitGestionNotificacionReinspeccionRefresh } from "../../GestionNotificacion/gestionNotificacionReinspeccionRefresh";
-import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
+import {
+  completarTrabajoHeaderSubtitulo,
+  completarTrabajoHeaderTitulo,
+  completarTrabajoShowDomicilioEnDetalle,
+} from "../utils/completarTrabajoModalDisplay";
 import { prefillOperativoReinspeccionNotificacion } from "../utils/completarTrabajoReinspeccionNotificacionPrefill";
+import { showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
 import {
   OFICIO_CUMPLE_OPTS,
   TIPO_ACTUACION_REINSPECCION_OFICIO,
@@ -82,6 +87,7 @@ const edicionGrid2ColSx = {
   gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
   gap: 2,
   width: "100%",
+  alignItems: "end",
 } as const;
 
 function CompletarBloque({ title, children }: { title: string; children: ReactNode }) {
@@ -226,11 +232,6 @@ function sameInspectoresListOrder(a: string[], b: string[]): boolean {
   const nb = b.map((x) => x.trim()).filter(Boolean);
   if (na.length !== nb.length) return false;
   return na.every((v, i) => v === nb[i]);
-}
-
-function dashIfEmpty(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "—";
-  return String(value);
 }
 
 /** Titular del domicilio: persona física (apellido + nombre) o razón social (PJ). */
@@ -454,8 +455,17 @@ export function CompletarTrabajoModal({
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
   const esReinspeccionNotificacion = resolvedRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
+  const showContribDomicilioEditable = showContribuyenteDomicilioEditableEnCompletarTrabajo(
+    resolvedRow?.tipo_iniciador
+  );
   const oficioNoCumple = esReinspeccionOficio && resultadoCumplimientoOficio === "NO_CUMPLE";
-  const tipoIniciadorLabel = tipoIniciadorDesdeCodigoApi(resolvedRow?.tipo_iniciador) ?? "—";
+  const tipoIniciadorLabel = completarTrabajoHeaderTitulo(resolvedRow?.tipo_iniciador ?? row?.tipo_iniciador);
+  const headerSubtitulo = completarTrabajoHeaderSubtitulo(resolvedRow?.fecha_actuacion ?? row?.fecha_actuacion);
+  const showDomicilioEnDetalle = completarTrabajoShowDomicilioEnDetalle(
+    resolvedRow?.tipo_iniciador ?? row?.tipo_iniciador
+  );
+  const detalleLabelSx = { color: "rgba(255,255,255,0.95)", fontWeight: 700 } as const;
+  const detalleValueSx = { color: "rgba(255,255,255,0.85)", fontWeight: 500 } as const;
 
   /** Inspectores del catálogo que aún no están en la lista (agregar). */
   const inspectoresDisponiblesParaAgregar = useMemo(() => {
@@ -631,7 +641,11 @@ export function CompletarTrabajoModal({
         decomisoKilos,
         inspectoresList,
       }),
-      actuacionCompletarTrabajoValidationContext(visitaRealizada, esReinspeccionNotificacion)
+      actuacionCompletarTrabajoValidationContext(
+        visitaRealizada,
+        esReinspeccionNotificacion,
+        esReinspeccionOficio
+      )
     );
     if (!preValidation.canSubmit) {
       setFieldErrors(preValidation.fieldErrors);
@@ -655,16 +669,20 @@ export function CompletarTrabajoModal({
 
       const values: Record<string, unknown> = {
         contraproducencia,
-        rubro_nombre: rubroNombre,
-        calle,
-        numero,
-        numero_tipo: numeroTipo,
-        doc_nro: docNro,
-        ...titularPayload,
-        nombre_local: nombreLocal,
         observaciones_ejecucion: observacionesEjecucion.trim(),
         ...ACTA_KEYS_EMPTY,
       };
+      if (showContribDomicilioEditable) {
+        Object.assign(values, {
+          rubro_nombre: rubroNombre,
+          calle,
+          numero,
+          numero_tipo: numeroTipo,
+          doc_nro: docNro,
+          ...titularPayload,
+          nombre_local: nombreLocal,
+        });
+      }
 
       const notifSlots = slotsToMotivosApi(notifMotivosSeleccion);
       if (visitaRealizada) {
@@ -729,9 +747,8 @@ export function CompletarTrabajoModal({
       title={
         <CrudDialogHeader
           domainChip="Completar trabajo"
-          mode="edit"
-          titulo="Completar trabajo"
-          subtitulo="Cierre operativo"
+          titulo={tipoIniciadorLabel}
+          subtitulo={headerSubtitulo}
         />
       }
       actions={
@@ -781,41 +798,29 @@ export function CompletarTrabajoModal({
             fontFamily: '"Tactic Sans", sans-serif',
           }}
         >
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
-            Solo lectura
+          <Typography variant="subtitle2" sx={{ ...detalleLabelSx, mb: 0.25 }}>
+            Detalle
           </Typography>
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-            Fecha: {dashIfEmpty(resolvedRow.fecha_actuacion)}
-          </Typography>
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-            Tipo de iniciador: {tipoIniciadorLabel}
-          </Typography>
-          {resolvedRow.grupo_nombre?.trim() ? (
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
-              Grupo: {resolvedRow.grupo_nombre}
-            </Typography>
-          ) : null}
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
-            OT {resolvedRow.orden_trabajo_numero ?? "—"}
-          </Typography>
-          {tipoActuacionEsperadoRef?.trim() ? (
-            <Box>
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block" }}>
-                Tipo de actuación esperado (referencia catálogo)
-              </Typography>
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)" }}>
-                {tipoActuacionEsperadoRef}
-              </Typography>
+          <Typography variant="body2" sx={detalleValueSx}>
+            <Box component="span" sx={detalleLabelSx}>
+              Grupo:{" "}
             </Box>
-          ) : null}
-          <Box>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", display: "block" }}>
-              Domicilio actual
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.75)" }}>
+            {resolvedRow.grupo_nombre?.trim() || "—"}
+          </Typography>
+          <Typography variant="body2" sx={detalleValueSx}>
+            <Box component="span" sx={detalleLabelSx}>
+              Orden de trabajo:{" "}
+            </Box>
+            {resolvedRow.orden_trabajo_numero ?? "—"}
+          </Typography>
+          {showDomicilioEnDetalle ? (
+            <Typography variant="body2" sx={detalleValueSx}>
+              <Box component="span" sx={detalleLabelSx}>
+                Domicilio actual:{" "}
+              </Box>
               {domicilioResumen(resolvedRow)}
             </Typography>
-          </Box>
+          ) : null}
         </Box>
       )}
 
@@ -1053,7 +1058,7 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
 
-        {visitaRealizada && (
+        {visitaRealizada && showContribDomicilioEditable && (
           <Alert severity="info" sx={{ borderRadius: 2 }}>
             <Typography variant="body2">
               Con visita realizada, revisá calle, rubro y titular: datos correctos ayudan a vincular la actuación con la{" "}
@@ -1062,6 +1067,8 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
 
+        {showContribDomicilioEditable && (
+        <>
         <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
@@ -1082,7 +1089,7 @@ export function CompletarTrabajoModal({
               clearFe("numero");
             }}
             onModeChange={setNumeroTipo}
-            label="Número o referencia"
+            compact
             error={Boolean(fe("numero"))}
             helperText={fe("numero") || undefined}
             initialMode={numeroTipo}
@@ -1199,6 +1206,8 @@ export function CompletarTrabajoModal({
           error={Boolean(fe("nombre_local"))}
           helperText={fe("nombre_local") || undefined}
         />
+        </>
+        )}
       </Box>
 
       {(visitaRealizada || esNoPermiteInspeccion) && (

@@ -228,20 +228,17 @@ def test_actuacion_correccion_mantiene_domicilio_id(app_ctx) -> None:
         act_id = act.id
         ini_id = ini.id
         dom_id = dom.id
-        with patch(
-            "app.domains.actuaciones.services.update_service.on_domicilio_changed"
-        ):
-            actualizar_actuacion(
-                act_id,
-                {
-                    "fecha_actuacion": "2026-06-01",
-                    "tipo_actuacion": "INSPECCION",
-                    "rubro_nombre": rub.nombre,
-                    "contribuyente": {"doc_nro": doc, "apellido": "Stab7", "nombre": "A"},
-                    "domicilio": {"calle": nueva_calle, "numero": "100"},
-                    "inspectores": [],
-                },
-            )
+        actualizar_actuacion(
+            act_id,
+            {
+                "fecha_actuacion": "2026-06-01",
+                "tipo_actuacion": "INSPECCION",
+                "rubro_nombre": rub.nombre,
+                "contribuyente": {"doc_nro": doc, "apellido": "Stab7", "nombre": "A"},
+                "domicilio": {"calle": nueva_calle, "numero": "100"},
+                "inspectores": [],
+            },
+        )
 
         db.session.expunge_all()
         act_db = Actuaciones.query.get(act_id)

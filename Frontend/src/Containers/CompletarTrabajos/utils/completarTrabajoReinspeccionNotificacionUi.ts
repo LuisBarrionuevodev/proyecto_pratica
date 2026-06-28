@@ -12,3 +12,10 @@ export function showNotificacionOrigenReadonlyEnCompletarTrabajo(tipoIniciador: 
 export function showActasEstandarEnCompletarTrabajo(_tipoIniciador: string | null | undefined): boolean {
   return true;
 }
+
+/** Contribuyente / domicilio editables solo en visitas de origen (relevamiento, denuncia, etc.). */
+export function showContribuyenteDomicilioEditableEnCompletarTrabajo(
+  tipoIniciador: string | null | undefined
+): boolean {
+  return tipoIniciador !== "REINSPECCION_NOTIFICACION" && tipoIniciador !== "REINSPECCION_OFICIO";
+}

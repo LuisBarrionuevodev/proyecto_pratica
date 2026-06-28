@@ -44,7 +44,7 @@ def _fila_correccion(*, act_id: int, ot: str, fecha: str, insp1: str, insp2: str
         "contrib_nombre": "Prueba",
         "inspector1": insp1,
         "inspector2": insp2,
-        "acta_inspeccion_num": "000099",
+        "acta_inspeccion_num": f"{random.randint(0, 999999):06d}",
         "limpiar_contraproducencia": True,
         "contraproducencia": None,
     }

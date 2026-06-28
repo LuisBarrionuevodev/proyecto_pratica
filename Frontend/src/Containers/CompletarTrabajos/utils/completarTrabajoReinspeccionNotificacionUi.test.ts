@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   showActasEstandarEnCompletarTrabajo,
+  showContribuyenteDomicilioEditableEnCompletarTrabajo,
   showNotificacionEditableEnCompletarTrabajo,
   showNotificacionOrigenReadonlyEnCompletarTrabajo,
 } from "./completarTrabajoReinspeccionNotificacionUi";
@@ -19,6 +20,13 @@ describe("completarTrabajoReinspeccionNotificacionUi", () => {
   it("otros tipos mantienen notificación editable", () => {
     expect(showNotificacionEditableEnCompletarTrabajo("RELEVAMIENTO")).toBe(true);
     expect(showNotificacionOrigenReadonlyEnCompletarTrabajo("RELEVAMIENTO")).toBe(false);
+    expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("RELEVAMIENTO")).toBe(true);
+    expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("DENUNCIA")).toBe(true);
+  });
+
+  it("reinspecciones ocultan contribuyente/domicilio editable", () => {
+    expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("REINSPECCION_NOTIFICACION")).toBe(false);
+    expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("REINSPECCION_OFICIO")).toBe(false);
   });
 
   it("no expone enum crudo en label humano", () => {
