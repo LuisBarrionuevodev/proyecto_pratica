@@ -8,7 +8,7 @@ from sqlalchemy import exists, func, or_, and_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, Expediente, Notificacion
+from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Notificacion, RutaItem
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
@@ -128,6 +128,75 @@ def build_notificacion_expediente_bandeja_metrics(
     venc_map: dict[int, date | None] = {int(n.id): n.fecha_vencimiento for n in notis}
 
     return plazos_map, venc_map
+
+
+def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
+    """
+    Comprobación de seguimiento en historial de notificación: la realizada en la actuación
+    ``REINSPECCION`` vinculada a la misma ``notificacion_id`` (reinspección por notificación vencida).
+
+    No usa comprobación de la actuación origen ni búsqueda genérica por domicilio.
+
+    Args:
+        acts: actuaciones devueltas por bandeja / historial de notificaciones.
+
+    Returns:
+        Mapa ``actuacion_id`` origen -> actuación REINSPECCION con comprobación, o ``None``.
+    """
+    out: Dict[int, Optional[Actuaciones]] = {int(a.id): None for a in acts}
+    refs = [a for a in acts if getattr(a, "notificacion_id", None)]
+    if not refs:
+        return out
+
+    noti_ids = {int(a.notificacion_id) for a in refs}
+
+    rein_direct = (
+        Actuaciones.query.filter(Actuaciones.notificacion_id.in_(noti_ids))
+        .filter(Actuaciones.tipo == "REINSPECCION")
+        .filter(Actuaciones.comprobacion_id.isnot(None))
+        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .all()
+    )
+    by_noti: Dict[int, List[Actuaciones]] = defaultdict(list)
+    for c in rein_direct:
+        by_noti[int(c.notificacion_id)].append(c)
+
+    rein_via_item: Dict[int, Actuaciones] = {}
+    item_rows = (
+        db.session.query(IniciadorRuta.notificacion_id, Actuaciones)
+        .join(RutaItem, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(Actuaciones, Actuaciones.id == RutaItem.actuacion_id)
+        .filter(IniciadorRuta.notificacion_id.in_(noti_ids))
+        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
+        .filter(IniciadorRuta.deleted_at.is_(None))
+        .filter(RutaItem.deleted_at.is_(None))
+        .filter(Actuaciones.tipo == "REINSPECCION")
+        .filter(Actuaciones.comprobacion_id.isnot(None))
+        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .all()
+    )
+    for noti_id, act_rein in item_rows:
+        if noti_id is None:
+            continue
+        nid = int(noti_id)
+        prev = rein_via_item.get(nid)
+        key_new = (act_rein.fecha or date.min, int(act_rein.id))
+        if prev is None or key_new > (prev.fecha or date.min, int(prev.id)):
+            rein_via_item[nid] = act_rein
+
+    for ref in refs:
+        rid = int(ref.id)
+        nid = int(ref.notificacion_id)  # type: ignore[arg-type]
+        candidates: List[Actuaciones] = [c for c in by_noti.get(nid, []) if int(c.id) != rid]
+        via = rein_via_item.get(nid)
+        if via is not None and int(via.id) != rid:
+            candidates.append(via)
+        if not candidates:
+            continue
+        candidates.sort(key=lambda x: ((x.fecha or date.min), int(x.id)))
+        out[rid] = candidates[-1]
+
+    return out
 
 
 def build_posterior_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:

@@ -14,15 +14,17 @@ import {
   type OficioComprobacionItem,
 } from "../../../api/actuacionesPendientesApi";
 import { useAppFeedback } from "../../../components/feedback";
-import { DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
-import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import {
+  CrudDialogHeader,
+  CrudGlassDialog,
+  useNotifyModalApiError,
+} from "../../../components/crudDialog";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   DocumentalBloque,
   DocumentalFila,
 } from "./comprobacionOperativoBlocks";
 import { docModalEmptyStateSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
-import { AppDialog } from "../../../ui";
 import { parseApiError } from "../../../utils/parseApiError";
 import {
   applyOficioAltaErrorsFromApi,
@@ -69,14 +71,18 @@ function mergeRecorridoDisplayRow(
   return out as IComprobacionRecorridoRow;
 }
 
-function actaComprobacionCabecera(
+function recorridoSubtitulo(
   ctx: IComprobacionRecorridoRow,
   detalle: IComprobacionRecorridoDetalle | null
 ): string {
   const n =
     (ctx.acta_comprobacion_num ?? "").trim() ||
     (detalle ? String(detalle.acta_comprobacion?.numero ?? "").trim() : "");
-  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
+  const acta = n ? `Acta N.º ${n}` : null;
+  const fecha = (ctx.fecha_actuacion ?? "").trim();
+  const fechaPart = fecha ? `Fecha: ${fecha}` : null;
+  const parts = [acta, fechaPart].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Historial documental";
 }
 
 function reinspeccionTieneContenido(data: Record<string, unknown> | null | undefined): boolean {
@@ -135,6 +141,7 @@ function ejecucionReinspeccionUtil(detalle: IComprobacionRecorridoDetalle): bool
 export type RecorridoDetalleDocumentalDialogProps = {
   open: boolean;
   onClose: () => void;
+  disablePortal?: boolean;
   actuacionId: number | null;
   /** Fila del listado; opcional. El detalle incluye ``referencia_actuacion`` (API actual). */
   listRow: IComprobacionRecorridoRow | null;
@@ -153,6 +160,7 @@ export type RecorridoDetalleDocumentalDialogProps = {
 export function RecorridoDetalleDocumentalDialog({
   open,
   onClose,
+  disablePortal,
   actuacionId,
   listRow,
   detalle,
@@ -171,6 +179,7 @@ export function RecorridoDetalleDocumentalDialog({
   const [modalApiError, setModalApiError] = useState<string | null>(null);
   const [modalFieldErrors, setModalFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  useNotifyModalApiError(modalApiError, open);
 
   const loadOficios = useCallback(async (comprobacionId: number) => {
     setOficiosLoading(true);
@@ -266,19 +275,6 @@ export function RecorridoDetalleDocumentalDialog({
 
   const ctx = detalle ? mergeRecorridoDisplayRow(listRow, detalle) : ((listRow ?? {}) as IComprobacionRecorridoRow);
   const refAct = detalle?.referencia_actuacion;
-
-  const titleNode =
-    actuacionId != null ? (
-      <DocumentalModalTitleStack
-        dominioChip="Comprobación"
-        titulo={actaComprobacionCabecera(ctx, detalle)}
-        subtitulo="Historial / recorrido"
-        actuacionId={undefined}
-      />
-    ) : (
-      "Recorrido"
-    );
-
   const reinsData = detalle?.reinspeccion_por_oficio as Record<string, unknown> | null | undefined;
   const muestraReinspeccion = reinspeccionTieneContenido(reinsData);
   const muestraEjecucion = detalle != null && ejecucionReinspeccionUtil(detalle);
@@ -308,18 +304,20 @@ export function RecorridoDetalleDocumentalDialog({
   const puedeGestionarOficios = actuacionId != null && documental?.expediente_envio != null;
 
   return (
-    <AppDialog
+    <CrudGlassDialog
       open={open}
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
       onClose={() => handleClose()}
       onCloseButtonClick={handleClose}
-      title={titleNode}
-      fullWidth
       maxWidth="md"
-      appearance="glass"
-      contentDividers
-      contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
-      showCloseButton
-      actions={undefined}
+      title={
+        <CrudDialogHeader
+          domainChip="Comprobación"
+          titulo="Historial documental"
+          subtitulo={actuacionId != null ? recorridoSubtitulo(ctx, detalle) : null}
+        />
+      }
     >
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -389,6 +387,6 @@ export function RecorridoDetalleDocumentalDialog({
           ) : null}
         </Stack>
       )}
-    </AppDialog>
+    </CrudGlassDialog>
   );
 }

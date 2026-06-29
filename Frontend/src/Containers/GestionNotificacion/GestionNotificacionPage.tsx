@@ -11,6 +11,7 @@ import {
   CircularProgress,
   IconButton,
   Paper,
+  Stack,
   Tab,
   Tabs,
   Tooltip,
@@ -80,6 +81,11 @@ import {
   NotificacionDetalleDocumentalDialog,
   type NotificacionDetalleModalVariant,
 } from "./components/NotificacionDetalleDocumentalDialog";
+import { ReinspeccionOperativaAccionCell } from "./components/ReinspeccionOperativaAccionCell";
+import {
+  type GuardarProrrogaResult,
+  volvioEnPlazoDesdeExpedienteMeta,
+} from "./utils/prorrogaSuccessMessage";
 import { exportNotificacionesDataset } from "./utils/exportNotificacionesDataset";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
@@ -304,9 +310,10 @@ const GestionNotificacionPage = () => {
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalEsReinspeccionNotificacion, setModalEsReinspeccionNotificacion] = useState(false);
   const [modalVariant, setModalVariant] = useState<NotificacionDetalleModalVariant>("documental");
   const [expNumero, setExpNumero] = useState("");
-  const [expFecha, setExpFecha] = useState(defaultRange.hasta);
+  const [expFecha, setExpFecha] = useState("");
   const [prorrogaDias, setProrrogaDias] = useState("0");
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -570,16 +577,22 @@ const GestionNotificacionPage = () => {
   const operativaLoading = esTabReinspeccionOperativa ? reinspeccionLoading : loading;
   const operativaError = esTabReinspeccionOperativa ? reinspeccionError : error;
 
-  const openModal = useCallback((row: IActuacionesPendientesItem, variant: NotificacionDetalleModalVariant) => {
+  const openModal = useCallback(
+    (
+      row: IActuacionesPendientesItem,
+      variant: NotificacionDetalleModalVariant,
+      opts?: { reinspeccion?: boolean }
+    ) => {
     setModalVariant(variant);
+    setModalEsReinspeccionNotificacion(Boolean(opts?.reinspeccion));
     setSelected(row);
     setExpNumero("");
-    setExpFecha(defaultRange.hasta);
+    setExpFecha("");
     setProrrogaDias("0");
     setFieldErrors({});
     setModalApiError(null);
     setModalOpen(true);
-  }, [defaultRange.hasta]);
+  }, []);
 
   useEffect(() => {
     const raw = searchParams.get("actuacionId");
@@ -617,7 +630,7 @@ const GestionNotificacionPage = () => {
     if (rowRein) {
       setPlazoSlice("vencidas_o_hoy");
       setNotificacionDeepLinkAviso(null);
-      openModal(rowRein, "documental");
+      openModal(rowRein, "documental", { reinspeccion: true });
       clearParam();
       return;
     }
@@ -647,8 +660,8 @@ const GestionNotificacionPage = () => {
     setModalApiError(null);
   };
 
-  const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!selected) return false;
+  const handleSave = useCallback(async (): Promise<GuardarProrrogaResult> => {
+    if (!selected) return { ok: false };
     const next: Record<string, string> = {};
     if (!expNumero.trim()) next.expNumero = "Completá el número de expediente.";
     if (!expFecha) next.expFecha = "Completá la fecha de expediente.";
@@ -657,7 +670,7 @@ const GestionNotificacionPage = () => {
       next.prorrogaDias = "Indicá un número de días válido (0 o más).";
     }
     setFieldErrors(next);
-    if (Object.keys(next).length > 0) return false;
+    if (Object.keys(next).length > 0) return { ok: false };
 
     setSaving(true);
     setModalApiError(null);
@@ -668,23 +681,27 @@ const GestionNotificacionPage = () => {
         source_type: "NOTIFICACION",
         prorroga_dias: Number(prorrogaDias) || 0,
       };
-      await createExpedienteDesdeActuacion(selected.id, payload);
+      const resp = await createExpedienteDesdeActuacion(selected.id, payload);
       setExpNumero("");
-      setExpFecha(defaultRange.hasta);
+      setExpFecha("");
       setProrrogaDias("0");
       setFieldErrors({});
       await loadData();
+      await loadPendientesReinspeccionNotificacion();
       if (plazoSlice === "total" && historialFiltroAplicado) {
         await recargarHistorialSiAplica();
       }
-      return true;
+      return {
+        ok: true,
+        volvioEnPlazo: volvioEnPlazoDesdeExpedienteMeta(resp.meta?.next_state_hint),
+      };
     } catch (err: unknown) {
       const detail =
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
           : null;
       setModalApiError(detail || "No se pudo añadir el expediente de plazo");
-      return false;
+      return { ok: false };
     } finally {
       setSaving(false);
     }
@@ -693,8 +710,8 @@ const GestionNotificacionPage = () => {
     expNumero,
     expFecha,
     prorrogaDias,
-    defaultRange.hasta,
     loadData,
+    loadPendientesReinspeccionNotificacion,
     plazoSlice,
     historialFiltroAplicado,
     recargarHistorialSiAplica,
@@ -804,18 +821,23 @@ const GestionNotificacionPage = () => {
       {
         id: "acciones",
         header: "Acción",
-        size: 168,
+        size: 118,
         grow: false,
         enableResizing: false,
         Cell: ({ row }) => (
-          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModal(row.original, "documental")}>
-            Ver detalle
-          </AppButton>
+          <ReinspeccionOperativaAccionCell
+            onProrroga={() => openModal(row.original, "soloExpediente", { reinspeccion: true })}
+          />
         ),
       },
     ],
     [columnsDataCompact, openModal]
   );
+
+  const refreshBandejasOperativas = useCallback(async () => {
+    await loadData();
+    await loadPendientesReinspeccionNotificacion();
+  }, [loadData, loadPendientesReinspeccionNotificacion]);
 
   const refreshOperativaActiva = useCallback(async () => {
     if (esTabReinspeccionOperativa) {
@@ -1309,6 +1331,7 @@ const GestionNotificacionPage = () => {
         onClose={closeModal}
         row={selected}
         variant={modalVariant}
+        esReinspeccionNotificacion={modalEsReinspeccionNotificacion}
         expNumero={expNumero}
         onExpNumeroChange={(v) => {
           setExpNumero(v);
@@ -1340,7 +1363,7 @@ const GestionNotificacionPage = () => {
         modalApiError={modalApiError}
         saving={saving}
         onGuardar={handleSave}
-        onOperativaListaRefresh={loadData}
+        onOperativaListaRefresh={refreshBandejasOperativas}
       />
     </Box>
   );

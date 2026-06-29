@@ -317,6 +317,29 @@ def _revoke_obsolete_reinspeccion_notificacion_iniciadores(today: date) -> int:
     return n
 
 
+def revoke_reinspeccion_notificacion_iniciadores_obsoletos(
+    *,
+    today: date | None = None,
+) -> int:
+    """
+    Anula iniciadores ``REINSPECCION_NOTIFICACION`` en ``PENDIENTE`` cuya notificación ya no
+    está vencida operativa (p. ej. tras prórroga que extiende ``fecha_vencimiento``).
+
+    Invocar en la misma transacción que actualiza el vencimiento, tras ``flush`` y antes del
+    ``commit``, para que el JOIN vea el nuevo plazo.
+
+    Parámetros:
+        today: fecha de corte; por defecto ``date.today()``.
+
+    Retorno:
+        Cantidad de iniciadores pasados a ``ANULADO``.
+
+    Errores:
+        Ninguno (operación idempotente sobre candidatos elegibles).
+    """
+    return _revoke_obsolete_reinspeccion_notificacion_iniciadores(today or date.today())
+
+
 def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacionOutcome:
     """
     Materializa iniciadores derivados para notificaciones vencidas y reconcilia obsoletos.

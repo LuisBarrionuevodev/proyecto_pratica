@@ -10,10 +10,12 @@ import {
   type OficioComprobacionItem,
 } from "../../../api/actuacionesPendientesApi";
 import { useAppFeedback } from "../../../components/feedback";
-import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
-import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import {
+  CrudDialogHeader,
+  CrudGlassDialog,
+  useNotifyModalApiError,
+} from "../../../components/crudDialog";
 import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
-import { AppDialog } from "../../../ui";
 import { parseApiError } from "../../../utils/parseApiError";
 import {
   applyOficioAltaErrorsFromApi,
@@ -24,14 +26,19 @@ import { type ComprobacionOficioAltaPayload } from "./ComprobacionOficioOperativ
 import { DOC_MODAL_BLOCK_STACK_SPACING, type ReinspeccionOperativoDetalleRow } from "./comprobacionOperativoBlocks";
 import { ReinspeccionDocumentalSharedLayout } from "./ReinspeccionDocumentalSharedLayout";
 
-function actaCabecera(row: ReinspeccionOperativoDetalleRow): string {
+function actaSubtitulo(row: ReinspeccionOperativoDetalleRow): string {
   const n = (row.acta_comprobacion_num ?? "").trim();
-  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
+  const acta = n ? `Acta N.º ${n}` : null;
+  const fecha = (row.fecha_actuacion ?? "").trim();
+  const fechaPart = fecha ? `Fecha: ${fecha}` : null;
+  const parts = [acta, fechaPart].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Reinspección por oficio";
 }
 
 export type ComprobacionReinspeccionDetalleDialogProps = {
   open: boolean;
   onClose: () => void;
+  disablePortal?: boolean;
   row: ReinspeccionOperativoDetalleRow | null;
   juzgados: IJuzgadoCatalogItem[];
   defaultFechaAlta: string;
@@ -45,6 +52,7 @@ export type ComprobacionReinspeccionDetalleDialogProps = {
 export function ComprobacionReinspeccionDetalleDialog({
   open,
   onClose,
+  disablePortal,
   row,
   juzgados,
   defaultFechaAlta,
@@ -60,6 +68,7 @@ export function ComprobacionReinspeccionDetalleDialog({
   const [modalApiError, setModalApiError] = useState<string | null>(null);
   const [modalFieldErrors, setModalFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  useNotifyModalApiError(modalApiError, open);
 
   const loadOficios = useCallback(async (comprobacionId: number) => {
     setOficiosLoading(true);
@@ -146,31 +155,21 @@ export function ComprobacionReinspeccionDetalleDialog({
     [row, onDocumentalUpdated, feedback]
   );
 
-  const titleNode =
-    row != null ? (
-      <DocumentalModalTitleStack
-        dominioChip="Comprobación"
-        titulo={actaCabecera(row)}
-        subtitulo="Reinspección por oficio"
-        actuacionId={undefined}
-      />
-    ) : (
-      "Reinspección por oficio"
-    );
-
   return (
-    <AppDialog
+    <CrudGlassDialog
       open={open}
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
       onClose={onClose}
       onCloseButtonClick={onClose}
-      title={titleNode}
-      fullWidth
       maxWidth="md"
-      appearance="glass"
-      contentDividers
-      contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
-      showCloseButton
-      actions={undefined}
+      title={
+        <CrudDialogHeader
+          domainChip="Comprobación"
+          titulo="Reinspección por oficio"
+          subtitulo={row != null ? actaSubtitulo(row) : null}
+        />
+      }
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
@@ -202,6 +201,6 @@ export function ComprobacionReinspeccionDetalleDialog({
           />
         </Stack>
       )}
-    </AppDialog>
+    </CrudGlassDialog>
   );
 }

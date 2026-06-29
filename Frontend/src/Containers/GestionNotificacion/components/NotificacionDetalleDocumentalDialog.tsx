@@ -9,23 +9,34 @@ import {
   type INotificacionProrrogaExpedienteItem,
   type INotificacionProrrogaExpedientesResponse,
 } from "../../../api/actuacionesPendientesApi";
-import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
-import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import {
+  CrudDialogActions,
+  CrudDialogHeader,
+  CrudFormSlot,
+  CrudGlassDialog,
+  useNotifyModalApiError,
+} from "../../../components/crudDialog";
+import { useAppFeedback } from "../../../components/feedback";
+import { DocumentalCrudSection } from "../../../components/documental/documentalCrudLayout";
+import { crudFieldGridSx } from "../../../styles/crudDialogTokens";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   docModalEmptyStateSx,
-  docModalFilaValorSx,
-  docModalSubheadingInCardSx,
   documentalGlassAlertSx,
 } from "../../../styles/documentalModalTokens";
-import { AppButton, AppDialog, AppTextField, ConfirmDialog } from "../../../ui";
+import { AppButton, AppTextField, ConfirmDialog } from "../../../ui";
+import type { GuardarProrrogaResult } from "../utils/prorrogaSuccessMessage";
+import { prorrogaSuccessMessage } from "../utils/prorrogaSuccessMessage";
+import {
+  notificacionModalSubtitulo,
+  notificacionModalTitulo,
+} from "../utils/notificacionModalDisplay";
 import {
   DocumentalBloque,
   DocumentalFila,
   textoValor,
 } from "../../ActasComprobacion/components/comprobacionOperativoBlocks";
 import { humanizarTipoActuacion } from "../../ActasComprobacion/utils/documentalLabelFormat";
-import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 
 type DocumentalCardShell = "glass" | "actuacion";
 
@@ -99,10 +110,6 @@ function resultadoComprobacionPosteriorHayContenido(row: IActuacionesPendientesI
   );
 }
 
-function actaNotificacionCabecera(row: IActuacionesPendientesItem): string {
-  const n = (row.acta_notificacion_num ?? "").trim();
-  return n ? `Acta de notificación Nº ${n}` : "Acta de notificación";
-}
 
 function fechaActuacionLinea(row: IActuacionesPendientesItem): string {
   return (row.fecha_actuacion ?? "").trim() || "—";
@@ -133,7 +140,6 @@ function NotificacionProrrogaExpedientesCard({
   actuacionId,
   onAfterPatch,
   resumenCompacto = false,
-  shell = "glass",
   documentalResumenBandeja = null,
 }: {
   loading: boolean;
@@ -144,6 +150,7 @@ function NotificacionProrrogaExpedientesCard({
   onAfterPatch?: () => void;
   /** Oculta filas de resumen pensadas para auditoría / menos ruido en operativa. */
   resumenCompacto?: boolean;
+  /** @deprecated Sin efecto visual. */
   shell?: DocumentalCardShell;
   /** Datos de la fila de bandeja para el bloque documental (días restantes, plazos, expediente en actas). */
   documentalResumenBandeja?: {
@@ -152,6 +159,7 @@ function NotificacionProrrogaExpedientesCard({
     expedienteEnActas: string;
   } | null;
 }) {
+  const feedback = useAppFeedback();
   const ed = detalle?.edicion;
   const [editingId, setEditingId] = useState<number | null>(null);
   const [exNum, setExNum] = useState("");
@@ -211,11 +219,15 @@ function NotificacionProrrogaExpedientesCard({
   const bloqueoGlobal = Boolean(detalle?.items?.length && ed?.notificacion_usada_como_iniciador);
   const esDocumentalLecturaCompleta = modo === "documental" && !resumenCompacto;
 
+  useEffect(() => {
+    if (errEx) feedback.error(errEx);
+  }, [errEx, feedback]);
+
   return (
-    <DocumentalBloque overline="Plazos y expedientes" shell={shell}>
+    <DocumentalBloque overline="Plazos y expedientes" layout="stack">
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-          <CircularProgress size={28} sx={{ color: COLORS.primary }} />
+          <CircularProgress size={28} />
         </Box>
       ) : error ? (
         <Typography variant="body2" sx={{ ...docModalEmptyStateSx, fontStyle: "normal" }}>
@@ -223,11 +235,6 @@ function NotificacionProrrogaExpedientesCard({
         </Typography>
       ) : detalle ? (
         <>
-          {errEx ? (
-            <Alert severity="error" onClose={() => setErrEx(null)} sx={{ mb: 1, ...documentalGlassAlertSx }}>
-              {errEx}
-            </Alert>
-          ) : null}
           {esDocumentalLecturaCompleta && documentalResumenBandeja ? (
             <>
               <DocumentalFila
@@ -296,81 +303,105 @@ function NotificacionProrrogaExpedientesCard({
                     borderTop: idx === 0 ? "none" : "1px solid rgba(255,255,255,0.08)",
                   }}
                 >
-                  <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, mb: 0.75 }}>
-                    <Typography component="div" sx={{ ...docModalSubheadingInCardSx, flex: "1 1 160px", mb: 0 }}>
-                      Expediente {idx + 1}
-                    </Typography>
-                    {puedeEditarItems && editingId !== it.id ? (
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        <AppButton dsVariant="primary" dsSize="sm" onClick={() => beginEdit(it)} disabled={savingEx || delSaving}>
-                          Editar
-                        </AppButton>
-                        {puedeEliminarItems ? (
-                          <AppButton
-                            dsVariant="danger"
-                            dsSize="sm"
-                            onClick={() => {
-                              setConfirmDeleteId(it.id);
-                              setErrEx(null);
-                            }}
-                            disabled={savingEx || delSaving}
-                          >
-                            Eliminar
-                          </AppButton>
-                        ) : null}
-                      </Stack>
-                    ) : null}
+                  <Typography component="div" variant="subtitle2" sx={{ mb: 0.75, fontWeight: 600 }}>
+                    Expediente {idx + 1}
+                  </Typography>
+                  <Box sx={crudFieldGridSx}>
+                    {puedeEditarItems && editingId === it.id ? (
+                      <>
+                        <CrudFormSlot label="Número de expediente" mode="edit">
+                          <AppTextField
+                            appearance="glass"
+                            label="Número de expediente"
+                            value={exNum}
+                            onChange={(e) => setExNum(e.target.value)}
+                            fullWidth
+                          />
+                        </CrudFormSlot>
+                        <CrudFormSlot label="Fecha de expediente" mode="edit">
+                          <AppTextField
+                            appearance="glass"
+                            label="Fecha de expediente"
+                            type="date"
+                            value={exFecha}
+                            onChange={(e) => setExFecha(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            fullWidth
+                          />
+                        </CrudFormSlot>
+                        <CrudFormSlot label="Plazo otorgado (días)" mode="edit">
+                          <AppTextField
+                            appearance="glass"
+                            label="Plazo otorgado (días)"
+                            type="number"
+                            value={exPlazo}
+                            onChange={(e) => setExPlazo(e.target.value)}
+                            fullWidth
+                            inputProps={{ min: 0 }}
+                          />
+                        </CrudFormSlot>
+                      </>
+                    ) : (
+                      <>
+                        <CrudFormSlot
+                          label="Número / año"
+                          mode="view"
+                          value={
+                            it.numero_expediente && it.anio
+                              ? `${it.numero_expediente} / ${it.anio}`
+                              : it.numero_expediente || it.anio || "—"
+                          }
+                        />
+                        <CrudFormSlot label="Fecha de expediente" mode="view" value={it.fecha_expediente} />
+                        <CrudFormSlot
+                          label="Plazo otorgado (días)"
+                          mode="view"
+                          value={it.plazo_otorgado != null ? String(it.plazo_otorgado) : "—"}
+                        />
+                      </>
+                    )}
                   </Box>
-                  <DocumentalFila
-                    etiqueta="Número / año"
-                    valor={
-                      it.numero_expediente && it.anio
-                        ? `${it.numero_expediente} / ${it.anio}`
-                        : textoValor(it.numero_expediente || it.anio)
-                    }
-                  />
-                  <DocumentalFila etiqueta="Fecha de expediente" valor={textoValor(it.fecha_expediente)} />
-                  <DocumentalFila
-                    etiqueta="Plazo otorgado (días)"
-                    valor={it.plazo_otorgado != null ? String(it.plazo_otorgado) : "—"}
-                  />
+
+                  {puedeEditarItems && editingId !== it.id ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
+                        mt: 1,
+                        pt: 0.75,
+                        borderTop: "1px solid rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      <AppButton dsVariant="primary" dsSize="sm" onClick={() => beginEdit(it)} disabled={savingEx || delSaving}>
+                        Editar
+                      </AppButton>
+                      {puedeEliminarItems ? (
+                        <AppButton
+                          dsVariant="danger"
+                          dsSize="sm"
+                          onClick={() => {
+                            setConfirmDeleteId(it.id);
+                            setErrEx(null);
+                          }}
+                          disabled={savingEx || delSaving}
+                        >
+                          Eliminar
+                        </AppButton>
+                      ) : null}
+                    </Box>
+                  ) : null}
 
                   {puedeEditarItems && editingId === it.id ? (
-                    <Stack spacing={1.25} sx={{ mt: 1.25, pt: 1.25, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                      <AppTextField
-                        appearance="glass"
-                        label="Número de expediente"
-                        value={exNum}
-                        onChange={(e) => setExNum(e.target.value)}
-                        fullWidth
-                      />
-                      <AppTextField
-                        appearance="glass"
-                        label="Fecha de expediente"
-                        type="date"
-                        value={exFecha}
-                        onChange={(e) => setExFecha(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        fullWidth
-                      />
-                      <AppTextField
-                        appearance="glass"
-                        label="Plazo otorgado (días)"
-                        type="number"
-                        value={exPlazo}
-                        onChange={(e) => setExPlazo(e.target.value)}
-                        fullWidth
-                        inputProps={{ min: 0 }}
-                      />
-                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                        <AppButton dsVariant="ghost" dsSize="sm" onClick={cancelEdit} disabled={savingEx}>
-                          Cancelar
-                        </AppButton>
-                        <AppButton dsVariant="primary" dsSize="sm" disabled={savingEx} onClick={() => void guardarExpediente()}>
-                          {savingEx ? "Guardando…" : "Guardar cambios"}
-                        </AppButton>
-                      </Box>
-                    </Stack>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.25 }}>
+                      <AppButton dsVariant="ghost" dsSize="sm" onClick={cancelEdit} disabled={savingEx}>
+                        Cancelar
+                      </AppButton>
+                      <AppButton dsVariant="primary" dsSize="sm" disabled={savingEx} onClick={() => void guardarExpediente()}>
+                        {savingEx ? "Guardando…" : "Guardar cambios"}
+                      </AppButton>
+                    </Box>
                   ) : null}
                 </Box>
               ))}
@@ -415,7 +446,6 @@ function NotificacionProrrogaExpedientesCard({
 /** Referencia de la notificación: vista completa (historial) u operativa (solo contexto útil). */
 function BloqueReferenciaNotificacion({
   row,
-  shell = "glass",
   perfil = "documental",
 }: {
   row: IActuacionesPendientesItem;
@@ -424,7 +454,7 @@ function BloqueReferenciaNotificacion({
 }) {
   if (perfil === "operativa") {
     return (
-      <DocumentalBloque overline="Referencia de la notificación" shell={shell}>
+      <DocumentalBloque overline="Referencia de la notificación">
         <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
         <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
         <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
@@ -433,7 +463,7 @@ function BloqueReferenciaNotificacion({
   }
 
   return (
-    <DocumentalBloque overline="Referencia de la notificación" shell={shell}>
+    <DocumentalBloque overline="Referencia de la notificación">
       <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
@@ -443,13 +473,16 @@ function BloqueReferenciaNotificacion({
 }
 
 /** `documental`: ficha completa + prórrogas API (historial). `soloExpediente`: gestión de expedientes de plazo (operativa). */
-export type NotificacionDetalleModalVariant = "documental" | "soloExpediente";
+export type { NotificacionDetalleModalVariant } from "../utils/notificacionModalDisplay";
 
 export type NotificacionDetalleDocumentalDialogProps = {
   open: boolean;
   onClose: () => void;
+  disablePortal?: boolean;
   row: IActuacionesPendientesItem | null;
   variant: NotificacionDetalleModalVariant;
+  /** Bandeja de reinspección por notificación vencida (título contextual). */
+  esReinspeccionNotificacion?: boolean;
   expNumero: string;
   onExpNumeroChange: (v: string) => void;
   expFecha: string;
@@ -459,8 +492,8 @@ export type NotificacionDetalleDocumentalDialogProps = {
   fieldErrors: Record<string, string>;
   modalApiError: string | null;
   saving: boolean;
-  /** Alta de un **nuevo** expediente (solo cuerpo del modal operativo). Devuelve `true` si se creó correctamente. */
-  onGuardar: () => boolean | Promise<boolean>;
+  /** Alta de un **nuevo** expediente (solo cuerpo del modal operativo). */
+  onGuardar: () => GuardarProrrogaResult | Promise<GuardarProrrogaResult>;
   /** Tras editar prórroga vía PATCH o tras alta: actualizar filas de la bandeja. */
   onOperativaListaRefresh?: () => void | Promise<void>;
 };
@@ -471,8 +504,10 @@ export type NotificacionDetalleDocumentalDialogProps = {
 export function NotificacionDetalleDocumentalDialog({
   open,
   onClose,
+  disablePortal,
   row,
   variant,
+  esReinspeccionNotificacion = false,
   expNumero,
   onExpNumeroChange,
   expFecha,
@@ -485,8 +520,9 @@ export function NotificacionDetalleDocumentalDialog({
   onGuardar,
   onOperativaListaRefresh,
 }: NotificacionDetalleDocumentalDialogProps) {
+  const feedback = useAppFeedback();
   const isSoloExpediente = variant === "soloExpediente";
-  const [altaInlineMsg, setAltaInlineMsg] = useState<string | null>(null);
+  useNotifyModalApiError(modalApiError, open);
 
   const handleClose = () => {
     if (isSoloExpediente && saving) return;
@@ -497,12 +533,6 @@ export function NotificacionDetalleDocumentalDialog({
   const [prorrogaLoading, setProrrogaLoading] = useState(false);
   const [prorrogaError, setProrrogaError] = useState<string | null>(null);
   const [prorrogaDetalleRefresh, setProrrogaDetalleRefresh] = useState(0);
-
-  useEffect(() => {
-    if (open && isSoloExpediente) {
-      setAltaInlineMsg(null);
-    }
-  }, [open, isSoloExpediente, row?.id]);
 
   useEffect(() => {
     if (!open || !row) {
@@ -552,39 +582,41 @@ export function NotificacionDetalleDocumentalDialog({
   };
 
   const ejecutarAlta = async () => {
-    setAltaInlineMsg(null);
-    const ok = await onGuardar();
-    if (ok) {
+    const result = await onGuardar();
+    if (result.ok) {
       refrescarDetalleYBandeja();
-      setAltaInlineMsg("Expediente registrado correctamente.");
+      feedback.success(prorrogaSuccessMessage(result.volvioEnPlazo));
     }
   };
 
-  const titleNode =
-    row != null ? (
-      <DocumentalModalTitleStack
-        dominioChip="Notificación"
-        titulo={isSoloExpediente ? "Expedientes de prórroga" : actaNotificacionCabecera(row)}
-        subtitulo={isSoloExpediente ? actaNotificacionCabecera(row) : undefined}
-        actuacionId={undefined}
-      />
-    ) : (
-      "Detalle"
-    );
+  const headerTitulo = row != null ? notificacionModalTitulo(variant, esReinspeccionNotificacion) : "Notificación";
+  const headerSubtitulo = row != null ? notificacionModalSubtitulo(row) : null;
 
   return (
-    <AppDialog
+    <CrudGlassDialog
       open={open}
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
       onClose={handleClose}
       onCloseButtonClick={handleClose}
-      title={titleNode}
-      fullWidth
       maxWidth="md"
-      appearance="glass"
-      contentDividers
-      contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
-      showCloseButton
-      actions={undefined}
+      title={
+        <CrudDialogHeader
+          domainChip="Notificación"
+          titulo={headerTitulo}
+          subtitulo={headerSubtitulo}
+        />
+      }
+      actions={
+        isSoloExpediente ? (
+          <CrudDialogActions
+            mode="edit"
+            onSave={() => void ejecutarAlta()}
+            loading={saving}
+            saveLabel="Guardar expediente"
+          />
+        ) : undefined
+      }
     >
       {!row ? null : isSoloExpediente ? (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Expedientes de prórroga">
@@ -602,72 +634,56 @@ export function NotificacionDetalleDocumentalDialog({
           ) : null}
 
           {row.source_type !== "COMPROBACION" ? (
-            <Stack spacing={1.5}>
-              {altaInlineMsg ? (
-                <Alert severity="success" onClose={() => setAltaInlineMsg(null)} sx={documentalGlassAlertSx}>
-                  {altaInlineMsg}
-                </Alert>
-              ) : null}
-              <DocumentalBloque overline="Alta de expediente de prórroga" shell="glass">
-                <Stack spacing={2} sx={{ width: "100%" }}>
-                  {modalApiError ? (
-                    <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-                      <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                        No se pudo guardar
-                      </Typography>
-                      <Typography variant="body2">{modalApiError}</Typography>
-                    </Alert>
-                  ) : null}
-                  <AppTextField
-                    appearance="glass"
-                    label="Número de expediente"
-                    value={expNumero}
-                    onChange={(e) => onExpNumeroChange(e.target.value)}
-                    fullWidth
-                    required
-                    error={Boolean(fieldErrors.expNumero)}
-                    helperText={fieldErrors.expNumero || undefined}
-                  />
-                  <AppTextField
-                    appearance="glass"
-                    label="Fecha de expediente"
-                    type="date"
-                    value={expFecha}
-                    onChange={(e) => onExpFechaChange(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    required
-                    error={Boolean(fieldErrors.expFecha)}
-                    helperText={fieldErrors.expFecha || undefined}
-                  />
-                  <AppTextField
-                    appearance="glass"
-                    label="Plazo otorgado (días)"
-                    type="number"
-                    value={prorrogaDias}
-                    onChange={(e) => onProrrogaDiasChange(e.target.value)}
-                    fullWidth
-                    required
-                    error={Boolean(fieldErrors.prorrogaDias)}
-                    helperText={fieldErrors.prorrogaDias || undefined}
-                    inputProps={{ min: 0 }}
-                  />
-                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 0.5 }}>
-                    <AppButton dsVariant="primary" dsSize="sm" disabled={saving} onClick={() => void ejecutarAlta()}>
-                      {saving ? "Guardando…" : "Guardar expediente"}
-                    </AppButton>
-                  </Stack>
-                </Stack>
-              </DocumentalBloque>
-            </Stack>
+            <DocumentalCrudSection title="Alta de expediente de prórroga">
+              <CrudFormSlot label="Número de expediente" mode="edit" required error={Boolean(fieldErrors.expNumero)} helperText={fieldErrors.expNumero}>
+                <AppTextField
+                  appearance="glass"
+                  label="Número de expediente"
+                  value={expNumero}
+                  onChange={(e) => onExpNumeroChange(e.target.value)}
+                  fullWidth
+                  required
+                  error={Boolean(fieldErrors.expNumero)}
+                  helperText={fieldErrors.expNumero || undefined}
+                />
+              </CrudFormSlot>
+              <CrudFormSlot label="Fecha de expediente" mode="edit" required error={Boolean(fieldErrors.expFecha)} helperText={fieldErrors.expFecha}>
+                <AppTextField
+                  appearance="glass"
+                  label="Fecha de expediente"
+                  type="date"
+                  value={expFecha}
+                  onChange={(e) => onExpFechaChange(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  fullWidth
+                  required
+                  error={Boolean(fieldErrors.expFecha)}
+                  helperText={fieldErrors.expFecha || undefined}
+                />
+              </CrudFormSlot>
+              <CrudFormSlot label="Plazo otorgado (días)" mode="edit" required error={Boolean(fieldErrors.prorrogaDias)} helperText={fieldErrors.prorrogaDias}>
+                <AppTextField
+                  appearance="glass"
+                  label="Plazo otorgado (días)"
+                  type="number"
+                  value={prorrogaDias}
+                  onChange={(e) => onProrrogaDiasChange(e.target.value)}
+                  fullWidth
+                  required
+                  error={Boolean(fieldErrors.prorrogaDias)}
+                  helperText={fieldErrors.prorrogaDias || undefined}
+                  inputProps={{ min: 0 }}
+                />
+              </CrudFormSlot>
+            </DocumentalCrudSection>
           ) : null}
         </Stack>
       ) : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Historial de la notificación">
-          <BloqueReferenciaNotificacion row={row} shell="actuacion" perfil="documental" />
+          <BloqueReferenciaNotificacion row={row} perfil="documental" />
 
           {visitaBaseHayContenido(row) ? (
-            <DocumentalBloque overline="La visita" shell="actuacion">
+            <DocumentalBloque overline="La visita">
               <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
               <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
               <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
@@ -677,19 +693,12 @@ export function NotificacionDetalleDocumentalDialog({
           ) : null}
 
           {motivosNotificacionLista(row).length > 0 ? (
-            <DocumentalBloque overline="Motivos de notificación" shell="actuacion">
-              <Stack component="ul" spacing={0.75} sx={{ m: 0, pl: 2.25, listStyleType: "disc" }}>
-                {motivosNotificacionLista(row).map((motivo, idx) => (
-                  <Typography
-                    component="li"
-                    key={`m-${idx}-${motivo}`}
-                    variant="body2"
-                    sx={{ ...docModalFilaValorSx, display: "list-item" }}
-                  >
-                    {motivo}
-                  </Typography>
-                ))}
-              </Stack>
+            <DocumentalBloque overline="Motivos de notificación">
+              <CrudFormSlot
+                label="Motivos"
+                mode="view"
+                value={motivosNotificacionLista(row).join(" · ")}
+              />
             </DocumentalBloque>
           ) : null}
 
@@ -699,7 +708,6 @@ export function NotificacionDetalleDocumentalDialog({
               error={prorrogaError}
               detalle={prorrogaDetalle}
               modo="documental"
-              shell="actuacion"
               actuacionId={row.id}
               resumenCompacto={false}
               documentalResumenBandeja={{
@@ -711,14 +719,8 @@ export function NotificacionDetalleDocumentalDialog({
             />
           ) : null}
 
-          {modalApiError ? (
-            <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-              {modalApiError}
-            </Alert>
-          ) : null}
-
           {resultadoComprobacionPosteriorHayContenido(row) ? (
-            <DocumentalBloque overline="Resultado y seguimiento" shell="actuacion">
+            <DocumentalBloque overline="Resultado y seguimiento">
               {filasResultadoEstado(row).map((f) => (
                 <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
               ))}
@@ -726,6 +728,6 @@ export function NotificacionDetalleDocumentalDialog({
           ) : null}
         </Stack>
       )}
-    </AppDialog>
+    </CrudGlassDialog>
   );
 }

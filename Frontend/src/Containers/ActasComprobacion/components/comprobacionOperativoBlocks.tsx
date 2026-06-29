@@ -4,18 +4,13 @@ import { Box, Stack, Typography } from "@mui/material";
 
 import type { IActuacionesPendientesItem, IPendientesOficioItem } from "../../../api/actuacionesPendientesApi";
 import type { IReinspeccionOficioPendienteRow } from "../../../api/actuacionesComprobacionActasApi";
+import { CrudFieldView } from "../../../components/crudDialog";
+import { DocumentalCrudFullSpan, DocumentalCrudSection } from "../../../components/documental/documentalCrudLayout";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
-  docModalActuacionScrollCardShellSx,
-  docModalBlockOverlineSx,
-  docModalBlockResumenSx,
   docModalEmptyStateSx,
-  docModalFilaEtiquetaSx,
-  docModalFilaValorSx,
-  docModalGlassCardShellSx,
   docModalSubheadingInCardSx,
 } from "../../../styles/documentalModalTokens";
-import { COLORS } from "../../Actuaciones/styles/filtroStyles";
 import { humanizarTipoActuacion } from "../utils/documentalLabelFormat";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 
@@ -26,58 +21,33 @@ export function textoValor(val: unknown): string {
   return String(val);
 }
 
+/** Campo readonly con shell glass (mismo patrón que Actuaciones). */
 export function DocumentalFila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: { xs: 0.25, sm: 1 },
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        py: 0.65,
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        "&:last-of-type": { borderBottom: "none", pb: 0 },
-      }}
-    >
-      <Typography component="span" variant="body2" sx={docModalFilaEtiquetaSx}>
-        {etiqueta}
-      </Typography>
-      <Typography component="span" variant="body2" sx={docModalFilaValorSx}>
-        {valor}
-      </Typography>
-    </Box>
-  );
+  return <CrudFieldView label={etiqueta} value={valor} />;
 }
 
 export function DocumentalBloque({
   overline,
   resumen,
   children,
-  shell = "actuacion",
+  shell: _shell = "actuacion",
+  layout = "grid",
 }: {
   overline: string;
   resumen?: string;
   children: ReactNode;
-  /** Mismo shell liviano que Actuaciones / Notificación (operativa). */
+  /** @deprecated Sin efecto: ya no usa card documental pesada. */
   shell?: DocumentalCardShell;
+  layout?: "grid" | "stack";
 }) {
-  const shellSx =
-    shell === "actuacion" ? docModalActuacionScrollCardShellSx(COLORS.primary) : docModalGlassCardShellSx(COLORS.primary);
   return (
-    <Box sx={shellSx}>
-      <Typography component="div" sx={docModalBlockOverlineSx}>
-        {overline}
-      </Typography>
-      {resumen ? (
-        <Typography component="div" sx={docModalBlockResumenSx}>
-          {resumen}
-        </Typography>
-      ) : null}
+    <DocumentalCrudSection title={overline} resumen={resumen} layout={layout}>
       {children}
-    </Box>
+    </DocumentalCrudSection>
   );
 }
+
+export { DocumentalCrudFullSpan };
 
 function contribuyenteLineaPendiente(row: IActuacionesPendientesItem): string {
   const rs = (row.razon_social ?? "").trim();
@@ -275,9 +245,7 @@ export function BloqueMotivoComprobacionDocumental({ row }: { row: ReinspeccionO
   if (!m) return null;
   return (
     <DocumentalBloque overline="Motivo de comprobación">
-      <Typography variant="body2" sx={{ ...docModalFilaValorSx, py: 0.5 }}>
-        {m}
-      </Typography>
+      <DocumentalFila etiqueta="Motivo" valor={m} />
     </DocumentalBloque>
   );
 }

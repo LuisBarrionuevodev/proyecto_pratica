@@ -1,25 +1,34 @@
-import { Alert, Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
 
 import type { IActuacionesPendientesItem } from "../../../api/actuacionesPendientesApi";
-import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
-import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
-import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
-import { AppButton, AppDialog, AppTextField } from "../../../ui";
+import {
+  CrudDialogActions,
+  CrudDialogHeader,
+  CrudFormSlot,
+  CrudGlassDialog,
+  useNotifyModalApiError,
+} from "../../../components/crudDialog";
+import { DocumentalCrudSection } from "../../../components/documental/documentalCrudLayout";
+import { AppTextField } from "../../../ui";
 import {
   BloqueInspeccionBaseComprobacion,
   BloqueReferenciaComprobacionExpediente,
   DOC_MODAL_BLOCK_STACK_SPACING,
-  DocumentalBloque,
 } from "./comprobacionOperativoBlocks";
 
-function actaComprobacionCabecera(row: IActuacionesPendientesItem): string {
+function actaComprobacionSubtitulo(row: IActuacionesPendientesItem): string {
   const n = (row.acta_comprobacion_num ?? "").trim();
-  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
+  const acta = n ? `Acta N.º ${n}` : null;
+  const fecha = (row.fecha_actuacion ?? "").trim();
+  const fechaPart = fecha ? `Fecha: ${fecha}` : null;
+  const parts = [acta, fechaPart].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Registrar expediente de envío";
 }
 
 export type ComprobacionExpedienteOperativoDialogProps = {
   open: boolean;
   onClose: () => void;
+  disablePortal?: boolean;
   row: IActuacionesPendientesItem | null;
   expNumero: string;
   onExpNumeroChange: (v: string) => void;
@@ -36,6 +45,7 @@ export type ComprobacionExpedienteOperativoDialogProps = {
 export function ComprobacionExpedienteOperativoDialog({
   open,
   onClose,
+  disablePortal,
   row,
   expNumero,
   onExpNumeroChange,
@@ -45,51 +55,45 @@ export function ComprobacionExpedienteOperativoDialog({
   saving,
   onGuardar,
 }: ComprobacionExpedienteOperativoDialogProps) {
+  useNotifyModalApiError(modalApiError, open);
+
   const handleClose = () => {
     if (saving) return;
     onClose();
   };
 
-  const titleNode =
-    row != null ? (
-      <DocumentalModalTitleStack
-        dominioChip="Comprobación"
-        titulo={actaComprobacionCabecera(row)}
-        subtitulo="Registrar expediente de envío"
-        actuacionId={undefined}
-      />
-    ) : (
-      "Expediente de comprobación"
-    );
-
   return (
-    <AppDialog
+    <CrudGlassDialog
       open={open}
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
       onClose={handleClose}
       onCloseButtonClick={handleClose}
-      title={titleNode}
-      fullWidth
       maxWidth="md"
-      appearance="glass"
-      contentDividers
-      contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
-      showCloseButton
-      actions={undefined}
+      title={
+        <CrudDialogHeader
+          domainChip="Comprobación"
+          titulo="Expediente"
+          subtitulo={row != null ? actaComprobacionSubtitulo(row) : "Registrar expediente de envío"}
+        />
+      }
+      actions={
+        row != null ? (
+          <CrudDialogActions
+            mode="edit"
+            onSave={() => void onGuardar()}
+            loading={saving}
+            saveLabel="Guardar expediente"
+          />
+        ) : undefined
+      }
     >
       {!row ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
           <BloqueReferenciaComprobacionExpediente row={row} />
           <BloqueInspeccionBaseComprobacion row={row} />
-          <DocumentalBloque overline="Alta de expediente de envío">
-            <Stack spacing={2}>
-              {modalApiError ? (
-                <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                    No se pudo guardar
-                  </Typography>
-                  <Typography variant="body2">{modalApiError}</Typography>
-                </Alert>
-              ) : null}
+          <DocumentalCrudSection title="Expediente de envío">
+            <CrudFormSlot label="Número de expediente" mode="edit" required>
               <AppTextField
                 appearance="glass"
                 label="Número de expediente"
@@ -98,6 +102,8 @@ export function ComprobacionExpedienteOperativoDialog({
                 fullWidth
                 required
               />
+            </CrudFormSlot>
+            <CrudFormSlot label="Fecha de expediente" mode="edit" required>
               <AppTextField
                 appearance="glass"
                 label="Fecha de expediente"
@@ -108,15 +114,10 @@ export function ComprobacionExpedienteOperativoDialog({
                 fullWidth
                 required
               />
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 0.5 }}>
-                <AppButton dsVariant="primary" dsSize="sm" onClick={() => void onGuardar()} disabled={saving}>
-                  {saving ? "Guardando…" : "Guardar expediente"}
-                </AppButton>
-              </Stack>
-            </Stack>
-          </DocumentalBloque>
+            </CrudFormSlot>
+          </DocumentalCrudSection>
         </Stack>
       )}
-    </AppDialog>
+    </CrudGlassDialog>
   );
 }

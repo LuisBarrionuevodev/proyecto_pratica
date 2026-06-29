@@ -144,7 +144,7 @@ export interface ICreateExpedienteResponse {
     fecha_expediente?: string | null;
     expediente_anio: string;
     source_type?: "NOTIFICACION" | "COMPROBACION";
-    next_state_hint?: "PENDIENTE_REINSPECCION" | "ESPERANDO_OFICIO";
+    next_state_hint?: "PENDIENTE_REINSPECCION" | "EN_PLAZO" | "ESPERANDO_OFICIO";
     reinspeccion_due_date?: string | null;
     plazo_dias?: number | null;
     prorroga_dias?: number | null;

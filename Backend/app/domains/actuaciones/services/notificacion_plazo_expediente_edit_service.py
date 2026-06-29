@@ -13,16 +13,40 @@ suma de ``prorroga_dias_otorgados`` de todas las prórrogas activas de esa notif
 
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from app.database import db
+from app.domains.actuaciones.services.notificacion_iniciador_service import (
+    revoke_reinspeccion_notificacion_iniciadores_obsoletos,
+)
 from app.models import Actuaciones, Expediente, IniciadorRuta, Notificacion
 from app.utils.actas import acta_6
 from app.domains.actuaciones.services.notificacion_timing_service import (
     DEFAULT_PLAZO_DIAS,
+    aplicar_prorroga_a_vencimiento_acumulado,
     calcular_fecha_vencimiento,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _as_fecha_expediente_operativa(value: date | datetime | None) -> date | None:
+    """
+    Normaliza ``fecha_expediente`` a ``date`` (nunca ``created_at`` / ``updated_at``).
+
+    Parámetros:
+        value: valor ORM (``date`` o ``datetime``).
+
+    Retorno:
+        ``date`` o ``None``.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    return value
 
 
 def notificacion_usada_como_iniciador(notificacion_id: int) -> bool:
@@ -126,19 +150,38 @@ def _resolver_notificacion_y_expediente_prorroga(
     return act, noti, ex
 
 
-def _recalcular_prorroga_y_vencimiento(noti: Notificacion) -> None:
+def _ordenar_expedientes_prorroga_activos(rows: List[Expediente]) -> List[Expediente]:
     """
-    Asigna ``Notificacion.prorroga_dias`` como suma de ``prorroga_dias_otorgados`` de prórrogas
-    activas y recalcula ``fecha_vencimiento``.
+    Orden cronológico de prórrogas activas: ``fecha_expediente ASC``, ``id ASC``.
+    """
+    return sorted(
+        rows,
+        key=lambda r: (
+            _as_fecha_expediente_operativa(r.fecha_expediente) or date.min,
+            int(r.id),
+        ),
+    )
+
+
+def recalcular_vencimiento_notificacion_desde_expedientes(noti: Notificacion) -> None:
+    """
+    Recalcula ``Notificacion.fecha_vencimiento`` y ``Notificacion.prorroga_dias`` desde expedientes.
+
+    Reglas:
+    - Sin prórrogas activas: ``fecha_notificacion + plazo_dias`` (plazo legal inicial).
+    - Con prórrogas: cadena acumulada en orden ``fecha_expediente ASC``, ``id ASC``.
+      Por cada expediente, si el vencimiento vigente alcanza la fecha del expediente se suman
+      días al vencimiento; si ya estaba vencida, se calcula desde ``fecha_expediente``.
+    - ``Notificacion.prorroga_dias`` = suma de ``prorroga_dias_otorgados`` activos (DTO).
 
     Parámetros:
-        noti: notificación con ``fecha_notificacion`` definida para el cálculo.
+        noti: notificación a mutar (debe tener ``fecha_notificacion``).
 
     Retorno:
         None (muta ``noti``).
 
     Errores:
-        ValueError: si falta ``fecha_notificacion``.
+        ValueError: si falta ``fecha_notificacion`` o algún expediente sin ``fecha_expediente``.
     """
     if noti.fecha_notificacion is None:
         raise ValueError("La notificación no tiene fecha_notificacion para recalcular vencimiento")
@@ -147,24 +190,42 @@ def _recalcular_prorroga_y_vencimiento(noti: Notificacion) -> None:
         Expediente.query.filter_by(notificacion_id=noti.id)
         .filter(Expediente.tipo_expediente == "PRORROGA_NOTIFICACION")
         .filter(Expediente.deleted_at.is_(None))
-        .order_by(Expediente.id.asc())
         .all()
     )
-    total = sum(int(r.prorroga_dias_otorgados or 0) for r in rows)
-    noti.prorroga_dias = total
     noti.plazo_dias = noti.plazo_dias if noti.plazo_dias is not None else DEFAULT_PLAZO_DIAS
-    noti.fecha_vencimiento = calcular_fecha_vencimiento(
-        noti.fecha_notificacion,
-        noti.plazo_dias,
-        noti.prorroga_dias or 0,
-    )
+    noti.prorroga_dias = sum(int(r.prorroga_dias_otorgados or 0) for r in rows)
+
+    vencimiento = calcular_fecha_vencimiento(noti.fecha_notificacion, noti.plazo_dias, 0)
+    for ex in _ordenar_expedientes_prorroga_activos(rows):
+        fecha_base = _as_fecha_expediente_operativa(ex.fecha_expediente)
+        if fecha_base is None:
+            raise ValueError("El expediente de prórroga no tiene fecha_expediente para recalcular vencimiento")
+        plazo = int(ex.prorroga_dias_otorgados or 0)
+        modo = "vencimiento_vigente" if vencimiento >= fecha_base else "fecha_expediente"
+        vencimiento = aplicar_prorroga_a_vencimiento_acumulado(vencimiento, fecha_base, plazo)
+        logger.info(
+            "recalc_vencimiento_notificacion notificacion_id=%s expediente_id=%s "
+            "fecha_expediente=%s plazo_otorgado=%s modo=%s vencimiento_parcial=%s",
+            noti.id,
+            ex.id,
+            fecha_base.isoformat(),
+            plazo,
+            modo,
+            vencimiento.isoformat(),
+        )
+
+    noti.fecha_vencimiento = vencimiento
     db.session.add(noti)
+
+
+def _recalcular_prorroga_y_vencimiento(noti: Notificacion) -> None:
+    """Alias interno al recálculo canónico desde expedientes activos."""
+    recalcular_vencimiento_notificacion_desde_expedientes(noti)
 
 
 def recalcular_prorroga_y_vencimiento_desde_expedientes_activos(noti: Notificacion) -> None:
     """
-    Recalcula ``Notificacion.prorroga_dias`` como suma de filas ``PRORROGA_NOTIFICACION`` activas
-    y vuelve a calcular ``fecha_vencimiento``.
+    Recalcula vencimiento y ``prorroga_dias`` desde filas ``PRORROGA_NOTIFICACION`` activas.
 
     Parámetros:
         noti: notificación a mutar (debe tener ``fecha_notificacion``).
@@ -173,9 +234,9 @@ def recalcular_prorroga_y_vencimiento_desde_expedientes_activos(noti: Notificaci
         None.
 
     Errores:
-        ValueError: si falta ``fecha_notificacion``.
+        ValueError: si falta ``fecha_notificacion`` o algún expediente sin ``fecha_expediente``.
     """
-    _recalcular_prorroga_y_vencimiento(noti)
+    recalcular_vencimiento_notificacion_desde_expedientes(noti)
 
 
 def update_notificacion_prorroga_expediente(
@@ -238,7 +299,9 @@ def update_notificacion_prorroga_expediente(
     ex.prorroga_dias_otorgados = int(plazo_otorgado)
     db.session.add(ex)
 
-    _recalcular_prorroga_y_vencimiento(noti)
+    recalcular_vencimiento_notificacion_desde_expedientes(noti)
+    db.session.flush()
+    revoke_reinspeccion_notificacion_iniciadores_obsoletos()
     db.session.commit()
 
     return {
@@ -286,7 +349,9 @@ def delete_notificacion_prorroga_expediente(actuacion_id: int, expediente_id: in
     ex.deleted_at = datetime.now(timezone.utc)
     db.session.add(ex)
 
-    _recalcular_prorroga_y_vencimiento(noti)
+    recalcular_vencimiento_notificacion_desde_expedientes(noti)
+    db.session.flush()
+    revoke_reinspeccion_notificacion_iniciadores_obsoletos()
     db.session.commit()
 
     return {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Any, Dict, Tuple
 
@@ -12,11 +13,15 @@ from app.domains.actuaciones.services.expediente_reactivacion_service import (
     buscar_expediente_prorroga_notificacion_reactivable,
 )
 from app.domains.actuaciones.services.notificacion_plazo_expediente_edit_service import (
-    recalcular_prorroga_y_vencimiento_desde_expedientes_activos,
+    recalcular_vencimiento_notificacion_desde_expedientes,
 )
 from app.models import Actuaciones, Expediente, Notificacion
 from app.utils.actas import acta_6
-from app.domains.actuaciones.services.notificacion_timing_service import aplicar_prorroga_notificacion
+from app.domains.actuaciones.services.notificacion_iniciador_service import (
+    revoke_reinspeccion_notificacion_iniciadores_obsoletos,
+)
+
+logger = logging.getLogger(__name__)
 
 # Actuación con notificación y comprobación: el cliente debe enviar ``source_type`` en el payload
 # de ``complete_expediente_from_actuacion`` (ver PR2).
@@ -205,6 +210,12 @@ def complete_expediente_from_actuacion(
             db.session.add(ex)
     else:
         prorroga_dias = _parse_prorroga_payload(data)
+        logger.info(
+            "complete_expediente_prorroga actuacion_id=%s payload_fecha_expediente=%s plazo_otorgado=%s",
+            actuacion_id,
+            fecha_expediente.isoformat(),
+            prorroga_dias,
+        )
         if act.notificacion_id is None:
             raise ValueError("La actuación no tiene notificación para aplicar prórroga")
         noti = db.session.get(Notificacion, act.notificacion_id)
@@ -233,13 +244,10 @@ def complete_expediente_from_actuacion(
                 prorroga_dias_otorgados=prorroga_dias,
             )
             db.session.add(reactivable_n)
-            recalcular_prorroga_y_vencimiento_desde_expedientes_activos(noti)
-            db.session.add(noti)
+            db.session.flush()
+            recalcular_vencimiento_notificacion_desde_expedientes(noti)
             ex = reactivable_n
         else:
-            aplicar_prorroga_notificacion(noti, prorroga_dias)
-            db.session.add(noti)
-
             dup = (
                 expedientes_vigentes(
                     Expediente.query.filter_by(numero_expediente=numero, anio=anio_str)
@@ -259,18 +267,41 @@ def complete_expediente_from_actuacion(
                 prorroga_dias_otorgados=prorroga_dias,
             )
             db.session.add(ex)
+            db.session.flush()
+            recalcular_vencimiento_notificacion_desde_expedientes(noti)
+
+        logger.info(
+            "complete_expediente_prorroga persistido expediente_id=%s fecha_expediente=%s "
+            "created_at=%s notificacion_id=%s fecha_vencimiento=%s",
+            ex.id,
+            ex.fecha_expediente.isoformat() if ex.fecha_expediente else None,
+            ex.created_at.isoformat() if ex.created_at else None,
+            noti.id,
+            noti.fecha_vencimiento.isoformat() if noti.fecha_vencimiento else None,
+        )
+
+    revoked_reinspeccion_iniciadores = 0
+    if source_type == "NOTIFICACION":
+        db.session.flush()
+        revoked_reinspeccion_iniciadores = revoke_reinspeccion_notificacion_iniciadores_obsoletos()
 
     db.session.commit()
 
-    next_state_hint = (
-        "ESPERANDO_OFICIO" if source_type == "COMPROBACION" else "PENDIENTE_REINSPECCION"
-    )
+    today = date.today()
+    if source_type == "COMPROBACION":
+        next_state_hint = "ESPERANDO_OFICIO"
+    else:
+        venc = act.notificacion.fecha_vencimiento if act.notificacion else None
+        next_state_hint = (
+            "EN_PLAZO" if venc is not None and venc > today else "PENDIENTE_REINSPECCION"
+        )
 
     return {
         "actuacion": act,
         "expediente": ex,
         "source_type": source_type,
         "next_state_hint": next_state_hint,
+        "revoked_reinspeccion_iniciadores": revoked_reinspeccion_iniciadores,
         "reinspeccion_due_date": (
             act.notificacion.fecha_vencimiento.isoformat()
             if source_type == "NOTIFICACION"

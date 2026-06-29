@@ -119,3 +119,29 @@ def calcular_fecha_vencimiento_notificacion_habiles(
         return fecha_notificacion
     inicio = siguiente_dia_habil_posterior(fecha_notificacion, es_feriado=es_feriado)
     return _nth_dia_habil_desde_inicio_inclusive(inicio, total, es_feriado=es_feriado)
+
+
+def sumar_dias_habiles_posteriores_a_fecha(
+    fecha: date,
+    dias: int,
+    *,
+    es_feriado: Optional[HolidayPredicate] = None,
+) -> date:
+    """
+    Suma ``dias`` días hábiles **después** de ``fecha`` (``fecha`` no cuenta en la extensión).
+
+    Usado para prórrogas sobre vencimiento vigente: el plazo otorgado se acumula al
+    vencimiento actual.
+
+    Parámetros:
+        fecha: vencimiento vigente u otra fecha base.
+        dias: cantidad de días hábiles a sumar (>= 0).
+
+    Retorno:
+        Nueva fecha límite tras la extensión; si ``dias`` <= 0 devuelve ``fecha``.
+    """
+    n = int(dias)
+    if n <= 0:
+        return fecha
+    inicio = siguiente_dia_habil_posterior(fecha, es_feriado=es_feriado)
+    return _nth_dia_habil_desde_inicio_inclusive(inicio, n, es_feriado=es_feriado)

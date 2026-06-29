@@ -1042,6 +1042,7 @@ def actuacion_to_pendiente_expediente_row(
     fecha_vencimiento_por_notificacion: dict[int, date | None] | None = None,
     counts_by_eo: dict[int, int] | None = None,
     posterior_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
+    reinspeccion_comprobacion_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
     expediente_list_channel: str | None = None,
 ) -> Dict[str, Any]:
     """
@@ -1058,10 +1059,11 @@ def actuacion_to_pendiente_expediente_row(
     y comprobación conserva métricas de plazo y ``source_type`` ``NOTIFICACION`` para la gestión de
     notificación; en ``all`` sigue predominando la inferencia por estado (ambas actas → COMPROBACION).
 
-    Campos `comprobacion_posterior_*`: visita con comprobación posterior a la fila (mismo
-    domicilio) o, en rama COMPROBACION, la propia fila. Requieren ``posterior_por_actuacion_id``
-    desde ``build_posterior_comprobacion_por_actuacion_id`` para la rama NOTIFICACION-only; si la
-    comprobación es la misma actuación y el canal es ``notificacion``, se rellenan desde la propia fila.
+    Campos `comprobacion_posterior_*`: comprobación de la reinspección por notificación vencida
+    (actuación ``REINSPECCION`` con la misma ``notificacion_id``), vía
+    ``build_reinspeccion_comprobacion_por_actuacion_id``. No se usa la comprobación cargada en la
+    actuación origen mixta ni una posterior genérica por domicilio en canal ``notificacion``.
+    ``posterior_por_actuacion_id`` (domicilio) solo aplica fuera del canal notificación.
     """
     full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     source_type = _pendiente_expediente_source_type_for_list(act, expediente_list_channel)
@@ -1080,11 +1082,14 @@ def actuacion_to_pendiente_expediente_row(
         full["plazos_otorgados"] = None
         full["dias_restantes"] = None
 
-    post_act: Actuaciones | None = None
-    if posterior_por_actuacion_id is not None:
-        post_act = posterior_por_actuacion_id.get(int(act.id))
-
     ch = (expediente_list_channel or "all").strip().lower()
+
+    post_act: Actuaciones | None = None
+    if source_type == "NOTIFICACION" or ch == "notificacion":
+        if reinspeccion_comprobacion_por_actuacion_id is not None:
+            post_act = reinspeccion_comprobacion_por_actuacion_id.get(int(act.id))
+    elif posterior_por_actuacion_id is not None:
+        post_act = posterior_por_actuacion_id.get(int(act.id))
 
     if post_act is not None:
         comp_p = getattr(post_act, "comprobacion", None)
@@ -1092,10 +1097,6 @@ def actuacion_to_pendiente_expediente_row(
         full["comprobacion_posterior_inspectores_texto"] = _inspectores_joined_text_from_orm(post_act)
         full["comprobacion_posterior_acta_num"] = getattr(comp_p, "numero_acta", None) if comp_p else None
     elif source_type == "COMPROBACION" and getattr(act, "comprobacion_id", None):
-        full["comprobacion_posterior_fecha"] = full.get("fecha_actuacion")
-        full["comprobacion_posterior_inspectores_texto"] = full.get("inspectores_texto")
-        full["comprobacion_posterior_acta_num"] = full.get("acta_comprobacion_num")
-    elif ch == "notificacion" and getattr(act, "comprobacion_id", None):
         full["comprobacion_posterior_fecha"] = full.get("fecha_actuacion")
         full["comprobacion_posterior_inspectores_texto"] = full.get("inspectores_texto")
         full["comprobacion_posterior_acta_num"] = full.get("acta_comprobacion_num")

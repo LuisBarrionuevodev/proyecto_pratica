@@ -8,24 +8,28 @@ import {
   deleteComprobacionOficioBloque,
   type IComprobacionDocumentalEdicion,
   type IComprobacionDocumentalExpedienteItem,
-  type IComprobacionDocumentalOficioItem,
   type IComprobacionDocumentalResponse,
   type IJuzgadoCatalogItem,
   patchComprobacionExpedienteEnvio,
   patchComprobacionOficioBloque,
 } from "../../../api/actuacionesPendientesApi";
-import { DocumentalModalFooter, DocumentalModalTitleStack } from "../../../components/documental/DocumentalModalChrome";
-import { formDialogContentStackSx } from "../../../styles/formDialogStyles";
+import {
+  CrudDialogHeader,
+  CrudFormSlot,
+  CrudGlassDialog,
+  useNotifyModalApiError,
+} from "../../../components/crudDialog";
+import { useAppFeedback } from "../../../components/feedback";
 import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { applyOficioAltaErrorsFromApi } from "../../../utils/oficioFormErrors";
-import { AppButton, AppDialog, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
+import { AppButton, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
 import { ComprobacionOficiosTribunalSection } from "./ComprobacionOficiosTribunalSection";
 import {
   BloqueInspeccionBaseFromOficioRow,
   BloqueReferenciaComprobacionOficio,
   DOC_MODAL_BLOCK_STACK_SPACING,
   DocumentalBloque,
-  DocumentalFila,
+  DocumentalCrudFullSpan,
   parNumAnio,
   textoValor,
   type ComprobacionOficioReferenciaRow,
@@ -50,9 +54,11 @@ export type OficioOperativoRow = ComprobacionOficioReferenciaRow & {
   tipo_actuacion?: string | null;
 };
 
-function actaCabecera(row: OficioOperativoRow): string {
+function oficioModalSubtitulo(row: OficioOperativoRow, tieneOficios: boolean): string {
   const n = (row.acta_comprobacion_num ?? "").trim();
-  return n ? `Acta de comprobación Nº ${n}` : "Acta de comprobación";
+  const acta = n ? `Acta N.º ${n}` : null;
+  const ctx = tieneOficios ? "Oficios y respuestas del tribunal" : "Registrar oficio y expediente de respuesta";
+  return acta ? `${acta} · ${ctx}` : ctx;
 }
 
 function campoUtilMerge(v: unknown): boolean {
@@ -83,27 +89,6 @@ function mergeOficioRowConDocumental(
   return out as unknown as OficioOperativoRow;
 }
 
-function filasOficioDocumental(ofi: IComprobacionDocumentalOficioItem) {
-  const juz = (ofi.juzgado_nombre ?? "").trim();
-  return (
-    <>
-      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(ofi.numero_oficio ?? null, ofi.anio ?? null)} />
-      <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(ofi.fecha_oficio)} />
-      <DocumentalFila etiqueta="Causa" valor={textoValor(ofi.causa)} />
-      <DocumentalFila etiqueta="Juzgado" valor={juz || "—"} />
-    </>
-  );
-}
-
-function filasExpedienteRespuestaDocumental(ex: IComprobacionDocumentalExpedienteItem) {
-  return (
-    <>
-      <DocumentalFila etiqueta="N.º y año" valor={parNumAnio(ex.numero_expediente ?? null, ex.anio ?? null)} />
-      <DocumentalFila etiqueta="Fecha" valor={textoValor(ex.fecha_expediente)} />
-    </>
-  );
-}
-
 /** Mismo bloque editable que en «Pendientes de oficio» (oficio, causa, expediente de respuesta). Reutilizable en otros modales documentales. */
 export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYRespuestaEditable({
   open,
@@ -123,6 +108,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   oficioEditable?: boolean | null;
   bloqueadoMotivo?: string | null;
 }) {
+  const feedback = useAppFeedback();
   const [editing, setEditing] = useState(false);
   const [numOfi, setNumOfi] = useState("");
   const [fecOperativa, setFecOperativa] = useState("");
@@ -160,8 +146,11 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
     [juzgados]
   );
 
-  const filasExReadonly = useMemo(() => filasExpedienteRespuestaDocumental(exR), [exR]);
-  const filasOfiReadonly = useMemo(() => filasOficioDocumental(ofi), [ofi]);
+  const juzgadoNombreReadonly = (ofi.juzgado_nombre ?? "").trim() || "—";
+  const fechaUnificadaReadonly =
+    textoValor(exR.fecha_expediente) !== "—"
+      ? textoValor(exR.fecha_expediente)
+      : textoValor(ofi.fecha_oficio);
 
   const handleNumExChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setNumEx(e.target.value);
@@ -198,156 +187,177 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
     }
   }, [open]);
 
+  useEffect(() => {
+    if (err) feedback.error(err);
+  }, [err, feedback]);
+
   return (
     <DocumentalBloque overline="Oficio y expediente de respuesta">
-      <Stack spacing={1.25}>
-        {err ? (
-          <Alert severity="error" sx={documentalGlassAlertSx} onClose={() => setErr(null)}>
+      {!puede && motivoBloqueo ? (
+        <DocumentalCrudFullSpan>
+          <Alert severity="warning" sx={documentalGlassAlertSx}>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-              Error
+              No editable
             </Typography>
-            <Typography variant="body2">{err}</Typography>
+            <Typography variant="body2">{motivoBloqueo}</Typography>
           </Alert>
-        ) : null}
-        <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 0.5 }}>
-          Expediente de respuesta
-        </Typography>
-        {filasExReadonly}
-        <Typography component="div" variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", pt: 1 }}>
-          Oficio
-        </Typography>
-        {filasOfiReadonly}
-        <Stack spacing={1.5} sx={{ pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          {!puede && motivoBloqueo ? (
-            <Alert severity="warning" sx={documentalGlassAlertSx}>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                No editable
-              </Typography>
-              <Typography variant="body2">{motivoBloqueo}</Typography>
-            </Alert>
-          ) : null}
-          {!editing ? (
-            puede ? (
-              <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                <AppButton dsVariant="primary" dsSize="sm" onClick={() => setEditing(true)}>
-                  Editar
+        </DocumentalCrudFullSpan>
+      ) : null}
+
+      {editing ? (
+        <>
+          <CrudFormSlot label="Número de expediente de respuesta" mode="edit">
+            <AppTextField
+              appearance="glass"
+              label="Número de expediente de respuesta"
+              value={numEx}
+              onChange={handleNumExChange}
+              fullWidth
+              error={Boolean(fe("numero_expediente_oficio"))}
+              helperText={fe("numero_expediente_oficio") || undefined}
+            />
+          </CrudFormSlot>
+          <CrudFormSlot label="Fecha" mode="edit">
+            <AppTextField
+              appearance="glass"
+              label="Fecha"
+              type="date"
+              value={fecOperativa}
+              onChange={handleFecOperativaChange}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              error={Boolean(fe("fecha_oficio"))}
+              helperText={fe("fecha_oficio") || undefined}
+            />
+          </CrudFormSlot>
+          <CrudFormSlot label="Número de oficio" mode="edit">
+            <AppTextField
+              appearance="glass"
+              label="Número de oficio"
+              value={numOfi}
+              onChange={handleNumOfiChange}
+              fullWidth
+              error={Boolean(fe("numero_oficio"))}
+              helperText={fe("numero_oficio") || undefined}
+            />
+          </CrudFormSlot>
+          <CrudFormSlot label="Causa" mode="edit">
+            <AppTextField
+              appearance="glass"
+              label="Causa"
+              value={causa}
+              onChange={handleCausaChange}
+              fullWidth
+              error={Boolean(fe("causa"))}
+              helperText={fe("causa") || undefined}
+            />
+          </CrudFormSlot>
+          <CrudFormSlot label="Juzgado" mode="edit">
+            <AppSelect
+              appearance="glass"
+              label="Juzgado"
+              value={juzId === "" ? "" : String(juzId)}
+              onChange={handleJuzChange}
+              fullWidth
+              variant="outlined"
+              error={Boolean(fe("juzgado_id"))}
+              helperText={fe("juzgado_id") || undefined}
+              options={juzgadoSelectOptions}
+            />
+          </CrudFormSlot>
+        </>
+      ) : (
+        <>
+          <CrudFormSlot
+            label="Número de expediente de respuesta"
+            mode="view"
+            value={parNumAnio(exR.numero_expediente ?? null, exR.anio ?? null)}
+          />
+          <CrudFormSlot label="Fecha" mode="view" value={fechaUnificadaReadonly} />
+          <CrudFormSlot
+            label="N.º y año de oficio"
+            mode="view"
+            value={parNumAnio(ofi.numero_oficio ?? null, ofi.anio ?? null)}
+          />
+          <CrudFormSlot label="Causa" mode="view" value={ofi.causa} />
+          <CrudFormSlot label="Juzgado" mode="view" value={juzgadoNombreReadonly} />
+        </>
+      )}
+
+      <DocumentalCrudFullSpan>
+        {!editing ? (
+          puede ? (
+            <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" sx={{ pt: 0.5 }}>
+              <AppButton dsVariant="primary" dsSize="sm" onClick={() => setEditing(true)}>
+                Editar
+              </AppButton>
+              {puedeEliminarBloque ? (
+                <AppButton dsVariant="danger" dsSize="sm" onClick={() => setConfirmDelBloqueOpen(true)}>
+                  Eliminar
                 </AppButton>
-                {puedeEliminarBloque ? (
-                  <AppButton dsVariant="danger" dsSize="sm" onClick={() => setConfirmDelBloqueOpen(true)}>
-                    Eliminar
-                  </AppButton>
-                ) : null}
-              </Stack>
-            ) : null
-          ) : (
-            <>
-              <AppTextField
-                appearance="glass"
-                label="Número de expediente de respuesta"
-                value={numEx}
-                onChange={handleNumExChange}
-                fullWidth
-                error={Boolean(fe("numero_expediente_oficio"))}
-                helperText={fe("numero_expediente_oficio") || undefined}
-              />
-              <AppTextField
-                appearance="glass"
-                label="Fecha"
-                type="date"
-                value={fecOperativa}
-                onChange={handleFecOperativaChange}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                error={Boolean(fe("fecha_oficio"))}
-                helperText={fe("fecha_oficio") || undefined}
-              />
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
-                Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
-              </Typography>
-              <AppTextField
-                appearance="glass"
-                label="Número de oficio"
-                value={numOfi}
-                onChange={handleNumOfiChange}
-                fullWidth
-                error={Boolean(fe("numero_oficio"))}
-                helperText={fe("numero_oficio") || undefined}
-              />
-              <AppTextField
-                appearance="glass"
-                label="Causa"
-                value={causa}
-                onChange={handleCausaChange}
-                fullWidth
-                error={Boolean(fe("causa"))}
-                helperText={fe("causa") || undefined}
-              />
-              <AppSelect
-                appearance="glass"
-                label="Juzgado"
-                value={juzId === "" ? "" : String(juzId)}
-                onChange={handleJuzChange}
-                fullWidth
-                variant="outlined"
-                error={Boolean(fe("juzgado_id"))}
-                helperText={fe("juzgado_id") || undefined}
-                options={juzgadoSelectOptions}
-              />
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="sm"
-                  disabled={saving || !numOfi.trim() || !fecOperativa || juzId === "" || !numEx.trim()}
-                  onClick={() => {
-                    void (async () => {
-                      setSaving(true);
-                      setErr(null);
-                      setFieldErrors({});
-                      try {
-                        await patchComprobacionOficioBloque(actuacionId, ofi.id, {
-                          numero_oficio: numOfi.trim(),
-                          fecha_oficio: fecOperativa,
-                          juzgado_id: Number(juzId),
-                          causa: causa.trim() || null,
-                          numero_expediente_respuesta: numEx.trim(),
-                          fecha_expediente_respuesta: fecOperativa,
-                        });
-                        setEditing(false);
-                        await onDocumentalUpdated();
-                      } catch (e: unknown) {
-                        const parsed = applyOficioAltaErrorsFromApi(e);
-                        setFieldErrors(parsed.fieldErrors);
-                        setErr(parsed.globalMessage);
-                      } finally {
-                        setSaving(false);
-                      }
-                    })();
-                  }}
-                >
-                  {saving ? "Guardando…" : "Guardar cambios"}
-                </AppButton>
-                <AppButton
-                  dsVariant="ghost"
-                  dsSize="sm"
-                  disabled={saving}
-                  onClick={() => {
+              ) : null}
+            </Stack>
+          ) : null
+        ) : (
+          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ pt: 0.5 }}>
+            <AppButton
+              dsVariant="primary"
+              dsSize="sm"
+              disabled={saving || !numOfi.trim() || !fecOperativa || juzId === "" || !numEx.trim()}
+              onClick={() => {
+                void (async () => {
+                  setSaving(true);
+                  setErr(null);
+                  setFieldErrors({});
+                  try {
+                    await patchComprobacionOficioBloque(actuacionId, ofi.id, {
+                      numero_oficio: numOfi.trim(),
+                      fecha_oficio: fecOperativa,
+                      juzgado_id: Number(juzId),
+                      causa: causa.trim() || null,
+                      numero_expediente_respuesta: numEx.trim(),
+                      fecha_expediente_respuesta: fecOperativa,
+                    });
                     setEditing(false);
-                    setNumOfi((ofi.numero_oficio ?? "").trim());
-                    const fo = ofi.fecha_oficio ? ofi.fecha_oficio.slice(0, 10) : "";
-                    const fe = exR.fecha_expediente ? exR.fecha_expediente.slice(0, 10) : "";
-                    setFecOperativa(fo || fe || "");
-                    setJuzId(ofi.juzgado_id != null ? ofi.juzgado_id : "");
-                    setCausa((ofi.causa ?? "").trim());
-                    setNumEx((exR.numero_expediente ?? "").trim());
-                    setErr(null);
-                  }}
-                >
-                  Cancelar
-                </AppButton>
-              </Stack>
-            </>
-          )}
-        </Stack>
+                    await onDocumentalUpdated();
+                  } catch (e: unknown) {
+                    const parsed = applyOficioAltaErrorsFromApi(e);
+                    setFieldErrors(parsed.fieldErrors);
+                    setErr(parsed.globalMessage);
+                  } finally {
+                    setSaving(false);
+                  }
+                })();
+              }}
+            >
+              {saving ? "Guardando…" : "Guardar cambios"}
+            </AppButton>
+            <AppButton
+              dsVariant="ghost"
+              dsSize="sm"
+              disabled={saving}
+              onClick={() => {
+                setEditing(false);
+                setNumOfi((ofi.numero_oficio ?? "").trim());
+                const fo = ofi.fecha_oficio ? ofi.fecha_oficio.slice(0, 10) : "";
+                const feExp = exR.fecha_expediente ? exR.fecha_expediente.slice(0, 10) : "";
+                setFecOperativa(fo || feExp || "");
+                setJuzId(ofi.juzgado_id != null ? ofi.juzgado_id : "");
+                setCausa((ofi.causa ?? "").trim());
+                setNumEx((exR.numero_expediente ?? "").trim());
+                setErr(null);
+              }}
+            >
+              Cancelar
+            </AppButton>
+          </Stack>
+        )}
+        {editing ? (
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: 0.75, display: "block" }}>
+            Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
+          </Typography>
+        ) : null}
+      </DocumentalCrudFullSpan>
         <ConfirmDialog
           open={confirmDelBloqueOpen}
           onClose={() => {
@@ -379,7 +389,6 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
             borran; podés volver a cargar el oficio desde la bandeja si corresponde.
           </Typography>
         </ConfirmDialog>
-      </Stack>
     </DocumentalBloque>
   );
 });
@@ -449,16 +458,13 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
   }, []);
 
   return (
-    <DocumentalBloque overline="Alta de oficio y expediente de respuesta">
-      <Stack spacing={2}>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4 }}>
+    <DocumentalBloque overline="Alta de oficio y expediente de respuesta" layout="grid">
+      <DocumentalCrudFullSpan>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4, display: "block" }}>
           Primero el expediente de respuesta y la fecha compartida; luego el oficio, la causa y el juzgado.
         </Typography>
-        {modalApiError ? (
-          <Alert severity="error" sx={{ mb: 0, ...documentalGlassAlertSx }}>
-            <Typography variant="body2">{modalApiError}</Typography>
-          </Alert>
-        ) : null}
+      </DocumentalCrudFullSpan>
+      <CrudFormSlot label="Número de expediente de respuesta" mode="edit" required>
         <AppTextField
           appearance="glass"
           label="Número de expediente de respuesta"
@@ -469,6 +475,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           error={Boolean(fe("numero_expediente_oficio"))}
           helperText={fe("numero_expediente_oficio") || undefined}
         />
+      </CrudFormSlot>
+      <CrudFormSlot label="Fecha" mode="edit" required>
         <AppTextField
           appearance="glass"
           label="Fecha"
@@ -481,9 +489,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           error={Boolean(fe("fecha_oficio"))}
           helperText={fe("fecha_oficio") || undefined}
         />
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: -0.5, display: "block" }}>
-          Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
-        </Typography>
+      </CrudFormSlot>
+      <CrudFormSlot label="Número de oficio" mode="edit" required>
         <AppTextField
           appearance="glass"
           label="Número de oficio"
@@ -494,6 +501,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           error={Boolean(fe("numero_oficio"))}
           helperText={fe("numero_oficio") || undefined}
         />
+      </CrudFormSlot>
+      <CrudFormSlot label="Causa" mode="edit">
         <AppTextField
           appearance="glass"
           label="Causa"
@@ -503,6 +512,8 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           error={Boolean(fe("causa"))}
           helperText={fe("causa") || undefined}
         />
+      </CrudFormSlot>
+      <CrudFormSlot label="Juzgado" mode="edit" required>
         <AppSelect
           appearance="glass"
           label="Juzgado"
@@ -515,6 +526,11 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           helperText={fe("juzgado_id") || undefined}
           options={juzgadoOptionsAlta}
         />
+      </CrudFormSlot>
+      <DocumentalCrudFullSpan>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", display: "block" }}>
+          Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
+        </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>
           <AppButton
             dsVariant="primary"
@@ -527,7 +543,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
             {saving ? "Guardando…" : "Guardar"}
           </AppButton>
         </Box>
-      </Stack>
+      </DocumentalCrudFullSpan>
     </DocumentalBloque>
   );
 });
@@ -549,6 +565,7 @@ function BloqueExpedienteEnvioEditable({
   pendienteRow: OficioOperativoRow | null;
   documentalError: string | null;
 }) {
+  const feedback = useAppFeedback();
   const [editing, setEditing] = useState(false);
   const [num, setNum] = useState("");
   const [fec, setFec] = useState("");
@@ -588,6 +605,10 @@ function BloqueExpedienteEnvioEditable({
     if (!documentalLoading) setErr(null);
   }, [documentalLoading]);
 
+  useEffect(() => {
+    if (err) feedback.error(err);
+  }, [err, feedback]);
+
   if (documentalLoading) {
     return (
       <DocumentalBloque overline="Expediente de envío">
@@ -606,16 +627,8 @@ function BloqueExpedienteEnvioEditable({
 
   return (
     <DocumentalBloque overline="Expediente de envío">
-      <Stack spacing={2}>
-        {err ? (
-          <Alert severity="error" sx={documentalGlassAlertSx} onClose={() => setErr(null)}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-              Error
-            </Typography>
-            <Typography variant="body2">{err}</Typography>
-          </Alert>
-        ) : null}
-        {soloLecturaLista ? (
+      {soloLecturaLista ? (
+        <DocumentalCrudFullSpan>
           <Alert severity="warning" sx={documentalGlassAlertSx}>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
               Edición no disponible en el servidor
@@ -625,8 +638,10 @@ function BloqueExpedienteEnvioEditable({
                 "No se pudieron cargar los permisos de edición. Ves el expediente según el listado; cerrá y volvé a abrir o verificá la sesión."}
             </Typography>
           </Alert>
-        ) : null}
-        {bloqueadoPorIniciador ? (
+        </DocumentalCrudFullSpan>
+      ) : null}
+      {bloqueadoPorIniciador ? (
+        <DocumentalCrudFullSpan>
           <Alert severity="warning" sx={documentalGlassAlertSx}>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
               Edición bloqueada
@@ -635,36 +650,11 @@ function BloqueExpedienteEnvioEditable({
               {motivos[0] ?? "No se puede editar el expediente de envío en este estado."}
             </Typography>
           </Alert>
-        ) : null}
-        {!editing ? (
-          <>
-            <DocumentalFila
-              etiqueta="N.º y año"
-              valor={parNumAnio(displayExp.numero_expediente ?? null, displayExp.anio ?? null)}
-            />
-            <DocumentalFila etiqueta="Fecha" valor={textoValor(displayExp.fecha_expediente)} />
-            {puedeEditarApi || puedeEliminarEnvioApi ? (
-              <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                {puedeEditarApi ? (
-                  <AppButton dsVariant="primary" dsSize="sm" onClick={() => setEditing(true)}>
-                    Editar
-                  </AppButton>
-                ) : null}
-                {puedeEliminarEnvioApi ? (
-                  <AppButton dsVariant="danger" dsSize="sm" onClick={() => setConfirmDelEnvioOpen(true)}>
-                    Eliminar
-                  </AppButton>
-                ) : null}
-              </Stack>
-            ) : null}
-            {!puedeEliminarEnvioApi && expediente != null && motivosEliminarEnvio.length > 0 ? (
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", display: "block", pt: 0.5 }}>
-                {motivosEliminarEnvio[0]}
-              </Typography>
-            ) : null}
-          </>
-        ) : (
-          <>
+        </DocumentalCrudFullSpan>
+      ) : null}
+      {editing ? (
+        <>
+          <CrudFormSlot label="Número de expediente" mode="edit" required>
             <AppTextField
               appearance="glass"
               label="Número de expediente"
@@ -673,6 +663,8 @@ function BloqueExpedienteEnvioEditable({
               fullWidth
               required
             />
+          </CrudFormSlot>
+          <CrudFormSlot label="Fecha de expediente" mode="edit" required>
             <AppTextField
               appearance="glass"
               label="Fecha de expediente"
@@ -683,53 +675,87 @@ function BloqueExpedienteEnvioEditable({
               fullWidth
               required
             />
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              <AppButton
-                dsVariant="primary"
-                dsSize="sm"
-                disabled={saving || !num.trim() || !fec || expediente == null}
-                onClick={() => {
-                  void (async () => {
-                    if (expediente == null) return;
-                    setSaving(true);
-                    setErr(null);
-                    try {
-                      await patchComprobacionExpedienteEnvio(actuacionId, expediente.id, {
-                        numero_expediente: num.trim(),
-                        fecha_expediente: fec,
-                      });
-                      setEditing(false);
-                      await onDocumentalUpdated();
-                    } catch (e: unknown) {
-                      const detail =
-                        e && typeof e === "object" && "response" in e
-                          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
-                          : null;
-                      setErr(detail || "No se pudo guardar el expediente");
-                    } finally {
-                      setSaving(false);
-                    }
-                  })();
-                }}
-              >
-                {saving ? "Guardando…" : "Guardar cambios"}
-              </AppButton>
-              <AppButton
-                dsVariant="ghost"
-                dsSize="sm"
-                disabled={saving}
-                onClick={() => {
-                  setEditing(false);
-                  setNum((displayExp.numero_expediente ?? "").trim());
-                  setFec(displayExp.fecha_expediente ? displayExp.fecha_expediente.slice(0, 10) : "");
-                  setErr(null);
-                }}
-              >
-                Cancelar
-              </AppButton>
+          </CrudFormSlot>
+        </>
+      ) : (
+        <>
+          <CrudFormSlot
+            label="N.º y año"
+            mode="view"
+            value={parNumAnio(displayExp.numero_expediente ?? null, displayExp.anio ?? null)}
+          />
+          <CrudFormSlot label="Fecha" mode="view" value={displayExp.fecha_expediente} />
+        </>
+      )}
+      <DocumentalCrudFullSpan>
+        {!editing ? (
+          puedeEditarApi || puedeEliminarEnvioApi ? (
+            <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" sx={{ pt: 0.5 }}>
+              {puedeEditarApi ? (
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => setEditing(true)}>
+                  Editar
+                </AppButton>
+              ) : null}
+              {puedeEliminarEnvioApi ? (
+                <AppButton dsVariant="danger" dsSize="sm" onClick={() => setConfirmDelEnvioOpen(true)}>
+                  Eliminar
+                </AppButton>
+              ) : null}
             </Stack>
-          </>
+          ) : null
+        ) : (
+          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ pt: 0.5 }}>
+            <AppButton
+              dsVariant="primary"
+              dsSize="sm"
+              disabled={saving || !num.trim() || !fec || expediente == null}
+              onClick={() => {
+                void (async () => {
+                  if (expediente == null) return;
+                  setSaving(true);
+                  setErr(null);
+                  try {
+                    await patchComprobacionExpedienteEnvio(actuacionId, expediente.id, {
+                      numero_expediente: num.trim(),
+                      fecha_expediente: fec,
+                    });
+                    setEditing(false);
+                    await onDocumentalUpdated();
+                  } catch (e: unknown) {
+                    const detail =
+                      e && typeof e === "object" && "response" in e
+                        ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
+                        : null;
+                    setErr(detail || "No se pudo guardar el expediente");
+                  } finally {
+                    setSaving(false);
+                  }
+                })();
+              }}
+            >
+              {saving ? "Guardando…" : "Guardar cambios"}
+            </AppButton>
+            <AppButton
+              dsVariant="ghost"
+              dsSize="sm"
+              disabled={saving}
+              onClick={() => {
+                setEditing(false);
+                setNum((displayExp.numero_expediente ?? "").trim());
+                setFec(displayExp.fecha_expediente ? displayExp.fecha_expediente.slice(0, 10) : "");
+                setErr(null);
+              }}
+            >
+              Cancelar
+            </AppButton>
+          </Stack>
         )}
+        {!puedeEliminarEnvioApi && expediente != null && motivosEliminarEnvio.length > 0 && !editing ? (
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", display: "block", pt: 0.5 }}>
+            {motivosEliminarEnvio[0]}
+          </Typography>
+        ) : null}
+      </DocumentalCrudFullSpan>
         <ConfirmDialog
           open={confirmDelEnvioOpen}
           onClose={() => {
@@ -763,7 +789,6 @@ function BloqueExpedienteEnvioEditable({
             comprobación. Si necesitás otro número, podés cargarlo de nuevo desde la bandeja de expedientes.
           </Typography>
         </ConfirmDialog>
-      </Stack>
     </DocumentalBloque>
   );
 }
@@ -771,6 +796,7 @@ function BloqueExpedienteEnvioEditable({
 export type ComprobacionOficioOperativoDialogProps = {
   open: boolean;
   onClose: () => void;
+  disablePortal?: boolean;
   row: OficioOperativoRow | null;
   juzgados: IJuzgadoCatalogItem[];
   documental: IComprobacionDocumentalResponse | null;
@@ -794,6 +820,7 @@ export type ComprobacionOficioOperativoDialogProps = {
 export function ComprobacionOficioOperativoDialog({
   open,
   onClose,
+  disablePortal,
   row,
   juzgados,
   defaultFechaAlta,
@@ -809,6 +836,8 @@ export function ComprobacionOficioOperativoDialog({
   oficiosError,
   onDocumentalUpdated,
 }: ComprobacionOficioOperativoDialogProps) {
+  useNotifyModalApiError(modalApiError, open);
+
   const handleClose = () => {
     if (saving) return;
     onClose();
@@ -822,31 +851,21 @@ export function ComprobacionOficioOperativoDialog({
   const tieneOficios =
     oficios.length > 0 || (documental?.oficio != null && documental?.expediente_respuesta != null);
 
-  const titleNode =
-    displayRow != null ? (
-      <DocumentalModalTitleStack
-        dominioChip="Comprobación"
-        titulo={actaCabecera(displayRow)}
-        subtitulo={tieneOficios ? "Oficios y respuestas del tribunal" : "Registrar oficio y expediente de respuesta"}
-        actuacionId={undefined}
-      />
-    ) : (
-      "Oficio"
-    );
-
   return (
-    <AppDialog
+    <CrudGlassDialog
       open={open}
+      disablePortal={disablePortal}
+      hideBackdrop={disablePortal}
       onClose={handleClose}
       onCloseButtonClick={handleClose}
-      title={titleNode}
-      fullWidth
       maxWidth="md"
-      appearance="glass"
-      contentDividers
-      contentSx={{ ...formDialogContentStackSx, pt: 2, pb: 2 }}
-      showCloseButton
-      actions={undefined}
+      title={
+        <CrudDialogHeader
+          domainChip="Comprobación"
+          titulo="Oficio"
+          subtitulo={displayRow != null ? oficioModalSubtitulo(displayRow, tieneOficios) : null}
+        />
+      }
     >
       {!displayRow ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
@@ -889,6 +908,6 @@ export function ComprobacionOficioOperativoDialog({
           />
         </Stack>
       )}
-    </AppDialog>
+    </CrudGlassDialog>
   );
 }

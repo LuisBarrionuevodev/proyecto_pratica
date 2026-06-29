@@ -135,7 +135,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
 
 function OficioComprobacionSoloLectura({ item }: { item: OficioComprobacionItem }) {
   return (
-    <Stack spacing={0.5}>
+    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, width: "100%" }}>
       <DocumentalFila
         etiqueta="N.º y año"
         valor={parNumAnio(item.numero_oficio ?? null, item.anio ?? null)}
@@ -144,11 +144,13 @@ function OficioComprobacionSoloLectura({ item }: { item: OficioComprobacionItem 
       <DocumentalFila etiqueta="Causa" valor={textoValor(item.causa)} />
       <DocumentalFila etiqueta="Juzgado" valor={textoValor(item.tribunal)} />
       {!oficioComprobacionTieneBloqueCompleto(item) ? (
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", pt: 0.5 }}>
-          Expediente de respuesta no disponible en el listado.
-        </Typography>
+        <Box sx={{ gridColumn: "1 / -1" }}>
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", pt: 0.5 }}>
+            Expediente de respuesta no disponible en el listado.
+          </Typography>
+        </Box>
       ) : null}
-    </Stack>
+    </Box>
   );
 }
 
@@ -242,7 +244,7 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
   const showAltaPrimeraVez = !oficiosLoading && !documentalLoading && items.length === 0 && modoAlta;
 
   return (
-    <DocumentalBloque overline="Oficios / respuestas del tribunal">
+    <DocumentalBloque overline="Oficios / respuestas del tribunal" layout="stack">
       <Stack spacing={1.5}>
         {oficiosError ? (
           <Alert severity="warning" sx={documentalGlassAlertSx}>
@@ -302,8 +304,8 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
             bloqueadoMotivo={selectedItem.bloqueado_motivo}
           />
         ) : selectedItem ? (
-          <Stack spacing={0.5} sx={{ pt: 0.5 }}>
-            <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)" }}>
+          <Stack spacing={1} sx={{ pt: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>
               Detalle del oficio
             </Typography>
             <OficioComprobacionSoloLectura item={selectedItem} />

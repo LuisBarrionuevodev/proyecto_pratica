@@ -28,6 +28,7 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
 from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_posterior_comprobacion_por_actuacion_id,
+    build_reinspeccion_comprobacion_por_actuacion_id,
     get_pendientes_expediente,
     get_pendientes_oficio,
 )
@@ -144,7 +145,7 @@ def test_notificacion_y_comprobacion_misma_actuacion_aparece_en_ambas_bandas(app
         assert row_n["comprobacion_id"] == comp.id
         assert row_n["plazos_otorgados"] == 0
         assert row_n["dias_restantes"] is not None
-        assert row_n["comprobacion_posterior_acta_num"] == comp.numero_acta
+        assert row_n["comprobacion_posterior_acta_num"] is None
 
         acts_c = get_pendientes_expediente(_filters_comprobacion())
         assert act.id in [a.id for a in acts_c]
@@ -159,6 +160,7 @@ def test_notificacion_y_comprobacion_misma_actuacion_aparece_en_ambas_bandas(app
 def _rows_expediente(acts: list[Actuaciones], *, channel: str = "notificacion") -> list[dict]:
     plazos, venc = build_notificacion_expediente_bandeja_metrics(acts)
     posterior = build_posterior_comprobacion_por_actuacion_id(acts)
+    reinspeccion_comp = build_reinspeccion_comprobacion_por_actuacion_id(acts)
     counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
     return [
         actuacion_to_pendiente_expediente_row(
@@ -167,14 +169,65 @@ def _rows_expediente(acts: list[Actuaciones], *, channel: str = "notificacion") 
             fecha_vencimiento_por_notificacion=venc,
             counts_by_eo=counts_by_eo,
             posterior_por_actuacion_id=posterior,
+            reinspeccion_comprobacion_por_actuacion_id=reinspeccion_comp,
             expediente_list_channel=channel,
         )
         for a in acts
     ]
 
 
-def test_notificacion_posterior_comprobacion_mismo_domicilio(app_ctx) -> None:
-    """NOTIFICACION-only: si hay actuación posterior con comprobación en el mismo domicilio, el DTO la expone."""
+def test_notificacion_reinspeccion_comprobacion_en_historial(app_ctx) -> None:
+    """Historial: comprobación posterior = la de REINSPECCION, no la origen ni otra del domicilio."""
+    try:
+        contrib = Contribuyente(apellido="ReinApellido", nombre="Ana", documento=_unique_num())
+        db.session.add(contrib)
+        db.session.flush()
+        dom = Domicilio(calle="CalleRein", numero="50", contribuyente_id=contrib.id)
+        db.session.add(dom)
+        db.session.flush()
+
+        act_noti, noti = _mk_actuacion_solo_notificacion()
+        act_noti.domicilio_id = dom.id
+        act_noti.fecha = date(2026, 3, 1)
+        noti.fecha_vencimiento = date.today() + timedelta(days=10)
+        db.session.flush()
+
+        comp_origen = Comprobacion(numero_acta="ORIG01", anio=2026, mes=3, motivo="origen mixto")
+        db.session.add(comp_origen)
+        db.session.flush()
+        act_noti.comprobacion_id = comp_origen.id
+        db.session.flush()
+
+        ot2 = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=3)
+        db.session.add(ot2)
+        db.session.flush()
+        comp_rein = Comprobacion(numero_acta="REIN99", anio=2026, mes=3, motivo="reinspeccion test")
+        db.session.add(comp_rein)
+        db.session.flush()
+        act_rein = Actuaciones(
+            fecha=date(2026, 3, 20),
+            mes=3,
+            anio=2026,
+            orden_trabajo_id=ot2.id,
+            domicilio_id=dom.id,
+            notificacion_id=noti.id,
+            comprobacion_id=comp_rein.id,
+            tipo="REINSPECCION",
+        )
+        db.session.add(act_rein)
+        db.session.flush()
+
+        acts = get_pendientes_expediente(_filters_notificacion())
+        row = next(r for r in _rows_expediente(acts) if r["id"] == act_noti.id)
+        assert row["comprobacion_posterior_fecha"] == "2026-03-20"
+        assert row["comprobacion_posterior_acta_num"] == "REIN99"
+        assert row["comprobacion_posterior_acta_num"] != comp_origen.numero_acta
+    finally:
+        db.session.rollback()
+
+
+def test_notificacion_sin_reinspeccion_no_muestra_comprobacion_domicilio(app_ctx) -> None:
+    """Sin REINSPECCION con comprobación: no se infiere comprobación posterior por domicilio."""
     try:
         contrib = Contribuyente(apellido="PosteriorApellido", nombre="Ana", documento=_unique_num())
         db.session.add(contrib)
@@ -192,7 +245,7 @@ def test_notificacion_posterior_comprobacion_mismo_domicilio(app_ctx) -> None:
         ot2 = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=3)
         db.session.add(ot2)
         db.session.flush()
-        comp = Comprobacion(numero_acta="POST99", anio=2026, mes=3, motivo="reinspeccion test")
+        comp = Comprobacion(numero_acta="POST99", anio=2026, mes=3, motivo="otra visita")
         db.session.add(comp)
         db.session.flush()
         act_comp = Actuaciones(
@@ -208,8 +261,8 @@ def test_notificacion_posterior_comprobacion_mismo_domicilio(app_ctx) -> None:
 
         acts = get_pendientes_expediente(_filters_notificacion())
         row = next(r for r in _rows_expediente(acts) if r["id"] == act_noti.id)
-        assert row["comprobacion_posterior_fecha"] == "2026-03-20"
-        assert row["comprobacion_posterior_acta_num"] == "POST99"
+        assert row["comprobacion_posterior_fecha"] is None
+        assert row["comprobacion_posterior_acta_num"] is None
     finally:
         db.session.rollback()
 

@@ -19,6 +19,8 @@ export type { CrudDialogActionsProps } from "./CrudDialogActions";
 export { CrudFormErrorSummary, scrollCrudDialogToTop } from "./CrudFormErrorSummary";
 export type { CrudFormErrorSummaryProps } from "./CrudFormErrorSummary";
 
+export { useNotifyModalApiError } from "./useNotifyModalApiError";
+
 export {
   applyCrudFormErrorsFromApi,
   applyCrudFormErrorsToState,

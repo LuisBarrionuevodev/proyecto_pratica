@@ -7,6 +7,7 @@ from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendie
 from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_posterior_comprobacion_por_actuacion_id,
+    build_reinspeccion_comprobacion_por_actuacion_id,
     get_pendientes_expediente,
 )
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
@@ -51,6 +52,7 @@ def pendientes_expediente_list():
         plazos_map, venc_map = build_notificacion_expediente_bandeja_metrics(acts)
         counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
         posterior_map = build_posterior_comprobacion_por_actuacion_id(acts)
+        reinspeccion_comp_map = build_reinspeccion_comprobacion_por_actuacion_id(acts)
         list_channel = (filters.source_type or "all").strip().lower()
         items = [
             actuacion_to_pendiente_expediente_row(
@@ -59,6 +61,7 @@ def pendientes_expediente_list():
                 fecha_vencimiento_por_notificacion=venc_map,
                 counts_by_eo=counts_by_eo,
                 posterior_por_actuacion_id=posterior_map,
+                reinspeccion_comprobacion_por_actuacion_id=reinspeccion_comp_map,
                 expediente_list_channel=list_channel,
             )
             for a in acts
