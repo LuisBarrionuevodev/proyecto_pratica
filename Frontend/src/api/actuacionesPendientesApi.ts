@@ -488,6 +488,10 @@ export interface INotificacionProrrogaExpedienteItem {
   tipo_expediente: string;
   /** Días de prórroga otorgados en esta fila (persistido en expediente). */
   plazo_otorgado: number | null;
+  puede_editar?: boolean;
+  puede_eliminar?: boolean;
+  es_ultimo_expediente_activo?: boolean;
+  motivo_bloqueo?: string | null;
 }
 
 export interface INotificacionPlazoNotificacionResumen {
@@ -501,8 +505,9 @@ export interface INotificacionPlazoNotificacionResumen {
 export interface INotificacionEdicionPermisos {
   puede_editar_expediente_prorroga: boolean;
   puede_eliminar_expediente_prorroga?: boolean;
-  /** True si existe `IniciadorRuta` no borrado con `notificacion_id` de esta notificación. */
+  /** True si la reinspección por notificación ya fue completada operativamente. */
   notificacion_usada_como_iniciador?: boolean;
+  reinspeccion_operativamente_usada?: boolean;
   motivos_bloqueo_expediente: string[];
   motivos_bloqueo_eliminar_expediente?: string[];
 }

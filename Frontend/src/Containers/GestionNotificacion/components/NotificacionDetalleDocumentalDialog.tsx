@@ -88,7 +88,6 @@ function campoTextoUtil(s: unknown): boolean {
 
 function visitaBaseHayContenido(row: IActuacionesPendientesItem): boolean {
   return (
-    campoTextoUtil(row.fecha_actuacion) ||
     campoTextoUtil(row.orden_trabajo_numero) ||
     campoTextoUtil(row.tipo_actuacion) ||
     campoTextoUtil(row.acta_inspeccion_num) ||
@@ -111,22 +110,41 @@ function resultadoComprobacionPosteriorHayContenido(row: IActuacionesPendientesI
 }
 
 
-function fechaActuacionLinea(row: IActuacionesPendientesItem): string {
-  return (row.fecha_actuacion ?? "").trim() || "—";
-}
-
-function expedienteActasLinea(row: IActuacionesPendientesItem): string {
-  const num = String(row.expediente_numero ?? "").trim();
-  const an = row.expediente_anio != null && String(row.expediente_anio).trim() !== "" ? String(row.expediente_anio) : "";
-  if (!num && !an) return "—";
-  return an ? `${num} / ${an}` : `${num} / —`;
-}
-
 function extractApiDetail(e: unknown): string | null {
   if (e && typeof e === "object" && "response" in e) {
     return (e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? null;
   }
   return null;
+}
+
+/**
+ * Resumen de plazos (sin contadores ni expediente en actas; los ítems van abajo).
+ */
+function PlazosNotificacionResumenFilas({
+  detalle,
+  diasRestantes,
+}: {
+  detalle: INotificacionProrrogaExpedientesResponse;
+  diasRestantes: string;
+}) {
+  return (
+    <>
+      <DocumentalFila
+        etiqueta="Fecha de notificación"
+        valor={textoValor(detalle.plazo_notificacion?.fecha_notificacion)}
+      />
+      <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.plazo_notificacion?.fecha_vencimiento)} />
+      <DocumentalFila etiqueta="Días restantes" valor={diasRestantes} />
+      <DocumentalFila
+        etiqueta="Plazo legal (días hábiles)"
+        valor={textoValor(detalle.plazo_notificacion?.plazo_legal_dias)}
+      />
+      <DocumentalFila
+        etiqueta="Prórroga total (días)"
+        valor={textoValor(detalle.plazo_notificacion?.prorroga_total_dias)}
+      />
+    </>
+  );
 }
 
 /**
@@ -136,28 +154,16 @@ function NotificacionProrrogaExpedientesCard({
   loading,
   error,
   detalle,
-  modo,
   actuacionId,
   onAfterPatch,
-  resumenCompacto = false,
-  documentalResumenBandeja = null,
+  diasRestantes,
 }: {
   loading: boolean;
   error: string | null;
   detalle: INotificacionProrrogaExpedientesResponse | null;
-  modo: "operativa" | "documental";
   actuacionId?: number;
   onAfterPatch?: () => void;
-  /** Oculta filas de resumen pensadas para auditoría / menos ruido en operativa. */
-  resumenCompacto?: boolean;
-  /** @deprecated Sin efecto visual. */
-  shell?: DocumentalCardShell;
-  /** Datos de la fila de bandeja para el bloque documental (días restantes, plazos, expediente en actas). */
-  documentalResumenBandeja?: {
-    diasRestantes: string;
-    plazosOtorgados: string;
-    expedienteEnActas: string;
-  } | null;
+  diasRestantes: string;
 }) {
   const feedback = useAppFeedback();
   const ed = detalle?.edicion;
@@ -212,12 +218,17 @@ function NotificacionProrrogaExpedientesCard({
     }
   };
 
-  const puedeEditarItems = Boolean(ed?.puede_editar_expediente_prorroga && actuacionId != null);
-  const puedeEliminarItems = Boolean(
-    (ed?.puede_eliminar_expediente_prorroga ?? ed?.puede_editar_expediente_prorroga) && actuacionId != null
+  const puedeEditarItem = (it: INotificacionProrrogaExpedienteItem) =>
+    Boolean((it.puede_editar ?? ed?.puede_editar_expediente_prorroga) && actuacionId != null);
+  const puedeEliminarItem = (it: INotificacionProrrogaExpedienteItem) =>
+    Boolean(
+      (it.puede_eliminar ?? it.puede_editar ?? ed?.puede_eliminar_expediente_prorroga ?? ed?.puede_editar_expediente_prorroga) &&
+        actuacionId != null
+    );
+  const bloqueoGlobal = Boolean(
+    detalle?.items?.length &&
+      (ed?.reinspeccion_operativamente_usada ?? ed?.notificacion_usada_como_iniciador)
   );
-  const bloqueoGlobal = Boolean(detalle?.items?.length && ed?.notificacion_usada_como_iniciador);
-  const esDocumentalLecturaCompleta = modo === "documental" && !resumenCompacto;
 
   useEffect(() => {
     if (errEx) feedback.error(errEx);
@@ -235,47 +246,7 @@ function NotificacionProrrogaExpedientesCard({
         </Typography>
       ) : detalle ? (
         <>
-          {esDocumentalLecturaCompleta && documentalResumenBandeja ? (
-            <>
-              <DocumentalFila
-                etiqueta="Fecha de notificación"
-                valor={textoValor(detalle.plazo_notificacion?.fecha_notificacion)}
-              />
-              <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.plazo_notificacion?.fecha_vencimiento)} />
-              <DocumentalFila etiqueta="Días restantes" valor={documentalResumenBandeja.diasRestantes} />
-              <DocumentalFila
-                etiqueta="Plazo legal (días hábiles)"
-                valor={textoValor(detalle.plazo_notificacion?.plazo_legal_dias)}
-              />
-              <DocumentalFila
-                etiqueta="Prórroga total (días)"
-                valor={textoValor(detalle.plazo_notificacion?.prorroga_total_dias)}
-              />
-              <DocumentalFila etiqueta="Plazos otorgados" valor={documentalResumenBandeja.plazosOtorgados} />
-              <DocumentalFila etiqueta="Expediente en actas" valor={documentalResumenBandeja.expedienteEnActas} />
-            </>
-          ) : (
-            <>
-              {!resumenCompacto ? (
-                <>
-                  <DocumentalFila
-                    etiqueta="Plazo legal (días hábiles)"
-                    valor={textoValor(detalle.plazo_notificacion?.plazo_legal_dias)}
-                  />
-                  <DocumentalFila
-                    etiqueta="Prórroga total (días)"
-                    valor={textoValor(detalle.plazo_notificacion?.prorroga_total_dias)}
-                  />
-                </>
-              ) : null}
-              <DocumentalFila
-                etiqueta="Fecha de notificación"
-                valor={textoValor(detalle.plazo_notificacion?.fecha_notificacion)}
-              />
-              <DocumentalFila etiqueta="Vencimiento" valor={textoValor(detalle.plazo_notificacion?.fecha_vencimiento)} />
-            </>
-          )}
-          <DocumentalFila etiqueta="Expedientes de prórroga" valor={String(detalle.plazos_otorgados ?? 0)} />
+          <PlazosNotificacionResumenFilas detalle={detalle} diasRestantes={diasRestantes} />
 
           {bloqueoGlobal ? (
             <Alert severity="warning" sx={{ mt: 1.5, ...documentalGlassAlertSx }}>
@@ -284,17 +255,20 @@ function NotificacionProrrogaExpedientesCard({
               </Typography>
               <Typography variant="body2">
                 {ed?.motivos_bloqueo_expediente?.[0] ??
-                  "Esta notificación ya fue usada como iniciador; no se pueden modificar ni eliminar los expedientes de prórroga."}
+                  "Este expediente de prórroga ya fue utilizado en una reinspección completada y no puede modificarse desde esta vista."}
               </Typography>
             </Alert>
           ) : null}
 
           {!detalle.items?.length ? (
-            <Typography variant="body2" sx={{ ...docModalEmptyStateSx, mt: 0.75 }}>
+            <Typography variant="body2" sx={{ ...docModalEmptyStateSx, mt: 1.25 }}>
               Sin expedientes de prórroga registrados.
             </Typography>
           ) : (
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+              <Typography component="div" variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Expedientes de prórroga
+              </Typography>
               {detalle.items.map((it, idx) => (
                 <Box
                   key={it.id}
@@ -307,7 +281,7 @@ function NotificacionProrrogaExpedientesCard({
                     Expediente {idx + 1}
                   </Typography>
                   <Box sx={crudFieldGridSx}>
-                    {puedeEditarItems && editingId === it.id ? (
+                    {puedeEditarItem(it) && editingId === it.id ? (
                       <>
                         <CrudFormSlot label="Número de expediente" mode="edit">
                           <AppTextField
@@ -362,7 +336,7 @@ function NotificacionProrrogaExpedientesCard({
                     )}
                   </Box>
 
-                  {puedeEditarItems && editingId !== it.id ? (
+                  {puedeEditarItem(it) && editingId !== it.id ? (
                     <Box
                       sx={{
                         display: "flex",
@@ -377,7 +351,7 @@ function NotificacionProrrogaExpedientesCard({
                       <AppButton dsVariant="primary" dsSize="sm" onClick={() => beginEdit(it)} disabled={savingEx || delSaving}>
                         Editar
                       </AppButton>
-                      {puedeEliminarItems ? (
+                      {puedeEliminarItem(it) ? (
                         <AppButton
                           dsVariant="danger"
                           dsSize="sm"
@@ -393,7 +367,13 @@ function NotificacionProrrogaExpedientesCard({
                     </Box>
                   ) : null}
 
-                  {puedeEditarItems && editingId === it.id ? (
+                  {!puedeEditarItem(it) && it.motivo_bloqueo ? (
+                    <Typography variant="caption" sx={{ display: "block", mt: 0.75, opacity: 0.75 }}>
+                      {it.motivo_bloqueo}
+                    </Typography>
+                  ) : null}
+
+                  {puedeEditarItem(it) && editingId === it.id ? (
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.25 }}>
                       <AppButton dsVariant="ghost" dsSize="sm" onClick={cancelEdit} disabled={savingEx}>
                         Cancelar
@@ -457,7 +437,6 @@ function BloqueReferenciaNotificacion({
       <DocumentalBloque overline="Referencia de la notificación">
         <DocumentalFila etiqueta="Domicilio" valor={domicilioLinea(row)} />
         <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLinea(row)} />
-        <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
       </DocumentalBloque>
     );
   }
@@ -626,9 +605,8 @@ export function NotificacionDetalleDocumentalDialog({
               loading={prorrogaLoading}
               error={prorrogaError}
               detalle={prorrogaDetalle}
-              modo="operativa"
               actuacionId={row.id}
-              resumenCompacto
+              diasRestantes={diasPlazoLinea(row)}
               onAfterPatch={refrescarDetalleYBandeja}
             />
           ) : null}
@@ -685,7 +663,6 @@ export function NotificacionDetalleDocumentalDialog({
           {visitaBaseHayContenido(row) ? (
             <DocumentalBloque overline="La visita">
               <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-              <DocumentalFila etiqueta="Fecha de actuación" valor={fechaActuacionLinea(row)} />
               <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
               <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
               <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
@@ -707,14 +684,8 @@ export function NotificacionDetalleDocumentalDialog({
               loading={prorrogaLoading}
               error={prorrogaError}
               detalle={prorrogaDetalle}
-              modo="documental"
               actuacionId={row.id}
-              resumenCompacto={false}
-              documentalResumenBandeja={{
-                diasRestantes: diasPlazoLinea(row),
-                plazosOtorgados: textoValor(row.plazos_otorgados),
-                expedienteEnActas: expedienteActasLinea(row),
-              }}
+              diasRestantes={diasPlazoLinea(row)}
               onAfterPatch={refrescarDetalleYBandeja}
             />
           ) : null}
@@ -731,3 +702,6 @@ export function NotificacionDetalleDocumentalDialog({
     </CrudGlassDialog>
   );
 }
+
+/** @internal Exportado para tests de layout de plazos/expedientes. */
+export { PlazosNotificacionResumenFilas, NotificacionProrrogaExpedientesCard };

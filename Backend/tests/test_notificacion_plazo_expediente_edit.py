@@ -125,7 +125,7 @@ def test_patch_expediente_prorroga_ok_recuenta_plazo(app, client, auth_headers):
             db.session.rollback()
 
 
-def test_patch_expediente_bloqueado_si_notificacion_usada_como_iniciador(app, client, auth_headers):
+def test_patch_expediente_permitido_con_iniciador_pendiente(app, client, auth_headers):
     with app.app_context():
         try:
             u = _user()
@@ -166,14 +166,94 @@ def test_patch_expediente_bloqueado_si_notificacion_usada_como_iniciador(app, cl
                     "plazo_otorgado": 0,
                 },
             )
-            assert resp.status_code == 400
-            detail = (resp.get_json() or {}).get("detail", "").lower()
-            assert "iniciador" in detail or "usada" in detail
+            assert resp.status_code == 200, resp.get_data(as_text=True)
         finally:
             db.session.rollback()
 
 
-def test_evaluar_permisos_bloqueo_si_iniciador_vinculado_a_notificacion(app) -> None:
+def test_patch_expediente_bloqueado_si_reinspeccion_cumplida(app, client, auth_headers):
+    with app.app_context():
+        try:
+            u = _user()
+            act = _act_noti_con_dom()
+            db.session.flush()
+            complete_expediente_from_actuacion(
+                act.id,
+                {
+                    "expediente_numero": _unique_num(),
+                    "fecha_expediente": date(2026, 3, 5),
+                    "prorroga_dias": 1,
+                },
+            )
+            ex_row = Expediente.query.filter_by(notificacion_id=act.notificacion_id).first()
+            eid = ex_row.id
+
+            ini = IniciadorRuta(
+                tipo_iniciador="REINSPECCION_NOTIFICACION",
+                estado_iniciador="CUMPLIDO",
+                fecha_origen=date(2026, 3, 20),
+                anio=2026,
+                mes=3,
+                domicilio_id=act.domicilio_id,
+                actuacion_id=act.id,
+                notificacion_id=act.notificacion_id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.commit()
+            aid = act.id
+
+            resp = client.patch(
+                f"/actuaciones/{aid}/notificacion/expedientes-prorroga/{eid}",
+                headers=auth_headers,
+                json={
+                    "numero_expediente": _unique_num(),
+                    "fecha_expediente": "2026-03-08",
+                    "plazo_otorgado": 0,
+                },
+            )
+            assert resp.status_code == 400
+            detail = (resp.get_json() or {}).get("detail", "").lower()
+            assert "reinspección completada" in detail or "reinspeccion completada" in detail
+        finally:
+            db.session.rollback()
+
+
+def test_evaluar_permisos_permitido_si_iniciador_pendiente(app) -> None:
+    with app.app_context():
+        try:
+            u = _user()
+            act = _act_noti_con_dom()
+            db.session.flush()
+            complete_expediente_from_actuacion(
+                act.id,
+                {
+                    "expediente_numero": _unique_num(),
+                    "fecha_expediente": date(2026, 3, 5),
+                    "prorroga_dias": 1,
+                },
+            )
+            ini = IniciadorRuta(
+                tipo_iniciador="REINSPECCION_NOTIFICACION",
+                estado_iniciador="PENDIENTE",
+                fecha_origen=date(2026, 3, 20),
+                anio=2026,
+                mes=3,
+                domicilio_id=act.domicilio_id,
+                actuacion_id=act.id,
+                notificacion_id=act.notificacion_id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.flush()
+            per = evaluar_notificacion_edicion_permisos(act)
+            assert per["puede_editar_expediente_prorroga"] is True
+            assert per.get("notificacion_usada_como_iniciador") is False
+        finally:
+            db.session.rollback()
+
+
+def test_evaluar_permisos_bloqueo_si_reinspeccion_cumplida(app) -> None:
     with app.app_context():
         try:
             u = _user()
@@ -181,7 +261,7 @@ def test_evaluar_permisos_bloqueo_si_iniciador_vinculado_a_notificacion(app) -> 
             db.session.flush()
             ini = IniciadorRuta(
                 tipo_iniciador="REINSPECCION_NOTIFICACION",
-                estado_iniciador="PENDIENTE",
+                estado_iniciador="CUMPLIDO",
                 fecha_origen=date(2026, 3, 20),
                 anio=2026,
                 mes=3,
@@ -232,7 +312,7 @@ def test_delete_expediente_prorroga_ok_recuenta_plazo(app, client, auth_headers)
         assert ex_db.deleted_at is not None
 
 
-def test_delete_expediente_prorroga_bloqueado_si_iniciador(app, client, auth_headers):
+def test_delete_expediente_prorroga_bloqueado_si_reinspeccion_cumplida(app, client, auth_headers):
     with app.app_context():
         try:
             u = _user()
@@ -250,7 +330,7 @@ def test_delete_expediente_prorroga_bloqueado_si_iniciador(app, client, auth_hea
             eid = ex_row.id
             ini = IniciadorRuta(
                 tipo_iniciador="REINSPECCION_NOTIFICACION",
-                estado_iniciador="PENDIENTE",
+                estado_iniciador="CUMPLIDO",
                 fecha_origen=date(2026, 3, 20),
                 anio=2026,
                 mes=3,

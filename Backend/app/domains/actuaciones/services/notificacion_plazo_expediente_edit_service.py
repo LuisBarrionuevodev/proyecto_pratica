@@ -2,13 +2,10 @@
 Edición y eliminación controladas del expediente de prórroga ligado a una notificación (rama NOTIFICACION).
 
 Regla de negocio:
-- Mientras la notificación **no** haya sido usada como iniciador (``IniciadorRuta`` no borrado con
-  ``notificacion_id``), se puede editar o eliminar (soft delete) cada expediente ``PRORROGA_NOTIFICACION``.
-- Con al menos un iniciador vinculado, la edición y la eliminación quedan bloqueadas.
-
-Al guardar o eliminar se recalcula ``Notificacion.prorroga_dias`` como la
-suma de ``prorroga_dias_otorgados`` de todas las prórrogas activas de esa notificación y se recalcula
-``fecha_vencimiento`` (días hábiles AR).
+- Solo el **último** expediente ``PRORROGA_NOTIFICACION`` activo puede editarse o eliminarse.
+- Bloqueo por uso operativo real de la reinspección (iniciador CUMPLIDO, ruta REALIZADA, acta REINSPECCION),
+  no por la mera existencia de un ``IniciadorRuta`` en PENDIENTE o ANULADO.
+- Al guardar o eliminar se recalcula vencimiento vía motor único de prórrogas.
 """
 
 from __future__ import annotations
@@ -17,11 +14,13 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Tuple
 
+from sqlalchemy.orm import aliased
+
 from app.database import db
 from app.domains.actuaciones.services.notificacion_iniciador_service import (
     revoke_reinspeccion_notificacion_iniciadores_obsoletos,
 )
-from app.models import Actuaciones, Expediente, IniciadorRuta, Notificacion
+from app.models import Actuaciones, Expediente, IniciadorRuta, Notificacion, RutaItem
 from app.utils.actas import acta_6
 from app.domains.actuaciones.services.notificacion_timing_service import (
     DEFAULT_PLAZO_DIAS,
@@ -30,6 +29,12 @@ from app.domains.actuaciones.services.notificacion_timing_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+_MSG_BLOQUEO_USADA = (
+    "Este expediente de prórroga ya fue utilizado en una reinspección completada "
+    "y no puede modificarse desde esta vista."
+)
+_MSG_BLOQUEO_NO_ULTIMO = "Solo se puede modificar el último expediente de prórroga."
 
 
 def _as_fecha_expediente_operativa(value: date | datetime | None) -> date | None:
@@ -49,27 +54,81 @@ def _as_fecha_expediente_operativa(value: date | datetime | None) -> date | None
     return value
 
 
-def notificacion_usada_como_iniciador(notificacion_id: int) -> bool:
+def notificacion_tiene_reinspeccion_operativamente_usada(notificacion_id: int) -> bool:
     """
-    Indica si la notificación ya figura como iniciador materializado en rutas.
+    Indica si la reinspección por notificación ya fue usada operativamente.
 
-    Criterio: existe al menos una fila ``IniciadorRuta`` con ``notificacion_id`` igual a esta
-    notificación y ``deleted_at`` nulo.
+    Devuelve True solo si existe evidencia de cierre real (no basta con iniciador PENDIENTE/ANULADO):
+    - iniciador ``REINSPECCION_NOTIFICACION`` en ``CUMPLIDO``;
+    - ``RutaItem`` ``FINALIZADO`` + ``REALIZADO`` del iniciador;
+    - actuación ``REINSPECCION`` con el mismo ``notificacion_id``;
+    - ``RutaItem`` con actuación ``REINSPECCION`` vinculada al iniciador (reinspección huérfana).
 
     Parámetros:
         notificacion_id: PK de ``notificacion``.
 
     Retorno:
-        True si hay al menos un iniciador activo vinculado.
+        True si la reinspección ya fue completada operativamente.
 
     Errores:
         Ninguno (consulta de solo lectura).
     """
-    return (
+    nid = int(notificacion_id)
+
+    if (
         db.session.query(IniciadorRuta.id)
         .filter(
-            IniciadorRuta.notificacion_id == int(notificacion_id),
+            IniciadorRuta.notificacion_id == nid,
             IniciadorRuta.deleted_at.is_(None),
+            IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION",
+            IniciadorRuta.estado_iniciador == "CUMPLIDO",
+        )
+        .limit(1)
+        .first()
+        is not None
+    ):
+        return True
+
+    if (
+        db.session.query(RutaItem.id)
+        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .filter(
+            IniciadorRuta.notificacion_id == nid,
+            IniciadorRuta.deleted_at.is_(None),
+            RutaItem.deleted_at.is_(None),
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion == "REALIZADO",
+        )
+        .limit(1)
+        .first()
+        is not None
+    ):
+        return True
+
+    if (
+        db.session.query(Actuaciones.id)
+        .filter(
+            Actuaciones.notificacion_id == nid,
+            Actuaciones.tipo == "REINSPECCION",
+        )
+        .limit(1)
+        .first()
+        is not None
+    ):
+        return True
+
+    A_rein = aliased(Actuaciones)
+    return (
+        db.session.query(RutaItem.id)
+        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(A_rein, RutaItem.actuacion_id == A_rein.id)
+        .filter(
+            IniciadorRuta.notificacion_id == nid,
+            IniciadorRuta.deleted_at.is_(None),
+            IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION",
+            RutaItem.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            A_rein.tipo == "REINSPECCION",
         )
         .limit(1)
         .first()
@@ -77,24 +136,84 @@ def notificacion_usada_como_iniciador(notificacion_id: int) -> bool:
     )
 
 
-_MSG_BLOQUEO_USADA = (
-    "Esta notificación ya fue usada como iniciador en el plan de rutas "
-    "(existe al menos un registro en iniciador_ruta vinculado a esta notificación). "
-    "No se pueden editar los expedientes de prórroga."
-)
+def notificacion_usada_como_iniciador(notificacion_id: int) -> bool:
+    """
+    Alias de compatibilidad API: uso operativo real de reinspección (no mera existencia de iniciador).
+
+    Ver ``notificacion_tiene_reinspeccion_operativamente_usada``.
+    """
+    return notificacion_tiene_reinspeccion_operativamente_usada(notificacion_id)
+
+
+def _ultimo_expediente_prorroga_activo(notificacion_id: int) -> Expediente | None:
+    """
+    Último expediente ``PRORROGA_NOTIFICACION`` activo: mayor ``fecha_expediente``; empate → mayor ``id``.
+    """
+    rows: List[Expediente] = (
+        Expediente.query.filter_by(notificacion_id=int(notificacion_id))
+        .filter(Expediente.tipo_expediente == "PRORROGA_NOTIFICACION")
+        .filter(Expediente.deleted_at.is_(None))
+        .all()
+    )
+    if not rows:
+        return None
+    return max(
+        rows,
+        key=lambda r: (
+            _as_fecha_expediente_operativa(r.fecha_expediente) or date.min,
+            int(r.id),
+        ),
+    )
+
+
+def evaluar_expediente_prorroga_permisos(notificacion_id: int, expediente_id: int) -> Dict[str, Any]:
+    """
+    Permisos de edición/eliminación para un expediente de prórroga concreto.
+
+    Parámetros:
+        notificacion_id: PK de la notificación.
+        expediente_id: PK del expediente evaluado.
+
+    Retorno:
+        dict con ``puede_editar``, ``puede_eliminar``, ``es_ultimo_expediente_activo`` y ``motivos_bloqueo``.
+
+    Errores:
+        Ninguno (solo lectura).
+    """
+    motivos: List[str] = []
+    ultimo = _ultimo_expediente_prorroga_activo(notificacion_id)
+    es_ultimo = ultimo is not None and int(ultimo.id) == int(expediente_id)
+    if not es_ultimo:
+        motivos.append(_MSG_BLOQUEO_NO_ULTIMO)
+        return {
+            "puede_editar": False,
+            "puede_eliminar": False,
+            "es_ultimo_expediente_activo": False,
+            "motivos_bloqueo": motivos,
+        }
+
+    usada = notificacion_tiene_reinspeccion_operativamente_usada(notificacion_id)
+    if usada:
+        motivos.append(_MSG_BLOQUEO_USADA)
+
+    puede = not usada
+    return {
+        "puede_editar": puede,
+        "puede_eliminar": puede,
+        "es_ultimo_expediente_activo": True,
+        "motivos_bloqueo": motivos,
+    }
 
 
 def evaluar_notificacion_edicion_permisos(act: Actuaciones) -> Dict[str, Any]:
     """
-    Evalúa si se pueden editar expedientes ``PRORROGA_NOTIFICACION`` de la notificación de la actuación.
+    Evalúa permisos globales de edición del **último** expediente de prórroga de la notificación.
 
     Parámetros:
         act: actuación con ``notificacion_id`` (rama gestión notificación).
 
     Retorno:
-        dict con ``puede_editar_expediente_prorroga``, ``puede_eliminar_expediente_prorroga`` (misma regla
-        que edición), ``notificacion_usada_como_iniciador`` y ``motivos_bloqueo_expediente`` /
-        ``motivos_bloqueo_eliminar_expediente``.
+        dict con flags globales, ``reinspeccion_operativamente_usada`` y motivos de bloqueo.
 
     Errores:
         Ninguno (solo lectura).
@@ -107,20 +226,29 @@ def evaluar_notificacion_edicion_permisos(act: Actuaciones) -> Dict[str, Any]:
             "puede_editar_expediente_prorroga": False,
             "puede_eliminar_expediente_prorroga": False,
             "notificacion_usada_como_iniciador": False,
+            "reinspeccion_operativamente_usada": False,
             "motivos_bloqueo_expediente": motivos,
             "motivos_bloqueo_eliminar_expediente": list(motivos),
         }
 
     nid = int(act.notificacion_id)
-    usada = notificacion_usada_como_iniciador(nid)
-    if usada:
-        motivos.append(_MSG_BLOQUEO_USADA)
+    usada = notificacion_tiene_reinspeccion_operativamente_usada(nid)
+    ultimo = _ultimo_expediente_prorroga_activo(nid)
 
-    puede = not usada
+    if ultimo is None:
+        motivos.append("No hay expedientes de prórroga activos para editar.")
+        puede = False
+    elif usada:
+        motivos.append(_MSG_BLOQUEO_USADA)
+        puede = False
+    else:
+        puede = True
+
     return {
         "puede_editar_expediente_prorroga": puede,
         "puede_eliminar_expediente_prorroga": puede,
         "notificacion_usada_como_iniciador": usada,
+        "reinspeccion_operativamente_usada": usada,
         "motivos_bloqueo_expediente": motivos,
         "motivos_bloqueo_eliminar_expediente": list(motivos),
     }
@@ -270,11 +398,9 @@ def update_notificacion_prorroga_expediente(
     """
     act, noti, ex = _resolver_notificacion_y_expediente_prorroga(actuacion_id, expediente_id)
 
-    per = evaluar_notificacion_edicion_permisos(act)
-    if not per["puede_editar_expediente_prorroga"]:
-        raise ValueError(
-            per["motivos_bloqueo_expediente"][0] if per["motivos_bloqueo_expediente"] else "Edición no permitida"
-        )
+    per = evaluar_expediente_prorroga_permisos(int(noti.id), int(ex.id))
+    if not per["puede_editar"]:
+        raise ValueError(per["motivos_bloqueo"][0] if per["motivos_bloqueo"] else "Edición no permitida")
 
     if int(plazo_otorgado) < 0:
         raise ValueError("plazo_otorgado debe ser mayor o igual a 0")
@@ -322,7 +448,7 @@ def delete_notificacion_prorroga_expediente(actuacion_id: int, expediente_id: in
     """
     Soft delete de un expediente ``PRORROGA_NOTIFICACION`` y recalculo de plazo/vencimiento.
 
-    Mismas reglas de permiso que ``update_notificacion_prorroga_expediente`` (bloqueo por iniciador).
+    Mismas reglas de permiso que ``update_notificacion_prorroga_expediente`` (último activo; bloqueo por uso real).
     Tras marcar ``deleted_at``, se vuelve a sumar ``prorroga_dias`` solo con filas activas y se
     recalcula ``fecha_vencimiento``.
 
@@ -338,13 +464,9 @@ def delete_notificacion_prorroga_expediente(actuacion_id: int, expediente_id: in
     """
     act, noti, ex = _resolver_notificacion_y_expediente_prorroga(actuacion_id, expediente_id)
 
-    per = evaluar_notificacion_edicion_permisos(act)
-    if not per["puede_eliminar_expediente_prorroga"]:
-        raise ValueError(
-            per["motivos_bloqueo_eliminar_expediente"][0]
-            if per["motivos_bloqueo_eliminar_expediente"]
-            else "Eliminación no permitida"
-        )
+    per = evaluar_expediente_prorroga_permisos(int(noti.id), int(ex.id))
+    if not per["puede_eliminar"]:
+        raise ValueError(per["motivos_bloqueo"][0] if per["motivos_bloqueo"] else "Eliminación no permitida")
 
     ex.deleted_at = datetime.now(timezone.utc)
     db.session.add(ex)

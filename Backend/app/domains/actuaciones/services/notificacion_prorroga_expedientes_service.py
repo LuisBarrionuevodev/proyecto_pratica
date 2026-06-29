@@ -13,11 +13,14 @@ from app.database import db
 from app.models import Actuaciones, Expediente, Notificacion
 
 from app.domains.actuaciones.services.notificacion_plazo_expediente_edit_service import (
+    evaluar_expediente_prorroga_permisos,
     evaluar_notificacion_edicion_permisos,
 )
 
 
-def _expediente_prorroga_to_item(ex: Expediente) -> Dict[str, Any]:
+def _expediente_prorroga_to_item(ex: Expediente, *, notificacion_id: int) -> Dict[str, Any]:
+    per = evaluar_expediente_prorroga_permisos(notificacion_id, int(ex.id))
+    motivos = per.get("motivos_bloqueo") or []
     return {
         "id": ex.id,
         "numero_expediente": ex.numero_expediente,
@@ -26,6 +29,10 @@ def _expediente_prorroga_to_item(ex: Expediente) -> Dict[str, Any]:
         "created_at": ex.created_at.isoformat() if ex.created_at else None,
         "tipo_expediente": ex.tipo_expediente,
         "plazo_otorgado": ex.prorroga_dias_otorgados,
+        "puede_editar": bool(per.get("puede_editar")),
+        "puede_eliminar": bool(per.get("puede_eliminar")),
+        "es_ultimo_expediente_activo": bool(per.get("es_ultimo_expediente_activo")),
+        "motivo_bloqueo": motivos[0] if motivos else None,
     }
 
 
@@ -63,7 +70,7 @@ def list_notificacion_prorroga_expedientes_for_actuacion(actuacion_id: int) -> D
         .all()
     )
 
-    items = [_expediente_prorroga_to_item(ex) for ex in expedientes]
+    items = [_expediente_prorroga_to_item(ex, notificacion_id=int(noti.id)) for ex in expedientes]
 
     plazo_notificacion: Dict[str, Any] = {
         "plazo_legal_dias": noti.plazo_dias,

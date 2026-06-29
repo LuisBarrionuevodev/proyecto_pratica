@@ -347,7 +347,7 @@ def test_borrar_ultima_prorroga_recalcula_cadena(app_ctx) -> None:
         db.session.rollback()
 
 
-def test_borrar_prorroga_intermedia_recalcula_cadena(app_ctx) -> None:
+def test_borrar_prorroga_intermedia_bloqueado(app_ctx) -> None:
     try:
         fn = date(2026, 6, 1)
         act, noti, _ = _mk_notificacion_actuacion(fecha_notificacion=fn)
@@ -361,15 +361,8 @@ def test_borrar_prorroga_intermedia_recalcula_cadena(app_ctx) -> None:
             .all()
         )
         assert len(exps) == 3
-        delete_notificacion_prorroga_expediente(act.id, exps[1].id)
-        db.session.refresh(noti)
-        esperado = calcular_vencimiento_notificacion_con_prorrogas(
-            fn,
-            noti.plazo_dias,
-            [(date(2026, 6, 4), 2), (date(2026, 6, 28), 5)],
-        )
-        assert noti.fecha_vencimiento == esperado
-        assert int(noti.prorroga_dias or 0) == 7
+        with pytest.raises(ValueError, match="último expediente"):
+            delete_notificacion_prorroga_expediente(act.id, exps[1].id)
     finally:
         db.session.rollback()
 
