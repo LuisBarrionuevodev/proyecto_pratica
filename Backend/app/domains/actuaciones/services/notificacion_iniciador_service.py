@@ -20,6 +20,7 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     inactive_estados,
     priority_for_tipo,
 )
+from app.domains.actuaciones.utils.actuaciones_bandeja_eager import apply_bandeja_grid_eager
 
 logger = logging.getLogger(__name__)
 
@@ -490,18 +491,20 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
     )
     subq_reinsp_via_item = _subq_reinsp_via_ruta_item_iniciador()
     return (
-        Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
-        .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
-        .filter(Actuaciones.tipo == "INSPECCION")
-        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
-        .filter(IniciadorRuta.estado_iniciador == "PENDIENTE")
-        .filter(IniciadorRuta.deleted_at.is_(None))
-        .filter(Notificacion.deleted_at.is_(None))
-        .filter(Notificacion.fecha_vencimiento.isnot(None))
-        .filter(Notificacion.fecha_vencimiento <= today)
-        .filter(~subq_reinsp)
-        .filter(~subq_item_realizado)
-        .filter(~subq_reinsp_via_item)
+        apply_bandeja_grid_eager(
+            Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
+            .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
+            .filter(Actuaciones.tipo == "INSPECCION")
+            .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
+            .filter(IniciadorRuta.estado_iniciador == "PENDIENTE")
+            .filter(IniciadorRuta.deleted_at.is_(None))
+            .filter(Notificacion.deleted_at.is_(None))
+            .filter(Notificacion.fecha_vencimiento.isnot(None))
+            .filter(Notificacion.fecha_vencimiento <= today)
+            .filter(~subq_reinsp)
+            .filter(~subq_item_realizado)
+            .filter(~subq_reinsp_via_item)
+        )
         .order_by(Actuaciones.id.desc())
         .all()
     )

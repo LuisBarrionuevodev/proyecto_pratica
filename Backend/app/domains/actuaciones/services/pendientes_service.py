@@ -19,6 +19,10 @@ from app.domains.actuaciones.services.notificacion_iniciador_service import (
     materializacion_notificacion_vencida_on_read_enabled,
     sync_iniciadores_reinspeccion_notificacion,
 )
+from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
+    apply_bandeja_grid_eager,
+    reload_actuaciones_bandeja_eager,
+)
 
 
 def _apply_fecha(query, desde, hasta):
@@ -357,15 +361,22 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
     distrito_id = getattr(filters, "distrito_id", None)
 
     if source_type == "comprobacion":
-        query = _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
+        query = apply_bandeja_grid_eager(
+            _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
+        )
     elif source_type == "notificacion":
-        query = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+        query = apply_bandeja_grid_eager(
+            _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+        )
     else:
         query_comp = _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
         query_noti = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
         query = query_comp.union(query_noti)
 
-    acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    if source_type in ("comprobacion", "notificacion"):
+        acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    else:
+        acts = reload_actuaciones_bandeja_eager(query.order_by(Actuaciones.id.desc()).all())
     if source_type == "notificacion":
         acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
     if source_type == "notificacion" and _notificacion_documental_filters_active(filters):
@@ -454,7 +465,7 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
         )
     )
 
-    query = (
+    query = apply_bandeja_grid_eager(
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
         .filter(has_expediente_original)
         .filter(~has_respuesta_oficio)

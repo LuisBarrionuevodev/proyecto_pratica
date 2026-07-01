@@ -327,6 +327,9 @@ const GestionNotificacionPage = () => {
   }, []);
 
   const prevPlazoSliceRef = useRef<PlazoOperativoSlice>(plazoSlice);
+  const plazoSliceRef = useRef<PlazoOperativoSlice>(plazoSlice);
+  const plazoDataLoadedRef = useRef(false);
+  const reinspeccionDataLoadedRef = useRef(false);
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -363,6 +366,7 @@ const GestionNotificacionPage = () => {
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
       setItems(normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type));
+      plazoDataLoadedRef.current = true;
       perfLog("notificaciones.loadData.state", { items: resp.items.length });
     } catch (err: unknown) {
       const detail =
@@ -388,6 +392,7 @@ const GestionNotificacionPage = () => {
       setReinspeccionItems(
         normalizeNotificacionBandejaItems(rows, "notificacion").map(mapPendienteReinspeccionNotificacionToGestionRow)
       );
+      reinspeccionDataLoadedRef.current = true;
     } catch (err: unknown) {
       const detail =
         err && typeof err === "object" && "response" in err
@@ -401,14 +406,37 @@ const GestionNotificacionPage = () => {
   }, []);
 
   useEffect(() => {
-    perfLog("notificaciones.mount", { fetches: ["loadData", "loadPendientesReinspeccion"] });
-    void loadData();
-    void loadPendientesReinspeccionNotificacion();
-  }, [loadData, loadPendientesReinspeccionNotificacion]);
+    plazoSliceRef.current = plazoSlice;
+  }, [plazoSlice]);
+
+  useEffect(() => {
+    perfLog("notificaciones.mount", { fetches: ["loadData"] });
+    void loadData().then(() => {
+      plazoDataLoadedRef.current = true;
+    });
+  }, [loadData]);
+
+  /** Lazy-load: cola reinspección solo al entrar por primera vez a esa pestaña. */
+  useEffect(() => {
+    if (plazoSlice !== "vencidas_o_hoy") return;
+    if (reinspeccionDataLoadedRef.current) {
+      perfLog("notificaciones.tab.cacheHit", { slice: plazoSlice });
+      return;
+    }
+    perfLog("notificaciones.tab.lazy", { slice: plazoSlice, fetch: "loadPendientesReinspeccion" });
+    void loadPendientesReinspeccionNotificacion().then(() => {
+      reinspeccionDataLoadedRef.current = true;
+    });
+  }, [plazoSlice, loadPendientesReinspeccionNotificacion]);
 
   useEffect(() => {
     return subscribeGestionNotificacionReinspeccionRefresh(() => {
-      void loadPendientesReinspeccionNotificacion();
+      reinspeccionDataLoadedRef.current = false;
+      if (plazoSliceRef.current === "vencidas_o_hoy") {
+        void loadPendientesReinspeccionNotificacion().then(() => {
+          reinspeccionDataLoadedRef.current = true;
+        });
+      }
     });
   }, [loadPendientesReinspeccionNotificacion]);
 
@@ -563,7 +591,11 @@ const GestionNotificacionPage = () => {
       const metrics = await postSyncNotificacionesVencidas();
       setSyncFeedback({ kind: "success", metrics });
       await loadData();
-      await loadPendientesReinspeccionNotificacion();
+      plazoDataLoadedRef.current = true;
+      if (reinspeccionDataLoadedRef.current || plazoSliceRef.current === "vencidas_o_hoy") {
+        await loadPendientesReinspeccionNotificacion();
+        reinspeccionDataLoadedRef.current = true;
+      }
       if (historialFiltroAplicado) {
         await recargarHistorialSiAplica();
       }
@@ -708,29 +740,34 @@ const GestionNotificacionPage = () => {
     dismissModal();
   };
 
-  const refreshBandejasOperativas = useCallback(async () => {
+  const refreshBandejaActiva = useCallback(async () => {
+    if (plazoSlice === "total") {
+      if (historialFiltroAplicado) await recargarHistorialSiAplica();
+      return;
+    }
+    if (plazoSlice === "vencidas_o_hoy") {
+      await loadPendientesReinspeccionNotificacion();
+      reinspeccionDataLoadedRef.current = true;
+      return;
+    }
     await loadData();
-    await loadPendientesReinspeccionNotificacion();
-  }, [loadData, loadPendientesReinspeccionNotificacion]);
+    plazoDataLoadedRef.current = true;
+  }, [
+    plazoSlice,
+    historialFiltroAplicado,
+    recargarHistorialSiAplica,
+    loadPendientesReinspeccionNotificacion,
+    loadData,
+  ]);
 
   const handleExpedienteMutacionExitosa = useCallback(
     async (mensaje: string) => {
-      perfLog("notificaciones.modal.mutacion.refetch", { mensaje });
+      perfLog("notificaciones.modal.mutacion.refetch", { mensaje, slice: plazoSlice });
       feedback.success(mensaje);
-      await refreshBandejasOperativas();
-      if (plazoSlice === "total" && historialFiltroAplicado) {
-        await recargarHistorialSiAplica();
-      }
+      await refreshBandejaActiva();
       dismissModal();
     },
-    [
-      feedback,
-      refreshBandejasOperativas,
-      plazoSlice,
-      historialFiltroAplicado,
-      recargarHistorialSiAplica,
-      dismissModal,
-    ]
+    [feedback, refreshBandejaActiva, plazoSlice, dismissModal]
   );
 
   const handleSave = useCallback(async (): Promise<GuardarProrrogaResult> => {
@@ -759,10 +796,7 @@ const GestionNotificacionPage = () => {
       setExpFecha("");
       setProrrogaDias("0");
       setFieldErrors({});
-      await refreshBandejasOperativas();
-      if (plazoSlice === "total" && historialFiltroAplicado) {
-        await recargarHistorialSiAplica();
-      }
+      await refreshBandejaActiva();
       const volvioEnPlazo = volvioEnPlazoDesdeExpedienteMeta(resp.meta?.next_state_hint);
       feedback.success(prorrogaAltaSuccessMessage(volvioEnPlazo));
       dismissModal();
@@ -782,10 +816,7 @@ const GestionNotificacionPage = () => {
     expNumero,
     expFecha,
     prorrogaDias,
-    refreshBandejasOperativas,
-    plazoSlice,
-    historialFiltroAplicado,
-    recargarHistorialSiAplica,
+    refreshBandejaActiva,
     feedback,
     dismissModal,
   ]);
@@ -910,9 +941,11 @@ const GestionNotificacionPage = () => {
   const refreshOperativaActiva = useCallback(async () => {
     if (esTabReinspeccionOperativa) {
       await loadPendientesReinspeccionNotificacion();
+      reinspeccionDataLoadedRef.current = true;
       return;
     }
     await loadData();
+    plazoDataLoadedRef.current = true;
   }, [esTabReinspeccionOperativa, loadPendientesReinspeccionNotificacion, loadData]);
 
   const renderOperativaToolbarRefresh = useCallback(

@@ -279,6 +279,12 @@ const ActasComprobacionPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<TabKey>("expediente");
   const deepLinkActuacionKeyDone = useRef<string | null>(null);
+  const tabLoadedRef = useRef<Record<TabKey, boolean>>({
+    expediente: false,
+    oficio: false,
+    reinspeccion: false,
+    recorrido: false,
+  });
   /** Solo para el slice Recorrido (selector de distrito). */
   const [distritosRecorrido, setDistritosRecorrido] = useState<DistritoCatalogoItem[]>([]);
 
@@ -330,6 +336,7 @@ const ActasComprobacionPage = () => {
       );
       setExpItems(resp.items);
       setExpTotalPendientes(resp.meta.total);
+      tabLoadedRef.current.expediente = true;
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setExpError(detail || "Error al cargar pendientes de expediente");
@@ -373,8 +380,7 @@ const ActasComprobacionPage = () => {
       };
       await createExpedienteDesdeActuacion(selectedExp.id, payload);
       closeModalExp();
-      await loadExpediente();
-      await loadOficio();
+      await refreshActiveBandeja();
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setModalExpError(detail || "No se pudo añadir el expediente");
@@ -536,6 +542,7 @@ const ActasComprobacionPage = () => {
       );
       setOficioApiTotal(resp.meta.total);
       setOficioItems(resp.items);
+      tabLoadedRef.current.oficio = true;
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setOficioError(detail || "Error al cargar pendientes de oficio");
@@ -788,6 +795,7 @@ const ActasComprobacionPage = () => {
       );
       setReinApiTotal(resp.meta.total);
       setReinItems(resp.items);
+      tabLoadedRef.current.reinspeccion = true;
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setReinError(detail || "Error al cargar pendientes de reinspección");
@@ -798,9 +806,28 @@ const ActasComprobacionPage = () => {
     }
   }, []);
 
+  /** Lazy-load por tab con cache; Recorrido sigue cargando solo con Filtrar. */
+  const ensureTabLoaded = useCallback(
+    async (key: TabKey, options?: { force?: boolean }) => {
+      const force = options?.force ?? false;
+      if (key === "recorrido") return;
+      if (!force && tabLoadedRef.current[key]) {
+        perfLog("comprobacion.tab.cacheHit", { tab: key });
+        return;
+      }
+      perfLog("comprobacion.tab.fetch", { tab: key, force });
+      if (key === "expediente") await loadExpediente();
+      else if (key === "oficio") await loadOficio();
+      else if (key === "reinspeccion") await loadRein();
+      tabLoadedRef.current[key] = true;
+    },
+    [loadExpediente, loadOficio, loadRein]
+  );
+
   const onReinBandejasActualizadas = useCallback(async () => {
-    await loadRein();
-  }, [loadRein]);
+    tabLoadedRef.current.reinspeccion = false;
+    await ensureTabLoaded("reinspeccion", { force: true });
+  }, [ensureTabLoaded]);
 
   const selectedReinKey = selectedRein != null ? reinBandejaRowKey(selectedRein) : null;
   useEffect(() => {
@@ -826,10 +853,9 @@ const ActasComprobacionPage = () => {
 
   /** Refresca solo la bandeja del slice activo (sin catálogos ni otras pestañas). */
   const refreshActiveBandeja = useCallback(async () => {
-    if (tab === "oficio") await loadOficio();
-    else if (tab === "reinspeccion") await loadRein();
-    else if (tab === "expediente") await loadExpediente();
-  }, [tab, loadOficio, loadRein, loadExpediente]);
+    if (tab === "recorrido") return;
+    await ensureTabLoaded(tab, { force: true });
+  }, [tab, ensureTabLoaded]);
 
   const reloadOficioModalDocumental = useCallback(async () => {
     await refreshModalOficioData();
@@ -1069,13 +1095,8 @@ const ActasComprobacionPage = () => {
   }, [loadRecorridoSearch]);
 
   useEffect(() => {
-    perfLog("comprobacion.tab.fetch", { tab });
-    if (tab === "expediente") void loadExpediente();
-    else if (tab === "oficio") void loadOficio();
-    else if (tab === "reinspeccion") void loadRein();
-    // Recorrido: no cargar listado al cambiar de pestaña; solo tras "Filtrar".
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga al cambiar de pestaña (no re-disparar al editar filtros)
-  }, [tab]);
+    void ensureTabLoaded(tab);
+  }, [tab, ensureTabLoaded]);
 
   const openDetalle = useCallback(
     async (row: IComprobacionRecorridoRow) => {
