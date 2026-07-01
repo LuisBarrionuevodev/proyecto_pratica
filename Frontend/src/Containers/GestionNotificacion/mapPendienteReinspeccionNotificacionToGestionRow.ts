@@ -2,7 +2,7 @@ import type { IActuacionesPendientesItem } from "../../api/actuacionesPendientes
 
 /**
  * Adapta filas de `/actuaciones/pendientes-notificacion` al shape de la bandeja documental.
- * Ese endpoint usa `actuacion_to_grid_row` (sin métricas de plazo del presenter de expediente).
+ * El endpoint ya incluye métricas de plazo vía `actuacion_to_pendiente_expediente_row`.
  */
 export function mapPendienteReinspeccionNotificacionToGestionRow(
   row: IActuacionesPendientesItem
@@ -10,7 +10,5 @@ export function mapPendienteReinspeccionNotificacionToGestionRow(
   return {
     ...row,
     source_type: row.source_type === "NOTIFICACION" ? row.source_type : "NOTIFICACION",
-    dias_restantes: row.dias_restantes ?? 0,
-    plazos_otorgados: row.plazos_otorgados ?? 0,
   };
 }

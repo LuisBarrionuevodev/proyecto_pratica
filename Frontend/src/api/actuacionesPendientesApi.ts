@@ -27,6 +27,8 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   domicilio_id?: number | null;
   /** Cola operativa `/pendientes-notificacion`. */
   iniciador_id?: number | null;
+  /** Suma de días de prórroga activos (`Notificacion.prorroga_dias`). */
+  notificacion_prorroga_dias?: number | null;
   /** Clave estable para MRT (p. ej. `{actuacion_id}-{iniciador_id}`). */
   bandeja_row_key?: string | null;
   numero_esquina?: string | null;

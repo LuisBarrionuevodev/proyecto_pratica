@@ -54,21 +54,23 @@ describe("reinspeccionNotificacionBandejaRowKey", () => {
 });
 
 describe("mapPendienteReinspeccionNotificacionToGestionRow", () => {
-  it("normaliza plazo operativo para columnas de bandeja", () => {
+  it("conserva métricas del backend sin forzar ceros", () => {
     const mapped = mapPendienteReinspeccionNotificacionToGestionRow(
       row({
         id: 1034,
         acta_notificacion_num: "809198",
         calle: "Av. Test",
         numero: "100",
-        dias_restantes: undefined,
-        plazos_otorgados: undefined,
+        dias_restantes: 3,
+        plazos_otorgados: 1,
+        notificacion_prorroga_dias: 10,
         iniciador_id: 301,
       })
     );
     expect(mapped.source_type).toBe("NOTIFICACION");
-    expect(mapped.dias_restantes).toBe(0);
-    expect(mapped.plazos_otorgados).toBe(0);
+    expect(mapped.dias_restantes).toBe(3);
+    expect(mapped.plazos_otorgados).toBe(1);
+    expect(mapped.notificacion_prorroga_dias).toBe(10);
     expect(mapped.acta_notificacion_num).toBe("809198");
     expect(mapped.calle).toBe("Av. Test");
   });

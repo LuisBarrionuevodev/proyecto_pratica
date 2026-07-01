@@ -97,10 +97,10 @@ def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
 
 def build_notificacion_expediente_bandeja_metrics(
     acts: List[Actuaciones],
-) -> tuple[dict[int, int], dict[int, date | None]]:
+) -> tuple[dict[int, int], dict[int, date | None], dict[int, int]]:
     """
     Para actuaciones con notificación en la bandeja: cuenta expedientes de plazo por
-    `notificacion_id` y carga `fecha_vencimiento` desde `Notificacion` (batch, evita N+1).
+    `notificacion_id`, carga `fecha_vencimiento` y suma de días de prórroga desde `Notificacion`.
 
     Incluye actuaciones que también tienen comprobación en la misma fila (canal paralelo).
     """
@@ -112,7 +112,7 @@ def build_notificacion_expediente_bandeja_metrics(
         }
     )
     if not noti_ids:
-        return {}, {}
+        return {}, {}, {}
 
     rows = (
         db.session.query(Expediente.notificacion_id, func.count(Expediente.id))
@@ -126,8 +126,34 @@ def build_notificacion_expediente_bandeja_metrics(
 
     notis = Notificacion.query.filter(Notificacion.id.in_(noti_ids)).all()
     venc_map: dict[int, date | None] = {int(n.id): n.fecha_vencimiento for n in notis}
+    prorroga_dias_map: dict[int, int] = {int(n.id): int(n.prorroga_dias or 0) for n in notis}
 
-    return plazos_map, venc_map
+    return plazos_map, venc_map, prorroga_dias_map
+
+
+def dedupe_actuaciones_canonicas_por_notificacion(acts: List[Actuaciones]) -> List[Actuaciones]:
+    """
+    Una fila por ``notificacion_id`` en historial/gestión: evita duplicar INSPECCION origen + REINSPECCION.
+
+    Criterio: preferir actuación ``INSPECCION`` de mayor ``id``; si no hay, la de mayor ``id`` del grupo.
+    """
+    by_noti: Dict[int, List[Actuaciones]] = defaultdict(list)
+    sin_noti: List[Actuaciones] = []
+    for act in acts:
+        if act.notificacion_id is None:
+            sin_noti.append(act)
+            continue
+        by_noti[int(act.notificacion_id)].append(act)
+
+    out: List[Actuaciones] = list(sin_noti)
+    for group in by_noti.values():
+        inspecciones = [a for a in group if getattr(a, "tipo", None) == "INSPECCION"]
+        if inspecciones:
+            out.append(max(inspecciones, key=lambda a: int(a.id)))
+        else:
+            out.append(max(group, key=lambda a: int(a.id)))
+    out.sort(key=lambda a: int(a.id), reverse=True)
+    return out
 
 
 def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
@@ -340,6 +366,8 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         query = query_comp.union(query_noti)
 
     acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    if source_type == "notificacion":
+        acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
     if source_type == "notificacion" and _notificacion_documental_filters_active(filters):
         acts = _filter_actuaciones_documental_notificacion(acts, filters)
     return acts

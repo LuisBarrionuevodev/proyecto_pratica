@@ -26,7 +26,11 @@ import {
 } from "../../../styles/documentalModalTokens";
 import { AppButton, AppTextField, ConfirmDialog } from "../../../ui";
 import type { GuardarProrrogaResult } from "../utils/prorrogaSuccessMessage";
-import { prorrogaSuccessMessage } from "../utils/prorrogaSuccessMessage";
+import {
+  EXPEDIENTE_ACTUALIZADO_MSG,
+  EXPEDIENTE_ELIMINADO_MSG,
+} from "../utils/prorrogaSuccessMessage";
+import { perfTimed } from "../../../utils/perfLog";
 import {
   notificacionModalSubtitulo,
   notificacionModalTitulo,
@@ -155,14 +159,15 @@ function NotificacionProrrogaExpedientesCard({
   error,
   detalle,
   actuacionId,
-  onAfterPatch,
+  onExpedienteMutacionExitosa,
   diasRestantes,
 }: {
   loading: boolean;
   error: string | null;
   detalle: INotificacionProrrogaExpedientesResponse | null;
   actuacionId?: number;
-  onAfterPatch?: () => void;
+  /** Tras PATCH/DELETE exitoso: toast, refresh bandejas y cierre del modal (padre). */
+  onExpedienteMutacionExitosa?: (mensaje: string) => void | Promise<void>;
   diasRestantes: string;
 }) {
   const feedback = useAppFeedback();
@@ -209,7 +214,7 @@ function NotificacionProrrogaExpedientesCard({
         plazo_otorgado: po,
       });
       cancelEdit();
-      onAfterPatch?.();
+      await onExpedienteMutacionExitosa?.(EXPEDIENTE_ACTUALIZADO_MSG);
     } catch (e: unknown) {
       const detail = extractApiDetail(e);
       setErrEx(typeof detail === "string" ? detail : "No se pudo guardar el expediente.");
@@ -405,7 +410,7 @@ function NotificacionProrrogaExpedientesCard({
             await deleteNotificacionProrrogaExpediente(actuacionId, confirmDeleteId);
             if (editingId === confirmDeleteId) cancelEdit();
             setConfirmDeleteId(null);
-            onAfterPatch?.();
+            await onExpedienteMutacionExitosa?.(EXPEDIENTE_ELIMINADO_MSG);
           } catch (e: unknown) {
             const detail = extractApiDetail(e);
             setErrEx(typeof detail === "string" ? detail : "No se pudo eliminar el expediente.");
@@ -473,8 +478,8 @@ export type NotificacionDetalleDocumentalDialogProps = {
   saving: boolean;
   /** Alta de un **nuevo** expediente (solo cuerpo del modal operativo). */
   onGuardar: () => GuardarProrrogaResult | Promise<GuardarProrrogaResult>;
-  /** Tras editar prórroga vía PATCH o tras alta: actualizar filas de la bandeja. */
-  onOperativaListaRefresh?: () => void | Promise<void>;
+  /** Tras PATCH/DELETE exitoso de expediente de prórroga. */
+  onExpedienteMutacionExitosa?: (mensaje: string) => void | Promise<void>;
 };
 
 /**
@@ -497,7 +502,7 @@ export function NotificacionDetalleDocumentalDialog({
   modalApiError,
   saving,
   onGuardar,
-  onOperativaListaRefresh,
+  onExpedienteMutacionExitosa,
 }: NotificacionDetalleDocumentalDialogProps) {
   const feedback = useAppFeedback();
   const isSoloExpediente = variant === "soloExpediente";
@@ -532,7 +537,11 @@ export function NotificacionDetalleDocumentalDialog({
     setProrrogaError(null);
     setProrrogaDetalle(null);
 
-    void fetchNotificacionProrrogaExpedientes(row.id)
+    void perfTimed(
+      "notificaciones.modal.expedientesProrroga",
+      () => fetchNotificacionProrrogaExpedientes(row.id),
+      (data) => ({ actuacionId: row.id, items: data.items?.length ?? 0 })
+    )
       .then((data) => {
         if (!cancelled) {
           setProrrogaDetalle(data);
@@ -555,17 +564,8 @@ export function NotificacionDetalleDocumentalDialog({
     };
   }, [open, row?.id, row?.source_type, variant, prorrogaDetalleRefresh]);
 
-  const refrescarDetalleYBandeja = () => {
-    setProrrogaDetalleRefresh((k) => k + 1);
-    void onOperativaListaRefresh?.();
-  };
-
   const ejecutarAlta = async () => {
-    const result = await onGuardar();
-    if (result.ok) {
-      refrescarDetalleYBandeja();
-      feedback.success(prorrogaSuccessMessage(result.volvioEnPlazo));
-    }
+    await onGuardar();
   };
 
   const headerTitulo = row != null ? notificacionModalTitulo(variant, esReinspeccionNotificacion) : "Notificación";
@@ -607,7 +607,7 @@ export function NotificacionDetalleDocumentalDialog({
               detalle={prorrogaDetalle}
               actuacionId={row.id}
               diasRestantes={diasPlazoLinea(row)}
-              onAfterPatch={refrescarDetalleYBandeja}
+              onExpedienteMutacionExitosa={onExpedienteMutacionExitosa}
             />
           ) : null}
 
@@ -686,7 +686,7 @@ export function NotificacionDetalleDocumentalDialog({
               detalle={prorrogaDetalle}
               actuacionId={row.id}
               diasRestantes={diasPlazoLinea(row)}
-              onAfterPatch={refrescarDetalleYBandeja}
+              onExpedienteMutacionExitosa={onExpedienteMutacionExitosa}
             />
           ) : null}
 

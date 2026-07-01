@@ -94,13 +94,14 @@ def _pendientes_reinspeccion_ids() -> set[int]:
 
 def _en_plazo_ids() -> set[int]:
     acts = get_pendientes_expediente(_filters_notificacion())
-    plazos, venc = build_notificacion_expediente_bandeja_metrics(acts)
+    plazos, venc, prorroga_dias = build_notificacion_expediente_bandeja_metrics(acts)
     out: set[int] = set()
     for act in acts:
         row = actuacion_to_pendiente_expediente_row(
             act,
             plazos_por_notificacion=plazos,
             fecha_vencimiento_por_notificacion=venc,
+            prorroga_dias_por_notificacion=prorroga_dias,
             expediente_list_channel="notificacion",
         )
         dias = row.get("dias_restantes")

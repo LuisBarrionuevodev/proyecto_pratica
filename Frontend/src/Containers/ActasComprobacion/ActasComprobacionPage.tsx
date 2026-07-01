@@ -95,6 +95,7 @@ import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionO
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
 import { exportComprobacionesDataset } from "./utils/exportComprobacionesDataset";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
+import { perfLog, perfTimed } from "../../utils/perfLog";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
 
@@ -319,9 +320,14 @@ const ActasComprobacionPage = () => {
     setExpLoading(true);
     setExpError(null);
     try {
-      const resp = await getActuacionesPendientesExpediente(undefined, undefined, "comprobacion", null, {
-        omitirRangoFecha: true,
-      });
+      const resp = await perfTimed(
+        "comprobacion.loadExpediente",
+        () =>
+          getActuacionesPendientesExpediente(undefined, undefined, "comprobacion", null, {
+            omitirRangoFecha: true,
+          }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
       setExpItems(resp.items);
       setExpTotalPendientes(resp.meta.total);
     } catch (err: unknown) {
@@ -523,7 +529,11 @@ const ActasComprobacionPage = () => {
     setOficioLoading(true);
     setOficioError(null);
     try {
-      const resp = await fetchComprobacionPendientesOficio(null, null, null, { omitirRangoFecha: true });
+      const resp = await perfTimed(
+        "comprobacion.loadOficio",
+        () => fetchComprobacionPendientesOficio(null, null, null, { omitirRangoFecha: true }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
       setOficioApiTotal(resp.meta.total);
       setOficioItems(resp.items);
     } catch (err: unknown) {
@@ -547,8 +557,13 @@ const ActasComprobacionPage = () => {
       setModalOficioOpen(true);
       setModalDocLoading(true);
       setModalOficiosLoading(false);
+      perfLog("comprobacion.modal.oficio.open", { actuacionId: row.id });
       try {
-        const doc = await fetchComprobacionDocumental(row.id);
+        const doc = await perfTimed(
+          "comprobacion.modal.oficio.documental",
+          () => fetchComprobacionDocumental(row.id),
+          () => ({ actuacionId: row.id })
+        );
         setModalDoc(doc);
         setModalDocError(null);
         void loadOficiosForComprobacion(doc.comprobacion_id);
@@ -766,7 +781,11 @@ const ActasComprobacionPage = () => {
     setReinLoading(true);
     setReinError(null);
     try {
-      const resp = await fetchPendientesReinspeccionOficio(null, null, null, { omitirRangoFecha: true });
+      const resp = await perfTimed(
+        "comprobacion.loadReinspeccion",
+        () => fetchPendientesReinspeccionOficio(null, null, null, { omitirRangoFecha: true }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
       setReinApiTotal(resp.meta.total);
       setReinItems(resp.items);
     } catch (err: unknown) {
@@ -1015,14 +1034,19 @@ const ActasComprobacionPage = () => {
     setRecLoading(true);
     setRecError(null);
     try {
-      const resp = await fetchComprobacionRecorrido({
-        ...recPeriodParams(),
-        contrib_q: recContrib.trim() || undefined,
-        calle_q: recCalle.trim() || undefined,
-        acta_comprobacion: recActa.trim() || undefined,
-        oficio_numero: recOfi.trim() || undefined,
-        tipo_final: recTipoFinal || undefined,
-      });
+      const resp = await perfTimed(
+        "comprobacion.loadRecorrido",
+        () =>
+          fetchComprobacionRecorrido({
+            ...recPeriodParams(),
+            contrib_q: recContrib.trim() || undefined,
+            calle_q: recCalle.trim() || undefined,
+            acta_comprobacion: recActa.trim() || undefined,
+            oficio_numero: recOfi.trim() || undefined,
+            tipo_final: recTipoFinal || undefined,
+          }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
       setRecItems(resp.items as IComprobacionRecorridoRow[]);
       setRecMeta({
         total: resp.meta.total,
@@ -1045,6 +1069,7 @@ const ActasComprobacionPage = () => {
   }, [loadRecorridoSearch]);
 
   useEffect(() => {
+    perfLog("comprobacion.tab.fetch", { tab });
     if (tab === "expediente") void loadExpediente();
     else if (tab === "oficio") void loadOficio();
     else if (tab === "reinspeccion") void loadRein();

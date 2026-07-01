@@ -31,12 +31,12 @@ describe("ReinspeccionOperativaAccionCell", () => {
 
 describe("prorrogaSuccessMessage", () => {
   it("mensaje base cuando no volvió a en plazo", () => {
-    expect(prorrogaSuccessMessage(false)).toBe("Prórroga registrada correctamente.");
+    expect(prorrogaSuccessMessage(false)).toBe("Expediente registrado correctamente.");
   });
 
   it("mensaje extendido cuando volvió a en plazo", () => {
     expect(prorrogaSuccessMessage(true)).toBe(
-      "Prórroga registrada. La notificación volvió a estar en plazo."
+      "Expediente registrado correctamente. La notificación volvió a estar en plazo."
     );
   });
 

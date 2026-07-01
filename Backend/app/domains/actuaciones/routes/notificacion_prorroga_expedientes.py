@@ -9,6 +9,7 @@ from flask import jsonify
 from app.domains.actuaciones.services.notificacion_prorroga_expedientes_service import (
     list_notificacion_prorroga_expedientes_for_actuacion,
 )
+from app.shared.perf_log import PerfTimer, perf_endpoint_log
 
 from . import actuacion
 
@@ -54,8 +55,22 @@ def get_notificacion_expedientes_prorroga(actuacion_id: int):
         404: actuación no existe.
         400: actuación sin notificación u otra regla de negocio.
     """
+    total_timer = PerfTimer()
     try:
+        presenter_timer = PerfTimer()
         payload = list_notificacion_prorroga_expedientes_for_actuacion(actuacion_id)
+        presenter_ms = presenter_timer.elapsed_ms()
+        items_n = len(payload.get("items") or []) if isinstance(payload, dict) else 0
+        perf_endpoint_log(
+            "notificaciones.expedientes_prorroga_detalle",
+            rows_base=items_n,
+            rows_final=items_n,
+            query_ms=0.0,
+            presenter_ms=presenter_ms,
+            total_ms=total_timer.elapsed_ms(),
+            payload=payload,
+            actuacion_id=actuacion_id,
+        )
         return jsonify(payload), 200
     except LookupError as e:
         return jsonify({"detail": str(e)}), 404

@@ -1040,6 +1040,7 @@ def actuacion_to_pendiente_expediente_row(
     *,
     plazos_por_notificacion: dict[int, int] | None = None,
     fecha_vencimiento_por_notificacion: dict[int, date | None] | None = None,
+    prorroga_dias_por_notificacion: dict[int, int] | None = None,
     counts_by_eo: dict[int, int] | None = None,
     posterior_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
     reinspeccion_comprobacion_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
@@ -1073,14 +1074,17 @@ def actuacion_to_pendiente_expediente_row(
 
     plazos_map = plazos_por_notificacion or {}
     venc_map = fecha_vencimiento_por_notificacion or {}
+    prorroga_map = prorroga_dias_por_notificacion or {}
 
     if source_type == "NOTIFICACION" and act.notificacion_id is not None:
         nid = int(act.notificacion_id)
         full["plazos_otorgados"] = int(plazos_map.get(nid, 0))
         full["dias_restantes"] = _dias_restantes_desde_vencimiento(venc_map.get(nid))
+        full["notificacion_prorroga_dias"] = int(prorroga_map.get(nid, 0))
     else:
         full["plazos_otorgados"] = None
         full["dias_restantes"] = None
+        full["notificacion_prorroga_dias"] = None
 
     ch = (expediente_list_channel or "all").strip().lower()
 

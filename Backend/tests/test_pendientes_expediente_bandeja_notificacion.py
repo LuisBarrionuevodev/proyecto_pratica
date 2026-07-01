@@ -158,7 +158,7 @@ def test_notificacion_y_comprobacion_misma_actuacion_aparece_en_ambas_bandas(app
 
 
 def _rows_expediente(acts: list[Actuaciones], *, channel: str = "notificacion") -> list[dict]:
-    plazos, venc = build_notificacion_expediente_bandeja_metrics(acts)
+    plazos, venc, prorroga_dias = build_notificacion_expediente_bandeja_metrics(acts)
     posterior = build_posterior_comprobacion_por_actuacion_id(acts)
     reinspeccion_comp = build_reinspeccion_comprobacion_por_actuacion_id(acts)
     counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
@@ -167,6 +167,7 @@ def _rows_expediente(acts: list[Actuaciones], *, channel: str = "notificacion") 
             a,
             plazos_por_notificacion=plazos,
             fecha_vencimiento_por_notificacion=venc,
+            prorroga_dias_por_notificacion=prorroga_dias,
             counts_by_eo=counts_by_eo,
             posterior_por_actuacion_id=posterior,
             reinspeccion_comprobacion_por_actuacion_id=reinspeccion_comp,

@@ -36,13 +36,14 @@ def app_ctx():
 
 def _row_for_act(act: Actuaciones) -> dict:
     acts = [act]
-    plazos, venc = build_notificacion_expediente_bandeja_metrics(acts)
+    plazos, venc, prorroga_dias = build_notificacion_expediente_bandeja_metrics(acts)
     rein = build_reinspeccion_comprobacion_por_actuacion_id(acts)
     counts = build_counts_by_eo_from_actuaciones(acts)
     return actuacion_to_pendiente_expediente_row(
         act,
         plazos_por_notificacion=plazos,
         fecha_vencimiento_por_notificacion=venc,
+        prorroga_dias_por_notificacion=prorroga_dias,
         counts_by_eo=counts,
         reinspeccion_comprobacion_por_actuacion_id=rein,
         expediente_list_channel="notificacion",
