@@ -23,6 +23,9 @@ from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
     apply_bandeja_grid_eager,
     reload_actuaciones_bandeja_eager,
 )
+from app.domains.actuaciones.utils.notificacion_plazo_slice import (
+    filter_actuaciones_notificacion_por_plazo_slice,
+)
 
 
 def _apply_fecha(query, desde, hasta):
@@ -381,6 +384,8 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
     if source_type == "notificacion" and _notificacion_documental_filters_active(filters):
         acts = _filter_actuaciones_documental_notificacion(acts, filters)
+    if source_type == "notificacion" and getattr(filters, "plazo_slice", None):
+        acts = filter_actuaciones_notificacion_por_plazo_slice(acts, filters.plazo_slice)
     return acts
 
 

@@ -68,10 +68,12 @@ import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/Tabl
 import { applyFormErrorsFromApi } from "../../utils/parseApiError";
 import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
 import {
-  countByPlazoSlice,
   matchesPlazoSlice,
+  operativePlazoSlicePeerToInvalidate,
+  operativePlazoSliceShouldFetch,
   sliceLabel,
   type PlazoOperativoSlice,
+  type OperativePlazoExpedienteSlice,
 } from "./gestionNotificacionPlazo";
 import { normalizeNotificacionBandejaItems } from "./normalizeNotificacionBandejaItems";
 import {
@@ -328,8 +330,68 @@ const GestionNotificacionPage = () => {
 
   const prevPlazoSliceRef = useRef<PlazoOperativoSlice>(plazoSlice);
   const plazoSliceRef = useRef<PlazoOperativoSlice>(plazoSlice);
-  const plazoDataLoadedRef = useRef(false);
+  const operativeSliceLoadedRef = useRef<Record<OperativePlazoExpedienteSlice, boolean>>({
+    en_plazo: false,
+    por_vencer: false,
+  });
+  const [itemsBySlice, setItemsBySlice] = useState<
+    Record<OperativePlazoExpedienteSlice, IActuacionesPendientesItem[]>
+  >({
+    en_plazo: [],
+    por_vencer: [],
+  });
+  const itemsBySliceRef = useRef(itemsBySlice);
+  itemsBySliceRef.current = itemsBySlice;
   const reinspeccionDataLoadedRef = useRef(false);
+
+  const invalidateOtherOperativeSlices = useCallback((active: OperativePlazoExpedienteSlice) => {
+    const other = operativePlazoSlicePeerToInvalidate(active);
+    operativeSliceLoadedRef.current[other] = false;
+  }, []);
+
+  const loadPlazoSliceData = useCallback(
+    async (slice: OperativePlazoExpedienteSlice, force = false) => {
+      if (!operativePlazoSliceShouldFetch(slice, operativeSliceLoadedRef.current, force)) {
+        perfLog("notificaciones.tab.cacheHit", { slice });
+        if (plazoSliceRef.current === slice) {
+          setItems(itemsBySliceRef.current[slice]);
+        }
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const resp = await perfTimed(
+          "notificaciones.loadPlazoSlice",
+          () =>
+            getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
+              omitirRangoFecha: true,
+              plazoSlice: slice,
+            }),
+          (r) => ({ slice, rows: r.items.length, total: r.meta.total })
+        );
+        const normalized = normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type);
+        setItemsBySlice((prev) => ({ ...prev, [slice]: normalized }));
+        operativeSliceLoadedRef.current[slice] = true;
+        if (plazoSliceRef.current === slice) {
+          setItems(normalized);
+        }
+        perfLog("notificaciones.loadPlazoSlice.state", { slice, items: normalized.length });
+      } catch (err: unknown) {
+        const detail =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+            : null;
+        setError(detail || "Error al cargar la bandeja");
+        if (plazoSliceRef.current === slice) {
+          setItems([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -352,33 +414,6 @@ const GestionNotificacionPage = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const resp = await perfTimed(
-        "notificaciones.loadData",
-        () =>
-          getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
-            omitirRangoFecha: true,
-          }),
-        (r) => ({ rows: r.items.length, total: r.meta.total })
-      );
-      setItems(normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type));
-      plazoDataLoadedRef.current = true;
-      perfLog("notificaciones.loadData.state", { items: resp.items.length });
-    } catch (err: unknown) {
-      const detail =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
-          : null;
-      setError(detail || "Error al cargar la bandeja");
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const loadPendientesReinspeccionNotificacion = useCallback(async () => {
     setReinspeccionLoading(true);
@@ -410,11 +445,11 @@ const GestionNotificacionPage = () => {
   }, [plazoSlice]);
 
   useEffect(() => {
-    perfLog("notificaciones.mount", { fetches: ["loadData"] });
-    void loadData().then(() => {
-      plazoDataLoadedRef.current = true;
-    });
-  }, [loadData]);
+    if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
+      perfLog("notificaciones.tab.fetch", { slice: plazoSlice });
+      void loadPlazoSliceData(plazoSlice);
+    }
+  }, [plazoSlice, loadPlazoSliceData]);
 
   /** Lazy-load: cola reinspección solo al entrar por primera vez a esa pestaña. */
   useEffect(() => {
@@ -590,11 +625,18 @@ const GestionNotificacionPage = () => {
     try {
       const metrics = await postSyncNotificacionesVencidas();
       setSyncFeedback({ kind: "success", metrics });
-      await loadData();
-      plazoDataLoadedRef.current = true;
-      if (reinspeccionDataLoadedRef.current || plazoSliceRef.current === "vencidas_o_hoy") {
-        await loadPendientesReinspeccionNotificacion();
-        reinspeccionDataLoadedRef.current = true;
+      operativeSliceLoadedRef.current.en_plazo = false;
+      operativeSliceLoadedRef.current.por_vencer = false;
+      const active = plazoSliceRef.current;
+      if (active === "en_plazo" || active === "por_vencer") {
+        await loadPlazoSliceData(active, true);
+      }
+      if (reinspeccionDataLoadedRef.current || active === "vencidas_o_hoy") {
+        reinspeccionDataLoadedRef.current = false;
+        if (active === "vencidas_o_hoy") {
+          await loadPendientesReinspeccionNotificacion();
+          reinspeccionDataLoadedRef.current = true;
+        }
       }
       if (historialFiltroAplicado) {
         await recargarHistorialSiAplica();
@@ -622,7 +664,7 @@ const GestionNotificacionPage = () => {
     } finally {
       setSyncLoading(false);
     }
-  }, [loadData, loadPendientesReinspeccionNotificacion, historialFiltroAplicado, recargarHistorialSiAplica]);
+  }, [loadPlazoSliceData, loadPendientesReinspeccionNotificacion, historialFiltroAplicado, recargarHistorialSiAplica]);
 
   const notificacionRows = useMemo(
     () => items.filter((r) => r.source_type === "NOTIFICACION"),
@@ -630,8 +672,20 @@ const GestionNotificacionPage = () => {
   );
 
   const sliceCounts = useMemo(
-    () => countByPlazoSlice(notificacionRows, reinspeccionItems.length),
-    [notificacionRows, reinspeccionItems.length]
+    () => ({
+      en_plazo: itemsBySlice.en_plazo.length,
+      por_vencer: itemsBySlice.por_vencer.length,
+      vencidas_o_hoy: reinspeccionItems.length,
+      total: historialMeta?.total ?? (historialFiltroAplicado ? historialRows.length : 0),
+    }),
+    [
+      itemsBySlice.en_plazo.length,
+      itemsBySlice.por_vencer.length,
+      reinspeccionItems.length,
+      historialMeta?.total,
+      historialFiltroAplicado,
+      historialRows.length,
+    ]
   );
 
   const esTabReinspeccionOperativa = plazoSlice === "vencidas_o_hoy";
@@ -685,7 +739,10 @@ const GestionNotificacionPage = () => {
     const aid = Number.parseInt(raw, 10);
     if (!Number.isFinite(aid)) return;
 
-    const rowPlazo = items.find((r) => r.id === aid && r.source_type === "NOTIFICACION");
+    const rowPlazo =
+      itemsBySlice.en_plazo.find((r) => r.id === aid && r.source_type === "NOTIFICACION") ??
+      itemsBySlice.por_vencer.find((r) => r.id === aid && r.source_type === "NOTIFICACION") ??
+      items.find((r) => r.id === aid && r.source_type === "NOTIFICACION");
     const rowRein = reinspeccionItems.find((r) => r.id === aid);
     const row = rowRein ?? rowPlazo;
     const clearParam = () => {
@@ -726,7 +783,7 @@ const GestionNotificacionPage = () => {
       `Actuación n.º ${aid}: el plazo no coincide con ninguna pestaña operativa actual (revisá «Historial de notificaciones» por período). OT ${(row.orden_trabajo_numero ?? "").trim() || "—"}.`
     );
     clearParam();
-  }, [loading, reinspeccionLoading, items, reinspeccionItems, searchParams, setSearchParams, openModal]);
+  }, [loading, reinspeccionLoading, items, itemsBySlice, reinspeccionItems, searchParams, setSearchParams, openModal]);
 
   const dismissModal = useCallback(() => {
     setModalOpen(false);
@@ -750,14 +807,18 @@ const GestionNotificacionPage = () => {
       reinspeccionDataLoadedRef.current = true;
       return;
     }
-    await loadData();
-    plazoDataLoadedRef.current = true;
+    if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
+      invalidateOtherOperativeSlices(plazoSlice);
+      await loadPlazoSliceData(plazoSlice, true);
+      return;
+    }
   }, [
     plazoSlice,
     historialFiltroAplicado,
     recargarHistorialSiAplica,
     loadPendientesReinspeccionNotificacion,
-    loadData,
+    loadPlazoSliceData,
+    invalidateOtherOperativeSlices,
   ]);
 
   const handleExpedienteMutacionExitosa = useCallback(
@@ -944,9 +1005,17 @@ const GestionNotificacionPage = () => {
       reinspeccionDataLoadedRef.current = true;
       return;
     }
-    await loadData();
-    plazoDataLoadedRef.current = true;
-  }, [esTabReinspeccionOperativa, loadPendientesReinspeccionNotificacion, loadData]);
+    if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
+      invalidateOtherOperativeSlices(plazoSlice);
+      await loadPlazoSliceData(plazoSlice, true);
+    }
+  }, [
+    esTabReinspeccionOperativa,
+    plazoSlice,
+    loadPendientesReinspeccionNotificacion,
+    loadPlazoSliceData,
+    invalidateOtherOperativeSlices,
+  ]);
 
   const renderOperativaToolbarRefresh = useCallback(
     () => (

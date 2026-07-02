@@ -62,6 +62,8 @@ class ActuacionesPendientesFilters(BaseModel):
     calle_q: Optional[str] = None
     numero_notificacion: Optional[str] = None
     motivo_q: Optional[str] = None
+    # Solo aplica con ``source_type=notificacion`` en pendientes/expediente.
+    plazo_slice: Optional[str] = None
 
     @field_validator("omitir_rango_fecha", mode="before")
     @classmethod
@@ -94,6 +96,16 @@ class ActuacionesPendientesFilters(BaseModel):
         value = str(v).strip().lower()
         if value not in {"domicilios", "sin_expediente", "notificaciones"}:
             raise ValueError("tipo inválido.")
+        return value
+
+    @field_validator("plazo_slice")
+    @classmethod
+    def validate_plazo_slice(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        value = str(v).strip().lower()
+        if value not in {"en_plazo", "por_vencer", "total"}:
+            raise ValueError("plazo_slice inválido.")
         return value
 
     @field_validator("source_type")

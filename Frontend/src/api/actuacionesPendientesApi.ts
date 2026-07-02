@@ -203,6 +203,8 @@ export const getActuacionesPendientes = async (
   return data;
 };
 
+export type NotificacionPlazoSliceParam = "en_plazo" | "por_vencer" | "total";
+
 export type IActuacionesPendientesExpedienteOpts = {
   omitirRangoFecha?: boolean;
   mes?: number;
@@ -212,6 +214,8 @@ export type IActuacionesPendientesExpedienteOpts = {
   calleQ?: string | null;
   numeroNotificacion?: string | null;
   motivoQ?: string | null;
+  /** Solo con ``source_type=notificacion`` en pendientes/expediente operativo. */
+  plazoSlice?: NotificacionPlazoSliceParam | null;
 };
 
 export const getActuacionesPendientesExpediente = async (
@@ -237,6 +241,7 @@ export const getActuacionesPendientesExpediente = async (
   if (nn) params.numero_notificacion = nn;
   const mq = opts?.motivoQ?.trim();
   if (mq) params.motivo_q = mq;
+  if (opts?.plazoSlice) params.plazo_slice = opts.plazoSlice;
   const { data } = await apiClient.get<IActuacionesPendientesExpedienteResponse>(
     "/actuaciones/pendientes/expediente",
     { params }

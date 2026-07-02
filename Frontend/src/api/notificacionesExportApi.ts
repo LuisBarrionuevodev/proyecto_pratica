@@ -37,6 +37,10 @@ export async function fetchAllNotificacionesForExport(
     calleQ: filters.calleQ?.trim() || undefined,
     numeroNotificacion: filters.numeroNotificacion?.trim() || undefined,
     motivoQ: filters.motivoQ?.trim() || undefined,
+    plazoSlice:
+      filters.plazoSlice === "en_plazo" || filters.plazoSlice === "por_vencer"
+        ? filters.plazoSlice
+        : undefined,
   };
 
   const resp = await getActuacionesPendientesExpediente(
@@ -52,7 +56,7 @@ export async function fetchAllNotificacionesForExport(
     (r) => r.source_type === "NOTIFICACION" || Boolean(String(r.acta_notificacion_num ?? "").trim())
   );
 
-  if (filters.plazoSlice !== "total") {
+  if (filters.plazoSlice !== "total" && docOpts.plazoSlice == null) {
     items = items.filter((r) => matchesPlazoSlice(r, filters.plazoSlice));
   }
 

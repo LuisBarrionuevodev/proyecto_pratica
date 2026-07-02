@@ -86,6 +86,7 @@ def _mk_actuacion_solo_notificacion() -> tuple[Actuaciones, Notificacion]:
         fecha=date(2026, 3, 1),
         mes=3,
         anio=2026,
+        tipo="INSPECCION",
         orden_trabajo_id=ot.id,
         notificacion_id=noti.id,
     )

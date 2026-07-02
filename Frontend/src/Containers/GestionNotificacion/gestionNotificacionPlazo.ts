@@ -9,6 +9,9 @@ export const POR_VENCER_MAX = 4;
 
 export type PlazoOperativoSlice = "total" | "en_plazo" | "por_vencer" | "vencidas_o_hoy";
 
+/** Slices operativos servidos por ``pendientes/expediente`` con ``plazo_slice``. */
+export type OperativePlazoExpedienteSlice = "en_plazo" | "por_vencer";
+
 /**
  * Clasificación por `dias_restantes` del backend (derivado de `Notificacion.fecha_vencimiento`).
  * Nota: el API devuelve 0 tanto si el plazo venció como si vence hoy.
@@ -53,4 +56,22 @@ export function countByPlazoSlice(
     por_vencer: noti.filter((r) => matchesPlazoSlice(r, "por_vencer")).length,
     vencidas_o_hoy: pendienteReinspeccionCount,
   };
+}
+
+export type OperativePlazoSliceLoadState = Record<OperativePlazoExpedienteSlice, boolean>;
+
+/** Indica si hace falta pedir ``pendientes/expediente`` para un slice operativo. */
+export function operativePlazoSliceShouldFetch(
+  slice: OperativePlazoExpedienteSlice,
+  loaded: OperativePlazoSliceLoadState,
+  force = false
+): boolean {
+  return force || !loaded[slice];
+}
+
+/** Slice operativo complementario a invalidar tras mutación en el activo. */
+export function operativePlazoSlicePeerToInvalidate(
+  active: OperativePlazoExpedienteSlice
+): OperativePlazoExpedienteSlice {
+  return active === "en_plazo" ? "por_vencer" : "en_plazo";
 }

@@ -57,6 +57,11 @@ def pendientes_expediente_list():
         acts = get_pendientes_expediente(filters)
         query_ms = query_timer.elapsed_ms()
         rows_base = len(acts)
+        plazo_slice_param = (
+            (filters.plazo_slice or "").strip().lower()
+            if list_channel == "notificacion" and filters.plazo_slice
+            else None
+        )
 
         presenter_timer = PerfTimer()
         plazos_map, venc_map, prorroga_dias_map = build_notificacion_expediente_bandeja_metrics(acts)
@@ -88,6 +93,7 @@ def pendientes_expediente_list():
                 "desde": filters.desde.isoformat() if filters.desde else None,
                 "hasta": filters.hasta.isoformat() if filters.hasta else None,
                 "source_type": filters.source_type or "all",
+                "plazo_slice": plazo_slice_param,
             },
         }
         perf_endpoint_log(
@@ -99,6 +105,7 @@ def pendientes_expediente_list():
             total_ms=total_timer.elapsed_ms(),
             payload=body,
             omitir_rango_fecha=params.get("omitir_rango_fecha"),
+            plazo_slice=plazo_slice_param,
         )
         return jsonify(body), 200
     except ValidationError as e:
