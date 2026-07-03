@@ -19,6 +19,7 @@ import {
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
+import { domicilioCalleParaPayload, domicilioEsquinaParaPayload } from "../../../utils/domicilioCalleUi";
 /**
  * El canal **Cargar actuación** (PUT grilla) no admite expediente/oficio administrativos en el cuerpo;
  * el presenter los incluye en GET para lectura. Se deben omitir antes de validar y enviar.
@@ -81,6 +82,35 @@ export function sanitizeActuacionRowForCanalActasPut(row: IActuacionListItem): I
 
 /** UUID fijo válido para validar filas desde la vista de actuaciones. */
 export const ACTUACION_TABLE_UI_BATCH_ID = "00000000-0000-0000-0000-000000000001";
+
+function applyDomicilioCalleSubmitGuard(
+  row: IActuacionListItem,
+  originalRow?: IActuacionListItem | null
+): IActuacionListItem {
+  const baseline = originalRow ?? row;
+  let out: IActuacionListItem = row;
+
+  const payloadCalle = domicilioCalleParaPayload(row.calle, row, { baselineRow: baseline });
+  if (payloadCalle !== undefined) {
+    out = { ...out, calle: payloadCalle };
+  } else {
+    const copy: Record<string, unknown> = { ...out };
+    delete copy.calle;
+    out = copy as IActuacionListItem;
+  }
+
+  const payloadEsquina = domicilioEsquinaParaPayload(row.numero, row, { baselineRow: baseline });
+  if (payloadEsquina !== undefined) {
+    out = { ...out, numero: payloadEsquina, numero_tipo: "ESQUINA" };
+  } else if ((row.numero_tipo ?? "").toUpperCase() === "ESQUINA") {
+    const copy: Record<string, unknown> = { ...out };
+    delete copy.numero;
+    delete copy.numero_tipo;
+    out = copy as IActuacionListItem;
+  }
+
+  return out;
+}
 
 /** Mapeo de errores (backend / grilla Glide → snake_case del modal de edición). */
 export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
@@ -247,6 +277,8 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
 
   rowToSubmit = applyContraproducenciaClearFlag(originalRow, rowToSubmit);
   const correccionCierre = Boolean(rowToSubmit.limpiar_contraproducencia);
+
+  rowToSubmit = applyDomicilioCalleSubmitGuard(rowToSubmit, originalRow);
 
   if (originalRow) {
     const blockedMsg = detectBlockedActaClearAttempt(rowToSubmit, originalRow);

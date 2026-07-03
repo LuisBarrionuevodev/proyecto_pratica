@@ -24,7 +24,18 @@ export interface ICompletarTrabajoPendienteRow {
   nombre_local?: string | null;
   contraproducencia: string | null;
   calle: string | null;
-  numero: string | null;
+  calle_raw?: string | null;
+  calle_cargada?: string | null;
+    calle_normalizada?: string | null;
+    calle_estado?: string | null;
+    calle_mostrar?: string | null;
+    numero_esquina?: string | null;
+    esquina_raw?: string | null;
+    esquina_normalizada?: string | null;
+    esquina_cargada?: string | null;
+    esquina_key?: string | null;
+    esquina_status?: string | null;
+    numero: string | null;
   /** FK domicilio de la actuación; para edición/nomenclatura futura sin alta “desde cero”. */
   domicilio_id?: number | null;
   domicilio_texto: string | null;

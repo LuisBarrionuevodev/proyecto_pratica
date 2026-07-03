@@ -50,6 +50,7 @@ import {
   completarTrabajoShowDomicilioEnDetalle,
 } from "../utils/completarTrabajoModalDisplay";
 import { prefillOperativoReinspeccionNotificacion } from "../utils/completarTrabajoReinspeccionNotificacionPrefill";
+import { domicilioCalleCargadaEditable, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
 import { showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
 import {
   OFICIO_CUMPLE_OPTS,
@@ -386,7 +387,7 @@ export function CompletarTrabajoModal({
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
       const pre = prefillOperativoReinspeccionNotificacion(resolvedRow);
-      setCalle(pre.calle);
+      setCalle(domicilioCalleCargadaEditable(pre));
       setNumero(pre.numero);
       setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
       setRubroNombre(pre.rubroNombre);
@@ -411,8 +412,8 @@ export function CompletarTrabajoModal({
     setResultadoCumplimientoOficio("");
     setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
     setContraproducencia(resolvedRow.contraproducencia ?? "");
-    setCalle(resolvedRow.calle ?? "");
-    setNumero(resolvedRow.numero ?? "");
+    setCalle(domicilioCalleCargadaEditable(resolvedRow));
+    setNumero(domicilioNumeroEditable(resolvedRow));
     setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
     setRubroNombre(resolvedRow.rubro_nombre ?? "");
     setDocNro(resolvedRow.doc_nro ?? "");

@@ -44,6 +44,11 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
+from app.domains.domicilios.utils.domicilio_calle_ui import (
+    calle_cargada_desde_domicilio,
+    esquina_cargada_desde_domicilio,
+    esquina_key_desde_domicilio,
+)
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
@@ -717,12 +722,16 @@ def actuacion_to_grid_row(
     calle: Optional[str] = None
     numero: Optional[str] = None
     calle_normalizada: Optional[str] = None
+    calle_raw: Optional[str] = None
+    calle_cargada: Optional[str] = None
     calle_estado: Optional[str] = None
     calle_score: Optional[float] = None
     calle_catalogo_id: Optional[int] = None
     numero_tipo: Optional[str] = None
     esquina_raw: Optional[str] = None
     esquina_normalizada: Optional[str] = None
+    esquina_cargada: Optional[str] = None
+    esquina_key: Optional[str] = None
     esquina_catalogo_id: Optional[int] = None
     esquina_status: Optional[str] = None
     esquina_score: Optional[float] = None
@@ -738,6 +747,8 @@ def actuacion_to_grid_row(
         domicilio_id = getattr(dom, "id", None)
         calle = getattr(dom, "calle", None)
         numero = getattr(dom, "numero", None)
+        calle_raw = getattr(dom, "calle_raw", None)
+        calle_cargada = calle_cargada_desde_domicilio(dom)
         calle_normalizada = getattr(dom, "calle_normalizada", None)
         calle_estado = getattr(dom, "calle_norm_status", None)
         calle_score = getattr(dom, "calle_norm_score", None)
@@ -745,6 +756,8 @@ def actuacion_to_grid_row(
         numero_tipo = getattr(dom, "numero_tipo", None)
         esquina_raw = getattr(dom, "esquina_raw", None)
         esquina_normalizada = getattr(dom, "esquina_normalizada", None)
+        esquina_cargada = esquina_cargada_desde_domicilio(dom)
+        esquina_key = esquina_key_desde_domicilio(dom)
         esquina_catalogo_id = getattr(dom, "esquina_catalogo_id", None)
         esquina_status = getattr(dom, "esquina_norm_status", None)
         esquina_score = getattr(dom, "esquina_norm_score", None)
@@ -889,12 +902,17 @@ def actuacion_to_grid_row(
         "inspectores": inspectores_lista,
         "inspectores_texto": inspectores_texto,
 
-        "calle": calle,
+        "calle": calle_cargada or calle,
+        "calle_raw": calle_raw,
+        "calle_cargada": calle_cargada,
         "numero": numero,
         "numero_tipo": numero_tipo,
         "numero_mostrar": numero_mostrar,
+        "numero_esquina": esquina_cargada if numero_tipo == "ESQUINA" else None,
         "esquina_raw": esquina_raw,
         "esquina_normalizada": esquina_normalizada,
+        "esquina_cargada": esquina_cargada,
+        "esquina_key": esquina_key,
         "esquina_catalogo_id": esquina_catalogo_id,
         "esquina_status": esquina_status,
         "esquina_score": esquina_score,
@@ -1133,6 +1151,7 @@ def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
     numero: Optional[str] = None
     numero_tipo: Optional[str] = None
     calle_normalizada: Optional[str] = None
+    calle_cargada: Optional[str] = None
     calle_catalogo_id: Optional[int] = None
     esquina_normalizada: Optional[str] = None
     esquina_catalogo_id: Optional[int] = None
@@ -1144,6 +1163,7 @@ def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
         calle = getattr(dom, "calle", None)
         numero = getattr(dom, "numero", None)
         numero_tipo = getattr(dom, "numero_tipo", None)
+        calle_cargada = calle_cargada_desde_domicilio(dom)
         calle_normalizada = getattr(dom, "calle_normalizada", None)
         calle_catalogo_id = getattr(dom, "calle_catalogo_id", None)
         esquina_normalizada = getattr(dom, "esquina_normalizada", None)
@@ -1160,8 +1180,10 @@ def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
         "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
         "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),
         "rubro_nombre": rubro_nombre,
-        "calle_ingresada": calle,
-        "calle": calle,
+        "calle_ingresada": calle_cargada or calle,
+        "calle": calle_cargada or calle,
+        "calle_raw": getattr(dom, "calle_raw", None) if dom else None,
+        "calle_cargada": calle_cargada,
         "calle_normalizada": calle_normalizada,
         "calle_catalogo_id": calle_catalogo_id,
         "numero": numero,

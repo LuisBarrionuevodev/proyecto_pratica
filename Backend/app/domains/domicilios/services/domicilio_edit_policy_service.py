@@ -231,11 +231,13 @@ def resolver_policy_edicion_domicilio(
                 domicilio_id_objetivo=int(otro.id),
             )
 
-    # Corrección operativa por defecto: misma fila.
+    # Corrección operativa por defecto: misma fila (sin invalidar geocode en canales documentales).
+    ctx = (contexto or "").strip().upper()
+    requiere_geo = False if ctx in ("ACTUACION", "COMPLETAR_TRABAJO") else afecta_geo
     return EditDomicilioPolicy(
         modo="EDITAR_MISMA_FILA",
         motivo="correccion_operativa_misma_fila",
         propagar_a_iniciadores=False,
-        requiere_geocode_refresh=afecta_geo,
+        requiere_geocode_refresh=requiere_geo,
         domicilio_id_objetivo=int(domicilio_id),
     )

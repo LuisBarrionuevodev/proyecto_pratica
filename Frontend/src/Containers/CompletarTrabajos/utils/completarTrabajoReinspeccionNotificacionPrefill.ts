@@ -1,4 +1,5 @@
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
+import { domicilioCalleCargadaEditable, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
 
 export type CompletarTrabajoOperativoPrefill = {
   calle: string;
@@ -27,8 +28,8 @@ export function prefillOperativoReinspeccionNotificacion(
   row: ICompletarTrabajoPendienteRow
 ): CompletarTrabajoOperativoPrefill {
   return {
-    calle: row.calle ?? "",
-    numero: row.numero ?? "",
+    calle: domicilioCalleCargadaEditable(row),
+    numero: domicilioNumeroEditable(row),
     rubroNombre: row.rubro_nombre ?? "",
     docNro: row.doc_nro ?? "",
     contribApellido: row.contrib_apellido ?? "",

@@ -2,6 +2,7 @@ import type {
   ICompletarTrabajoCierreBody,
   ICompletarTrabajoPendienteRow,
 } from "../../../api/completarTrabajoApi";
+import { domicilioCalleCargadaEditable, domicilioCalleParaPayload, domicilioEsquinaParaPayload, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
 import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
 
 export type CompletarTrabajoFormFields = {
@@ -48,6 +49,8 @@ export type BuildCierreBodyOptions = {
    * Lista vacía = sin inspectores en el cierre. Si se omite la opción, el backend sigue usando el grupo.
    */
   inspectoresExplicitos?: string[];
+  /** Fila origen para omitir calle del body cuando no hubo edición o sería calle_key. */
+  domicilioRow?: ICompletarTrabajoPendienteRow;
 };
 
 /**
@@ -67,9 +70,21 @@ export function buildCompletarTrabajoCierreBody(
   if (includeTipo && s(f.tipo_actuacion)) body.tipo_actuacion = s(f.tipo_actuacion);
   if (contra) body.contraproducencia = contra;
   if (s(f.rubro_nombre)) body.rubro_nombre = s(f.rubro_nombre);
-  if (s(f.calle)) body.calle = s(f.calle);
-  if (s(f.numero)) body.numero = s(f.numero);
-  if (s(f.numero_tipo)) body.numero_tipo = s(f.numero_tipo);
+  const callePayload = options?.domicilioRow
+    ? domicilioCalleParaPayload(f.calle, options.domicilioRow)
+    : s(f.calle);
+  if (callePayload) body.calle = callePayload;
+  const numeroTipo = (f.numero_tipo || options?.domicilioRow?.numero_tipo || "").toUpperCase();
+  if (options?.domicilioRow && numeroTipo === "ESQUINA") {
+    const esquinaPayload = domicilioEsquinaParaPayload(f.numero, options.domicilioRow);
+    if (esquinaPayload) {
+      body.numero = esquinaPayload;
+      body.numero_tipo = "ESQUINA";
+    }
+  } else {
+    if (s(f.numero)) body.numero = s(f.numero);
+    if (s(f.numero_tipo)) body.numero_tipo = s(f.numero_tipo);
+  }
   if (s(f.doc_nro)) body.doc_nro = s(f.doc_nro);
   if (s(f.contrib_apellido)) body.contrib_apellido = s(f.contrib_apellido);
   if (s(f.contrib_nombre)) body.contrib_nombre = s(f.contrib_nombre);
@@ -156,8 +171,8 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     tipo_actuacion: row.tipo_actuacion ?? "",
     contraproducencia: row.contraproducencia ?? "",
     rubro_nombre: row.rubro_nombre ?? "",
-    calle: row.calle ?? "",
-    numero: row.numero ?? "",
+    calle: domicilioCalleCargadaEditable(row),
+    numero: domicilioNumeroEditable(row),
     numero_tipo: row.numero_tipo ?? "",
     doc_nro: row.doc_nro ?? "",
     contrib_apellido: row.contrib_apellido ?? "",
@@ -196,5 +211,5 @@ export function buildCompletarTrabajoCierreBodyFromInline(
   if (options?.omitPrecargadoPr2 === true) {
     applyOmitPrecargadoPr2(fields);
   }
-  return buildCompletarTrabajoCierreBody(fields, options);
+  return buildCompletarTrabajoCierreBody(fields, { ...options, domicilioRow: merged });
 }

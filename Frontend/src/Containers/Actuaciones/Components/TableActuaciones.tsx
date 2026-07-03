@@ -26,6 +26,7 @@ import { TablaExportButtons } from "./TableButtons";
 import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
+import { domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { ActuacionDetalleDialog } from "./ActuacionDetalleDialog";
 
 import {
@@ -428,7 +429,7 @@ const TablaActuaciones = ({
               "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
             }}
             onClick={() => {
-              setEditDraft({ ...row.original });
+              setEditDraft(domicilioRowParaEdicionCalle({ ...row.original }));
               setEditOriginalRow({ ...row.original });
             }}
           >

@@ -24,6 +24,7 @@ import {
 } from "../../../utils/motivosNotificacionSlots";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
+import { domicilioCalleCargadaEditable, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
 import { useAppFeedback } from "../../../components/feedback";
 import {
   CrudDialogActions,
@@ -1153,7 +1154,7 @@ export function ActuacionDetalleDialog({
             <AppTextField
               appearance="glass"
               label="Calle"
-              value={draft.calle ?? ""}
+              value={domicilioCalleCargadaEditable(draft)}
               onChange={(ev) => onDraftChange({ calle: ev.target.value.trim() ? ev.target.value.trim() : null })}
               disabled={ro("calle") || !canDom}
               error={!!e("calle")}
@@ -1162,7 +1163,11 @@ export function ActuacionDetalleDialog({
               fullWidth
             />
             <NumeroEsquinaFreeEditor
-              value={draft.numero ?? null}
+              value={
+                draft.numero_tipo === "ESQUINA"
+                  ? domicilioNumeroEditable(draft) || null
+                  : draft.numero ?? null
+              }
               onChange={(newValue) => onDraftChange({ numero: newValue })}
               onModeChange={(editorMode) => onDraftChange({ numero_tipo: editorMode })}
               label={numeroEditorLabel}

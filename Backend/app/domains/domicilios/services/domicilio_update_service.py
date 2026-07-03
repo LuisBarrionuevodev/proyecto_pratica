@@ -1,5 +1,5 @@
 """
-Aplicación unificada de edición de domicilio operativo (STAB-7).
+Aplicaci?n unificada de edici?n de domicilio operativo (STAB-7).
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from app.domains.domicilios.services.domicilio_edit_policy_service import (
 
 @dataclass(frozen=True)
 class AplicarDomicilioOutcome:
-    """Resultado de aplicar edición de domicilio."""
+    """Resultado de aplicar edici?n de domicilio."""
 
     domicilio: Domicilio | None
     policy: EditDomicilioPolicy
@@ -59,7 +59,9 @@ def _editar_misma_fila(
     calle = cambios.get("calle")
     numero = cambios.get("numero")
     if calle is not None:
-        dom.calle = str(calle).strip()
+        calle_txt = str(calle).strip()
+        dom.calle = calle_txt
+        dom.calle_raw = calle_txt
     if numero is not None:
         dom.numero = str(numero).strip()
     raw_nt = cambios.get("numero_tipo")
@@ -82,20 +84,20 @@ def aplicar_edicion_domicilio_operativo(
     usar_basico: bool = False,
 ) -> AplicarDomicilioOutcome:
     """
-    Resuelve policy y aplica edición de domicilio sin commit.
+    Resuelve policy y aplica edici?n de domicilio sin commit.
 
-    Parámetros:
+    Par?metros:
         domicilio_id_actual: FK actual del origen.
         cambios: calle, numero, numero_tipo, etc.
-        contribuyente/rubro: catálogos (actuación).
+        contribuyente/rubro: cat?logos (actuaci?n).
         contexto: ACTUACION, RELEVAMIENTO, DENUNCIA, COMPLETAR_TRABAJO.
         origen_id: id del origen para policy.
-        modo_explicito: intención del usuario (NUEVO / REASIGNAR).
-        allow_missing_catalogs: permite domicilio sin rubro/contrib (actuación).
+        modo_explicito: intenci?n del usuario (NUEVO / REASIGNAR).
+        allow_missing_catalogs: permite domicilio sin rubro/contrib (actuaci?n).
         usar_basico: relevamiento/denuncia (sin rubro en fila domicilio).
 
     Retorno:
-        ``AplicarDomicilioOutcome`` con domicilio resultante y si cambió el id.
+        ``AplicarDomicilioOutcome`` con domicilio resultante y si cambi? el id.
 
     Errores:
         ValueError: policy BLOQUEAR o datos insuficientes.
@@ -183,7 +185,7 @@ def aplicar_edicion_domicilio_operativo(
                 domicilio_id_cambio=int(dom.id) != int(id_anterior or 0),
             )
 
-    # CREAR_NUEVO — comportamiento histórico get-or-create.
+    # CREAR_NUEVO: comportamiento historico get-or-create.
     if usar_basico:
         dom = get_or_create_domicilio_basico(str(calle).strip(), str(numero).strip())
         _actualizar_rubro_contrib(

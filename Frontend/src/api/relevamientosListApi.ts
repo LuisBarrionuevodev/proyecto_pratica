@@ -5,6 +5,8 @@ export interface IRelevamientoListItem {
   fecha: string | null;
   inspector: string | null;
   calle: string | null;
+  calle_raw?: string | null;
+  calle_cargada?: string | null;
   numero: string | null;
   numero_esquina?: string | null;
   numero_tipo?: string | null;

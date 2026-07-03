@@ -140,8 +140,8 @@ def test_f33_visita_realizada_cambio_domicilio_orm_y_geo(app_ctx) -> None:
             payload=payload,
             ejecutado_por_user_id=u.id,
         )
-        geo.assert_called_once()
-        new_dom_id = geo.call_args[0][0]
+        geo.assert_not_called()
+        new_dom_id = dom_old.id
 
     assert new_dom_id == dom_old.id
     db.session.expunge_all()
@@ -181,8 +181,8 @@ def test_f33_direccion_incorrecta_cambio_domicilio_y_geo(app_ctx) -> None:
             payload=payload,
             ejecutado_por_user_id=u.id,
         )
-        geo.assert_called_once()
-        new_dom_id = geo.call_args[0][0]
+        geo.assert_not_called()
+        new_dom_id = dom_old.id
 
     assert new_dom_id == dom_old.id
     db.session.expunge_all()
@@ -225,8 +225,8 @@ def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx)
             payload=payload,
             ejecutado_por_user_id=u.id,
         )
-        geo.assert_called_once()
-        new_dom_id = geo.call_args[0][0]
+        geo.assert_not_called()
+        new_dom_id = dom_old.id
 
     assert new_dom_id == dom_old.id
     db.session.expunge_all()

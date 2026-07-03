@@ -18,6 +18,8 @@ export interface IActuacionListItem {
     /** Nombres concatenados (presenter); útil para tabla/exportación. */
     inspectores_texto?: string | null;
     calle: string | null;
+    calle_raw?: string | null;
+    calle_cargada?: string | null;
     numero: string | null;
     numero_esquina?: string | null;
     numero_tipo?: string | null;
@@ -56,7 +58,10 @@ export interface IActuacionListItem {
     comprobacion_previa_num: string | null;
     domicilio_id?: number | null;
     calle_normalizada?: string | null;
+    esquina_raw?: string | null;
     esquina_normalizada?: string | null;
+    esquina_cargada?: string | null;
+    esquina_key?: string | null;
     esquina_catalogo_id?: number | null;
     esquina_status?: string | null;
     esquina_score?: number | null;

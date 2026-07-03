@@ -238,6 +238,10 @@ def _apply_domicilio_rubro(
         return False
 
     from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
+    from app.domains.domicilios.utils.preservar_geocode_domicilio import (
+        preservar_geocode_existente_al_editar_domicilio,
+        snapshot_domicilio_geocode,
+    )
     from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
     from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
         normalizar_domicilio_en_sesion,
@@ -275,8 +279,12 @@ def _apply_domicilio_rubro(
     # Visita no realizada: no exigir contribuyente/rubro aunque `act.tipo` ya venga seteado (p. ej. al publicar ruta).
     allow_missing_catalogs = bucket != ContrapBucket.NONE
     modo_domicilio = getattr(payload, "modo_domicilio", None)
+    domicilio_id_ref = act.domicilio_id or (ini.domicilio_id if ini else None)
+    geo_snapshot = (
+        snapshot_domicilio_geocode(int(domicilio_id_ref)) if domicilio_id_ref is not None else None
+    )
     outcome = aplicar_edicion_domicilio_operativo(
-        domicilio_id_actual=act.domicilio_id or (ini.domicilio_id if ini else None),
+        domicilio_id_actual=domicilio_id_ref,
         cambios=dom_payload,
         contribuyente=contrib,
         rubro=rubro,
@@ -290,6 +298,12 @@ def _apply_domicilio_rubro(
     act.domicilio = dom
     if dom:
         normalizar_domicilio_en_sesion(dom, override_numero_tipo=dom_payload.get("numero_tipo"))
+        if (
+            outcome.policy.modo == "EDITAR_MISMA_FILA"
+            and not outcome.domicilio_id_cambio
+            and geo_snapshot is not None
+        ):
+            preservar_geocode_existente_al_editar_domicilio(int(dom.id), geo_snapshot)
     return dom is not None
 
 
@@ -537,9 +551,8 @@ def cerrar_completar_trabajo_por_ruta_item(
         raise RuntimeError("No se pudo recargar el ítem tras el cierre.")
     try:
         dom_id = fresh.actuacion.domicilio_id if fresh.actuacion else None
-        if dom_id and (
-            domicilio_mutado or dom_id != domicilio_id_inicial
-        ):
+        # Edición textual sobre el mismo domicilio no invalida geocode (canal documental).
+        if dom_id and dom_id != domicilio_id_inicial:
             on_domicilio_changed(dom_id)
     except Exception:
         pass
