@@ -70,13 +70,13 @@ describe("STAB-10 planificación performance", () => {
     expect(readFileSync(cards, "utf8")).toContain("onCardChange");
   });
 
-  it("domicilios carga por pestaña activa", () => {
+  it("domicilios carga por slice activo", () => {
     const path = resolve(
       process.cwd(),
       "src/Containers/GestionarDomicilios/hooks/useDomiciliosPendientes.ts"
     );
     const src = readFileSync(path, "utf8");
-    expect(src).toContain("activeTab: DomiciliosTab");
+    expect(src).toContain("activeSlice: DomiciliosSlice");
     expect(src).not.toContain("Promise.all");
   });
 });

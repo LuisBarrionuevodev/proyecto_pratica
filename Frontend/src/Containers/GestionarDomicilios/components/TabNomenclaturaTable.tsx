@@ -10,6 +10,7 @@ import {
   mapClientNomenclaturaError,
 } from "../utils/nomenclaturaFormErrors";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
+import { buildDomicilioClasificacionColumns } from "./domicilioGestionSharedColumns";
 import type {
   DomicilioNomenclaturaEditCache,
   DomicilioPendienteItem,
@@ -209,6 +210,7 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
 
   const columns = useMemo<MRT_ColumnDef<DomicilioPendienteItem>[]>(
     () => [
+      ...buildDomicilioClasificacionColumns(),
       {
         id: "calle_modo",
         header: "Calle · modo",

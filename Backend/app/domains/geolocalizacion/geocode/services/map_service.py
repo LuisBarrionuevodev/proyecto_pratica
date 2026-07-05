@@ -27,7 +27,11 @@ from app.domains.geolocalizacion.geocoding.services.reverse_geocode_service impo
 from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency import (
     log_barrio_distrito_consistency,
 )
-from app.domains.geolocalizacion.geocode.services.distritos_service import resolve_distrito_id
+from app.domains.geolocalizacion.geocode.services.domicilio_clasificacion_service import (
+    SLICE_ALL,
+    clasificacion_coincide_slice,
+    clasificar_domicilio,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -490,6 +494,7 @@ def list_pendientes(
     hasta: Optional[str] = None,
     scope: Optional[str] = None,
     kind: Optional[str] = None,
+    slice: Optional[str] = None,
 ) -> List[Dict[str, object]]:
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
@@ -582,7 +587,7 @@ def list_pendientes(
         q = q.filter(norm_pending)
     elif kind == "map":
         q = q.filter(map_pending)
-    else:
+    elif slice is None:
         q = q.filter(or_(norm_pending, map_pending))
 
     if scope in {"actuaciones", "relevamientos"}:
@@ -608,33 +613,47 @@ def list_pendientes(
         last_rel_id,
         rel_count,
     ) in q.all():
-        results.append(
-            {
-                "domicilio_id": dom.id,
-                "calle_raw": dom.calle,
-                "calle_normalizada": dom.calle_normalizada,
-                "calle_catalogo_id": dom.calle_catalogo_id,
-                "numero_raw": dom.numero,
-                "numero": dom.numero,
-                "numero_tipo": dom.numero_tipo,
-                "esquina_catalogo_id": dom.esquina_catalogo_id,
-                "esquina_normalizada": dom.esquina_normalizada,
-                "esquina_raw": dom.esquina_raw,
-                "calle_status": dom.calle_norm_status,
-                "esquina_status": dom.esquina_norm_status,
-                "geo_status": geo_status,
-                "score": float(score) if score is not None else None,
-                "quality": quality,
-                "provider": provider,
-                "source": source,
-                "addr_hash": addr_hash,
-                "error_msg": error_msg,
-                "lat": float(lat) if lat is not None else None,
-                "lng": float(lng) if lng is not None else None,
-                "last_actuacion_id": last_act_id,
-                "actuaciones_count": act_count or 0,
-                "last_relevamiento_id": last_rel_id,
-                "relevamientos_count": rel_count or 0,
-            }
-        )
+        item = {
+            "domicilio_id": dom.id,
+            "calle_raw": dom.calle,
+            "calle_normalizada": dom.calle_normalizada,
+            "calle_catalogo_id": dom.calle_catalogo_id,
+            "numero_raw": dom.numero,
+            "numero": dom.numero,
+            "numero_tipo": dom.numero_tipo,
+            "esquina_catalogo_id": dom.esquina_catalogo_id,
+            "esquina_normalizada": dom.esquina_normalizada,
+            "esquina_raw": dom.esquina_raw,
+            "calle_status": dom.calle_norm_status,
+            "esquina_status": dom.esquina_norm_status,
+            "geo_status": geo_status,
+            "score": float(score) if score is not None else None,
+            "quality": quality,
+            "provider": provider,
+            "source": source,
+            "addr_hash": addr_hash,
+            "error_msg": error_msg,
+            "lat": float(lat) if lat is not None else None,
+            "lng": float(lng) if lng is not None else None,
+            "last_actuacion_id": last_act_id,
+            "actuaciones_count": act_count or 0,
+            "last_relevamiento_id": last_rel_id,
+            "relevamientos_count": rel_count or 0,
+        }
+        if slice is not None:
+            geo_row = None
+            if geo_status is not None or source is not None or lat is not None or lng is not None:
+                geo_row = DomicilioGeocode(
+                    domicilio_id=dom.id,
+                    geo_status=geo_status or "PENDING",
+                    source=source,
+                    score=float(score) if score is not None else None,
+                    lat=lat,
+                    lng=lng,
+                )
+            clasificacion = clasificar_domicilio(dom, geo=geo_row)
+            item.update(clasificacion)
+            if not clasificacion_coincide_slice(clasificacion, slice):
+                continue
+        results.append(item)
     return results

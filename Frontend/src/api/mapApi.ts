@@ -49,6 +49,13 @@ export interface PendingItem {
   actuaciones_count?: number;
   last_relevamiento_id?: number | null;
   relevamientos_count?: number;
+  /** Clasificación compuesta PR2 (solo con ``slice=`` en backend). */
+  nomenclatura_estado?: string | null;
+  geocode_estado?: string | null;
+  estado_compuesto?: string | null;
+  score_unificado?: number | null;
+  slice?: string | null;
+  motivos?: string[] | null;
 }
 
 export const getMapPoints = async (params?: Record<string, any>) => {

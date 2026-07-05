@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMapPendientes } from "../../../api/mapApi";
-import type { DomicilioPendienteItem, DomiciliosFilters, DomiciliosTab } from "../types";
+import type { DomicilioPendienteItem, DomiciliosFilters, DomiciliosSlice } from "../types";
 
 export type UseDomiciliosPendientesOptions = {
   /**
@@ -9,9 +9,7 @@ export type UseDomiciliosPendientesOptions = {
   enabled?: boolean;
 };
 
-type TabKind = "norm" | "map";
-
-type TabCacheSlot = {
+type SliceCacheSlot = {
   key: string;
   items: DomicilioPendienteItem[];
 };
@@ -24,26 +22,24 @@ function filtersToCacheKey(filters: DomiciliosFilters): string {
   });
 }
 
-function tabToKind(activeTab: DomiciliosTab): TabKind {
-  return activeTab === "nomenclatura" ? "norm" : "map";
-}
-
 /**
- * Carga pendientes de domicilio por pestaña activa (STAB-10) con cache por pestaña+filtros (STAB-10b).
+ * Carga domicilios por slice PR2 con cache por pestaña+filtros.
  */
 export const useDomiciliosPendientes = (
   filters: DomiciliosFilters,
-  activeTab: DomiciliosTab,
+  activeSlice: DomiciliosSlice,
   options?: UseDomiciliosPendientesOptions
 ) => {
   const enabled = options?.enabled ?? true;
 
-  const [nomenclaturaItems, setNomenclaturaItems] = useState<DomicilioPendienteItem[]>([]);
-  const [geolocalizacionItems, setGeolocalizacionItems] = useState<DomicilioPendienteItem[]>([]);
+  const [itemsBySlice, setItemsBySlice] = useState<
+    Partial<Record<DomiciliosSlice, DomicilioPendienteItem[]>>
+  >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const tabCacheRef = useRef<Partial<Record<TabKind, TabCacheSlot>>>({});
+  const itemsBySliceRef = useRef<Partial<Record<DomiciliosSlice, SliceCacheSlot>>>({});
+  const loadedSlicesRef = useRef<Set<string>>(new Set());
 
   const filtersCacheKey = useMemo(() => filtersToCacheKey(filters), [filters]);
 
@@ -57,60 +53,56 @@ export const useDomiciliosPendientes = (
   );
 
   const invalidateCache = useCallback(() => {
-    tabCacheRef.current = {};
+    itemsBySliceRef.current = {};
+    loadedSlicesRef.current = new Set();
+    setItemsBySlice({});
   }, []);
 
-  const applyItems = useCallback((kind: TabKind, items: DomicilioPendienteItem[]) => {
-    if (kind === "norm") {
-      setNomenclaturaItems(items);
-    } else {
-      setGeolocalizacionItems(items);
-    }
-  }, []);
+  const ensureSliceLoaded = useCallback(
+    async (slice: DomiciliosSlice, force = false) => {
+      const cacheToken = `${slice}:${filtersCacheKey}`;
+      const cached = itemsBySliceRef.current[slice];
+      if (!force && cached?.key === filtersCacheKey) {
+        setItemsBySlice((prev) => ({ ...prev, [slice]: cached.items }));
+        loadedSlicesRef.current.add(cacheToken);
+        return cached.items;
+      }
 
-  const fetchKind = useCallback(
-    async (kind: TabKind, cacheKey: string) => {
-      const items = await getMapPendientes({ ...baseParams(), kind });
-      tabCacheRef.current[kind] = { key: cacheKey, items };
-      applyItems(kind, items);
+      const items = await getMapPendientes({ ...baseParams(), slice });
+      itemsBySliceRef.current[slice] = { key: filtersCacheKey, items };
+      loadedSlicesRef.current.add(cacheToken);
+      setItemsBySlice((prev) => ({ ...prev, [slice]: items }));
+      return items;
     },
-    [applyItems, baseParams]
+    [baseParams, filtersCacheKey]
   );
 
-  const refetch = useCallback(async () => {
-    invalidateCache();
+  const refreshActiveSlice = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const kind = tabToKind(activeTab);
-      await fetchKind(kind, filtersCacheKey);
+      await ensureSliceLoaded(activeSlice, true);
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(typeof detail === "string" ? detail : "Error al cargar domicilios pendientes");
-      if (activeTab === "nomenclatura") {
-        setNomenclaturaItems([]);
-      } else {
-        setGeolocalizacionItems([]);
-      }
+      setItemsBySlice((prev) => ({ ...prev, [activeSlice]: [] }));
+      delete itemsBySliceRef.current[activeSlice];
     } finally {
       setLoading(false);
     }
-  }, [activeTab, fetchKind, filtersCacheKey, invalidateCache]);
+  }, [activeSlice, ensureSliceLoaded]);
 
   useEffect(() => {
     if (!enabled) {
-      setNomenclaturaItems([]);
-      setGeolocalizacionItems([]);
+      invalidateCache();
       setError(null);
       setLoading(false);
-      tabCacheRef.current = {};
       return;
     }
 
-    const kind = tabToKind(activeTab);
-    const cached = tabCacheRef.current[kind];
+    const cached = itemsBySliceRef.current[activeSlice];
     if (cached?.key === filtersCacheKey) {
-      applyItems(kind, cached.items);
+      setItemsBySlice((prev) => ({ ...prev, [activeSlice]: cached.items }));
       setError(null);
       setLoading(false);
       return;
@@ -121,19 +113,13 @@ export const useDomiciliosPendientes = (
       setLoading(true);
       setError(null);
       try {
-        const items = await getMapPendientes({ ...baseParams(), kind });
+        await ensureSliceLoaded(activeSlice);
         if (cancel) return;
-        tabCacheRef.current[kind] = { key: filtersCacheKey, items };
-        applyItems(kind, items);
       } catch (err: unknown) {
         if (cancel) return;
         const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
         setError(typeof detail === "string" ? detail : "Error al cargar domicilios pendientes");
-        if (activeTab === "nomenclatura") {
-          setNomenclaturaItems([]);
-        } else {
-          setGeolocalizacionItems([]);
-        }
+        setItemsBySlice((prev) => ({ ...prev, [activeSlice]: [] }));
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -142,14 +128,44 @@ export const useDomiciliosPendientes = (
     return () => {
       cancel = true;
     };
-  }, [enabled, activeTab, filtersCacheKey, baseParams, applyItems]);
+  }, [enabled, activeSlice, filtersCacheKey, ensureSliceLoaded, invalidateCache]);
+
+  const activeItems = itemsBySlice[activeSlice] ?? itemsBySliceRef.current[activeSlice]?.items ?? [];
+
+  const getSliceCount = useCallback(
+    (slice: DomiciliosSlice): number | null => {
+      const items = itemsBySlice[slice] ?? itemsBySliceRef.current[slice]?.items;
+      if (items) return items.length;
+      const token = `${slice}:${filtersCacheKey}`;
+      return loadedSlicesRef.current.has(token) ? 0 : null;
+    },
+    [filtersCacheKey, itemsBySlice]
+  );
+
+  const isSliceLoaded = useCallback(
+    (slice: DomiciliosSlice): boolean => {
+      const cached = itemsBySliceRef.current[slice];
+      return cached?.key === filtersCacheKey;
+    },
+    [filtersCacheKey]
+  );
 
   return {
-    nomenclaturaItems,
-    geolocalizacionItems,
+    activeItems,
+    itemsBySlice,
     loading,
     error,
-    refetch,
+    refreshActiveSlice,
+    /** Alias histórico (STAB-10). */
+    refetch: refreshActiveSlice,
     invalidateCache,
+    ensureSliceLoaded,
+    getSliceCount,
+    isSliceLoaded,
+    loadedSlicesRef,
+    itemsBySliceRef,
+    /** Compat temporal: ya no hay split norm/map. */
+    nomenclaturaItems: activeSlice === "nomenclatura_pendiente" ? activeItems : itemsBySlice.nomenclatura_pendiente ?? [],
+    geolocalizacionItems: activeSlice === "geo_pendiente" ? activeItems : itemsBySlice.geo_pendiente ?? [],
   };
 };

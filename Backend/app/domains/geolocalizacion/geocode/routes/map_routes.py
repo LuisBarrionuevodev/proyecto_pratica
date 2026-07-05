@@ -321,6 +321,7 @@ def map_pendientes():
         hasta=params.get("hasta"),
         scope=params.get("scope"),
         kind=params.get("kind"),
+        slice=params.get("slice"),
     )
     return jsonify({"items": items}), 200
 

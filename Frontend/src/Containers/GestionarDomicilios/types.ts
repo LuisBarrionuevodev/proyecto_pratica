@@ -3,7 +3,18 @@ import type { CalleCatalogoItem } from "../../api/geolocalizacionApi";
 
 export type DomicilioPendienteItem = PendingItem;
 
-export type DomiciliosTab = "nomenclatura" | "geolocalizacion";
+/** Slice operativo PR2/PR3 — query ``GET /map/pendientes?slice=``. */
+export type DomiciliosSlice =
+  | "nomenclatura_pendiente"
+  | "geo_pendiente"
+  | "baja_confianza"
+  | "ok"
+  | "validado_manual"
+  | "error"
+  | "all";
+
+/** Tab activa en Gestión Domicilios (alias de slice). */
+export type DomiciliosTab = DomiciliosSlice;
 
 export interface DomiciliosFilters {
   desde: string;

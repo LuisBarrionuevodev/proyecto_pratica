@@ -24,6 +24,22 @@ def get_by_canon_base(canon_base: str) -> List[CalleCatalogo]:
     )
 
 
+def get_by_nombre_canonico(nombre_canonico: str) -> Optional[CalleCatalogo]:
+    """
+    Busca calle activa por nombre canónico (case-insensitive).
+    """
+    canon = (nombre_canonico or "").strip()
+    if not canon:
+        return None
+    return (
+        CalleCatalogo.query.filter(
+            func.upper(CalleCatalogo.nombre_canonico) == canon.upper(),
+            CalleCatalogo.activo.is_(True),
+        )
+        .first()
+    )
+
+
 def list_active_keys() -> List[Tuple[int, str, str, str]]:
     """
     Devuelve lista (id, canon_base, nombre_key, nombre_canonico) activa.

@@ -11,6 +11,7 @@ import { BandejaEllipsisCell } from "../../Actuaciones/Components/bandejaTableCe
 import { AppButton } from "../../../ui";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
 import type { DomicilioPendienteItem } from "../types";
+import { buildDomicilioClasificacionColumns } from "./domicilioGestionSharedColumns";
 
 interface TabGeolocalizacionTableProps {
   items: DomicilioPendienteItem[];
@@ -25,6 +26,7 @@ const TabGeolocalizacionTable = ({
 }: TabGeolocalizacionTableProps) => {
   const columns = useMemo<MRT_ColumnDef<DomicilioPendienteItem>[]>(
     () => [
+      ...buildDomicilioClasificacionColumns(),
       { accessorKey: "domicilio_id", header: "ID", size: 80, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
       {
         accessorKey: "direccion",
@@ -32,9 +34,9 @@ const TabGeolocalizacionTable = ({
         size: 240,
         Cell: ({ row }) => <BandejaEllipsisCell value={formatDomicilioLineaVisible(row.original) || "—"} />,
       },
-      { accessorKey: "score", header: "Score", size: 80, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
+      { accessorKey: "score", header: "Score geo", size: 80, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
       { accessorKey: "quality", header: "Quality", size: 100, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
-      { accessorKey: "geo_status", header: "Status", size: 120, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
+      { accessorKey: "geo_status", header: "Status raw", size: 120, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
     ],
     []
   );

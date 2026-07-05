@@ -31,23 +31,23 @@ describe("STAB-10b M4 mapa liviano", () => {
 });
 
 describe("STAB-10b domicilios cache", () => {
-  it("cachea por pestaña y filtros", () => {
+  it("cachea por slice y filtros", () => {
     const src = read("src/Containers/GestionarDomicilios/hooks/useDomiciliosPendientes.ts");
-    expect(src).toContain("tabCacheRef");
+    expect(src).toContain("itemsBySliceRef");
     expect(src).toContain("filtersCacheKey");
     expect(src).toContain("cached?.key === filtersCacheKey");
   });
 
-  it("refetch invalida cache antes de recargar", () => {
+  it("refetch invalida cache antes de recargar slice activo", () => {
     const src = read("src/Containers/GestionarDomicilios/hooks/useDomiciliosPendientes.ts");
     expect(src).toContain("invalidateCache");
-    const refetchBlock = src.slice(src.indexOf("const refetch"));
-    expect(refetchBlock).toContain("invalidateCache()");
+    const refetchBlock = src.slice(src.indexOf("const refreshActiveSlice"));
+    expect(refetchBlock).toContain("ensureSliceLoaded(activeSlice, true)");
   });
 
-  it("container sigue llamando refetch tras mutación", () => {
+  it("container sigue llamando refresh tras mutación", () => {
     const src = read("src/Containers/GestionarDomicilios/GestionarDomiciliosContainer.tsx");
-    expect(src).toContain("refetch");
+    expect(src).toContain("refreshActiveSlice");
   });
 });
 
