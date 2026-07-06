@@ -32,6 +32,9 @@ from app.domains.geolocalizacion.geocode.services.domicilio_clasificacion_servic
     clasificacion_coincide_slice,
     clasificar_domicilio,
 )
+from app.domains.geolocalizacion.normalizacion_calles.services.nomenclatura_match_display_service import (
+    nomenclatura_match_fields,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -655,5 +658,6 @@ def list_pendientes(
             item.update(clasificacion)
             if not clasificacion_coincide_slice(clasificacion, slice):
                 continue
+            item.update(nomenclatura_match_fields(dom))
         results.append(item)
     return results

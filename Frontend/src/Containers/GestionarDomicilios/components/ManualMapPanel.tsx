@@ -146,7 +146,7 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
         </Button>
       </Box>
 
-      <MapContainer center={defaultCenter} zoom={13} style={{ height: "52vh", width: "100%" }}>
+      <MapContainer center={defaultCenter} zoom={13} style={{ height: "min(36vh, 320px)", width: "100%" }}>
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

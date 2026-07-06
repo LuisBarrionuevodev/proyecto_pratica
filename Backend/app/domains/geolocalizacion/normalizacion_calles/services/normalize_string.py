@@ -77,6 +77,51 @@ _TYPO_REPLACEMENTS = (
     (re.compile(r"\bestero\b"), "estero"),
 )
 
+# Números en palabras (calles fechadas). Se aplican frases largas primero.
+_NUMBER_PHRASES: tuple[tuple[str, str], ...] = (
+    ("treinta y uno", "31"),
+    ("treinta y tres", "33"),
+    ("treinta y dos", "32"),
+    ("treinta y cuatro", "34"),
+    ("treinta y cinco", "35"),
+    ("treinta y seis", "36"),
+    ("treinta y siete", "37"),
+    ("treinta y ocho", "38"),
+    ("treinta y nueve", "39"),
+    ("veinticuatro", "24"),
+    ("veinticinco", "25"),
+    ("veintiseis", "26"),
+    ("veintisiete", "27"),
+    ("veintiocho", "28"),
+    ("veintinueve", "29"),
+    ("veintitres", "23"),
+    ("veintidos", "22"),
+    ("veintiuno", "21"),
+    ("catorce", "14"),
+    ("trece", "13"),
+    ("once", "11"),
+    ("doce", "12"),
+    ("diecinueve", "19"),
+    ("dieciocho", "18"),
+    ("diecisiete", "17"),
+    ("dieciseis", "16"),
+    ("diez", "10"),
+    ("nueve", "9"),
+    ("ocho", "8"),
+    ("siete", "7"),
+    ("seis", "6"),
+    ("cinco", "5"),
+    ("cuatro", "4"),
+    ("tres", "3"),
+    ("dos", "2"),
+    ("uno", "1"),
+    ("un", "1"),
+)
+
+_NUMBER_WORDS = {phrase: num for phrase, num in _NUMBER_PHRASES}
+
+_DIGIT_TOKEN_RE = re.compile(r"^\d+$")
+
 
 def _strip_accents(text: str) -> str:
     s = unicodedata.normalize("NFKD", text)
@@ -115,11 +160,32 @@ def preprocess_street_input(text: str) -> str:
     return s
 
 
-def normalize_street(text: str) -> str:
+def expand_number_words(text: str) -> str:
     """
-    Normaliza calle para matching (abreviaturas expandidas, sin tildes).
+    Convierte números escritos en palabras a dígitos (calles fechadas).
+
+    Ej.: ``nueve de julio`` → ``9 de julio``, ``veinticuatro de septiembre`` → ``24 de septiembre``.
+
+    Parámetros:
+        text: texto ya preprocesado o crudo.
+
+    Retorno:
+        Texto con números normalizados a dígitos.
     """
     s = preprocess_street_input(text)
+    if not s:
+        return ""
+    for phrase, num in sorted(_NUMBER_PHRASES, key=lambda x: len(x[0]), reverse=True):
+        pattern = re.compile(r"\b" + re.escape(phrase) + r"\b")
+        s = pattern.sub(num, s)
+    return s.strip()
+
+
+def normalize_street(text: str) -> str:
+    """
+    Normaliza calle para matching (abreviaturas expandidas, números en palabra, sin tildes).
+    """
+    s = expand_number_words(text)
     if not s:
         return ""
     tokens = s.split(" ")
@@ -142,12 +208,40 @@ def street_base(text: str) -> str:
     return " ".join(tokens).strip()
 
 
+def _is_significant_token(token: str) -> bool:
+    """Token relevante para matching: no stopword; incluye dígitos (9, 24)."""
+    if not token or token in _STOPWORDS:
+        return False
+    if _DIGIT_TOKEN_RE.match(token):
+        return True
+    return len(token) > 1
+
+
 def significant_tokens(text: str) -> list[str]:
     """
-    Tokens significativos de una calle (sin stopwords ni tokens de 1 char).
+    Tokens significativos de una calle (sin stopwords; conserva números).
+
+    Parámetros:
+        text: nombre de calle crudo o canon_base.
+
+    Retorno:
+        Lista ordenada de tokens para matching.
     """
     base = street_base(text)
     if not base:
-        base = preprocess_street_input(text)
+        base = normalize_street(text)
     tokens = base.split()
-    return [t for t in tokens if t not in _STOPWORDS and len(t) > 1]
+    return [t for t in tokens if _is_significant_token(t)]
+
+
+def matching_token_set(text: str) -> frozenset[str]:
+    """
+    Conjunto de tokens para comparación exacta/contención (PR6A).
+
+    Parámetros:
+        text: texto de calle.
+
+    Retorno:
+        ``frozenset`` de tokens significativos.
+    """
+    return frozenset(significant_tokens(text))

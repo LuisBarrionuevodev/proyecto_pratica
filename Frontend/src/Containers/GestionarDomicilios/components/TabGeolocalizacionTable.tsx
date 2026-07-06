@@ -1,43 +1,32 @@
+import { Typography } from "@mui/material";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
   useMaterialReactTable,
 } from "material-react-table";
 import { useMemo } from "react";
-import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 import { exportButtonStyles } from "../../Actuaciones/styles/actuacionesTableStyles";
-import { BandejaEllipsisCell } from "../../Actuaciones/Components/bandejaTableCells";
 import { AppButton } from "../../../ui";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
 import type { DomicilioPendienteItem } from "../types";
-import { buildDomicilioClasificacionColumns } from "./domicilioGestionSharedColumns";
+import { buildDomicilioDisplayColumns } from "./domicilioGestionSharedColumns";
 
 interface TabGeolocalizacionTableProps {
   items: DomicilioPendienteItem[];
   loading: boolean;
+  emptyMessage: string;
   onGeolocalizar: (item: DomicilioPendienteItem) => void;
 }
 
 const TabGeolocalizacionTable = ({
   items,
   loading,
+  emptyMessage,
   onGeolocalizar,
 }: TabGeolocalizacionTableProps) => {
   const columns = useMemo<MRT_ColumnDef<DomicilioPendienteItem>[]>(
-    () => [
-      ...buildDomicilioClasificacionColumns(),
-      { accessorKey: "domicilio_id", header: "ID", size: 80, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
-      {
-        accessorKey: "direccion",
-        header: "Dirección",
-        size: 240,
-        Cell: ({ row }) => <BandejaEllipsisCell value={formatDomicilioLineaVisible(row.original) || "—"} />,
-      },
-      { accessorKey: "score", header: "Score geo", size: 80, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
-      { accessorKey: "quality", header: "Quality", size: 100, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
-      { accessorKey: "geo_status", header: "Status raw", size: 120, Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "—")} /> },
-    ],
+    () => buildDomicilioDisplayColumns(),
     []
   );
 
@@ -49,8 +38,19 @@ const TabGeolocalizacionTable = ({
     enableRowSelection: false,
     state: { isLoading: loading, showProgressBars: loading },
     initialState: { density: "compact" },
+    renderEmptyRowsFallback: () => (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+        {emptyMessage}
+      </Typography>
+    ),
     enableRowActions: true,
     positionActionsColumn: "last",
+    displayColumnDefOptions: {
+      "mrt-row-actions": {
+        header: "Acciones",
+        size: 130,
+      },
+    },
     renderRowActions: ({ row }) => (
       <AppButton
         dsVariant="secondary"

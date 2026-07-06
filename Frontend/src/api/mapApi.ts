@@ -56,6 +56,9 @@ export interface PendingItem {
   score_unificado?: number | null;
   slice?: string | null;
   motivos?: string[] | null;
+  /** Estrategia de match nomenclador PR6A.1 (opcional). */
+  match_strategy?: string | null;
+  confidence_reason?: string | null;
 }
 
 export const getMapPoints = async (params?: Record<string, any>) => {

@@ -10,7 +10,7 @@ import {
   mapClientNomenclaturaError,
 } from "../utils/nomenclaturaFormErrors";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../gestionarDomiciliosMrtGlassBase";
-import { buildDomicilioClasificacionColumns } from "./domicilioGestionSharedColumns";
+import { buildDomicilioDisplayColumns } from "./domicilioGestionSharedColumns";
 import type {
   DomicilioNomenclaturaEditCache,
   DomicilioPendienteItem,
@@ -21,6 +21,7 @@ import type {
 interface TabNomenclaturaTableProps {
   items: DomicilioPendienteItem[];
   loading: boolean;
+  emptyMessage: string;
   onGuardar: (payload: GuardarNomenclaturaBody & { domicilio_id: number }) => Promise<void>;
 }
 
@@ -115,13 +116,9 @@ function buildNomenclaturaPayload(
   };
 }
 
-const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTableProps) => {
+const TabNomenclaturaTable = ({ items, loading, emptyMessage, onGuardar }: TabNomenclaturaTableProps) => {
   const feedback = useAppFeedback();
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
-  /**
-   * MRT no re-renderiza las celdas en edición cuando solo se muta `row._valuesCache`.
-   * Sin un `setState`, los ToggleButtonGroup y el resto de editores leen valores viejos.
-   */
   const [nomenclaturaEditRevision, setNomenclaturaEditRevision] = useState(0);
   const bumpNomenclaturaEditors = () => setNomenclaturaEditRevision((n) => n + 1);
 
@@ -210,7 +207,7 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
 
   const columns = useMemo<MRT_ColumnDef<DomicilioPendienteItem>[]>(
     () => [
-      ...buildDomicilioClasificacionColumns(),
+      ...buildDomicilioDisplayColumns(),
       {
         id: "calle_modo",
         header: "Calle · modo",
@@ -668,6 +665,11 @@ const TabNomenclaturaTable = ({ items, loading, onGuardar }: TabNomenclaturaTabl
     enableEditing: true,
     editDisplayMode: "row",
     initialState: { density: "compact" },
+    renderEmptyRowsFallback: () => (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+        {emptyMessage}
+      </Typography>
+    ),
     onEditingRowSave: async ({ row, values, exitEditingMode }) => {
       const domicilioId = row.original.domicilio_id;
       const cache = ((row as any)?._valuesCache || {}) as DomicilioNomenclaturaEditCache;

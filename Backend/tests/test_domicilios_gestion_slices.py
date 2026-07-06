@@ -117,5 +117,46 @@ def test_kind_norm_sin_slice_no_roto(app_ctx) -> None:
         ids = {i["domicilio_id"] for i in items}
         assert pend.id in ids
         assert "slice" not in items[0]
+        assert "match_strategy" not in items[0]
+    finally:
+        db.session.rollback()
+
+
+def test_slice_incluye_match_strategy_opcional(app_ctx, monkeypatch: pytest.MonkeyPatch) -> None:
+    """PR6A.1: con slice= se exponen match_strategy y confidence_reason si existen."""
+
+    def _fake_fields(dom: Domicilio) -> dict:
+        return {
+            "match_strategy": "exact_tokens",
+            "confidence_reason": "Coincidencia exacta por tokens",
+        }
+
+    monkeypatch.setattr(
+        "app.domains.geolocalizacion.geocode.services.map_service.nomenclatura_match_fields",
+        _fake_fields,
+    )
+    try:
+        dom = _mk_dom(calle_status="OK", geo_status="OK")
+        items = list_pendientes(slice="ok")
+        row = next(i for i in items if i["domicilio_id"] == dom.id)
+        assert row.get("match_strategy") == "exact_tokens"
+        assert row.get("confidence_reason") == "Coincidencia exacta por tokens"
+    finally:
+        db.session.rollback()
+
+
+def test_slice_sin_strategy_no_rompe(app_ctx, monkeypatch: pytest.MonkeyPatch) -> None:
+    """PR6A.1: filas sin estrategia no incluyen claves o vienen vacías."""
+
+    monkeypatch.setattr(
+        "app.domains.geolocalizacion.geocode.services.map_service.nomenclatura_match_fields",
+        lambda _dom: {},
+    )
+    try:
+        dom = _mk_dom(calle_status="OK", geo_status="OK")
+        items = list_pendientes(slice="ok")
+        row = next(i for i in items if i["domicilio_id"] == dom.id)
+        assert row.get("match_strategy") is None
+        assert row.get("confidence_reason") is None
     finally:
         db.session.rollback()

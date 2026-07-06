@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMapPendientes } from "../../../api/mapApi";
+import { mergeSliceItems, sortItemsForReview } from "../domicilioItemsMerge";
+import { SLICES_FOR_VIEW } from "../domicilioViewTabs";
+import type { DomiciliosViewTab } from "../domicilioViewTabs";
 import type { DomicilioPendienteItem, DomiciliosFilters, DomiciliosSlice } from "../types";
 
 export type UseDomiciliosPendientesOptions = {
-  /**
-   * Si es false, no se consulta la API al montar ni al cambiar filtros.
-   */
   enabled?: boolean;
 };
+
+export type DomiciliosLoadSelection =
+  | { mode: "slice"; slice: DomiciliosSlice }
+  | {
+      mode: "view";
+      view: DomiciliosViewTab;
+      filterSlice?: DomiciliosSlice | "all";
+    };
 
 type SliceCacheSlot = {
   key: string;
@@ -22,15 +30,21 @@ function filtersToCacheKey(filters: DomiciliosFilters): string {
   });
 }
 
+function slicesForSelection(selection: DomiciliosLoadSelection): readonly DomiciliosSlice[] {
+  if (selection.mode === "slice") return [selection.slice];
+  return SLICES_FOR_VIEW[selection.view];
+}
+
 /**
- * Carga domicilios por slice PR2 con cache por pestaña+filtros.
+ * Carga domicilios por slice o vista agrupada PR6B, con cache por slice+filtros.
  */
 export const useDomiciliosPendientes = (
   filters: DomiciliosFilters,
-  activeSlice: DomiciliosSlice,
+  selection: DomiciliosLoadSelection,
   options?: UseDomiciliosPendientesOptions
 ) => {
   const enabled = options?.enabled ?? true;
+  const slicesToLoad = useMemo(() => slicesForSelection(selection), [selection]);
 
   const [itemsBySlice, setItemsBySlice] = useState<
     Partial<Record<DomiciliosSlice, DomicilioPendienteItem[]>>
@@ -81,16 +95,18 @@ export const useDomiciliosPendientes = (
     setLoading(true);
     setError(null);
     try {
-      await ensureSliceLoaded(activeSlice, true);
+      await Promise.all(slicesToLoad.map((slice) => ensureSliceLoaded(slice, true)));
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(typeof detail === "string" ? detail : "Error al cargar domicilios pendientes");
-      setItemsBySlice((prev) => ({ ...prev, [activeSlice]: [] }));
-      delete itemsBySliceRef.current[activeSlice];
+      for (const slice of slicesToLoad) {
+        setItemsBySlice((prev) => ({ ...prev, [slice]: [] }));
+        delete itemsBySliceRef.current[slice];
+      }
     } finally {
       setLoading(false);
     }
-  }, [activeSlice, ensureSliceLoaded]);
+  }, [ensureSliceLoaded, slicesToLoad]);
 
   useEffect(() => {
     if (!enabled) {
@@ -100,9 +116,15 @@ export const useDomiciliosPendientes = (
       return;
     }
 
-    const cached = itemsBySliceRef.current[activeSlice];
-    if (cached?.key === filtersCacheKey) {
-      setItemsBySlice((prev) => ({ ...prev, [activeSlice]: cached.items }));
+    const allCached = slicesToLoad.every(
+      (slice) => itemsBySliceRef.current[slice]?.key === filtersCacheKey
+    );
+    if (allCached) {
+      const next: Partial<Record<DomiciliosSlice, DomicilioPendienteItem[]>> = {};
+      for (const slice of slicesToLoad) {
+        next[slice] = itemsBySliceRef.current[slice]?.items ?? [];
+      }
+      setItemsBySlice((prev) => ({ ...prev, ...next }));
       setError(null);
       setLoading(false);
       return;
@@ -113,13 +135,12 @@ export const useDomiciliosPendientes = (
       setLoading(true);
       setError(null);
       try {
-        await ensureSliceLoaded(activeSlice);
+        await Promise.all(slicesToLoad.map((slice) => ensureSliceLoaded(slice)));
         if (cancel) return;
       } catch (err: unknown) {
         if (cancel) return;
         const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
         setError(typeof detail === "string" ? detail : "Error al cargar domicilios pendientes");
-        setItemsBySlice((prev) => ({ ...prev, [activeSlice]: [] }));
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -128,9 +149,18 @@ export const useDomiciliosPendientes = (
     return () => {
       cancel = true;
     };
-  }, [enabled, activeSlice, filtersCacheKey, ensureSliceLoaded, invalidateCache]);
+  }, [enabled, slicesToLoad, filtersCacheKey, ensureSliceLoaded, invalidateCache]);
 
-  const activeItems = itemsBySlice[activeSlice] ?? itemsBySliceRef.current[activeSlice]?.items ?? [];
+  const filterSlice =
+    selection.mode === "view" ? (selection.filterSlice ?? "all") : selection.slice;
+
+  const activeItems = useMemo(() => {
+    const merged = mergeSliceItems(slicesToLoad, itemsBySlice, filterSlice);
+    if (selection.mode === "view" && selection.view === "para_revisar") {
+      return sortItemsForReview(merged);
+    }
+    return merged;
+  }, [filterSlice, itemsBySlice, selection, slicesToLoad]);
 
   const getSliceCount = useCallback(
     (slice: DomiciliosSlice): number | null => {
@@ -142,6 +172,24 @@ export const useDomiciliosPendientes = (
     [filtersCacheKey, itemsBySlice]
   );
 
+  const getViewCount = useCallback(
+    (view: DomiciliosViewTab): number | null => {
+      const slices = SLICES_FOR_VIEW[view];
+      let total = 0;
+      let anyUnknown = false;
+      for (const slice of slices) {
+        const count = getSliceCount(slice);
+        if (count == null) {
+          anyUnknown = true;
+          continue;
+        }
+        total += count;
+      }
+      return anyUnknown ? null : total;
+    },
+    [getSliceCount]
+  );
+
   const isSliceLoaded = useCallback(
     (slice: DomiciliosSlice): boolean => {
       const cached = itemsBySliceRef.current[slice];
@@ -150,22 +198,33 @@ export const useDomiciliosPendientes = (
     [filtersCacheKey]
   );
 
+  const activeSlice =
+    selection.mode === "slice"
+      ? selection.slice
+      : filterSlice === "all"
+        ? slicesToLoad[0]
+        : filterSlice;
+
   return {
     activeItems,
+    activeSlice,
     itemsBySlice,
     loading,
     error,
     refreshActiveSlice,
-    /** Alias histórico (STAB-10). */
     refetch: refreshActiveSlice,
     invalidateCache,
     ensureSliceLoaded,
     getSliceCount,
+    getViewCount,
     isSliceLoaded,
     loadedSlicesRef,
     itemsBySliceRef,
-    /** Compat temporal: ya no hay split norm/map. */
-    nomenclaturaItems: activeSlice === "nomenclatura_pendiente" ? activeItems : itemsBySlice.nomenclatura_pendiente ?? [],
-    geolocalizacionItems: activeSlice === "geo_pendiente" ? activeItems : itemsBySlice.geo_pendiente ?? [],
+    nomenclaturaItems:
+      itemsBySlice.nomenclatura_pendiente ??
+      itemsBySliceRef.current.nomenclatura_pendiente?.items ??
+      [],
+    geolocalizacionItems:
+      itemsBySlice.geo_pendiente ?? itemsBySliceRef.current.geo_pendiente?.items ?? [],
   };
 };

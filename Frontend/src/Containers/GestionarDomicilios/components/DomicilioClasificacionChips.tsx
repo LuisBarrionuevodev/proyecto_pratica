@@ -1,10 +1,10 @@
 import { Chip, Stack, Typography } from "@mui/material";
+import {
+  labelGeocodeEstado,
+  labelNomenclaturaEstado,
+  labelScoreUnificado,
+} from "../domicilioClasificacionLabels";
 import type { DomicilioPendienteItem } from "../types";
-
-function scoreLabel(score: number | null | undefined): string {
-  if (score == null || Number.isNaN(Number(score))) return "—";
-  return String(Math.round(Number(score)));
-}
 
 function scoreColor(score: number | null | undefined): "success" | "warning" | "error" | "default" {
   if (score == null || Number.isNaN(Number(score))) return "default";
@@ -17,16 +17,20 @@ function scoreColor(score: number | null | undefined): "success" | "warning" | "
 type ChipRowProps = {
   item: DomicilioPendienteItem;
   compact?: boolean;
+  /** Si false, el score va en columna aparte. */
+  showScore?: boolean;
 };
 
-/** Chips read-only de clasificación compuesta (PR2/PR3). */
-export function DomicilioClasificacionChips({ item, compact = false }: ChipRowProps) {
+/** Chips read-only de clasificación compuesta (labels humanos). */
+export function DomicilioClasificacionChips({
+  item,
+  compact = false,
+  showScore = false,
+}: ChipRowProps) {
+  const nomenclaturaRaw = item.nomenclatura_estado ?? item.calle_status;
+  const geocodeRaw = item.geocode_estado ?? item.geo_status;
   const score = item.score_unificado ?? null;
-  const hasClasificacion =
-    item.nomenclatura_estado != null ||
-    item.geocode_estado != null ||
-    item.slice != null ||
-    score != null;
+  const hasClasificacion = nomenclaturaRaw != null || geocodeRaw != null || (showScore && score != null);
 
   if (!hasClasificacion) {
     return (
@@ -40,22 +44,28 @@ export function DomicilioClasificacionChips({ item, compact = false }: ChipRowPr
 
   return (
     <Stack direction="row" flexWrap="wrap" gap={0.5} useFlexGap>
-      {item.nomenclatura_estado ? (
-        <Chip size={size} label={item.nomenclatura_estado} variant="outlined" />
-      ) : null}
-      {item.geocode_estado ? (
-        <Chip size={size} label={item.geocode_estado} variant="outlined" color="info" />
-      ) : null}
-      {score != null ? (
+      {nomenclaturaRaw ? (
         <Chip
           size={size}
-          label={`Score ${scoreLabel(score)}`}
+          label={labelNomenclaturaEstado(String(nomenclaturaRaw))}
+          variant="outlined"
+        />
+      ) : null}
+      {geocodeRaw ? (
+        <Chip
+          size={size}
+          label={labelGeocodeEstado(String(geocodeRaw))}
+          variant="outlined"
+          color="info"
+        />
+      ) : null}
+      {showScore && score != null ? (
+        <Chip
+          size={size}
+          label={labelScoreUnificado(score)}
           color={scoreColor(score)}
           variant="filled"
         />
-      ) : null}
-      {item.slice ? (
-        <Chip size={size} label={item.slice} variant="outlined" color="secondary" />
       ) : null}
     </Stack>
   );
@@ -64,7 +74,6 @@ export function DomicilioClasificacionChips({ item, compact = false }: ChipRowPr
 export function scoreUnificadoLabel(score: number | null | undefined): string {
   if (score == null || Number.isNaN(Number(score))) return "—";
   const n = Math.round(Number(score));
-  if (n >= 90) return `${n} · OK`;
-  if (n >= 60) return `${n} · Revisar`;
-  return `${n} · Pendiente`;
+  const band = labelScoreUnificado(score);
+  return band === "—" ? "—" : `${n} · ${band}`;
 }

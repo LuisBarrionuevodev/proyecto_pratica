@@ -99,6 +99,11 @@ def catalog(monkeypatch: pytest.MonkeyPatch) -> list[_FakeCalle]:
         "app.domains.geolocalizacion.normalizacion_calles.services.match_calle_service.list_active_keys",
         _list_active_keys,
     )
+    monkeypatch.setattr(
+        "app.domains.geolocalizacion.normalizacion_calles.services.calle_alias_service.get_by_nombre_canonico",
+        _get_by_nombre_canonico,
+    )
+    reload_calle_aliases_cache()
     return rows
 
 
@@ -158,9 +163,35 @@ def test_street_base_quita_via_y_titulo() -> None:
     assert street_base("Avenida Fernando Mate de Luna") == "fernando mate de luna"
 
 
-def test_resolve_alias_monteagudo() -> None:
-    reload_calle_aliases_cache()
+def test_resolve_alias_monteagudo(catalog) -> None:
     assert resolve_calle_alias("monteagudo") == "Dr Bernardo Monteagudo"
+
+
+def test_alias_invalido_si_canon_no_esta_en_catalogo(
+    catalog, monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    csv_path = tmp_path / "calle_aliases.csv"
+    csv_path.write_text(
+        "alias,nombre_canonico,notas\n"
+        "valido alias,Dr Bernardo Monteagudo,ok\n"
+        "invalido alias,Calle Inventada Inexistente,bad\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "app.domains.geolocalizacion.normalizacion_calles.services.calle_alias_service._ALIASES_CSV",
+        csv_path,
+    )
+    reload_calle_aliases_cache()
+    assert resolve_calle_alias("valido alias") == "Dr Bernardo Monteagudo"
+    assert resolve_calle_alias("invalido alias") is None
+
+
+def test_match_catalogo_exacto_antes_de_alias(catalog) -> None:
+    """Nombre canonico exacto en catalogo debe resolver sin depender del CSV."""
+    result = match_calle("Dr Bernardo Monteagudo")
+    assert result["status"] == "OK"
+    assert result["canon"] == "Dr Bernardo Monteagudo"
+    assert float(result["score"] or 0) == 1.0
 
 
 def test_analyze_street_match_samples(catalog) -> None:

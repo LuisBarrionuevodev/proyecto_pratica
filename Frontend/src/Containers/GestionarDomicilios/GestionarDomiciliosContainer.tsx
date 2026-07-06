@@ -1,27 +1,31 @@
 import { Alert, Box, Paper, Tab, Tabs } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { alertBaseStyles, moduleContentColumnSx } from "../Actuaciones/styles/filtroStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import type { GuardarNomenclaturaBody } from "../../api/geolocalizacionApi";
 import ManualMapPanel from "./components/ManualMapPanel";
+import { GestionarDomiciliosPageHeader } from "./components/GestionarDomiciliosPageHeader";
 import TabDomiciliosOverviewTable from "./components/TabDomiciliosOverviewTable";
-import TabGeolocalizacionTable from "./components/TabGeolocalizacionTable";
+import TabMapaOperativoView from "./components/TabMapaOperativoView";
 import TabNomenclaturaTable from "./components/TabNomenclaturaTable";
+import TabParaRevisarTable from "./components/TabParaRevisarTable";
+import { DomicilioSliceFilterChips } from "./components/DomicilioSliceFilterChips";
 import {
-  DOMICILIOS_GEO_MAP_SLICES,
-  DOMICILIOS_SLICE_TABS,
-  sliceSupportsGeoActions,
-  sliceSupportsNomenclaturaEdit,
-} from "./domicilioSliceTabs";
+  getDomicilioSliceEmptyMessage,
+  getDomicilioViewEmptyMessage,
+} from "./domicilioSliceEmptyStates";
+import {
+  DOMICILIOS_VIEW_TABS,
+  type DomiciliosViewTab,
+} from "./domicilioViewTabs";
 import { useDomicilioGeolocalizacionActions } from "./hooks/useDomicilioGeolocalizacionActions";
 import { useDomicilioNormalizationActions } from "./hooks/useDomicilioNormalizationActions";
 import { useDomiciliosPendientes } from "./hooks/useDomiciliosPendientes";
 import type { DomicilioPendienteItem, DomiciliosFilters, DomiciliosSlice } from "./types";
 
 /**
- * Gestión Domicilios — tabs unificados por ``slice=`` (PR3).
- * Cache por slice; mapa manual en slices geo-compatibles.
+ * Gestión Domicilios — 4 tabs visibles PR6B; slices internos vía filtros secundarios.
  */
 const GestionarDomiciliosContainer = () => {
   const filters = useMemo<DomiciliosFilters>(
@@ -33,17 +37,34 @@ const GestionarDomiciliosContainer = () => {
     []
   );
 
-  const [activeSlice, setActiveSlice] = useState<DomiciliosSlice>("nomenclatura_pendiente");
+  const [activeView, setActiveView] = useState<DomiciliosViewTab>("para_revisar");
+  const [secondaryFilter, setSecondaryFilter] = useState<DomiciliosSlice | "all">("all");
   const [selectedForManual, setSelectedForManual] = useState<DomicilioPendienteItem | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
-  const { activeItems, loading, error, refreshActiveSlice, getSliceCount } = useDomiciliosPendientes(
+  const selection = useMemo(
+    () => ({
+      mode: "view" as const,
+      view: activeView,
+      filterSlice: secondaryFilter,
+    }),
+    [activeView, secondaryFilter]
+  );
+
+  const { activeItems, loading, error, refreshActiveSlice, getViewCount } = useDomiciliosPendientes(
     filters,
-    activeSlice,
+    selection,
     { enabled: true }
   );
 
   const { guardarNormalizacion } = useDomicilioNormalizationActions();
   const { guardarPuntoManual } = useDomicilioGeolocalizacionActions();
+
+  useEffect(() => {
+    if (!loading && !error) {
+      setLastUpdatedAt(new Date());
+    }
+  }, [loading, error, activeView, activeItems.length]);
 
   const onGuardarNormalizacion = async (payload: GuardarNomenclaturaBody & { domicilio_id: number }) => {
     await guardarNormalizacion(payload);
@@ -60,39 +81,61 @@ const GestionarDomiciliosContainer = () => {
     await refreshActiveSlice();
   };
 
-  const handleTabChange = useCallback((_: unknown, v: DomiciliosSlice) => {
-    setActiveSlice(v);
-    if (!DOMICILIOS_GEO_MAP_SLICES.has(v)) {
-      setSelectedForManual(null);
-    }
+  const handleViewChange = useCallback((_: unknown, view: DomiciliosViewTab) => {
+    setActiveView(view);
+    setSecondaryFilter("all");
+    setSelectedForManual(null);
   }, []);
 
-  const showGeoMap = sliceSupportsGeoActions(activeSlice);
-  const showNomenclaturaEdit = sliceSupportsNomenclaturaEdit(activeSlice);
-  const showGeoTable = activeSlice === "geo_pendiente";
+  const handleEditNomenclatura = useCallback((item: DomicilioPendienteItem) => {
+    setActiveView("para_revisar");
+    setSecondaryFilter("nomenclatura_pendiente");
+    setSelectedForManual(null);
+  }, []);
+
+  const emptyMessage =
+    secondaryFilter === "all"
+      ? getDomicilioViewEmptyMessage(activeView)
+      : getDomicilioSliceEmptyMessage(secondaryFilter);
+
+  const showNomenclaturaEditor =
+    activeView === "para_revisar" && secondaryFilter === "nomenclatura_pendiente";
+
+  const lastUpdatedLabel = lastUpdatedAt
+    ? `Última actualización ${lastUpdatedAt.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`
+    : null;
 
   const tabLabel = useCallback(
-    (slice: DomiciliosSlice, label: string) => {
-      const count = getSliceCount(slice);
-      if (loading && slice === activeSlice) return `${label} · …`;
+    (view: DomiciliosViewTab, label: string) => {
+      const count = getViewCount(view);
+      if (loading && view === activeView) return `${label} · …`;
       if (count == null) return label;
       return `${label} · ${count}`;
     },
-    [activeSlice, getSliceCount, loading]
+    [activeView, getViewCount, loading]
   );
 
   return (
     <Box sx={{ ...functionalPageShellSx, ...moduleContentColumnSx }}>
+      <GestionarDomiciliosPageHeader
+        onRefresh={refreshActiveSlice}
+        loading={loading}
+        lastUpdatedLabel={lastUpdatedLabel}
+      />
+
       <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
         <Tabs
-          value={activeSlice}
-          onChange={handleTabChange}
+          value={activeView}
+          onChange={handleViewChange}
           variant="scrollable"
           allowScrollButtonsMobile
           sx={moduleSlicesTabsSx}
         >
-          {DOMICILIOS_SLICE_TABS.map(({ slice, label }) => (
-            <Tab key={slice} label={tabLabel(slice, label)} value={slice} />
+          {DOMICILIOS_VIEW_TABS.map(({ view, label, hint }) => (
+            <Tab key={view} label={tabLabel(view, label)} value={view} title={hint} />
           ))}
         </Tabs>
       </Paper>
@@ -103,42 +146,87 @@ const GestionarDomiciliosContainer = () => {
         </Alert>
       )}
 
-      {showNomenclaturaEdit && (
-        <TabNomenclaturaTable items={activeItems} loading={loading} onGuardar={onGuardarNormalizacion} />
-      )}
-
-      {showGeoTable && (
-        <>
-          <TabGeolocalizacionTable
-            items={activeItems}
-            loading={loading}
-            onGeolocalizar={(item) => setSelectedForManual(item)}
-          />
-          <ManualMapPanel
-            selected={selectedForManual}
-            onClose={() => setSelectedForManual(null)}
-            onSave={onGuardarPuntoManual}
-          />
-        </>
-      )}
-
-      {!showNomenclaturaEdit && !showGeoTable && (
-        <>
-          <TabDomiciliosOverviewTable
-            items={activeItems}
-            loading={loading}
-            showGeoAction={showGeoMap}
-            onGeolocalizar={showGeoMap ? (item) => setSelectedForManual(item) : undefined}
-          />
-          {showGeoMap ? (
-            <ManualMapPanel
-              selected={selectedForManual}
-              onClose={() => setSelectedForManual(null)}
-              onSave={onGuardarPuntoManual}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
+        {activeView === "para_revisar" && (
+          <>
+            <DomicilioSliceFilterChips
+              view="para_revisar"
+              value={secondaryFilter}
+              onChange={setSecondaryFilter}
             />
-          ) : null}
-        </>
-      )}
+            {showNomenclaturaEditor ? (
+              <TabNomenclaturaTable
+                items={activeItems}
+                loading={loading}
+                emptyMessage={emptyMessage}
+                onGuardar={onGuardarNormalizacion}
+              />
+            ) : (
+              <TabParaRevisarTable
+                items={activeItems}
+                loading={loading}
+                emptyMessage={emptyMessage}
+                onGeolocalizar={(item) => setSelectedForManual(item)}
+                onEditNomenclatura={handleEditNomenclatura}
+              />
+            )}
+            {selectedForManual ? (
+              <ManualMapPanel
+                selected={selectedForManual}
+                onClose={() => setSelectedForManual(null)}
+                onSave={onGuardarPuntoManual}
+              />
+            ) : null}
+          </>
+        )}
+
+        {activeView === "mapa" && (
+          <TabMapaOperativoView
+            items={activeItems}
+            loading={loading}
+            emptyMessage={emptyMessage}
+            filterSlice={secondaryFilter}
+            onFilterSliceChange={setSecondaryFilter}
+            onRefresh={refreshActiveSlice}
+            onEditNomenclatura={handleEditNomenclatura}
+            onSaveManualPoint={onGuardarPuntoManual}
+          />
+        )}
+
+        {activeView === "validados" && (
+          <>
+            <DomicilioSliceFilterChips
+              view="validados"
+              value={secondaryFilter}
+              onChange={setSecondaryFilter}
+            />
+            <TabDomiciliosOverviewTable
+              items={activeItems}
+              loading={loading}
+              emptyMessage={emptyMessage}
+            />
+          </>
+        )}
+
+        {activeView === "todos" && (
+          <>
+            <TabDomiciliosOverviewTable
+              items={activeItems}
+              loading={loading}
+              emptyMessage={emptyMessage}
+              showGeoAction
+              onGeolocalizar={(item) => setSelectedForManual(item)}
+            />
+            {selectedForManual ? (
+              <ManualMapPanel
+                selected={selectedForManual}
+                onClose={() => setSelectedForManual(null)}
+                onSave={onGuardarPuntoManual}
+              />
+            ) : null}
+          </>
+        )}
+      </Box>
     </Box>
   );
 };
