@@ -15,6 +15,7 @@ from app.security.deployment_config import (
     parse_cors_origins,
 )
 from app.security.phase1_jwt_guard import register_phase1_jwt_guard
+from app.security.dev_post_root_logger import register_dev_post_root_logger
 from app.security.rate_limiter import init_rate_limiter
 from app.domains.actuaciones.routes import actuacion as actuacion_bp
 from app.domains.grid.routes import grid as grid_bp
@@ -79,6 +80,7 @@ def create_app(config_override: dict | None = None):
     init_jwt(app)
     init_rate_limiter(app)
     register_phase1_jwt_guard(app)
+    register_dev_post_root_logger(app)
 
     app.url_map.strict_slashes = False
   

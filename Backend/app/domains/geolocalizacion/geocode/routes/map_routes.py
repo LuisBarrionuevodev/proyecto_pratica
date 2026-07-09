@@ -13,6 +13,12 @@ from app.domains.geolocalizacion.geocode.services.map_service import (
     get_details,
     save_manual_geocode,
 )
+from app.domains.geolocalizacion.geocode.services.gestion_domicilios_service import (
+    list_gestion_domicilios,
+)
+from app.domains.geolocalizacion.geocode.schemas.gestion_domicilios_query import (
+    GestionDomiciliosQuery,
+)
 from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
     list_mapa_operativo_pendientes_geo,
     list_mapa_operativo_realizados_geo,
@@ -332,6 +338,27 @@ def map_pendientes_alias():
     Alias para pendientes con prefijo /api.
     """
     return map_pendientes()
+
+
+@geolocalizacion_map.get("/map/gestion-domicilios")
+def map_gestion_domicilios():
+    """
+    Cola operativa Gestión Domicilios (PR6C.3).
+
+    Paginación backend, ``map_points`` separados, sin match masivo on-read.
+    """
+    try:
+        query = GestionDomiciliosQuery.from_request_args(request.args.to_dict())
+    except Exception as exc:
+        return jsonify({"detail": str(exc)}), 422
+    body = list_gestion_domicilios(query)
+    return jsonify(body.model_dump(mode="json")), 200
+
+
+@geolocalizacion_map.get("/api/map/gestion-domicilios")
+def map_gestion_domicilios_alias():
+    """Alias con prefijo /api."""
+    return map_gestion_domicilios()
 
 
 @geolocalizacion_map.post("/api/map/geocode/manual")

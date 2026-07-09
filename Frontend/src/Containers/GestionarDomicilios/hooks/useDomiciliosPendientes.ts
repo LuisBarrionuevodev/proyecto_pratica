@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMapPendientes } from "../../../api/mapApi";
+import { perfLog, perfTimed } from "../../../utils/perfLog";
 import { mergeSliceItems, sortItemsForReview } from "../domicilioItemsMerge";
 import { SLICES_FOR_VIEW } from "../domicilioViewTabs";
 import type { DomiciliosViewTab } from "../domicilioViewTabs";
@@ -82,7 +83,11 @@ export const useDomiciliosPendientes = (
         return cached.items;
       }
 
-      const items = await getMapPendientes({ ...baseParams(), slice });
+      const items = await perfTimed(
+        "domicilios.ensureSliceLoaded",
+        () => getMapPendientes({ ...baseParams(), slice }),
+        (result) => ({ slice, rows: result.length, force })
+      );
       itemsBySliceRef.current[slice] = { key: filtersCacheKey, items };
       loadedSlicesRef.current.add(cacheToken);
       setItemsBySlice((prev) => ({ ...prev, [slice]: items }));
@@ -92,10 +97,16 @@ export const useDomiciliosPendientes = (
   );
 
   const refreshActiveSlice = useCallback(async () => {
+    const viewTimerLabel = "domicilios.refreshActiveSlice";
+    const t0 = performance.now();
     setLoading(true);
     setError(null);
     try {
       await Promise.all(slicesToLoad.map((slice) => ensureSliceLoaded(slice, true)));
+      perfLog(viewTimerLabel, {
+        slices: slicesToLoad.join(","),
+        ms: Math.round(performance.now() - t0),
+      });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(typeof detail === "string" ? detail : "Error al cargar domicilios pendientes");
@@ -132,11 +143,17 @@ export const useDomiciliosPendientes = (
 
     let cancel = false;
     const run = async () => {
+      const viewTimerLabel = "domicilios.loadActiveView";
+      const t0 = performance.now();
       setLoading(true);
       setError(null);
       try {
         await Promise.all(slicesToLoad.map((slice) => ensureSliceLoaded(slice)));
         if (cancel) return;
+        perfLog(viewTimerLabel, {
+          slices: slicesToLoad.join(","),
+          ms: Math.round(performance.now() - t0),
+        });
       } catch (err: unknown) {
         if (cancel) return;
         const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -161,6 +178,14 @@ export const useDomiciliosPendientes = (
     }
     return merged;
   }, [filterSlice, itemsBySlice, selection, slicesToLoad]);
+
+  useEffect(() => {
+    if (!enabled || loading) return;
+    perfLog("domicilios.activeItems", {
+      slices: slicesToLoad.join(","),
+      merged_rows: activeItems.length,
+    });
+  }, [activeItems.length, enabled, loading, slicesToLoad]);
 
   const getSliceCount = useCallback(
     (slice: DomiciliosSlice): number | null => {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime
 import logging
 from typing import Dict, List, Optional
@@ -7,7 +8,7 @@ from typing import Dict, List, Optional
 from sqlalchemy import and_, func, or_
 
 from app.database import db
-from datetime import datetime
+from app.shared.perf_log import PerfTimer, perf_endpoint_log, perf_log_enabled
 from app.models import (
     Actuaciones,
     Domicilio,
@@ -37,6 +38,33 @@ from app.domains.geolocalizacion.normalizacion_calles.services.nomenclatura_matc
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class PendientesPerfStats:
+    """Métricas de la última ejecución de ``list_pendientes`` (benchmark / PERF_LOG)."""
+
+    rows_sql: int = 0
+    rows_response: int = 0
+    classified_count: int = 0
+    match_count: int = 0
+    query_ms: float = 0.0
+    classify_ms: float = 0.0
+    match_ms: float = 0.0
+    total_ms: float = 0.0
+    kind: str | None = None
+    slice: str | None = None
+    desde: str | None = None
+    hasta: str | None = None
+    scope: str | None = None
+
+
+_last_pendientes_perf = PendientesPerfStats()
+
+
+def get_last_pendientes_perf() -> PendientesPerfStats:
+    """Devuelve métricas de la última llamada a ``list_pendientes``."""
+    return _last_pendientes_perf
 
 
 def _parse_date(value: Optional[str]) -> Optional[date]:
@@ -499,6 +527,20 @@ def list_pendientes(
     kind: Optional[str] = None,
     slice: Optional[str] = None,
 ) -> List[Dict[str, object]]:
+    """
+    Lista domicilios pendientes de normalización/geocode para Gestión Domicilios.
+
+    Con ``PERF_LOG=1`` emite métricas de query, clasificación y match on-read.
+    """
+    global _last_pendientes_perf
+
+    total_timer = PerfTimer()
+    query_timer = PerfTimer()
+    classified_count = 0
+    match_count = 0
+    classify_ms = 0.0
+    match_ms = 0.0
+
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
 
@@ -599,6 +641,10 @@ def list_pendientes(
         else:
             q = q.filter(rel_subq.c.last_rel_id.isnot(None))
 
+    sql_rows = q.all()
+    query_ms = query_timer.elapsed_ms()
+    rows_sql = len(sql_rows)
+
     results = []
     for (
         dom,
@@ -615,7 +661,7 @@ def list_pendientes(
         act_count,
         last_rel_id,
         rel_count,
-    ) in q.all():
+    ) in sql_rows:
         item = {
             "domicilio_id": dom.id,
             "calle_raw": dom.calle,
@@ -654,10 +700,52 @@ def list_pendientes(
                     lat=lat,
                     lng=lng,
                 )
+            classify_timer = PerfTimer()
             clasificacion = clasificar_domicilio(dom, geo=geo_row)
+            classify_ms += classify_timer.elapsed_ms()
+            classified_count += 1
             item.update(clasificacion)
             if not clasificacion_coincide_slice(clasificacion, slice):
                 continue
+            match_timer = PerfTimer()
             item.update(nomenclatura_match_fields(dom))
+            match_ms += match_timer.elapsed_ms()
+            match_count += 1
         results.append(item)
+
+    total_ms = total_timer.elapsed_ms()
+    _last_pendientes_perf = PendientesPerfStats(
+        rows_sql=rows_sql,
+        rows_response=len(results),
+        classified_count=classified_count,
+        match_count=match_count,
+        query_ms=query_ms,
+        classify_ms=classify_ms,
+        match_ms=match_ms,
+        total_ms=total_ms,
+        kind=kind,
+        slice=slice,
+        desde=desde,
+        hasta=hasta,
+        scope=scope,
+    )
+    if perf_log_enabled():
+        perf_endpoint_log(
+            "map.pendientes",
+            rows_base=rows_sql,
+            rows_final=len(results),
+            query_ms=query_ms,
+            presenter_ms=classify_ms + match_ms,
+            total_ms=total_ms,
+            payload=results,
+            classified_count=classified_count,
+            match_count=match_count,
+            classify_ms=round(classify_ms, 1),
+            match_ms=round(match_ms, 1),
+            kind=kind or "",
+            slice=slice or "",
+            desde=desde or "",
+            hasta=hasta or "",
+            scope=scope or "",
+        )
     return results
