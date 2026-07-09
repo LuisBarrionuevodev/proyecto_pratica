@@ -16,12 +16,16 @@ from app.domains.geolocalizacion.geocode.schemas.gestion_domicilios_query import
     StatusOperativoFilter,
 )
 from app.domains.geolocalizacion.geocode.schemas.gestion_domicilios_response import (
-    GestionDomiciliosMapPointOut,
+    GestionDomiciliosMapPointsMetaOut,
     GestionDomiciliosPaginationOut,
     GestionDomiciliosResponse,
     GestionDomiciliosRowOut,
     GestionDomiciliosRowTecnicoOut,
     GestionDomiciliosSummaryOut,
+)
+from app.domains.geolocalizacion.geocode.services.gestion_domicilios_map_points import (
+    fetch_map_points,
+    parse_bbox,
 )
 from app.domains.geolocalizacion.geocode.services.domicilio_clasificacion_service import (
     clasificar_domicilio,
@@ -36,7 +40,6 @@ from app.domains.geolocalizacion.geocode.services.gestion_domicilios_status impo
 from app.models import CalleCatalogo, Domicilio, DomicilioGeocode
 from app.shared.perf_log import PerfTimer, perf_endpoint_log, perf_log_enabled
 
-MAP_POINTS_LIMIT = 200
 MAX_PAGE_SIZE = 100
 
 
@@ -203,40 +206,6 @@ def _row_to_out(
     )
 
 
-def _map_points_for_filter(
-    query: GestionDomiciliosQuery,
-) -> list[GestionDomiciliosMapPointOut]:
-    status_expr = status_operativo_sql_case()
-    q = _apply_status_filter(_build_base_query(query.q), query.status_operativo)
-    has_coords = and_(
-        DomicilioGeocode.lat.isnot(None),
-        DomicilioGeocode.lng.isnot(None),
-    )
-    q = q.filter(has_coords)
-
-    if query.map_mode == "problematic":
-        q = q.filter(status_expr.in_(["sin_punto", "punto_dudoso", "error", "manual"]))
-    elif query.map_mode == "visible":
-        q = q.filter(status_expr.in_(["punto_dudoso", "manual", "geolocalizado"]))
-
-    rows = q.order_by(Domicilio.updated_at.desc(), Domicilio.id.desc()).limit(MAP_POINTS_LIMIT).all()
-    points: list[GestionDomiciliosMapPointOut] = []
-    for dom, geo, _catalogo in rows:
-        if geo is None:
-            continue
-        status = resolve_status_operativo(dom, geo)
-        points.append(
-            GestionDomiciliosMapPointOut(
-                domicilio_id=int(dom.id),
-                lat=float(geo.lat),
-                lng=float(geo.lng),
-                status_operativo=status,  # type: ignore[arg-type]
-                label=_format_domicilio_linea(dom),
-            )
-        )
-    return points
-
-
 def list_gestion_domicilios(query: GestionDomiciliosQuery) -> GestionDomiciliosResponse:
     """
     Lista paginada de domicilios para Gestión Domicilios v1.
@@ -248,9 +217,12 @@ def list_gestion_domicilios(query: GestionDomiciliosQuery) -> GestionDomiciliosR
         Summary, filas paginadas, map_points opcionales y paginación.
 
     Errores:
-        Ninguno en flujo normal; validación ocurre en la ruta vía Pydantic.
+        ValueError: ``bbox`` inválido.
     """
     global _last_gestion_domicilios_perf
+
+    # Validar bbox temprano (422 en ruta si falla).
+    parse_bbox(query.bbox)
 
     total_timer = PerfTimer()
     page_size = _effective_page_size(query.page_size)
@@ -276,9 +248,13 @@ def list_gestion_domicilios(query: GestionDomiciliosQuery) -> GestionDomiciliosR
         for dom, geo, catalogo in sql_rows
     ]
 
-    map_points: list[GestionDomiciliosMapPointOut] = []
+    map_points: list = []
+    map_points_meta: GestionDomiciliosMapPointsMetaOut | None = None
     if query.include_map_points:
-        map_points = _map_points_for_filter(query)
+        map_points, map_points_meta = fetch_map_points(
+            base_query=_apply_status_filter(_build_base_query(query.q), query.status_operativo),
+            query=query,
+        )
 
     total_ms = total_timer.elapsed_ms()
     _last_gestion_domicilios_perf = GestionDomiciliosPerfStats(
@@ -295,6 +271,7 @@ def list_gestion_domicilios(query: GestionDomiciliosQuery) -> GestionDomiciliosR
         summary=summary,
         rows=rows,
         map_points=map_points,
+        map_points_meta=map_points_meta,
         pagination=GestionDomiciliosPaginationOut(
             page=page,
             page_size=page_size,
@@ -312,6 +289,8 @@ def list_gestion_domicilios(query: GestionDomiciliosQuery) -> GestionDomiciliosR
             total_ms=total_ms,
             payload=response.model_dump(mode="json"),
             map_points=len(map_points),
+            map_mode=query.map_mode,
+            bbox_applied=bool(query.bbox),
             status_operativo=query.status_operativo,
             page=page,
             page_size=page_size,

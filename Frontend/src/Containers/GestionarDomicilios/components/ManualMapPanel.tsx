@@ -3,7 +3,13 @@ import { Box, Button, Paper, TextField, Typography } from "@mui/material";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { formatDomicilioLineaVisible } from "../../../utils/formatDomicilioLineaVisible";
+import { searchAddress } from "../services/geocodeSearchProvider";
+import {
+  createPendingManualSave,
+  shouldExecuteManualSave,
+} from "../services/manualMapPanelSaveFlow";
 import type { DomicilioPendienteItem } from "../types";
+import ConfirmarUbicacionDialog from "./ConfirmarUbicacionDialog";
 
 const defaultCenter: [number, number] = [-26.8241, -65.2226];
 
@@ -62,13 +68,20 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
   const [searchText, setSearchText] = useState("");
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingSave, setPendingSave] = useState<ReturnType<typeof createPendingManualSave>>(null);
 
   useEffect(() => {
     if (!selected) {
       setPin(null);
       setCenter(null);
+      setSearchText("");
+      setConfirmOpen(false);
+      setPendingSave(null);
       return;
     }
+    const label = formatDomicilioLineaVisible(selected);
+    setSearchText(label);
     if (selected.lat && selected.lng) {
       setPin({ lat: selected.lat, lng: selected.lng });
       setCenter([selected.lat, selected.lng]);
@@ -87,32 +100,40 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
     if (!searchText.trim()) return;
     setSearching(true);
     try {
-      const q = encodeURIComponent(searchText.trim());
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`;
-      const resp = await fetch(url, { headers: { "Accept-Language": "es" } });
-      const data = await resp.json();
-      if (Array.isArray(data) && data[0]) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-          setCenter([lat, lng]);
-          setPin({ lat, lng });
-        }
+      const result = await searchAddress(searchText);
+      if (result) {
+        setCenter([result.lat, result.lng]);
+        setPin({ lat: result.lat, lng: result.lng });
       }
     } finally {
       setSearching(false);
     }
   };
 
-  const handleSave = async () => {
-    if (!selected || !pin) return;
+  const handleRequestSave = () => {
+    if (!selected) return;
+    const pending = createPendingManualSave(selected.domicilio_id, pin);
+    if (!pending) return;
+    setPendingSave(pending);
+    setConfirmOpen(true);
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmOpen(false);
+    setPendingSave(null);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!shouldExecuteManualSave(true, pendingSave)) return;
     setSaving(true);
     try {
       await onSave({
-        domicilio_id: selected.domicilio_id,
-        lat: pin.lat,
-        lng: pin.lng,
+        domicilio_id: pendingSave.domicilio_id,
+        lat: pendingSave.lat,
+        lng: pendingSave.lng,
       });
+      setConfirmOpen(false);
+      setPendingSave(null);
     } finally {
       setSaving(false);
     }
@@ -141,7 +162,7 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
         <Button variant="outlined" disabled={searching} onClick={onSearch}>
           Buscar
         </Button>
-        <Button variant="contained" disabled={!pin || saving} onClick={handleSave}>
+        <Button variant="contained" disabled={!pin || saving} onClick={handleRequestSave}>
           Guardar punto
         </Button>
       </Box>
@@ -160,13 +181,23 @@ const ManualMapPanel = ({ selected, onClose, onSave }: ManualMapPanelProps) => {
             draggable
             eventHandlers={{
               dragend: (e) => {
-                const latlng = (e.target as any).getLatLng();
+                const latlng = (e.target as L.Marker).getLatLng();
                 setPin({ lat: latlng.lat, lng: latlng.lng });
               },
             }}
           />
         )}
       </MapContainer>
+
+      <ConfirmarUbicacionDialog
+        open={confirmOpen}
+        domicilioLinea={selectedLabel}
+        lat={pendingSave?.lat ?? pin?.lat ?? defaultCenter[0]}
+        lng={pendingSave?.lng ?? pin?.lng ?? defaultCenter[1]}
+        onConfirm={handleConfirmSave}
+        onClose={handleCancelConfirm}
+        confirming={saving}
+      />
     </Paper>
   );
 };

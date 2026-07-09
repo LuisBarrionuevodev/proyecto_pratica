@@ -22,7 +22,7 @@ StatusOperativoRow = Literal[
     "geolocalizado",
 ]
 
-MapMode = Literal["problematic", "visible", "all"]
+MapMode = Literal["problematic", "visible", "all", "manual", "errors"]
 
 SortMode = Literal["requiere_accion_desc", "updated_desc", "domicilio_asc"]
 

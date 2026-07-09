@@ -45,9 +45,10 @@ describe("STAB-10b domicilios cache", () => {
     expect(refetchBlock).toContain("ensureSliceLoaded(activeSlice, true)");
   });
 
-  it("container sigue llamando refresh tras mutación", () => {
-    const src = read("src/Containers/GestionarDomicilios/GestionarDomiciliosContainer.tsx");
-    expect(src).toContain("refreshActiveSlice");
+  it("container refresca datos tras mutación vía refetch PR6C.6", () => {
+    const src = read("src/Containers/GestionarDomicilios/components/GestionDomiciliosVistaUnica.tsx");
+    expect(src).toContain("await refetch()");
+    expect(src).toContain("onGuardarPuntoManual");
   });
 });
 

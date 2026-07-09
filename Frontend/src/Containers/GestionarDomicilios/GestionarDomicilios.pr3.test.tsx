@@ -115,24 +115,34 @@ describe("PR6B domicilioViewTabs", () => {
   });
 });
 
-describe("PR6B GestionarDomiciliosContainer", () => {
-  it("container usa tabs visibles PR6B", () => {
+describe("PR6C.6 GestionarDomiciliosContainer", () => {
+  it("container usa vista única PR6C.6 sin tabs PR6B", () => {
     const container = read("src/Containers/GestionarDomicilios/GestionarDomiciliosContainer.tsx");
-    expect(container).toContain("DOMICILIOS_VIEW_TABS");
-    expect(container).toContain("TabMapaOperativoView");
-    expect(container).toContain("TabParaRevisarTable");
-    expect(container).toContain("DomicilioSliceFilterChips");
+    expect(container).toContain("GestionDomiciliosVistaUnica");
+    expect(container).not.toContain("DOMICILIOS_VIEW_TABS");
+    expect(container).not.toContain("TabMapaOperativoView");
+    expect(container).not.toContain("TabParaRevisarTable");
+    expect(container).not.toContain("DomicilioSliceFilterChips");
   });
 
-  it("Mapa muestra vista operativa con mapa y panel detalle", () => {
-    const mapa = read("src/Containers/GestionarDomicilios/components/TabMapaOperativoView.tsx");
-    expect(mapa).toContain("DomicilioOperativoMap");
-    expect(mapa).toContain("DomicilioDetallePanel");
-    expect(mapa).toContain("retryGeo");
-    expect(mapa).toContain("ManualMapPanel");
+  it("vista única compone mapa operativo y panel detalle", () => {
+    const vista = read("src/Containers/GestionarDomicilios/components/GestionDomiciliosVistaUnica.tsx");
+    expect(vista).toContain("GestionDomiciliosMapaPanel");
+    expect(vista).toContain("GestionDomicilioDetalleOperativo");
+    expect(vista).toContain("ManualMapPanel");
+    expect(vista).toContain("useGestionDomicilios");
   });
 
-  it("panel detalle muestra match_strategy y confidence_reason", () => {
+  it("Geolocalizar y pin manual siguen en vista única", () => {
+    const vista = read("src/Containers/GestionarDomicilios/components/GestionDomiciliosVistaUnica.tsx");
+    const detalle = read("src/Containers/GestionarDomicilios/components/GestionDomicilioDetalleOperativo.tsx");
+    expect(vista).toContain("ManualMapPanel");
+    expect(vista).toContain("onGuardarPuntoManual");
+    expect(detalle).toContain("Geolocalizar");
+    expect(detalle).toContain("Reubicar");
+  });
+
+  it("panel detalle legacy sigue mostrando match_strategy (componente aparte)", () => {
     const html = render(
       <DomicilioDetallePanel
         item={sampleItem({
@@ -144,16 +154,6 @@ describe("PR6B GestionarDomiciliosContainer", () => {
     expect(html).toContain("Tokens exactos");
     expect(html).toContain("Coincidencia exacta por tokens");
     expect(html).not.toContain("exact_tokens");
-  });
-
-  it("Re-geolocalizar y pin manual siguen disponibles en mapa", () => {
-    const mapa = read("src/Containers/GestionarDomicilios/components/TabMapaOperativoView.tsx");
-    const detalle = read("src/Containers/GestionarDomicilios/components/DomicilioDetallePanel.tsx");
-    expect(mapa).toContain("retryGeo");
-    expect(mapa).toContain("ManualMapPanel");
-    expect(mapa).toContain("onSaveManualPoint");
-    expect(detalle).toContain("Re-geolocalizar");
-    expect(detalle).toContain("Pin manual");
   });
 });
 
@@ -207,7 +207,7 @@ describe("PR UI GestionarDomiciliosContainer header", () => {
   it("renderiza header Gestión de Domicilios", () => {
     const html = render(<GestionarDomiciliosPageHeader />);
     expect(html).toContain("Gestión de Domicilios");
-    expect(html).toContain("Control de nomenclatura, geolocalización y calidad de datos");
+    expect(html).toContain("Cola operativa de geolocalización");
   });
 });
 

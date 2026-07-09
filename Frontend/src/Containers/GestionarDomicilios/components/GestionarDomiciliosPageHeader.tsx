@@ -38,10 +38,10 @@ export function GestionarDomiciliosPageHeader({
           Gestión de Domicilios
         </Typography>
         <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mt: 0.5 }}>
-          Control de nomenclatura, geolocalización y calidad de datos
+          Cola operativa de geolocalización
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.75, maxWidth: 720 }}>
-          Revisá domicilios pendientes, puntos con baja confianza y validaciones manuales.
+          Ubicá domicilios en el mapa, revisá pendientes y corregí puntos manualmente.
         </Typography>
       </Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>

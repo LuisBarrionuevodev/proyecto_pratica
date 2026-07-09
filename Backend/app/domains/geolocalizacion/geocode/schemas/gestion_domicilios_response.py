@@ -62,7 +62,21 @@ class GestionDomiciliosMapPointOut(BaseModel):
     lat: float
     lng: float
     status_operativo: StatusOperativoRow
+    status_operativo_label: str
     label: str
+    geo_chip: GeoChip = "EN_MAPA"
+    requiere_accion: bool = False
+
+
+class GestionDomiciliosMapPointsMetaOut(BaseModel):
+    """Metadata de ``map_points`` (límite, truncado, filtros aplicados)."""
+
+    returned: int = Field(ge=0)
+    limit: int = Field(ge=1)
+    truncated: bool = False
+    total_matching: int = Field(ge=0)
+    map_mode: str
+    bbox_applied: bool = False
 
 
 class GestionDomiciliosPaginationOut(BaseModel):
@@ -77,4 +91,5 @@ class GestionDomiciliosResponse(BaseModel):
     summary: GestionDomiciliosSummaryOut
     rows: list[GestionDomiciliosRowOut]
     map_points: list[GestionDomiciliosMapPointOut]
+    map_points_meta: GestionDomiciliosMapPointsMetaOut | None = None
     pagination: GestionDomiciliosPaginationOut

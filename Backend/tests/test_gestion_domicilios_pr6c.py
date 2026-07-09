@@ -281,6 +281,7 @@ def test_include_map_points_false(app_ctx) -> None:
             )
         )
         assert body.map_points == []
+        assert body.map_points_meta is None
     finally:
         db.session.rollback()
 
@@ -300,6 +301,143 @@ def test_include_map_points_true_limitado(app_ctx) -> None:
         pt = next(p for p in body.map_points if p.domicilio_id == dom.id)
         assert pt.lat == pytest.approx(-26.824)
         assert pt.lng == pytest.approx(-65.222)
+        assert pt.geo_chip == "EN_MAPA"
+        assert pt.requiere_accion is True
+        assert pt.status_operativo_label == "Punto dudoso"
+        assert body.map_points_meta is not None
+        assert body.map_points_meta.map_mode == "problematic"
+    finally:
+        db.session.rollback()
+
+
+def test_map_mode_manual(app_ctx) -> None:
+    try:
+        manual = _mk_gestion_dom(tag="MapMan", source="MANUAL", geo_status="OK")
+        auto = _mk_gestion_dom(tag="MapAuto", source="AUTO", geo_status="OK", score=0.99)
+        body = list_gestion_domicilios(
+            GestionDomiciliosQuery(
+                q=TEST_CALLE_PREFIX,
+                status_operativo="todos",
+                map_mode="manual",
+                include_map_points=True,
+                page_size=10,
+            )
+        )
+        ids = {p.domicilio_id for p in body.map_points}
+        assert manual.id in ids
+        assert auto.id not in ids
+        assert body.map_points_meta is not None
+        assert body.map_points_meta.map_mode == "manual"
+    finally:
+        db.session.rollback()
+
+
+def test_map_mode_errors(app_ctx) -> None:
+    try:
+        err = _mk_gestion_dom(
+            tag="MapErr",
+            geo_status="ERROR",
+            lat=-26.83,
+            lng=-65.23,
+            score=None,
+        )
+        ok = _mk_gestion_dom(tag="MapErrOk", geo_status="OK", score=0.99)
+        body = list_gestion_domicilios(
+            GestionDomiciliosQuery(
+                q=TEST_CALLE_PREFIX,
+                status_operativo="todos",
+                map_mode="errors",
+                include_map_points=True,
+                page_size=10,
+            )
+        )
+        ids = {p.domicilio_id for p in body.map_points}
+        assert err.id in ids
+        assert ok.id not in ids
+    finally:
+        db.session.rollback()
+
+
+def test_map_mode_visible_excluye_solo_error(app_ctx) -> None:
+    try:
+        err = _mk_gestion_dom(
+            tag="VisErr",
+            geo_status="ERROR",
+            lat=-26.83,
+            lng=-65.23,
+        )
+        geo = _mk_gestion_dom(tag="VisGeo", geo_status="OK", score=0.99)
+        body = list_gestion_domicilios(
+            GestionDomiciliosQuery(
+                q=TEST_CALLE_PREFIX,
+                status_operativo="todos",
+                map_mode="visible",
+                include_map_points=True,
+                page_size=10,
+            )
+        )
+        ids = {p.domicilio_id for p in body.map_points}
+        assert geo.id in ids
+        assert err.id not in ids
+    finally:
+        db.session.rollback()
+
+
+def test_bbox_filtra_map_points(app_ctx) -> None:
+    try:
+        inside = _mk_gestion_dom(tag="BboxIn", lat=-26.824, lng=-65.222)
+        outside = _mk_gestion_dom(tag="BboxOut", lat=-27.5, lng=-65.9)
+        body = list_gestion_domicilios(
+            GestionDomiciliosQuery(
+                q=TEST_CALLE_PREFIX,
+                status_operativo="todos",
+                map_mode="all",
+                include_map_points=True,
+                bbox="-26.9,-65.3,-26.8,-65.2",
+                page_size=10,
+            )
+        )
+        ids = {p.domicilio_id for p in body.map_points}
+        assert inside.id in ids
+        assert outside.id not in ids
+        assert body.map_points_meta is not None
+        assert body.map_points_meta.bbox_applied is True
+    finally:
+        db.session.rollback()
+
+
+def test_bbox_invalido_raises(app_ctx) -> None:
+    with pytest.raises(ValueError, match="bbox"):
+        list_gestion_domicilios(
+            GestionDomiciliosQuery(
+                status_operativo="todos",
+                bbox="invalid",
+                include_map_points=True,
+            )
+        )
+
+
+def test_map_points_meta_truncated(app_ctx, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.domains.geolocalizacion.geocode.services.gestion_domicilios_map_points.MAP_POINTS_LIMIT",
+        2,
+    )
+    try:
+        for i in range(3):
+            _mk_gestion_dom(tag=f"Trunc{i}", geo_status="OK", score=0.99)
+        body = list_gestion_domicilios(
+            GestionDomiciliosQuery(
+                q=TEST_CALLE_PREFIX,
+                status_operativo="todos",
+                map_mode="all",
+                include_map_points=True,
+                page_size=10,
+            )
+        )
+        assert body.map_points_meta is not None
+        assert body.map_points_meta.returned == 2
+        assert body.map_points_meta.truncated is True
+        assert body.map_points_meta.total_matching >= 3
     finally:
         db.session.rollback()
 
@@ -440,7 +578,7 @@ def test_gestion_domicilios_endpoint_http_shape(client, auth_headers) -> None:
     resp = client.get("/api/map/gestion-domicilios?page=1&page_size=50", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.get_json()
-    assert set(data.keys()) == {"summary", "rows", "map_points", "pagination"}
+    assert set(data.keys()) == {"summary", "rows", "map_points", "map_points_meta", "pagination"}
     assert set(data["summary"].keys()) == {
         "total",
         "requieren_accion",
@@ -452,11 +590,20 @@ def test_gestion_domicilios_endpoint_http_shape(client, auth_headers) -> None:
     }
     assert isinstance(data["rows"], list)
     assert isinstance(data["map_points"], list)
+    assert data["map_points_meta"] is None or isinstance(data["map_points_meta"], dict)
     assert data["pagination"]["page"] == 1
 
 
 def test_gestion_domicilios_invalid_page_returns_422(client, auth_headers) -> None:
     resp = client.get("/api/map/gestion-domicilios?page=0", headers=auth_headers)
+    assert resp.status_code == 422
+
+
+def test_gestion_domicilios_invalid_bbox_returns_422(client, auth_headers) -> None:
+    resp = client.get(
+        "/api/map/gestion-domicilios?bbox=invalid&include_map_points=1",
+        headers=auth_headers,
+    )
     assert resp.status_code == 422
 
 

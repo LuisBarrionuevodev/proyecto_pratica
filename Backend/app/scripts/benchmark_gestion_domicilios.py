@@ -49,7 +49,22 @@ BENCHMARK_CASES: list[dict[str, Any]] = [
     },
     {
         "endpoint": "/map/gestion-domicilios",
-        "params": {"status_operativo": "sin_punto", "page": "1", "page_size": "50"},
+        "params": {
+            "status_operativo": "requiere_accion",
+            "page": "1",
+            "page_size": "50",
+            "map_mode": "problematic",
+        },
+        "kind": "gestion",
+    },
+    {
+        "endpoint": "/map/gestion-domicilios",
+        "params": {
+            "status_operativo": "todos",
+            "page": "1",
+            "page_size": "50",
+            "map_mode": "visible",
+        },
         "kind": "gestion",
     },
 ]

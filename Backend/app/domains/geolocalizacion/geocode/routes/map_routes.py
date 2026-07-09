@@ -349,9 +349,9 @@ def map_gestion_domicilios():
     """
     try:
         query = GestionDomiciliosQuery.from_request_args(request.args.to_dict())
+        body = list_gestion_domicilios(query)
     except Exception as exc:
         return jsonify({"detail": str(exc)}), 422
-    body = list_gestion_domicilios(query)
     return jsonify(body.model_dump(mode="json")), 200
 
 

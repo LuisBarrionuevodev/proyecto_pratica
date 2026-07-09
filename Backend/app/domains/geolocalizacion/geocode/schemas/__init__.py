@@ -3,6 +3,7 @@
 from .gestion_domicilios_query import GestionDomiciliosQuery
 from .gestion_domicilios_response import (
     GestionDomiciliosMapPointOut,
+    GestionDomiciliosMapPointsMetaOut,
     GestionDomiciliosPaginationOut,
     GestionDomiciliosResponse,
     GestionDomiciliosRowOut,
@@ -13,6 +14,7 @@ from .gestion_domicilios_response import (
 __all__ = [
     "GestionDomiciliosQuery",
     "GestionDomiciliosMapPointOut",
+    "GestionDomiciliosMapPointsMetaOut",
     "GestionDomiciliosPaginationOut",
     "GestionDomiciliosResponse",
     "GestionDomiciliosRowOut",

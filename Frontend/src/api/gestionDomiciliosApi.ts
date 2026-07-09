@@ -17,7 +17,12 @@ export type GestionDomiciliosStatusOperativo =
 /** Chip geográfico visible al operador. */
 export type GestionDomiciliosGeoChip = "EN_MAPA" | "SIN_COORDS";
 
-export type GestionDomiciliosMapMode = "problematic" | "visible" | "all";
+export type GestionDomiciliosMapMode =
+  | "problematic"
+  | "visible"
+  | "all"
+  | "manual"
+  | "errors";
 
 export type GestionDomiciliosSort =
   | "requiere_accion_desc"
@@ -54,7 +59,19 @@ export interface GestionDomiciliosMapPoint {
   lat: number;
   lng: number;
   status_operativo: GestionDomiciliosStatusOperativoRow;
+  status_operativo_label: string;
   label: string;
+  geo_chip: GestionDomiciliosGeoChip;
+  requiere_accion: boolean;
+}
+
+export interface GestionDomiciliosMapPointsMeta {
+  returned: number;
+  limit: number;
+  truncated: boolean;
+  total_matching: number;
+  map_mode: GestionDomiciliosMapMode;
+  bbox_applied: boolean;
 }
 
 export interface GestionDomiciliosSummary {
@@ -77,6 +94,7 @@ export interface GestionDomiciliosResponse {
   summary: GestionDomiciliosSummary;
   rows: GestionDomiciliosRow[];
   map_points: GestionDomiciliosMapPoint[];
+  map_points_meta?: GestionDomiciliosMapPointsMeta | null;
   pagination: GestionDomiciliosPagination;
 }
 
@@ -93,8 +111,8 @@ export interface GestionDomiciliosQuery {
 }
 
 /**
- * GET /map/gestion-domicilios — cola operativa (PR6C.2 contrato).
- * Stub backend hasta PR6C.3; no conectar UI final todavía.
+ * GET /map/gestion-domicilios — cola operativa (PR6C.2+ contrato).
+ * UI final aún no conectada.
  */
 export const getGestionDomicilios = async (
   params?: GestionDomiciliosQuery
