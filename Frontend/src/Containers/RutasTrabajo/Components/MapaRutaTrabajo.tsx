@@ -6,7 +6,7 @@ import { Box } from "@mui/material";
 import type { RutaMapaMarker, RutaMapaPolyline } from "../types/rutasTrabajoMapa.types";
 import { MARKER_RING_BOXSHADOW } from "../utils/mapaRutaGrupoTrazado";
 
-/** Misma URL y atribución que `Mapa/Components/MapView.tsx`. */
+/** Misma URL y atribución OSM que el mapa operativo en MapPage. */
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 

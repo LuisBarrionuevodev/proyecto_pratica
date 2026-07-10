@@ -13,13 +13,15 @@ describe("menuItems UX-FILTROS-NAV-1", () => {
     expect(paths).not.toContain("/gestionSistema");
   });
 
-  it("agrupa Operativa con notificaciones, comprobaciones y domicilios", () => {
+  it("agrupa Operativa sin duplicar domicilios (PR6C.12)", () => {
     const operativa = menuSections.find((s) => s.label === "OPERATIVA");
     expect(operativa).toBeDefined();
     const texts = operativa!.items.map((i) => i.text);
+    const paths = operativa!.items.map((i) => i.path);
     expect(texts).toContain("Notificaciones gestión");
     expect(texts).toContain("Comprobaciones gestión");
-    expect(texts).toContain("Gestionar domicilios");
+    expect(texts).not.toContain("Gestionar domicilios");
+    expect(paths).not.toContain("/gestionarDomicilios");
     expect(texts).toContain("Completar trabajo");
   });
 
@@ -32,10 +34,11 @@ describe("menuItems UX-FILTROS-NAV-1", () => {
 });
 
 describe("inicioAccesosData", () => {
-  it("tiene 14 cards sin configuración (incluye Mi perfil)", () => {
-    expect(INICIO_ACCESOS).toHaveLength(14);
+  it("tiene 13 cards sin configuración ni domicilios duplicados (PR6C.12)", () => {
+    expect(INICIO_ACCESOS).toHaveLength(13);
     expect(INICIO_ACCESOS.some((c) => c.to === "/gestionSistema")).toBe(false);
-    expect(INICIO_ACCESOS.some((c) => c.to === "/gestionarDomicilios")).toBe(true);
+    expect(INICIO_ACCESOS.some((c) => c.to === "/gestionarDomicilios")).toBe(false);
+    expect(INICIO_ACCESOS.some((c) => c.to === "/mapa")).toBe(true);
   });
 
   it("incluye módulos operativos principales", () => {

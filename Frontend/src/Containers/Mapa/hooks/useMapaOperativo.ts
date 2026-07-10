@@ -1,12 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-import {
-  getMapOperativoPendientesFC,
-  getMapOperativoRealizadosFC,
-  type MapPointFeature,
-} from "../../../api/mapApi";
-
-export type MapaOperativoModo = "pendientes" | "realizados";
+import { getMapOperativoRealizadosFC, type MapPointFeature } from "../../../api/mapApi";
 
 export type MapaOperativoLoadParams = {
   from: string;
@@ -14,7 +8,6 @@ export type MapaOperativoLoadParams = {
   distritoId: string;
   tipo: string;
   inspectorId: string;
-  /** Solo realizados: clausura / decomiso / ambos. */
   definicion?: string;
 };
 
@@ -25,7 +18,7 @@ export type MapaOperativoLoadOptions = {
 };
 
 /**
- * Estado y carga del mapa operativo (pendientes / realizados) alineado a rutas e iniciadores.
+ * Estado y carga del mapa operativo realizados (PR6C.13: sin pendientes legacy).
  */
 export function useMapaOperativo() {
   const [features, setFeatures] = useState<MapPointFeature[]>([]);
@@ -44,47 +37,6 @@ export function useMapaOperativo() {
   };
 
   const loadSeqRef = useRef(0);
-
-  const loadPendientes = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
-    const seq = ++loadSeqRef.current;
-    setFeatures([]);
-    setInfoMessage(null);
-    setLoading(true);
-    setError(null);
-    try {
-      if (!p.from?.trim() || !p.to?.trim()) {
-        if (seq !== loadSeqRef.current) return;
-        setError("Elegí fecha desde y hasta.");
-        setFeatures([]);
-        return;
-      }
-      const fc = await getMapOperativoPendientesFC({
-        desde: p.from,
-        hasta: p.to,
-        distrito_id: _distritoNum(p.distritoId),
-        tipo: p.tipo === "TODOS" ? undefined : p.tipo,
-        inspector_id: _inspectorNum(p.inspectorId),
-        ...(opts?.forceNetwork ? { _: Date.now() } : {}),
-      });
-      if (seq !== loadSeqRef.current) return;
-      const feats = fc.features ?? [];
-      setFeatures(feats);
-      if (feats.length === 0) {
-        setInfoMessage(
-          "No hay puntos en mapa para ese rango (¿geocode OK del domicilio?). Ajustá fechas o distrito."
-        );
-      }
-    } catch (e: unknown) {
-      if (seq !== loadSeqRef.current) return;
-      const err = e as { response?: { data?: { detail?: string } } };
-      setError(err?.response?.data?.detail ?? "No se pudieron cargar los pendientes operativos.");
-      setFeatures([]);
-    } finally {
-      if (seq === loadSeqRef.current) {
-        setLoading(false);
-      }
-    }
-  }, []);
 
   const loadRealizados = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
     const seq = ++loadSeqRef.current;
@@ -105,8 +57,7 @@ export function useMapaOperativo() {
         distrito_id: _distritoNum(p.distritoId),
         tipo: p.tipo === "TODOS" ? undefined : p.tipo,
         inspector_id: _inspectorNum(p.inspectorId),
-        definicion:
-          p.definicion && p.definicion !== "TODOS" ? p.definicion : undefined,
+        definicion: p.definicion && p.definicion !== "TODOS" ? p.definicion : undefined,
         ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       });
       if (seq !== loadSeqRef.current) return;
@@ -129,21 +80,13 @@ export function useMapaOperativo() {
     }
   }, []);
 
-  const clearForModoSwitch = useCallback(() => {
-    setError(null);
-    setInfoMessage(null);
-    setFeatures([]);
-  }, []);
-
   return {
     features,
     loading,
     error,
     infoMessage,
     setInfoMessage,
-    loadPendientes,
     loadRealizados,
-    clearForModoSwitch,
     setFeatures,
   };
 }

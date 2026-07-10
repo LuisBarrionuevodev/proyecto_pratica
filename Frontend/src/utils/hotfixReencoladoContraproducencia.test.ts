@@ -17,8 +17,9 @@ describe("HOTFIX reencolado contraproducencia — frontend", () => {
     expect(src).toContain("distritoActivoId");
   });
 
-  it("mapa operativo expone loadPendientes para refetch manual", () => {
+  it("mapa operativo expone loadRealizados para refetch manual", () => {
     const src = read("src/Containers/Mapa/hooks/useMapaOperativo.ts");
-    expect(src).toContain("loadPendientes");
+    expect(src).toContain("loadRealizados");
+    expect(src).not.toContain("loadPendientes");
   });
 });

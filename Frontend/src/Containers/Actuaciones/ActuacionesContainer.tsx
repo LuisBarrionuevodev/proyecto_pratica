@@ -453,10 +453,10 @@ const ActuacionesContainer = (): JSX.Element => {
                     <Button
                       size="small"
                       variant="contained"
-                      onClick={() => navigate("/gestionarDomicilios")}
+                      onClick={() => navigate("/mapa")}
                       sx={{ marginLeft: 1 }}
                     >
-                      Ir a Gestionar domicilios
+                      Ir a Mapa
                     </Button>
                   </Alert>
                 )}

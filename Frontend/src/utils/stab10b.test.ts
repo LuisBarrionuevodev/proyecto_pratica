@@ -30,23 +30,17 @@ describe("STAB-10b M4 mapa liviano", () => {
   });
 });
 
-describe("STAB-10b domicilios cache", () => {
-  it("cachea por slice y filtros", () => {
-    const src = read("src/Containers/GestionarDomicilios/hooks/useDomiciliosPendientes.ts");
-    expect(src).toContain("itemsBySliceRef");
-    expect(src).toContain("filtersCacheKey");
-    expect(src).toContain("cached?.key === filtersCacheKey");
+describe("STAB-10b domicilios operativo", () => {
+  it("useGestionDomicilios usa endpoint nuevo con debounce", () => {
+    const src = read("src/Containers/Mapa/views/MapaDomiciliosGeolocalizacion/hooks/useGestionDomicilios.ts");
+    expect(src).toContain("getGestionDomicilios");
+    expect(src).toContain("appliedQ");
+    expect(src).toContain("applySearch");
+    expect(src).not.toContain("getMapPendientes");
   });
 
-  it("refetch invalida cache antes de recargar slice activo", () => {
-    const src = read("src/Containers/GestionarDomicilios/hooks/useDomiciliosPendientes.ts");
-    expect(src).toContain("invalidateCache");
-    const refetchBlock = src.slice(src.indexOf("const refreshActiveSlice"));
-    expect(refetchBlock).toContain("ensureSliceLoaded(activeSlice, true)");
-  });
-
-  it("container refresca datos tras mutación vía refetch PR6C.6", () => {
-    const src = read("src/Containers/GestionarDomicilios/components/GestionDomiciliosVistaUnica.tsx");
+  it("vista refresca datos tras mutación vía refetch", () => {
+    const src = read("src/Containers/Mapa/views/MapaDomiciliosGeolocalizacion/MapaDomiciliosGeolocalizacionView.tsx");
     expect(src).toContain("await refetch()");
     expect(src).toContain("onGuardarPuntoManual");
   });
@@ -64,18 +58,20 @@ describe("STAB-10b PendientesContextoPanel estilos compactos", () => {
 });
 
 describe("STAB-10b diagnóstico mapa operativo (análisis estático)", () => {
-  it("MapPage: requests al montar y al cambiar filtros aplicados", () => {
+  it("MapPage: realizados carga con filtros; geolocalización usa vista compartida", () => {
     const mapPage = read("src/Containers/Mapa/MapPage.tsx");
     expect(mapPage).toContain("fetchInspectores");
     expect(mapPage).toContain("fetchDistritosCatalogo");
-    expect(mapPage).toContain("loadPendientes(loadParamsPendientes)");
+    expect(mapPage).toContain("loadRealizados");
+    expect(mapPage).not.toContain("loadPendientes");
+    expect(mapPage).toContain("MapaDomiciliosGeolocalizacionView");
     expect(mapPage).toContain("handleAplicar");
     expect(mapPage).toContain("forceNetwork: true");
   });
 
-  it("useMapaOperativo: un GET GeoJSON por carga", () => {
+  it("useMapaOperativo: solo GET realizados GeoJSON", () => {
     const hook = read("src/Containers/Mapa/hooks/useMapaOperativo.ts");
-    expect(hook).toContain("getMapOperativoPendientesFC");
+    expect(hook).not.toContain("getMapOperativoPendientesFC");
     expect(hook).toContain("getMapOperativoRealizadosFC");
     expect(hook).toContain("setFeatures([])");
   });

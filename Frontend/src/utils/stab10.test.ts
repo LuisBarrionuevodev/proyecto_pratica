@@ -70,14 +70,14 @@ describe("STAB-10 planificación performance", () => {
     expect(readFileSync(cards, "utf8")).toContain("onCardChange");
   });
 
-  it("domicilios carga por slice activo", () => {
+  it("domicilios usa endpoint operativo nuevo", () => {
     const path = resolve(
       process.cwd(),
-      "src/Containers/GestionarDomicilios/hooks/useDomiciliosPendientes.ts"
+      "src/Containers/Mapa/views/MapaDomiciliosGeolocalizacion/hooks/useGestionDomicilios.ts"
     );
     const src = readFileSync(path, "utf8");
-    expect(src).toContain("activeSlice: DomiciliosSlice");
-    expect(src).not.toContain("Promise.all");
+    expect(src).toContain("getGestionDomicilios");
+    expect(src).not.toContain("getMapPendientes");
   });
 });
 

@@ -5,14 +5,9 @@ import { AppButton } from "../../../ui/AppButton";
 import { AppSelect } from "../../../ui/AppSelect";
 import { AppTextField } from "../../../ui/AppTextField";
 import { MAPA_DEFINICION_OPTIONS, MAPA_TIPO_INICIADOR_OPTIONS } from "../constants/mapaOperativo";
-import type { MapaOperativoModo } from "../hooks/useMapaOperativo";
-import {
-  mapaOperativoBarSx,
-  mapaOperativoFieldSx,
-} from "./mapaOperativoStyles";
+import { mapaOperativoBarSx, mapaOperativoFieldSx } from "./mapaOperativoStyles";
 
 export type MapaFiltrosUnificadosProps = {
-  modo: MapaOperativoModo;
   fechaDesde: string;
   fechaHasta: string;
   onFechaDesdeChange: (v: string) => void;
@@ -20,8 +15,6 @@ export type MapaFiltrosUnificadosProps = {
   distritoId: string;
   onDistritoIdChange: (v: string) => void;
   distritoOptions: { value: string; label: string }[];
-  pendienteTipo: string;
-  onPendienteTipoChange: (v: string) => void;
   realizadoTipoIniciador: string;
   onRealizadoTipoIniciadorChange: (v: string) => void;
   realizadoDefinicion: string;
@@ -33,11 +26,8 @@ export type MapaFiltrosUnificadosProps = {
   onRefrescar: () => void;
 };
 
-/**
- * Una sola caja glass con todos los filtros; el contenido cambía según Pendientes / Realizados.
- */
+/** Filtros del modo Realizados en MapPage. */
 export function MapaFiltrosUnificados({
-  modo,
   fechaDesde,
   fechaHasta,
   onFechaDesdeChange,
@@ -45,8 +35,6 @@ export function MapaFiltrosUnificados({
   distritoId,
   onDistritoIdChange,
   distritoOptions,
-  pendienteTipo,
-  onPendienteTipoChange,
   realizadoTipoIniciador,
   onRealizadoTipoIniciadorChange,
   realizadoDefinicion,
@@ -102,35 +90,27 @@ export function MapaFiltrosUnificados({
           <AppSelect
             appearance="glass"
             label="Tipo"
-            value={modo === "pendientes" ? pendienteTipo : realizadoTipoIniciador}
-            onChange={(e) =>
-              modo === "pendientes"
-                ? onPendienteTipoChange(String(e.target.value))
-                : onRealizadoTipoIniciadorChange(String(e.target.value))
-            }
+            value={realizadoTipoIniciador}
+            onChange={(e) => onRealizadoTipoIniciadorChange(String(e.target.value))}
             options={tipoOptions}
             sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 240 } }}
           />
-          {modo === "realizados" && (
-            <>
-              <AppSelect
-                appearance="glass"
-                label="Definición"
-                value={realizadoDefinicion}
-                onChange={(e) => onRealizadoDefinicionChange(String(e.target.value))}
-                options={MAPA_DEFINICION_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 200 } }}
-              />
-              <AppSelect
-                appearance="glass"
-                label="Inspector"
-                value={inspectorId}
-                onChange={(e) => onInspectorIdChange(String(e.target.value))}
-                options={inspectorOptions.map((o) => ({ value: o.value, label: o.label }))}
-                sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 220 } }}
-              />
-            </>
-          )}
+          <AppSelect
+            appearance="glass"
+            label="Definición"
+            value={realizadoDefinicion}
+            onChange={(e) => onRealizadoDefinicionChange(String(e.target.value))}
+            options={MAPA_DEFINICION_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 200 } }}
+          />
+          <AppSelect
+            appearance="glass"
+            label="Inspector"
+            value={inspectorId}
+            onChange={(e) => onInspectorIdChange(String(e.target.value))}
+            options={inspectorOptions.map((o) => ({ value: o.value, label: o.label }))}
+            sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 220 } }}
+          />
           <Box sx={{ flex: 1, minWidth: { xs: 0, lg: 8 } }} />
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
             <AppButton dsVariant="primary" dsSize="md" onClick={onAplicar}>

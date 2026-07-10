@@ -12,7 +12,6 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import PersonIcon from "@mui/icons-material/Person";
 import type { JSX } from "react";
 
@@ -66,11 +65,6 @@ export const menuSections: MenuSection[] = [
         icon: <FactCheckOutlinedIcon />,
         path: "/actasComprobacion",
       },
-      {
-        text: "Gestionar domicilios",
-        icon: <HomeWorkIcon />,
-        path: "/gestionarDomicilios",
-      },
     ],
   },
   {
@@ -119,7 +113,6 @@ export const routeLabels: Record<string, string> = {
   "/gestionPersonasBpm": "Gestión Personas BPM",
   "/gestionDeUsuarios": "Gestión de usuarios",
   "/dashboard": "Indicadores",
-  "/gestionarDomicilios": "Gestionar domicilios",
   "/mapa": "Mapa",
   "/gestionSistema": "Configuración del sistema",
   "/perfil": "Mi Perfil",

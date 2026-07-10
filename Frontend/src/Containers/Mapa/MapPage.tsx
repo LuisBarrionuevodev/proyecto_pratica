@@ -1,33 +1,38 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import { useSearchParams } from "react-router-dom";
 
 import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
-import { setGeoManual } from "../../api/geoApi";
-import { useAppFeedback } from "../../components/feedback/useAppFeedback";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
-import { MapaCanvas, type RelocalOperativoDraft } from "./Components/MapaCanvas";
+import { MapaCanvas } from "./Components/MapaCanvas";
 import { MapaFiltrosUnificados } from "./Components/MapaFiltrosUnificados";
-import { MapaModoTabs } from "./Components/MapaModoTabs";
+import { MapaModoTabs, type MapaModo } from "./Components/MapaModoTabs";
 import { PanelResumenOperativo } from "./Components/PanelResumenOperativo";
 import { useMapaOperativo, type MapaOperativoLoadOptions } from "./hooks/useMapaOperativo";
+import { MapaDomiciliosGeolocalizacionView } from "./views/MapaDomiciliosGeolocalizacion";
+
+function parseMapaModo(raw: string | null): MapaModo {
+  if (raw === "realizados") return "realizados";
+  if (raw === "geolocalizacion" || raw === "pendientes") return "geolocalizacion";
+  return "geolocalizacion";
+}
 
 /**
- * Vista mapa operativo DIGITALIZA: modos Pendientes / Realizados, filtros institucionales y mapa Leaflet.
+ * Vista mapa DIGITALIZA: Geolocalización de domicilios (PR6C) y Realizados operativos.
  */
 const MapPage = () => {
-  const feedback = useAppFeedback();
+  const [searchParams, setSearchParams] = useSearchParams();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
 
-  const [modo, setModo] = useState<"pendientes" | "realizados">("pendientes");
+  const [modo, setModo] = useState<MapaModo>(() => parseMapaModo(searchParams.get("modo")));
   const [fechaDesde, setFechaDesde] = useState(defaultRange.desde);
   const [fechaHasta, setFechaHasta] = useState(defaultRange.hasta);
   const [distritoId, setDistritoId] = useState("");
 
-  const [pendienteTipo, setPendienteTipo] = useState("TODOS");
   const [realizadoTipoIniciador, setRealizadoTipoIniciador] = useState("TODOS");
   const [realizadoDefinicion, setRealizadoDefinicion] = useState("TODOS");
   const [inspectorId, setInspectorId] = useState("");
@@ -35,21 +40,11 @@ const MapPage = () => {
   const [mapExpanded, setMapExpanded] = useState(false);
   const [inspectores, setInspectores] = useState<CatalogItem[]>([]);
 
-  const [relocalDraft, setRelocalDraft] = useState<RelocalOperativoDraft | null>(null);
-  const [relocalGuardando, setRelocalGuardando] = useState(false);
-
   const [distritoOptions, setDistritoOptions] = useState<{ value: string; label: string }[]>([
     { value: "", label: "Todos los distritos" },
   ]);
 
-  const {
-    features,
-    loading,
-    error,
-    infoMessage,
-    loadPendientes,
-    loadRealizados,
-  } = useMapaOperativo();
+  const { features, loading, error, infoMessage, loadRealizados } = useMapaOperativo();
 
   const filtrosMapa = useMemo(
     () => ({
@@ -61,11 +56,6 @@ const MapPage = () => {
     [fechaDesde, fechaHasta, distritoId, inspectorId]
   );
 
-  const loadParamsPendientes = useMemo(
-    () => ({ ...filtrosMapa, tipo: pendienteTipo }),
-    [filtrosMapa, pendienteTipo]
-  );
-
   const loadParamsRealizados = useMemo(
     () => ({
       ...filtrosMapa,
@@ -75,30 +65,27 @@ const MapPage = () => {
     [filtrosMapa, realizadoTipoIniciador, realizadoDefinicion]
   );
 
-  /**
-   * Snapshot síncrono de lo que muestra el formulario (un solo ref, actualizado cada render).
-   * Refrescar lee esto tras un microtask para alinear con commits recientes de React.
-   */
   const filtrosUiRef = useRef({
-    modo,
     from: fechaDesde,
     to: fechaHasta,
     distritoId,
     inspectorId,
-    pendienteTipo,
     realizadoTipoIniciador,
     realizadoDefinicion,
   });
   filtrosUiRef.current = {
-    modo,
     from: fechaDesde,
     to: fechaHasta,
     distritoId,
     inspectorId,
-    pendienteTipo,
     realizadoTipoIniciador,
     realizadoDefinicion,
   };
+
+  useEffect(() => {
+    const urlModo = parseMapaModo(searchParams.get("modo"));
+    setModo(urlModo);
+  }, [searchParams]);
 
   useEffect(() => {
     const load = async () => {
@@ -140,107 +127,67 @@ const MapPage = () => {
   }, [distritoOptions, distritoId]);
 
   useEffect(() => {
-    if (modo === "pendientes") {
-      void loadPendientes(loadParamsPendientes);
-    } else {
+    if (modo === "realizados") {
       void loadRealizados(loadParamsRealizados);
     }
-  }, [modo, loadPendientes, loadRealizados, loadParamsPendientes, loadParamsRealizados]);
+  }, [modo, loadRealizados, loadParamsRealizados]);
 
   const handleAplicar = useCallback(() => {
-    if (modo === "pendientes") {
-      void loadPendientes(loadParamsPendientes);
-      return;
-    }
     void loadRealizados(loadParamsRealizados);
-  }, [modo, loadPendientes, loadRealizados, loadParamsPendientes, loadParamsRealizados]);
+  }, [loadRealizados, loadParamsRealizados]);
 
-  const handleModoChange = useCallback((m: "pendientes" | "realizados") => {
-    setModo(m);
-    setMapExpanded(false);
-    setRelocalDraft(null);
-    if (m === "pendientes") {
-      setInspectorId("");
-    }
-  }, []);
+  const handleModoChange = useCallback(
+    (m: MapaModo) => {
+      setModo(m);
+      setMapExpanded(false);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (m === "geolocalizacion") {
+            next.delete("modo");
+          } else {
+            next.set("modo", m);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
-  useEffect(() => {
-    setRelocalDraft(null);
-  }, [
-    fechaDesde,
-    fechaHasta,
-    distritoId,
-    inspectorId,
-    pendienteTipo,
-    realizadoTipoIniciador,
-    realizadoDefinicion,
-  ]);
-
-  const cargarOperativoConSnapshotUi = useCallback(async (opts?: MapaOperativoLoadOptions) => {
-    const s = filtrosUiRef.current;
-    const base = {
-      from: s.from,
-      to: s.to,
-      distritoId: s.distritoId,
-      inspectorId: s.modo === "pendientes" ? "" : s.inspectorId,
-    };
-    if (s.modo === "pendientes") {
-      await loadPendientes({ ...base, tipo: s.pendienteTipo }, opts);
-    } else {
+  const cargarRealizadosConSnapshotUi = useCallback(
+    async (opts?: MapaOperativoLoadOptions) => {
+      const s = filtrosUiRef.current;
       await loadRealizados(
-        { ...base, tipo: s.realizadoTipoIniciador, definicion: s.realizadoDefinicion },
+        {
+          from: s.from,
+          to: s.to,
+          distritoId: s.distritoId,
+          inspectorId: s.inspectorId,
+          tipo: s.realizadoTipoIniciador,
+          definicion: s.realizadoDefinicion,
+        },
         opts
       );
-    }
-  }, [loadPendientes, loadRealizados]);
+    },
+    [loadRealizados]
+  );
 
   const refrescarOperativoDesdeFormulario = useCallback(() => {
     queueMicrotask(() => {
-      void cargarOperativoConSnapshotUi({ forceNetwork: true });
+      void cargarRealizadosConSnapshotUi({ forceNetwork: true });
     });
-  }, [cargarOperativoConSnapshotUi]);
-
-  const handleIniciarRelocalizacion = useCallback((payload: RelocalOperativoDraft) => {
-    setRelocalDraft({ ...payload });
-  }, []);
-
-  const handleRelocalDraftMove = useCallback((lat: number, lng: number) => {
-    setRelocalDraft((d) => (d ? { ...d, lat, lng } : null));
-  }, []);
-
-  const handleCancelarRelocalizacion = useCallback(() => {
-    setRelocalDraft(null);
-  }, []);
-
-  const handleConfirmarRelocalizacion = useCallback(async () => {
-    if (!relocalDraft) return;
-    setRelocalGuardando(true);
-    try {
-      await setGeoManual(relocalDraft.domicilio_id, relocalDraft.lat, relocalDraft.lng);
-      setRelocalDraft(null);
-      feedback.success(
-        "Ubicación guardada. El mapa y el panel se actualizan con el nuevo geocode del domicilio."
-      );
-      await cargarOperativoConSnapshotUi();
-    } catch (e: unknown) {
-      const detail =
-        e && typeof e === "object" && "response" in e
-          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
-          : null;
-      feedback.error(typeof detail === "string" ? detail : "No se pudo guardar la ubicación.");
-    } finally {
-      setRelocalGuardando(false);
-    }
-  }, [relocalDraft, cargarOperativoConSnapshotUi, feedback]);
+  }, [cargarRealizadosConSnapshotUi]);
 
   return (
     <Stack sx={functionalPageShellSx}>
-      {error && (
+      {modo === "realizados" && error && (
         <Alert severity="error" sx={alertBaseStyles}>
           {error}
         </Alert>
       )}
-      {infoMessage && (
+      {modo === "realizados" && infoMessage && (
         <Alert severity="info" sx={alertBaseStyles}>
           {infoMessage}
         </Alert>
@@ -248,70 +195,74 @@ const MapPage = () => {
 
       <MapaModoTabs modo={modo} onModoChange={handleModoChange} />
 
-      <MapaFiltrosUnificados
-        modo={modo}
-        fechaDesde={fechaDesde}
-        fechaHasta={fechaHasta}
-        onFechaDesdeChange={setFechaDesde}
-        onFechaHastaChange={setFechaHasta}
-        distritoId={distritoId}
-        onDistritoIdChange={setDistritoId}
-        distritoOptions={distritoOptions}
-        pendienteTipo={pendienteTipo}
-        onPendienteTipoChange={setPendienteTipo}
-        realizadoTipoIniciador={realizadoTipoIniciador}
-        onRealizadoTipoIniciadorChange={setRealizadoTipoIniciador}
-        realizadoDefinicion={realizadoDefinicion}
-        onRealizadoDefinicionChange={setRealizadoDefinicion}
-        inspectorId={inspectorId}
-        onInspectorIdChange={setInspectorId}
-        inspectores={inspectores}
-        onAplicar={handleAplicar}
-        onRefrescar={refrescarOperativoDesdeFormulario}
-      />
-
-      <Grid
-        container
-        spacing={2}
-        sx={
-          mapExpanded
-            ? {
-                alignItems: "stretch",
-                minHeight: { xs: "72vh", md: "min(92vh, 960px)" },
-              }
-            : undefined
-        }
-      >
-        {!mapExpanded && (
-          <Grid size={{ xs: 12, md: 4 }} sx={{ order: { xs: 2, md: 1 } }}>
-            <PanelResumenOperativo modo={modo} features={features} />
-          </Grid>
-        )}
-        <Grid
-          size={{ xs: 12, md: mapExpanded ? 12 : 8 }}
-          sx={{
-            order: { xs: 1, md: 2 },
-            display: "flex",
-            flexDirection: "column",
-            minHeight: mapExpanded ? { xs: "72vh", md: "min(92vh, 960px)" } : undefined,
-            flex: mapExpanded ? 1 : undefined,
-          }}
-        >
-          <MapaCanvas
-            modo={modo}
-            features={features}
-            loading={loading}
-            mapExpanded={mapExpanded}
-            onToggleExpand={() => setMapExpanded((e) => !e)}
-            relocalDraft={modo === "pendientes" ? relocalDraft : null}
-            onRelocalDraftMove={handleRelocalDraftMove}
-            onIniciarRelocalizacion={handleIniciarRelocalizacion}
-            onCancelarRelocalizacion={handleCancelarRelocalizacion}
-            onConfirmarRelocalizacion={handleConfirmarRelocalizacion}
-            relocalGuardando={relocalGuardando}
+      {modo === "geolocalizacion" ? (
+        <MapaDomiciliosGeolocalizacionView
+          title="Mapa"
+          subtitle="Geolocalización de domicilios"
+          showHeader={false}
+          filterVariant="mapa"
+          actionVariant="icon"
+          showDetailPanel={false}
+          defaultStatus="requiere_accion"
+        />
+      ) : (
+        <>
+          <MapaFiltrosUnificados
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
+            onFechaDesdeChange={setFechaDesde}
+            onFechaHastaChange={setFechaHasta}
+            distritoId={distritoId}
+            onDistritoIdChange={setDistritoId}
+            distritoOptions={distritoOptions}
+            realizadoTipoIniciador={realizadoTipoIniciador}
+            onRealizadoTipoIniciadorChange={setRealizadoTipoIniciador}
+            realizadoDefinicion={realizadoDefinicion}
+            onRealizadoDefinicionChange={setRealizadoDefinicion}
+            inspectorId={inspectorId}
+            onInspectorIdChange={setInspectorId}
+            inspectores={inspectores}
+            onAplicar={handleAplicar}
+            onRefrescar={refrescarOperativoDesdeFormulario}
           />
-        </Grid>
-      </Grid>
+
+          <Grid
+            container
+            spacing={2}
+            sx={
+              mapExpanded
+                ? {
+                    alignItems: "stretch",
+                    minHeight: { xs: "72vh", md: "min(92vh, 960px)" },
+                  }
+                : undefined
+            }
+          >
+            {!mapExpanded && (
+              <Grid size={{ xs: 12, md: 4 }} sx={{ order: { xs: 2, md: 1 } }}>
+                <PanelResumenOperativo features={features} />
+              </Grid>
+            )}
+            <Grid
+              size={{ xs: 12, md: mapExpanded ? 12 : 8 }}
+              sx={{
+                order: { xs: 1, md: 2 },
+                display: "flex",
+                flexDirection: "column",
+                minHeight: mapExpanded ? { xs: "72vh", md: "min(92vh, 960px)" } : undefined,
+                flex: mapExpanded ? 1 : undefined,
+              }}
+            >
+              <MapaCanvas
+                features={features}
+                loading={loading}
+                mapExpanded={mapExpanded}
+                onToggleExpand={() => setMapExpanded((e) => !e)}
+              />
+            </Grid>
+          </Grid>
+        </>
+      )}
     </Stack>
   );
 };

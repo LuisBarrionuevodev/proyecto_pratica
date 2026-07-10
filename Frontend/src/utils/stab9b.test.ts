@@ -47,15 +47,3 @@ describe("refreshOnSavePolicy", () => {
     expect(shouldRefreshDenunciasAfterSaveFailure(err, {})).toBe(false);
   });
 });
-
-describe("TabNomenclaturaTable STAB-9b", () => {
-  it("no usa window.alert", () => {
-    const path = resolve(
-      process.cwd(),
-      "src/Containers/GestionarDomicilios/components/TabNomenclaturaTable.tsx"
-    );
-    const src = readFileSync(path, "utf8");
-    expect(src).not.toMatch(/window\.alert/);
-    expect(src).not.toMatch(/\balert\s*\(/);
-  });
-});

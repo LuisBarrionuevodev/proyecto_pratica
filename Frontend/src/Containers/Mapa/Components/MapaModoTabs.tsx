@@ -1,29 +1,24 @@
 import { Paper, Tab, Tabs } from "@mui/material";
 
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
-import type { MapaOperativoModo } from "../hooks/useMapaOperativo";
 
-const tactic = '"Tactic Sans", sans-serif' as const;
+/** Modo de navegación en MapPage (PR6C.11). */
+export type MapaModo = "geolocalizacion" | "realizados";
 
 export type MapaModoTabsProps = {
-  modo: MapaOperativoModo;
-  onModoChange: (m: MapaOperativoModo) => void;
+  modo: MapaModo;
+  onModoChange: (m: MapaModo) => void;
 };
 
 /**
- * Slice de modo: mismo Paper + Tabs secundarios que Actas de comprobación / Relevamientos (F3.8c).
+ * Tabs principales Mapa — mismo patrón que RelevamientosSectionContainer (alineación izquierda, sin fullWidth).
  */
 export function MapaModoTabs({ modo, onModoChange }: MapaModoTabsProps) {
   return (
     <Paper elevation={0} sx={moduleSlicesPanelPaperSx}>
-      <Tabs
-        value={modo}
-        onChange={(_, value) => onModoChange(value as MapaOperativoModo)}
-        variant="fullWidth"
-        sx={{ ...moduleSlicesTabsSx, width: "100%" }}
-      >
-        <Tab label="Pendientes" value="pendientes" sx={{ fontFamily: tactic, fontWeight: 500, textTransform: "none" }} />
-        <Tab label="Realizados" value="realizados" sx={{ fontFamily: tactic, fontWeight: 500, textTransform: "none" }} />
+      <Tabs value={modo} onChange={(_, value) => onModoChange(value as MapaModo)} sx={moduleSlicesTabsSx}>
+        <Tab label="Geolocalización" value="geolocalizacion" />
+        <Tab label="Realizados" value="realizados" />
       </Tabs>
     </Paper>
   );
