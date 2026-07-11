@@ -1,6 +1,7 @@
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { updateRelevamiento } from "../../../api/relevamientosApi";
 import { validateRow } from "../../../api/gridApi";
+import { applyEstablecimientoCamposToPayload } from "./relevamientoCamposForm";
 
 /** Mapeo de errores (grid / backend → claves de columna de la tabla). */
 export const RELEVAMIENTO_ROW_ERROR_KEY_MAP: Record<string, string> = {
@@ -9,6 +10,8 @@ export const RELEVAMIENTO_ROW_ERROR_KEY_MAP: Record<string, string> = {
   Calle: "calle",
   Numero: "numero",
   Rubro: "rubro",
+  "Nombre fantasía": "nombre_fantasia",
+  "Ángulo esquina": "angulo_esquina",
   Turno: "turno",
   "Está abierto": "esta_abierto",
   /** Duplicados / reglas de fila completa (backend grid validate): mostrar junto al domicilio. */
@@ -28,7 +31,7 @@ export function normalizeRelevamientoRowErrors(errors?: Record<string, string>):
 /**
  * Fila en el shape que espera el validador de grilla para el batch de relevamientos.
  */
-function buildGridRow(row: IRelevamientoListItem) {
+export function buildRelevamientoGridRow(row: IRelevamientoListItem) {
   return {
     ID: row.id,
     Fecha: row.fecha,
@@ -36,6 +39,8 @@ function buildGridRow(row: IRelevamientoListItem) {
     Calle: row.calle,
     Numero: row.numero,
     Rubro: row.rubro,
+    "Nombre fantasía": row.nombre_fantasia ?? "",
+    "Ángulo esquina": row.angulo_esquina ?? "",
     Turno: row.turno ?? "",
     "Está abierto":
       row.esta_abierto === true ? "Sí" : row.esta_abierto === false ? "No" : "",
@@ -46,7 +51,7 @@ function buildGridRow(row: IRelevamientoListItem) {
  * Normaliza valores de edición (selects MRT) al shape que acepta el API.
  */
 export function normalizeRelevamientoRowForApi(row: IRelevamientoListItem): IRelevamientoListItem {
-  const copy = { ...row };
+  const copy = applyEstablecimientoCamposToPayload({ ...row });
   const ea = copy.esta_abierto as unknown;
   if (ea === "Sí" || ea === "Si" || ea === "si") copy.esta_abierto = true;
   else if (ea === "No" || ea === "no") copy.esta_abierto = false;
@@ -105,7 +110,7 @@ export async function submitRelevamientoRow(
     const v = await validateRow({
       batch_id: batchId,
       row_id: `rel_${id}`,
-      row: buildGridRow(fullRow) as any,
+      row: buildRelevamientoGridRow(fullRow) as any,
     });
 
     if (!v.ok) {

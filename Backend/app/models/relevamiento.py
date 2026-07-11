@@ -38,6 +38,8 @@ class Relevamiento(db.Model):
         unique=False,
         index=True,
     )
+    nombre_fantasia = db.Column(db.String(255), nullable=True)
+    angulo_esquina = db.Column(db.String(10), nullable=True)
     created_by_user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -73,6 +75,8 @@ class Relevamiento(db.Model):
             "inspector_id": self.inspector_id,
             "domicilio_id": self.domicilio_id,
             "rubro_id": self.rubro_id,
+            "nombre_fantasia": self.nombre_fantasia,
+            "angulo_esquina": self.angulo_esquina,
             "created_by_user_id": self.created_by_user_id,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

@@ -17,9 +17,12 @@ class BatchState:
     row_keys: Dict[str, DupKey] = field(default_factory=dict)
     # dup_key -> row_id (índice rápido para detectar duplicados)
     key_index: Dict[DupKey, str] = field(default_factory=dict)
-    # relevamientos: misma calle+número (no esquina) → una sola fila por location_key en el lote
-    relev_row_meta: Dict[str, Tuple[str, bool]] = field(default_factory=dict)
-    relev_altura_index: Dict[str, str] = field(default_factory=dict)
+    # relevamientos: metadatos por fila (location_key, is_esquina, establishment_key)
+    relev_row_meta: Dict[str, Tuple[str, bool, Optional[str]]] = field(default_factory=dict)
+    # relevamientos NUMERO/OTRO: clave de establecimiento → row_id (PR7.6)
+    relev_numero_est_index: Dict[str, str] = field(default_factory=dict)
+    # relevamientos ESQUINA: clave de establecimiento → row_id (PR7.5)
+    relev_esquina_est_index: Dict[str, str] = field(default_factory=dict)
 
 
 class InMemoryBatchStore:
@@ -97,38 +100,51 @@ class InMemoryBatchStore:
         meta = st.relev_row_meta.pop(row_id, None)
         if meta is None:
             return
-        location_key, is_esquina = meta
-        if not is_esquina and st.relev_altura_index.get(location_key) == row_id:
-            del st.relev_altura_index[location_key]
+        _location_key, is_esquina, establishment_key = meta
+        if establishment_key:
+            if is_esquina and st.relev_esquina_est_index.get(establishment_key) == row_id:
+                del st.relev_esquina_est_index[establishment_key]
+            if not is_esquina and st.relev_numero_est_index.get(establishment_key) == row_id:
+                del st.relev_numero_est_index[establishment_key]
 
     def upsert_relevamiento_ubicacion(
-        self, batch_id: UUID, row_id: str, location_key: str, is_esquina: bool
+        self,
+        batch_id: UUID,
+        row_id: str,
+        location_key: str,
+        is_esquina: bool,
+        establishment_key: Optional[str] = None,
     ) -> Optional[str]:
         """
-        Duplicados relevamientos en el lote (alineado a regla de negocio):
-        - No esquina: una sola fila por `location_key` (misma calle+número), sin importar fecha/rubro.
-        - Esquina: no se bloquea por ubicación en el lote (pueden coexistir varias filas).
+        Duplicados relevamientos en el lote (PR7.5 / PR7.6):
+        - ESQUINA: varias filas por ubicación; bloquea si ``establishment_key`` coincide.
+        - NUMERO/OTRO: varias filas por ubicación si rubro/nombre difieren; bloquea duplicado exacto.
         """
         st = self.get(batch_id)
         old_meta = st.relev_row_meta.pop(row_id, None)
         if old_meta is not None:
-            oloc, oesq = old_meta
-            if not oesq and st.relev_altura_index.get(oloc) == row_id:
-                del st.relev_altura_index[oloc]
+            _oloc, oesq, oest = old_meta
+            if oest:
+                if oesq and st.relev_esquina_est_index.get(oest) == row_id:
+                    del st.relev_esquina_est_index[oest]
+                if not oesq and st.relev_numero_est_index.get(oest) == row_id:
+                    del st.relev_numero_est_index[oest]
 
-        if is_esquina:
-            st.relev_row_meta[row_id] = (location_key, True)
+        index = st.relev_esquina_est_index if is_esquina else st.relev_numero_est_index
+        st.relev_row_meta[row_id] = (location_key, is_esquina, establishment_key)
+
+        if not establishment_key:
             return None
 
-        other = st.relev_altura_index.get(location_key)
+        other = index.get(establishment_key)
         if other is not None and other != row_id:
             if old_meta is not None:
-                oloc, oesq = old_meta
                 st.relev_row_meta[row_id] = old_meta
-                if not oesq:
-                    st.relev_altura_index[oloc] = row_id
+                _oloc, oesq, oest = old_meta
+                if oest:
+                    idx = st.relev_esquina_est_index if oesq else st.relev_numero_est_index
+                    idx[oest] = row_id
             return other
 
-        st.relev_row_meta[row_id] = (location_key, False)
-        st.relev_altura_index[location_key] = row_id
+        index[establishment_key] = row_id
         return None

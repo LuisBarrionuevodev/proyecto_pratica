@@ -12,6 +12,8 @@ export const COLUMN_DEFINITIONS = [
   { id: "Calle", title: "Calle", width: 168, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "text" },
   { id: "Numero", title: "Numero", width: 96, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderNumber, cellType: "text" },
   { id: "Rubro", title: "Rubro", width: 156, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
+  { id: "Nombre fantasía", title: "Nombre fantasía", width: 168, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "text" },
+  { id: "Ángulo esquina", title: "Ángulo esquina", width: 120, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
   { id: "Turno", title: "Turno", width: 104, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
   { id: "Está abierto", title: "Está abierto", width: 118, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
 ];

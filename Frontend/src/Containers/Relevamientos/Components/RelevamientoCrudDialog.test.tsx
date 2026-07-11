@@ -29,6 +29,8 @@ const baseRow: IRelevamientoListItem = {
 
 const catalogs = { inspectores: ["García", "López"], rubros: ["Carnicería"] };
 
+import { buildNumeroTipoDraftPatch } from "../utils/relevamientoCamposForm";
+
 describe("RelevamientoCrudDialog", () => {
   it("modo vista muestra Editar primary sin IDs en título", () => {
     const html = render(
@@ -101,5 +103,77 @@ describe("RelevamientoCrudDialog", () => {
     );
     expect(html).toContain("No se pudo guardar");
     expect(html).toContain("Calle inválida");
+  });
+
+  it("modo edición muestra Nombre fantasía siempre", () => {
+    const html = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={{ ...baseRow, nombre_fantasia: "El Toro" }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Nombre fantasía");
+    expect(html).toContain("Opcional. Sirve para distinguir locales en una misma esquina.");
+  });
+
+  it("muestra Ángulo esquina solo en ESQUINA", () => {
+    const esquinaHtml = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={{
+          ...baseRow,
+          numero_tipo: "ESQUINA",
+          numero: "Belgrano y Mitre",
+          angulo_esquina: "NE",
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número o esquina"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(esquinaHtml).toContain("Ángulo esquina");
+    expect(esquinaHtml).toContain("Solo para esquinas/intersecciones.");
+
+    const numeroHtml = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={{ ...baseRow, numero_tipo: "NUMERO", numero: "450" }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(numeroHtml).not.toContain("Ángulo esquina");
+  });
+
+  it("cambiar ESQUINA → NUMERO limpia ángulo en patch", () => {
+    expect(buildNumeroTipoDraftPatch("NUMERO")).toEqual({
+      numero_tipo: "NUMERO",
+      angulo_esquina: null,
+    });
   });
 });

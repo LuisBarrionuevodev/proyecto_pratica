@@ -3,6 +3,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
 import { AppButton } from "../../../../ui";
+import { EstablecimientoSecundarioLine } from "./EstablecimientoSecundarioLine";
 import {
   lineaPrincipalPendiente,
   rubroLineaPendiente,
@@ -90,6 +91,7 @@ export function PlanificacionMapaGeopuntoOperativaCard({
           <Typography component="div" sx={valueSx}>
             {rubro}
           </Typography>
+          <EstablecimientoSecundarioLine item={row} fontSize="0.68rem" />
         </Box>
         <Box>
           <Typography

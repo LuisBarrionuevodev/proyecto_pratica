@@ -47,6 +47,8 @@ _MAP_PIN_KEYS = frozenset(
         "distrito_id",
         "distrito_nombre",
         "rubro_nombre",
+        "nombre_fantasia",
+        "angulo_esquina",
         "domicilio",
         "origen",
         "lat",

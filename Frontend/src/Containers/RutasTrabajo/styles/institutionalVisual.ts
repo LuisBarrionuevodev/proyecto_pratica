@@ -26,11 +26,29 @@ export const planificacionFixedSectionSx: SxProps<Theme> = {
   flexShrink: 0,
 };
 
-export const planificacionListViewportSx: SxProps<Theme> = {
-  flex: "1 1 auto",
+/** Footer/paginación fija visible al pie del panel (fuera del body scrolleable). */
+export const planificacionPanelFooterSx: SxProps<Theme> = {
+  ...planificacionFixedSectionSx,
+};
+
+/** Padding inferior en listas con scroll para ver la última card/fila completa. */
+export const planificacionListScrollSafeSx: SxProps<Theme> = {
+  paddingBottom: 1.5,
+  scrollPaddingBottom: "16px",
+  boxSizing: "border-box",
+};
+
+/** Body scrolleable: ocupa espacio restante sin empujar el footer fuera del panel. */
+export const planificacionListBodySx: SxProps<Theme> = {
+  flex: "1 1 0",
   minHeight: 0,
   overflowY: "auto",
   overflowX: "hidden",
+  ...planificacionListScrollSafeSx,
+};
+
+export const planificacionListViewportSx: SxProps<Theme> = {
+  ...planificacionListBodySx,
 };
 
 /** Fila compacta de filtros Urgentes (una línea en desktop). */
@@ -39,16 +57,15 @@ export const planificacionUrgentesFiltrosSx: SxProps<Theme> = {
   width: "100%",
 };
 
-/** Lista Urgentes: altura mínima + scroll (filtros compactos arriba). */
+/** Lista Urgentes: scroll propio; altura mínima la garantiza el slot padre. */
 export const planificacionUrgentesListViewportSx: SxProps<Theme> = {
-  ...planificacionListViewportSx,
-  flex: "1 1 auto",
-  minHeight: "16rem",
+  ...planificacionListBodySx,
 };
 
 /** Lista Pool del día: scroll acotado sin invadir slot Urgentes. */
 export const planificacionPoolListViewportSx: SxProps<Theme> = {
-  ...planificacionListViewportSx,
+  ...planificacionListBodySx,
+  flex: "1 1 0",
   minHeight: "4.5rem",
   maxHeight: "min(16vh, 132px)",
 };

@@ -95,6 +95,9 @@ export interface IRutaIniciadorPendienteRow {
   distrito_id?: number | null;
   distrito_nombre?: string | null;
   rubro_nombre?: string | null;
+  /** Discriminadores operativos del relevamiento origen (PR7.8/7.9). */
+  nombre_fantasia?: string | null;
+  angulo_esquina?: string | null;
   badges?: {
     tipo_label?: string | null;
     estado_label?: string | null;
@@ -171,6 +174,9 @@ export interface IRutaItemMin {
   distrito_id?: number | null;
   distrito_nombre?: string | null;
   rubro_nombre?: string | null;
+  /** Discriminadores operativos del relevamiento origen (ítem en ruta publicada/asignada). */
+  nombre_fantasia?: string | null;
+  angulo_esquina?: string | null;
 }
 
 export interface IAssignItemsRequest {

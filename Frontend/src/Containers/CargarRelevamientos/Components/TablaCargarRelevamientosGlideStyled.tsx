@@ -57,6 +57,11 @@ import {
   formatRelevamientoRailCellLine,
   translateRelevamientoValidationMessage,
 } from "../utils/relevamientoGridUxMessages";
+import {
+  normalizarAnguloEsquinaFrontend,
+  normalizarNombreFantasiaFrontend,
+  relevamientoAnguloEsAplicable,
+} from "../../Relevamientos/utils/relevamientoCamposForm";
 
 interface TablaCargarRelevamientosGlideStyledProps {
   showTitle?: boolean;
@@ -377,6 +382,16 @@ const TablaCargarRelevamientosGlideStyled = ({
         const canon = turnoDropdownLabelToStored(value);
         value = canon === null ? null : canon;
       }
+      if (columnId === "Nombre fantasía" && typeof value === "string") {
+        value = normalizarNombreFantasiaFrontend(value);
+      }
+      if (columnId === "Ángulo esquina") {
+        const ang = normalizarAnguloEsquinaFrontend(
+          value === null || value === undefined ? null : String(value),
+          { numero: (rowData.Numero as string) ?? null }
+        );
+        value = ang.value;
+      }
 
       let updatedRow: GridRow = {
         ...rowData,
@@ -584,6 +599,31 @@ const TablaCargarRelevamientosGlideStyled = ({
       if (cellType === "dropdown" && columnId === "Turno") {
         const options = [...TURNO_DROPDOWN_LABELS];
         const dropdownValue = turnoStoredToDropdownLabel(value ? value.toString() : null);
+        return {
+          kind: GridCellKind.Custom,
+          allowOverlay: true,
+          copyData: dropdownValue || "",
+          data: { kind: "dropdown-cell", allowedValues: options, value: dropdownValue },
+          themeOverride,
+        } as any;
+      }
+
+      if (cellType === "dropdown" && columnId === "Ángulo esquina") {
+        const anguloAplica = relevamientoAnguloEsAplicable({
+          numero: (rowData.Numero as string) ?? null,
+        });
+        if (!anguloAplica) {
+          return {
+            kind: GridCellKind.Text,
+            data: "",
+            displayData: "—",
+            allowOverlay: false,
+            readonly: true,
+            themeOverride: { bgCell: bgColor, textDark: "#666666" },
+          };
+        }
+        const options = getDropdownOptions(columnId, catalogs);
+        const dropdownValue = value ? value.toString() : null;
         return {
           kind: GridCellKind.Custom,
           allowOverlay: true,

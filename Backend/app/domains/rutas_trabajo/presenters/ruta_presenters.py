@@ -107,6 +107,49 @@ def _numeric_to_float(value: Decimal | float | int | None) -> float | None:
     return float(value)
 
 
+def _rubro_nombre_para_iniciador(
+    iniciador: IniciadorRuta | None,
+    dom: Domicilio | None,
+) -> str | None:
+    """
+    Resuelve el rubro mostrado en Ruta de Trabajo.
+
+    Para ``tipo_iniciador == RELEVAMIENTO`` la fuente canónica es ``relevamiento.rubro``
+    (PR7.8: evita rubro desactualizado en domicilio compartido ESQUINA multi-rubro).
+    Otros tipos usan ``domicilio.rubro`` con fallback legacy a relevamiento.
+    """
+    if iniciador and iniciador.tipo_iniciador == "RELEVAMIENTO":
+        rel = iniciador.relevamiento
+        if rel and rel.rubro:
+            nombre = _s(rel.rubro.nombre)
+            if nombre:
+                return nombre
+
+    rubro_nombre = dom.rubro.nombre if dom and dom.rubro else None
+    if not rubro_nombre and iniciador and iniciador.relevamiento and iniciador.relevamiento.rubro:
+        rubro_nombre = iniciador.relevamiento.rubro.nombre
+    return rubro_nombre or None
+
+
+def _establecimiento_campos_relevamiento(iniciador: IniciadorRuta | None) -> dict[str, str | None]:
+    """
+    Discriminadores operativos del relevamiento origen (no persistidos en iniciador).
+
+    Retorna ``nombre_fantasia`` y ``angulo_esquina`` como null si faltan o están vacíos.
+    """
+    out: dict[str, str | None] = {"nombre_fantasia": None, "angulo_esquina": None}
+    if not iniciador or iniciador.tipo_iniciador != "RELEVAMIENTO":
+        return out
+    rel = iniciador.relevamiento
+    if not rel:
+        return out
+    nf = _s(rel.nombre_fantasia) or None
+    ae = _s(rel.angulo_esquina) or None
+    out["nombre_fantasia"] = nf
+    out["angulo_esquina"] = ae
+    return out
+
+
 def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
     """
     Extrae domicilio, texto UI, distrito, rubro y coordenadas desde iniciador → domicilio → geocode.
@@ -132,9 +175,7 @@ def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
         domicilio_id = dom.id
         distrito_id = dom.distrito_id
         distrito_nombre = dom.distrito.nombre if dom.distrito else None
-        rubro_nombre = dom.rubro.nombre if dom.rubro else None
-        if ini and not rubro_nombre and ini.relevamiento and ini.relevamiento.rubro:
-            rubro_nombre = ini.relevamiento.rubro.nombre
+        rubro_nombre = _rubro_nombre_para_iniciador(ini, dom)
 
         gc = dom.geocode
         if gc:
@@ -145,6 +186,7 @@ def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
                 lat = la
                 lng = ln
 
+    establecimiento = _establecimiento_campos_relevamiento(ini)
     return {
         "domicilio_id": domicilio_id,
         "domicilio_texto": domicilio_texto,
@@ -154,6 +196,8 @@ def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
         "distrito_id": distrito_id,
         "distrito_nombre": distrito_nombre,
         "rubro_nombre": rubro_nombre,
+        "nombre_fantasia": establecimiento["nombre_fantasia"],
+        "angulo_esquina": establecimiento["angulo_esquina"],
     }
 
 
@@ -281,9 +325,8 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
         origen = "OFICIO"
 
     domicilio_texto = _build_domicilio_texto_desde_dom(dom)
-    rubro_nombre = dom.rubro.nombre if dom and dom.rubro else None
-    if not rubro_nombre and iniciador.relevamiento and iniciador.relevamiento.rubro:
-        rubro_nombre = iniciador.relevamiento.rubro.nombre
+    rubro_nombre = _rubro_nombre_para_iniciador(iniciador, dom)
+    establecimiento = _establecimiento_campos_relevamiento(iniciador)
     distrito_id = dom.distrito_id if dom else None
     distrito_nombre = dom.distrito.nombre if dom and dom.distrito else None
 
@@ -328,6 +371,8 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
         "distrito_id": distrito_id,
         "distrito_nombre": distrito_nombre,
         "rubro_nombre": rubro_nombre,
+        "nombre_fantasia": establecimiento["nombre_fantasia"],
+        "angulo_esquina": establecimiento["angulo_esquina"],
         "origen": {
             "tipo": origen,
             "denuncia_id": iniciador.denuncia_id,
@@ -365,6 +410,8 @@ _MAP_PIN_KEYS: tuple[str, ...] = (
     "distrito_id",
     "distrito_nombre",
     "rubro_nombre",
+    "nombre_fantasia",
+    "angulo_esquina",
     "domicilio",
     "origen",
     "lat",

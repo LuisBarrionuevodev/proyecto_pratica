@@ -1,5 +1,9 @@
 import type { IRutaGrupoMin, IRutaItemMin, IRutaTrabajo } from "../../api/rutasTrabajoApi";
 import { parseCoord } from "../../utils/mapCoords";
+import {
+  buildBloqueDireccionOperativaPdf,
+  buildEstablecimientoSecundarioText,
+} from "../utils/establecimientoSecundario";
 import type {
   RutaDocumentoGrupo,
   RutaDocumentoInspector,
@@ -60,6 +64,9 @@ export function buildRutaPublicadaDocumentModel(
       domicilioTexto: (it.domicilio_texto ?? "").trim() || "—",
       distritoNombre: it.distrito_nombre ?? null,
       rubroNombre: it.rubro_nombre ?? null,
+      nombreFantasia: (it.nombre_fantasia ?? "").trim() || null,
+      anguloEsquina: (it.angulo_esquina ?? "").trim() || null,
+      establecimientoSecundario: buildEstablecimientoSecundarioText(it),
       ordenTrabajoLabel: otLabel(it),
       tipoIniciador: it.tipo_iniciador ?? null,
       lat: parseCoord(it.lat),
@@ -74,7 +81,7 @@ export function buildRutaPublicadaDocumentModel(
     };
   });
 
-  const direccionesPorInspector = new Map<number, Set<string>>();
+  const direccionesPorInspector = new Map<number, Map<number, string>>();
   const metaInspector = new Map<number, { nombre: string; legajo: string }>();
 
   for (const g of grupos) {
@@ -92,15 +99,14 @@ export function buildRutaPublicadaDocumentModel(
   grupos.forEach((g, ix) => grupoIxPorId.set(g.id, ix));
 
   for (const it of itemsActivos) {
-    const dom = (it.domicilio_texto ?? "").trim();
-    if (!dom) continue;
+    const bloque = buildBloqueDireccionOperativaPdf(it);
     const grupo = grupos.find((x) => x.id === it.ruta_grupo_id);
     if (!grupo) continue;
     for (const row of grupo.inspectores) {
       if (!direccionesPorInspector.has(row.inspector_id)) {
-        direccionesPorInspector.set(row.inspector_id, new Set());
+        direccionesPorInspector.set(row.inspector_id, new Map());
       }
-      direccionesPorInspector.get(row.inspector_id)!.add(dom);
+      direccionesPorInspector.get(row.inspector_id)!.set(it.id, bloque);
     }
   }
 
@@ -109,9 +115,9 @@ export function buildRutaPublicadaDocumentModel(
       inspectorId,
       nombreCompleto: m.nombre,
       numeroAfiliado: m.legajo,
-      direccionesRuta: Array.from(direccionesPorInspector.get(inspectorId) ?? []).sort((a, b) =>
-        a.localeCompare(b, "es")
-      ),
+      direccionesRuta: Array.from(direccionesPorInspector.get(inspectorId)?.entries() ?? [])
+        .sort(([a], [b]) => a - b)
+        .map(([, text]) => text),
     }))
     .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, "es"));
 

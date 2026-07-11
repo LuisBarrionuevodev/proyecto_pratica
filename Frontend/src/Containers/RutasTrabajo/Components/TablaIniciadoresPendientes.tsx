@@ -10,7 +10,7 @@ import {
 } from "material-react-table";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
-import { distritoNombrePendiente, rubroLineaPendiente } from "../planificacion/utils/iniciadorDisplay";
+import { distritoNombrePendiente, rubroLineaPendiente, buildEstablecimientoSecundario } from "../planificacion/utils/iniciadorDisplay";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -214,6 +214,7 @@ function IniciadoresPoolTableMrt({
             `${orig.domicilio?.calle ?? "-"} ${orig.domicilio?.numero ?? ""}`.trim();
           const linea1 = d?.trim() || "—";
           const rubroTxt = rubroLineaPendiente(orig);
+          const establecimientoTxt = buildEstablecimientoSecundario(orig);
           const distritoTxt = distritoNombrePendiente(orig);
           const tactic = '"Tactic Sans", sans-serif' as const;
           const secundaria = {
@@ -259,6 +260,19 @@ function IniciadoresPoolTableMrt({
               >
                 {rubroTxt}
               </Typography>
+              {establecimientoTxt ? (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    ...secundaria,
+                    fontSize: "0.66rem",
+                    fontWeight: 500,
+                    color: GLASS_COLORS.textMuted,
+                  }}
+                >
+                  {establecimientoTxt}
+                </Typography>
+              ) : null}
             </Box>
           );
         },

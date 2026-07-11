@@ -33,6 +33,8 @@ export interface GridRow {
   "Turno"?: string | null;
   "Está abierto"?: string | boolean | null;
   "Rubro"?: string | null;
+  "Nombre fantasía"?: string | null;
+  "Ángulo esquina"?: string | null;
   "Apellido"?: string | null;
   "Nombre"?: string | null;
   "Razón social"?: string | null;

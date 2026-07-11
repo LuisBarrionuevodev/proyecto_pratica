@@ -10,8 +10,10 @@ from app.domains.grid.schemas.batch import ValidateRowResponse
 from app.domains.grid.services.row_normalizer import normalize_row_keys, reverse_map_errors
 from app.domains.grid.services.registry import get_handler
 from app.domains.relevamientos.services.relevamiento_unicidad_service import (
-    RELEVAMIENTO_UNICIDAD_UBICACION_MSG,
+    RELEVAMIENTO_UNICIDAD_ESTABLECIMIENTO_MSG,
+    RELEVAMIENTO_UNICIDAD_NUMERO_MSG,
     count_active_relevamientos_por_calle_numero,
+    existe_relevamiento_activo_mismo_establecimiento_esquina,
 )
 from app.domains.geolocalizacion.normalizacion_calles.services.numero_esquina_detector import (
     detect_numero_o_esquina,
@@ -141,39 +143,71 @@ class GridValidateService:
                         normalized=None,
                     )
         elif kind == "relevamientos":
-            from app.domains.grid.services.relevamiento_dup_key import build_relevamiento_location_key
+            from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
+            from app.domains.grid.services.relevamiento_dup_key import (
+                build_relevamiento_establishment_key,
+                build_relevamiento_location_key,
+            )
 
             loc_key = build_relevamiento_location_key(row.calle, row.numero)
             is_esquina = _relevamiento_fila_es_esquina(row)
+            rubro_obj = get_rubro_o_falla(row.rubro)
+            rubro_id = rubro_obj.id
+            establishment_key = build_relevamiento_establishment_key(
+                row.calle,
+                row.numero,
+                rubro_id=rubro_id,
+                nombre_fantasia=row.nombre_fantasia,
+                angulo_esquina=row.angulo_esquina if is_esquina else None,
+                es_esquina=is_esquina,
+            )
             other_row = self.store.upsert_relevamiento_ubicacion(
                 batch_id=batch_id,
                 row_id=row_id,
                 location_key=loc_key,
                 is_esquina=is_esquina,
+                establishment_key=establishment_key,
             )
             if other_row:
+                msg = (
+                    RELEVAMIENTO_UNICIDAD_ESTABLECIMIENTO_MSG
+                    if is_esquina
+                    else RELEVAMIENTO_UNICIDAD_NUMERO_MSG
+                )
                 return ValidateRowResponse(
                     batch_id=batch_id,
                     row_id=row_id,
                     ok=False,
-                    errors={
-                        "_row": (
-                            "Duplicado en el lote: la misma calle y altura ya está cargada "
-                            f"(fila {other_row}). En esquinas se permiten varias filas con el mismo cruce."
-                        )
-                    },
+                    errors={"_row": msg},
+                    normalized=None,
+                )
+            if is_esquina and existe_relevamiento_activo_mismo_establecimiento_esquina(
+                calle=row.calle,
+                numero=row.numero,
+                rubro_id=rubro_id,
+                nombre_fantasia=row.nombre_fantasia,
+                angulo_esquina=row.angulo_esquina,
+                exclude_relevamiento_id=row.id,
+            ):
+                return ValidateRowResponse(
+                    batch_id=batch_id,
+                    row_id=row_id,
+                    ok=False,
+                    errors={"_row": RELEVAMIENTO_UNICIDAD_ESTABLECIMIENTO_MSG},
                     normalized=None,
                 )
             if not is_esquina and count_active_relevamientos_por_calle_numero(
                 row.calle,
                 row.numero,
+                rubro_id=rubro_id,
+                nombre_fantasia=row.nombre_fantasia,
                 exclude_relevamiento_id=row.id,
             ) > 0:
                 return ValidateRowResponse(
                     batch_id=batch_id,
                     row_id=row_id,
                     ok=False,
-                    errors={"_row": RELEVAMIENTO_UNICIDAD_UBICACION_MSG},
+                    errors={"_row": RELEVAMIENTO_UNICIDAD_NUMERO_MSG},
                     normalized=None,
                 )
 

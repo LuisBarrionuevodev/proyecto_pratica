@@ -16,6 +16,10 @@ export type RutaDocumentoItemFila = {
   domicilioTexto: string;
   distritoNombre: string | null;
   rubroNombre: string | null;
+  /** Discriminadores operativos del relevamiento (PR7.10). */
+  nombreFantasia: string | null;
+  anguloEsquina: string | null;
+  establecimientoSecundario: string | null;
   ordenTrabajoLabel: string | null;
   tipoIniciador: string | null;
   lat: number | null;

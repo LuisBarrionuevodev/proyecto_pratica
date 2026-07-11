@@ -9,6 +9,11 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 
 from app.database import db
 from app.models import Inspector, Rubro
+from app.domains.relevamientos.utils.relevamiento_campos_normalizers import (
+    NOMBRE_FANTASIA_MAX_LEN,
+    normalizar_angulo_esquina,
+    normalizar_nombre_fantasia,
+)
 
 _SPACE_RE = re.compile(r"\s+")
 
@@ -94,6 +99,8 @@ class RelevamientoGridRowIn(BaseModel):
     numero: str
     numero_tipo: Optional[str] = None
     rubro: Optional[str] = None
+    nombre_fantasia: Optional[str] = Field(default=None, max_length=NOMBRE_FANTASIA_MAX_LEN)
+    angulo_esquina: Optional[str] = None
     turno: Optional[str] = None
     esta_abierto: Optional[bool] = None
 
@@ -114,10 +121,22 @@ class RelevamientoGridRowIn(BaseModel):
     def parse_fecha(cls, v: Any) -> date:
         return _parse_fecha(v)
 
-    @field_validator("inspector", "calle", "numero", "rubro", mode="before")
+    @field_validator("inspector", "calle", "numero", "rubro", "nombre_fantasia", mode="before")
     @classmethod
     def strip_empty_to_none(cls, v: Any) -> Any:
         return _clean_str(v)
+
+    @field_validator("nombre_fantasia")
+    @classmethod
+    def validate_nombre_fantasia(cls, v: Optional[str]) -> Optional[str]:
+        return normalizar_nombre_fantasia(v)
+
+    @field_validator("angulo_esquina", mode="before")
+    @classmethod
+    def validate_angulo_esquina(cls, v: Any) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        return normalizar_angulo_esquina(v)
 
     @field_validator("turno", mode="before")
     @classmethod

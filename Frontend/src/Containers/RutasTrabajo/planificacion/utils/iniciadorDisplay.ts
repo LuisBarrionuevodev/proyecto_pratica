@@ -1,4 +1,38 @@
-import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
+import type { IRutaIniciadorPendienteRow, IRutaItemMin } from "../../../../api/rutasTrabajoApi";
+
+/** Campos operativos de establecimiento (relevamiento origen). */
+export type EstablecimientoDiscriminadores = {
+  nombre_fantasia?: string | null;
+  angulo_esquina?: string | null;
+};
+
+function trimOrNull(value: string | null | undefined): string | null {
+  const t = value?.trim();
+  return t || null;
+}
+
+/**
+ * Línea secundaria opcional para distinguir establecimientos en la misma dirección/esquina.
+ * Solo para Ruta de Trabajo; no usar en Completar Trabajo ni actas.
+ */
+export function buildEstablecimientoSecundario(item: EstablecimientoDiscriminadores): string | null {
+  const nf = trimOrNull(item.nombre_fantasia);
+  const ang = trimOrNull(item.angulo_esquina);
+  const parts: string[] = [];
+  if (nf) parts.push(`Nombre fantasía: ${nf}`);
+  if (ang) parts.push(`Esquina: ${ang}`);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+/** Extrae discriminadores desde fila de planificación o ítem de ruta. */
+export function establecimientoDiscriminadoresDesdeRow(
+  row: IRutaIniciadorPendienteRow | IRutaItemMin | EstablecimientoDiscriminadores
+): EstablecimientoDiscriminadores {
+  return {
+    nombre_fantasia: row.nombre_fantasia ?? null,
+    angulo_esquina: row.angulo_esquina ?? null,
+  };
+}
 
 /** Etiquetas de tipo de iniciador (sin enums crudos visibles). */
 const TIPO_INICIADOR_LABELS: Record<string, string> = {

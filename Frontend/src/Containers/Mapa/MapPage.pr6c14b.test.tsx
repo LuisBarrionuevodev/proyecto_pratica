@@ -85,13 +85,14 @@ describe("PR6C.14b patrón visual Relevamientos/Gestión", () => {
     expect(mapPage).toContain("showDetailPanel={false}");
   });
 
-  it("9. layout mapa sin compresión flex agresiva", () => {
+  it("9. layout mapa con paneles fijos y scroll interno (PR6C.14c)", () => {
     const view = read(`${SHARED}/MapaDomiciliosGeolocalizacionView.tsx`);
     expect(view).toContain("isMapaLayout");
     expect(view).toContain("moduleContentColumnSx");
     expect(view).not.toContain("functionalPageShellSx");
+    expect(view).toContain("mapGeoPanelPaperSx");
+    expect(view).toContain("mapGeoListaScrollContainerSx");
     expect(view).toContain('layoutVariant="mapa"');
-    expect(view).toContain("mapPanelHeight");
   });
 
   it("10. endpoint y lógica intactos", () => {

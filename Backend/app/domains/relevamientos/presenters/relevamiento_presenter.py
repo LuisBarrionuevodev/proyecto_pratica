@@ -65,6 +65,8 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
         "calle_sugerida": calle_sugerida,
         "calle_mostrar": calle_mostrar,
         "rubro": getattr(rub, "nombre", None),
+        "nombre_fantasia": rel.nombre_fantasia,
+        "angulo_esquina": rel.angulo_esquina,
         "turno": rel.turno_carga,
         "esta_abierto": rel.esta_abierto,
     }

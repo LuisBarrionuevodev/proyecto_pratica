@@ -13,8 +13,15 @@ import {
 import { AppSelect, AppTextField } from "../../../ui";
 import { TURNO_CANON } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
 import {
+  ANGULO_ESQUINA_VALUES,
+  buildNumeroTipoDraftPatch,
+  relevamientoAnguloEsAplicable,
+} from "../utils/relevamientoCamposForm";
+import {
+  relevamientoAnguloEsquinaDisplay,
   relevamientoCalleDisplay,
   relevamientoEstaAbiertoDisplay,
+  relevamientoNombreFantasiaDisplay,
   relevamientoNumeroDisplay,
   relevamientoTurnoDisplay,
 } from "../utils/relevamientoCrudDisplay";
@@ -87,6 +94,11 @@ export function RelevamientoCrudDialog({
 
   const estaAbiertoValue =
     draft.esta_abierto === true ? "Sí" : draft.esta_abierto === false ? "No" : "";
+
+  const anguloAplica = relevamientoAnguloEsAplicable({
+    numero_tipo: draft.numero_tipo,
+    numero: draft.numero,
+  });
 
   const handleClose = () => {
     if (saving) return;
@@ -234,7 +246,7 @@ export function RelevamientoCrudDialog({
             <NumeroEsquinaEditor
               value={draft.numero ?? null}
               onChange={(newValue) => onDraftChange({ numero: newValue })}
-              onModeChange={(editorMode) => onDraftChange({ numero_tipo: editorMode })}
+              onModeChange={(editorMode) => onDraftChange(buildNumeroTipoDraftPatch(editorMode))}
               extraCalles={numeroCallesOptions}
               label={numeroEditorLabel}
               error={!!e("numero")}
@@ -243,6 +255,32 @@ export function RelevamientoCrudDialog({
               initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </CrudFormSlot>
+          {anguloAplica ? (
+            <CrudFormSlot
+              label="Ángulo esquina"
+              mode={mode}
+              value={relevamientoAnguloEsquinaDisplay(draft)}
+              error={!!e("angulo_esquina")}
+              helperText={e("angulo_esquina") || "Solo para esquinas/intersecciones."}
+            >
+              <AppSelect
+                appearance="glass"
+                label="Ángulo esquina"
+                value={draft.angulo_esquina ?? ""}
+                onChange={(ev) => {
+                  const v = ev.target.value as string;
+                  onDraftChange({ angulo_esquina: v === "" ? null : (v as typeof draft.angulo_esquina) });
+                }}
+                options={[
+                  { value: "", label: "—" },
+                  ...ANGULO_ESQUINA_VALUES.map((a) => ({ value: a, label: a })),
+                ]}
+                fullWidth
+                error={!!e("angulo_esquina")}
+                helperText={e("angulo_esquina") || "Solo para esquinas/intersecciones."}
+              />
+            </CrudFormSlot>
+          ) : null}
         </Box>
       </CrudDialogSection>
 
@@ -266,6 +304,26 @@ export function RelevamientoCrudDialog({
               error={!!e("rubro")}
               helperText={e("rubro") || undefined}
               required
+            />
+          </CrudFormSlot>
+          <CrudFormSlot
+            label="Nombre fantasía"
+            mode={mode}
+            value={relevamientoNombreFantasiaDisplay(draft)}
+            error={!!e("nombre_fantasia")}
+            helperText={e("nombre_fantasia") || "Opcional. Sirve para distinguir locales en una misma esquina."}
+          >
+            <AppTextField
+              appearance="glass"
+              label="Nombre fantasía"
+              value={draft.nombre_fantasia ?? ""}
+              onChange={(ev) => onDraftChange({ nombre_fantasia: ev.target.value })}
+              fullWidth
+              inputProps={{ maxLength: 255 }}
+              error={!!e("nombre_fantasia")}
+              helperText={
+                e("nombre_fantasia") || "Opcional. Sirve para distinguir locales en una misma esquina."
+              }
             />
           </CrudFormSlot>
           <CrudFormSlot

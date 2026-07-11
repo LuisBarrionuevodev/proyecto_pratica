@@ -29,6 +29,8 @@ export interface IRelevamientoListItem {
   /** Mapea `turno_carga` en backend (MANIANA | TARDE). */
   turno?: string | null;
   esta_abierto?: boolean | null;
+  nombre_fantasia?: string | null;
+  angulo_esquina?: "NE" | "NO" | "SE" | "SO" | null;
 }
 
 export interface IRelevamientosListMeta {

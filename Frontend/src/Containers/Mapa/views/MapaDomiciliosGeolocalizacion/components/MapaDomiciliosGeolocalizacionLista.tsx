@@ -1,6 +1,6 @@
 import AddLocationAltIcon from "@mui/icons-material/AddLocationAlt";
 import EditLocationAltIcon from "@mui/icons-material/EditLocationAlt";
-import { Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Chip, IconButton, Stack, TablePagination, Tooltip, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
@@ -13,6 +13,7 @@ import { DataTableMrtShell } from "../../../../../components/dataTable/DataTable
 import { AppButton } from "../../../../../ui";
 import { exportButtonStyles } from "../../../../Actuaciones/styles/actuacionesTableStyles";
 import { GESTION_DOMICILIOS_MRT_GLASS_BASE } from "../mapaDomiciliosMrtGlassBase";
+import { mapGeoListaMrtShellHostSx, mapGeoListaPaginationFooterSx, mapGeoListaScrollSafeSx } from "../mapaGeolocalizacionLayout";
 import { labelGeoChip } from "../mapaDomiciliosOperativoFilters";
 
 export type MapaDomiciliosGeolocalizacionActionVariant = "button" | "icon";
@@ -111,6 +112,8 @@ export function MapaDomiciliosGeolocalizacionLista({
     enableDensityToggle: false,
     enableFullScreenToggle: false,
     enableSorting: false,
+    enableStickyHeader: isMapaLayout,
+    enableBottomToolbar: !isMapaLayout,
     manualPagination: true,
     rowCount: totalRows,
     onPaginationChange: (updater) => {
@@ -123,24 +126,41 @@ export function MapaDomiciliosGeolocalizacionLista({
       pagination,
     },
     muiTableContainerProps: {
+      ...(isMapaLayout ? { className: "table-body" } : {}),
       sx: {
         overflowX: "hidden",
         maxWidth: "100%",
-        ...(isMapaLayout ? { maxHeight: "none", flex: "none" } : {}),
+        ...(isMapaLayout
+          ? {
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              ...mapGeoListaScrollSafeSx,
+            }
+          : {}),
       },
     },
     muiTablePaperProps: {
       sx: {
         overflow: "hidden",
         maxWidth: "100%",
-        ...(isMapaLayout ? { boxShadow: "none", backgroundImage: "none" } : {}),
+        ...(isMapaLayout
+          ? {
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "none",
+              backgroundImage: "none",
+            }
+          : {}),
       },
     },
-    muiBottomToolbarProps: isMapaLayout
+    muiTableBodyProps: isMapaLayout
       ? {
           sx: {
-            minHeight: 48,
-            "& .MuiTablePagination-root": { overflow: "hidden" },
+            "& tr:last-of-type td": {
+              paddingBottom: 12,
+            },
           },
         }
       : undefined,
@@ -207,9 +227,43 @@ export function MapaDomiciliosGeolocalizacionLista({
     },
   });
 
-  return (
-    <DataTableMrtShell>
+  const mapaPaginationFooter = isMapaLayout ? (
+    <Box className="pagination-footer" sx={mapGeoListaPaginationFooterSx}>
+      <TablePagination
+        component="div"
+        count={totalRows}
+        page={pagination.pageIndex}
+        onPageChange={(_, newPage) => onPaginationChange({ ...pagination, pageIndex: newPage })}
+        rowsPerPage={pagination.pageSize}
+        onRowsPerPageChange={() => {}}
+        rowsPerPageOptions={[pagination.pageSize]}
+        labelRowsPerPage=""
+        sx={{ width: "100%", overflow: "visible" }}
+      />
+    </Box>
+  ) : undefined;
+
+  const tableNode = (
+    <DataTableMrtShell footer={mapaPaginationFooter}>
       <MaterialReactTable table={table} />
     </DataTableMrtShell>
+  );
+
+  if (!isMapaLayout) {
+    return tableNode;
+  }
+
+  return (
+    <Box
+      sx={{
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <Box sx={mapGeoListaMrtShellHostSx}>{tableNode}</Box>
+    </Box>
   );
 }

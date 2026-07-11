@@ -11,6 +11,8 @@ export function humanizeRelevamientoColumnLabel(glideKey: string): string {
     Numero: "Número o esquina",
     Número: "Número o esquina",
     Rubro: "Rubro",
+    "Nombre fantasía": "Nombre fantasía",
+    "Ángulo esquina": "Ángulo esquina",
     Turno: "Turno",
     "Está abierto": "¿Está abierto?",
     ID: "Identificador",

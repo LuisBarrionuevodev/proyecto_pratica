@@ -10,6 +10,7 @@ import {
   planificacionFixedSectionSx,
   planificacionPanelColumnSx,
   planificacionPanelFooterMetaSx,
+  planificacionPanelFooterSx,
   planificacionPanelTitleSx,
   planificacionUrgentesListViewportSx,
   rutasInstitutionalPanelPaperSx,
@@ -59,8 +60,8 @@ export function UrgentesPanel({
       sx={{
         ...rutasInstitutionalPanelPaperSx,
         ...planificacionPanelColumnSx,
+        gap: 0.75,
       }}
-      spacing={0.75}
     >
       <Box sx={planificacionFixedSectionSx}>
         <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -83,7 +84,10 @@ export function UrgentesPanel({
         </Box>
       ) : null}
 
-      <Box sx={{ ...planificacionUrgentesListViewportSx, ...rutasInstitutionalScrollSx }}>
+      <Box
+        className="planificacion-list-body"
+        sx={{ ...planificacionUrgentesListViewportSx, ...rutasInstitutionalScrollSx }}
+      >
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />
@@ -93,7 +97,7 @@ export function UrgentesPanel({
             {emptyCopy}
           </Typography>
         ) : (
-          <Stack spacing={0.75}>
+          <Stack spacing={0.75} sx={{ pb: 0.5 }}>
             {rows.map((row) => (
               <PlanificacionIniciadorCompactCard
                 key={row.id}
@@ -109,13 +113,14 @@ export function UrgentesPanel({
       </Box>
 
       <Stack
+        className="planificacion-pagination-footer"
         direction="row"
         alignItems="center"
         justifyContent="space-between"
         flexWrap="wrap"
         gap={0.75}
         sx={{
-          ...planificacionFixedSectionSx,
+          ...planificacionPanelFooterSx,
           pt: 0.75,
           borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
         }}

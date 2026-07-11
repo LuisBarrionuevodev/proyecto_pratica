@@ -59,6 +59,9 @@ export const getDropdownOptions = (
     if (columnId === "Está abierto") {
         return ["", "Sí", "No"];
     }
+    if (columnId === "Ángulo esquina") {
+        return ["", "NE", "NO", "SE", "SO"];
+    }
 
     return [""];
 };

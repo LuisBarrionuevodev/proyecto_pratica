@@ -1,4 +1,4 @@
-import { Alert, Box, IconButton, Tooltip } from "@mui/material";
+import { Alert, Box, Chip, IconButton, Tooltip, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -29,6 +29,7 @@ import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { shouldRefreshRelevamientosAfterSaveFailure } from "../utils/refreshOnSavePolicy";
+import { relevamientoEstablecimientoLines } from "../utils/relevamientoCrudDisplay";
 import {
   DARK_TABLE_CONFIG,
   COLORS,
@@ -279,8 +280,26 @@ const TablaRelevamientos = ({
       {
         accessorKey: "rubro",
         header: "Rubro",
-        size: 180,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
+        size: 220,
+        Cell: ({ row }) => {
+          const { primary, secondary, anguloChip } = relevamientoEstablecimientoLines(row.original);
+          if (!secondary && !anguloChip) {
+            return <BandejaEllipsisCell value={primary} />;
+          }
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, minWidth: 0 }}>
+              <BandejaEllipsisCell value={primary} />
+              {secondary ? (
+                <Typography variant="caption" color="text.secondary" noWrap title={secondary}>
+                  {secondary}
+                </Typography>
+              ) : null}
+              {anguloChip ? (
+                <Chip label={anguloChip} size="small" sx={{ alignSelf: "flex-start", height: 20, fontSize: "0.7rem" }} />
+              ) : null}
+            </Box>
+          );
+        },
       },
       {
         accessorKey: "turno",

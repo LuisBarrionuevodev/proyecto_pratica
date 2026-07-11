@@ -8,7 +8,7 @@ import {
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
 } from "../../../../Actuaciones/styles/filtroStyles";
-import { moduleFiltersSurfaceSx } from "../../../../../styles/GlassStyles";
+import { mapEditOverlayGlassSx } from "../mapaGeolocalizacionLayout";
 import { useMapaEdicionManual } from "../hooks/useMapaEdicionManual";
 import ConfirmarUbicacionDialog from "./ConfirmarUbicacionDialog";
 import { GESTION_MAP_DEFAULT_CENTER } from "../mapaDomiciliosMapConstants";
@@ -125,21 +125,19 @@ export function MapaDomiciliosGeolocalizacionMapPanel({
   const edit = useMapaEdicionManual(editMode ? editRow : null, onSavePoint ?? (async () => {}));
 
   return (
-    <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", height, minHeight: 320 }}>
+    <Box
+      sx={{
+        position: "relative",
+        borderRadius: 2,
+        overflow: "hidden",
+        height,
+        minHeight: typeof height === "number" ? height : 320,
+        flex: height === "100%" ? 1 : undefined,
+      }}
+    >
       {editMode ? (
-        <Box
-          sx={{
-            position: "absolute",
-            top: 10,
-            left: 10,
-            right: 56,
-            zIndex: 1000,
-            ...moduleFiltersSurfaceSx,
-            p: 1.25,
-            borderRadius: 2,
-          }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+        <Box sx={mapEditOverlayGlassSx}>
+          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="nowrap" useFlexGap>
             <AppTextField
               appearance="dense"
               label="Domicilio"

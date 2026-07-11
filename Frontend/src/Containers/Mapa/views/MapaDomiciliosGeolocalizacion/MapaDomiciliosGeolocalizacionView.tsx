@@ -15,6 +15,11 @@ import {
 import { MapaDomiciliosGeolocalizacionPageHeader } from "./components/MapaDomiciliosGeolocalizacionPageHeader";
 import { useDomicilioGeolocalizacionActions } from "./hooks/useDomicilioGeolocalizacionActions";
 import { useGestionDomicilios } from "./hooks/useGestionDomicilios";
+import {
+  MAP_GEO_PANEL_HEIGHT,
+  mapGeoListaScrollContainerSx,
+  mapGeoPanelPaperSx,
+} from "./mapaGeolocalizacionLayout";
 import type { MapaDomiciliosGeolocalizacionViewProps } from "./types";
 
 const DEFAULT_TITLE = "Gestión de Domicilios";
@@ -147,7 +152,7 @@ export function MapaDomiciliosGeolocalizacionView({
       : "No hay domicilios para mostrar.";
 
   const isMapaLayout = filterVariant === "mapa";
-  const mapPanelHeight = isMapaLayout ? 480 : "min(72vh, 640px)";
+  const mapPanelHeight = isMapaLayout ? "100%" : "min(72vh, 640px)";
 
   return (
     <Box sx={moduleContentColumnSx}>
@@ -195,15 +200,14 @@ export function MapaDomiciliosGeolocalizacionView({
         <Paper
           elevation={0}
           sx={{
-            ...(isMapaLayout ? moduleContentPanelPaperSx : {}),
+            ...(isMapaLayout ? { ...moduleContentPanelPaperSx, ...mapGeoPanelPaperSx } : {}),
             flex: { xs: "1 1 auto", lg: "0 0 65%" },
             maxWidth: { lg: "65%" },
             minWidth: 0,
-            p: isMapaLayout ? undefined : 1,
-            minHeight: isMapaLayout ? undefined : 360,
+            p: isMapaLayout ? 0 : 1,
             display: "flex",
             flexDirection: "column",
-            overflow: isMapaLayout ? "visible" : "hidden",
+            overflow: "hidden",
           }}
         >
           <MapaDomiciliosGeolocalizacionMapPanel
@@ -221,31 +225,33 @@ export function MapaDomiciliosGeolocalizacionView({
         <Paper
           elevation={0}
           sx={{
-            ...(isMapaLayout ? moduleContentPanelPaperSx : {}),
+            ...(isMapaLayout ? { ...moduleContentPanelPaperSx, ...mapGeoPanelPaperSx } : {}),
             flex: { xs: "1 1 auto", lg: "0 0 35%" },
             maxWidth: { lg: "35%" },
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            minHeight: isMapaLayout ? undefined : 360,
-            overflow: isMapaLayout ? "visible" : "hidden",
+            minHeight: isMapaLayout ? MAP_GEO_PANEL_HEIGHT : 360,
+            overflow: "hidden",
           }}
         >
           {isMapaLayout ? (
-            <MapaDomiciliosGeolocalizacionLista
-              rows={rows}
-              loading={loading}
-              emptyMessage={emptyMessage}
-              selectedId={selectedRow?.domicilio_id ?? null}
-              totalRows={totalRows}
-              pagination={pagination}
-              onPaginationChange={handlePaginationChange}
-              onSelectRow={selectRow}
-              onGeolocalizar={startGeolocalizar}
-              onReubicar={startReubicar}
-              actionVariant={actionVariant}
-              layoutVariant="mapa"
-            />
+            <Box sx={mapGeoListaScrollContainerSx}>
+              <MapaDomiciliosGeolocalizacionLista
+                rows={rows}
+                loading={loading}
+                emptyMessage={emptyMessage}
+                selectedId={selectedRow?.domicilio_id ?? null}
+                totalRows={totalRows}
+                pagination={pagination}
+                onPaginationChange={handlePaginationChange}
+                onSelectRow={selectRow}
+                onGeolocalizar={startGeolocalizar}
+                onReubicar={startReubicar}
+                actionVariant={actionVariant}
+                layoutVariant="mapa"
+              />
+            </Box>
           ) : (
             <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", overflowX: "hidden" }}>
               <MapaDomiciliosGeolocalizacionLista

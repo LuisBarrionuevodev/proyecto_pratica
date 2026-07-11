@@ -19,4 +19,6 @@ export interface IRelevamiento {
   calle_catalogo_id?: number | null;
   turno?: string | null;
   esta_abierto?: boolean | null;
+  nombre_fantasia?: string | null;
+  angulo_esquina?: "NE" | "NO" | "SE" | "SO" | null;
 }

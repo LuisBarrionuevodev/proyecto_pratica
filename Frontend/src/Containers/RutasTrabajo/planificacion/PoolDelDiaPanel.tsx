@@ -5,11 +5,13 @@ import { AppButton } from "../../../ui";
 import {
   planificacionFixedSectionSx,
   planificacionPanelColumnSx,
+  planificacionPanelFooterSx,
   planificacionPanelTitleSx,
   planificacionPoolListViewportSx,
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
+import { EstablecimientoSecundarioLine } from "./components/EstablecimientoSecundarioLine";
 import {
   distritoNombrePendiente,
   etiquetaTipoCorta,
@@ -35,8 +37,8 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
       sx={{
         ...rutasInstitutionalPanelPaperSx,
         ...planificacionPanelColumnSx,
+        gap: 1,
       }}
-      spacing={1}
     >
       <Stack
         direction="row"
@@ -59,13 +61,16 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
         </Typography>
       </Stack>
 
-      <Box sx={{ ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx }}>
+      <Box
+        className="planificacion-list-body"
+        sx={{ ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx }}
+      >
         {items.length === 0 ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
             Sin ítems.
           </Typography>
         ) : (
-          <Stack spacing={0.75}>
+          <Stack spacing={0.75} sx={{ pb: 0.5 }}>
             {items.map((row) => {
               const distritoTxt = distritoNombrePendiente(row);
               return (
@@ -75,7 +80,7 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                   sx={{
                     py: 0.75,
                     borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-                    "&:last-of-type": { borderBottom: "none", pb: 0 },
+                    "&:last-of-type": { borderBottom: "none" },
                   }}
                 >
                   <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1}>
@@ -103,6 +108,7 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                       >
                         {rubroLineaPendiente(row)}
                       </Typography>
+                      <EstablecimientoSecundarioLine item={row} />
                       <Typography
                         sx={{
                           fontFamily: tactic,
@@ -157,7 +163,7 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
         )}
       </Box>
 
-      <Box sx={{ ...planificacionFixedSectionSx, pt: 1 }}>
+      <Box className="planificacion-panel-footer" sx={{ ...planificacionPanelFooterSx, pt: 1 }}>
         <AppButton dsVariant="primary" fullWidth onClick={onContinuarAsignacion} disabled={items.length === 0}>
           Continuar a asignación
         </AppButton>

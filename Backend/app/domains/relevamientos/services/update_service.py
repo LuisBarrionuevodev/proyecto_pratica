@@ -23,8 +23,14 @@ from app.domains.relevamientos.services.operational_guard_service import (
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     propagar_domicilio_a_iniciadores_activos,
 )
+from app.domains.relevamientos.services.relevamiento_domicilio_rubro_guard import (
+    rubro_para_edicion_domicilio_relevamiento,
+)
 from app.domains.relevamientos.services.relevamiento_unicidad_service import (
     assert_sin_relevamiento_activo_duplicado,
+)
+from app.domains.relevamientos.utils.relevamiento_campos_normalizers import (
+    campos_establecimiento_desde_payload,
 )
 
 
@@ -80,20 +86,40 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     inspector = get_inspectores_o_falla([inspector_nombre])[0]
     rubro = get_rubro_o_falla(rubro_nombre)
     dom_payload = {"calle": calle, "numero": numero, **{k: v for k, v in domicilio.items() if k not in ("calle", "numero")}}
+    numero_tipo_override = dom_payload.get("numero_tipo")
+    rubro_domicilio = rubro_para_edicion_domicilio_relevamiento(
+        rubro=rubro,
+        calle=str(calle),
+        numero=str(numero),
+        domicilio_id_actual=rel.domicilio_id,
+        numero_tipo_hint=numero_tipo_override,
+        exclude_relevamiento_id=relevamiento_id,
+    )
     outcome = aplicar_edicion_domicilio_operativo(
         domicilio_id_actual=rel.domicilio_id,
         cambios=dom_payload,
         contexto="RELEVAMIENTO",
         origen_id=relevamiento_id,
         modo_explicito=payload.get("modo_domicilio"),
+        rubro=rubro_domicilio,
         usar_basico=True,
     )
     dom = outcome.domicilio
     if dom is None:
         raise ValueError("No se pudo resolver domicilio.")
-    numero_tipo_override = (payload.get("domicilio") or {}).get("numero_tipo")
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
-    assert_sin_relevamiento_activo_duplicado(dom, exclude_relevamiento_id=relevamiento_id)
+
+    nombre_fantasia, angulo_esquina = campos_establecimiento_desde_payload(
+        payload,
+        numero_tipo=getattr(dom, "numero_tipo", None),
+    )
+    assert_sin_relevamiento_activo_duplicado(
+        dom,
+        rubro_id=rubro.id if rubro else None,
+        nombre_fantasia=nombre_fantasia,
+        angulo_esquina=angulo_esquina,
+        exclude_relevamiento_id=relevamiento_id,
+    )
 
     rel.fecha = fecha
     rel.mes = mes
@@ -101,6 +127,8 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     rel.inspector_id = inspector.id
     rel.domicilio_id = dom.id
     rel.rubro_id = rubro.id if rubro else None
+    rel.nombre_fantasia = nombre_fantasia
+    rel.angulo_esquina = angulo_esquina
 
     turno_carga = payload.get("turno_carga")
     if turno_carga is not None and turno_carga not in ("MANIANA", "TARDE"):

@@ -238,11 +238,9 @@ describe("PR6C.7 geolocalizar sin achicar mapa", () => {
 
     expect(mapa).toContain("Buscar");
 
-    expect(mapa).toContain("position: \"absolute\"");
+    expect(mapa).toContain("mapEditOverlayGlassSx");
 
-    expect(mapa).toContain("minHeight: 320");
-
-    expect(vista).toContain("mapPanelHeight");
+    expect(vista).toContain("MAP_GEO_PANEL_HEIGHT");
 
     expect(vista).not.toContain("ManualMapPanel");
 

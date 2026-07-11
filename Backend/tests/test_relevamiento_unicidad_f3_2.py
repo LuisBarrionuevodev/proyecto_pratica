@@ -16,7 +16,7 @@ from app.domains.grid.services.batch_store import InMemoryBatchStore
 from app.domains.grid.services.validate_service import GridValidateService
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.relevamientos.services.relevamiento_unicidad_service import (
-    RELEVAMIENTO_UNICIDAD_UBICACION_MSG,
+    RELEVAMIENTO_UNICIDAD_NUMERO_MSG,
     assert_sin_relevamiento_activo_duplicado,
 )
 from app.domains.relevamientos.services.update_service import actualizar_relevamiento
@@ -57,7 +57,8 @@ def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
 
 
-def test_f32_altura_segundo_rubro_bloqueado(app_ctx) -> None:
+def test_f32_altura_segundo_rubro_permitido_pr76(app_ctx) -> None:
+    """PR7.6: mismo domicilio NUMERO con rubro distinto permite segundo relevamiento."""
     ins, rub = _inspector_y_rubro()
     calle = _uniq("SanMartínF32")
     try:
@@ -70,8 +71,21 @@ def test_f32_altura_segundo_rubro_bloqueado(app_ctx) -> None:
         rub_otro = Rubro.query.filter(Rubro.id != rub.id).first()
         if rub_otro:
             p2["rubro_nombre"] = rub_otro.nombre
-        with pytest.raises(ValueError, match="Ya existe un relevamiento activo"):
             crear_relevamiento_desde_payload(p2)
+        else:
+            pytest.skip("Se requiere segundo rubro para probar recambio")
+    finally:
+        db.session.rollback()
+
+
+def test_f32_altura_mismo_rubro_sin_nombre_bloqueado(app_ctx) -> None:
+    ins, rub = _inspector_y_rubro()
+    calle = _uniq("SanMartínDup")
+    try:
+        p1 = _payload(calle=calle, numero="1010", rubro=rub.nombre, inspector=ins.nombre)
+        crear_relevamiento_desde_payload(p1)
+        with pytest.raises(ValueError, match="establecimiento en el mismo domicilio"):
+            crear_relevamiento_desde_payload({**p1, "fecha": "2026-05-12"})
     finally:
         db.session.rollback()
 
@@ -137,7 +151,7 @@ def test_f32_update_a_domicilio_ocupado_bloquea(app_ctx) -> None:
                 "domicilio": {"calle": f"{base} Otro", "numero": "99"},
             }
         )
-        with pytest.raises(ValueError, match="Ya existe un relevamiento activo"):
+        with pytest.raises(ValueError, match="establecimiento en el mismo domicilio"):
             actualizar_relevamiento(
                 r2.id,
                 {**p2, "domicilio": {"calle": base, "numero": "1"}},
@@ -170,7 +184,7 @@ def test_assert_esquina_no_bloquea_dos(app_ctx) -> None:
         db.session.rollback()
 
 
-def test_f32_validate_batch_segunda_altura_falla_si_bd_tiene_activo(app_ctx) -> None:
+def test_f32_validate_batch_segunda_altura_distinto_rubro_ok_pr76(app_ctx) -> None:
     ins, rub = _inspector_y_rubro()
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -189,14 +203,38 @@ def test_f32_validate_batch_segunda_altura_falla_si_bd_tiene_activo(app_ctx) -> 
         rub_otro = Rubro.query.filter(Rubro.id != rub.id).first()
         if rub_otro:
             raw["rubro"] = rub_otro.nombre
-        resp = svc.validate_row(batch_id, "g1", raw, "relevamientos")
-        assert resp.ok is False
-        assert RELEVAMIENTO_UNICIDAD_UBICACION_MSG in (resp.errors.get("_row") or "")
+            resp = svc.validate_row(batch_id, "g1", raw, "relevamientos")
+            assert resp.ok is True, resp.errors
+        else:
+            pytest.skip("Se requiere segundo rubro")
     finally:
         db.session.rollback()
 
 
-def test_f32_validate_mismo_lote_dos_alturas_bloquea(app_ctx) -> None:
+def test_f32_validate_batch_mismo_establecimiento_numero_falla(app_ctx) -> None:
+    ins, rub = _inspector_y_rubro()
+    store = InMemoryBatchStore()
+    svc = GridValidateService(store)
+    batch_id = store.start_batch(kind="relevamientos")
+    calle = _uniq("JunínF32Dup")
+    try:
+        p = _payload(calle=calle, numero="301", rubro=rub.nombre, inspector=ins.nombre)
+        crear_relevamiento_desde_payload(p)
+        raw = {
+            "fecha": "2026-05-16",
+            "inspector": ins.nombre,
+            "calle": calle,
+            "numero": "301",
+            "rubro": rub.nombre,
+        }
+        resp = svc.validate_row(batch_id, "g1", raw, "relevamientos")
+        assert resp.ok is False
+        assert RELEVAMIENTO_UNICIDAD_NUMERO_MSG in (resp.errors.get("_row") or "")
+    finally:
+        db.session.rollback()
+
+
+def test_f32_validate_mismo_lote_dos_alturas_mismo_establecimiento_bloquea(app_ctx) -> None:
     ins, rub = _inspector_y_rubro()
     calle = _uniq("LoteDupAlt")
     store = InMemoryBatchStore()
@@ -217,7 +255,7 @@ def test_f32_validate_mismo_lote_dos_alturas_bloquea(app_ctx) -> None:
         "relevamientos",
     )
     assert r2.ok is False
-    assert "Duplicado" in (r2.errors.get("_row") or "")
+    assert RELEVAMIENTO_UNICIDAD_NUMERO_MSG in (r2.errors.get("_row") or "")
 
 
 def test_f32_validate_batch_dos_esquinas_ok(app_ctx) -> None:

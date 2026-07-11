@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import {
+  relevamientoAnguloChipLabel,
   relevamientoCalleDisplay,
   relevamientoEstaAbiertoDisplay,
+  relevamientoEstablecimientoDisplay,
+  relevamientoEstablecimientoLines,
+  relevamientoNombreFantasiaDisplay,
   relevamientoNumeroDisplay,
   relevamientoTurnoDisplay,
 } from "./relevamientoCrudDisplay";
@@ -45,6 +49,41 @@ describe("relevamientoCrudDisplay", () => {
     expect(relevamientoTurnoDisplay("TARDE")).toBe("Tarde");
     expect(relevamientoEstaAbiertoDisplay(true)).toBe("Sí");
     expect(relevamientoEstaAbiertoDisplay(null)).toBe("—");
+  });
+
+  it("muestra nombre fantasía y ángulo solo si existen", () => {
+    expect(relevamientoNombreFantasiaDisplay({ ...baseRow, nombre_fantasia: "  El Toro " })).toBe(
+      "El Toro"
+    );
+    expect(relevamientoNombreFantasiaDisplay({ ...baseRow, nombre_fantasia: null })).toBeNull();
+    expect(
+      relevamientoAnguloChipLabel({
+        ...baseRow,
+        numero_tipo: "ESQUINA",
+        angulo_esquina: "NE",
+      })
+    ).toBe("Esquina NE");
+    expect(
+      relevamientoAnguloChipLabel({ ...baseRow, numero_tipo: "NUMERO", angulo_esquina: "NE" })
+    ).toBeNull();
+  });
+
+  it("establecimiento display combina rubro, fantasía y ángulo", () => {
+    const lines = relevamientoEstablecimientoLines({
+      ...baseRow,
+      nombre_fantasia: "La Esquina",
+      numero_tipo: "ESQUINA",
+      angulo_esquina: "SO",
+    });
+    expect(lines.primary).toBe("Panadería");
+    expect(lines.secondary).toContain("Nombre fantasía: La Esquina");
+    expect(lines.anguloChip).toBe("Esquina SO");
+    expect(relevamientoEstablecimientoDisplay({ ...baseRow })).toBe("Panadería");
+  });
+
+  it("legacy sin campos nuevos sigue renderizando rubro", () => {
+    expect(relevamientoEstablecimientoLines(baseRow).primary).toBe("Panadería");
+    expect(relevamientoEstablecimientoLines(baseRow).secondary).toBeNull();
   });
 });
 

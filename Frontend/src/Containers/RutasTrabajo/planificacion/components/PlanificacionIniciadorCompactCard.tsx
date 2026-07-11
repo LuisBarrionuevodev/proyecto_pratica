@@ -16,6 +16,7 @@ import {
   type PrioridadCat,
 } from "../utils/iniciadorDisplay";
 import { parseIniciadorLatLng } from "../utils/iniciadorCoords";
+import { EstablecimientoSecundarioLine } from "./EstablecimientoSecundarioLine";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -168,6 +169,7 @@ export function PlanificacionIniciadorCompactCard({
           >
             {rubroTxt}
           </Typography>
+          <EstablecimientoSecundarioLine item={row} />
           <Typography
             sx={{
               fontFamily: tactic,
