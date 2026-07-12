@@ -70,11 +70,16 @@ export function buildCompletarTrabajoCierreBody(
   if (includeTipo && s(f.tipo_actuacion)) body.tipo_actuacion = s(f.tipo_actuacion);
   if (contra) body.contraproducencia = contra;
   if (s(f.rubro_nombre)) body.rubro_nombre = s(f.rubro_nombre);
+  const formNumeroTipo = (f.numero_tipo || "").trim().toUpperCase();
+  const rowNumeroTipo = (options?.domicilioRow?.numero_tipo || "").trim().toUpperCase();
+  const saleDeEsquina = formNumeroTipo === "NUMERO" && rowNumeroTipo === "ESQUINA";
   const callePayload = options?.domicilioRow
-    ? domicilioCalleParaPayload(f.calle, options.domicilioRow)
+    ? saleDeEsquina
+      ? s(f.calle) || undefined
+      : domicilioCalleParaPayload(f.calle, options.domicilioRow)
     : s(f.calle);
   if (callePayload) body.calle = callePayload;
-  const numeroTipo = (f.numero_tipo || options?.domicilioRow?.numero_tipo || "").toUpperCase();
+  const numeroTipo = formNumeroTipo || rowNumeroTipo;
   if (options?.domicilioRow && numeroTipo === "ESQUINA") {
     const esquinaPayload = domicilioEsquinaParaPayload(f.numero, options.domicilioRow);
     if (esquinaPayload) {

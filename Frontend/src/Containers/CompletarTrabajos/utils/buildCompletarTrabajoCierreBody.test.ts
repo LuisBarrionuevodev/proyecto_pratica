@@ -35,6 +35,31 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
     expect(body).not.toHaveProperty("geocode_hash");
   });
 
+  it("envía calle al pasar de ESQUINA a NUMERO con dirección real", () => {
+    const rowEsquina = {
+      ...rowMonteagudo,
+      numero_tipo: "ESQUINA",
+      numero: "y catamarca",
+      esquina_key: "catamarca",
+      esquina_normalizada: "Catamarca",
+      calle: "San Martin",
+      calle_normalizada: "San Martín",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBody(
+      {
+        ...EMPTY_COMPLETAR_FORM,
+        calle: "Catamarca",
+        numero: "1000",
+        numero_tipo: "NUMERO",
+        rubro_nombre: "Panadería",
+      },
+      { domicilioRow: rowEsquina, omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("Catamarca");
+    expect(body.numero).toBe("1000");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
   it("no manda calle_key ni calle sin editar", () => {
     const body = buildCompletarTrabajoCierreBodyFromInline(
       rowMonteagudo,

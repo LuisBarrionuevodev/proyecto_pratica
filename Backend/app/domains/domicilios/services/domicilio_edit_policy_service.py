@@ -137,6 +137,7 @@ def resolver_policy_edicion_domicilio(
     origen_id: int,
     cambios: dict[str, Any] | None,
     modo_explicito: str | None = None,
+    relevamiento_id: int | None = None,
 ) -> EditDomicilioPolicy:
     """
     Resuelve si una edición debe mutar la misma fila, reasignar o crear nuevo domicilio.
@@ -147,6 +148,7 @@ def resolver_policy_edicion_domicilio(
         origen_id: id del registro origen.
         cambios: dict con calle, numero, barrio_id, etc.
         modo_explicito: NUEVO | REASIGNAR si el frontend lo envía.
+        relevamiento_id: si el origen proviene de relevamiento, fuerza copy-on-write ante cambio geo.
 
     Retorno:
         ``EditDomicilioPolicy`` con modo y flags.
@@ -231,8 +233,18 @@ def resolver_policy_edicion_domicilio(
                 domicilio_id_objetivo=int(otro.id),
             )
 
-    # Corrección operativa por defecto: misma fila (sin invalidar geocode en canales documentales).
+    # Copy-on-write: relevamiento conserva domicilio histórico; la actuación recibe domicilio real nuevo.
     ctx = (contexto or "").strip().upper()
+    if ctx in ("ACTUACION", "COMPLETAR_TRABAJO") and relevamiento_id:
+        if domicilio_payload_cambia_texto_geografico(dom_actual, cambios):
+            return EditDomicilioPolicy(
+                modo="CREAR_NUEVO",
+                motivo="copy_on_write_relevamiento",
+                propagar_a_iniciadores=False,
+                requiere_geocode_refresh=False,
+            )
+
+    # Corrección operativa por defecto: misma fila (sin invalidar geocode en canales documentales).
     requiere_geo = False if ctx in ("ACTUACION", "COMPLETAR_TRABAJO") else afecta_geo
     return EditDomicilioPolicy(
         modo="EDITAR_MISMA_FILA",

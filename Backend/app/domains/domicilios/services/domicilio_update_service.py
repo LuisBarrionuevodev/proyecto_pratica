@@ -82,6 +82,7 @@ def aplicar_edicion_domicilio_operativo(
     modo_explicito: str | None = None,
     allow_missing_catalogs: bool = False,
     usar_basico: bool = False,
+    relevamiento_id: int | None = None,
 ) -> AplicarDomicilioOutcome:
     """
     Resuelve policy y aplica edici?n de domicilio sin commit.
@@ -95,6 +96,7 @@ def aplicar_edicion_domicilio_operativo(
         modo_explicito: intenci?n del usuario (NUEVO / REASIGNAR).
         allow_missing_catalogs: permite domicilio sin rubro/contrib (actuaci?n).
         usar_basico: relevamiento/denuncia (sin rubro en fila domicilio).
+        relevamiento_id: habilita copy-on-write si el origen proviene de relevamiento.
 
     Retorno:
         ``AplicarDomicilioOutcome`` con domicilio resultante y si cambi? el id.
@@ -145,6 +147,7 @@ def aplicar_edicion_domicilio_operativo(
         origen_id=origen_id,
         cambios=cambios_dict,
         modo_explicito=modo_explicito,
+        relevamiento_id=relevamiento_id,
     )
     if policy.modo == "BLOQUEAR":
         raise ValueError(policy.motivo)

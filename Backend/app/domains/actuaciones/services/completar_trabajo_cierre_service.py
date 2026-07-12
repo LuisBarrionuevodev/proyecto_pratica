@@ -237,10 +237,9 @@ def _apply_domicilio_rubro(
     if not _domicilio_rubro_patch_solicitado(payload):
         return False
 
-    from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
-    from app.domains.domicilios.utils.preservar_geocode_domicilio import (
-        preservar_geocode_existente_al_editar_domicilio,
-        snapshot_domicilio_geocode,
+    from app.domains.domicilios.services.domicilio_completar_trabajo_service import (
+        construir_cambios_domicilio_desde_payload_cierre,
+        resolver_domicilio_real_desde_completar_trabajo,
     )
     from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
     from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
@@ -255,23 +254,7 @@ def _apply_domicilio_rubro(
 
     contrib = _resolve_contribuyente_para_domicilio_cierre(act, payload)
 
-    dom_payload: dict[str, Any] = {}
-    if payload.calle is not None:
-        dom_payload["calle"] = payload.calle
-    elif act.domicilio:
-        dom_payload["calle"] = act.domicilio.calle
-    elif ini.domicilio:
-        dom_payload["calle"] = ini.domicilio.calle
-
-    if payload.numero is not None:
-        dom_payload["numero"] = payload.numero
-    elif act.domicilio:
-        dom_payload["numero"] = act.domicilio.numero
-    elif ini.domicilio:
-        dom_payload["numero"] = ini.domicilio.numero
-
-    if getattr(payload, "numero_tipo", None) is not None:
-        dom_payload["numero_tipo"] = payload.numero_tipo
+    dom_payload = construir_cambios_domicilio_desde_payload_cierre(payload, act=act, ini=ini)
 
     if not dom_payload or not dom_payload.get("calle") or not dom_payload.get("numero"):
         return False
@@ -280,30 +263,25 @@ def _apply_domicilio_rubro(
     allow_missing_catalogs = bucket != ContrapBucket.NONE
     modo_domicilio = getattr(payload, "modo_domicilio", None)
     domicilio_id_ref = act.domicilio_id or (ini.domicilio_id if ini else None)
-    geo_snapshot = (
-        snapshot_domicilio_geocode(int(domicilio_id_ref)) if domicilio_id_ref is not None else None
+    relevamiento_id = int(ini.relevamiento_id) if ini and ini.relevamiento_id else None
+    allow_missing_effective = allow_missing_catalogs or (
+        relevamiento_id is not None and contrib is None
     )
-    outcome = aplicar_edicion_domicilio_operativo(
-        domicilio_id_actual=domicilio_id_ref,
-        cambios=dom_payload,
+    outcome = resolver_domicilio_real_desde_completar_trabajo(
+        domicilio_origen_id=domicilio_id_ref,
+        payload_cambios=dom_payload,
         contribuyente=contrib,
         rubro=rubro,
-        contexto="COMPLETAR_TRABAJO",
-        origen_id=int(act.id),
+        act_id=int(act.id),
+        relevamiento_id=relevamiento_id,
         modo_explicito=modo_domicilio,
-        allow_missing_catalogs=allow_missing_catalogs,
+        allow_missing_catalogs=allow_missing_effective,
     )
     dom = outcome.domicilio
     act.domicilio_id = dom.id if dom else None
     act.domicilio = dom
     if dom:
         normalizar_domicilio_en_sesion(dom, override_numero_tipo=dom_payload.get("numero_tipo"))
-        if (
-            outcome.policy.modo == "EDITAR_MISMA_FILA"
-            and not outcome.domicilio_id_cambio
-            and geo_snapshot is not None
-        ):
-            preservar_geocode_existente_al_editar_domicilio(int(dom.id), geo_snapshot)
     return dom is not None
 
 

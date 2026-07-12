@@ -17,6 +17,10 @@ from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
 from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
+from app.domains.domicilios.services.domicilio_completar_trabajo_service import (
+    heredar_geocode_domicilio_desde_origen,
+    relevamiento_id_desde_actuacion,
+)
 from app.domains.domicilios.services.domicilio_edit_policy_service import (
     domicilio_payload_cambia_texto_geografico,
 )
@@ -135,6 +139,8 @@ def aplicar_payload_actuacion(
         dom_actual = db.session.get(Domicilio, int(act.domicilio_id)) if act.domicilio_id else None
         texto_cambia = domicilio_payload_cambia_texto_geografico(dom_actual, dom_payload)
         cambios_domicilio = dom_payload if texto_cambia or dom_actual is None else {}
+        relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
+        domicilio_id_anterior = act.domicilio_id
 
         outcome = aplicar_edicion_domicilio_operativo(
             domicilio_id_actual=act.domicilio_id,
@@ -145,10 +151,13 @@ def aplicar_payload_actuacion(
             origen_id=int(act.id) if getattr(act, "id", None) else 0,
             modo_explicito=payload.get("modo_domicilio"),
             allow_missing_catalogs=allow_missing_catalogs,
+            relevamiento_id=relevamiento_id,
         )
         dom = outcome.domicilio
         act.domicilio_id = dom.id if dom else None
         act.domicilio = dom
+        if dom and outcome.domicilio_id_cambio and domicilio_id_anterior is not None:
+            heredar_geocode_domicilio_desde_origen(int(domicilio_id_anterior), int(dom.id))
         # Canal Actuaciones: editar texto ≠ recalcular geocode (Nomenclatura / Gestión Domicilios aparte).
 
     # Inspectores
