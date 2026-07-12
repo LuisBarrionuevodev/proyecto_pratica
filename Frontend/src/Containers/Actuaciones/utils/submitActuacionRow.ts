@@ -19,7 +19,11 @@ import {
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
-import { domicilioCalleParaPayload, domicilioEsquinaParaPayload } from "../../../utils/domicilioCalleUi";
+import {
+  domicilioCalleCargadaEditable,
+  domicilioEsTipoEsquina,
+  domicilioNumeroEditable,
+} from "../../../utils/domicilioCalleUi";
 /**
  * El canal **Cargar actuación** (PUT grilla) no admite expediente/oficio administrativos en el cuerpo;
  * el presenter los incluye en GET para lectura. Se deben omitir antes de validar y enviar.
@@ -53,6 +57,8 @@ const ACTUACION_CANAL_PUT_OMIT_KEYS = [
   "numero_esquina",
   "notificacion_editable",
   "comprobacion_editable",
+  "can_edit_domicilio",
+  "domicilio_edit_blocked_reason",
   "establecimiento_operativo_id",
   "establecimiento_actuaciones_en_ficha",
   "resultado_cumplimiento_oficio",
@@ -90,26 +96,36 @@ function applyDomicilioCalleSubmitGuard(
   const baseline = originalRow ?? row;
   let out: IActuacionListItem = row;
 
-  const payloadCalle = domicilioCalleParaPayload(row.calle, row, { baselineRow: baseline });
-  if (payloadCalle !== undefined) {
-    out = { ...out, calle: payloadCalle };
-  } else {
+  if (row.can_edit_domicilio === true) {
+    const baselineCalle = domicilioCalleCargadaEditable(baseline);
+    const baselineNumero = domicilioNumeroEditable(baseline);
+    const editedCalle = String(row.calle ?? "").trim();
+    const editedNumero = String(row.numero ?? "").trim();
+    const calleChanged = editedCalle !== baselineCalle;
+    const numeroChanged = editedNumero !== baselineNumero;
+    if (calleChanged || numeroChanged) {
+      const calle = editedCalle || baselineCalle;
+      const numero = editedNumero || baselineNumero;
+      return {
+        ...out,
+        calle: calle || null,
+        numero: numero || null,
+        numero_tipo: domicilioEsTipoEsquina(row) ? "ESQUINA" : row.numero_tipo ?? "NUMERO",
+      };
+    }
     const copy: Record<string, unknown> = { ...out };
     delete copy.calle;
-    out = copy as IActuacionListItem;
-  }
-
-  const payloadEsquina = domicilioEsquinaParaPayload(row.numero, row, { baselineRow: baseline });
-  if (payloadEsquina !== undefined) {
-    out = { ...out, numero: payloadEsquina, numero_tipo: "ESQUINA" };
-  } else if ((row.numero_tipo ?? "").toUpperCase() === "ESQUINA") {
-    const copy: Record<string, unknown> = { ...out };
     delete copy.numero;
     delete copy.numero_tipo;
-    out = copy as IActuacionListItem;
+    return copy as IActuacionListItem;
   }
 
-  return out;
+  // PR7.15d: domicilio bloqueado — no validar ni enviar calle/número (aunque estén en el draft).
+  const blockedCopy: Record<string, unknown> = { ...out };
+  delete blockedCopy.calle;
+  delete blockedCopy.numero;
+  delete blockedCopy.numero_tipo;
+  return blockedCopy as IActuacionListItem;
 }
 
 /** Mapeo de errores (backend / grilla Glide → snake_case del modal de edición). */

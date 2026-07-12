@@ -37,6 +37,7 @@ import {
 } from "../../api/actuacionesPendientesApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
+import { formatActuacionListDomicilioLinea } from "../../utils/formatDomicilioLineaVisible";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import {
   BandejaActaChipCell,
@@ -124,9 +125,7 @@ function contribuyenteText(row: IActuacionesPendientesItem): string {
 }
 
 function domicilioText(row: IActuacionesPendientesItem): string {
-  const c = (row.calle ?? "").trim();
-  const n = (row.numero ?? "").trim();
-  const t = [c, n].filter(Boolean).join(" ");
+  const t = formatActuacionListDomicilioLinea(row).trim();
   return t || "—";
 }
 

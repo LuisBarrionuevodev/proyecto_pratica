@@ -96,14 +96,27 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
 
     calle = row.calle
     numero = row.numero
-    if calle is None and act.domicilio:
-        calle = act.domicilio.calle
-    elif calle is None and ini.domicilio:
-        calle = ini.domicilio.calle
-    if numero is None and act.domicilio:
-        numero = act.domicilio.numero
-    elif numero is None and ini.domicilio:
-        numero = ini.domicilio.numero
+    # No mezclar calle del domicilio original si el body trae solo número (PR7.12c).
+    if row.numero is not None and row.calle is None:
+        calle = None
+    ref_dom = act.domicilio or (ini.domicilio if ini else None)
+    corrige_esquina_sin_numero = (
+        row.calle is not None
+        and row.numero is None
+        and (row.numero_tipo or "").strip().upper() == "NUMERO"
+        and ref_dom is not None
+        and (getattr(ref_dom, "numero_tipo", None) or "").strip().upper() == "ESQUINA"
+    )
+    if calle is None and numero is None:
+        if act.domicilio:
+            calle = act.domicilio.calle
+        elif ini.domicilio:
+            calle = ini.domicilio.calle
+    if numero is None and not corrige_esquina_sin_numero:
+        if act.domicilio:
+            numero = act.domicilio.numero
+        elif ini.domicilio:
+            numero = ini.domicilio.numero
 
     need_domicilio = (
         row.calle is not None
@@ -115,7 +128,7 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
         or row.contrib_nombre is not None
         or row.razon_social is not None
     )
-    if need_domicilio and (calle or numero or row.numero_tipo):
+    if need_domicilio:
         if contrib_from_row:
             payload["contribuyente"] = contrib_from_row
         else:
@@ -129,11 +142,14 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
         if eff_rubro:
             payload["rubro_nombre"] = eff_rubro
 
-        payload["domicilio"] = {
-            "calle": _clean_str(calle),
-            "numero": _clean_str(numero),
-            "numero_tipo": row.numero_tipo,
-        }
+        if _clean_str(calle) and _clean_str(numero):
+            domicilio_payload: dict[str, Any] = {
+                "calle": _clean_str(calle),
+                "numero": _clean_str(numero),
+            }
+            if row.numero_tipo is not None:
+                domicilio_payload["numero_tipo"] = row.numero_tipo
+            payload["domicilio"] = domicilio_payload
     elif contrib_from_row:
         payload["contribuyente"] = contrib_from_row
 

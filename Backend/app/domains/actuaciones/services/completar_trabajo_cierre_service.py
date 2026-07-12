@@ -226,16 +226,15 @@ def _apply_domicilio_rubro(
     *,
     bucket: ContrapBucket,
     ini: IniciadorRuta,
-) -> bool:
+) -> tuple[bool, bool]:
     """
     Replica la lógica mínima de PATCH para calle/número/rubro/contrib (sin commit).
 
     Retorna:
-        True si se invocó get_or_create_domicilio (y se enlazó ``act.domicilio_id`` y la relación
-        ``act.domicilio``), False si no hubo cambio.
+        Tupla (vinculó domicilio, geocode heredado por copy-on-write desde relevamiento).
     """
     if not _domicilio_rubro_patch_solicitado(payload):
-        return False
+        return False, False
 
     from app.domains.domicilios.services.domicilio_completar_trabajo_service import (
         construir_cambios_domicilio_desde_payload_cierre,
@@ -257,7 +256,7 @@ def _apply_domicilio_rubro(
     dom_payload = construir_cambios_domicilio_desde_payload_cierre(payload, act=act, ini=ini)
 
     if not dom_payload or not dom_payload.get("calle") or not dom_payload.get("numero"):
-        return False
+        return False, False
 
     # Visita no realizada: no exigir contribuyente/rubro aunque `act.tipo` ya venga seteado (p. ej. al publicar ruta).
     allow_missing_catalogs = bucket != ContrapBucket.NONE
@@ -282,7 +281,12 @@ def _apply_domicilio_rubro(
     act.domicilio = dom
     if dom:
         normalizar_domicilio_en_sesion(dom, override_numero_tipo=dom_payload.get("numero_tipo"))
-    return dom is not None
+    geocode_heredado = bool(
+        outcome.domicilio_id_cambio
+        and domicilio_id_ref is not None
+        and relevamiento_id is not None
+    )
+    return dom is not None, geocode_heredado
 
 
 def _vincular_notificacion_reinspeccion_en_acta(
@@ -387,6 +391,7 @@ def cerrar_completar_trabajo_por_ruta_item(
     now = datetime.utcnow()
     domicilio_id_inicial = act.domicilio_id
     domicilio_mutado = False
+    domicilio_geocode_heredado = False
 
     try:
         # 1) Actuación
@@ -402,7 +407,11 @@ def cerrar_completar_trabajo_por_ruta_item(
                     aplicar_payload["inspectores"] = nombres_grupo
             # Misma vía que correctivas: persistir domicilio/rubro/titular aquí y no repetir
             # en ``aplicar_payload_actuacion`` (evita desincronía ORM act.domicilio vs act.domicilio_id).
-            dom_vinculado_por_apply = _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            dom_vinculado_por_apply, geo_heredado = _apply_domicilio_rubro(
+                act, payload, bucket=bucket, ini=ini
+            )
+            if geo_heredado:
+                domicilio_geocode_heredado = True
             if dom_vinculado_por_apply:
                 domicilio_mutado = True
                 aplicar_payload.pop("domicilio", None)
@@ -422,7 +431,10 @@ def cerrar_completar_trabajo_por_ruta_item(
                     strip_prefix="TIPO.",
                 )
             act.contraproducencia = stored_contra
-            if _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini):
+            dom_ok, geo_heredado = _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if geo_heredado:
+                domicilio_geocode_heredado = True
+            if dom_ok:
                 domicilio_mutado = True
             if payload.inspectores is not None:
                 nombres = payload.inspectores or []
@@ -443,7 +455,10 @@ def cerrar_completar_trabajo_por_ruta_item(
                     strip_prefix="TIPO.",
                 )
             act.contraproducencia = stored_contra
-            if _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini):
+            dom_ok, geo_heredado = _apply_domicilio_rubro(act, payload, bucket=bucket, ini=ini)
+            if geo_heredado:
+                domicilio_geocode_heredado = True
+            if dom_ok:
                 domicilio_mutado = True
             if payload.inspectores is not None:
                 nombres = payload.inspectores or []
@@ -490,6 +505,17 @@ def cerrar_completar_trabajo_por_ruta_item(
             item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
             _aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
 
+        if domicilio_mutado and act.domicilio_id and getattr(act, "id", None):
+            from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+                propagar_domicilio_a_iniciadores_activos,
+            )
+
+            propagar_domicilio_a_iniciadores_activos(
+                "ACTUACION",
+                int(act.id),
+                int(act.domicilio_id),
+            )
+
         if bucket == ContrapBucket.NONE:
             eid = resolve_establecimiento_por_domicilio(
                 act.domicilio_id,
@@ -529,8 +555,8 @@ def cerrar_completar_trabajo_por_ruta_item(
         raise RuntimeError("No se pudo recargar el ítem tras el cierre.")
     try:
         dom_id = fresh.actuacion.domicilio_id if fresh.actuacion else None
-        # Edición textual sobre el mismo domicilio no invalida geocode (canal documental).
-        if dom_id and dom_id != domicilio_id_inicial:
+        # Copy-on-write desde relevamiento: geocode heredado, no re-geocodificar.
+        if dom_id and dom_id != domicilio_id_inicial and not domicilio_geocode_heredado:
             on_domicilio_changed(dom_id)
     except Exception:
         pass

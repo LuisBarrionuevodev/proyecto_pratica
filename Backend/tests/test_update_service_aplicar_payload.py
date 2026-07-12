@@ -32,6 +32,7 @@ def test_aplicar_payload_omite_resolver_previas_cuando_flag_false() -> None:
 def test_aplicar_payload_sincroniza_act_domicilio_tras_get_or_create() -> None:
     """Evita desincronía ORM: FK nuevo + relación `act.domicilio` vieja (F1.6 edición actuación)."""
     act = MagicMock()
+    act.id = 1
     act.orden_trabajo_id = 1
     act.domicilio_id = None
     dom_nuevo = MagicMock()
@@ -60,6 +61,17 @@ def test_aplicar_payload_sincroniza_act_domicilio_tras_get_or_create() -> None:
             return_value=None,
         ),
         patch(
+            "app.domains.actuaciones.services.update_service.resolve_iniciador_operativo_actuacion",
+            return_value=None,
+        ),
+        patch(
+            "app.domains.actuaciones.services.update_service.assert_puede_editar_domicilio_actuacion",
+        ),
+        patch(
+            "app.domains.actuaciones.services.update_service.puede_editar_domicilio_actuacion",
+            return_value=(True, None),
+        ),
+        patch(
             "app.domains.actuaciones.services.update_service.resolver_previas"
         ),
     ):
@@ -77,3 +89,42 @@ def test_aplicar_payload_sincroniza_act_domicilio_tras_get_or_create() -> None:
     assert act.domicilio_id == 42
     assert act.domicilio is dom_nuevo
     mock_aplicar.assert_called_once()
+
+
+def test_aplicar_payload_rechaza_domicilio_si_bloqueado() -> None:
+    """PR7.15d: payload con calle/número falla si el domicilio no es editable."""
+    import pytest
+
+    act = MagicMock()
+    act.id = 1
+    act.orden_trabajo_id = 1
+    act.domicilio_id = 10
+
+    payload = {
+        "domicilio": {"calle": "Otra", "numero": "9"},
+        "rubro_nombre": "BAR",
+        "contribuyente": {"doc_nro": "30123456", "apellido": "Pérez", "nombre": "Juan"},
+    }
+
+    with (
+        patch(
+            "app.domains.actuaciones.services.update_service.get_rubro_o_falla",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "app.domains.actuaciones.services.update_service.resolve_contribuyente",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "app.domains.actuaciones.services.update_service.resolve_iniciador_operativo_actuacion",
+            return_value=None,
+        ),
+        patch(
+            "app.domains.actuaciones.services.update_service.puede_editar_domicilio_actuacion",
+            return_value=(False, "El domicilio no puede modificarse porque el acta ya fue utilizada en un circuito posterior."),
+        ),
+        patch("app.domains.actuaciones.services.update_service.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(calle="Vieja", numero="1")
+        with pytest.raises(ValueError, match="circuito posterior"):
+            aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=False)

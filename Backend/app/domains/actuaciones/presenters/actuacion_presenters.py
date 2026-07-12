@@ -44,6 +44,9 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
+from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
+    puede_editar_domicilio_actuacion,
+)
 from app.domains.domicilios.utils.domicilio_calle_ui import (
     calle_cargada_desde_domicilio,
     esquina_cargada_desde_domicilio,
@@ -87,6 +90,18 @@ class ActuacionGridBatchMaps:
     comprobacion_by_id: dict[int, Comprobacion]
     oficio_by_id: dict[int, Oficio]
     notificacion_by_id: dict[int, Notificacion]
+
+
+def _domicilio_edit_flags_for_grid(
+    act: Actuaciones,
+    ini_ruta: Optional[IniciadorRuta],
+) -> dict[str, Any]:
+    """Flags PR7.15 para habilitar/bloquear edición de domicilio en CRUD Actuaciones."""
+    puede, motivo = puede_editar_domicilio_actuacion(act, ini_ruta)
+    return {
+        "can_edit_domicilio": puede,
+        "domicilio_edit_blocked_reason": motivo,
+    }
 
 
 def build_iniciador_ruta_por_actuacion_id(act_ids: list[int]) -> dict[int, Optional[IniciadorRuta]]:
@@ -970,6 +985,7 @@ def actuacion_to_grid_row(
 
         "notificacion_editable": notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None)),
         "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
+        **_domicilio_edit_flags_for_grid(act, ini_ruta),
         **_epicollect_detalle_for_grid(act),
         **_epicollect_evidencias_for_grid(act),
     }

@@ -52,6 +52,22 @@ describe("validateActuacionFormForSubmit — CRUD Editar Actuación", () => {
     expect(result.canSubmit).toBe(true);
   });
 
+  it("PR7.15d: domicilio bloqueado no exige calle ni rubro aunque estén vacíos", () => {
+    const row = {
+      ...baseRow,
+      can_edit_domicilio: false,
+      domicilio_edit_blocked_reason:
+        "El domicilio no puede modificarse porque el acta ya fue utilizada en un circuito posterior.",
+      calle: "",
+      numero: "",
+      rubro_nombre: "",
+    };
+    const result = validateActuacionFormForSubmit(row, actuacionCrudValidationContext(row));
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.rubro_nombre).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  });
+
   it("ratificación no bloquea por nombre/documento faltante", () => {
     const row = {
       ...baseRow,

@@ -12,6 +12,8 @@ from app.domains.domicilios.services.domicilio_update_service import (
     AplicarDomicilioOutcome,
     aplicar_edicion_domicilio_operativo,
 )
+from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import ensure_geocode_row
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import compute_addr_hash
 from app.domains.domicilios.utils.preservar_geocode_domicilio import (
     preservar_geocode_existente_al_editar_domicilio,
     restaurar_domicilio_geocode_desde_snapshot,
@@ -56,6 +58,9 @@ def construir_cambios_domicilio_desde_payload_cierre(
     Solo rellena calle/número desde el domicilio actual si no hubo ningún campo geográfico
     en el cierre (p. ej. actualización de rubro/contrib sin cambio de dirección).
 
+    Si el payload trae número sin calle al pasar a domicilio NUMERO, lanza error claro
+    (evita mezclar calle original de esquina + número nuevo).
+
     Parámetros:
         payload: cierre Completar Trabajo (``calle``, ``numero``, ``numero_tipo`` opcionales).
         act: actuación en curso.
@@ -63,16 +68,51 @@ def construir_cambios_domicilio_desde_payload_cierre(
 
     Retorno:
         Dict con calle/numero/numero_tipo listo para policy y ``aplicar_edicion``.
+
+    Errores:
+        ValueError: número sin calle al corregir dirección real (ESQUINA → NUMERO).
     """
+    def _norm(v: Any) -> str | None:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
+
+    calle_explicita = getattr(payload, "calle", None) is not None
+    numero_explicito = getattr(payload, "numero", None) is not None
+    numero_tipo_explicito = getattr(payload, "numero_tipo", None) is not None
+
     dom_payload: dict[str, Any] = {}
-    if getattr(payload, "calle", None) is not None:
+    if calle_explicita:
         dom_payload["calle"] = payload.calle
-    if getattr(payload, "numero", None) is not None:
+    if numero_explicito:
         dom_payload["numero"] = payload.numero
-    if getattr(payload, "numero_tipo", None) is not None:
+    if numero_tipo_explicito:
         dom_payload["numero_tipo"] = payload.numero_tipo
 
-    geo_explicito = bool(dom_payload)
+    if numero_explicito and not calle_explicita:
+        ref_dom = act.domicilio or (ini.domicilio if ini else None)
+        nt_payload = (_norm(getattr(payload, "numero_tipo", None)) or "").upper()
+        nt_ref = (_norm(getattr(ref_dom, "numero_tipo", None)) or "").upper() if ref_dom else ""
+        if nt_payload == "NUMERO" or nt_ref == "ESQUINA":
+            raise ValueError(
+                "Al corregir la dirección real (número o pasar de esquina a número), "
+                "debe indicar la calle en el cierre."
+            )
+        raise ValueError(
+            "Al corregir el domicilio en el cierre, debe indicar calle y número completos."
+        )
+
+    if calle_explicita and not numero_explicito:
+        ref_dom = act.domicilio or (ini.domicilio if ini else None)
+        if ref_dom is not None and ref_dom.numero:
+            dom_payload["numero"] = ref_dom.numero
+        else:
+            raise ValueError(
+                "Al corregir el domicilio en el cierre, debe indicar calle y número completos."
+            )
+
+    geo_explicito = calle_explicita or numero_explicito or numero_tipo_explicito
     if not geo_explicito:
         ref_dom = act.domicilio or (ini.domicilio if ini else None)
         if ref_dom is not None:
@@ -91,7 +131,8 @@ def heredar_geocode_domicilio_desde_origen(
     """
     Copia lat/lng y metadatos de geocode del domicilio origen al nuevo domicilio real.
 
-    No dispara geocoder ni marca pending: conserva el geocode heredado del relevamiento.
+    Ajusta ``addr_hash`` al texto del domicilio nuevo y marca ``source=MANUAL`` para que
+    ``on_domicilio_changed`` no dispare geocoder ni deje el registro en pending.
 
     Parámetros:
         domicilio_origen_id: domicilio histórico del relevamiento/iniciador.
@@ -104,6 +145,15 @@ def heredar_geocode_domicilio_desde_origen(
     if not snapshot:
         return
     restaurar_domicilio_geocode_desde_snapshot(int(domicilio_nuevo_id), snapshot)
+    dom_nuevo = db.session.get(Domicilio, int(domicilio_nuevo_id))
+    if dom_nuevo is None:
+        return
+    geo = ensure_geocode_row(int(domicilio_nuevo_id))
+    geo.addr_hash = compute_addr_hash(dom_nuevo)
+    if geo.lat is not None and geo.lng is not None:
+        geo.geo_status = snapshot.get("geo_status") or "OK"
+    geo.source = "MANUAL"
+    db.session.add(geo)
 
 
 def resolver_domicilio_real_desde_completar_trabajo(

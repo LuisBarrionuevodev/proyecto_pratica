@@ -359,10 +359,10 @@ def test_editar_solo_acta_conserva_geocode(app_ctx) -> None:
     _assert_geo_unchanged(antes, _geo_snapshot(dom.id))
 
 
-def test_editar_calle_desde_actuaciones_preserva_lat_lng(app_ctx) -> None:
+def test_editar_calle_desde_actuaciones_directa_crud_permite_y_geocode(app_ctx, monkeypatch) -> None:
+    """PR7.15b: actuación cargada directa desde CRUD puede corregir calle y dispara geocode."""
     suf = uuid4().hex[:8]
     act, dom, rub, doc = _mk_actuacion_geocodificada(suf)
-    antes = _geo_snapshot(dom.id)
     nueva_calle = f"{dom.calle} Corregida"
     payload = _payload_put_actuacion(
         act=act,
@@ -371,10 +371,23 @@ def test_editar_calle_desde_actuaciones_preserva_lat_lng(app_ctx) -> None:
         calle=nueva_calle,
         numero=dom.numero,
     )
+    called: list[int] = []
+
+    def _fake_on_changed(dom_id: int, force: bool = False) -> dict:
+        called.append(dom_id)
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "app.domains.actuaciones.services.update_service.on_domicilio_changed",
+        _fake_on_changed,
+    )
     actualizar_actuacion(act.id, payload)
-    despues = _geo_snapshot(dom.id)
-    assert despues["calle"] == nueva_calle
-    _assert_geo_unchanged(antes, despues)
+    db.session.expunge_all()
+    act_db = Actuaciones.query.get(act.id)
+    dom_db = Domicilio.query.get(act_db.domicilio_id) if act_db else None
+    assert dom_db is not None
+    assert dom_db.calle == nueva_calle
+    assert called
 
 
 def test_nomenclatura_sigue_pudiendo_disparar_geocode(app_ctx, monkeypatch) -> None:

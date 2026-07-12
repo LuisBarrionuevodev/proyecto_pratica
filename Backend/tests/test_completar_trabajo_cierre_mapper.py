@@ -85,7 +85,7 @@ def test_mapper_domicilio_agrega_contrib_y_rubro_desde_actuacion_si_body_no_los_
         "razon_social": None,
     }
     assert m.get("rubro_nombre") == "Panadería"
-    assert m.get("domicilio") == {"calle": "San Martín", "numero": "123", "numero_tipo": None}
+    assert m.get("domicilio") == {"calle": "San Martín", "numero": "123"}
 
 
 def test_mapper_domicilio_usa_rubro_actuacion_si_solo_cambia_calle() -> None:

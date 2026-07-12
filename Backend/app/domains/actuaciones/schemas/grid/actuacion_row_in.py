@@ -422,18 +422,20 @@ class ActuacionGridRowIn(BaseModel):
 
         # 4) Reglas según tipo/contraproducencia
         if self.tipo_actuacion:
-            # Si hay tipo: exigir domicilio completo + inspectores
-            if not self.calle or not self.numero:
-                field_errors["calle"] = "Calle obligatoria cuando hay tipo de actuación."
-                field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
             # Debe haber al menos un inspector cargado
             if not self.inspectores_resueltos():
                 field_errors["inspectores"] = "Debe cargar al menos un inspector."
-            # Si hay domicilio con tipo, exigir rubro + doc
-            if not self.rubro_nombre:
-                field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
-            if not self.doc_nro:
-                field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
+            # PR7.15d: en edición (id), omitir calle/número/rubro/doc si no se envía domicilio geo.
+            envia_domicilio_geo = bool(self.calle or self.numero)
+            exige_domicilio_completo = envia_domicilio_geo or self.id is None
+            if exige_domicilio_completo:
+                if not self.calle or not self.numero:
+                    field_errors["calle"] = "Calle obligatoria cuando hay tipo de actuación."
+                    field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
+                if not self.rubro_nombre:
+                    field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
+                if not self.doc_nro:
+                    field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
         else:
             # Si NO hay tipo pero hay contraproducencia + fecha: permitir con calle y número sin contribuyente
             if self.contraproducencia and self.fecha_actuacion:

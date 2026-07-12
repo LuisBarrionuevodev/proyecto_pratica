@@ -4,6 +4,8 @@ import {
   domicilioCalleCargadaEditable,
   domicilioCalleEsClaveTecnica,
   domicilioCalleParaPayload,
+  domicilioCalleValorEdicion,
+  domicilioNumeroValorEdicion,
   domicilioEsquinaCargadaEditable,
   domicilioEsquinaEsClaveTecnica,
   domicilioEsquinaParaPayload,
@@ -59,6 +61,17 @@ describe("domicilioCalleUi modal calle", () => {
     expect(domicilioCalleParaPayload(hydrated, rowMonteagudo)).toBeUndefined();
     expect(domicilioCalleParaPayload("monteagudo", rowMonteagudo)).toBeUndefined();
     expect(domicilioCalleParaPayload("Calle editada", rowMonteagudo)).toBe("Calle editada");
+  });
+
+  it("edicion CRUD prioriza calle del draft sobre calle_normalizada", () => {
+    const draft = { ...rowMonteagudo, calle: "Catamarca" };
+    expect(domicilioCalleValorEdicion(draft)).toBe("Catamarca");
+    expect(domicilioCalleCargadaEditable(draft)).toBe("Dr Bernardo Monteagudo");
+  });
+
+  it("edicion CRUD permite string vacío temporal en calle sin volver a normalizada", () => {
+    const draft = { ...rowMonteagudo, calle: "" };
+    expect(domicilioCalleValorEdicion(draft)).toBe("");
   });
 });
 

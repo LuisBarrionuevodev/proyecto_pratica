@@ -2,7 +2,13 @@ import type {
   ICompletarTrabajoCierreBody,
   ICompletarTrabajoPendienteRow,
 } from "../../../api/completarTrabajoApi";
-import { domicilioCalleCargadaEditable, domicilioCalleParaPayload, domicilioEsquinaParaPayload, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
+import {
+  domicilioCalleCargadaEditable,
+  domicilioCalleParaPayload,
+  domicilioEsquinaParaPayload,
+  domicilioNumeroEditable,
+  domicilioNumeroParaPayload,
+} from "../../../utils/domicilioCalleUi";
 import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
 
 export type CompletarTrabajoFormFields = {
@@ -51,7 +57,32 @@ export type BuildCierreBodyOptions = {
   inspectoresExplicitos?: string[];
   /** Fila origen para omitir calle del body cuando no hubo edición o sería calle_key. */
   domicilioRow?: ICompletarTrabajoPendienteRow;
+  /**
+   * Fila origen sin merge del formulario (detecta ESQUINA→NUMERO aunque values ya traiga numero_tipo).
+   */
+  domicilioRowBaseline?: ICompletarTrabajoPendienteRow;
+  /**
+   * Claves presentes en el submit del modal (``values``).
+   * Si está definido, solo se envían domicilio/rubro/titular cuando el operador los editó explícitamente
+   * o hubo cambio geográfico real vs la fila baseline (reinspección sin edición no manda domicilio).
+   */
+  explicitUserFields?: Set<string>;
 };
+
+function fieldExplicit(key: string, options?: BuildCierreBodyOptions): boolean {
+  if (!options?.explicitUserFields) return true;
+  return options.explicitUserFields.has(key);
+}
+
+function rubroCambioReal(
+  editedRubro: string,
+  baselineRow?: ICompletarTrabajoPendienteRow
+): boolean {
+  const t = s(editedRubro);
+  if (!t) return false;
+  const baseline = (baselineRow?.rubro_nombre ?? "").trim();
+  return !baseline || t !== baseline;
+}
 
 /**
  * Arma el body POST /cerrar alineado al backend (sin actas si hay contraproducencia).
@@ -69,32 +100,88 @@ export function buildCompletarTrabajoCierreBody(
 
   if (includeTipo && s(f.tipo_actuacion)) body.tipo_actuacion = s(f.tipo_actuacion);
   if (contra) body.contraproducencia = contra;
-  if (s(f.rubro_nombre)) body.rubro_nombre = s(f.rubro_nombre);
-  const formNumeroTipo = (f.numero_tipo || "").trim().toUpperCase();
-  const rowNumeroTipo = (options?.domicilioRow?.numero_tipo || "").trim().toUpperCase();
-  const saleDeEsquina = formNumeroTipo === "NUMERO" && rowNumeroTipo === "ESQUINA";
-  const callePayload = options?.domicilioRow
-    ? saleDeEsquina
-      ? s(f.calle) || undefined
-      : domicilioCalleParaPayload(f.calle, options.domicilioRow)
-    : s(f.calle);
-  if (callePayload) body.calle = callePayload;
-  const numeroTipo = formNumeroTipo || rowNumeroTipo;
-  if (options?.domicilioRow && numeroTipo === "ESQUINA") {
-    const esquinaPayload = domicilioEsquinaParaPayload(f.numero, options.domicilioRow);
-    if (esquinaPayload) {
-      body.numero = esquinaPayload;
-      body.numero_tipo = "ESQUINA";
-    }
-  } else {
-    if (s(f.numero)) body.numero = s(f.numero);
-    if (s(f.numero_tipo)) body.numero_tipo = s(f.numero_tipo);
+
+  const baselineRow = options?.domicilioRowBaseline ?? options?.domicilioRow;
+  if (
+    fieldExplicit("rubro_nombre", options) &&
+    rubroCambioReal(f.rubro_nombre, baselineRow)
+  ) {
+    body.rubro_nombre = s(f.rubro_nombre);
   }
-  if (s(f.doc_nro)) body.doc_nro = s(f.doc_nro);
-  if (s(f.contrib_apellido)) body.contrib_apellido = s(f.contrib_apellido);
-  if (s(f.contrib_nombre)) body.contrib_nombre = s(f.contrib_nombre);
-  if (s(f.razon_social)) body.razon_social = s(f.razon_social);
-  if (s(f.nombre_local)) body.nombre_local = s(f.nombre_local);
+
+  const formNumeroTipo = (f.numero_tipo || "").trim().toUpperCase();
+  const baselineNumeroTipo = (baselineRow?.numero_tipo || "").trim().toUpperCase();
+  const rowNumeroTipo = (options?.domicilioRow?.numero_tipo || "").trim().toUpperCase();
+  /** Corrección ESQUINA→NUMERO: usar baseline (fila API), no la fila ya mergeada. */
+  const corrigeEsquinaANumero = formNumeroTipo === "NUMERO" && baselineNumeroTipo === "ESQUINA";
+  const geoExplicitRequested =
+    fieldExplicit("calle", options) ||
+    fieldExplicit("numero", options) ||
+    fieldExplicit("numero_tipo", options);
+  const includeGeoBlock = geoExplicitRequested || corrigeEsquinaANumero;
+
+  if (includeGeoBlock) {
+    const calleVisible = s(f.calle);
+    let callePayload: string | undefined;
+    if (corrigeEsquinaANumero) {
+      callePayload =
+        calleVisible ||
+        (options?.domicilioRow ? domicilioCalleCargadaEditable(baselineRow ?? options.domicilioRow) : undefined);
+    } else if (options?.domicilioRow) {
+      callePayload = domicilioCalleParaPayload(f.calle, options.domicilioRow, {
+        baselineRow,
+      });
+    } else {
+      callePayload = calleVisible;
+    }
+    if (callePayload) body.calle = callePayload;
+
+    const numeroTipo = formNumeroTipo || rowNumeroTipo;
+    if (options?.domicilioRow && numeroTipo === "ESQUINA" && !corrigeEsquinaANumero) {
+      const esquinaPayload = domicilioEsquinaParaPayload(f.numero, options.domicilioRow, {
+        baselineRow,
+      });
+      if (esquinaPayload) {
+        body.numero = esquinaPayload;
+        body.numero_tipo = "ESQUINA";
+      }
+    } else {
+      let numeroPayload: string | undefined;
+      if (corrigeEsquinaANumero) {
+        numeroPayload = s(f.numero);
+      } else if (options?.domicilioRow) {
+        numeroPayload = domicilioNumeroParaPayload(f.numero, options.domicilioRow, {
+          baselineRow,
+        });
+      } else if (s(f.numero)) {
+        numeroPayload = s(f.numero);
+      }
+      if (numeroPayload) body.numero = numeroPayload;
+      if (corrigeEsquinaANumero) {
+        body.numero_tipo = "NUMERO";
+      } else if (
+        fieldExplicit("numero_tipo", options) &&
+        s(f.numero_tipo) &&
+        (callePayload || numeroPayload)
+      ) {
+        body.numero_tipo = s(f.numero_tipo);
+      }
+    }
+  }
+
+  if (fieldExplicit("doc_nro", options) && s(f.doc_nro)) body.doc_nro = s(f.doc_nro);
+  if (fieldExplicit("contrib_apellido", options) && s(f.contrib_apellido)) {
+    body.contrib_apellido = s(f.contrib_apellido);
+  }
+  if (fieldExplicit("contrib_nombre", options) && s(f.contrib_nombre)) {
+    body.contrib_nombre = s(f.contrib_nombre);
+  }
+  if (fieldExplicit("razon_social", options) && s(f.razon_social)) {
+    body.razon_social = s(f.razon_social);
+  }
+  if (fieldExplicit("nombre_local", options) && s(f.nombre_local)) {
+    body.nombre_local = s(f.nombre_local);
+  }
   if (s(f.observaciones_ejecucion)) body.observaciones_ejecucion = s(f.observaciones_ejecucion);
 
   if (visitaRealizada) {
@@ -168,16 +255,22 @@ function mergeRow(
   return out as ICompletarTrabajoPendienteRow;
 }
 
+function trimStr(v: string | null | undefined): string {
+  return (v ?? "").trim();
+}
+
 function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFormFields {
   const kilos = row.decomiso_kilos_total as unknown;
   const kilosStr =
     kilos == null || kilos === "" ? "" : typeof kilos === "number" ? String(kilos) : String(kilos).trim();
+  const calleExplicita = trimStr(row.calle);
+  const numeroExplicito = trimStr(row.numero);
   return {
     tipo_actuacion: row.tipo_actuacion ?? "",
     contraproducencia: row.contraproducencia ?? "",
     rubro_nombre: row.rubro_nombre ?? "",
-    calle: domicilioCalleCargadaEditable(row),
-    numero: domicilioNumeroEditable(row),
+    calle: calleExplicita || domicilioCalleCargadaEditable(row),
+    numero: numeroExplicito || domicilioNumeroEditable(row),
     numero_tipo: row.numero_tipo ?? "",
     doc_nro: row.doc_nro ?? "",
     contrib_apellido: row.contrib_apellido ?? "",
@@ -216,5 +309,10 @@ export function buildCompletarTrabajoCierreBodyFromInline(
   if (options?.omitPrecargadoPr2 === true) {
     applyOmitPrecargadoPr2(fields);
   }
-  return buildCompletarTrabajoCierreBody(fields, { ...options, domicilioRow: merged });
+  return buildCompletarTrabajoCierreBody(fields, {
+    ...options,
+    domicilioRow: merged,
+    domicilioRowBaseline: original,
+    explicitUserFields: new Set(Object.keys(values)),
+  });
 }

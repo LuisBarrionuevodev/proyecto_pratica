@@ -39,24 +39,116 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
     const rowEsquina = {
       ...rowMonteagudo,
       numero_tipo: "ESQUINA",
-      numero: "y catamarca",
-      esquina_key: "catamarca",
-      esquina_normalizada: "Catamarca",
-      calle: "San Martin",
-      calle_normalizada: "San Martín",
+      numero: "y maipu",
+      esquina_key: "maipu",
+      esquina_normalizada: "Maipú",
+      calle: "San Juan",
+      calle_normalizada: "San Juan",
     } as ICompletarTrabajoPendienteRow;
     const body = buildCompletarTrabajoCierreBody(
       {
         ...EMPTY_COMPLETAR_FORM,
-        calle: "Catamarca",
-        numero: "1000",
+        calle: "Maipú",
+        numero: "500",
         numero_tipo: "NUMERO",
         rubro_nombre: "Panadería",
       },
       { domicilioRow: rowEsquina, omitPrecargadoPr2: true }
     );
-    expect(body.calle).toBe("Catamarca");
-    expect(body.numero).toBe("1000");
+    expect(body.calle).toBe("Maipú");
+    expect(body.numero).toBe("500");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("FromInline respeta calle editada aunque row tenga calle_normalizada distinta", () => {
+    const rowEsquina = {
+      ...rowMonteagudo,
+      numero_tipo: "ESQUINA",
+      calle: "San Juan",
+      calle_normalizada: "San Juan",
+      numero: "y Maipú",
+      esquina_normalizada: "Maipú",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      rowEsquina,
+      {
+        calle: "Maipú",
+        numero: "500",
+        numero_tipo: "NUMERO",
+        rubro_nombre: "Carnicería",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("Maipú");
+    expect(body.numero).toBe("500");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("FromInline ESQUINA→NUMERO manda calle visible aunque merged ya traiga numero_tipo NUMERO", () => {
+    const rowEsquina = {
+      ruta_item_id: 9,
+      numero_tipo: "ESQUINA",
+      calle: "san juan",
+      calle_key: "san juan",
+      calle_normalizada: "San Juan",
+      numero: "y mendoza",
+      esquina_key: "mendoza",
+      esquina_normalizada: "Mendoza",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      rowEsquina,
+      {
+        calle: "Mendoza",
+        numero: "500",
+        numero_tipo: "NUMERO",
+        rubro_nombre: "Carnicería",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("Mendoza");
+    expect(body.numero).toBe("500");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("FromInline ESQUINA→NUMERO sin calle en values hidrata calle de la fila para el payload", () => {
+    const rowEsquina = {
+      ruta_item_id: 10,
+      numero_tipo: "ESQUINA",
+      calle_normalizada: "San Juan",
+      numero: "y mendoza",
+      esquina_normalizada: "Mendoza",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      rowEsquina,
+      {
+        numero: "500",
+        numero_tipo: "NUMERO",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("San Juan");
+    expect(body.numero).toBe("500");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("FromInline ESQUINA→NUMERO sin calle explícita ni hidratable no manda calle", () => {
+    const rowEsquina = {
+      ruta_item_id: 11,
+      numero_tipo: "ESQUINA",
+      numero: "y mendoza",
+      esquina_normalizada: "Mendoza",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      rowEsquina,
+      {
+        calle: "",
+        numero: "500",
+        numero_tipo: "NUMERO",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBe("500");
     expect(body.numero_tipo).toBe("NUMERO");
   });
 
@@ -90,5 +182,97 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
     expect(body.calle).toBeUndefined();
     expect(body.numero).toBeUndefined();
     expect(body.numero_tipo).toBeUndefined();
+  });
+
+  it("REINSPECCION_NOTIFICACION sin edición domicilio no incluye domicilio en body", () => {
+    const row = {
+      ruta_item_id: 713,
+      tipo_iniciador: "REINSPECCION_NOTIFICACION",
+      calle: "San Martín",
+      calle_normalizada: "San Martín",
+      numero: "450",
+      numero_tipo: "NUMERO",
+      rubro_nombre: "Panadería",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      {
+        contraproducencia: "",
+        acta_inspeccion_num: "000123",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBeUndefined();
+    expect(body.numero_tipo).toBeUndefined();
+    expect(body.rubro_nombre).toBeUndefined();
+    expect(body.acta_inspeccion_num).toBe("000123");
+  });
+
+  it("REINSPECCION_OFICIO sin edición domicilio no incluye domicilio en body", () => {
+    const row = {
+      ruta_item_id: 714,
+      tipo_iniciador: "REINSPECCION_OFICIO",
+      calle: "Belgrano",
+      calle_normalizada: "Belgrano",
+      numero: "1200",
+      numero_tipo: "NUMERO",
+      rubro_nombre: "Carnicería",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      {
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        resultado_cumplimiento_oficio: "CUMPLE",
+        acta_inspeccion_num: "000456",
+      },
+      { includeTipoActuacion: true }
+    );
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBeUndefined();
+    expect(body.rubro_nombre).toBeUndefined();
+    expect(body.tipo_actuacion).toBe("VERIFICAR E INFORMAR");
+    expect(body.resultado_cumplimiento_oficio).toBe("CUMPLE");
+  });
+
+  it("con edición calle/número incluye domicilio completo", () => {
+    const row = {
+      ruta_item_id: 715,
+      tipo_iniciador: "REINSPECCION_NOTIFICACION",
+      calle: "San Martín",
+      calle_normalizada: "San Martín",
+      numero: "450",
+      numero_tipo: "NUMERO",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      {
+        calle: "Mendoza",
+        numero: "500",
+        numero_tipo: "NUMERO",
+        acta_inspeccion_num: "000789",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("Mendoza");
+    expect(body.numero).toBe("500");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("no manda domicilio parcial (solo número sin calle explícita)", () => {
+    const row = {
+      ruta_item_id: 716,
+      calle: "San Juan",
+      calle_normalizada: "San Juan",
+      numero: "100",
+      numero_tipo: "NUMERO",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      { numero: "200", acta_inspeccion_num: "001" },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBe("200");
   });
 });

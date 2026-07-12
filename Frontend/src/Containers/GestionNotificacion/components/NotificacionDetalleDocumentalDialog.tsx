@@ -40,6 +40,7 @@ import {
   DocumentalFila,
   textoValor,
 } from "../../ActasComprobacion/components/comprobacionOperativoBlocks";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { humanizarTipoActuacion } from "../../ActasComprobacion/utils/documentalLabelFormat";
 
 type DocumentalCardShell = "glass" | "actuacion";
@@ -54,9 +55,7 @@ function contribuyenteLinea(row: IActuacionesPendientesItem): string {
 }
 
 function domicilioLinea(row: IActuacionesPendientesItem): string {
-  const c = (row.calle ?? "").trim();
-  const n = (row.numero ?? "").trim();
-  const t = [c, n].filter(Boolean).join(" ");
+  const t = formatActuacionListDomicilioLinea(row).trim();
   return t || "—";
 }
 

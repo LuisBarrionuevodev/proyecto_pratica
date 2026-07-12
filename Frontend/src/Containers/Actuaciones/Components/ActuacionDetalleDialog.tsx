@@ -24,7 +24,7 @@ import {
 } from "../../../utils/motivosNotificacionSlots";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
-import { domicilioCalleCargadaEditable, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
+import { domicilioCalleCargadaEditable, domicilioCalleValorEdicion, domicilioNumeroEditable, domicilioNumeroValorEdicion, domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { useAppFeedback } from "../../../components/feedback";
 import {
   CrudDialogActions,
@@ -829,9 +829,11 @@ export function ActuacionDetalleDialog({
       feedback.warning(result.message);
       return;
     }
-    setEditBaseline({ ...draft });
+    const hydrated = domicilioRowParaEdicionCalle({ ...draft });
+    onDraftChange(hydrated);
+    setEditBaseline({ ...hydrated });
     setIsEditing(true);
-  }, [draft, feedback]);
+  }, [draft, feedback, onDraftChange]);
 
   const handleSaveClick = useCallback(() => {
     actaFlushRegistry.current.forEach((fn) => fn());
@@ -1020,6 +1022,7 @@ export function ActuacionDetalleDialog({
     const ro = (key: string) => readOnlyColumns.includes(key);
     const canContrib = editableFields.canEditContribuyente;
     const canDom = editableFields.canEditDomicilio;
+    const domicilioBloqueoMotivo = editableFields.domicilioEditBlockedReason;
     const canNotifEdit = editableFields.canEditNotificacion;
     const helperBloqueo = (key: string, locked: boolean) => {
       const msg = locked ? e(key) : e(key);
@@ -1150,30 +1153,31 @@ export function ActuacionDetalleDialog({
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
         <DocumentalBloque overline="Domicilio y establecimiento">
+          {!canDom && domicilioBloqueoMotivo ? (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mb: 1 }}>
+              {domicilioBloqueoMotivo}
+            </Typography>
+          ) : null}
           <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
             <AppTextField
               appearance="glass"
               label="Calle"
-              value={domicilioCalleCargadaEditable(draft)}
-              onChange={(ev) => onDraftChange({ calle: ev.target.value.trim() ? ev.target.value.trim() : null })}
-              disabled={ro("calle") || !canDom}
+              value={domicilioCalleValorEdicion(draft)}
+              onChange={(ev) => onDraftChange({ calle: ev.target.value })}
+              disabled={!canDom || ro("calle")}
               error={!!e("calle")}
               helperText={fieldHelper("calle")}
               sx={!canDom ? roFieldSx : undefined}
               fullWidth
             />
             <NumeroEsquinaFreeEditor
-              value={
-                draft.numero_tipo === "ESQUINA"
-                  ? domicilioNumeroEditable(draft) || null
-                  : draft.numero ?? null
-              }
+              value={domicilioNumeroValorEdicion(draft) || null}
               onChange={(newValue) => onDraftChange({ numero: newValue })}
               onModeChange={(editorMode) => onDraftChange({ numero_tipo: editorMode })}
               label={numeroEditorLabel}
               error={!!e("numero")}
               helperText={fieldHelper("numero")}
-              disabled={ro("numero") || !canDom}
+              disabled={!canDom || ro("numero")}
               initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </Box>

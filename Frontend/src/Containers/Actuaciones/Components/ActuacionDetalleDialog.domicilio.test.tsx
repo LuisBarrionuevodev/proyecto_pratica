@@ -96,4 +96,56 @@ describe("ActuacionDetalleDialog domicilio sin catálogo", () => {
     expect(html).toContain("Número o referencia");
     expect(fetchCallesCatalogo).not.toHaveBeenCalled();
   });
+
+  it("PR7.15c: domicilio editable muestra calle y número como value habilitados", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          can_edit_domicilio: true,
+          calle: "Mendoza",
+          calle_normalizada: "Av. Mendoza",
+          numero: "500",
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain('value="Mendoza"');
+    expect(html).toContain('value="500"');
+  });
+
+  it("PR7.15c: domicilio bloqueado deshabilita calle y número", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "REINSPECCION",
+          can_edit_domicilio: false,
+          domicilio_edit_blocked_reason:
+            "La actuación proviene de una reinspección y el domicilio no puede modificarse.",
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("reinspección");
+    expect(html).toContain("disabled");
+  });
 });

@@ -402,4 +402,103 @@ describe("submitActuacionRow pipeline", () => {
     expect(putBody.oficio_anio).toBeNull();
     expect(putBody.oficio_causa).toBeNull();
   });
+
+  it("can_edit_domicilio envía calle y número explícitos al cambiar calle", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const originalRow: IActuacionListItem = {
+      ...baseRow,
+      can_edit_domicilio: true,
+      calle: "Mendoza",
+      calle_normalizada: "Mendoza",
+      numero: "500",
+    };
+    const fullRow: IActuacionListItem = {
+      ...originalRow,
+      calle: "Catamarca",
+      numero: "500",
+    };
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow,
+      originalRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBe("Catamarca");
+    expect(putBody.numero).toBe("500");
+  });
+
+  it("can_edit_domicilio sin cambio domicilio omite calle y numero del PUT", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const originalRow: IActuacionListItem = {
+      ...baseRow,
+      can_edit_domicilio: true,
+      calle: "monteagudo",
+      calle_normalizada: "Mendoza",
+      numero: "500",
+    };
+    const fullRow: IActuacionListItem = {
+      ...originalRow,
+      calle: "Mendoza",
+      numero: "500",
+      inspector1: "Otro",
+    };
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow,
+      originalRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBeUndefined();
+    expect(putBody.numero).toBeUndefined();
+    expect(putBody.inspector1).toBe("Otro");
+  });
+
+  it("PR7.15d: domicilio bloqueado omite calle y número del PUT y valida sin error domicilio", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const originalRow: IActuacionListItem = {
+      ...baseRow,
+      can_edit_domicilio: false,
+      domicilio_edit_blocked_reason:
+        "El domicilio no puede modificarse porque el acta ya fue utilizada en un circuito posterior.",
+      calle: "Mendoza",
+      calle_normalizada: "Mendoza",
+      numero: "500",
+      acta_notificacion_num: "200",
+    };
+    const fullRow: IActuacionListItem = {
+      ...originalRow,
+      nombre_local: "Solo nombre local",
+    };
+
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow,
+      originalRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(true);
+    const validatePayload = mockedValidateRow.mock.calls[0][0] as { row: Record<string, unknown> };
+    expect(validatePayload.row.calle).toBeUndefined();
+    expect(validatePayload.row.numero).toBeUndefined();
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBeUndefined();
+    expect(putBody.numero).toBeUndefined();
+    expect(putBody.nombre_local).toBe("Solo nombre local");
+  });
 });

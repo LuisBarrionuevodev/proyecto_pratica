@@ -21,6 +21,9 @@ from app.domains.domicilios.services.domicilio_completar_trabajo_service import 
     heredar_geocode_domicilio_desde_origen,
     relevamiento_id_desde_actuacion,
 )
+from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
+    normalizar_domicilio_en_sesion,
+)
 from app.domains.domicilios.services.domicilio_edit_policy_service import (
     domicilio_payload_cambia_texto_geografico,
 )
@@ -49,14 +52,47 @@ from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
 )
-from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
-    propagar_domicilio_a_iniciadores_activos,
-)
 from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
     CorregirCierreOperativoError,
     aplicar_sincronizacion_tras_limpiar_contraproducencia,
     assert_puede_limpiar_contraproducencia,
 )
+from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
+    assert_puede_editar_domicilio_actuacion,
+    puede_editar_domicilio_actuacion,
+    resolve_iniciador_operativo_actuacion,
+)
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    on_domicilio_changed,
+)
+
+
+def _norm_dom_str(v: Any) -> str | None:
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
+def _domicilio_cambios_explicitos_crud(
+    dom_actual: Domicilio | None,
+    dom_payload: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Completa calle/número en corrección CRUD para no mezclar texto viejo con campo nuevo (PR7.15b).
+
+    ``aplicar_edicion_domicilio_operativo`` exige ambos campos cuando hay cambio geo.
+    """
+    cambios = dict(dom_payload or {})
+    if dom_actual is None:
+        return cambios
+    calle = _norm_dom_str(cambios.get("calle"))
+    numero = _norm_dom_str(cambios.get("numero"))
+    if calle and not numero:
+        cambios["numero"] = dom_actual.numero
+    elif numero and not calle:
+        cambios["calle"] = dom_actual.calle
+    return cambios
 
 
 def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
@@ -127,6 +163,13 @@ def aplicar_payload_actuacion(
     rubro = get_rubro_o_falla(payload.get("rubro_nombre")) if "rubro_nombre" in payload else None
     contrib = resolve_contribuyente(payload.get("contribuyente")) if "contribuyente" in payload else None
     if "domicilio" in payload:
+        dom_payload = payload.get("domicilio") or {}
+        ini_operativo = (
+            resolve_iniciador_operativo_actuacion(int(act.id)) if getattr(act, "id", None) else None
+        )
+        puede_editar_dom, motivo_dom = puede_editar_domicilio_actuacion(act, ini_operativo)
+        if not puede_editar_dom and (dom_payload.get("calle") or dom_payload.get("numero")):
+            raise ValueError(motivo_dom or "No se puede editar el domicilio de esta actuación.")
         # si mandan domicilio, exige que rubro/contrib estén presentes o ya existan
         if rubro is None:
             rubro = get_rubro_o_falla(payload.get("rubro_nombre"))
@@ -135,12 +178,16 @@ def aplicar_payload_actuacion(
 
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
         allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
-        dom_payload = payload.get("domicilio") or {}
         dom_actual = db.session.get(Domicilio, int(act.domicilio_id)) if act.domicilio_id else None
         texto_cambia = domicilio_payload_cambia_texto_geografico(dom_actual, dom_payload)
+        if texto_cambia:
+            assert_puede_editar_domicilio_actuacion(act, ini_operativo)
         cambios_domicilio = dom_payload if texto_cambia or dom_actual is None else {}
+        if puede_editar_dom and texto_cambia and dom_actual is not None:
+            cambios_domicilio = _domicilio_cambios_explicitos_crud(dom_actual, cambios_domicilio)
         relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
         domicilio_id_anterior = act.domicilio_id
+        es_correccion_relevamiento_crud = texto_cambia and puede_editar_dom
 
         outcome = aplicar_edicion_domicilio_operativo(
             domicilio_id_actual=act.domicilio_id,
@@ -156,9 +203,19 @@ def aplicar_payload_actuacion(
         dom = outcome.domicilio
         act.domicilio_id = dom.id if dom else None
         act.domicilio = dom
-        if dom and outcome.domicilio_id_cambio and domicilio_id_anterior is not None:
+        if (
+            dom
+            and outcome.domicilio_id_cambio
+            and domicilio_id_anterior is not None
+            and not es_correccion_relevamiento_crud
+        ):
             heredar_geocode_domicilio_desde_origen(int(domicilio_id_anterior), int(dom.id))
-        # Canal Actuaciones: editar texto ≠ recalcular geocode (Nomenclatura / Gestión Domicilios aparte).
+        if dom and isinstance(dom, Domicilio) and cambios_domicilio and texto_cambia:
+            normalizar_domicilio_en_sesion(
+                dom, override_numero_tipo=cambios_domicilio.get("numero_tipo")
+            )
+            if es_correccion_relevamiento_crud:
+                on_domicilio_changed(int(dom.id))
 
     # Inspectores
     if "inspectores" in payload:
@@ -269,16 +326,9 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     db.session.add(act)
     db.session.commit()
 
-    if old_domicilio_id != act.domicilio_id and act.domicilio_id:
-        prop_outcome = propagar_domicilio_a_iniciadores_activos(
-            "ACTUACION",
-            act.id,
-            int(act.domicilio_id),
-        )
-        if prop_outcome.actualizados > 0:
-            db.session.commit()
-    elif act.domicilio_id and old_domicilio_id == act.domicilio_id:
-        # STAB-7: corrección in-place — iniciadores ya apuntan al mismo id; datos actualizados en fila.
+    # PR7.15: corrección de domicilio desde CRUD no propaga a iniciadores (solo relevamiento base editable).
+    if act.domicilio_id and old_domicilio_id == act.domicilio_id:
+        # STAB-7: corrección in-place — datos actualizados en la misma fila de domicilio.
         pass
 
     # Garbage collector post-update:

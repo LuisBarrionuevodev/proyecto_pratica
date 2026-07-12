@@ -67,6 +67,24 @@ export function domicilioCalleCargadaEditable(row: DomicilioCalleUiFields): stri
 }
 
 /**
+ * Valor del input Calle en edición CRUD Actuaciones.
+ * Prioriza ``calle`` del draft (incluye string vacío mientras edita) sobre nomenclatura.
+ */
+export function domicilioCalleValorEdicion(row: DomicilioCalleUiFields): string {
+  if (row.calle != null) return String(row.calle);
+  return domicilioCalleCargadaEditable(row);
+}
+
+/**
+ * Valor del input Número/Esquina en edición CRUD Actuaciones.
+ * Prioriza ``numero`` del draft sobre nomenclatura persistida.
+ */
+export function domicilioNumeroValorEdicion(row: DomicilioCalleUiFields): string {
+  if (row.numero != null) return String(row.numero);
+  return domicilioNumeroEditable(row);
+}
+
+/**
  * Texto para input Esquina al abrir modal (solo ``numero_tipo=ESQUINA``).
  * Prioridad: esquina_normalizada → esquina/numero_esquina → esquina_raw → esquina_cargada.
  */
@@ -140,5 +158,22 @@ export function domicilioEsquinaParaPayload(
   if (domicilioEsquinaEsClaveTecnica(t, row)) return undefined;
   const baseline = domicilioEsquinaCargadaEditable(options?.baselineRow ?? row);
   if (baseline && t === baseline) return undefined;
+  return t;
+}
+
+/**
+ * Valor de número (``numero_tipo=NUMERO``) para payload.
+ * Omite si no hubo edición real respecto al texto hidratado inicial.
+ */
+export function domicilioNumeroParaPayload(
+  editedNumero: string | null | undefined,
+  row: DomicilioCalleUiFields,
+  options?: { baselineRow?: DomicilioCalleUiFields }
+): string | undefined {
+  const t = s(editedNumero);
+  if (!t) return undefined;
+  const baseline = options?.baselineRow ?? row;
+  const baselineNum = domicilioNumeroEditable(baseline);
+  if (baselineNum && t === baselineNum) return undefined;
   return t;
 }
