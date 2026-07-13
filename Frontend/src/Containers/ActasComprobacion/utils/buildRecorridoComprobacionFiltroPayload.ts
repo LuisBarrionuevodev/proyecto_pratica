@@ -61,6 +61,10 @@ export function recorridoComprobacionHasPeriodChosen(form: RecorridoComprobacion
   return Boolean(form.desde && form.hasta);
 }
 
+export function recorridoComprobacionHasDistritoChosen(form: RecorridoComprobacionFiltroForm): boolean {
+  return form.distritoId !== "";
+}
+
 function searchOptsFromForm(form: RecorridoComprobacionFiltroForm) {
   const opts: Pick<
     RecorridoComprobacionFiltroPayload,
@@ -84,12 +88,13 @@ export function buildRecorridoComprobacionFiltroPayload(
 ): { ok: true; payload: RecorridoComprobacionFiltroPayload } | { ok: false; error: string } {
   const specific = recorridoComprobacionHasSpecificSearch(form);
   const periodChosen = recorridoComprobacionHasPeriodChosen(form);
+  const distritoChosen = recorridoComprobacionHasDistritoChosen(form);
   const usePeriod = periodChosen && (!specific || form.combinarConPeriodo);
 
-  if (!specific && !periodChosen) {
+  if (!specific && !periodChosen && !distritoChosen) {
     return {
       ok: false,
-      error: "Usá búsqueda específica o elegí un período y tocá Filtrar.",
+      error: "Usá búsqueda específica, elegí un período o seleccioná un distrito y tocá Filtrar.",
     };
   }
 

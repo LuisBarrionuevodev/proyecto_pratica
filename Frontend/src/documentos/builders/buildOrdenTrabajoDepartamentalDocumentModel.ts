@@ -54,7 +54,10 @@ export function buildOrdenTrabajoDepartamentalDocumentModel(
       return {
         itemId: it.id,
         numeroOt: numeroOtDesdeItem(it)!,
-        domicilioLinea: buildDomicilioOrdenTrabajoDepartamental((it.domicilio_texto ?? "").trim() || "—"),
+        domicilioLinea: buildDomicilioOrdenTrabajoDepartamental(
+          (it.domicilio_texto ?? "").trim() || "—",
+          it.angulo_esquina
+        ),
         inspectoresTexto,
         fechaLegible,
         turnoLegible: turno,

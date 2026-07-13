@@ -15,6 +15,7 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     expediente_envio_por_comprobacion,
     oficio_por_comprobacion,
 )
+from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuacion_para_iniciador
 from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, RutaItem
@@ -221,6 +222,76 @@ def iniciador_reinspeccion_to_row(
     return reinspeccion_oficio_bandeja_row(act, counts_by_eo=counts_by_eo, iniciador=ini)
 
 
+def _oficio_compact_label(numero: Any, anio: Any) -> str:
+    """``numero/año`` legible; cadena vacía si no hay datos."""
+    n = (str(numero).strip() if numero is not None else "")
+    a = (str(anio).strip() if anio is not None else "")
+    if not n and not a:
+        return ""
+    return "/".join(p for p in (n, a) if p)
+
+
+def _oficio_recorrido_resumen_item(ofi: Oficio) -> Dict[str, Any]:
+    """
+    Snapshot de oficio + expediente de respuesta asociado para listado de recorrido.
+
+    Incluye textos compactos listos para UI y filtros documentales.
+    """
+    exp = _expediente_respuesta_por_oficio_id(int(ofi.id))
+    num_o = getattr(ofi, "numero_oficio", None)
+    an_o = getattr(ofi, "anio", None)
+    num_e = getattr(exp, "numero_expediente", None) if exp else None
+    an_e = getattr(exp, "anio", None) if exp else None
+    oficio_texto = _oficio_compact_label(num_o, an_o) or None
+    expediente_texto = _oficio_compact_label(num_e, an_e) or None
+    return {
+        "id": ofi.id,
+        "numero_oficio": num_o,
+        "anio_oficio": an_o,
+        "oficio_texto": oficio_texto,
+        "numero_expediente": num_e,
+        "anio_expediente": an_e,
+        "expediente_texto": expediente_texto,
+        "causa": getattr(ofi, "causa", None),
+        "juzgado_nombre": _juzgado_nombre(ofi),
+        # Compat. con consumidores que usaban ``numero`` / ``anio``.
+        "numero": num_o,
+        "anio": an_o,
+    }
+
+
+def _oficio_expediente_linea_compacta(item: Dict[str, Any]) -> str:
+    """``3489/2026 (Exp. 012388/2026)`` o solo oficio si no hay expediente."""
+    ot = (item.get("oficio_texto") or "").strip()
+    et = (item.get("expediente_texto") or "").strip()
+    if ot and et:
+        return f"{ot} (Exp. {et})"
+    return ot
+
+
+def resultado_cumplimiento_recorrido(act: Actuaciones) -> Optional[str]:
+    """
+    Resultado de cumplimiento efectivo para filtros de recorrido.
+
+    Si la reinspección por oficio está CUMPLIDA y existe actuación de segunda visita,
+    usa el resultado persistido en esa visita; si no, el de la actuación ancla.
+    """
+    ini = iniciador_reinspeccion_oficio_vigente(act.id)
+    if ini is not None and ini.estado_iniciador == "CUMPLIDO":
+        act_visita = _actuacion_visita_reinspeccion_desde_ruta_item(
+            ini,
+            actuacion_ancla_id=int(act.id),
+        )
+        if act_visita is not None:
+            resultado = getattr(act_visita, "resultado_cumplimiento_oficio", None)
+            if resultado is not None:
+                return resultado.value if hasattr(resultado, "value") else str(resultado)
+    resultado = getattr(act, "resultado_cumplimiento_oficio", None)
+    if resultado is None:
+        return None
+    return resultado.value if hasattr(resultado, "value") else str(resultado)
+
+
 def comprobacion_recorrido_resumen_row(
     act: Actuaciones,
     *,
@@ -228,19 +299,30 @@ def comprobacion_recorrido_resumen_row(
 ) -> Dict[str, Any]:
     base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     base["estado_recorrido"] = estado_recorrido_label(act)
+    base["resultado_cumplimiento_oficio"] = resultado_cumplimiento_recorrido(act)
     cid = getattr(act, "comprobacion_id", None)
     if cid:
-        ofi = oficio_por_comprobacion(int(cid))
-        if ofi:
-            base["oficio_numero"] = getattr(ofi, "numero_oficio", None)
-            base["oficio_anio"] = getattr(ofi, "anio", None)
-            fo = getattr(ofi, "fecha_oficio", None)
+        oficios = list_oficios_by_comprobacion(int(cid))
+        oficios_resumen = [_oficio_recorrido_resumen_item(ofi) for ofi in oficios]
+        base["oficios_resumen"] = oficios_resumen
+        lineas = [_oficio_expediente_linea_compacta(o) for o in oficios_resumen]
+        base["oficios_texto"] = ", ".join(l for l in lineas if l) or None
+        if oficios:
+            first = oficios[0]
+            base["oficio_numero"] = getattr(first, "numero_oficio", None)
+            base["oficio_anio"] = getattr(first, "anio", None)
+            fo = getattr(first, "fecha_oficio", None)
             base["fecha_oficio"] = fo.isoformat() if fo is not None else None
-            base["juzgado_nombre"] = _juzgado_nombre(ofi)
-        exp_resp = _expediente_respuesta_oficio(int(cid))
-        if exp_resp:
-            base["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
-            base["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
+            base["juzgado_nombre"] = _juzgado_nombre(first)
+        first_item = oficios_resumen[0] if oficios_resumen else None
+        if first_item and first_item.get("expediente_texto"):
+            base["expediente_respuesta_numero"] = first_item.get("numero_expediente")
+            base["expediente_respuesta_anio"] = first_item.get("anio_expediente")
+        elif oficios_resumen:
+            exp_resp = _expediente_respuesta_oficio(int(cid))
+            if exp_resp:
+                base["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
+                base["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
     return base
 
 

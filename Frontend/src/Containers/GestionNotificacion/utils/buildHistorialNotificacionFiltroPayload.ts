@@ -56,6 +56,11 @@ export function historialNotificacionHasPeriodChosen(form: HistorialNotificacion
   return Boolean(form.desde && form.hasta);
 }
 
+/** Distrito seleccionado en el filtro. */
+export function historialNotificacionHasDistritoChosen(form: HistorialNotificacionFiltroForm): boolean {
+  return form.distritoId !== "";
+}
+
 function docOptsFromForm(form: HistorialNotificacionFiltroForm) {
   return {
     contribuyenteQ: trimOpt(form.contribuyenteQ),
@@ -73,12 +78,13 @@ export function buildHistorialNotificacionFiltroPayload(
 ): { ok: true; payload: HistorialNotificacionFiltroPayload } | { ok: false; error: string } {
   const specific = historialNotificacionHasSpecificSearch(form);
   const periodChosen = historialNotificacionHasPeriodChosen(form);
+  const distritoChosen = historialNotificacionHasDistritoChosen(form);
   const usePeriod = periodChosen && (!specific || form.combinarConPeriodo);
 
-  if (!specific && !periodChosen) {
+  if (!specific && !periodChosen && !distritoChosen) {
     return {
       ok: false,
-      error: "Usá búsqueda específica o elegí un período y tocá Filtrar.",
+      error: "Usá búsqueda específica, elegí un período o seleccioná un distrito y tocá Filtrar.",
     };
   }
 

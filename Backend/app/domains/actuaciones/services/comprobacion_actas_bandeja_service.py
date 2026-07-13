@@ -11,11 +11,18 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_operativa
 from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
-from app.domains.actuaciones.services.pendientes_service import _apply_distrito_optional, _apply_fecha
+from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
+    comprobacion_recorrido_resumen_row,
+    estado_recorrido_label,
+    resultado_cumplimiento_recorrido,
+)
+from app.domains.actuaciones.services.pendientes_service import (
+    _apply_distrito_optional,
+    _apply_fecha_comprobacion_acta,
+)
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
-from app.domains.actuaciones.presenters.comprobacion_actas_presenters import estado_recorrido_label
 from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
@@ -65,7 +72,7 @@ def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilte
             joinedload(Actuaciones.comprobacion),
         )
     )
-    q = _apply_fecha(q, filters.desde, filters.hasta)
+    q = _apply_fecha_comprobacion_acta(q, filters)
     distrito_id = getattr(filters, "distrito_id", None)
     q = _apply_distrito_optional(q, distrito_id)
     return q.order_by(Actuaciones.id.desc())
@@ -208,22 +215,109 @@ def list_comprobacion_recorrido(
 ) -> List[Actuaciones]:
     """
     Actuaciones con comprobación para vista consultiva de recorrido.
-    Filtros de texto opcionales (subcadena, case-insensitive) aplicados en memoria sobre el grid row.
-    ``contrib_q`` coincide con apellido, nombre y razón social del row.
-    ``tipo_final`` filtra por ``resultado_cumplimiento_oficio`` (CUMPLE / NO_CUMPLE).
+    Filtros de texto opcionales (subcadena, case-insensitive) sobre ``comprobacion_recorrido_resumen_row``.
+    ``tipo_final`` usa ``resultado_cumplimiento_recorrido`` (incluye segunda visita si aplica).
+    Mes/año explícitos filtran ``Comprobacion.mes/anio``; rango filtra ``Actuaciones.fecha``.
     """
     q = Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
-    q = _apply_fecha(q, filters.desde, filters.hasta)
+    q = _apply_fecha_comprobacion_acta(q, filters)
     distrito_id = getattr(filters, "distrito_id", None)
     q = _apply_distrito_optional(q, distrito_id)
     rows: List[Actuaciones] = q.order_by(Actuaciones.id.desc()).limit(limit).all()
 
-    from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
-
     counts_by_eo = build_counts_by_eo_from_actuaciones(rows)
 
+    def _digits_only(value: str) -> str:
+        return "".join(c for c in value if c.isdigit())
+
+    def _expediente_search_blob(act: Actuaciones, row: dict) -> str:
+        parts: list[str] = []
+        for item in row.get("oficios_resumen") or []:
+            if not isinstance(item, dict):
+                continue
+            parts.extend(
+                [
+                    str(item.get("expediente_texto") or ""),
+                    str(item.get("numero_expediente") or ""),
+                    str(item.get("anio_expediente") or ""),
+                    f"{item.get('numero_expediente') or ''}/{item.get('anio_expediente') or ''}",
+                    f"{item.get('numero_expediente') or ''}{item.get('anio_expediente') or ''}",
+                ]
+            )
+        parts.extend(
+            [
+                f"{row.get('expediente_numero') or ''}",
+                f"{row.get('expediente_anio') or ''}",
+                f"{row.get('expediente_numero') or ''}/{row.get('expediente_anio') or ''}",
+                f"{row.get('expediente_respuesta_numero') or ''}",
+                f"{row.get('expediente_respuesta_anio') or ''}",
+                f"{row.get('expediente_respuesta_numero') or ''}/{row.get('expediente_respuesta_anio') or ''}",
+            ]
+        )
+        cid = act.comprobacion_id
+        if cid:
+            exps = (
+                Expediente.query.filter_by(comprobacion_id=int(cid))
+                .filter(Expediente.deleted_at.is_(None))
+                .all()
+            )
+            for exp in exps:
+                num = getattr(exp, "numero_expediente", "") or ""
+                an = getattr(exp, "anio", "") or ""
+                parts.extend([str(num), str(an), f"{num}/{an}", f"{num}{an}"])
+        return " ".join(p for p in parts if p).lower()
+
+    def _expediente_matches_query(act: Actuaciones, row: dict, query: str) -> bool:
+        q = query.strip().lower()
+        if not q:
+            return True
+        blob = _expediente_search_blob(act, row)
+        if q in blob:
+            return True
+        if q.replace("/", "") in blob.replace("/", ""):
+            return True
+        q_digits = _digits_only(q)
+        if not q_digits:
+            return False
+        if q_digits in _digits_only(blob):
+            return True
+        q_norm = q_digits.lstrip("0") or q_digits
+        for item in row.get("oficios_resumen") or []:
+            if not isinstance(item, dict):
+                continue
+            exp_num = _digits_only(str(item.get("numero_expediente") or ""))
+            if not exp_num:
+                continue
+            if q_digits in exp_num or q_norm in exp_num.lstrip("0"):
+                return True
+        for exp in (
+            Expediente.query.filter_by(comprobacion_id=int(act.comprobacion_id))
+            .filter(Expediente.deleted_at.is_(None))
+            .all()
+            if act.comprobacion_id
+            else []
+        ):
+            exp_num = _digits_only(str(getattr(exp, "numero_expediente", "") or ""))
+            if exp_num and (q_digits in exp_num or q_norm in exp_num.lstrip("0")):
+                return True
+        return False
+
+    def _oficio_search_blob(row: dict) -> str:
+        parts: list[str] = []
+        if row.get("oficios_texto"):
+            parts.append(str(row["oficios_texto"]))
+        for item in row.get("oficios_resumen") or []:
+            if isinstance(item, dict):
+                parts.append(str(item.get("oficio_texto") or ""))
+                parts.append(
+                    f"{item.get('numero_oficio') or item.get('numero') or ''}"
+                    f"{item.get('anio_oficio') or item.get('anio') or ''}"
+                )
+        parts.append(f"{row.get('oficio_numero') or ''}{row.get('oficio_anio') or ''}")
+        return " ".join(parts).lower()
+
     def _keep(act: Actuaciones) -> bool:
-        row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
+        row = comprobacion_recorrido_resumen_row(act, counts_by_eo=counts_by_eo)
         if contrib_q and contrib_q.strip():
             blob = (
                 f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''} "
@@ -242,18 +336,16 @@ def list_comprobacion_recorrido(
             if acta_comprobacion.strip().lower() not in ac:
                 return False
         if expediente_numero and expediente_numero.strip():
-            ex = f"{row.get('expediente_numero') or ''}{row.get('expediente_anio') or ''}".lower()
-            if expediente_numero.strip().lower() not in ex:
+            if not _expediente_matches_query(act, row, expediente_numero):
                 return False
         if oficio_numero and oficio_numero.strip():
-            on = f"{row.get('oficio_numero') or ''}{row.get('oficio_anio') or ''}".lower()
-            if oficio_numero.strip().lower() not in on:
+            if oficio_numero.strip().lower() not in _oficio_search_blob(row):
                 return False
         if estado_recorrido and estado_recorrido.strip():
             if estado_recorrido_label(act).lower() != estado_recorrido.strip().lower():
                 return False
         if tipo_final and tipo_final.strip():
-            rc = (row.get("resultado_cumplimiento_oficio") or "").strip().upper()
+            rc = (resultado_cumplimiento_recorrido(act) or "").strip().upper()
             if rc != tipo_final.strip().upper():
                 return False
         return True

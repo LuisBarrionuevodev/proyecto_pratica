@@ -76,9 +76,21 @@ describe("buildHistorialNotificacionFiltroPayload", () => {
     }
   });
 
-  it("requiere criterio de búsqueda o período", () => {
+  it("requiere criterio de búsqueda, período o distrito", () => {
     const r = buildHistorialNotificacionFiltroPayload(emptyForm);
     expect(r.ok).toBe(false);
+  });
+
+  it("permite filtrar solo por distrito", () => {
+    const r = buildHistorialNotificacionFiltroPayload({
+      ...emptyForm,
+      distritoId: 3,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.payload.period.kind).toBe("global");
+      expect(r.payload.distritoId).toBe(3);
+    }
   });
 
   it("detecta búsqueda específica por contribuyente", () => {

@@ -131,6 +131,22 @@ export interface IComprobacionRecorridoRow {
   expediente_anio?: number | null;
   oficio_numero?: string | null;
   oficio_anio?: number | null;
+  /** Todos los oficios activos con expediente de respuesta asociado (recorrido). */
+  oficios_resumen?: {
+    id?: number;
+    numero_oficio?: string | null;
+    anio_oficio?: number | null;
+    oficio_texto?: string | null;
+    numero_expediente?: string | null;
+    anio_expediente?: number | null;
+    expediente_texto?: string | null;
+    causa?: string | null;
+    juzgado_nombre?: string | null;
+    /** Compat. legacy */
+    numero?: string | null;
+    anio?: number | null;
+  }[];
+  oficios_texto?: string | null;
   /** Expediente de respuesta vinculado al oficio (misma semántica que pendientes de reinspección). */
   expediente_respuesta_numero?: string | null;
   expediente_respuesta_anio?: number | string | null;

@@ -73,6 +73,19 @@ describe("buildRecorridoComprobacionFiltroPayload", () => {
     }
   });
 
+  it("permite filtrar solo por distrito", () => {
+    const r = buildRecorridoComprobacionFiltroPayload({
+      ...emptyForm,
+      distritoId: 2,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const api = recorridoPayloadToApiParams(r.payload);
+      expect(api.omitirRangoFecha).toBe(true);
+      expect(api.distrito_id).toBe(2);
+    }
+  });
+
   it("combina período cuando el usuario lo pide", () => {
     const r = buildRecorridoComprobacionFiltroPayload({
       ...emptyForm,

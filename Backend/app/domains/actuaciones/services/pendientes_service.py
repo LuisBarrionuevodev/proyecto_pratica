@@ -8,7 +8,7 @@ from sqlalchemy import exists, func, or_, and_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Notificacion, RutaItem
+from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, IniciadorRuta, Notificacion, RutaItem
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
@@ -34,6 +34,48 @@ def _apply_fecha(query, desde, hasta):
     if hasta:
         query = query.filter(Actuaciones.fecha <= hasta)
     return query
+
+
+def _filters_use_mes_anio_acta(filters: ActuacionesPendientesFilters) -> bool:
+    """True si el cliente envió mes y año explícitos (modo «Mes y año»)."""
+    return filters.mes is not None and filters.anio is not None
+
+
+def _apply_fecha_notificacion_acta(query, filters: ActuacionesPendientesFilters):
+    """
+    Filtro temporal para bandejas/historial de notificación.
+
+    Con ``mes``+``anio`` explícitos filtra ``Notificacion.mes/anio`` (acta).
+    Con rango ``desde``/``hasta`` filtra ``Actuaciones.fecha``.
+    Con ``omitir_rango_fecha`` y sin fechas no restringe por tiempo.
+    """
+    if _filters_use_mes_anio_acta(filters):
+        return (
+            query.join(Notificacion, Actuaciones.notificacion_id == Notificacion.id)
+            .filter(Notificacion.mes == int(filters.mes))
+            .filter(Notificacion.anio == int(filters.anio))
+        )
+    if filters.omitir_rango_fecha and filters.desde is None and filters.hasta is None:
+        return query
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def _apply_fecha_comprobacion_acta(query, filters: ActuacionesPendientesFilters):
+    """
+    Filtro temporal para recorrido / bandejas de comprobación.
+
+    Con ``mes``+``anio`` explícitos filtra ``Comprobacion.mes/anio`` (acta).
+    Con rango ``desde``/``hasta`` filtra ``Actuaciones.fecha``.
+    """
+    if _filters_use_mes_anio_acta(filters):
+        return (
+            query.join(Comprobacion, Actuaciones.comprobacion_id == Comprobacion.id)
+            .filter(Comprobacion.mes == int(filters.mes))
+            .filter(Comprobacion.anio == int(filters.anio))
+        )
+    if filters.omitir_rango_fecha and filters.desde is None and filters.hasta is None:
+        return query
+    return _apply_fecha(query, filters.desde, filters.hasta)
 
 
 def _apply_distrito_optional(query, distrito_id: Optional[int]):
@@ -99,7 +141,7 @@ def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
     apareciendo (gestión continua). Métricas `dias_restantes` / `plazos_otorgados` en presenter.
     """
     query = Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
-    return _apply_fecha(query, filters.desde, filters.hasta)
+    return _apply_fecha_notificacion_acta(query, filters)
 
 
 def build_notificacion_expediente_bandeja_metrics(

@@ -58,7 +58,7 @@ describe("buildOrdenTrabajoDepartamentalDocumentModel", () => {
     expect(model.ordenes).toHaveLength(2);
     expect(model.ordenes[0]?.numeroOt).toBe("000001");
     expect(model.ordenes[0]?.inspectoresTexto).toContain("Pérez");
-    expect(model.ordenes[0]?.domicilioLinea).toBe("San Martín 980-1000");
+    expect(model.ordenes[0]?.domicilioLinea).toBe("San Martín 995 - 1010");
     expect(model.ordenes[1]?.domicilioLinea).toBe("Chacabuco y Piedras");
     expect(model.turnoLegible).toBe("Mañana");
   });

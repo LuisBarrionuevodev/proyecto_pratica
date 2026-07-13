@@ -17,44 +17,58 @@ import type {
 
 import logoOtDepartamentalUrl from "../assets/logo-ot-departamental-isotipo.png?url";
 
-/** Máximo de órdenes departamentales por hoja A4 (formato institucional compacto). */
-const ORDENES_POR_PAGINA = 4;
+/** Órdenes por hoja A4 (altura fija ~9.5 cm c/u). */
+const ORDENES_POR_PAGINA = 3;
+
+/** Zona de corte entre órdenes: 5 mm (espacio para recortar). */
+const CORTE_ENTRE_ORDENES_PT = (5 / 25.4) * 72;
+
+/** Desplazamiento vertical del N° de OT respecto al encabezado. */
+const OT_NUM_TOP_OFFSET_PT = (3 / 25.4) * 72;
+
+/** 9.5 cm ≈ 269 pt */
+const ORDEN_ALTURA_PT = 269;
 
 const INK = pdfPlanilla.ink;
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 8,
-    paddingBottom: 6,
-    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 8,
+    paddingHorizontal: 18,
     backgroundColor: "#ffffff",
     fontFamily: PDF_DESIGN_FONT.ui,
     color: INK,
   },
   ordenBlock: {
-    marginBottom: 5,
+    height: ORDEN_ALTURA_PT,
+    display: "flex",
+    flexDirection: "column",
   },
-  ordenBlockAfter: {
-    marginTop: 4,
-    paddingTop: 5,
-    borderTopWidth: 0.5,
-    borderTopColor: "#cccccc",
+  cutLineWrap: {
+    height: CORTE_ENTRE_ORDENES_PT,
+    justifyContent: "center",
+  },
+  cutLine: {
+    borderTopWidth: 1,
+    borderTopColor: "#888888",
+    borderStyle: "dashed",
   },
   headerZone: {
     position: "relative",
     alignItems: "center",
-    marginBottom: 2,
-    paddingTop: 2,
+    marginBottom: 3,
+    paddingTop: 1,
   },
   otNumWrap: {
     position: "absolute",
-    top: 0,
+    top: OT_NUM_TOP_OFFSET_PT,
     right: 0,
     alignItems: "flex-end",
   },
   otNumInline: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 700,
     lineHeight: 1.1,
     textAlign: "right",
@@ -62,7 +76,7 @@ const styles = StyleSheet.create({
   otNumRule: {
     marginTop: 2,
     width: "100%",
-    minWidth: 64,
+    minWidth: 68,
     borderBottomWidth: 1,
     borderBottomColor: INK,
     borderStyle: "dashed",
@@ -70,7 +84,7 @@ const styles = StyleSheet.create({
   },
   headerLine: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 6.5,
+    fontSize: 7.5,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
@@ -80,7 +94,7 @@ const styles = StyleSheet.create({
   },
   headerInstitutionLine: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7.5,
+    fontSize: 8.25,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
@@ -90,7 +104,7 @@ const styles = StyleSheet.create({
   },
   headerLineSecondary: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7.25,
+    fontSize: 8,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
@@ -99,48 +113,54 @@ const styles = StyleSheet.create({
   },
   headerAddress: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7.25,
+    fontSize: 8,
     fontWeight: 700,
     textAlign: "center",
     marginTop: 0.75,
     lineHeight: 1.1,
   },
   logo: {
-    width: 54,
-    height: 54,
+    width: 62,
+    height: 62,
     marginTop: 0,
-    marginBottom: 1,
+    marginBottom: 2,
     objectFit: "contain",
   },
   docTitle: {
     fontFamily: PDF_FONT_ARCHIVO_BLACK,
-    fontSize: 8.5,
+    fontSize: 9.5,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
     textDecoration: "underline",
-    marginBottom: 3,
+    marginBottom: 4,
     lineHeight: 1.1,
   },
   mainBox: {
+    flex: 1,
     borderWidth: 1.5,
     borderColor: INK,
-    paddingHorizontal: 6,
-    paddingTop: 5,
-    paddingBottom: 4,
-    minHeight: 118,
+    paddingHorizontal: 8,
+    paddingTop: 7,
+    paddingBottom: 6,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 148,
+  },
+  mainBoxTop: {
+    flexShrink: 0,
   },
   fieldRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 3,
-    gap: 2,
+    marginBottom: 4,
+    gap: 3,
   },
   fieldRowSplit: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 3,
-    gap: 6,
+    marginBottom: 4,
+    gap: 8,
   },
   fieldHalf: {
     flex: 1,
@@ -150,47 +170,52 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: 700,
     textTransform: "uppercase",
-    lineHeight: 1.1,
+    lineHeight: 1.15,
   },
   dottedValueWrap: {
     flex: 1,
     borderBottomWidth: 1,
     borderBottomColor: INK,
     borderStyle: "dashed",
-    minHeight: 11,
+    minHeight: 13,
     justifyContent: "flex-end",
     paddingBottom: 1,
   },
   fieldValue: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7,
-    lineHeight: 1.1,
+    fontSize: 8,
+    lineHeight: 1.2,
   },
   domicilioBlock: {
     marginTop: 2,
-    marginBottom: 4,
+    marginBottom: 0,
+  },
+  /** Espacio vacío para firma/anotaciones manuales (sin texto). */
+  signatureSpace: {
+    flex: 1,
+    minHeight: 28,
   },
   instrucciones: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 6.5,
+    fontSize: 7.25,
     fontWeight: 700,
     textTransform: "uppercase",
     textAlign: "center",
-    lineHeight: 1.18,
-    marginTop: 2,
-    marginBottom: 2,
+    lineHeight: 1.2,
+    marginTop: 4,
+    marginBottom: 0,
   },
   cierre: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7,
+    fontSize: 7.75,
     fontWeight: 700,
     textTransform: "uppercase",
     textAlign: "center",
     lineHeight: 1.15,
-    marginTop: 1,
+    flexShrink: 0,
   },
   emptyText: {
     marginTop: 24,
@@ -239,44 +264,52 @@ function CampoPunteado({ label, value }: { label: string; value: string }) {
   );
 }
 
+function LineaCorte() {
+  return (
+    <View style={styles.cutLineWrap}>
+      <View style={styles.cutLine} />
+    </View>
+  );
+}
+
 type CardProps = {
   orden: OrdenTrabajoDepartamentalFila;
-  separarArriba?: boolean;
 };
 
-function OrdenTrabajoDepartamentalCard({ orden, separarArriba = false }: CardProps) {
+function OrdenTrabajoDepartamentalCard({ orden }: CardProps) {
   return (
-    <View
-      style={[styles.ordenBlock, ...(separarArriba ? [styles.ordenBlockAfter] : [])]}
-      wrap={false}
-    >
+    <View style={styles.ordenBlock} wrap={false}>
       <EncabezadoInstitucional numeroOt={orden.numeroOt} />
 
       <Text style={styles.docTitle}>ORDEN DE TRABAJO DEPARTAMENTAL</Text>
 
       <View style={styles.mainBox}>
-        <CampoPunteado label="INSPECTORES:" value={orden.inspectoresTexto} />
+        <View style={styles.mainBoxTop}>
+          <CampoPunteado label="INSPECTORES:" value={orden.inspectoresTexto} />
 
-        <View style={styles.fieldRowSplit}>
-          <View style={styles.fieldHalf}>
-            <Text style={styles.fieldLabel}>TURNO:</Text>
-            <View style={styles.dottedValueWrap}>
-              <Text style={styles.fieldValue}>{orden.turnoLegible}</Text>
+          <View style={styles.fieldRowSplit}>
+            <View style={styles.fieldHalf}>
+              <Text style={styles.fieldLabel}>TURNO:</Text>
+              <View style={styles.dottedValueWrap}>
+                <Text style={styles.fieldValue}>{orden.turnoLegible}</Text>
+              </View>
+            </View>
+            <View style={styles.fieldHalf}>
+              <Text style={styles.fieldLabel}>FECHA:</Text>
+              <View style={styles.dottedValueWrap}>
+                <Text style={styles.fieldValue}>{orden.fechaLegible}</Text>
+              </View>
             </View>
           </View>
-          <View style={styles.fieldHalf}>
-            <Text style={styles.fieldLabel}>FECHA:</Text>
-            <View style={styles.dottedValueWrap}>
-              <Text style={styles.fieldValue}>{orden.fechaLegible}</Text>
-            </View>
+
+          <View style={styles.domicilioBlock}>
+            <CampoPunteado label="DOMICILIO:" value={orden.domicilioLinea} />
           </View>
+
+          <Text style={styles.instrucciones}>{ORDEN_TRABAJO_DEPARTAMENTAL_INSTRUCCIONES}</Text>
         </View>
 
-        <View style={styles.domicilioBlock}>
-          <CampoPunteado label="DOMICILIO:" value={orden.domicilioLinea} />
-        </View>
-
-        <Text style={styles.instrucciones}>{ORDEN_TRABAJO_DEPARTAMENTAL_INSTRUCCIONES}</Text>
+        <View style={styles.signatureSpace} />
         <Text style={styles.cierre}>{ORDEN_TRABAJO_DEPARTAMENTAL_CIERRE}</Text>
       </View>
     </View>
@@ -290,7 +323,7 @@ type Props = {
 };
 
 /**
- * PDF de Órdenes de Trabajo Departamentales: formulario institucional; hasta 4 por hoja A4.
+ * PDF de Órdenes de Trabajo Departamentales: formulario institucional; 3 por hoja A4.
  */
 export function OrdenTrabajoDepartamentalPdfDocument({ model }: Props) {
   const paginas = chunkOrdenes(model.ordenes, ORDENES_POR_PAGINA);
@@ -318,9 +351,12 @@ export function OrdenTrabajoDepartamentalPdfDocument({ model }: Props) {
       subject={`Ruta ${model.numeroRuta} — OT departamental`}
     >
       {paginas.map((grupo, pageIdx) => (
-        <Page key={`ot-dep-${pageIdx}`} size="A4" style={styles.page}>
+        <Page key={`ot-dep-${pageIdx}`} size="A4" style={styles.page} wrap={false}>
           {grupo.map((orden, idx) => (
-            <OrdenTrabajoDepartamentalCard key={orden.itemId} orden={orden} separarArriba={idx > 0} />
+            <View key={orden.itemId} wrap={false}>
+              {idx > 0 ? <LineaCorte /> : null}
+              <OrdenTrabajoDepartamentalCard orden={orden} />
+            </View>
           ))}
         </Page>
       ))}

@@ -103,6 +103,10 @@ import {
   recorridoComprobacionHasSpecificSearch,
   type RecorridoComprobacionFiltroPayload,
 } from "./utils/buildRecorridoComprobacionFiltroPayload";
+import {
+  recCompOficioExpMotivoChips,
+  recCompOficioExpMotivoSortKey,
+} from "./utils/recorridoOficioExpLabels";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
@@ -204,36 +208,6 @@ function reinEstadoOficioChips(r: IReinspeccionOficioPendienteRow): string[] {
     chips.push("Bloqueado");
   }
   return chips;
-}
-
-function recOficioNumCompact(r: IComprobacionRecorridoRow): string {
-  const n = (r.oficio_numero ?? "").toString().trim();
-  const a = r.oficio_anio != null ? String(r.oficio_anio) : "";
-  if (!n && !a) return "—";
-  return [n, a].filter(Boolean).join("/");
-}
-
-function recExpedienteRespuestaOficioCompact(r: IComprobacionRecorridoRow): string {
-  const num = (r.expediente_respuesta_numero ?? "").toString().trim();
-  const an = r.expediente_respuesta_anio != null ? String(r.expediente_respuesta_anio) : "";
-  if (!num && !an) return "—";
-  return [num, an].filter(Boolean).join("/");
-}
-
-/** Chips: acta, oficio, expediente de respuesta del oficio, motivo. */
-function recCompOficioExpMotivoChips(r: IComprobacionRecorridoRow): string[] {
-  const n = (r.acta_comprobacion_num ?? "").toString().trim();
-  const comp = n ? `Comp. ${n}` : "Comp. —";
-  const on = recOficioNumCompact(r);
-  const ofi = on !== "—" ? `Oficio ${on}` : "Oficio —";
-  const ex = recExpedienteRespuestaOficioCompact(r);
-  const exp = ex !== "—" ? `Exp. oficio ${ex}` : "Exp. oficio —";
-  const inf = (r.comprobacion_motivo ?? "").toString().trim();
-  return [comp, ofi, exp, inf || "Sin infracción o motivo cargado"];
-}
-
-function recCompOficioExpMotivoSortKey(r: IComprobacionRecorridoRow): string {
-  return recCompOficioExpMotivoChips(r).join(" | ");
 }
 
 /** Layout MRT compartido: menos altura de fila y ancho útil sin overflow horizontal del layout. */
