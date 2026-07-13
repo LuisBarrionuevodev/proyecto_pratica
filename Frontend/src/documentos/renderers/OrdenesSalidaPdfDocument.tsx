@@ -302,8 +302,8 @@ function OrdenUnInspector({
     <View
       style={[
         styles.bloqueInspector,
-        separarArriba ? styles.bloqueTrasOtra : null,
-        margenAntesDeSiguiente ? styles.bloqueMargenAntesDeSiguiente : null,
+        ...(separarArriba ? [styles.bloqueTrasOtra] : []),
+        ...(margenAntesDeSiguiente ? [styles.bloqueMargenAntesDeSiguiente] : []),
       ]}
       wrap={false}
     >

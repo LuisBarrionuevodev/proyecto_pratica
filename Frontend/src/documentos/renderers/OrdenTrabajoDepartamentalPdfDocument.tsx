@@ -246,7 +246,10 @@ type CardProps = {
 
 function OrdenTrabajoDepartamentalCard({ orden, separarArriba = false }: CardProps) {
   return (
-    <View style={[styles.ordenBlock, separarArriba ? styles.ordenBlockAfter : null]} wrap={false}>
+    <View
+      style={[styles.ordenBlock, ...(separarArriba ? [styles.ordenBlockAfter] : [])]}
+      wrap={false}
+    >
       <EncabezadoInstitucional numeroOt={orden.numeroOt} />
 
       <Text style={styles.docTitle}>ORDEN DE TRABAJO DEPARTAMENTAL</Text>
