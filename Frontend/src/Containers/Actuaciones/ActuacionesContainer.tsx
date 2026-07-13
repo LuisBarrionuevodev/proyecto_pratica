@@ -303,8 +303,8 @@ const ActuacionesContainer = (): JSX.Element => {
                     maxWidth: 480,
                   }}
                 >
-                  Usá los filtros para buscar actuaciones. Podés combinar rango de fechas, OT, tipo o
-                  búsqueda global sin depender del mes actual.
+                  Buscá por acta, domicilio, expediente u oficio, o filtrá por rango de fechas. La
+                  búsqueda específica no usa fechas viejas salvo que elijas combinar.
                 </Typography>
               </Box>
             )}
@@ -322,15 +322,21 @@ const ActuacionesContainer = (): JSX.Element => {
                   <strong>Página:</strong> {meta.page} /{" "}
                   {Math.max(1, Math.ceil(meta.total / meta.page_size))}
                 </Typography>
+                {meta.q && (
+                  <Typography sx={metaItemStyles}>
+                    <strong>Búsqueda:</strong> {meta.q}
+                    {meta.busqueda_global && !meta.desde && !meta.hasta ? " (sin rango)" : ""}
+                  </Typography>
+                )}
                 {meta.desde && meta.hasta ? (
                   <Typography sx={metaItemStyles}>
                     <strong>Rango:</strong> {meta.desde} - {meta.hasta}
                   </Typography>
-                ) : (
+                ) : !meta.q ? (
                   <Typography sx={metaItemStyles}>
                     <strong>Rango:</strong> todas las fechas
                   </Typography>
-                )}
+                ) : null}
                 {meta.tipo && (
                   <Typography sx={metaItemStyles}>
                     <strong>Tipo:</strong> {meta.tipo}
@@ -339,11 +345,6 @@ const ActuacionesContainer = (): JSX.Element => {
                 {meta.contraproducencia && (
                   <Typography sx={metaItemStyles}>
                     <strong>Contraproducencia:</strong> {meta.contraproducencia}
-                  </Typography>
-                )}
-                {meta.orden_trabajo && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>OT:</strong> {meta.orden_trabajo}
                   </Typography>
                 )}
               </Box>

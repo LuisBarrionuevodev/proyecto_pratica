@@ -9,8 +9,11 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
+  FormControlLabel,
   IconButton,
   Paper,
+  Switch,
   Tab,
   Tabs,
   Tooltip,
@@ -43,11 +46,9 @@ import {
 } from "../../api/actuacionesPendientesApi";
 import {
   fetchComprobacionPendientesOficio,
-  fetchComprobacionRecorrido,
   fetchComprobacionRecorridoDetalle,
   fetchPendientesReinspeccionOficio,
   type IComprobacionRecorridoDetalle,
-  type IComprobacionRecorridoListParams,
   type IComprobacionRecorridoRow,
   type IReinspeccionOficioPendienteRow,
 } from "../../api/actuacionesComprobacionActasApi";
@@ -62,7 +63,9 @@ import {
   filtroButtonsStyles,
   filtroContainerStyles,
   filtroGridStyles,
+  filtroHintStyles,
   filtroItemStyles,
+  filtroSectionTitleStyles,
   filtroTitleStyles,
   metaInfoStyles,
   metaItemStyles,
@@ -94,6 +97,12 @@ import { ComprobacionReinspeccionDetalleDialog } from "./components/Comprobacion
 import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionOperativoBlocks";
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
 import { exportComprobacionesDataset } from "./utils/exportComprobacionesDataset";
+import {
+  buildRecorridoComprobacionFiltroPayload,
+  fetchRecorridoComprobacionConPayload,
+  recorridoComprobacionHasSpecificSearch,
+  type RecorridoComprobacionFiltroPayload,
+} from "./utils/buildRecorridoComprobacionFiltroPayload";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
@@ -260,8 +269,10 @@ const MESES_OPTS = Array.from({ length: 12 }, (_, i) => ({
   label: String(i + 1),
 }));
 
+const MESES_OPTS_WITH_EMPTY = [{ value: "", label: "—" }, ...MESES_OPTS];
+
 function yearOptions(center: number): { value: string; label: string }[] {
-  const out: { value: string; label: string }[] = [];
+  const out: { value: string; label: string }[] = [{ value: "", label: "—" }];
   for (let y = center - 5; y <= center + 2; y++) out.push({ value: String(y), label: String(y) });
   return out;
 }
@@ -1011,18 +1022,21 @@ const ActasComprobacionPage = () => {
 
   // —— Recorrido (período acotado vs buscador de texto)
   const [recPeriodMode, setRecPeriodMode] = useState<RecPeriodMode>("month");
-  const [recMes, setRecMes] = useState(defaultMonthYear.mes);
-  const [recAnio, setRecAnio] = useState(defaultMonthYear.anio);
-  const [recDesde, setRecDesde] = useState<string | null>(defaultRange.desde);
-  const [recHasta, setRecHasta] = useState<string | null>(defaultRange.hasta);
+  const [recMes, setRecMes] = useState<number | "">("");
+  const [recAnio, setRecAnio] = useState<number | "">("");
+  const [recDesde, setRecDesde] = useState<string | null>(null);
+  const [recHasta, setRecHasta] = useState<string | null>(null);
+  const [recCombinarConPeriodo, setRecCombinarConPeriodo] = useState(false);
   const [recDistritoId, setRecDistritoId] = useState<number | "">("");
   const [recContrib, setRecContrib] = useState("");
   const [recCalle, setRecCalle] = useState("");
   const [recActa, setRecActa] = useState("");
   const [recOfi, setRecOfi] = useState("");
+  const [recExpediente, setRecExpediente] = useState("");
   const [recTipoFinal, setRecTipoFinal] = useState("");
   const [recItems, setRecItems] = useState<IComprobacionRecorridoRow[]>([]);
   const [recFilterApplied, setRecFilterApplied] = useState(false);
+  const [recAppliedPayload, setRecAppliedPayload] = useState<RecorridoComprobacionFiltroPayload | null>(null);
   const [recMeta, setRecMeta] = useState<{ total: number; desde: string | null; hasta: string | null } | null>(null);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
@@ -1042,35 +1056,13 @@ const ActasComprobacionPage = () => {
     setDetalle(d);
   }, []);
 
-  const recPeriodParams = useCallback((): IComprobacionRecorridoListParams => {
-    const p: IComprobacionRecorridoListParams = {
-      distrito_id: recDistritoId === "" ? undefined : recDistritoId,
-    };
-    if (recPeriodMode === "month") {
-      p.mes = recMes;
-      p.anio = recAnio;
-    } else {
-      p.desde = recDesde ?? undefined;
-      p.hasta = recHasta ?? undefined;
-    }
-    return p;
-  }, [recPeriodMode, recMes, recAnio, recDesde, recHasta, recDistritoId]);
-
-  const loadRecorridoSearch = useCallback(async () => {
+  const loadRecorridoSearch = useCallback(async (payload: RecorridoComprobacionFiltroPayload) => {
     setRecLoading(true);
     setRecError(null);
     try {
       const resp = await perfTimed(
         "comprobacion.loadRecorrido",
-        () =>
-          fetchComprobacionRecorrido({
-            ...recPeriodParams(),
-            contrib_q: recContrib.trim() || undefined,
-            calle_q: recCalle.trim() || undefined,
-            acta_comprobacion: recActa.trim() || undefined,
-            oficio_numero: recOfi.trim() || undefined,
-            tipo_final: recTipoFinal || undefined,
-          }),
+        () => fetchRecorridoComprobacionConPayload(payload),
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
       setRecItems(resp.items as IComprobacionRecorridoRow[]);
@@ -1079,6 +1071,7 @@ const ActasComprobacionPage = () => {
         desde: resp.meta.desde,
         hasta: resp.meta.hasta,
       });
+      setRecAppliedPayload(payload);
     } catch (err: unknown) {
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setRecError(detail || "Error al cargar recorrido");
@@ -1087,12 +1080,46 @@ const ActasComprobacionPage = () => {
     } finally {
       setRecLoading(false);
     }
-  }, [recPeriodParams, recContrib, recCalle, recActa, recOfi, recTipoFinal]);
+  }, []);
 
   const aplicarFiltroRecorrido = useCallback(() => {
+    const built = buildRecorridoComprobacionFiltroPayload({
+      periodMode: recPeriodMode,
+      mes: recMes,
+      anio: recAnio,
+      desde: recDesde,
+      hasta: recHasta,
+      distritoId: recDistritoId,
+      actaComprobacion: recActa,
+      calleQ: recCalle,
+      contribuyenteQ: recContrib,
+      oficioNumero: recOfi,
+      expedienteNumero: recExpediente,
+      tipoFinal: recTipoFinal,
+      combinarConPeriodo: recCombinarConPeriodo,
+    });
+    if (!built.ok) {
+      setRecError(built.error);
+      return;
+    }
     setRecFilterApplied(true);
-    void loadRecorridoSearch();
-  }, [loadRecorridoSearch]);
+    void loadRecorridoSearch(built.payload);
+  }, [
+    loadRecorridoSearch,
+    recPeriodMode,
+    recMes,
+    recAnio,
+    recDesde,
+    recHasta,
+    recDistritoId,
+    recContrib,
+    recCalle,
+    recActa,
+    recOfi,
+    recExpediente,
+    recTipoFinal,
+    recCombinarConPeriodo,
+  ]);
 
   useEffect(() => {
     void ensureTabLoaded(tab);
@@ -1217,18 +1244,17 @@ const ActasComprobacionPage = () => {
       setExportError(null);
       try {
         const recorridoCtx =
-          tab === "recorrido" && recFilterApplied
+          tab === "recorrido" && recAppliedPayload
             ? {
-                distritoId: recDistritoId === "" ? null : recDistritoId,
-                contribuyenteQ: recContrib.trim() || null,
-                calleQ: recCalle.trim() || null,
-                actaComprobacion: recActa.trim() || null,
-                oficioNumero: recOfi.trim() || null,
-                tipoFinal: recTipoFinal || null,
+                distritoId: recAppliedPayload.distritoId,
+                contribuyenteQ: recAppliedPayload.contrib_q ?? null,
+                calleQ: recAppliedPayload.calle_q ?? null,
+                actaComprobacion: recAppliedPayload.acta_comprobacion ?? null,
+                oficioNumero: recAppliedPayload.oficio_numero ?? null,
+                expedienteNumero: recAppliedPayload.expediente_numero ?? null,
+                tipoFinal: recAppliedPayload.tipo_final ?? null,
               }
-            : tab === "recorrido" && recDistritoId !== ""
-              ? { distritoId: recDistritoId }
-              : {};
+            : {};
 
         await exportComprobacionesDataset({
           format: options.format,
@@ -1248,17 +1274,7 @@ const ActasComprobacionPage = () => {
         setExportLoading(false);
       }
     },
-    [
-      feedback,
-      tab,
-      recFilterApplied,
-      recDistritoId,
-      recContrib,
-      recCalle,
-      recActa,
-      recOfi,
-      recTipoFinal,
-    ]
+    [feedback, tab, recAppliedPayload]
   );
 
   return (
@@ -1431,6 +1447,119 @@ const ActasComprobacionPage = () => {
             <>
               <Box sx={filtroContainerStyles}>
                 <Typography sx={filtroTitleStyles}>Recorrido del acta de comprobación</Typography>
+
+                <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
+                <Typography sx={filtroHintStyles}>
+                  Nº acta comprobación, domicilio, contribuyente, oficio o expediente. No usa el período salvo que indiques
+                  combinar.
+                </Typography>
+                <Box sx={filtroGridStyles}>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº acta comprobación"
+                      value={recActa}
+                      onChange={(e) => setRecActa(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Calle"
+                      value={recCalle}
+                      onChange={(e) => setRecCalle(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Contribuyente"
+                      value={recContrib}
+                      onChange={(e) => setRecContrib(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº oficio (texto)"
+                      value={recOfi}
+                      onChange={(e) => setRecOfi(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº expediente"
+                      value={recExpediente}
+                      onChange={(e) => setRecExpediente(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Tipo final"
+                      value={recTipoFinal}
+                      onChange={(e) => setRecTipoFinal(String(e.target.value))}
+                      variant="outlined"
+                      options={TIPO_FINAL_OPTIONS}
+                    />
+                  </Box>
+                </Box>
+
+                {recorridoComprobacionHasSpecificSearch({
+                  periodMode: recPeriodMode,
+                  mes: recMes,
+                  anio: recAnio,
+                  desde: recDesde,
+                  hasta: recHasta,
+                  distritoId: recDistritoId,
+                  actaComprobacion: recActa,
+                  calleQ: recCalle,
+                  contribuyenteQ: recContrib,
+                  oficioNumero: recOfi,
+                  expedienteNumero: recExpediente,
+                  tipoFinal: recTipoFinal,
+                  combinarConPeriodo: recCombinarConPeriodo,
+                }) && (
+                  <FormControlLabel
+                    sx={{
+                      mb: 1.5,
+                      ml: 0,
+                      "& .MuiFormControlLabel-label": {
+                        color: "rgba(255,255,255,0.85)",
+                        fontFamily: '"Tactic Sans", sans-serif',
+                        fontSize: "0.85rem",
+                      },
+                    }}
+                    control={
+                      <Switch
+                        size="small"
+                        checked={recCombinarConPeriodo}
+                        onChange={(e) => setRecCombinarConPeriodo(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Combinar también con período y filtros"
+                  />
+                )}
+
+                <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
+
+                <Typography sx={filtroSectionTitleStyles}>Rango / período</Typography>
+                <Typography sx={filtroHintStyles}>
+                  Elegí mes y año o rango de fechas. Podés sumar distrito. Tocá Filtrar para cargar el listado.
+                </Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
                     <AppSelect
@@ -1453,10 +1582,10 @@ const ActasComprobacionPage = () => {
                           appearance="dense"
                           fullWidth
                           label="Mes"
-                          value={String(recMes)}
-                          onChange={(e) => setRecMes(Number(e.target.value))}
+                          value={recMes === "" ? "" : String(recMes)}
+                          onChange={(e) => setRecMes(e.target.value === "" ? "" : Number(e.target.value))}
                           variant="outlined"
-                          options={MESES_OPTS}
+                          options={MESES_OPTS_WITH_EMPTY}
                         />
                       </Box>
                       <Box sx={filtroItemStyles}>
@@ -1464,8 +1593,8 @@ const ActasComprobacionPage = () => {
                           appearance="dense"
                           fullWidth
                           label="Año"
-                          value={String(recAnio)}
-                          onChange={(e) => setRecAnio(Number(e.target.value))}
+                          value={recAnio === "" ? "" : String(recAnio)}
+                          onChange={(e) => setRecAnio(e.target.value === "" ? "" : Number(e.target.value))}
                           variant="outlined"
                           options={yearOptions(defaultMonthYear.anio)}
                         />
@@ -1513,79 +1642,30 @@ const ActasComprobacionPage = () => {
                       options={distritoSelectOptionsRecorrido}
                     />
                   </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Contribuyente"
-                      value={recContrib}
-                      onChange={(e) => setRecContrib(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Calle"
-                      value={recCalle}
-                      onChange={(e) => setRecCalle(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Nº acta comprobación"
-                      value={recActa}
-                      onChange={(e) => setRecActa(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppTextField
-                      appearance="dense"
-                      fullWidth
-                      label="Nº oficio (texto)"
-                      value={recOfi}
-                      onChange={(e) => setRecOfi(e.target.value)}
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Box sx={filtroItemStyles}>
-                    <AppSelect
-                      appearance="dense"
-                      fullWidth
-                      label="Tipo final"
-                      value={recTipoFinal}
-                      onChange={(e) => setRecTipoFinal(String(e.target.value))}
-                      variant="outlined"
-                      options={TIPO_FINAL_OPTIONS}
-                    />
-                  </Box>
                 </Box>
                 <Box sx={filtroButtonsStyles}>
                   <AppButton
                     dsVariant="ghost"
                     dsSize="sm"
                     onClick={() => {
-                      const r = getCurrentMonthRange();
-                      const d = new Date(`${r.desde}T12:00:00`);
                       setRecPeriodMode("month");
-                      setRecMes(d.getMonth() + 1);
-                      setRecAnio(d.getFullYear());
-                      setRecDesde(r.desde);
-                      setRecHasta(r.hasta);
+                      setRecMes("");
+                      setRecAnio("");
+                      setRecDesde(null);
+                      setRecHasta(null);
+                      setRecCombinarConPeriodo(false);
                       setRecDistritoId("");
                       setRecContrib("");
                       setRecCalle("");
                       setRecActa("");
                       setRecOfi("");
+                      setRecExpediente("");
                       setRecTipoFinal("");
                       setRecFilterApplied(false);
+                      setRecAppliedPayload(null);
                       setRecMeta(null);
                       setRecItems([]);
+                      setRecError(null);
                     }}
                     startIcon={<ClearIcon />}
                     sx={filtroButtonSecondaryStyles}
@@ -1610,8 +1690,7 @@ const ActasComprobacionPage = () => {
               )}
               {!recFilterApplied ? (
                 <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-                  Tocá <strong>Filtrar</strong> para cargar el listado en la tabla (p. ej. después de <strong>Limpiar</strong> o
-                  al entrar por primera vez a esta pestaña).
+                  Usá búsqueda específica o elegí un período y tocá <strong>Filtrar</strong> para cargar el listado.
                 </Typography>
               ) : recLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -1630,10 +1709,17 @@ const ActasComprobacionPage = () => {
                       <Typography sx={metaItemStyles}>
                         <strong>Página:</strong> 1
                       </Typography>
-                      {recMeta.desde && recMeta.hasta && (
+                      {recAppliedPayload?.period.kind === "global" ? (
                         <Typography sx={metaItemStyles}>
-                          <strong>Rango:</strong> {recMeta.desde} — {recMeta.hasta}
+                          <strong>Período:</strong> búsqueda global (sin rango)
                         </Typography>
+                      ) : (
+                        recMeta.desde &&
+                        recMeta.hasta && (
+                          <Typography sx={metaItemStyles}>
+                            <strong>Rango:</strong> {recMeta.desde} — {recMeta.hasta}
+                          </Typography>
+                        )
                       )}
                     </Box>
                   )}
@@ -1720,8 +1806,8 @@ const ActasComprobacionPage = () => {
           if (detalleActuacionId != null) {
             await reloadRecorridoDetalle(detalleActuacionId);
           }
-          if (recFilterApplied) {
-            await loadRecorridoSearch();
+          if (recFilterApplied && recAppliedPayload) {
+            await loadRecorridoSearch(recAppliedPayload);
           }
         }}
       />

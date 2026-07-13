@@ -23,9 +23,8 @@ type Props = {
 /**
  * Composición de actas labradas por tipo (chart analytics).
  */
-export function DashboardActasPorTipoSection({ actas, loading, error }: Props) {
+export function DashboardActasPorTipoSection({ actas, error }: Props) {
   const data = actas ?? ACTAS_VACIAS;
-  const sectionLoading = loading && actas == null;
 
   return (
     <DashboardSectionBlock title="Actas labradas por tipo">
@@ -34,8 +33,8 @@ export function DashboardActasPorTipoSection({ actas, loading, error }: Props) {
           {error}
         </Alert>
       ) : null}
-      <DashboardAnalyticsChartCard title="Distribución por tipo" loading={sectionLoading}>
-        <DashboardActasPorTipoChart actas={data} loading={sectionLoading} />
+      <DashboardAnalyticsChartCard title="Distribución por tipo">
+        <DashboardActasPorTipoChart actas={data} />
       </DashboardAnalyticsChartCard>
     </DashboardSectionBlock>
   );

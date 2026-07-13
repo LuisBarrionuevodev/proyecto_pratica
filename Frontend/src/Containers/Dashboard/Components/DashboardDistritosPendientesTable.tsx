@@ -5,7 +5,6 @@ import { dashboardEmptyStateCompactSx, dashboardGlassTableSx } from "../../../st
 
 type Props = {
   rows: IndicadoresDistritoPendientesItem[];
-  loading?: boolean;
 };
 
 const EMPTY_MSG =
@@ -14,11 +13,7 @@ const EMPTY_MSG =
 /**
  * Tabla compacta de pendientes por distrito (cola planificable).
  */
-export function DashboardDistritosPendientesTable({ rows, loading }: Props) {
-  if (loading) {
-    return <Box sx={dashboardEmptyStateCompactSx}>Cargando distritos…</Box>;
-  }
-
+export function DashboardDistritosPendientesTable({ rows }: Props) {
   if (!rows.length) {
     return <Box sx={dashboardEmptyStateCompactSx}>{EMPTY_MSG}</Box>;
   }

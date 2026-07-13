@@ -35,16 +35,13 @@ const OVERVIEW_ACCENTS: DashboardKpiAccent[] = [
 export function DashboardEjecutivoSection({
   data,
   noRealizadasTotal,
-  loading,
   error,
 }: Props) {
   const kpis = data?.kpis;
-  const showValues = !loading && !error && data != null;
-  const sectionLoading = loading && !data;
 
   const kpiValue = (value: number | undefined): number | string => {
-    if (sectionLoading) return "…";
-    if (!showValues || value == null) return "—";
+    if (error || data == null) return "—";
+    if (value == null) return "—";
     return value;
   };
 
@@ -58,23 +55,21 @@ export function DashboardEjecutivoSection({
     {
       label: "No realizadas",
       value:
-        sectionLoading
-          ? "…"
-          : noRealizadasTotal != null && showValues
+        error || data == null
+          ? "—"
+          : noRealizadasTotal != null
             ? noRealizadasTotal
             : "—",
     },
     {
       label: "Mercadería decomisada",
       value:
-        sectionLoading
-          ? "…"
-          : showValues && kpis != null
-            ? kpis.mercaderia_decomisada_kg.toLocaleString("es-AR", {
-                maximumFractionDigits: 2,
-              })
-            : "—",
-      unit: sectionLoading || !showValues ? undefined : "kg",
+        error || data == null || kpis == null
+          ? "—"
+          : kpis.mercaderia_decomisada_kg.toLocaleString("es-AR", {
+              maximumFractionDigits: 2,
+            }),
+      unit: error || data == null ? undefined : "kg",
     },
     {
       label: "Ratif. clausura realizadas",
@@ -113,7 +108,6 @@ export function DashboardEjecutivoSection({
             label={card.label}
             value={card.value}
             unit={"unit" in card ? card.unit : undefined}
-            loading={sectionLoading}
             accent={OVERVIEW_ACCENTS[idx] ?? "neutral"}
           />
         ))}

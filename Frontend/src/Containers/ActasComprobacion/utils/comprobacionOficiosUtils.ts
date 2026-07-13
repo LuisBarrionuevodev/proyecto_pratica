@@ -64,6 +64,24 @@ export function oficioComprobacionTieneBloqueCompleto(item: OficioComprobacionIt
   return item.expediente_id != null && String(item.expediente_numero ?? "").trim() !== "";
 }
 
+export type EjecucionReinspeccionPorOficioCtx = {
+  oficioId: number | null;
+  iniciadorId: number | null;
+};
+
+/**
+ * True si la ejecución de reinspección del detalle de recorrido corresponde a este oficio.
+ * TODO(PR backend): enriquecer lista de oficios con ``ejecucion_reinspeccion`` por ítem cuando haya varios oficios cumplidos.
+ */
+export function oficioMuestraEjecucionReinspeccion(
+  item: OficioComprobacionItem,
+  ctx: EjecucionReinspeccionPorOficioCtx
+): boolean {
+  if (ctx.oficioId != null && item.id === ctx.oficioId) return true;
+  if (ctx.iniciadorId != null && item.iniciador_id === ctx.iniciadorId) return true;
+  return false;
+}
+
 /**
  * Fallback legacy: si la lista viene vacía pero documental trae oficio + respuesta, sintetiza un ítem.
  */

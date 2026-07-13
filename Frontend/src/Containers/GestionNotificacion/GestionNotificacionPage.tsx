@@ -9,9 +9,12 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
+  FormControlLabel,
   IconButton,
   Paper,
   Stack,
+  Switch,
   Tab,
   Tabs,
   Tooltip,
@@ -56,7 +59,9 @@ import {
   filtroButtonsStyles,
   filtroContainerStyles,
   filtroGridStyles,
+  filtroHintStyles,
   filtroItemStyles,
+  filtroSectionTitleStyles,
   filtroTitleStyles,
   metaInfoStyles,
   metaItemStyles,
@@ -95,6 +100,12 @@ import {
   volvioEnPlazoDesdeExpedienteMeta,
 } from "./utils/prorrogaSuccessMessage";
 import { exportNotificacionesDataset } from "./utils/exportNotificacionesDataset";
+import {
+  buildHistorialNotificacionFiltroPayload,
+  fetchHistorialNotificacionConPayload,
+  historialNotificacionHasSpecificSearch,
+  type HistorialNotificacionFiltroPayload,
+} from "./utils/buildHistorialNotificacionFiltroPayload";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
@@ -110,15 +121,13 @@ const MESES_OPTS = Array.from({ length: 12 }, (_, i) => ({
   label: String(i + 1),
 }));
 
+const MESES_OPTS_WITH_EMPTY = [{ value: "", label: "—" }, ...MESES_OPTS];
+
 function yearOptions(center: number): { value: string; label: string }[] {
-  const out: { value: string; label: string }[] = [];
+  const out: { value: string; label: string }[] = [{ value: "", label: "—" }];
   for (let y = center - 5; y <= center + 2; y++) out.push({ value: String(y), label: String(y) });
   return out;
 }
-
-type HistorialAppliedPeriod =
-  | { kind: "month"; mes: number; anio: number }
-  | { kind: "range"; desde: string; hasta: string };
 
 function contribuyenteText(row: IActuacionesPendientesItem): string {
   return contribuyenteBandejaLabel(row.contrib_apellido, row.contrib_nombre, row.razon_social);
@@ -276,10 +285,11 @@ const GestionNotificacionPage = () => {
   const [plazoSlice, setPlazoSlice] = useState<PlazoOperativoSlice>("en_plazo");
 
   const [histPeriodMode, setHistPeriodMode] = useState<HistPeriodMode>("month");
-  const [histMes, setHistMes] = useState(defaultMonthYear.mes);
-  const [histAnio, setHistAnio] = useState(defaultMonthYear.anio);
-  const [histDesde, setHistDesde] = useState<string | null>(defaultRange.desde);
-  const [histHasta, setHistHasta] = useState<string | null>(defaultRange.hasta);
+  const [histMes, setHistMes] = useState<number | "">("");
+  const [histAnio, setHistAnio] = useState<number | "">("");
+  const [histDesde, setHistDesde] = useState<string | null>(null);
+  const [histHasta, setHistHasta] = useState<string | null>(null);
+  const [histCombinarConPeriodo, setHistCombinarConPeriodo] = useState(false);
   const [histDistritoId, setHistDistritoId] = useState<number | "">("");
   const [histContribQ, setHistContribQ] = useState("");
   const [histCalleQ, setHistCalleQ] = useState("");
@@ -295,14 +305,7 @@ const GestionNotificacionPage = () => {
     desde: string | null;
     hasta: string | null;
   } | null>(null);
-  const [historialApplied, setHistorialApplied] = useState<{
-    period: HistorialAppliedPeriod;
-    distritoId: number | null;
-    contribuyenteQ: string | null;
-    calleQ: string | null;
-    numeroNotificacion: string | null;
-    motivoQ: string | null;
-  } | null>(null);
+  const [historialApplied, setHistorialApplied] = useState<HistorialNotificacionFiltroPayload | null>(null);
 
   const distritoSelectOptionsHistorial = useMemo(
     () => [
@@ -488,28 +491,22 @@ const GestionNotificacionPage = () => {
   }, [plazoSlice]);
 
   const loadHistorialDesdeFiltro = useCallback(async () => {
-    const distritoId = histDistritoId === "" ? null : histDistritoId;
-    const docOpts = {
-      contribuyenteQ: trimToNull(histContribQ) ?? undefined,
-      calleQ: trimToNull(histCalleQ) ?? undefined,
-      numeroNotificacion: trimToNull(histNumNotif) ?? undefined,
-      motivoQ: trimToNull(histMotivoQ) ?? undefined,
-    };
-
-    if (histPeriodMode === "month") {
-      if (!Number.isFinite(histMes) || histMes < 1 || histMes > 12 || !Number.isFinite(histAnio) || histAnio < 1970) {
-        setHistorialError("Indicá un mes y año válidos.");
-        return;
-      }
-    } else {
-      if (!histDesde || !histHasta) {
-        setHistorialError("Completá las fechas desde y hasta.");
-        return;
-      }
-      if (histDesde > histHasta) {
-        setHistorialError("La fecha desde no puede ser posterior a la fecha hasta.");
-        return;
-      }
+    const built = buildHistorialNotificacionFiltroPayload({
+      periodMode: histPeriodMode,
+      mes: histMes,
+      anio: histAnio,
+      desde: histDesde,
+      hasta: histHasta,
+      distritoId: histDistritoId,
+      numeroNotificacion: histNumNotif,
+      calleQ: histCalleQ,
+      contribuyenteQ: histContribQ,
+      motivoQ: histMotivoQ,
+      combinarConPeriodo: histCombinarConPeriodo,
+    });
+    if (!built.ok) {
+      setHistorialError(built.error);
+      return;
     }
 
     setHistorialLoading(true);
@@ -517,21 +514,9 @@ const GestionNotificacionPage = () => {
     try {
       const resp = await perfTimed(
         "notificaciones.loadHistorial",
-        () =>
-          histPeriodMode === "month"
-            ? getActuacionesPendientesExpediente(undefined, undefined, "notificacion", distritoId, {
-                mes: histMes,
-                anio: histAnio,
-                ...docOpts,
-              })
-            : getActuacionesPendientesExpediente(histDesde, histHasta, "notificacion", distritoId, docOpts),
+        () => fetchHistorialNotificacionConPayload(built.payload),
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
-
-      const period: HistorialAppliedPeriod =
-        histPeriodMode === "month"
-          ? { kind: "month", mes: histMes, anio: histAnio }
-          : { kind: "range", desde: histDesde!, hasta: histHasta! };
 
       setHistorialRows(historialNotificacionRows(resp.items, resp.meta.source_type));
       setHistorialMeta({
@@ -539,14 +524,7 @@ const GestionNotificacionPage = () => {
         desde: resp.meta.desde,
         hasta: resp.meta.hasta,
       });
-      setHistorialApplied({
-        period,
-        distritoId,
-        contribuyenteQ: trimToNull(histContribQ),
-        calleQ: trimToNull(histCalleQ),
-        numeroNotificacion: trimToNull(histNumNotif),
-        motivoQ: trimToNull(histMotivoQ),
-      });
+      setHistorialApplied(built.payload);
       setHistorialFiltroAplicado(true);
     } catch (err: unknown) {
       const detail =
@@ -572,6 +550,7 @@ const GestionNotificacionPage = () => {
     histCalleQ,
     histNumNotif,
     histMotivoQ,
+    histCombinarConPeriodo,
   ]);
 
   const recargarHistorialSiAplica = useCallback(async () => {
@@ -579,28 +558,7 @@ const GestionNotificacionPage = () => {
     setHistorialLoading(true);
     setHistorialError(null);
     try {
-      const doc = {
-        contribuyenteQ: historialApplied.contribuyenteQ ?? undefined,
-        calleQ: historialApplied.calleQ ?? undefined,
-        numeroNotificacion: historialApplied.numeroNotificacion ?? undefined,
-        motivoQ: historialApplied.motivoQ ?? undefined,
-      };
-      const resp =
-        historialApplied.period.kind === "month"
-          ? await getActuacionesPendientesExpediente(
-              undefined,
-              undefined,
-              "notificacion",
-              historialApplied.distritoId,
-              { mes: historialApplied.period.mes, anio: historialApplied.period.anio, ...doc }
-            )
-          : await getActuacionesPendientesExpediente(
-              historialApplied.period.desde,
-              historialApplied.period.hasta,
-              "notificacion",
-              historialApplied.distritoId,
-              doc
-            );
+      const resp = await fetchHistorialNotificacionConPayload(historialApplied);
       setHistorialRows(historialNotificacionRows(resp.items, resp.meta.source_type));
       setHistorialMeta({
         total: resp.meta.total,
@@ -1263,6 +1221,98 @@ const GestionNotificacionPage = () => {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Box sx={filtroContainerStyles}>
             <Typography sx={filtroTitleStyles}>Historial notificaciones</Typography>
+
+            <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
+            <Typography sx={filtroHintStyles}>
+              Nº notificación, domicilio, contribuyente o motivo/infracción. No usa el período salvo que indiques
+              combinar.
+            </Typography>
+            <Box sx={filtroGridStyles}>
+              <Box sx={filtroItemStyles}>
+                <AppTextField
+                  appearance="dense"
+                  fullWidth
+                  label="Nº notificación"
+                  placeholder="Fragmento del acta"
+                  value={histNumNotif}
+                  onChange={(e) => setHistNumNotif(e.target.value)}
+                  variant="outlined"
+                />
+              </Box>
+              <Box sx={filtroItemStyles}>
+                <AppTextField
+                  appearance="dense"
+                  fullWidth
+                  label="Calle"
+                  value={histCalleQ}
+                  onChange={(e) => setHistCalleQ(e.target.value)}
+                  variant="outlined"
+                />
+              </Box>
+              <Box sx={filtroItemStyles}>
+                <AppTextField
+                  appearance="dense"
+                  fullWidth
+                  label="Contribuyente"
+                  value={histContribQ}
+                  onChange={(e) => setHistContribQ(e.target.value)}
+                  variant="outlined"
+                />
+              </Box>
+              <Box sx={filtroItemStyles}>
+                <AppTextField
+                  appearance="dense"
+                  fullWidth
+                  label="Motivo / infracción"
+                  placeholder="Texto en motivos de la notificación"
+                  value={histMotivoQ}
+                  onChange={(e) => setHistMotivoQ(e.target.value)}
+                  variant="outlined"
+                />
+              </Box>
+            </Box>
+
+            {historialNotificacionHasSpecificSearch({
+              periodMode: histPeriodMode,
+              mes: histMes,
+              anio: histAnio,
+              desde: histDesde,
+              hasta: histHasta,
+              distritoId: histDistritoId,
+              numeroNotificacion: histNumNotif,
+              calleQ: histCalleQ,
+              contribuyenteQ: histContribQ,
+              motivoQ: histMotivoQ,
+              combinarConPeriodo: histCombinarConPeriodo,
+            }) && (
+              <FormControlLabel
+                sx={{
+                  mb: 1.5,
+                  ml: 0,
+                  "& .MuiFormControlLabel-label": {
+                    color: "rgba(255,255,255,0.85)",
+                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontSize: "0.85rem",
+                  },
+                }}
+                control={
+                  <Switch
+                    size="small"
+                    checked={histCombinarConPeriodo}
+                    onChange={(e) => setHistCombinarConPeriodo(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Combinar también con período y filtros"
+              />
+            )}
+
+            <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
+
+            <Typography sx={filtroSectionTitleStyles}>Rango / período</Typography>
+            <Typography sx={filtroHintStyles}>
+              Elegí mes y año o rango de fechas. Podés sumar distrito. Tocá Filtrar para cargar el listado.
+            </Typography>
             <Box sx={filtroGridStyles}>
               <Box sx={filtroItemStyles}>
                 <AppSelect
@@ -1285,10 +1335,10 @@ const GestionNotificacionPage = () => {
                       appearance="dense"
                       fullWidth
                       label="Mes"
-                      value={String(histMes)}
-                      onChange={(e) => setHistMes(Number(e.target.value))}
+                      value={histMes === "" ? "" : String(histMes)}
+                      onChange={(e) => setHistMes(e.target.value === "" ? "" : Number(e.target.value))}
                       variant="outlined"
-                      options={MESES_OPTS}
+                      options={MESES_OPTS_WITH_EMPTY}
                     />
                   </Box>
                   <Box sx={filtroItemStyles}>
@@ -1296,8 +1346,8 @@ const GestionNotificacionPage = () => {
                       appearance="dense"
                       fullWidth
                       label="Año"
-                      value={String(histAnio)}
-                      onChange={(e) => setHistAnio(Number(e.target.value))}
+                      value={histAnio === "" ? "" : String(histAnio)}
+                      onChange={(e) => setHistAnio(e.target.value === "" ? "" : Number(e.target.value))}
                       variant="outlined"
                       options={yearOptions(defaultMonthYear.anio)}
                     />
@@ -1345,61 +1395,18 @@ const GestionNotificacionPage = () => {
                   options={distritoSelectOptionsHistorial}
                 />
               </Box>
-              <Box sx={filtroItemStyles}>
-                <AppTextField
-                  appearance="dense"
-                  fullWidth
-                  label="Contribuyente"
-                  value={histContribQ}
-                  onChange={(e) => setHistContribQ(e.target.value)}
-                  variant="outlined"
-                />
-              </Box>
-              <Box sx={filtroItemStyles}>
-                <AppTextField
-                  appearance="dense"
-                  fullWidth
-                  label="Calle"
-                  value={histCalleQ}
-                  onChange={(e) => setHistCalleQ(e.target.value)}
-                  variant="outlined"
-                />
-              </Box>
-              <Box sx={filtroItemStyles}>
-                <AppTextField
-                  appearance="dense"
-                  fullWidth
-                  label="Nº notificación"
-                  placeholder="Fragmento del acta"
-                  value={histNumNotif}
-                  onChange={(e) => setHistNumNotif(e.target.value)}
-                  variant="outlined"
-                />
-              </Box>
-              <Box sx={filtroItemStyles}>
-                <AppTextField
-                  appearance="dense"
-                  fullWidth
-                  label="Motivo / infracción"
-                  placeholder="Texto en motivos de la notificación"
-                  value={histMotivoQ}
-                  onChange={(e) => setHistMotivoQ(e.target.value)}
-                  variant="outlined"
-                />
-              </Box>
             </Box>
             <Box sx={filtroButtonsStyles}>
               <AppButton
                 dsVariant="ghost"
                 dsSize="sm"
                 onClick={() => {
-                  const r = getCurrentMonthRange();
-                  const d = new Date(`${r.desde}T12:00:00`);
                   setHistPeriodMode("month");
-                  setHistMes(d.getMonth() + 1);
-                  setHistAnio(d.getFullYear());
-                  setHistDesde(r.desde);
-                  setHistHasta(r.hasta);
+                  setHistMes("");
+                  setHistAnio("");
+                  setHistDesde(null);
+                  setHistHasta(null);
+                  setHistCombinarConPeriodo(false);
                   setHistDistritoId("");
                   setHistContribQ("");
                   setHistCalleQ("");
@@ -1409,6 +1416,7 @@ const GestionNotificacionPage = () => {
                   setHistorialMeta(null);
                   setHistorialRows([]);
                   setHistorialError(null);
+                  setHistorialApplied(null);
                 }}
                 startIcon={<ClearIcon />}
                 sx={filtroButtonSecondaryStyles}
@@ -1453,10 +1461,17 @@ const GestionNotificacionPage = () => {
                   <Typography sx={metaItemStyles}>
                     <strong>Página:</strong> 1
                   </Typography>
-                  {historialMeta.desde && historialMeta.hasta && (
+                  {historialApplied?.period.kind === "global" ? (
                     <Typography sx={metaItemStyles}>
-                      <strong>Rango:</strong> {historialMeta.desde} — {historialMeta.hasta}
+                      <strong>Período:</strong> búsqueda global (sin rango)
                     </Typography>
+                  ) : (
+                    historialMeta.desde &&
+                    historialMeta.hasta && (
+                      <Typography sx={metaItemStyles}>
+                        <strong>Rango:</strong> {historialMeta.desde} — {historialMeta.hasta}
+                      </Typography>
+                    )
                   )}
                 </Box>
               )}
@@ -1475,8 +1490,7 @@ const GestionNotificacionPage = () => {
 
           {!historialLoading && !historialFiltroAplicado && (
             <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
-              Elegí período y distrito, ajustá filtros opcionales si hace falta, y tocá <strong>Filtrar</strong> para ver
-              el listado.
+              Usá búsqueda específica o elegí un período y tocá <strong>Filtrar</strong> para ver el listado.
             </Typography>
           )}
         </Box>

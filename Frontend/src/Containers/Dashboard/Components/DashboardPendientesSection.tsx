@@ -17,14 +17,12 @@ type Props = {
 /**
  * Operativo / pendientes: cola por tipo de iniciador y ranking por distrito.
  */
-export function DashboardPendientesSection({ data, loading, error }: Props) {
+export function DashboardPendientesSection({ data, error }: Props) {
   const kpis = data?.kpis;
-  const showValues = !loading && !error && data != null;
-  const sectionLoading = loading && !data;
 
   const kpiValue = (value: number | undefined): number | string => {
-    if (sectionLoading) return "…";
-    if (!showValues || value == null) return "—";
+    if (error || data == null) return "—";
+    if (value == null) return "—";
     return value;
   };
 
@@ -43,32 +41,23 @@ export function DashboardPendientesSection({ data, loading, error }: Props) {
         <DashboardAnalyticsKpiCard
           label="Reins. oficio pendientes"
           value={kpiValue(kpis?.reinspecciones_oficio_pendientes)}
-          loading={sectionLoading}
           accent="teal"
         />
         <DashboardAnalyticsKpiCard
           label="Reins. notificación pendientes"
           value={kpiValue(kpis?.reinspecciones_notificacion_pendientes)}
-          loading={sectionLoading}
           accent="primary"
         />
         <DashboardAnalyticsKpiCard
           label="Denuncias pendientes"
           value={kpiValue(kpis?.denuncias_pendientes)}
-          loading={sectionLoading}
           accent="amber"
         />
       </DashboardMetricGrid>
 
       <Box sx={{ mt: 2 }}>
-        <DashboardAnalyticsChartCard
-          title="Distritos con más pendientes"
-          loading={sectionLoading}
-        >
-          <DashboardDistritosPendientesTable
-          rows={data?.distritos_con_mas_pendientes ?? []}
-          loading={sectionLoading}
-          />
+        <DashboardAnalyticsChartCard title="Distritos con más pendientes">
+          <DashboardDistritosPendientesTable rows={data?.distritos_con_mas_pendientes ?? []} />
         </DashboardAnalyticsChartCard>
       </Box>
     </DashboardSectionBlock>

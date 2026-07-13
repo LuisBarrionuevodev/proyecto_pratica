@@ -1,4 +1,4 @@
-import { Box, Card, LinearProgress, Typography } from "@mui/material";
+import { Box, Card, Typography } from "@mui/material";
 
 import {
   DASHBOARD_KPI_CARD_MIN_HEIGHT,
@@ -21,7 +21,6 @@ type Props = {
   label: string;
   value: number | string;
   unit?: string;
-  loading?: boolean;
   accent?: DashboardKpiAccent;
   showPeriodSubtitle?: boolean;
 };
@@ -63,7 +62,6 @@ export function DashboardAnalyticsKpiCard({
   label,
   value,
   unit,
-  loading = false,
   accent = "primary",
   showPeriodSubtitle = false,
 }: Props) {
@@ -83,12 +81,6 @@ export function DashboardAnalyticsKpiCard({
         justifyContent: "space-between",
       }}
     >
-      {loading ? (
-        <LinearProgress
-          sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, borderRadius: 0 }}
-        />
-      ) : null}
-
       <Box
         sx={{
           display: "flex",
@@ -100,8 +92,8 @@ export function DashboardAnalyticsKpiCard({
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={dashboardAnalyticsKpiLabelSx}>{label}</Typography>
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5, flexWrap: "wrap" }}>
-            <Typography sx={dashboardAnalyticsKpiValueSx}>{loading ? "…" : value}</Typography>
-            {unit && !loading ? (
+            <Typography sx={dashboardAnalyticsKpiValueSx}>{value}</Typography>
+            {unit ? (
               <Typography
                 variant="caption"
                 sx={{

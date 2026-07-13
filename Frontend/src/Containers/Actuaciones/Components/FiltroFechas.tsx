@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Divider, FormControlLabel, Switch, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -14,27 +14,27 @@ import {
   filtroButtonsStyles,
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
+  filtroSectionTitleStyles,
+  filtroHintStyles,
 } from "../styles/filtroStyles";
+import type { IActuacionesListFilters } from "../../../api/actuacionesListApi";
+import {
+  ACTUACIONES_BUSQUEDA_ESPECIFICA_MIN_CHARS,
+  actuacionesBusquedaEspecificaValida,
+  buildActuacionesFiltroPayload,
+} from "../utils/buildActuacionesFiltroPayload";
 
-export interface ActuacionesFiltroPayload {
-  desde: string | null;
-  hasta: string | null;
-  tipo: string | null;
-  contraproducencia: string | null;
-  orden_trabajo: string | null;
-  actuacion_id: number | null;
-  q: string | null;
-}
+export type ActuacionesFiltroPayload = IActuacionesListFilters;
 
 interface FiltroFechasProps {
-  onFiltrar: (filtros: ActuacionesFiltroPayload) => void;
+  onFiltrar: (filtros: IActuacionesListFilters) => void;
   initialDesde?: string;
   initialHasta?: string;
   onLimpiarLista?: () => void;
 }
 
 /**
- * Filtros de búsqueda de actuaciones (sin buscador global; OT sin rango de fechas).
+ * Filtros de Actuaciones: búsqueda específica (acta/global) separada del rango de fechas.
  */
 const FiltroFechas = ({
   onFiltrar,
@@ -46,7 +46,9 @@ const FiltroFechas = ({
   const [hasta, setHasta] = useState<string>(initialHasta);
   const [tipo, setTipo] = useState<string>("");
   const [contraproducencia, setContraproducencia] = useState<string>("");
-  const [ordenTrabajo, setOrdenTrabajo] = useState<string>("");
+  const [busquedaEspecifica, setBusquedaEspecifica] = useState<string>("");
+  const [combinarConRango, setCombinarConRango] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
   const [catalogContras, setCatalogContras] = useState<string[]>([]);
 
@@ -63,21 +65,32 @@ const FiltroFechas = ({
     loadCatalogs();
   }, []);
 
-  const buildPayload = (): ActuacionesFiltroPayload => {
-    const otLookup = Boolean(ordenTrabajo.trim());
-    return {
-      desde: otLookup ? null : desde || null,
-      hasta: otLookup ? null : hasta || null,
-      tipo: tipo || null,
-      contraproducencia: contraproducencia || null,
-      orden_trabajo: ordenTrabajo.trim() || null,
-      actuacion_id: null,
-      q: null,
-    };
-  };
+  const hasSpecificDraft = busquedaEspecifica.trim().length > 0;
+  const hasRangeDraft = Boolean(desde || hasta || tipo || contraproducencia);
 
   const handleFiltrar = () => {
-    onFiltrar(buildPayload());
+    const trimmed = busquedaEspecifica.trim();
+    if (trimmed.length > 0 && !actuacionesBusquedaEspecificaValida(trimmed)) {
+      setValidationError(
+        `Ingresá al menos ${ACTUACIONES_BUSQUEDA_ESPECIFICA_MIN_CHARS} caracteres para la búsqueda específica.`
+      );
+      return;
+    }
+    if (!trimmed && !hasRangeDraft) {
+      setValidationError("Completá la búsqueda específica o el rango de fechas y filtros.");
+      return;
+    }
+    setValidationError(null);
+    onFiltrar(
+      buildActuacionesFiltroPayload({
+        desde,
+        hasta,
+        tipo,
+        contraproducencia,
+        busquedaEspecifica,
+        combinarConRango,
+      })
+    );
   };
 
   const handleLimpiar = () => {
@@ -85,7 +98,9 @@ const FiltroFechas = ({
     setHasta(initialHasta);
     setTipo("");
     setContraproducencia("");
-    setOrdenTrabajo("");
+    setBusquedaEspecifica("");
+    setCombinarConRango(false);
+    setValidationError(null);
     onLimpiarLista?.();
   };
 
@@ -98,8 +113,61 @@ const FiltroFechas = ({
   return (
     <Box sx={filtroContainerStyles}>
       <Typography sx={filtroTitleStyles}>Filtros de búsqueda</Typography>
-      <Typography sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.85rem", mb: 1, lineHeight: 1.45 }}>
-        Las fechas son opcionales. Si filtrás solo por OT, no se aplica rango de fechas.
+
+      <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
+      <Typography sx={filtroHintStyles}>
+        Acta (inspección, notificación, comprobación, clausura, decomiso), domicilio, expediente u oficio.
+        No usa el rango de fechas salvo que indiques combinar.
+      </Typography>
+
+      <Box sx={{ ...filtroGridStyles, gridTemplateColumns: { xs: "1fr", md: "1fr" }, mb: 1 }}>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="Buscar por acta o texto"
+            value={busquedaEspecifica}
+            onChange={(e) => {
+              setBusquedaEspecifica(e.target.value);
+              if (validationError) setValidationError(null);
+            }}
+            placeholder="Nº de acta, calle, expediente, oficio…"
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+      </Box>
+
+      {hasSpecificDraft && (
+        <FormControlLabel
+          sx={{
+            mb: 1.5,
+            ml: 0,
+            "& .MuiFormControlLabel-label": {
+              color: "rgba(255,255,255,0.85)",
+              fontFamily: '"Tactic Sans", sans-serif',
+              fontSize: "0.85rem",
+            },
+          }}
+          control={
+            <Switch
+              size="small"
+              checked={combinarConRango}
+              onChange={(e) => setCombinarConRango(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="Combinar también con rango de fechas y filtros"
+        />
+      )}
+
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
+
+      <Typography sx={filtroSectionTitleStyles}>Rango de fechas</Typography>
+      <Typography sx={filtroHintStyles}>
+        Filtrá actuaciones por período. Podés sumar tipo y contraproducencia. Las fechas son opcionales.
       </Typography>
 
       <Box sx={filtroGridStyles}>
@@ -130,18 +198,6 @@ const FiltroFechas = ({
         </Box>
 
         <Box sx={filtroItemStyles}>
-          <AppTextField
-            appearance="dense"
-            fullWidth
-            label="Orden de Trabajo"
-            value={ordenTrabajo}
-            onChange={(e) => setOrdenTrabajo(e.target.value)}
-            placeholder="123"
-            variant="outlined"
-          />
-        </Box>
-
-        <Box sx={filtroItemStyles}>
           <AppSelect
             appearance="dense"
             fullWidth
@@ -165,6 +221,10 @@ const FiltroFechas = ({
           />
         </Box>
       </Box>
+
+      {validationError && (
+        <Typography sx={{ color: "#E53935", fontSize: "0.85rem", mb: 1.5 }}>{validationError}</Typography>
+      )}
 
       <Box sx={filtroButtonsStyles}>
         <AppButton

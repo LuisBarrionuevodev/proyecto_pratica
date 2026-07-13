@@ -8,17 +8,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.models import (
     Actuaciones,
+    Clausura,
     Comprobacion,
     Contribuyente,
+    Decomiso,
     Domicilio,
+    Expediente,
     Inspeccion,
     Notificacion,
+    Oficio,
     OrdenTrabajo,
     Rubro,
 )
@@ -103,6 +107,25 @@ def buscar_actuaciones_liviano(q: str, *, limit: int = 20) -> list[dict[str, Any
         .outerjoin(Inspeccion, Inspeccion.actuacion_id == Actuaciones.id)
         .outerjoin(Notificacion, Actuaciones.notificacion_id == Notificacion.id)
         .outerjoin(Comprobacion, Actuaciones.comprobacion_id == Comprobacion.id)
+        .outerjoin(Clausura, Clausura.actuacion_id == Actuaciones.id)
+        .outerjoin(Decomiso, Decomiso.actuacion_id == Actuaciones.id)
+        .outerjoin(
+            Expediente,
+            and_(
+                or_(
+                    Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+                    Expediente.notificacion_id == Actuaciones.notificacion_id,
+                ),
+                Expediente.deleted_at.is_(None),
+            ),
+        )
+        .outerjoin(
+            Oficio,
+            and_(
+                Oficio.comprobacion_id == Actuaciones.comprobacion_id,
+                Oficio.deleted_at.is_(None),
+            ),
+        )
     )
 
     conds = [
@@ -114,6 +137,8 @@ def buscar_actuaciones_liviano(q: str, *, limit: int = 20) -> list[dict[str, Any
         Contribuyente.documento.ilike(like),
         Rubro.nombre.ilike(like),
         Actuaciones.nombre_local.ilike(like),
+        Expediente.numero_expediente.ilike(like),
+        Oficio.numero_oficio.ilike(like),
     ]
     if ot_norm:
         conds.append(OrdenTrabajo.numero_acta == ot_norm)
@@ -123,6 +148,9 @@ def buscar_actuaciones_liviano(q: str, *, limit: int = 20) -> list[dict[str, Any
                 Inspeccion.numero_acta == acta_norm,
                 Notificacion.numero_acta == acta_norm,
                 Comprobacion.numero_acta == acta_norm,
+                Clausura.numero_acta == acta_norm,
+                Decomiso.numero_acta == acta_norm,
+                Expediente.numero_expediente == acta_norm,
             ]
         )
 

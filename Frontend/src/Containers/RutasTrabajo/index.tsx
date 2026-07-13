@@ -224,7 +224,7 @@ const RutasTrabajo = () => {
       await publicarRutaTrabajo(rutaId);
       await loadRutaDetail(rutaId, { showLoading: true });
       setSuccessMessage(
-        "Ruta publicada. Usá «Descargar resumen (PDF)» y «Descargar órdenes de salida (PDF)» en esta pantalla para la documentación oficial."
+        "Ruta publicada. Usá «Descargar resumen (PDF)» y «Descargar órdenes de salida y órdenes de trabajo» en esta pantalla para la documentación oficial."
       );
     } catch (err: unknown) {
       const ax = err as { response?: { status?: number; data?: { detail?: unknown } } };

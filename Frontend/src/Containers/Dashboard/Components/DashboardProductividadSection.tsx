@@ -72,7 +72,6 @@ function InspectorCell({ name }: { name: string }) {
 function baseTableOptions<T extends { inspector_id: number }>(
   columns: MRT_ColumnDef<T>[],
   data: T[],
-  loading: boolean,
   emptyMessage: string,
   defaultSortId: string
 ): MRT_TableOptions<T> {
@@ -112,23 +111,13 @@ function baseTableOptions<T extends { inspector_id: number }>(
       pagination: { pageSize: PAGE_SIZE, pageIndex: 0 },
       sorting: [{ id: defaultSortId, desc: true }],
     },
-    state: {
-      isLoading: loading,
-      showProgressBars: loading,
-    },
     renderEmptyRowsFallback: () => (
       <Box sx={{ ...dashboardEmptyStateCompactSx, py: 2 }}>{emptyMessage}</Box>
     ),
   };
 }
 
-function RealizadasTable({
-  rows,
-  loading,
-}: {
-  rows: IndicadorInspectorRealizadas[];
-  loading: boolean;
-}) {
+function RealizadasTable({ rows }: { rows: IndicadorInspectorRealizadas[] }) {
   const columns = useMemo<MRT_ColumnDef<IndicadorInspectorRealizadas>[]>(
     () => [
       {
@@ -186,28 +175,21 @@ function RealizadasTable({
     baseTableOptions(
       columns,
       rows,
-      loading,
       "Sin actuaciones realizadas por inspector en el período.",
       "total_realizadas"
     )
   );
 
   return (
-    <DashboardAnalyticsChartCard title="Actuaciones realizadas por inspector" loading={loading}>
-      <DataTableMrtShell loading={loading} loadingMode="progress">
+    <DashboardAnalyticsChartCard title="Actuaciones realizadas por inspector">
+      <DataTableMrtShell loadingMode="none">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
     </DashboardAnalyticsChartCard>
   );
 }
 
-function NoRealizadasTable({
-  rows,
-  loading,
-}: {
-  rows: IndicadorInspectorNoRealizadas[];
-  loading: boolean;
-}) {
+function NoRealizadasTable({ rows }: { rows: IndicadorInspectorNoRealizadas[] }) {
   const columns = useMemo<MRT_ColumnDef<IndicadorInspectorNoRealizadas>[]>(
     () => [
       {
@@ -265,28 +247,21 @@ function NoRealizadasTable({
     baseTableOptions(
       columns,
       rows,
-      loading,
       "Sin actuaciones no realizadas por inspector en el período.",
       "total_no_realizadas"
     )
   );
 
   return (
-    <DashboardAnalyticsChartCard title="Actuaciones no realizadas por inspector" loading={loading}>
-      <DataTableMrtShell loading={loading} loadingMode="progress">
+    <DashboardAnalyticsChartCard title="Actuaciones no realizadas por inspector">
+      <DataTableMrtShell loadingMode="none">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
     </DashboardAnalyticsChartCard>
   );
 }
 
-function ActasTable({
-  rows,
-  loading,
-}: {
-  rows: IndicadorActasPorInspector[];
-  loading: boolean;
-}) {
+function ActasTable({ rows }: { rows: IndicadorActasPorInspector[] }) {
   const columns = useMemo<MRT_ColumnDef<IndicadorActasPorInspector>[]>(
     () => [
       {
@@ -344,15 +319,14 @@ function ActasTable({
     baseTableOptions(
       columns,
       rows,
-      loading,
       "Sin actas labradas por inspector en el período.",
       "total_actas"
     )
   );
 
   return (
-    <DashboardAnalyticsChartCard title="Actas labradas por inspector" loading={loading}>
-      <DataTableMrtShell loading={loading} loadingMode="progress">
+    <DashboardAnalyticsChartCard title="Actas labradas por inspector">
+      <DataTableMrtShell loadingMode="none">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
     </DashboardAnalyticsChartCard>
@@ -362,8 +336,7 @@ function ActasTable({
 /**
  * Productividad por inspector desde `/api/indicadores/productividad`.
  */
-export function DashboardProductividadSection({ data, loading, error }: Props) {
-  const sectionLoading = loading && !data;
+export function DashboardProductividadSection({ data, error }: Props) {
   const realizadas = data?.inspectores_realizadas ?? [];
   const noRealizadas = data?.inspectores_no_realizadas ?? [];
   const actas = data?.actas_por_inspector ?? [];
@@ -378,13 +351,13 @@ export function DashboardProductividadSection({ data, loading, error }: Props) {
 
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, lg: 6 }}>
-          <RealizadasTable rows={realizadas} loading={sectionLoading} />
+          <RealizadasTable rows={realizadas} />
         </Grid>
         <Grid size={{ xs: 12, lg: 6 }}>
-          <NoRealizadasTable rows={noRealizadas} loading={sectionLoading} />
+          <NoRealizadasTable rows={noRealizadas} />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ActasTable rows={actas} loading={sectionLoading} />
+          <ActasTable rows={actas} />
         </Grid>
       </Grid>
     </DashboardSectionBlock>

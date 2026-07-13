@@ -32,14 +32,12 @@ function formatDistritoNombre(nombre: string): string {
 /**
  * No realizadas: KPIs + rankings en barras horizontales.
  */
-export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
+export function DashboardNoRealizadasSection({ data, error }: Props) {
   const porTipo = data?.por_tipo;
-  const showValues = !loading && !error && data != null;
-  const sectionLoading = loading && !data;
 
   const kpiValue = (value: number | undefined): number | string => {
-    if (sectionLoading) return "…";
-    if (!showValues || value == null) return "—";
+    if (error || data == null) return "—";
+    if (value == null) return "—";
     return value;
   };
 
@@ -88,32 +86,27 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
       >
         <DashboardAnalyticsKpiCard
           label="Total no realizadas"
-          value={kpiValue(showValues ? totalNoRealizadas : undefined)}
-          loading={sectionLoading}
+          value={kpiValue(data != null && !error ? totalNoRealizadas : undefined)}
           accent="amber"
         />
         <DashboardAnalyticsKpiCard
           label="Inspección"
           value={kpiValue(porTipo?.inspeccion)}
-          loading={sectionLoading}
           accent="primary"
         />
         <DashboardAnalyticsKpiCard
           label="Reins. oficio"
           value={kpiValue(porTipo?.reinspeccion_oficio)}
-          loading={sectionLoading}
           accent="teal"
         />
         <DashboardAnalyticsKpiCard
           label="Reins. notificación"
           value={kpiValue(porTipo?.reinspeccion_notificacion)}
-          loading={sectionLoading}
           accent="primary"
         />
         <DashboardAnalyticsKpiCard
           label="Denuncia"
           value={kpiValue(porTipo?.denuncia)}
-          loading={sectionLoading}
           accent="neutral"
         />
       </DashboardMetricGrid>
@@ -124,7 +117,6 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
           <DashboardHorizontalBarChartCard
             title="Motivos de no realización"
             items={topContraproducencias}
-            loading={sectionLoading}
             emptyMessage="Sin motivos registrados en el período."
             color="#F5A623"
           />
@@ -133,7 +125,6 @@ export function DashboardNoRealizadasSection({ data, loading, error }: Props) {
           <DashboardHorizontalBarChartCard
             title="Distritos con más no realizadas"
             items={distritosRanking}
-            loading={sectionLoading}
             emptyMessage="Sin no realizadas por distrito en el período."
             color={GLASS_COLORS.primary}
           />

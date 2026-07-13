@@ -68,24 +68,22 @@ describe("PR7.10 buildEstablecimientoSecundarioText", () => {
 });
 
 describe("PR7.10 buildBloqueDireccionOperativaPdf", () => {
-  it("incluye domicilio, rubro y línea secundaria", () => {
+  it("orden salida: domicilio e intersección con ángulo", () => {
     const bloque = buildBloqueDireccionOperativaPdf({
       domicilio_texto: "San Martín Y Maipú",
       rubro_nombre: "Carnicería",
       nombre_fantasia: "El Toro",
       angulo_esquina: "NE",
     });
-    expect(bloque).toBe(
-      "San Martín Y Maipú\nCarnicería\nNombre fantasía: El Toro · Esquina: NE"
-    );
+    expect(bloque).toBe("San Martín Y Maipú\nÁngulo: NE");
   });
 
-  it("sin discriminadores no agrega línea extra", () => {
+  it("orden salida: calle+número sin ángulo", () => {
     const bloque = buildBloqueDireccionOperativaPdf({
       domicilio_texto: "Maipú 500",
       rubro_nombre: "Panadería",
     });
-    expect(bloque).toBe("Maipú 500\nPanadería");
+    expect(bloque).toBe("Maipú 500");
     expect(bloque).not.toContain("null");
     expect(bloque).not.toContain("undefined");
   });
@@ -112,15 +110,16 @@ describe("PR7.10 buildRutaPublicadaDocumentModel", () => {
     expect(fila?.anguloEsquina).toBeNull();
   });
 
-  it("órdenes de salida incluyen bloque con rubro y discriminadores", () => {
+  it("órdenes de salida: solo dirección y ángulo", () => {
     const item = itemBase({
       nombre_fantasia: "El Toro",
       angulo_esquina: "NE",
     });
     const model = buildRutaPublicadaDocumentModel(rutaBase, [grupoBase], [item]);
     const salida = model.inspectoresSalida[0];
-    expect(salida?.direccionesRuta[0]).toContain("Carnicería");
-    expect(salida?.direccionesRuta[0]).toContain("Nombre fantasía: El Toro · Esquina: NE");
+    expect(salida?.direccionesRuta[0]).toBe("San Martín Y Maipú\nÁngulo: NE");
+    expect(salida?.direccionesRuta[0]).not.toContain("Carnicería");
+    expect(salida?.direccionesRuta[0]).not.toContain("fantasía");
   });
 
   it("distingue dos ítems misma esquina con distinto ángulo", () => {
@@ -139,8 +138,8 @@ describe("PR7.10 buildRutaPublicadaDocumentModel", () => {
     const model = buildRutaPublicadaDocumentModel(rutaBase, [grupoBase], [itemA, itemB]);
     const dirs = model.inspectoresSalida[0]?.direccionesRuta ?? [];
     expect(dirs).toHaveLength(2);
-    expect(dirs[0]).toContain("NE");
-    expect(dirs[1]).toContain("SO");
+    expect(dirs[0]).toBe("San Martín Y Maipú\nÁngulo: NE");
+    expect(dirs[1]).toBe("San Martín Y Maipú\nÁngulo: SO");
     expect(dirs[0]).not.toBe(dirs[1]);
   });
 });

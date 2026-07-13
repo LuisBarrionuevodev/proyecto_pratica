@@ -2,17 +2,21 @@ from __future__ import annotations
 
 from typing import Dict, Any, List
 
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.models import (
     Actuaciones,
+    Clausura,
     Comprobacion,
     Contribuyente,
+    Decomiso,
     Domicilio,
+    Expediente,
     Inspeccion,
     Notificacion,
+    Oficio,
     OrdenTrabajo,
     Rubro,
 )
@@ -77,6 +81,25 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
             .outerjoin(Inspeccion, Inspeccion.actuacion_id == Actuaciones.id)
             .outerjoin(Notificacion, Actuaciones.notificacion_id == Notificacion.id)
             .outerjoin(Comprobacion, Actuaciones.comprobacion_id == Comprobacion.id)
+            .outerjoin(Clausura, Clausura.actuacion_id == Actuaciones.id)
+            .outerjoin(Decomiso, Decomiso.actuacion_id == Actuaciones.id)
+            .outerjoin(
+                Expediente,
+                and_(
+                    or_(
+                        Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+                        Expediente.notificacion_id == Actuaciones.notificacion_id,
+                    ),
+                    Expediente.deleted_at.is_(None),
+                ),
+            )
+            .outerjoin(
+                Oficio,
+                and_(
+                    Oficio.comprobacion_id == Actuaciones.comprobacion_id,
+                    Oficio.deleted_at.is_(None),
+                ),
+            )
         )
         conds = [
             OrdenTrabajo.numero_acta.ilike(like),
@@ -87,6 +110,8 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
             Contribuyente.documento.ilike(like),
             Rubro.nombre.ilike(like),
             Actuaciones.nombre_local.ilike(like),
+            Expediente.numero_expediente.ilike(like),
+            Oficio.numero_oficio.ilike(like),
         ]
         if ot_norm:
             conds.append(OrdenTrabajo.numero_acta == ot_norm)
@@ -96,6 +121,9 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
                     Inspeccion.numero_acta == acta_norm,
                     Notificacion.numero_acta == acta_norm,
                     Comprobacion.numero_acta == acta_norm,
+                    Clausura.numero_acta == acta_norm,
+                    Decomiso.numero_acta == acta_norm,
+                    Expediente.numero_expediente == acta_norm,
                 ]
             )
         query = query.filter(or_(*conds))

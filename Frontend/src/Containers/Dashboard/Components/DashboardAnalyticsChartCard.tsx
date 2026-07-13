@@ -1,4 +1,4 @@
-import { Box, Card, LinearProgress, Typography } from "@mui/material";
+import { Box, Card, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
 import {
@@ -9,7 +9,6 @@ import {
 type Props = {
   title: string;
   children: ReactNode;
-  loading?: boolean;
   /** Iguala altura mínima entre cards de una fila (riesgo). */
   fillHeight?: boolean;
 };
@@ -20,7 +19,6 @@ type Props = {
 export function DashboardAnalyticsChartCard({
   title,
   children,
-  loading = false,
   fillHeight = false,
 }: Props) {
   return (
@@ -37,19 +35,12 @@ export function DashboardAnalyticsChartCard({
         flexDirection: fillHeight ? "column" : undefined,
       }}
     >
-      {loading ? (
-        <LinearProgress
-          sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, borderRadius: 0 }}
-        />
-      ) : null}
       <Typography component="h3" sx={dashboardAnalyticsChartTitleSx}>
         {title}
       </Typography>
       <Box
         sx={{
           flex: fillHeight ? 1 : undefined,
-          opacity: loading ? 0.72 : 1,
-          transition: "opacity 0.2s",
           minHeight: 0,
         }}
       >

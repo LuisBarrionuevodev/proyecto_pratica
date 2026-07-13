@@ -29,7 +29,7 @@ import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas"
 import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
 import { periodoToDateRange } from "../utils/periodoDateRange";
-import { DashboardActasPorTipoSection } from "./DashboardActasPorTipoSection";
+import { DashboardIndicadoresPageLoader } from "./DashboardIndicadoresPageLoader";
 import { DashboardEjecutivoSection } from "./DashboardEjecutivoSection";
 import { DashboardPendientesSection } from "./DashboardPendientesSection";
 import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
@@ -230,16 +230,26 @@ const Panel = () => {
   }, [ejecutivoData, pendientesData, riesgoData, noRealizadasTotal, productividadData]);
 
   const periodoTabIndex = PERIODOS.indexOf(periodo);
-  const anyLoading =
-    (ejecutivoLoading && !ejecutivoData) ||
-    (pendientesLoading && !pendientesData) ||
-    (riesgoLoading && !riesgoData) ||
-    (noRealizadasLoading && !noRealizadasData) ||
-    (productividadLoading && !productividadData);
+  const isInitialLoading =
+    (ejecutivoLoading && !ejecutivoData && !ejecutivoError) ||
+    (pendientesLoading && !pendientesData && !pendientesError) ||
+    (riesgoLoading && !riesgoData && !riesgoError) ||
+    (noRealizadasLoading && !noRealizadasData && !noRealizadasError) ||
+    (productividadLoading && !productividadData && !productividadError);
+
+  const isRefreshing =
+    !isInitialLoading &&
+    (ejecutivoLoading ||
+      pendientesLoading ||
+      riesgoLoading ||
+      noRealizadasLoading ||
+      productividadLoading);
+
+  const anyBlockingLoad = isInitialLoading || isRefreshing;
 
   return (
     <Box sx={functionalPageShellSx}>
-      {anyLoading ? (
+      {isRefreshing ? (
         <LinearProgress
           sx={{
             position: "sticky",
@@ -353,7 +363,7 @@ const Panel = () => {
             <span>
               <Button
                 startIcon={<FileDownloadOutlinedIcon />}
-                disabled={tarjetasExport.length === 0 || anyLoading}
+                disabled={tarjetasExport.length === 0 || anyBlockingLoad}
                 onClick={() =>
                   exportDashboardToExcel({
                     tarjetas: tarjetasExport,
@@ -374,43 +384,49 @@ const Panel = () => {
           </Box>
       </Paper>
 
-      <DashboardEjecutivoSection
-        data={ejecutivoData}
-        noRealizadasTotal={noRealizadasTotal}
-        loading={ejecutivoLoading}
-        error={ejecutivoError}
-      />
+      {isInitialLoading ? (
+        <DashboardIndicadoresPageLoader />
+      ) : (
+        <>
+          <DashboardEjecutivoSection
+            data={ejecutivoData}
+            noRealizadasTotal={noRealizadasTotal}
+            loading={ejecutivoLoading}
+            error={ejecutivoError}
+          />
 
-      <DashboardActasPorTipoSection
-        actas={ejecutivoData?.actas_por_tipo}
-        loading={ejecutivoLoading}
-        error={ejecutivoError}
-      />
+          <DashboardActasPorTipoSection
+            actas={ejecutivoData?.actas_por_tipo}
+            loading={ejecutivoLoading}
+            error={ejecutivoError}
+          />
 
-      <DashboardPendientesSection
-        data={pendientesData}
-        loading={pendientesLoading}
-        error={pendientesError}
-      />
+          <DashboardPendientesSection
+            data={pendientesData}
+            loading={pendientesLoading}
+            error={pendientesError}
+          />
 
-      <DashboardRiesgoSection
-        data={riesgoData}
-        mercaderiaDecomisadaKg={ejecutivoData?.kpis.mercaderia_decomisada_kg}
-        loading={riesgoLoading}
-        error={riesgoError}
-      />
+          <DashboardRiesgoSection
+            data={riesgoData}
+            mercaderiaDecomisadaKg={ejecutivoData?.kpis.mercaderia_decomisada_kg}
+            loading={riesgoLoading}
+            error={riesgoError}
+          />
 
-      <DashboardNoRealizadasSection
-        data={noRealizadasData}
-        loading={noRealizadasLoading}
-        error={noRealizadasError}
-      />
+          <DashboardNoRealizadasSection
+            data={noRealizadasData}
+            loading={noRealizadasLoading}
+            error={noRealizadasError}
+          />
 
-      <DashboardProductividadSection
-        data={productividadData}
-        loading={productividadLoading}
-        error={productividadError}
-      />
+          <DashboardProductividadSection
+            data={productividadData}
+            loading={productividadLoading}
+            error={productividadError}
+          />
+        </>
+      )}
     </Box>
   );
 };

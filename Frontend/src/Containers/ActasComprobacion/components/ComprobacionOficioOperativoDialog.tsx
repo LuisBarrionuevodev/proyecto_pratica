@@ -98,6 +98,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   onDocumentalUpdated,
   oficioEditable,
   bloqueadoMotivo,
+  embedEnCard = false,
 }: {
   open: boolean;
   actuacionId: number;
@@ -107,6 +108,8 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   /** Si viene del listado por oficio (PR4b), prevalece sobre permisos legacy del documental. */
   oficioEditable?: boolean | null;
   bloqueadoMotivo?: string | null;
+  /** Dentro de card de oficio: sin overline de bloque general duplicado. */
+  embedEnCard?: boolean;
 }) {
   const feedback = useAppFeedback();
   const [editing, setEditing] = useState(false);
@@ -191,8 +194,8 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
     if (err) feedback.error(err);
   }, [err, feedback]);
 
-  return (
-    <DocumentalBloque overline="Oficio y expediente de respuesta">
+  const formBody = (
+    <>
       {!puede && motivoBloqueo ? (
         <DocumentalCrudFullSpan>
           <Alert severity="warning" sx={documentalGlassAlertSx}>
@@ -389,8 +392,14 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
             borran; podés volver a cargar el oficio desde la bandeja si corresponde.
           </Typography>
         </ConfirmDialog>
-    </DocumentalBloque>
+    </>
   );
+
+  if (embedEnCard) {
+    return <Stack spacing={1.5}>{formBody}</Stack>;
+  }
+
+  return <DocumentalBloque overline="Oficio y expediente de respuesta">{formBody}</DocumentalBloque>;
 });
 
 /** Estado local del alta: evita re-render del modal completo (referencia, visita, expediente envío) en cada tecla. */

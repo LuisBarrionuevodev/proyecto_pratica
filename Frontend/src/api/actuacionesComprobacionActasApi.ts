@@ -158,6 +158,8 @@ export interface IComprobacionRecorridoListParams {
   estado_recorrido?: string | null;
   /** CUMPLE / NO_CUMPLE (resultado_cumplimiento_oficio) */
   tipo_final?: string | null;
+  /** Sin filtro de fecha (búsqueda global documental). */
+  omitirRangoFecha?: boolean;
 }
 
 export async function fetchComprobacionRecorrido(
@@ -178,6 +180,7 @@ export async function fetchComprobacionRecorrido(
   if (p.oficio_numero) params.oficio_numero = p.oficio_numero;
   if (p.estado_recorrido) params.estado_recorrido = p.estado_recorrido;
   if (p.tipo_final) params.tipo_final = p.tipo_final;
+  if (p.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const { data } = await apiClient.get<IComprobacionRecorridoListResponse>("/actuaciones/comprobacion/recorrido", {
     params,
   });

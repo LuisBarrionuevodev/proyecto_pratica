@@ -50,8 +50,6 @@ type Props = {
 
   rubroItems?: IndicadoresDecomisoKgRubroItem[];
 
-  loading?: boolean;
-
 };
 
 
@@ -82,8 +80,6 @@ export function DashboardMercaderiaDecomisadaCard({
 
   rubroItems = [],
 
-  loading = false,
-
 }: Props) {
 
   const distribution = useMemo(() => {
@@ -98,7 +94,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
 
 
-  const hasValue = kg != null && !loading;
+  const hasValue = kg != null;
 
   const hasDonut = distribution.rows.length > 0;
 
@@ -110,13 +106,13 @@ export function DashboardMercaderiaDecomisadaCard({
 
     <Box sx={{ width: "100%", display: "flex", flex: 1 }}>
 
-      <DashboardAnalyticsChartCard title="Mercadería decomisada" loading={loading} fillHeight>
+      <DashboardAnalyticsChartCard title="Mercadería decomisada" fillHeight>
 
         {!hasValue ? (
 
           <Box sx={dashboardEmptyStateCompactSx}>
 
-            <Typography variant="body2">{loading ? "Cargando…" : "Sin datos."}</Typography>
+            <Typography variant="body2">Sin datos.</Typography>
 
           </Box>
 

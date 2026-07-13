@@ -4,7 +4,9 @@ import { saveAs } from "file-saver";
 import { apiClient } from "../../api/apiClient";
 import type { IRutaGrupoMin, IRutaItemMin, IRutaTrabajo } from "../../api/rutasTrabajoApi";
 import { buildRutaPublicadaDocumentModel } from "../builders/buildRutaPublicadaDocumentModel";
+import { buildOrdenTrabajoDepartamentalDocumentModel, listRutaItemsSinOtAsignada } from "../builders/buildOrdenTrabajoDepartamentalDocumentModel";
 import { registerDocumentosPdfFonts } from "../core/registerPdfFonts";
+import { OrdenTrabajoDepartamentalPdfDocument } from "../renderers/OrdenTrabajoDepartamentalPdfDocument";
 import { OrdenesSalidaPdfDocument } from "../renderers/OrdenesSalidaPdfDocument";
 import { RutaResumenPdfDocument } from "../renderers/RutaResumenPdfDocument";
 import { buildOsmStaticMapUrl, computeStaticMapView, fetchStaticMapAsDataUrl } from "./osmStaticMapImage";
@@ -78,4 +80,50 @@ export async function downloadOrdenesSalidaPdf(
   const blob = await pdf(<OrdenesSalidaPdfDocument model={model} logoSrc={logoPngUrl} />).toBlob();
 
   saveAs(blob, `${buildRutaPdfBasename(ruta)}-ordenes-salida.pdf`);
+}
+
+/**
+ * Descarga el PDF «Orden de Trabajo Departamental» (una OT por ítem; hasta 4 por hoja A4).
+ */
+export async function downloadOrdenTrabajoDepartamentalPdf(
+  ruta: IRutaTrabajo,
+  grupos: IRutaGrupoMin[],
+  itemsActivos: IRutaItemMin[]
+): Promise<void> {
+  registerDocumentosPdfFonts();
+  const model = buildOrdenTrabajoDepartamentalDocumentModel(ruta, grupos, itemsActivos);
+
+  const blob = await pdf(
+    <OrdenTrabajoDepartamentalPdfDocument model={model} logoSrc={logoPngUrl} />
+  ).toBlob();
+
+  saveAs(blob, `${buildRutaPdfBasename(ruta)}-ordenes-trabajo-departamental.pdf`);
+}
+
+export type DownloadOrdenesRutaPublicadaResult = {
+  /** Ítems omitidos del PDF departamental por no tener OT asignada. */
+  itemsSinOt: Array<{ itemId: number; domicilioTexto: string }>;
+  /** Cantidad de órdenes de trabajo departamentales incluidas en el segundo PDF. */
+  ordenesTrabajoIncluidas: number;
+};
+
+/**
+ * Descarga en secuencia Orden de Salida y Órdenes de Trabajo Departamentales (dos archivos PDF).
+ * Los ítems sin número de OT se omiten del segundo documento; el resultado informa cuáles fueron.
+ */
+export async function downloadOrdenesSalidaYTrabajoDepartamentalPdfs(
+  ruta: IRutaTrabajo,
+  grupos: IRutaGrupoMin[],
+  itemsActivos: IRutaItemMin[]
+): Promise<DownloadOrdenesRutaPublicadaResult> {
+  const itemsSinOt = listRutaItemsSinOtAsignada(itemsActivos);
+  const modelOt = buildOrdenTrabajoDepartamentalDocumentModel(ruta, grupos, itemsActivos);
+
+  await downloadOrdenesSalidaPdf(ruta, grupos, itemsActivos);
+  await downloadOrdenTrabajoDepartamentalPdf(ruta, grupos, itemsActivos);
+
+  return {
+    itemsSinOt,
+    ordenesTrabajoIncluidas: modelOt.ordenes.length,
+  };
 }

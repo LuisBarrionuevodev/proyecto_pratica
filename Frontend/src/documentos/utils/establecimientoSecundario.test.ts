@@ -20,11 +20,25 @@ describe("establecimientoSecundario documentos utils", () => {
     expect(buildEstablecimientoSecundarioText({ nombre_fantasia: "  ", angulo_esquina: "" })).toBeNull();
   });
 
-  it("bloque PDF no contiene null ni undefined", () => {
+  it("bloque orden salida: domicilio y ángulo sin rubro ni fantasía", () => {
     const bloque = buildBloqueDireccionOperativaPdf({
       domicilio_texto: "San Martín Y Maipú",
       rubro_nombre: "Carnicería",
+      nombre_fantasia: "El Toro",
+      angulo_esquina: "NE",
     });
-    expect(bloque).not.toMatch(/null|undefined/i);
+    expect(bloque).toBe("San Martín Y Maipú\nÁngulo: NE");
+    expect(bloque).not.toContain("Carnicería");
+    expect(bloque).not.toContain("fantasía");
+  });
+
+  it("bloque orden salida: solo domicilio calle+número", () => {
+    const bloque = buildBloqueDireccionOperativaPdf({
+      domicilio_texto: "Maipú 500",
+      rubro_nombre: "Panadería",
+    });
+    expect(bloque).toBe("Maipú 500");
+    expect(bloque).not.toContain("null");
+    expect(bloque).not.toContain("undefined");
   });
 });

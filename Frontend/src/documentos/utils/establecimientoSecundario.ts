@@ -25,7 +25,8 @@ export function buildEstablecimientoSecundarioText(item: EstablecimientoDiscrimi
 }
 
 /**
- * Bloque multi-línea para órdenes de salida (domicilio + rubro + discriminadores).
+ * Bloque multi-línea para órdenes de salida: solo dirección operativa y ángulo de esquina.
+ * No incluye rubro, nombre fantasía ni otros datos de establecimiento (PR8.3).
  */
 export function buildBloqueDireccionOperativaPdf(item: {
   domicilio_texto?: string | null;
@@ -34,10 +35,8 @@ export function buildBloqueDireccionOperativaPdf(item: {
   angulo_esquina?: string | null;
 }): string {
   const dom = (item.domicilio_texto ?? "").trim() || "—";
-  const rubro = (item.rubro_nombre ?? "").trim();
-  const sec = buildEstablecimientoSecundarioText(item);
+  const ang = trimOrNull(item.angulo_esquina);
   const lines = [dom];
-  if (rubro) lines.push(rubro);
-  if (sec) lines.push(sec);
+  if (ang) lines.push(`Ángulo: ${ang}`);
   return lines.join("\n");
 }

@@ -74,7 +74,7 @@ describe("PR7.11 flujo PDF esquina multi-establecimiento", () => {
     expect(filas[1]?.establecimientoSecundario).toBe("Nombre fantasía: La Huerta · Esquina: SO");
   });
 
-  it("órdenes de salida: dos bloques separados en misma esquina", () => {
+  it("órdenes de salida: dos bloques separados en misma esquina (solo dirección + ángulo)", () => {
     const items = [
       itemEsquina(1, "Carnicería", "El Toro", "NE"),
       itemEsquina(2, "Verdulería", "La Huerta", "SO"),
@@ -82,16 +82,14 @@ describe("PR7.11 flujo PDF esquina multi-establecimiento", () => {
     const model = buildRutaPublicadaDocumentModel(rutaBase, [grupoBase], items);
     const dirs = model.inspectoresSalida[0]?.direccionesRuta ?? [];
     expect(dirs).toHaveLength(2);
-    expect(dirs[0]).toContain("Carnicería");
-    expect(dirs[0]).toContain("El Toro");
-    expect(dirs[0]).toContain("NE");
-    expect(dirs[1]).toContain("Verdulería");
-    expect(dirs[1]).toContain("La Huerta");
-    expect(dirs[1]).toContain("SO");
+    expect(dirs[0]).toBe("San Martín Y Maipú\nÁngulo: NE");
+    expect(dirs[1]).toBe("San Martín Y Maipú\nÁngulo: SO");
     expect(dirs.join("\n\n")).not.toMatch(/null|undefined/i);
+    expect(dirs.join("\n")).not.toContain("Carnicería");
+    expect(dirs.join("\n")).not.toContain("fantasía");
   });
 
-  it("bloques PDF esperados literales", () => {
+  it("bloques PDF orden salida esperados literales", () => {
     const bloqueA = buildBloqueDireccionOperativaPdf({
       domicilio_texto: "San Martín Y Maipú",
       rubro_nombre: "Carnicería",
@@ -104,12 +102,8 @@ describe("PR7.11 flujo PDF esquina multi-establecimiento", () => {
       nombre_fantasia: "La Huerta",
       angulo_esquina: "SO",
     });
-    expect(bloqueA).toBe(
-      "San Martín Y Maipú\nCarnicería\nNombre fantasía: El Toro · Esquina: NE"
-    );
-    expect(bloqueB).toBe(
-      "San Martín Y Maipú\nVerdulería\nNombre fantasía: La Huerta · Esquina: SO"
-    );
+    expect(bloqueA).toBe("San Martín Y Maipú\nÁngulo: NE");
+    expect(bloqueB).toBe("San Martín Y Maipú\nÁngulo: SO");
   });
 });
 

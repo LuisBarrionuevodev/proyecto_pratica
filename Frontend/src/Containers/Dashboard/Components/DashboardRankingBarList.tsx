@@ -21,7 +21,6 @@ function normalizeLabel(label: string): string {
 
 type Props = {
   items: DashboardRankingBarItem[];
-  loading?: boolean;
   emptyMessage?: string;
   maxItems?: number;
   color?: string;
@@ -32,7 +31,6 @@ type Props = {
  */
 export function DashboardRankingBarList({
   items,
-  loading = false,
   emptyMessage = "Sin datos en el período.",
   maxItems = 7,
   color = GLASS_COLORS.primary,
@@ -46,14 +44,6 @@ export function DashboardRankingBarList({
   );
 
   const maxVal = useMemo(() => Math.max(...slice.map((i) => i.value), 1), [slice]);
-
-  if (loading && slice.length === 0) {
-    return (
-      <Box sx={dashboardEmptyStateCompactSx}>
-        <Typography variant="body2">Cargando…</Typography>
-      </Box>
-    );
-  }
 
   if (slice.length === 0) {
     return (

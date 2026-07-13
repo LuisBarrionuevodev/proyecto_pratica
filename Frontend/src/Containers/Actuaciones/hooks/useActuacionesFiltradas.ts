@@ -51,19 +51,20 @@ export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
             const response = await getActuacionesFiltered(merged);
             setActuaciones(response.items);
             setMeta(response.meta);
-            const globalLookup = Boolean(
-                filters?.orden_trabajo || filters?.actuacion_id || filters?.q
-            );
+            const specificLookup = Boolean(filters?.q || filters?.actuacion_id);
             if (
+                specificLookup &&
+                response.items.length === 0 &&
+                response.meta.total === 0
+            ) {
+                const term = filters?.q?.trim() || `id ${filters?.actuacion_id}`;
+                setError(`Sin actuaciones para «${term}». Probá otro texto o ampliá el criterio.`);
+            } else if (
                 filters?.orden_trabajo &&
                 response.items.length === 0 &&
                 response.meta.total === 0
             ) {
-                setError(
-                    globalLookup
-                        ? `Sin actuaciones para la OT ${filters.orden_trabajo}.`
-                        : `Sin actuaciones para la OT ${filters.orden_trabajo} con el rango y filtros actuales. Ampliá fechas o quitá otros filtros.`
-                );
+                setError(`Sin actuaciones para la OT ${filters.orden_trabajo}.`);
             }
         } catch (err: any) {
             console.error("Error al cargar actuaciones:", err);

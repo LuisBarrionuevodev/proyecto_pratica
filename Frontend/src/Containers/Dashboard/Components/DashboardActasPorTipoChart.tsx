@@ -16,7 +16,6 @@ const ACTA_ITEMS: { key: keyof IndicadoresActasPorTipo; label: string }[] = [
 
 type Props = {
   actas: IndicadoresActasPorTipo;
-  loading?: boolean;
 };
 
 function totalActas(actas: IndicadoresActasPorTipo): number {
@@ -32,7 +31,7 @@ function totalActas(actas: IndicadoresActasPorTipo): number {
 /**
  * Barras verticales analytics: composición de actas labradas por tipo.
  */
-export function DashboardActasPorTipoChart({ actas, loading }: Props) {
+export function DashboardActasPorTipoChart({ actas }: Props) {
   const chart = useMemo(() => {
     const labels = ACTA_ITEMS.map((i) => i.label);
     const values = ACTA_ITEMS.map((i) => actas[i.key]);
@@ -40,14 +39,6 @@ export function DashboardActasPorTipoChart({ actas, loading }: Props) {
     if (total === 0) return null;
     return { labels, values };
   }, [actas]);
-
-  if (loading) {
-    return (
-      <Box sx={dashboardEmptyStateCompactSx}>
-        <Typography variant="body2">Cargando…</Typography>
-      </Box>
-    );
-  }
 
   if (!chart) {
     return (

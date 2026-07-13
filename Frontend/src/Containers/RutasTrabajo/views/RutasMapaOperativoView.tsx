@@ -2,7 +2,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { useCallback, useState } from "react";
 import { Alert, Box, Paper, Stack, Tooltip, Typography } from "@mui/material";
 
-import { downloadOrdenesSalidaPdf, downloadRutaResumenPdf } from "../../../documentos";
+import { downloadOrdenesSalidaYTrabajoDepartamentalPdfs, downloadRutaResumenPdf } from "../../../documentos";
 import { MapaFinalResumenLateral } from "../Components/MapaFinalResumenLateral";
 import { MapaRutaTrabajo } from "../Components/MapaRutaTrabajo";
 import { RutaResumenHeaderCard, rutaResumenHeaderAccionButtonSx } from "../Components/RutaResumenHeaderCard";
@@ -62,6 +62,7 @@ export function RutasMapaOperativoView({
   const [pdfResumenLoading, setPdfResumenLoading] = useState(false);
   const [pdfOrdenesLoading, setPdfOrdenesLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfOrdenesAviso, setPdfOrdenesAviso] = useState<string | null>(null);
   const puedeDocumentosPdf = Boolean(readOnly && ruta?.estado_ruta === "PUBLICADA");
 
   const handleDescargarResumenPdf = useCallback(async () => {
@@ -81,12 +82,25 @@ export function RutasMapaOperativoView({
   const handleDescargarOrdenesPdf = useCallback(async () => {
     if (!ruta) return;
     setPdfError(null);
+    setPdfOrdenesAviso(null);
     setPdfOrdenesLoading(true);
     try {
-      await downloadOrdenesSalidaPdf(ruta, grupos, itemsActivos);
+      const result = await downloadOrdenesSalidaYTrabajoDepartamentalPdfs(ruta, grupos, itemsActivos);
+      if (result.itemsSinOt.length > 0) {
+        const domicilios = result.itemsSinOt.map((it) => it.domicilioTexto).join("; ");
+        if (result.ordenesTrabajoIncluidas === 0) {
+          setPdfOrdenesAviso(
+            `Se descargó la Orden de Salida. Ningún ítem tiene número de OT asignado; el PDF de órdenes de trabajo departamentales quedó vacío. Direcciones sin OT: ${domicilios}.`
+          );
+        } else {
+          setPdfOrdenesAviso(
+            `Se descargaron ambos PDF. ${result.itemsSinOt.length} dirección(es) sin número de OT fueron omitidas del PDF de órdenes de trabajo: ${domicilios}.`
+          );
+        }
+      }
     } catch (e) {
       console.error(e);
-      setPdfError("No se pudo generar el PDF de órdenes de salida. Revisá la conexión o intentá de nuevo.");
+      setPdfError("No se pudieron generar los PDF de órdenes. Revisá la conexión o intentá de nuevo.");
     } finally {
       setPdfOrdenesLoading(false);
     }
@@ -140,7 +154,10 @@ export function RutasMapaOperativoView({
           </AppButton>
         </span>
       </Tooltip>
-      <Tooltip title="PDF institucional: una hoja por inspector con orden de salida triplicada (Original / Duplicado / Triplicado)." placement="top">
+      <Tooltip
+        title="Descarga dos PDF: Orden de Salida del personal (por inspector) y Órdenes de Trabajo Departamentales (una por OT asignada en la ruta)."
+        placement="top"
+      >
         <span style={{ display: "flex", width: "100%" }}>
           <AppButton
             dsVariant="secondary"
@@ -152,7 +169,7 @@ export function RutasMapaOperativoView({
             onClick={() => void handleDescargarOrdenesPdf()}
             sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
           >
-            Descargar órdenes de salida (PDF)
+            Descargar órdenes de salida y órdenes de trabajo
           </AppButton>
         </span>
       </Tooltip>
@@ -182,7 +199,7 @@ export function RutasMapaOperativoView({
           publishingRuta
             ? "Publicando la ruta…"
             : canPublish
-              ? "Publica la ruta. Luego podrás descargar desde esta pantalla el resumen y las órdenes de salida en PDF."
+              ? "Publica la ruta. Luego podrás descargar desde esta pantalla el resumen y las órdenes de salida y de trabajo en PDF."
               : "Solo con borrador listo."
         }
         placement="top"
@@ -217,6 +234,21 @@ export function RutasMapaOperativoView({
         summary={resumenIdentificacion}
         actions={headerActions}
       />
+
+      {pdfOrdenesAviso ? (
+        <Alert
+          severity="warning"
+          onClose={() => setPdfOrdenesAviso(null)}
+          sx={{
+            ...rutasInstitutionalAlertBaseSx,
+            borderColor: "rgba(255, 183, 77, 0.35)",
+            "& .MuiAlert-icon": { color: "warning.light" },
+            "& .MuiAlert-message": { fontSize: "0.875rem", lineHeight: 1.4 },
+          }}
+        >
+          {pdfOrdenesAviso}
+        </Alert>
+      ) : null}
 
       {pdfError ? (
         <Alert

@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import { Alert, Box, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 
+import type { IComprobacionRecorridoResultadoFinal } from "../../../api/actuacionesComprobacionActasApi";
 import type {
   IComprobacionDocumentalResponse,
   IJuzgadoCatalogItem,
@@ -16,7 +17,9 @@ import {
   oficioComprobacionEtiquetaCompacta,
   oficioComprobacionSubtituloIniciador,
   oficioComprobacionTieneBloqueCompleto,
+  oficioMuestraEjecucionReinspeccion,
   oficioOperativoChips,
+  type EjecucionReinspeccionPorOficioCtx,
 } from "../utils/comprobacionOficiosUtils";
 import {
   ComprobacionOficioAltaFields,
@@ -24,6 +27,7 @@ import {
   type ComprobacionOficioAltaPayload,
 } from "./ComprobacionOficioOperativoDialog";
 import { DocumentalBloque, DocumentalFila, parNumAnio, textoValor } from "./comprobacionOperativoBlocks";
+import { OficioComprobacionReinspeccionEnCard } from "./OficioComprobacionReinspeccionEnCard";
 
 const agregarOficioButtonSx = { fontWeight: 700 } as const;
 
@@ -58,17 +62,64 @@ function chipColorForIniciador(estado: string | null | undefined): "default" | "
   return "default";
 }
 
+function OficioComprobacionDetalleLectura({ item }: { item: OficioComprobacionItem }) {
+  const expNum = parNumAnio(item.expediente_numero ?? null, item.expediente_anio ?? null);
+  const expFecha = textoValor(item.fecha_expediente_respuesta);
+  return (
+    <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, width: "100%", mt: 1 }}>
+      {expNum !== "—" ? <DocumentalFila etiqueta="Expediente de respuesta" valor={expNum} /> : null}
+      {expFecha !== "—" ? <DocumentalFila etiqueta="Fecha expediente" valor={expFecha} /> : null}
+      <DocumentalFila etiqueta="N.º y año de oficio" valor={parNumAnio(item.numero_oficio ?? null, item.anio ?? null)} />
+      <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(item.fecha_oficio)} />
+      <DocumentalFila etiqueta="Causa" valor={textoValor(item.causa)} />
+      <DocumentalFila etiqueta="Juzgado" valor={textoValor(item.tribunal)} />
+      {!oficioComprobacionTieneBloqueCompleto(item) ? (
+        <Box sx={{ gridColumn: "1 / -1" }}>
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }}>
+            Expediente de respuesta no disponible en el listado.
+          </Typography>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 const OficioComprobacionCard = memo(function OficioComprobacionCard({
   item,
   selected,
   onSelect,
+  actuacionId,
+  documental,
+  open,
+  juzgados,
+  onDocumentalUpdated,
+  ejecucionReinspeccion,
+  resultadoCircuito,
+  ejecucionCtx,
 }: {
   item: OficioComprobacionItem;
   selected: boolean;
   onSelect: () => void;
+  actuacionId: number;
+  documental: IComprobacionDocumentalResponse | null;
+  open: boolean;
+  juzgados: IJuzgadoCatalogItem[];
+  onDocumentalUpdated: () => Promise<void>;
+  ejecucionReinspeccion: Record<string, unknown> | null;
+  resultadoCircuito: IComprobacionRecorridoResultadoFinal | null | undefined;
+  ejecucionCtx: EjecucionReinspeccionPorOficioCtx;
 }) {
   const subtitulo = oficioComprobacionSubtituloIniciador(item);
   const chips = oficioOperativoChips(item);
+  const documentalItem = useMemo(() => {
+    if (!documental) return null;
+    return documentalDesdeOficioItem(documental, item);
+  }, [documental, item]);
+
+  const muestraReinspeccion =
+    ejecucionReinspeccion != null &&
+    oficioMuestraEjecucionReinspeccion(item, ejecucionCtx);
+
   return (
     <Box
       role="button"
@@ -124,35 +175,33 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
           {subtitulo}
         </Typography>
       ) : null}
-      {(item.causa ?? "").toString().trim() ? (
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", display: "block", mt: 0.35 }}>
-          Causa: {String(item.causa).trim()}
-        </Typography>
-      ) : null}
+
+      <Box onClick={(e) => e.stopPropagation()} sx={{ mt: 0.5 }}>
+        {selected && documentalItem ? (
+          <OperativoOficioYRespuestaEditable
+            open={open}
+            actuacionId={actuacionId}
+            documental={documentalItem}
+            juzgados={juzgados}
+            onDocumentalUpdated={onDocumentalUpdated}
+            oficioEditable={item.editable}
+            bloqueadoMotivo={item.bloqueado_motivo}
+            embedEnCard
+          />
+        ) : (
+          <OficioComprobacionDetalleLectura item={item} />
+        )}
+
+        {muestraReinspeccion && ejecucionReinspeccion ? (
+          <OficioComprobacionReinspeccionEnCard
+            ejecucion={ejecucionReinspeccion}
+            resultadoCircuito={resultadoCircuito}
+          />
+        ) : null}
+      </Box>
     </Box>
   );
 });
-
-function OficioComprobacionSoloLectura({ item }: { item: OficioComprobacionItem }) {
-  return (
-    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, width: "100%" }}>
-      <DocumentalFila
-        etiqueta="N.º y año"
-        valor={parNumAnio(item.numero_oficio ?? null, item.anio ?? null)}
-      />
-      <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(item.fecha_oficio)} />
-      <DocumentalFila etiqueta="Causa" valor={textoValor(item.causa)} />
-      <DocumentalFila etiqueta="Juzgado" valor={textoValor(item.tribunal)} />
-      {!oficioComprobacionTieneBloqueCompleto(item) ? (
-        <Box sx={{ gridColumn: "1 / -1" }}>
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", pt: 0.5 }}>
-            Expediente de respuesta no disponible en el listado.
-          </Typography>
-        </Box>
-      ) : null}
-    </Box>
-  );
-}
 
 export type ComprobacionOficiosTribunalSectionProps = {
   open: boolean;
@@ -171,10 +220,17 @@ export type ComprobacionOficiosTribunalSectionProps = {
   onDocumentalUpdated: () => Promise<void>;
   /** Oficio a preseleccionar al abrir (p. ej. fila de bandeja reinspección). */
   initialOficioId?: number | null;
+  /**
+   * Ejecución de reinspección del detalle de recorrido (un solo oficio en API actual).
+   * Se muestra solo en la card que coincide por ``oficioId`` / ``iniciadorId``.
+   */
+  ejecucionReinspeccion?: Record<string, unknown> | null;
+  ejecucionReinspeccionCtx?: EjecucionReinspeccionPorOficioCtx | null;
+  resultadoCircuito?: IComprobacionRecorridoResultadoFinal | null;
 };
 
 /**
- * Sección «Oficios / respuestas del tribunal»: historial, selector y alta de oficios adicionales.
+ * Sección «Oficios / respuestas del tribunal»: cada card con su detalle documental y reinspección (si aplica).
  */
 export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOficiosTribunalSection({
   open,
@@ -192,6 +248,9 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
   onGuardarAlta,
   onDocumentalUpdated,
   initialOficioId,
+  ejecucionReinspeccion = null,
+  ejecucionReinspeccionCtx = null,
+  resultadoCircuito = null,
 }: ComprobacionOficiosTribunalSectionProps) {
   const [selectedOficioId, setSelectedOficioId] = useState<number | null>(null);
   const [modoAlta, setModoAlta] = useState(false);
@@ -201,15 +260,10 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
     [oficios, documental, documentalLoading]
   );
 
-  const selectedItem = useMemo(
-    () => (selectedOficioId != null ? items.find((o) => o.id === selectedOficioId) ?? null : null),
-    [items, selectedOficioId]
-  );
-
-  const documentalSeleccionado = useMemo(() => {
-    if (!documental || !selectedItem) return null;
-    return documentalDesdeOficioItem(documental, selectedItem);
-  }, [documental, selectedItem]);
+  const ejecucionCtx: EjecucionReinspeccionPorOficioCtx = ejecucionReinspeccionCtx ?? {
+    oficioId: null,
+    iniciadorId: null,
+  };
 
   useEffect(() => {
     if (!open) {
@@ -261,13 +315,21 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
             Sin oficios cargados para esta acta de comprobación.
           </Typography>
         ) : items.length > 0 ? (
-          <Stack spacing={1}>
+          <Stack spacing={1.25}>
             {items.map((item) => (
               <OficioComprobacionCard
                 key={item.id}
                 item={item}
                 selected={!modoAlta && selectedOficioId === item.id}
                 onSelect={() => handleSelectOficio(item.id)}
+                actuacionId={actuacionId}
+                documental={documental}
+                open={open}
+                juzgados={juzgados}
+                onDocumentalUpdated={onDocumentalUpdated}
+                ejecucionReinspeccion={ejecucionReinspeccion}
+                resultadoCircuito={resultadoCircuito}
+                ejecucionCtx={ejecucionCtx}
               />
             ))}
           </Stack>
@@ -293,23 +355,6 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
             saving={saving}
             onGuardarAlta={onGuardarAlta}
           />
-        ) : selectedItem && documentalSeleccionado ? (
-          <OperativoOficioYRespuestaEditable
-            open={open}
-            actuacionId={actuacionId}
-            documental={documentalSeleccionado}
-            juzgados={juzgados}
-            onDocumentalUpdated={onDocumentalUpdated}
-            oficioEditable={selectedItem.editable}
-            bloqueadoMotivo={selectedItem.bloqueado_motivo}
-          />
-        ) : selectedItem ? (
-          <Stack spacing={1} sx={{ pt: 0.5 }}>
-            <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>
-              Detalle del oficio
-            </Typography>
-            <OficioComprobacionSoloLectura item={selectedItem} />
-          </Stack>
         ) : null}
 
         {showAltaPrimeraVez ? null : showEmpty ? (

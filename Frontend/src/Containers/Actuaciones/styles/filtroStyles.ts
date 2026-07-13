@@ -82,6 +82,21 @@ export const filtroTitleStyles: SxProps<Theme> = {
   mb: 2,
 };
 
+export const filtroSectionTitleStyles: SxProps<Theme> = {
+  fontFamily: '"Tactic Sans", sans-serif',
+  fontWeight: 600,
+  fontSize: "15px",
+  color: COLORS.white,
+  mb: 0.75,
+};
+
+export const filtroHintStyles: SxProps<Theme> = {
+  color: "rgba(255,255,255,0.75)",
+  fontSize: "0.85rem",
+  mb: 1.5,
+  lineHeight: 1.45,
+};
+
 export const filtroGridStyles: SxProps<Theme> = {
   display: "grid",
   gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },

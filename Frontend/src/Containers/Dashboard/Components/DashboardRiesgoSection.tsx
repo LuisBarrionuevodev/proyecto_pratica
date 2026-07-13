@@ -48,8 +48,6 @@ export function DashboardRiesgoSection({
     [data?.top_motivos_comprobacion],
   );
 
-  const sectionLoading = loading && !data;
-
   return (
     <DashboardSectionBlock title="Riesgo bromatológico">
       {error ? (
@@ -63,7 +61,6 @@ export function DashboardRiesgoSection({
           <DashboardHorizontalBarChartCard
             title="Top rubros intervenidos"
             items={topRubros}
-            loading={sectionLoading}
             emptyMessage="Sin rubros con actividad en el período."
             maxItems={7}
           />
@@ -72,7 +69,6 @@ export function DashboardRiesgoSection({
           <DashboardDonutLegendCard
             title="Motivos de notificación"
             items={topMotivosNotif}
-            loading={sectionLoading}
             emptyMessage="Sin motivos de notificación en el período."
             centerCaption="Actas"
           />
@@ -81,7 +77,6 @@ export function DashboardRiesgoSection({
           <DashboardDonutLegendCard
             title="Motivos de comprobación"
             items={topMotivosComp}
-            loading={sectionLoading}
             emptyMessage="Sin motivos de comprobación en el período."
             centerCaption="Actas"
           />
@@ -90,7 +85,6 @@ export function DashboardRiesgoSection({
           <DashboardMercaderiaDecomisadaCard
             kg={mercaderiaDecomisadaKg}
             rubroItems={data?.decomiso_kg_por_rubro ?? []}
-            loading={sectionLoading}
           />
         </Grid>
       </Grid>

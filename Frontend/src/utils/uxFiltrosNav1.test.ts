@@ -55,7 +55,7 @@ describe("ActuacionesContainer carga inicial", () => {
     const path = resolve(process.cwd(), "src/Containers/Actuaciones/ActuacionesContainer.tsx");
     const src = readFileSync(path, "utf8");
     expect(src).not.toMatch(/useEffect\(\(\) => \{\s*void buscar\(/);
-    expect(src).toContain("Usá los filtros para buscar actuaciones");
+    expect(src).toContain("Buscá por acta");
   });
 });
 

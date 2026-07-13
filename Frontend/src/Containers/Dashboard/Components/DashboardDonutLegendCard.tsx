@@ -72,8 +72,6 @@ type Props = {
 
   items: DashboardDonutLegendItem[];
 
-  loading?: boolean;
-
   emptyMessage?: string;
 
   maxItems?: number;
@@ -97,8 +95,6 @@ export function DashboardDonutLegendCard({
   title,
 
   items,
-
-  loading = false,
 
   emptyMessage = "Sin datos en el período.",
 
@@ -130,17 +126,9 @@ export function DashboardDonutLegendCard({
 
     <Box sx={{ width: "100%", display: "flex", flex: 1 }}>
 
-      <DashboardAnalyticsChartCard title={title} loading={loading} fillHeight>
+      <DashboardAnalyticsChartCard title={title} fillHeight>
 
-        {loading && slice.rows.length === 0 ? (
-
-          <Box sx={dashboardEmptyStateCompactSx}>
-
-            <Typography variant="body2">Cargando…</Typography>
-
-          </Box>
-
-        ) : slice.rows.length === 0 ? (
+        {slice.rows.length === 0 ? (
 
           <Box sx={dashboardEmptyStateCompactSx}>
 

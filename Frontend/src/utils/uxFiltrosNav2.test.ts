@@ -2,26 +2,58 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-describe("UX-FILTROS-NAV-2 Actuaciones", () => {
-  it("no muestra buscador global ni Refrescar en filtros", () => {
+describe("PR8.1 Actuaciones — filtros rango vs específica", () => {
+  it("panel separa búsqueda específica y rango de fechas", () => {
     const path = resolve(process.cwd(), "src/Containers/Actuaciones/Components/FiltroFechas.tsx");
     const src = readFileSync(path, "utf8");
-    expect(src).not.toContain("ActuacionGlobalSearchAutocomplete");
-    expect(src).not.toContain("Refrescar");
-    expect(src).not.toContain("onRefrescar");
+    expect(src).toContain("Búsqueda específica");
+    expect(src).toContain("Rango de fechas");
+    expect(src).toContain("buildActuacionesFiltroPayload");
+    expect(src).toContain("Combinar también con rango");
+    expect(src).not.toContain('label="Orden de Trabajo"');
   });
 
-  it("OT sin fechas en payload", () => {
+  it("payload omite fechas en búsqueda específica sin combinar", () => {
+    const path = resolve(
+      process.cwd(),
+      "src/Containers/Actuaciones/utils/buildActuacionesFiltroPayload.ts"
+    );
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain("useRangeModifiers");
+    expect(src).toContain("orden_trabajo: null");
+  });
+
+  it("Limpiar resetea lista y formulario", () => {
+    const filtro = resolve(process.cwd(), "src/Containers/Actuaciones/Components/FiltroFechas.tsx");
+    const container = resolve(process.cwd(), "src/Containers/Actuaciones/ActuacionesContainer.tsx");
+    const filtroSrc = readFileSync(filtro, "utf8");
+    const containerSrc = readFileSync(container, "utf8");
+    expect(filtroSrc).toContain("setBusquedaEspecifica(\"\")");
+    expect(filtroSrc).toContain("onLimpiarLista?.()");
+    expect(containerSrc).toContain("onLimpiarLista={limpiarLista}");
+  });
+
+  it("meta muestra búsqueda q y no prioriza OT", () => {
+    const path = resolve(process.cwd(), "src/Containers/Actuaciones/ActuacionesContainer.tsx");
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain("meta.q");
+    expect(src).not.toContain("<strong>OT:</strong>");
+  });
+});
+
+describe("UX-FILTROS-NAV-2 Actuaciones", () => {
+  it("no muestra Refrescar en filtros", () => {
     const path = resolve(process.cwd(), "src/Containers/Actuaciones/Components/FiltroFechas.tsx");
     const src = readFileSync(path, "utf8");
-    expect(src).toContain("otLookup ? null : desde");
+    expect(src).not.toContain("Refrescar");
+    expect(src).not.toContain("onRefrescar");
   });
 
   it("entra en estado vacío inicial", () => {
     const path = resolve(process.cwd(), "src/Containers/Actuaciones/ActuacionesContainer.tsx");
     const src = readFileSync(path, "utf8");
     expect(src).not.toMatch(/useEffect\(\(\) => \{\s*void buscar\(/);
-    expect(src).toContain("Usá los filtros para buscar actuaciones");
+    expect(src).toContain("Buscá por acta");
   });
 
   it("Limpiar vuelve a estado inicial vacío", () => {
@@ -84,5 +116,59 @@ describe("UX-FILTROS-NAV-2 Relevamientos", () => {
     const path = resolve(process.cwd(), "src/Containers/Relevamientos/Components/FiltroRelevamientos.tsx");
     const src = readFileSync(path, "utf8");
     expect(src).not.toContain("Refrescar");
+  });
+});
+
+describe("PR8.1b Historial Notificaciones", () => {
+  it("inicia sin mes/año aplicado", () => {
+    const path = resolve(process.cwd(), "src/Containers/GestionNotificacion/GestionNotificacionPage.tsx");
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain('useState<number | "">("")');
+    expect(src).toContain("buildHistorialNotificacionFiltroPayload");
+    expect(src).toContain("Búsqueda específica");
+  });
+
+  it("payload global no envía mes/año por defecto", () => {
+    const path = resolve(
+      process.cwd(),
+      "src/Containers/GestionNotificacion/utils/buildHistorialNotificacionFiltroPayload.ts"
+    );
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain('kind: "global"');
+    expect(src).toContain("omitirRangoFecha: true");
+  });
+
+  it("Limpiar borra mes/año y búsqueda", () => {
+    const path = resolve(process.cwd(), "src/Containers/GestionNotificacion/GestionNotificacionPage.tsx");
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain('setHistMes("")');
+    expect(src).toContain('setHistNumNotif("")');
+    expect(src).toContain("setHistorialApplied(null)");
+  });
+});
+
+describe("PR8.1b Recorrido Comprobaciones", () => {
+  it("inicia sin mes/año aplicado", () => {
+    const path = resolve(process.cwd(), "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx");
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain('useState<number | "">("")');
+    expect(src).toContain("buildRecorridoComprobacionFiltroPayload");
+  });
+
+  it("payload usa omitir_rango_fecha en búsqueda global", () => {
+    const path = resolve(
+      process.cwd(),
+      "src/Containers/ActasComprobacion/utils/buildRecorridoComprobacionFiltroPayload.ts"
+    );
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain("omitirRangoFecha = true");
+  });
+
+  it("Limpiar borra mes/año y búsqueda", () => {
+    const path = resolve(process.cwd(), "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx");
+    const src = readFileSync(path, "utf8");
+    expect(src).toContain('setRecMes("")');
+    expect(src).toContain('setRecExpediente("")');
+    expect(src).toContain("setRecAppliedPayload(null)");
   });
 });
