@@ -1,9 +1,10 @@
 """
-Unicidad de relevamientos por domicilio y establecimiento (PR7.5 / PR7.6).
+Unicidad de relevamientos por domicilio y establecimiento (PR7.5 / PR7.6 / PR9.1).
 
+- Unicidad mensual: mismo establecimiento solo puede existir una vez por ``mes`` + ``anio``.
 - NUMERO / OTRO / NULL: bloquea duplicado exacto por ``domicilio_id`` + ``rubro_id`` +
-  ``nombre_fantasia`` normalizado. Permite recambio de rubro o nombre en el mismo domicilio.
-- ESQUINA: varios activos; bloquea duplicado exacto por domicilio + rubro + ángulo + nombre.
+  ``nombre_fantasia`` normalizado en el mismo mes. Permite recambio de rubro o nombre en el mismo domicilio.
+- ESQUINA: varios activos; bloquea duplicado exacto por domicilio + rubro + ángulo + nombre en el mismo mes.
 - Legacy ESQUINA sin ángulo ni fantasía: bloqueo en alta; update coexistencia legacy → warning.
 """
 
@@ -85,6 +86,8 @@ def _mismo_establecimiento_numero(
 def _buscar_conflicto_establecimiento_esquina(
     domicilio_id: int,
     *,
+    mes: int,
+    anio: int,
     rubro_id: int | None,
     nombre_fantasia: str | None,
     angulo_esquina: str | None,
@@ -92,6 +95,8 @@ def _buscar_conflicto_establecimiento_esquina(
 ) -> Relevamiento | None:
     q = Relevamiento.query.filter(
         Relevamiento.domicilio_id == domicilio_id,
+        Relevamiento.mes == mes,
+        Relevamiento.anio == anio,
         Relevamiento.deleted_at.is_(None),
     )
     if exclude_relevamiento_id is not None:
@@ -110,12 +115,16 @@ def _buscar_conflicto_establecimiento_esquina(
 def _buscar_conflicto_establecimiento_numero(
     domicilio_id: int,
     *,
+    mes: int,
+    anio: int,
     rubro_id: int | None,
     nombre_fantasia: str | None,
     exclude_relevamiento_id: int | None = None,
 ) -> Relevamiento | None:
     q = Relevamiento.query.filter(
         Relevamiento.domicilio_id == domicilio_id,
+        Relevamiento.mes == mes,
+        Relevamiento.anio == anio,
         Relevamiento.deleted_at.is_(None),
     )
     if exclude_relevamiento_id is not None:
@@ -134,13 +143,16 @@ def existe_relevamiento_activo_mismo_establecimiento_esquina(
     *,
     calle: str,
     numero: str,
+    mes: int,
+    anio: int,
     rubro_id: int | None,
     nombre_fantasia: str | None,
     angulo_esquina: str | None,
     exclude_relevamiento_id: int | None = None,
 ) -> bool:
     """
-    True si ya hay un relevamiento activo con la misma identidad de establecimiento en ESQUINA.
+    True si ya hay un relevamiento activo con la misma identidad de establecimiento en ESQUINA
+    dentro del mismo mes/año.
     """
     calle_norm = (calle or "").strip()
     numero_norm = (numero or "").strip()
@@ -154,6 +166,8 @@ def existe_relevamiento_activo_mismo_establecimiento_esquina(
     return (
         _buscar_conflicto_establecimiento_esquina(
             dom.id,
+            mes=mes,
+            anio=anio,
             rubro_id=rubro_id,
             nombre_fantasia=nombre_fantasia,
             angulo_esquina=angulo_esquina,
@@ -167,12 +181,15 @@ def existe_relevamiento_activo_mismo_establecimiento_numero(
     *,
     calle: str,
     numero: str,
+    mes: int,
+    anio: int,
     rubro_id: int | None,
     nombre_fantasia: str | None,
     exclude_relevamiento_id: int | None = None,
 ) -> bool:
     """
-    True si ya hay un relevamiento activo con la misma identidad en domicilio NUMERO/OTRO.
+    True si ya hay un relevamiento activo con la misma identidad en domicilio NUMERO/OTRO
+    dentro del mismo mes/año.
     """
     calle_norm = (calle or "").strip()
     numero_norm = (numero or "").strip()
@@ -186,6 +203,8 @@ def existe_relevamiento_activo_mismo_establecimiento_numero(
     return (
         _buscar_conflicto_establecimiento_numero(
             dom.id,
+            mes=mes,
+            anio=anio,
             rubro_id=rubro_id,
             nombre_fantasia=nombre_fantasia,
             exclude_relevamiento_id=exclude_relevamiento_id,
@@ -197,16 +216,19 @@ def existe_relevamiento_activo_mismo_establecimiento_numero(
 def assert_sin_relevamiento_activo_duplicado(
     domicilio: Domicilio,
     *,
+    mes: int,
+    anio: int,
     rubro_id: int | None = None,
     nombre_fantasia: str | None = None,
     angulo_esquina: str | None = None,
     exclude_relevamiento_id: int | None = None,
 ) -> None:
     """
-    Bloquea alta o cambio si viola unicidad por establecimiento (NUMERO o ESQUINA).
+    Bloquea alta o cambio si viola unicidad por establecimiento (NUMERO o ESQUINA) en el mes.
 
     Parámetros:
         domicilio: domicilio ya normalizado (``numero_tipo`` definido).
+        mes, anio: período operativo del relevamiento.
         rubro_id, nombre_fantasia, angulo_esquina: identidad del establecimiento.
         exclude_relevamiento_id: id a ignorar (updates).
 
@@ -216,6 +238,8 @@ def assert_sin_relevamiento_activo_duplicado(
     if domicilio_permite_multiples_relevamientos(domicilio):
         conflicto = _buscar_conflicto_establecimiento_esquina(
             domicilio.id,
+            mes=mes,
+            anio=anio,
             rubro_id=rubro_id,
             nombre_fantasia=nombre_fantasia,
             angulo_esquina=angulo_esquina,
@@ -247,6 +271,8 @@ def assert_sin_relevamiento_activo_duplicado(
 
     conflicto = _buscar_conflicto_establecimiento_numero(
         domicilio.id,
+        mes=mes,
+        anio=anio,
         rubro_id=rubro_id,
         nombre_fantasia=nombre_fantasia,
         exclude_relevamiento_id=exclude_relevamiento_id,
@@ -259,15 +285,18 @@ def count_active_relevamientos_por_calle_numero(
     calle: str,
     numero: str,
     *,
+    mes: int,
+    anio: int,
     rubro_id: int | None = None,
     nombre_fantasia: str | None = None,
     exclude_relevamiento_id: int | None = None,
 ) -> int:
     """
-    Compatibilidad grilla: 1 si existe conflicto de establecimiento NUMERO/OTRO; 0 si no.
+    Compatibilidad grilla: 1 si existe conflicto de establecimiento NUMERO/OTRO en el mes; 0 si no.
 
     Parámetros:
         calle, numero: texto de domicilio como en la grilla.
+        mes, anio: período operativo de la fila.
         rubro_id, nombre_fantasia: discriminadores PR7.6.
         exclude_relevamiento_id: ignora ese id.
 
@@ -277,6 +306,8 @@ def count_active_relevamientos_por_calle_numero(
     if existe_relevamiento_activo_mismo_establecimiento_numero(
         calle=calle,
         numero=numero,
+        mes=mes,
+        anio=anio,
         rubro_id=rubro_id,
         nombre_fantasia=nombre_fantasia,
         exclude_relevamiento_id=exclude_relevamiento_id,

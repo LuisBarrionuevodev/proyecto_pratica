@@ -179,7 +179,7 @@ def test_assert_esquina_no_bloquea_dos(app_ctx) -> None:
         )
         db.session.add(r1)
         db.session.flush()
-        assert_sin_relevamiento_activo_duplicado(d)
+        assert_sin_relevamiento_activo_duplicado(d, mes=5, anio=2026)
     finally:
         db.session.rollback()
 
@@ -251,7 +251,7 @@ def test_f32_validate_mismo_lote_dos_alturas_mismo_establecimiento_bloquea(app_c
     r2 = svc.validate_row(
         batch_id,
         "b",
-        {**raw, "fecha": "2026-06-01", "numero": "100"},
+        {**raw, "fecha": "2026-05-22", "numero": "100"},
         "relevamientos",
     )
     assert r2.ok is False

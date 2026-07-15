@@ -118,6 +118,8 @@ def test_pr73_establishment_key_preparada() -> None:
     key = build_relevamiento_establishment_key(
         "Maipú",
         "y Salta",
+        mes=5,
+        anio=2026,
         rubro_id=3,
         nombre_fantasia="El Toro",
         angulo_esquina="NE",
@@ -126,7 +128,7 @@ def test_pr73_establishment_key_preparada() -> None:
     assert "MAIPÚ|Y SALTA" in key
     assert "|R3|" in key
     assert "NFEL TORO" in key
-    assert key.endswith("|ANE")
+    assert key.endswith("|ANE|M5|Y2026")
 
 
 # --- Schema ---

@@ -153,9 +153,13 @@ class GridValidateService:
             is_esquina = _relevamiento_fila_es_esquina(row)
             rubro_obj = get_rubro_o_falla(row.rubro)
             rubro_id = rubro_obj.id
+            mes = row.fecha.month
+            anio = row.fecha.year
             establishment_key = build_relevamiento_establishment_key(
                 row.calle,
                 row.numero,
+                mes=mes,
+                anio=anio,
                 rubro_id=rubro_id,
                 nombre_fantasia=row.nombre_fantasia,
                 angulo_esquina=row.angulo_esquina if is_esquina else None,
@@ -184,6 +188,8 @@ class GridValidateService:
             if is_esquina and existe_relevamiento_activo_mismo_establecimiento_esquina(
                 calle=row.calle,
                 numero=row.numero,
+                mes=mes,
+                anio=anio,
                 rubro_id=rubro_id,
                 nombre_fantasia=row.nombre_fantasia,
                 angulo_esquina=row.angulo_esquina,
@@ -199,6 +205,8 @@ class GridValidateService:
             if not is_esquina and count_active_relevamientos_por_calle_numero(
                 row.calle,
                 row.numero,
+                mes=mes,
+                anio=anio,
                 rubro_id=rubro_id,
                 nombre_fantasia=row.nombre_fantasia,
                 exclude_relevamiento_id=row.id,

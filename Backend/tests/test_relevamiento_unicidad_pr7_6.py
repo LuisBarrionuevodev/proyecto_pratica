@@ -241,10 +241,12 @@ def test_pr76_establishment_key_numero_sin_angulo() -> None:
     k = build_relevamiento_establishment_key(
         "San Martín",
         "234",
+        mes=7,
+        anio=2026,
         rubro_id=5,
         nombre_fantasia="Pollería",
         angulo_esquina="NE",
         es_esquina=False,
     )
-    assert k.endswith("|NUM")
+    assert k.endswith("|NUM|M7|Y2026")
     assert "|ANE" not in k

@@ -89,6 +89,8 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     )
     assert_sin_relevamiento_activo_duplicado(
         dom,
+        mes=mes,
+        anio=anio,
         rubro_id=rubro.id if rubro else None,
         nombre_fantasia=nombre_fantasia,
         angulo_esquina=angulo_esquina,

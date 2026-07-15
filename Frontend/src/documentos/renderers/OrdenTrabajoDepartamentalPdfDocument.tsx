@@ -15,39 +15,66 @@ import type {
   OrdenTrabajoDepartamentalFila,
 } from "../types/ordenTrabajoDepartamentalDocument";
 
-import logoOtDepartamentalUrl from "../assets/logo-ot-departamental-isotipo.png?url";
+/** Órdenes por hoja A4 (media hoja c/u). */
+const ORDENES_POR_PAGINA = 2;
 
-/** Órdenes por hoja A4 (altura fija ~9.5 cm c/u). */
-const ORDENES_POR_PAGINA = 3;
-
-/** Zona de corte entre órdenes: 5 mm (espacio para recortar). */
+/** Zona de corte entre órdenes consecutivas en la misma hoja: 5 mm. */
 const CORTE_ENTRE_ORDENES_PT = (5 / 25.4) * 72;
 
 /** Desplazamiento vertical del N° de OT respecto al encabezado. */
 const OT_NUM_TOP_OFFSET_PT = (3 / 25.4) * 72;
 
-/** 9.5 cm ≈ 269 pt */
-const ORDEN_ALTURA_PT = 269;
+/** Márgenes de página (pt). */
+const PAGE_PAD_TOP = 6;
+const PAGE_PAD_BOTTOM = 6;
+const PAGE_PAD_H = 18;
+
+/** Alto A4 en puntos (react-pdf). */
+const A4_HEIGHT_PT = 842;
+
+/**
+ * Altura fija de cada bloque de orden (~media hoja A4 con 2 por página).
+ */
+const ORDEN_ALTURA_PT = 408;
+
+/** Espacio vacío al pie de la hoja para que una sola orden no se estire. */
+function pageBottomSpacerHeight(ordenesEnPagina: number): number {
+  const ordersHeight = ordenesEnPagina * ORDEN_ALTURA_PT;
+  const cutHeight = ordenesEnPagina > 1 ? CORTE_ENTRE_ORDENES_PT : 0;
+  const used = PAGE_PAD_TOP + PAGE_PAD_BOTTOM + ordersHeight + cutHeight;
+  return Math.max(1, A4_HEIGHT_PT - used);
+}
 
 const INK = pdfPlanilla.ink;
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 10,
-    paddingBottom: 8,
-    paddingHorizontal: 18,
+    paddingTop: PAGE_PAD_TOP,
+    paddingBottom: PAGE_PAD_BOTTOM,
+    paddingHorizontal: PAGE_PAD_H,
     backgroundColor: "#ffffff",
     fontFamily: PDF_DESIGN_FONT.ui,
     color: INK,
   },
-  ordenBlock: {
+  ordenSlot: {
     height: ORDEN_ALTURA_PT,
-    display: "flex",
-    flexDirection: "column",
+    maxHeight: ORDEN_ALTURA_PT,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   cutLineWrap: {
     height: CORTE_ENTRE_ORDENES_PT,
+    flexGrow: 0,
+    flexShrink: 0,
     justifyContent: "center",
+  },
+  ordenBlock: {
+    height: ORDEN_ALTURA_PT,
+    maxHeight: ORDEN_ALTURA_PT,
+    flexGrow: 0,
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
   },
   cutLine: {
     borderTopWidth: 1,
@@ -57,8 +84,8 @@ const styles = StyleSheet.create({
   headerZone: {
     position: "relative",
     alignItems: "center",
-    marginBottom: 3,
-    paddingTop: 1,
+    marginBottom: 4,
+    paddingTop: 0,
   },
   otNumWrap: {
     position: "absolute",
@@ -68,7 +95,7 @@ const styles = StyleSheet.create({
   },
   otNumInline: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 700,
     lineHeight: 1.1,
     textAlign: "right",
@@ -76,76 +103,77 @@ const styles = StyleSheet.create({
   otNumRule: {
     marginTop: 2,
     width: "100%",
-    minWidth: 68,
+    minWidth: 72,
     borderBottomWidth: 1,
     borderBottomColor: INK,
     borderStyle: "dashed",
     minHeight: 1,
   },
-  headerLine: {
+  headerMunicipality: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7.5,
+    fontSize: 9,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
     lineHeight: 1.15,
     letterSpacing: 0.2,
-    marginTop: 1,
+    marginTop: 0,
   },
   headerInstitutionLine: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 8.25,
+    fontSize: 9.5,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
     lineHeight: 1.15,
     letterSpacing: 0.15,
-    marginTop: 1,
+    marginTop: 2,
   },
   headerLineSecondary: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
     lineHeight: 1.15,
-    marginTop: 0.75,
+    marginTop: 1,
   },
   headerAddress: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 700,
     textAlign: "center",
-    marginTop: 0.75,
+    marginTop: 1,
     lineHeight: 1.1,
   },
   logo: {
-    width: 62,
-    height: 62,
-    marginTop: 0,
-    marginBottom: 2,
+    width: 44,
+    height: 44,
+    marginTop: 2,
+    marginBottom: 3,
     objectFit: "contain",
   },
   docTitle: {
     fontFamily: PDF_FONT_ARCHIVO_BLACK,
-    fontSize: 9.5,
+    fontSize: 11.5,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
     textDecoration: "underline",
-    marginBottom: 4,
+    marginBottom: 5,
     lineHeight: 1.1,
   },
   mainBox: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 296,
     borderWidth: 1.5,
     borderColor: INK,
-    paddingHorizontal: 8,
-    paddingTop: 7,
-    paddingBottom: 6,
+    paddingHorizontal: 10,
+    paddingTop: 9,
+    paddingBottom: 8,
     display: "flex",
     flexDirection: "column",
-    minHeight: 148,
   },
   mainBoxTop: {
     flexShrink: 0,
@@ -153,24 +181,24 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 4,
-    gap: 3,
+    marginBottom: 5,
+    gap: 4,
   },
   fieldRowSplit: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 4,
-    gap: 8,
+    marginBottom: 5,
+    gap: 10,
   },
   fieldHalf: {
     flex: 1,
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 2,
+    gap: 3,
   },
   fieldLabel: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 8,
+    fontSize: 11,
     fontWeight: 700,
     textTransform: "uppercase",
     lineHeight: 1.15,
@@ -180,41 +208,54 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: INK,
     borderStyle: "dashed",
-    minHeight: 13,
+    minHeight: 18,
     justifyContent: "flex-end",
     paddingBottom: 1,
   },
   fieldValue: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 8,
-    lineHeight: 1.2,
+    fontSize: 11,
+    lineHeight: 1.3,
   },
   domicilioBlock: {
     marginTop: 2,
-    marginBottom: 0,
+    marginBottom: 2,
   },
-  /** Espacio vacío para firma/anotaciones manuales (sin texto). */
+  /** ~3 filas punteadas vacías bajo domicilio (anotaciones manuales). */
+  anotacionBlock: {
+    marginTop: 3,
+    marginBottom: 4,
+  },
+  anotacionLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: INK,
+    borderStyle: "dashed",
+    minHeight: 15,
+    marginBottom: 6,
+  },
+  /** Espacio libre bajo la leyenda (firma/anotaciones). */
   signatureSpace: {
-    flex: 1,
-    minHeight: 28,
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 28,
   },
   instrucciones: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7.25,
+    fontSize: 8.75,
     fontWeight: 700,
     textTransform: "uppercase",
     textAlign: "center",
-    lineHeight: 1.2,
-    marginTop: 4,
+    lineHeight: 1.25,
+    marginTop: 2,
     marginBottom: 0,
   },
   cierre: {
     fontFamily: PDF_DESIGN_FONT.ui,
-    fontSize: 7.75,
+    fontSize: 9.25,
     fontWeight: 700,
     textTransform: "uppercase",
     textAlign: "center",
-    lineHeight: 1.15,
+    lineHeight: 1.2,
     flexShrink: 0,
   },
   emptyText: {
@@ -234,7 +275,13 @@ function chunkOrdenes<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-function EncabezadoInstitucional({ numeroOt }: { numeroOt?: string }) {
+function EncabezadoInstitucional({
+  numeroOt,
+  logoSrc,
+}: {
+  numeroOt?: string;
+  logoSrc: string;
+}) {
   return (
     <View style={styles.headerZone}>
       {numeroOt ? (
@@ -244,8 +291,8 @@ function EncabezadoInstitucional({ numeroOt }: { numeroOt?: string }) {
         </View>
       ) : null}
 
-      <Image src={logoOtDepartamentalUrl} style={styles.logo} />
-      <Text style={styles.headerLine}>{ORDEN_TRABAJO_DEPARTAMENTAL_MUNICIPALITY}</Text>
+      <Text style={styles.headerMunicipality}>{ORDEN_TRABAJO_DEPARTAMENTAL_MUNICIPALITY}</Text>
+      <Image src={logoSrc} style={styles.logo} />
       <Text style={styles.headerInstitutionLine}>{INSTITUTIONAL_DIRECTION_LINE.toUpperCase()}</Text>
       <Text style={styles.headerLineSecondary}>{INSTITUTIONAL_SECRETARY_LINE.toUpperCase()}</Text>
       <Text style={styles.headerAddress}>{ORDEN_TRABAJO_DEPARTAMENTAL_ADDRESS_LINE}</Text>
@@ -272,14 +319,27 @@ function LineaCorte() {
   );
 }
 
+const FILAS_ANOTACION = 3;
+
+function LineasAnotacionVacias() {
+  return (
+    <View style={styles.anotacionBlock}>
+      {Array.from({ length: FILAS_ANOTACION }, (_, i) => (
+        <View key={`anot-${i}`} style={styles.anotacionLine} />
+      ))}
+    </View>
+  );
+}
+
 type CardProps = {
   orden: OrdenTrabajoDepartamentalFila;
+  logoSrc: string;
 };
 
-function OrdenTrabajoDepartamentalCard({ orden }: CardProps) {
+function OrdenTrabajoDepartamentalCard({ orden, logoSrc }: CardProps) {
   return (
     <View style={styles.ordenBlock} wrap={false}>
-      <EncabezadoInstitucional numeroOt={orden.numeroOt} />
+      <EncabezadoInstitucional numeroOt={orden.numeroOt} logoSrc={logoSrc} />
 
       <Text style={styles.docTitle}>ORDEN DE TRABAJO DEPARTAMENTAL</Text>
 
@@ -306,8 +366,10 @@ function OrdenTrabajoDepartamentalCard({ orden }: CardProps) {
             <CampoPunteado label="DOMICILIO:" value={orden.domicilioLinea} />
           </View>
 
-          <Text style={styles.instrucciones}>{ORDEN_TRABAJO_DEPARTAMENTAL_INSTRUCCIONES}</Text>
+          <LineasAnotacionVacias />
         </View>
+
+        <Text style={styles.instrucciones}>{ORDEN_TRABAJO_DEPARTAMENTAL_INSTRUCCIONES}</Text>
 
         <View style={styles.signatureSpace} />
         <Text style={styles.cierre}>{ORDEN_TRABAJO_DEPARTAMENTAL_CIERRE}</Text>
@@ -318,14 +380,14 @@ function OrdenTrabajoDepartamentalCard({ orden }: CardProps) {
 
 type Props = {
   model: OrdenTrabajoDepartamentalDocumentModel;
-  /** Conservado por compatibilidad; el logo institucional OT usa asset propio. */
+  /** Mismo logo institucional que Orden de Salida (`logo-smt.png`). */
   logoSrc: string;
 };
 
 /**
- * PDF de Órdenes de Trabajo Departamentales: formulario institucional; 3 por hoja A4.
+ * PDF de Órdenes de Trabajo Departamentales: formulario institucional; 2 por hoja A4.
  */
-export function OrdenTrabajoDepartamentalPdfDocument({ model }: Props) {
+export function OrdenTrabajoDepartamentalPdfDocument({ model, logoSrc }: Props) {
   const paginas = chunkOrdenes(model.ordenes, ORDENES_POR_PAGINA);
 
   if (model.ordenes.length === 0) {
@@ -335,7 +397,7 @@ export function OrdenTrabajoDepartamentalPdfDocument({ model }: Props) {
         author={INSTITUTIONAL_DIRECTION_LINE}
       >
         <Page size="A4" style={styles.page}>
-          <EncabezadoInstitucional />
+          <EncabezadoInstitucional logoSrc={logoSrc} />
           <Text style={styles.emptyText}>
             No hay ítems con orden de trabajo asignada en esta ruta.
           </Text>
@@ -355,9 +417,12 @@ export function OrdenTrabajoDepartamentalPdfDocument({ model }: Props) {
           {grupo.map((orden, idx) => (
             <View key={orden.itemId} wrap={false}>
               {idx > 0 ? <LineaCorte /> : null}
-              <OrdenTrabajoDepartamentalCard orden={orden} />
+              <View style={styles.ordenSlot}>
+                <OrdenTrabajoDepartamentalCard orden={orden} logoSrc={logoSrc} />
+              </View>
             </View>
           ))}
+          <View style={{ height: pageBottomSpacerHeight(grupo.length) }} />
         </Page>
       ))}
     </Document>

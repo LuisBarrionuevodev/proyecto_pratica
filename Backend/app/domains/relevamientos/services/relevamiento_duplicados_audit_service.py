@@ -110,6 +110,8 @@ def _auditar_esquinas() -> list[GrupoDuplicadoAudit]:
         for rel in activos:
             est_key = build_relevamiento_establishment_key_domicilio(
                 dom.id,
+                mes=rel.mes,
+                anio=rel.anio,
                 rubro_id=rel.rubro_id,
                 nombre_fantasia=rel.nombre_fantasia,
                 angulo_esquina=rel.angulo_esquina,
@@ -122,7 +124,7 @@ def _auditar_esquinas() -> list[GrupoDuplicadoAudit]:
                 rel.angulo_esquina,
             )
             if nf_key is None and ang_key is None and rel.rubro_id is not None:
-                legacy_key = (dom.id, rel.rubro_id)
+                legacy_key = (dom.id, rel.rubro_id, rel.mes, rel.anio)
                 legacy_vacio_index.setdefault(legacy_key, []).append(rel)
 
     for rels in establecimiento_index.values():
@@ -154,7 +156,7 @@ def _auditar_esquinas() -> list[GrupoDuplicadoAudit]:
             )
         )
 
-    for (dom_id, rubro_id), rels in legacy_vacio_index.items():
+    for (dom_id, rubro_id, _mes, _anio), rels in legacy_vacio_index.items():
         if len(rels) <= 1:
             continue
         dom = db.session.get(Domicilio, dom_id)
@@ -250,6 +252,8 @@ def _auditar_numero_otro() -> list[GrupoDuplicadoAudit]:
         for rel in activos:
             key = build_relevamiento_establishment_key_domicilio(
                 dom.id,
+                mes=rel.mes,
+                anio=rel.anio,
                 rubro_id=rel.rubro_id,
                 nombre_fantasia=rel.nombre_fantasia,
                 es_esquina=False,

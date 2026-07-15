@@ -115,6 +115,8 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     )
     assert_sin_relevamiento_activo_duplicado(
         dom,
+        mes=mes,
+        anio=anio,
         rubro_id=rubro.id if rubro else None,
         nombre_fantasia=nombre_fantasia,
         angulo_esquina=angulo_esquina,

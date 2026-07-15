@@ -333,6 +333,8 @@ def test_pr75_legacy_update_coexistencia_no_bloquea(app_ctx, require_pr72_migrat
         db.session.flush()
         assert_sin_relevamiento_activo_duplicado(
             dom,
+            mes=5,
+            anio=2026,
             rubro_id=rub.id,
             nombre_fantasia=None,
             angulo_esquina=None,
@@ -502,7 +504,9 @@ def test_pr75_batch_store_esquina_establecimiento_index() -> None:
     store = InMemoryBatchStore()
     batch_id = store.start_batch(kind="relevamientos")
     loc = "CALLE|Y ESQ"
-    est = build_relevamiento_establishment_key("Calle", "y Esq", rubro_id=1, angulo_esquina="NE", es_esquina=True)
+    est = build_relevamiento_establishment_key(
+        "Calle", "y Esq", mes=5, anio=2026, rubro_id=1, angulo_esquina="NE", es_esquina=True
+    )
     assert store.upsert_relevamiento_ubicacion(batch_id, "r1", loc, True, est) is None
     other = store.upsert_relevamiento_ubicacion(batch_id, "r2", loc, True, est)
     assert other == "r1"

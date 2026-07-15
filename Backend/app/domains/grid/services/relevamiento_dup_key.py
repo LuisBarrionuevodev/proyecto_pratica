@@ -51,10 +51,16 @@ def build_relevamiento_location_key(calle: str, numero: str) -> str:
     return f"{c}|{n}"
 
 
+def _period_suffix(mes: int, anio: int) -> str:
+    return f"|M{mes}|Y{anio}"
+
+
 def build_relevamiento_establishment_key(
     calle: str,
     numero: str,
     *,
+    mes: int,
+    anio: int,
     rubro_id: int | None = None,
     nombre_fantasia: str | None = None,
     angulo_esquina: str | None = None,
@@ -63,22 +69,25 @@ def build_relevamiento_establishment_key(
     """
     Clave compuesta de establecimiento para grilla/lote.
 
-    - ESQUINA: ubicación + rubro + nombre + ángulo.
-    - NUMERO/OTRO: ubicación + rubro + nombre (sin ángulo).
+    - ESQUINA: ubicación + rubro + nombre + ángulo + mes/año.
+    - NUMERO/OTRO: ubicación + rubro + nombre + mes/año (sin ángulo).
     """
     base = build_relevamiento_location_key(calle, numero)
     nf_key, ang_key = normalizar_campos_establecimiento_para_clave(nombre_fantasia, angulo_esquina)
     rub = "" if rubro_id is None else str(rubro_id)
     nf = "" if nf_key is None else nf_key
+    period = _period_suffix(mes, anio)
     if es_esquina:
         ang = "" if ang_key is None else ang_key
-        return f"{base}|R{rub}|NF{nf}|A{ang}"
-    return f"{base}|R{rub}|NF{nf}|NUM"
+        return f"{base}|R{rub}|NF{nf}|A{ang}{period}"
+    return f"{base}|R{rub}|NF{nf}|NUM{period}"
 
 
 def build_relevamiento_establishment_key_domicilio(
     domicilio_id: int,
     *,
+    mes: int,
+    anio: int,
     rubro_id: int | None = None,
     nombre_fantasia: str | None = None,
     angulo_esquina: str | None = None,
@@ -89,6 +98,7 @@ def build_relevamiento_establishment_key_domicilio(
 
     Parámetros:
         domicilio_id: id del domicilio.
+        mes, anio: período operativo del relevamiento.
         rubro_id, nombre_fantasia, angulo_esquina: discriminadores normalizados.
         es_esquina: True incluye ángulo; False clave NUMERO/OTRO.
 
@@ -98,7 +108,8 @@ def build_relevamiento_establishment_key_domicilio(
     nf_key, ang_key = normalizar_campos_establecimiento_para_clave(nombre_fantasia, angulo_esquina)
     rub = "" if rubro_id is None else str(rubro_id)
     nf = "" if nf_key is None else nf_key
+    period = _period_suffix(mes, anio)
     if es_esquina:
         ang = "" if ang_key is None else ang_key
-        return f"D{domicilio_id}|R{rub}|NF{nf}|A{ang}"
-    return f"D{domicilio_id}|R{rub}|NF{nf}|NUM"
+        return f"D{domicilio_id}|R{rub}|NF{nf}|A{ang}{period}"
+    return f"D{domicilio_id}|R{rub}|NF{nf}|NUM{period}"
