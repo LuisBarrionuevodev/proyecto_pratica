@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Dict
 
 from app.database import db
@@ -30,7 +31,8 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     Crea un Relevamiento desde un payload canon.
 
     Args:
-        payload: dict canon (sin DB) con fecha, inspector, domicilio y rubro.
+        payload: dict canon (sin DB) con inspector, domicilio y rubro.
+            Si no trae ``fecha``, se usa la fecha actual del servidor (PR9.4).
 
     Returns:
         Relevamiento creado y commiteado.
@@ -46,7 +48,7 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     rubro_nombre = payload.get("rubro_nombre")
 
     if not fecha_raw:
-        raise ValueError("Fecha obligatoria.")
+        fecha_raw = date.today().isoformat()
     if not inspector_nombre:
         raise ValueError("Inspector obligatorio.")
     if not calle or not numero:

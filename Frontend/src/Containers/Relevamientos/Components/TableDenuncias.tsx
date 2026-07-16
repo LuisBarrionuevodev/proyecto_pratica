@@ -15,6 +15,8 @@ import {
 import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { applyDenunciaErrorsFromApi } from "../utils/denunciaFormErrors";
+import { denunciaRowParaEdicion } from "../utils/denunciaCamposForm";
+import { applyDenunciaDomicilioSubmitGuard } from "../utils/submitDenunciaRow";
 import { shouldRefreshDenunciasAfterSaveFailure } from "../utils/refreshOnSavePolicy";
 import { DenunciaCrudDialog } from "./DenunciaCrudDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
@@ -54,6 +56,7 @@ const TablaDenuncias = ({
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<IDenunciaGestionItem | null>(null);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const [crudDraft, setCrudDraft] = useState<IDenunciaGestionItem | null>(null);
+  const [crudBaseline, setCrudBaseline] = useState<IDenunciaGestionItem | null>(null);
   const [crudMode, setCrudMode] = useState<"view" | "edit" | null>(null);
   const [crudSaving, setCrudSaving] = useState(false);
   const [crudGlobalError, setCrudGlobalError] = useState<string | null>(null);
@@ -65,13 +68,16 @@ const TablaDenuncias = ({
 
   const closeCrudDialog = useCallback(() => {
     setCrudDraft(null);
+    setCrudBaseline(null);
     setCrudMode(null);
     setCrudGlobalError(null);
   }, []);
 
   const openCrudView = useCallback((row: IDenunciaGestionItem) => {
     setCrudGlobalError(null);
-    setCrudDraft({ ...row });
+    const baseline = { ...row };
+    setCrudBaseline(baseline);
+    setCrudDraft(denunciaRowParaEdicion(baseline));
     setCrudMode("view");
   }, []);
 
@@ -122,7 +128,8 @@ const TablaDenuncias = ({
     setCrudSaving(true);
     try {
       setRowErrors((prev) => ({ ...prev, [id]: {} }));
-      await updateDenunciaGestion(id, fullRow);
+      const payload = applyDenunciaDomicilioSubmitGuard(fullRow, crudBaseline);
+      await updateDenunciaGestion(id, payload);
       closeCrudDialog();
       onRefresh?.();
     } catch (error: unknown) {
@@ -141,7 +148,7 @@ const TablaDenuncias = ({
     } finally {
       setCrudSaving(false);
     }
-  }, [crudDraft, closeCrudDialog, onRefresh, feedback]);
+  }, [crudDraft, crudBaseline, closeCrudDialog, onRefresh, feedback]);
 
   const columns = useMemo<MRT_ColumnDef<IDenunciaGestionItem>[]>(
     () => [

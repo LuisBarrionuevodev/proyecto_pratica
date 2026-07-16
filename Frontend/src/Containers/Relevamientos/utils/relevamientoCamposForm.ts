@@ -1,4 +1,7 @@
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
+import {
+  domicilioRowParaEdicionCalle,
+} from "../../../utils/domicilioCalleUi";
 
 export type RelevamientoAnguloEsquina = "NE" | "NO" | "SE" | "SO";
 
@@ -74,13 +77,26 @@ export function normalizarAnguloEsquinaFrontend(
 }
 
 /**
+ * Hidrata fila de bandeja para edición en modal (calle/número humanos, no claves técnicas).
+ */
+export function relevamientoRowParaEdicion(row: IRelevamientoListItem): IRelevamientoListItem {
+  return domicilioRowParaEdicionCalle({ ...row });
+}
+
+/**
  * Patch al cambiar modo número/esquina en el modal: limpia ángulo si deja de ser ESQUINA.
  */
 export function buildNumeroTipoDraftPatch(
-  editorMode: "NUMERO" | "ESQUINA"
+  editorMode: "NUMERO" | "ESQUINA",
+  current?: Pick<IRelevamientoListItem, "numero" | "numero_tipo">
 ): Partial<IRelevamientoListItem> {
   const patch: Partial<IRelevamientoListItem> = { numero_tipo: editorMode };
-  if (editorMode === "NUMERO") patch.angulo_esquina = null;
+  if (editorMode === "NUMERO") {
+    patch.angulo_esquina = null;
+    if ((current?.numero_tipo ?? "").toUpperCase() === "ESQUINA") {
+      patch.numero = "";
+    }
+  }
   return patch;
 }
 

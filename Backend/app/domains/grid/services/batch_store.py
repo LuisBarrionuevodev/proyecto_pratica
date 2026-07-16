@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Dict, Optional, Tuple
 from uuid import UUID, uuid4
 import time
@@ -23,6 +24,8 @@ class BatchState:
     relev_numero_est_index: Dict[str, str] = field(default_factory=dict)
     # relevamientos ESQUINA: clave de establecimiento → row_id (PR7.5)
     relev_esquina_est_index: Dict[str, str] = field(default_factory=dict)
+    # relevamientos (PR9.4): fecha efectiva compartida por todo el lote de carga
+    fecha_relevamiento_default: Optional[date] = None
 
 
 class InMemoryBatchStore:
@@ -38,7 +41,10 @@ class InMemoryBatchStore:
 
     def start_batch(self, kind: str = "actuaciones") -> UUID:
         batch_id = uuid4()
-        self._batches[batch_id] = BatchState(kind=kind)
+        st = BatchState(kind=kind)
+        if kind == "relevamientos":
+            st.fecha_relevamiento_default = date.today()
+        self._batches[batch_id] = st
         return batch_id
 
     def _purge_if_needed(self) -> None:

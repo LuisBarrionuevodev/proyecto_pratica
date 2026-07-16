@@ -29,7 +29,7 @@ const baseRow: IRelevamientoListItem = {
 
 const catalogs = { inspectores: ["García", "López"], rubros: ["Carnicería"] };
 
-import { buildNumeroTipoDraftPatch } from "../utils/relevamientoCamposForm";
+import { buildNumeroTipoDraftPatch, relevamientoRowParaEdicion } from "../utils/relevamientoCamposForm";
 
 describe("RelevamientoCrudDialog", () => {
   it("modo vista muestra Editar primary sin IDs en título", () => {
@@ -170,10 +170,23 @@ describe("RelevamientoCrudDialog", () => {
     expect(numeroHtml).not.toContain("Ángulo esquina");
   });
 
-  it("cambiar ESQUINA → NUMERO limpia ángulo en patch", () => {
+  it("cambiar ESQUINA → NUMERO limpia ángulo y número en patch", () => {
     expect(buildNumeroTipoDraftPatch("NUMERO")).toEqual({
       numero_tipo: "NUMERO",
       angulo_esquina: null,
     });
+    expect(
+      buildNumeroTipoDraftPatch("NUMERO", { numero_tipo: "ESQUINA", numero: "Belgrano y Mitre" })
+    ).toEqual({
+      numero_tipo: "NUMERO",
+      angulo_esquina: null,
+      numero: "",
+    });
+  });
+
+  it("hidrata calle normalizada para edición", () => {
+    const hydrated = relevamientoRowParaEdicion(baseRow);
+    expect(hydrated.calle).toBe("Av. San Martín");
+    expect(hydrated.numero).toBe("450");
   });
 });

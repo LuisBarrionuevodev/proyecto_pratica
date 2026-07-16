@@ -23,6 +23,7 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
     dom = rel.domicilio
     rub = rel.rubro
     calle = getattr(dom, "calle", None)
+    calle_raw = getattr(dom, "calle_raw", None)
     numero = getattr(dom, "numero", None)
     calle_normalizada = getattr(dom, "calle_normalizada", None)
     calle_estado = getattr(dom, "calle_norm_status", None)
@@ -49,8 +50,13 @@ def relevamiento_to_row(rel: Relevamiento) -> Dict[str, Any]:
         "fecha": fecha_iso,
         "inspector": inspector_nombre,
         "calle": calle,
+        "calle_raw": calle_raw,
+        "calle_cargada": calle_raw or calle,
         "numero": numero,
         "numero_tipo": numero_tipo,
+        "numero_esquina": (
+            esquina_normalizada or esquina_raw if numero_tipo == "ESQUINA" else None
+        ),
         "numero_mostrar": numero_mostrar,
         "esquina_raw": esquina_raw,
         "esquina_normalizada": esquina_normalizada,

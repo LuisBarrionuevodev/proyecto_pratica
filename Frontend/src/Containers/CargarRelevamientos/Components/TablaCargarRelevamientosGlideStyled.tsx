@@ -42,17 +42,14 @@ import {
   turnoDropdownLabelToStored,
   turnoStoredToDropdownLabel,
 } from "../config/relevamientoTurnOptions";
-import { parseFechaRelevamientoInput } from "../utils/relevamientoDateInput";
-import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
-import { gridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 import {
   extractDataColumns,
   rowHasData,
   createEmptyRow,
   createEmptyRows,
-  formatDateToISO,
-  parseDateValue,
 } from "../../CargarActuaciones/utils/gridHelpers";
+import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
+import { gridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
 import {
   formatRelevamientoRailCellLine,
   translateRelevamientoValidationMessage,
@@ -73,22 +70,17 @@ const ROW_MARKERS_BOTH_OFFSET = 1;
 const CELL_ERROR_META_KEYS = new Set(["_row", "detail", "_global"]);
 
 /** Campos mínimos solo para color “lista para enviar” en UI — sin llamadas al backend. */
-const MIN_VISUAL_FIELD_IDS = ["Fecha", "Inspector", "Calle", "Numero", "Rubro"] as const;
+const MIN_VISUAL_FIELD_IDS = ["Inspector", "Calle", "Numero", "Rubro"] as const;
 
 /**
- * True si la fila tiene los datos mínimos cargados (parseo local de fecha).
- * No comprueba duplicados ni catálogo en BD.
+ * True si la fila tiene los datos mínimos cargados (sin llamadas al backend).
  */
 function relevamientoRowMinimumCompleteForVisual(row: GridRow): boolean {
   const strOk = (v: unknown) => {
     if (v === null || v === undefined) return false;
     return String(v).trim().length > 0;
   };
-  const fechaRaw = row.Fecha as unknown;
-  if (!strOk(fechaRaw)) return false;
-  const iso = parseFechaRelevamientoInput(String(fechaRaw));
-  if (!iso) return false;
-  return MIN_VISUAL_FIELD_IDS.slice(1).every((id) => strOk(row[id as keyof GridRow]));
+  return MIN_VISUAL_FIELD_IDS.every((id) => strOk(row[id as keyof GridRow]));
 }
 
 function rowHasBackendWideError(rowData: GridRow, cellErrors: Record<string, string>): boolean {
@@ -356,9 +348,7 @@ const TablaCargarRelevamientosGlideStyled = ({
       let value: any;
       if (newValue.kind === GridCellKind.Custom) {
         const customData = (newValue as any).data;
-        if (customData?.kind === "date-picker-cell") {
-          value = formatDateToISO(customData.date);
-        } else if (customData?.kind === "dropdown-cell") {
+        if (customData?.kind === "dropdown-cell") {
           const dropdownVal = customData.value;
           value = dropdownVal === "" || dropdownVal === null || dropdownVal === undefined ? null : dropdownVal;
         } else {
@@ -370,14 +360,6 @@ const TablaCargarRelevamientosGlideStyled = ({
         value = (newValue as any).data;
       }
 
-      if (cellType === "date") {
-        if (value === "" || value === null || value === undefined) {
-          value = null;
-        } else if (typeof value === "string") {
-          const parsed = parseFechaRelevamientoInput(value);
-          value = parsed ?? value.trim();
-        }
-      }
       if (columnId === "Turno" && typeof value === "string") {
         const canon = turnoDropdownLabelToStored(value);
         value = canon === null ? null : canon;
@@ -489,8 +471,8 @@ const TablaCargarRelevamientosGlideStyled = ({
       columns: CompactSelection.empty(),
       rows: CompactSelection.empty(),
       current: {
-        cell: [0, row + 1],
-        range: { x: 0, y: row + 1, width: 1, height: 1 },
+        cell: [ROW_MARKERS_BOTH_OFFSET, row + 1],
+        range: { x: ROW_MARKERS_BOTH_OFFSET, y: row + 1, width: 1, height: 1 },
         rangeStack: [],
       },
     });
@@ -581,19 +563,6 @@ const TablaCargarRelevamientosGlideStyled = ({
             ? { bgCell: COLORS.errorLight, textDark: COLORS.errorText }
             : { bgCell: "#1A1C20", textDark: "#666666" },
         };
-      }
-
-      if (cellType === "date") {
-        const raw = (value ?? "").toString().trim();
-        const normalizedIso = parseFechaRelevamientoInput(raw);
-        const { date, displayDate } = parseDateValue(normalizedIso ?? raw);
-        return {
-          kind: GridCellKind.Custom,
-          allowOverlay: true,
-          copyData: displayDate,
-          data: { kind: "date-picker-cell", date, displayDate, format: "date" as const },
-          themeOverride,
-        } as any;
       }
 
       if (cellType === "dropdown" && columnId === "Turno") {

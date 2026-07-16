@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -53,6 +54,20 @@ class GridValidateService:
     def __init__(self, store) -> None:
         self.store = store
 
+    def _fecha_relevamiento_efectiva_lote(self, batch_id: UUID, row_fecha: Optional[date]) -> date:
+        """
+        Fecha efectiva para validación/alta de relevamientos en lote (PR9.4).
+
+        - Si la fila trae fecha (payload legacy), se respeta.
+        - Si no, todas las filas del mismo batch comparten ``fecha_relevamiento_default``.
+        """
+        if row_fecha is not None:
+            return row_fecha
+        st = self.store.get(batch_id)
+        if st.fecha_relevamiento_default is None:
+            st.fecha_relevamiento_default = date.today()
+        return st.fecha_relevamiento_default
+
     def validate_row(self, batch_id: UUID, row_id: str, raw_row: Dict[str, Any], kind: str) -> ValidateRowResponse:
         """
         Valida una fila del grid (sin tocar DB):
@@ -90,6 +105,10 @@ class GridValidateService:
                 errors=errors_glide,
                 normalized=None,
             )
+
+        if kind == "relevamientos":
+            fecha_efectiva = self._fecha_relevamiento_efectiva_lote(batch_id, row.fecha)
+            row = row.model_copy(update={"fecha": fecha_efectiva})
 
         # 1.5) Reglas UI específicas de actuaciones
         if kind == "actuaciones":

@@ -18,6 +18,10 @@ import {
   relevamientoAnguloEsAplicable,
 } from "../utils/relevamientoCamposForm";
 import {
+  domicilioCalleValorEdicion,
+  domicilioNumeroValorEdicion,
+} from "../../../utils/domicilioCalleUi";
+import {
   relevamientoAnguloEsquinaDisplay,
   relevamientoCalleDisplay,
   relevamientoEstaAbiertoDisplay,
@@ -227,7 +231,7 @@ export function RelevamientoCrudDialog({
             <AppTextField
               appearance="glass"
               label="Calle"
-              value={draft.calle ?? ""}
+              value={domicilioCalleValorEdicion(draft)}
               onChange={(ev) => onDraftChange({ calle: ev.target.value })}
               fullWidth
               disabled={ro("calle")}
@@ -244,9 +248,11 @@ export function RelevamientoCrudDialog({
             helperText={e("numero")}
           >
             <NumeroEsquinaEditor
-              value={draft.numero ?? null}
+              value={domicilioNumeroValorEdicion(draft) || null}
               onChange={(newValue) => onDraftChange({ numero: newValue })}
-              onModeChange={(editorMode) => onDraftChange(buildNumeroTipoDraftPatch(editorMode))}
+              onModeChange={(editorMode) =>
+                onDraftChange(buildNumeroTipoDraftPatch(editorMode, draft))
+              }
               extraCalles={numeroCallesOptions}
               label={numeroEditorLabel}
               error={!!e("numero")}

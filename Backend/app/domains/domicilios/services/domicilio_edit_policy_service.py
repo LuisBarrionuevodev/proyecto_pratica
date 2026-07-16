@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.database import db
-from app.models import Domicilio, IniciadorRuta
+from app.models import Actuaciones, Denuncia, Domicilio, IniciadorRuta, Relevamiento
 from app.domains.domicilios.schemas.domicilio_edit_policy import EditDomicilioPolicy
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     iniciador_en_ruta_publicada_o_en_curso,
@@ -103,6 +103,94 @@ def _cambios_afectan_geocode(
         actual = _norm_str(_valor_campo_geo_en_domicilio(dom_actual, k))
         if nuevo != actual:
             return True
+    return False
+
+
+def domicilio_compartido_para_edicion_relevamiento(
+    domicilio_id: int,
+    *,
+    exclude_relevamiento_id: int | None = None,
+) -> bool:
+    """
+    True si otro registro activo referencia el mismo domicilio (copy-on-write en edición).
+
+    Parámetros:
+        domicilio_id: domicilio a evaluar.
+        exclude_relevamiento_id: relevamiento en edición (se ignora en el conteo).
+
+    Retorno:
+        True si hay otro relevamiento, actuación o denuncia usando el domicilio.
+    """
+    q_rel = Relevamiento.query.filter(
+        Relevamiento.domicilio_id == domicilio_id,
+        Relevamiento.deleted_at.is_(None),
+    )
+    if exclude_relevamiento_id is not None:
+        q_rel = q_rel.filter(Relevamiento.id != int(exclude_relevamiento_id))
+    if q_rel.limit(1).first() is not None:
+        return True
+
+    if (
+        db.session.query(Actuaciones.id)
+        .filter(Actuaciones.domicilio_id == domicilio_id)
+        .limit(1)
+        .first()
+    ):
+        return True
+
+    if (
+        db.session.query(Denuncia.id)
+        .filter(Denuncia.domicilio_id == domicilio_id, Denuncia.deleted_at.is_(None))
+        .limit(1)
+        .first()
+    ):
+        return True
+
+    return False
+
+
+def domicilio_compartido_para_edicion_denuncia(
+    domicilio_id: int,
+    *,
+    exclude_denuncia_id: int | None = None,
+) -> bool:
+    """
+    True si otro registro activo referencia el mismo domicilio (copy-on-write en edición).
+
+    Parámetros:
+        domicilio_id: domicilio a evaluar.
+        exclude_denuncia_id: denuncia en edición (se ignora en el conteo).
+
+    Retorno:
+        True si hay otro denuncia, relevamiento o actuación usando el domicilio.
+    """
+    q_den = Denuncia.query.filter(
+        Denuncia.domicilio_id == domicilio_id,
+        Denuncia.deleted_at.is_(None),
+    )
+    if exclude_denuncia_id is not None:
+        q_den = q_den.filter(Denuncia.id != int(exclude_denuncia_id))
+    if q_den.limit(1).first() is not None:
+        return True
+
+    if (
+        Relevamiento.query.filter(
+            Relevamiento.domicilio_id == domicilio_id,
+            Relevamiento.deleted_at.is_(None),
+        )
+        .limit(1)
+        .first()
+    ):
+        return True
+
+    if (
+        db.session.query(Actuaciones.id)
+        .filter(Actuaciones.domicilio_id == domicilio_id)
+        .limit(1)
+        .first()
+    ):
+        return True
+
     return False
 
 
@@ -233,8 +321,41 @@ def resolver_policy_edicion_domicilio(
                 domicilio_id_objetivo=int(otro.id),
             )
 
-    # Copy-on-write: relevamiento conserva domicilio histórico; la actuación recibe domicilio real nuevo.
     ctx = (contexto or "").strip().upper()
+
+    # PR9.2: relevamiento con domicilio compartido → nuevo domicilio ante cambio geo.
+    if ctx == "RELEVAMIENTO" and dom_actual is not None:
+        if domicilio_compartido_para_edicion_relevamiento(
+            int(dom_actual.id),
+            exclude_relevamiento_id=origen_id,
+        ) and domicilio_payload_cambia_texto_geografico(dom_actual, cambios):
+            bloqueado, motivo = _bloquea_cambio_vinculo(contexto, origen_id)
+            if bloqueado:
+                return EditDomicilioPolicy(modo="BLOQUEAR", motivo=motivo)
+            return EditDomicilioPolicy(
+                modo="CREAR_NUEVO",
+                motivo="copy_on_write_relevamiento_compartido",
+                propagar_a_iniciadores=True,
+                requiere_geocode_refresh=True,
+            )
+
+    # PR9.3: denuncia con domicilio compartido → nuevo domicilio ante cambio geo.
+    if ctx == "DENUNCIA" and dom_actual is not None:
+        if domicilio_compartido_para_edicion_denuncia(
+            int(dom_actual.id),
+            exclude_denuncia_id=origen_id,
+        ) and domicilio_payload_cambia_texto_geografico(dom_actual, cambios):
+            bloqueado, motivo = _bloquea_cambio_vinculo(contexto, origen_id)
+            if bloqueado:
+                return EditDomicilioPolicy(modo="BLOQUEAR", motivo=motivo)
+            return EditDomicilioPolicy(
+                modo="CREAR_NUEVO",
+                motivo="copy_on_write_denuncia_compartido",
+                propagar_a_iniciadores=True,
+                requiere_geocode_refresh=True,
+            )
+
+    # Copy-on-write: relevamiento conserva domicilio histórico; la actuación recibe domicilio real nuevo.
     if ctx in ("ACTUACION", "COMPLETAR_TRABAJO") and relevamiento_id:
         if domicilio_payload_cambia_texto_geografico(dom_actual, cambios):
             return EditDomicilioPolicy(

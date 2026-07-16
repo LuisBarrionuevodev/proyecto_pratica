@@ -88,12 +88,13 @@ class RelevamientoGridRowIn(BaseModel):
     Fila proveniente de la grilla de Relevamientos.
 
     Reglas:
-    - Fecha, Inspector, Calle, Número y Rubro son obligatorios.
+    - Inspector, Calle, Número y Rubro son obligatorios.
+    - Fecha es opcional en carga masiva (PR9.4); si falta, el servidor la asigna al guardar.
     - Catálogos validados contra DB.
     """
 
     id: Optional[int] = Field(default=None, ge=1)
-    fecha: date
+    fecha: Optional[date] = None
     inspector: str
     calle: str
     numero: str
@@ -118,7 +119,9 @@ class RelevamientoGridRowIn(BaseModel):
 
     @field_validator("fecha", mode="before")
     @classmethod
-    def parse_fecha(cls, v: Any) -> date:
+    def parse_fecha(cls, v: Any) -> Optional[date]:
+        if v is None or v == "":
+            return None
         return _parse_fecha(v)
 
     @field_validator("inspector", "calle", "numero", "rubro", "nombre_fantasia", mode="before")
@@ -202,8 +205,6 @@ class RelevamientoGridRowIn(BaseModel):
     def reglas_negocio_base(self) -> "RelevamientoGridRowIn":
         field_errors: Dict[str, str] = {}
 
-        if not self.fecha:
-            field_errors["fecha"] = "Fecha obligatoria."
         if not self.inspector:
             field_errors["inspector"] = "Inspector obligatorio."
         if not self.calle:

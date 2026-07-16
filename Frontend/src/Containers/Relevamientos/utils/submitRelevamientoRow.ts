@@ -1,7 +1,67 @@
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { updateRelevamiento } from "../../../api/relevamientosApi";
 import { validateRow } from "../../../api/gridApi";
+import {
+  domicilioCalleCargadaEditable,
+  domicilioEsTipoEsquina,
+  domicilioNumeroEditable,
+} from "../../../utils/domicilioCalleUi";
 import { applyEstablecimientoCamposToPayload } from "./relevamientoCamposForm";
+
+/** Campos de solo lectura / display que no deben ir al PUT. */
+const RELEVAMIENTO_PUT_OMIT_KEYS = [
+  "calle_normalizada",
+  "calle_estado",
+  "calle_score",
+  "calle_sugerida",
+  "calle_mostrar",
+  "calle_catalogo_id",
+  "calle_raw",
+  "calle_cargada",
+  "calle_ingresada",
+  "esquina_normalizada",
+  "esquina_catalogo_id",
+  "esquina_status",
+  "esquina_score",
+  "esquina_raw",
+  "numero_esquina",
+  "numero_mostrar",
+  "domicilio_id",
+  "iniciador_ruta_id",
+  "iniciador_estado",
+  "editable",
+] as const;
+
+/**
+ * Asegura calle/número editables en payload sin vaciar domicilio ni reenviar metadata stale.
+ */
+export function applyRelevamientoDomicilioSubmitGuard(
+  row: IRelevamientoListItem,
+  originalRow?: IRelevamientoListItem | null
+): IRelevamientoListItem {
+  const baseline = originalRow ?? row;
+  const baselineCalle = domicilioCalleCargadaEditable(baseline);
+  const baselineNumero = domicilioNumeroEditable(baseline);
+  const editedCalle = String(row.calle ?? "").trim();
+  const editedNumero = String(row.numero ?? "").trim();
+
+  const isEsquina = domicilioEsTipoEsquina(row);
+  const numero_tipo = isEsquina ? "ESQUINA" : "NUMERO";
+  const calle = editedCalle || baselineCalle;
+  const numero = editedNumero || baselineNumero;
+
+  const copy: Record<string, unknown> = { ...row };
+  for (const key of RELEVAMIENTO_PUT_OMIT_KEYS) {
+    delete copy[key];
+  }
+
+  return {
+    ...(copy as IRelevamientoListItem),
+    calle: calle || null,
+    numero: numero || null,
+    numero_tipo,
+  };
+}
 
 /** Mapeo de errores (grid / backend → claves de columna de la tabla). */
 export const RELEVAMIENTO_ROW_ERROR_KEY_MAP: Record<string, string> = {
@@ -84,6 +144,8 @@ export type SubmitRelevamientoRowParams = {
    * Equivale a limpiar errores de la fila antes del intento de persistencia, como hacía la tabla.
    */
   onBeforePersist?: () => void;
+  /** Fila original al abrir el modal (para no pisar domicilio con metadata stale). */
+  originalRow?: IRelevamientoListItem | null;
 };
 
 /**
@@ -102,9 +164,13 @@ export async function submitRelevamientoRow(
     onBeforeSave,
     onAfterSave,
     onBeforePersist,
+    originalRow,
   } = params;
 
-  const fullRow = normalizeRelevamientoRowForApi(rawFullRow);
+  const fullRow = applyRelevamientoDomicilioSubmitGuard(
+    normalizeRelevamientoRowForApi(rawFullRow),
+    originalRow
+  );
 
   if (!skipValidation && batchId) {
     const v = await validateRow({

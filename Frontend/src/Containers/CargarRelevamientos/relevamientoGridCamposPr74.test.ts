@@ -33,3 +33,29 @@ describe("CargarRelevamientos grid PR7.4", () => {
     expect(humanizeRelevamientoColumnLabel("Ángulo esquina")).toBe("Ángulo esquina");
   });
 });
+
+describe("CargarRelevamientos grid PR9.4 — sin columna Fecha", () => {
+  it("no incluye columna Fecha y la primera columna es Inspector", () => {
+    const ids = COLUMN_DEFINITIONS.map((c) => c.id);
+    expect(ids).not.toContain("Fecha");
+    expect(ids[0]).toBe("Inspector");
+  });
+
+  it("payload de grilla no incluye Fecha al extraer columnas de datos", () => {
+    const row = {
+      Inspector: "Inspector Uno",
+      Calle: "Maipú",
+      Numero: "100",
+      Rubro: "Panadería",
+      _rowId: "row_test",
+    };
+    const { Fecha, ...data } = row as Record<string, unknown>;
+    expect(Fecha).toBeUndefined();
+    expect(data).toMatchObject({
+      Inspector: "Inspector Uno",
+      Calle: "Maipú",
+      Numero: "100",
+      Rubro: "Panadería",
+    });
+  });
+});

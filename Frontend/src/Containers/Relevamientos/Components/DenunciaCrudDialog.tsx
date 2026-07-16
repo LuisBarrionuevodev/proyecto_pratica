@@ -3,6 +3,17 @@ import { Box } from "@mui/material";
 import type { IDenunciaGestionItem } from "../../../api/denunciasApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import {
+  domicilioCalleValorEdicion,
+  domicilioNumeroValorEdicion,
+} from "../../../utils/domicilioCalleUi";
+import {
+  buildDenunciaNumeroTipoDraftPatch,
+} from "../utils/denunciaCamposForm";
+import {
+  denunciaCalleDisplay,
+  denunciaNumeroDisplay,
+} from "../utils/denunciaCrudDisplay";
+import {
   CrudDialogActions,
   CrudDialogHeader,
   CrudDialogSection,
@@ -37,11 +48,6 @@ const fieldGridSx = {
 } as const;
 
 const ESTADO_OPTIONS = ["ABIERTA", "CERRADA", "DESCARTADA"] as const;
-
-function denunciaNumeroDisplay(row: IDenunciaGestionItem): string | null {
-  if (row.numero_tipo === "ESQUINA" && row.numero) return row.numero;
-  return row.numero ?? null;
-}
 
 /** Modal CRUD glass para denuncia (mismo patrón que Relevamientos). */
 export function DenunciaCrudDialog({
@@ -172,7 +178,7 @@ export function DenunciaCrudDialog({
           <CrudFormSlot
             label="Calle"
             mode={mode}
-            value={draft.calle}
+            value={denunciaCalleDisplay(draft)}
             required
             error={!!e("calle")}
             helperText={e("calle")}
@@ -180,7 +186,7 @@ export function DenunciaCrudDialog({
             <AppTextField
               appearance="glass"
               label="Calle"
-              value={draft.calle ?? ""}
+              value={domicilioCalleValorEdicion(draft)}
               onChange={(ev) => onDraftChange({ calle: ev.target.value })}
               error={!!e("calle")}
               helperText={e("calle") || undefined}
@@ -196,9 +202,11 @@ export function DenunciaCrudDialog({
             helperText={e("numero")}
           >
             <NumeroEsquinaEditor
-              value={draft.numero ?? null}
+              value={domicilioNumeroValorEdicion(draft) || null}
               onChange={(newValue) => onDraftChange({ numero: newValue })}
-              onModeChange={(editorMode) => onDraftChange({ numero_tipo: editorMode })}
+              onModeChange={(editorMode) =>
+                onDraftChange(buildDenunciaNumeroTipoDraftPatch(editorMode, draft))
+              }
               label="Número/Esquina"
               error={!!e("numero")}
               helperText={e("numero")}

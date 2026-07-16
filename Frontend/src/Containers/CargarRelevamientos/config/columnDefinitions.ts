@@ -6,8 +6,6 @@ export const GROUP_CONFIG = {
 };
 
 export const COLUMN_DEFINITIONS = [
-  /** Misma celda custom `date-picker-cell` que Cargar actas (teclado + calendario); valor interno ISO. */
-  { id: "Fecha", title: "Fecha", width: 150, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderDate, cellType: "date" },
   { id: "Inspector", title: "Inspector", width: 168, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "dropdown" },
   { id: "Calle", title: "Calle", width: 168, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderString, cellType: "text" },
   { id: "Numero", title: "Numero", width: 96, editable: true, group: "Relevamiento", icon: GridColumnIcon.HeaderNumber, cellType: "text" },

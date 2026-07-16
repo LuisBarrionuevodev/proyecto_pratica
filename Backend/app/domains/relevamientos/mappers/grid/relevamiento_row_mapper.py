@@ -15,8 +15,10 @@ def _clean_str(v: Any) -> Optional[str]:
 def map_relevamiento_row(row: RelevamientoGridRowIn) -> Dict[str, Any]:
     """
     Mapper UI -> Payload limpio para services (sin DB).
-    - fecha ya es date
+    - fecha debe estar resuelta (validate_service asigna default si falta).
     """
+    if row.fecha is None:
+        raise ValueError("fecha requerida para mapper")
     payload: Dict[str, Any] = {
         "id": row.id,
         "fecha": row.fecha.isoformat(),

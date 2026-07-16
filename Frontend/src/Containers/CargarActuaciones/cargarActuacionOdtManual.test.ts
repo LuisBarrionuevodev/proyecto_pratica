@@ -16,4 +16,13 @@ describe("CargarActuacionNuevaModal ODT manual", () => {
     expect(src).toContain("AppTextField");
     expect(src).not.toContain("OrdenTrabajoSearchAutocomplete");
   });
+
+  it("usa shell visual CrudGlassDialog alineado a Completar trabajo", () => {
+    const src = readFileSync(modalPath, "utf8");
+    expect(src).toContain("CrudGlassDialog");
+    expect(src).toContain("CrudDialogHeader");
+    expect(src).toContain('title="Datos generales"');
+    expect(src).toContain('appearance="glass"');
+    expect(src).not.toContain("AppDialog");
+  });
 });

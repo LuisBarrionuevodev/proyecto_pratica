@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import axios from "axios";
-import { Alert, Autocomplete, Box, Chip, CircularProgress, LinearProgress, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Chip,
+  CircularProgress,
+  LinearProgress,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import {
@@ -21,8 +33,15 @@ import {
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
 import { applyFormErrorsFromApi, applyFormErrorsFromMap } from "../../../utils/parseApiError";
+import {
+  CrudDialogHeader,
+  CrudDialogSection,
+  CrudGlassDialog,
+  crudDialogActionsRowSx,
+} from "../../../components/crudDialog";
+import { DOC_MODAL_BLOCK_STACK_SPACING, DOC_MODAL_TEXT } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
-import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
+import { AppButton, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -85,6 +104,29 @@ function emptyTextFields(): Record<GlideTextKey, string> {
 /** Misma columna flexible y labels que `CompletarTrabajoModal`. */
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
 const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: tactic } as const;
+
+const modalAuxInputSx = {
+  "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.92)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
+  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.88)" },
+} as const;
+
+const edicionGrid2ColSx = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+  gap: 2,
+  width: "100%",
+  alignItems: "end",
+} as const;
+
+function CargarActuacionBloque({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <CrudDialogSection title={title} variant="plain">
+      {children}
+    </CrudDialogSection>
+  );
+}
 
 export function CargarActuacionNuevaModal() {
   const feedback = useAppFeedback();
@@ -393,39 +435,60 @@ export function CargarActuacionNuevaModal() {
         </Box>
       </CardGlass>
 
-      <AppDialog
+      <CrudGlassDialog
         open={open}
         onClose={() => tryClose()}
         onCloseButtonClick={() => tryClose()}
-        title="Cargar actuación"
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
-        showCloseButton
-        contentSx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+        title={
+          <CrudDialogHeader
+            domainChip="Cargar actuación"
+            titulo="Nueva actuación"
+            subtitulo="Datos operativos y actas del día"
+          />
+        }
         actions={
-          <>
-            <AppButton
-              dsVariant="ghost"
-              onClick={resetForm}
-              disabled={loading || catalogsBootstrapping}
-              sx={{ mr: "auto" }}
-            >
-              Limpiar
-            </AppButton>
-            <AppButton dsVariant="ghost" onClick={() => tryClose()} disabled={loading || catalogsBootstrapping}>
-              Cancelar
-            </AppButton>
+          <Box
+            sx={{
+              ...crudDialogActionsRowSx,
+              width: "100%",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              rowGap: 1,
+            }}
+          >
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              <AppButton
+                dsVariant="ghost"
+                dsSize="sm"
+                onClick={resetForm}
+                disabled={loading || catalogsBootstrapping}
+              >
+                Limpiar
+              </AppButton>
+              <AppButton
+                dsVariant="ghost"
+                dsSize="sm"
+                onClick={() => tryClose()}
+                disabled={loading || catalogsBootstrapping}
+              >
+                Cancelar
+              </AppButton>
+            </Box>
             <AppButton
               dsVariant="primary"
+              dsSize="sm"
               onClick={() => void handleSubmit()}
               loading={loading}
               disabled={loading || !catalogsReady || catalogsBootstrapping || (startingBatch && !batchId)}
             >
               Guardar actuación
             </AppButton>
-          </>
+          </Box>
         }
       >
+        <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
         {open && catalogsBootstrapping && (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
             <LinearProgress sx={{ borderRadius: 1 }} />
@@ -448,12 +511,11 @@ export function CargarActuacionNuevaModal() {
           </Alert>
         )}
 
+        <CargarActuacionBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
-            Actuación
-          </Typography>
+          <Box sx={edicionGrid2ColSx}>
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             fullWidth
             required
             type="date"
@@ -468,7 +530,7 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Fecha actuación") || undefined}
           />
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             fullWidth
             required
             label="Orden de trabajo"
@@ -481,9 +543,8 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Orden de trabajo"))}
             helperText={errorFor("Orden de trabajo") || undefined}
           />
-        </Box>
+          </Box>
 
-        <Box sx={{ ...col, width: "100%" }}>
           <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
             Inspectores
           </Typography>
@@ -527,21 +588,22 @@ export function CargarActuacionNuevaModal() {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Agregar"
+                label="Agregar inspector"
                 placeholder={catalogsReady ? "Catálogo" : "…"}
+                sx={modalAuxInputSx}
                 error={Boolean(errorFor("Inspectores"))}
                 helperText={errorFor("Inspectores") || undefined}
               />
             )}
           />
         </Box>
+        </CargarActuacionBloque>
 
+        <CargarActuacionBloque title="Domicilio y establecimiento">
         <Box sx={{ ...col, width: "100%" }}>
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
-            Domicilio
-          </Typography>
+          <Box sx={edicionGrid2ColSx}>
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="Calle"
             value={texts["Calle"]}
             onChange={(e) => {
@@ -553,7 +615,7 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Calle") || undefined}
           />
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="Número"
             value={texts["Número"]}
             onChange={(e) => {
@@ -564,6 +626,7 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Número"))}
             helperText={errorFor("Número") || undefined}
           />
+          </Box>
           <Autocomplete
             size="small"
             fullWidth
@@ -578,14 +641,17 @@ export function CargarActuacionNuevaModal() {
               <TextField
                 {...params}
                 label="Rubro"
-                placeholder="Buscar rubro…"
-                error={Boolean(errorFor("Rubro"))}
+                  placeholder="Buscar rubro…"
+                  sx={modalAuxInputSx}
+                  error={Boolean(errorFor("Rubro"))}
                 helperText={errorFor("Rubro") || undefined}
               />
             )}
           />
         </Box>
+        </CargarActuacionBloque>
 
+        <CargarActuacionBloque title="Contribuyente / titular">
         <Box sx={{ ...col, width: "100%" }}>
           <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
             Titular
@@ -616,9 +682,9 @@ export function CargarActuacionNuevaModal() {
           </ToggleButtonGroup>
 
           {titularModo === "persona" ? (
-            <>
+            <Box sx={edicionGrid2ColSx}>
               <AppTextField
-                appearance="dense"
+                appearance="glass"
                 label="Apellido"
                 value={texts["Apellido"]}
                 onChange={(e) => {
@@ -630,7 +696,7 @@ export function CargarActuacionNuevaModal() {
                 helperText={errorFor("Apellido") || undefined}
               />
               <AppTextField
-                appearance="dense"
+                appearance="glass"
                 label="Nombre"
                 value={texts["Nombre"]}
                 onChange={(e) => {
@@ -641,10 +707,10 @@ export function CargarActuacionNuevaModal() {
                 error={Boolean(errorFor("Nombre"))}
                 helperText={errorFor("Nombre") || undefined}
               />
-            </>
+            </Box>
           ) : (
             <AppTextField
-              appearance="dense"
+              appearance="glass"
               label="Razón social"
               value={texts["Razón social"]}
               onChange={(e) => {
@@ -658,7 +724,7 @@ export function CargarActuacionNuevaModal() {
           )}
 
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="CUIT / DNI"
             value={texts["DNI"]}
             onChange={(e) => {
@@ -670,13 +736,13 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("DNI") || undefined}
           />
         </Box>
+        </CargarActuacionBloque>
 
-        <Box sx={{ ...col, width: "100%", pt: 0.5 }}>
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
-            Actas
-          </Typography>
+        <CargarActuacionBloque title="Actas labradas">
+        <Box sx={{ ...col, width: "100%" }}>
+          <Box sx={edicionGrid2ColSx}>
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="N° acta de inspección"
             value={texts["Acta inspección"]}
             onChange={(e) => {
@@ -688,7 +754,7 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Acta inspección") || undefined}
           />
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="N° acta de notificación"
             value={texts["Acta notificación"]}
             onChange={(e) => {
@@ -699,6 +765,7 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta notificación"))}
             helperText={errorFor("Acta notificación") || undefined}
           />
+          </Box>
           <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
             Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
           </Typography>
@@ -753,6 +820,7 @@ export function CargarActuacionNuevaModal() {
                 {...params}
                 label="Agregar motivo"
                 placeholder={catalogsReady ? "Catálogo" : "…"}
+                sx={modalAuxInputSx}
                 error={Boolean(
                   errorFor("Motivo notif 1") || errorFor("Motivo notif 2") || errorFor("Motivo notif 3")
                 )}
@@ -765,8 +833,9 @@ export function CargarActuacionNuevaModal() {
               />
             )}
           />
+          <Box sx={edicionGrid2ColSx}>
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="N° acta de comprobación"
             value={texts["Acta comprobación"]}
             onChange={(e) => {
@@ -778,7 +847,7 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Acta comprobación") || undefined}
           />
           <AppSelect
-            appearance="dense"
+            appearance="glass"
             label="Motivo de comprobación"
             value={texts["Motivo comprobación"]}
             onChange={(e) => {
@@ -791,8 +860,10 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Motivo comprobación"))}
             helperText={errorFor("Motivo comprobación") || undefined}
           />
+          </Box>
+          <Box sx={edicionGrid2ColSx}>
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="N° acta de clausura (opcional)"
             value={texts["Acta clausura"]}
             onChange={(e) => {
@@ -804,7 +875,7 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Acta clausura") || undefined}
           />
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="N° acta de decomiso"
             value={texts["Acta decomiso"]}
             onChange={(e) => {
@@ -815,8 +886,9 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta decomiso"))}
             helperText={errorFor("Acta decomiso") || undefined}
           />
+          </Box>
           <AppTextField
-            appearance="dense"
+            appearance="glass"
             label="Kilos decomisados"
             value={texts["Kilos decomiso"]}
             onChange={(e) => {
@@ -829,9 +901,11 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Kilos decomiso") || undefined}
           />
         </Box>
+        </CargarActuacionBloque>
           </>
         )}
-      </AppDialog>
+        </Stack>
+      </CrudGlassDialog>
     </Box>
   );
 }

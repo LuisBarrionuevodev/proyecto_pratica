@@ -236,14 +236,30 @@ def _denuncia_to_gestion_row(
 ) -> dict:
     dom = d.domicilio
     calle = getattr(dom, "calle", None)
+    calle_raw = getattr(dom, "calle_raw", None)
     numero = getattr(dom, "numero", None)
     numero_tipo = getattr(dom, "numero_tipo", None)
+    calle_normalizada = getattr(dom, "calle_normalizada", None)
+    calle_estado = getattr(dom, "calle_norm_status", None)
+    esquina_raw = getattr(dom, "esquina_raw", None)
+    esquina_normalizada = getattr(dom, "esquina_normalizada", None)
+    esquina_status = getattr(dom, "esquina_norm_status", None)
     return {
         "id": d.id,
         "fecha": d.fecha.isoformat() if d.fecha else None,
         "calle": calle,
+        "calle_raw": calle_raw,
+        "calle_cargada": calle_raw or calle,
+        "calle_normalizada": calle_normalizada,
+        "calle_estado": calle_estado,
         "numero": numero,
         "numero_tipo": numero_tipo,
+        "numero_esquina": (
+            esquina_normalizada or esquina_raw if numero_tipo == "ESQUINA" else None
+        ),
+        "esquina_normalizada": esquina_normalizada,
+        "esquina_raw": esquina_raw,
+        "esquina_status": esquina_status,
         "motivo": d.motivo,
         "estado": d.estado,
         "domicilio_id": d.domicilio_id,
@@ -402,10 +418,13 @@ def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> 
         soft_delete_domicilio_if_orphan(old_domicilio_id)
         db.session.commit()
 
-    try:
-        on_domicilio_changed(denuncia.domicilio_id)
-    except Exception:
-        pass
+    if denuncia.domicilio_id and (
+        outcome.domicilio_id_cambio or outcome.policy.requiere_geocode_refresh
+    ):
+        try:
+            on_domicilio_changed(denuncia.domicilio_id)
+        except Exception:
+            pass
 
     refreshed_iniciador = get_iniciador_pendiente_denuncia(denuncia.id)
     return _denuncia_to_gestion_row(denuncia, refreshed_iniciador)

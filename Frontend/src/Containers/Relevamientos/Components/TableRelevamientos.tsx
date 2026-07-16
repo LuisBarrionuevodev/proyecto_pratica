@@ -15,6 +15,7 @@ import {
   rubroItemsToNombres,
 } from "../../../utils/rubrosCatalogCache";
 import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
+import { relevamientoRowParaEdicion } from "../utils/relevamientoCamposForm";
 import { RelevamientoCrudDialog } from "./RelevamientoCrudDialog";
 import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import { turnoCargaLabel } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
@@ -87,6 +88,7 @@ const TablaRelevamientos = ({
   const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [crudDraft, setCrudDraft] = useState<IRelevamientoListItem | null>(null);
+  const [crudBaseline, setCrudBaseline] = useState<IRelevamientoListItem | null>(null);
   const [crudMode, setCrudMode] = useState<"view" | "edit" | null>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editGlobalError, setEditGlobalError] = useState<string | null>(null);
@@ -165,13 +167,16 @@ const TablaRelevamientos = ({
 
   const closeCrudDialog = useCallback(() => {
     setCrudDraft(null);
+    setCrudBaseline(null);
     setCrudMode(null);
     setEditGlobalError(null);
   }, []);
 
   const openCrudView = useCallback((row: IRelevamientoListItem) => {
     setEditGlobalError(null);
-    setCrudDraft({ ...row });
+    const baseline = { ...row };
+    setCrudBaseline(baseline);
+    setCrudDraft(relevamientoRowParaEdicion(baseline));
     setCrudMode("view");
   }, []);
 
@@ -190,6 +195,7 @@ const TablaRelevamientos = ({
       const result = await submitRelevamientoRow({
         id,
         fullRow,
+        originalRow: crudBaseline,
         batchId,
         skipValidation,
         skipUpdate,
@@ -212,6 +218,7 @@ const TablaRelevamientos = ({
       }
 
       setCrudDraft(null);
+      setCrudBaseline(null);
       setCrudMode(null);
       setEditGlobalError(null);
       if (shouldRefreshRelevamientosAfterSaveFailure(result)) {
@@ -222,6 +229,7 @@ const TablaRelevamientos = ({
     }
   }, [
     crudDraft,
+    crudBaseline,
     batchId,
     onRefresh,
     onBeforeSave,

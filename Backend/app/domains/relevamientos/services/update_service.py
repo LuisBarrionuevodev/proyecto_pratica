@@ -103,6 +103,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         modo_explicito=payload.get("modo_domicilio"),
         rubro=rubro_domicilio,
         usar_basico=True,
+        relevamiento_id=relevamiento_id,
     )
     dom = outcome.domicilio
     if dom is None:

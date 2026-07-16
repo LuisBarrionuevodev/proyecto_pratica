@@ -27,8 +27,16 @@ export interface IDenunciaGestionItem {
   id: number;
   fecha: string | null;
   calle: string | null;
+  calle_raw?: string | null;
+  calle_cargada?: string | null;
+  calle_normalizada?: string | null;
+  calle_estado?: string | null;
   numero: string | null;
+  numero_esquina?: string | null;
   numero_tipo?: string | null;
+  esquina_normalizada?: string | null;
+  esquina_raw?: string | null;
+  esquina_status?: string | null;
   motivo: string | null;
   estado: string | null;
   domicilio_id?: number | null;
@@ -36,6 +44,11 @@ export interface IDenunciaGestionItem {
   iniciador_estado?: string | null;
   editable?: boolean;
 }
+
+export type DenunciaGestionUpdatePayload = Pick<
+  IDenunciaGestionItem,
+  "id" | "fecha" | "calle" | "numero" | "numero_tipo" | "motivo" | "estado"
+>;
 
 export interface IDenunciasGestionMeta {
   total: number;
@@ -100,7 +113,7 @@ export const getDenunciasGestionOperativa = async (
 
 export const updateDenunciaGestion = async (
   id: number,
-  body: IDenunciaGestionItem
+  body: DenunciaGestionUpdatePayload
 ): Promise<IDenunciaGestionItem> => {
   const { data } = await apiClient.put<IDenunciaGestionItem>(`/api/denuncias/${id}`, body);
   return data;
