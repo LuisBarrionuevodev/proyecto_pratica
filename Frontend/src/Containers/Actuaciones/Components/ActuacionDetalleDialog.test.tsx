@@ -352,7 +352,7 @@ describe("ActuacionDetalleDialog", () => {
 
 
 
-  it("Actas labradas tiene jerarquía de sección mayor que cada acta", () => {
+  it("Actas labradas usa sección plana alineada a Cargar actuación", () => {
 
     const html = render(
 
@@ -382,9 +382,11 @@ describe("ActuacionDetalleDialog", () => {
 
     );
 
-    expect(html).toContain("0.875rem");
+    expect(html).toContain("Actas labradas");
 
-    expect(html).toContain("0.6875rem");
+    expect(html).toContain("Datos de la actuación");
+
+    expect(html).toContain("Domicilio y establecimiento");
 
   });
 
@@ -579,7 +581,7 @@ describe("ActuacionDetalleDialog", () => {
       />
     );
     expect(html).toContain("Apellido");
-    expect(html).toContain("Acta de notificación");
+    expect(html).toContain("Motivos de notificación");
   });
 
 });

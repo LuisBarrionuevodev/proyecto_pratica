@@ -46,12 +46,21 @@ def test_persist_cumple_reinspeccion_oficio(app) -> None:
     assert act.resultado_cumplimiento_oficio == "CUMPLE"
 
 
+def test_persist_cumple_ratificacion_clausura_promovida(app) -> None:
+    act = SimpleNamespace(resultado_cumplimiento_oficio=None)
+    ini = SimpleNamespace(tipo_iniciador="RATIFICACION_CLAUSURA_OFICIO")
+    with app.app_context():
+        p = CompletarTrabajoCierreCompletoIn(resultado_cumplimiento_oficio="CUMPLE")
+        _persist_resultado_cumplimiento_oficio(act, ini, p, bucket=ContrapBucket.NONE)
+    assert act.resultado_cumplimiento_oficio == "CUMPLE"
+
+
 def test_persist_rechaza_si_no_es_reinspeccion_oficio(app) -> None:
     act = SimpleNamespace(resultado_cumplimiento_oficio=None)
     ini = SimpleNamespace(tipo_iniciador="RELEVAMIENTO")
     with app.app_context():
         p = CompletarTrabajoCierreCompletoIn(resultado_cumplimiento_oficio="CUMPLE")
-        with pytest.raises(ValueError, match="solo aplica a REINSPECCION_OFICIO"):
+        with pytest.raises(ValueError, match="solo aplica a reinspecci"):
             _persist_resultado_cumplimiento_oficio(act, ini, p, bucket=ContrapBucket.NONE)
 
 

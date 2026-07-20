@@ -1,3 +1,9 @@
+import {
+  esRatificacionOficio,
+  esReinspeccionOficioGenerico,
+  tipoActuacionEfectivoOficio,
+} from "./completarTrabajoTipoIniciadorUi";
+
 /**
  * Opciones de contraproducencia visibles en Completar trabajo según tipo de iniciador (STAB-4).
  * Alineado al seed backend `catalog_contraproducencia`; NO_HUBO queda fuera de este flujo.
@@ -35,6 +41,9 @@ const TIPO_A_SET: Record<string, Set<string>> = {
   DENUNCIA: BASE_INSPECCION,
   REINSPECCION_NOTIFICACION: REINSPECCION,
   REINSPECCION_OFICIO,
+  RATIFICACION_CLAUSURA_OFICIO: REINSPECCION_OFICIO,
+  RATIFICACION_DECOMISO_OFICIO: REINSPECCION_OFICIO,
+  VERIFICAR_INFORMAR_OFICIO: REINSPECCION,
 };
 
 function looseKey(s: string): string {
@@ -82,8 +91,12 @@ export function filtrarContraproducenciasPorTipoIniciador(
     return permitidos.has(looseKey(t));
   });
   const tIni = (tipoIniciador ?? "").trim().toUpperCase();
-  if (tIni === "REINSPECCION_OFICIO" && tipoActuacionOficio) {
-    const tipo = looseKey(tipoActuacionOficio);
+  const tipoEff = tipoActuacionEfectivoOficio(tipoIniciador, tipoActuacionOficio);
+  if (
+    (esReinspeccionOficioGenerico(tIni) || esRatificacionOficio(tIni)) &&
+    tipoEff
+  ) {
+    const tipo = looseKey(tipoEff);
     out = out.filter((n) => {
       const key = looseKey(n);
       if (key === looseKey("NO SE RATIFICÓ")) {

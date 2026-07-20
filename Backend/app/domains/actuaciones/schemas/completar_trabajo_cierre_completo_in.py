@@ -81,6 +81,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     decomiso_kilos_total: Optional[float] = None
 
     resultado_cumplimiento_oficio: Optional[Literal["CUMPLE", "NO_CUMPLE"]] = None
+    realizo_nueva_inspeccion: Optional[bool] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -123,6 +124,21 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         if isinstance(v, str):
             s = v.strip()
             return s or None
+        return v
+
+    @field_validator("realizo_nueva_inspeccion", mode="before")
+    @classmethod
+    def normalize_realizo_nueva_inspeccion(cls, v: object) -> object:
+        if v is None or v == "":
+            return None
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s in ("si", "sí", "true", "1"):
+                return True
+            if s in ("no", "false", "0"):
+                return False
         return v
 
     @field_validator("resultado_cumplimiento_oficio", mode="before")

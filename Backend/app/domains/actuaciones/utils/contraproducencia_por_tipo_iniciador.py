@@ -57,6 +57,9 @@ _TIPO_A_SET: dict[str, frozenset[str]] = {
     "DENUNCIA": _DENUNCIA,
     "REINSPECCION_NOTIFICACION": _REINSPECCION,
     "REINSPECCION_OFICIO": _REINSPECCION_OFICIO,
+    "RATIFICACION_CLAUSURA_OFICIO": _REINSPECCION_OFICIO,
+    "RATIFICACION_DECOMISO_OFICIO": _REINSPECCION_OFICIO,
+    "VERIFICAR_INFORMAR_OFICIO": _REINSPECCION,
 }
 
 _TIPO_ACTUACION_RATIFICACION_CLAUSURA = "RATIFICACION DE CLAUSURA"
@@ -111,8 +114,13 @@ def contraproducencia_permitida_en_completar_trabajo(
     if _loose_key(str(nombre)) not in _keys_permitidos(tipo_iniciador):
         return False
     t = (tipo_iniciador or "").strip().upper()
-    if t == "REINSPECCION_OFICIO":
-        return _contraproducencia_oficio_coherente_con_tipo_actuacion(str(nombre), tipo_actuacion)
+    if t in ("REINSPECCION_OFICIO", "RATIFICACION_CLAUSURA_OFICIO", "RATIFICACION_DECOMISO_OFICIO"):
+        ta = tipo_actuacion
+        if not ta and t == "RATIFICACION_CLAUSURA_OFICIO":
+            ta = _TIPO_ACTUACION_RATIFICACION_CLAUSURA
+        elif not ta and t == "RATIFICACION_DECOMISO_OFICIO":
+            ta = _TIPO_ACTUACION_RATIFICACION_DECOMISO
+        return _contraproducencia_oficio_coherente_con_tipo_actuacion(str(nombre), ta)
     return True
 
 

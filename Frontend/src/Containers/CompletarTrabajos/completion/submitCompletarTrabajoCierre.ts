@@ -5,6 +5,8 @@ import { buildCompletarTrabajoCierreBodyFromInline } from "../utils/buildComplet
 export type SubmitCompletarTrabajoCierreOptions = {
   includeTipoActuacion?: boolean;
   omitPrecargadoPr2?: boolean;
+  /** Verificar e informar sin nueva inspección: no enviar actas normales. */
+  incluirInspeccionNormal?: boolean;
   /** Sustituye inspectores del grupo; solo enviar si el usuario los editó en el modal. */
   inspectoresExplicitos?: string[];
 };
@@ -20,6 +22,7 @@ export async function submitCompletarTrabajoCierreFromRow(
   const body = buildCompletarTrabajoCierreBodyFromInline(row, values, {
     includeTipoActuacion: options?.includeTipoActuacion === true,
     omitPrecargadoPr2: options?.omitPrecargadoPr2 === true,
+    incluirInspeccionNormal: options?.incluirInspeccionNormal !== false,
     ...(options?.inspectoresExplicitos !== undefined
       ? { inspectoresExplicitos: options.inspectoresExplicitos }
       : {}),

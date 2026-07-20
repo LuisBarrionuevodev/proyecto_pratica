@@ -26,6 +26,8 @@ export type CompletarTrabajoFormFields = {
   observaciones_ejecucion: string;
   /** Vacío salvo flujo REINSPECCION_OFICIO. */
   resultado_cumplimiento_oficio: string;
+  /** Verificar e informar: true = inspección normal; false = cierre sin actas normales. */
+  realizo_nueva_inspeccion: string;
   acta_inspeccion_num: string;
   acta_notificacion_num: string;
   notificacion_motivo_1: string;
@@ -45,6 +47,10 @@ function s(v: string): string | undefined {
 
 export type BuildCierreBodyOptions = {
   includeTipoActuacion?: boolean;
+  /**
+   * Si es false, no incluye actas ni datos de inspección normal (Verificar e informar sin nueva inspección).
+   */
+  incluirInspeccionNormal?: boolean;
   /**
    * No reenvía `tipo_actuacion` del merge (ya fijado al publicar la ruta).
    * Sí conserva rubro/calle/número: el cierre con contrib/domicilio los necesita en el body.
@@ -93,6 +99,7 @@ export function buildCompletarTrabajoCierreBody(
   options?: BuildCierreBodyOptions
 ): ICompletarTrabajoCierreBody {
   const includeTipo = options?.includeTipoActuacion === true;
+  const incluirInspeccion = options?.incluirInspeccionNormal !== false;
   const body: ICompletarTrabajoCierreBody = {};
   const contra = s(f.contraproducencia);
   const visitaRealizada = !contra;
@@ -184,7 +191,11 @@ export function buildCompletarTrabajoCierreBody(
   }
   if (s(f.observaciones_ejecucion)) body.observaciones_ejecucion = s(f.observaciones_ejecucion);
 
-  if (visitaRealizada) {
+  const rni = s(f.realizo_nueva_inspeccion);
+  if (rni === "si") body.realizo_nueva_inspeccion = true;
+  if (rni === "no") body.realizo_nueva_inspeccion = false;
+
+  if (visitaRealizada && incluirInspeccion) {
     const rc = s(f.resultado_cumplimiento_oficio);
     if (rc === "CUMPLE" || rc === "NO_CUMPLE") {
       body.resultado_cumplimiento_oficio = rc;
@@ -227,6 +238,7 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   nombre_local: "",
   observaciones_ejecucion: "",
   resultado_cumplimiento_oficio: "",
+  realizo_nueva_inspeccion: "",
   acta_inspeccion_num: "",
   acta_notificacion_num: "",
   notificacion_motivo_1: "",
@@ -279,6 +291,7 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     nombre_local: row.nombre_local ?? "",
     observaciones_ejecucion: row.observaciones_ejecucion ?? "",
     resultado_cumplimiento_oficio: row.resultado_cumplimiento_oficio ?? "",
+    realizo_nueva_inspeccion: "",
     acta_inspeccion_num: row.acta_inspeccion_num ?? "",
     acta_notificacion_num: row.acta_notificacion_num ?? "",
     notificacion_motivo_1: row.notificacion_motivo_1 ?? "",

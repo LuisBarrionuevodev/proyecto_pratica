@@ -276,3 +276,29 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
     expect(body.numero).toBe("200");
   });
 });
+
+describe("buildCompletarTrabajoCierreBody verificar e informar", () => {
+  it("envía realizo_nueva_inspeccion y omite actas cuando incluirInspeccionNormal es false", () => {
+    const body = buildCompletarTrabajoCierreBody(
+      {
+        ...EMPTY_COMPLETAR_FORM,
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        realizo_nueva_inspeccion: "no",
+        acta_inspeccion_num: "123456",
+      },
+      { incluirInspeccionNormal: false }
+    );
+    expect(body.realizo_nueva_inspeccion).toBe(false);
+    expect(body.acta_inspeccion_num).toBeUndefined();
+  });
+
+  it("con nueva inspección sí envía actas", () => {
+    const body = buildCompletarTrabajoCierreBody({
+      ...EMPTY_COMPLETAR_FORM,
+      realizo_nueva_inspeccion: "si",
+      acta_inspeccion_num: "000042",
+    });
+    expect(body.realizo_nueva_inspeccion).toBe(true);
+    expect(body.acta_inspeccion_num).toBe("000042");
+  });
+});

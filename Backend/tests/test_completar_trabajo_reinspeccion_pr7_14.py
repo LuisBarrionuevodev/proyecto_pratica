@@ -77,8 +77,8 @@ def test_reinspeccion_oficio_cierra_sin_cambio_domicilio(app_ctx) -> None:
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
             "tipo_actuacion": "VERIFICAR E INFORMAR",
+            "realizo_nueva_inspeccion": True,
             "acta_inspeccion_num": _unique_num(),
-            "resultado_cumplimiento_oficio": "CUMPLE",
         }
     )
     cerrar_completar_trabajo_por_ruta_item(
@@ -93,7 +93,7 @@ def test_reinspeccion_oficio_cierra_sin_cambio_domicilio(app_ctx) -> None:
 
     assert act_db is not None
     assert act_db.domicilio_id == dom_id_antes
-    assert act_db.resultado_cumplimiento_oficio == "CUMPLE"
+    assert act_db.resultado_cumplimiento_oficio is None
     assert ini_db is not None and ini_db.estado_iniciador == "CUMPLIDO"
 
 
@@ -120,8 +120,8 @@ def test_reinspeccion_oficio_domicilio_parcial_falla(app_ctx) -> None:
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
             "tipo_actuacion": "VERIFICAR E INFORMAR",
+            "realizo_nueva_inspeccion": True,
             "acta_inspeccion_num": _unique_num(),
-            "resultado_cumplimiento_oficio": "CUMPLE",
             "numero": "888",
         }
     )
@@ -166,8 +166,8 @@ def test_reinspeccion_oficio_cambio_domicilio_completo(app_ctx) -> None:
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
             "tipo_actuacion": "VERIFICAR E INFORMAR",
+            "realizo_nueva_inspeccion": True,
             "acta_inspeccion_num": _unique_num(),
-            "resultado_cumplimiento_oficio": "CUMPLE",
             "calle": nueva_calle,
             "numero": "77",
             "numero_tipo": "NUMERO",

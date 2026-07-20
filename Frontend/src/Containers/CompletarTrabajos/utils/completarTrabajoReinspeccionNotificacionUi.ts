@@ -1,3 +1,5 @@
+import { esFlujoCierreOficio } from "./completarTrabajoTipoIniciadorUi";
+
 /** Muestra formulario editable de acta/motivos de notificación. */
 export function showNotificacionEditableEnCompletarTrabajo(tipoIniciador: string | null | undefined): boolean {
   return tipoIniciador !== "REINSPECCION_NOTIFICACION";
@@ -17,5 +19,7 @@ export function showActasEstandarEnCompletarTrabajo(_tipoIniciador: string | nul
 export function showContribuyenteDomicilioEditableEnCompletarTrabajo(
   tipoIniciador: string | null | undefined
 ): boolean {
-  return tipoIniciador !== "REINSPECCION_NOTIFICACION" && tipoIniciador !== "REINSPECCION_OFICIO";
+  if (tipoIniciador === "REINSPECCION_NOTIFICACION") return false;
+  if (esFlujoCierreOficio(tipoIniciador)) return false;
+  return true;
 }

@@ -64,6 +64,18 @@ import {
   validateActuacionFormForSubmit,
 } from "../../Actuaciones/validations/actuacionFormValidation";
 import { filtrarContraproducenciasPorTipoIniciador } from "../utils/contraproducenciasPorTipoIniciador";
+import {
+  esFlujoCierreOficio,
+  esFlujoCumplimientoRatificacion,
+  esFlujoVerificarInformar,
+  esRatificacionOficio,
+  esReinspeccionOficioGenerico,
+  esVerificarInformarOficio,
+  REALIZO_NUEVA_INSPECCION_OPTS,
+  TIPO_ACTUACION_VERIFICAR_INFORMAR,
+  tipoActuacionEfectivoOficio,
+  tipoActuacionFijoDesdeIniciadorOficio,
+} from "../utils/completarTrabajoTipoIniciadorUi";
 import { getContraproducenciaUxHint } from "../utils/contraproducenciaUxHint";
 import {
   applyCompletarTrabajoFieldErrorsFromApi,
@@ -261,7 +273,7 @@ export type CompletarTrabajoModalProps = {
  * Cierre Completar trabajo: cabecera fija.
  * Al abrir, carga `GET /actuaciones/completar-trabajo/detalle/:ruta_item_id` para fila fresca,
  * inspectores del grupo y referencia de tipo; si falla, usa la fila del listado.
- * - `REINSPECCION_OFICIO`: tipo de actuación + dio cumplimiento + observaciones opcionales.
+ * - `REINSPECCION_OFICIO` / ratificaciones promovidas: tipo (si aplica) + dio cumplimiento + observaciones.
  * - Resto: editables en orden cerrado, actas solo sin contraproducencia.
  */
 export function CompletarTrabajoModal({
@@ -303,6 +315,7 @@ export function CompletarTrabajoModal({
   const [decomisoKilos, setDecomisoKilos] = useState("");
   const [tipoActuacionOficio, setTipoActuacionOficio] = useState("");
   const [resultadoCumplimientoOficio, setResultadoCumplimientoOficio] = useState("");
+  const [realizoNuevaInspeccion, setRealizoNuevaInspeccion] = useState("");
   const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
@@ -371,13 +384,52 @@ export function CompletarTrabajoModal({
     baselineInspectoresRef.current = initial;
 
     setFieldErrors({});
-    if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
+    if (esFlujoCierreOficio(resolvedRow.tipo_iniciador)) {
+      const fijo = tipoActuacionFijoDesdeIniciadorOficio(resolvedRow.tipo_iniciador);
       const fromRow = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion);
-      const fromEsperado = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion_esperado);
-      setTipoActuacionOficio(fromRow || fromEsperado);
+      const fromEsperado = tipoActuacionInicialReinspeccionOficio(
+        resolvedRow.tipo_actuacion_esperado ?? tipoActuacionEsperadoRef
+      );
+      setTipoActuacionOficio(fijo || fromRow || fromEsperado);
       setResultadoCumplimientoOficio(resolvedRow.resultado_cumplimiento_oficio ?? "");
+      setRealizoNuevaInspeccion("");
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
+      setInspectoresAddInput("");
+      setNotifMotivosAddInput("");
+      return;
+    }
+    if (esVerificarInformarOficio(resolvedRow.tipo_iniciador)) {
+      setTipoActuacionOficio(TIPO_ACTUACION_VERIFICAR_INFORMAR);
+      setResultadoCumplimientoOficio("");
+      setRealizoNuevaInspeccion("");
+      setContraproducencia(resolvedRow.contraproducencia ?? "");
+      setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
+      setCalle(domicilioCalleCargadaEditable(resolvedRow));
+      setNumero(domicilioNumeroEditable(resolvedRow));
+      setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
+      setRubroNombre(resolvedRow.rubro_nombre ?? "");
+      setDocNro(resolvedRow.doc_nro ?? "");
+      setContribApellido(resolvedRow.contrib_apellido ?? "");
+      setContribNombre(resolvedRow.contrib_nombre ?? "");
+      setRazonSocial(resolvedRow.razon_social ?? "");
+      setTitularModo(titularModoInicialDesdeRow(resolvedRow));
+      setNombreLocal(resolvedRow.nombre_local ?? "");
+      setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
+      setActaNotificacion(resolvedRow.acta_notificacion_num ?? "");
+      setNotifMotivosSeleccion(
+        motivosNotificacionFromSlots(
+          resolvedRow.notificacion_motivo_1,
+          resolvedRow.notificacion_motivo_2,
+          resolvedRow.notificacion_motivo_3
+        )
+      );
+      setActaComprobacion(resolvedRow.acta_comprobacion_num ?? "");
+      setComprobacionMotivo(resolvedRow.comprobacion_motivo ?? "");
+      setActaClausura(resolvedRow.acta_clausura_num ?? "");
+      setActaDecomiso(resolvedRow.acta_decomiso_num ?? "");
+      const k = resolvedRow.decomiso_kilos_total;
+      setDecomisoKilos(k == null ? "" : String(k));
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
       return;
@@ -454,17 +506,35 @@ export function CompletarTrabajoModal({
   const contraHint = useMemo(() => getContraproducenciaUxHint(contraproducencia), [contraproducencia]);
   const visitaRealizada = !contraproducencia.trim();
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
-  const esReinspeccionOficio = resolvedRow?.tipo_iniciador === "REINSPECCION_OFICIO";
-  const esReinspeccionNotificacion = resolvedRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
+  const displayRow = resolvedRow ?? row;
+  const tipoActuacionOficioEfectivo = useMemo(
+    () => tipoActuacionEfectivoOficio(displayRow?.tipo_iniciador, tipoActuacionOficio),
+    [displayRow?.tipo_iniciador, tipoActuacionOficio]
+  );
+  const esFlujoVerificarInformarUi = esFlujoVerificarInformar(
+    displayRow?.tipo_iniciador,
+    tipoActuacionOficioEfectivo
+  );
+  const esFlujoCumplimientoRatificacionUi = esFlujoCumplimientoRatificacion(
+    displayRow?.tipo_iniciador,
+    tipoActuacionOficioEfectivo
+  );
+  const esReinspeccionOficioGenericoUi = esReinspeccionOficioGenerico(displayRow?.tipo_iniciador);
+  const esReinspeccionNotificacion = displayRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
+  const verificarMuestraInspeccionNormal =
+    esFlujoVerificarInformarUi && realizoNuevaInspeccion === "si";
+  const verificarSinInspeccionNormal =
+    esFlujoVerificarInformarUi && realizoNuevaInspeccion === "no";
+  const muestraFlujoInspeccionNormal =
+    !esFlujoCumplimientoRatificacionUi &&
+    (!esFlujoVerificarInformarUi || verificarMuestraInspeccionNormal);
   const showContribDomicilioEditable = showContribuyenteDomicilioEditableEnCompletarTrabajo(
-    resolvedRow?.tipo_iniciador
+    displayRow?.tipo_iniciador
   );
-  const oficioNoCumple = esReinspeccionOficio && resultadoCumplimientoOficio === "NO_CUMPLE";
-  const tipoIniciadorLabel = completarTrabajoHeaderTitulo(resolvedRow?.tipo_iniciador ?? row?.tipo_iniciador);
-  const headerSubtitulo = completarTrabajoHeaderSubtitulo(resolvedRow?.fecha_actuacion ?? row?.fecha_actuacion);
-  const showDomicilioEnDetalle = completarTrabajoShowDomicilioEnDetalle(
-    resolvedRow?.tipo_iniciador ?? row?.tipo_iniciador
-  );
+  const oficioNoCumple = esFlujoCumplimientoRatificacionUi && resultadoCumplimientoOficio === "NO_CUMPLE";
+  const tipoIniciadorLabel = completarTrabajoHeaderTitulo(displayRow?.tipo_iniciador);
+  const headerSubtitulo = completarTrabajoHeaderSubtitulo(displayRow?.fecha_actuacion);
+  const showDomicilioEnDetalle = completarTrabajoShowDomicilioEnDetalle(displayRow?.tipo_iniciador);
   const detalleLabelSx = { color: "rgba(255,255,255,0.95)", fontWeight: 700 } as const;
   const detalleValueSx = { color: "rgba(255,255,255,0.85)", fontWeight: 500 } as const;
 
@@ -502,14 +572,14 @@ export function CompletarTrabajoModal({
         cat.contraproducencias ?? [],
         resolvedRow?.tipo_iniciador,
         resolvedRow?.contraproducencia,
-        esReinspeccionOficio ? tipoActuacionOficio : undefined
+        esFlujoCumplimientoRatificacionUi ? tipoActuacionOficioEfectivo ?? undefined : undefined
       ),
     [
       cat.contraproducencias,
       resolvedRow?.tipo_iniciador,
       resolvedRow?.contraproducencia,
-      esReinspeccionOficio,
-      tipoActuacionOficio,
+      esFlujoCumplimientoRatificacionUi,
+      tipoActuacionOficioEfectivo,
     ]
   );
   const contraOpts = useMemo(
@@ -554,11 +624,13 @@ export function CompletarTrabajoModal({
     if (!resolvedRow || detalleLoading) return;
     setFieldErrors({});
 
-    if (resolvedRow.tipo_iniciador === "REINSPECCION_OFICIO") {
+    if (esFlujoCumplimientoRatificacion(resolvedRow.tipo_iniciador, tipoActuacionOficioEfectivo)) {
       const preSubmitErrors: Record<string, string> = {};
+      const tipoCierre =
+        tipoActuacionFijoDesdeIniciadorOficio(resolvedRow.tipo_iniciador) || tipoActuacionOficio.trim();
       if (
-        !tipoActuacionOficio.trim() ||
-        !(TIPO_ACTUACION_REINSPECCION_OFICIO as readonly string[]).includes(tipoActuacionOficio)
+        !tipoCierre ||
+        !(TIPO_ACTUACION_REINSPECCION_OFICIO as readonly string[]).includes(tipoCierre)
       ) {
         preSubmitErrors.tipo_actuacion = "Elegí el tipo de actuación.";
       }
@@ -570,9 +642,9 @@ export function CompletarTrabajoModal({
         if (
           !filtrarContraproducenciasPorTipoIniciador(
             cat.contraproducencias ?? [],
-            "REINSPECCION_OFICIO",
+            resolvedRow.tipo_iniciador,
             contraTrim,
-            tipoActuacionOficio
+            tipoCierre
           ).some((x) => x.trim() === contraTrim)
         ) {
           preSubmitErrors.contraproducencia = "La contraproducencia no aplica al tipo de actuación elegido.";
@@ -588,7 +660,7 @@ export function CompletarTrabajoModal({
         const usaContraReencolado = resultadoCumplimientoOficio === "NO_CUMPLE" && contraTrim;
         const values: Record<string, unknown> = {
           contraproducencia: usaContraReencolado ? contraTrim : "",
-          tipo_actuacion: tipoActuacionOficio,
+          tipo_actuacion: tipoCierre,
           ...(usaContraReencolado
             ? {}
             : { resultado_cumplimiento_oficio: resultadoCumplimientoOficio }),
@@ -620,6 +692,57 @@ export function CompletarTrabajoModal({
       return;
     }
 
+    if (esFlujoVerificarInformar(resolvedRow.tipo_iniciador, tipoActuacionOficioEfectivo)) {
+      const preSubmitErrors: Record<string, string> = {};
+      const tipoCierre =
+        tipoActuacionFijoDesdeIniciadorOficio(resolvedRow.tipo_iniciador) ||
+        tipoActuacionOficio.trim() ||
+        TIPO_ACTUACION_VERIFICAR_INFORMAR;
+      if (!realizoNuevaInspeccion || !["si", "no"].includes(realizoNuevaInspeccion)) {
+        preSubmitErrors.realizo_nueva_inspeccion = "Indicá si realizó nueva inspección.";
+      }
+      if (Object.keys(preSubmitErrors).length > 0) {
+        setFieldErrors(preSubmitErrors);
+        feedback.warning(MENSAJE_VALIDACION_LOCAL);
+        return;
+      }
+
+      if (realizoNuevaInspeccion === "no") {
+        setSaving(true);
+        try {
+          const values: Record<string, unknown> = {
+            tipo_actuacion: tipoCierre,
+            realizo_nueva_inspeccion: "no",
+            contraproducencia,
+            observaciones_ejecucion: observacionesEjecucion.trim(),
+            ...ACTA_KEYS_EMPTY,
+          };
+          const base = baselineInspectoresRef.current;
+          const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
+          await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+            includeTipoActuacion: true,
+            omitPrecargadoPr2: false,
+            incluirInspeccionNormal: false,
+            ...(inspectoresDirty
+              ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
+              : {}),
+          });
+          feedback.success("Trabajo completado correctamente.");
+          onSuccess(resolvedRow.ruta_item_id);
+          onClose();
+        } catch (e) {
+          const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
+          setFieldErrors(nextFe);
+          feedback.error(generalMessage);
+        } finally {
+          setSaving(false);
+        }
+        return;
+      }
+
+      // Sí → validación y cierre con inspección normal (continúa abajo).
+    }
+
     const preValidation = validateActuacionFormForSubmit(
       buildCompletarTrabajoValidationForm(resolvedRow, {
         contraproducencia,
@@ -645,7 +768,7 @@ export function CompletarTrabajoModal({
       actuacionCompletarTrabajoValidationContext(
         visitaRealizada,
         esReinspeccionNotificacion,
-        esReinspeccionOficio
+        esFlujoCumplimientoRatificacionUi
       )
     );
     if (!preValidation.canSubmit) {
@@ -673,6 +796,13 @@ export function CompletarTrabajoModal({
         observaciones_ejecucion: observacionesEjecucion.trim(),
         ...ACTA_KEYS_EMPTY,
       };
+      if (esFlujoVerificarInformarUi) {
+        values.tipo_actuacion =
+          tipoActuacionFijoDesdeIniciadorOficio(resolvedRow.tipo_iniciador) ||
+          tipoActuacionOficioEfectivo ||
+          TIPO_ACTUACION_VERIFICAR_INFORMAR;
+        values.realizo_nueva_inspeccion = "si";
+      }
       if (showContribDomicilioEditable) {
         Object.assign(values, {
           rubro_nombre: rubroNombre,
@@ -714,7 +844,8 @@ export function CompletarTrabajoModal({
       const base = baselineInspectoresRef.current;
       const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
       await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
-        omitPrecargadoPr2: true,
+        omitPrecargadoPr2: !esFlujoVerificarInformarUi,
+        includeTipoActuacion: esFlujoVerificarInformarUi,
         ...(inspectoresDirty
           ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
           : {}),
@@ -789,7 +920,8 @@ export function CompletarTrabajoModal({
         </Alert>
       )}
 
-      {resolvedRow && (
+      {displayRow && (
+        <CompletarBloque title="Contexto del trabajo">
         <Box
           sx={{
             ...col,
@@ -806,26 +938,28 @@ export function CompletarTrabajoModal({
             <Box component="span" sx={detalleLabelSx}>
               Grupo:{" "}
             </Box>
-            {resolvedRow.grupo_nombre?.trim() || "—"}
+            {displayRow.grupo_nombre?.trim() || "—"}
           </Typography>
           <Typography variant="body2" sx={detalleValueSx}>
             <Box component="span" sx={detalleLabelSx}>
               Orden de trabajo:{" "}
             </Box>
-            {resolvedRow.orden_trabajo_numero ?? "—"}
+            {displayRow.orden_trabajo_numero ?? "—"}
           </Typography>
           {showDomicilioEnDetalle ? (
             <Typography variant="body2" sx={detalleValueSx}>
               <Box component="span" sx={detalleLabelSx}>
                 Domicilio actual:{" "}
               </Box>
-              {domicilioResumen(resolvedRow)}
+              {domicilioResumen(displayRow)}
             </Typography>
           ) : null}
         </Box>
+        </CompletarBloque>
       )}
 
-      {resolvedRow && !detalleLoading && (
+      {displayRow && !detalleLoading && (
+        <CompletarBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>
           <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
             Inspectores
@@ -879,9 +1013,11 @@ export function CompletarTrabajoModal({
             )}
           />
         </Box>
+        </CompletarBloque>
       )}
 
-      {resolvedRow && esReinspeccionOficio && (
+      {displayRow && esReinspeccionOficioGenericoUi && (
+        <CompletarBloque title="Cierre por oficio">
         <Box sx={col}>
           <AppSelect
             appearance="glass"
@@ -890,10 +1026,12 @@ export function CompletarTrabajoModal({
             onChange={(e) => {
               const next = e.target.value as string;
               setTipoActuacionOficio(next);
+              setResultadoCumplimientoOficio("");
+              setRealizoNuevaInspeccion("");
               if (contraproducencia.trim()) {
                 const validas = filtrarContraproducenciasPorTipoIniciador(
                   cat.contraproducencias ?? [],
-                  "REINSPECCION_OFICIO",
+                  resolvedRow.tipo_iniciador,
                   contraproducencia,
                   next
                 );
@@ -902,12 +1040,21 @@ export function CompletarTrabajoModal({
                 }
               }
               clearFe("tipo_actuacion");
+              clearFe("resultado_cumplimiento_oficio");
+              clearFe("realizo_nueva_inspeccion");
             }}
             fullWidth
             options={TIPO_ACTUACION_REINSPECCION_OFICIO_OPTS}
             error={Boolean(fe("tipo_actuacion"))}
             helperText={fe("tipo_actuacion") || "Obligatorio."}
           />
+        </Box>
+        </CompletarBloque>
+      )}
+
+      {displayRow && esFlujoCumplimientoRatificacionUi && (
+        <CompletarBloque title={esRatificacionOficio(displayRow.tipo_iniciador) ? "Cierre de ratificación" : "Cierre por oficio"}>
+        <Box sx={col}>
           <AppSelect
             appearance="glass"
             label="¿Dio cumplimiento?"
@@ -931,6 +1078,7 @@ export function CompletarTrabajoModal({
           {oficioNoCumple && (
             <>
               <AppSelect
+                appearance="glass"
                 label="Contraproducencia"
                 value={contraproducencia}
                 onChange={(e) => {
@@ -974,10 +1122,46 @@ export function CompletarTrabajoModal({
             helperText={fe("observaciones_ejecucion") || undefined}
           />
         </Box>
+        </CompletarBloque>
       )}
 
-      {resolvedRow && !esReinspeccionOficio && (
+      {displayRow && esFlujoVerificarInformarUi && (
+        <CompletarBloque title="Verificar e informar">
+        <Box sx={col}>
+          <AppSelect
+            appearance="glass"
+            label="¿Realizó nueva inspección?"
+            value={realizoNuevaInspeccion}
+            onChange={(e) => {
+              const next = e.target.value as string;
+              setRealizoNuevaInspeccion(next);
+              if (next !== "si") {
+                setActaInspeccion("");
+                setActaNotificacion("");
+                setNotifMotivosSeleccion([]);
+                setActaComprobacion("");
+                setComprobacionMotivo("");
+                setActaClausura("");
+                setActaDecomiso("");
+                setDecomisoKilos("");
+              }
+              clearFe("realizo_nueva_inspeccion");
+            }}
+            fullWidth
+            options={REALIZO_NUEVA_INSPECCION_OPTS}
+            error={Boolean(fe("realizo_nueva_inspeccion"))}
+            helperText={
+              fe("realizo_nueva_inspeccion") ||
+              "Si realizó inspección, elegí Sí para cargar actas. Si no, elegí No para cerrar sin actas normales."
+            }
+          />
+        </Box>
+        </CompletarBloque>
+      )}
+
+      {displayRow && (muestraFlujoInspeccionNormal || verificarSinInspeccionNormal) && (
         <>
+      <CompletarBloque title="Contraproducencia">
       <Box sx={col}>
         <AppSelect
           appearance="glass"
@@ -1068,8 +1252,10 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
 
-        {showContribDomicilioEditable && (
+        {muestraFlujoInspeccionNormal && showContribDomicilioEditable && (
         <>
+        <CompletarBloque title="Domicilio y establecimiento">
+        <Box sx={{ ...col, width: "100%" }}>
         <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
@@ -1111,7 +1297,11 @@ export function CompletarTrabajoModal({
           error={Boolean(fe("rubro_nombre"))}
           helperText={fe("rubro_nombre") || undefined}
         />
+        </Box>
+        </CompletarBloque>
 
+        <CompletarBloque title="Contribuyente / titular">
+        <Box sx={{ ...col, width: "100%" }}>
         <Typography variant="caption" sx={labelMuted}>
           Titular
         </Typography>
@@ -1141,7 +1331,7 @@ export function CompletarTrabajoModal({
         </ToggleButtonGroup>
 
         {titularModo === "persona" ? (
-          <>
+          <Box sx={edicionGrid2ColSx}>
             <AppTextField
               appearance="glass"
               label="Apellido"
@@ -1166,7 +1356,7 @@ export function CompletarTrabajoModal({
               error={Boolean(fe("contrib_nombre"))}
               helperText={fe("contrib_nombre") || undefined}
             />
-          </>
+          </Box>
         ) : (
           <AppTextField
             appearance="glass"
@@ -1207,12 +1397,16 @@ export function CompletarTrabajoModal({
           error={Boolean(fe("nombre_local"))}
           helperText={fe("nombre_local") || undefined}
         />
+        </Box>
+        </CompletarBloque>
         </>
         )}
       </Box>
+      </CompletarBloque>
 
-      {(visitaRealizada || esNoPermiteInspeccion) && (
-        <Box sx={{ ...col, pt: 0.5 }}>
+      {muestraFlujoInspeccionNormal && (visitaRealizada || esNoPermiteInspeccion) && (
+        <CompletarBloque title="Actas labradas">
+        <Box sx={{ ...col, width: "100%" }}>
           {esNoPermiteInspeccion && !visitaRealizada && (
             <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", letterSpacing: 0.2 }}>
               Actas para este cierre
@@ -1220,37 +1414,37 @@ export function CompletarTrabajoModal({
           )}
           {visitaRealizada && (
             <>
-              <ActaNumFieldLazy
-                appearance="glass"
-                label="N° acta de inspección"
-                value={actaInspeccion || null}
-                onCommit={(v) => {
-                  setActaInspeccion(v ?? "");
-                  clearFe("acta_inspeccion_num");
-                }}
-                error={Boolean(fe("acta_inspeccion_num"))}
-                helperText={fe("acta_inspeccion_num") || undefined}
-              />
-              {esReinspeccionNotificacion ? (
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: "rgba(255,255,255,0.06)",
-                    fontFamily: '"Tactic Sans", sans-serif',
+              <Box sx={edicionGrid2ColSx}>
+                <ActaNumFieldLazy
+                  appearance="glass"
+                  label="N° acta de inspección"
+                  value={actaInspeccion || null}
+                  onCommit={(v) => {
+                    setActaInspeccion(v ?? "");
+                    clearFe("acta_inspeccion_num");
                   }}
-                >
-                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
-                    Notificación origen (solo lectura)
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
-                    {(resolvedRow?.acta_notificacion_num ?? "").trim()
-                      ? `Notif. ${(resolvedRow?.acta_notificacion_num ?? "").trim()}`
-                      : "—"}
-                  </Typography>
-                </Box>
-              ) : (
-                <>
+                  error={Boolean(fe("acta_inspeccion_num"))}
+                  helperText={fe("acta_inspeccion_num") || undefined}
+                />
+                {esReinspeccionNotificacion ? (
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: "rgba(255,255,255,0.06)",
+                      fontFamily: '"Tactic Sans", sans-serif',
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                      Notificación origen (solo lectura)
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
+                      {(resolvedRow?.acta_notificacion_num ?? "").trim()
+                        ? `Notif. ${(resolvedRow?.acta_notificacion_num ?? "").trim()}`
+                        : "—"}
+                    </Typography>
+                  </Box>
+                ) : (
                   <ActaNumFieldLazy
                     appearance="glass"
                     label="N° acta de notificación"
@@ -1262,6 +1456,10 @@ export function CompletarTrabajoModal({
                     error={Boolean(fe("acta_notificacion_num"))}
                     helperText={fe("acta_notificacion_num") || undefined}
                   />
+                )}
+              </Box>
+              {!esReinspeccionNotificacion ? (
+                <>
                   <Typography variant="caption" sx={labelMuted}>
                     Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
                   </Typography>
@@ -1319,6 +1517,7 @@ export function CompletarTrabajoModal({
                         {...params}
                         label="Agregar motivo"
                         placeholder={catalogsReady ? "Catálogo" : "…"}
+                        sx={modalAuxInputSx}
                         error={Boolean(
                           fe("notificacion_motivo_1") || fe("notificacion_motivo_2") || fe("notificacion_motivo_3")
                         )}
@@ -1332,10 +1531,10 @@ export function CompletarTrabajoModal({
                     )}
                   />
                 </>
-              )}
+              ) : null}
             </>
           )}
-          <>
+          <Box sx={edicionGrid2ColSx}>
             <ActaNumFieldLazy
               appearance="glass"
               label={
@@ -1372,6 +1571,8 @@ export function CompletarTrabajoModal({
                 (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
               }
             />
+          </Box>
+          <Box sx={edicionGrid2ColSx}>
             <ActaNumFieldLazy
               appearance="glass"
               label="N° acta de clausura (opcional)"
@@ -1383,9 +1584,7 @@ export function CompletarTrabajoModal({
               error={Boolean(fe("acta_clausura_num"))}
               helperText={fe("acta_clausura_num") || undefined}
             />
-          </>
-          {visitaRealizada && (
-            <>
+            {visitaRealizada ? (
               <ActaNumFieldLazy
                 appearance="glass"
                 label="N° acta de decomiso"
@@ -1397,22 +1596,29 @@ export function CompletarTrabajoModal({
                 error={Boolean(fe("acta_decomiso_num"))}
                 helperText={fe("acta_decomiso_num") || undefined}
               />
-              <AppTextField
-                appearance="glass"
-                label="Kilos decomisados"
-                value={decomisoKilos}
-                onChange={(e) => {
-                  setDecomisoKilos(e.target.value);
-                  clearFe("decomiso_kilos_total");
-                }}
-                fullWidth
-                error={Boolean(fe("decomiso_kilos_total"))}
-                helperText={fe("decomiso_kilos_total") || undefined}
-              />
-            </>
-          )}
+            ) : (
+              <Box />
+            )}
+          </Box>
+          {visitaRealizada ? (
+            <AppTextField
+              appearance="glass"
+              label="Kilos decomisados"
+              value={decomisoKilos}
+              onChange={(e) => {
+                setDecomisoKilos(e.target.value);
+                clearFe("decomiso_kilos_total");
+              }}
+              fullWidth
+              error={Boolean(fe("decomiso_kilos_total"))}
+              helperText={fe("decomiso_kilos_total") || undefined}
+            />
+          ) : null}
         </Box>
+        </CompletarBloque>
       )}
+      <CompletarBloque title="Observaciones">
+        <Box sx={{ ...col, width: "100%" }}>
           <AppTextField
             appearance="glass"
             label="Observaciones de ejecución (opcional)"
@@ -1428,6 +1634,8 @@ export function CompletarTrabajoModal({
             error={Boolean(fe("observaciones_ejecucion"))}
             helperText={fe("observaciones_ejecucion") || undefined}
           />
+        </Box>
+      </CompletarBloque>
         </>
       )}
       </Stack>

@@ -177,8 +177,7 @@ def test_no_cumple_reencola_iniciador_a_pendiente(app_ctx) -> None:
     item, act, ini, u = _mk_reinspeccion_oficio_item(suf)
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
-            "tipo_actuacion": "VERIFICAR E INFORMAR",
-            "acta_inspeccion_num": _ot_num(),
+            "tipo_actuacion": "RATIFICACION DE CLAUSURA",
             "resultado_cumplimiento_oficio": "NO_CUMPLE",
         }
     )

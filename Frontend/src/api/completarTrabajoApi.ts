@@ -207,8 +207,10 @@ export interface ICompletarTrabajoCierreBody {
   decomiso_kilos_total?: number | null;
   nombre_local?: string | null;
   inspectores?: string[] | null;
-  /** Solo válido en backend para `REINSPECCION_OFICIO` y visita realizada. */
+  /** Solo válido en backend para reinspección/ratificación por oficio y visita realizada. */
   resultado_cumplimiento_oficio?: "CUMPLE" | "NO_CUMPLE" | null;
+  /** Verificar e informar: true = inspección normal; false = sin actas normales. */
+  realizo_nueva_inspeccion?: boolean | null;
 }
 
 export const postCompletarTrabajoCerrar = async (

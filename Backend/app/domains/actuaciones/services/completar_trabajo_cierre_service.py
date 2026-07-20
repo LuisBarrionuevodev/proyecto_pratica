@@ -38,6 +38,9 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
     normalize_contraproducencia,
 )
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
+    es_flujo_cumplimiento_oficio,
+    es_flujo_verificar_informar,
+    promover_iniciador_reinspeccion_oficio_segun_tipo,
     validar_tipo_actuacion_para_iniciador,
 )
 from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
@@ -94,7 +97,7 @@ def _reencolar_iniciador_si_oficio_no_cumple(
 
     Conservador: no duplica iniciador; no reencola si queda otro ítem abierto en ruta operativa.
     """
-    if ini.tipo_iniciador != "REINSPECCION_OFICIO":
+    if not es_flujo_cumplimiento_oficio(ini.tipo_iniciador):
         return
     if getattr(act, "resultado_cumplimiento_oficio", None) != "NO_CUMPLE":
         return
@@ -139,11 +142,17 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 )
 
 _MSG_RESULTADO_SOLO_OFICIO = (
-    "El resultado de cumplimiento del oficio solo aplica a REINSPECCION_OFICIO."
+    "El resultado de cumplimiento del oficio solo aplica a reinspección/ratificación por oficio."
 )
 _MSG_RESULTADO_SOLO_VISITA_REALIZADA = (
     "El resultado de cumplimiento del oficio solo aplica cuando la visita está realizada "
     "(sin contraproducencia)."
+)
+_MSG_RESULTADO_NO_VERIFICAR_INFORMAR = (
+    "El resultado de cumplimiento del oficio no aplica a verificar e informar."
+)
+_MSG_ACTAS_NO_VERIFICAR_SIN_INSPECCION = (
+    "Con verificar e informar sin nueva inspección no se deben cargar actas normales."
 )
 
 
@@ -166,16 +175,51 @@ def _persist_resultado_cumplimiento_oficio(
 
     Reglas:
     - Si no se envía valor (``None``): no modifica la columna (permite NULL histórico).
-    - Si se envía valor: exige iniciador ``REINSPECCION_OFICIO`` y visita realizada (sin contraproducencia).
+    - Si se envía valor: exige iniciador de cumplimiento oficio/ratificación y visita realizada (sin contraproducencia).
     """
     val = payload.resultado_cumplimiento_oficio
     if val is None:
         return
     if bucket != ContrapBucket.NONE:
         raise ValueError(_MSG_RESULTADO_SOLO_VISITA_REALIZADA)
-    if ini.tipo_iniciador != "REINSPECCION_OFICIO":
+    if not es_flujo_cumplimiento_oficio(ini.tipo_iniciador):
         raise ValueError(_MSG_RESULTADO_SOLO_OFICIO)
     act.resultado_cumplimiento_oficio = val
+
+
+def _validar_payload_verificar_informar(
+    ini: IniciadorRuta,
+    payload: CompletarTrabajoCierreCompletoIn,
+) -> None:
+    """
+    Reglas PR10.2c: verificar e informar distingue nueva inspección sí/no.
+
+    Parámetros:
+        ini: iniciador del ítem.
+        payload: body validado del cierre.
+
+    Errores:
+        ValueError: resultado de cumplimiento o actas incoherentes con el flujo.
+    """
+    if not es_flujo_verificar_informar(ini.tipo_iniciador, payload.tipo_actuacion):
+        return
+    if payload.resultado_cumplimiento_oficio is not None:
+        raise ValueError(_MSG_RESULTADO_NO_VERIFICAR_INFORMAR)
+    if payload.realizo_nueva_inspeccion is False:
+        acta_campos = (
+            payload.acta_inspeccion_num,
+            payload.acta_notificacion_num,
+            payload.acta_comprobacion_num,
+            payload.acta_clausura_num,
+            payload.acta_decomiso_num,
+            payload.notificacion_motivo_1,
+            payload.notificacion_motivo_2,
+            payload.notificacion_motivo_3,
+            payload.comprobacion_motivo,
+            payload.decomiso_kilos_total,
+        )
+        if any(v not in (None, "") for v in acta_campos):
+            raise ValueError(_MSG_ACTAS_NO_VERIFICAR_SIN_INSPECCION)
 
 
 def _resolve_contribuyente_para_domicilio_cierre(
@@ -375,6 +419,7 @@ def cerrar_completar_trabajo_por_ruta_item(
         tipo_iniciador=ini.tipo_iniciador,
         tipo_actuacion=payload.tipo_actuacion,
     )
+    _validar_payload_verificar_informar(ini, payload)
 
     stored_contra, bucket = normalize_contraproducencia(payload.contraproducencia)
     if bucket != ContrapBucket.NONE and stored_contra:
@@ -523,6 +568,8 @@ def cerrar_completar_trabajo_por_ruta_item(
             )
             if eid is not None:
                 act.establecimiento_operativo_id = eid
+
+        promover_iniciador_reinspeccion_oficio_segun_tipo(ini, payload.tipo_actuacion)
 
         ini.updated_at = now
         db.session.add(act)

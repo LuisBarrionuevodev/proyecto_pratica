@@ -140,4 +140,65 @@ describe("CompletarTrabajoModal", () => {
     expect(html).not.toContain("Cierre operativo");
     expect(html).not.toContain("Tipo de iniciador:");
   });
+
+  it("ratificación promovida muestra título humanizado de ratificación", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "RATIFICACION_CLAUSURA_OFICIO",
+          tipo_actuacion: "RATIFICACION DE CLAUSURA",
+          fecha_actuacion: "2026-07-01",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Ratificación de clausura");
+    expect(html).not.toContain("Reinspección por oficio");
+  });
+
+  it("verificar e informar promovido muestra pregunta de nueva inspección", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "VERIFICAR_INFORMAR_OFICIO",
+          tipo_actuacion: "VERIFICAR E INFORMAR",
+          fecha_actuacion: "2026-07-02",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Verificar e informar");
+    expect(html).toContain("¿Realizó nueva inspección?");
+    expect(html).not.toContain("¿Dio cumplimiento?");
+    expect(html).not.toContain("N° acta de inspección");
+  });
+
+  it("ratificación promovida no muestra nueva inspección", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "RATIFICACION_DECOMISO_OFICIO",
+          tipo_actuacion: "RATIFICACION DE DECOMISO",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Dio cumplimiento?");
+    expect(html).not.toContain("¿Realizó nueva inspección?");
+  });
 });

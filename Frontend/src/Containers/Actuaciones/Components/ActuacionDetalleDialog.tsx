@@ -47,6 +47,7 @@ import { NumeroEsquinaFreeEditor } from "./NumeroEsquinaFreeEditor";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
 import { ActaNumFieldLazy } from "./ActaNumFieldLazy";
+import { ACTA_FIELD_LABELS } from "../utils/actaFieldLabels";
 import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
 import {
   actuacionDocumentacionOrigenReinspeccionSegments,
@@ -150,6 +151,15 @@ const edicionGrid2ColSx = {
   gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
   gap: 2,
   width: "100%",
+  alignItems: "end",
+} as const;
+
+const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
+const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' } as const;
+
+const actuacionModalChipSx = {
+  bgcolor: "rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.92)",
 } as const;
 
 /** Acta de notificación / comprobación bloqueada por expediente (misma semántica que `lockedNotif` / `lockedComp`). */
@@ -274,64 +284,37 @@ function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
   const numDec = (nDec != null && String(nDec).trim() !== "") ? dash(nDec) : "—";
 
   return (
-    <Box component="div" sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {showInspeccion ? (
-        <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={actaSubtituloMenorSx}>
-            Acta de inspección
-          </Typography>
-          <CrudFormSlot label="Número de acta" mode="view" value={dash(nIns)} />
-        </Box>
+    <Box sx={{ ...col, width: "100%" }}>
+      <Box sx={edicionGrid2ColSx}>
+        {showInspeccion ? (
+          <CrudFormSlot label="N° acta de inspección" mode="view" value={dash(nIns)} />
+        ) : null}
+        {showNotificacion ? (
+          <CrudFormSlot label="N° acta de notificación" mode="view" value={numNot} />
+        ) : null}
+        {showComprobacion ? (
+          <CrudFormSlot label="N° acta de comprobación" mode="view" value={numComp} />
+        ) : null}
+        {showClausura ? (
+          <CrudFormSlot label="N° acta de clausura" mode="view" value={dash(nClau)} />
+        ) : null}
+        {showDecomiso ? (
+          <CrudFormSlot label="N° acta de decomiso" mode="view" value={numDec} />
+        ) : null}
+      </Box>
+      {motivosNoti.length > 0 ? (
+        <CrudFormSlot
+          label="Motivos de notificación"
+          mode="view"
+          value={motivosNoti.join(" · ")}
+          sx={{ mt: 0.5 }}
+        />
       ) : null}
-
-      {showNotificacion ? (
-        <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={actaSubtituloMenorSx}>
-            Acta de notificación
-          </Typography>
-          <CrudFormSlot label="Número de acta" mode="view" value={numNot} />
-          {motivosNoti.length > 0 ? (
-            <CrudFormSlot
-              label="Motivos de notificación"
-              mode="view"
-              value={motivosNoti.join(" · ")}
-              sx={{ mt: 2 }}
-            />
-          ) : null}
-        </Box>
+      {mComp ? (
+        <CrudFormSlot label="Motivo de comprobación" mode="view" value={mComp} sx={{ mt: 0.5 }} />
       ) : null}
-
-      {showComprobacion ? (
-        <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={actaSubtituloMenorSx}>
-            Acta de comprobación
-          </Typography>
-          <CrudFormSlot label="Número de acta" mode="view" value={numComp} />
-          {mComp ? (
-            <CrudFormSlot label="Motivo de comprobación" mode="view" value={mComp} sx={{ mt: 2 }} />
-          ) : null}
-        </Box>
-      ) : null}
-
-      {showClausura ? (
-        <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={actaSubtituloMenorSx}>
-            Acta de clausura
-          </Typography>
-          <CrudFormSlot label="Número de acta" mode="view" value={dash(nClau)} />
-        </Box>
-      ) : null}
-
-      {showDecomiso ? (
-        <Box sx={actaGrupoWrapperSx}>
-          <Typography component="h3" sx={actaSubtituloMenorSx}>
-            Acta de decomiso
-          </Typography>
-          <CrudFormSlot label="Número de acta" mode="view" value={numDec} />
-          {kg != null ? (
-            <CrudFormSlot label="Kilos decomisados" mode="view" value={`${kg} kg`} sx={{ mt: 2 }} />
-          ) : null}
-        </Box>
+      {kg != null ? (
+        <CrudFormSlot label="Kilos decomisados" mode="view" value={`${kg} kg`} sx={{ mt: 0.5 }} />
       ) : null}
     </Box>
   );
@@ -985,7 +968,7 @@ export function ActuacionDetalleDialog({
       </DocumentalBloque>
 
       {actasVisitaHayContenido(draft) ? (
-        <DocumentalBloque overline="Actas labradas" sectionTitleSx={actasLabradasSectionTitleSx}>
+        <DocumentalBloque overline="Actas labradas">
           <ActasVisitaLectura draft={draft} />
         </DocumentalBloque>
       ) : null}
@@ -1062,8 +1045,9 @@ export function ActuacionDetalleDialog({
     const inspectoresDisponiblesAgregar = inspectoresCatalogMerged.filter((n) => !inspectoresEnOrdenLocal.includes(n));
 
     const gridNotificacion = (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+      <Box sx={{ ...col, width: "100%" }}>
         <ActaNumFieldLazy
+          label={ACTA_FIELD_LABELS.notificacion}
           value={draft.acta_notificacion_num}
           onCommit={commitActaNotificacion}
           disabled={lockedNotif}
@@ -1072,34 +1056,32 @@ export function ActuacionDetalleDialog({
           error={!!e("acta_notificacion_num")}
           helperText={helperBloqueo("acta_notificacion_num", lockedNotif)}
         />
-        <Box sx={{ width: "100%" }}>
-          <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 600, mb: 0.75 }}>
-            Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.25, minHeight: 36 }}>
-            {motivosNotifSeleccionados.length === 0 ? (
-              <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, opacity: 0.9 }}>
-                Ninguno — agregá desde el catálogo.
-              </Typography>
-            ) : (
-              motivosNotifSeleccionados.map((name) => (
-                <Chip
-                  key={name}
-                  label={name}
-                  size="small"
-                  disabled={lockedNotif}
-                  onDelete={
-                    lockedNotif
-                      ? undefined
-                      : () => applyMotivosNotificacion(motivosNotifSeleccionados.filter((x) => x !== name))
-                  }
-                  sx={{ color: DOC_MODAL_TEXT, borderColor: "rgba(255,255,255,0.35)" }}
-                  variant="outlined"
-                />
-              ))
-            )}
-          </Box>
-          <Autocomplete
+        <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+          Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
+        </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+          {motivosNotifSeleccionados.length === 0 ? (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+              —
+            </Typography>
+          ) : (
+            motivosNotifSeleccionados.map((name) => (
+              <Chip
+                key={name}
+                label={name}
+                size="small"
+                disabled={lockedNotif}
+                onDelete={
+                  lockedNotif
+                    ? undefined
+                    : () => applyMotivosNotificacion(motivosNotifSeleccionados.filter((x) => x !== name))
+                }
+                sx={actuacionModalChipSx}
+              />
+            ))
+          )}
+        </Box>
+        <Autocomplete
             size="small"
             options={motivosDisponiblesAgregar}
             value={null}
@@ -1121,13 +1103,13 @@ export function ActuacionDetalleDialog({
               />
             )}
           />
-        </Box>
       </Box>
     );
 
     const gridComprobacion = (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+      <Box sx={edicionGrid2ColSx}>
         <ActaNumFieldLazy
+          label={ACTA_FIELD_LABELS.comprobacion}
           value={draft.acta_comprobacion_num}
           onCommit={commitActaComprobacion}
           disabled={lockedComp}
@@ -1305,13 +1287,13 @@ export function ActuacionDetalleDialog({
               />
             </Box>
             <Box sx={{ mt: 2, width: "100%" }}>
-              <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, fontWeight: 600, mb: 0.5 }}>
-                Inspectores a cargo
+              <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+                Inspectores
               </Typography>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.25, minHeight: 36 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
                 {inspectoresEnOrdenLocal.length === 0 ? (
-                  <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, opacity: 0.92 }}>
-                    Ninguno — agregá desde el catálogo.
+                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                    —
                   </Typography>
                 ) : (
                   inspectoresEnOrdenLocal.map((name) => (
@@ -1324,8 +1306,7 @@ export function ActuacionDetalleDialog({
                           ? undefined
                           : () => applyInspectoresNombres(inspectoresEnOrdenLocal.filter((x) => x !== name))
                       }
-                      sx={{ color: DOC_MODAL_TEXT, borderColor: "rgba(255,255,255,0.35)" }}
-                      variant="outlined"
+                      sx={actuacionModalChipSx}
                     />
                   ))
                 )}
@@ -1361,12 +1342,10 @@ export function ActuacionDetalleDialog({
           </Box>
         </DocumentalBloque>
 
-        <DocumentalBloque overline="Actas labradas" sectionTitleSx={actasLabradasSectionTitleSx}>
-          <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={actaSubtituloMenorSx}>
-              Acta de inspección
-            </Typography>
+        <DocumentalBloque overline="Actas labradas">
+          <Box sx={{ ...col, width: "100%" }}>
             <ActaNumFieldLazy
+              label={ACTA_FIELD_LABELS.inspeccion}
               value={draft.acta_inspeccion_num}
               onCommit={commitActaInspeccion}
               saving={saving}
@@ -1374,40 +1353,30 @@ export function ActuacionDetalleDialog({
               error={!!e("acta_inspeccion_num")}
               helperText={fieldHelper("acta_inspeccion_num")}
             />
-          </Box>
 
-          {canNotifEdit ? (
-          <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={actaSubtituloMenorSx}>
-              Acta de notificación
-            </Typography>
-            {lockedNotif ? (
-              <Box sx={edicionActaBloqueadaShellSx}>
-                <Typography
-                  variant="caption"
-                  component="p"
-                  sx={{
-                    color: DOC_MODAL_TEXT,
-                    opacity: 0.96,
-                    lineHeight: 1.45,
-                    mb: 1.25,
-                    maxWidth: 520,
-                  }}
-                >
-                  Expediente asociado: bloqueado en canal actas. Los motivos y el número no se modifican aquí.
-                </Typography>
-                {gridNotificacion}
-              </Box>
-            ) : (
-              gridNotificacion
-            )}
-          </Box>
-          ) : null}
+            {canNotifEdit ? (
+              lockedNotif ? (
+                <Box sx={edicionActaBloqueadaShellSx}>
+                  <Typography
+                    variant="caption"
+                    component="p"
+                    sx={{
+                      color: DOC_MODAL_TEXT,
+                      opacity: 0.96,
+                      lineHeight: 1.45,
+                      mb: 1.25,
+                      maxWidth: 520,
+                    }}
+                  >
+                    Expediente asociado: bloqueado en canal actas. Los motivos y el número no se modifican aquí.
+                  </Typography>
+                  {gridNotificacion}
+                </Box>
+              ) : (
+                gridNotificacion
+              )
+            ) : null}
 
-          <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={actaSubtituloMenorSx}>
-              Acta de comprobación
-            </Typography>
             {lockedComp ? (
               <Box sx={edicionActaBloqueadaShellSx}>
                 <Typography
@@ -1428,34 +1397,27 @@ export function ActuacionDetalleDialog({
             ) : (
               gridComprobacion
             )}
-          </Box>
 
-          <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={actaSubtituloMenorSx}>
-              Acta de clausura
-            </Typography>
-            <ActaNumFieldLazy
-              value={draft.acta_clausura_num}
-              onCommit={commitActaClausura}
-              saving={saving}
-              registerFlush={registerActaFlush}
-              error={!!e("acta_clausura_num")}
-              helperText={fieldHelper("acta_clausura_num")}
-            />
-          </Box>
-
-          <Box sx={actaGrupoWrapperSx}>
-            <Typography component="h3" sx={actaSubtituloMenorSx}>
-              Acta de decomiso
-            </Typography>
-            <ActaNumFieldLazy
-              value={draft.acta_decomiso_num}
-              onCommit={commitActaDecomiso}
-              saving={saving}
-              registerFlush={registerActaFlush}
-              error={!!e("acta_decomiso_num")}
-              helperText={fieldHelper("acta_decomiso_num")}
-            />
+            <Box sx={edicionGrid2ColSx}>
+              <ActaNumFieldLazy
+                label={ACTA_FIELD_LABELS.clausura}
+                value={draft.acta_clausura_num}
+                onCommit={commitActaClausura}
+                saving={saving}
+                registerFlush={registerActaFlush}
+                error={!!e("acta_clausura_num")}
+                helperText={fieldHelper("acta_clausura_num")}
+              />
+              <ActaNumFieldLazy
+                label={ACTA_FIELD_LABELS.decomiso}
+                value={draft.acta_decomiso_num}
+                onCommit={commitActaDecomiso}
+                saving={saving}
+                registerFlush={registerActaFlush}
+                error={!!e("acta_decomiso_num")}
+                helperText={fieldHelper("acta_decomiso_num")}
+              />
+            </Box>
             <AppTextField
               appearance="glass"
               label="Kilos decomisados"
@@ -1470,7 +1432,6 @@ export function ActuacionDetalleDialog({
               error={!!e("decomiso_kilos_total")}
               helperText={fieldHelper("decomiso_kilos_total")}
               fullWidth
-              sx={{ mt: 1.5 }}
             />
           </Box>
         </DocumentalBloque>
@@ -1588,9 +1549,8 @@ export function ActuacionDetalleDialog({
       title={
         <CrudDialogHeader
           domainChip="Actuaciones"
-          mode={isEditing ? "edit" : "view"}
           titulo={isEditing ? "Editar actuación" : "Ver actuación"}
-          subtitulo="Detalle operativo"
+          subtitulo={isEditing ? "Datos operativos y actas del día" : "Consulta de ficha operativa"}
         />
       }
       actions={

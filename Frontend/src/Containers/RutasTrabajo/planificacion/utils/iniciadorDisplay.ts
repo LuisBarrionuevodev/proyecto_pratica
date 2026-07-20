@@ -40,9 +40,9 @@ const TIPO_INICIADOR_LABELS: Record<string, string> = {
   DENUNCIA: "Denuncia",
   REINSPECCION_NOTIFICACION: "Reinspección por notificación",
   REINSPECCION_OFICIO: "Reinspección por oficio",
-  VERIFICAR_INFORMAR_OFICIO: "Verificar e informar (oficio)",
-  RATIFICACION_CLAUSURA_OFICIO: "Ratificación clausura (oficio)",
-  RATIFICACION_DECOMISO_OFICIO: "Ratificación decomiso (oficio)",
+  VERIFICAR_INFORMAR_OFICIO: "Verificar e informar",
+  RATIFICACION_CLAUSURA_OFICIO: "Ratificación de clausura",
+  RATIFICACION_DECOMISO_OFICIO: "Ratificación de decomiso",
 };
 
 function humanizarCodigoTipoDesconocido(codigo: string): string {
