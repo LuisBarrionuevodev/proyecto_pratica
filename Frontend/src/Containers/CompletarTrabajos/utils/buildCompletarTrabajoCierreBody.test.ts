@@ -152,14 +152,15 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
     expect(body.numero_tipo).toBe("NUMERO");
   });
 
-  it("no manda calle_key ni calle sin editar", () => {
+  it("calle baseline + número editado cuando calle visible no cambió", () => {
     const body = buildCompletarTrabajoCierreBodyFromInline(
       rowMonteagudo,
-      { calle: "Dr Bernardo Monteagudo", numero: "100" },
+      { calle: "Dr Bernardo Monteagudo", numero: "100", numero_tipo: "NUMERO" },
       { omitPrecargadoPr2: true }
     );
-    expect(body.calle).toBeUndefined();
+    expect(body.calle).toBe("Dr Bernardo Monteagudo");
     expect(body.numero).toBe("100");
+    expect(body.numero_tipo).toBe("NUMERO");
   });
 
   it("no manda esquina técnica sin editar", () => {
@@ -259,7 +260,7 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
     expect(body.numero_tipo).toBe("NUMERO");
   });
 
-  it("no manda domicilio parcial (solo número sin calle explícita)", () => {
+  it("calle baseline + número editado cuando solo cambia el número (PR11.2)", () => {
     const row = {
       ruta_item_id: 716,
       calle: "San Juan",
@@ -272,8 +273,101 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
       { numero: "200", acta_inspeccion_num: "001" },
       { omitPrecargadoPr2: true }
     );
-    expect(body.calle).toBeUndefined();
+    expect(body.calle).toBe("San Juan");
     expect(body.numero).toBe("200");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("calle editada + número baseline cuando solo cambia la calle (PR11.2)", () => {
+    const row = {
+      ruta_item_id: 717,
+      calle: "Maipú",
+      calle_normalizada: "Maipú",
+      numero: "34",
+      numero_tipo: "NUMERO",
+      rubro_nombre: "Panadería",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      { calle: "Mendoza", acta_inspeccion_num: "002" },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("Mendoza");
+    expect(body.numero).toBe("34");
+    expect(body.numero_tipo).toBe("NUMERO");
+  });
+
+  it("rubro baseline se conserva al cambiar solo domicilio (PR11.2)", () => {
+    const row = {
+      ruta_item_id: 718,
+      calle: "Maipú",
+      calle_normalizada: "Maipú",
+      numero: "34",
+      numero_tipo: "NUMERO",
+      rubro_nombre: "Panadería",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      {
+        calle: "Maipú",
+        numero: "36",
+        numero_tipo: "NUMERO",
+        rubro_nombre: "Panadería",
+        acta_inspeccion_num: "003",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBe("Maipú");
+    expect(body.numero).toBe("36");
+    expect(body.rubro_nombre).toBe("Panadería");
+  });
+
+  it("rubro editado manda el nuevo valor (PR11.2)", () => {
+    const row = {
+      ruta_item_id: 719,
+      calle: "Maipú",
+      calle_normalizada: "Maipú",
+      numero: "34",
+      numero_tipo: "NUMERO",
+      rubro_nombre: "Panadería",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      { rubro_nombre: "Carnicería", acta_inspeccion_num: "004" },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.rubro_nombre).toBe("Carnicería");
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBeUndefined();
+  });
+
+  it("verificar e informar con nueva inspección: solo número usa calle baseline (PR11.2)", () => {
+    const row = {
+      ruta_item_id: 720,
+      tipo_iniciador: "VERIFICAR_INFORMAR_OFICIO",
+      calle: "Maipú",
+      calle_normalizada: "Maipú",
+      numero: "34",
+      numero_tipo: "NUMERO",
+      rubro_nombre: "Panadería",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      {
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        realizo_nueva_inspeccion: "si",
+        calle: "Maipú",
+        numero: "36",
+        numero_tipo: "NUMERO",
+        rubro_nombre: "Panadería",
+        acta_inspeccion_num: "000042",
+      },
+      { includeTipoActuacion: true }
+    );
+    expect(body.calle).toBe("Maipú");
+    expect(body.numero).toBe("36");
+    expect(body.rubro_nombre).toBe("Panadería");
+    expect(body.realizo_nueva_inspeccion).toBe(true);
   });
 });
 

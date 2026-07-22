@@ -388,8 +388,9 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
           }}
         >
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
-            Se marcarán como eliminados el oficio y el expediente de respuesta. La actuación y el acta de comprobación no se
-            borran; podés volver a cargar el oficio desde la bandeja si corresponde.
+            Se marcarán como eliminados el oficio, el expediente de respuesta y el iniciador asociado (si existe y no
+            fue usado en ruta). La actuación y el acta de comprobación no se borran; podés volver a cargar el oficio
+            desde la bandeja si corresponde.
           </Typography>
         </ConfirmDialog>
     </>

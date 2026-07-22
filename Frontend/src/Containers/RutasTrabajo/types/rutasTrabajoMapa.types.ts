@@ -105,6 +105,10 @@ export type RutasMapaOperativoViewProps = {
   onPublicarRuta?: () => void | Promise<void>;
   /** Ruta en BORRADOR con datos listos; false deshabilita el botón. */
   canPublish?: boolean;
+  /** Tooltip del botón Publicar (condiciones pendientes o ayuda). */
+  publicarTooltip?: string;
+  /** Condiciones que impiden publicar (vacío = listo). */
+  publicarBlockers?: string[];
   /** Muestra estado de carga en el botón de publicar. */
   publishingRuta?: boolean;
   /** Misma gestión liviana que TABLA (comparte handlers con el contenedor). */

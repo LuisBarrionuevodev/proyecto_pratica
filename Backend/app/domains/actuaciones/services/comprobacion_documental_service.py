@@ -16,7 +16,7 @@ from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import referencia_actuacion_from_grid_row
-from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
+from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, RutaItem, RutaTrabajo
 from app.utils.actas import acta_6
 from sqlalchemy import or_
 
@@ -29,6 +29,10 @@ _MSG_BLOQUEO = (
 _MSG_NO_ELIMINAR_ENVIO_CON_OFICIO = (
     "No se puede eliminar el expediente de envío: ya existe un oficio activo para esta comprobación. "
     "Si corresponde, eliminá primero el bloque oficio y expediente de respuesta."
+)
+
+_MSG_OFICIO_USADO_OPERATIVAMENTE = (
+    "No se puede eliminar porque ya fue utilizado en una ruta o actuación."
 )
 
 
@@ -52,6 +56,68 @@ def comprobacion_usada_como_iniciador(comprobacion_id: int) -> bool:
         .first()
         is not None
     )
+
+
+def oficio_operativamente_usado_para_eliminar(oficio_id: int) -> tuple[bool, str | None]:
+    """
+    Indica si el oficio no puede eliminarse por uso operativo (ruta publicada, actuación cerrada, etc.).
+
+    Parámetros:
+        oficio_id: PK de ``Oficio``.
+
+    Retorno:
+        Tupla ``(usado, motivo)``; si ``usado`` es True, ``motivo`` describe el bloqueo.
+    """
+    policy = evaluar_editable_oficio(int(oficio_id))
+    if policy.get("editable"):
+        return False, None
+    motivo = (policy.get("bloqueado_motivo") or "").strip()
+    if not motivo:
+        motivo = _MSG_OFICIO_USADO_OPERATIVAMENTE
+    return True, motivo
+
+
+def _soft_delete_ruta_items_borrador_por_iniciador(iniciador_id: int, now: datetime) -> None:
+    """Soft delete de ítems abiertos en rutas BORRADOR vinculados al iniciador."""
+    items = (
+        RutaItem.query.join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .filter(
+            RutaItem.iniciador_ruta_id == int(iniciador_id),
+            RutaItem.deleted_at.is_(None),
+            RutaTrabajo.estado_ruta == "BORRADOR",
+        )
+        .all()
+    )
+    for item in items:
+        item.deleted_at = now
+        db.session.add(item)
+
+
+def soft_delete_iniciadores_vinculados_oficio(oficio_id: int, now: datetime) -> int:
+    """
+    Baja lógica de iniciadores activos vinculados al oficio y limpia ítems en ruta BORRADOR.
+
+    Parámetros:
+        oficio_id: PK del oficio eliminado.
+        now: timestamp UTC para ``deleted_at``.
+
+    Retorno:
+        Cantidad de iniciadores marcados como eliminados.
+    """
+    inis = (
+        IniciadorRuta.query.filter(
+            IniciadorRuta.oficio_id == int(oficio_id),
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .order_by(IniciadorRuta.id.asc())
+        .all()
+    )
+    for ini in inis:
+        ini.deleted_at = now
+        ini.estado_iniciador = "ANULADO"
+        db.session.add(ini)
+        _soft_delete_ruta_items_borrador_por_iniciador(ini.id, now)
+    return len(inis)
 
 
 def evaluar_comprobacion_edicion_documental(act: Actuaciones) -> Dict[str, Any]:
@@ -85,14 +151,20 @@ def evaluar_comprobacion_edicion_documental(act: Actuaciones) -> Dict[str, Any]:
     usada = comprobacion_usada_como_iniciador(cid)
     if usada:
         motivos_exp.append(_MSG_BLOQUEO)
-        motivos_ofi.append(_MSG_BLOQUEO)
 
     ex_env = _get_expediente_envio(cid)
     ofi = _get_oficio_activo(cid)
     ex_resp = _get_expediente_respuesta(ofi.id) if ofi else None
+    policy_ofi = evaluar_editable_oficio(ofi.id) if ofi is not None else None
 
     puede_exp = (not usada) and (ex_env is not None)
-    puede_ofi = (not usada) and (ofi is not None) and (ex_resp is not None)
+    puede_ofi = bool(policy_ofi and policy_ofi.get("editable") and ex_resp is not None)
+
+    if ofi is None or ex_resp is None:
+        motivos_ofi.append("No hay oficio y expediente de respuesta activos para editar.")
+    elif policy_ofi and not policy_ofi.get("editable"):
+        bloqueo_ofi = (policy_ofi.get("bloqueado_motivo") or "").strip()
+        motivos_ofi.append(bloqueo_ofi or _MSG_OFICIO_USADO_OPERATIVAMENTE)
 
     motivos_del_env: List[str] = []
     if ex_env is None:
@@ -104,11 +176,12 @@ def evaluar_comprobacion_edicion_documental(act: Actuaciones) -> Dict[str, Any]:
     puede_del_env = (not usada) and (ex_env is not None) and (ofi is None)
 
     motivos_del_ofi: List[str] = []
-    if usada:
-        motivos_del_ofi.append(_MSG_BLOQUEO)
     if ofi is None or ex_resp is None:
         motivos_del_ofi.append("No hay oficio y expediente de respuesta activos para eliminar en bloque.")
-    puede_del_ofi = puede_ofi and (ofi is not None) and (ex_resp is not None)
+    elif policy_ofi and not policy_ofi.get("editable"):
+        bloqueo = (policy_ofi.get("bloqueado_motivo") or "").strip()
+        motivos_del_ofi.append(bloqueo or _MSG_OFICIO_USADO_OPERATIVAMENTE)
+    puede_del_ofi = bool(policy_ofi and policy_ofi.get("editable") and ex_resp is not None)
 
     return {
         "comprobacion_usada_como_iniciador": usada,
@@ -340,11 +413,14 @@ def delete_comprobacion_expediente_envio(actuacion_id: int, expediente_id: int) 
 
 def delete_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int) -> None:
     """
-    Soft delete del oficio y del expediente de respuesta vinculado (misma transacción).
+    Soft delete del oficio, expediente de respuesta e iniciadores vinculados (misma transacción).
 
     Reglas:
     - Misma resolución que ``update_comprobacion_oficio_bloque`` (debe existir expediente de respuesta).
-    - No permitido si la comprobación está usada como iniciador de ruta (misma política que edición).
+    - Si el oficio fue usado operativamente (ruta publicada/en curso/cerrada, iniciador cumplido, etc.),
+      lanza ``RuntimeError`` (409 en API).
+    - Si no fue usado: baja lógica de oficio, expediente de respuesta e iniciadores ``oficio_id`` asociados;
+      también limpia ítems abiertos en rutas BORRADOR vinculados a esos iniciadores.
 
     Parámetros:
         actuacion_id: actuación de contexto.
@@ -354,21 +430,20 @@ def delete_comprobacion_oficio_bloque(actuacion_id: int, oficio_id: int) -> None
         None.
 
     Errores:
-        LookupError / ValueError.
+        LookupError / ValueError / RuntimeError (uso operativo).
     """
     _act, ofi, ex_resp = _resolver_actuacion_oficio_bloque(actuacion_id, oficio_id)
 
-    policy = evaluar_editable_oficio(ofi.id)
-    if not policy.get("editable"):
-        raise ValueError(
-            policy.get("bloqueado_motivo") or "Eliminación del bloque oficio no permitida"
-        )
+    usado, motivo_uso = oficio_operativamente_usado_para_eliminar(ofi.id)
+    if usado:
+        raise RuntimeError(motivo_uso or _MSG_OFICIO_USADO_OPERATIVAMENTE)
 
     now = datetime.now(timezone.utc)
     ex_resp.deleted_at = now
     ofi.deleted_at = now
     db.session.add(ex_resp)
     db.session.add(ofi)
+    soft_delete_iniciadores_vinculados_oficio(ofi.id, now)
     db.session.commit()
 
 

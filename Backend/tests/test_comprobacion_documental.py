@@ -8,7 +8,7 @@ from datetime import date
 import pytest
 
 from app.database import db
-from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, User
+from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, OrdenTrabajo, RutaItem, RutaTrabajo, User
 
 
 def _unique_num() -> str:
@@ -324,7 +324,68 @@ def test_delete_oficio_bloque_ok(app, client, auth_headers):
         assert e_db is not None and e_db.deleted_at is not None
 
 
-def test_delete_oficio_bloque_bloqueado_por_iniciador(app, client, auth_headers):
+def test_delete_oficio_bloque_soft_delete_iniciador_pendiente(app, client, auth_headers):
+    """PR11.3: eliminar oficio no usado debe anular el iniciador asociado."""
+    with app.app_context():
+        try:
+            u = _user()
+            dom = Domicilio(calle="DocDelIni", numero="3")
+            db.session.add(dom)
+            db.session.flush()
+            act, comp, _ex_env = _act_comp_con_exp_envio()
+            act.domicilio_id = dom.id
+            jz = JuzgadoCatalogo(codigo=f"JZ{_unique_num()[:4]}", nombre=f"Jz {_unique_num()}")
+            db.session.add(jz)
+            db.session.flush()
+            ofi = Oficio(
+                numero_oficio=f"Y{_unique_num()[:5]}",
+                anio=2026,
+                fecha_oficio=date(2026, 4, 1),
+                causa=f"c{_unique_num()[:5]}",
+                comprobacion_id=comp.id,
+                juzgado_id=jz.id,
+            )
+            db.session.add(ofi)
+            db.session.flush()
+            ex_r = Expediente(
+                numero_expediente=_unique_num()[:6],
+                anio="2026",
+                fecha_expediente=date(2026, 4, 5),
+                tipo_expediente="RESPUESTA_OFICIO",
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+            )
+            db.session.add(ex_r)
+            ini = IniciadorRuta(
+                tipo_iniciador="REINSPECCION_OFICIO",
+                estado_iniciador="PENDIENTE",
+                fecha_origen=date(2026, 3, 1),
+                anio=2026,
+                mes=3,
+                domicilio_id=dom.id,
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+                actuacion_id=act.id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.commit()
+            aid, oid, ini_id = act.id, ofi.id, ini.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/oficios/{oid}", headers=auth_headers)
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+
+    with app.app_context():
+        ini_db = db.session.get(IniciadorRuta, ini_id)
+        assert ini_db is not None
+        assert ini_db.deleted_at is not None
+        assert ini_db.estado_iniciador == "ANULADO"
+
+
+def test_delete_oficio_bloque_bloqueado_por_ruta_publicada(app, client, auth_headers):
+    """PR11.3: oficio usado en ruta publicada devuelve 409."""
     with app.app_context():
         try:
             u = _user()
@@ -356,13 +417,91 @@ def test_delete_oficio_bloque_bloqueado_por_iniciador(app, client, auth_headers)
             )
             db.session.add(ex_r)
             ini = IniciadorRuta(
-                tipo_iniciador="VERIFICAR_INFORMAR_OFICIO",
+                tipo_iniciador="REINSPECCION_OFICIO",
                 estado_iniciador="PENDIENTE",
                 fecha_origen=date(2026, 3, 1),
                 anio=2026,
                 mes=3,
                 domicilio_id=dom.id,
                 comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+                actuacion_id=act.id,
+                created_by_user_id=u.id,
+            )
+            db.session.add(ini)
+            db.session.flush()
+            ruta = RutaTrabajo(
+                fecha=date(2026, 6, 15),
+                turno="TARDE",
+                estado_ruta="PUBLICADA",
+                created_by_user_id=u.id,
+                numero=random.randint(2, 32000),
+            )
+            db.session.add(ruta)
+            db.session.flush()
+            db.session.add(
+                RutaItem(
+                    ruta_trabajo_id=ruta.id,
+                    iniciador_ruta_id=ini.id,
+                    orden_trabajo_id=act.orden_trabajo_id,
+                    estado_ruta_item="PENDIENTE_ASIGNACION",
+                    actuacion_id=act.id,
+                    created_by_user_id=u.id,
+                )
+            )
+            db.session.commit()
+            aid, oid = act.id, ofi.id
+        finally:
+            db.session.rollback()
+
+    resp = client.delete(f"/actuaciones/{aid}/comprobacion/oficios/{oid}", headers=auth_headers)
+    assert resp.status_code == 409
+    detail = (resp.get_json() or {}).get("detail", "").lower()
+    assert "ruta" in detail or "utilizado" in detail
+
+
+def test_delete_oficio_bloque_bloqueado_por_iniciador_cumplido(app, client, auth_headers):
+    """PR11.3: oficio con iniciador cumplido devuelve 409."""
+    with app.app_context():
+        try:
+            u = _user()
+            dom = Domicilio(calle="DocDelCum", numero="4")
+            db.session.add(dom)
+            db.session.flush()
+            act, comp, _ex_env = _act_comp_con_exp_envio()
+            act.domicilio_id = dom.id
+            jz = JuzgadoCatalogo(codigo=f"JZ{_unique_num()[:4]}", nombre=f"Jz {_unique_num()}")
+            db.session.add(jz)
+            db.session.flush()
+            ofi = Oficio(
+                numero_oficio=f"Z{_unique_num()[:5]}",
+                anio=2026,
+                fecha_oficio=date(2026, 4, 1),
+                causa=f"c{_unique_num()[:5]}",
+                comprobacion_id=comp.id,
+                juzgado_id=jz.id,
+            )
+            db.session.add(ofi)
+            db.session.flush()
+            ex_r = Expediente(
+                numero_expediente=_unique_num()[:6],
+                anio="2026",
+                fecha_expediente=date(2026, 4, 5),
+                tipo_expediente="RESPUESTA_OFICIO",
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+            )
+            db.session.add(ex_r)
+            ini = IniciadorRuta(
+                tipo_iniciador="REINSPECCION_OFICIO",
+                estado_iniciador="CUMPLIDO",
+                fecha_origen=date(2026, 3, 1),
+                anio=2026,
+                mes=3,
+                domicilio_id=dom.id,
+                comprobacion_id=comp.id,
+                oficio_id=ofi.id,
+                actuacion_id=act.id,
                 created_by_user_id=u.id,
             )
             db.session.add(ini)
@@ -372,4 +511,4 @@ def test_delete_oficio_bloque_bloqueado_por_iniciador(app, client, auth_headers)
             db.session.rollback()
 
     resp = client.delete(f"/actuaciones/{aid}/comprobacion/oficios/{oid}", headers=auth_headers)
-    assert resp.status_code == 400
+    assert resp.status_code == 409

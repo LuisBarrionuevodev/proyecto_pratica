@@ -6,6 +6,10 @@ from app.database import db
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_efectivo_para_iniciador,
 )
+from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
+    buscar_actuacion_reintento_reutilizable,
+    validar_orden_trabajo_disponible_para_publicar,
+)
 from app.models import Actuaciones, RutaGrupo, RutaItem, RutaTrabajo
 
 
@@ -126,11 +130,11 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                 f"El iniciador {ini.id} debe estar PLANIFICADO para publicar (actual: {ini.estado_iniciador})"
             )
 
-        existente = Actuaciones.query.filter_by(orden_trabajo_id=item.orden_trabajo_id).first()
-        if existente:
-            raise RuntimeError(
-                f"Ya existe una actuación para la OT del ítem {item.id}; no se puede publicar"
-            )
+        validar_orden_trabajo_disponible_para_publicar(
+            orden_trabajo_id=int(item.orden_trabajo_id),
+            ruta_item_id=item.id,
+            iniciador=ini,
+        )
 
     fecha = ruta.fecha
     mes = int(fecha.month)
@@ -156,22 +160,41 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                     f"El iniciador {ini.id} no tiene domicilio efectivo para publicar la ruta"
                 )
 
-            act = Actuaciones(
-                fecha=fecha,
-                mes=mes,
-                anio=anio,
-                tipo=tipo_act,
-                contraproducencia=None,
-                orden_trabajo_id=item.orden_trabajo_id,
-                domicilio_id=int(domicilio_publicar),
-                notificacion_id=(
+            act_reintento = buscar_actuacion_reintento_reutilizable(ini.id)
+            if act_reintento is not None:
+                act = act_reintento
+                act.fecha = fecha
+                act.mes = mes
+                act.anio = anio
+                act.tipo = tipo_act
+                act.contraproducencia = None
+                act.orden_trabajo_id = item.orden_trabajo_id
+                act.domicilio_id = int(domicilio_publicar)
+                act.notificacion_id = (
                     ini.notificacion_id
                     if ini.tipo_iniciador == "REINSPECCION_NOTIFICACION"
                     else None
-                ),
-            )
-            db.session.add(act)
-            db.session.flush()
+                )
+                act.resultado_cumplimiento_oficio = None
+                db.session.add(act)
+                db.session.flush()
+            else:
+                act = Actuaciones(
+                    fecha=fecha,
+                    mes=mes,
+                    anio=anio,
+                    tipo=tipo_act,
+                    contraproducencia=None,
+                    orden_trabajo_id=item.orden_trabajo_id,
+                    domicilio_id=int(domicilio_publicar),
+                    notificacion_id=(
+                        ini.notificacion_id
+                        if ini.tipo_iniciador == "REINSPECCION_NOTIFICACION"
+                        else None
+                    ),
+                )
+                db.session.add(act)
+                db.session.flush()
 
             item.actuacion_id = act.id
             item.estado_ruta_item = "EN_PROCESO"

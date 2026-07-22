@@ -17,6 +17,7 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { dialogFormActionsRowSx, formDialogFlexScrollBodySx } from "../../../styles/formDialogStyles";
 import { AppButton, AppDialog, AppTextField } from "../../../ui";
 import { filterCatalogItemsByQuery } from "../../../utils/filterCatalogByQuery";
+import { MIN_INSPECTORES_POR_GRUPO_PUBLICAR } from "../utils/rutaPublicarReadiness";
 import { rutasAsignacionNeutralContainedButtonSx } from "../styles/institutionalVisual";
 
 /** Transición más corta + sin autofocus agresivo al abrir (menos trabajo en el frame de apertura). */
@@ -222,6 +223,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
             }}
           >
             Selección reemplaza el equipo del grupo. Excluye inspectores ya asignados a otros grupos.
+            Para publicar la ruta, cada grupo necesita al menos {MIN_INSPECTORES_POR_GRUPO_PUBLICAR} inspectores.
           </Typography>
           <AppTextField
             label="Buscar inspector"

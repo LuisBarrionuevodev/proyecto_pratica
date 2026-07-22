@@ -41,6 +41,8 @@ export function RutasMapaOperativoView({
   onVolverAsignacion,
   onPublicarRuta,
   canPublish = false,
+  publicarTooltip,
+  publicarBlockers = [],
   publishingRuta = false,
   detailLoading = false,
   onEditarInspectores,
@@ -198,9 +200,10 @@ export function RutasMapaOperativoView({
         title={
           publishingRuta
             ? "Publicando la ruta…"
-            : canPublish
-              ? "Publica la ruta. Luego podrás descargar desde esta pantalla el resumen y las órdenes de salida y de trabajo en PDF."
-              : "Solo con borrador listo."
+            : publicarTooltip ??
+              (canPublish
+                ? "Publica la ruta. Luego podrás descargar desde esta pantalla el resumen y las órdenes de salida y de trabajo en PDF."
+                : "Completá inspectores (mín. 2 por grupo) y OT guardada en cada ítem.")
         }
         placement="top"
       >
@@ -234,6 +237,32 @@ export function RutasMapaOperativoView({
         summary={resumenIdentificacion}
         actions={headerActions}
       />
+
+      {!readOnly && publicarBlockers.length > 0 ? (
+        <Alert
+          severity="warning"
+          sx={{
+            ...rutasInstitutionalAlertBaseSx,
+            borderColor: "rgba(255, 183, 77, 0.35)",
+            "& .MuiAlert-icon": { color: "warning.light" },
+            "& .MuiAlert-message": { fontSize: "0.875rem", lineHeight: 1.45 },
+          }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Falta completar antes de publicar
+          </Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2.2 }}>
+            {publicarBlockers.map((msg) => (
+              <Box component="li" key={msg} sx={{ mb: 0.25 }}>
+                {msg}
+              </Box>
+            ))}
+          </Box>
+          <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+            Guardar la OT en Asignación no publica la ruta: usá «Publicar» cuando todo esté listo.
+          </Typography>
+        </Alert>
+      ) : null}
 
       {pdfOrdenesAviso ? (
         <Alert

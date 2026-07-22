@@ -177,3 +177,39 @@ export function domicilioNumeroParaPayload(
   if (baselineNum && t === baselineNum) return undefined;
   return t;
 }
+
+/**
+ * Calle visible/efectiva para payload cuando el bloque domicilio debe enviarse completo.
+ * Usa el valor editado o, si falta, el texto hidratado del baseline.
+ */
+export function domicilioCalleEfectiva(
+  editedCalle: string | null | undefined,
+  row: DomicilioCalleUiFields,
+  options?: { baselineRow?: DomicilioCalleUiFields }
+): string | undefined {
+  const baseline = options?.baselineRow ?? row;
+  const t = s(editedCalle) || domicilioCalleCargadaEditable(baseline);
+  if (!t) return undefined;
+  if (domicilioCalleEsClaveTecnica(t, row)) return undefined;
+  return t;
+}
+
+/**
+ * Número o esquina visible/efectivo para payload cuando el bloque domicilio debe enviarse completo.
+ */
+export function domicilioNumeroEfectivo(
+  editedNumero: string | null | undefined,
+  row: DomicilioCalleUiFields,
+  options?: { baselineRow?: DomicilioCalleUiFields; numeroTipo?: string }
+): string | undefined {
+  const baseline = options?.baselineRow ?? row;
+  const tipo = (options?.numeroTipo ?? row.numero_tipo ?? "").toUpperCase();
+  if (tipo === "ESQUINA") {
+    const t = s(editedNumero) || domicilioEsquinaCargadaEditable(baseline);
+    if (!t) return undefined;
+    if (domicilioEsquinaEsClaveTecnica(t, row)) return undefined;
+    return t;
+  }
+  const t = s(editedNumero) || domicilioNumeroEditable(baseline);
+  return t || undefined;
+}

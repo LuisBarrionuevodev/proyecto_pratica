@@ -19,6 +19,7 @@ import type {
   IRutaItemMin,
 } from "../../../api/rutasTrabajoApi";
 import { AppButton } from "../../../ui";
+import { MIN_INSPECTORES_POR_GRUPO_PUBLICAR } from "../utils/rutaPublicarReadiness";
 import {
   asignacionItemOtTextFieldRootSx,
   asignacionItemRowNeutralButtonSx,
@@ -210,7 +211,12 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
           </Typography>
           <Stack direction="row" spacing={0.75} sx={{ mt: 0.5 }}>
             <Chip size="small" label={`${groupItems.length} items`} color="primary" variant="outlined" />
-            <Chip size="small" label={`${grupo.inspectores.length} inspectores`} variant="outlined" />
+            <Chip
+              size="small"
+              label={`${grupo.inspectores.length} inspectores`}
+              variant="outlined"
+              color={grupo.inspectores.length < MIN_INSPECTORES_POR_GRUPO_PUBLICAR ? "warning" : "default"}
+            />
           </Stack>
         </Box>
         <Stack

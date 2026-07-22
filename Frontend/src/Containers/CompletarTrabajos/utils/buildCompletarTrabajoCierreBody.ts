@@ -4,9 +4,11 @@ import type {
 } from "../../../api/completarTrabajoApi";
 import {
   domicilioCalleCargadaEditable,
+  domicilioCalleEfectiva,
   domicilioCalleParaPayload,
   domicilioEsquinaParaPayload,
   domicilioNumeroEditable,
+  domicilioNumeroEfectivo,
   domicilioNumeroParaPayload,
 } from "../../../utils/domicilioCalleUi";
 import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
@@ -90,6 +92,37 @@ function rubroCambioReal(
   return !baseline || t !== baseline;
 }
 
+function rubroEfectivo(
+  editedRubro: string,
+  baselineRow?: ICompletarTrabajoPendienteRow
+): string | undefined {
+  return s(editedRubro) || s(baselineRow?.rubro_nombre ?? "");
+}
+
+function geoHayCambioReal(
+  f: CompletarTrabajoFormFields,
+  options: BuildCierreBodyOptions | undefined,
+  baselineRow: ICompletarTrabajoPendienteRow | undefined,
+  corrigeEsquinaANumero: boolean
+): boolean {
+  if (corrigeEsquinaANumero) return true;
+  if (!options?.domicilioRow || !baselineRow) {
+    return Boolean(s(f.calle) || s(f.numero) || s(f.numero_tipo));
+  }
+  const formNumeroTipo = (f.numero_tipo || "").trim().toUpperCase();
+  const baselineNumeroTipo = (baselineRow.numero_tipo || "").trim().toUpperCase();
+  const calleCambio = Boolean(
+    domicilioCalleParaPayload(f.calle, options.domicilioRow, { baselineRow })
+  );
+  const tipoCambio = Boolean(formNumeroTipo && formNumeroTipo !== baselineNumeroTipo);
+  const numeroTipoEfectivo = formNumeroTipo || baselineNumeroTipo;
+  const numeroCambio =
+    numeroTipoEfectivo === "ESQUINA"
+      ? Boolean(domicilioEsquinaParaPayload(f.numero, options.domicilioRow, { baselineRow }))
+      : Boolean(domicilioNumeroParaPayload(f.numero, options.domicilioRow, { baselineRow }));
+  return calleCambio || numeroCambio || tipoCambio;
+}
+
 /**
  * Arma el body POST /cerrar alineado al backend (sin actas si hay contraproducencia).
  * `inspectores` solo se incluye si `options.inspectoresExplicitos` está definido (sustituye herencia del grupo).
@@ -109,12 +142,6 @@ export function buildCompletarTrabajoCierreBody(
   if (contra) body.contraproducencia = contra;
 
   const baselineRow = options?.domicilioRowBaseline ?? options?.domicilioRow;
-  if (
-    fieldExplicit("rubro_nombre", options) &&
-    rubroCambioReal(f.rubro_nombre, baselineRow)
-  ) {
-    body.rubro_nombre = s(f.rubro_nombre);
-  }
 
   const formNumeroTipo = (f.numero_tipo || "").trim().toUpperCase();
   const baselineNumeroTipo = (baselineRow?.numero_tipo || "").trim().toUpperCase();
@@ -125,7 +152,17 @@ export function buildCompletarTrabajoCierreBody(
     fieldExplicit("calle", options) ||
     fieldExplicit("numero", options) ||
     fieldExplicit("numero_tipo", options);
-  const includeGeoBlock = geoExplicitRequested || corrigeEsquinaANumero;
+  const domicilioCambioReal = geoHayCambioReal(f, options, baselineRow, corrigeEsquinaANumero);
+  const includeGeoBlock =
+    corrigeEsquinaANumero || (geoExplicitRequested && domicilioCambioReal);
+
+  if (
+    fieldExplicit("rubro_nombre", options) &&
+    rubroEfectivo(f.rubro_nombre, baselineRow) &&
+    (rubroCambioReal(f.rubro_nombre, baselineRow) || domicilioCambioReal)
+  ) {
+    body.rubro_nombre = rubroEfectivo(f.rubro_nombre, baselineRow);
+  }
 
   if (includeGeoBlock) {
     const calleVisible = s(f.calle);
@@ -135,18 +172,17 @@ export function buildCompletarTrabajoCierreBody(
         calleVisible ||
         (options?.domicilioRow ? domicilioCalleCargadaEditable(baselineRow ?? options.domicilioRow) : undefined);
     } else if (options?.domicilioRow) {
-      callePayload = domicilioCalleParaPayload(f.calle, options.domicilioRow, {
-        baselineRow,
-      });
+      callePayload = domicilioCalleEfectiva(f.calle, options.domicilioRow, { baselineRow });
     } else {
       callePayload = calleVisible;
     }
     if (callePayload) body.calle = callePayload;
 
-    const numeroTipo = formNumeroTipo || rowNumeroTipo;
+    const numeroTipo = corrigeEsquinaANumero ? "NUMERO" : formNumeroTipo || rowNumeroTipo;
     if (options?.domicilioRow && numeroTipo === "ESQUINA" && !corrigeEsquinaANumero) {
-      const esquinaPayload = domicilioEsquinaParaPayload(f.numero, options.domicilioRow, {
+      const esquinaPayload = domicilioNumeroEfectivo(f.numero, options.domicilioRow, {
         baselineRow,
+        numeroTipo: "ESQUINA",
       });
       if (esquinaPayload) {
         body.numero = esquinaPayload;
@@ -157,8 +193,9 @@ export function buildCompletarTrabajoCierreBody(
       if (corrigeEsquinaANumero) {
         numeroPayload = s(f.numero);
       } else if (options?.domicilioRow) {
-        numeroPayload = domicilioNumeroParaPayload(f.numero, options.domicilioRow, {
+        numeroPayload = domicilioNumeroEfectivo(f.numero, options.domicilioRow, {
           baselineRow,
+          numeroTipo: numeroTipo || "NUMERO",
         });
       } else if (s(f.numero)) {
         numeroPayload = s(f.numero);
@@ -166,12 +203,10 @@ export function buildCompletarTrabajoCierreBody(
       if (numeroPayload) body.numero = numeroPayload;
       if (corrigeEsquinaANumero) {
         body.numero_tipo = "NUMERO";
-      } else if (
-        fieldExplicit("numero_tipo", options) &&
-        s(f.numero_tipo) &&
-        (callePayload || numeroPayload)
-      ) {
+      } else if (s(f.numero_tipo) && (callePayload || numeroPayload)) {
         body.numero_tipo = s(f.numero_tipo);
+      } else if (numeroPayload && numeroTipo) {
+        body.numero_tipo = numeroTipo;
       }
     }
   }
@@ -318,6 +353,12 @@ export function buildCompletarTrabajoCierreBodyFromInline(
   const fields = rowToFormFields(merged);
   if ("decomiso_kilos_total" in values) {
     fields.decomiso_kilos_total = strFromUnknown(values.decomiso_kilos_total);
+  }
+  if ("realizo_nueva_inspeccion" in values) {
+    fields.realizo_nueva_inspeccion = strFromUnknown(values.realizo_nueva_inspeccion);
+  }
+  if ("resultado_cumplimiento_oficio" in values) {
+    fields.resultado_cumplimiento_oficio = strFromUnknown(values.resultado_cumplimiento_oficio);
   }
   if (options?.omitPrecargadoPr2 === true) {
     applyOmitPrecargadoPr2(fields);

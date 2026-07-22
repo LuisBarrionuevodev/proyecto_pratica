@@ -37,6 +37,10 @@ import {
   buildDistritoOptionsFromPool,
   filterAsignacionPoolRows,
 } from "./utils/filterAsignacionPool";
+import {
+  evaluarPublicacionRuta,
+  resumenBloqueoPublicacion,
+} from "./utils/rutaPublicarReadiness";
 
 const rutasAlertSx = {
   fontFamily: '"Tactic Sans", sans-serif',
@@ -74,8 +78,16 @@ const RutasTrabajo = () => {
   const [inspectoresCatalogo, setInspectoresCatalogo] = useState<CatalogItem[]>([]);
   const [publishingRuta, setPublishingRuta] = useState(false);
   const rutaId = ruta?.id ?? null;
-  /** Borrador con detalle cargado: habilita la acción (el botón se deshabilita además mientras `publishingRuta`). */
-  const puedeIntentarPublicar = Boolean(rutaId && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
+  const itemsActivos = useMemo(() => items.filter((it) => !it.deleted_at), [items]);
+  const publicarReadiness = useMemo(
+    () => evaluarPublicacionRuta(grupos, itemsActivos),
+    [grupos, itemsActivos]
+  );
+  /** Borrador con detalle cargado y condiciones mínimas para publicar sin 409 previsible. */
+  const puedeIntentarPublicar = Boolean(
+    rutaId && ruta?.estado_ruta === "BORRADOR" && !detailLoading && publicarReadiness.puedePublicar
+  );
+  const publicarTooltip = resumenBloqueoPublicacion(publicarReadiness.blockers);
   /** Ruta publicada u otro estado no borrador: mapa en preview histórica solo lectura. */
   const vistaHistoricaReadOnly = Boolean(ruta && ruta.estado_ruta !== "BORRADOR");
 
@@ -217,6 +229,12 @@ const RutasTrabajo = () => {
   const handlePublicarRuta = useCallback(async () => {
     if (!rutaId || ruta?.estado_ruta !== "BORRADOR" || publishingRuta) return;
 
+    const readiness = evaluarPublicacionRuta(grupos, itemsActivos);
+    if (!readiness.puedePublicar) {
+      setError(readiness.blockers.join(" "));
+      return;
+    }
+
     setPublishingRuta(true);
     setError(null);
     setSuccessMessage(null);
@@ -242,7 +260,7 @@ const RutasTrabajo = () => {
     } finally {
       setPublishingRuta(false);
     }
-  }, [publishingRuta, resetVistaRutaTrabajo, ruta?.estado_ruta, rutaId]);
+  }, [grupos, itemsActivos, loadRutaDetail, publishingRuta, ruta?.estado_ruta, rutaId]);
 
   useEffect(() => {
     const loadInspectores = async () => {
@@ -365,7 +383,6 @@ const RutasTrabajo = () => {
   const handleVolverPlanificacion = useCallback(() => setFlowStep(1), []);
 
   const canCreateGrupo = useMemo(() => Boolean(rutaId), [rutaId]);
-  const itemsActivos = useMemo(() => items.filter((i) => !i.deleted_at), [items]);
   const assignedIniciadorIds = useMemo(
     () => new Set(itemsActivos.map((i) => i.iniciador_ruta_id)),
     [itemsActivos]
@@ -489,6 +506,8 @@ const RutasTrabajo = () => {
             onVolverAsignacion={() => setFlowStep(2)}
             onPublicarRuta={handlePublicarRuta}
             canPublish={puedeIntentarPublicar}
+            publicarTooltip={publicarTooltip}
+            publicarBlockers={publicarReadiness.blockers}
             publishingRuta={publishingRuta}
             detailLoading={detailLoading}
             vistaHistoricaReadOnly={vistaHistoricaReadOnly}

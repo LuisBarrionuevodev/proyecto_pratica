@@ -151,5 +151,7 @@ def delete_comprobacion_oficio_bloque_route(actuacion_id: int, oficio_id: int):
         return jsonify({"ok": True}), 200
     except LookupError as e:
         return jsonify({"detail": str(e)}), 404
+    except RuntimeError as e:
+        return jsonify({"detail": str(e)}), 409
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
