@@ -15,6 +15,9 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     expediente_envio_por_comprobacion,
     oficio_por_comprobacion,
 )
+from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
+    oficio_recorrido_campos_operativos,
+)
 from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuacion_para_iniciador
@@ -231,11 +234,15 @@ def _oficio_compact_label(numero: Any, anio: Any) -> str:
     return "/".join(p for p in (n, a) if p)
 
 
-def _oficio_recorrido_resumen_item(ofi: Oficio) -> Dict[str, Any]:
+def _oficio_recorrido_resumen_item(
+    ofi: Oficio,
+    *,
+    actuacion_ancla: Actuaciones | None = None,
+) -> Dict[str, Any]:
     """
     Snapshot de oficio + expediente de respuesta asociado para listado de recorrido.
 
-    Incluye textos compactos listos para UI y filtros documentales.
+    Incluye textos compactos listos para UI, OT y conclusión propias del oficio.
     """
     exp = _expediente_respuesta_por_oficio_id(int(ofi.id))
     num_o = getattr(ofi, "numero_oficio", None)
@@ -244,6 +251,10 @@ def _oficio_recorrido_resumen_item(ofi: Oficio) -> Dict[str, Any]:
     an_e = getattr(exp, "anio", None) if exp else None
     oficio_texto = _oficio_compact_label(num_o, an_o) or None
     expediente_texto = _oficio_compact_label(num_e, an_e) or None
+    operativo = oficio_recorrido_campos_operativos(
+        ofi,
+        actuacion_ancla_id=int(actuacion_ancla.id) if actuacion_ancla is not None else None,
+    )
     return {
         "id": ofi.id,
         "numero_oficio": num_o,
@@ -257,6 +268,7 @@ def _oficio_recorrido_resumen_item(ofi: Oficio) -> Dict[str, Any]:
         # Compat. con consumidores que usaban ``numero`` / ``anio``.
         "numero": num_o,
         "anio": an_o,
+        **operativo,
     }
 
 
@@ -303,7 +315,7 @@ def comprobacion_recorrido_resumen_row(
     cid = getattr(act, "comprobacion_id", None)
     if cid:
         oficios = list_oficios_by_comprobacion(int(cid))
-        oficios_resumen = [_oficio_recorrido_resumen_item(ofi) for ofi in oficios]
+        oficios_resumen = [_oficio_recorrido_resumen_item(ofi, actuacion_ancla=act) for ofi in oficios]
         base["oficios_resumen"] = oficios_resumen
         lineas = [_oficio_expediente_linea_compacta(o) for o in oficios_resumen]
         base["oficios_texto"] = ", ".join(l for l in lineas if l) or None
@@ -592,6 +604,11 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
 
     return {
         "actuacion_id": act.id,
+        "oficios_resumen": (
+            [_oficio_recorrido_resumen_item(ofi, actuacion_ancla=act) for ofi in list_oficios_by_comprobacion(int(act.comprobacion_id))]
+            if act.comprobacion_id
+            else []
+        ),
         "origen": {
             "descripcion": "Actuación con acta de comprobación",
             "fecha_actuacion": grid.get("fecha_actuacion"),

@@ -116,9 +116,16 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
     return documentalDesdeOficioItem(documental, item);
   }, [documental, item]);
 
-  const muestraReinspeccion =
-    ejecucionReinspeccion != null &&
-    oficioMuestraEjecucionReinspeccion(item, ejecucionCtx);
+  const ejecucionItem =
+    item.ejecucion_reinspeccion != null && typeof item.ejecucion_reinspeccion === "object"
+      ? (item.ejecucion_reinspeccion as Record<string, unknown>)
+      : null;
+  const muestraReinspeccionGlobal =
+    ejecucionReinspeccion != null && oficioMuestraEjecucionReinspeccion(item, ejecucionCtx);
+  const ejecucionCard = ejecucionItem ?? (muestraReinspeccionGlobal ? ejecucionReinspeccion : null);
+
+  const otResumen = (item.orden_trabajo_numero ?? item.orden_trabajo ?? "").toString().trim();
+  const concResumen = (item.conclusion ?? "").toString().trim();
 
   return (
     <Box
@@ -192,11 +199,16 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
           <OficioComprobacionDetalleLectura item={item} />
         )}
 
-        {muestraReinspeccion && ejecucionReinspeccion ? (
+        {ejecucionCard ? (
           <OficioComprobacionReinspeccionEnCard
-            ejecucion={ejecucionReinspeccion}
-            resultadoCircuito={resultadoCircuito}
+            ejecucion={ejecucionCard}
+            resultadoCircuito={ejecucionItem ? null : resultadoCircuito}
           />
+        ) : otResumen || concResumen ? (
+          <Box sx={{ mt: 1.25, pt: 1.25, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+            <DocumentalFila etiqueta="OT" valor={otResumen || "Sin OT"} />
+            <DocumentalFila etiqueta="Conclusión" valor={concResumen || "Sin conclusión"} />
+          </Box>
         ) : null}
       </Box>
     </Box>

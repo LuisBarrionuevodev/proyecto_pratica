@@ -112,11 +112,10 @@ def _rubro_nombre_para_iniciador(
     dom: Domicilio | None,
 ) -> str | None:
     """
-    Resuelve el rubro mostrado en Ruta de Trabajo.
+    Resuelve el rubro mostrado en Ruta de Trabajo (planificación / documentos).
 
-    Para ``tipo_iniciador == RELEVAMIENTO`` la fuente canónica es ``relevamiento.rubro``
-    (PR7.8: evita rubro desactualizado en domicilio compartido ESQUINA multi-rubro).
-    Otros tipos usan ``domicilio.rubro`` con fallback legacy a relevamiento.
+    Para ``tipo_iniciador == RELEVAMIENTO`` la fuente canónica es ``relevamiento.rubro``.
+    Denuncias y otros tipos usan ``domicilio.rubro`` (pool de iniciadores pendientes).
     """
     if iniciador and iniciador.tipo_iniciador == "RELEVAMIENTO":
         rel = iniciador.relevamiento

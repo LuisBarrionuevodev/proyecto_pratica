@@ -55,7 +55,8 @@ from app.domains.domicilios.utils.domicilio_calle_ui import (
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
-from app.models import Actuaciones, Comprobacion, Expediente, IniciadorRuta, Notificacion, Oficio, RutaItem
+from app.models import Actuaciones, Comprobacion, Expediente, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem
+from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
 from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,11 @@ def build_iniciador_ruta_por_actuacion_id(act_ids: list[int]) -> dict[int, Optio
             RutaItem.actuacion_id.in_(act_ids),
             RutaItem.deleted_at.is_(None),
         )
-        .options(joinedload(RutaItem.iniciador_ruta))
+        .options(
+            joinedload(RutaItem.iniciador_ruta)
+            .joinedload(IniciadorRuta.relevamiento)
+            .joinedload(Relevamiento.rubro)
+        )
         .order_by(RutaItem.id.asc())
         .all()
     )
@@ -858,6 +863,12 @@ def actuacion_to_grid_row(
     if ini_ruta is None:
         ini_ruta = _iniciador_desde_ruta_item_single(int(act.id))
 
+    rubro_operativo = rubro_nombre_operativo_para_iniciador(ini_ruta, dom, act=act)
+    if ini_ruta and ini_ruta.tipo_iniciador == "DENUNCIA":
+        rubro_nombre = rubro_operativo
+    elif rubro_operativo:
+        rubro_nombre = rubro_operativo
+
     circuito = _clasificar_circuito_documental(act, ini_ruta)
     propia_doc = _propia_payload_for_circuito(circuito, act, batch)
 
@@ -1188,6 +1199,13 @@ def actuacion_to_pendiente_domicilio_row(act: Actuaciones) -> Dict[str, Any]:
         rub = getattr(dom, "rubro", None)
         if rub:
             rubro_nombre = getattr(rub, "nombre", None)
+
+    ini_ruta = _iniciador_desde_ruta_item_single(int(act.id))
+    rubro_operativo = rubro_nombre_operativo_para_iniciador(ini_ruta, dom, act=act)
+    if ini_ruta and ini_ruta.tipo_iniciador == "DENUNCIA":
+        rubro_nombre = rubro_operativo
+    elif rubro_operativo:
+        rubro_nombre = rubro_operativo
 
     return {
         "id": act.id,

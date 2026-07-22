@@ -5,6 +5,10 @@ from typing import Any
 from sqlalchemy import or_
 
 from app.database import db
+from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
+    iniciador_reinspeccion_por_oficio,
+    oficio_recorrido_campos_operativos,
+)
 from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
 from app.models import Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio
 
@@ -46,16 +50,14 @@ def _expediente_respuesta_activo(oficio_id: int) -> Expediente | None:
 
 
 def _iniciador_reinspeccion_oficio(oficio_id: int) -> IniciadorRuta | None:
-    return (
-        IniciadorRuta.query.filter_by(oficio_id=int(oficio_id))
-        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
-        .filter(IniciadorRuta.deleted_at.is_(None))
-        .order_by(IniciadorRuta.id.desc())
-        .first()
-    )
+    return iniciador_reinspeccion_por_oficio(oficio_id)
 
 
-def oficio_comprobacion_item_payload(oficio: Oficio) -> dict[str, Any]:
+def oficio_comprobacion_item_payload(
+    oficio: Oficio,
+    *,
+    actuacion_ancla_id: int | None = None,
+) -> dict[str, Any]:
     """
     Serializa un oficio con expediente de respuesta e iniciador (si existen) para PR4.
 
@@ -95,10 +97,22 @@ def oficio_comprobacion_item_payload(oficio: Oficio) -> dict[str, Any]:
             data[key] = policy[key]
     if "editable" not in data:
         data["editable"] = policy.get("editable", True)
+    ini = _iniciador_reinspeccion_oficio(oficio.id)
+    ancla_id = actuacion_ancla_id or (int(ini.actuacion_id) if ini and ini.actuacion_id else None)
+    data.update(
+        oficio_recorrido_campos_operativos(
+            oficio,
+            actuacion_ancla_id=ancla_id,
+        )
+    )
     return data
 
 
-def oficios_comprobacion_payload(comprobacion_id: int) -> list[dict[str, Any]]:
+def oficios_comprobacion_payload(
+    comprobacion_id: int,
+    *,
+    actuacion_ancla_id: int | None = None,
+) -> list[dict[str, Any]]:
     """
     Serializa oficios activos de una comprobación para API interna/PR4.
 
@@ -108,4 +122,7 @@ def oficios_comprobacion_payload(comprobacion_id: int) -> list[dict[str, Any]]:
     Retorno:
         Lista de dicts con campos del oficio, expediente de respuesta e iniciador (si existen).
     """
-    return [oficio_comprobacion_item_payload(oficio) for oficio in list_oficios_by_comprobacion(comprobacion_id)]
+    return [
+        oficio_comprobacion_item_payload(oficio, actuacion_ancla_id=actuacion_ancla_id)
+        for oficio in list_oficios_by_comprobacion(comprobacion_id)
+    ]

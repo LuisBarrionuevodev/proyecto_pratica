@@ -71,7 +71,7 @@ export type EjecucionReinspeccionPorOficioCtx = {
 
 /**
  * True si la ejecución de reinspección del detalle de recorrido corresponde a este oficio.
- * TODO(PR backend): enriquecer lista de oficios con ``ejecucion_reinspeccion`` por ítem cuando haya varios oficios cumplidos.
+ * Preferir ``item.ejecucion_reinspeccion`` del payload por oficio (PR10.3).
  */
 export function oficioMuestraEjecucionReinspeccion(
   item: OficioComprobacionItem,

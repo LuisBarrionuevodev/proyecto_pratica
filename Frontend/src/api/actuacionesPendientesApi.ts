@@ -398,6 +398,13 @@ export interface OficioComprobacionItem {
   estado_operativo?: string | null;
   acciones_permitidas?: string[];
   deleted_at?: string | null;
+  orden_trabajo?: string | null;
+  orden_trabajo_numero?: string | null;
+  resultado?: string | null;
+  resultado_cumplimiento_oficio?: string | null;
+  conclusion?: string | null;
+  fecha_conclusion?: string | null;
+  ejecucion_reinspeccion?: Record<string, unknown> | null;
 }
 
 export interface OficiosByComprobacionResponse {

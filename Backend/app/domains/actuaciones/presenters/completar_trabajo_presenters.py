@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List, Optional
 
+from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
 from app.models import RutaGrupo, RutaItem
 
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
@@ -77,12 +78,12 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     if act is None:
         raise ValueError(f"RutaItem {item.id} sin actuación cargada")
 
-    base = actuacion_to_grid_row(act)
     ini = item.iniciador_ruta
+    base = actuacion_to_grid_row(act, iniciador_desde_ruta=ini)
 
-    rubro = base.get("rubro_nombre")
-    if not rubro and ini and ini.relevamiento and ini.relevamiento.rubro:
-        rubro = ini.relevamiento.rubro.nombre
+    rubro = rubro_nombre_operativo_para_iniciador(ini, act.domicilio, act=act)
+    if rubro is None and (not ini or ini.tipo_iniciador != "DENUNCIA"):
+        rubro = base.get("rubro_nombre")
 
     calle_m = (base.get("calle_mostrar") or base.get("calle") or "").strip()
     num_m = (base.get("numero_mostrar") or base.get("numero") or "").strip()

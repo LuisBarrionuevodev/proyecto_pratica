@@ -142,6 +142,15 @@ export interface IComprobacionRecorridoRow {
     expediente_texto?: string | null;
     causa?: string | null;
     juzgado_nombre?: string | null;
+    iniciador_id?: number | null;
+    estado_iniciador?: string | null;
+    orden_trabajo?: string | null;
+    orden_trabajo_numero?: string | null;
+    resultado?: string | null;
+    resultado_cumplimiento_oficio?: string | null;
+    conclusion?: string | null;
+    fecha_conclusion?: string | null;
+    ejecucion_reinspeccion?: Record<string, unknown> | null;
     /** Compat. legacy */
     numero?: string | null;
     anio?: number | null;
@@ -259,6 +268,7 @@ export interface IComprobacionRecorridoResultadoFinal {
 
 export interface IComprobacionRecorridoDetalle {
   actuacion_id: number;
+  oficios_resumen?: IComprobacionRecorridoRow["oficios_resumen"];
   origen: IComprobacionRecorridoOrigen;
   acta_comprobacion: Record<string, unknown>;
   expediente_comprobacion_envio: Record<string, unknown> | null;

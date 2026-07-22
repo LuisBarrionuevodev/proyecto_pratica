@@ -7,6 +7,7 @@ from app.models import Actuaciones, IniciadorRuta
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
 )
+from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
 
 
 def _clean_str(v: Any) -> Optional[str]:
@@ -46,7 +47,12 @@ def _contrib_payload_from_act(act: Actuaciones) -> Optional[dict[str, Any]]:
     }
 
 
-def _rubro_nombre_from_act(act: Actuaciones) -> Optional[str]:
+def _rubro_nombre_from_act(act: Actuaciones, ini: IniciadorRuta | None = None) -> Optional[str]:
+    nombre = rubro_nombre_operativo_para_iniciador(
+        ini, getattr(act, "domicilio", None), act=act
+    )
+    if nombre:
+        return _clean_str(nombre)
     dom = getattr(act, "domicilio", None)
     if dom is None:
         return None
@@ -138,7 +144,7 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
 
         eff_rubro = _clean_str(row.rubro_nombre) if row.rubro_nombre is not None else None
         if not eff_rubro:
-            eff_rubro = _rubro_nombre_from_act(act)
+            eff_rubro = _rubro_nombre_from_act(act, ini)
         if eff_rubro:
             payload["rubro_nombre"] = eff_rubro
 

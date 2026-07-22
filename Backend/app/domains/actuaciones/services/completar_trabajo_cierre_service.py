@@ -285,6 +285,7 @@ def _apply_domicilio_rubro(
         resolver_domicilio_real_desde_completar_trabajo,
     )
     from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
+    from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
     from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
         normalizar_domicilio_en_sesion,
     )
@@ -292,8 +293,14 @@ def _apply_domicilio_rubro(
     rubro = None
     if payload.rubro_nombre is not None:
         rubro = get_rubro_o_falla(payload.rubro_nombre)
-    elif act.domicilio and act.domicilio.rubro:
-        rubro = act.domicilio.rubro
+    elif ini and ini.tipo_iniciador == "DENUNCIA":
+        rubro = None
+    else:
+        rubro_nombre_op = rubro_nombre_operativo_para_iniciador(ini, act.domicilio, act=act)
+        if rubro_nombre_op:
+            rubro = get_rubro_o_falla(rubro_nombre_op)
+        elif act.domicilio and act.domicilio.rubro:
+            rubro = act.domicilio.rubro
 
     contrib = _resolve_contribuyente_para_domicilio_cierre(act, payload)
 

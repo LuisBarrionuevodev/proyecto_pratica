@@ -1,4 +1,5 @@
 import type { IComprobacionRecorridoRow } from "../../../api/actuacionesComprobacionActasApi";
+import { humanizarCumplimientoOficio } from "./documentalLabelFormat";
 
 export type OficioRecorridoResumenItem = NonNullable<IComprobacionRecorridoRow["oficios_resumen"]>[number];
 
@@ -7,6 +8,18 @@ function parNumAnio(num: string | null | undefined, anio: number | string | null
   const a = anio != null ? String(anio) : "";
   if (!n && !a) return "";
   return [n, a].filter(Boolean).join("/");
+}
+
+function textoOt(item: OficioRecorridoResumenItem): string {
+  const ot = (item.orden_trabajo_numero ?? item.orden_trabajo ?? "").toString().trim();
+  return ot || "";
+}
+
+function textoConclusion(item: OficioRecorridoResumenItem): string {
+  const conc = (item.conclusion ?? "").toString().trim();
+  if (conc) return conc;
+  const res = humanizarCumplimientoOficio(item.resultado_cumplimiento_oficio ?? item.resultado);
+  return res !== "—" ? res : "";
 }
 
 /** Etiqueta compacta: ``Oficio 3489/2026 · Exp. 012388/2026``. */
@@ -20,6 +33,18 @@ export function recOficioExpItemLabel(item: OficioRecorridoResumenItem): string 
   return "";
 }
 
+/** Chips por oficio: cabecera + OT + conclusión (mismo formato para todos). */
+export function recOficioExpDetalleChips(item: OficioRecorridoResumenItem): string[] {
+  const chips: string[] = [];
+  const head = recOficioExpItemLabel(item);
+  if (head) chips.push(head);
+  const ot = textoOt(item);
+  chips.push(ot ? `OT: ${ot}` : "OT: Sin OT");
+  const conc = textoConclusion(item);
+  chips.push(conc ? `Conclusión: ${conc}` : "Conclusión: Sin conclusión");
+  return chips;
+}
+
 function recOficioNumCompact(r: IComprobacionRecorridoRow): string {
   const n = (r.oficio_numero ?? "").toString().trim();
   const a = r.oficio_anio != null ? String(r.oficio_anio) : "";
@@ -27,12 +52,11 @@ function recOficioNumCompact(r: IComprobacionRecorridoRow): string {
   return [n, a].filter(Boolean).join("/");
 }
 
-/** Chips de oficio(s) con expediente asociado para columna Recorrido. */
+/** Chips de oficio(s) con expediente, OT y conclusión para columna Recorrido. */
 export function recOficiosExpChips(r: IComprobacionRecorridoRow): string[] {
   const resumen = r.oficios_resumen ?? [];
   if (resumen.length > 0) {
-    const chips = resumen.map(recOficioExpItemLabel).filter((s) => s.length > 0);
-    if (chips.length > 0) return chips;
+    return resumen.flatMap(recOficioExpDetalleChips);
   }
   const texto = (r.oficios_texto ?? "").toString().trim();
   if (texto) return [`Oficios: ${texto}`];
@@ -41,7 +65,7 @@ export function recOficiosExpChips(r: IComprobacionRecorridoRow): string[] {
   return ["Oficio —"];
 }
 
-/** Chips: acta, oficios+expedientes, motivo. */
+/** Chips: acta, oficios+expedientes+OT+conclusión, motivo. */
 export function recCompOficioExpMotivoChips(r: IComprobacionRecorridoRow): string[] {
   const n = (r.acta_comprobacion_num ?? "").toString().trim();
   const comp = n ? `Comp. ${n}` : "Comp. —";

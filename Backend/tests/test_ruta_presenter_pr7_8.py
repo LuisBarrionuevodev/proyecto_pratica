@@ -338,7 +338,7 @@ def test_pr78_completar_trabajo_presenter_sin_fantasia_ni_angulo() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(
             "app.domains.actuaciones.presenters.completar_trabajo_presenters.actuacion_to_grid_row",
-            lambda _act: {
+            lambda _act, **_: {
                 "rubro_nombre": "Verduleria",
                 "calle": "Maipu",
                 "numero": "500",
@@ -352,4 +352,4 @@ def test_pr78_completar_trabajo_presenter_sin_fantasia_ni_angulo() -> None:
 
     assert "nombre_fantasia" not in row
     assert "angulo_esquina" not in row
-    assert row["rubro_nombre"] == "Verduleria"
+    assert row["rubro_nombre"] == "Carniceria"
