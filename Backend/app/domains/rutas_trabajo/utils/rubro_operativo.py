@@ -77,3 +77,26 @@ def rubro_nombre_operativo_para_iniciador(
     if not rubro_nombre and iniciador and iniciador.relevamiento and iniciador.relevamiento.rubro:
         rubro_nombre = iniciador.relevamiento.rubro.nombre
     return rubro_nombre or None
+
+
+def titular_operativo_visible_para_iniciador(
+    iniciador: IniciadorRuta | None,
+    *,
+    act: Actuaciones | None = None,
+) -> bool:
+    """
+    Indica si titular/contrib debe mostrarse en UI operativa del trabajo.
+
+    Relevamientos y denuncias pendientes no heredan titular de ``domicilio`` compartido.
+
+    Parámetros:
+        iniciador: origen del ítem de ruta.
+        act: actuación vinculada al ítem.
+
+    Retorno:
+        False para relevamiento/denuncia con visita aún no realizada.
+    """
+    if iniciador and iniciador.tipo_iniciador in ("RELEVAMIENTO", "DENUNCIA"):
+        if act is not None and not _actuacion_visita_realizada(act):
+            return False
+    return True

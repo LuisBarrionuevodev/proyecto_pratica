@@ -217,7 +217,7 @@ def test_pr712_san_martin_y_catamarca_queda_catamarca_1000(app_ctx, require_pr72
         assert "angulo_esquina" not in payload.model_dump(exclude_none=True)
 
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             cerrar_completar_trabajo_por_ruta_item(
                 ruta_item_id=item.id,
@@ -269,7 +269,7 @@ def test_pr712_completar_no_muta_otro_iniciador_misma_interseccion(
         assert u is not None
 
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             cerrar_completar_trabajo_por_ruta_item(
                 ruta_item_id=item_a_id,
@@ -334,7 +334,7 @@ def test_pr712_nuevo_domicilio_hereda_geocode_origen(app_ctx, require_pr72_migra
         assert u
 
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             cerrar_completar_trabajo_por_ruta_item(
                 ruta_item_id=item.id,

@@ -11,6 +11,8 @@ import {
   domicilioEsquinaParaPayload,
   domicilioNumeroEditable,
   domicilioRowParaEdicionCalle,
+  domicilioRowParaHidratacionCompletarTrabajo,
+  inferNumeroTipoDomicilio,
 } from "./domicilioCalleUi";
 
 const rowMonteagudo = {
@@ -116,5 +118,51 @@ describe("domicilioCalleUi modal esquina", () => {
     const draft = domicilioRowParaEdicionCalle(rowEsquina);
     expect(draft.calle).toBe("Dr Bernardo Monteagudo");
     expect(draft.numero).toBe("Santiago del Estero");
+  });
+});
+
+describe("domicilioRowParaHidratacionCompletarTrabajo", () => {
+  it("hidrata intersección visible desde domicilio_texto", () => {
+    const row = {
+      domicilio_texto: "San Lorenzo y Agustín Mazza",
+      calle: "san lorenzo",
+      calle_key: "san lorenzo",
+      calle_normalizada: "San Lorenzo",
+      calle_estado: "OK",
+      numero: "agustin mazza",
+      esquina_key: "agustin mazza",
+    };
+    const h = domicilioRowParaHidratacionCompletarTrabajo(row);
+    expect(inferNumeroTipoDomicilio(row)).toBe("ESQUINA");
+    expect(h.numero_tipo).toBe("ESQUINA");
+    expect(h.calle).toBe("San Lorenzo");
+    expect(h.numero).toBe("Agustín Mazza");
+  });
+
+  it("ESQUINA con numero null no vacía domicilio si hay domicilio_texto", () => {
+    const row = {
+      domicilio_texto: "San Lorenzo y Agustín Mazza",
+      numero_tipo: "ESQUINA",
+      calle_normalizada: "San Lorenzo",
+      calle_estado: "OK",
+      numero: null,
+    };
+    const h = domicilioRowParaHidratacionCompletarTrabajo(row);
+    expect(h.calle).toBe("San Lorenzo");
+    expect(h.numero).toBe("Agustín Mazza");
+  });
+
+  it("NUMERO sigue hidratando calle y número normal", () => {
+    const row = {
+      domicilio_texto: "Maipú 500",
+      numero_tipo: "NUMERO",
+      calle_normalizada: "Maipú",
+      calle_estado: "OK",
+      numero: "500",
+    };
+    const h = domicilioRowParaHidratacionCompletarTrabajo(row);
+    expect(h.numero_tipo).toBe("NUMERO");
+    expect(h.calle).toBe("Maipú");
+    expect(h.numero).toBe("500");
   });
 });

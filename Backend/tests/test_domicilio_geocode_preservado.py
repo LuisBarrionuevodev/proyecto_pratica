@@ -78,8 +78,13 @@ def _geo_snapshot(dom_id: int) -> dict:
 
 
 def _assert_geo_unchanged(before: dict, after: dict) -> None:
-    for key in ("lat", "lng", "geo_status", "addr_hash"):
-        assert after[key] == before[key], f"{key}: {before[key]!r} -> {after[key]!r}"
+    for key in ("lat", "lng", "geo_status"):
+        b = before[key]
+        a = after[key]
+        if key in ("lat", "lng") and b is not None and a is not None:
+            assert float(a) == float(b), f"{key}: {b!r} -> {a!r}"
+        else:
+            assert a == b, f"{key}: {b!r} -> {a!r}"
 
 
 def _mk_actuacion_geocodificada(suf: str) -> tuple[Actuaciones, Domicilio, Rubro, str]:
@@ -270,7 +275,7 @@ def test_reencolar_local_cerrado_conserva_geocode(app_ctx) -> None:
     antes = _geo_snapshot(dom_id)
 
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ):
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item_id,
@@ -359,8 +364,8 @@ def test_editar_solo_acta_conserva_geocode(app_ctx) -> None:
     _assert_geo_unchanged(antes, _geo_snapshot(dom.id))
 
 
-def test_editar_calle_desde_actuaciones_directa_crud_permite_y_geocode(app_ctx, monkeypatch) -> None:
-    """PR7.15b: actuación cargada directa desde CRUD puede corregir calle y dispara geocode."""
+def test_editar_calle_desde_actuaciones_directa_crud_conserva_geocode(app_ctx, monkeypatch) -> None:
+    """Actuación cargada directa desde CRUD: corrección legal conserva geocode."""
     suf = uuid4().hex[:8]
     act, dom, rub, doc = _mk_actuacion_geocodificada(suf)
     nueva_calle = f"{dom.calle} Corregida"
@@ -378,16 +383,19 @@ def test_editar_calle_desde_actuaciones_directa_crud_permite_y_geocode(app_ctx, 
         return {"ok": True}
 
     monkeypatch.setattr(
-        "app.domains.actuaciones.services.update_service.on_domicilio_changed",
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed",
         _fake_on_changed,
     )
-    actualizar_actuacion(act.id, payload)
+    antes = _geo_snapshot(dom.id)
+    act_id = int(act.id)
+    actualizar_actuacion(act_id, payload)
     db.session.expunge_all()
-    act_db = Actuaciones.query.get(act.id)
+    act_db = Actuaciones.query.get(act_id)
     dom_db = Domicilio.query.get(act_db.domicilio_id) if act_db else None
     assert dom_db is not None
     assert dom_db.calle == nueva_calle
-    assert called
+    assert not called
+    _assert_geo_unchanged(antes, _geo_snapshot(dom_db.id))
 
 
 def test_nomenclatura_sigue_pudiendo_disparar_geocode(app_ctx, monkeypatch) -> None:

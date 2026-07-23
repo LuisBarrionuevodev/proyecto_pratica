@@ -50,7 +50,7 @@ import {
   completarTrabajoShowDomicilioEnDetalle,
 } from "../utils/completarTrabajoModalDisplay";
 import { prefillOperativoReinspeccionNotificacion } from "../utils/completarTrabajoReinspeccionNotificacionPrefill";
-import { domicilioCalleCargadaEditable, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
+import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
 import { showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
 import {
   OFICIO_CUMPLE_OPTS,
@@ -206,6 +206,19 @@ function domicilioResumen(r: ICompletarTrabajoPendienteRow): string {
   if (fromApi) return fromApi;
   const line = formatActuacionListDomicilioLinea(r).trim();
   return line || "—";
+}
+
+function domicilioCamposDesdeRow(row: ICompletarTrabajoPendienteRow): {
+  calle: string;
+  numero: string;
+  numeroTipo: "NUMERO" | "ESQUINA";
+} {
+  const h = domicilioRowParaHidratacionCompletarTrabajo(row);
+  return {
+    calle: h.calle ?? "",
+    numero: h.numero ?? "",
+    numeroTipo: h.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO",
+  };
 }
 
 function dedupeInspectoresPreserveOrder(names: string[]): string[] {
@@ -405,9 +418,10 @@ export function CompletarTrabajoModal({
       setRealizoNuevaInspeccion("");
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
-      setCalle(domicilioCalleCargadaEditable(resolvedRow));
-      setNumero(domicilioNumeroEditable(resolvedRow));
-      setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
+      const dom = domicilioCamposDesdeRow(resolvedRow);
+      setCalle(dom.calle);
+      setNumero(dom.numero);
+      setNumeroTipo(dom.numeroTipo);
       setRubroNombre(resolvedRow.rubro_nombre ?? "");
       setDocNro(resolvedRow.doc_nro ?? "");
       setContribApellido(resolvedRow.contrib_apellido ?? "");
@@ -439,9 +453,10 @@ export function CompletarTrabajoModal({
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
       const pre = prefillOperativoReinspeccionNotificacion(resolvedRow);
-      setCalle(domicilioCalleCargadaEditable(pre));
-      setNumero(pre.numero);
-      setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
+      const dom = domicilioCamposDesdeRow(resolvedRow);
+      setCalle(dom.calle);
+      setNumero(dom.numero);
+      setNumeroTipo(dom.numeroTipo);
       setRubroNombre(pre.rubroNombre);
       setDocNro(pre.docNro);
       setContribApellido(pre.contribApellido);
@@ -464,9 +479,10 @@ export function CompletarTrabajoModal({
     setResultadoCumplimientoOficio("");
     setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
     setContraproducencia(resolvedRow.contraproducencia ?? "");
-    setCalle(domicilioCalleCargadaEditable(resolvedRow));
-    setNumero(domicilioNumeroEditable(resolvedRow));
-    setNumeroTipo(resolvedRow.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO");
+    const dom = domicilioCamposDesdeRow(resolvedRow);
+    setCalle(dom.calle);
+    setNumero(dom.numero);
+    setNumeroTipo(dom.numeroTipo);
     setRubroNombre(resolvedRow.rubro_nombre ?? "");
     setDocNro(resolvedRow.doc_nro ?? "");
     setContribApellido(resolvedRow.contrib_apellido ?? "");

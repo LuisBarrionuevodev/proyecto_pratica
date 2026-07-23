@@ -15,6 +15,10 @@ from app.domains.domicilios.schemas.domicilio_edit_policy import EditDomicilioPo
 from app.domains.domicilios.services.domicilio_edit_policy_service import (
     resolver_policy_edicion_domicilio,
 )
+from app.domains.domicilios.utils.domicilio_operativo_shared import (
+    clonar_domicilio_operativo,
+    debe_fork_domicilio_operativo,
+)
 
 
 @dataclass(frozen=True)
@@ -27,13 +31,49 @@ class AplicarDomicilioOutcome:
     domicilio_id_cambio: bool
 
 
-def _actualizar_rubro_contrib(
+def _aplicar_rubro_contrib_seguro(
     dom: Domicilio,
     *,
     contribuyente: Optional[Contribuyente],
     rubro: Optional[Rubro],
     numero_tipo: str | None,
-) -> bool:
+    contexto: str | None = None,
+    origen_id: int | None = None,
+) -> Domicilio:
+    """
+    Aplica rubro/contrib sin pisar domicilios compartidos (PR12 copy-on-write).
+
+    Parámetros:
+        dom: fila existente.
+        contribuyente/rubro: catálogos operativos solicitados.
+        numero_tipo: override opcional.
+        contexto/origen_id: excluyen el registro en edición del conteo de uso compartido.
+
+    Retorno:
+        Misma fila o clon nueva si el domicilio está compartido o hay conflicto.
+    """
+    exclude_act = int(origen_id) if contexto in ("ACTUACION", "COMPLETAR_TRABAJO") and origen_id else None
+    exclude_rel = int(origen_id) if contexto == "RELEVAMIENTO" and origen_id else None
+    exclude_den = int(origen_id) if contexto == "DENUNCIA" and origen_id else None
+
+    if debe_fork_domicilio_operativo(
+        dom,
+        contribuyente=contribuyente,
+        rubro=rubro,
+        exclude_actuacion_id=exclude_act,
+        exclude_relevamiento_id=exclude_rel,
+        exclude_denuncia_id=exclude_den,
+    ):
+        nuevo = clonar_domicilio_operativo(
+            dom,
+            contribuyente=contribuyente,
+            rubro=rubro,
+            numero_tipo=numero_tipo,
+        )
+        db.session.add(nuevo)
+        db.session.flush()
+        return nuevo
+
     changed = False
     if contribuyente is not None and dom.contribuyente_id != contribuyente.id:
         dom.contribuyente_id = contribuyente.id
@@ -46,7 +86,7 @@ def _actualizar_rubro_contrib(
         changed = True
     if changed:
         db.session.add(dom)
-    return changed
+    return dom
 
 
 def _editar_misma_fila(
@@ -55,6 +95,8 @@ def _editar_misma_fila(
     *,
     contribuyente: Optional[Contribuyente],
     rubro: Optional[Rubro],
+    contexto: str | None = None,
+    origen_id: int | None = None,
 ) -> Domicilio:
     calle = cambios.get("calle")
     numero = cambios.get("numero")
@@ -66,7 +108,14 @@ def _editar_misma_fila(
         dom.numero = str(numero).strip()
     raw_nt = cambios.get("numero_tipo")
     numero_tipo = str(raw_nt).strip().upper() if raw_nt is not None and str(raw_nt).strip() else None
-    _actualizar_rubro_contrib(dom, contribuyente=contribuyente, rubro=rubro, numero_tipo=numero_tipo)
+    dom = _aplicar_rubro_contrib_seguro(
+        dom,
+        contribuyente=contribuyente,
+        rubro=rubro,
+        numero_tipo=numero_tipo,
+        contexto=contexto,
+        origen_id=origen_id,
+    )
     db.session.add(dom)
     return dom
 
@@ -117,14 +166,16 @@ def aplicar_edicion_domicilio_operativo(
             )
         dom = db.session.get(Domicilio, int(domicilio_id_actual))
         if dom and (contribuyente is not None or rubro is not None):
-            _actualizar_rubro_contrib(
+            dom = _aplicar_rubro_contrib_seguro(
                 dom,
                 contribuyente=contribuyente,
                 rubro=rubro,
                 numero_tipo=None,
+                contexto=contexto,
+                origen_id=origen_id,
             )
             policy = EditDomicilioPolicy(
-                modo="EDITAR_MISMA_FILA",
+                modo="CREAR_NUEVO" if int(dom.id) != int(domicilio_id_actual) else "EDITAR_MISMA_FILA",
                 motivo="solo_rubro_contrib",
                 domicilio_id_objetivo=int(dom.id),
             )
@@ -132,7 +183,7 @@ def aplicar_edicion_domicilio_operativo(
                 domicilio=dom,
                 policy=policy,
                 domicilio_id_anterior=domicilio_id_actual,
-                domicilio_id_cambio=False,
+                domicilio_id_cambio=int(dom.id) != int(domicilio_id_actual),
             )
         return AplicarDomicilioOutcome(
             domicilio=dom,
@@ -158,12 +209,19 @@ def aplicar_edicion_domicilio_operativo(
         dom = db.session.get(Domicilio, int(policy.domicilio_id_objetivo or domicilio_id_actual))
         if dom is None or dom.deleted_at is not None:
             raise ValueError("Domicilio a editar no encontrado.")
-        dom = _editar_misma_fila(dom, cambios_dict, contribuyente=contribuyente, rubro=rubro)
+        dom = _editar_misma_fila(
+            dom,
+            cambios_dict,
+            contribuyente=contribuyente,
+            rubro=rubro,
+            contexto=contexto,
+            origen_id=origen_id,
+        )
         return AplicarDomicilioOutcome(
             domicilio=dom,
             policy=policy,
             domicilio_id_anterior=id_anterior,
-            domicilio_id_cambio=False,
+            domicilio_id_cambio=int(dom.id) != int(id_anterior or 0),
         )
 
     if policy.modo == "REASIGNAR_EXISTENTE":
@@ -171,7 +229,7 @@ def aplicar_edicion_domicilio_operativo(
             dom = db.session.get(Domicilio, int(policy.domicilio_id_objetivo))
             if dom is None or dom.deleted_at is not None:
                 raise ValueError("Domicilio existente para reasignar no encontrado.")
-            _actualizar_rubro_contrib(
+            dom = _aplicar_rubro_contrib_seguro(
                 dom,
                 contribuyente=contribuyente,
                 rubro=rubro,
@@ -180,6 +238,8 @@ def aplicar_edicion_domicilio_operativo(
                     if cambios_dict.get("numero_tipo")
                     else None
                 ),
+                contexto=contexto,
+                origen_id=origen_id,
             )
             return AplicarDomicilioOutcome(
                 domicilio=dom,
@@ -191,7 +251,7 @@ def aplicar_edicion_domicilio_operativo(
     # CREAR_NUEVO: comportamiento historico get-or-create.
     if usar_basico:
         dom = get_or_create_domicilio_basico(str(calle).strip(), str(numero).strip())
-        _actualizar_rubro_contrib(
+        dom = _aplicar_rubro_contrib_seguro(
             dom,
             contribuyente=contribuyente,
             rubro=rubro,
@@ -200,6 +260,8 @@ def aplicar_edicion_domicilio_operativo(
                 if cambios_dict.get("numero_tipo")
                 else None
             ),
+            contexto=contexto,
+            origen_id=origen_id if origen_id else None,
         )
     else:
         dom = get_or_create_domicilio(

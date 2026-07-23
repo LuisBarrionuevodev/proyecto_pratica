@@ -164,7 +164,7 @@ def _cerrar_item(item_id: int, payload: dict) -> None:
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed",
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed",
         wraps=on_domicilio_changed,
     ) as geo_hook:
         cerrar_completar_trabajo_por_ruta_item(

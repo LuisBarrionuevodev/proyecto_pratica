@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.database import db
+from app.domains.domicilios.utils.domicilio_operativo_shared import (
+    clonar_domicilio_operativo,
+    debe_fork_domicilio_operativo,
+)
 from app.models import Contribuyente, Domicilio, Rubro
 
 
@@ -74,11 +78,22 @@ def get_or_create_domicilio(
         ).first()
     )
     if dom:
+        if debe_fork_domicilio_operativo(dom, contribuyente=contribuyente, rubro=rubro):
+            dom = clonar_domicilio_operativo(
+                dom,
+                contribuyente=contribuyente,
+                rubro=rubro,
+                numero_tipo=numero_tipo,
+            )
+            db.session.add(dom)
+            db.session.flush()
+            return dom
+
         changed = False
-        if contribuyente is not None and dom.contribuyente_id != contribuyente.id:
+        if contribuyente is not None and dom.contribuyente_id is None:
             dom.contribuyente_id = contribuyente.id
             changed = True
-        if rubro is not None and dom.rubro_id != rubro.id:
+        if rubro is not None and dom.rubro_id is None:
             dom.rubro_id = rubro.id
             changed = True
         if numero_tipo is not None and dom.numero_tipo != numero_tipo:

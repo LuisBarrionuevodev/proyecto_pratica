@@ -11,6 +11,7 @@ export type DomicilioCalleUiFields = {
   calle_key?: string | null;
   calle_normalizada?: string | null;
   calle_estado?: string | null;
+  calle_mostrar?: string | null;
   numero?: string | null;
   numero_tipo?: string | null;
   numero_esquina?: string | null;
@@ -20,6 +21,7 @@ export type DomicilioCalleUiFields = {
   esquina_key?: string | null;
   esquina_normalizada?: string | null;
   esquina_status?: string | null;
+  domicilio_texto?: string | null;
 };
 
 function s(v: string | null | undefined): string {
@@ -32,7 +34,82 @@ function sameSlug(a: string, b: string): boolean {
 }
 
 export function domicilioEsTipoEsquina(row: DomicilioCalleUiFields): boolean {
-  return (row.numero_tipo ?? "").toUpperCase() === "ESQUINA";
+  return inferNumeroTipoDomicilio(row) === "ESQUINA";
+}
+
+const ESQUINA_SEPARADOR_TEXTO = /\s+y\s+/i;
+
+/**
+ * Infiere ``NUMERO`` vs ``ESQUINA`` cuando ``numero_tipo`` falta o es ambiguo.
+ */
+export function inferNumeroTipoDomicilio(row: DomicilioCalleUiFields): "NUMERO" | "ESQUINA" {
+  const nt = s(row.numero_tipo).toUpperCase();
+  if (nt === "ESQUINA") return "ESQUINA";
+  if (nt === "NUMERO") return "NUMERO";
+  if (s(row.numero_esquina) || s(row.esquina_cargada) || s(row.esquina_normalizada) || s(row.esquina_raw)) {
+    return "ESQUINA";
+  }
+  const num = s(row.numero);
+  if (/^y\s+/i.test(num)) return "ESQUINA";
+  const texto = s(row.domicilio_texto);
+  if (texto && ESQUINA_SEPARADOR_TEXTO.test(texto)) return "ESQUINA";
+  return "NUMERO";
+}
+
+/** Parsea ``calle Y esquina`` desde texto visible (fallback de hidratación). */
+export function parseDomicilioTextoEsquina(
+  texto: string | null | undefined
+): { calle: string; esquina: string } | null {
+  const t = s(texto);
+  if (!t || !ESQUINA_SEPARADOR_TEXTO.test(t)) return null;
+  const match = t.match(/^(.*?)\s+y\s+(.*)$/i);
+  if (!match) return null;
+  const calle = match[1].trim();
+  const esquina = match[2].trim();
+  if (!calle && !esquina) return null;
+  return { calle, esquina };
+}
+
+/**
+ * Hidrata calle/esquina/número para Completar Trabajo sin perder intersección visible en grilla.
+ *
+ * Prioridad: campos estructurados → ``calle_mostrar`` / ``numero_esquina`` → ``domicilio_texto``.
+ */
+export function domicilioRowParaHidratacionCompletarTrabajo<T extends DomicilioCalleUiFields>(
+  row: T
+): T & { numero_tipo: string; calle: string | null; numero: string | null } {
+  const numeroTipo = inferNumeroTipoDomicilio(row);
+  const rowConTipo: T & { numero_tipo: string } = { ...row, numero_tipo: numeroTipo };
+
+  let calle = domicilioCalleCargadaEditable(rowConTipo) || s(row.calle_mostrar);
+  let numeroValor =
+    numeroTipo === "ESQUINA"
+      ? domicilioEsquinaCargadaEditable(rowConTipo) ||
+        s(row.numero_esquina) ||
+        s(row.esquina_cargada) ||
+        ""
+      : domicilioNumeroEditable(rowConTipo);
+
+  if (numeroTipo === "ESQUINA" && !numeroValor) {
+    const num = s(row.numero);
+    if (num && /^y\s+/i.test(num)) {
+      numeroValor = num.replace(/^y\s+/i, "").trim() || num;
+    }
+  }
+
+  if ((!calle || (numeroTipo === "ESQUINA" && !numeroValor)) && s(row.domicilio_texto)) {
+    const parsed = parseDomicilioTextoEsquina(row.domicilio_texto);
+    if (parsed) {
+      if (!calle) calle = parsed.calle;
+      if (numeroTipo === "ESQUINA" && !numeroValor) numeroValor = parsed.esquina;
+    }
+  }
+
+  return {
+    ...rowConTipo,
+    calle: calle || null,
+    numero: numeroValor || null,
+  };
 }
 
 function esquinaKey(row: DomicilioCalleUiFields): string {

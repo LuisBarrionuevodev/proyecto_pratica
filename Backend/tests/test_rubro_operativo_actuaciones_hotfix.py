@@ -419,7 +419,7 @@ def test_denuncia_completada_muestra_rubro_constatado(app_ctx, require_pr72_migr
             }
         )
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             cerrar_completar_trabajo_por_ruta_item(
                 ruta_item_id=item_den.id,

@@ -136,15 +136,40 @@ def test_presenter_expone_can_edit_domicilio_relevamiento(app_ctx) -> None:
     assert row["domicilio_edit_blocked_reason"] is None
 
 
-def test_editar_domicilio_relevamiento_dispara_geocode_y_no_toca_relevamiento(app_ctx) -> None:
+def test_editar_domicilio_relevamiento_conserva_geocode_y_no_toca_relevamiento(app_ctx) -> None:
+    from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+        compute_addr_hash,
+    )
+    from app.models import DomicilioGeocode
+
     act, rel, _item, _u, rub, doc = _setup_relevamiento_cerrado_solo_inspeccion()
     rel_id = int(rel.id)
     act_id = int(act.id)
     dom_relev_id = int(rel.domicilio_id)
+    act_db = Actuaciones.query.get(act_id)
+    assert act_db and act_db.domicilio_id
+    dom_act = Domicilio.query.get(act_db.domicilio_id)
+    assert dom_act is not None
+    db.session.add(
+        DomicilioGeocode(
+            domicilio_id=dom_act.id,
+            geo_status="OK",
+            lat=-26.8241,
+            lng=-65.2226,
+            addr_hash=compute_addr_hash(dom_act),
+            source="AUTO",
+        )
+    )
+    db.session.commit()
+    antes = {
+        "lat": -26.8241,
+        "lng": -65.2226,
+        "geo_status": "OK",
+    }
     nueva_calle = _uniq("CalleCorr")
 
     with patch(
-        "app.domains.actuaciones.services.update_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_mock:
         actualizar_actuacion(
             act_id,
@@ -157,7 +182,7 @@ def test_editar_domicilio_relevamiento_dispara_geocode_y_no_toca_relevamiento(ap
                 "inspectores": [],
             },
         )
-        assert geo_mock.call_count >= 1
+        geo_mock.assert_not_called()
 
     db.session.expunge_all()
     rel_db = Relevamiento.query.get(rel_id)
@@ -168,6 +193,11 @@ def test_editar_domicilio_relevamiento_dispara_geocode_y_no_toca_relevamiento(ap
     assert dom_act is not None
     assert dom_act.calle == nueva_calle
     assert dom_act.numero == "501"
+    geo = DomicilioGeocode.query.filter_by(domicilio_id=dom_act.id).first()
+    assert geo is not None
+    assert float(geo.lat) == antes["lat"]
+    assert float(geo.lng) == antes["lng"]
+    assert geo.geo_status == antes["geo_status"]
 
 
 def test_reinspeccion_notificacion_bloquea_edicion_domicilio(app_ctx) -> None:
@@ -221,7 +251,7 @@ def test_actuacion_con_notificacion_sin_uso_permite_domicilio(app_ctx) -> None:
     assert motivo is None
 
     with patch(
-        "app.domains.actuaciones.services.update_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_mock:
         actualizar_actuacion(
             act.id,
@@ -234,7 +264,7 @@ def test_actuacion_con_notificacion_sin_uso_permite_domicilio(app_ctx) -> None:
                 "inspectores": [],
             },
         )
-        assert geo_mock.call_count >= 1
+        geo_mock.assert_not_called()
 
 
 def test_actuacion_con_notificacion_iniciador_pendiente_sin_ruta_permite(app_ctx) -> None:
@@ -410,7 +440,7 @@ def test_editar_calle_y_numero_mendoza_a_catamarca(app_ctx) -> None:
     act_id = int(act.id)
 
     with patch(
-        "app.domains.actuaciones.services.update_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_mock:
         actualizar_actuacion(
             act_id,
@@ -423,7 +453,7 @@ def test_editar_calle_y_numero_mendoza_a_catamarca(app_ctx) -> None:
                 "inspectores": [],
             },
         )
-        assert geo_mock.call_count >= 1
+        geo_mock.assert_not_called()
 
     db.session.expunge_all()
     act_db = Actuaciones.query.get(act_id)
@@ -434,7 +464,12 @@ def test_editar_calle_y_numero_mendoza_a_catamarca(app_ctx) -> None:
     assert dom_act.numero == "500"
 
 
-def test_actuacion_directa_crud_cambia_calle_y_geocode(app_ctx) -> None:
+def test_actuacion_directa_crud_cambia_calle_sin_geocode_refresh(app_ctx) -> None:
+    from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+        compute_addr_hash,
+    )
+    from app.models import DomicilioGeocode
+
     rub = _rubro()
     doc = str(random.randint(10_000_000, 99_999_999))
     c = Contribuyente(apellido="Crud", nombre="Dir", documento=doc)
@@ -446,6 +481,16 @@ def test_actuacion_directa_crud_cambia_calle_y_geocode(app_ctx) -> None:
     dom = Domicilio(calle="Mendoza", numero="500", rubro_id=rub.id, contribuyente_id=c.id)
     db.session.add(dom)
     db.session.flush()
+    db.session.add(
+        DomicilioGeocode(
+            domicilio_id=dom.id,
+            geo_status="OK",
+            lat=-26.82,
+            lng=-65.22,
+            addr_hash=compute_addr_hash(dom),
+            source="AUTO",
+        )
+    )
     act = Actuaciones(
         fecha=date(2026, 7, 1),
         mes=7,
@@ -459,7 +504,7 @@ def test_actuacion_directa_crud_cambia_calle_y_geocode(app_ctx) -> None:
     act_id = int(act.id)
 
     with patch(
-        "app.domains.actuaciones.services.update_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_mock:
         actualizar_actuacion(
             act_id,
@@ -472,7 +517,7 @@ def test_actuacion_directa_crud_cambia_calle_y_geocode(app_ctx) -> None:
                 "inspectores": [],
             },
         )
-        assert geo_mock.call_count >= 1
+        geo_mock.assert_not_called()
 
     db.session.expunge_all()
     act_db = Actuaciones.query.get(act_id)
@@ -480,6 +525,10 @@ def test_actuacion_directa_crud_cambia_calle_y_geocode(app_ctx) -> None:
     assert dom_act is not None
     assert dom_act.calle == "Catamarca"
     assert dom_act.numero == "500"
+    geo = DomicilioGeocode.query.filter_by(domicilio_id=dom_act.id).first()
+    assert geo is not None
+    assert float(geo.lat) == -26.82
+    assert float(geo.lng) == -65.22
 
 
 def test_actuacion_editable_sin_payload_domicilio_no_falla(app_ctx) -> None:

@@ -371,6 +371,54 @@ describe("buildCompletarTrabajoCierreBody domicilio", () => {
   });
 });
 
+describe("buildCompletarTrabajoCierreBody hidratación ESQUINA Completar Trabajo", () => {
+  it("FromInline hidrata intersección desde domicilio_texto", () => {
+    const row = {
+      ruta_item_id: 99,
+      domicilio_texto: "San Lorenzo y Agustín Mazza",
+      calle: "san lorenzo",
+      calle_key: "san lorenzo",
+      calle_normalizada: "San Lorenzo",
+      calle_estado: "OK",
+      numero: "agustin mazza",
+      esquina_key: "agustin mazza",
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      { contraproducencia: "", acta_inspeccion_num: "000111" },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBeUndefined();
+    expect(body.numero_tipo).toBeUndefined();
+  });
+
+  it("guardar sin editar ESQUINA hidratada no manda domicilio vacío ni cambia tipo", () => {
+    const row = {
+      ruta_item_id: 100,
+      domicilio_texto: "San Lorenzo y Agustín Mazza",
+      numero_tipo: "ESQUINA",
+      calle_normalizada: "San Lorenzo",
+      calle_estado: "OK",
+      numero: null,
+    } as ICompletarTrabajoPendienteRow;
+    const body = buildCompletarTrabajoCierreBodyFromInline(
+      row,
+      {
+        calle: "San Lorenzo",
+        numero: "Agustín Mazza",
+        numero_tipo: "ESQUINA",
+        contraproducencia: "",
+        acta_inspeccion_num: "000222",
+      },
+      { omitPrecargadoPr2: true }
+    );
+    expect(body.calle).toBeUndefined();
+    expect(body.numero).toBeUndefined();
+    expect(body.numero_tipo).toBeUndefined();
+  });
+});
+
 describe("buildCompletarTrabajoCierreBody verificar e informar", () => {
   it("envía realizo_nueva_inspeccion y omite actas cuando incluirInspeccionNormal es false", () => {
     const body = buildCompletarTrabajoCierreBody(

@@ -5,9 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from app.database import db
-from app.models import DomicilioGeocode
+from app.models import Domicilio, DomicilioGeocode
 from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
     ensure_geocode_row,
+)
+from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
+    compute_addr_hash,
 )
 
 _GEO_SNAPSHOT_FIELDS = (
@@ -69,5 +72,15 @@ def preservar_geocode_existente_al_editar_domicilio(
     Restaura geocode previo tras edición textual en la misma fila de domicilio.
 
     Usado en Completar Trabajo / Actuaciones: el texto puede cambiar sin invalidar lat/lng.
+    Sella ``addr_hash`` al texto actual y marca ``source=MANUAL`` para evitar refresh accidental.
     """
     restaurar_domicilio_geocode_desde_snapshot(domicilio_id, snapshot)
+    dom = db.session.get(Domicilio, int(domicilio_id))
+    if dom is None:
+        return
+    geo = ensure_geocode_row(int(domicilio_id))
+    geo.addr_hash = compute_addr_hash(dom)
+    if geo.lat is not None and geo.lng is not None:
+        geo.geo_status = (snapshot or {}).get("geo_status") or geo.geo_status or "OK"
+    geo.source = "MANUAL"
+    db.session.add(geo)

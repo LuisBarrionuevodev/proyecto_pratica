@@ -349,7 +349,7 @@ def test_pr711_completar_trabajo_cambia_domicilio_relevamiento_intacto(
         snap_angulo = rel_a.angulo_esquina
 
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             cerrar_completar_trabajo_por_ruta_item(
                 ruta_item_id=item.id,

@@ -56,7 +56,10 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
 from app.models import Actuaciones, Comprobacion, Expediente, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem
-from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
+from app.domains.rutas_trabajo.utils.rubro_operativo import (
+    rubro_nombre_operativo_para_iniciador,
+    titular_operativo_visible_para_iniciador,
+)
 from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 logger = logging.getLogger(__name__)
@@ -868,6 +871,12 @@ def actuacion_to_grid_row(
         rubro_nombre = rubro_operativo
     elif rubro_operativo:
         rubro_nombre = rubro_operativo
+
+    if not titular_operativo_visible_para_iniciador(ini_ruta, act=act):
+        doc_nro = None
+        contrib_apellido = None
+        contrib_nombre = None
+        razon_social = None
 
     circuito = _clasificar_circuito_documental(act, ini_ruta)
     propia_doc = _propia_payload_for_circuito(circuito, act, batch)

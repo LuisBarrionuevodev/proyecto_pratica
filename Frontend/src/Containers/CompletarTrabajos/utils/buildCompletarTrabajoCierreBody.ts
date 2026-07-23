@@ -5,11 +5,14 @@ import type {
 import {
   domicilioCalleCargadaEditable,
   domicilioCalleEfectiva,
+  domicilioCalleEsClaveTecnica,
   domicilioCalleParaPayload,
+  domicilioEsquinaEsClaveTecnica,
   domicilioEsquinaParaPayload,
   domicilioNumeroEditable,
   domicilioNumeroEfectivo,
   domicilioNumeroParaPayload,
+  domicilioRowParaHidratacionCompletarTrabajo,
 } from "../../../utils/domicilioCalleUi";
 import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
 
@@ -45,6 +48,14 @@ export type CompletarTrabajoFormFields = {
 function s(v: string): string | undefined {
   const t = v.trim();
   return t === "" ? undefined : t;
+}
+
+function domicilioBaselineEfectivo(
+  row: ICompletarTrabajoPendienteRow | undefined
+): ICompletarTrabajoPendienteRow | undefined {
+  if (!row) return undefined;
+  const h = domicilioRowParaHidratacionCompletarTrabajo(row);
+  return { ...row, calle: h.calle, numero: h.numero, numero_tipo: h.numero_tipo };
 }
 
 export type BuildCierreBodyOptions = {
@@ -142,9 +153,10 @@ export function buildCompletarTrabajoCierreBody(
   if (contra) body.contraproducencia = contra;
 
   const baselineRow = options?.domicilioRowBaseline ?? options?.domicilioRow;
+  const baselineDomicilio = domicilioBaselineEfectivo(baselineRow);
 
   const formNumeroTipo = (f.numero_tipo || "").trim().toUpperCase();
-  const baselineNumeroTipo = (baselineRow?.numero_tipo || "").trim().toUpperCase();
+  const baselineNumeroTipo = (baselineDomicilio?.numero_tipo || "").trim().toUpperCase();
   const rowNumeroTipo = (options?.domicilioRow?.numero_tipo || "").trim().toUpperCase();
   /** Corrección ESQUINA→NUMERO: usar baseline (fila API), no la fila ya mergeada. */
   const corrigeEsquinaANumero = formNumeroTipo === "NUMERO" && baselineNumeroTipo === "ESQUINA";
@@ -152,7 +164,7 @@ export function buildCompletarTrabajoCierreBody(
     fieldExplicit("calle", options) ||
     fieldExplicit("numero", options) ||
     fieldExplicit("numero_tipo", options);
-  const domicilioCambioReal = geoHayCambioReal(f, options, baselineRow, corrigeEsquinaANumero);
+  const domicilioCambioReal = geoHayCambioReal(f, options, baselineDomicilio, corrigeEsquinaANumero);
   const includeGeoBlock =
     corrigeEsquinaANumero || (geoExplicitRequested && domicilioCambioReal);
 
@@ -170,9 +182,9 @@ export function buildCompletarTrabajoCierreBody(
     if (corrigeEsquinaANumero) {
       callePayload =
         calleVisible ||
-        (options?.domicilioRow ? domicilioCalleCargadaEditable(baselineRow ?? options.domicilioRow) : undefined);
+        (options?.domicilioRow ? domicilioCalleCargadaEditable(baselineDomicilio ?? options.domicilioRow) : undefined);
     } else if (options?.domicilioRow) {
-      callePayload = domicilioCalleEfectiva(f.calle, options.domicilioRow, { baselineRow });
+      callePayload = domicilioCalleEfectiva(f.calle, options.domicilioRow, { baselineRow: baselineDomicilio });
     } else {
       callePayload = calleVisible;
     }
@@ -181,7 +193,7 @@ export function buildCompletarTrabajoCierreBody(
     const numeroTipo = corrigeEsquinaANumero ? "NUMERO" : formNumeroTipo || rowNumeroTipo;
     if (options?.domicilioRow && numeroTipo === "ESQUINA" && !corrigeEsquinaANumero) {
       const esquinaPayload = domicilioNumeroEfectivo(f.numero, options.domicilioRow, {
-        baselineRow,
+        baselineRow: baselineDomicilio,
         numeroTipo: "ESQUINA",
       });
       if (esquinaPayload) {
@@ -194,7 +206,7 @@ export function buildCompletarTrabajoCierreBody(
         numeroPayload = s(f.numero);
       } else if (options?.domicilioRow) {
         numeroPayload = domicilioNumeroEfectivo(f.numero, options.domicilioRow, {
-          baselineRow,
+          baselineRow: baselineDomicilio,
           numeroTipo: numeroTipo || "NUMERO",
         });
       } else if (s(f.numero)) {
@@ -310,15 +322,23 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
   const kilos = row.decomiso_kilos_total as unknown;
   const kilosStr =
     kilos == null || kilos === "" ? "" : typeof kilos === "number" ? String(kilos) : String(kilos).trim();
-  const calleExplicita = trimStr(row.calle);
-  const numeroExplicito = trimStr(row.numero);
+  const hydrated = domicilioRowParaHidratacionCompletarTrabajo(row);
+  const calleMerged = trimStr(row.calle);
+  const numeroMerged = trimStr(row.numero);
+  const numeroTipo = trimStr(row.numero_tipo).toUpperCase() || hydrated.numero_tipo;
+  const calle =
+    calleMerged && !domicilioCalleEsClaveTecnica(calleMerged, row) ? calleMerged : hydrated.calle ?? "";
+  const numero =
+    numeroMerged && !(numeroTipo === "ESQUINA" && domicilioEsquinaEsClaveTecnica(numeroMerged, row))
+      ? numeroMerged
+      : hydrated.numero ?? "";
   return {
     tipo_actuacion: row.tipo_actuacion ?? "",
     contraproducencia: row.contraproducencia ?? "",
     rubro_nombre: row.rubro_nombre ?? "",
-    calle: calleExplicita || domicilioCalleCargadaEditable(row),
-    numero: numeroExplicito || domicilioNumeroEditable(row),
-    numero_tipo: row.numero_tipo ?? "",
+    calle,
+    numero,
+    numero_tipo: numeroTipo,
     doc_nro: row.doc_nro ?? "",
     contrib_apellido: row.contrib_apellido ?? "",
     contrib_nombre: row.contrib_nombre ?? "",

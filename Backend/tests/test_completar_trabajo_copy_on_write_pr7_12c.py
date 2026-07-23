@@ -188,7 +188,7 @@ def _cerrar_item(
     assert u is not None
     if patch_geocode_hook:
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed",
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed",
             wraps=on_domicilio_changed,
         ) as geo_hook:
             cerrar_completar_trabajo_por_ruta_item(
@@ -199,7 +199,7 @@ def _cerrar_item(
             assert geo_hook.call_count == 0, "copy-on-write no debe disparar on_domicilio_changed"
     else:
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             cerrar_completar_trabajo_por_ruta_item(
                 ruta_item_id=item_id,
@@ -392,7 +392,7 @@ def test_pr712c_notificacion_derivada_usa_domicilio_actuacion(
             pytest.skip("Se requiere al menos un motivo en catálogo")
         acta_notif = _unique_num()
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             _cerrar_item(
                 item.id,
@@ -458,7 +458,7 @@ def test_pr712c_comprobacion_derivada_usa_domicilio_actuacion(
         item = _setup_ruta_publicada(ini)
 
         with patch(
-            "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+            "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
         ):
             _cerrar_item(
                 item.id,

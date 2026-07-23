@@ -4,7 +4,7 @@ from datetime import date
 from typing import Any, Dict
 
 from app.database import db
-from app.models import Relevamiento
+from app.models import Domicilio, Relevamiento
 from app.utils.fechas import parse_fecha_grid
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
@@ -65,6 +65,24 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         **{k: v for k, v in domicilio.items() if k not in ("calle", "numero")},
     }
     numero_tipo_override = dom_payload.get("numero_tipo")
+    nombre_fantasia, angulo_esquina = campos_establecimiento_desde_payload(
+        payload,
+        numero_tipo=numero_tipo_override,
+    )
+    dom_existente = (
+        Domicilio.query.filter_by(calle=str(calle).strip(), numero=str(numero).strip())
+        .filter(Domicilio.deleted_at.is_(None))
+        .first()
+    )
+    if dom_existente is not None:
+        assert_sin_relevamiento_activo_duplicado(
+            dom_existente,
+            mes=mes,
+            anio=anio,
+            rubro_id=rubro.id if rubro else None,
+            nombre_fantasia=nombre_fantasia,
+            angulo_esquina=angulo_esquina,
+        )
     rubro_domicilio = rubro_para_edicion_domicilio_relevamiento(
         rubro=rubro,
         calle=str(calle),
@@ -85,10 +103,6 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         raise ValueError("No se pudo resolver domicilio.")
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
 
-    nombre_fantasia, angulo_esquina = campos_establecimiento_desde_payload(
-        payload,
-        numero_tipo=getattr(dom, "numero_tipo", None),
-    )
     assert_sin_relevamiento_activo_duplicado(
         dom,
         mes=mes,

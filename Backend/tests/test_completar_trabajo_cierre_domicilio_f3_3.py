@@ -133,7 +133,7 @@ def test_f33_visita_realizada_cambio_domicilio_orm_y_geo(app_ctx) -> None:
         }
     )
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,
@@ -174,7 +174,7 @@ def test_f33_direccion_incorrecta_cambio_domicilio_y_geo(app_ctx) -> None:
         }
     )
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,
@@ -218,7 +218,7 @@ def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx)
         }
     )
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,

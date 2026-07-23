@@ -1,5 +1,5 @@
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
-import { domicilioCalleCargadaEditable, domicilioNumeroEditable } from "../../../utils/domicilioCalleUi";
+import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
 
 export type CompletarTrabajoOperativoPrefill = {
   calle: string;
@@ -27,9 +27,10 @@ export type CompletarTrabajoOperativoPrefill = {
 export function prefillOperativoReinspeccionNotificacion(
   row: ICompletarTrabajoPendienteRow
 ): CompletarTrabajoOperativoPrefill {
+  const domicilio = domicilioRowParaHidratacionCompletarTrabajo(row);
   return {
-    calle: domicilioCalleCargadaEditable(row),
-    numero: domicilioNumeroEditable(row),
+    calle: domicilio.calle ?? "",
+    numero: domicilio.numero ?? "",
     rubroNombre: row.rubro_nombre ?? "",
     docNro: row.doc_nro ?? "",
     contribApellido: row.contrib_apellido ?? "",

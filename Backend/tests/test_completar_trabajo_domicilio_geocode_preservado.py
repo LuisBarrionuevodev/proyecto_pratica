@@ -74,8 +74,13 @@ def _geo_snapshot(dom_id: int) -> dict:
 
 
 def _assert_geo_unchanged(before: dict, after: dict) -> None:
-    for key in ("lat", "lng", "geo_status", "addr_hash"):
-        assert after[key] == before[key], f"{key}: {before[key]!r} -> {after[key]!r}"
+    for key in ("lat", "lng", "geo_status"):
+        b = before[key]
+        a = after[key]
+        if key in ("lat", "lng") and b is not None and a is not None:
+            assert float(a) == float(b), f"{key}: {b!r} -> {a!r}"
+        else:
+            assert a == b, f"{key}: {b!r} -> {a!r}"
 
 
 def _seed_geocode(dom: Domicilio, *, lat=-26.8241, lng=-65.2226) -> None:
@@ -105,7 +110,7 @@ def test_completar_trabajo_cambio_calle_conserva_geocode(app_ctx) -> None:
     nueva_calle = f"monteagudo editado {suf}"
 
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_hook:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,
@@ -142,7 +147,7 @@ def test_completar_trabajo_cambio_numero_conserva_geocode(app_ctx) -> None:
     antes = _geo_snapshot(dom.id)
 
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_hook:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,
@@ -173,7 +178,7 @@ def test_completar_trabajo_cambio_esquina_conserva_geocode(app_ctx) -> None:
     antes = _geo_snapshot(dom.id)
 
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_hook:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,
@@ -244,7 +249,7 @@ def test_completar_trabajo_misma_fila_no_llama_on_domicilio_changed(app_ctx) -> 
     db.session.commit()
 
     with patch(
-        "app.domains.actuaciones.services.completar_trabajo_cierre_service.on_domicilio_changed"
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
     ) as geo_hook:
         cerrar_completar_trabajo_por_ruta_item(
             ruta_item_id=item.id,
@@ -264,3 +269,79 @@ def test_completar_trabajo_misma_fila_no_llama_on_domicilio_changed(app_ctx) -> 
     assert geo.lat is not None
     assert geo.lng is not None
     assert geo.geo_status == "OK"
+
+
+def test_completar_trabajo_esquina_a_numero_conserva_geocode(app_ctx) -> None:
+    """ESQUINA → NUMERO (ej. San Martín y Maipú → Maipú 500): conserva lat/lng del origen."""
+    suf = uuid4().hex[:8]
+    item, act, dom, _ini, u, rub = _mk_item_base(suf)
+    dom.calle = f"San Martin {suf}"
+    dom.numero = f"Maipu {suf}"
+    dom.numero_tipo = "ESQUINA"
+    db.session.add(dom)
+    _seed_geocode(dom, lat=-26.8300, lng=-65.2300)
+    db.session.commit()
+    antes = _geo_snapshot(dom.id)
+
+    with patch(
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
+    ) as geo_hook:
+        cerrar_completar_trabajo_por_ruta_item(
+            ruta_item_id=item.id,
+            payload=CompletarTrabajoCierreCompletoIn.model_validate(
+                {
+                    "calle": f"Maipu {suf}",
+                    "numero": "500",
+                    "numero_tipo": "NUMERO",
+                    "rubro_nombre": rub.nombre,
+                }
+            ),
+            ejecutado_por_user_id=u.id,
+        )
+        geo_hook.assert_not_called()
+
+    db.session.expunge_all()
+    act_db = db.session.get(Actuaciones, act.id)
+    assert act_db is not None
+    despues = _geo_snapshot(act_db.domicilio_id)
+    assert despues["numero"] == "500"
+    assert despues["numero_tipo"] == "NUMERO"
+    _assert_geo_unchanged(antes, despues)
+
+
+def test_completar_trabajo_corrige_interseccion_conserva_geocode(app_ctx) -> None:
+    """Corrección textual de intersección sin mover el punto en mapa."""
+    suf = uuid4().hex[:8]
+    item, act, dom, _ini, u, rub = _mk_item_base(suf)
+    dom.calle = f"San Lorenzo {suf}"
+    dom.numero = f"Agustin Mazza {suf}"
+    dom.numero_tipo = "ESQUINA"
+    db.session.add(dom)
+    _seed_geocode(dom)
+    db.session.commit()
+    antes = _geo_snapshot(dom.id)
+    nueva_esquina = f"Agustin M. Mazza {suf}"
+
+    with patch(
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
+    ) as geo_hook:
+        cerrar_completar_trabajo_por_ruta_item(
+            ruta_item_id=item.id,
+            payload=CompletarTrabajoCierreCompletoIn.model_validate(
+                {
+                    "calle": f"San Lorenzo {suf}",
+                    "numero": nueva_esquina,
+                    "numero_tipo": "ESQUINA",
+                    "rubro_nombre": rub.nombre,
+                }
+            ),
+            ejecutado_por_user_id=u.id,
+        )
+        geo_hook.assert_not_called()
+
+    db.session.expunge_all()
+    act_db = db.session.get(Actuaciones, act.id)
+    assert act_db is not None
+    despues = _geo_snapshot(act_db.domicilio_id)
+    assert despues["numero"] == nueva_esquina
+    _assert_geo_unchanged(antes, despues)

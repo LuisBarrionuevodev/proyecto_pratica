@@ -21,6 +21,10 @@ from app.domains.domicilios.services.domicilio_completar_trabajo_service import 
     heredar_geocode_domicilio_desde_origen,
     relevamiento_id_desde_actuacion,
 )
+from app.domains.domicilios.utils.preservar_geocode_domicilio import (
+    preservar_geocode_existente_al_editar_domicilio,
+    snapshot_domicilio_geocode,
+)
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
@@ -61,9 +65,6 @@ from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     assert_puede_editar_domicilio_actuacion,
     puede_editar_domicilio_actuacion,
     resolve_iniciador_operativo_actuacion,
-)
-from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
-    on_domicilio_changed,
 )
 
 
@@ -187,7 +188,9 @@ def aplicar_payload_actuacion(
             cambios_domicilio = _domicilio_cambios_explicitos_crud(dom_actual, cambios_domicilio)
         relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
         domicilio_id_anterior = act.domicilio_id
-        es_correccion_relevamiento_crud = texto_cambia and puede_editar_dom
+        geo_snapshot = (
+            snapshot_domicilio_geocode(int(dom_actual.id)) if dom_actual is not None else None
+        )
 
         outcome = aplicar_edicion_domicilio_operativo(
             domicilio_id_actual=act.domicilio_id,
@@ -203,19 +206,16 @@ def aplicar_payload_actuacion(
         dom = outcome.domicilio
         act.domicilio_id = dom.id if dom else None
         act.domicilio = dom
-        if (
-            dom
-            and outcome.domicilio_id_cambio
-            and domicilio_id_anterior is not None
-            and not es_correccion_relevamiento_crud
-        ):
-            heredar_geocode_domicilio_desde_origen(int(domicilio_id_anterior), int(dom.id))
         if dom and isinstance(dom, Domicilio) and cambios_domicilio and texto_cambia:
             normalizar_domicilio_en_sesion(
                 dom, override_numero_tipo=cambios_domicilio.get("numero_tipo")
             )
-            if es_correccion_relevamiento_crud:
-                on_domicilio_changed(int(dom.id))
+            if outcome.domicilio_id_cambio and domicilio_id_anterior is not None:
+                heredar_geocode_domicilio_desde_origen(
+                    int(domicilio_id_anterior), int(dom.id)
+                )
+            elif geo_snapshot is not None:
+                preservar_geocode_existente_al_editar_domicilio(int(dom.id), geo_snapshot)
 
     # Inspectores
     if "inspectores" in payload:
