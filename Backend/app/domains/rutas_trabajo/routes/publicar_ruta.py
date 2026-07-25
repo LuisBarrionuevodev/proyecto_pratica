@@ -8,6 +8,10 @@ from app.domains.rutas_trabajo.presenters.ruta_presenters import (
     ruta_trabajo_to_dict,
 )
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
+from app.domains.rutas_trabajo.utils.ruta_publicar_debug import (
+    json_409_publicar,
+    log_publicar_debug,
+)
 
 from . import rutas_trabajo
 
@@ -21,8 +25,14 @@ def publicar_ruta(ruta_id: int):
 
     Errores:
         404: ruta inexistente.
-        409: reglas de negocio (RuntimeError del service).
+        409: reglas de negocio (RuntimeError del service) con bloque ``debug`` en QA.
     """
+    log_publicar_debug(
+        conflicto_detectado_por="publicar_ruta.endpoint",
+        mensaje_conflicto=None,
+        ruta_id=ruta_id,
+        fase="request_in",
+    )
     try:
         ruta, items = publicar_ruta_trabajo(ruta_id=ruta_id)
         return (
@@ -37,6 +47,8 @@ def publicar_ruta(ruta_id: int):
     except LookupError as e:
         return jsonify({"detail": str(e)}), 404
     except RuntimeError as e:
-        return jsonify({"detail": str(e)}), 409
-    except IntegrityError:
-        return jsonify({"detail": "Conflicto al publicar (p. ej. OT ya vinculada a otra actuación)."}), 409
+        body, status = json_409_publicar(e)
+        return jsonify(body), status
+    except IntegrityError as e:
+        body, status = json_409_publicar(e)
+        return jsonify(body), status

@@ -8,6 +8,11 @@ from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_tra
 from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
     ruta_item_reserva_orden_trabajo,
 )
+from app.domains.rutas_trabajo.utils.ruta_publicar_debug import (
+    log_publicar_debug,
+    parse_integrity_error,
+    raise_publicar_debug,
+)
 from app.models import IniciadorRuta, RutaItem, RutaTrabajo
 
 
@@ -54,8 +59,31 @@ def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabaj
             .with_for_update()
             .all()
         )
-        if any(ruta_item_reserva_orden_trabajo(conflict) for conflict in conflicts):
-            raise RuntimeError("La orden de trabajo ya está asociada a otro item activo")
+        blocking = [c for c in conflicts if ruta_item_reserva_orden_trabajo(c)]
+        if blocking:
+            conflict = blocking[0]
+            ini = IniciadorRuta.query.get(conflict.iniciador_ruta_id)
+            debug = log_publicar_debug(
+                conflicto_detectado_por="set_orden_trabajo_on_item.conflicto_item",
+                mensaje_conflicto="La orden de trabajo ya está asociada a otro item activo",
+                ruta_id=ruta_id,
+                ruta_fecha=ruta.fecha.isoformat(),
+                item_id=item_id,
+                iniciador_id=item.iniciador_ruta_id,
+                orden_trabajo_id=orden_trabajo.id,
+                numero_orden_trabajo=orden_trabajo.numero_acta,
+                item_bloqueante_id=conflict.id,
+                item_bloqueante_ruta_id=conflict.ruta_trabajo_id,
+                item_bloqueante_estado=conflict.estado_ruta_item,
+                item_bloqueante_estado_ejecucion=conflict.estado_ejecucion,
+                item_bloqueante_iniciador_id=conflict.iniciador_ruta_id,
+                item_bloqueante_iniciador_estado=ini.estado_iniciador if ini else None,
+            )
+            raise_publicar_debug(
+                "La orden de trabajo ya está asociada a otro item activo",
+                validator="set_orden_trabajo_on_item",
+                debug=debug,
+            )
 
         item.orden_trabajo_id = orden_trabajo.id
         if item.estado_ruta_item != "ASIGNADO":
@@ -64,7 +92,21 @@ def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabaj
         db.session.commit()
     except IntegrityError as exc:
         db.session.rollback()
-        raise RuntimeError("No se pudo asignar la orden de trabajo al item") from exc
+        debug = parse_integrity_error(exc)
+        debug.update(
+            {
+                "ruta_id": ruta_id,
+                "item_id": item_id,
+                "numero_orden_trabajo": numero_orden_trabajo,
+                "fase": "set_orden_trabajo_on_item",
+            }
+        )
+        raise_publicar_debug(
+            f"No se pudo asignar la orden de trabajo al item: {debug.get('message', exc)}",
+            validator="IntegrityError_set_orden_trabajo_on_item",
+            debug=debug,
+            cause=exc,
+        )
     except Exception:
         db.session.rollback()
         raise
