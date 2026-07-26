@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.orm import joinedload
+
 from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
-from app.models import RutaGrupo, RutaItem
+from app.models import Actuaciones, Domicilio, RutaGrupo, RutaItem
 
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
@@ -42,6 +44,67 @@ def _tipo_actuacion_esperado_safe(tipo_iniciador: str | None) -> str | None:
         return tipo_actuacion_esperado_para_iniciador(tipo_iniciador)
     except KeyError:
         return None
+
+
+def _snapshot_contrib_prefill(contrib: Any) -> dict[str, Any]:
+    """Snapshot mínimo de contribuyente para prefill en Completar trabajo."""
+    if contrib is None:
+        return {}
+    doc = getattr(contrib, "documento", None) or getattr(contrib, "doc_nro", None)
+    if not doc or not str(doc).strip():
+        return {}
+    return {
+        "doc_nro": str(doc).strip(),
+        "contrib_apellido": getattr(contrib, "apellido", None),
+        "contrib_nombre": getattr(contrib, "nombre", None),
+        "razon_social": getattr(contrib, "razon_social", None),
+    }
+
+
+def _enrich_contrib_prefill_oficio(row: Dict[str, Any], item: RutaItem) -> Dict[str, Any]:
+    """
+    Completa titular/documento en filas de oficio cuando la actuación publicada aún no los trae.
+
+    Prioridad: actuación origen del iniciador → domicilio del iniciador → domicilio de la actuación.
+    """
+    if row.get("doc_nro"):
+        return row
+    ini = item.iniciador_ruta
+    if ini is None:
+        return row
+    tipo = (ini.tipo_iniciador or "").strip()
+    if tipo not in (
+        "REINSPECCION_OFICIO",
+        "VERIFICAR_INFORMAR_OFICIO",
+        "RATIFICACION_CLAUSURA_OFICIO",
+        "RATIFICACION_DECOMISO_OFICIO",
+    ):
+        return row
+
+    candidates: list[Any] = []
+    if ini.actuacion_id:
+        origin = (
+            Actuaciones.query.options(
+                joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente)
+            )
+            .filter(Actuaciones.id == int(ini.actuacion_id))
+            .first()
+        )
+        if origin and origin.domicilio and origin.domicilio.contribuyente:
+            candidates.append(origin.domicilio.contribuyente)
+    if ini.domicilio and ini.domicilio.contribuyente:
+        candidates.append(ini.domicilio.contribuyente)
+    act = item.actuacion
+    if act and act.domicilio and act.domicilio.contribuyente:
+        candidates.append(act.domicilio.contribuyente)
+
+    for contrib in candidates:
+        snap = _snapshot_contrib_prefill(contrib)
+        if snap:
+            merged = dict(row)
+            merged.update({k: v for k, v in snap.items() if v is not None})
+            return merged
+    return row
 
 
 def _nombres_inspectores_grupo(grupo: Optional[RutaGrupo]) -> list[str]:
@@ -154,7 +217,7 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     }
     for k in _COMPLETAR_GRID_EXTRA_KEYS:
         out[k] = base.get(k)
-    return out
+    return _enrich_contrib_prefill_oficio(out, item)
 
 
 def ruta_item_completar_trabajo_detalle(

@@ -1,4 +1,14 @@
-import { esFlujoCierreOficio } from "./completarTrabajoTipoIniciadorUi";
+import {
+  esFlujoCierreOficio,
+  esFlujoVerificarInformar,
+  esReinspeccionOficioGenerico,
+  esVerificarInformarOficio,
+} from "./completarTrabajoTipoIniciadorUi";
+
+export type ShowContribDomicilioEditableOpts = {
+  tipoActuacionOficio?: string | null;
+  realizoNuevaInspeccion?: string;
+};
 
 /** Muestra formulario editable de acta/motivos de notificación. */
 export function showNotificacionEditableEnCompletarTrabajo(tipoIniciador: string | null | undefined): boolean {
@@ -15,11 +25,22 @@ export function showActasEstandarEnCompletarTrabajo(_tipoIniciador: string | nul
   return true;
 }
 
-/** Contribuyente / domicilio editables solo en visitas de origen (relevamiento, denuncia, etc.). */
+/**
+ * Contribuyente / domicilio editables en visitas de origen y en Verificar e informar con nueva inspección.
+ */
 export function showContribuyenteDomicilioEditableEnCompletarTrabajo(
-  tipoIniciador: string | null | undefined
+  tipoIniciador: string | null | undefined,
+  opts?: ShowContribDomicilioEditableOpts
 ): boolean {
   if (tipoIniciador === "REINSPECCION_NOTIFICACION") return false;
+  if (esVerificarInformarOficio(tipoIniciador)) return true;
+  if (
+    esReinspeccionOficioGenerico(tipoIniciador) &&
+    esFlujoVerificarInformar(tipoIniciador, opts?.tipoActuacionOficio) &&
+    opts?.realizoNuevaInspeccion === "si"
+  ) {
+    return true;
+  }
   if (esFlujoCierreOficio(tipoIniciador)) return false;
   return true;
 }

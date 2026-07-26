@@ -24,9 +24,22 @@ describe("completarTrabajoReinspeccionNotificacionUi", () => {
     expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("DENUNCIA")).toBe(true);
   });
 
-  it("reinspecciones ocultan contribuyente/domicilio editable", () => {
+  it("reinspecciones ocultan contribuyente/domicilio editable salvo verificar+nueva inspección", () => {
     expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("REINSPECCION_NOTIFICACION")).toBe(false);
     expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("REINSPECCION_OFICIO")).toBe(false);
+    expect(
+      showContribuyenteDomicilioEditableEnCompletarTrabajo("REINSPECCION_OFICIO", {
+        tipoActuacionOficio: "VERIFICAR E INFORMAR",
+        realizoNuevaInspeccion: "si",
+      })
+    ).toBe(true);
+    expect(
+      showContribuyenteDomicilioEditableEnCompletarTrabajo("REINSPECCION_OFICIO", {
+        tipoActuacionOficio: "VERIFICAR E INFORMAR",
+        realizoNuevaInspeccion: "no",
+      })
+    ).toBe(false);
+    expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("VERIFICAR_INFORMAR_OFICIO")).toBe(true);
   });
 
   it("no expone enum crudo en label humano", () => {

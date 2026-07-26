@@ -48,7 +48,9 @@ MarkupSafe==3.0.3
 
 mysql==0.0.3
 
-pymysql
+PyMySQL==1.1.2
+
+cryptography>=42.0.0
 
 packaging==25.0
 

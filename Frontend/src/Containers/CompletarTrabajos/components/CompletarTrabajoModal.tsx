@@ -50,6 +50,7 @@ import {
   completarTrabajoShowDomicilioEnDetalle,
 } from "../utils/completarTrabajoModalDisplay";
 import { prefillOperativoReinspeccionNotificacion } from "../utils/completarTrabajoReinspeccionNotificacionPrefill";
+import { operativoHydrationFromRow } from "../utils/completarTrabajoVerificarInformarPrefill";
 import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
 import { showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
 import {
@@ -70,6 +71,7 @@ import {
   esFlujoVerificarInformar,
   esRatificacionOficio,
   esReinspeccionOficioGenerico,
+  esTipoActuacionVerificarInformar,
   esVerificarInformarOficio,
   REALIZO_NUEVA_INSPECCION_OPTS,
   TIPO_ACTUACION_VERIFICAR_INFORMAR,
@@ -270,6 +272,70 @@ function titularModoInicialDesdeRow(r: ICompletarTrabajoPendienteRow): TitularMo
   return rs ? "razon_social" : "persona";
 }
 
+type OperativoFieldSetters = {
+  setCalle: (v: string) => void;
+  setNumero: (v: string) => void;
+  setNumeroTipo: (v: "NUMERO" | "ESQUINA") => void;
+  setRubroNombre: (v: string) => void;
+  setDocNro: (v: string) => void;
+  setContribApellido: (v: string) => void;
+  setContribNombre: (v: string) => void;
+  setRazonSocial: (v: string) => void;
+  setTitularModo: (v: TitularModoCompletarTrabajo) => void;
+  setNombreLocal: (v: string) => void;
+  setActaInspeccion: (v: string) => void;
+  setActaNotificacion: (v: string) => void;
+  setNotifMotivosSeleccion: (v: string[]) => void;
+  setActaComprobacion: (v: string) => void;
+  setComprobacionMotivo: (v: string) => void;
+  setActaClausura: (v: string) => void;
+  setActaDecomiso: (v: string) => void;
+  setDecomisoKilos: (v: string) => void;
+};
+
+function hydrateOperativoFieldsFromRow(row: ICompletarTrabajoPendienteRow, set: OperativoFieldSetters): void {
+  const h = operativoHydrationFromRow(row);
+  set.setCalle(h.calle);
+  set.setNumero(h.numero);
+  set.setNumeroTipo(h.numeroTipo);
+  set.setRubroNombre(h.rubroNombre);
+  set.setDocNro(h.docNro);
+  set.setContribApellido(h.contribApellido);
+  set.setContribNombre(h.contribNombre);
+  set.setRazonSocial(h.razonSocial);
+  set.setTitularModo(titularModoInicialDesdeRow(row));
+  set.setNombreLocal(h.nombreLocal);
+  set.setActaInspeccion(h.actaInspeccion);
+  set.setActaNotificacion(h.actaNotificacion);
+  set.setNotifMotivosSeleccion(h.notifMotivosSeleccion);
+  set.setActaComprobacion(h.actaComprobacion);
+  set.setComprobacionMotivo(h.comprobacionMotivo);
+  set.setActaClausura(h.actaClausura);
+  set.setActaDecomiso(h.actaDecomiso);
+  set.setDecomisoKilos(h.decomisoKilos);
+}
+
+function clearOperativoFields(set: OperativoFieldSetters): void {
+  set.setCalle("");
+  set.setNumero("");
+  set.setNumeroTipo("NUMERO");
+  set.setRubroNombre("");
+  set.setDocNro("");
+  set.setContribApellido("");
+  set.setContribNombre("");
+  set.setRazonSocial("");
+  set.setTitularModo("persona");
+  set.setNombreLocal("");
+  set.setActaInspeccion("");
+  set.setActaNotificacion("");
+  set.setNotifMotivosSeleccion([]);
+  set.setActaComprobacion("");
+  set.setComprobacionMotivo("");
+  set.setActaClausura("");
+  set.setActaDecomiso("");
+  set.setDecomisoKilos("");
+}
+
 export type CompletarTrabajoModalProps = {
   open: boolean;
   /** Fila del listado al abrir; el modal refresca con GET detalle antes de editar. */
@@ -397,19 +463,45 @@ export function CompletarTrabajoModal({
     baselineInspectoresRef.current = initial;
 
     setFieldErrors({});
+    const operativoSetters: OperativoFieldSetters = {
+      setCalle,
+      setNumero,
+      setNumeroTipo,
+      setRubroNombre,
+      setDocNro,
+      setContribApellido,
+      setContribNombre,
+      setRazonSocial,
+      setTitularModo,
+      setNombreLocal,
+      setActaInspeccion,
+      setActaNotificacion,
+      setNotifMotivosSeleccion,
+      setActaComprobacion,
+      setComprobacionMotivo,
+      setActaClausura,
+      setActaDecomiso,
+      setDecomisoKilos,
+    };
     if (esFlujoCierreOficio(resolvedRow.tipo_iniciador)) {
       const fijo = tipoActuacionFijoDesdeIniciadorOficio(resolvedRow.tipo_iniciador);
       const fromRow = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion);
       const fromEsperado = tipoActuacionInicialReinspeccionOficio(
         resolvedRow.tipo_actuacion_esperado ?? tipoActuacionEsperadoRef
       );
-      setTipoActuacionOficio(fijo || fromRow || fromEsperado);
+      const tipoIni = fijo || fromRow || fromEsperado;
+      setTipoActuacionOficio(tipoIni);
       setResultadoCumplimientoOficio(resolvedRow.resultado_cumplimiento_oficio ?? "");
       setRealizoNuevaInspeccion("");
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
+      if (esFlujoVerificarInformar(resolvedRow.tipo_iniciador, tipoIni)) {
+        hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
+      } else {
+        clearOperativoFields(operativoSetters);
+      }
       return;
     }
     if (esVerificarInformarOficio(resolvedRow.tipo_iniciador)) {
@@ -418,32 +510,7 @@ export function CompletarTrabajoModal({
       setRealizoNuevaInspeccion("");
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
-      const dom = domicilioCamposDesdeRow(resolvedRow);
-      setCalle(dom.calle);
-      setNumero(dom.numero);
-      setNumeroTipo(dom.numeroTipo);
-      setRubroNombre(resolvedRow.rubro_nombre ?? "");
-      setDocNro(resolvedRow.doc_nro ?? "");
-      setContribApellido(resolvedRow.contrib_apellido ?? "");
-      setContribNombre(resolvedRow.contrib_nombre ?? "");
-      setRazonSocial(resolvedRow.razon_social ?? "");
-      setTitularModo(titularModoInicialDesdeRow(resolvedRow));
-      setNombreLocal(resolvedRow.nombre_local ?? "");
-      setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
-      setActaNotificacion(resolvedRow.acta_notificacion_num ?? "");
-      setNotifMotivosSeleccion(
-        motivosNotificacionFromSlots(
-          resolvedRow.notificacion_motivo_1,
-          resolvedRow.notificacion_motivo_2,
-          resolvedRow.notificacion_motivo_3
-        )
-      );
-      setActaComprobacion(resolvedRow.acta_comprobacion_num ?? "");
-      setComprobacionMotivo(resolvedRow.comprobacion_motivo ?? "");
-      setActaClausura(resolvedRow.acta_clausura_num ?? "");
-      setActaDecomiso(resolvedRow.acta_decomiso_num ?? "");
-      const k = resolvedRow.decomiso_kilos_total;
-      setDecomisoKilos(k == null ? "" : String(k));
+      hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
       return;
@@ -479,35 +546,45 @@ export function CompletarTrabajoModal({
     setResultadoCumplimientoOficio("");
     setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
     setContraproducencia(resolvedRow.contraproducencia ?? "");
-    const dom = domicilioCamposDesdeRow(resolvedRow);
-    setCalle(dom.calle);
-    setNumero(dom.numero);
-    setNumeroTipo(dom.numeroTipo);
-    setRubroNombre(resolvedRow.rubro_nombre ?? "");
-    setDocNro(resolvedRow.doc_nro ?? "");
-    setContribApellido(resolvedRow.contrib_apellido ?? "");
-    setContribNombre(resolvedRow.contrib_nombre ?? "");
-    setRazonSocial(resolvedRow.razon_social ?? "");
-    setTitularModo(titularModoInicialDesdeRow(resolvedRow));
-    setNombreLocal(resolvedRow.nombre_local ?? "");
-    setActaInspeccion(resolvedRow.acta_inspeccion_num ?? "");
-    setActaNotificacion(resolvedRow.acta_notificacion_num ?? "");
-    setNotifMotivosSeleccion(
-      motivosNotificacionFromSlots(
-        resolvedRow.notificacion_motivo_1,
-        resolvedRow.notificacion_motivo_2,
-        resolvedRow.notificacion_motivo_3
-      )
-    );
-    setActaComprobacion(resolvedRow.acta_comprobacion_num ?? "");
-    setComprobacionMotivo(resolvedRow.comprobacion_motivo ?? "");
-    setActaClausura(resolvedRow.acta_clausura_num ?? "");
-    setActaDecomiso(resolvedRow.acta_decomiso_num ?? "");
-    const k = resolvedRow.decomiso_kilos_total;
-    setDecomisoKilos(k == null ? "" : String(k));
+    hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
-  }, [open, resolvedRow, inspectoresGrupo]);
+  }, [open, resolvedRow, inspectoresGrupo, tipoActuacionEsperadoRef]);
+
+  useEffect(() => {
+    if (open) return;
+    const operativoSetters: OperativoFieldSetters = {
+      setCalle,
+      setNumero,
+      setNumeroTipo,
+      setRubroNombre,
+      setDocNro,
+      setContribApellido,
+      setContribNombre,
+      setRazonSocial,
+      setTitularModo,
+      setNombreLocal,
+      setActaInspeccion,
+      setActaNotificacion,
+      setNotifMotivosSeleccion,
+      setActaComprobacion,
+      setComprobacionMotivo,
+      setActaClausura,
+      setActaDecomiso,
+      setDecomisoKilos,
+    };
+    setContraproducencia("");
+    clearOperativoFields(operativoSetters);
+    setTipoActuacionOficio("");
+    setResultadoCumplimientoOficio("");
+    setRealizoNuevaInspeccion("");
+    setObservacionesEjecucion("");
+    setFieldErrors({});
+    setInspectoresList([]);
+    setInspectoresAddInput("");
+    setNotifMotivosAddInput("");
+    baselineInspectoresRef.current = [];
+  }, [open]);
 
   const fe = useCallback((apiField: string) => fieldErrors[apiField], [fieldErrors]);
   const clearFe = useCallback((apiField: string) => {
@@ -545,14 +622,61 @@ export function CompletarTrabajoModal({
     !esFlujoCumplimientoRatificacionUi &&
     (!esFlujoVerificarInformarUi || verificarMuestraInspeccionNormal);
   const showContribDomicilioEditable = showContribuyenteDomicilioEditableEnCompletarTrabajo(
-    displayRow?.tipo_iniciador
+    displayRow?.tipo_iniciador,
+    {
+      tipoActuacionOficio: tipoActuacionOficioEfectivo,
+      realizoNuevaInspeccion,
+    }
   );
+  const omitContribDomEnValidacion =
+    esReinspeccionNotificacion ||
+    esFlujoCumplimientoRatificacionUi ||
+    (esFlujoVerificarInformarUi && realizoNuevaInspeccion !== "si");
   const oficioNoCumple = esFlujoCumplimientoRatificacionUi && resultadoCumplimientoOficio === "NO_CUMPLE";
   const tipoIniciadorLabel = completarTrabajoHeaderTitulo(displayRow?.tipo_iniciador);
   const headerSubtitulo = completarTrabajoHeaderSubtitulo(displayRow?.fecha_actuacion);
   const showDomicilioEnDetalle = completarTrabajoShowDomicilioEnDetalle(displayRow?.tipo_iniciador);
   const detalleLabelSx = { color: "rgba(255,255,255,0.95)", fontWeight: 700 } as const;
   const detalleValueSx = { color: "rgba(255,255,255,0.85)", fontWeight: 500 } as const;
+
+  useEffect(() => {
+    if (!open || !resolvedRow) return;
+    if (!esReinspeccionOficioGenerico(resolvedRow.tipo_iniciador)) return;
+    if (!esFlujoVerificarInformar(resolvedRow.tipo_iniciador, tipoActuacionOficioEfectivo)) return;
+    const operativoSetters: OperativoFieldSetters = {
+      setCalle,
+      setNumero,
+      setNumeroTipo,
+      setRubroNombre,
+      setDocNro,
+      setContribApellido,
+      setContribNombre,
+      setRazonSocial,
+      setTitularModo,
+      setNombreLocal,
+      setActaInspeccion,
+      setActaNotificacion,
+      setNotifMotivosSeleccion,
+      setActaComprobacion,
+      setComprobacionMotivo,
+      setActaClausura,
+      setActaDecomiso,
+      setDecomisoKilos,
+    };
+    if (realizoNuevaInspeccion === "si") {
+      hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
+      return;
+    }
+    if (realizoNuevaInspeccion === "no") {
+      clearOperativoFields(operativoSetters);
+    }
+  }, [
+    open,
+    resolvedRow,
+    resolvedRow?.ruta_item_id,
+    tipoActuacionOficioEfectivo,
+    realizoNuevaInspeccion,
+  ]);
 
   /** Inspectores del catálogo que aún no están en la lista (agregar). */
   const inspectoresDisponiblesParaAgregar = useMemo(() => {
@@ -784,7 +908,7 @@ export function CompletarTrabajoModal({
       actuacionCompletarTrabajoValidationContext(
         visitaRealizada,
         esReinspeccionNotificacion,
-        esFlujoCumplimientoRatificacionUi
+        omitContribDomEnValidacion
       )
     );
     if (!preValidation.canSubmit) {
