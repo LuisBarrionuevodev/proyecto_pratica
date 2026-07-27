@@ -25,6 +25,7 @@ from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
 )
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
+from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 from app.models import (
     Actuaciones,
     Domicilio,
@@ -294,6 +295,34 @@ def test_pr11_1b_actuacion_base_sin_item_sigue_bloqueando_ot(app_ctx) -> None:
     ini, act_base, _noti, _u = _mk_iniciador_reinspeccion_notificacion()
     ot_num = act_base.orden_trabajo.numero_acta
     assert ot_num is not None
-    ruta, _item = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
-    with pytest.raises(RuntimeError, match="actuación"):
-        publicar_ruta_trabajo(ruta_id=ruta.id)
+
+    u = User.query.filter(User.is_active.is_(True)).first()
+    assert u is not None
+    ins1, ins2 = _dos_inspectores()
+    ruta = RutaTrabajo(
+        fecha=date(2026, 7, 21),
+        turno="MANIANA",
+        estado_ruta="BORRADOR",
+        numero=random.randint(2, 32000),
+        created_by_user_id=u.id,
+    )
+    db.session.add(ruta)
+    db.session.flush()
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="Grupo PR11.1", estado="ACTIVO")
+    replace_grupo_inspectores(
+        ruta_id=ruta.id,
+        grupo_id=grupo.id,
+        inspector_ids=[ins1.id, ins2.id],
+    )
+    items = assign_iniciadores_to_grupo(
+        ruta_id=ruta.id,
+        grupo_id=grupo.id,
+        iniciador_ids=[ini.id],
+    )
+    item = items[0]
+    with pytest.raises(RutaPublicarDebugError, match="actuación"):
+        set_orden_trabajo_on_item(
+            ruta_id=ruta.id,
+            item_id=item.id,
+            numero_orden_trabajo=ot_num,
+        )

@@ -12,6 +12,7 @@ from app.domains.rutas_trabajo.schemas.item_orden_trabajo_patch_in import (
 from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
     set_orden_trabajo_on_item,
 )
+from app.domains.rutas_trabajo.utils.ruta_publicar_debug import json_409_publicar
 from app.shared.errors import pydantic_errors_to_cell_map
 
 from . import rutas_trabajo
@@ -36,4 +37,5 @@ def patch_item_orden_trabajo(ruta_id: int, item_id: int):
     except LookupError as e:
         return jsonify({"detail": str(e)}), 404
     except RuntimeError as e:
-        return jsonify({"detail": str(e)}), 409
+        body, status = json_409_publicar(e)
+        return jsonify(body), status

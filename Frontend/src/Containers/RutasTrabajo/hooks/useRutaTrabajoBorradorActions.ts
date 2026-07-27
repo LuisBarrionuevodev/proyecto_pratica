@@ -6,11 +6,12 @@ import {
   patchRutaItemOrdenTrabajo,
   type IRutaItemMin,
 } from "../../../api/rutasTrabajoApi";
+import { mensajeErrorGuardarOtPatch } from "../utils/rutaOtAsignacionMessages";
 
 /** Resultado de guardar OT: conflicto de negocio (p. ej. 409) vs error global ya volcado a `setError`. */
 export type GuardarOtItemResult =
   | { ok: true }
-  | { ok: false; scope: "inline"; message: string }
+  | { ok: false; scope: "inline"; message: string; otConsumida?: boolean }
   | { ok: false; scope: "global" };
 
 export type UseRutaTrabajoBorradorActionsParams = {
@@ -67,14 +68,21 @@ export function useRutaTrabajoBorradorActions({
         setItems((prev) => prev.map((it) => (it.id === resp.item.id ? resp.item : it)));
         return { ok: true };
       } catch (err: unknown) {
-        const ax = err as { response?: { status?: number; data?: { detail?: unknown } } };
+        const ax = err as {
+          response?: { status?: number; data?: { detail?: unknown; debug?: { validator?: string } } };
+        };
         const status = ax?.response?.status;
-        const detail = ax?.response?.data?.detail;
-        const msg = typeof detail === "string" ? detail : "No se pudo guardar la OT";
+        const data = ax?.response?.data;
+        const parsed = mensajeErrorGuardarOtPatch(data?.detail, data?.debug ?? null);
         if (status === 409) {
-          return { ok: false, scope: "inline", message: msg };
+          return {
+            ok: false,
+            scope: "inline",
+            message: parsed.message,
+            otConsumida: parsed.otConsumida,
+          };
         }
-        setError(msg);
+        setError(parsed.message);
         return { ok: false, scope: "global" };
       }
     },

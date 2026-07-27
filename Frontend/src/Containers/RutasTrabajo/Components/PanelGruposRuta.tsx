@@ -517,6 +517,10 @@ function PanelGruposRutaInner({
             });
           } else if (result.scope === "inline") {
             setOtInlineErrorByItem((prev) => ({ ...prev, [item.id]: result.message }));
+            setOtDraftByItem((prev) => ({
+              ...prev,
+              [item.id]: item.orden_trabajo?.numero_acta ?? "",
+            }));
           }
         } finally {
           setSavingOtItemId((id) => (id === item.id ? null : id));

@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.domains.rutas_trabajo.presenters.ruta_presenters import _build_domicilio_texto
+from app.domains.rutas_trabajo.presenters.ruta_presenters import _build_domicilio_texto_desde_dom
 
 
 def _dom(
@@ -31,39 +31,35 @@ def _dom(
 
 
 def test_esquina_formal_sin_duplicar_ref():
-    ini = MagicMock()
-    ini.domicilio = _dom(
+    dom = _dom(
         calle_n="Chacabuco",
         numero="ref Piedras",
         numero_tipo="ESQUINA",
         esquina_n="ref Piedras",
     )
-    assert _build_domicilio_texto(ini) == "Chacabuco Y Piedras"
+    assert _build_domicilio_texto_desde_dom(dom) == "Chacabuco Y Piedras"
 
 
 def test_esquina_catalogo_y_cruce_normalizado():
-    ini = MagicMock()
-    ini.domicilio = _dom(
+    dom = _dom(
         nombre_catalogo="Chacabuco",
         numero="Piedras",
         numero_tipo="ESQUINA",
         esquina_n="Piedras",
     )
-    assert _build_domicilio_texto(ini) == "Chacabuco Y Piedras"
+    assert _build_domicilio_texto_desde_dom(dom) == "Chacabuco Y Piedras"
 
 
 def test_numero_con_referencia_esquina_distinta():
-    ini = MagicMock()
-    ini.domicilio = _dom(
+    dom = _dom(
         calle_n="San Martín",
         numero="1200",
         numero_tipo="NUMERO",
         esquina_n="frente al hospital",
     )
-    assert _build_domicilio_texto(ini) == "San Martín 1200 ref. frente al hospital"
+    assert _build_domicilio_texto_desde_dom(dom) == "San Martín 1200 ref. frente al hospital"
 
 
 def test_numero_sin_esquina_extra():
-    ini = MagicMock()
-    ini.domicilio = _dom(calle_n="Mitre", numero="500", numero_tipo="NUMERO", esquina_n=None)
-    assert _build_domicilio_texto(ini) == "Mitre 500"
+    dom = _dom(calle_n="Mitre", numero="500", numero_tipo="NUMERO", esquina_n=None)
+    assert _build_domicilio_texto_desde_dom(dom) == "Mitre 500"

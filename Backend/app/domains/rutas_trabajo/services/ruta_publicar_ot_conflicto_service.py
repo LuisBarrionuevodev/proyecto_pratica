@@ -250,15 +250,18 @@ def actuacion_pertenece_iniciador(
     iniciador_ruta_id: int,
 ) -> bool:
     """
-    True si algún ítem de ruta (activo o soft-deleted) vincula la actuación al iniciador.
+    True si la actuación pertenece al iniciador (ítem de ruta o actuación origen).
 
     Parámetros:
         actuacion_id: PK de ``actuaciones``.
         iniciador_ruta_id: PK de ``iniciador_ruta``.
 
     Retorno:
-        True si existe al menos un ``ruta_item`` con ese par.
+        True si existe vínculo operativo o documental (``iniciador_ruta.actuacion_id``).
     """
+    ini = db.session.get(IniciadorRuta, iniciador_ruta_id)
+    if ini is not None and ini.actuacion_id is not None and int(ini.actuacion_id) == int(actuacion_id):
+        return True
     return (
         RutaItem.query.filter(
             RutaItem.iniciador_ruta_id == iniciador_ruta_id,
@@ -306,8 +309,10 @@ def buscar_ocupante_ot_de_otro_iniciador(
     """
     Actuación que consume la OT si pertenece a otro iniciador/flujo.
 
-    Regla operativa: una OT usada queda consumida aunque el intento haya sido
-    NO_REALIZADO o tenga contraproducencia (p. ej. LOCAL CERRADO).
+    Regla operativa (PR11.1f / PR11.1g): una OT queda consumida al ser usada en una
+    actuación, incluso si la actuación finaliza como NO_REALIZADA. Los reintentos deben
+    usar una OT libre, salvo reutilización interna de la misma actuación del mismo
+    iniciador cuando corresponda.
 
     Parámetros:
         orden_trabajo_id: OT del ítem en publicación.
@@ -384,6 +389,8 @@ def raise_orden_trabajo_ocupada_por_otro_flujo(
             snapshot_item_publicar_context,
         )
 
+        numero_ot_debug = debug.get("numero_orden_trabajo")
+        orden_trabajo_id_debug = debug.get("orden_trabajo_id")
         debug.update(
             snapshot_item_publicar_context(
                 ruta=ruta,
@@ -391,6 +398,10 @@ def raise_orden_trabajo_ocupada_por_otro_flujo(
                 iniciador=iniciador,
             )
         )
+        if numero_ot_debug is not None:
+            debug["numero_orden_trabajo"] = numero_ot_debug
+        if orden_trabajo_id_debug is not None:
+            debug["orden_trabajo_id"] = orden_trabajo_id_debug
     if extra_debug:
         debug.update(extra_debug)
 

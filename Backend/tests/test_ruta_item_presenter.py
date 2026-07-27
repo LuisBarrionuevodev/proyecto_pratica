@@ -1,11 +1,15 @@
 """Contrato mínimo del presenter de ítems de ruta (detalle / mapa)."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from app.domains.rutas_trabajo.presenters.ruta_presenters import ruta_item_to_min_dict
 
 
-def test_ruta_item_to_min_dict_includes_tipo_iniciador_desde_relacion():
+@patch(
+    "app.domains.rutas_trabajo.presenters.ruta_presenters.cargar_domicilio_efectivo_orm",
+    return_value=(None, None),
+)
+def test_ruta_item_to_min_dict_includes_tipo_iniciador_desde_relacion(_mock_cargar_domicilio):
     ini = MagicMock()
     ini.tipo_iniciador = "DENUNCIA"
     ini.domicilio = None

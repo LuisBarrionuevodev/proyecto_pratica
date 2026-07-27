@@ -7,6 +7,7 @@ from app.database import db
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
 from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
     ruta_item_reserva_orden_trabajo,
+    validar_orden_trabajo_disponible_para_publicar,
 )
 from app.domains.rutas_trabajo.utils.ruta_publicar_debug import (
     log_publicar_debug,
@@ -25,6 +26,8 @@ def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabaj
     - Item debe existir, pertenecer a la ruta y no estar soft-deleted.
     - La OT se resuelve/crea por helper usando la fecha de la ruta.
     - No permite que una misma OT quede asociada a dos RutaItem activos distintos.
+    - Una OT consumida por actuación de otro iniciador (incluso NO_REALIZADA) bloquea
+      inmediatamente (regla PR11.1f / PR11.1g).
 
     Returns:
     - RutaItem actualizado.
@@ -39,16 +42,28 @@ def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabaj
     if ruta.estado_ruta != "BORRADOR":
         raise RuntimeError("La ruta debe estar en BORRADOR")
 
-    item = RutaItem.query.filter(
-        RutaItem.id == item_id,
-        RutaItem.ruta_trabajo_id == ruta_id,
-        RutaItem.deleted_at.is_(None),
-    ).first()
+    item = (
+        RutaItem.query.filter(
+            RutaItem.id == item_id,
+            RutaItem.ruta_trabajo_id == ruta_id,
+            RutaItem.deleted_at.is_(None),
+        )
+        .options(joinedload(RutaItem.iniciador_ruta))
+        .first()
+    )
     if not item:
         raise LookupError("Item no encontrado para la ruta indicada")
 
     try:
         orden_trabajo = get_or_create_orden_trabajo(numero_orden_trabajo, ruta.fecha.isoformat())
+
+        validar_orden_trabajo_disponible_para_publicar(
+            orden_trabajo_id=int(orden_trabajo.id),
+            ruta_item_id=item.id,
+            iniciador=item.iniciador_ruta,
+            ruta=ruta,
+            item=item,
+        )
 
         conflicts = (
             RutaItem.query.filter(

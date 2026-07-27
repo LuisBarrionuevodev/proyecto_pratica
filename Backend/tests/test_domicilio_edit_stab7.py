@@ -152,6 +152,7 @@ def test_iniciador_activo_no_soft_delete_domicilio(app_ctx) -> None:
 
 
 def test_cambio_calle_invalida_geocode(app_ctx) -> None:
+    """Legacy name: corrección en actuación no invalida geocode; conserva lat/lng."""
     try:
         dom = Domicilio(calle="Vieja", numero="1", calle_normalizada="Vieja", calle_norm_status="OK")
         db.session.add(dom)
@@ -167,6 +168,8 @@ def test_cambio_calle_invalida_geocode(app_ctx) -> None:
         db.session.add(geo)
         db.session.flush()
         hash_antes = geo.addr_hash
+        lat_antes = geo.lat
+        lng_antes = geo.lng
 
         outcome = aplicar_edicion_domicilio_operativo(
             domicilio_id_actual=dom.id,
@@ -175,11 +178,14 @@ def test_cambio_calle_invalida_geocode(app_ctx) -> None:
             origen_id=1,
         )
         assert outcome.domicilio_id_cambio is False
-        assert outcome.policy.requiere_geocode_refresh is True
+        assert outcome.policy.modo == "EDITAR_MISMA_FILA"
+        assert outcome.policy.requiere_geocode_refresh is False
         db.session.refresh(geo)
-        # El caller invoca on_domicilio_changed; simulamos hash distinto tras normalizar
         assert outcome.domicilio.calle == "Nueva Calle"
-        assert geo.addr_hash == hash_antes or geo.geo_status == "OK"
+        assert geo.addr_hash == hash_antes
+        assert float(geo.lat) == float(lat_antes)
+        assert float(geo.lng) == float(lng_antes)
+        assert geo.geo_status == "OK"
     finally:
         db.session.rollback()
 
