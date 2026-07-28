@@ -15,6 +15,9 @@ from app.domains.domicilios.services.domicilio_edit_policy_service import (
     resolver_policy_edicion_domicilio,
 )
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
+from app.domains.relevamientos.services.relevamiento_iniciador_service import (
+    get_or_create_iniciador_from_relevamiento,
+)
 from app.domains.relevamientos.services.update_service import actualizar_relevamiento
 from app.models import Domicilio, IniciadorRuta, Inspector, Relevamiento, Rubro
 
@@ -82,13 +85,49 @@ def _payload(
     return out
 
 
+def _mk_relevamiento_compartido_mismo_domicilio(
+    *,
+    base_payload: dict,
+    rubro_nombre: str,
+    nombre_fantasia: str,
+    domicilio_id: int,
+    ins,
+) -> Relevamiento:
+    """Segundo relevamiento en el mismo mes compartiendo domicilio_id (setup PR9.2)."""
+    from app.utils.fechas import parse_fecha_grid
+
+    mes, anio, fecha = parse_fecha_grid(base_payload["fecha"])
+    rub = Rubro.query.filter_by(nombre=rubro_nombre).first()
+    rel = Relevamiento(
+        fecha=fecha,
+        mes=mes,
+        anio=anio,
+        inspector_id=ins.id,
+        domicilio_id=domicilio_id,
+        rubro_id=rub.id if rub else None,
+        nombre_fantasia=nombre_fantasia,
+    )
+    db.session.add(rel)
+    db.session.flush()
+    ini = get_or_create_iniciador_from_relevamiento(rel)
+    db.session.add(ini)
+    db.session.commit()
+    return rel
+
+
 def test_pr92_policy_compartido_cow_al_cambiar_geo(app_ctx) -> None:
     try:
         ins, rub = _inspector_y_rubro()
         calle = _uniq("Pr92Pol")
         p = _payload(calle=calle, numero="10", rubro=rub.nombre, inspector=ins.nombre, nombre_fantasia="A")
         r1 = crear_relevamiento_desde_payload(p)
-        crear_relevamiento_desde_payload({**p, "nombre_fantasia": "B"})
+        _mk_relevamiento_compartido_mismo_domicilio(
+            base_payload=p,
+            rubro_nombre=rub.nombre,
+            nombre_fantasia="B",
+            domicilio_id=int(r1.domicilio_id),
+            ins=ins,
+        )
         assert domicilio_compartido_para_edicion_relevamiento(
             int(r1.domicilio_id),
             exclude_relevamiento_id=r1.id,
@@ -151,8 +190,12 @@ def test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado(app_ctx, requi
             nombre_fantasia="Panadería",
         )
         r1 = crear_relevamiento_desde_payload(p_base)
-        r2 = crear_relevamiento_desde_payload(
-            {**p_base, "rubro_nombre": rub2.nombre, "nombre_fantasia": "Carnicería"}
+        r2 = _mk_relevamiento_compartido_mismo_domicilio(
+            base_payload=p_base,
+            rubro_nombre=rub2.nombre,
+            nombre_fantasia="Carnicería",
+            domicilio_id=int(r1.domicilio_id),
+            ins=ins,
         )
         assert r1.domicilio_id == r2.domicilio_id
         dom_id_antes = r1.domicilio_id

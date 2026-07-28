@@ -204,16 +204,19 @@ def test_f33_direccion_incorrecta_cambio_domicilio_y_geo(app_ctx) -> None:
 def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx) -> None:
     suf = uuid4().hex[:8]
     item, act, dom_old, ini, u, rub = _mk_item_base(suf)
+    dom_old_id = dom_old.id
+    dom_old_calle = dom_old.calle
+    dom_old_numero = dom_old.numero
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first()
     if rub2 is None:
         pytest.skip("Se requieren dos rubros en catálogo")
-    new_calle = f"RubroF33_{suf}"
+    rub_id = rub.id
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
             "contraproducencia": "NO ES EL RUBRO",
             "tipo_actuacion": "INSPECCION",
-            "calle": new_calle,
-            "numero": "400",
+            "calle": dom_old_calle,
+            "numero": dom_old_numero,
             "rubro_nombre": rub2.nombre,
         }
     )
@@ -226,9 +229,7 @@ def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx)
             ejecutado_por_user_id=u.id,
         )
         geo.assert_not_called()
-        new_dom_id = dom_old.id
 
-    assert new_dom_id == dom_old.id
     db.session.expunge_all()
     act_db = (
         Actuaciones.query.filter_by(id=act.id)
@@ -237,10 +238,15 @@ def test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado(app_ctx)
     )
     ini_db = IniciadorRuta.query.filter_by(id=ini.id).first()
     item_db = RutaItem.query.filter_by(id=item.id).first()
-    assert act_db.domicilio_id == new_dom_id
-    assert ini_db.domicilio_id == new_dom_id
+    dom_old_db = db.session.get(Domicilio, dom_old_id)
+    assert act_db is not None and ini_db is not None and dom_old_db is not None
+    # PR12: cambio de rubro operativo → copy-on-write; domicilio legal anterior intacto.
+    assert act_db.domicilio_id != dom_old_id
+    assert ini_db.domicilio_id == act_db.domicilio_id
     assert act_db.domicilio is not None
-    assert act_db.domicilio.id == act_db.domicilio_id
+    assert act_db.domicilio.calle == dom_old_calle
+    assert act_db.domicilio.numero == dom_old_numero
     assert act_db.domicilio.rubro_id == rub2.id
+    assert dom_old_db.rubro_id == rub_id
     assert ini_db.estado_iniciador == "PENDIENTE"
     assert item_db.estado_ruta_item == "FINALIZADO"

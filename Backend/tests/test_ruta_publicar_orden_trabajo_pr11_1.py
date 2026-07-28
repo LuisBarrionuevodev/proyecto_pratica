@@ -42,6 +42,11 @@ def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
+def _fecha_ruta_aislada_mismo_anio(anio: int = 2026) -> date:
+    """Día único dentro del año de la OT (mantiene resolución anio) evitando uq fecha+turno+numero."""
+    return date(anio, 1, 1) + timedelta(days=random.randint(0, 364))
+
+
 @pytest.fixture
 def app_ctx():
     from app import create_app
@@ -213,11 +218,12 @@ def test_pr11_1_reinspeccion_notificacion_publica_con_ot_nueva(app_ctx) -> None:
 
 def test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
+    fecha = _fecha_ruta_aislada_mismo_anio(2026)
     ot_num = _unique_num()
-    ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
     act_prev = _publicar_y_cerrar_no_realizado(ruta1, item1, u.id)
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
     publicar_ruta_trabajo(ruta_id=ruta2.id)
 
     db.session.expire_all()
@@ -231,11 +237,12 @@ def test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot(app_ctx
 
 def test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
-    ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=_unique_num())
+    fecha = _fecha_ruta_aislada_mismo_anio(2026)
+    ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=_unique_num(), fecha_ruta=fecha)
     act_prev = _publicar_y_cerrar_no_realizado(ruta1, item1, u.id)
 
     nueva_ot = _unique_num()
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=nueva_ot)
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=nueva_ot, fecha_ruta=fecha)
     publicar_ruta_trabajo(ruta_id=ruta2.id)
 
     db.session.expire_all()
@@ -291,7 +298,7 @@ def test_pr11_1_actuacion_base_inspeccion_bloquea_misma_ot(app_ctx) -> None:
     assert u is not None
     ins1, ins2 = _dos_inspectores()
     ruta = RutaTrabajo(
-        fecha=date(2026, 7, 21),
+        fecha=_fecha_ruta_aislada_mismo_anio(2026),
         turno="MANIANA",
         estado_ruta="BORRADOR",
         numero=random.randint(2, 32000),

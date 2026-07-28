@@ -1,0 +1,761 @@
+﻿.....................F.................................................. [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+.FF.F........................................F...........F.............. [ 95%]
+...............                                                          [100%]
+================================== FAILURES ===================================
+E   assert 6726 == 6725
+     +  where 6726 = <Actuaciones 5831>.domicilio_id
+C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_cierre_domicilio_f3_3.py:240: assert 6726 == 6725
+E   Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_relevamiento_unicidad_f3_2.py:154: Failed: DID NOT RAISE <class 'ValueError'>
+E   assert False
+     +  where False = domicilio_compartido_para_edicion_relevamiento(6941, exclude_relevamiento_id=2716)
+     +    where 6941 = int(6941)
+     +      where 6941 = <Relevamiento 2716>.domicilio_id
+     +    and   2716 = <Relevamiento 2716>.id
+C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_relevamiento_update_domicilio_pr9_2.py:92: assert False
+E   assert 6944 == 6945
+     +  where 6944 = <Relevamiento 2719>.domicilio_id
+     +  and   6945 = <Relevamiento 2720>.domicilio_id
+C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_relevamiento_update_domicilio_pr9_2.py:157: assert 6944 == 6945
+E   KeyError: 'constraint_name'
+C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_debug_pr11_1d.py:119: KeyError: 'constraint_name'
+E   pymysql.err.IntegrityError: (1062, "Duplicate entry '2026-07-21-MANIANA-8408' for key 'ruta_trabajo.uq_ruta_trabajo_fecha_turno_numero'")
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (pymysql.err.IntegrityError) (1062, "Duplicate entry '2026-07-21-MANIANA-8408' for key 'ruta_trabajo.uq_ruta_trabajo_fecha_turno_numero'")
+    [SQL: INSERT INTO ruta_trabajo (fecha, turno, estado_ruta, numero, observaciones, created_by_user_id) VALUES (%(fecha)s, %(turno)s, %(estado_ruta)s, %(numero)s, %(observaciones)s, %(created_by_user_id)s)]
+    [parameters: {'fecha': datetime.date(2026, 7, 21), 'turno': 'MANIANA', 'estado_ruta': 'BORRADOR', 'numero': 8408, 'observaciones': None, 'created_by_user_id': 1}]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+------------------------------ Captured log call ------------------------------
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:79 [PR11.1d publicar debug] validar_orden_trabajo_disponible_para_publicar | iniciador_id=6119 | orden_trabajo_id=6317 | ot_disponible=True | ruta_item_id=4594
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:79 [PR11.1d publicar debug] publicar_ruta_trabajo.inicio | estado_ruta='BORRADOR' | ruta_fecha='2026-07-21' | ruta_id=4135
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:79 [PR11.1d publicar debug] publicar_ruta_trabajo.pre_validar_ot | estado_iniciador='PLANIFICADO' | grupo_id=2405 | iniciador_id=6119 | item_id=4594 | numero_orden_trabajo='886963' | orden_trabajo_id=6317 | ruta_fecha='2026-07-21' | ruta_id=4135 | tipo_iniciador='REINSPECCION_NOTIFICACION'
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:79 [PR11.1d publicar debug] validar_orden_trabajo_disponible_para_publicar | iniciador_id=6119 | orden_trabajo_id=6317 | ot_disponible=True | ruta_item_id=4594
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:79 [PR11.1d publicar debug] publicar_ruta_trabajo.crear_actuacion_nueva | estado_iniciador='PLANIFICADO' | grupo_id=2405 | iniciador_id=6119 | item_id=4594 | numero_orden_trabajo='886963' | orden_trabajo_id=6317 | reutiliza_actuacion=False | ruta_fecha='2026-07-21' | ruta_id=4135 | tipo_iniciador='REINSPECCION_NOTIFICACION'
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:111 [PR11.1f before commit] ruta_id=4135 inicio items=1
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:131 [PR11.1f before commit] item | item_id=4594 | iniciador_id=6119 | orden_trabajo_id=6317 | numero_orden_trabajo='886963' | actuacion_a_usar_id=5969 | modo_persistencia='crear' | item_actuacion_id_despues=5969 | act_orden_trabajo_id_despues=6317
+WARNING  app.domains.rutas_trabajo.utils.ruta_publicar_debug:ruta_publicar_debug.py:136 [PR11.1f before commit] session ruta_id=4135 new=0 dirty=2 deleted=0
+C:\Users\pablo\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py:150: sqlalchemy.exc.IntegrityError: (pymysql.err.IntegrityError) (1062, "Duplicate entry '2026-07-21-MANIANA-8408' for key 'ruta_trabajo.uq_ruta_trabajo_fecha_turno_numero'")
+============================== warnings summary ===============================
+app\domains\actuaciones\schemas\actuacion_patch_in.py:9
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\schemas\actuacion_patch_in.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ActuacionPatchIn(BaseModel):
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 26 warnings
+tests/test_completar_trabajo_cierre_domicilio_f3_3.py: 3 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 4 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 10 warnings
+tests/test_completar_trabajo_domicilio_geocode_preservado.py: 8 warnings
+tests/test_completar_trabajo_notificacion_pr7_13.py: 1 warning
+tests/test_completar_trabajo_reinspeccion_pr7_14.py: 2 warnings
+tests/test_denuncia_update_domicilio_pr9_3.py: 6 warnings
+tests/test_domicilio_edit_stab7.py: 3 warnings
+tests/test_domicilio_geocode_preservado.py: 2 warnings
+tests/test_iniciador_domicilio_propagacion_pr2.py: 7 warnings
+tests/test_pr12_domicilio_contamination.py: 10 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 7 warnings
+tests/test_relevamiento_unicidad_f3_2.py: 5 warnings
+tests/test_relevamiento_update_domicilio_pr9_2.py: 11 warnings
+tests/test_relevamientos_domicilio.py: 5 warnings
+tests/test_rubro_operativo_actuaciones_hotfix.py: 1 warning
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 10 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 2 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 11 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 6 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 8 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\geolocalizacion\normalizacion_calles\services\normalize_domicilio_service.py:29: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    dom.calle_norm_updated_at = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 2 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_completar_trabajo_domicilio_geocode_preservado.py: 2 warnings
+tests/test_denuncia_update_domicilio_pr9_3.py: 1 warning
+tests/test_pr12_domicilio_contamination.py: 8 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 6 warnings
+tests/test_relevamiento_update_domicilio_pr9_2.py: 1 warning
+tests/test_rubro_operativo_actuaciones_hotfix.py: 1 warning
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\geolocalizacion\normalizacion_calles\services\normalize_domicilio_service.py:111: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    dom.esquina_norm_updated_at = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 2 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_pr12_domicilio_contamination.py: 4 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 2 warnings
+tests/test_rubro_operativo_actuaciones_hotfix.py: 2 warnings
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 13 warnings
+tests/test_ruta_publicar_debug_pr11_1d.py: 2 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 5 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 16 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 8 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 13 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 16 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\grupo_service.py:21: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ruta = RutaTrabajo.query.get(ruta_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 2 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_pr12_domicilio_contamination.py: 4 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 2 warnings
+tests/test_rubro_operativo_actuaciones_hotfix.py: 2 warnings
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 13 warnings
+tests/test_ruta_publicar_debug_pr11_1d.py: 2 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 5 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 16 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 8 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 13 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 16 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\grupo_inspectores_service.py:23: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ruta = RutaTrabajo.query.get(ruta_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 2 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_pr12_domicilio_contamination.py: 4 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 2 warnings
+tests/test_rubro_operativo_actuaciones_hotfix.py: 2 warnings
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 13 warnings
+tests/test_ruta_publicar_debug_pr11_1d.py: 2 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 4 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 15 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 8 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 13 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 16 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\ruta_items_service.py:14: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ruta = RutaTrabajo.query.get(ruta_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 2 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_pr12_domicilio_contamination.py: 4 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 2 warnings
+tests/test_rubro_operativo_actuaciones_hotfix.py: 2 warnings
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 13 warnings
+tests/test_ruta_publicar_debug_pr11_1d.py: 2 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 4 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 15 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 8 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 13 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 16 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\ruta_items_service.py:57: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 2 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_pr12_domicilio_contamination.py: 4 warnings
+tests/test_relevamiento_flujo_pr7_11.py: 3 warnings
+tests/test_rubro_operativo_actuaciones_hotfix.py: 2 warnings
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 20 warnings
+tests/test_ruta_publicar_debug_pr11_1d.py: 1 warning
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 4 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 15 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 8 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 13 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 15 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\ruta_item_orden_trabajo_service.py:39: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ruta = RutaTrabajo.query.get(ruta_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+tests/test_actuaciones_update_contraproducencia.py: 1 warning
+tests/test_completar_trabajo_cierre_domicilio_f3_3.py: 3 warnings
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 1 warning
+tests/test_completar_trabajo_copy_on_write_pr7_12c.py: 5 warnings
+tests/test_completar_trabajo_domicilio_geocode_preservado.py: 6 warnings
+tests/test_completar_trabajo_reinspeccion_pr7_14.py: 6 warnings
+tests/test_domicilio_geocode_preservado.py: 2 warnings
+tests/test_hotfix_reencolado_planificacion.py: 1 warning
+tests/test_relevamiento_flujo_pr7_11.py: 1 warning
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 5 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 2 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 7 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 3 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 5 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 7 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\services\completar_trabajo_cierre_service.py:459: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:117: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item.id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:119: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(item_db.actuacion_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 11 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:120: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    rel_db = Relevamiento.query.get(rel.id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_domicilio_relevamiento_conserva_geocode_y_no_toca_relevamiento
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:149: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_domicilio_relevamiento_conserva_geocode_y_no_toca_relevamiento
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:151: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_act = Domicilio.query.get(act_db.domicilio_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py: 8 warnings
+tests/test_actuaciones_update_contraproducencia.py: 1 warning
+tests/test_completar_trabajo_copy_on_write_pr7_12.py: 1 warning
+tests/test_domicilio_edit_stab7.py: 1 warning
+tests/test_domicilio_geocode_preservado.py: 5 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\services\update_service.py:100: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(actuacion_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_domicilio_relevamiento_conserva_geocode_y_no_toca_relevamiento
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:188: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    rel_db = Relevamiento.query.get(rel_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_domicilio_relevamiento_conserva_geocode_y_no_toca_relevamiento
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:189: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_domicilio_relevamiento_conserva_geocode_y_no_toca_relevamiento
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:192: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_act = Domicilio.query.get(act_db.domicilio_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_con_notificacion_iniciador_en_uso_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\services\notificacion_iniciador_service.py:307: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_calle_y_numero_mendoza_a_catamarca
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:459: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_editar_calle_y_numero_mendoza_a_catamarca
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:461: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_act = Domicilio.query.get(act_db.domicilio_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_directa_crud_cambia_calle_sin_geocode_refresh
+tests/test_relevamiento_unicidad_f3_2.py::test_f32_update_a_domicilio_ocupado_bloquea
+tests/test_relevamiento_update_domicilio_pr9_2.py::test_pr92_edit_mismo_establecimiento_otro_mes_permite
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\cleanup\garbage_collector.py:89: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    domicilio.deleted_at = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_directa_crud_cambia_calle_sin_geocode_refresh
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\geolocalizacion\geocoding\repos\domicilio_geocode_repo.py:90: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    geo.deleted_at = datetime.utcnow()
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_directa_crud_cambia_calle_sin_geocode_refresh
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:523: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_directa_crud_cambia_calle_sin_geocode_refresh
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:524: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_act = Domicilio.query.get(act_db.domicilio_id) if act_db else None
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_editable_sin_payload_domicilio_no_falla
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:573: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_editable_sin_payload_domicilio_no_falla
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:574: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_db = Domicilio.query.get(dom_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_con_notificacion_sin_uso_permite_editar_otros_campos
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:631: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_con_notificacion_sin_uso_permite_editar_otros_campos
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_actuacion_domicilio_edit_pr7_15.py:632: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_db = Domicilio.query.get(dom_id)
+
+tests/test_completar_trabajo_notificacion_pr7_13.py::test_pr713_update_actuacion_con_notificacion_sin_uso_permite_cambio_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_notificacion_pr7_13.py:369: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_db = Domicilio.query.get(act.domicilio_id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py: 2 warnings
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py: 7 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 3 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 1 warning
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 1 warning
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\presenters\actuacion_presenters.py:399: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return Notificacion.query.get(int(nid))
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_notificacion_cierra_sin_cambio_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:61: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_notificacion_cierra_sin_cambio_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:62: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_notificacion_cierra_sin_cambio_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:63: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_oficio_cierra_sin_cambio_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:91: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_oficio_cierra_sin_cambio_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:92: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_notificacion_cambio_domicilio_completo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:155: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_notificacion_cambio_domicilio_completo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:156: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom = Domicilio.query.get(act_db.domicilio_id) if act_db else None
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_oficio_cambio_domicilio_completo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:183: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act.id)
+
+tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_oficio_cambio_domicilio_completo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_completar_trabajo_reinspeccion_pr7_14.py:184: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom = Domicilio.query.get(act_db.domicilio_id) if act_db else None
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_con_iniciador_sin_item_en_ruta
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_comprobacion_pendientes_reinspeccion_bandeja.py:290: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(aid)
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py: 7 warnings
+tests/test_gestion_domicilios_pr6c.py: 3 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\usuarios\security\decorators.py:21: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return User.query.get(int(user_id))
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py: 252 warnings
+tests/test_pendientes_expediente_bandeja_notificacion.py: 1 warning
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\presenters\actuacion_presenters.py:387: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return Comprobacion.query.get(int(cid))
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py: 252 warnings
+tests/test_pendientes_expediente_bandeja_notificacion.py: 1 warning
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\presenters\actuacion_presenters.py:393: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return Oficio.query.get(int(oid))
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_con_ruta_borrador
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_comprobacion_pendientes_reinspeccion_bandeja.py:328: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(aid)
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_operativa
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_operativa
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_comprobacion_pendientes_reinspeccion_bandeja.py:364: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(aid)
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_ruta_cancelada
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_comprobacion_pendientes_reinspeccion_bandeja.py:398: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(aid)
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_ruta_cerrada
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_comprobacion_pendientes_reinspeccion_bandeja.py:430: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(aid)
+
+tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_item_ruta_soft_deleted
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_comprobacion_pendientes_reinspeccion_bandeja.py:462: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(aid)
+
+tests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_policy_compartido_cow_al_cambiar_geo
+tests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_policy_compartido_cow_al_cambiar_geo
+tests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_compartido_otra_denuncia_intacta
+tests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_compartido_otra_denuncia_intacta
+tests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_ruta_publicada_bloquea_cambio_domicilio
+tests/test_iniciador_domicilio_herencia_pr1.py::test_denuncia_sigue_creando_iniciador_con_domicilio
+tests/test_iniciador_domicilio_propagacion_pr2.py::test_denuncia_sigue_funcionando
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\denuncias\services\denuncias_service.py:65: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom = Domicilio.query.get(domicilio_id)
+
+tests/test_domicilio_edit_stab7.py::test_actuacion_correccion_mantiene_domicilio_id
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_domicilio_edit_stab7.py:250: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_domicilio_edit_stab7.py::test_actuacion_correccion_mantiene_domicilio_id
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_domicilio_edit_stab7.py:251: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini_id)
+
+tests/test_domicilio_edit_stab7.py::test_actuacion_correccion_mantiene_domicilio_id
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_domicilio_edit_stab7.py:252: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_db = Domicilio.query.get(dom_id)
+
+tests/test_domicilio_geocode_preservado.py::test_corregir_contraproducencia_conserva_geocode
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\services\actuacion_corregir_cierre_operativo_service.py:179: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    ts = now or datetime.utcnow()
+
+tests/test_domicilio_geocode_preservado.py::test_editar_calle_desde_actuaciones_directa_crud_conserva_geocode
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_domicilio_geocode_preservado.py:393: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_domicilio_geocode_preservado.py::test_editar_calle_desde_actuaciones_directa_crud_conserva_geocode
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_domicilio_geocode_preservado.py:394: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    dom_db = Domicilio.query.get(act_db.domicilio_id) if act_db else None
+
+tests/test_domicilio_geocode_preservado.py::test_nomenclatura_sigue_pudiendo_disparar_geocode
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\geolocalizacion\normalizacion_calles\repos\domicilio_repo.py:13: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return Domicilio.query.get(domicilio_id)
+
+tests/test_domicilio_geocode_preservado.py::test_nomenclatura_sigue_pudiendo_disparar_geocode
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\geolocalizacion\normalizacion_calles\services\guardar_nomenclatura_service.py:43: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    dom.calle_norm_updated_at = datetime.utcnow()
+
+tests/test_hotfix_reinspeccion_notificacion.py::test_pendiente_reinspeccion_aparece_si_estado_pendiente_sin_ruta_reinspeccion
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_hotfix_reinspeccion_notificacion.py:146: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_hotfix_reinspeccion_notificacion.py::test_pendiente_no_aparece_si_reinspeccion_via_ruta_item_sin_notificacion_id
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_hotfix_reinspeccion_notificacion.py:246: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_hotfix_reinspeccion_notificacion.py::test_pendiente_legitimo_sin_ruta_item_sigue_apareciendo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_hotfix_reinspeccion_notificacion.py:261: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_hotfix_reinspeccion_notificacion.py::test_pendiente_legitimo_sin_ruta_item_sigue_apareciendo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_hotfix_reinspeccion_notificacion.py:267: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_work = Actuaciones.query.get(_item.actuacion_id)
+
+tests/test_notificacion_prorroga_editable.py::test_ultimo_expediente_ruta_item_realizado_bloquea
+tests/test_notificacion_prorroga_editable.py::test_mensaje_viejo_iniciador_ruta_no_aparece
+tests/test_oficios_multiples_comprobacion_pr3.py::test_segundo_oficio_hereda_domicilio_operativo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\services\expediente_completion_service.py:120: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(actuacion_id)
+
+tests/test_planificacion_urgentes_service.py::test_urgentes_q_domicilio
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\iniciadores_pendientes_service.py:21: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ruta = RutaTrabajo.query.get(ruta_id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_ot_otro_iniciador_en_proceso_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:97: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_ot_otro_iniciador_en_proceso_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:106: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_b_db = RutaItem.query.get(item_b.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_ot_otro_iniciador_local_cerrado_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:122: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_ot_otro_iniciador_no_realizado_clima_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:145: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_ot_mismo_iniciador_reintento_permite
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:166: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 8 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py: 14 warnings
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py: 26 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py: 8 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 28 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py: 47 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\ruta_publicar_ot_conflicto_service.py:209: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(item.actuacion_id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_ot_mismo_iniciador_ot_libre_permite
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:192: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_item_soft_deleted_no_bloquea_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:217: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py::test_pr11_1g_patch_item_soft_deleted_no_bloquea_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_item_orden_trabajo_pr11_1g.py:219: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    item1_db.deleted_at = datetime.utcnow()
+
+tests/test_ruta_item_orden_trabajo_pr11_1g.py: 4 warnings
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py: 7 warnings
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\rutas_trabajo\services\ruta_publicar_ot_conflicto_service.py:215: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(item.actuacion_id)
+
+tests/test_ruta_publicar_debug_pr11_1d.py::test_pr11_1d_conflicto_ot_incluye_debug
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_debug_pr11_1d.py:54: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_debug_pr11_1d.py::test_pr11_1d_conflicto_ot_incluye_debug
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_debug_pr11_1d.py:88: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_debug_pr11_1d.py::test_pr11_1d_conflicto_ot_incluye_debug
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_debug_pr11_1d.py:93: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini2_db = IniciadorRuta.query.get(ini2.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py::test_pr11_1e_republicar_misma_ot_no_integrity_error_caso_qa
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1e.py:144: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py::test_pr11_1e_republicar_misma_ot_no_integrity_error_caso_qa
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1e.py:152: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py::test_pr11_1e_republicar_misma_ot_no_integrity_error_caso_qa
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1e.py:167: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py::test_pr11_1e_resolver_prefiere_actuacion_con_ot_objetivo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1e.py:213: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py::test_pr11_1e_resolver_prefiere_actuacion_con_ot_objetivo
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_dos_actuaciones_mismo_iniciador_prefiere_ocupante_ot_objetivo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1e.py:74: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act1 = Actuaciones.query.get(act1_id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1e.py::test_pr11_1e_resolver_prefiere_actuacion_con_ot_objetivo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1e.py:237: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item3_db = RutaItem.query.get(item3.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_dos_actuaciones_mismo_iniciador_prefiere_ocupante_ot_objetivo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:136: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_dos_actuaciones_mismo_iniciador_prefiere_ocupante_ot_objetivo
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:163: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item3_db = RutaItem.query.get(item3.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_republicar_misma_ot_no_crea_segunda_actuacion_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:181: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_republicar_misma_ot_no_crea_segunda_actuacion_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:187: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_republicar_misma_ot_no_crea_segunda_actuacion_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:196: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_ocupada_por_otro_iniciador_409_explicito_no_integrity
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:213: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_ocupada_por_otro_iniciador_409_explicito_no_integrity
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_local_cerrado_bloquea
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_no_realizado_bloquea
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_ocupada_por_otro_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:90: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item_id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_local_cerrado_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:240: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_local_cerrado_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:243: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_no_realizado_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:273: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_no_realizado_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:276: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_libre_publica_ok
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:307: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_libre_publica_ok
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:315: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_libre_publica_ok
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:320: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_ocupada_por_otro_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:340: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_a_db = RutaItem.query.get(item_a.id)
+
+tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_ocupada_por_otro_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_integrity_reintento_pr11_1f.py:347: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_b_db = RutaItem.query.get(item_b.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reinspeccion_notificacion_publica_con_ot_nueva
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:210: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reinspeccion_notificacion_publica_con_ot_nueva
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:213: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(item_db.actuacion_id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_item_no_realizado_no_genera_conflicto_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:187: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_item_no_realizado_no_genera_conflicto_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:198: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(act_id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_item_no_realizado_no_genera_conflicto_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:200: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini = IniciadorRuta.query.get(item_db.iniciador_ruta_id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:229: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:232: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_prev_db = Actuaciones.query.get(act_prev.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_ot_en_actuacion_activa_en_proceso_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:262: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_ot_en_actuacion_activa_en_proceso_bloquea
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1.py:267: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_relevamiento-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_denuncia-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_no_bloquea_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_mismo_dia_misma_ot_sigue_ok
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:145: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_relevamiento-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_denuncia-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_no_bloquea_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_mismo_dia_misma_ot_sigue_ok
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:159: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act = Actuaciones.query.get(act_id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_relevamiento-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_denuncia-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_no_bloquea_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_mismo_dia_misma_ot_sigue_ok
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:160: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_relevamiento-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_denuncia-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_no_bloquea_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_mismo_dia_misma_ot_sigue_ok
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:161: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item_db = RutaItem.query.get(item.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_relevamiento-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_denuncia-INSPECCION]
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:190: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_relevamiento-INSPECCION]
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot[_mk_iniciador_denuncia-INSPECCION]
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:191: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_prev.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:210: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:239: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_ot_en_proceso_sigue_bloqueando
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:250: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_ot_en_proceso_sigue_bloqueando
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:255: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_no_bloquea_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:281: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    item_prev.deleted_at = datetime.utcnow()
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_no_bloquea_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1b.py:288: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:91: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:92: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_prev.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:130: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:131: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_prev.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_mismo_dia_misma_ot_sigue_ok
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:150: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_item_en_proceso_sigue_bloqueando_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:162: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1_db = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_item_en_proceso_sigue_bloqueando_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:167: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_realizada_previa_no_permite_reasignar
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:185: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item1 = RutaItem.query.get(item1.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_realizada_previa_no_permite_reasignar
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:197: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    ini_db = IniciadorRuta.query.get(ini.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:258: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:259: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    act_db = Actuaciones.query.get(act_prev.id)
+
+tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\tests\test_ruta_publicar_orden_trabajo_pr11_1c.py:294: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    item2_db = RutaItem.query.get(item2.id)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_completar_trabajo_cierre_domicilio_f3_3.py::test_f33_no_es_el_rubro_cambio_rubro_reingreso_y_domicilio_alineado
+FAILED tests/test_relevamiento_unicidad_f3_2.py::test_f32_update_a_domicilio_ocupado_bloquea
+FAILED tests/test_relevamiento_update_domicilio_pr9_2.py::test_pr92_policy_compartido_cow_al_cambiar_geo
+FAILED tests/test_relevamiento_update_domicilio_pr9_2.py::test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado
+FAILED tests/test_ruta_publicar_debug_pr11_1d.py::test_pr11_1d_parse_integrity_error_uq_notificacion
+FAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta

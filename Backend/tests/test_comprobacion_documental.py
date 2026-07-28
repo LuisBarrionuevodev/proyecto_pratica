@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import random
-from datetime import date
+from datetime import date, timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -12,7 +13,8 @@ from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, Iniciad
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    """6 chars únicos por corrida (evita uq_acomp_numero_anio / uq_ot_numero_anio en BD compartida)."""
+    return uuid4().hex[:6].upper()
 
 
 @pytest.fixture
@@ -431,7 +433,7 @@ def test_delete_oficio_bloque_bloqueado_por_ruta_publicada(app, client, auth_hea
             db.session.add(ini)
             db.session.flush()
             ruta = RutaTrabajo(
-                fecha=date(2026, 6, 15),
+                fecha=date(2099, 1, 1) + timedelta(days=random.randint(0, 360)),
                 turno="TARDE",
                 estado_ruta="PUBLICADA",
                 created_by_user_id=u.id,

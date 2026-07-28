@@ -139,6 +139,7 @@ def test_f32_update_mismo_domicilio_ok(app_ctx) -> None:
 
 
 def test_f32_update_a_domicilio_ocupado_bloquea(app_ctx) -> None:
+    """PR7.6/PR9.2: reasignar a domicilio existente (misma calle/número) está permitido."""
     ins, rub = _inspector_y_rubro()
     base = _uniq("MitreF32B")
     try:
@@ -151,11 +152,17 @@ def test_f32_update_a_domicilio_ocupado_bloquea(app_ctx) -> None:
                 "domicilio": {"calle": f"{base} Otro", "numero": "99"},
             }
         )
-        with pytest.raises(ValueError, match="establecimiento en el mismo domicilio"):
-            actualizar_relevamiento(
-                r2.id,
-                {**p2, "domicilio": {"calle": base, "numero": "1"}},
-            )
+        actualizar_relevamiento(
+            r2.id,
+            {**p2, "domicilio": {"calle": base, "numero": "1"}},
+        )
+        db.session.refresh(r1)
+        db.session.refresh(r2)
+        dom_r1 = db.session.get(Domicilio, r1.domicilio_id)
+        dom_r2 = db.session.get(Domicilio, r2.domicilio_id)
+        assert dom_r1 is not None and dom_r2 is not None
+        assert dom_r1.calle == base and dom_r1.numero == "1"
+        assert dom_r2.calle == base and dom_r2.numero == "1"
     finally:
         db.session.rollback()
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -56,6 +56,11 @@ def app_ctx():
 
 def _fecha_mismo_dia() -> date:
     return date.today()
+
+
+def _fecha_fixture_aislada() -> date:
+    """Día aislado para evitar colisiones en BD compartida (ruta uq fecha+turno+numero, OT por año)."""
+    return date(2099, 1, 1) + timedelta(days=random.randint(0, 360))
 
 
 def _republicar_mismo_dia_ot_distinta(
@@ -149,7 +154,7 @@ def test_pr11_1c_mismo_dia_misma_ot_sigue_ok(app_ctx) -> None:
 
 def test_pr11_1c_item_en_proceso_sigue_bloqueando_ot(app_ctx) -> None:
     ini1 = _mk_iniciador_relevamiento()
-    fecha = _fecha_mismo_dia()
+    fecha = _fecha_fixture_aislada()
     ot_num = _unique_num()
     ruta1, item1 = _setup_borrador_con_iniciador(ini1, numero_ot=ot_num, fecha_ruta=fecha)
     publicar_ruta_trabajo(ruta_id=ruta1.id)

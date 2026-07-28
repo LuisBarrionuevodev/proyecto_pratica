@@ -354,7 +354,7 @@ def test_actuacion_con_comprobacion_con_expediente_bloquea(app_ctx) -> None:
     db.session.flush()
     act.comprobacion_id = comp.id
     exp = Expediente(
-        numero_expediente="123456",
+        numero_expediente=_unique_num(),
         fecha_expediente=date(2026, 7, 1),
         anio="2026",
         tipo_expediente="ENVIO_ACTA",

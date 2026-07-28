@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -54,15 +54,25 @@ def _uniq_user() -> User:
     return u
 
 
+def _uniq_ruta_numero() -> int:
+    """Número de ruta único por corrida (SmallInteger; evita uq fecha+turno+numero)."""
+    return random.randint(2, 32_000)
+
+
+def _uniq_list_test_date() -> date:
+    """Día aislado para listados (evita ruido de rutas residuales en BD compartida)."""
+    return date(2099, 1, 1) + timedelta(days=random.randint(0, 360))
+
+
 def test_list_publicadas_filtra_por_fecha_exacta(app_ctx) -> None:
     u = _uniq_user()
-    d1 = date(2026, 7, 10)
-    d2 = date(2026, 7, 11)
+    d1 = _uniq_list_test_date()
+    d2 = d1 + timedelta(days=1)
     r_a = RutaTrabajo(
         fecha=d1,
         turno="MANIANA",
         estado_ruta="PUBLICADA",
-        numero=1,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
@@ -70,7 +80,7 @@ def test_list_publicadas_filtra_por_fecha_exacta(app_ctx) -> None:
         fecha=d2,
         turno="MANIANA",
         estado_ruta="PUBLICADA",
-        numero=1,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
@@ -91,12 +101,12 @@ def test_list_publicadas_filtra_por_fecha_exacta(app_ctx) -> None:
 
 def test_list_publicadas_multiples_estados(app_ctx) -> None:
     u = _uniq_user()
-    d = date(2026, 8, 1)
+    d = _uniq_list_test_date()
     r_pub = RutaTrabajo(
         fecha=d,
         turno="TARDE",
         estado_ruta="PUBLICADA",
-        numero=1,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
@@ -104,7 +114,7 @@ def test_list_publicadas_multiples_estados(app_ctx) -> None:
         fecha=d,
         turno="MANIANA",
         estado_ruta="EN_CURSO",
-        numero=1,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
@@ -112,7 +122,7 @@ def test_list_publicadas_multiples_estados(app_ctx) -> None:
         fecha=d,
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=2,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
@@ -133,20 +143,20 @@ def test_list_publicadas_multiples_estados(app_ctx) -> None:
 
 def test_list_borrador_por_fecha_exacta(app_ctx) -> None:
     u = _uniq_user()
-    d = date(2026, 9, 5)
+    d = _uniq_list_test_date()
     r = RutaTrabajo(
         fecha=d,
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=1,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
     r2 = RutaTrabajo(
-        fecha=date(2026, 9, 6),
+        fecha=d + timedelta(days=1),
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=1,
+        numero=_uniq_ruta_numero(),
         observaciones=None,
         created_by_user_id=u.id,
     )
