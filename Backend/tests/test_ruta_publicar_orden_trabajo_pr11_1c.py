@@ -115,7 +115,7 @@ def test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado(app_ctx) -> None:
 
 def test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
-    fecha = _fecha_mismo_dia()
+    fecha = _fecha_fixture_aislada()
     ot1, ot2 = _unique_num(), _unique_num()
     while ot2 == ot1:
         ot2 = _unique_num()

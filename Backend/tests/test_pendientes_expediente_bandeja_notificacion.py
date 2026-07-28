@@ -6,8 +6,8 @@ COMPROBACION mantiene criterio sin expediente de envío. Requiere BD; rollback a
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -37,7 +37,7 @@ from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return uuid4().hex[:6].upper()
 
 
 @pytest.fixture
@@ -247,7 +247,7 @@ def test_notificacion_sin_reinspeccion_no_muestra_comprobacion_domicilio(app_ctx
         ot2 = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=3)
         db.session.add(ot2)
         db.session.flush()
-        comp = Comprobacion(numero_acta="POST99", anio=2026, mes=3, motivo="otra visita")
+        comp = Comprobacion(numero_acta=_unique_num(), anio=2026, mes=3, motivo="otra visita")
         db.session.add(comp)
         db.session.flush()
         act_comp = Actuaciones(

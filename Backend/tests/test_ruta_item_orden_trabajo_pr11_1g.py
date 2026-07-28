@@ -21,7 +21,11 @@ from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ru
 from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 from app.models import RutaItem, User
 
-from tests.test_ruta_publicar_orden_trabajo_pr11_1 import _setup_borrador_con_iniciador, _unique_num
+from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
+    _fecha_ruta_aislada_mismo_anio,
+    _setup_borrador_con_iniciador,
+    _unique_num,
+)
 from tests.test_ruta_publicar_orden_trabajo_pr11_1b import _mk_iniciador_relevamiento
 
 
@@ -88,17 +92,17 @@ def test_pr11_1g_patch_ot_libre_asigna_ok(app_ctx) -> None:
 def test_pr11_1g_patch_ot_otro_iniciador_en_proceso_bloquea(app_ctx) -> None:
     ini_a = _mk_iniciador_relevamiento()
     ini_b = _mk_iniciador_relevamiento()
-    hoy = date.today()
+    fecha = _fecha_ruta_aislada_mismo_anio(2026)
     ot_num = _unique_num()
 
-    ruta_a, item_a = _setup_borrador_con_iniciador(ini_a, numero_ot=ot_num, fecha_ruta=hoy)
+    ruta_a, item_a = _setup_borrador_con_iniciador(ini_a, numero_ot=ot_num, fecha_ruta=fecha)
     publicar_ruta_trabajo(ruta_id=ruta_a.id)
     db.session.expire_all()
     item_a_db = RutaItem.query.get(item_a.id)
     assert item_a_db is not None
     ot_id = int(item_a_db.orden_trabajo_id)
 
-    ruta_b, item_b = _setup_borrador_con_iniciador(ini_b, numero_ot=_unique_num(), fecha_ruta=hoy)
+    ruta_b, item_b = _setup_borrador_con_iniciador(ini_b, numero_ot=_unique_num(), fecha_ruta=fecha)
     with pytest.raises(RutaPublicarDebugError) as exc_info:
         set_orden_trabajo_on_item(ruta_id=ruta_b.id, item_id=item_b.id, numero_orden_trabajo=ot_num)
 

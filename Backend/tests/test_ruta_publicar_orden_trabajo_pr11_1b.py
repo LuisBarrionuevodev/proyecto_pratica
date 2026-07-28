@@ -41,6 +41,7 @@ from app.models import (
 
 from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _dos_inspectores,
+    _fecha_ruta_aislada_mismo_anio,
     _mk_iniciador_reinspeccion_notificacion,
     _mk_user,
     _publicar_y_cerrar_no_realizado,
@@ -180,10 +181,13 @@ def test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot(
     ini = mk_ini()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
+    fecha = _fecha_ruta_aislada_mismo_anio(2026)
     ot_num = _unique_num()
-    act_prev = _publicar_cerrar_reencolar(ini, ot_num=ot_num, user_id=u.id, tipo=tipo_cierre)
+    act_prev = _publicar_cerrar_reencolar(
+        ini, ot_num=ot_num, user_id=u.id, tipo=tipo_cierre, fecha_ruta=fecha
+    )
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
     publicar_ruta_trabajo(ruta_id=ruta2.id)
 
     db.session.expire_all()
