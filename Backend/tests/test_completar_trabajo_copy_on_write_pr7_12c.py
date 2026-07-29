@@ -14,6 +14,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.orm import joinedload
 
+from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero
+
 from app.database import db
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
@@ -140,10 +142,10 @@ def _setup_ruta_publicada(ini: IniciadorRuta) -> RutaItem:
         pytest.skip("Se requiere usuario activo")
     ins1, ins2 = _dos_inspectores()
     ruta = RutaTrabajo(
-        fecha=date(2026, 7, 15),
+        fecha=fecha_ruta_aislada_mismo_anio(2026),
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
         created_by_user_id=u.id,
     )
     db.session.add(ruta)

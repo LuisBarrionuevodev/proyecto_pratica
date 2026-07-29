@@ -134,7 +134,7 @@ def _setup_borrador_con_iniciador(
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
     ins1, ins2 = _dos_inspectores()
-    f = fecha_ruta or date(2026, 7, 21)
+    f = fecha_ruta or _fecha_ruta_aislada_mismo_anio(2026)
     ruta = RutaTrabajo(
         fecha=f,
         turno="MANIANA",

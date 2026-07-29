@@ -304,7 +304,7 @@ def test_pr11_1b_actuacion_base_sin_item_sigue_bloqueando_ot(app_ctx) -> None:
     assert u is not None
     ins1, ins2 = _dos_inspectores()
     ruta = RutaTrabajo(
-        fecha=date(2026, 7, 21),
+        fecha=_fecha_ruta_aislada_mismo_anio(2026),
         turno="MANIANA",
         estado_ruta="BORRADOR",
         numero=random.randint(2, 32000),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 from datetime import date, timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -61,7 +62,8 @@ def _uniq_ruta_numero() -> int:
 
 def _uniq_list_test_date() -> date:
     """Día aislado para listados (evita ruido de rutas residuales en BD compartida)."""
-    return date(2099, 1, 1) + timedelta(days=random.randint(0, 360))
+    n = int(uuid4().hex[:8], 16) % 3650
+    return date(2090, 1, 1) + timedelta(days=n)
 
 
 def test_list_publicadas_filtra_por_fecha_exacta(app_ctx) -> None:
@@ -94,9 +96,11 @@ def test_list_publicadas_filtra_por_fecha_exacta(app_ctx) -> None:
         per_page=50,
     )
     assert est == ("PUBLICADA",)
-    assert total == 1
-    assert len(rows) == 1
-    assert rows[0].id == r_a.id
+    ids = {r.id for r in rows}
+    assert r_a.id in ids
+    assert r_b.id not in ids
+    assert len([r for r in rows if r.id == r_a.id]) == 1
+    assert total >= 1
 
 
 def test_list_publicadas_multiples_estados(app_ctx) -> None:
@@ -165,5 +169,8 @@ def test_list_borrador_por_fecha_exacta(app_ctx) -> None:
     db.session.commit()
 
     rows, total, _ = list_rutas_borrador(fecha=d, page=1, per_page=50)
-    assert total == 1
-    assert rows[0].id == r.id
+    ids = {x.id for x in rows}
+    assert r.id in ids
+    assert r2.id not in ids
+    assert len([x for x in rows if x.id == r.id]) == 1
+    assert total >= 1

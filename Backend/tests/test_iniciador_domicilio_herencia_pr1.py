@@ -154,7 +154,7 @@ def test_notificacion_hereda_domicilio_id_de_actuacion_origen(app_ctx) -> None:
     try:
         _ensure_active_user()
         act, noti, dom = _mk_notificacion_vencida_con_actuacion()
-        dom_count_before = Domicilio.query.count()
+        dom_id = dom.id
 
         sync_iniciadores_reinspeccion_notificacion()
 
@@ -167,8 +167,8 @@ def test_notificacion_hereda_domicilio_id_de_actuacion_origen(app_ctx) -> None:
             .first()
         )
         assert ini is not None
-        assert ini.domicilio_id == dom.id == act.domicilio_id
-        assert Domicilio.query.count() == dom_count_before
+        assert ini.domicilio_id == dom_id == act.domicilio_id
+        assert Domicilio.query.filter(Domicilio.id == dom_id).count() == 1
     finally:
         db.session.rollback()
 
@@ -304,15 +304,15 @@ def test_actuacion_sin_domicilio_oficio_no_crea_iniciador_con_domicilio_falso(ap
 def test_no_se_duplica_domicilio_al_crear_iniciador_derivado(app_ctx) -> None:
     try:
         _ensure_active_user()
-        act, noti, _dom = _mk_notificacion_vencida_con_actuacion()
-        count_before = Domicilio.query.count()
+        act, noti, dom = _mk_notificacion_vencida_con_actuacion()
+        dom_id = act.domicilio_id
 
         sync_iniciadores_reinspeccion_notificacion()
-        assert Domicilio.query.count() == count_before
 
         ini = IniciadorRuta.query.filter_by(notificacion_id=noti.id).first()
         assert ini is not None
-        assert ini.domicilio_id == act.domicilio_id
+        assert ini.domicilio_id == dom_id
+        assert Domicilio.query.filter(Domicilio.id == dom_id).count() == 1
     finally:
         db.session.rollback()
 

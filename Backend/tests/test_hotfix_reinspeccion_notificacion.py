@@ -47,6 +47,21 @@ def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
+def _fecha_vencimiento_vencida_aislada() -> date:
+    """Vencimiento en el pasado (<= today) y distinto por corrida para BD compartida."""
+    n = int(uuid4().hex[:6], 16) % 3650
+    return date(2000, 1, 1) + timedelta(days=n)
+
+
+def _fecha_ruta_aislada(anio: int = 2026) -> date:
+    n = int(uuid4().hex[:8], 16) % 364
+    return date(anio, 1, 1) + timedelta(days=n)
+
+
+def _uniq_ruta_numero() -> int:
+    return int(uuid4().hex[:4], 16) % 31_999 + 2
+
+
 def _mk_user() -> User:
     u = User(
         username=f"u_hotfix_{_unique_num()}",
@@ -66,7 +81,7 @@ def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, Iniciad
     db.session.add(dom)
     db.session.flush()
 
-    vencida = date.today() - timedelta(days=3)
+    vencida = _fecha_vencimiento_vencida_aislada()
     noti = Notificacion(numero_acta=_unique_num(), anio=2026, mes=6, fecha_vencimiento=vencida)
     db.session.add(noti)
     db.session.flush()
@@ -105,10 +120,11 @@ def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, Iniciad
     db.session.add(ot_work)
     db.session.flush()
 
+    fecha_ruta = _fecha_ruta_aislada(2026)
     act_work = Actuaciones(
-        fecha=date(2026, 6, 10),
-        mes=6,
-        anio=2026,
+        fecha=fecha_ruta,
+        mes=fecha_ruta.month,
+        anio=fecha_ruta.year,
         tipo="REINSPECCION",
         orden_trabajo_id=ot_work.id,
         domicilio_id=dom.id,
@@ -117,11 +133,11 @@ def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, Iniciad
     db.session.flush()
 
     ruta = RutaTrabajo(
-        fecha=date(2026, 6, 10),
+        fecha=fecha_ruta,
         turno="MANIANA",
         estado_ruta="PUBLICADA",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=_uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
@@ -142,18 +158,23 @@ def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, Iniciad
 
 def test_pendiente_reinspeccion_aparece_si_estado_pendiente_sin_ruta_reinspeccion(app_ctx) -> None:
     """PENDIENTE sin ítem de ruta con actuación REINSPECCION sí entra en cola operativa."""
-    item, act_work, ini, _u, _noti = _mk_reinspeccion_notificacion_item()
-    ini_db = IniciadorRuta.query.get(ini.id)
-    assert ini_db is not None
-    ini_db.estado_iniciador = "PENDIENTE"
-    db.session.delete(item)
-    if act_work:
-        db.session.delete(act_work)
-    db.session.commit()
+    try:
+        item, act_work, ini, _u, noti = _mk_reinspeccion_notificacion_item()
+        act_base_id = ini.actuacion_id
+        ini_id = ini.id
+        ini_db = IniciadorRuta.query.get(ini_id)
+        assert ini_db is not None
+        ini_db.estado_iniciador = "PENDIENTE"
+        db.session.delete(item)
+        if act_work:
+            db.session.delete(act_work)
+        db.session.commit()
 
-    pendientes = list_reinspeccion_notificacion_operativas()
-    act_ids = {a.id for a in pendientes}
-    assert ini.actuacion_id in act_ids
+        pendientes = list_reinspeccion_notificacion_operativas()
+        act_ids = {a.id for a in pendientes if a.notificacion_id == noti.id}
+        assert act_base_id in act_ids
+    finally:
+        db.session.rollback()
 
 
 def test_cierre_realizada_saca_de_pendientes_y_vincula_notificacion(app_ctx) -> None:

@@ -60,7 +60,8 @@ def _fecha_mismo_dia() -> date:
 
 def _fecha_fixture_aislada() -> date:
     """Día aislado para evitar colisiones en BD compartida (ruta uq fecha+turno+numero, OT por año)."""
-    return date(2099, 1, 1) + timedelta(days=random.randint(0, 360))
+    n = int(uuid4().hex[:8], 16) % 3650
+    return date(2090, 1, 1) + timedelta(days=n)
 
 
 def _republicar_mismo_dia_ot_distinta(

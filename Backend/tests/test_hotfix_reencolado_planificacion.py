@@ -41,6 +41,16 @@ def _ot_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
+def _fecha_ruta_aislada(anio: int = 2026) -> date:
+    """Día único por corrida (evita uq fecha+turno+numero en BD compartida)."""
+    n = int(uuid4().hex[:8], 16) % 364
+    return date(anio, 1, 1) + timedelta(days=n)
+
+
+def _uniq_ruta_numero() -> int:
+    return int(uuid4().hex[:4], 16) % 31_999 + 2
+
+
 @pytest.fixture
 def app_ctx():
     from app import create_app
@@ -102,10 +112,11 @@ def _mk_relevamiento_en_ruta_publicada(
     ot = OrdenTrabajo(numero_acta=_ot_num(), anio=2026, mes=6)
     db.session.add(ot)
     db.session.flush()
+    fecha_ruta = _fecha_ruta_aislada(2026)
     act = Actuaciones(
-        fecha=date(2026, 6, 10),
-        mes=6,
-        anio=2026,
+        fecha=fecha_ruta,
+        mes=fecha_ruta.month,
+        anio=fecha_ruta.year,
         tipo="INSPECCION",
         orden_trabajo_id=ot.id,
         domicilio_id=dom.id,
@@ -125,11 +136,11 @@ def _mk_relevamiento_en_ruta_publicada(
     db.session.add(ini)
     db.session.flush()
     ruta_pub = RutaTrabajo(
-        fecha=date(2026, 6, 10),
+        fecha=fecha_ruta,
         turno="MANIANA",
         estado_ruta="PUBLICADA",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=_uniq_ruta_numero(),
     )
     db.session.add(ruta_pub)
     db.session.flush()
@@ -143,12 +154,13 @@ def _mk_relevamiento_en_ruta_publicada(
     )
     db.session.add(item)
     db.session.flush()
+    fecha_borrador = fecha_ruta + timedelta(days=5)
     ruta_borrador = RutaTrabajo(
-        fecha=date(2026, 6, 15),
+        fecha=fecha_borrador,
         turno="MANIANA",
         estado_ruta="BORRADOR",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=_uniq_ruta_numero(),
     )
     db.session.add(ruta_borrador)
     db.session.commit()
@@ -188,7 +200,7 @@ def test_reencolado_generico_aparece_en_planificable(app_ctx, contra: str) -> No
             prioridad=None,
             prioridad_categoria=None,
             distrito=dom.distrito_id,
-            q=None,
+            q=f"ReencCalle_{suf}",
             turno_sugerido=None,
             calle_catalogo_id=None,
             page=1,
@@ -280,8 +292,7 @@ def test_no_cumple_oficio_reencolado_aparece_en_planificable(app_ctx) -> None:
     item, _act, ini, u = _mk_reinspeccion_oficio_item(uuid4().hex[:8])
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
-            "tipo_actuacion": "VERIFICAR E INFORMAR",
-            "acta_inspeccion_num": _ot_num(),
+            "tipo_actuacion": "RATIFICACION DE CLAUSURA",
             "resultado_cumplimiento_oficio": "NO_CUMPLE",
         }
     )

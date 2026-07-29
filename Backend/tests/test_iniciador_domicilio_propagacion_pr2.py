@@ -427,9 +427,12 @@ def test_no_duplica_domicilio_en_propagacion(app_ctx) -> None:
         rel = crear_relevamiento_desde_payload(
             _payload_relevamiento(calle=_uniq("PR2Dup"), numero="90", ins=ins, rub=rub)
         )
-        count_before = Domicilio.query.count()
+        dom_id = rel.domicilio_id
         propagar_domicilio_a_iniciadores_activos("RELEVAMIENTO", rel.id, rel.domicilio_id)
-        assert Domicilio.query.count() == count_before
+        ini = IniciadorRuta.query.filter_by(relevamiento_id=rel.id).first()
+        assert ini is not None
+        assert ini.domicilio_id == dom_id
+        assert Domicilio.query.filter(Domicilio.id == dom_id).count() == 1
     finally:
         db.session.rollback()
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from datetime import date
+from datetime import date, timedelta
 from uuid import uuid4
 
 import pytest
@@ -48,6 +48,12 @@ def _unique_num() -> str:
 
 def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
+
+
+def _fecha_fixture_aislada() -> date:
+    """Día aislado para evitar colisiones en BD compartida."""
+    n = int(uuid4().hex[:8], 16) % 3650
+    return date(2090, 1, 1) + timedelta(days=n)
 
 
 @pytest.fixture
@@ -97,13 +103,14 @@ def _payload_esquina(*, calle: str, rubro: str, inspector: str, fecha: str):
     }
 
 
-def _setup_ruta_y_publicar(ini_ids: list[int]) -> list[RutaItem]:
+def _setup_ruta_y_publicar(ini_ids: list[int], *, fecha_ruta: date | None = None) -> list[RutaItem]:
     u = User.query.filter(User.is_active.is_(True)).first()
     if u is None:
         pytest.skip("Se requiere usuario activo")
     ins1, ins2 = _dos_inspectores()
+    f = fecha_ruta or _fecha_fixture_aislada()
     ruta = RutaTrabajo(
-        fecha=date(2026, 7, 21),
+        fecha=f,
         turno="MANIANA",
         estado_ruta="BORRADOR",
         numero=random.randint(2, 32000),
@@ -156,13 +163,14 @@ def _cargar_actuacion_manual_esquina(
     rubro: Rubro,
     contrib_doc: str,
     acta_notif: str,
+    fecha_actuacion: str | None = None,
 ) -> Actuaciones:
     ins = _inspector()
     motivo = Motivo.query.first()
     if motivo is None:
         pytest.skip("Se requiere motivo en catálogo")
     payload = {
-        "fecha_actuacion": "21/07/2026",
+        "fecha_actuacion": fecha_actuacion or "21/07/2026",
         "orden_trabajo_numero": _unique_num(),
         "tipo_actuacion": "INSPECCION",
         "rubro_nombre": rubro.nombre,

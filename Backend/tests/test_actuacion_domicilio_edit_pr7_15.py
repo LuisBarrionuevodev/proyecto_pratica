@@ -9,6 +9,8 @@ from uuid import uuid4
 
 import pytest
 
+from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero
+
 from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
@@ -389,11 +391,11 @@ def test_actuacion_con_comprobacion_iniciador_en_ruta_bloquea(app_ctx) -> None:
     db.session.add(ini)
     db.session.flush()
     ruta = RutaTrabajo(
-        fecha=date(2026, 7, 10),
+        fecha=fecha_ruta_aislada_mismo_anio(2026),
         turno="MANIANA",
         estado_ruta="PUBLICADA",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
