@@ -201,4 +201,44 @@ describe("CompletarTrabajoModal", () => {
     expect(html).toContain("¿Dio cumplimiento?");
     expect(html).not.toContain("¿Realizó nueva inspección?");
   });
+
+  it("reinspección por notificación muestra notificación origen readonly", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_NOTIFICACION",
+          tipo_actuacion: "REINSPECCION",
+          notificacion_origen_texto: "000123/2026",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Notificación origen (solo lectura)");
+    expect(html).toContain("Notif. 000123/2026");
+    expect(html).not.toContain("N° acta de notificación");
+  });
+
+  it("reinspección por notificación sin origen muestra guión", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_NOTIFICACION",
+          tipo_actuacion: "REINSPECCION",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Notificación origen (solo lectura)");
+    expect(html).toContain("—");
+  });
 });

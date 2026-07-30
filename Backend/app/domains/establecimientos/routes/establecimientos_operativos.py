@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, request
 
 from app.models import EstablecimientoOperativo
 from app.domains.establecimientos.presenters.establecimiento_operativo_presenters import (
-    actuacion_historial_row,
+    actuacion_historial_rows,
     establecimiento_operativo_detail,
     establecimiento_operativo_list_row,
 )
@@ -123,7 +123,7 @@ def list_actuaciones_establecimiento_route(establecimiento_id: int):
         page=page,
         page_size=page_size,
     )
-    rows = [actuacion_historial_row(a) for a in acts]
+    rows = actuacion_historial_rows(acts)
     return (
         jsonify(
             {

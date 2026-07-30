@@ -77,15 +77,36 @@ export async function getEstablecimientoOperativoById(
   return data;
 }
 
+/** Bloque de acta/trámite en historial (presenter PR10.4a / establecimientos-operativos). */
+export interface IHistorialActaBlock {
+  numero?: string | null;
+  anio?: number | null;
+  texto?: string | null;
+}
+
+export interface IHistorialActasPayload {
+  inspeccion?: IHistorialActaBlock | null;
+  notificacion?: IHistorialActaBlock | null;
+  comprobacion?: IHistorialActaBlock | null;
+  clausura?: IHistorialActaBlock | null;
+  decomiso?: IHistorialActaBlock | null;
+}
+
+export interface IHistorialTramitesPayload {
+  expediente?: IHistorialActaBlock | null;
+  oficio?: IHistorialActaBlock | null;
+}
+
 /** Fila de `GET /establecimientos-operativos/:id/actuaciones`. */
 export interface IEstablecimientoOperativoHistorialRow {
   id: number;
   fecha: string | null;
   tipo_actuacion: string | null;
   contraproducencia: string | null;
-  nombre_local: string | null;
-  orden_trabajo_numero: string | null;
-  acta_inspeccion_num: string | null;
+  inspectores_texto?: string | null;
+  actas_tramites_texto?: string | null;
+  actas?: IHistorialActasPayload | null;
+  tramites?: IHistorialTramitesPayload | null;
 }
 
 export interface IEstablecimientoOperativoHistorialMeta {

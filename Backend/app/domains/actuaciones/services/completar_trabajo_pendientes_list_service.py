@@ -61,6 +61,7 @@ def list_completar_trabajo_pendientes(
             joinedload(RutaItem.iniciador_ruta).options(
                 joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
                 joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+                joinedload(IniciadorRuta.notificacion),
             ),
             joinedload(RutaItem.ruta_grupo)
             .selectinload(RutaGrupo.grupo_inspectores)

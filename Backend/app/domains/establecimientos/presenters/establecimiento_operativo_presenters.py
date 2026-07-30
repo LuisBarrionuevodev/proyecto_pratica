@@ -4,9 +4,19 @@ Serialización JSON para API de fichas ``establecimiento_operativo``.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from app.models import Actuaciones, EstablecimientoOperativo
+from app.domains.actuaciones.presenters.actuacion_presenters import (
+    ActuacionGridBatchMaps,
+    build_actuacion_grid_batch_maps,
+    build_iniciador_ruta_por_actuacion_id,
+)
+from app.domains.establecimientos.presenters.historial_contribuyente_presenters import (
+    build_actas_tramites_payload_for_actuacion,
+    contraproducencia_historial_visible,
+    inspectores_historial_texto,
+)
+from app.models import Actuaciones, EstablecimientoOperativo, RutaItem
 
 
 def _enum_or_str(val: Any) -> Optional[str]:
@@ -103,32 +113,86 @@ def establecimiento_operativo_detail(
     return base
 
 
-def actuacion_historial_row(act: Actuaciones) -> Dict[str, Any]:
+def _load_ruta_items_by_actuacion_id(act_ids: List[int]) -> Dict[int, RutaItem]:
+    """
+    Mapa ``actuacion_id`` → ``RutaItem`` para derivar contraproducencia en NO_REALIZADO.
+
+    Parámetros:
+        act_ids: ids de actuaciones de la página.
+
+    Retorno:
+        dict indexado por ``actuacion_id``.
+    """
+    if not act_ids:
+        return {}
+    rows = (
+        RutaItem.query.filter(
+            RutaItem.actuacion_id.in_(act_ids),
+            RutaItem.deleted_at.is_(None),
+        ).all()
+    )
+    out: Dict[int, RutaItem] = {}
+    for ri in rows:
+        if ri.actuacion_id is not None:
+            out[int(ri.actuacion_id)] = ri
+    return out
+
+
+def actuacion_historial_row(
+    act: Actuaciones,
+    *,
+    iniciador: Any = None,
+    batch: ActuacionGridBatchMaps | None = None,
+    ruta_item: RutaItem | None = None,
+) -> Dict[str, Any]:
     """
     Una fila de historial (actuación vinculada a la ficha).
 
     Parámetros:
-        act: ``Actuaciones`` con ``orden_trabajo`` e ``inspeccion`` opcionalmente cargados.
+        act: ``Actuaciones`` con relaciones de actas y trámites cargadas.
+        iniciador: iniciador de ruta opcional (reinspección notificación).
+        batch: mapas batch de expedientes/oficios.
 
     Retorno:
-        dict con campos mínimos para tabla de historial.
+        dict con campos para tabla de historial (tipo, contraproducencia, actas/trámites).
     """
-    ot_num: Optional[str] = None
-    if getattr(act, "orden_trabajo", None):
-        ot_num = getattr(act.orden_trabajo, "numero_acta", None) or getattr(
-            act.orden_trabajo, "numero", None
-        )
-    inspeccion = getattr(act, "inspeccion", None)
-    acta_inspeccion_num = getattr(inspeccion, "numero_acta", None) if inspeccion else None
-
     fecha_iso = act.fecha.isoformat() if act.fecha else None
+    doc = build_actas_tramites_payload_for_actuacion(act, iniciador=iniciador, batch=batch)
 
     return {
         "id": act.id,
         "fecha": fecha_iso,
         "tipo_actuacion": _enum_or_str(getattr(act, "tipo", None)),
-        "contraproducencia": _enum_or_str(getattr(act, "contraproducencia", None)),
-        "nombre_local": (str(act.nombre_local).strip() or None) if act.nombre_local else None,
-        "orden_trabajo_numero": ot_num,
-        "acta_inspeccion_num": acta_inspeccion_num,
+        "contraproducencia": contraproducencia_historial_visible(act, ruta_item),
+        "inspectores_texto": inspectores_historial_texto(act),
+        **doc,
     }
+
+
+def actuacion_historial_rows(acts: List[Actuaciones]) -> List[Dict[str, Any]]:
+    """
+    Presenta un lote de actuaciones de historial con mapas batch compartidos.
+
+    Parámetros:
+        acts: actuaciones de la página actual.
+
+    Retorno:
+        Lista de dicts listos para JSON.
+    """
+    if not acts:
+        return []
+
+    act_ids = [int(a.id) for a in acts if a.id is not None]
+    ini_map = build_iniciador_ruta_por_actuacion_id(act_ids)
+    batch = build_actuacion_grid_batch_maps(acts, ini_map)
+    ruta_items_by_act = _load_ruta_items_by_actuacion_id(act_ids)
+
+    return [
+        actuacion_historial_row(
+            act,
+            iniciador=ini_map.get(int(act.id)) if act.id is not None else None,
+            batch=batch,
+            ruta_item=ruta_items_by_act.get(int(act.id)) if act.id is not None else None,
+        )
+        for act in acts
+    ]

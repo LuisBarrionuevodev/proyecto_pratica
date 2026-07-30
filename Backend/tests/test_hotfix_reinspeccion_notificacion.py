@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
-from uuid import uuid4
 
 import pytest
+
+from tests.helpers.fixture_isolation import (
+    fecha_ruta_aislada_mismo_anio,
+    fecha_vencimiento_vencida_aislada,
+    unique_ot_numero,
+    uniq_ruta_numero,
+)
 
 from app.database import db
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
@@ -44,22 +49,15 @@ def app_ctx():
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
-
-
-def _fecha_vencimiento_vencida_aislada() -> date:
-    """Vencimiento en el pasado (<= today) y distinto por corrida para BD compartida."""
-    n = int(uuid4().hex[:6], 16) % 3650
-    return date(2000, 1, 1) + timedelta(days=n)
+    return unique_ot_numero()
 
 
 def _fecha_ruta_aislada(anio: int = 2026) -> date:
-    n = int(uuid4().hex[:8], 16) % 364
-    return date(anio, 1, 1) + timedelta(days=n)
+    return fecha_ruta_aislada_mismo_anio(anio)
 
 
 def _uniq_ruta_numero() -> int:
-    return int(uuid4().hex[:4], 16) % 31_999 + 2
+    return uniq_ruta_numero()
 
 
 def _mk_user() -> User:
@@ -81,7 +79,7 @@ def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, Iniciad
     db.session.add(dom)
     db.session.flush()
 
-    vencida = _fecha_vencimiento_vencida_aislada()
+    vencida = fecha_vencimiento_vencida_aislada()
     noti = Notificacion(numero_acta=_unique_num(), anio=2026, mes=6, fecha_vencimiento=vencida)
     db.session.add(noti)
     db.session.flush()

@@ -43,6 +43,7 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
             joinedload(RutaItem.iniciador_ruta).options(
                 joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
                 joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+                joinedload(IniciadorRuta.notificacion),
             ),
             joinedload(RutaItem.ruta_grupo)
             .joinedload(RutaGrupo.grupo_inspectores)

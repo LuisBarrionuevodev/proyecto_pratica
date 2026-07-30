@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import pytest
 
-from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero
+from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, unique_ot_numero, uniq_ruta_numero
 
 from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
@@ -59,7 +59,7 @@ def app_ctx():
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def _uniq(prefix: str) -> str:

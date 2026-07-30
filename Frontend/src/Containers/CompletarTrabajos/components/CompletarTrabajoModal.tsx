@@ -52,7 +52,7 @@ import {
 import { prefillOperativoReinspeccionNotificacion } from "../utils/completarTrabajoReinspeccionNotificacionPrefill";
 import { operativoHydrationFromRow } from "../utils/completarTrabajoVerificarInformarPrefill";
 import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
-import { showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
+import { formatNotificacionOrigenReadonly, showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
 import {
   OFICIO_CUMPLE_OPTS,
   TIPO_ACTUACION_REINSPECCION_OFICIO,
@@ -614,6 +614,7 @@ export function CompletarTrabajoModal({
   );
   const esReinspeccionOficioGenericoUi = esReinspeccionOficioGenerico(displayRow?.tipo_iniciador);
   const esReinspeccionNotificacion = displayRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
+  const notificacionOrigenTexto = formatNotificacionOrigenReadonly(displayRow);
   const verificarMuestraInspeccionNormal =
     esFlujoVerificarInformarUi && realizoNuevaInspeccion === "si";
   const verificarSinInspeccionNormal =
@@ -1579,9 +1580,7 @@ export function CompletarTrabajoModal({
                       Notificación origen (solo lectura)
                     </Typography>
                     <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
-                      {(resolvedRow?.acta_notificacion_num ?? "").trim()
-                        ? `Notif. ${(resolvedRow?.acta_notificacion_num ?? "").trim()}`
-                        : "—"}
+                      {notificacionOrigenTexto ? `Notif. ${notificacionOrigenTexto}` : "—"}
                     </Typography>
                   </Box>
                 ) : (

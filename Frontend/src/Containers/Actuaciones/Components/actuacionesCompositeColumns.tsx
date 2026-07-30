@@ -13,7 +13,9 @@ import {
   BandejaFechaYChipOtCell,
   BandejaSegmentChipsCell,
   bandejaOutlinedChipSx,
+  contraproducenciaBandejaSegment,
   splitCommaList,
+  tipoActuacionBandejaSegment,
 } from "./bandejaTableCells";
 import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
 
@@ -110,9 +112,10 @@ export function buildActuacionesCompositeColumns(): MRT_ColumnDef<IActuacionList
       grow: true,
       Cell: ({ row }) => {
         const r = row.original;
-        const tipo = (r.tipo_actuacion ?? "").trim();
-        const contra = (r.contraproducencia ?? "").trim();
-        const segs = [tipo ? `Tipo: ${tipo}` : "", contra ? `Contraproducencia: ${contra}` : ""].filter(Boolean);
+        const segs = [
+          tipoActuacionBandejaSegment(r.tipo_actuacion),
+          contraproducenciaBandejaSegment(r.contraproducencia),
+        ].filter(Boolean);
         return <BandejaSegmentChipsCell segments={segs.length ? segs : []} />;
       },
     },

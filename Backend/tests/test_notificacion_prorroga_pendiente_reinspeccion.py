@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
 
 import pytest
+
+from tests.helpers.fixture_isolation import unique_ot_numero
 
 from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_pendiente_expediente_row
@@ -24,7 +25,7 @@ from app.models import Actuaciones, Contribuyente, Domicilio, IniciadorRuta, Not
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 @pytest.fixture

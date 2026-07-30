@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatNotificacionOrigenReadonly,
   showActasEstandarEnCompletarTrabajo,
   showContribuyenteDomicilioEditableEnCompletarTrabajo,
   showNotificacionEditableEnCompletarTrabajo,
@@ -44,6 +45,18 @@ describe("completarTrabajoReinspeccionNotificacionUi", () => {
 
   it("no expone enum crudo en label humano", () => {
     expect(tipoIniciadorDesdeCodigoApi("REINSPECCION_NOTIFICACION")).toBe("Reinspección por notificación");
+  });
+
+  it("formatNotificacionOrigenReadonly prioriza texto backend y formatea fallback", () => {
+    expect(formatNotificacionOrigenReadonly({ notificacion_origen_texto: "000123/2026" })).toBe("000123/2026");
+    expect(
+      formatNotificacionOrigenReadonly({
+        acta_notificacion_num: "000123",
+        notificacion_origen_anio: 2026,
+      })
+    ).toBe("000123/2026");
+    expect(formatNotificacionOrigenReadonly({ acta_notificacion_num: "000123" })).toBe("000123");
+    expect(formatNotificacionOrigenReadonly(null)).toBe("");
   });
 });
 

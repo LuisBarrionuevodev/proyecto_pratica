@@ -153,6 +153,13 @@ def _establecimientos_operativos_requires_jwt(method: str, path: str) -> bool:
     return path == "/establecimientos-operativos" or path.startswith("/establecimientos-operativos/")
 
 
+def _establecimientos_requires_jwt(method: str, path: str) -> bool:
+    """Lecturas de historial por DNI/CUIT (PR10.4a)."""
+    if method not in _READ_METHODS_PROTECTED:
+        return False
+    return path == "/establecimientos" or path.startswith("/establecimientos/")
+
+
 def _requires_jwt(method: str, path: str) -> bool:
     return (
         _phase1_requires_jwt(method, path)
@@ -162,6 +169,7 @@ def _requires_jwt(method: str, path: str) -> bool:
         or _pr_c2_requires_jwt(method, path)
         or _indicadores_requires_jwt(method, path)
         or _establecimientos_operativos_requires_jwt(method, path)
+        or _establecimientos_requires_jwt(method, path)
     )
 
 

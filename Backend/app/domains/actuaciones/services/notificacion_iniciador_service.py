@@ -171,6 +171,55 @@ def _subq_reinsp_via_ruta_item_iniciador():
     )
 
 
+def _subq_reinsp_exitosa_misma_notificacion():
+    """
+    Existe reinspección **realizada** (ítem FINALIZADO + REALIZADO) para la misma notificación.
+
+    No cuenta intentos NO_REALIZADO reencolables (LOCAL CERRADO, CLIMA, etc.).
+    """
+    A2 = aliased(Actuaciones)
+    return exists().where(
+        and_(
+            A2.notificacion_id == Actuaciones.notificacion_id,
+            A2.tipo == "REINSPECCION",
+            exists().where(
+                and_(
+                    RutaItem.actuacion_id == A2.id,
+                    RutaItem.deleted_at.is_(None),
+                    RutaItem.estado_ruta_item == "FINALIZADO",
+                    RutaItem.estado_ejecucion == "REALIZADO",
+                )
+            ),
+        )
+    )
+
+
+def _subq_reinsp_via_ruta_item_bloqueante_iniciador():
+    """
+    Ítem de ruta del iniciador que bloquea aparición en bandeja operativa.
+
+    Bloquea visita EN_PROCESO o reinspección exitosa. No bloquea intentos
+    FINALIZADO + NO_REALIZADO reencolables.
+    """
+    A_rein = aliased(Actuaciones)
+    return exists().where(
+        and_(
+            RutaItem.iniciador_ruta_id == IniciadorRuta.id,
+            RutaItem.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            RutaItem.actuacion_id == A_rein.id,
+            A_rein.tipo == "REINSPECCION",
+            or_(
+                RutaItem.estado_ruta_item == "EN_PROCESO",
+                and_(
+                    RutaItem.estado_ruta_item == "FINALIZADO",
+                    RutaItem.estado_ejecucion == "REALIZADO",
+                ),
+            ),
+        )
+    )
+
+
 def _subq_reinsp_via_ruta_item_misma_notificacion():
     """
     Para elegibilidad de sync: existe iniciador REINSPECCION_NOTIFICACION de la misma
@@ -480,7 +529,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
     esa actuación (alineado con PR1/PR3).
     """
     today = date.today()
-    subq_reinsp = _subq_reinsp_misma_notificacion()
+    subq_reinsp = _subq_reinsp_exitosa_misma_notificacion()
     subq_item_realizado = exists().where(
         and_(
             RutaItem.iniciador_ruta_id == IniciadorRuta.id,
@@ -489,7 +538,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
             RutaItem.estado_ejecucion == "REALIZADO",
         )
     )
-    subq_reinsp_via_item = _subq_reinsp_via_ruta_item_iniciador()
+    subq_reinsp_via_item = _subq_reinsp_via_ruta_item_bloqueante_iniciador()
     return (
         apply_bandeja_grid_eager(
             Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)

@@ -165,6 +165,36 @@ export function BandejaDomicilioYRubroCell({
   );
 }
 
+/**
+ * Segmento de chip para contraproducencia (misma convención que columna compuesta de Actuaciones).
+ */
+export function contraproducenciaBandejaSegment(contra: string | null | undefined): string {
+  const c = (contra ?? "").trim();
+  return c ? `Contraproducencia: ${c}` : "";
+}
+
+/**
+ * Segmento de chip para tipo de actuación (misma convención que columna compuesta de Actuaciones).
+ */
+export function tipoActuacionBandejaSegment(tipo: string | null | undefined): string {
+  const t = (tipo ?? "").trim();
+  return t ? `Tipo: ${t}` : "";
+}
+
+/** Tipo de actuación (+ contraproducencia opcional) en chips outlined. */
+export function BandejaTipoActuacionChipCell({
+  tipo,
+  contraproducencia,
+}: {
+  tipo: string | null | undefined;
+  contraproducencia?: string | null | undefined;
+}) {
+  const segs = [tipoActuacionBandejaSegment(tipo), contraproducenciaBandejaSegment(contraproducencia)].filter(
+    Boolean
+  );
+  return <BandejaSegmentChipsCell segments={segs} />;
+}
+
 /** N.º de acta (u otra referencia de acta) en chip outlined. */
 export function BandejaActaChipCell({ label }: { label: string }) {
   const v = (label ?? "").trim();

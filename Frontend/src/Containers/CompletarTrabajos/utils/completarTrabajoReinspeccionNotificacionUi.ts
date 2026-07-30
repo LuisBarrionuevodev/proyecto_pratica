@@ -20,6 +20,22 @@ export function showNotificacionOrigenReadonlyEnCompletarTrabajo(tipoIniciador: 
   return tipoIniciador === "REINSPECCION_NOTIFICACION";
 }
 
+type NotificacionOrigenRow = {
+  acta_notificacion_num?: string | null;
+  notificacion_origen_texto?: string | null;
+  notificacion_origen_anio?: number | null;
+};
+
+/** Texto readonly de notificación origen para reinspección por notificación. */
+export function formatNotificacionOrigenReadonly(row: NotificacionOrigenRow | null | undefined): string {
+  const texto = (row?.notificacion_origen_texto ?? "").trim();
+  if (texto) return texto;
+  const num = (row?.acta_notificacion_num ?? "").trim();
+  if (!num) return "";
+  const anio = row?.notificacion_origen_anio;
+  return anio != null ? `${num}/${anio}` : num;
+}
+
 /** Actas distintas de notificación (inspección, comprobación, clausura, decomiso). */
 export function showActasEstandarEnCompletarTrabajo(_tipoIniciador: string | null | undefined): boolean {
   return true;

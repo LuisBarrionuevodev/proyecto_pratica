@@ -3,7 +3,7 @@ import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import StorefrontIcon from "@mui/icons-material/Storefront";
-import { Alert, Box, Grid, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Box, Paper, Stack, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -18,8 +18,12 @@ import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
   BandejaEllipsisCell,
+  BandejaTipoActuacionChipCell,
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
 } from "../Actuaciones/Components/bandejaTableCells";
+import { HistorialActasTramitesCell } from "./components/HistorialActasTramitesCell";
+import { HistorialInspectoresCell } from "./components/HistorialInspectoresCell";
+import { historialActasTramitesChipLabels } from "./utils/historialActasTramitesVisual";
 import { glassCard } from "../../styles/GlassStyles";
 import {
   getEstablecimientoOperativoActuaciones,
@@ -39,17 +43,6 @@ function formatFecha(iso: string | null | undefined): string {
 function dash(v: string | null | undefined): string {
   const t = v?.trim();
   return t ? t : "—";
-}
-
-/** Apellido, Nombre para lectura (persona física). */
-function contribuyentePersonaFisica(
-  apellido: string | null | undefined,
-  nombre: string | null | undefined
-): string {
-  const a = apellido?.trim() ?? "";
-  const n = nombre?.trim() ?? "";
-  const t = [a, n].filter(Boolean).join(", ");
-  return t;
 }
 
 /**
@@ -170,25 +163,13 @@ export default function EstablecimientoDetallePage() {
     if (rs) return rs;
     const nom = [detalle.contrib_nombre, detalle.contrib_apellido].filter(Boolean).join(" ").trim();
     if (nom) return nom;
-    return `Ficha operativa #${detalle.id}`;
+    return `Establecimiento #${detalle.id}`;
   }, [detalle]);
 
   const domicilioLinea = useMemo(() => {
     if (!detalle) return "";
     const parts = [detalle.calle, detalle.numero].filter((p) => p?.trim()).join(" ");
     return parts.trim() || "—";
-  }, [detalle]);
-
-  /** Si hay razón social en el título y también persona física, mostramos la persona en un meta aparte (sin repetir cuando el título ya es la persona). */
-  const identidadMeta = useMemo(() => {
-    if (!detalle) return { showTitularPersona: false, titularPersona: "", documento: "—" };
-    const rs = detalle.razon_social?.trim();
-    const persona = contribuyentePersonaFisica(detalle.contrib_apellido, detalle.contrib_nombre);
-    return {
-      showTitularPersona: Boolean(rs && persona),
-      titularPersona: persona,
-      documento: dash(detalle.documento),
-    };
   }, [detalle]);
 
   const colsHistorial = useMemo<MRT_ColumnDef<IEstablecimientoOperativoHistorialRow>[]>(
@@ -202,32 +183,37 @@ export default function EstablecimientoDetallePage() {
       {
         accessorKey: "tipo_actuacion",
         header: "TIPO DE ACTUACIÓN",
-        size: 160,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
+        size: 200,
+        accessorFn: (row) =>
+          [row.tipo_actuacion ?? "", row.contraproducencia ?? ""].filter((s) => s?.trim()).join(" · "),
+        Cell: ({ row }) => (
+          <BandejaTipoActuacionChipCell
+            tipo={row.original.tipo_actuacion}
+            contraproducencia={row.original.contraproducencia}
+          />
+        ),
       },
       {
-        accessorKey: "contraproducencia",
-        header: "CONTRAPRODUCENCIA",
-        size: 160,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
-      },
-      {
-        accessorKey: "nombre_local",
-        header: "NOMBRE LOCAL",
+        accessorKey: "inspectores_texto",
+        header: "INSPECTORES",
         size: 180,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
+        grow: true,
+        Cell: ({ row }) => (
+          <HistorialInspectoresCell inspectoresTexto={row.original.inspectores_texto} />
+        ),
       },
       {
-        accessorKey: "orden_trabajo_numero",
-        header: "ORDEN DE TRABAJO",
-        size: 140,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
-      },
-      {
-        accessorKey: "acta_inspeccion_num",
-        header: "Nº ACTA INSPECCIÓN",
-        size: 150,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={dash(cell.getValue() as string | null)} />,
+        id: "actas_tramites",
+        header: "ACTAS Y TRÁMITES",
+        size: 280,
+        grow: true,
+        accessorFn: (row) =>
+          historialActasTramitesChipLabels(row.actas, row.tramites).join(" · ") ||
+          row.actas_tramites_texto?.trim() ||
+          "",
+        Cell: ({ row }) => (
+          <HistorialActasTramitesCell actas={row.original.actas} tramites={row.original.tramites} />
+        ),
       },
     ],
     []
@@ -349,16 +335,15 @@ export default function EstablecimientoDetallePage() {
             </Typography>
             <Typography
               sx={{
-                mt: 0.5,
+                mt: 0.75,
                 fontFamily: '"Tactic Sans", sans-serif',
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: 600,
-                color: "rgba(255,255,255,0.5)",
-                letterSpacing: "0.06em",
+                color: "rgba(255,255,255,0.75)",
+                letterSpacing: "0.04em",
               }}
             >
-              Ficha operativa #{detalle.id}
-              {detalle.domicilio_id != null ? ` · ref. domicilio ${detalle.domicilio_id}` : null}
+              DNI/CUIT: {dash(detalle.documento)}
             </Typography>
             <Typography
               sx={{
@@ -395,30 +380,8 @@ export default function EstablecimientoDetallePage() {
                     Distrito: {detalle.distrito_nombre.trim()}
                   </Typography>
                 ) : null}
-                {detalle.calle_normalizada?.trim() ? (
-                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", mt: 0.5, lineHeight: 1.5 }}>
-                    Calle normalizada: {detalle.calle_normalizada.trim()}
-                  </Typography>
-                ) : null}
               </Box>
             </Stack>
-
-            <Grid container spacing={2} sx={{ mt: 2 }}>
-              {identidadMeta.showTitularPersona ? (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Meta label="Titular (persona física)" value={identidadMeta.titularPersona} />
-                </Grid>
-              ) : null}
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Meta label="Identificación" value={identidadMeta.documento} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Meta label="Actuaciones registradas" value={String(detalle.actuaciones_count)} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Meta label="Última actuación" value={formatFecha(detalle.ultima_actuacion_fecha)} />
-              </Grid>
-            </Grid>
           </Box>
         </Stack>
       </Paper>
@@ -448,24 +411,5 @@ export default function EstablecimientoDetallePage() {
         </Stack>
       </Paper>
     </Stack>
-  );
-}
-
-function Meta({ label, value }: { label: string; value: string }) {
-  return (
-    <Box>
-      <Typography
-        sx={{
-          fontSize: "10px",
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          color: "rgba(255,255,255,0.45)",
-          mb: 0.5,
-        }}
-      >
-        {label}
-      </Typography>
-      <Typography sx={{ fontSize: "13px", fontWeight: 600, color: COLORS.white }}>{value}</Typography>
-    </Box>
   );
 }

@@ -50,6 +50,9 @@ export interface ICompletarTrabajoPendienteRow {
   razon_social?: string | null;
   acta_inspeccion_num?: string | null;
   acta_notificacion_num?: string | null;
+  notificacion_origen_id?: number | null;
+  notificacion_origen_anio?: number | null;
+  notificacion_origen_texto?: string | null;
   notificacion_motivo_1?: string | null;
   notificacion_motivo_2?: string | null;
   notificacion_motivo_3?: string | null;

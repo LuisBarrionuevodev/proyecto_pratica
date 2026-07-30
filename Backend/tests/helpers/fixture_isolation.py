@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
 from uuid import uuid4
 
@@ -24,8 +23,13 @@ def uniq_ruta_numero() -> int:
     return int(uuid4().hex[:4], 16) % 31_999 + 2
 
 
+def unique_ot_numero() -> str:
+    """Número de acta/OT único (evita uq_ot_numero_anio en BD compartida)."""
+    return uuid4().hex[:6].upper()
+
+
 def unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def fecha_vencimiento_vencida_aislada() -> date:

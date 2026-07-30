@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import joinedload
 
 from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_nombre_operativo_para_iniciador
-from app.models import Actuaciones, Domicilio, RutaGrupo, RutaItem
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, Relevamiento, RutaGrupo, RutaItem
 
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
@@ -105,6 +105,38 @@ def _enrich_contrib_prefill_oficio(row: Dict[str, Any], item: RutaItem) -> Dict[
             merged.update({k: v for k, v in snap.items() if v is not None})
             return merged
     return row
+
+
+def _enrich_notificacion_origen_reinspeccion(row: Dict[str, Any], item: RutaItem) -> Dict[str, Any]:
+    """
+    REINSPECCION_NOTIFICACION: el acta de trabajo puede no tener ``notificacion_id`` al abrir
+    Completar trabajo; el origen está en ``iniciador_ruta.notificacion_id``.
+    """
+    ini = item.iniciador_ruta
+    if ini is None or ini.tipo_iniciador != "REINSPECCION_NOTIFICACION":
+        return row
+    acta = (row.get("acta_notificacion_num") or "").strip()
+    if acta:
+        return row
+    noti_id = ini.notificacion_id
+    if noti_id is None:
+        return row
+    noti = getattr(ini, "notificacion", None)
+    if noti is None:
+        noti = Notificacion.query.get(int(noti_id))
+    if noti is None:
+        return row
+    numero = getattr(noti, "numero_acta", None)
+    anio = getattr(noti, "anio", None)
+    merged = dict(row)
+    if numero is not None and str(numero).strip():
+        merged["acta_notificacion_num"] = str(numero).strip()
+    if anio is not None:
+        merged["notificacion_origen_anio"] = int(anio)
+    if numero and anio:
+        merged["notificacion_origen_texto"] = f"{str(numero).strip()}/{anio}"
+    merged["notificacion_origen_id"] = int(noti_id)
+    return merged
 
 
 def _nombres_inspectores_grupo(grupo: Optional[RutaGrupo]) -> list[str]:
@@ -217,6 +249,7 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     }
     for k in _COMPLETAR_GRID_EXTRA_KEYS:
         out[k] = base.get(k)
+    out = _enrich_notificacion_origen_reinspeccion(out, item)
     return _enrich_contrib_prefill_oficio(out, item)
 
 
