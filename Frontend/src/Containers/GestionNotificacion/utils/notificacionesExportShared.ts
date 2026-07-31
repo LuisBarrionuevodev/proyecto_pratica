@@ -1,5 +1,6 @@
 import type { IActuacionesPendientesItem } from "../../../api/actuacionesPendientesApi";
 import { contribuyenteBandejaLabel } from "../../../utils/contribuyenteBandejaText";
+import { domicilioLineaOperativo } from "../../../utils/formatDomicilioLineaVisible";
 import { sliceLabel, type PlazoOperativoSlice } from "../gestionNotificacionPlazo";
 
 export function normalizeMotivoKey(val: unknown): string {
@@ -23,9 +24,7 @@ export function motivosNotificacionConcat(row: IActuacionesPendientesItem): stri
 }
 
 export function domicilioLinea(row: IActuacionesPendientesItem): string {
-  const c = (row.calle ?? row.calle_mostrar ?? "").trim();
-  const n = (row.numero ?? row.numero_esquina ?? "").trim();
-  return [c, n].filter(Boolean).join(" ") || "";
+  return domicilioLineaOperativo(row);
 }
 
 export function inspectoresTexto(row: IActuacionesPendientesItem): string {

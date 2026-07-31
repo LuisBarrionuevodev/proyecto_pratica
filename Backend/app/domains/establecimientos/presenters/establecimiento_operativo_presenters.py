@@ -16,7 +16,12 @@ from app.domains.establecimientos.presenters.historial_contribuyente_presenters 
     contraproducencia_historial_visible,
     inspectores_historial_texto,
 )
-from app.models import Actuaciones, EstablecimientoOperativo, RutaItem
+from app.domains.establecimientos.utils.domicilio_display import (
+    domicilio_texto_ficha_detalle,
+    domicilio_texto_historial_fila,
+    domicilio_texto_visible,
+)
+from app.models import Actuaciones, Domicilio, EstablecimientoOperativo, RutaItem
 
 
 def _enum_or_str(val: Any) -> Optional[str]:
@@ -51,6 +56,7 @@ def establecimiento_operativo_list_row(eo: EstablecimientoOperativo) -> Dict[str
                 "calle": None,
                 "numero": None,
                 "calle_normalizada": None,
+                "domicilio_texto": None,
                 "contrib_apellido": None,
                 "contrib_nombre": None,
                 "razon_social": None,
@@ -71,6 +77,7 @@ def establecimiento_operativo_list_row(eo: EstablecimientoOperativo) -> Dict[str
             "calle": dom.calle,
             "numero": dom.numero,
             "calle_normalizada": getattr(dom, "calle_normalizada", None),
+            "domicilio_texto": domicilio_texto_visible(dom),
             "contrib_apellido": getattr(contrib, "apellido", None) if contrib else None,
             "contrib_nombre": getattr(contrib, "nombre", None) if contrib else None,
             "razon_social": getattr(contrib, "razon_social", None) if contrib else None,
@@ -88,6 +95,7 @@ def establecimiento_operativo_detail(
     *,
     actuaciones_count: int,
     ultima_actuacion_fecha: Any | None,
+    domicilio_ultima_actuacion: Domicilio | None = None,
 ) -> Dict[str, Any]:
     """
     Detalle de ficha + agregados de actuaciones para cabecera UI.
@@ -96,6 +104,7 @@ def establecimiento_operativo_detail(
         eo: instancia con relaciones cargadas.
         actuaciones_count: total de actuaciones con esta ficha.
         ultima_actuacion_fecha: ``date`` o None.
+        domicilio_ultima_actuacion: domicilio de la actuación más reciente, si existe.
 
     Retorno:
         dict serializable (incluye bloque ``list_row`` plano y metadatos).
@@ -110,6 +119,10 @@ def establecimiento_operativo_detail(
         )
     base["actuaciones_count"] = int(actuaciones_count)
     base["ultima_actuacion_fecha"] = uaf
+    base["domicilio_texto"] = domicilio_texto_ficha_detalle(
+        eo.domicilio if eo else None,
+        domicilio_ultima_actuacion,
+    )
     return base
 
 
@@ -165,6 +178,7 @@ def actuacion_historial_row(
         "tipo_actuacion": _enum_or_str(getattr(act, "tipo", None)),
         "contraproducencia": contraproducencia_historial_visible(act, ruta_item),
         "inspectores_texto": inspectores_historial_texto(act),
+        "domicilio_texto": domicilio_texto_historial_fila(act, iniciador=iniciador),
         **doc,
     }
 

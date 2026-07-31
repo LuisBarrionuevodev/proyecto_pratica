@@ -4,8 +4,10 @@ Historial de actuaciones por ficha ``establecimiento_operativo``.
 
 from __future__ import annotations
 
+from sqlalchemy.orm import joinedload
+
 from app.domains.actuaciones.utils.actuaciones_bandeja_eager import apply_bandeja_grid_eager
-from app.models import Actuaciones, EstablecimientoOperativo
+from app.models import Actuaciones, Domicilio, EstablecimientoOperativo
 
 
 def list_actuaciones_por_establecimiento_operativo(
@@ -35,7 +37,11 @@ def list_actuaciones_por_establecimiento_operativo(
     base = Actuaciones.query.filter(Actuaciones.establecimiento_operativo_id == establecimiento_id)
     total = base.count()
 
-    q = apply_bandeja_grid_eager(base).order_by(Actuaciones.fecha.desc(), Actuaciones.id.desc())
+    q = (
+        apply_bandeja_grid_eager(base)
+        .options(joinedload(Actuaciones.domicilio).joinedload(Domicilio.calle_catalogo))
+        .order_by(Actuaciones.fecha.desc(), Actuaciones.id.desc())
+    )
 
     offset = (page - 1) * page_size
     items = q.offset(offset).limit(page_size).all()

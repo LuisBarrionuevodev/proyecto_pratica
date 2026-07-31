@@ -1,4 +1,4 @@
-import { Alert, Box, IconButton, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, IconButton, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -27,8 +27,8 @@ import {
 import {
   COLORS,
   DARK_TABLE_CONFIG,
-  loadingStyles,
 } from "../../Actuaciones/styles/actuacionesTableStyles";
+import { BandejaTableSpinner } from "../../../components/dataTable/bandejaTableLoading";
 
 interface TablaDenunciasProps {
   data?: IDenunciaGestionItem[];
@@ -241,11 +241,7 @@ const TablaDenuncias = ({
   });
 
   if (loading) {
-    return (
-      <Box sx={{ padding: "40px", textAlign: "center" }}>
-        <Typography sx={loadingStyles}>Cargando denuncias...</Typography>
-      </Box>
-    );
+    return <BandejaTableSpinner />;
   }
 
   return (

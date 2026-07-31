@@ -1,9 +1,10 @@
-import { Box, Slide } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import { useEffect, useState } from "react";
 import BoxCambiarInfo from "./Components/BoxCambiarInfo";
 import BoxNombreUsuario from "./Components/BoxNombreUsuario";
 import { apiClient } from "../../api/apiClient";
 import { ROLE_LABELS, normalizeAppRole } from "../../auth/roles";
+import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 
 type MeResponse = {
   user: {
@@ -64,12 +65,25 @@ const Perfil = () => {
                 bgcolor: "transparent",
             }}
         >
-
+            {!me ? (
+                <Box
+                    sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        minHeight: 320,
+                        width: "100%",
+                    }}
+                >
+                    <CircularProgress sx={{ color: COLORS.primary }} />
+                </Box>
+            ) : (
+                <>
             <BoxNombreUsuario
-                user={me?.user.username ?? ""}
-                nombre={me?.profile.nickname ?? ""}
-                rol={me ? ROLE_LABELS[normalizeAppRole(me.user.role)] : "Usuario"}
-                avatarInicial={me?.profile.avatar_key ?? "avatar1"}
+                user={me.user.username ?? ""}
+                nombre={me.profile.nickname ?? ""}
+                rol={ROLE_LABELS[normalizeAppRole(me.user.role)]}
+                avatarInicial={me.profile.avatar_key ?? "avatar1"}
                 onAvatarChange={async (newAvatar) => {
                     try {
                         await apiClient.patch("/api/profile/me", { avatar_key: newAvatar });
@@ -100,12 +114,6 @@ const Perfil = () => {
                     bgcolor: "transparent",
                 }}
             >
-                <Slide
-                    direction="up"
-                    in={true}
-                    appear
-                    timeout={600}
-                >
                     <Box
                         sx={{
                             width: "100%",
@@ -115,8 +123,9 @@ const Perfil = () => {
                     >
                         <BoxCambiarInfo onPasswordChange={handlePasswordChange} />
                     </Box>
-                </Slide>
             </Box>
+                </>
+            )}
         </Box>
     );
 };

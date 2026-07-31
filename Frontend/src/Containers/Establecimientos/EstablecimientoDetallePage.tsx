@@ -14,6 +14,7 @@ import { isAxiosError } from "axios";
 
 import { AppButton } from "../../ui";
 import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
+import { BANDEJA_MRT_SPINNER_LOADING_STATE, BandejaTableSpinner } from "../../components/dataTable/bandejaTableLoading";
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
@@ -24,6 +25,7 @@ import {
 import { HistorialActasTramitesCell } from "./components/HistorialActasTramitesCell";
 import { HistorialInspectoresCell } from "./components/HistorialInspectoresCell";
 import { historialActasTramitesChipLabels } from "./utils/historialActasTramitesVisual";
+import { establecimientoDomicilioLineaVisible } from "./utils/establecimientoDomicilioVisible";
 import { glassCard } from "../../styles/GlassStyles";
 import {
   getEstablecimientoOperativoActuaciones,
@@ -168,8 +170,7 @@ export default function EstablecimientoDetallePage() {
 
   const domicilioLinea = useMemo(() => {
     if (!detalle) return "";
-    const parts = [detalle.calle, detalle.numero].filter((p) => p?.trim()).join(" ");
-    return parts.trim() || "—";
+    return establecimientoDomicilioLineaVisible(detalle);
   }, [detalle]);
 
   const colsHistorial = useMemo<MRT_ColumnDef<IEstablecimientoOperativoHistorialRow>[]>(
@@ -233,8 +234,7 @@ export default function EstablecimientoDetallePage() {
     rowCount: historialTotal ?? 0,
     state: {
       pagination,
-      isLoading: loadingHistorial,
-      showProgressBars: loadingHistorial,
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
     },
     onPaginationChange: setPagination,
     enableRowActions: false,
@@ -269,9 +269,7 @@ export default function EstablecimientoDetallePage() {
         >
           Volver
         </AppButton>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontFamily: '"Tactic Sans", sans-serif' }}>
-          Cargando ficha…
-        </Typography>
+        <BandejaTableSpinner minHeight={200} />
       </Stack>
     );
   }
@@ -403,7 +401,7 @@ export default function EstablecimientoDetallePage() {
           {!errorHistorial ? (
             <DataTableMrtShell
               loading={loadingHistorial || historialTotal === null}
-              loadingMode="progress"
+              loadingMode="overlay"
             >
               <MaterialReactTable table={tableHistorial} />
             </DataTableMrtShell>

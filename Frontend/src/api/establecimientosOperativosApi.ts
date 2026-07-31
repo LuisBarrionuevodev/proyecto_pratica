@@ -16,6 +16,8 @@ export interface IEstablecimientoOperativoListItem {
   rubro_nombre: string | null;
   distrito_id: number | null;
   distrito_nombre: string | null;
+  /** Dirección operativa/normalizada para UI (detalle). */
+  domicilio_texto?: string | null;
 }
 
 export interface IEstablecimientosOperativosListMeta {
@@ -104,6 +106,7 @@ export interface IEstablecimientoOperativoHistorialRow {
   tipo_actuacion: string | null;
   contraproducencia: string | null;
   inspectores_texto?: string | null;
+  domicilio_texto?: string | null;
   actas_tramites_texto?: string | null;
   actas?: IHistorialActasPayload | null;
   tramites?: IHistorialTramitesPayload | null;

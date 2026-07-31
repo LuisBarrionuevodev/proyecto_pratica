@@ -25,6 +25,7 @@ import {
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
 } from "../../Actuaciones/Components/bandejaTableCells";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import { BANDEJA_MRT_SPINNER_LOADING_STATE } from "../../../components/dataTable/bandejaTableLoading";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
@@ -372,8 +373,7 @@ const TablaRelevamientos = ({
       },
     },
     state: {
-      isLoading: loading,
-      showProgressBars: loading,
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
     },
     renderRowActions: hideRowActions ? undefined : ({ row }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
@@ -413,7 +413,7 @@ const TablaRelevamientos = ({
 
   return (
     <Box>
-      <DataTableMrtShell loading={loading} loadingMode="progress">
+      <DataTableMrtShell loading={loading} loadingMode="overlay">
         <MaterialReactTable table={table} />
       </DataTableMrtShell>
 

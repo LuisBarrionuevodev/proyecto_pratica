@@ -67,6 +67,7 @@ def list_establecimientos_operativos(
         joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.contribuyente),
         joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.rubro),
         joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.distrito),
+        joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.calle_catalogo),
     ).order_by(EstablecimientoOperativo.id.desc())
     offset = (page - 1) * page_size
     items = q.offset(offset).limit(page_size).all()

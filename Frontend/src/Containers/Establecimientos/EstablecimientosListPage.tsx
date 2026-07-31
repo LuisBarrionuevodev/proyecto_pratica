@@ -14,7 +14,6 @@ import {
 import { AppButton, AppSelect, AppTextField } from "../../ui";
 import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchRubrosCatalogoCached } from "../../utils/rubrosCatalogCache";
-import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import {
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
@@ -24,16 +23,24 @@ import {
   filtroItemStyles,
   filtroTitleStyles,
 } from "../Actuaciones/styles/filtroStyles";
-import { DARK_TABLE_CONFIG, exportButtonStyles } from "../Actuaciones/styles/actuacionesTableStyles";
+import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
-  BandejaEllipsisCell,
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
 } from "../Actuaciones/Components/bandejaTableCells";
+import {
+  BANDEJA_MRT_SPINNER_LOADING_STATE,
+} from "../../components/dataTable/bandejaTableLoading";
 import {
   getEstablecimientosOperativos,
   type IEstablecimientoOperativoListItem,
 } from "../../api/establecimientosOperativosApi";
 import { RubroChip } from "./components/RubroChip";
+import {
+  EstablecimientoContribuyenteCell,
+  EstablecimientoListDomicilioCell,
+} from "./components/EstablecimientoListCells";
+import { establecimientoDomicilioLineaVisible } from "./utils/establecimientoDomicilioVisible";
+import { establecimientoContribuyenteTitulo } from "./utils/establecimientoContribuyenteVisible";
 import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
 import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
 
@@ -69,16 +76,12 @@ function EstablecimientosListResults({
   const columns = useMemo<MRT_ColumnDef<IEstablecimientoOperativoListItem>[]>(
     () => [
       {
-        accessorKey: "calle",
-        header: "CALLE",
-        size: 200,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
-      },
-      {
-        accessorKey: "numero",
-        header: "NÚMERO",
-        size: 120,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
+        id: "domicilio",
+        header: "DOMICILIO",
+        size: 240,
+        accessorFn: (row) =>
+          `${establecimientoDomicilioLineaVisible(row)} ${(row.distrito_nombre ?? "").trim()}`.trim(),
+        Cell: ({ row }) => <EstablecimientoListDomicilioCell row={row.original} />,
       },
       {
         accessorKey: "rubro_nombre",
@@ -90,28 +93,12 @@ function EstablecimientosListResults({
         ),
       },
       {
-        accessorKey: "contrib_nombre",
-        header: "NOMBRE",
-        size: 120,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
-      },
-      {
-        accessorKey: "contrib_apellido",
-        header: "APELLIDO",
-        size: 120,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
-      },
-      {
-        accessorKey: "documento",
-        header: "DOCUMENTO",
-        size: 120,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
-      },
-      {
-        accessorKey: "distrito_nombre",
-        header: "DISTRITO",
-        size: 140,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={(cell.getValue() as string | null) ?? "—"} />,
+        id: "contribuyente",
+        header: "CONTRIBUYENTE / RAZÓN SOCIAL",
+        size: 220,
+        accessorFn: (row) =>
+          `${establecimientoContribuyenteTitulo(row)} ${(row.documento ?? "").trim()}`.trim(),
+        Cell: ({ row }) => <EstablecimientoContribuyenteCell row={row.original} />,
       },
     ],
     []
@@ -131,8 +118,7 @@ function EstablecimientosListResults({
     rowCount: total,
     state: {
       pagination,
-      isLoading: loading,
-      showProgressBars: loading,
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
     },
     onPaginationChange,
     muiTableBodyRowProps: () => ({
@@ -145,10 +131,9 @@ function EstablecimientosListResults({
     positionActionsColumn: "last",
     renderRowActions: ({ row }) => (
       <AppButton
-        dsVariant="secondary"
+        dsVariant="primary"
         dsSize="sm"
         onClick={() => navigate(`/establecimientos/${row.original.id}`)}
-        sx={exportButtonStyles}
       >
         Ver ficha
       </AppButton>
@@ -163,7 +148,7 @@ function EstablecimientosListResults({
   }, [total, pagination.pageIndex, pagination.pageSize]);
 
   return (
-    <DataTableMrtShell loading={loading} loadingMode="progress"
+    <DataTableMrtShell loading={loading} loadingMode="overlay"
       footer={
         <Typography
           variant="caption"

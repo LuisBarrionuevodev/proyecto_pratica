@@ -99,11 +99,16 @@ def get_establecimiento_operativo_route(establecimiento_id: int):
     """
     Detalle de una ficha + conteo de actuaciones y última fecha de actuación.
     """
-    eo, cnt, ultima = get_establecimiento_operativo_con_metricas(establecimiento_id)
+    eo, cnt, ultima, dom_ultima = get_establecimiento_operativo_con_metricas(establecimiento_id)
     if eo is None:
         return jsonify({"detail": "Establecimiento operativo no encontrado."}), 404
 
-    payload = establecimiento_operativo_detail(eo, actuaciones_count=cnt, ultima_actuacion_fecha=ultima)
+    payload = establecimiento_operativo_detail(
+        eo,
+        actuaciones_count=cnt,
+        ultima_actuacion_fecha=ultima,
+        domicilio_ultima_actuacion=dom_ultima,
+    )
     return jsonify(payload), 200
 
 

@@ -64,7 +64,7 @@ describe("establecimiento detalle card PR10.4b.3", () => {
     expect(src).toContain("DNI/CUIT:");
     expect(src).toContain("RUBRO:");
     expect(src).toContain("DOMICILIO");
-    expect(src).toContain("{domicilioLinea}");
+    expect(src).toContain("establecimientoDomicilioLineaVisible");
     expect(src).toContain("Distrito:");
   });
 
@@ -72,6 +72,7 @@ describe("establecimiento detalle card PR10.4b.3", () => {
     const src = readFileSync(detallePagePath, "utf8");
     expect(src).not.toContain("ref. domicilio");
     expect(src).not.toContain("Calle normalizada");
+    expect(src).not.toMatch(/detalle\.calle[^\n]*detalle\.numero/);
     expect(src).not.toContain("Actuaciones registradas");
     expect(src).not.toContain("Última actuación");
     expect(src).not.toContain("actuaciones_count");

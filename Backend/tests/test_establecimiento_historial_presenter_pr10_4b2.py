@@ -68,6 +68,7 @@ def test_actuacion_historial_rows_incluye_actas_tramites(app) -> None:
         assert "Insp." in (row["actas_tramites_texto"] or "")
         assert "contraproducencia" in row
         assert "inspectores_texto" in row
+        assert "domicilio_texto" in row
         assert "nombre_local" not in row
 
 

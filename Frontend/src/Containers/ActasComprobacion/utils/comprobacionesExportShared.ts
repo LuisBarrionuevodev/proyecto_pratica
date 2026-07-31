@@ -1,4 +1,5 @@
 import { contribuyenteBandejaLabel } from "../../../utils/contribuyenteBandejaText";
+import { domicilioLineaOperativo, type ActuacionListDomicilioLineaInput } from "../../../utils/formatDomicilioLineaVisible";
 import type { ComprobacionExportRow } from "./comprobacionExportTypes";
 
 const MOTIVO_PENDIENTE_PLACEHOLDER = "PENDIENTE";
@@ -26,7 +27,15 @@ export function cellStr(value: unknown): string {
   return String(value).trim();
 }
 
-export function domicilioFromParts(calle: unknown, numero: unknown): string {
+export function domicilioFromParts(
+  calle: unknown,
+  numero: unknown,
+  row?: ActuacionListDomicilioLineaInput & { domicilio_texto?: string | null }
+): string {
+  if (row) {
+    const linea = domicilioLineaOperativo(row).trim();
+    if (linea) return linea;
+  }
   return [cellStr(calle), cellStr(numero)].filter(Boolean).join(" ");
 }
 

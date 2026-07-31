@@ -101,3 +101,12 @@ export function formatActuacionListDomicilioLinea(row: ActuacionListDomicilioLin
   if (calle && num) return `${calle} ${num}`;
   return (calle || num).trim();
 }
+
+/** Domicilio operativo: API `domicilio_texto` o normalizado antes que raw. */
+export function domicilioLineaOperativo(
+  row: ActuacionListDomicilioLineaInput & { domicilio_texto?: string | null }
+): string {
+  const fromApi = (row.domicilio_texto ?? "").trim();
+  if (fromApi) return fromApi;
+  return formatActuacionListDomicilioLinea(row).trim();
+}

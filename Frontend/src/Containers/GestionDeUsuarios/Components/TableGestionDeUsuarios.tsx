@@ -11,6 +11,7 @@ import PersonOffIcon from "@mui/icons-material/PersonOff";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { apiClient } from "../../../api/apiClient";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import { BANDEJA_MRT_SPINNER_LOADING_STATE } from "../../../components/dataTable/bandejaTableLoading";
 import { useAppFeedback } from "../../../components/feedback/useAppFeedback";
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
 import {
@@ -323,8 +324,7 @@ const TableGestionDeUsuarios = () => {
     positionActionsColumn: "first",
     getRowId: (row) => String(row.id),
     state: {
-      isLoading: loading,
-      showProgressBars: loading || saving,
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
     },
     renderRowActions: ({ row }) => (
       <Box sx={{ display: "flex", gap: "0.5rem", flexWrap: "nowrap" }}>
@@ -408,7 +408,7 @@ const TableGestionDeUsuarios = () => {
           </Alert>
         ) : null}
 
-        <DataTableMrtShell loading={loading} loadingMode="progress">
+        <DataTableMrtShell loading={loading} loadingMode="overlay">
           <MaterialReactTable table={table} />
         </DataTableMrtShell>
       </Box>

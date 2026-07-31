@@ -10,16 +10,7 @@ import {
   type HistorialTramitesPayload,
 } from "../utils/historialActasTramitesVisual";
 
-const chipCompactSx = {
-  ...bandejaOutlinedChipSx,
-  height: 24,
-  fontSize: "0.72rem",
-  "& .MuiChip-label": {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    px: 0.75,
-  },
-} as const;
+const chipCompactSx = bandejaOutlinedChipSx;
 
 const actasChipsColumnSx = {
   display: "flex",
