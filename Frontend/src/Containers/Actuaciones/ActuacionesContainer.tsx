@@ -35,10 +35,12 @@ import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/Tabl
 
 import {
   titleStyles,
-  metaInfoStyles,
-  metaItemStyles,
   errorAlertStyles,
 } from "./styles/filtroStyles";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 
 const ActuacionesContainer = (): JSX.Element => {
@@ -284,70 +286,47 @@ const ActuacionesContainer = (): JSX.Element => {
               </Box>
             )}
 
-            {!hasSearched && !loading && (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  minHeight: 200,
-                  width: "100%",
-                  px: 2,
-                }}
-              >
-                <Typography
-                  sx={{
-                    color: "rgba(255,255,255,0.65)",
-                    fontFamily: '"Tactic Sans", sans-serif',
-                    textAlign: "center",
-                    maxWidth: 480,
-                  }}
-                >
-                  Buscá por acta, domicilio, expediente u oficio, o filtrá por rango de fechas. La
-                  búsqueda específica no usa fechas viejas salvo que elijas combinar.
-                </Typography>
-              </Box>
-            )}
 
             {hasSearched && meta && (
-              <Box sx={metaInfoStyles}>
-                <Typography sx={metaItemStyles}>
-                  <strong>Total:</strong> {meta.total}
-                </Typography>
-                <Typography sx={metaItemStyles}>
-                  <strong>Mostrando:</strong>{" "}
-                  {loading ? "…" : `${actuaciones.length} de ${meta.total}`}
-                </Typography>
-                <Typography sx={metaItemStyles}>
-                  <strong>Página:</strong> {meta.page} /{" "}
-                  {Math.max(1, Math.ceil(meta.total / meta.page_size))}
-                </Typography>
-                {meta.q && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Búsqueda:</strong> {meta.q}
-                    {meta.busqueda_global && !meta.desde && !meta.hasta ? " (sin rango)" : ""}
-                  </Typography>
-                )}
-                {meta.desde && meta.hasta ? (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Rango:</strong> {meta.desde} - {meta.hasta}
-                  </Typography>
-                ) : !meta.q ? (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Rango:</strong> todas las fechas
-                  </Typography>
+              <BandejaTableSummary>
+                <BandejaTableSummaryItem label="Total" value={meta.total} />
+                <BandejaTableSummaryItem
+                  label="Mostrando"
+                  value={loading ? "…" : `${actuaciones.length} de ${meta.total}`}
+                />
+                <BandejaTableSummaryItem
+                  label="Página"
+                  value={`${meta.page} / ${Math.max(1, Math.ceil(meta.total / meta.page_size))}`}
+                />
+                {meta.q ? (
+                  <BandejaTableSummaryItem
+                    label="Búsqueda"
+                    value={
+                      <>
+                        {meta.q}
+                        {meta.busqueda_global && !meta.desde && !meta.hasta ? " (sin rango)" : ""}
+                      </>
+                    }
+                  />
                 ) : null}
-                {meta.tipo && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Tipo:</strong> {meta.tipo}
-                  </Typography>
-                )}
-                {meta.contraproducencia && (
-                  <Typography sx={metaItemStyles}>
-                    <strong>Contraproducencia:</strong> {meta.contraproducencia}
-                  </Typography>
-                )}
-              </Box>
+                {meta.desde && meta.hasta ? (
+                  <BandejaTableSummaryItem
+                    label="Rango"
+                    value={`${meta.desde} - ${meta.hasta}`}
+                  />
+                ) : !meta.q ? (
+                  <BandejaTableSummaryItem label="Rango" value="todas las fechas" />
+                ) : null}
+                {meta.tipo ? (
+                  <BandejaTableSummaryItem label="Tipo" value={meta.tipo} />
+                ) : null}
+                {meta.contraproducencia ? (
+                  <BandejaTableSummaryItem
+                    label="Contraproducencia"
+                    value={meta.contraproducencia}
+                  />
+                ) : null}
+              </BandejaTableSummary>
             )}
 
             {hasSearched && meta && (
@@ -434,17 +413,21 @@ const ActuacionesContainer = (): JSX.Element => {
 
             {!pendingLoading && (
               <>
-                <Box sx={metaInfoStyles}>
-                  <Typography sx={metaItemStyles}>
-                    <strong>Mostrando:</strong>{" "}
-                    {pendingType === "domicilios"
-                      ? "Domicilios pendientes"
-                      : pendingType === "sin_expediente"
-                      ? "Actas sin expediente"
-                      : "Notificaciones pendientes"}{" "}
-                    ({pendingItems.length})
-                  </Typography>
-                </Box>
+                <BandejaTableSummary>
+                  <BandejaTableSummaryItem
+                    label="Mostrando"
+                    value={
+                      <>
+                        {pendingType === "domicilios"
+                          ? "Domicilios pendientes"
+                          : pendingType === "sin_expediente"
+                          ? "Actas sin expediente"
+                          : "Notificaciones pendientes"}{" "}
+                        ({pendingItems.length})
+                      </>
+                    }
+                  />
+                </BandejaTableSummary>
                 {pendingType === "domicilios" && (
                   <Alert
                     severity="info"

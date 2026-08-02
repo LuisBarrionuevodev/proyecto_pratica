@@ -1,10 +1,10 @@
-import { Box, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 import BoxCambiarInfo from "./Components/BoxCambiarInfo";
 import BoxNombreUsuario from "./Components/BoxNombreUsuario";
 import { apiClient } from "../../api/apiClient";
 import { ROLE_LABELS, normalizeAppRole } from "../../auth/roles";
-import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { BandejaTableSpinner } from "../../components/dataTable/bandejaTableLoading";
 
 type MeResponse = {
   user: {
@@ -66,17 +66,7 @@ const Perfil = () => {
             }}
         >
             {!me ? (
-                <Box
-                    sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        minHeight: 320,
-                        width: "100%",
-                    }}
-                >
-                    <CircularProgress sx={{ color: COLORS.primary }} />
-                </Box>
+                <BandejaTableSpinner />
             ) : (
                 <>
             <BoxNombreUsuario

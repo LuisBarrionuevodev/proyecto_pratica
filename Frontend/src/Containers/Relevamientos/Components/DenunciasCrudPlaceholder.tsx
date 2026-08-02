@@ -1,11 +1,10 @@
-import { Alert, Box, CircularProgress, Paper, Tab, Tabs, Typography } from "@mui/material";
+import { Alert, Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import FiltroDenuncias from "./FiltroDenuncias";
 import TablaDenuncias from "./TableDenuncias";
 import { useDenunciasBandeja } from "../hooks/useDenunciasBandeja";
 import type { DenunciasBandejaSlice } from "../hooks/useDenunciasBandeja";
 import { useCallback, useRef, useState } from "react";
 import {
-  COLORS,
   errorAlertStyles,
   metaInfoStyles,
   metaItemStyles,
@@ -87,13 +86,7 @@ const DenunciasCrudPlaceholder = () => {
         </Typography>
       )}
 
-      {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-          <CircularProgress sx={{ color: COLORS.primary }} />
-        </Box>
-      )}
-
-      {hasSearched && !loading && meta && (
+      {hasSearched && meta && !loading && (
         <Box sx={metaInfoStyles}>
           <Typography sx={metaItemStyles}>
             <strong>Total:</strong> {meta.total}
@@ -117,14 +110,14 @@ const DenunciasCrudPlaceholder = () => {
         </Box>
       )}
 
-      {hasSearched && !loading && (
+      {hasSearched ? (
         <TablaDenuncias
           data={denuncias}
           loading={loading}
           onRefresh={handleRefresh}
           readOnly={slice === "realizados"}
         />
-      )}
+      ) : null}
     </Box>
   );
 };

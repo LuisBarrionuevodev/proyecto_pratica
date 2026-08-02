@@ -399,12 +399,13 @@ export default function EstablecimientoDetallePage() {
           </Typography>
           {errorHistorial ? <Alert severity="error">{errorHistorial}</Alert> : null}
           {!errorHistorial ? (
-            <DataTableMrtShell
-              loading={loadingHistorial || historialTotal === null}
-              loadingMode="overlay"
-            >
-              <MaterialReactTable table={tableHistorial} />
-            </DataTableMrtShell>
+            loadingHistorial || historialTotal === null ? (
+              <BandejaTableSpinner minHeight={200} />
+            ) : (
+              <DataTableMrtShell loadingMode="none">
+                <MaterialReactTable table={tableHistorial} />
+              </DataTableMrtShell>
+            )
           ) : null}
         </Stack>
       </Paper>

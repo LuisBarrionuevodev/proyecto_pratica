@@ -29,6 +29,7 @@ import {
 } from "../Actuaciones/Components/bandejaTableCells";
 import {
   BANDEJA_MRT_SPINNER_LOADING_STATE,
+  BandejaTableSpinner,
 } from "../../components/dataTable/bandejaTableLoading";
 import {
   getEstablecimientosOperativos,
@@ -42,6 +43,10 @@ import {
 import { establecimientoDomicilioLineaVisible } from "./utils/establecimientoDomicilioVisible";
 import { establecimientoContribuyenteTitulo } from "./utils/establecimientoContribuyenteVisible";
 import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
 import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -140,29 +145,12 @@ function EstablecimientosListResults({
     ),
   });
 
-  const rangeLabel = useMemo(() => {
-    if (total === 0) return "0 registros";
-    const from = pagination.pageIndex * pagination.pageSize + 1;
-    const to = Math.min((pagination.pageIndex + 1) * pagination.pageSize, total);
-    return `${from}–${to} de ${total}`;
-  }, [total, pagination.pageIndex, pagination.pageSize]);
+  if (loading) {
+    return <BandejaTableSpinner />;
+  }
 
   return (
-    <DataTableMrtShell loading={loading} loadingMode="overlay"
-      footer={
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block",
-            mt: 1,
-            fontFamily: '"Tactic Sans", sans-serif',
-            color: "rgba(255,255,255,0.45)",
-          }}
-        >
-          {rangeLabel} · datos de establecimientos operativos
-        </Typography>
-      }
-    >
+    <DataTableMrtShell loadingMode="none">
       <MaterialReactTable table={table} />
     </DataTableMrtShell>
   );
@@ -366,25 +354,24 @@ export default function EstablecimientosListPage() {
         </Box>
       </Box>
 
-      {!filtroAplicado ? (
-        <Typography
-          sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
-            fontSize: "14px",
-            color: "rgba(255,255,255,0.5)",
-            py: 2,
-          }}
-        >
-          Completá criterios de búsqueda y tocá <strong>Filtrar</strong> para ver el listado.
-        </Typography>
-      ) : (
-        <EstablecimientosListResults
-          rows={rows}
-          total={total}
-          loading={loading}
-          pagination={pagination}
-          onPaginationChange={setPagination}
-        />
+      {!filtroAplicado ? null : (
+        <>
+          <BandejaTableSummary>
+            <BandejaTableSummaryItem label="Total" value={total} />
+            <BandejaTableSummaryItem
+              label="Mostrando"
+              value={loading ? "…" : `${rows.length} de ${total}`}
+            />
+            <BandejaTableSummaryItem label="Página" value={pagination.pageIndex + 1} />
+          </BandejaTableSummary>
+          <EstablecimientosListResults
+            rows={rows}
+            total={total}
+            loading={loading}
+            pagination={pagination}
+            onPaginationChange={setPagination}
+          />
+        </>
       )}
     </Stack>
   );

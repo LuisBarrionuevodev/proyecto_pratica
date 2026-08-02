@@ -11,7 +11,7 @@ import PersonOffIcon from "@mui/icons-material/PersonOff";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { apiClient } from "../../../api/apiClient";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
-import { BANDEJA_MRT_SPINNER_LOADING_STATE } from "../../../components/dataTable/bandejaTableLoading";
+import { BANDEJA_MRT_SPINNER_LOADING_STATE, BandejaTableSpinner } from "../../../components/dataTable/bandejaTableLoading";
 import { useAppFeedback } from "../../../components/feedback/useAppFeedback";
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
 import {
@@ -408,9 +408,13 @@ const TableGestionDeUsuarios = () => {
           </Alert>
         ) : null}
 
-        <DataTableMrtShell loading={loading} loadingMode="overlay">
-          <MaterialReactTable table={table} />
-        </DataTableMrtShell>
+        {loading ? (
+          <BandejaTableSpinner />
+        ) : (
+          <DataTableMrtShell loadingMode="none">
+            <MaterialReactTable table={table} />
+          </DataTableMrtShell>
+        )}
       </Box>
 
       <GestionUsuarioCrudDialog

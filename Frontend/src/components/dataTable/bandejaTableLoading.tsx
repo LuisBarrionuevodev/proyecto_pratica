@@ -22,7 +22,7 @@ export function BandejaTableSpinner({ minHeight = 320 }: { minHeight?: number })
   );
 }
 
-/** Evita skeleton/progress bar de MRT; el spinner lo maneja `DataTableMrtShell` en modo `overlay`. */
+/** Evita skeleton/progress bar de MRT; el spinner lo maneja `BandejaTableSpinner` a nivel vista. */
 export const BANDEJA_MRT_SPINNER_LOADING_STATE = {
   isLoading: false,
   showProgressBars: false,

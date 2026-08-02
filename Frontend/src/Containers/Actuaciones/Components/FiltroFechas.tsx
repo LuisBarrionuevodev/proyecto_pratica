@@ -7,15 +7,14 @@ import { fetchTiposActuacion, fetchContraproducencias } from "../../../api/gridA
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 
 import {
-  filtroContainerStyles,
-  filtroTitleStyles,
-  filtroGridStyles,
-  filtroItemStyles,
-  filtroButtonsStyles,
-  filtroButtonPrimaryStyles,
-  filtroButtonSecondaryStyles,
-  filtroSectionTitleStyles,
-  filtroHintStyles,
+    filtroContainerStyles,
+    filtroTitleStyles,
+    filtroGridStyles,
+    filtroItemStyles,
+    filtroButtonsStyles,
+    filtroButtonPrimaryStyles,
+    filtroButtonSecondaryStyles,
+    filtroSectionTitleStyles,
 } from "../styles/filtroStyles";
 import type { IActuacionesListFilters } from "../../../api/actuacionesListApi";
 import {
@@ -115,10 +114,6 @@ const FiltroFechas = ({
       <Typography sx={filtroTitleStyles}>Filtros de búsqueda</Typography>
 
       <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
-      <Typography sx={filtroHintStyles}>
-        Acta (inspección, notificación, comprobación, clausura, decomiso), domicilio, expediente u oficio.
-        No usa el rango de fechas salvo que indiques combinar.
-      </Typography>
 
       <Box sx={{ ...filtroGridStyles, gridTemplateColumns: { xs: "1fr", md: "1fr" }, mb: 1 }}>
         <Box sx={filtroItemStyles}>
@@ -166,9 +161,6 @@ const FiltroFechas = ({
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
 
       <Typography sx={filtroSectionTitleStyles}>Rango de fechas</Typography>
-      <Typography sx={filtroHintStyles}>
-        Filtrá actuaciones por período. Podés sumar tipo y contraproducencia. Las fechas son opcionales.
-      </Typography>
 
       <Box sx={filtroGridStyles}>
         <Box sx={filtroItemStyles}>

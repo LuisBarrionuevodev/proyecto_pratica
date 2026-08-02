@@ -10,6 +10,10 @@ const listPagePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "EstablecimientosListPage.tsx"
 );
+const historialPagePath = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "HistorialContribuyentePage.tsx"
+);
 const rubroChipPath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "components/RubroChip.tsx"
@@ -40,10 +44,12 @@ describe("UI consistencia PR — Establecimientos", () => {
     expect(src).not.toContain("exportButtonStyles");
   });
 
-  it("loading usa overlay spinner, no progress bars MRT", () => {
+  it("loading usa BandejaTableSpinner sin overlay MRT", () => {
     const src = readFileSync(listPagePath, "utf8");
-    expect(src).toContain('loadingMode="overlay"');
+    expect(src).toContain("BandejaTableSpinner");
+    expect(src).toContain('loadingMode="none"');
     expect(src).toContain("BANDEJA_MRT_SPINNER_LOADING_STATE");
+    expect(src).not.toContain('loadingMode="overlay"');
     expect(src).not.toContain("showProgressBars");
   });
 
@@ -53,13 +59,35 @@ describe("UI consistencia PR — Establecimientos", () => {
     const html = renderToStaticMarkup(<RubroChip rubro="Panadería" />);
     expect(html).toContain("MuiChip-outlined");
   });
+
+  it("fichas operativas muestra resumen Total / Mostrando / Página", () => {
+    const src = readFileSync(listPagePath, "utf8");
+    expect(src).toContain("BandejaTableSummary");
+    expect(src).toContain('label="Total"');
+    expect(src).toContain('label="Mostrando"');
+    expect(src).toContain('label="Página"');
+    expect(src).not.toContain("Completá criterios de búsqueda");
+  });
+
+  it("historial DNI/CUIT usa resumen bandeja y sin textos explicativos largos", () => {
+    const src = readFileSync(historialPagePath, "utf8");
+    expect(src).toContain("BandejaTableSummary");
+    expect(src).toContain('label="Total"');
+    expect(src).toContain('label="Página"');
+    expect(src).not.toContain("Consultá el historial completo");
+    expect(src).not.toContain("MSG_DOCUMENTO_HISTORIAL_VACIO");
+    expect(src).not.toContain("Total de registros");
+    expect(src).not.toContain("DNI/CUIT consultado:");
+  });
 });
 
 describe("UI consistencia PR — loading spinner", () => {
-  it("Relevamientos gestión usa overlay sin showProgressBars", () => {
+  it("Relevamientos gestión usa BandejaTableSpinner sin overlay MRT", () => {
     const src = readFileSync(relevamientosTablePath, "utf8");
-    expect(src).toContain('loadingMode="overlay"');
+    expect(src).toContain("BandejaTableSpinner");
+    expect(src).toContain('loadingMode="none"');
     expect(src).toContain("BANDEJA_MRT_SPINNER_LOADING_STATE");
+    expect(src).not.toContain('loadingMode="overlay"');
     expect(src).not.toContain("showProgressBars");
   });
 
@@ -70,16 +98,18 @@ describe("UI consistencia PR — loading spinner", () => {
     expect(src).not.toContain("loadingStyles");
   });
 
-  it("Perfiles (gestión usuarios) usa overlay sin showProgressBars", () => {
+  it("Perfiles (gestión usuarios) usa BandejaTableSpinner sin overlay MRT", () => {
     const src = readFileSync(perfilesTablePath, "utf8");
-    expect(src).toContain('loadingMode="overlay"');
+    expect(src).toContain("BandejaTableSpinner");
+    expect(src).toContain('loadingMode="none"');
     expect(src).toContain("BANDEJA_MRT_SPINNER_LOADING_STATE");
+    expect(src).not.toContain('loadingMode="overlay"');
     expect(src).not.toContain("showProgressBars");
   });
 
-  it("Perfil usuario usa CircularProgress sin Slide", () => {
+  it("Perfil usuario usa BandejaTableSpinner sin Slide", () => {
     const src = readFileSync(perfilPagePath, "utf8");
-    expect(src).toContain("CircularProgress");
+    expect(src).toContain("BandejaTableSpinner");
     expect(src).not.toContain("Slide");
     expect(src).not.toContain("Skeleton");
   });

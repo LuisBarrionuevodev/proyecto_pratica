@@ -25,7 +25,7 @@ import {
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
 } from "../../Actuaciones/Components/bandejaTableCells";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
-import { BANDEJA_MRT_SPINNER_LOADING_STATE } from "../../../components/dataTable/bandejaTableLoading";
+import { BANDEJA_MRT_SPINNER_LOADING_STATE, BandejaTableSpinner } from "../../../components/dataTable/bandejaTableLoading";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
@@ -413,9 +413,13 @@ const TablaRelevamientos = ({
 
   return (
     <Box>
-      <DataTableMrtShell loading={loading} loadingMode="overlay">
-        <MaterialReactTable table={table} />
-      </DataTableMrtShell>
+      {loading ? (
+        <BandejaTableSpinner />
+      ) : (
+        <DataTableMrtShell loadingMode="none">
+          <MaterialReactTable table={table} />
+        </DataTableMrtShell>
+      )}
 
       {crudDraft && crudMode ? (
         <RelevamientoCrudDialog
