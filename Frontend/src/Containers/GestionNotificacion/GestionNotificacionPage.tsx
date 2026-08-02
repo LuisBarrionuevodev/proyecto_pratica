@@ -59,7 +59,6 @@ import {
   filtroButtonsStyles,
   filtroContainerStyles,
   filtroGridStyles,
-  filtroHintStyles,
   filtroItemStyles,
   filtroSectionTitleStyles,
   filtroTitleStyles,
@@ -1138,19 +1137,21 @@ const GestionNotificacionPage = () => {
             mb: { xs: 0.25, sm: 0 },
           }}
         >
-          <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row" }}>
-            <Button
-              onClick={() => {
-                setExportError(null);
-                setExportOpen(true);
-              }}
-              startIcon={<FileDownloadOutlinedIcon />}
-              sx={TableExportButtonStyles}
-              disabled={exportLoading}
-            >
-              Exportar datos
-            </Button>
-          </Box>
+          {plazoSlice !== "vencidas_o_hoy" && (
+            <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row" }}>
+              <Button
+                onClick={() => {
+                  setExportError(null);
+                  setExportOpen(true);
+                }}
+                startIcon={<FileDownloadOutlinedIcon />}
+                sx={TableExportButtonStyles}
+                disabled={exportLoading}
+              >
+                Exportar datos
+              </Button>
+            </Box>
+          )}
           <AppButton
             dsVariant="primary"
             dsSize="sm"
@@ -1223,10 +1224,6 @@ const GestionNotificacionPage = () => {
             <Typography sx={filtroTitleStyles}>Historial notificaciones</Typography>
 
             <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
-            <Typography sx={filtroHintStyles}>
-              Nº notificación, domicilio, contribuyente o motivo/infracción. No usa el período salvo que indiques
-              combinar.
-            </Typography>
             <Box sx={filtroGridStyles}>
               <Box sx={filtroItemStyles}>
                 <AppTextField
@@ -1310,9 +1307,6 @@ const GestionNotificacionPage = () => {
             <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
 
             <Typography sx={filtroSectionTitleStyles}>Rango / período</Typography>
-            <Typography sx={filtroHintStyles}>
-              Elegí mes y año o rango de fechas. Podés sumar distrito. Tocá Filtrar para cargar el listado.
-            </Typography>
             <Box sx={filtroGridStyles}>
               <Box sx={filtroItemStyles}>
                 <AppSelect

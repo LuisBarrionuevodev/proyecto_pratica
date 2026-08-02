@@ -3,6 +3,8 @@ import {
   recCompOficioExpMotivoChips,
   recOficioExpDetalleChips,
   recOficioExpItemLabel,
+  recorridoColumnChips,
+  recorridoVisitaResumenLinea,
 } from "./recorridoOficioExpLabels";
 import type { IComprobacionRecorridoRow } from "../../../api/actuacionesComprobacionActasApi";
 
@@ -81,5 +83,53 @@ describe("recorridoOficioExpLabels", () => {
     expect(chips).toContain("Conclusión: No cumple");
     expect(chips.filter((c) => c.includes("undefined"))).toHaveLength(0);
     expect(chips.filter((c) => c.includes("null"))).toHaveLength(0);
+  });
+
+  it("columna Recorrido muestra una línea por oficio con visita_resumen_texto", () => {
+    const row = {
+      id: 1,
+      estado_recorrido: "Verificar e informar — visita realizada",
+      oficios_resumen: [
+        {
+          visita_resumen_texto: "Oficio 432/2026 · Verificar e informar · Realizada",
+        },
+        {
+          visita_resumen_texto: "Oficio 1989/2026 · Ratificación de clausura · Realizada",
+        },
+      ],
+    } as IComprobacionRecorridoRow;
+
+    expect(recorridoColumnChips(row)).toEqual([
+      "Oficio 432/2026 · Verificar e informar · Realizada",
+      "Oficio 1989/2026 · Ratificación de clausura · Realizada",
+    ]);
+  });
+
+  it("columna Recorrido con un oficio usa visita_resumen_texto", () => {
+    const row = {
+      id: 1,
+      oficios_resumen: [{ visita_resumen_texto: "Oficio 100/2026 · Reinspección · Realizada" }],
+    } as IComprobacionRecorridoRow;
+    expect(recorridoColumnChips(row)).toEqual(["Oficio 100/2026 · Reinspección · Realizada"]);
+  });
+
+  it("columna Recorrido sin oficios usa estado_recorrido", () => {
+    const row = {
+      id: 1,
+      estado_recorrido: "Oficio cargado — sin reinspección programada",
+    } as IComprobacionRecorridoRow;
+    expect(recorridoColumnChips(row)).toEqual(["Oficio cargado — sin reinspección programada"]);
+  });
+
+  it("fallback frontend arma no realizada con motivo", () => {
+    expect(
+      recorridoVisitaResumenLinea({
+        oficio_texto: "432/2026",
+        iniciador_id: 1,
+        estado_iniciador: "CUMPLIDO",
+        estado_ejecucion: "NO_REALIZADO",
+        motivo_no_realizado: "LOCAL_CERRADO",
+      })
+    ).toBe("Oficio 432/2026 · No realizada · Local cerrado");
   });
 });

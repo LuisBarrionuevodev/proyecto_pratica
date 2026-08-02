@@ -1,5 +1,5 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
-import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
+import { domicilioLineaOperativo } from "../../../utils/formatDomicilioLineaVisible";
 import {
   actuacionActaChipsOnly,
   actuacionDocumentacionOrigenReinspeccionSegments,
@@ -72,7 +72,7 @@ function tipoTramiteConOrigenText(row: IActuacionListItem): string {
 }
 
 function domicilioRubroText(row: IActuacionListItem): string {
-  const line = formatActuacionListDomicilioLinea(row).trim() || "—";
+  const line = domicilioLineaOperativo(row).trim() || "—";
   const rubro = (row.rubro_nombre ?? "").trim();
   return rubro ? `${line} · ${rubro}` : line;
 }

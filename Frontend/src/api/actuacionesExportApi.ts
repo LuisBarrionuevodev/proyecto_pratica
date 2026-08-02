@@ -5,7 +5,7 @@ const EXPORT_PAGE_SIZE = 500;
 
 export type ActuacionesExportFilters = Pick<
   IActuacionesListFilters,
-  "desde" | "hasta" | "tipo" | "contraproducencia" | "orden_trabajo"
+  "desde" | "hasta" | "tipo" | "contraproducencia" | "orden_trabajo" | "q"
 >;
 
 export type FetchAllActuacionesProgress = {

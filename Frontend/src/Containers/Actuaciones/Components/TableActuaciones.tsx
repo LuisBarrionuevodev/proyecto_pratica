@@ -461,11 +461,15 @@ const TablaActuaciones = ({
       if (exportToolbar !== undefined) {
         return exportToolbar;
       }
+      // Con paginación server, `data` es solo la página actual: no export MRT engañoso.
+      if (listadoServidor) {
+        return null;
+      }
       return (
         <TablaExportButtons table={table} filePrefix="actuaciones" includeSelectionExport={false} />
       );
     },
-    [exportToolbar]
+    [exportToolbar, listadoServidor]
   );
 
   const table = useMaterialReactTable({

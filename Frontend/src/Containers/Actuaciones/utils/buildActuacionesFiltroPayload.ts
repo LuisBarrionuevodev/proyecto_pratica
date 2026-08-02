@@ -1,4 +1,5 @@
-import type { IActuacionesListFilters } from "../../../api/actuacionesListApi";
+import type { ActuacionesExportFilters } from "../../../api/actuacionesExportApi";
+import type { IActuacionesListFilters, IActuacionesListMeta } from "../../../api/actuacionesListApi";
 
 export interface ActuacionesFiltroFormState {
   desde: string;
@@ -43,3 +44,34 @@ export function actuacionesBusquedaEspecificaValida(texto: string): boolean {
 }
 
 export const ACTUACIONES_BUSQUEDA_ESPECIFICA_MIN_CHARS = MIN_Q_LENGTH;
+
+/**
+ * Arma filtros del export dataset alineados al universo visible en la bandeja.
+ *
+ * - Con `q` activo en meta, replica exactamente los filtros del listado (sin período del diálogo).
+ * - Sin `q`, usa el rango elegido en el diálogo de exportación más catálogos de meta.
+ */
+export function buildActuacionesExportFiltersFromMeta(
+  meta: IActuacionesListMeta,
+  dialogRange?: { desde: string; hasta: string }
+): ActuacionesExportFilters {
+  if (meta.q) {
+    return {
+      q: meta.q,
+      desde: meta.desde ?? null,
+      hasta: meta.hasta ?? null,
+      tipo: meta.tipo,
+      contraproducencia: meta.contraproducencia,
+      orden_trabajo: meta.orden_trabajo,
+    };
+  }
+
+  return {
+    q: null,
+    desde: dialogRange?.desde ?? meta.desde,
+    hasta: dialogRange?.hasta ?? meta.hasta,
+    tipo: meta.tipo,
+    contraproducencia: meta.contraproducencia,
+    orden_trabajo: meta.orden_trabajo,
+  };
+}

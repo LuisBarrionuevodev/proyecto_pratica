@@ -18,6 +18,11 @@ function fechaOtText(row: ComprobacionExportRow): string {
 }
 
 function expedienteOficioText(row: ComprobacionExportRow): string {
+  if (row.exportSlice === "recorrido" && (row.oficiosAgregados || row.expedientesAgregados)) {
+    const segs = [row.oficiosAgregados, row.expedientesAgregados].filter(Boolean);
+    if (row.juzgado) segs.push(row.juzgado);
+    return segs.join("\n") || "—";
+  }
   const segs: string[] = [];
   if (row.expedienteEnvioNumero || row.expedienteEnvioAnio) {
     segs.push(`Exp. envío ${[row.expedienteEnvioNumero, row.expedienteEnvioAnio].filter(Boolean).join("/")}`);
@@ -33,6 +38,11 @@ function expedienteOficioText(row: ComprobacionExportRow): string {
 }
 
 function estadoReinspeccionText(row: ComprobacionExportRow): string {
+  if (row.exportSlice === "recorrido" && row.estadoRecorridoVisitas) {
+    const segs = [row.estadoRecorridoVisitas];
+    if (row.reinspeccionEstado) segs.push(row.reinspeccionEstado);
+    return segs.join("\n");
+  }
   const segs: string[] = [];
   if (row.estadoRecorrido) segs.push(row.estadoRecorrido);
   if (row.resultadoCumplimiento) segs.push(`Cumplimiento: ${row.resultadoCumplimiento}`);

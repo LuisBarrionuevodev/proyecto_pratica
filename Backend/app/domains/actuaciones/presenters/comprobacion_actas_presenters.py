@@ -16,9 +16,14 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     oficio_por_comprobacion,
 )
 from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
+    iniciador_trabajo_por_actuacion,
     oficio_recorrido_campos_operativos,
 )
 from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
+from app.domains.actuaciones.services.oficio_editable_service import (
+    iniciador_en_ruta_borrador,
+    iniciador_en_ruta_operativa,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuacion_para_iniciador
 from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, RutaItem
@@ -26,29 +31,20 @@ from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, 
 
 def iniciador_reinspeccion_oficio_vigente(actuacion_id: int) -> Optional[IniciadorRuta]:
     """
-    Último iniciador ``REINSPECCION_OFICIO`` no soft-deleted para la actuación.
+    Último iniciador de circuito oficio/reinspección no soft-deleted para la actuación.
 
-    Solo alimenta columnas del presenter (F3.6b): **no** determina si la fila entra o sale de la bandeja;
-    eso lo resuelve ``list_pendientes_reinspeccion_oficio`` (ítem en ruta activa).
+    Incluye tipos promovidos tras Completar trabajo (ver ``TIPOS_INI_TRABAJO_OFICIO``).
 
     Parámetros:
         actuacion_id: PK de ``Actuaciones``.
 
     Retorno:
-        ``IniciadorRuta`` o ``None`` si no hay iniciador activo de ese tipo.
+        ``IniciadorRuta`` o ``None`` si no hay iniciador activo de circuito oficio.
 
     Errores:
         Ninguno (consulta de solo lectura).
     """
-    return (
-        IniciadorRuta.query.filter(
-            IniciadorRuta.actuacion_id == actuacion_id,
-            IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
-            IniciadorRuta.deleted_at.is_(None),
-        )
-        .order_by(IniciadorRuta.id.desc())
-        .first()
-    )
+    return iniciador_trabajo_por_actuacion(actuacion_id)
 
 
 def _expediente_respuesta_oficio(comprobacion_id: int) -> Optional[Expediente]:
@@ -88,11 +84,32 @@ def estado_recorrido_label(act: Actuaciones) -> str:
     if not ofi:
         return "Esperando oficio"
 
-    ini = iniciador_reinspeccion_oficio_vigente(act.id)
+    ini = iniciador_trabajo_por_actuacion(act.id)
     if not ini:
         return "Oficio cargado — sin reinspección programada"
     if ini.estado_iniciador == "CUMPLIDO":
+        item = (
+            RutaItem.query.filter(
+                RutaItem.iniciador_ruta_id == ini.id,
+                RutaItem.deleted_at.is_(None),
+            )
+            .order_by(RutaItem.id.desc())
+            .first()
+        )
+        if item is not None and item.estado_ejecucion == "NO_REALIZADO":
+            return "Visita no realizada"
+        tipo = (ini.tipo_iniciador or "").strip()
+        if tipo == "VERIFICAR_INFORMAR_OFICIO":
+            return "Verificar e informar — visita realizada"
+        if tipo == "RATIFICACION_CLAUSURA_OFICIO":
+            return "Ratificación de clausura — visita realizada"
+        if tipo == "RATIFICACION_DECOMISO_OFICIO":
+            return "Ratificación de decomiso — visita realizada"
         return "Reinspección cumplida"
+    if iniciador_en_ruta_operativa(ini):
+        return "Inspección programada — en curso"
+    if iniciador_en_ruta_borrador(ini):
+        return "Pendiente de planificación en ruta"
     if ini.estado_iniciador in inactive_estados():
         return f"Cerrado ({ini.estado_iniciador})"
     return "Pendiente reinspección por oficio"
@@ -288,7 +305,7 @@ def resultado_cumplimiento_recorrido(act: Actuaciones) -> Optional[str]:
     Si la reinspección por oficio está CUMPLIDA y existe actuación de segunda visita,
     usa el resultado persistido en esa visita; si no, el de la actuación ancla.
     """
-    ini = iniciador_reinspeccion_oficio_vigente(act.id)
+    ini = iniciador_trabajo_por_actuacion(act.id)
     if ini is not None and ini.estado_iniciador == "CUMPLIDO":
         act_visita = _actuacion_visita_reinspeccion_desde_ruta_item(
             ini,
@@ -560,16 +577,7 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
     ofi = oficio_por_comprobacion(act.comprobacion_id)
     exp_resp = _expediente_respuesta_oficio(act.comprobacion_id)
 
-    ini = (
-        IniciadorRuta.query.filter(
-            IniciadorRuta.actuacion_id == act.id,
-            IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
-            IniciadorRuta.deleted_at.is_(None),
-        )
-        .order_by(IniciadorRuta.id.desc())
-        .first()
-    )
-
+    ini = iniciador_trabajo_por_actuacion(act.id)
     act_visita_rein: Optional[Actuaciones] = None
     if ini is not None:
         act_visita_rein = _actuacion_visita_reinspeccion_desde_ruta_item(

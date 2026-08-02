@@ -9,6 +9,53 @@ function cell(value: unknown): string | number {
   return String(value).trim();
 }
 
+/** Columnas compactas operativas para export Recorrido (DOCS-EXP.3). */
+export const RECORRIDO_EXCEL_COLUMNS = [
+  "Fecha actuación",
+  "Orden de trabajo",
+  "Número de comprobación",
+  "Estado",
+  "Contribuyente",
+  "Documento",
+  "Domicilio",
+  "Rubro",
+  "Motivo de comprobación",
+  "Expediente de envío",
+  "Oficios",
+  "Expedientes de oficio",
+  "Expedientes de respuesta",
+  "Oficios de respuesta",
+  "Causa",
+  "Juzgados",
+  "Estado recorrido",
+  "Reinspección / visita",
+  "Inspectores",
+] as const;
+
+function buildRecorridoCompactExcelRow(row: ComprobacionExportRow): ComprobacionNormalizedExcelRow {
+  return {
+    "Fecha actuación": cell(row.fechaActuacion),
+    "Orden de trabajo": cell(row.ordenTrabajo),
+    "Número de comprobación": cell(row.actaComprobacionNum),
+    Estado: cell(sliceExportLabel("recorrido")),
+    Contribuyente: cell(row.contribuyente),
+    Documento: cell(row.documento),
+    Domicilio: cell(row.domicilio),
+    Rubro: cell(row.rubro),
+    "Motivo de comprobación": cell(motivoExport(row)),
+    "Expediente de envío": cell(row.expedienteEnvioCompacto),
+    Oficios: cell(row.oficiosNumeros),
+    "Expedientes de oficio": cell(row.expedientesOficio),
+    "Expedientes de respuesta": cell(row.expedientesRespuesta),
+    "Oficios de respuesta": cell(row.oficiosConRespuesta),
+    Causa: cell(row.causasAgregadas),
+    Juzgados: cell(row.juzgadosAgregados),
+    "Estado recorrido": cell(row.estadoRecorridoVisitas || row.estadoRecorrido),
+    "Reinspección / visita": cell(row.reinspeccionEstado),
+    Inspectores: cell(row.inspectores),
+  };
+}
+
 /**
  * Filas normalizadas para Excel de actas de comprobación.
  */
@@ -16,6 +63,10 @@ export function buildComprobacionesNormalizedExcelRows(
   items: ComprobacionExportRow[],
   slice: ComprobacionExportSlice
 ): ComprobacionNormalizedExcelRow[] {
+  if (slice === "recorrido") {
+    return items.map(buildRecorridoCompactExcelRow);
+  }
+
   const sliceLabel = sliceExportLabel(slice);
 
   return items.map((row) => {

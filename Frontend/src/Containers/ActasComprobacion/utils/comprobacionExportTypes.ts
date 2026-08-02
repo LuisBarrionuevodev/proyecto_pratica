@@ -32,6 +32,19 @@ export type ComprobacionExportRow = {
   estadoRecorrido: string;
   reinspeccionEstado: string;
   inspectores: string;
+  /** Recorrido: todos los oficios (p. ej. `Oficio 3489/2026 · Oficio 3490/2026`). */
+  oficiosAgregados: string;
+  /** Recorrido: todos los expedientes asociados. */
+  expedientesAgregados: string;
+  /** Recorrido Excel compacto. */
+  expedienteEnvioCompacto: string;
+  oficiosNumeros: string;
+  expedientesOficio: string;
+  expedientesRespuesta: string;
+  oficiosConRespuesta: string;
+  causasAgregadas: string;
+  juzgadosAgregados: string;
+  estadoRecorridoVisitas: string;
 };
 
 export function sliceExportLabel(slice: ComprobacionExportSlice): string {

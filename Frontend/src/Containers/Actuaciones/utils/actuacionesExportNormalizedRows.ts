@@ -1,6 +1,6 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { contribuyenteBandejaLabel } from "../../../utils/contribuyenteBandejaText";
-import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
+import { domicilioLineaOperativo } from "../../../utils/formatDomicilioLineaVisible";
 
 function cell(value: unknown): string | number {
   if (value === null || value === undefined) return "";
@@ -52,7 +52,7 @@ export function buildActuacionesNormalizedExcelRows(
 ): ActuacionNormalizedExcelRow[] {
   return items.map((row) => {
     const { anio, mes } = parseAnioMes(row.fecha_actuacion);
-    const domicilioLinea = formatActuacionListDomicilioLinea(row).trim();
+    const domicilioLinea = domicilioLineaOperativo(row).trim();
 
     return {
       "Fecha actuación": cell(row.fecha_actuacion),

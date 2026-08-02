@@ -36,6 +36,16 @@ function baseRow(overrides: Partial<ComprobacionExportRow> = {}): ComprobacionEx
     estadoRecorrido: "Pendiente expediente",
     reinspeccionEstado: "",
     inspectores: "",
+    oficiosAgregados: "",
+    expedientesAgregados: "",
+    expedienteEnvioCompacto: "",
+    oficiosNumeros: "",
+    expedientesOficio: "",
+    expedientesRespuesta: "",
+    oficiosConRespuesta: "",
+    causasAgregadas: "",
+    juzgadosAgregados: "",
+    estadoRecorridoVisitas: "",
     ...overrides,
   };
 }

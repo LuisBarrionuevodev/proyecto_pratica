@@ -30,6 +30,7 @@ import { ACTUACIONES_COMPOSITE_COLUMN_IDS } from "./Components/actuacionesCompos
 import { useAppFeedback } from "../../components/feedback";
 import { ExportDataDialog } from "../../ui";
 import { applyFormErrorsFromApi } from "../../utils/parseApiError";
+import { buildActuacionesExportFiltersFromMeta } from "./utils/buildActuacionesFiltroPayload";
 import { exportActuacionesDataset } from "./utils/exportActuacionesDataset";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 
@@ -234,11 +235,10 @@ const ActuacionesContainer = (): JSX.Element => {
       try {
         await exportActuacionesDataset({
           format: options.format,
-          desde: options.desde,
-          hasta: options.hasta,
-          tipo: meta.tipo,
-          contraproducencia: meta.contraproducencia,
-          orden_trabajo: meta.orden_trabajo,
+          filters: buildActuacionesExportFiltersFromMeta(meta, {
+            desde: options.desde,
+            hasta: options.hasta,
+          }),
         });
         feedback.success("Exportación generada");
         setExportOpen(false);
@@ -356,6 +356,14 @@ const ActuacionesContainer = (): JSX.Element => {
               loading={exportLoading}
               error={exportError}
               onClearError={() => setExportError(null)}
+              showPeriod={!meta?.q}
+              scopeHint={
+                meta?.q
+                  ? `Se exportará el universo de la búsqueda «${meta.q}»${
+                      meta.desde && meta.hasta ? ` (${meta.desde} – ${meta.hasta})` : " (sin rango de fechas)"
+                    }.`
+                  : undefined
+              }
               onExport={handleExportActuaciones}
             />
         </>

@@ -10,6 +10,31 @@ import {
   domicilioFromParts,
   inspectoresFromParts,
 } from "./comprobacionesExportShared";
+import {
+  recorridoCausasExportTexto,
+  recorridoEstadoVisitasExportTexto,
+  recorridoExpedienteEnvioTexto,
+  recorridoExpedientesOficioNumerosTexto,
+  recorridoExpedientesRespuestaNumerosTexto,
+  recorridoExpedientesExportTexto,
+  recorridoJuzgadosExportTexto,
+  recorridoOficiosExportTexto,
+  recorridoOficiosConRespuestaTexto,
+  recorridoOficiosNumerosTexto,
+} from "./recorridoOficioExpLabels";
+
+const EMPTY_OFICIOS_EXP = {
+  oficiosAgregados: "",
+  expedientesAgregados: "",
+  expedienteEnvioCompacto: "",
+  oficiosNumeros: "",
+  expedientesOficio: "",
+  expedientesRespuesta: "",
+  oficiosConRespuesta: "",
+  causasAgregadas: "",
+  juzgadosAgregados: "",
+  estadoRecorridoVisitas: "",
+};
 
 function baseRow(
   slice: ComprobacionExportSlice,
@@ -50,6 +75,7 @@ export function mapExpedientePendienteRow(row: IActuacionesPendientesItem): Comp
     estadoRecorrido: "Pendiente expediente",
     reinspeccionEstado: "",
     inspectores: inspectoresFromParts(row),
+    ...EMPTY_OFICIOS_EXP,
   });
 }
 
@@ -85,6 +111,7 @@ export function mapOficioPendienteRow(row: IPendientesOficioItem): ComprobacionE
     estadoRecorrido: "Pendiente oficio",
     reinspeccionEstado: "",
     inspectores: inspectoresFromParts(row),
+    ...EMPTY_OFICIOS_EXP,
   });
 }
 
@@ -120,6 +147,7 @@ export function mapReinspeccionPendienteRow(row: IReinspeccionOficioPendienteRow
     estadoRecorrido: cellStr(row.estado_recorrido) || "Pendiente reinspección",
     reinspeccionEstado: cellStr(row.documento_pendiente),
     inspectores: inspectoresFromParts(row),
+    ...EMPTY_OFICIOS_EXP,
   });
 }
 
@@ -158,5 +186,15 @@ export function mapRecorridoRow(row: IComprobacionRecorridoRow): ComprobacionExp
     estadoRecorrido: cellStr(row.estado_recorrido),
     reinspeccionEstado: cellStr((row as { tipo_visita_resultado?: string | null }).tipo_visita_resultado),
     inspectores: inspectoresFromParts(row),
+    oficiosAgregados: recorridoOficiosExportTexto(row),
+    expedientesAgregados: recorridoExpedientesExportTexto(row),
+    expedienteEnvioCompacto: recorridoExpedienteEnvioTexto(row),
+    oficiosNumeros: recorridoOficiosNumerosTexto(row),
+    expedientesOficio: recorridoExpedientesOficioNumerosTexto(row),
+    expedientesRespuesta: recorridoExpedientesRespuestaNumerosTexto(row),
+    oficiosConRespuesta: recorridoOficiosConRespuestaTexto(row),
+    causasAgregadas: recorridoCausasExportTexto(row),
+    juzgadosAgregados: recorridoJuzgadosExportTexto(row),
+    estadoRecorridoVisitas: recorridoEstadoVisitasExportTexto(row),
   });
 }

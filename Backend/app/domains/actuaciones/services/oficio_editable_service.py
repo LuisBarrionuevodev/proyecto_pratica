@@ -9,6 +9,10 @@ from typing import Any
 from sqlalchemy import and_, exists, select
 
 from app.database import db
+from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
+    TIPOS_INI_TRABAJO_OFICIO,
+    iniciador_reinspeccion_por_oficio,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.models import IniciadorRuta, Oficio, RutaItem, RutaTrabajo
 
@@ -20,13 +24,7 @@ _ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
 
 
 def _iniciador_reinspeccion_oficio(oficio_id: int) -> IniciadorRuta | None:
-    return (
-        IniciadorRuta.query.filter_by(oficio_id=int(oficio_id))
-        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
-        .filter(IniciadorRuta.deleted_at.is_(None))
-        .order_by(IniciadorRuta.id.desc())
-        .first()
-    )
+    return iniciador_reinspeccion_por_oficio(oficio_id)
 
 
 def _ruta_item_vigente_por_iniciador(iniciador_id: int) -> RutaItem | None:
@@ -209,7 +207,7 @@ def existe_iniciador_en_ruta_activa_para_actuacion(actuacion_id: int) -> bool:
             .where(
                 and_(
                     IniciadorRuta.actuacion_id == int(actuacion_id),
-                    IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO",
+                    IniciadorRuta.tipo_iniciador.in_(TIPOS_INI_TRABAJO_OFICIO),
                     IniciadorRuta.deleted_at.is_(None),
                     RutaItem.deleted_at.is_(None),
                     RutaItem.estado_ruta_item.in_(_ESTADOS_RUTA_ITEM_ABIERTOS),

@@ -144,6 +144,11 @@ export interface IComprobacionRecorridoRow {
     juzgado_nombre?: string | null;
     iniciador_id?: number | null;
     estado_iniciador?: string | null;
+    tipo_iniciador?: string | null;
+    estado_ejecucion?: string | null;
+    motivo_no_realizado?: string | null;
+    /** Línea compacta para columna Recorrido (p. ej. `Oficio 432/2026 · Verificar e informar · Realizada`). */
+    visita_resumen_texto?: string | null;
     orden_trabajo?: string | null;
     orden_trabajo_numero?: string | null;
     resultado?: string | null;

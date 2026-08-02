@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   actuacionesBusquedaEspecificaValida,
+  buildActuacionesExportFiltersFromMeta,
   buildActuacionesFiltroPayload,
 } from "./buildActuacionesFiltroPayload";
 
@@ -84,5 +85,28 @@ describe("actuacionesBusquedaEspecificaValida", () => {
   it("exige al menos 2 caracteres", () => {
     expect(actuacionesBusquedaEspecificaValida("a")).toBe(false);
     expect(actuacionesBusquedaEspecificaValida("ab")).toBe(true);
+  });
+});
+
+describe("buildActuacionesExportFiltersFromMeta", () => {
+  it("combina q con rango cuando meta los trae juntos", () => {
+    expect(
+      buildActuacionesExportFiltersFromMeta({
+        total: 2,
+        page: 1,
+        page_size: 50,
+        desde: "2026-01-01",
+        hasta: "2026-01-31",
+        tipo: "INSPECCION",
+        contraproducencia: null,
+        orden_trabajo: null,
+        q: "acta",
+      })
+    ).toMatchObject({
+      q: "acta",
+      desde: "2026-01-01",
+      hasta: "2026-01-31",
+      tipo: "INSPECCION",
+    });
   });
 });

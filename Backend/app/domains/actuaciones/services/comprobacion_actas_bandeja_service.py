@@ -9,6 +9,9 @@ from typing import List, Optional, Tuple
 from sqlalchemy import and_, exists, or_
 from sqlalchemy.orm import joinedload, selectinload
 
+from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
+    iniciador_reinspeccion_por_oficio,
+)
 from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_operativa
 from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
@@ -79,13 +82,7 @@ def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilte
 
 
 def _iniciador_reinspeccion_por_oficio(oficio_id: int) -> IniciadorRuta | None:
-    return (
-        IniciadorRuta.query.filter_by(oficio_id=int(oficio_id))
-        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_OFICIO")
-        .filter(IniciadorRuta.deleted_at.is_(None))
-        .order_by(IniciadorRuta.id.desc())
-        .first()
-    )
+    return iniciador_reinspeccion_por_oficio(oficio_id)
 
 
 def _iniciador_reinspeccion_legacy_actuacion(actuacion_id: int) -> IniciadorRuta | None:

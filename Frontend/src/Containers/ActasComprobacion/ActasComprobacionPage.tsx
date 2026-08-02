@@ -63,7 +63,6 @@ import {
   filtroButtonsStyles,
   filtroContainerStyles,
   filtroGridStyles,
-  filtroHintStyles,
   filtroItemStyles,
   filtroSectionTitleStyles,
   filtroTitleStyles,
@@ -106,6 +105,8 @@ import {
 import {
   recCompOficioExpMotivoChips,
   recCompOficioExpMotivoSortKey,
+  recorridoColumnChips,
+  recorridoColumnSortKey,
 } from "./utils/recorridoOficioExpLabels";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 import { perfLog, perfTimed } from "../../utils/perfLog";
@@ -1173,10 +1174,12 @@ const ActasComprobacionPage = () => {
         Cell: ({ row }) => <BandejaSegmentChipsCell segments={recCompOficioExpMotivoChips(row.original)} />,
       },
       {
-        accessorKey: "estado_recorrido",
+        id: "recorrido_visitas",
         header: "Recorrido",
-        size: 176,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={String(cell.getValue() ?? "").trim() || "—"} />,
+        size: 280,
+        accessorFn: (r) => recorridoColumnSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={recorridoColumnChips(row.original)} />,
       },
       {
         id: "ver",
@@ -1291,19 +1294,21 @@ const ActasComprobacionPage = () => {
               />
               <Tab label="Recorrido" />
             </Tabs>
-            <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row", flexShrink: 0 }}>
-              <Button
-                onClick={() => {
-                  setExportError(null);
-                  setExportOpen(true);
-                }}
-                startIcon={<FileDownloadOutlinedIcon />}
-                sx={TableExportButtonStyles}
-                disabled={exportLoading}
-              >
-                Exportar datos
-              </Button>
-            </Box>
+            {tab === "recorrido" && (
+              <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row", flexShrink: 0 }}>
+                <Button
+                  onClick={() => {
+                    setExportError(null);
+                    setExportOpen(true);
+                  }}
+                  startIcon={<FileDownloadOutlinedIcon />}
+                  sx={TableExportButtonStyles}
+                  disabled={exportLoading}
+                >
+                  Exportar datos
+                </Button>
+              </Box>
+            )}
           </Paper>
 
           {tab === "expediente" && (
@@ -1423,10 +1428,6 @@ const ActasComprobacionPage = () => {
                 <Typography sx={filtroTitleStyles}>Recorrido del acta de comprobación</Typography>
 
                 <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
-                <Typography sx={filtroHintStyles}>
-                  Nº acta comprobación, domicilio, contribuyente, oficio o expediente. No usa el período salvo que indiques
-                  combinar.
-                </Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
                     <AppTextField
@@ -1531,9 +1532,6 @@ const ActasComprobacionPage = () => {
                 <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
 
                 <Typography sx={filtroSectionTitleStyles}>Rango / período</Typography>
-                <Typography sx={filtroHintStyles}>
-                  Elegí mes y año o rango de fechas. Podés sumar distrito. Tocá Filtrar para cargar el listado.
-                </Typography>
                 <Box sx={filtroGridStyles}>
                   <Box sx={filtroItemStyles}>
                     <AppSelect
