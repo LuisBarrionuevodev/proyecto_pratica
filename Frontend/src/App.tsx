@@ -21,6 +21,7 @@ import GestionCapacitacionesPage from "./Containers/Capacitaciones/GestionCapaci
 import GestionSistemaPage from "./Containers/GestionSistema/GestionSistemaPage";
 import EstablecimientosLayout from "./Containers/Establecimientos/EstablecimientosLayout";
 import EstablecimientosListPage from "./Containers/Establecimientos/EstablecimientosListPage";
+import HistorialContribuyentePage from "./Containers/Establecimientos/HistorialContribuyentePage";
 import EstablecimientoDetallePage from "./Containers/Establecimientos/EstablecimientoDetallePage";
 import GestionNotificacionPage from "./Containers/GestionNotificacion/GestionNotificacionPage";
 import ActasComprobacionPage from "./Containers/ActasComprobacion/ActasComprobacionPage";
@@ -68,6 +69,7 @@ function App() {
           <Route path="/gestionSistema" element={<GestionSistemaPage />} />
           <Route path="/establecimientos" element={<EstablecimientosLayout />}>
             <Route index element={<EstablecimientosListPage />} />
+            <Route path="historial-contribuyente" element={<HistorialContribuyentePage />} />
             <Route path=":id" element={<EstablecimientoDetallePage />} />
           </Route>
         </Route>
