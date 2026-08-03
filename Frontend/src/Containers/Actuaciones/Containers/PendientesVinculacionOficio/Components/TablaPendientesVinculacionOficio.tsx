@@ -3,7 +3,6 @@ import { usePendientes } from "../../../../../hooks/usePendientes";
 import type { IActuacion } from "../../../../../types/actuaciones";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../../../styles/actuacionesTableStyles";
-import { TablaExportButtons } from "../../../Components/TableButtons";
 import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import { Box, Typography } from "@mui/material";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
@@ -149,9 +148,6 @@ const TablaPendientesVinculacionOficio = () => {
             },
 
         },
-        renderTopToolbarCustomActions: ({ table }) => (
-            <TablaExportButtons data={data} table={table} />
-        ),
     });
 
     if (loading) return <Typography sx={TableLoadingStyles}>Cargando Pendientes...</Typography>;

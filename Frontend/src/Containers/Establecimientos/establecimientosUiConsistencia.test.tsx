@@ -42,6 +42,8 @@ describe("UI consistencia PR — Establecimientos", () => {
     expect(src).toContain("Ver ficha");
     expect(src).not.toContain('dsVariant="secondary"');
     expect(src).not.toContain("exportButtonStyles");
+    expect(src).not.toContain("TablaExportButtons");
+    expect(src).not.toContain("Exportar");
   });
 
   it("loading usa BandejaTableSpinner sin overlay MRT", () => {
@@ -78,6 +80,8 @@ describe("UI consistencia PR — Establecimientos", () => {
     expect(src).not.toContain("MSG_DOCUMENTO_HISTORIAL_VACIO");
     expect(src).not.toContain("Total de registros");
     expect(src).not.toContain("DNI/CUIT consultado:");
+    expect(src).not.toContain("TablaExportButtons");
+    expect(src).not.toContain("Exportar");
   });
 });
 
@@ -89,13 +93,15 @@ describe("UI consistencia PR — loading spinner", () => {
     expect(src).toContain("BANDEJA_MRT_SPINNER_LOADING_STATE");
     expect(src).not.toContain('loadingMode="overlay"');
     expect(src).not.toContain("showProgressBars");
+    expect(src).not.toContain("TablaExportButtons");
   });
 
-  it("Denuncias usa BandejaTableSpinner, no texto de carga", () => {
+  it("Denuncias usa BandejaTableSpinner, no texto de carga ni export", () => {
     const src = readFileSync(denunciasTablePath, "utf8");
     expect(src).toContain("BandejaTableSpinner");
     expect(src).not.toContain("Cargando denuncias");
     expect(src).not.toContain("loadingStyles");
+    expect(src).not.toContain("TablaExportButtons");
   });
 
   it("Perfiles (gestión usuarios) usa BandejaTableSpinner sin overlay MRT", () => {

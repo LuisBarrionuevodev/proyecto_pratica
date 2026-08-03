@@ -2,7 +2,6 @@ import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "m
 import { useEffect, useState } from "react";
 import type { IActuacion } from "../../../../../types/actuaciones";
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../../../styles/actuacionesTableStyles";
-import { TablaExportButtons } from "../../../Components/TableButtons";
 import { Box, Typography } from "@mui/material";
 import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
@@ -125,9 +124,6 @@ const TablaPendientes = () => {
         notificacion_previa_num: false, comprobacion_previa_num: false
        },
     },
-    renderTopToolbarCustomActions: ({ table }) => (
-      <TablaExportButtons data={data} table={table} />
-    ),
   });
 
   if (loading) return <Typography sx={TableLoadingStyles}>Cargando Pendientes...</Typography>;

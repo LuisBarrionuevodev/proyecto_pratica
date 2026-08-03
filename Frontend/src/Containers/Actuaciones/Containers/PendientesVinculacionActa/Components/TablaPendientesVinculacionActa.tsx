@@ -7,7 +7,6 @@ import { updateActuacion } from "../../../../../api/actuacionesApi";
 import { usePendientes } from "../../../../../hooks/usePendientes";
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../../../styles/actuacionesTableStyles";
 import { formDialogContentStackSx } from "../../../../../styles/formDialogStyles";
-import { TablaExportButtons } from "../../../Components/TableButtons";
 import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
 import { AppButton, AppDialog, AppTextField } from "../../../../../ui";
@@ -169,7 +168,6 @@ const TablaPendientesVinculacionActa = () => {
         comprobacion_previa_num: false,
       },
     },
-    renderTopToolbarCustomActions: ({ table }) => <TablaExportButtons data={data} table={table} />,
   });
 
   if (loading) return <Typography sx={TableLoadingStyles}>Cargando Pendientes...</Typography>;

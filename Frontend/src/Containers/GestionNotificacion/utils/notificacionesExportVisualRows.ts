@@ -5,6 +5,7 @@ import {
   estadoPlazoText,
   fechaVencimientoRow,
   motivosNotificacionConcat,
+  notificacionExportPdfText,
 } from "./notificacionesExportShared";
 
 export type NotificacionVisualPdfRow = {
@@ -46,11 +47,10 @@ export function buildNotificacionesVisualPdfRows(
   return items.map((row) => {
     const dom = domicilioLinea(row);
     const rubro = (row.rubro_nombre ?? "").trim();
-    const notif = (row.acta_notificacion_num ?? "").trim();
 
     return {
       fechaOt: fechaOtText(row),
-      notificacion: notif ? `Notif. ${notif}` : "—",
+      notificacion: notificacionExportPdfText(row),
       domicilioRubro: rubro ? `${dom || "—"} · ${rubro}` : dom || "—",
       contribuyente: contribuyenteExport(row) || "—",
       motivos: motivosNotificacionConcat(row) || "—",

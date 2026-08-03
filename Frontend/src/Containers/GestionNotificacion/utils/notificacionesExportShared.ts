@@ -80,3 +80,67 @@ export function contribuyenteExport(row: IActuacionesPendientesItem): string {
 export function tieneComprobacionPosterior(row: IActuacionesPendientesItem): boolean {
   return Boolean(String(row.comprobacion_posterior_acta_num ?? "").trim());
 }
+
+export function anioDesdeFechaActuacion(fecha: string | null | undefined): string {
+  const f = (fecha ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}/.test(f)) return "";
+  return f.slice(0, 4);
+}
+
+/** Formato compacto `número/año` para actas de notificación en export. */
+export function formatNotificacionActaNumAnio(
+  numero: string | null | undefined,
+  anio: string | number | null | undefined
+): string {
+  const n = (numero ?? "").trim();
+  if (!n) return "";
+  const a = anio != null ? String(anio).trim() : "";
+  return a ? `${n}/${a}` : n;
+}
+
+/** Acta de notificación origen (reinspección); solo lectura del row/API. */
+export function notificacionOrigenActaText(row: IActuacionesPendientesItem): string {
+  const on = row.origen_reinspeccion_notificacion;
+  if (on?.notificacion_acta_numero?.trim()) {
+    return formatNotificacionActaNumAnio(on.notificacion_acta_numero, on.notificacion_acta_anio);
+  }
+  const texto = (row as { notificacion_origen_texto?: string | null }).notificacion_origen_texto?.trim();
+  return texto ?? "";
+}
+
+/** Acta de notificación propia de la fila (visita actual). */
+export function actaNotificacionPropiaText(row: IActuacionesPendientesItem): string {
+  const num = (row.acta_notificacion_num ?? "").trim();
+  if (!num) return "";
+  return formatNotificacionActaNumAnio(num, anioDesdeFechaActuacion(row.fecha_actuacion));
+}
+
+/** Fila de reinspección por notificación (circuito documental o tipo REINSPECCION con origen). */
+export function esFilaReinspeccionPorNotificacion(row: IActuacionesPendientesItem): boolean {
+  if (row.documentacion_contexto?.circuito === "REINSPECCION_NOTIFICACION") return true;
+  if (String(row.tipo_actuacion ?? "").toUpperCase() === "REINSPECCION" && notificacionOrigenActaText(row)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Columna «Notificación» del PDF: diferencia origen de reinspección y acta propia.
+ * Solo presentación; no altera datos operativos.
+ */
+export function notificacionExportPdfText(row: IActuacionesPendientesItem): string {
+  const origenTxt = notificacionOrigenActaText(row);
+  const propiaTxt = actaNotificacionPropiaText(row);
+  const esRein = esFilaReinspeccionPorNotificacion(row);
+
+  if (esRein && origenTxt) {
+    const lineas = [`Notif. origen: ${origenTxt}`];
+    if (propiaTxt && propiaTxt !== origenTxt) {
+      lineas.push(`Acta notif.: ${propiaTxt}`);
+    }
+    return lineas.join("\n");
+  }
+
+  if (propiaTxt) return `Notif. ${propiaTxt}`;
+  return "—";
+}

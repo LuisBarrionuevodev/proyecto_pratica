@@ -19,7 +19,6 @@ import { denunciaRowParaEdicion } from "../utils/denunciaCamposForm";
 import { applyDenunciaDomicilioSubmitGuard } from "../utils/submitDenunciaRow";
 import { shouldRefreshDenunciasAfterSaveFailure } from "../utils/refreshOnSavePolicy";
 import { DenunciaCrudDialog } from "./DenunciaCrudDialog";
-import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import {
   BandejaEllipsisCell,
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
@@ -235,9 +234,6 @@ const TablaDenuncias = ({
             </Tooltip>
           </Box>
         ),
-    renderTopToolbarCustomActions: ({ table }) => (
-      <TablaExportButtons table={table} filePrefix="denuncias" />
-    ),
   });
 
   if (loading) {

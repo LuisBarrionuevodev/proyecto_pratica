@@ -17,7 +17,6 @@ import {
 import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
 import { relevamientoRowParaEdicion } from "../utils/relevamientoCamposForm";
 import { RelevamientoCrudDialog } from "./RelevamientoCrudDialog";
-import { TablaExportButtons } from "../../Actuaciones/Components/TableButtons";
 import { turnoCargaLabel } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
 import {
   BandejaEllipsisCell,
@@ -405,9 +404,6 @@ const TablaRelevamientos = ({
           </Tooltip>
         )}
       </Box>
-    ),
-    renderTopToolbarCustomActions: ({ table }) => (
-      <TablaExportButtons table={table} filePrefix="relevamientos" />
     ),
   });
 
