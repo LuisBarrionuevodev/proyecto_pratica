@@ -114,6 +114,7 @@ export interface IndicadoresEjecutivoKpis {
   actuaciones_realizadas: number;
   actas_labradas: number;
   reinspecciones_notificacion_realizadas: number;
+  reinspecciones_oficio_realizadas: number;
   ratificaciones_clausura_realizadas: number;
   ratificaciones_decomiso_realizadas: number;
   verificar_informar_realizadas: number;

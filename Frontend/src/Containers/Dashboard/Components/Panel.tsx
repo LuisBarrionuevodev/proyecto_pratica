@@ -3,7 +3,6 @@ import {
   Button,
   FormControl,
   InputLabel,
-  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -11,10 +10,12 @@ import {
   Tabs,
   Tooltip,
 } from "@mui/material";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 
-import { exportDashboardToExcel } from "../../../utils/exportExcelDashboard";
+import { downloadDashboardPdf } from "../../../documentos/dashboard/downloadDashboardPdf";
+import { buildDashboardExportPayload } from "../utils/buildDashboardExportPayload";
 import { functionalPageShellSx } from "../../../styles/functionalPageShell";
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
 import { dashboardPeriodTabsSx } from "../../../styles/DashboardStyles";
@@ -30,6 +31,8 @@ import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductivida
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
 import { periodoToDateRange } from "../utils/periodoDateRange";
 import { DashboardIndicadoresPageLoader } from "./DashboardIndicadoresPageLoader";
+import { DashboardIndicadoresRefreshingOverlay } from "./DashboardIndicadoresRefreshingOverlay";
+import { DashboardActasPorTipoSection } from "./DashboardActasPorTipoSection";
 import { DashboardEjecutivoSection } from "./DashboardEjecutivoSection";
 import { DashboardPendientesSection } from "./DashboardPendientesSection";
 import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
@@ -37,6 +40,11 @@ import { DashboardProductividadSection } from "./DashboardProductividadSection";
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
+
+const dashFiltroFormSx: SxProps<Theme> = [
+  filtroItemStyles,
+  { minWidth: { xs: "100%", sm: 168 }, flex: { sm: "0 1 168px" } },
+];
 
 /**
  * Pendiente D1d.12 — Tribunal de falta (no implementar en este PR):
@@ -134,100 +142,47 @@ const Panel = () => {
     return pt.inspeccion + pt.reinspeccion_oficio + pt.reinspeccion_notificacion + pt.denuncia;
   }, [noRealizadasData]);
 
-  const tarjetasExport = useMemo(() => {
-    const cards: { title: string; value: number | string }[] = [];
-    if (ejecutivoData) {
-      const k = ejecutivoData.kpis;
-      const a = ejecutivoData.actas_por_tipo;
-      cards.push(
-        { title: "Actuaciones realizadas", value: k.actuaciones_realizadas },
-        { title: "Actas labradas (total)", value: k.actas_labradas },
-        {
-          title: "Reinspecciones por notificación (realizadas)",
-          value: k.reinspecciones_notificacion_realizadas,
-        },
-        { title: "Mercadería decomisada (kg)", value: k.mercaderia_decomisada_kg },
-        {
-          title: "Ratificaciones de clausura (realizadas)",
-          value: k.ratificaciones_clausura_realizadas,
-        },
-        {
-          title: "Ratificaciones de decomiso (realizadas)",
-          value: k.ratificaciones_decomiso_realizadas,
-        },
-        { title: "Verificar e informar (realizadas)", value: k.verificar_informar_realizadas },
-        { title: "Actas inspección", value: a.inspeccion },
-        { title: "Actas notificación", value: a.notificacion },
-        { title: "Actas comprobación", value: a.comprobacion },
-        { title: "Actas clausura", value: a.clausura },
-        { title: "Actas decomiso", value: a.decomiso },
-      );
-    }
-    if (noRealizadasTotal != null) {
-      cards.push({ title: "Total no realizadas", value: noRealizadasTotal });
-    }
-    if (pendientesData) {
-      const p = pendientesData.kpis;
-      cards.push(
-        { title: "Reinspecciones oficio pendientes", value: p.reinspecciones_oficio_pendientes },
-        {
-          title: "Reinspecciones notificación pendientes",
-          value: p.reinspecciones_notificacion_pendientes,
-        },
-        { title: "Denuncias pendientes", value: p.denuncias_pendientes },
-      );
-    }
-    if (riesgoData) {
-      const r = riesgoData.top_rubros[0];
-      const mn = riesgoData.top_motivos_notificacion[0];
-      const mc = riesgoData.top_motivos_comprobacion[0];
-      if (r) {
-        cards.push({ title: "Riesgo: top rubro", value: `${r.rubro} (${r.cantidad})` });
-      }
-      if (mn) {
-        cards.push({
-          title: "Riesgo: top motivo notificación",
-          value: `${mn.motivo} (${mn.cantidad})`,
-        });
-      }
-      if (mc) {
-        cards.push({
-          title: "Riesgo: top motivo comprobación",
-          value: `${mc.motivo} (${mc.cantidad})`,
-        });
-      }
-      if (ejecutivoData) {
-        cards.push({
-          title: "Riesgo: mercadería decomisada total (kg)",
-          value: ejecutivoData.kpis.mercaderia_decomisada_kg,
-        });
-      }
-    }
-    if (productividadData) {
-      const topReal = productividadData.inspectores_realizadas[0];
-      const topNoReal = productividadData.inspectores_no_realizadas[0];
-      const topActas = productividadData.actas_por_inspector[0];
-      if (topReal) {
-        cards.push({
-          title: "Top inspector por actuaciones realizadas",
-          value: `${topReal.inspector} (${topReal.total_realizadas})`,
-        });
-      }
-      if (topNoReal) {
-        cards.push({
-          title: "Top inspector por no realizadas",
-          value: `${topNoReal.inspector} (${topNoReal.total_no_realizadas})`,
-        });
-      }
-      if (topActas) {
-        cards.push({
-          title: "Top inspector por actas labradas",
-          value: `${topActas.inspector} (${topActas.total_actas})`,
-        });
-      }
-    }
-    return cards;
-  }, [ejecutivoData, pendientesData, riesgoData, noRealizadasTotal, productividadData]);
+  const distritoLabel = useMemo(() => {
+    if (distritoId === "") return "Todos";
+    const d = distritoOptions.find((x) => String(x.id) === distritoId);
+    return d?.nombre ?? distritoId;
+  }, [distritoId, distritoOptions]);
+
+  const inspectorLabel = useMemo(() => {
+    if (inspectorId === "") return "Todos";
+    const i = inspectorOptions.find((x) => String(x.id) === inspectorId);
+    return i?.nombre ?? inspectorId;
+  }, [inspectorId, inspectorOptions]);
+
+  const exportPayload = useMemo(
+    () =>
+      buildDashboardExportPayload({
+        periodoLabel: `${periodo} (${desde} → ${hasta})`,
+        distritoLabel,
+        inspectorLabel,
+        ejecutivo: ejecutivoData ?? null,
+        pendientes: pendientesData ?? null,
+        riesgo: riesgoData ?? null,
+        noRealizadas: noRealizadasData ?? null,
+        noRealizadasTotal,
+        productividad: productividadData ?? null,
+      }),
+    [
+      periodo,
+      desde,
+      hasta,
+      distritoLabel,
+      inspectorLabel,
+      ejecutivoData,
+      pendientesData,
+      riesgoData,
+      noRealizadasData,
+      noRealizadasTotal,
+      productividadData,
+    ]
+  );
+
+  const hasExportData = exportPayload.resumenKpis.length > 0;
 
   const periodoTabIndex = PERIODOS.indexOf(periodo);
   const isInitialLoading =
@@ -249,18 +204,6 @@ const Panel = () => {
 
   return (
     <Box sx={functionalPageShellSx}>
-      {isRefreshing ? (
-        <LinearProgress
-          sx={{
-            position: "sticky",
-            top: 0,
-            zIndex: 2,
-            borderRadius: 1,
-            mb: -1,
-          }}
-        />
-      ) : null}
-
       <Paper
         elevation={0}
         sx={{
@@ -303,10 +246,7 @@ const Panel = () => {
               width: { xs: "100%", md: "auto" },
             }}
           >
-          <FormControl
-            variant="outlined"
-            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 168 }, flex: { sm: "0 1 168px" } }]}
-          >
+          <FormControl variant="outlined" sx={dashFiltroFormSx}>
             <InputLabel id="dash-distrito-label" shrink>
               Distrito
             </InputLabel>
@@ -328,10 +268,7 @@ const Panel = () => {
               ))}
             </Select>
           </FormControl>
-          <FormControl
-            variant="outlined"
-            sx={[filtroItemStyles, { minWidth: { xs: "100%", sm: 168 }, flex: { sm: "0 1 168px" } }]}
-          >
+          <FormControl variant="outlined" sx={dashFiltroFormSx}>
             <InputLabel id="dash-inspector-label" shrink>
               Inspector
             </InputLabel>
@@ -355,19 +292,21 @@ const Panel = () => {
           </FormControl>
           <Tooltip
             title={
-              tarjetasExport.length > 0
-                ? "Exporta KPIs visibles del período seleccionado."
+              hasExportData
+                ? "Informe PDF institucional del período seleccionado."
                 : "Cargá indicadores antes de exportar."
             }
           >
             <span>
               <Button
-                startIcon={<FileDownloadOutlinedIcon />}
-                disabled={tarjetasExport.length === 0 || anyBlockingLoad}
+                variant="outlined"
+                startIcon={<PictureAsPdfOutlinedIcon />}
+                disabled={!hasExportData || anyBlockingLoad}
                 onClick={() =>
-                  exportDashboardToExcel({
-                    tarjetas: tarjetasExport,
-                    periodoLabel: `${periodo} (${desde} → ${hasta})`,
+                  downloadDashboardPdf({
+                    payload: exportPayload,
+                    desde,
+                    hasta,
                   })
                 }
                 sx={{
@@ -377,17 +316,20 @@ const Panel = () => {
                   whiteSpace: "nowrap",
                 }}
               >
-                Exportar KPIs
+                Exportar PDF
               </Button>
             </span>
           </Tooltip>
           </Box>
       </Paper>
 
-      {isInitialLoading ? (
-        <DashboardIndicadoresPageLoader />
-      ) : (
-        <>
+      <Box sx={{ position: "relative", minHeight: isInitialLoading ? 320 : undefined }}>
+        <DashboardIndicadoresRefreshingOverlay visible={isRefreshing} />
+
+        {isInitialLoading ? (
+          <DashboardIndicadoresPageLoader />
+        ) : (
+          <>
           <DashboardEjecutivoSection
             data={ejecutivoData}
             noRealizadasTotal={noRealizadasTotal}
@@ -425,8 +367,9 @@ const Panel = () => {
             loading={productividadLoading}
             error={productividadError}
           />
-        </>
-      )}
+          </>
+        )}
+      </Box>
     </Box>
   );
 };

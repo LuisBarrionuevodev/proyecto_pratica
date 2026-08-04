@@ -35,9 +35,14 @@ export function DashboardPendientesSection({ data, error }: Props) {
       ) : null}
 
       <DashboardMetricGrid
-        columns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }}
+        columns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
         gap={1.5}
       >
+        <DashboardAnalyticsKpiCard
+          label="Relevamientos pendientes"
+          value={kpiValue(kpis?.relevamientos_pendientes)}
+          accent="neutral"
+        />
         <DashboardAnalyticsKpiCard
           label="Reins. oficio pendientes"
           value={kpiValue(kpis?.reinspecciones_oficio_pendientes)}
@@ -52,6 +57,11 @@ export function DashboardPendientesSection({ data, error }: Props) {
           label="Denuncias pendientes"
           value={kpiValue(kpis?.denuncias_pendientes)}
           accent="amber"
+        />
+        <DashboardAnalyticsKpiCard
+          label="Pendientes geolocalización"
+          value={kpiValue(kpis?.pendientes_geolocalizacion)}
+          accent="primary"
         />
       </DashboardMetricGrid>
 

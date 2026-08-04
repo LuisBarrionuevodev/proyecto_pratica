@@ -14,6 +14,7 @@ from app.domains.indicadores.schemas.ejecutivo_out import (
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     actuacion_ids_realizadas_subquery,
     count_cierres_realizados,
+    sum_visitas_oficio_realizadas,
     visitas_realizadas_por_tipo_iniciador,
 )
 from app.domains.indicadores.services.indicadores_resumen_service import (
@@ -74,6 +75,7 @@ def build_indicadores_ejecutivo(
             reinspecciones_notificacion_realizadas=int(
                 por_tipo_ini.get("REINSPECCION_NOTIFICACION", 0)
             ),
+            reinspecciones_oficio_realizadas=int(sum_visitas_oficio_realizadas(por_tipo_ini)),
             ratificaciones_clausura_realizadas=int(
                 por_tipo_ini.get("RATIFICACION_CLAUSURA_OFICIO", 0)
             ),

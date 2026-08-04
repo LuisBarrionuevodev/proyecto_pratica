@@ -29,8 +29,6 @@ const OVERVIEW_ACCENTS: DashboardKpiAccent[] = [
 
 /**
  * Overview operativo: KPIs analytics desde `/api/indicadores/ejecutivo` + total no realizadas.
- *
- * Nota: «Reinspecciones por oficio realizadas» no está en el contrato de ejecutivo (pendiente backend).
  */
 export function DashboardEjecutivoSection({
   data,
@@ -51,6 +49,10 @@ export function DashboardEjecutivoSection({
     {
       label: "Reins. notificación realizadas",
       value: kpiValue(kpis?.reinspecciones_notificacion_realizadas),
+    },
+    {
+      label: "Reins. oficio realizadas",
+      value: kpiValue(kpis?.reinspecciones_oficio_realizadas),
     },
     {
       label: "No realizadas",

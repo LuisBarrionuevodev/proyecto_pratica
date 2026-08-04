@@ -30,7 +30,7 @@ export function DashboardIndicadoresPageLoader() {
           fontWeight: 500,
         }}
       >
-        Cargando indicadores…
+        Cargando indicadores...
       </Typography>
     </Box>
   );

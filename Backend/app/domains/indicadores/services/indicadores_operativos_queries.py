@@ -50,6 +50,14 @@ TIPOS_INICIADOR_VISITA_REALIZADA: tuple[str, ...] = (
     "RATIFICACION_DECOMISO_OFICIO",
 )
 
+# Universo «oficio realizado»: todos los buckets híbridos del circuito oficio.
+TIPOS_INICIADOR_OFICIO_REALIZADA: tuple[str, ...] = (
+    "REINSPECCION_OFICIO",
+    "RATIFICACION_CLAUSURA_OFICIO",
+    "RATIFICACION_DECOMISO_OFICIO",
+    "VERIFICAR_INFORMAR_OFICIO",
+)
+
 # Clave de bucket → clave enum usada por ejecutivo/resumen (contrato interno sin cambiar Pydantic).
 _BUCKET_TO_INICIADOR_KEY: dict[str, str] = {
     BUCKET_RATIFICACION_CLAUSURA: "RATIFICACION_CLAUSURA_OFICIO",
@@ -195,6 +203,16 @@ def bucket_operativo(
 def bucket_a_clave_iniciador(bucket: str) -> str:
     """Mapea bucket operativo a clave enum usada por KPIs ejecutivos existentes."""
     return _BUCKET_TO_INICIADOR_KEY.get(bucket, bucket)
+
+
+def sum_visitas_oficio_realizadas(por_tipo_ini: dict[str, int]) -> int:
+    """
+    Suma visitas realizadas del circuito oficio (sin reinspección por notificación).
+
+    Usa el dict de ``visitas_realizadas_por_tipo_iniciador``; cada cierre cuenta una vez
+    en su bucket híbrido (genérico, ratificación clausura/decomiso o verificar e informar).
+    """
+    return sum(por_tipo_ini.get(k, 0) for k in TIPOS_INICIADOR_OFICIO_REALIZADA)
 
 
 def canonical_tipo_iniciador(value: str | None) -> str | None:

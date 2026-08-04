@@ -23,6 +23,7 @@ class EjecutivoKpis(BaseModel):
     actuaciones_realizadas: int = Field(ge=0)
     actas_labradas: int = Field(ge=0)
     reinspecciones_notificacion_realizadas: int = Field(ge=0)
+    reinspecciones_oficio_realizadas: int = Field(ge=0)
     ratificaciones_clausura_realizadas: int = Field(ge=0)
     ratificaciones_decomiso_realizadas: int = Field(ge=0)
     verificar_informar_realizadas: int = Field(ge=0)

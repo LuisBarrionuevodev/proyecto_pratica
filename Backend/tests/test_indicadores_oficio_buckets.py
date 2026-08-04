@@ -263,5 +263,88 @@ def test_filtro_inspector_bucket_hibrido_sin_duplicar(app_ctx) -> None:
         db.session.flush()
         out = build_indicadores_ejecutivo(_DESDE, _HASTA, inspector_id=ins.id)
         assert out.kpis.ratificaciones_clausura_realizadas == 1
+        assert out.kpis.reinspecciones_oficio_realizadas == 1
+    finally:
+        db.session.rollback()
+
+
+def test_ejecutivo_incluye_reinspecciones_oficio_realizadas_cero(app_ctx) -> None:
+    try:
+        out = build_indicadores_ejecutivo(date(2090, 1, 1), date(2090, 1, 31))
+        assert out.kpis.reinspecciones_oficio_realizadas == 0
+    finally:
+        db.session.rollback()
+
+
+@pytest.mark.parametrize(
+    "act_tipo,kpi_field",
+    [
+        ("RATIFICACION DE CLAUSURA", "ratificaciones_clausura_realizadas"),
+        ("RATIFICACION DE DECOMISO", "ratificaciones_decomiso_realizadas"),
+        ("VERIFICAR E INFORMAR", "verificar_informar_realizadas"),
+    ],
+)
+def test_reinspeccion_oficio_subtipo_suma_universo_oficio(app_ctx, act_tipo, kpi_field) -> None:
+    try:
+        antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        _cierre_oficio_hibrido(act_tipo)
+        db.session.flush()
+        out = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        assert out.kpis.reinspecciones_oficio_realizadas == antes.kpis.reinspecciones_oficio_realizadas + 1
+        assert getattr(out.kpis, kpi_field) == getattr(antes.kpis, kpi_field) + 1
+    finally:
+        db.session.rollback()
+
+
+def test_reinspeccion_oficio_generica_suma_universo_oficio(app_ctx) -> None:
+    try:
+        antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        _cierre_oficio_hibrido("REINSPECCION")
+        db.session.flush()
+        out = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        assert out.kpis.reinspecciones_oficio_realizadas == antes.kpis.reinspecciones_oficio_realizadas + 1
+        assert out.kpis.ratificaciones_clausura_realizadas == antes.kpis.ratificaciones_clausura_realizadas
+    finally:
+        db.session.rollback()
+
+
+@pytest.mark.parametrize(
+    "tipo_iniciador,kpi_field",
+    [
+        ("RATIFICACION_CLAUSURA_OFICIO", "ratificaciones_clausura_realizadas"),
+        ("RATIFICACION_DECOMISO_OFICIO", "ratificaciones_decomiso_realizadas"),
+        ("VERIFICAR_INFORMAR_OFICIO", "verificar_informar_realizadas"),
+    ],
+)
+def test_enum_directo_suma_universo_oficio(app_ctx, tipo_iniciador, kpi_field) -> None:
+    try:
+        antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        dom = _mk_domicilio_con_rubro()
+        act = _mk_actuacion(_FECHA, domicilio_id=dom.id, tipo="REINSPECCION")
+        vincular_cierre_realizado(act, _FECHA, tipo_iniciador=tipo_iniciador)
+        db.session.flush()
+        out = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        assert out.kpis.reinspecciones_oficio_realizadas == antes.kpis.reinspecciones_oficio_realizadas + 1
+        assert getattr(out.kpis, kpi_field) == getattr(antes.kpis, kpi_field) + 1
+    finally:
+        db.session.rollback()
+
+
+def test_no_realizada_no_suma_reinspecciones_oficio(app_ctx) -> None:
+    from tests.indicadores_cierre_fixtures import vincular_cierre_no_realizado
+
+    try:
+        antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        dom = _mk_domicilio_con_rubro()
+        act = _mk_actuacion(_FECHA, domicilio_id=dom.id, tipo="REINSPECCION")
+        vincular_cierre_no_realizado(
+            act,
+            _FECHA,
+            tipo_iniciador="REINSPECCION_OFICIO",
+            contraproducencia="LOCAL_CERRADO",
+        )
+        db.session.flush()
+        out = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        assert out.kpis.reinspecciones_oficio_realizadas == antes.kpis.reinspecciones_oficio_realizadas
     finally:
         db.session.rollback()

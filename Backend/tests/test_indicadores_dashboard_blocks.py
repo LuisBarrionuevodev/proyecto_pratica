@@ -55,6 +55,7 @@ def test_get_indicadores_ejecutivo_ok_shape(client, auth_headers):
         "actuaciones_realizadas",
         "actas_labradas",
         "reinspecciones_notificacion_realizadas",
+        "reinspecciones_oficio_realizadas",
         "ratificaciones_clausura_realizadas",
         "ratificaciones_decomiso_realizadas",
         "verificar_informar_realizadas",

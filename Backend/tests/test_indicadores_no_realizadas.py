@@ -23,6 +23,7 @@ from app.domains.indicadores.services.indicadores_no_realizadas_service import (
     build_indicadores_no_realizadas,
 )
 from app.domains.indicadores.services.indicadores_resumen_service import build_indicadores_resumen
+from tests.helpers.fixture_isolation import uniq_ruta_numero, unique_ot_numero
 from tests.indicadores_cierre_fixtures import estado_iniciador_tras_no_realizado
 from app.models import (
     Actuaciones,
@@ -47,7 +48,7 @@ _QUERY_OK = "desde=2026-07-01&hasta=2026-07-31"
 
 
 def _unique_ot_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def _unique_name(prefix: str) -> str:
@@ -149,7 +150,7 @@ def _mk_no_realizada(
         turno="MANIANA",
         estado_ruta="PUBLICADA",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
