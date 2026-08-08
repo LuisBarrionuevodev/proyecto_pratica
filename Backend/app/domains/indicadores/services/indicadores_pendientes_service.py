@@ -1,69 +1,48 @@
-from __future__ import annotations
-
-from datetime import date
-from typing import Optional
-
-from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
-    count_mapa_operativo_pendientes_cola,
-)
-from app.domains.indicadores.schemas.pendientes_out import (
-    IndicadoresPendientesOut,
-    PendientesKpis,
-)
-
-
-def build_indicadores_pendientes(
-    desde: date,
-    hasta: date,
-    distrito_id: Optional[int] = None,
-    inspector_id: Optional[int] = None,
-) -> IndicadoresPendientesOut:
-    """
-    Bloque pendientes: cola planificable por tipo de iniciador (geo OK).
-
-    Parámetros:
-        desde, hasta: rango sobre ``IniciadorRuta.fecha_origen`` (cola).
-        distrito_id: filtro opcional.
-        inspector_id: ignorado en cola (sin grupo asignado); reservado para extensión.
-
-    Retorno:
-        KPIs por tipo y tabla de distritos (vacía en D1d.4; agregación en D1d.6).
-
-    Notas:
-        ``pendientes_geolocalizacion`` devuelve 0 hasta D1d.6 (sin inventar conteos).
-        ``distritos_con_mas_pendientes`` lista vacía en D1d.4.
-    """
-    _ = inspector_id
-    desde_s = desde.isoformat()
-    hasta_s = hasta.isoformat()
-
-    return IndicadoresPendientesOut(
-        kpis=PendientesKpis(
-            relevamientos_pendientes=count_mapa_operativo_pendientes_cola(
-                desde=desde_s,
-                hasta=hasta_s,
-                distrito_id=distrito_id,
-                tipo="RELEVAMIENTOS",
-            ),
-            reinspecciones_oficio_pendientes=count_mapa_operativo_pendientes_cola(
-                desde=desde_s,
-                hasta=hasta_s,
-                distrito_id=distrito_id,
-                tipo="REINSPECCION_OFICIO",
-            ),
-            reinspecciones_notificacion_pendientes=count_mapa_operativo_pendientes_cola(
-                desde=desde_s,
-                hasta=hasta_s,
-                distrito_id=distrito_id,
-                tipo="NOTIFICACION_VENCIDA",
-            ),
-            denuncias_pendientes=count_mapa_operativo_pendientes_cola(
-                desde=desde_s,
-                hasta=hasta_s,
-                distrito_id=distrito_id,
-                tipo="DENUNCIAS",
-            ),
-            pendientes_geolocalizacion=0,
-        ),
-        distritos_con_mas_pendientes=[],
-    )
+from __future__ import annotations
+
+from datetime import date
+from typing import Optional
+
+from app.domains.indicadores.schemas.pendientes_out import IndicadoresPendientesOut
+from app.domains.indicadores.services.indicadores_pendientes_queries import (
+    aggregate_pendientes_stock,
+)
+from app.domains.indicadores.utils.indicadores_perf_log import PerfTimer, log_indicadores_query
+
+
+def build_indicadores_pendientes(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+) -> IndicadoresPendientesOut:
+    """
+    Bloque pendientes: stock actual de cola planificable por tipo de iniciador (geo OK).
+
+    Parámetros:
+        desde, hasta: ignorados (contrato común de indicadores); pendientes no depende del período.
+        distrito_id: filtro opcional por domicilio efectivo con geocode OK.
+        inspector_id: ignorado; la cola no tiene inspector asignado de forma confiable.
+
+    Retorno:
+        KPIs por tipo y ranking de distritos con pendientes visibles.
+
+    Notas:
+        Pendientes representa stock actual; no se filtra por período.
+        ``pendientes_geolocalizacion`` y ``denuncias_pendientes`` se mantienen en el contrato JSON.
+    """
+    _ = (desde, hasta, inspector_id)
+
+    timer = PerfTimer()
+    agg = aggregate_pendientes_stock(distrito_id=distrito_id)
+    log_indicadores_query(
+        "pendientes.stock_aggregate",
+        timer.elapsed_ms(),
+        count=agg.mapped_count,
+        scanned=agg.scanned_count,
+    )
+
+    return IndicadoresPendientesOut(
+        kpis=agg.kpis,
+        distritos_con_mas_pendientes=agg.distritos,
+    )

@@ -32,23 +32,53 @@ function KpiGrid({ rows }: { rows: DashboardPdfKpiRow[] }) {
 
 function PdfTableSection({ section }: { section: DashboardPdfTableSection }) {
   const hasRows = section.rows.length > 0;
+  const colCount = section.headers.length;
+  const valueFlex = colCount > 2 ? 0.18 : 0.35;
+
+  const rowCells = (row: DashboardPdfTableRow): string[] => {
+    const cells = [row.value];
+    if (row.value2 != null) cells.push(row.value2);
+    if (row.extraValues?.length) cells.push(...row.extraValues);
+    return cells;
+  };
+
   return (
     <View wrap={false}>
       <Text style={styles.subSectionTitle}>{section.title}</Text>
       {hasRows ? (
         <>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{section.headers[0]}</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 0.35, textAlign: "right" }]}>
-              {section.headers[1]}
-            </Text>
+            {section.headers.map((header, idx) => (
+              <Text
+                key={header}
+                style={[
+                  styles.tableHeaderCell,
+                  {
+                    flex: idx === 0 ? 1 : valueFlex,
+                    textAlign: idx === 0 ? "left" : "right",
+                  },
+                ]}
+              >
+                {header}
+              </Text>
+            ))}
           </View>
-          {section.rows.map((row, idx) => (
-            <View key={`${row.label}-${idx}`} style={styles.tableRow}>
-              <Text style={styles.tableBodyCell}>{row.label}</Text>
-              <Text style={styles.tableBodyCellRight}>{row.value}</Text>
-            </View>
-          ))}
+          {section.rows.map((row, idx) => {
+            const values = rowCells(row);
+            return (
+              <View key={`${row.label}-${idx}`} style={styles.tableRow}>
+                <Text style={[styles.tableBodyCell, { flex: 1 }]}>{row.label}</Text>
+                {values.map((cell, cellIdx) => (
+                  <Text
+                    key={`${row.label}-${cellIdx}`}
+                    style={[styles.tableBodyCellRight, { flex: valueFlex }]}
+                  >
+                    {cell}
+                  </Text>
+                ))}
+              </View>
+            );
+          })}
         </>
       ) : (
         <Text style={styles.emptyLine}>{DASHBOARD_PDF_EMPTY_MESSAGE}</Text>
@@ -92,6 +122,9 @@ export function DashboardIndicadoresPdfDocument({ model, membreteSrc }: Props) {
         <Text style={styles.sectionTitle}>Resumen ejecutivo</Text>
         <KpiGrid rows={model.ejecutivoKpis} />
         <Text style={styles.sectionTitle}>Pendientes operativos</Text>
+        <Text style={[styles.metaLine, { textAlign: "left", marginBottom: 4 }]}>
+          Pendientes actuales al momento de consulta.
+        </Text>
         <KpiGrid rows={model.pendientesKpis} />
         <PageFooter model={model} pageNum={1} totalPages={totalPages} />
       </Page>
@@ -118,20 +151,12 @@ export function DashboardIndicadoresPdfDocument({ model, membreteSrc }: Props) {
         <ReportHeader model={model} membreteSrc={membreteSrc} />
         <Text style={styles.sectionTitle}>No realizadas</Text>
         {model.noRealizadasTotal != null ? (
-          <Text style={styles.kpiValue}>Total: {model.noRealizadasTotal}</Text>
+          <Text style={styles.kpiValue}>No realizadas total: {model.noRealizadasTotal}</Text>
         ) : (
           <Text style={styles.emptyLine}>{DASHBOARD_PDF_EMPTY_MESSAGE}</Text>
         )}
-        <Text style={styles.subSectionTitle}>Por tipo operativo</Text>
-        <KpiGrid rows={model.noRealizadasPorTipo} />
-        <View style={styles.twoColRow}>
-          <View style={styles.halfCol}>
-            <PdfTableSection section={model.noRealizadasContraproducencias} />
-          </View>
-          <View style={styles.halfCol}>
-            <PdfTableSection section={model.noRealizadasDistritos} />
-          </View>
-        </View>
+        <PdfTableSection section={model.noRealizadasContraproducencias} />
+        <PdfTableSection section={model.noRealizadasDistritos} />
         <Text style={styles.sectionTitle}>Productividad</Text>
         <PdfTableSection section={model.productividadRealizadas} />
         <PdfTableSection section={model.productividadNoRealizadas} />

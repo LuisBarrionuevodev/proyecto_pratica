@@ -37,6 +37,7 @@ describe("DashboardIndicadoresPdfDocument", () => {
     expect(src).toContain("Actas por tipo");
     expect(src).toContain("Riesgo bromatológico");
     expect(src).toContain("No realizadas");
+    expect(src).not.toContain("Por tipo operativo");
     expect(src).toContain("Productividad");
     expect(src).toContain("DASHBOARD_PDF_EMPTY_MESSAGE");
   });

@@ -1,4 +1,8 @@
 import type { DashboardExportPayload } from "./buildDashboardExportPayload";
+import {
+  buildContraproducenciasResumen,
+  formatPorcentajeNoRealizadas,
+} from "./noRealizadasContraproducencias";
 
 export const DASHBOARD_PDF_EMPTY_MESSAGE = "Sin datos en el período seleccionado.";
 
@@ -7,11 +11,16 @@ const PRODUCTIVIDAD_TOP_N = 10;
 
 export type DashboardPdfKpiRow = { label: string; value: string };
 
-export type DashboardPdfTableRow = { label: string; value: string };
+export type DashboardPdfTableRow = {
+  label: string;
+  value: string;
+  value2?: string;
+  extraValues?: string[];
+};
 
 export type DashboardPdfTableSection = {
   title: string;
-  headers: [string, string];
+  headers: string[];
   rows: DashboardPdfTableRow[];
 };
 
@@ -31,7 +40,6 @@ export type DashboardPdfModel = {
   riesgoMotivosComprobacion: DashboardPdfTableSection;
   riesgoDecomisoKg: DashboardPdfTableSection;
   noRealizadasTotal: string | null;
-  noRealizadasPorTipo: DashboardPdfKpiRow[];
   noRealizadasContraproducencias: DashboardPdfTableSection;
   noRealizadasDistritos: DashboardPdfTableSection;
   productividadRealizadas: DashboardPdfTableSection;
@@ -52,10 +60,10 @@ function fmtKg(n: number | null | undefined): string {
 
 function buildTableSection(
   title: string,
-  headers: [string, string],
+  headers: string[],
   rows: DashboardPdfTableRow[]
 ): DashboardPdfTableSection {
-  return { title, headers, rows };
+  return { title, headers: headers as DashboardPdfTableSection["headers"], rows };
 }
 
 function limitRows<T>(rows: T[], max: number): { rows: T[]; truncated: boolean } {
@@ -112,8 +120,6 @@ export function buildDashboardPdfModel(
           label: "Reins. notificación pendientes",
           value: fmtNum(p.reinspecciones_notificacion_pendientes),
         },
-        { label: "Denuncias pendientes", value: fmtNum(p.denuncias_pendientes) },
-        { label: "Pendientes geolocalización", value: fmtNum(p.pendientes_geolocalizacion) },
       ]
     : [];
 
@@ -163,24 +169,14 @@ export function buildDashboardPdfModel(
   );
 
   const nr = payload.noRealizadas;
-  const noRealizadasPorTipo: DashboardPdfKpiRow[] = nr
-    ? [
-        { label: "Inspección", value: fmtNum(nr.por_tipo.inspeccion) },
-        { label: "Reins. oficio", value: fmtNum(nr.por_tipo.reinspeccion_oficio) },
-        {
-          label: "Reins. notificación",
-          value: fmtNum(nr.por_tipo.reinspeccion_notificacion),
-        },
-        { label: "Denuncia", value: fmtNum(nr.por_tipo.denuncia) },
-      ]
-    : [];
-
+  const contraproducenciasResumen = buildContraproducenciasResumen(nr);
   const noRealizadasContraproducencias = buildTableSection(
-    "Top contraproducencias",
-    ["Contraproducencia", "Cantidad"],
-    (nr?.top_contraproducencias ?? []).slice(0, RIESGO_TOP_N).map((c) => ({
+    "Principales contraproducencias",
+    ["Contraproducencia", "Cantidad", "%"],
+    contraproducenciasResumen.rows.map((c) => ({
       label: c.contraproducencia,
       value: fmtNum(c.cantidad),
+      value2: formatPorcentajeNoRealizadas(c.porcentaje),
     }))
   );
 
@@ -207,19 +203,32 @@ export function buildDashboardPdfModel(
 
   const productividadRealizadas = buildTableSection(
     "Actuaciones realizadas por inspector",
-    ["Inspector", "Total"],
+    ["Inspector", "Total", "Inspecc.", "R.of.", "R.not.", "Otras"],
     realizadasLimited.rows.map((r) => ({
       label: r.inspector,
       value: fmtNum(r.total_realizadas),
+      value2: fmtNum(r.inspecciones),
+      extraValues: [
+        fmtNum(r.reinspecciones_oficio),
+        fmtNum(r.reinspecciones_notificacion),
+        fmtNum(r.otras ?? 0),
+      ],
     }))
   );
 
   const productividadNoRealizadas = buildTableSection(
     "Actuaciones no realizadas por inspector",
-    ["Inspector", "Total"],
+    ["Inspector", "Total", "L.cerr.", "No ex.", "No rat.", "Clima", "Otras"],
     noRealLimited.rows.map((r) => ({
       label: r.inspector,
       value: fmtNum(r.total_no_realizadas),
+      value2: fmtNum(r.local_cerrado ?? 0),
+      extraValues: [
+        fmtNum(r.no_existe ?? 0),
+        fmtNum(r.no_se_ratifico ?? 0),
+        fmtNum(r.clima ?? 0),
+        fmtNum(r.otras ?? 0),
+      ],
     }))
   );
 
@@ -249,7 +258,6 @@ export function buildDashboardPdfModel(
     riesgoDecomisoKg,
     noRealizadasTotal:
       payload.noRealizadasTotal != null ? fmtNum(payload.noRealizadasTotal) : null,
-    noRealizadasPorTipo,
     noRealizadasContraproducencias,
     noRealizadasDistritos,
     productividadRealizadas,

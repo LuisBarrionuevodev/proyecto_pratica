@@ -18,10 +18,12 @@ class EjecutivoKpis(BaseModel):
 
     ``actuaciones_realizadas``: cierres REALIZADO en ruta PUBLICADA (mapa operativo).
     ``actas_labradas`` y desglose: actas propias en actuaciones del periodo por ``fecha``.
+    ``inspecciones_realizadas``: visitas bucket ``inspecciones`` (misma regla que Productividad).
     """
 
     actuaciones_realizadas: int = Field(ge=0)
     actas_labradas: int = Field(ge=0)
+    inspecciones_realizadas: int = Field(ge=0)
     reinspecciones_notificacion_realizadas: int = Field(ge=0)
     reinspecciones_oficio_realizadas: int = Field(ge=0)
     ratificaciones_clausura_realizadas: int = Field(ge=0)

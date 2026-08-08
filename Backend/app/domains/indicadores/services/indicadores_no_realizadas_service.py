@@ -5,13 +5,19 @@ from typing import Optional
 
 from app.domains.indicadores.schemas.no_realizadas_out import (
     ContraproducenciaCantidadItem,
+    ContraproducenciaResumenItem,
     DistritoNoRealizadasItem,
     IndicadoresNoRealizadasOut,
 )
 from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
+    query_contraproducencias_resumen_counts,
     query_distritos_con_mas_no_realizadas,
     query_no_realizadas_por_tipo,
     query_top_contraproducencias_no_realizadas,
+)
+from app.domains.indicadores.utils.contraproducencia_indicador_buckets import (
+    BUCKET_LABELS,
+    BUCKET_ORDER,
 )
 
 
@@ -53,9 +59,22 @@ def build_indicadores_no_realizadas(
         )
         for did, codigo, nombre, cnt in distrito_rows
     ]
+    total_resumen, bucket_counts = query_contraproducencias_resumen_counts(
+        desde, hasta, distrito_id, inspector_id
+    )
+    contraproducencias_resumen = [
+        ContraproducenciaResumenItem(
+            bucket=key,
+            label=BUCKET_LABELS[key],
+            cantidad=int(bucket_counts.get(key, 0)),
+        )
+        for key in BUCKET_ORDER
+    ]
 
     return IndicadoresNoRealizadasOut(
         por_tipo=por_tipo,
         top_contraproducencias=top_contraproducencias,
         distritos_con_mas_no_realizadas=distritos_con_mas_no_realizadas,
+        total=total_resumen,
+        contraproducencias_resumen=contraproducencias_resumen,
     )

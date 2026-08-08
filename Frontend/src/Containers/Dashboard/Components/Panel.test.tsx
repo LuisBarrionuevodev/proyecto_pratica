@@ -33,6 +33,7 @@ const ejecutivoMock: IndicadoresEjecutivoResponse = {
   kpis: {
     actuaciones_realizadas: 10,
     actas_labradas: 5,
+    inspecciones_realizadas: 3,
     reinspecciones_notificacion_realizadas: 2,
     reinspecciones_oficio_realizadas: 0,
     ratificaciones_clausura_realizadas: 1,
@@ -76,6 +77,14 @@ const noRealizadasMock: IndicadoresNoRealizadasResponse = {
   },
   top_contraproducencias: [{ contraproducencia: "LOCAL CERRADO", cantidad: 1 }],
   distritos_con_mas_no_realizadas: [],
+  total: 2,
+  contraproducencias_resumen: [
+    { bucket: "local_cerrado", label: "Local cerrado", cantidad: 1 },
+    { bucket: "no_existe", label: "No existe", cantidad: 0 },
+    { bucket: "no_se_ratifico", label: "No se ratificó", cantidad: 1 },
+    { bucket: "clima", label: "Clima", cantidad: 0 },
+    { bucket: "otras", label: "Otras", cantidad: 0 },
+  ],
 };
 
 const productividadMock: IndicadoresProductividadResponse = {
@@ -88,6 +97,7 @@ const productividadMock: IndicadoresProductividadResponse = {
       reinspecciones_oficio: 1,
       reinspecciones_notificacion: 1,
       denuncias: 0,
+      otras: 0,
       tipo_principal: "INSPECCION",
     },
   ],
@@ -157,6 +167,13 @@ vi.mock("../hooks/useIndicadoresProductividad", () => ({
   useIndicadoresProductividad: () => hookState.productividad,
 }));
 
+vi.mock("./DashboardProductividadSectionLazy", async () => {
+  const { DashboardProductividadSection } = await import("./DashboardProductividadSection");
+  return {
+    DashboardProductividadSectionLazy: DashboardProductividadSection,
+  };
+});
+
 function setAllLoaded() {
   hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
   hookState.pendientes = { data: pendientesMock, loading: false, error: null };
@@ -184,10 +201,114 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(src).toContain("<DashboardActasPorTipoSection");
   });
 
-  it("muestra loader mientras los hooks cargan", () => {
+  it("muestra loader global solo en carga inicial total", () => {
     const html = renderPanel();
     expect(html).toContain("Cargando indicadores");
     expect(html).not.toContain("Overview operativo");
+  });
+
+  it("renderiza estructura aunque solo Ejecutivo terminó", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: null, loading: true, error: null };
+    hookState.riesgo = { data: null, loading: true, error: null };
+    hookState.noRealizadas = { data: null, loading: true, error: null };
+    hookState.productividad = { data: null, loading: true, error: null };
+
+    const html = renderPanel();
+    expect(html).not.toContain("Cargando indicadores");
+    expect(html).toContain("Overview operativo");
+    expect(html).toContain("Actas labradas por tipo");
+    expect(html).toContain("Cargando pendientes");
+    expect(html).toContain("Cargando riesgo");
+    expect(html).toContain("Cargando productividad");
+  });
+
+  it("muestra loader de sección Pendientes mientras carga", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: null, loading: true, error: null };
+    hookState.riesgo = { data: riesgoMock, loading: false, error: null };
+    hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
+    hookState.productividad = { data: productividadMock, loading: false, error: null };
+
+    const html = renderPanel();
+    expect(html).toContain("Cargando pendientes");
+    expect(html).not.toContain("Relevamientos pendientes");
+  });
+
+  it("muestra loader de sección Riesgo mientras carga", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: pendientesMock, loading: false, error: null };
+    hookState.riesgo = { data: null, loading: true, error: null };
+    hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
+    hookState.productividad = { data: productividadMock, loading: false, error: null };
+
+    const html = renderPanel();
+    expect(html).toContain("Cargando riesgo");
+    expect(html).not.toContain("Motivos de notificación");
+  });
+
+  it("muestra loader de sección Productividad mientras carga", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: pendientesMock, loading: false, error: null };
+    hookState.riesgo = { data: riesgoMock, loading: false, error: null };
+    hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
+    hookState.productividad = { data: null, loading: true, error: null };
+
+    const html = renderPanel();
+    expect(html).toContain("Cargando productividad");
+    expect(html).not.toContain("Pérez");
+  });
+
+  it("no usa loader global cuando ya hay datos parciales", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: null, loading: true, error: null };
+    hookState.riesgo = { data: null, loading: true, error: null };
+    hookState.noRealizadas = { data: null, loading: true, error: null };
+    hookState.productividad = { data: null, loading: true, error: null };
+
+    const html = renderPanel();
+    expect(html).not.toContain("Cargando indicadores");
+    expect(html).toContain("Overview operativo");
+  });
+
+  it("mantiene layout y overlay suave al refrescar filtros", () => {
+    setAllLoaded();
+    hookState.pendientes = { data: pendientesMock, loading: true, error: null };
+
+    const html = renderPanel();
+    expect(html).toContain("Overview operativo");
+    expect(html).toContain("Operativo / Pendientes actuales");
+    expect(html).toContain('aria-hidden="true"');
+  });
+
+  it("deshabilita Exportar PDF durante carga parcial", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: null, loading: true, error: null };
+    hookState.riesgo = { data: null, loading: true, error: null };
+    hookState.noRealizadas = { data: null, loading: true, error: null };
+    hookState.productividad = { data: null, loading: true, error: null };
+
+    const html = renderPanel();
+    expect(html).toMatch(/disabled/);
+  });
+
+  it("renderiza Productividad al recibir datos", () => {
+    setAllLoaded();
+    const html = renderPanel();
+    expect(html).toContain("Productividad");
+    expect(html).toContain("Pérez");
+  });
+
+  it("no crashea con bloques vacíos tras carga", () => {
+    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
+    hookState.pendientes = { data: null, loading: false, error: null };
+    hookState.riesgo = { data: null, loading: false, error: null };
+    hookState.noRealizadas = { data: null, loading: false, error: null };
+    hookState.productividad = { data: null, loading: false, error: null };
+
+    const html = renderPanel();
+    expect(html).toContain("Overview operativo");
+    expect(html).not.toContain("Cargando pendientes");
   });
 
   it("renderiza secciones principales cuando los hooks devuelven datos", () => {
@@ -195,7 +316,7 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     const html = renderPanel();
     expect(html).toContain("Overview operativo");
     expect(html).toContain("Actas labradas por tipo");
-    expect(html).toContain("Operativo / pendientes");
+    expect(html).toContain("Operativo / Pendientes actuales");
     expect(html).toContain("Riesgo bromatológico");
     expect(html).toContain("No realizadas");
     expect(html).toContain("Productividad");
@@ -234,20 +355,25 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(exportBtn?.[0] ?? "").not.toMatch(/disabled/);
   });
 
-  it("Panel usa buildDashboardExportPayload y downloadDashboardPdf", () => {
+  it("Panel usa buildDashboardExportPayload, lazy Productividad y carga progresiva", () => {
     const src = readFileSync(panelPath, "utf8");
     expect(src).toContain("buildDashboardExportPayload");
     expect(src).not.toContain("exportDashboardToExcel");
     expect(src).toContain("downloadDashboardPdf");
     expect(src).toContain("Exportar PDF");
+    expect(src).toContain("DashboardProductividadSectionLazy");
+    expect(src).toContain("DashboardSectionGate");
+    expect(src).toContain("showGlobalLoader");
     expect(src).toContain("useMemo(() => {");
     expect(src).toContain("indicadoresParams");
   });
 
-  it("muestra los 5 KPIs de pendientes cuando hay datos", () => {
+  it("muestra los 3 KPIs de pendientes cuando hay datos", () => {
     setAllLoaded();
     const html = renderPanel();
     expect(html).toContain("Relevamientos pendientes");
-    expect(html).toContain("Pendientes geolocalización");
+    expect(html).toContain("Operativo / Pendientes actuales");
+    expect(html).not.toContain("Pendientes geolocalización");
+    expect(html).not.toContain("Pendientes actuales al momento de consulta.");
   });
 });

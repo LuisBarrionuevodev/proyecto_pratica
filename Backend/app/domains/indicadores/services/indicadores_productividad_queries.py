@@ -22,10 +22,12 @@ from app.domains.indicadores.schemas.productividad_out import (
 )
 from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
     _intentos_no_realizados_con_contraproducencia_filters,
+    fetch_no_realizadas_visita_rows,
     format_contraproducencia_label,
     is_contraproducencia_excluida_valor,
 )
 from app.domains.indicadores.services.indicadores_operativos_queries import (
+    TIPOS_INICIADOR_OFICIO_REALIZADA,
     _fecha_periodo_operativo_expr,
     actuacion_ids_realizadas_subquery,
 )
@@ -33,6 +35,16 @@ from app.domains.indicadores.services.indicadores_resumen_service import (
     _comprobacion_labarda_filter,
     _notificacion_labarda_exists,
     _realizados_inspector_coincide,
+)
+from app.domains.indicadores.utils.contraproducencia_indicador_buckets import (
+    BUCKET_CLIMA,
+    BUCKET_LOCAL_CERRADO,
+    BUCKET_NO_EXISTE,
+    BUCKET_NO_SE_RATIFICO,
+    BUCKET_OTRAS,
+    empty_contraproducencia_buckets,
+    merge_contraproducencia_counts,
+    sum_productividad_buckets,
 )
 from app.models import (
     Actuaciones,
@@ -48,14 +60,16 @@ from app.models import (
 
 _TIPOS_PRODUCTIVIDAD = (
     "RELEVAMIENTO",
-    "REINSPECCION_OFICIO",
     "REINSPECCION_NOTIFICACION",
     "DENUNCIA",
-)
+) + TIPOS_INICIADOR_OFICIO_REALIZADA
 
 TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET: dict[str, str] = {
     "RELEVAMIENTO": "inspecciones",
     "REINSPECCION_OFICIO": "reinspecciones_oficio",
+    "RATIFICACION_CLAUSURA_OFICIO": "reinspecciones_oficio",
+    "RATIFICACION_DECOMISO_OFICIO": "reinspecciones_oficio",
+    "VERIFICAR_INFORMAR_OFICIO": "reinspecciones_oficio",
     "REINSPECCION_NOTIFICACION": "reinspecciones_notificacion",
     "DENUNCIA": "denuncias",
 }
@@ -175,6 +189,43 @@ def _realizadas_visita_subquery(
     return q.subquery("vis_realizadas_prod")
 
 
+def count_visitas_realizadas_productividad_bucket(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+    *,
+    bucket: str,
+) -> int:
+    """
+    Cuenta visitas realizadas distintas para un bucket de productividad.
+
+    Misma base y mapeo ``tipo_iniciador → bucket`` que la tabla de inspectores
+    realizadas (columna Inspección = bucket ``inspecciones``).
+
+    Parámetros:
+        desde, hasta, distrito_id, inspector_id: mismos filtros que productividad.
+        bucket: clave de ``TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET`` (p. ej. ``inspecciones``).
+
+    Retorno:
+        Cantidad de ``ruta_item_id`` distintos en el bucket.
+    """
+    tipos = tuple(
+        tipo
+        for tipo, mapped in TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.items()
+        if mapped == bucket
+    )
+    if not tipos:
+        return 0
+    sq = _realizadas_visita_subquery(desde, hasta, distrito_id, inspector_id)
+    q = (
+        db.session.query(func.count(func.distinct(sq.c.ruta_item_id)))
+        .select_from(sq)
+        .filter(sq.c.tipo_iniciador.in_(tipos))
+    )
+    return int(q.scalar() or 0)
+
+
 def _no_realizadas_visita_subquery(
     desde: date,
     hasta: date,
@@ -264,21 +315,75 @@ def query_inspectores_realizadas(
     for iid, row in acc.items():
         buckets = row["buckets"]
         assert isinstance(buckets, dict)
-        total = sum(int(buckets.get(b, 0)) for b in TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.values())
+        inspecciones = int(buckets.get("inspecciones", 0))
+        reins_oficio = int(buckets.get("reinspecciones_oficio", 0))
+        reins_notif = int(buckets.get("reinspecciones_notificacion", 0))
+        denuncias = int(buckets.get("denuncias", 0))
+        total = sum_productividad_buckets(buckets)
+        visible_sin_denuncia = inspecciones + reins_oficio + reins_notif
+        otras = max(0, total - visible_sin_denuncia)
         items.append(
             InspectorRealizadasItem(
                 inspector_id=iid,
                 inspector=str(row["nombre"]),
                 total_realizadas=total,
-                inspecciones=int(buckets.get("inspecciones", 0)),
-                reinspecciones_oficio=int(buckets.get("reinspecciones_oficio", 0)),
-                reinspecciones_notificacion=int(buckets.get("reinspecciones_notificacion", 0)),
-                denuncias=int(buckets.get("denuncias", 0)),
+                inspecciones=inspecciones,
+                reinspecciones_oficio=reins_oficio,
+                reinspecciones_notificacion=reins_notif,
+                denuncias=denuncias,
+                otras=otras,
                 tipo_principal=principal_bucket_label(buckets),
             )
         )
     items.sort(key=lambda x: x.total_realizadas, reverse=True)
     return items
+
+
+def _no_realizadas_inspector_visita_pairs(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+) -> list[tuple[int, int, str, str | None]]:
+    """
+    Pares únicos (ruta_item_id, inspector_id) con contraproducencia de la visita.
+
+    Usa el mismo universo de visitas que ``/no-realizadas`` (``fetch_no_realizadas_visita_rows``).
+    """
+    visitas = fetch_no_realizadas_visita_rows(desde, hasta, distrito_id, inspector_id)
+    if not visitas:
+        return []
+
+    actuacion_ids = list({v.actuacion_id for v in visitas})
+    insp_q = (
+        db.session.query(
+            actuaciones_inspector.c.actuaciones_id,
+            Inspector.id,
+            Inspector.nombre,
+        )
+        .join(Inspector, Inspector.id == actuaciones_inspector.c.inspector_id)
+        .filter(
+            actuaciones_inspector.c.actuaciones_id.in_(actuacion_ids),
+            actuaciones_inspector.c.deleted_at.is_(None),
+        )
+    )
+    if inspector_id is not None:
+        insp_q = insp_q.filter(Inspector.id == inspector_id)
+
+    inspectores_por_actuacion: dict[int, list[tuple[int, str]]] = defaultdict(list)
+    for act_id, iid, nombre in insp_q.all():
+        inspectores_por_actuacion[int(act_id)].append((int(iid), str(nombre)))
+
+    pairs: list[tuple[int, int, str, str | None]] = []
+    seen: set[tuple[int, int]] = set()
+    for visita in visitas:
+        for iid, nombre in inspectores_por_actuacion.get(visita.actuacion_id, []):
+            key = (visita.ruta_item_id, iid)
+            if key in seen:
+                continue
+            seen.add(key)
+            pairs.append((visita.ruta_item_id, iid, nombre, visita.contraproducencia))
+    return pairs
 
 
 def query_inspectores_no_realizadas(
@@ -287,46 +392,59 @@ def query_inspectores_no_realizadas(
     distrito_id: Optional[int] = None,
     inspector_id: Optional[int] = None,
 ) -> list[InspectorNoRealizadasItem]:
-    """Inspectores con visitas no realizadas en rango y contraproducencia principal."""
-    sq = _no_realizadas_visita_subquery(desde, hasta, distrito_id, inspector_id)
-    acc = _aggregate_por_inspector_y_tipo(sq, inspector_id_filter=inspector_id)
+    """
+    Inspectores con visitas no realizadas en rango, desglosadas por bucket de contraproducencia.
 
-    cp_rows = (
-        db.session.query(
-            Inspector.id,
-            sq.c.contraproducencia,
-            func.count(func.distinct(sq.c.ruta_item_id)),
-        )
-        .select_from(sq)
-        .join(
-            actuaciones_inspector,
-            actuaciones_inspector.c.actuaciones_id == sq.c.actuacion_id,
-        )
-        .join(Inspector, Inspector.id == actuaciones_inspector.c.inspector_id)
-        .filter(actuaciones_inspector.c.deleted_at.is_(None))
-        .group_by(Inspector.id, sq.c.contraproducencia)
+    Regla: cada ``(ruta_item_id, inspector_id)`` cuenta una vez; visitas con varios inspectores
+    suman +1 para cada inspector (la suma por inspector puede superar el total general).
+    """
+    pairs = _no_realizadas_inspector_visita_pairs(
+        desde, hasta, distrito_id, inspector_id
     )
-    if inspector_id is not None:
-        cp_rows = cp_rows.filter(Inspector.id == inspector_id)
-    cp_principal = _principal_contraproducencia_por_inspector(
-        [(int(i), raw, int(c)) for i, raw, c in cp_rows.all()]
-    )
+
+    per_inspector: dict[int, dict[str, object]] = {}
+    label_counts: dict[int, dict[str, int]] = defaultdict(dict)
+    seen_pairs: set[tuple[int, int]] = set()
+
+    for ri_id, iid, nombre, raw in pairs:
+        pair_key = (ri_id, iid)
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+
+        if iid not in per_inspector:
+            per_inspector[iid] = {
+                "nombre": nombre,
+                "buckets": empty_contraproducencia_buckets(),
+            }
+        buckets = per_inspector[iid]["buckets"]
+        assert isinstance(buckets, dict)
+        merge_contraproducencia_counts(buckets, raw, 1)
+        if not is_contraproducencia_excluida_valor(raw):
+            label = format_contraproducencia_label(str(raw))
+            if label:
+                label_counts[iid][label] = label_counts[iid].get(label, 0) + 1
 
     items: list[InspectorNoRealizadasItem] = []
-    for iid, row in acc.items():
+    for iid, row in per_inspector.items():
         buckets = row["buckets"]
         assert isinstance(buckets, dict)
-        total = sum(int(buckets.get(b, 0)) for b in TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.values())
+        total = sum(int(buckets.get(b, 0)) for b in buckets)
+        labels = label_counts.get(iid, {})
+        principal = _SIN_DATOS
+        if labels:
+            principal = max(labels.items(), key=lambda x: x[1])[0]
         items.append(
             InspectorNoRealizadasItem(
                 inspector_id=iid,
                 inspector=str(row["nombre"]),
                 total_no_realizadas=total,
-                contraproducencia_principal=cp_principal.get(iid, _SIN_DATOS),
-                inspecciones=int(buckets.get("inspecciones", 0)),
-                reinspecciones_oficio=int(buckets.get("reinspecciones_oficio", 0)),
-                reinspecciones_notificacion=int(buckets.get("reinspecciones_notificacion", 0)),
-                denuncias=int(buckets.get("denuncias", 0)),
+                contraproducencia_principal=principal,
+                local_cerrado=int(buckets.get(BUCKET_LOCAL_CERRADO, 0)),
+                no_existe=int(buckets.get(BUCKET_NO_EXISTE, 0)),
+                no_se_ratifico=int(buckets.get(BUCKET_NO_SE_RATIFICO, 0)),
+                clima=int(buckets.get(BUCKET_CLIMA, 0)),
+                otras=int(buckets.get(BUCKET_OTRAS, 0)),
             )
         )
     items.sort(key=lambda x: x.total_no_realizadas, reverse=True)

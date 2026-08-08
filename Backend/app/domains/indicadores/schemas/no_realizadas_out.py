@@ -15,6 +15,14 @@ class ContraproducenciaCantidadItem(BaseModel):
     cantidad: int = Field(ge=0)
 
 
+class ContraproducenciaResumenItem(BaseModel):
+    """Bucket fijo de contraproducencia para indicadores (Dashboard)."""
+
+    bucket: str
+    label: str
+    cantidad: int = Field(ge=0)
+
+
 class DistritoNoRealizadasItem(BaseModel):
     distrito_id: int
     distrito_codigo: str
@@ -28,6 +36,8 @@ class IndicadoresNoRealizadasOut(BaseModel):
     por_tipo: NoRealizadasPorTipo
     top_contraproducencias: list[ContraproducenciaCantidadItem]
     distritos_con_mas_no_realizadas: list[DistritoNoRealizadasItem]
+    total: int = Field(ge=0)
+    contraproducencias_resumen: list[ContraproducenciaResumenItem]
 
     def to_json_response(self) -> dict:
         return self.model_dump(mode="json")

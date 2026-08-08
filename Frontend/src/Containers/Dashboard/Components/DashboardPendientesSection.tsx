@@ -1,4 +1,5 @@
 import { Alert, Box } from "@mui/material";
+import { memo } from "react";
 
 import type { IndicadoresPendientesResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -15,9 +16,12 @@ type Props = {
 };
 
 /**
- * Operativo / pendientes: cola por tipo de iniciador y ranking por distrito.
+ * Operativo / pendientes actuales: stock por tipo de iniciador y ranking por distrito.
  */
-export function DashboardPendientesSection({ data, error }: Props) {
+export const DashboardPendientesSection = memo(function DashboardPendientesSection({
+  data,
+  error,
+}: Props) {
   const kpis = data?.kpis;
 
   const kpiValue = (value: number | undefined): number | string => {
@@ -27,7 +31,7 @@ export function DashboardPendientesSection({ data, error }: Props) {
   };
 
   return (
-    <DashboardSectionBlock title="Operativo / pendientes">
+    <DashboardSectionBlock title="Operativo / Pendientes actuales">
       {error ? (
         <Alert severity="warning" sx={{ ...alertBaseStyles, mb: 1.25 }}>
           {error}
@@ -35,7 +39,7 @@ export function DashboardPendientesSection({ data, error }: Props) {
       ) : null}
 
       <DashboardMetricGrid
-        columns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
+        columns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(3, 1fr)" }}
         gap={1.5}
       >
         <DashboardAnalyticsKpiCard
@@ -53,16 +57,6 @@ export function DashboardPendientesSection({ data, error }: Props) {
           value={kpiValue(kpis?.reinspecciones_notificacion_pendientes)}
           accent="primary"
         />
-        <DashboardAnalyticsKpiCard
-          label="Denuncias pendientes"
-          value={kpiValue(kpis?.denuncias_pendientes)}
-          accent="amber"
-        />
-        <DashboardAnalyticsKpiCard
-          label="Pendientes geolocalización"
-          value={kpiValue(kpis?.pendientes_geolocalizacion)}
-          accent="primary"
-        />
       </DashboardMetricGrid>
 
       <Box sx={{ mt: 2 }}>
@@ -72,4 +66,4 @@ export function DashboardPendientesSection({ data, error }: Props) {
       </Box>
     </DashboardSectionBlock>
   );
-}
+});

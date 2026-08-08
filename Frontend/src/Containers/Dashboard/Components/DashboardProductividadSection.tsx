@@ -1,5 +1,5 @@
 import { Alert, Box, Grid, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -185,12 +185,12 @@ function RealizadasTable({ rows }: { rows: IndicadorInspectorRealizadas[] }) {
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
-        accessorKey: "denuncias",
-        header: "Denuncias",
-        size: 72,
-        minSize: 64,
+        accessorKey: "otras",
+        header: "Otras",
+        size: 64,
+        minSize: 56,
         muiTableBodyCellProps: { align: "right" },
-        muiTableHeadCellProps: { align: "right", title: "Denuncias" },
+        muiTableHeadCellProps: { align: "right", title: "Otros tipos operativos" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
     ],
@@ -235,63 +235,43 @@ function NoRealizadasTable({ rows }: { rows: IndicadorInspectorNoRealizadas[] })
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
-        accessorKey: "contraproducencia_principal",
-        header: "Contraproducencia",
-        size: 120,
-        minSize: 100,
-        muiTableHeadCellProps: { title: "Contraproducencia principal" },
-        Cell: ({ cell }) => (
-          <Typography
-            component="span"
-            sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
-              fontSize: "11px",
-              color: COLORS.white,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              display: "block",
-            }}
-            title={String(cell.getValue() ?? "")}
-          >
-            {String(cell.getValue() ?? "—")}
-          </Typography>
-        ),
-      },
-      {
-        accessorKey: "inspecciones",
-        header: "Inspección",
-        size: 68,
-        minSize: 60,
+        accessorKey: "local_cerrado",
+        header: "Local cerrado",
+        size: 88,
+        minSize: 76,
         muiTableBodyCellProps: { align: "right" },
-        muiTableHeadCellProps: { align: "right", title: "Inspecciones" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
-        accessorKey: "reinspecciones_oficio",
-        header: "Reins. oficio",
+        accessorKey: "no_existe",
+        header: "No existe",
         size: 76,
         minSize: 68,
         muiTableBodyCellProps: { align: "right" },
-        muiTableHeadCellProps: { align: "right", title: "Reinspecciones por oficio" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
-        accessorKey: "reinspecciones_notificacion",
-        header: "Reins. notif.",
-        size: 80,
-        minSize: 72,
+        accessorKey: "no_se_ratifico",
+        header: "No se ratificó",
+        size: 88,
+        minSize: 76,
         muiTableBodyCellProps: { align: "right" },
-        muiTableHeadCellProps: { align: "right", title: "Reinspecciones por notificación" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
       {
-        accessorKey: "denuncias",
-        header: "Denuncias",
-        size: 68,
-        minSize: 60,
+        accessorKey: "clima",
+        header: "Clima",
+        size: 64,
+        minSize: 56,
         muiTableBodyCellProps: { align: "right" },
-        muiTableHeadCellProps: { align: "right", title: "Denuncias" },
+        Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
+      },
+      {
+        accessorKey: "otras",
+        header: "Otras",
+        size: 64,
+        minSize: 56,
+        muiTableBodyCellProps: { align: "right" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
     ],
@@ -396,7 +376,10 @@ function ActasTable({ rows }: { rows: IndicadorActasPorInspector[] }) {
 /**
  * Productividad por inspector desde `/api/indicadores/productividad`.
  */
-export function DashboardProductividadSection({ data, error }: Props) {
+export const DashboardProductividadSection = memo(function DashboardProductividadSection({
+  data,
+  error,
+}: Props) {
   const realizadas = data?.inspectores_realizadas ?? [];
   const noRealizadas = data?.inspectores_no_realizadas ?? [];
   const actas = data?.actas_por_inspector ?? [];
@@ -422,4 +405,4 @@ export function DashboardProductividadSection({ data, error }: Props) {
       </Grid>
     </DashboardSectionBlock>
   );
-}
+});

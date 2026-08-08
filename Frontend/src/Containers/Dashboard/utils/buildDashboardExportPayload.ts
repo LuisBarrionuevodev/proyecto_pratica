@@ -87,27 +87,18 @@ function pushPendientesKpis(cards: DashboardExportKpi[], pendientes: Indicadores
     {
       title: "Reinspecciones notificación pendientes",
       value: p.reinspecciones_notificacion_pendientes,
-    },
-    { title: "Denuncias pendientes", value: p.denuncias_pendientes },
-    { title: "Pendientes geolocalización", value: p.pendientes_geolocalizacion }
+    }
   );
 }
 
 function pushNoRealizadasKpis(
   cards: DashboardExportKpi[],
-  noRealizadas: IndicadoresNoRealizadasResponse,
+  _noRealizadas: IndicadoresNoRealizadasResponse,
   total: number | null
 ): void {
   if (total != null) {
-    cards.push({ title: "Total no realizadas", value: total });
+    cards.push({ title: "No realizadas total", value: total });
   }
-  const pt = noRealizadas.por_tipo;
-  cards.push(
-    { title: "No realizadas — Inspección", value: pt.inspeccion },
-    { title: "No realizadas — Reins. oficio", value: pt.reinspeccion_oficio },
-    { title: "No realizadas — Reins. notificación", value: pt.reinspeccion_notificacion },
-    { title: "No realizadas — Denuncia", value: pt.denuncia }
-  );
 }
 
 /**

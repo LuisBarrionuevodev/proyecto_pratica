@@ -18,6 +18,7 @@ const fullPayload: DashboardExportPayload = {
     kpis: {
       actuaciones_realizadas: 10,
       actas_labradas: 5,
+      inspecciones_realizadas: 3,
       reinspecciones_notificacion_realizadas: 2,
       reinspecciones_oficio_realizadas: 3,
       ratificaciones_clausura_realizadas: 1,
@@ -69,6 +70,14 @@ const fullPayload: DashboardExportPayload = {
     distritos_con_mas_no_realizadas: [
       { distrito_id: 1, distrito_codigo: "C", distrito_nombre: "Centro", cantidad: 2 },
     ],
+    total: 2,
+    contraproducencias_resumen: [
+      { bucket: "local_cerrado", label: "Local cerrado", cantidad: 1 },
+      { bucket: "no_existe", label: "No existe", cantidad: 0 },
+      { bucket: "no_se_ratifico", label: "No se ratificó", cantidad: 1 },
+      { bucket: "clima", label: "Clima", cantidad: 0 },
+      { bucket: "otras", label: "Otras", cantidad: 0 },
+    ],
   },
   noRealizadasTotal: 2,
   productividad: {
@@ -81,6 +90,7 @@ const fullPayload: DashboardExportPayload = {
         reinspecciones_oficio: 1,
         reinspecciones_notificacion: 1,
         denuncias: 0,
+        otras: 0,
         tipo_principal: "INSPECCION",
       },
     ],
@@ -119,7 +129,7 @@ describe("buildDashboardPdfModel", () => {
     expect(model.title).toBe("Informe de Indicadores Operativos");
     expect(model.ejecutivoKpis).toHaveLength(8);
     expect(model.ejecutivoKpis.find((k) => k.label.includes("oficio realizadas"))?.value).toBe("3");
-    expect(model.pendientesKpis).toHaveLength(5);
+    expect(model.pendientesKpis).toHaveLength(3);
     expect(model.distritoLabel).toBe("Centro");
     expect(model.inspectorLabel).toBe("García");
   });
@@ -135,7 +145,12 @@ describe("buildDashboardPdfModel", () => {
     expect(model.actasPorTipo.rows).toHaveLength(5);
     expect(model.riesgoRubros.rows).toHaveLength(1);
     expect(model.noRealizadasTotal).toBe("2");
-    expect(model.noRealizadasPorTipo).toHaveLength(4);
+    expect(model.noRealizadasContraproducencias.headers).toEqual([
+      "Contraproducencia",
+      "Cantidad",
+      "%",
+    ]);
+    expect(model.noRealizadasContraproducencias.rows.length).toBeGreaterThan(0);
     expect(model.productividadRealizadas.rows).toHaveLength(1);
   });
 
@@ -153,6 +168,46 @@ describe("buildDashboardPdfModel", () => {
     expect(model.riesgoRubros.rows).toHaveLength(0);
     expect(model.noRealizadasTotal).toBeNull();
     expect(DASHBOARD_PDF_EMPTY_MESSAGE).toContain("Sin datos");
+  });
+
+  it("no realizadas prioriza contraproducencias con Otros y sin desglose por tipo", () => {
+    const payload: DashboardExportPayload = {
+      ...fullPayload,
+      noRealizadas: {
+        por_tipo: {
+          inspeccion: 5,
+          reinspeccion_oficio: 0,
+          reinspeccion_notificacion: 0,
+          denuncia: 0,
+        },
+        top_contraproducencias: [
+          { contraproducencia: "Local cerrado", cantidad: 3 },
+          { contraproducencia: "Clima", cantidad: 1 },
+        ],
+        distritos_con_mas_no_realizadas: [],
+        total: 5,
+        contraproducencias_resumen: [
+          { bucket: "local_cerrado", label: "Local cerrado", cantidad: 3 },
+          { bucket: "no_existe", label: "No existe", cantidad: 0 },
+          { bucket: "no_se_ratifico", label: "No se ratificó", cantidad: 0 },
+          { bucket: "clima", label: "Clima", cantidad: 1 },
+          { bucket: "otras", label: "Otras", cantidad: 1 },
+        ],
+      },
+      noRealizadasTotal: 5,
+    };
+    const model = buildDashboardPdfModel(
+      payload,
+      "2026-01-01",
+      "2026-01-31",
+      "04/08/2026",
+      "01/01/2026 al 31/01/2026"
+    );
+    expect(model.noRealizadasTotal).toBe("5");
+    expect(model.noRealizadasContraproducencias.rows.some((r) => r.label === "Otras")).toBe(true);
+    expect(
+      (model as { noRealizadasPorTipo?: unknown }).noRealizadasPorTipo
+    ).toBeUndefined();
   });
 
   it("limita productividad a top 10 y agrega nota de truncado", () => {

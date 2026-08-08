@@ -12,6 +12,7 @@ Fuente de verdad:
 from __future__ import annotations
 
 import types
+from dataclasses import dataclass
 from datetime import date
 from typing import Any, Optional
 
@@ -622,6 +623,255 @@ def list_mapa_operativo_realizados_geo(
     return points
 
 
+_TIPOS_PENDIENTES_COLA_KPI: tuple[str, ...] = (
+    "RELEVAMIENTO",
+    "REINSPECCION_OFICIO",
+    "REINSPECCION_NOTIFICACION",
+    "DENUNCIA",
+)
+
+
+def _query_iniciadores_cola_backlog(
+    d_desde: date,
+    d_hasta: date,
+    tipo_db: Optional[str] = None,
+    *,
+    tipos_db: Optional[tuple[str, ...]] = None,
+) -> list[IniciadorRuta]:
+    """
+    Iniciadores PENDIENTE en cola (sin ítem en ruta BORRADOR) dentro del rango de ``fecha_origen``.
+
+    Parámetros:
+        d_desde, d_hasta: rango inclusive.
+        tipo_db: filtro opcional sobre ``IniciadorRuta.tipo_iniciador`` (valor canónico BD).
+        tipos_db: filtro opcional IN sobre varios tipos (agregación indicadores).
+
+    Retorno:
+        Lista de ``IniciadorRuta`` (sin filtrar geocode; eso ocurre en el mapper).
+    """
+    q = IniciadorRuta.query.options(
+        joinedload(IniciadorRuta.domicilio),
+        joinedload(IniciadorRuta.relevamiento),
+        joinedload(IniciadorRuta.denuncia),
+        joinedload(IniciadorRuta.actuacion),
+    ).filter(
+        IniciadorRuta.deleted_at.is_(None),
+        IniciadorRuta.estado_iniciador == "PENDIENTE",
+        IniciadorRuta.fecha_origen >= d_desde,
+        IniciadorRuta.fecha_origen <= d_hasta,
+        ~_borrador_item_exists_clause(),
+    )
+    if tipos_db is not None:
+        q = q.filter(IniciadorRuta.tipo_iniciador.in_(tipos_db))
+    elif tipo_db is not None:
+        q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
+    return q.all()
+
+
+def _iniciador_backlog_countable(
+    ini: IniciadorRuta,
+    *,
+    distrito_id: Optional[int],
+    cache: dict[str, Any],
+) -> bool:
+    """
+    True si el iniciador cuenta en cola planificable (equivale a ``_map_point... is not None``).
+
+    Memoiza domicilio efectivo, backfill de distrito y coords por request para evitar trabajo
+    repetido cuando varios iniciadores comparten domicilio o el backfill ya se intentó.
+    """
+    from app.domains.geolocalizacion.geocode.services.distrito_backfill_service import (
+        backfill_distrito_for_domicilio_if_needed,
+    )
+
+    dist_key = distrito_id if distrito_id is not None else "__all__"
+    results: dict[tuple[int, object], bool] = cache.setdefault("results", {})
+    result_key = (int(ini.id), dist_key)
+    if result_key in results:
+        return results[result_key]
+
+    efectivos: dict[int, object] = cache.setdefault("efectivos", {})
+    ini_id = int(ini.id)
+    if ini_id not in efectivos:
+        efectivos[ini_id] = resolve_domicilio_efectivo_para_iniciador(
+            ini,
+            apply_backfill=False,
+            try_sync=False,
+        )
+    efectivo = efectivos[ini_id]
+    if not efectivo.domicilio_id:
+        results[result_key] = False
+        return False
+
+    dom_id = int(efectivo.domicilio_id)
+    if distrito_id is not None:
+        backfill_done: set[int] = cache.setdefault("backfill_done", set())
+        if dom_id not in backfill_done:
+            backfill_distrito_for_domicilio_if_needed(dom_id)
+            backfill_done.add(dom_id)
+
+    coords_cache: dict[int, tuple[float | None, float | None, int | None, str | None]] = (
+        cache.setdefault("coords", {})
+    )
+    if dom_id not in coords_cache:
+        coords_cache[dom_id] = _coords_desde_domicilio_id(dom_id)
+    lat, lng, dist_id, _ubic = coords_cache[dom_id]
+    if lat is None or lng is None:
+        results[result_key] = False
+        return False
+    if distrito_id is not None and dist_id != distrito_id:
+        results[result_key] = False
+        return False
+
+    results[result_key] = True
+    return True
+
+
+def _probable_efectivo_domicilio_ids(iniciadores: list[IniciadorRuta]) -> set[int]:
+    """Domicilios candidatos (iniciador + orígenes frecuentes) para precargar geocode."""
+    dom_ids: set[int] = set()
+    for ini in iniciadores:
+        if ini.domicilio_id:
+            dom_ids.add(int(ini.domicilio_id))
+        rel = ini.relevamiento
+        if rel is not None and rel.domicilio_id:
+            dom_ids.add(int(rel.domicilio_id))
+        den = ini.denuncia
+        if den is not None and getattr(den, "domicilio_id", None):
+            dom_ids.add(int(den.domicilio_id))
+        act = ini.actuacion
+        if act is not None and act.domicilio_id:
+            dom_ids.add(int(act.domicilio_id))
+    return dom_ids
+
+
+def _warm_geocode_coords_cache(dom_ids: set[int], cache: dict[str, Any]) -> None:
+    """Precarga coords/distrito de geocodes OK para reducir N+1 en el loop de conteo."""
+    if not dom_ids:
+        return
+    coords_cache: dict[int, tuple[float | None, float | None, int | None, str | None]] = (
+        cache.setdefault("coords", {})
+    )
+    missing = [dom_id for dom_id in dom_ids if dom_id not in coords_cache]
+    if not missing:
+        return
+    rows = (
+        db.session.query(
+            DomicilioGeocode.domicilio_id,
+            DomicilioGeocode.lat,
+            DomicilioGeocode.lng,
+            Domicilio.distrito_id,
+        )
+        .join(Domicilio, Domicilio.id == DomicilioGeocode.domicilio_id)
+        .filter(
+            DomicilioGeocode.domicilio_id.in_(missing),
+            DomicilioGeocode.deleted_at.is_(None),
+            DomicilioGeocode.geo_status == "OK",
+            DomicilioGeocode.lat.isnot(None),
+            DomicilioGeocode.lng.isnot(None),
+            Domicilio.deleted_at.is_(None),
+        )
+        .all()
+    )
+    for dom_id, lat, lng, dist_id in rows:
+        coords_cache[int(dom_id)] = (
+            float(lat),
+            float(lng),
+            int(dist_id) if dist_id is not None else None,
+            None,
+        )
+    for dom_id in missing:
+        coords_cache.setdefault(dom_id, (None, None, None, None))
+
+
+@dataclass(frozen=True)
+class PendientesColaKpis:
+    """Conteos por tipo de iniciador en cola planificable (geo OK)."""
+
+    relevamientos_pendientes: int
+    reinspecciones_oficio_pendientes: int
+    reinspecciones_notificacion_pendientes: int
+    denuncias_pendientes: int
+
+
+@dataclass(frozen=True)
+class PendientesColaKpisAggregation:
+    """Resultado de agregación en una sola pasada + métricas para PERF_LOG."""
+
+    kpis: PendientesColaKpis
+    scanned_count: int
+    mapped_count: int
+    base_query_ms: float
+    mapping_ms: float
+
+
+def aggregate_mapa_operativo_pendientes_cola_kpis(
+    *,
+    desde: str,
+    hasta: str,
+    distrito_id: Optional[int] = None,
+) -> PendientesColaKpisAggregation:
+    """
+    Cuenta todos los buckets de cola pendiente en una sola pasada (misma semántica que 4× ``count_*``).
+
+    Parámetros:
+        desde/hasta: ISO date inclusive sobre ``IniciadorRuta.fecha_origen``.
+        distrito_id: filtro opcional por domicilio efectivo con geocode OK.
+
+    Retorno:
+        KPIs por tipo + métricas de escaneo/mapping.
+
+    Errores:
+        ValueError: fechas inválidas o ausentes.
+    """
+    import time
+
+    d_desde = _parse_date(desde)
+    d_hasta = _parse_date(hasta)
+    if d_desde is None or d_hasta is None:
+        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
+
+    t0 = time.perf_counter()
+    iniciadores = _query_iniciadores_cola_backlog(
+        d_desde,
+        d_hasta,
+        tipos_db=_TIPOS_PENDIENTES_COLA_KPI,
+    )
+    base_query_ms = (time.perf_counter() - t0) * 1000.0
+
+    counts = {
+        "RELEVAMIENTO": 0,
+        "REINSPECCION_OFICIO": 0,
+        "REINSPECCION_NOTIFICACION": 0,
+        "DENUNCIA": 0,
+    }
+    mapped = 0
+    request_cache: dict[str, Any] = {}
+    _warm_geocode_coords_cache(_probable_efectivo_domicilio_ids(iniciadores), request_cache)
+    t1 = time.perf_counter()
+    for ini in iniciadores:
+        if _iniciador_backlog_countable(ini, distrito_id=distrito_id, cache=request_cache):
+            mapped += 1
+            tipo = str(ini.tipo_iniciador)
+            if tipo in counts:
+                counts[tipo] += 1
+    mapping_ms = (time.perf_counter() - t1) * 1000.0
+
+    kpis = PendientesColaKpis(
+        relevamientos_pendientes=counts["RELEVAMIENTO"],
+        reinspecciones_oficio_pendientes=counts["REINSPECCION_OFICIO"],
+        reinspecciones_notificacion_pendientes=counts["REINSPECCION_NOTIFICACION"],
+        denuncias_pendientes=counts["DENUNCIA"],
+    )
+    return PendientesColaKpisAggregation(
+        kpis=kpis,
+        scanned_count=len(iniciadores),
+        mapped_count=mapped,
+        base_query_ms=base_query_ms,
+        mapping_ms=mapping_ms,
+    )
+
+
 def count_mapa_operativo_pendientes_cola(
     *,
     desde: str,
@@ -647,18 +897,8 @@ def count_mapa_operativo_pendientes_cola(
     if d_desde is None or d_hasta is None:
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
     tipo_db = _map_tipo_filtro_front(tipo)
-    q = IniciadorRuta.query.filter(
-        IniciadorRuta.deleted_at.is_(None),
-        IniciadorRuta.estado_iniciador == "PENDIENTE",
-        IniciadorRuta.fecha_origen >= d_desde,
-        IniciadorRuta.fecha_origen <= d_hasta,
-        ~_borrador_item_exists_clause(),
-    )
-    if tipo_db is not None:
-        q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
-
     total = 0
-    for ini in q.all():
+    for ini in _query_iniciadores_cola_backlog(d_desde, d_hasta, tipo_db):
         if _map_point_desde_iniciador_backlog(ini, distrito_id=distrito_id):
             total += 1
     return total

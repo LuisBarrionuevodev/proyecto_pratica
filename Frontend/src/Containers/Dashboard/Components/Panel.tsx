@@ -30,14 +30,17 @@ import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas"
 import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
 import { periodoToDateRange } from "../utils/periodoDateRange";
+import { isDashboardSectionReady } from "../utils/dashboardSectionReady";
+import { calcTotalNoRealizadas } from "../utils/noRealizadasContraproducencias";
 import { DashboardIndicadoresPageLoader } from "./DashboardIndicadoresPageLoader";
 import { DashboardIndicadoresRefreshingOverlay } from "./DashboardIndicadoresRefreshingOverlay";
 import { DashboardActasPorTipoSection } from "./DashboardActasPorTipoSection";
 import { DashboardEjecutivoSection } from "./DashboardEjecutivoSection";
 import { DashboardPendientesSection } from "./DashboardPendientesSection";
 import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
-import { DashboardProductividadSection } from "./DashboardProductividadSection";
+import { DashboardProductividadSectionLazy } from "./DashboardProductividadSectionLazy";
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
+import { DashboardSectionGate } from "./DashboardSectionGate";
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
 
@@ -106,6 +109,11 @@ const Panel = () => {
     return p;
   }, [desde, hasta, distritoId, inspectorId]);
 
+  const pendientesParams = useMemo(() => {
+    if (distritoId === "") return {};
+    return { distrito_id: Number(distritoId) };
+  }, [distritoId]);
+
   const {
     data: ejecutivoData,
     loading: ejecutivoLoading,
@@ -116,7 +124,7 @@ const Panel = () => {
     data: pendientesData,
     loading: pendientesLoading,
     error: pendientesError,
-  } = useIndicadoresPendientes(indicadoresParams);
+  } = useIndicadoresPendientes(pendientesParams);
 
   const {
     data: riesgoData,
@@ -138,8 +146,7 @@ const Panel = () => {
 
   const noRealizadasTotal = useMemo(() => {
     if (!noRealizadasData) return null;
-    const pt = noRealizadasData.por_tipo;
-    return pt.inspeccion + pt.reinspeccion_oficio + pt.reinspeccion_notificacion + pt.denuncia;
+    return calcTotalNoRealizadas(noRealizadasData);
   }, [noRealizadasData]);
 
   const distritoLabel = useMemo(() => {
@@ -185,22 +192,35 @@ const Panel = () => {
   const hasExportData = exportPayload.resumenKpis.length > 0;
 
   const periodoTabIndex = PERIODOS.indexOf(periodo);
-  const isInitialLoading =
-    (ejecutivoLoading && !ejecutivoData && !ejecutivoError) ||
-    (pendientesLoading && !pendientesData && !pendientesError) ||
-    (riesgoLoading && !riesgoData && !riesgoError) ||
-    (noRealizadasLoading && !noRealizadasData && !noRealizadasError) ||
-    (productividadLoading && !productividadData && !productividadError);
 
-  const isRefreshing =
-    !isInitialLoading &&
-    (ejecutivoLoading ||
-      pendientesLoading ||
-      riesgoLoading ||
-      noRealizadasLoading ||
-      productividadLoading);
+  const ejecutivoReady = isDashboardSectionReady(ejecutivoData, ejecutivoError);
+  const pendientesReady = isDashboardSectionReady(pendientesData, pendientesError);
+  const riesgoReady = isDashboardSectionReady(riesgoData, riesgoError);
+  const noRealizadasReady = isDashboardSectionReady(noRealizadasData, noRealizadasError);
+  const productividadReady = isDashboardSectionReady(productividadData, productividadError);
 
-  const anyBlockingLoad = isInitialLoading || isRefreshing;
+  const showGlobalLoader =
+    !ejecutivoReady &&
+    ejecutivoLoading &&
+    !pendientesReady &&
+    pendientesLoading &&
+    !riesgoReady &&
+    riesgoLoading &&
+    !noRealizadasReady &&
+    noRealizadasLoading &&
+    !productividadReady &&
+    productividadLoading;
+
+  const isAnyLoading =
+    ejecutivoLoading ||
+    pendientesLoading ||
+    riesgoLoading ||
+    noRealizadasLoading ||
+    productividadLoading;
+
+  const isRefreshing = isAnyLoading && !showGlobalLoader;
+
+  const anyBlockingLoad = isAnyLoading;
 
   return (
     <Box sx={functionalPageShellSx}>
@@ -323,52 +343,95 @@ const Panel = () => {
           </Box>
       </Paper>
 
-      <Box sx={{ position: "relative", minHeight: isInitialLoading ? 320 : undefined }}>
+      <Box sx={{ position: "relative", minHeight: showGlobalLoader ? 320 : undefined }}>
         <DashboardIndicadoresRefreshingOverlay visible={isRefreshing} />
 
-        {isInitialLoading ? (
-          <DashboardIndicadoresPageLoader />
-        ) : (
+        {showGlobalLoader ? <DashboardIndicadoresPageLoader /> : null}
+
+        {!showGlobalLoader ? (
           <>
-          <DashboardEjecutivoSection
-            data={ejecutivoData}
-            noRealizadasTotal={noRealizadasTotal}
-            loading={ejecutivoLoading}
-            error={ejecutivoError}
-          />
+            <DashboardSectionGate
+              title="Overview operativo"
+              first
+              loading={ejecutivoLoading}
+              ready={ejecutivoReady}
+              loadingMessage="Cargando overview..."
+            >
+              <DashboardEjecutivoSection
+                data={ejecutivoData}
+                noRealizadasTotal={noRealizadasTotal}
+                loading={ejecutivoLoading}
+                error={ejecutivoError}
+              />
+            </DashboardSectionGate>
 
-          <DashboardActasPorTipoSection
-            actas={ejecutivoData?.actas_por_tipo}
-            loading={ejecutivoLoading}
-            error={ejecutivoError}
-          />
+            <DashboardSectionGate
+              title="Actas labradas por tipo"
+              loading={ejecutivoLoading}
+              ready={ejecutivoReady}
+              loadingMessage="Cargando actas por tipo..."
+            >
+              <DashboardActasPorTipoSection
+                actas={ejecutivoData?.actas_por_tipo}
+                loading={ejecutivoLoading}
+                error={ejecutivoError}
+              />
+            </DashboardSectionGate>
 
-          <DashboardPendientesSection
-            data={pendientesData}
-            loading={pendientesLoading}
-            error={pendientesError}
-          />
+            <DashboardSectionGate
+              title="Operativo / Pendientes actuales"
+              loading={pendientesLoading}
+              ready={pendientesReady}
+              loadingMessage="Cargando pendientes..."
+            >
+              <DashboardPendientesSection
+                data={pendientesData}
+                loading={pendientesLoading}
+                error={pendientesError}
+              />
+            </DashboardSectionGate>
 
-          <DashboardRiesgoSection
-            data={riesgoData}
-            mercaderiaDecomisadaKg={ejecutivoData?.kpis.mercaderia_decomisada_kg}
-            loading={riesgoLoading}
-            error={riesgoError}
-          />
+            <DashboardSectionGate
+              title="Riesgo bromatológico"
+              loading={riesgoLoading}
+              ready={riesgoReady}
+              loadingMessage="Cargando riesgo..."
+            >
+              <DashboardRiesgoSection
+                data={riesgoData}
+                mercaderiaDecomisadaKg={ejecutivoData?.kpis.mercaderia_decomisada_kg}
+                loading={riesgoLoading}
+                error={riesgoError}
+              />
+            </DashboardSectionGate>
 
-          <DashboardNoRealizadasSection
-            data={noRealizadasData}
-            loading={noRealizadasLoading}
-            error={noRealizadasError}
-          />
+            <DashboardSectionGate
+              title="No realizadas"
+              loading={noRealizadasLoading}
+              ready={noRealizadasReady}
+              loadingMessage="Cargando no realizadas..."
+            >
+              <DashboardNoRealizadasSection
+                data={noRealizadasData}
+                loading={noRealizadasLoading}
+                error={noRealizadasError}
+              />
+            </DashboardSectionGate>
 
-          <DashboardProductividadSection
-            data={productividadData}
-            loading={productividadLoading}
-            error={productividadError}
-          />
+            <DashboardSectionGate
+              title="Productividad"
+              loading={productividadLoading}
+              ready={productividadReady}
+              loadingMessage="Cargando productividad..."
+            >
+              <DashboardProductividadSectionLazy
+                data={productividadData}
+                loading={productividadLoading}
+                error={productividadError}
+              />
+            </DashboardSectionGate>
           </>
-        )}
+        ) : null}
       </Box>
     </Box>
   );

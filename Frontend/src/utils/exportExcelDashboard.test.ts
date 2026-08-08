@@ -49,6 +49,14 @@ const fullPayload: DashboardExportPayload = {
     },
     top_contraproducencias: [{ contraproducencia: "LOCAL CERRADO", cantidad: 1 }],
     distritos_con_mas_no_realizadas: [{ distrito_id: 1, distrito_codigo: "C", distrito_nombre: "Centro", cantidad: 2 }],
+    total: 2,
+    contraproducencias_resumen: [
+      { bucket: "local_cerrado", label: "Local cerrado", cantidad: 1 },
+      { bucket: "no_existe", label: "No existe", cantidad: 0 },
+      { bucket: "no_se_ratifico", label: "No se ratificó", cantidad: 1 },
+      { bucket: "clima", label: "Clima", cantidad: 0 },
+      { bucket: "otras", label: "Otras", cantidad: 0 },
+    ],
   },
   noRealizadasTotal: 2,
   productividad: {
@@ -61,6 +69,7 @@ const fullPayload: DashboardExportPayload = {
         reinspecciones_oficio: 1,
         reinspecciones_notificacion: 1,
         denuncias: 0,
+        otras: 0,
         tipo_principal: "INSPECCION",
       },
     ],

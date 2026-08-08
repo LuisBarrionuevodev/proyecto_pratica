@@ -17,6 +17,9 @@ from app.domains.indicadores.services.indicadores_operativos_queries import (
     sum_visitas_oficio_realizadas,
     visitas_realizadas_por_tipo_iniciador,
 )
+from app.domains.indicadores.services.indicadores_productividad_queries import (
+    count_visitas_realizadas_productividad_bucket,
+)
 from app.domains.indicadores.services.indicadores_resumen_service import (
     _count_actas_labradas,
     _float_kg,
@@ -72,6 +75,13 @@ def build_indicadores_ejecutivo(
         kpis=EjecutivoKpis(
             actuaciones_realizadas=int(realizadas),
             actas_labradas=int(actas_labradas),
+            inspecciones_realizadas=count_visitas_realizadas_productividad_bucket(
+                desde,
+                hasta,
+                distrito_id,
+                inspector_id,
+                bucket="inspecciones",
+            ),
             reinspecciones_notificacion_realizadas=int(
                 por_tipo_ini.get("REINSPECCION_NOTIFICACION", 0)
             ),

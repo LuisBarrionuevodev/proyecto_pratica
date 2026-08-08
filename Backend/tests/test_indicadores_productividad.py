@@ -16,14 +16,21 @@ from app.domains.actuaciones.attach.comprobacion import attach_comprobacion
 from app.domains.actuaciones.attach.decomiso import attach_decomiso
 from app.domains.actuaciones.attach.notificacion import attach_notificacion
 from app.domains.actuaciones.services.previas_service import resolver_previas
+from app.domains.indicadores.services.indicadores_no_realizadas_service import (
+    build_indicadores_no_realizadas,
+)
 from app.domains.indicadores.services.indicadores_productividad_queries import (
+    _no_realizadas_inspector_visita_pairs,
     format_contraproducencia_label,
     principal_bucket_label,
+    query_inspectores_no_realizadas,
 )
 from app.domains.indicadores.services.indicadores_productividad_service import (
     build_indicadores_productividad,
 )
+from app.domains.indicadores.utils.contraproducencia_indicador_buckets import BUCKET_ORDER
 from app.domains.indicadores.services.indicadores_resumen_service import build_indicadores_resumen
+from tests.helpers.fixture_isolation import unique_ot_numero
 from tests.indicadores_cierre_fixtures import (
     estado_iniciador_tras_no_realizado,
     vincular_cierre_realizado,
@@ -52,7 +59,7 @@ _FECHA = date(2026, 8, 15)
 
 
 def _unique_ot_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def _unique_name(prefix: str) -> str:
@@ -176,7 +183,7 @@ def _mk_visita_cierre(
         estado_ruta = "FINALIZADO"
         estado_ej = "REALIZADO"
     else:
-        estado_ruta = "NO_REALIZADO"
+        estado_ruta = "FINALIZADO"
         estado_ej = "NO_REALIZADO"
     item = RutaItem(
         ruta_trabajo_id=ruta.id,
@@ -230,6 +237,9 @@ def _find_realizada(inspector_id: int, rows):
     [
         ("RELEVAMIENTO", "inspecciones"),
         ("REINSPECCION_OFICIO", "reinspecciones_oficio"),
+        ("RATIFICACION_CLAUSURA_OFICIO", "reinspecciones_oficio"),
+        ("RATIFICACION_DECOMISO_OFICIO", "reinspecciones_oficio"),
+        ("VERIFICAR_INFORMAR_OFICIO", "reinspecciones_oficio"),
         ("REINSPECCION_NOTIFICACION", "reinspecciones_notificacion"),
         ("DENUNCIA", "denuncias"),
     ],
@@ -244,6 +254,61 @@ def test_realizada_suma_por_tipo(app_ctx, tipo_iniciador, field) -> None:
         assert row is not None
         assert getattr(row, field) >= 1
         assert row.total_realizadas >= getattr(row, field)
+        visible = (
+            row.inspecciones
+            + row.reinspecciones_oficio
+            + row.reinspecciones_notificacion
+            + row.otras
+        )
+        assert row.total_realizadas == visible
+        if field == "denuncias":
+            assert row.denuncias >= 1
+            assert row.otras >= row.denuncias
+    finally:
+        db.session.rollback()
+
+
+def test_ejecutivo_inspecciones_coincide_con_bucket_productividad(app_ctx) -> None:
+    try:
+        from app.domains.indicadores.services.indicadores_ejecutivo_service import (
+            build_indicadores_ejecutivo,
+        )
+        from app.domains.indicadores.services.indicadores_productividad_queries import (
+            count_visitas_realizadas_productividad_bucket,
+        )
+
+        _, _, ins = _mk_visita_cierre("RELEVAMIENTO", _FECHA, realizada=True)
+        assert ins is not None
+        db.session.flush()
+        ej = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        bucket_count = count_visitas_realizadas_productividad_bucket(
+            _DESDE, _HASTA, bucket="inspecciones"
+        )
+        prod = build_indicadores_productividad(_DESDE, _HASTA)
+        row = _find_realizada(ins.id, prod.inspectores_realizadas)
+        assert row is not None
+        assert row.inspecciones >= 1
+        assert ej.kpis.inspecciones_realizadas == bucket_count
+        assert bucket_count >= 1
+    finally:
+        db.session.rollback()
+
+
+def test_no_realizada_oficio_hibrido_suma_bucket(app_ctx) -> None:
+    try:
+        _, _, ins = _mk_visita_cierre(
+            "RATIFICACION_CLAUSURA_OFICIO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="LOCAL_CERRADO",
+        )
+        assert ins is not None
+        db.session.flush()
+        out = build_indicadores_productividad(_DESDE, _HASTA)
+        row = _find_realizada(ins.id, out.inspectores_no_realizadas)
+        assert row is not None
+        assert row.total_no_realizadas >= 1
+        assert row.local_cerrado >= 1
     finally:
         db.session.rollback()
 
@@ -262,8 +327,15 @@ def test_no_realizada_suma_y_contraproducencia_principal(app_ctx) -> None:
         row = _find_realizada(ins.id, out.inspectores_no_realizadas)
         assert row is not None
         assert row.total_no_realizadas >= 1
-        assert row.inspecciones >= 1
+        assert row.local_cerrado >= 1
         assert row.contraproducencia_principal == "Local cerrado"
+        assert (
+            row.local_cerrado
+            + row.no_existe
+            + row.no_se_ratifico
+            + row.clima
+            + row.otras
+        ) == row.total_no_realizadas
     finally:
         db.session.rollback()
 
@@ -459,6 +531,249 @@ def test_filtro_distrito_id(app_ctx) -> None:
         assert row is not None
         assert row.inspecciones >= 1
         assert row.denuncias == 0
+    finally:
+        db.session.rollback()
+
+
+def test_no_realizada_un_inspector_cuenta_una_vez(app_ctx) -> None:
+    try:
+        item, _act, ins = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="LOCAL_CERRADO",
+        )
+        assert ins is not None
+        db.session.flush()
+        pairs = _no_realizadas_inspector_visita_pairs(_DESDE, _HASTA)
+        assert sum(1 for ri, iid, *_ in pairs if iid == ins.id and ri == item.id) == 1
+        out = build_indicadores_productividad(_DESDE, _HASTA)
+        row = _find_realizada(ins.id, out.inspectores_no_realizadas)
+        assert row is not None
+        assert row.total_no_realizadas == 1
+        assert row.local_cerrado == 1
+    finally:
+        db.session.rollback()
+
+
+def test_no_realizada_dos_inspectores_misma_visita_cuenta_para_cada_uno(app_ctx) -> None:
+    try:
+        item, act, ins_a = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="LOCAL_CERRADO",
+        )
+        assert ins_a is not None
+        ins_b = _mk_inspector()
+        db.session.execute(
+            actuaciones_inspector.insert().values(
+                actuaciones_id=act.id,
+                inspector_id=ins_b.id,
+            )
+        )
+        db.session.flush()
+        pairs = _no_realizadas_inspector_visita_pairs(_DESDE, _HASTA)
+        pair_keys = {(ri, iid) for ri, iid, *_ in pairs}
+        assert (item.id, ins_a.id) in pair_keys
+        assert (item.id, ins_b.id) in pair_keys
+        assert len([1 for ri, iid in pair_keys if ri == item.id]) == 2
+
+        out = build_indicadores_productividad(_DESDE, _HASTA)
+        row_a = _find_realizada(ins_a.id, out.inspectores_no_realizadas)
+        row_b = _find_realizada(ins_b.id, out.inspectores_no_realizadas)
+        assert row_a is not None and row_b is not None
+        assert row_a.total_no_realizadas == 1
+        assert row_b.total_no_realizadas == 1
+        assert row_a.local_cerrado == 1
+        assert row_b.local_cerrado == 1
+    finally:
+        db.session.rollback()
+
+
+def test_no_realizada_par_inspector_ruta_item_no_duplica(app_ctx) -> None:
+    """Un segundo vínculo inspector-actuación no debe inflar el total del inspector."""
+    try:
+        item, act, ins = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="CLIMA",
+        )
+        assert ins is not None
+        ins_dup = _mk_inspector()
+        db.session.execute(
+            actuaciones_inspector.insert().values(
+                actuaciones_id=act.id,
+                inspector_id=ins_dup.id,
+            )
+        )
+        db.session.flush()
+        before = query_inspectores_no_realizadas(_DESDE, _HASTA)
+        row_before = _find_realizada(ins.id, before)
+        assert row_before is not None
+        assert row_before.total_no_realizadas == 1
+        assert row_before.clima == 1
+        assert (
+            row_before.local_cerrado
+            + row_before.no_existe
+            + row_before.no_se_ratifico
+            + row_before.clima
+            + row_before.otras
+        ) == row_before.total_no_realizadas
+    finally:
+        db.session.rollback()
+
+
+def test_no_realizada_suma_por_inspector_puede_superar_total_general(app_ctx) -> None:
+    """Visita con dos inspectores: total general 1, suma por inspector 2 (válido)."""
+    try:
+        _item, _act, ins_a = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="NO_EXISTE_LOCAL",
+        )
+        assert ins_a is not None
+        ins_b = _mk_inspector()
+        db.session.execute(
+            actuaciones_inspector.insert().values(
+                actuaciones_id=_act.id,
+                inspector_id=ins_b.id,
+            )
+        )
+        db.session.flush()
+        from app.domains.indicadores.services.indicadores_no_realizadas_service import (
+            build_indicadores_no_realizadas,
+        )
+
+        general = build_indicadores_no_realizadas(_DESDE, _HASTA).total
+        out = build_indicadores_productividad(_DESDE, _HASTA)
+        suma = sum(r.total_no_realizadas for r in out.inspectores_no_realizadas)
+        assert general >= 1
+        assert suma >= 2
+    finally:
+        db.session.rollback()
+
+
+def _assert_bucket_invariant(desde: date, hasta: date) -> None:
+    """Ningún inspector puede superar el total general de un bucket de contraproducencia."""
+    nr = build_indicadores_no_realizadas(desde, hasta)
+    prod = build_indicadores_productividad(desde, hasta)
+    general = {r.bucket: r.cantidad for r in nr.contraproducencias_resumen}
+    for row in prod.inspectores_no_realizadas:
+        for bucket in BUCKET_ORDER:
+            inspector_val = int(getattr(row, bucket))
+            general_val = int(general.get(bucket, 0))
+            assert inspector_val <= general_val, (
+                f"bucket={bucket} general={general_val} "
+                f"inspector={row.inspector} valor={inspector_val}"
+            )
+
+
+def test_invariante_bucket_inspector_no_supera_general(app_ctx) -> None:
+    try:
+        ins_a = _mk_inspector()
+        ins_b = _mk_inspector()
+        _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="CLIMA",
+            inspector_id=ins_a.id,
+        )
+        item2, act2, _ = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="CLIMA",
+            inspector_id=ins_b.id,
+        )
+        db.session.execute(
+            actuaciones_inspector.insert().values(
+                actuaciones_id=act2.id,
+                inspector_id=ins_a.id,
+            )
+        )
+        db.session.flush()
+        _assert_bucket_invariant(_DESDE, _HASTA)
+        nr = build_indicadores_no_realizadas(_DESDE, _HASTA)
+        general_clima = next(
+            r.cantidad for r in nr.contraproducencias_resumen if r.bucket == "clima"
+        )
+        assert general_clima >= 2
+        prod = build_indicadores_productividad(_DESDE, _HASTA)
+        row_a = _find_realizada(ins_a.id, prod.inspectores_no_realizadas)
+        row_b = _find_realizada(ins_b.id, prod.inspectores_no_realizadas)
+        assert row_a is not None and row_a.clima >= 1
+        assert row_b is not None and row_b.clima >= 1
+        assert row_a.clima <= general_clima
+        assert row_b.clima <= general_clima
+    finally:
+        db.session.rollback()
+
+
+def test_dos_ruta_items_misma_actuacion_cuentan_por_visita(app_ctx) -> None:
+    """Varios ruta_item con la misma actuación: general y productividad cuentan visitas."""
+    try:
+        ins = _mk_inspector()
+        item1, act, _ = _mk_visita_cierre(
+            "RELEVAMIENTO",
+            _FECHA,
+            realizada=False,
+            contraproducencia="CLIMA",
+            inspector_id=ins.id,
+        )
+        u = _mk_user()
+        rub = Rubro.query.first()
+        assert rub is not None
+        ini2 = IniciadorRuta(
+            tipo_iniciador="RELEVAMIENTO",
+            estado_iniciador="PENDIENTE",
+            fecha_origen=_FECHA,
+            anio=2026,
+            mes=8,
+            domicilio_id=act.domicilio_id,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ini2)
+        db.session.flush()
+        ruta2 = RutaTrabajo(
+            fecha=_FECHA,
+            turno="MANIANA",
+            estado_ruta="PUBLICADA",
+            created_by_user_id=u.id,
+            numero=random.randint(2, 32000),
+        )
+        db.session.add(ruta2)
+        db.session.flush()
+        item2 = RutaItem(
+            ruta_trabajo_id=ruta2.id,
+            iniciador_ruta_id=ini2.id,
+            orden_trabajo_id=act.orden_trabajo_id,
+            estado_ruta_item="FINALIZADO",
+            estado_ejecucion="NO_REALIZADO",
+            actuacion_id=act.id,
+            created_by_user_id=u.id,
+            ejecutado_at=datetime(2026, 8, 15, 10, 0, 0),
+            ejecutado_por_user_id=u.id,
+        )
+        db.session.add(item2)
+        db.session.flush()
+
+        nr = build_indicadores_no_realizadas(_DESDE, _HASTA)
+        general_clima = next(
+            r.cantidad for r in nr.contraproducencias_resumen if r.bucket == "clima"
+        )
+        assert general_clima >= 2
+
+        prod = build_indicadores_productividad(_DESDE, _HASTA)
+        row = _find_realizada(ins.id, prod.inspectores_no_realizadas)
+        assert row is not None
+        assert row.clima == 2
+        assert row.clima <= general_clima
+        _assert_bucket_invariant(_DESDE, _HASTA)
+        assert item1.id != item2.id
     finally:
         db.session.rollback()
 

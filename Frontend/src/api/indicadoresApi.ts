@@ -113,6 +113,7 @@ export type IndicadoresResumenParams = IndicadoresFiltrosParams;
 export interface IndicadoresEjecutivoKpis {
   actuaciones_realizadas: number;
   actas_labradas: number;
+  inspecciones_realizadas: number;
   reinspecciones_notificacion_realizadas: number;
   reinspecciones_oficio_realizadas: number;
   ratificaciones_clausura_realizadas: number;
@@ -186,6 +187,12 @@ export interface IndicadoresContraproducenciaCantidadItem {
   cantidad: number;
 }
 
+export interface IndicadoresContraproducenciaResumenItem {
+  bucket: string;
+  label: string;
+  cantidad: number;
+}
+
 export interface IndicadoresDistritoNoRealizadasItem {
   distrito_id: number;
   distrito_codigo: string;
@@ -197,6 +204,8 @@ export interface IndicadoresNoRealizadasResponse {
   por_tipo: IndicadoresNoRealizadasPorTipo;
   top_contraproducencias: IndicadoresContraproducenciaCantidadItem[];
   distritos_con_mas_no_realizadas: IndicadoresDistritoNoRealizadasItem[];
+  total: number;
+  contraproducencias_resumen: IndicadoresContraproducenciaResumenItem[];
 }
 
 export interface IndicadorInspectorRealizadas {
@@ -207,6 +216,7 @@ export interface IndicadorInspectorRealizadas {
   reinspecciones_oficio: number;
   reinspecciones_notificacion: number;
   denuncias: number;
+  otras: number;
   tipo_principal: string;
 }
 
@@ -215,10 +225,16 @@ export interface IndicadorInspectorNoRealizadas {
   inspector: string;
   total_no_realizadas: number;
   contraproducencia_principal: string;
-  inspecciones: number;
-  reinspecciones_oficio: number;
-  reinspecciones_notificacion: number;
-  denuncias: number;
+  local_cerrado: number;
+  no_existe: number;
+  no_se_ratifico: number;
+  clima: number;
+  otras: number;
+  /** @deprecated Compatibilidad API; no usar en UI. */
+  inspecciones?: number;
+  reinspecciones_oficio?: number;
+  reinspecciones_notificacion?: number;
+  denuncias?: number;
 }
 
 export interface IndicadorActasPorInspector {

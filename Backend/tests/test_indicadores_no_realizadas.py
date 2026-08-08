@@ -158,7 +158,7 @@ def _mk_no_realizada(
         ruta_trabajo_id=ruta.id,
         iniciador_ruta_id=ini.id,
         orden_trabajo_id=ot.id,
-        estado_ruta_item="NO_REALIZADO",
+        estado_ruta_item="FINALIZADO",
         estado_ejecucion="NO_REALIZADO",
         actuacion_id=act.id,
         created_by_user_id=u.id,
@@ -185,6 +185,9 @@ def _por_tipo_dict(out):
     [
         ("RELEVAMIENTO", "inspeccion"),
         ("REINSPECCION_OFICIO", "reinspeccion_oficio"),
+        ("RATIFICACION_CLAUSURA_OFICIO", "reinspeccion_oficio"),
+        ("RATIFICACION_DECOMISO_OFICIO", "reinspeccion_oficio"),
+        ("VERIFICAR_INFORMAR_OFICIO", "reinspeccion_oficio"),
         ("REINSPECCION_NOTIFICACION", "reinspeccion_notificacion"),
         ("DENUNCIA", "denuncia"),
     ],
@@ -196,6 +199,43 @@ def test_por_tipo_suma_por_iniciador(app_ctx, tipo_iniciador, bucket) -> None:
         db.session.flush()
         after = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
         assert after[bucket] == before[bucket] + 1
+    finally:
+        db.session.rollback()
+
+
+def test_estado_canonico_finalizado_no_realizado_cuenta(app_ctx) -> None:
+    """Completar trabajo persiste FINALIZADO+NO_REALIZADO; debe contar en KPI."""
+    try:
+        before = build_indicadores_no_realizadas(_DESDE, _HASTA).total
+        _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 15))
+        db.session.flush()
+        after = build_indicadores_no_realizadas(_DESDE, _HASTA).total
+        assert after == before + 1
+    finally:
+        db.session.rollback()
+
+
+def test_estado_legado_no_realizado_sigue_contando(app_ctx) -> None:
+    """Ítems legados con eri=NO_REALIZADO siguen en el KPI."""
+    try:
+        before = build_indicadores_no_realizadas(_DESDE, _HASTA).total
+        item, _act = _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 15))
+        item.estado_ruta_item = "NO_REALIZADO"
+        item.estado_ejecucion = "NO_REALIZADO"
+        db.session.flush()
+        after = build_indicadores_no_realizadas(_DESDE, _HASTA).total
+        assert after == before + 1
+    finally:
+        db.session.rollback()
+
+
+def test_bucket_no_existe_direccion_incorrecta(app_ctx) -> None:
+    try:
+        _mk_no_realizada("RELEVAMIENTO", "DIRECCION INCORRECTA", date(2026, 7, 15))
+        db.session.flush()
+        out = build_indicadores_no_realizadas(_DESDE, _HASTA)
+        by_bucket = {r.bucket: r.cantidad for r in out.contraproducencias_resumen}
+        assert by_bucket.get("no_existe", 0) >= 1
     finally:
         db.session.rollback()
 
@@ -387,6 +427,25 @@ def test_periodo_vacio_ceros_y_arrays(app_ctx) -> None:
         db.session.rollback()
 
 
+def test_contraproducencias_resumen_buckets(app_ctx) -> None:
+    try:
+        _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 15))
+        _mk_no_realizada("RELEVAMIENTO", "CLIMA", date(2026, 7, 16))
+        _mk_no_realizada("DENUNCIA", "NO SE RATIFICÓ", date(2026, 7, 17))
+        _mk_no_realizada("RELEVAMIENTO", "ZONA ROJA", date(2026, 7, 18))
+        db.session.flush()
+        out = build_indicadores_no_realizadas(_DESDE, _HASTA)
+        assert out.total >= 4
+        by_bucket = {r.bucket: r.cantidad for r in out.contraproducencias_resumen}
+        assert by_bucket.get("local_cerrado", 0) >= 1
+        assert by_bucket.get("clima", 0) >= 1
+        assert by_bucket.get("no_se_ratifico", 0) >= 1
+        assert by_bucket.get("otras", 0) >= 1
+        assert sum(by_bucket.values()) == out.total
+    finally:
+        db.session.rollback()
+
+
 def test_get_api_no_realizadas_200(client, auth_headers) -> None:
     resp = client.get(
         f"/api/indicadores/no-realizadas?{_QUERY_OK}",
@@ -397,6 +456,9 @@ def test_get_api_no_realizadas_200(client, auth_headers) -> None:
     assert data is not None
     for k in ("inspeccion", "reinspeccion_oficio", "reinspeccion_notificacion", "denuncia"):
         assert k in data["por_tipo"]
+    assert "total" in data
+    assert "contraproducencias_resumen" in data
+    assert isinstance(data["contraproducencias_resumen"], list)
 
 
 def test_resumen_sigue_funcionando(app_ctx, client, auth_headers) -> None:

@@ -1,4 +1,5 @@
 import { Alert } from "@mui/material";
+import { memo } from "react";
 
 import type { IndicadoresEjecutivoResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -24,13 +25,15 @@ const OVERVIEW_ACCENTS: DashboardKpiAccent[] = [
   "teal",
   "primary",
   "amber",
-  "neutral",
+  "teal",
+  "primary",
+  "amber",
 ];
 
 /**
  * Overview operativo: KPIs analytics desde `/api/indicadores/ejecutivo` + total no realizadas.
  */
-export function DashboardEjecutivoSection({
+export const DashboardEjecutivoSection = memo(function DashboardEjecutivoSection({
   data,
   noRealizadasTotal,
   error,
@@ -46,6 +49,7 @@ export function DashboardEjecutivoSection({
   const cards = [
     { label: "Actuaciones realizadas", value: kpiValue(kpis?.actuaciones_realizadas) },
     { label: "Actas labradas", value: kpiValue(kpis?.actas_labradas) },
+    { label: "Inspecciones realizadas", value: kpiValue(kpis?.inspecciones_realizadas) },
     {
       label: "Reins. notificación realizadas",
       value: kpiValue(kpis?.reinspecciones_notificacion_realizadas),
@@ -116,4 +120,4 @@ export function DashboardEjecutivoSection({
       </DashboardMetricGrid>
     </DashboardSectionBlock>
   );
-}
+});

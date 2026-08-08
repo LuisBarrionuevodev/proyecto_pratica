@@ -1,4 +1,5 @@
 import { Alert } from "@mui/material";
+import { memo } from "react";
 
 import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -23,7 +24,10 @@ type Props = {
 /**
  * Composición de actas labradas por tipo (chart analytics).
  */
-export function DashboardActasPorTipoSection({ actas, error }: Props) {
+export const DashboardActasPorTipoSection = memo(function DashboardActasPorTipoSection({
+  actas,
+  error,
+}: Props) {
   const data = actas ?? ACTAS_VACIAS;
 
   return (
@@ -38,4 +42,4 @@ export function DashboardActasPorTipoSection({ actas, error }: Props) {
       </DashboardAnalyticsChartCard>
     </DashboardSectionBlock>
   );
-}
+});

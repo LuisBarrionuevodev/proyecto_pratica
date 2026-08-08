@@ -54,6 +54,7 @@ def test_get_indicadores_ejecutivo_ok_shape(client, auth_headers):
     for key in (
         "actuaciones_realizadas",
         "actas_labradas",
+        "inspecciones_realizadas",
         "reinspecciones_notificacion_realizadas",
         "reinspecciones_oficio_realizadas",
         "ratificaciones_clausura_realizadas",
@@ -123,6 +124,9 @@ def test_get_indicadores_no_realizadas_ok_shape(client, auth_headers):
         assert por_tipo[k] >= 0
     assert isinstance(data["top_contraproducencias"], list)
     assert isinstance(data["distritos_con_mas_no_realizadas"], list)
+    assert "total" in data
+    assert "contraproducencias_resumen" in data
+    assert len(data["contraproducencias_resumen"]) == 5
     for item in data["top_contraproducencias"]:
         assert "contraproducencia" in item
         assert "cantidad" in item

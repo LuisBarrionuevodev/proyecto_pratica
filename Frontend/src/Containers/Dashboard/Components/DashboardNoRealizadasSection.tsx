@@ -1,25 +1,21 @@
 import { Alert, Box, Grid } from "@mui/material";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import type { IndicadoresNoRealizadasResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
-import { DashboardAnalyticsKpiCard } from "./DashboardAnalyticsKpiCard";
+import { DashboardAnalyticsChartCard } from "./DashboardAnalyticsChartCard";
+import { DashboardContraproducenciasTable } from "./DashboardContraproducenciasTable";
 import { DashboardHorizontalBarChartCard } from "./DashboardHorizontalBarChartCard";
 import type { DashboardRankingBarItem } from "./DashboardRankingBarList";
-import { DashboardMetricGrid } from "./DashboardMetricGrid";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { buildContraproducenciasResumen } from "../utils/noRealizadasContraproducencias";
 
 type Props = {
   data: IndicadoresNoRealizadasResponse | null;
   loading: boolean;
   error: string | null;
 };
-
-function isNoHuboLabel(label: string): boolean {
-  const n = label.trim().toUpperCase().replace(/_/g, " ");
-  return n === "NO HUBO" || n === "NOHUBO";
-}
 
 function formatDistritoNombre(nombre: string): string {
   const t = nombre.trim();
@@ -30,37 +26,14 @@ function formatDistritoNombre(nombre: string): string {
 }
 
 /**
- * No realizadas: KPIs + rankings en barras horizontales.
+ * No realizadas: indicador general por contraproducencia (no por tipo operativo).
  */
-export function DashboardNoRealizadasSection({ data, error }: Props) {
-  const porTipo = data?.por_tipo;
-
-  const kpiValue = (value: number | undefined): number | string => {
-    if (error || data == null) return "—";
-    if (value == null) return "—";
-    return value;
-  };
-
-  const totalNoRealizadas = useMemo(() => {
-    if (!porTipo) return 0;
-    return (
-      porTipo.inspeccion +
-      porTipo.reinspeccion_oficio +
-      porTipo.reinspeccion_notificacion +
-      porTipo.denuncia
-    );
-  }, [porTipo]);
-
-  const topContraproducencias = useMemo<DashboardRankingBarItem[]>(
-    () =>
-      (data?.top_contraproducencias ?? [])
-        .filter((r) => !isNoHuboLabel(r.contraproducencia))
-        .map((r) => ({
-          label: r.contraproducencia,
-          value: r.cantidad,
-        })),
-    [data?.top_contraproducencias],
-  );
+export const DashboardNoRealizadasSection = memo(function DashboardNoRealizadasSection({
+  data,
+  error,
+}: Props) {
+  const resumen = useMemo(() => buildContraproducenciasResumen(data), [data]);
+  const totalNoRealizadas = resumen.total;
 
   const distritosRanking = useMemo<DashboardRankingBarItem[]>(
     () =>
@@ -71,6 +44,11 @@ export function DashboardNoRealizadasSection({ data, error }: Props) {
     [data?.distritos_con_mas_no_realizadas],
   );
 
+  const contraproducenciasEmptyMessage =
+    totalNoRealizadas === 0 && data != null && !error
+      ? "Sin no realizadas en el período seleccionado."
+      : "Sin motivos registrados en el período.";
+
   return (
     <DashboardSectionBlock title="No realizadas">
       {error ? (
@@ -79,49 +57,17 @@ export function DashboardNoRealizadasSection({ data, error }: Props) {
         </Alert>
       ) : null}
 
-      <Box sx={{ mb: 2.5 }}>
-      <DashboardMetricGrid
-        columns={{ xs: "1fr 1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }}
-        gap={1.5}
-      >
-        <DashboardAnalyticsKpiCard
-          label="Total no realizadas"
-          value={kpiValue(data != null && !error ? totalNoRealizadas : undefined)}
-          accent="amber"
-        />
-        <DashboardAnalyticsKpiCard
-          label="Inspección"
-          value={kpiValue(porTipo?.inspeccion)}
-          accent="primary"
-        />
-        <DashboardAnalyticsKpiCard
-          label="Reins. oficio"
-          value={kpiValue(porTipo?.reinspeccion_oficio)}
-          accent="teal"
-        />
-        <DashboardAnalyticsKpiCard
-          label="Reins. notificación"
-          value={kpiValue(porTipo?.reinspeccion_notificacion)}
-          accent="primary"
-        />
-        <DashboardAnalyticsKpiCard
-          label="Denuncia"
-          value={kpiValue(porTipo?.denuncia)}
-          accent="neutral"
-        />
-      </DashboardMetricGrid>
-      </Box>
-
       <Grid container spacing={1.5} alignItems="stretch">
-        <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
-          <DashboardHorizontalBarChartCard
-            title="Motivos de no realización"
-            items={topContraproducencias}
-            emptyMessage="Sin motivos registrados en el período."
-            color="#F5A623"
-          />
+        <Grid size={{ xs: 12, lg: 7 }} sx={{ display: "flex" }}>
+          <DashboardAnalyticsChartCard title="Principales contraproducencias" fillHeight>
+            <DashboardContraproducenciasTable
+              rows={resumen.rows}
+              emptyMessage={contraproducenciasEmptyMessage}
+              showZeroRows
+            />
+          </DashboardAnalyticsChartCard>
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
+        <Grid size={{ xs: 12, lg: 5 }} sx={{ display: "flex" }}>
           <DashboardHorizontalBarChartCard
             title="Distritos con más no realizadas"
             items={distritosRanking}
@@ -132,4 +78,4 @@ export function DashboardNoRealizadasSection({ data, error }: Props) {
       </Grid>
     </DashboardSectionBlock>
   );
-}
+});

@@ -11,6 +11,7 @@ class InspectorRealizadasItem(BaseModel):
     reinspecciones_oficio: int = Field(ge=0)
     reinspecciones_notificacion: int = Field(ge=0)
     denuncias: int = Field(ge=0)
+    otras: int = Field(ge=0, default=0)
     tipo_principal: str
 
 
@@ -19,10 +20,15 @@ class InspectorNoRealizadasItem(BaseModel):
     inspector: str
     total_no_realizadas: int = Field(ge=0)
     contraproducencia_principal: str
-    inspecciones: int = Field(ge=0)
-    reinspecciones_oficio: int = Field(ge=0)
-    reinspecciones_notificacion: int = Field(ge=0)
-    denuncias: int = Field(ge=0)
+    local_cerrado: int = Field(ge=0, default=0)
+    no_existe: int = Field(ge=0, default=0)
+    no_se_ratifico: int = Field(ge=0, default=0)
+    clima: int = Field(ge=0, default=0)
+    otras: int = Field(ge=0, default=0)
+    inspecciones: int = Field(ge=0, default=0)
+    reinspecciones_oficio: int = Field(ge=0, default=0)
+    reinspecciones_notificacion: int = Field(ge=0, default=0)
+    denuncias: int = Field(ge=0, default=0)
 
 
 class InspectorActasItem(BaseModel):

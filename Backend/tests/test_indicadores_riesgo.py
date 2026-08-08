@@ -4,10 +4,11 @@ GET /api/indicadores/riesgo y agregaciones de motivos / decomiso por rubro.
 
 from __future__ import annotations
 
-import random
 from datetime import date
 
 import pytest
+
+from tests.helpers.fixture_isolation import unique_ot_numero
 
 from app.database import db
 from app.domains.actuaciones.attach.comprobacion import attach_comprobacion
@@ -31,7 +32,7 @@ from app.models.turno import TipoTurno
 
 
 def _unique_ot_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def _unique_name(prefix: str) -> str:

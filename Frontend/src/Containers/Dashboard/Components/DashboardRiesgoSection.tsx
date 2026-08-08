@@ -1,5 +1,5 @@
 import { Alert, Grid } from "@mui/material";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import type { IndicadoresRiesgoResponse } from "../../../api/indicadoresApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -19,7 +19,7 @@ type Props = {
 /**
  * Riesgo bromatológico: barras (rubros) + donuts (motivos) + total kg con distribución.
  */
-export function DashboardRiesgoSection({
+export const DashboardRiesgoSection = memo(function DashboardRiesgoSection({
   data,
   mercaderiaDecomisadaKg,
   loading,
@@ -90,4 +90,4 @@ export function DashboardRiesgoSection({
       </Grid>
     </DashboardSectionBlock>
   );
-}
+});

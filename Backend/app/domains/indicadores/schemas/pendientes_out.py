@@ -5,9 +5,10 @@ from pydantic import BaseModel, Field
 
 class PendientesKpis(BaseModel):
     """
-    Conteos de cola planificable (iniciador PENDIENTE, geo OK).
+    Conteos de cola planificable (iniciador PENDIENTE, geo OK) — stock actual.
 
-    ``pendientes_geolocalizacion``: reservado; en D1d.4 devuelve 0 hasta definir query (D1d.6).
+    ``denuncias_pendientes`` y ``pendientes_geolocalizacion`` se mantienen por compatibilidad;
+    la UI de indicadores no los muestra.
     """
 
     relevamientos_pendientes: int = Field(ge=0)

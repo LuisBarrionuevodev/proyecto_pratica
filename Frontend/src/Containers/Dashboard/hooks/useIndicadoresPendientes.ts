@@ -20,11 +20,16 @@ function parseIndicadoresError(err: unknown): string {
   return typeof msg === "string" ? msg : "No se pudieron cargar los pendientes operativos.";
 }
 
+/** Fechas de contrato API; el backend ignora el período para pendientes (stock actual). */
+const PENDIENTES_API_DESDE = "2000-01-01";
+const PENDIENTES_API_HASTA = "2099-12-31";
+
 /**
- * Carga `GET /api/indicadores/pendientes` cuando cambian fechas o filtros.
+ * Carga `GET /api/indicadores/pendientes` cuando cambia el filtro de distrito.
+ * No depende del tab Semanal/Mensual/Trimestral/Anual ni del inspector.
  */
 export function useIndicadoresPendientes(
-  params: IndicadoresFiltrosParams | null
+  params: Pick<IndicadoresFiltrosParams, "distrito_id"> | null
 ): UseIndicadoresPendientesResult {
   const [data, setData] = useState<IndicadoresPendientesResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,20 +37,22 @@ export function useIndicadoresPendientes(
   const [tick, setTick] = useState(0);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
+  const distritoId = params?.distrito_id;
 
   useEffect(() => {
-    if (!params?.desde || !params?.hasta) {
-      setData(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchIndicadoresPendientes(params)
+    const query: IndicadoresFiltrosParams = {
+      desde: PENDIENTES_API_DESDE,
+      hasta: PENDIENTES_API_HASTA,
+    };
+    if (distritoId != null) {
+      query.distrito_id = distritoId;
+    }
+
+    fetchIndicadoresPendientes(query)
       .then((res) => {
         if (!cancelled) {
           setData(res);
@@ -63,7 +70,7 @@ export function useIndicadoresPendientes(
     return () => {
       cancelled = true;
     };
-  }, [params, tick]);
+  }, [distritoId, tick]);
 
   return { data, loading, error, refetch };
 }

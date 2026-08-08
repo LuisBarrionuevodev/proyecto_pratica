@@ -14,6 +14,7 @@ const baseEjecutivo: IndicadoresEjecutivoResponse = {
   kpis: {
     actuaciones_realizadas: 10,
     actas_labradas: 5,
+    inspecciones_realizadas: 3,
     reinspecciones_notificacion_realizadas: 2,
     reinspecciones_oficio_realizadas: 0,
     ratificaciones_clausura_realizadas: 1,
@@ -44,6 +45,16 @@ function renderSection(data: IndicadoresEjecutivoResponse | null) {
 }
 
 describe("DashboardEjecutivoSection", () => {
+  it("muestra card de inspecciones realizadas entre actas y reins. notificación", () => {
+    const html = renderSection(baseEjecutivo);
+    const actasIdx = html.indexOf("Actas labradas");
+    const inspeccionesIdx = html.indexOf("Inspecciones realizadas");
+    const reinsNotifIdx = html.indexOf("Reins. notificación realizadas");
+    expect(inspeccionesIdx).toBeGreaterThan(-1);
+    expect(actasIdx).toBeLessThan(inspeccionesIdx);
+    expect(inspeccionesIdx).toBeLessThan(reinsNotifIdx);
+  });
+
   it("muestra card de reins. oficio realizadas", () => {
     const html = renderSection(baseEjecutivo);
     expect(html).toContain("Reins. oficio realizadas");

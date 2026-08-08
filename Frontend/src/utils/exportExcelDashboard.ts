@@ -2,6 +2,10 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 import type { DashboardExportPayload } from "../Containers/Dashboard/utils/buildDashboardExportPayload";
+import {
+  buildContraproducenciasResumen,
+  formatPorcentajeNoRealizadas,
+} from "../Containers/Dashboard/utils/noRealizadasContraproducencias";
 
 const EMPTY_ROW = "Sin datos en el período seleccionado.";
 
@@ -59,12 +63,10 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
     data.pendientesDistritos.map((row) => ({
       Distrito: row.distrito_nombre,
       Código: row.distrito_codigo,
+      Total: row.total,
       Relevamientos: row.relevamientos,
-      Denuncias: row.denuncias,
       "Reins. oficio": row.reinspecciones_oficio,
       "Reins. notificación": row.reinspecciones_notificacion,
-      "Sin geolocalización": row.sin_geolocalizacion,
-      Total: row.total,
     }))
   );
 
@@ -109,22 +111,31 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
 
   const noRealAoa: (string | number)[][] = [];
   if (data.noRealizadas) {
-    const pt = data.noRealizadas.por_tipo;
-    noRealAoa.push(["Resumen por tipo"]);
-    noRealAoa.push(["Tipo", "Cantidad"]);
-    noRealAoa.push(["Total", data.noRealizadasTotal ?? 0]);
-    noRealAoa.push(["Inspección", pt.inspeccion]);
-    noRealAoa.push(["Reinspección oficio", pt.reinspeccion_oficio]);
-    noRealAoa.push(["Reinspección notificación", pt.reinspeccion_notificacion]);
-    noRealAoa.push(["Denuncia", pt.denuncia]);
+    const resumen = buildContraproducenciasResumen(data.noRealizadas);
+    noRealAoa.push(["Resumen"]);
+    noRealAoa.push(["No realizadas total", data.noRealizadasTotal ?? resumen.total]);
     noRealAoa.push([]);
-    noRealAoa.push(["Top contraproducencias"]);
-    noRealAoa.push(["Contraproducencia", "Cantidad"]);
-    if (data.noRealizadas.top_contraproducencias.length === 0) {
+    noRealAoa.push(["Principales contraproducencias"]);
+    noRealAoa.push(["Contraproducencia", "Cantidad", "%"]);
+    const resumenRows =
+      resumen.rows.length > 0
+        ? resumen.rows
+        : (data.noRealizadas.contraproducencias_resumen ?? []).map((r) => ({
+            contraproducencia: r.label,
+            cantidad: r.cantidad,
+            porcentaje: resumen.total > 0 ? (r.cantidad / resumen.total) * 100 : 0,
+          }));
+    if (resumenRows.length === 0) {
       noRealAoa.push([EMPTY_ROW]);
     } else {
-      data.noRealizadas.top_contraproducencias.forEach((r) => {
-        noRealAoa.push([r.contraproducencia, r.cantidad]);
+      resumenRows.forEach((r) => {
+        noRealAoa.push([
+          r.contraproducencia,
+          r.cantidad,
+          formatPorcentajeNoRealizadas(
+            "porcentaje" in r ? Number(r.porcentaje) : 0
+          ),
+        ]);
       });
     }
     noRealAoa.push([]);
@@ -165,8 +176,7 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
         "Inspecciones",
         "Reins. oficio",
         "Reins. notificación",
-        "Denuncias",
-        "Tipo principal",
+        "Otras",
       ],
       data.productividad.inspectores_realizadas.map((r) => [
         r.inspector,
@@ -174,8 +184,7 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
         r.inspecciones,
         r.reinspecciones_oficio,
         r.reinspecciones_notificacion,
-        r.denuncias,
-        r.tipo_principal,
+        r.otras ?? 0,
       ])
     );
     pushProdTable(
@@ -183,20 +192,20 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
       [
         "Inspector",
         "Total",
-        "Contraproducencia principal",
-        "Inspecciones",
-        "Reins. oficio",
-        "Reins. notificación",
-        "Denuncias",
+        "Local cerrado",
+        "No existe",
+        "No se ratificó",
+        "Clima",
+        "Otras",
       ],
       data.productividad.inspectores_no_realizadas.map((r) => [
         r.inspector,
         r.total_no_realizadas,
-        r.contraproducencia_principal,
-        r.inspecciones,
-        r.reinspecciones_oficio,
-        r.reinspecciones_notificacion,
-        r.denuncias,
+        r.local_cerrado ?? 0,
+        r.no_existe ?? 0,
+        r.no_se_ratifico ?? 0,
+        r.clima ?? 0,
+        r.otras ?? 0,
       ])
     );
     pushProdTable(
