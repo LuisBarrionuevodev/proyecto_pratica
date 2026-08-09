@@ -205,6 +205,10 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     const html = renderPanel();
     expect(html).toContain("Cargando indicadores");
     expect(html).not.toContain("Overview operativo");
+    expect(html).not.toContain("Cargando overview");
+    expect(html).not.toContain("Cargando pendientes");
+    expect(html).not.toContain("Cargando riesgo");
+    expect(html).not.toContain("Cargando productividad");
   });
 
   it("renderiza estructura aunque solo Ejecutivo terminó", () => {
@@ -363,7 +367,7 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(src).toContain("Exportar PDF");
     expect(src).toContain("DashboardProductividadSectionLazy");
     expect(src).toContain("DashboardSectionGate");
-    expect(src).toContain("showGlobalLoader");
+    expect(src).toContain("initialLoadDone");
     expect(src).toContain("useMemo(() => {");
     expect(src).toContain("indicadoresParams");
   });
@@ -375,5 +379,21 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(html).toContain("Operativo / Pendientes actuales");
     expect(html).not.toContain("Pendientes geolocalización");
     expect(html).not.toContain("Pendientes actuales al momento de consulta.");
+  });
+
+  it("dashboard cargado no muestra Denuncia ni Tipo principal", () => {
+    setAllLoaded();
+    const html = renderPanel();
+    expect(html).not.toMatch(/Denuncias?\s+pendientes/i);
+    expect(html).not.toContain("Tipo principal");
+    expect(html).not.toMatch(/>\s*Denuncia\s*</i);
+  });
+
+  it("no realizadas no muestra card duplicada de total interno", () => {
+    setAllLoaded();
+    const html = renderPanel();
+    expect(html).toContain("No realizadas");
+    expect(html).toContain("Principales contraproducencias");
+    expect(html).not.toContain("No realizadas total");
   });
 });

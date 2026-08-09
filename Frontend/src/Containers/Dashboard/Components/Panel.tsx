@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { downloadDashboardPdf } from "../../../documentos/dashboard/downloadDashboardPdf";
 import { buildDashboardExportPayload } from "../utils/buildDashboardExportPayload";
@@ -199,17 +199,15 @@ const Panel = () => {
   const noRealizadasReady = isDashboardSectionReady(noRealizadasData, noRealizadasError);
   const productividadReady = isDashboardSectionReady(productividadData, productividadError);
 
-  const showGlobalLoader =
-    !ejecutivoReady &&
-    ejecutivoLoading &&
-    !pendientesReady &&
-    pendientesLoading &&
-    !riesgoReady &&
-    riesgoLoading &&
-    !noRealizadasReady &&
-    noRealizadasLoading &&
-    !productividadReady &&
-    productividadLoading;
+  const anySectionReady =
+    ejecutivoReady ||
+    pendientesReady ||
+    riesgoReady ||
+    noRealizadasReady ||
+    productividadReady;
+
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const hasEverBeenLoading = useRef(false);
 
   const isAnyLoading =
     ejecutivoLoading ||
@@ -218,7 +216,23 @@ const Panel = () => {
     noRealizadasLoading ||
     productividadLoading;
 
-  const isRefreshing = isAnyLoading && !showGlobalLoader;
+  useEffect(() => {
+    if (isAnyLoading) {
+      hasEverBeenLoading.current = true;
+    }
+  }, [isAnyLoading]);
+
+  useEffect(() => {
+    if (initialLoadDone) return;
+    if (anySectionReady || (hasEverBeenLoading.current && !isAnyLoading)) {
+      setInitialLoadDone(true);
+    }
+  }, [initialLoadDone, anySectionReady, isAnyLoading]);
+
+  /** Primera entrada: un solo loader global; después, layout + carga progresiva. */
+  const showGlobalLoader = !initialLoadDone && !anySectionReady;
+
+  const isRefreshing = initialLoadDone && isAnyLoading;
 
   const anyBlockingLoad = isAnyLoading;
 
