@@ -218,10 +218,12 @@ export type MapaCanvasProps = {
   loading: boolean;
   mapExpanded: boolean;
   onToggleExpand: () => void;
+  /** Mensaje contextual cuando no hay puntos (p. ej. filtro sin resultados). */
+  emptyMessage?: string | null;
 };
 
 /** Mapa Leaflet del modo Realizados en MapPage. */
-export function MapaCanvas({ features, loading, mapExpanded, onToggleExpand }: MapaCanvasProps) {
+export function MapaCanvas({ features, loading, mapExpanded, onToggleExpand, emptyMessage }: MapaCanvasProps) {
   return (
     <Box
       sx={{
@@ -261,10 +263,10 @@ export function MapaCanvas({ features, loading, mapExpanded, onToggleExpand }: M
         </Box>
       )}
 
-      {!loading && features.length === 0 && (
+      {!loading && features.length === 0 && emptyMessage && (
         <Box sx={{ position: "absolute", left: 12, right: 12, top: 56, zIndex: 900 }}>
           <Alert severity="info" sx={alertBaseStyles}>
-            Sin datos disponibles para los filtros actuales.
+            {emptyMessage}
           </Alert>
         </Box>
       )}

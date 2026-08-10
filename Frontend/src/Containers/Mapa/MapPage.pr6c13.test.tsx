@@ -60,10 +60,13 @@ describe("PR6C.13 limpieza legacy Pendientes operativo", () => {
     expect(panel).toContain("Visitas realizadas");
   });
 
-  it("MapaFiltrosUnificados sin pendienteTipo", () => {
+  it("MapaFiltrosUnificados incluye filtro Tipo operativo", () => {
     const filtro = read("src/Containers/Mapa/Components/MapaFiltrosUnificados.tsx");
     expect(filtro).not.toContain("pendienteTipo");
     expect(filtro).not.toContain('modo === "pendientes"');
+    expect(filtro).toContain('label="Tipo"');
+    expect(filtro).toContain('data-testid="mapa-realizados-filtro-tipo"');
+    expect(filtro).toContain("MAPA_TIPO_INICIADOR_OPTIONS");
     expect(filtro).toContain("Definición");
     expect(filtro).toContain("Inspector");
   });

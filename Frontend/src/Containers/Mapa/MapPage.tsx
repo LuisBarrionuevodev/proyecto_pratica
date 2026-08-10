@@ -21,6 +21,15 @@ function parseMapaModo(raw: string | null): MapaModo {
   return "geolocalizacion";
 }
 
+type FiltrosRealizadosSnapshot = {
+  from: string;
+  to: string;
+  distritoId: string;
+  inspectorId: string;
+  realizadoTipoIniciador: string;
+  realizadoDefinicion: string;
+};
+
 /**
  * Vista mapa DIGITALIZA: Geolocalización de domicilios (PR6C) y Realizados operativos.
  */
@@ -28,7 +37,7 @@ const MapPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const defaultRange = useMemo(() => getCurrentMonthRange(), []);
 
-  const [modo, setModo] = useState<MapaModo>(() => parseMapaModo(searchParams.get("modo")));
+  const modo = useMemo(() => parseMapaModo(searchParams.get("modo")), [searchParams]);
   const [fechaDesde, setFechaDesde] = useState(defaultRange.desde);
   const [fechaHasta, setFechaHasta] = useState(defaultRange.hasta);
   const [distritoId, setDistritoId] = useState("");
@@ -46,26 +55,7 @@ const MapPage = () => {
 
   const { features, loading, error, infoMessage, loadRealizados } = useMapaOperativo();
 
-  const filtrosMapa = useMemo(
-    () => ({
-      from: fechaDesde,
-      to: fechaHasta,
-      distritoId,
-      inspectorId,
-    }),
-    [fechaDesde, fechaHasta, distritoId, inspectorId]
-  );
-
-  const loadParamsRealizados = useMemo(
-    () => ({
-      ...filtrosMapa,
-      tipo: realizadoTipoIniciador,
-      definicion: realizadoDefinicion,
-    }),
-    [filtrosMapa, realizadoTipoIniciador, realizadoDefinicion]
-  );
-
-  const filtrosUiRef = useRef({
+  const filtrosUiRef = useRef<FiltrosRealizadosSnapshot>({
     from: fechaDesde,
     to: fechaHasta,
     distritoId,
@@ -82,10 +72,27 @@ const MapPage = () => {
     realizadoDefinicion,
   };
 
-  useEffect(() => {
-    const urlModo = parseMapaModo(searchParams.get("modo"));
-    setModo(urlModo);
-  }, [searchParams]);
+  const patchFiltrosUiRef = useCallback((patch: Partial<FiltrosRealizadosSnapshot>) => {
+    filtrosUiRef.current = { ...filtrosUiRef.current, ...patch };
+  }, []);
+
+  const cargarRealizadosConSnapshotUi = useCallback(
+    async (opts?: MapaOperativoLoadOptions) => {
+      const s = filtrosUiRef.current;
+      await loadRealizados(
+        {
+          from: s.from,
+          to: s.to,
+          distritoId: s.distritoId,
+          inspectorId: s.inspectorId,
+          tipo: s.realizadoTipoIniciador,
+          definicion: s.realizadoDefinicion,
+        },
+        opts
+      );
+    },
+    [loadRealizados]
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -127,18 +134,80 @@ const MapPage = () => {
   }, [distritoOptions, distritoId]);
 
   useEffect(() => {
-    if (modo === "realizados") {
-      void loadRealizados(loadParamsRealizados);
-    }
-  }, [modo, loadRealizados, loadParamsRealizados]);
+    if (modo !== "realizados") return;
+    void cargarRealizadosConSnapshotUi();
+  }, [modo, fechaDesde, fechaHasta, distritoId, inspectorId, cargarRealizadosConSnapshotUi]);
+
+  const loadRealizadosFromRef = useCallback(
+    (opts?: MapaOperativoLoadOptions) => {
+      void cargarRealizadosConSnapshotUi(opts);
+    },
+    [cargarRealizadosConSnapshotUi]
+  );
 
   const handleAplicar = useCallback(() => {
-    void loadRealizados(loadParamsRealizados);
-  }, [loadRealizados, loadParamsRealizados]);
+    loadRealizadosFromRef();
+  }, [loadRealizadosFromRef]);
+
+  const handleRealizadoTipoChange = useCallback(
+    (v: string) => {
+      if (import.meta.env.DEV) {
+        console.debug("[Mapa Realizados][tipo selected]", v);
+      }
+      patchFiltrosUiRef({ realizadoTipoIniciador: v });
+      setRealizadoTipoIniciador(v);
+      if (modo === "realizados") {
+        loadRealizadosFromRef();
+      }
+    },
+    [modo, patchFiltrosUiRef, loadRealizadosFromRef]
+  );
+
+  const handleRealizadoDefinicionChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ realizadoDefinicion: v });
+      setRealizadoDefinicion(v);
+      if (modo === "realizados") {
+        loadRealizadosFromRef();
+      }
+    },
+    [modo, patchFiltrosUiRef, loadRealizadosFromRef]
+  );
+
+  const handleFechaDesdeChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ from: v });
+      setFechaDesde(v);
+    },
+    [patchFiltrosUiRef]
+  );
+
+  const handleFechaHastaChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ to: v });
+      setFechaHasta(v);
+    },
+    [patchFiltrosUiRef]
+  );
+
+  const handleDistritoIdChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ distritoId: v });
+      setDistritoId(v);
+    },
+    [patchFiltrosUiRef]
+  );
+
+  const handleInspectorIdChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ inspectorId: v });
+      setInspectorId(v);
+    },
+    [patchFiltrosUiRef]
+  );
 
   const handleModoChange = useCallback(
     (m: MapaModo) => {
-      setModo(m);
       setMapExpanded(false);
       setSearchParams(
         (prev) => {
@@ -154,24 +223,6 @@ const MapPage = () => {
       );
     },
     [setSearchParams]
-  );
-
-  const cargarRealizadosConSnapshotUi = useCallback(
-    async (opts?: MapaOperativoLoadOptions) => {
-      const s = filtrosUiRef.current;
-      await loadRealizados(
-        {
-          from: s.from,
-          to: s.to,
-          distritoId: s.distritoId,
-          inspectorId: s.inspectorId,
-          tipo: s.realizadoTipoIniciador,
-          definicion: s.realizadoDefinicion,
-        },
-        opts
-      );
-    },
-    [loadRealizados]
   );
 
   const refrescarOperativoDesdeFormulario = useCallback(() => {
@@ -210,17 +261,17 @@ const MapPage = () => {
           <MapaFiltrosUnificados
             fechaDesde={fechaDesde}
             fechaHasta={fechaHasta}
-            onFechaDesdeChange={setFechaDesde}
-            onFechaHastaChange={setFechaHasta}
+            onFechaDesdeChange={handleFechaDesdeChange}
+            onFechaHastaChange={handleFechaHastaChange}
             distritoId={distritoId}
-            onDistritoIdChange={setDistritoId}
+            onDistritoIdChange={handleDistritoIdChange}
             distritoOptions={distritoOptions}
             realizadoTipoIniciador={realizadoTipoIniciador}
-            onRealizadoTipoIniciadorChange={setRealizadoTipoIniciador}
+            onRealizadoTipoIniciadorChange={handleRealizadoTipoChange}
             realizadoDefinicion={realizadoDefinicion}
-            onRealizadoDefinicionChange={setRealizadoDefinicion}
+            onRealizadoDefinicionChange={handleRealizadoDefinicionChange}
             inspectorId={inspectorId}
-            onInspectorIdChange={setInspectorId}
+            onInspectorIdChange={handleInspectorIdChange}
             inspectores={inspectores}
             onAplicar={handleAplicar}
             onRefrescar={refrescarOperativoDesdeFormulario}
@@ -258,6 +309,7 @@ const MapPage = () => {
                 loading={loading}
                 mapExpanded={mapExpanded}
                 onToggleExpand={() => setMapExpanded((e) => !e)}
+                emptyMessage={infoMessage}
               />
             </Grid>
           </Grid>

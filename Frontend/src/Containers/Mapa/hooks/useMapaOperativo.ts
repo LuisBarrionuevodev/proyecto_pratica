@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { getMapOperativoRealizadosFC, type MapPointFeature } from "../../../api/mapApi";
-
+import { mapaRealizadosEmptyMessage, mapaRealizadosTipoQueryValue } from "../constants/mapaOperativo";
 export type MapaOperativoLoadParams = {
   from: string;
   to: string;
@@ -16,6 +16,12 @@ export type MapaOperativoLoadOptions = {
   /** Agrega `_` en la query para evitar caché HTTP del GET con los mismos filtros. */
   forceNetwork?: boolean;
 };
+
+function debugRealizados(label: string, payload: unknown) {
+  if (import.meta.env.DEV) {
+    console.debug(`[Mapa Realizados]${label}`, payload);
+  }
+}
 
 /**
  * Estado y carga del mapa operativo realizados (PR6C.13: sin pendientes legacy).
@@ -51,24 +57,27 @@ export function useMapaOperativo() {
         setFeatures([]);
         return;
       }
-      const fc = await getMapOperativoRealizadosFC({
+      const queryParams = {
         desde: p.from,
         hasta: p.to,
         distrito_id: _distritoNum(p.distritoId),
-        tipo: p.tipo === "TODOS" ? undefined : p.tipo,
+        tipo: mapaRealizadosTipoQueryValue(p.tipo),
         inspector_id: _inspectorNum(p.inspectorId),
         definicion: p.definicion && p.definicion !== "TODOS" ? p.definicion : undefined,
         ...(opts?.forceNetwork ? { _: Date.now() } : {}),
-      });
+      };
+      debugRealizados("[tipo selected]", p.tipo);
+      debugRealizados("[query params]", queryParams);
+      const fc = await getMapOperativoRealizadosFC(queryParams);
       if (seq !== loadSeqRef.current) return;
       const feats = fc.features ?? [];
+      debugRealizados("[response count]", feats.length);
       setFeatures(feats);
       if (feats.length === 0) {
         setInfoMessage(
-          "No hay visitas realizadas en mapa para ese rango (¿geocode OK del domicilio de la actuación?)."
+          mapaRealizadosEmptyMessage({ tipo: p.tipo, definicion: p.definicion })
         );
-      }
-    } catch (e: unknown) {
+      }    } catch (e: unknown) {
       if (seq !== loadSeqRef.current) return;
       const err = e as { response?: { data?: { detail?: string } } };
       setError(err?.response?.data?.detail ?? "No se pudieron cargar los realizados operativos.");

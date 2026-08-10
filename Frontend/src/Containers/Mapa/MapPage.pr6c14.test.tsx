@@ -132,6 +132,16 @@ describe("PR6C.14 mockup visual Geolocalización", () => {
     expect(mapPage).toContain("MapaCanvas");
     expect(mapPage).toContain('modo === "realizados"');
   });
+
+  it("15. filtro tipo Realizados alineado a Actuaciones", () => {
+    const opts = read("src/Containers/Mapa/constants/mapaOperativo.ts");
+    expect(opts).toContain('value: "INSPECCION", label: "Inspección"');
+    expect(opts).toContain('value: "REINSPECCION", label: "Reinspección"');
+    expect(opts).toContain('value: "RATIFICACION_CLAUSURA"');
+    expect(opts).not.toContain("DENUNCIAS");
+    expect(opts).not.toContain("OFICIO");
+    expect(opts).not.toContain("NOTIFICACION");
+  });
 });
 
 describe("PR6C.14 mapeo subtabs documentado", () => {

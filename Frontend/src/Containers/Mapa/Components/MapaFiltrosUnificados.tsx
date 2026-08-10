@@ -1,4 +1,4 @@
-import { Box, Paper, Stack, Typography } from "@mui/material";
+import { Grid, Paper, Stack } from "@mui/material";
 
 import type { CatalogItem } from "../../../api/gridApi";
 import { AppButton } from "../../../ui/AppButton";
@@ -52,75 +52,102 @@ export function MapaFiltrosUnificados({
   ];
 
   return (
-    <Paper elevation={0} sx={mapaOperativoBarSx}>
+    <Paper elevation={0} sx={mapaOperativoBarSx} data-testid="mapa-realizados-filtros">
       <Stack spacing={2}>
-        <Stack
-          direction={{ xs: "column", lg: "row" }}
-          spacing={2}
-          alignItems={{ lg: "flex-end" }}
-          flexWrap="wrap"
-          useFlexGap
-        >
-          <AppTextField
-            appearance="glass"
-            label="Fecha desde"
-            type="date"
-            value={fechaDesde}
-            onChange={(e) => onFechaDesdeChange(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-            sx={mapaOperativoFieldSx}
-          />
-          <AppTextField
-            appearance="glass"
-            label="Fecha hasta"
-            type="date"
-            value={fechaHasta}
-            onChange={(e) => onFechaHastaChange(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-            sx={mapaOperativoFieldSx}
-          />
-          <AppSelect
-            appearance="glass"
-            label="Distrito / zona"
-            value={distritoId}
-            onChange={(e) => onDistritoIdChange(String(e.target.value))}
-            options={distritoOptions.map((o) => ({ value: o.value, label: o.label }))}
-            sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 200 } }}
-          />
-          <AppSelect
-            appearance="glass"
-            label="Tipo"
-            value={realizadoTipoIniciador}
-            onChange={(e) => onRealizadoTipoIniciadorChange(String(e.target.value))}
-            options={tipoOptions}
-            sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 240 } }}
-          />
-          <AppSelect
-            appearance="glass"
-            label="Definición"
-            value={realizadoDefinicion}
-            onChange={(e) => onRealizadoDefinicionChange(String(e.target.value))}
-            options={MAPA_DEFINICION_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 200 } }}
-          />
-          <AppSelect
-            appearance="glass"
-            label="Inspector"
-            value={inspectorId}
-            onChange={(e) => onInspectorIdChange(String(e.target.value))}
-            options={inspectorOptions.map((o) => ({ value: o.value, label: o.label }))}
-            sx={{ ...mapaOperativoFieldSx, minWidth: { xs: "100%", lg: 220 } }}
-          />
-          <Box sx={{ flex: 1, minWidth: { xs: 0, lg: 8 } }} />
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <AppButton dsVariant="primary" dsSize="md" onClick={onAplicar}>
-              Aplicar filtros
-            </AppButton>
-            <AppButton dsVariant="primary" dsSize="md" onClick={onRefrescar}>
-              Refrescar
-            </AppButton>
-          </Stack>
-        </Stack>
+        <Grid container spacing={2} alignItems="flex-end">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <AppTextField
+              appearance="glass"
+              label="Fecha desde"
+              type="date"
+              value={fechaDesde}
+              onChange={(e) => onFechaDesdeChange(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={mapaOperativoFieldSx}
+              fullWidth
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <AppTextField
+              appearance="glass"
+              label="Fecha hasta"
+              type="date"
+              value={fechaHasta}
+              onChange={(e) => onFechaHastaChange(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={mapaOperativoFieldSx}
+              fullWidth
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <AppSelect
+              appearance="glass"
+              label="Distrito / zona"
+              value={distritoId}
+              onChange={(e) => onDistritoIdChange(String(e.target.value))}
+              options={distritoOptions.map((o) => ({ value: o.value, label: o.label }))}
+              sx={mapaOperativoFieldSx}
+              fullWidth
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <AppSelect
+              appearance="glass"
+              label="Inspector"
+              value={inspectorId}
+              onChange={(e) => onInspectorIdChange(String(e.target.value))}
+              options={inspectorOptions.map((o) => ({ value: o.value, label: o.label }))}
+              sx={mapaOperativoFieldSx}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <AppSelect
+              appearance="glass"
+              label="Tipo"
+              value={realizadoTipoIniciador}
+              onChange={(e) => onRealizadoTipoIniciadorChange(String(e.target.value))}
+              options={tipoOptions}
+              data-testid="mapa-realizados-filtro-tipo"
+              SelectProps={{ displayEmpty: false }}
+              sx={mapaOperativoFieldSx}
+              fullWidth
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <AppSelect
+              appearance="glass"
+              label="Definición"
+              value={realizadoDefinicion}
+              onChange={(e) => onRealizadoDefinicionChange(String(e.target.value))}
+              options={MAPA_DEFINICION_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              data-testid="mapa-realizados-filtro-definicion"
+              sx={mapaOperativoFieldSx}
+              fullWidth
+            />
+          </Grid>
+          <Grid
+            size={{ xs: 12, md: 4 }}
+            sx={{ display: "flex", justifyContent: { xs: "stretch", md: "flex-end" } }}
+          >
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ width: { xs: "100%", md: "auto" } }}
+            >
+              <AppButton dsVariant="primary" dsSize="md" onClick={onAplicar} sx={{ flex: { xs: 1, sm: "none" } }}>
+                Aplicar filtros
+              </AppButton>
+              <AppButton dsVariant="primary" dsSize="md" onClick={onRefrescar} sx={{ flex: { xs: 1, sm: "none" } }}>
+                Refrescar
+              </AppButton>
+            </Stack>
+          </Grid>
+        </Grid>
       </Stack>
     </Paper>
   );

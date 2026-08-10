@@ -335,8 +335,119 @@ def _map_tipo_filtro_front(tipo: Optional[str]) -> Optional[str]:
         "RELEVAMIENTOS": "RELEVAMIENTO",
         "REINSPECCION_OFICIO": "REINSPECCION_OFICIO",
         "NOTIFICACION_VENCIDA": "REINSPECCION_NOTIFICACION",
+        "OFICIO": "REINSPECCION_OFICIO",
+        "NOTIFICACION": "REINSPECCION_NOTIFICACION",
     }
     return mapping.get(tipo, tipo)
+
+
+TIPOS_OFICIO_MAPA_OPERATIVO: tuple[str, ...] = (
+    "REINSPECCION_OFICIO",
+    "VERIFICAR_INFORMAR_OFICIO",
+    "RATIFICACION_CLAUSURA_OFICIO",
+    "RATIFICACION_DECOMISO_OFICIO",
+)
+
+
+def _tipos_filtro_mapa_operativo(tipo: Optional[str]) -> Optional[tuple[str, ...]]:
+    """
+    Resuelve filtro UI «tipo» a tupla de ``IniciadorRuta.tipo_iniciador`` (queries con IN).
+
+    Soporta agregados ``OFICIO`` / ``NOTIFICACION`` y valores legacy del frontend previo.
+    """
+    if not tipo or str(tipo).strip().upper() == "TODOS":
+        return None
+    key = str(tipo).strip().upper()
+    if key in ("OFICIO", "OFICIOS", "REINSPECCION_OFICIO", "REINSPECCIONES_OFICIO"):
+        return TIPOS_OFICIO_MAPA_OPERATIVO
+    if key in ("NOTIFICACION", "NOTIFICACIONES", "NOTIFICACION_VENCIDA", "REINSPECCION_NOTIFICACION"):
+        return ("REINSPECCION_NOTIFICACION",)
+    if key in ("DENUNCIAS", "DENUNCIA"):
+        return ("DENUNCIA",)
+    if key in ("RELEVAMIENTOS", "RELEVAMIENTO"):
+        return ("RELEVAMIENTO",)
+    return (key,)
+
+
+def _aplicar_filtro_tipo_iniciador(query, tipos: Optional[tuple[str, ...]]):
+    """Aplica filtro por ``tipo_iniciador`` (igualdad o IN)."""
+    if tipos is None:
+        return query
+    if len(tipos) == 1:
+        return query.filter(IniciadorRuta.tipo_iniciador == tipos[0])
+    return query.filter(IniciadorRuta.tipo_iniciador.in_(tipos))
+
+
+def _normalize_filtro_tipo_realizados(tipo: Optional[str]) -> Optional[str]:
+    """
+    Normaliza el query param ``tipo`` del mapa Realizados.
+
+    Retorna clave canónica (``INSPECCION``, ``REINSPECCION``, …) o ``None`` si no hay filtro.
+    """
+    if not tipo:
+        return None
+    key = str(tipo).strip().upper()
+    if key in ("", "TODOS", "ALL"):
+        return None
+    allowed = {
+        "INSPECCION",
+        "REINSPECCION",
+        "RATIFICACION_CLAUSURA",
+        "RATIFICACION_DECOMISO",
+        "VERIFICAR_INFORMAR",
+    }
+    if key in allowed:
+        return key
+    return key
+
+
+def _realizado_coincide_filtro_tipo_operativo(
+    tipo_filtro: str,
+    tipo_iniciador: str | None,
+    actuacion_tipo: str | None,
+) -> bool:
+    """
+    True si el cierre realizada coincide con el filtro operativo de Actuaciones.
+
+    Usa la misma clasificación híbrida que indicadores (``bucket_operativo``).
+    """
+    from app.domains.indicadores.services.indicadores_operativos_queries import (
+        BUCKET_RATIFICACION_CLAUSURA,
+        BUCKET_RATIFICACION_DECOMISO,
+        BUCKET_REINSPECCION_NOTIFICACION,
+        BUCKET_REINSPECCION_OFICIO,
+        BUCKET_RELEVAMIENTO,
+        BUCKET_VERIFICAR_INFORMAR,
+        bucket_operativo,
+        canonical_tipo_iniciador,
+        loose_key_tipo_operativo,
+    )
+
+    key = str(tipo_filtro).strip().upper()
+    bucket = bucket_operativo(tipo_iniciador, actuacion_tipo)
+
+    if key == "INSPECCION":
+        loose = loose_key_tipo_operativo(actuacion_tipo)
+        if bucket == BUCKET_RELEVAMIENTO:
+            return True
+        if loose and "inspeccion" in loose and "reinspeccion" not in loose:
+            return True
+        return False
+    if key == "REINSPECCION":
+        return bucket in (BUCKET_REINSPECCION_OFICIO, BUCKET_REINSPECCION_NOTIFICACION)
+    if key == "RATIFICACION_CLAUSURA":
+        return bucket == BUCKET_RATIFICACION_CLAUSURA
+    if key == "RATIFICACION_DECOMISO":
+        return bucket == BUCKET_RATIFICACION_DECOMISO
+    if key == "VERIFICAR_INFORMAR":
+        return bucket == BUCKET_VERIFICAR_INFORMAR
+
+    # Compatibilidad legacy (filtros por iniciador agregado).
+    tipos_legacy = _tipos_filtro_mapa_operativo(tipo_filtro)
+    if tipos_legacy is None:
+        return True
+    ini_canon = canonical_tipo_iniciador(tipo_iniciador) or ""
+    return ini_canon in tipos_legacy
 
 
 def list_mapa_operativo_pendientes_geo(
@@ -495,12 +606,16 @@ def list_mapa_operativo_realizados_geo(
 
     Filtro opcional ``definicion``: restringe a actuaciones con acta de clausura y/o decomiso según UI
     (``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``).
+
+    Filtro opcional ``tipo``: buckets operativos alineados a Actuaciones
+    (``INSPECCION``, ``REINSPECCION``, ``RATIFICACION_CLAUSURA``, ``RATIFICACION_DECOMISO``,
+    ``VERIFICAR_INFORMAR``).
     """
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
     if d_desde is None or d_hasta is None:
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
-    tipo_db = _map_tipo_filtro_front(tipo)
+    filtro_tipo_operativo = _normalize_filtro_tipo_realizados(tipo)
 
     fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
 
@@ -547,8 +662,6 @@ def list_mapa_operativo_realizados_geo(
     )
     if distrito_id is not None:
         q = q.filter(Domicilio.distrito_id == distrito_id)
-    if tipo_db is not None:
-        q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
     if inspector_id is not None:
         q = q.filter(_realizados_inspector_coincide(inspector_id))
 
@@ -586,6 +699,12 @@ def list_mapa_operativo_realizados_geo(
         nombre_local_val = (str(nl).strip() or None) if nl is not None else None
         tipo_act = getattr(act, "tipo", None) if act else None
         tipo_act_str = str(tipo_act) if tipo_act is not None else None
+        if filtro_tipo_operativo and not _realizado_coincide_filtro_tipo_operativo(
+            filtro_tipo_operativo,
+            str(ini.tipo_iniciador) if ini else None,
+            tipo_act_str,
+        ):
+            continue
         doc_c = _documento_contribuyente(dom.contribuyente if dom else None)
 
         base: dict[str, Any] = {
@@ -978,7 +1097,7 @@ def count_mapa_operativo_realizados_visita(
     d_hasta = _parse_date(hasta)
     if d_desde is None or d_hasta is None:
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
-    tipo_db = _map_tipo_filtro_front(tipo)
+    filtro_tipo_operativo = _normalize_filtro_tipo_realizados(tipo)
     fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
     q = (
         db.session.query(func.count(RutaItem.id))
@@ -1002,8 +1121,6 @@ def count_mapa_operativo_realizados_visita(
     )
     if distrito_id is not None:
         q = q.filter(Domicilio.distrito_id == distrito_id)
-    if tipo_db is not None:
-        q = q.filter(IniciadorRuta.tipo_iniciador == tipo_db)
     if inspector_id is not None:
         q = q.filter(_realizados_inspector_coincide(inspector_id))
 
@@ -1014,5 +1131,17 @@ def count_mapa_operativo_realizados_visita(
         q = q.filter(Actuaciones.decomiso.has())
     elif definicion_key == "CLAUSURA_DECOMISO":
         q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
+
+    if filtro_tipo_operativo:
+        rows = q.with_entities(IniciadorRuta.tipo_iniciador, Actuaciones.tipo).all()
+        return sum(
+            1
+            for ini_t, act_t in rows
+            if _realizado_coincide_filtro_tipo_operativo(
+                filtro_tipo_operativo,
+                str(ini_t) if ini_t is not None else None,
+                str(act_t) if act_t is not None else None,
+            )
+        )
 
     return int(q.scalar() or 0)

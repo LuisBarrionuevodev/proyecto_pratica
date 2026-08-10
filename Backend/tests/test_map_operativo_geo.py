@@ -5,9 +5,102 @@ from datetime import date
 import pytest
 
 from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
+    TIPOS_OFICIO_MAPA_OPERATIVO,
+    _normalize_filtro_tipo_realizados,
+    _realizado_coincide_filtro_tipo_operativo,
+    _tipos_filtro_mapa_operativo,
     list_mapa_operativo_pendientes_geo,
     list_mapa_operativo_realizados_geo,
 )
+from app.domains.indicadores.services.indicadores_operativos_queries import (
+    BUCKET_RATIFICACION_CLAUSURA,
+    BUCKET_RATIFICACION_DECOMISO,
+    BUCKET_REINSPECCION_NOTIFICACION,
+    BUCKET_REINSPECCION_OFICIO,
+    BUCKET_VERIFICAR_INFORMAR,
+    bucket_operativo,
+)
+
+
+def test_normalize_filtro_tipo_realizados() -> None:
+    assert _normalize_filtro_tipo_realizados(None) is None
+    assert _normalize_filtro_tipo_realizados("") is None
+    assert _normalize_filtro_tipo_realizados("TODOS") is None
+    assert _normalize_filtro_tipo_realizados("REINSPECCION") == "REINSPECCION"
+
+
+def test_realizado_filtro_reinspeccion_oficio_generica() -> None:
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "REINSPECCION_OFICIO", "REINSPECCION"
+    )
+    assert bucket_operativo("REINSPECCION_OFICIO", "REINSPECCION") == BUCKET_REINSPECCION_OFICIO
+
+
+def test_realizado_filtro_reinspeccion_notificacion() -> None:
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "REINSPECCION_NOTIFICACION", "REINSPECCION"
+    )
+    assert bucket_operativo("REINSPECCION_NOTIFICACION", "REINSPECCION") == BUCKET_REINSPECCION_NOTIFICACION
+
+
+def test_realizado_filtro_ratificacion_clausura() -> None:
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "RATIFICACION_CLAUSURA", "REINSPECCION_OFICIO", "RATIFICACION DE CLAUSURA"
+    )
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "RATIFICACION_CLAUSURA", "RATIFICACION_CLAUSURA_OFICIO", "REINSPECCION"
+    )
+
+
+def test_realizado_filtro_verificar_informar() -> None:
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "VERIFICAR_INFORMAR", "VERIFICAR_INFORMAR_OFICIO", "REINSPECCION"
+    )
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "VERIFICAR_INFORMAR", "REINSPECCION_OFICIO", "VERIFICAR E INFORMAR"
+    )
+
+
+def test_realizado_filtro_inspeccion_relevamiento() -> None:
+    assert _realizado_coincide_filtro_tipo_operativo("INSPECCION", "RELEVAMIENTO", "INSPECCION")
+
+
+def test_realizado_filtro_reinspeccion_excluye_ratificacion_y_verificar() -> None:
+    assert not _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "REINSPECCION_OFICIO", "RATIFICACION DE CLAUSURA"
+    )
+    assert not _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "REINSPECCION_OFICIO", "RATIFICACION DE DECOMISO"
+    )
+    assert not _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "REINSPECCION_OFICIO", "VERIFICAR E INFORMAR"
+    )
+    assert not _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "RATIFICACION_CLAUSURA_OFICIO", "REINSPECCION"
+    )
+    assert not _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "RATIFICACION_DECOMISO_OFICIO", "REINSPECCION"
+    )
+    assert not _realizado_coincide_filtro_tipo_operativo(
+        "REINSPECCION", "VERIFICAR_INFORMAR_OFICIO", "REINSPECCION"
+    )
+    assert bucket_operativo("REINSPECCION_OFICIO", "RATIFICACION DE CLAUSURA") == BUCKET_RATIFICACION_CLAUSURA
+    assert bucket_operativo("REINSPECCION_OFICIO", "RATIFICACION DE DECOMISO") == BUCKET_RATIFICACION_DECOMISO
+    assert bucket_operativo("REINSPECCION_OFICIO", "VERIFICAR E INFORMAR") == BUCKET_VERIFICAR_INFORMAR
+
+
+def test_realizado_filtro_ratificacion_decomiso() -> None:
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "RATIFICACION_DECOMISO", "REINSPECCION_OFICIO", "RATIFICACION DE DECOMISO"
+    )
+    assert _realizado_coincide_filtro_tipo_operativo(
+        "RATIFICACION_DECOMISO", "RATIFICACION_DECOMISO_OFICIO", "REINSPECCION"
+    )
+
+
+def test_tipos_filtro_oficio_agrupa_circuito_oficio() -> None:
+    tipos = _tipos_filtro_mapa_operativo("OFICIO")
+    assert tipos == TIPOS_OFICIO_MAPA_OPERATIVO
 
 
 def test_pendientes_geo_exige_rango(app) -> None:
@@ -65,3 +158,21 @@ def test_http_operativo_realizados_con_definicion_vacio_fc_200(client, auth_head
     data = resp.get_json()
     assert data.get("type") == "FeatureCollection"
     assert data.get("features") == []
+
+
+def test_http_operativo_realizados_tipo_reinspeccion_200(client, auth_headers) -> None:
+    resp = client.get(
+        "/map/operativo/realizados?desde=2099-01-01&hasta=2099-01-07&tipo=REINSPECCION",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.get_json().get("type") == "FeatureCollection"
+
+
+def test_http_operativo_realizados_tipo_ratificacion_clausura_200(client, auth_headers) -> None:
+    resp = client.get(
+        "/map/operativo/realizados?desde=2099-01-01&hasta=2099-01-07&tipo=RATIFICACION_CLAUSURA",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.get_json().get("type") == "FeatureCollection"
