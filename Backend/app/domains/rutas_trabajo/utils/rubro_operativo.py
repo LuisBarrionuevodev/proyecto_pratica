@@ -33,6 +33,42 @@ def _actuacion_visita_realizada(act: Actuaciones) -> bool:
     return (item.estado_ejecucion or "").strip().upper() == "REALIZADO"
 
 
+def rubro_id_operativo_para_iniciador(
+    iniciador: IniciadorRuta | None,
+    dom: Domicilio | None,
+    *,
+    act: Actuaciones | None = None,
+) -> int | None:
+    """
+    Resuelve el ``rubro_id`` operativo del trabajo (misma prioridad que el nombre).
+
+    Parámetros:
+        iniciador: iniciador de ruta vinculado al ítem/actuación.
+        dom: domicilio efectivo de la actuación o iniciador.
+        act: actuación vinculada (denuncia constatada en visita realizada).
+
+    Retorno:
+        ID de rubro operativo o ``None`` si no aplica / no constatado.
+    """
+    if iniciador and iniciador.tipo_iniciador == "RELEVAMIENTO":
+        rel = iniciador.relevamiento
+        if rel and rel.rubro_id is not None:
+            return int(rel.rubro_id)
+
+    if iniciador and iniciador.tipo_iniciador == "DENUNCIA":
+        if act is not None and _actuacion_visita_realizada(act):
+            act_dom = getattr(act, "domicilio", None)
+            if act_dom and act_dom.rubro_id is not None:
+                return int(act_dom.rubro_id)
+        return None
+
+    if dom and dom.rubro_id is not None:
+        return int(dom.rubro_id)
+    if iniciador and iniciador.relevamiento and iniciador.relevamiento.rubro_id is not None:
+        return int(iniciador.relevamiento.rubro_id)
+    return None
+
+
 def rubro_nombre_operativo_para_iniciador(
     iniciador: IniciadorRuta | None,
     dom: Domicilio | None,

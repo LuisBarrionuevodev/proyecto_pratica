@@ -92,8 +92,7 @@ export const getMapOperativoRealizadosFC = async (params: {
   distrito_id?: number;
   tipo?: string;
   inspector_id?: number;
-  /** Clausura / decomiso / ambos (mismo contrato que UI mapa operativo). */
-  definicion?: string;
+  rubro_id?: number;
   _?: number;
 }) => {
   const { data } = await apiClient.get<MapPointFeatureCollection>("/map/operativo/realizados", { params });

@@ -291,11 +291,13 @@ def map_operativo_realizados():
     """
     Mapa operativo — realizados: ``RutaItem`` finalizado con visita realizada en el rango.
 
-    Query opcional: ``definicion`` (``TODOS``, ``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``).
+    Query opcional: ``definicion`` (``TODOS``, ``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``),
+    ``rubro_id`` (rubro operativo del cierre).
     """
     params = request.args.to_dict()
     distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
     inspector_id = int(params["inspector_id"]) if params.get("inspector_id") else None
+    rubro_id = int(params["rubro_id"]) if params.get("rubro_id") else None
     try:
         items = list_mapa_operativo_realizados_geo(
             desde=params.get("desde") or params.get("from"),
@@ -304,6 +306,7 @@ def map_operativo_realizados():
             tipo=params.get("tipo"),
             inspector_id=inspector_id,
             definicion=params.get("definicion"),
+            rubro_id=rubro_id,
         )
     except ValueError as exc:
         return jsonify({"detail": str(exc)}), 400

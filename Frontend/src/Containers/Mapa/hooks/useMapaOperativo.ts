@@ -1,14 +1,20 @@
 import { useCallback, useRef, useState } from "react";
 
 import { getMapOperativoRealizadosFC, type MapPointFeature } from "../../../api/mapApi";
-import { mapaRealizadosEmptyMessage, mapaRealizadosTipoQueryValue } from "../constants/mapaOperativo";
+import {
+  mapaRealizadosEmptyMessage,
+  mapaRealizadosRubroQueryValue,
+  mapaRealizadosTipoQueryValue,
+} from "../constants/mapaOperativo";
+
 export type MapaOperativoLoadParams = {
   from: string;
   to: string;
   distritoId: string;
   tipo: string;
   inspectorId: string;
-  definicion?: string;
+  rubroId?: string;
+  rubroLabel?: string;
 };
 
 /** Opciones de carga (p. ej. forzar red al pulsar Refrescar). */
@@ -63,10 +69,11 @@ export function useMapaOperativo() {
         distrito_id: _distritoNum(p.distritoId),
         tipo: mapaRealizadosTipoQueryValue(p.tipo),
         inspector_id: _inspectorNum(p.inspectorId),
-        definicion: p.definicion && p.definicion !== "TODOS" ? p.definicion : undefined,
+        rubro_id: mapaRealizadosRubroQueryValue(p.rubroId ?? ""),
         ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       };
       debugRealizados("[tipo selected]", p.tipo);
+      debugRealizados("[rubro selected]", p.rubroId);
       debugRealizados("[query params]", queryParams);
       const fc = await getMapOperativoRealizadosFC(queryParams);
       if (seq !== loadSeqRef.current) return;
@@ -75,9 +82,10 @@ export function useMapaOperativo() {
       setFeatures(feats);
       if (feats.length === 0) {
         setInfoMessage(
-          mapaRealizadosEmptyMessage({ tipo: p.tipo, definicion: p.definicion })
+          mapaRealizadosEmptyMessage({ tipo: p.tipo, rubroLabel: p.rubroLabel })
         );
-      }    } catch (e: unknown) {
+      }
+    } catch (e: unknown) {
       if (seq !== loadSeqRef.current) return;
       const err = e as { response?: { data?: { detail?: string } } };
       setError(err?.response?.data?.detail ?? "No se pudieron cargar los realizados operativos.");

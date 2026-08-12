@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAPA_TIPO_INICIADOR_OPTIONS,
   mapaRealizadosEmptyMessage,
+  mapaRealizadosRubroQueryValue,
   mapaRealizadosTipoQueryValue,
 } from "./mapaOperativo";
 describe("mapaOperativo — filtros Realizados", () => {
@@ -35,8 +36,14 @@ describe("mapaOperativo — filtros Realizados", () => {
     expect(mapaRealizadosTipoQueryValue("REINSPECCION")).toBe("REINSPECCION");
   });
 
+  it("mapaRealizadosRubroQueryValue omite vacío y parsea id", () => {
+    expect(mapaRealizadosRubroQueryValue("")).toBeUndefined();
+    expect(mapaRealizadosRubroQueryValue("12")).toBe(12);
+  });
+
   it("mapaRealizadosEmptyMessage distingue filtro activo", () => {
     expect(mapaRealizadosEmptyMessage({ tipo: "REINSPECCION" })).toContain("Reinspección");
+    expect(mapaRealizadosEmptyMessage({ tipo: "TODOS", rubroLabel: "Panadería" })).toContain("Panadería");
     expect(mapaRealizadosEmptyMessage({ tipo: "TODOS" })).toContain("geocode");
   });
 });

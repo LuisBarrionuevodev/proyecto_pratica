@@ -6,6 +6,7 @@ import { useSearchParams } from "react-router-dom";
 import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
+import { fetchRubrosCatalogoCached } from "../../utils/rubrosCatalogCache";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { MapaCanvas } from "./Components/MapaCanvas";
@@ -27,7 +28,8 @@ type FiltrosRealizadosSnapshot = {
   distritoId: string;
   inspectorId: string;
   realizadoTipoIniciador: string;
-  realizadoDefinicion: string;
+  realizadoRubroId: string;
+  realizadoRubroLabel: string;
 };
 
 /**
@@ -43,11 +45,14 @@ const MapPage = () => {
   const [distritoId, setDistritoId] = useState("");
 
   const [realizadoTipoIniciador, setRealizadoTipoIniciador] = useState("TODOS");
-  const [realizadoDefinicion, setRealizadoDefinicion] = useState("TODOS");
+  const [realizadoRubroId, setRealizadoRubroId] = useState("");
   const [inspectorId, setInspectorId] = useState("");
 
   const [mapExpanded, setMapExpanded] = useState(false);
   const [inspectores, setInspectores] = useState<CatalogItem[]>([]);
+  const [rubroOptions, setRubroOptions] = useState<{ value: string; label: string }[]>([
+    { value: "", label: "Todos" },
+  ]);
 
   const [distritoOptions, setDistritoOptions] = useState<{ value: string; label: string }[]>([
     { value: "", label: "Todos los distritos" },
@@ -61,7 +66,8 @@ const MapPage = () => {
     distritoId,
     inspectorId,
     realizadoTipoIniciador,
-    realizadoDefinicion,
+    realizadoRubroId,
+    realizadoRubroLabel: "",
   });
   filtrosUiRef.current = {
     from: fechaDesde,
@@ -69,7 +75,9 @@ const MapPage = () => {
     distritoId,
     inspectorId,
     realizadoTipoIniciador,
-    realizadoDefinicion,
+    realizadoRubroId,
+    realizadoRubroLabel:
+      rubroOptions.find((o) => o.value === realizadoRubroId)?.label ?? "",
   };
 
   const patchFiltrosUiRef = useCallback((patch: Partial<FiltrosRealizadosSnapshot>) => {
@@ -86,7 +94,8 @@ const MapPage = () => {
           distritoId: s.distritoId,
           inspectorId: s.inspectorId,
           tipo: s.realizadoTipoIniciador,
-          definicion: s.realizadoDefinicion,
+          rubroId: s.realizadoRubroId,
+          rubroLabel: s.realizadoRubroLabel,
         },
         opts
       );
@@ -101,6 +110,21 @@ const MapPage = () => {
         setInspectores(resp.items ?? []);
       } catch {
         setInspectores([]);
+      }
+    };
+    void load();
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const items = await fetchRubrosCatalogoCached();
+        setRubroOptions([
+          { value: "", label: "Todos" },
+          ...items.map((r) => ({ value: String(r.id), label: r.nombre })),
+        ]);
+      } catch {
+        setRubroOptions([{ value: "", label: "Todos" }]);
       }
     };
     void load();
@@ -163,15 +187,16 @@ const MapPage = () => {
     [modo, patchFiltrosUiRef, loadRealizadosFromRef]
   );
 
-  const handleRealizadoDefinicionChange = useCallback(
+  const handleRealizadoRubroChange = useCallback(
     (v: string) => {
-      patchFiltrosUiRef({ realizadoDefinicion: v });
-      setRealizadoDefinicion(v);
+      const label = rubroOptions.find((o) => o.value === v)?.label ?? "";
+      patchFiltrosUiRef({ realizadoRubroId: v, realizadoRubroLabel: label });
+      setRealizadoRubroId(v);
       if (modo === "realizados") {
         loadRealizadosFromRef();
       }
     },
-    [modo, patchFiltrosUiRef, loadRealizadosFromRef]
+    [modo, patchFiltrosUiRef, loadRealizadosFromRef, rubroOptions]
   );
 
   const handleFechaDesdeChange = useCallback(
@@ -268,8 +293,9 @@ const MapPage = () => {
             distritoOptions={distritoOptions}
             realizadoTipoIniciador={realizadoTipoIniciador}
             onRealizadoTipoIniciadorChange={handleRealizadoTipoChange}
-            realizadoDefinicion={realizadoDefinicion}
-            onRealizadoDefinicionChange={handleRealizadoDefinicionChange}
+            realizadoRubroId={realizadoRubroId}
+            onRealizadoRubroIdChange={handleRealizadoRubroChange}
+            rubroOptions={rubroOptions}
             inspectorId={inspectorId}
             onInspectorIdChange={handleInspectorIdChange}
             inspectores={inspectores}

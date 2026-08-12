@@ -16,28 +16,29 @@ export function mapaRealizadosTipoQueryValue(tipo: string): string | undefined {
   return v;
 }
 
+/** Query param ``rubro_id`` para GET /map/operativo/realizados (vacío = sin filtro). */
+export function mapaRealizadosRubroQueryValue(rubroId: string): number | undefined {
+  const v = rubroId?.trim();
+  if (!v) return undefined;
+  const n = Number(v);
+  return Number.isNaN(n) ? undefined : n;
+}
+
 /** Mensaje cuando el mapa no tiene puntos para los filtros activos. */
 export function mapaRealizadosEmptyMessage(params: {
   tipo: string;
-  definicion?: string;
+  rubroLabel?: string;
 }): string {
   const tipoOpt = MAPA_TIPO_INICIADOR_OPTIONS.find((o) => o.value === params.tipo);
-  const defOpt = MAPA_DEFINICION_OPTIONS.find((o) => o.value === (params.definicion ?? "TODOS"));
   const filtros: string[] = [];
   if (params.tipo && params.tipo !== "TODOS" && tipoOpt) {
     filtros.push(`tipo «${tipoOpt.label}»`);
   }
-  if (params.definicion && params.definicion !== "TODOS" && defOpt) {
-    filtros.push(`definición «${defOpt.label}»`);
+  if (params.rubroLabel?.trim()) {
+    filtros.push(`rubro «${params.rubroLabel.trim()}»`);
   }
   if (filtros.length > 0) {
     return `No hay visitas realizadas con ${filtros.join(" y ")} en el rango de fechas. Probá «Todos» o ampliá el período.`;
   }
   return "No hay visitas realizadas en mapa para ese rango (¿geocode OK del domicilio de la actuación?).";
 }
-export const MAPA_DEFINICION_OPTIONS = [
-  { value: "TODOS", label: "Todos" },
-  { value: "CLAUSURA", label: "Clausura" },
-  { value: "DECOMISO", label: "Decomiso" },
-  { value: "CLAUSURA_DECOMISO", label: "Clausura + decomiso" },
-] as const;

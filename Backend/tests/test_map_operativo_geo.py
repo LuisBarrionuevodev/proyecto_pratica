@@ -169,6 +169,51 @@ def test_http_operativo_realizados_tipo_reinspeccion_200(client, auth_headers) -
     assert resp.get_json().get("type") == "FeatureCollection"
 
 
+def test_http_operativo_realizados_rubro_id_200(client, auth_headers) -> None:
+    resp = client.get(
+        "/map/operativo/realizados?desde=2099-01-01&hasta=2099-01-07&rubro_id=1",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("type") == "FeatureCollection"
+    assert isinstance(data.get("features"), list)
+
+
+def test_http_operativo_realizados_tipo_y_rubro_200(client, auth_headers) -> None:
+    resp = client.get(
+        "/map/operativo/realizados?desde=2099-01-01&hasta=2099-01-07"
+        "&tipo=INSPECCION&rubro_id=99",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.get_json().get("type") == "FeatureCollection"
+
+
+def test_rubro_id_operativo_relevamiento_prioriza_relevamiento() -> None:
+    from unittest.mock import MagicMock
+
+    from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_id_operativo_para_iniciador
+
+    ini = MagicMock()
+    ini.tipo_iniciador = "RELEVAMIENTO"
+    ini.relevamiento = MagicMock(rubro_id=7)
+    dom = MagicMock(rubro_id=3)
+    assert rubro_id_operativo_para_iniciador(ini, dom) == 7
+
+
+def test_rubro_id_operativo_domicilio_sin_relevamiento() -> None:
+    from unittest.mock import MagicMock
+
+    from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_id_operativo_para_iniciador
+
+    ini = MagicMock()
+    ini.tipo_iniciador = "REINSPECCION_NOTIFICACION"
+    ini.relevamiento = None
+    dom = MagicMock(rubro_id=11)
+    assert rubro_id_operativo_para_iniciador(ini, dom) == 11
+
+
 def test_http_operativo_realizados_tipo_ratificacion_clausura_200(client, auth_headers) -> None:
     resp = client.get(
         "/map/operativo/realizados?desde=2099-01-01&hasta=2099-01-07&tipo=RATIFICACION_CLAUSURA",
@@ -176,3 +221,4 @@ def test_http_operativo_realizados_tipo_ratificacion_clausura_200(client, auth_h
     )
     assert resp.status_code == 200
     assert resp.get_json().get("type") == "FeatureCollection"
+

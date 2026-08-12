@@ -27,6 +27,7 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     VALOR_PRIORIDAD_ALTA,
     VALOR_PRIORIDAD_MEDIA,
 )
+from app.domains.rutas_trabajo.utils.rubro_operativo import rubro_id_operativo_para_iniciador
 from app.models import (
     Actuaciones,
     Contribuyente,
@@ -38,6 +39,7 @@ from app.models import (
     RutaGrupoInspector,
     RutaItem,
     RutaTrabajo,
+    Relevamiento,
     actuaciones_inspector,
 )
 
@@ -597,6 +599,7 @@ def list_mapa_operativo_realizados_geo(
     tipo: Optional[str] = None,
     inspector_id: Optional[int] = None,
     definicion: Optional[str] = None,
+    rubro_id: Optional[int] = None,
 ) -> list[dict[str, Any]]:
     """
     Puntos «realizados»: cierres con visita realizada (``RutaItem`` finalizado + ``REALIZADO``).
@@ -610,6 +613,8 @@ def list_mapa_operativo_realizados_geo(
     Filtro opcional ``tipo``: buckets operativos alineados a Actuaciones
     (``INSPECCION``, ``REINSPECCION``, ``RATIFICACION_CLAUSURA``, ``RATIFICACION_DECOMISO``,
     ``VERIFICAR_INFORMAR``).
+
+    Filtro opcional ``rubro_id``: rubro operativo del cierre (relevamiento / visita / domicilio).
     """
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
@@ -646,6 +651,9 @@ def list_mapa_operativo_realizados_geo(
             selectinload(RutaItem.actuacion)
             .selectinload(Actuaciones.domicilio)
             .selectinload(Domicilio.contribuyente),
+            selectinload(RutaItem.actuacion)
+            .selectinload(Actuaciones.domicilio)
+            .selectinload(Domicilio.rubro),
             selectinload(RutaItem.actuacion).selectinload(Actuaciones.inspector),
             selectinload(RutaItem.actuacion).selectinload(Actuaciones.inspeccion),
             selectinload(RutaItem.actuacion).selectinload(Actuaciones.notificacion),
@@ -657,6 +665,9 @@ def list_mapa_operativo_realizados_geo(
                 Oficio.expediente
             ),
             selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.notificacion),
+            selectinload(RutaItem.iniciador_ruta)
+            .selectinload(IniciadorRuta.relevamiento)
+            .selectinload(Relevamiento.rubro),
             joinedload(RutaItem.ruta_trabajo),
         )
     )
@@ -705,6 +716,10 @@ def list_mapa_operativo_realizados_geo(
             tipo_act_str,
         ):
             continue
+        if rubro_id is not None:
+            rid_op = rubro_id_operativo_para_iniciador(ini, dom, act=act)
+            if rid_op != int(rubro_id):
+                continue
         doc_c = _documento_contribuyente(dom.contribuyente if dom else None)
 
         base: dict[str, Any] = {
@@ -1085,6 +1100,7 @@ def count_mapa_operativo_realizados_visita(
     tipo: Optional[str] = None,
     inspector_id: Optional[int] = None,
     definicion: Optional[str] = None,
+    rubro_id: Optional[int] = None,
 ) -> int:
     """
     Cuenta cierres con visita realizada visibles en mapa (``FINALIZADO`` + ``REALIZADO``, ruta ``PUBLICADA``,
@@ -1092,7 +1108,20 @@ def count_mapa_operativo_realizados_visita(
 
     Parámetros:
         definicion: mismo filtro opcional que el GeoJSON (clausura / decomiso / ambos).
+        rubro_id: rubro operativo del cierre (misma regla que el listado GeoJSON).
     """
+    if rubro_id is not None:
+        return len(
+            list_mapa_operativo_realizados_geo(
+                desde=desde,
+                hasta=hasta,
+                distrito_id=distrito_id,
+                tipo=tipo,
+                inspector_id=inspector_id,
+                definicion=definicion,
+                rubro_id=rubro_id,
+            )
+        )
     d_desde = _parse_date(desde)
     d_hasta = _parse_date(hasta)
     if d_desde is None or d_hasta is None:

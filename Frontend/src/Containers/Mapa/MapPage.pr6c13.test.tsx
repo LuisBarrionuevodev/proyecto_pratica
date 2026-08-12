@@ -67,7 +67,8 @@ describe("PR6C.13 limpieza legacy Pendientes operativo", () => {
     expect(filtro).toContain('label="Tipo"');
     expect(filtro).toContain('data-testid="mapa-realizados-filtro-tipo"');
     expect(filtro).toContain("MAPA_TIPO_INICIADOR_OPTIONS");
-    expect(filtro).toContain("Definición");
+    expect(filtro).toContain('label="Rubro"');
+    expect(filtro).not.toContain("Definición");
     expect(filtro).toContain("Inspector");
   });
 });

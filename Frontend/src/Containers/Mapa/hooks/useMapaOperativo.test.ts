@@ -8,6 +8,8 @@ describe("useMapaOperativo — filtro tipo Realizados", () => {
   it("envía tipo operativo al API cuando hay valor", () => {
     const hook = read("src/Containers/Mapa/hooks/useMapaOperativo.ts");
     expect(hook).toContain("mapaRealizadosTipoQueryValue(p.tipo)");
+    expect(hook).toContain("mapaRealizadosRubroQueryValue(p.rubroId");
     expect(hook).toContain("getMapOperativoRealizadosFC");
+    expect(hook).not.toContain("definicion");
   });
 });
