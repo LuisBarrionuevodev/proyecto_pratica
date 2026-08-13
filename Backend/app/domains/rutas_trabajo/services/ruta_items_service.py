@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
 from app.database import db
+from app.domains.rutas_trabajo.services.ruta_pool_dia_service import revert_pool_si_item_eliminado
 from app.models import IniciadorRuta, RutaGrupo, RutaItem, RutaTrabajo
 
 from .auth_service import get_current_user_id_or_fallback
@@ -41,7 +42,13 @@ def _get_item_activo_or_fail(*, ruta_id: int, item_id: int) -> RutaItem:
     return item
 
 
-def assign_iniciadores_to_grupo(*, ruta_id: int, grupo_id: int, iniciador_ids: list[int]) -> list[RutaItem]:
+def assign_iniciadores_to_grupo(
+    *,
+    ruta_id: int,
+    grupo_id: int,
+    iniciador_ids: list[int],
+    commit: bool = True,
+) -> list[RutaItem]:
     """
     Asigna iniciadores a grupo creando/reactivando RutaItem en estado ASIGNADO.
 
@@ -119,7 +126,10 @@ def assign_iniciadores_to_grupo(*, ruta_id: int, grupo_id: int, iniciador_ids: l
             by_id[iniciador_id].updated_at = now
             affected_items.append(item)
 
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
     except IntegrityError as exc:
         db.session.rollback()
         raise RuntimeError("No se pudo completar la asignación bulk de iniciadores") from exc
@@ -162,6 +172,7 @@ def soft_delete_ruta_item(*, ruta_id: int, item_id: int) -> RutaItem:
     item.orden_trabajo_id = None
     iniciador.estado_iniciador = "PENDIENTE"
     iniciador.updated_at = now
+    revert_pool_si_item_eliminado(ruta_item_id=int(item.id))
     db.session.commit()
     return item
 
@@ -203,6 +214,7 @@ def soft_delete_grupo(*, ruta_id: int, grupo_id: int) -> dict:
             if iniciador:
                 iniciador.estado_iniciador = "PENDIENTE"
                 iniciador.updated_at = now
+            revert_pool_si_item_eliminado(ruta_item_id=int(item.id))
         db.session.commit()
     except Exception:
         db.session.rollback()

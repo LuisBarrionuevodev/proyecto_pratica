@@ -516,7 +516,12 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
     return outcome
 
 
-def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
+def list_reinspeccion_notificacion_operativas(
+    *,
+    desde: date | None = None,
+    hasta: date | None = None,
+    numero_notificacion: str | None = None,
+) -> list[Actuaciones]:
     """
     Lista actuaciones base INSPECCION con iniciador `REINSPECCION_NOTIFICACION` en `PENDIENTE`.
 
@@ -527,6 +532,10 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
 
     Incluye actuaciones **mixtas** (con ``comprobacion_id``) si el iniciador materializado apunta a
     esa actuación (alineado con PR1/PR3).
+
+    Parámetros:
+        desde, hasta: filtro opcional sobre ``Actuaciones.fecha``.
+        numero_notificacion: subcadena sobre ``Notificacion.numero_acta``.
     """
     today = date.today()
     subq_reinsp = _subq_reinsp_exitosa_misma_notificacion()
@@ -539,7 +548,7 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
         )
     )
     subq_reinsp_via_item = _subq_reinsp_via_ruta_item_bloqueante_iniciador()
-    return (
+    q = (
         apply_bandeja_grid_eager(
             Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
             .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
@@ -554,6 +563,12 @@ def list_reinspeccion_notificacion_operativas() -> list[Actuaciones]:
             .filter(~subq_item_realizado)
             .filter(~subq_reinsp_via_item)
         )
-        .order_by(Actuaciones.id.desc())
-        .all()
     )
+    if desde is not None:
+        q = q.filter(Actuaciones.fecha >= desde)
+    if hasta is not None:
+        q = q.filter(Actuaciones.fecha <= hasta)
+    if numero_notificacion and str(numero_notificacion).strip():
+        term = f"%{str(numero_notificacion).strip()}%"
+        q = q.filter(Notificacion.numero_acta.like(term))
+    return q.order_by(Actuaciones.id.desc()).all()

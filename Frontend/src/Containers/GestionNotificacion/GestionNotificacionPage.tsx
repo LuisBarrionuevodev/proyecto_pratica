@@ -8,6 +8,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Divider,
   FormControlLabel,
@@ -105,6 +106,14 @@ import {
   historialNotificacionHasSpecificSearch,
   type HistorialNotificacionFiltroPayload,
 } from "./utils/buildHistorialNotificacionFiltroPayload";
+import {
+  buildOperativaNotificacionFiltroPayload,
+  type OperativaNotificacionFiltroPayload,
+} from "./utils/buildOperativaNotificacionFiltroPayload";
+import {
+  notificacionEstadoOperativoChipColor,
+  notificacionEstadoOperativoLabel,
+} from "./utils/notificacionEstadoOperativo";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
@@ -294,6 +303,11 @@ const GestionNotificacionPage = () => {
   const [histCalleQ, setHistCalleQ] = useState("");
   const [histNumNotif, setHistNumNotif] = useState("");
   const [histMotivoQ, setHistMotivoQ] = useState("");
+  const [opDesde, setOpDesde] = useState<string | null>(null);
+  const [opHasta, setOpHasta] = useState<string | null>(null);
+  const [opNumNotif, setOpNumNotif] = useState("");
+  const [opApplied, setOpApplied] = useState<OperativaNotificacionFiltroPayload | null>(null);
+  const opAppliedRef = useRef<OperativaNotificacionFiltroPayload | null>(null);
   const [distritosHistorial, setDistritosHistorial] = useState<DistritoCatalogoItem[]>([]);
   const [historialFiltroAplicado, setHistorialFiltroAplicado] = useState(false);
   const [historialRows, setHistorialRows] = useState<IActuacionesPendientesItem[]>([]);
@@ -350,8 +364,22 @@ const GestionNotificacionPage = () => {
     operativeSliceLoadedRef.current[other] = false;
   }, []);
 
+  useEffect(() => {
+    opAppliedRef.current = opApplied;
+  }, [opApplied]);
+
+  const invalidateOperativeSlices = useCallback(() => {
+    operativeSliceLoadedRef.current.en_plazo = false;
+    operativeSliceLoadedRef.current.por_vencer = false;
+    reinspeccionDataLoadedRef.current = false;
+  }, []);
+
   const loadPlazoSliceData = useCallback(
-    async (slice: OperativePlazoExpedienteSlice, force = false) => {
+    async (
+      slice: OperativePlazoExpedienteSlice,
+      force = false,
+      filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current
+    ) => {
       if (!operativePlazoSliceShouldFetch(slice, operativeSliceLoadedRef.current, force)) {
         perfLog("notificaciones.tab.cacheHit", { slice });
         if (plazoSliceRef.current === slice) {
@@ -361,13 +389,15 @@ const GestionNotificacionPage = () => {
       }
       setLoading(true);
       setError(null);
+      const hasDateRange = Boolean(filters?.desde || filters?.hasta);
       try {
         const resp = await perfTimed(
           "notificaciones.loadPlazoSlice",
           () =>
-            getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
-              omitirRangoFecha: true,
+            getActuacionesPendientesExpediente(filters?.desde ?? null, filters?.hasta ?? null, "notificacion", null, {
+              omitirRangoFecha: !hasDateRange,
               plazoSlice: slice,
+              numeroNotificacion: filters?.numeroNotificacion ?? null,
             }),
           (r) => ({ slice, rows: r.items.length, total: r.meta.total })
         );
@@ -416,30 +446,77 @@ const GestionNotificacionPage = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const loadPendientesReinspeccionNotificacion = useCallback(async () => {
-    setReinspeccionLoading(true);
-    setReinspeccionError(null);
-    try {
-      const rows = await perfTimed(
-        "notificaciones.loadPendientesReinspeccion",
-        () => getPendientesReinspeccionNotificacion(),
-        (r) => ({ rows: r.length })
-      );
-      setReinspeccionItems(
-        normalizeNotificacionBandejaItems(rows, "notificacion").map(mapPendienteReinspeccionNotificacionToGestionRow)
-      );
-      reinspeccionDataLoadedRef.current = true;
-    } catch (err: unknown) {
-      const detail =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
-          : null;
-      setReinspeccionError(detail || "Error al cargar pendientes de reinspección");
-      setReinspeccionItems([]);
-    } finally {
-      setReinspeccionLoading(false);
+  const loadPendientesReinspeccionNotificacion = useCallback(
+    async (filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current) => {
+      setReinspeccionLoading(true);
+      setReinspeccionError(null);
+      try {
+        const rows = await perfTimed(
+          "notificaciones.loadPendientesReinspeccion",
+          () =>
+            getPendientesReinspeccionNotificacion({
+              desde: filters?.desde ?? null,
+              hasta: filters?.hasta ?? null,
+              numeroNotificacion: filters?.numeroNotificacion ?? null,
+            }),
+          (r) => ({ rows: r.length })
+        );
+        setReinspeccionItems(
+          normalizeNotificacionBandejaItems(rows, "notificacion").map(mapPendienteReinspeccionNotificacionToGestionRow)
+        );
+        reinspeccionDataLoadedRef.current = true;
+      } catch (err: unknown) {
+        const detail =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+            : null;
+        setReinspeccionError(detail || "Error al cargar pendientes de reinspección");
+        setReinspeccionItems([]);
+      } finally {
+        setReinspeccionLoading(false);
+      }
+    },
+    []
+  );
+
+  const handleApplyOperativaFiltro = useCallback(() => {
+    const payload = buildOperativaNotificacionFiltroPayload({
+      desde: opDesde,
+      hasta: opHasta,
+      numeroNotificacion: opNumNotif,
+    });
+    setOpApplied(payload);
+    opAppliedRef.current = payload;
+    invalidateOperativeSlices();
+    const active = plazoSliceRef.current;
+    if (active === "en_plazo" || active === "por_vencer") {
+      void loadPlazoSliceData(active, true, payload);
+    } else if (active === "vencidas_o_hoy") {
+      void loadPendientesReinspeccionNotificacion(payload);
     }
-  }, []);
+  }, [
+    opDesde,
+    opHasta,
+    opNumNotif,
+    invalidateOperativeSlices,
+    loadPlazoSliceData,
+    loadPendientesReinspeccionNotificacion,
+  ]);
+
+  const handleClearOperativaFiltro = useCallback(() => {
+    setOpDesde(null);
+    setOpHasta(null);
+    setOpNumNotif("");
+    setOpApplied(null);
+    opAppliedRef.current = null;
+    invalidateOperativeSlices();
+    const active = plazoSliceRef.current;
+    if (active === "en_plazo" || active === "por_vencer") {
+      void loadPlazoSliceData(active, true, null);
+    } else if (active === "vencidas_o_hoy") {
+      void loadPendientesReinspeccionNotificacion(null);
+    }
+  }, [invalidateOperativeSlices, loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
 
   useEffect(() => {
     plazoSliceRef.current = plazoSlice;
@@ -894,6 +971,25 @@ const GestionNotificacionPage = () => {
           <BandejaSegmentChipsCell segments={splitMiddleDot(plazoResumenText(row.original))} />
         ),
       },
+      {
+        id: "estado_operativo",
+        header: "Estado operativo",
+        size: 132,
+        accessorFn: (row) => notificacionEstadoOperativoLabel(row.estado_operativo_pool),
+        Cell: ({ row }) => {
+          const label = notificacionEstadoOperativoLabel(row.original.estado_operativo_pool);
+          if (label === "—") return <BandejaEllipsisCell value="—" />;
+          return (
+            <Chip
+              size="small"
+              label={label}
+              color={notificacionEstadoOperativoChipColor(row.original.estado_operativo_pool)}
+              variant="outlined"
+              sx={{ maxWidth: "100%" }}
+            />
+          );
+        },
+      },
     ],
     []
   );
@@ -1173,6 +1269,69 @@ const GestionNotificacionPage = () => {
         <Alert severity="error" sx={alertBaseStyles}>
           {operativaError}
         </Alert>
+      )}
+
+      {mostrarTablaOperativa && (
+        <Box sx={filtroContainerStyles}>
+          <Typography sx={filtroTitleStyles}>Filtros operativos</Typography>
+          <Box sx={filtroGridStyles}>
+            <Box sx={filtroItemStyles}>
+              <AppTextField
+                appearance="dense"
+                fullWidth
+                label="Desde"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={opDesde ?? ""}
+                onChange={(e) => setOpDesde(trimToNull(e.target.value))}
+                variant="outlined"
+              />
+            </Box>
+            <Box sx={filtroItemStyles}>
+              <AppTextField
+                appearance="dense"
+                fullWidth
+                label="Hasta"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={opHasta ?? ""}
+                onChange={(e) => setOpHasta(trimToNull(e.target.value))}
+                variant="outlined"
+              />
+            </Box>
+            <Box sx={filtroItemStyles}>
+              <AppTextField
+                appearance="dense"
+                fullWidth
+                label="Nº notificación"
+                placeholder="Fragmento del acta"
+                value={opNumNotif}
+                onChange={(e) => setOpNumNotif(e.target.value)}
+                variant="outlined"
+              />
+            </Box>
+          </Box>
+          <Box sx={filtroButtonsStyles}>
+            <Button
+              type="button"
+              variant="contained"
+              startIcon={<SearchIcon />}
+              onClick={() => handleApplyOperativaFiltro()}
+              sx={filtroButtonPrimaryStyles}
+            >
+              Buscar
+            </Button>
+            <Button
+              type="button"
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={() => handleClearOperativaFiltro()}
+              sx={filtroButtonSecondaryStyles}
+            >
+              Limpiar
+            </Button>
+          </Box>
+        </Box>
       )}
 
       {mostrarTablaOperativa && (

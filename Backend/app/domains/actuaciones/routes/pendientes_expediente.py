@@ -14,6 +14,10 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_pendiente_expediente_row
+from app.domains.actuaciones.services.notificacion_estado_operativo_pool_service import (
+    build_estado_operativo_pool_por_iniciador,
+    enrich_pendiente_notificacion_row,
+)
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.shared.perf_log import PerfTimer, perf_endpoint_log
 
@@ -71,8 +75,24 @@ def pendientes_expediente_list():
         else:
             posterior_map = build_posterior_comprobacion_por_actuacion_id(acts)
         reinspeccion_comp_map = build_reinspeccion_comprobacion_por_actuacion_id(acts)
-        items = [
-            actuacion_to_pendiente_expediente_row(
+        force_no_elegible = plazo_slice_param in ("en_plazo", "por_vencer")
+        ini_ids: list[int] = []
+        if list_channel == "notificacion" and not force_no_elegible:
+            from app.models import IniciadorRuta
+
+            act_ids = [int(a.id) for a in acts]
+            if act_ids:
+                rows_ini = (
+                    IniciadorRuta.query.filter(IniciadorRuta.actuacion_id.in_(act_ids))
+                    .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
+                    .filter(IniciadorRuta.deleted_at.is_(None))
+                    .all()
+                )
+                ini_ids = [int(i.id) for i in rows_ini]
+        estado_map = build_estado_operativo_pool_por_iniciador(ini_ids) if ini_ids else {}
+        items = []
+        for a in acts:
+            row = actuacion_to_pendiente_expediente_row(
                 a,
                 plazos_por_notificacion=plazos_map,
                 fecha_vencimiento_por_notificacion=venc_map,
@@ -82,8 +102,15 @@ def pendientes_expediente_list():
                 reinspeccion_comprobacion_por_actuacion_id=reinspeccion_comp_map,
                 expediente_list_channel=list_channel,
             )
-            for a in acts
-        ]
+            if list_channel == "notificacion":
+                if a.domicilio_id is not None:
+                    row["domicilio_id"] = int(a.domicilio_id)
+                enrich_pendiente_notificacion_row(
+                    row,
+                    estado_map=estado_map,
+                    force_no_elegible=force_no_elegible,
+                )
+            items.append(row)
         presenter_ms = presenter_timer.elapsed_ms()
 
         body = {

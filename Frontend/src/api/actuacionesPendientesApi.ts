@@ -31,6 +31,21 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   notificacion_prorroga_dias?: number | null;
   /** Clave estable para MRT (p. ej. `{actuacion_id}-{iniciador_id}`). */
   bandeja_row_key?: string | null;
+  /** OPER-RUTA.3: estado read-only pool/ruta. */
+  estado_operativo_pool?:
+    | "pendiente"
+    | "en_pool"
+    | "en_ruta_borrador"
+    | "en_ruta_publicada"
+    | "resuelto"
+    | "no_elegible"
+    | string
+    | null;
+  pool_status?: string | null;
+  ruta_status?: string | null;
+  ruta_trabajo_id?: number | null;
+  ruta_item_id?: number | null;
+  distrito_id?: number | null;
   numero_esquina?: string | null;
   calle_ingresada?: string | null;
   calle_normalizada?: string | null;
@@ -174,11 +189,26 @@ export const postSyncNotificacionesVencidas = async (): Promise<ISyncNotificacio
   return data;
 };
 
+export type IPendientesReinspeccionNotificacionOpts = {
+  desde?: string | null;
+  hasta?: string | null;
+  numeroNotificacion?: string | null;
+};
+
 /**
  * Cola operativa de reinspecciones por notificación vencida (iniciador PENDIENTE).
  */
-export const getPendientesReinspeccionNotificacion = async (): Promise<IActuacionesPendientesItem[]> => {
-  const { data } = await apiClient.get<IActuacionesPendientesItem[]>("/actuaciones/pendientes-notificacion");
+export const getPendientesReinspeccionNotificacion = async (
+  opts?: IPendientesReinspeccionNotificacionOpts
+): Promise<IActuacionesPendientesItem[]> => {
+  const params: Record<string, string> = {};
+  if (opts?.desde) params.desde = opts.desde;
+  if (opts?.hasta) params.hasta = opts.hasta;
+  const nn = opts?.numeroNotificacion?.trim();
+  if (nn) params.numero_notificacion = nn;
+  const { data } = await apiClient.get<IActuacionesPendientesItem[]>("/actuaciones/pendientes-notificacion", {
+    params,
+  });
   return data;
 };
 

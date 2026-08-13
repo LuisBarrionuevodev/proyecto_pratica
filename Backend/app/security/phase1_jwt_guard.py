@@ -67,6 +67,7 @@ _PHASE1_METHOD_PATH: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
 _RUTAS_TRABAJO_MUTATION: Final[re.Pattern[str]] = re.compile(
     r"^/rutas-trabajo(?:/.*)?$"
 )
+_RUTA_POOL_DIA: Final[re.Pattern[str]] = re.compile(r"^/ruta-pool-dia(?:/.*)?$")
 _MUTATION_METHODS: Final[frozenset[str]] = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 _READ_METHODS_PROTECTED: Final[frozenset[str]] = frozenset({"GET", "HEAD"})
 
@@ -82,6 +83,8 @@ def _is_public_path(path: str) -> bool:
 
 def _phase1_requires_jwt(method: str, path: str) -> bool:
     if method in _MUTATION_METHODS and _RUTAS_TRABAJO_MUTATION.match(path):
+        return True
+    if method in _MUTATION_METHODS and _RUTA_POOL_DIA.match(path):
         return True
     for m, rx in _PHASE1_METHOD_PATH:
         if m == method and rx.match(path):
@@ -102,6 +105,8 @@ def _pr_a_requires_jwt(method: str, path: str) -> bool:
     if path == "/api/denuncias" or path.startswith("/api/denuncias/"):
         return True
     if path == "/rutas-trabajo" or path.startswith("/rutas-trabajo/"):
+        return True
+    if path == "/ruta-pool-dia" or path.startswith("/ruta-pool-dia/"):
         return True
     return False
 

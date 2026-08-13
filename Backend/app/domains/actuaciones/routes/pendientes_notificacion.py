@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from flask import jsonify
+from flask import jsonify, request
+from pydantic import ValidationError
 
-from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
-    build_counts_by_eo_from_actuaciones,
-)
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_pendiente_expediente_row
+from app.domains.actuaciones.schemas.pendientes_notificacion_filters import PendientesNotificacionFilters
+from app.domains.actuaciones.services.notificacion_estado_operativo_pool_service import (
+    build_estado_operativo_pool_por_iniciador,
+    enrich_pendiente_notificacion_row,
+)
 from app.domains.actuaciones.services.notificacion_iniciador_service import (
     list_reinspeccion_notificacion_operativas,
     materializacion_notificacion_vencida_on_read_enabled,
@@ -15,7 +18,11 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_reinspeccion_comprobacion_por_actuacion_id,
 )
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
 from app.models import IniciadorRuta
+from app.shared.errors import pydantic_errors_to_cell_map
 from app.shared.perf_log import PerfTimer, perf_endpoint_log
 
 from . import actuacion
@@ -52,15 +59,27 @@ def get_pendientes_notificacion():
     """
     Lista operativa de reinspecciones por notificación vencida.
 
+    Query opcional: ``desde``, ``hasta`` (``Actuaciones.fecha``), ``numero_notificacion``.
+
     Fase C: no ejecuta materialización salvo `SYNC_NOTIFICACIONES_VENCIDAS_ON_READ=1` (transitorio).
     En producción, el sync debe correr vía CLI / scheduler.
     """
     total_timer = PerfTimer()
+    try:
+        params = {k: (v if v else None) for k, v in request.args.to_dict().items()}
+        filters = PendientesNotificacionFilters.model_validate(params)
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+
     if materializacion_notificacion_vencida_on_read_enabled():
         sync_iniciadores_reinspeccion_notificacion()
 
     query_timer = PerfTimer()
-    acts = list_reinspeccion_notificacion_operativas()
+    acts = list_reinspeccion_notificacion_operativas(
+        desde=filters.desde,
+        hasta=filters.hasta,
+        numero_notificacion=filters.numero_notificacion,
+    )
     query_ms = query_timer.elapsed_ms()
     rows_base = len(acts)
 
@@ -69,6 +88,8 @@ def get_pendientes_notificacion():
     counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
     rein_comp_map = build_reinspeccion_comprobacion_por_actuacion_id(acts)
     ini_by_act = _iniciador_id_por_actuacion_base([int(a.id) for a in acts])
+    ini_ids = list(ini_by_act.values())
+    estado_map = build_estado_operativo_pool_por_iniciador(ini_ids)
     payload = []
     for act in acts:
         row = actuacion_to_pendiente_expediente_row(
@@ -85,6 +106,9 @@ def get_pendientes_notificacion():
             row["iniciador_id"] = ini_id
             row["bandeja_row_key"] = f"{int(act.id)}-{ini_id}"
         row.setdefault("source_type", "NOTIFICACION")
+        if act.domicilio_id is not None:
+            row["domicilio_id"] = int(act.domicilio_id)
+        enrich_pendiente_notificacion_row(row, estado_map=estado_map)
         payload.append(row)
     presenter_ms = presenter_timer.elapsed_ms()
 
@@ -98,3 +122,4 @@ def get_pendientes_notificacion():
         payload=payload,
     )
     return jsonify(payload), 200
+

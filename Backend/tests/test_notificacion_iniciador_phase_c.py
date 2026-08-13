@@ -64,7 +64,7 @@ def test_get_pendientes_notificacion_no_llama_sync_por_defecto(client, monkeypat
     )
     monkeypatch.setattr(
         "app.domains.actuaciones.routes.pendientes_notificacion.list_reinspeccion_notificacion_operativas",
-        lambda: [],
+        lambda **_: [],
     )
     r = client.get("/actuaciones/pendientes-notificacion", headers=auth_headers)
     assert r.status_code == 200
@@ -79,7 +79,7 @@ def test_get_pendientes_summary_no_llama_sync_por_defecto(app, monkeypatch):
     )
     monkeypatch.setattr(
         "app.domains.actuaciones.services.pendientes_service.list_reinspeccion_notificacion_operativas",
-        lambda: [],
+        lambda **_: [],
     )
     with app.app_context():
         from app.domains.actuaciones.services.pendientes_service import get_pendientes_summary
@@ -105,7 +105,7 @@ def test_sync_on_read_env_llama_sync_en_pendientes_notificacion(client, monkeypa
     )
     monkeypatch.setattr(
         "app.domains.actuaciones.routes.pendientes_notificacion.list_reinspeccion_notificacion_operativas",
-        lambda: [],
+        lambda **_: [],
     )
     client.get("/actuaciones/pendientes-notificacion", headers=auth_headers)
     mock_sync.assert_called_once()

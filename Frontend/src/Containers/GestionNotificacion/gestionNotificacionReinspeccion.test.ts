@@ -120,7 +120,7 @@ describe("getPendientesReinspeccionNotificacion API", () => {
     const apiClient = await import("../../api/apiClient");
     const getSpy = vi.spyOn(apiClient.apiClient, "get").mockResolvedValue({ data: [] });
     await getPendientesReinspeccionNotificacion();
-    expect(getSpy).toHaveBeenCalledWith("/actuaciones/pendientes-notificacion");
+    expect(getSpy).toHaveBeenCalledWith("/actuaciones/pendientes-notificacion", { params: {} });
     getSpy.mockRestore();
   });
 });

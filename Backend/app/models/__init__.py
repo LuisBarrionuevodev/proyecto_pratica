@@ -41,6 +41,7 @@ from .ruta_trabajo import RutaTrabajo
 from .ruta_grupo import RutaGrupo
 from .ruta_grupo_inspector import RutaGrupoInspector
 from .ruta_item import RutaItem
+from .ruta_pool_dia import RutaPoolDia
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -88,4 +89,5 @@ __all__ = [
     "RutaGrupo",
     "RutaGrupoInspector",
     "RutaItem",
+    "RutaPoolDia",
 ]
