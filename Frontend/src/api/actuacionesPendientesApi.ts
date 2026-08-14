@@ -102,6 +102,17 @@ export interface IPendientesOficioItem {
   expediente_original_anio: string | null;
   /** Fecha del expediente de envío (ISO día) cuando existe en BD. */
   expediente_original_fecha?: string | null;
+  /** OPER-RUTA.4: estado read-only pool/ruta. */
+  estado_operativo_pool?:
+    | "pendiente"
+    | "en_pool"
+    | "en_ruta_borrador"
+    | "en_ruta_publicada"
+    | "resuelto"
+    | "no_elegible"
+    | string
+    | null;
+  iniciador_id?: number | null;
 }
 
 export interface IPendientesOficioResponse {
@@ -246,6 +257,8 @@ export type IActuacionesPendientesExpedienteOpts = {
   motivoQ?: string | null;
   /** Solo con ``source_type=notificacion`` en pendientes/expediente operativo. */
   plazoSlice?: NotificacionPlazoSliceParam | null;
+  /** Subcadena en Nº acta de comprobación (solo rama comprobacion). */
+  numeroComprobacion?: string | null;
 };
 
 export const getActuacionesPendientesExpediente = async (
@@ -269,6 +282,8 @@ export const getActuacionesPendientesExpediente = async (
   if (calleq) params.calle_q = calleq;
   const nn = opts?.numeroNotificacion?.trim();
   if (nn) params.numero_notificacion = nn;
+  const nc = opts?.numeroComprobacion?.trim();
+  if (nc) params.numero_comprobacion = nc;
   const mq = opts?.motivoQ?.trim();
   if (mq) params.motivo_q = mq;
   if (opts?.plazoSlice) params.plazo_slice = opts.plazoSlice;

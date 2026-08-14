@@ -4,6 +4,7 @@ import type { IPendientesOficioResponse } from "./actuacionesPendientesApi";
 export type FetchComprobacionPendientesOficioOpts = {
   /** Igual que pendientes/expediente: sin acotar por mes cuando es true (evita filas “perdidas” fuera del mes). */
   omitirRangoFecha?: boolean;
+  numeroComprobacion?: string | null;
 };
 
 /** Reutiliza el mismo contrato que la bandeja esperando oficio. */
@@ -18,6 +19,8 @@ export async function fetchComprobacionPendientesOficio(
   if (hasta) params.hasta = hasta;
   if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
   if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
+  const nc = opts?.numeroComprobacion?.trim();
+  if (nc) params.numero_comprobacion = nc;
   const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
   return data;
 }
@@ -76,6 +79,16 @@ export interface IReinspeccionOficioPendienteRow {
   en_ruta_borrador?: boolean;
   estado_operativo?: string | null;
   acciones_permitidas?: string[];
+  /** OPER-RUTA.4: estado read-only pool/ruta (distinto de ``estado_operativo`` de oficio editable). */
+  estado_operativo_pool?:
+    | "pendiente"
+    | "en_pool"
+    | "en_ruta_borrador"
+    | "en_ruta_publicada"
+    | "resuelto"
+    | "no_elegible"
+    | string
+    | null;
 }
 
 export interface IReinspeccionOficioResponse {
@@ -86,6 +99,7 @@ export interface IReinspeccionOficioResponse {
 export type FetchPendientesReinspeccionOficioOpts = {
   /** Sin acotar por mes (evita filas fuera del mes corriente; mismo criterio que pendientes/oficio). */
   omitirRangoFecha?: boolean;
+  numeroComprobacion?: string | null;
 };
 
 export async function fetchPendientesReinspeccionOficio(
@@ -99,6 +113,8 @@ export async function fetchPendientesReinspeccionOficio(
   if (hasta) params.hasta = hasta;
   if (distritoId != null && distritoId > 0) params.distrito_id = String(distritoId);
   if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
+  const nc = opts?.numeroComprobacion?.trim();
+  if (nc) params.numero_comprobacion = nc;
   const { data } = await apiClient.get<IReinspeccionOficioResponse>(
     "/actuaciones/comprobacion/pendientes-reinspeccion-oficio",
     { params }

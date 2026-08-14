@@ -426,6 +426,8 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
     if source_type == "notificacion" and _notificacion_documental_filters_active(filters):
         acts = _filter_actuaciones_documental_notificacion(acts, filters)
+    if source_type == "comprobacion" and _comprobacion_documental_filters_active(filters):
+        acts = _filter_actuaciones_documental_comprobacion(acts, filters)
     if source_type == "notificacion" and getattr(filters, "plazo_slice", None):
         acts = filter_actuaciones_notificacion_por_plazo_slice(acts, filters.plazo_slice)
     return acts
@@ -439,6 +441,11 @@ def _notificacion_documental_filters_active(filters: ActuacionesPendientesFilter
         or filters.numero_notificacion
         or filters.motivo_q
     )
+
+
+def _comprobacion_documental_filters_active(filters: ActuacionesPendientesFilters) -> bool:
+    """True si llegó filtro por Nº comprobación (bandejas comprobación)."""
+    return bool(filters.numero_comprobacion)
 
 
 def _filter_actuaciones_documental_notificacion(
@@ -484,6 +491,26 @@ def _filter_actuaciones_documental_notificacion(
     return out
 
 
+def _filter_actuaciones_documental_comprobacion(
+    acts: List[Actuaciones],
+    filters: ActuacionesPendientesFilters,
+) -> List[Actuaciones]:
+    """
+    Filtra actuaciones COMPROBACION por subcadena en ``acta_comprobacion_num`` (grilla).
+    """
+    if not acts or not filters.numero_comprobacion:
+        return acts
+    counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+    q = filters.numero_comprobacion.replace(" ", "").lower()
+    out: List[Actuaciones] = []
+    for act in acts:
+        row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
+        num = (row.get("acta_comprobacion_num") or "").replace(" ", "").lower()
+        if q in num:
+            out.append(act)
+    return out
+
+
 def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
     """
     Lista actuaciones en estado "esperando oficio".
@@ -519,4 +546,7 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
     )
     query = _apply_fecha(query, filters.desde, filters.hasta)
     query = _apply_distrito_optional(query, getattr(filters, "distrito_id", None))
-    return query.order_by(Actuaciones.id.desc()).all()
+    acts = query.order_by(Actuaciones.id.desc()).all()
+    if _comprobacion_documental_filters_active(filters):
+        acts = _filter_actuaciones_documental_comprobacion(acts, filters)
+    return acts

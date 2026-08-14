@@ -61,6 +61,7 @@ class ActuacionesPendientesFilters(BaseModel):
     contribuyente_q: Optional[str] = None
     calle_q: Optional[str] = None
     numero_notificacion: Optional[str] = None
+    numero_comprobacion: Optional[str] = None
     motivo_q: Optional[str] = None
     # Solo aplica con ``source_type=notificacion`` en pendientes/expediente.
     plazo_slice: Optional[str] = None
@@ -80,7 +81,14 @@ class ActuacionesPendientesFilters(BaseModel):
         except (TypeError, ValueError):
             return None
 
-    @field_validator("contribuyente_q", "calle_q", "numero_notificacion", "motivo_q", mode="before")
+    @field_validator(
+        "contribuyente_q",
+        "calle_q",
+        "numero_notificacion",
+        "numero_comprobacion",
+        "motivo_q",
+        mode="before",
+    )
     @classmethod
     def _strip_optional_q(cls, v: Any) -> Any:
         if v is None or v == "":

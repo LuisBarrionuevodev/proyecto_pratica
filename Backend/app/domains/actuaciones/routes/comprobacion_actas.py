@@ -21,6 +21,10 @@ from app.domains.actuaciones.services.comprobacion_actas_bandeja_service import 
     list_comprobacion_recorrido,
     list_pendientes_reinspeccion_oficio_filas,
 )
+from app.domains.actuaciones.services.notificacion_estado_operativo_pool_service import (
+    build_estado_operativo_pool_por_iniciador,
+    enrich_pendiente_notificacion_row,
+)
 from app.models import Actuaciones, Domicilio
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.shared.perf_log import PerfTimer, perf_endpoint_log
@@ -76,6 +80,25 @@ def comprobacion_pendientes_reinspeccion_oficio():
             )
             for act, ofi, ini in filas
         ]
+        if filters.numero_comprobacion:
+            q_num = filters.numero_comprobacion.replace(" ", "").lower()
+            items = [
+                row
+                for row in items
+                if q_num in (row.get("acta_comprobacion_num") or "").replace(" ", "").lower()
+            ]
+        ini_ids = [
+            int(row["iniciador_id"])
+            for row in items
+            if int(row.get("iniciador_id") or 0) > 0
+        ]
+        estado_map = build_estado_operativo_pool_por_iniciador(ini_ids)
+        for row in items:
+            ini_id = int(row.get("iniciador_id") or 0)
+            if ini_id <= 0:
+                row["estado_operativo_pool"] = "pendiente"
+                continue
+            enrich_pendiente_notificacion_row(row, estado_map=estado_map)
         presenter_ms = presenter_timer.elapsed_ms()
 
         body = {

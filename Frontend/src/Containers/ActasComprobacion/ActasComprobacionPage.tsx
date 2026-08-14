@@ -8,6 +8,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Divider,
   FormControlLabel,
@@ -108,6 +109,14 @@ import {
   recorridoColumnChips,
   recorridoColumnSortKey,
 } from "./utils/recorridoOficioExpLabels";
+import {
+  buildOperativaComprobacionFiltroPayload,
+  type OperativaComprobacionFiltroPayload,
+} from "./utils/buildOperativaComprobacionFiltroPayload";
+import {
+  notificacionEstadoOperativoChipColor,
+  notificacionEstadoOperativoLabel,
+} from "../GestionNotificacion/utils/notificacionEstadoOperativo";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
@@ -252,6 +261,33 @@ function yearOptions(center: number): { value: string; label: string }[] {
   return out;
 }
 
+function trimToNull(s: string): string | null {
+  const t = s.trim();
+  return t || null;
+}
+
+function buildEstadoOperativoColumn<T extends { estado_operativo_pool?: string | null }>(): MRT_ColumnDef<T> {
+  return {
+    id: "estado_operativo",
+    header: "Estado operativo",
+    size: 132,
+    accessorFn: (row) => notificacionEstadoOperativoLabel(row.estado_operativo_pool),
+    Cell: ({ row }) => {
+      const label = notificacionEstadoOperativoLabel(row.original.estado_operativo_pool);
+      if (label === "—") return <BandejaEllipsisCell value="—" />;
+      return (
+        <Chip
+          size="small"
+          label={label}
+          color={notificacionEstadoOperativoChipColor(row.original.estado_operativo_pool)}
+          variant="outlined"
+          sx={{ maxWidth: "100%" }}
+        />
+      );
+    },
+  };
+}
+
 /**
  * Actas de comprobación: cuatro slices (expediente → oficio → reinspección → recorrido consultivo).
  */
@@ -271,6 +307,11 @@ const ActasComprobacionPage = () => {
     reinspeccion: false,
     recorrido: false,
   });
+  const [opDesde, setOpDesde] = useState<string | null>(null);
+  const [opHasta, setOpHasta] = useState<string | null>(null);
+  const [opNumComp, setOpNumComp] = useState("");
+  const [opApplied, setOpApplied] = useState<OperativaComprobacionFiltroPayload | null>(null);
+  const opAppliedRef = useRef<OperativaComprobacionFiltroPayload | null>(null);
   /** Solo para el slice Recorrido (selector de distrito). */
   const [distritosRecorrido, setDistritosRecorrido] = useState<DistritoCatalogoItem[]>([]);
 
@@ -288,6 +329,10 @@ const ActasComprobacionPage = () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    opAppliedRef.current = opApplied;
+  }, [opApplied]);
 
   const distritoSelectOptionsRecorrido = useMemo(
     () => [
@@ -308,15 +353,17 @@ const ActasComprobacionPage = () => {
   const [expNumeroForm, setExpNumeroForm] = useState("");
   const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
   const [savingExp, setSavingExp] = useState(false);
-  const loadExpediente = useCallback(async () => {
+  const loadExpediente = useCallback(async (filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current) => {
     setExpLoading(true);
     setExpError(null);
+    const hasDateRange = Boolean(filters?.desde || filters?.hasta);
     try {
       const resp = await perfTimed(
         "comprobacion.loadExpediente",
         () =>
-          getActuacionesPendientesExpediente(undefined, undefined, "comprobacion", null, {
-            omitirRangoFecha: true,
+          getActuacionesPendientesExpediente(filters?.desde ?? null, filters?.hasta ?? null, "comprobacion", null, {
+            omitirRangoFecha: !hasDateRange,
+            numeroComprobacion: filters?.numeroComprobacion ?? null,
           }),
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
@@ -420,6 +467,7 @@ const ActasComprobacionPage = () => {
           return <BandejaActaChipCell label={n ? `Comp. ${n}` : "—"} />;
         },
       },
+      buildEstadoOperativoColumn<IActuacionesPendientesItem>(),
       {
         id: "acciones",
         header: "Acción",
@@ -517,13 +565,18 @@ const ActasComprobacionPage = () => {
     }
   }, []);
 
-  const loadOficio = useCallback(async () => {
+  const loadOficio = useCallback(async (filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current) => {
     setOficioLoading(true);
     setOficioError(null);
+    const hasDateRange = Boolean(filters?.desde || filters?.hasta);
     try {
       const resp = await perfTimed(
         "comprobacion.loadOficio",
-        () => fetchComprobacionPendientesOficio(null, null, null, { omitirRangoFecha: true }),
+        () =>
+          fetchComprobacionPendientesOficio(filters?.desde ?? null, filters?.hasta ?? null, null, {
+            omitirRangoFecha: !hasDateRange,
+            numeroComprobacion: filters?.numeroComprobacion ?? null,
+          }),
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
       setOficioApiTotal(resp.meta.total);
@@ -702,6 +755,7 @@ const ActasComprobacionPage = () => {
         accessorFn: () => "Pendiente oficio (manual)",
         Cell: () => <BandejaEllipsisCell value="Pendiente oficio (manual)" />,
       },
+      buildEstadoOperativoColumn<IPendientesOficioItem>(),
       {
         id: "acciones",
         header: "Acción",
@@ -770,13 +824,18 @@ const ActasComprobacionPage = () => {
     setSelectedRein(null);
   }, []);
 
-  const loadRein = useCallback(async () => {
+  const loadRein = useCallback(async (filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current) => {
     setReinLoading(true);
     setReinError(null);
+    const hasDateRange = Boolean(filters?.desde || filters?.hasta);
     try {
       const resp = await perfTimed(
         "comprobacion.loadReinspeccion",
-        () => fetchPendientesReinspeccionOficio(null, null, null, { omitirRangoFecha: true }),
+        () =>
+          fetchPendientesReinspeccionOficio(filters?.desde ?? null, filters?.hasta ?? null, null, {
+            omitirRangoFecha: !hasDateRange,
+            numeroComprobacion: filters?.numeroComprobacion ?? null,
+          }),
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
       setReinApiTotal(resp.meta.total);
@@ -791,6 +850,38 @@ const ActasComprobacionPage = () => {
       setReinLoading(false);
     }
   }, []);
+
+  const invalidatePendientesTabs = useCallback(() => {
+    tabLoadedRef.current.expediente = false;
+    tabLoadedRef.current.oficio = false;
+    tabLoadedRef.current.reinspeccion = false;
+  }, []);
+
+  const handleApplyOperativaFiltro = useCallback(() => {
+    const payload = buildOperativaComprobacionFiltroPayload({
+      desde: opDesde,
+      hasta: opHasta,
+      numeroComprobacion: opNumComp,
+    });
+    setOpApplied(payload);
+    opAppliedRef.current = payload;
+    invalidatePendientesTabs();
+    if (tab === "expediente") void loadExpediente(payload);
+    else if (tab === "oficio") void loadOficio(payload);
+    else if (tab === "reinspeccion") void loadRein(payload);
+  }, [opDesde, opHasta, opNumComp, tab, invalidatePendientesTabs, loadExpediente, loadOficio, loadRein]);
+
+  const handleClearOperativaFiltro = useCallback(() => {
+    setOpDesde(null);
+    setOpHasta(null);
+    setOpNumComp("");
+    setOpApplied(null);
+    opAppliedRef.current = null;
+    invalidatePendientesTabs();
+    if (tab === "expediente") void loadExpediente(null);
+    else if (tab === "oficio") void loadOficio(null);
+    else if (tab === "reinspeccion") void loadRein(null);
+  }, [tab, invalidatePendientesTabs, loadExpediente, loadOficio, loadRein]);
 
   /** Lazy-load por tab con cache; Recorrido sigue cargando solo con Filtrar. */
   const ensureTabLoaded = useCallback(
@@ -944,6 +1035,7 @@ const ActasComprobacionPage = () => {
         sortingFn: "alphanumeric",
         Cell: ({ row }) => <BandejaSegmentChipsCell segments={reinEstadoOficioChips(row.original)} />,
       },
+      buildEstadoOperativoColumn<IReinspeccionOficioPendienteRow>(),
       {
         id: "accion_rein",
         header: "Acción",
@@ -1310,6 +1402,69 @@ const ActasComprobacionPage = () => {
               </Box>
             )}
           </Paper>
+
+          {(tab === "expediente" || tab === "oficio" || tab === "reinspeccion") && (
+            <Box sx={filtroContainerStyles}>
+              <Typography sx={filtroTitleStyles}>Filtros operativos</Typography>
+              <Box sx={filtroGridStyles}>
+                <Box sx={filtroItemStyles}>
+                  <AppTextField
+                    appearance="dense"
+                    fullWidth
+                    label="Desde"
+                    type="date"
+                    InputLabelProps={{ shrink: true }}
+                    value={opDesde ?? ""}
+                    onChange={(e) => setOpDesde(trimToNull(e.target.value))}
+                    variant="outlined"
+                  />
+                </Box>
+                <Box sx={filtroItemStyles}>
+                  <AppTextField
+                    appearance="dense"
+                    fullWidth
+                    label="Hasta"
+                    type="date"
+                    InputLabelProps={{ shrink: true }}
+                    value={opHasta ?? ""}
+                    onChange={(e) => setOpHasta(trimToNull(e.target.value))}
+                    variant="outlined"
+                  />
+                </Box>
+                <Box sx={filtroItemStyles}>
+                  <AppTextField
+                    appearance="dense"
+                    fullWidth
+                    label="Nº comprobación"
+                    placeholder="Fragmento del acta"
+                    value={opNumComp}
+                    onChange={(e) => setOpNumComp(e.target.value)}
+                    variant="outlined"
+                  />
+                </Box>
+              </Box>
+              <Box sx={filtroButtonsStyles}>
+                <Button
+                  type="button"
+                  variant="contained"
+                  startIcon={<SearchIcon />}
+                  onClick={() => handleApplyOperativaFiltro()}
+                  sx={filtroButtonPrimaryStyles}
+                >
+                  Buscar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  startIcon={<ClearIcon />}
+                  onClick={() => handleClearOperativaFiltro()}
+                  sx={filtroButtonSecondaryStyles}
+                >
+                  Limpiar
+                </Button>
+              </Box>
+            </Box>
+          )}
 
           {tab === "expediente" && (
             <>

@@ -110,6 +110,12 @@ def pendientes_expediente_list():
                     estado_map=estado_map,
                     force_no_elegible=force_no_elegible,
                 )
+            elif list_channel == "comprobacion":
+                enrich_pendiente_notificacion_row(
+                    row,
+                    estado_map=None,
+                    force_no_elegible=True,
+                )
             items.append(row)
         presenter_ms = presenter_timer.elapsed_ms()
 

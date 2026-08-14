@@ -1,4 +1,4 @@
-"""Estado operativo read-only pool/ruta para bandejas de notificación (OPER-RUTA.3)."""
+"""Estado operativo read-only pool/ruta para bandejas operativas (OPER-RUTA.3 / OPER-RUTA.4)."""
 
 from __future__ import annotations
 
@@ -203,3 +203,7 @@ def enrich_pendiente_notificacion_row(
     ctx = (estado_map or {}).get(int(ini_id)) or _empty_ctx()
     row.update(ctx)
     return row
+
+
+# Alias genérico para bandejas de comprobación (OPER-RUTA.4).
+enrich_pendiente_operativo_row = enrich_pendiente_notificacion_row
