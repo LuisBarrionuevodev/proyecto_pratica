@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, datetime, timezone
 
 import pytest
+
+from tests.helpers.fixture_isolation import unique_ot_numero, uniq_ruta_numero
 
 from app.database import db
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
@@ -28,7 +29,7 @@ from app.models import (
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 @pytest.fixture
@@ -67,7 +68,7 @@ def _mk_ruta_item_reinspeccion_oficio(
         turno="TARDE",
         estado_ruta=estado_ruta,
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()

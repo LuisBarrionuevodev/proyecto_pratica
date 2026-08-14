@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date
 
 import pytest
+
+from tests.helpers.fixture_isolation import unique_ot_numero, uniq_ruta_numero
 
 from app.database import db
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
@@ -29,7 +30,7 @@ from app.models import (
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 @pytest.fixture
@@ -152,7 +153,7 @@ def _mk_oficio_con_visita_cerrada(
         turno="TARDE",
         estado_ruta="CERRADA",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
@@ -268,7 +269,7 @@ def test_oficio_en_ruta_publicada_no_editable(app_ctx) -> None:
         turno="TARDE",
         estado_ruta="PUBLICADA",
         created_by_user_id=u.id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
