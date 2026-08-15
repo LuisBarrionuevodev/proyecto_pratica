@@ -94,6 +94,7 @@ import {
   type NotificacionDetalleModalVariant,
 } from "./components/NotificacionDetalleDocumentalDialog";
 import { ReinspeccionOperativaAccionCell } from "./components/ReinspeccionOperativaAccionCell";
+import { OperRutaPoolAccionesCell } from "../../components/operRuta/OperRutaPoolAccionesCell";
 import {
   type GuardarProrrogaResult,
   prorrogaAltaSuccessMessage,
@@ -1038,17 +1039,28 @@ const GestionNotificacionPage = () => {
       {
         id: "acciones",
         header: "Acción",
-        size: 118,
+        size: 248,
         grow: false,
         enableResizing: false,
         Cell: ({ row }) => (
-          <ReinspeccionOperativaAccionCell
-            onProrroga={() => openModal(row.original, "soloExpediente", { reinspeccion: true })}
-          />
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
+            <OperRutaPoolAccionesCell
+              row={row.original}
+              onRefresh={async () => {
+                await loadPendientesReinspeccionNotificacion();
+                reinspeccionDataLoadedRef.current = true;
+              }}
+              onSuccess={(msg) => feedback.success(msg)}
+              onError={(msg) => feedback.error(msg)}
+            />
+            <ReinspeccionOperativaAccionCell
+              onProrroga={() => openModal(row.original, "soloExpediente", { reinspeccion: true })}
+            />
+          </Stack>
         ),
       },
     ],
-    [columnsDataCompact, openModal]
+    [columnsDataCompact, openModal, loadPendientesReinspeccionNotificacion, feedback]
   );
 
   const refreshOperativaActiva = useCallback(async () => {

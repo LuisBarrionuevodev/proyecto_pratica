@@ -1,4 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
 import {
   buildOperativaComprobacionFiltroPayload,
@@ -147,11 +151,10 @@ describe("API operativa comprobaciones", () => {
   });
 });
 
-describe("ActasComprobacion — sin acción Agregar al pool", () => {
-  it("no define helper de agregar al pool en filtros operativos", () => {
-    expect(typeof buildOperativaComprobacionFiltroPayload).toBe("function");
-    expect(buildOperativaComprobacionFiltroPayload({ desde: null, hasta: null, numeroComprobacion: "" })).not.toHaveProperty(
-      "agregarAlPool"
-    );
+describe("ActasComprobacion — acciones pool OPER-RUTA.5", () => {
+  it("expone helper de acciones pool en componente compartido", () => {
+    const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
+    expect(cell).toContain("Agregar al pool");
+    expect(cell).toContain("createRutaPoolDia");
   });
 });

@@ -14,6 +14,7 @@ import {
   FormControlLabel,
   IconButton,
   Paper,
+  Stack,
   Switch,
   Tab,
   Tabs,
@@ -76,6 +77,7 @@ import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../.
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { useAppFeedback } from "../../components/feedback";
+import { OperRutaPoolAccionesCell } from "../../components/operRuta/OperRutaPoolAccionesCell";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 import { applyFormErrorsFromApi, parseApiError } from "../../utils/parseApiError";
 import {
@@ -1039,18 +1041,28 @@ const ActasComprobacionPage = () => {
       {
         id: "accion_rein",
         header: "Acción",
-        size: 148,
+        size: 280,
         grow: false,
         enableResizing: false,
         enableSorting: false,
         Cell: ({ row }) => (
-          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalRein(row.original)}>
-            Gestionar oficio
-          </AppButton>
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
+            <OperRutaPoolAccionesCell
+              row={row.original}
+              onRefresh={async () => {
+                await loadRein();
+              }}
+              onSuccess={(msg) => feedback.success(msg)}
+              onError={(msg) => feedback.error(msg)}
+            />
+            <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalRein(row.original)}>
+              Gestionar oficio
+            </AppButton>
+          </Stack>
         ),
       },
     ],
-    [openModalRein]
+    [openModalRein, loadRein, feedback]
   );
 
   const renderReinToolbarRefresh = useCallback(
