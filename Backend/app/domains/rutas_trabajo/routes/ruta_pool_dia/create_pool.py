@@ -34,6 +34,7 @@ def create_pool():
             origen_tipo=payload.origen_tipo,
             actuacion_id=payload.actuacion_id,
             observacion=payload.observacion,
+            ruta_trabajo_id=payload.ruta_trabajo_id,
         )
         return jsonify({"item": ruta_pool_dia_row_dict(row)}), 201
     except ValidationError as e:

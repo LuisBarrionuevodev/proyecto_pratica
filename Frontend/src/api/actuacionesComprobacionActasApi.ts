@@ -89,6 +89,18 @@ export interface IReinspeccionOficioPendienteRow {
     | "no_elegible"
     | string
     | null;
+  pool_id?: number | null;
+  pool_fecha?: string | null;
+  pool_estado?: string | null;
+  ruta_trabajo_id?: number | null;
+  ruta_item_id?: number | null;
+  ruta_numero?: number | null;
+  ruta_fecha?: string | null;
+  ruta_turno?: string | null;
+  grupo_id?: number | null;
+  grupo_nombre?: string | null;
+  ruta_status?: string | null;
+  tiene_orden_trabajo?: boolean | null;
 }
 
 export interface IReinspeccionOficioResponse {

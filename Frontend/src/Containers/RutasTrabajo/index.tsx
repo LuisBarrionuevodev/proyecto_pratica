@@ -16,6 +16,7 @@ import {
   type IRutaItemMin,
   type IRutaTrabajo,
 } from "../../api/rutasTrabajoApi";
+import { agregarDesdePoolRuta } from "../../api/rutaPoolDiaApi";
 import type { AsignacionPoolFilters } from "./Components/TablaIniciadoresPendientes";
 import { ASIGNACION_POOL_FILTROS_VACIOS } from "./Components/TablaIniciadoresPendientes";
 import ModalAsignarInspectoresGrupo from "./Components/ModalAsignarInspectoresGrupo";
@@ -27,6 +28,7 @@ import {
   useRutaTrabajoBorradorActions,
   useRutasTrabajoSession,
 } from "./hooks";
+import { useRutaPoolDiaBackend } from "./hooks/useRutaPoolDiaBackend";
 import { RutasTrabajoFlowStepper, type RutaFlowStep } from "./Components/RutasTrabajoFlowStepper";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
@@ -59,9 +61,6 @@ const RutasTrabajo = () => {
   const [ruta, setRuta] = useState<IRutaTrabajo | null>(null);
   const [grupos, setGrupos] = useState<IRutaGrupoMin[]>([]);
   const [items, setItems] = useState<IRutaItemMin[]>([]);
-  /** Pool del día compartido Planificación → Asignación (solo frontend hasta asignar a grupos). */
-  const [poolIniciadorIds, setPoolIniciadorIds] = useState<number[]>([]);
-  const [poolRowsById, setPoolRowsById] = useState<Record<number, IRutaIniciadorPendienteRow>>({});
   const [asignacionFilters, setAsignacionFilters] = useState<AsignacionPoolFilters>({
     ...ASIGNACION_POOL_FILTROS_VACIOS,
   });
@@ -91,6 +90,24 @@ const RutasTrabajo = () => {
   /** Ruta publicada u otro estado no borrador: mapa en preview histórica solo lectura. */
   const vistaHistoricaReadOnly = Boolean(ruta && ruta.estado_ruta !== "BORRADOR");
 
+  const handlePoolBackendError = useCallback((msg: string) => {
+    setError(msg);
+  }, []);
+
+  const {
+    poolItems: poolBackendItems,
+    poolIniciadorIds,
+    poolRowsById,
+    poolIdByIniciadorId,
+    loading: poolLoading,
+    refreshPool,
+    agregarAlPool,
+    quitarDelPool,
+  } = useRutaPoolDiaBackend({
+    fecha: ruta?.fecha,
+    onError: handlePoolBackendError,
+  });
+
   const loadRutaDetail = useCallback(async (targetRutaId: number, opts?: { showLoading?: boolean }) => {
     const showLoading = opts?.showLoading !== false;
     if (showLoading) setDetailLoading(true);
@@ -102,8 +119,6 @@ const RutasTrabajo = () => {
       // Por grupo, el API devuelve ítems ordenados por id ascendente (sin campo de secuencia de visita en modelo).
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
-      setPoolIniciadorIds([]);
-      setPoolRowsById({});
       setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
       persistRutaId(targetRutaId);
       const esBorrador = detail.ruta.estado_ruta === "BORRADOR";
@@ -122,9 +137,10 @@ const RutasTrabajo = () => {
   }, []);
 
   /** Actualiza grupos e ítems desde el servidor sin resetear el flujo ni el pool (Asignación). */
-  const refreshRutaBorrador = useCallback(async () => {
+  const refreshRutaBorrador = useCallback(async (opts?: { showLoading?: boolean }) => {
     if (!rutaId) return;
-    setDetailLoading(true);
+    const showLoading = opts?.showLoading !== false;
+    if (showLoading) setDetailLoading(true);
     setError(null);
     try {
       const detail = await getRutaTrabajoDetail(rutaId);
@@ -136,32 +152,38 @@ const RutasTrabajo = () => {
     } catch (err: any) {
       setError(err?.response?.data?.detail || "No se pudo sincronizar el borrador");
     } finally {
-      setDetailLoading(false);
+      if (showLoading) setDetailLoading(false);
     }
   }, [rutaId]);
 
-  const agregarAlPool = useCallback((row: IRutaIniciadorPendienteRow) => {
-    setPoolIniciadorIds((prev) => (prev.includes(row.id) ? prev : [...prev, row.id]));
-    setPoolRowsById((prev) => ({ ...prev, [row.id]: row }));
-  }, []);
-
-  const quitarDelPool = useCallback((id: number) => {
-    setPoolIniciadorIds((prev) => prev.filter((x) => x !== id));
-    setPoolRowsById((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-  }, []);
+  const syncPoolTrasQuitarItem = useCallback(async () => {
+    await Promise.all([
+      refreshRutaBorrador({ showLoading: false }),
+      refreshPool(ruta?.fecha, { silent: true }),
+    ]);
+  }, [refreshRutaBorrador, refreshPool, ruta?.fecha]);
 
   const poolControl: PlanificacionPoolControl = useMemo(
     () => ({
       poolIniciadorIds,
       poolRowsById,
+      poolBackendItems,
+      poolIdByIniciadorId,
+      poolLoading,
       agregarAlPool,
       quitarDelPool,
+      refreshPool,
     }),
-    [poolIniciadorIds, poolRowsById, agregarAlPool, quitarDelPool]
+    [
+      poolIniciadorIds,
+      poolRowsById,
+      poolBackendItems,
+      poolIdByIniciadorId,
+      poolLoading,
+      agregarAlPool,
+      quitarDelPool,
+      refreshPool,
+    ]
   );
 
   const poolRowsOrdered = useMemo(
@@ -214,8 +236,6 @@ const RutasTrabajo = () => {
     setRuta(null);
     setGrupos([]);
     setItems([]);
-    setPoolIniciadorIds([]);
-    setPoolRowsById({});
     setAsignacionFilters({ ...ASIGNACION_POOL_FILTROS_VACIOS });
     setOpenCrearGrupo(false);
     setOpenAsignarInspectores(false);
@@ -274,13 +294,23 @@ const RutasTrabajo = () => {
     void loadInspectores();
   }, []);
 
-  const { moveItem: handleMoveItem, deleteItem: handleDeleteItem, saveOtItem: handleSaveOt } =
+  const { moveItem: handleMoveItem, deleteItem: handleQuitarItem, saveOtItem: handleSaveOt } =
     useRutaTrabajoBorradorActions({
       rutaId,
       setItems,
       setError,
       loadPendientes,
+      onAfterDeleteItem: syncPoolTrasQuitarItem,
     });
+
+  const handleEliminarDelPoolSeleccion = useCallback(
+    async (poolIds: number[]) => {
+      for (const poolId of poolIds) {
+        await quitarDelPool(poolId);
+      }
+    },
+    [quitarDelPool]
+  );
 
   const handleCreateGrupo = async () => {
     if (!rutaId) return;
@@ -334,12 +364,26 @@ const RutasTrabajo = () => {
       setError(null);
       setSuccessMessage(null);
       try {
-        const resp = await assignRutaItems(rutaId, grupoId, { iniciador_ids: iniciadorIds });
-        setItems((prev) => {
-          const map = new Map(prev.map((i) => [i.id, i]));
-          resp.items.forEach((i) => map.set(i.id, i));
-          return Array.from(map.values());
-        });
+        const poolIds = iniciadorIds
+          .map((id) => poolIdByIniciadorId[id])
+          .filter((pid): pid is number => pid != null);
+
+        if (poolIds.length === iniciadorIds.length) {
+          const resp = await agregarDesdePoolRuta(rutaId, { pool_ids: poolIds, grupo_id: grupoId });
+          setItems((prev) => {
+            const map = new Map(prev.map((i) => [i.id, i]));
+            resp.items.forEach((i) => map.set(i.id, i));
+            return Array.from(map.values());
+          });
+          await refreshPool(ruta?.fecha);
+        } else {
+          const resp = await assignRutaItems(rutaId, grupoId, { iniciador_ids: iniciadorIds });
+          setItems((prev) => {
+            const map = new Map(prev.map((i) => [i.id, i]));
+            resp.items.forEach((i) => map.set(i.id, i));
+            return Array.from(map.values());
+          });
+        }
         setSuccessMessage("Iniciadores asignados correctamente.");
         return true;
       } catch (err: any) {
@@ -347,7 +391,7 @@ const RutasTrabajo = () => {
         return false;
       }
     },
-    [rutaId]
+    [rutaId, poolIdByIniciadorId, refreshPool]
   );
 
   const handleDeleteGrupo = useCallback(
@@ -357,11 +401,12 @@ const RutasTrabajo = () => {
         await deleteRutaGrupo(rutaId, grupo.id);
         setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
         setItems((prev) => prev.filter((it) => it.ruta_grupo_id !== grupo.id));
+        await refreshPool(ruta?.fecha, { silent: true });
       } catch (err: any) {
         setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
       }
     },
-    [rutaId]
+    [rutaId, ruta?.fecha, refreshPool]
   );
 
   const handleSincronizarBorradorAsignacion = useCallback(() => {
@@ -489,11 +534,13 @@ const RutasTrabajo = () => {
             onEditarInspectores={handleEditarInspectoresAsignacion}
             onEliminarGrupo={handleDeleteGrupo}
             onMoverItem={handleMoveItem}
-            onQuitarItem={handleDeleteItem}
+            onQuitarItem={handleQuitarItem}
             onGuardarOtItem={handleSaveOt}
             onContinuarMapaFinal={handleContinuarMapaFinal}
             onVolverPlanificacion={handleVolverPlanificacion}
             onAssignIniciadoresToGrupo={assignIniciadoresToGrupo}
+            poolIdByIniciadorId={poolIdByIniciadorId}
+            onEliminarDelPoolSeleccion={handleEliminarDelPoolSeleccion}
           />
         )}
 
@@ -522,7 +569,7 @@ const RutasTrabajo = () => {
             }
             onEliminarGrupo={vistaHistoricaReadOnly ? undefined : handleDeleteGrupo}
             onMoverItem={vistaHistoricaReadOnly ? undefined : handleMoveItem}
-            onQuitarItem={vistaHistoricaReadOnly ? undefined : handleDeleteItem}
+            onQuitarItem={vistaHistoricaReadOnly ? undefined : handleQuitarItem}
             onGuardarOtItem={vistaHistoricaReadOnly ? undefined : handleSaveOt}
           />
         )}

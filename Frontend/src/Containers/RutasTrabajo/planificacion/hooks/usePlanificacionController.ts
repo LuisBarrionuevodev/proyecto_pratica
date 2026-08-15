@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
+import type { IRutaPoolDiaRow } from "../../../../api/rutaPoolDiaApi";
 import type { IRubroCatalogItem } from "../../../../api/rubrosCatalogApi";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../../../api/geolocalizacionApi";
 import { fetchRubrosCatalogoCached } from "../../../../utils/rubrosCatalogCache";
@@ -58,12 +59,16 @@ function buildM4QueryBase(distritoActivoId: number): Omit<IPendientesContextoPar
   };
 }
 
-/** Pool compartido con el contenedor RutasTrabajo (misma etapa Planificación → Asignación). */
+/** Pool compartido con el contenedor RutasTrabajo (backend `ruta-pool-dia`). */
 export type PlanificacionPoolControl = {
   poolIniciadorIds: number[];
   poolRowsById: Record<number, IRutaIniciadorPendienteRow>;
-  agregarAlPool: (row: IRutaIniciadorPendienteRow) => void;
-  quitarDelPool: (id: number) => void;
+  poolBackendItems: IRutaPoolDiaRow[];
+  poolIdByIniciadorId: Record<number, number>;
+  poolLoading?: boolean;
+  agregarAlPool: (row: IRutaIniciadorPendienteRow) => void | Promise<void>;
+  quitarDelPool: (poolId: number) => void | Promise<void>;
+  refreshPool?: (fechaOverride?: string | null, opts?: { silent?: boolean }) => Promise<void>;
 };
 
 export type UsePlanificacionControllerParams = {
@@ -77,7 +82,7 @@ export function usePlanificacionController({
   onError,
   poolControl,
 }: UsePlanificacionControllerParams) {
-  const { poolIniciadorIds, poolRowsById, agregarAlPool, quitarDelPool } = poolControl;
+  const { poolIniciadorIds, poolRowsById, poolBackendItems, agregarAlPool, quitarDelPool } = poolControl;
 
   /** Evita que un `onError` inline del padre invalide load* y dispare efectos M1–M4 en bucle. */
   const onErrorRef = useRef(onError);
@@ -425,6 +430,7 @@ export function usePlanificacionController({
     reiniciarFiltrosPendientesContexto,
     poolIniciadorIds,
     poolItemsOrdenados,
+    poolBackendItems,
     agregarAlPool,
     quitarDelPool,
     metricas,

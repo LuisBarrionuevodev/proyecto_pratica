@@ -1,5 +1,5 @@
-import { Box, Chip, Stack, Typography } from "@mui/material";
-import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
+import { Box, Chip, CircularProgress, Stack, Tooltip, Typography } from "@mui/material";
+import type { IRutaPoolDiaRow } from "../../../api/rutaPoolDiaApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
 import {
@@ -11,27 +11,37 @@ import {
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
-import { EstablecimientoSecundarioLine } from "./components/EstablecimientoSecundarioLine";
-import {
-  distritoNombrePendiente,
-  etiquetaTipoCorta,
-  lineaPrincipalPendiente,
-  prioridadCategoriaRow,
-  rubroLineaPendiente,
-} from "./utils/iniciadorDisplay";
+import { poolDiaOrigenLabel } from "../utils/poolDiaDisplay";
+import { puedeSacarDelPoolPanel } from "../../../utils/operRutaPoolAcciones";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type PoolDelDiaPanelProps = {
-  items: IRutaIniciadorPendienteRow[];
-  onQuitar: (id: number) => void;
-  onContinuarAsignacion: () => void;
+  items: IRutaPoolDiaRow[];
+  loading?: boolean;
+  onQuitar: (poolId: number) => void | Promise<void>;
+  onContinuarAsignacion?: () => void;
+  /** Oculta pie «Continuar a asignación» (vista Asignación). */
+  compact?: boolean;
 };
 
+function estadoPoolLabel(estado: string | null | undefined): string {
+  const key = (estado ?? "").trim().toUpperCase();
+  if (key === "EN_POOL") return "En pool";
+  if (key === "ASIGNADO_A_RUTA") return "Asignado";
+  return estado?.trim() || "—";
+}
+
 /**
- * Pool del día: header fijo, lista con scroll propio, acción fija abajo.
+ * Pool del día desde backend (`GET /ruta-pool-dia`): header fijo, lista con scroll, acción abajo.
  */
-export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: PoolDelDiaPanelProps) {
+export function PoolDelDiaPanel({
+  items,
+  loading = false,
+  onQuitar,
+  onContinuarAsignacion,
+  compact = false,
+}: PoolDelDiaPanelProps) {
   return (
     <Stack
       sx={{
@@ -63,20 +73,31 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
 
       <Box
         className="planificacion-list-body"
+        data-testid="pool-del-dia-list"
         sx={{ ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx }}
       >
-        {items.length === 0 ? (
+        {loading ? (
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1 }}>
+            <CircularProgress size={18} />
+            <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
+              Cargando pool…
+            </Typography>
+          </Stack>
+        ) : items.length === 0 ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
-            Sin ítems.
+            Sin ítems en pool.
           </Typography>
         ) : (
           <Stack spacing={0.75} sx={{ pb: 0.5 }}>
             {items.map((row) => {
-              const distritoTxt = distritoNombrePendiente(row);
+              const origenLabel = poolDiaOrigenLabel(row.origen_tipo);
+              const puedeSacar = puedeSacarDelPoolPanel(row);
+              const enGrupo = row.ruta_item_id != null;
               return (
                 <Stack
-                  key={row.id}
+                  key={row.pool_id}
                   spacing={0.5}
+                  data-testid={`pool-del-dia-row-${row.pool_id}`}
                   sx={{
                     py: 0.75,
                     borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -92,9 +113,10 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                           fontWeight: 600,
                           color: GLASS_COLORS.textPrimary,
                           lineHeight: 1.35,
+                          wordBreak: "break-word",
                         }}
                       >
-                        {lineaPrincipalPendiente(row)}
+                        {row.domicilio_texto?.trim() || "—"}
                       </Typography>
                       <Typography
                         sx={{
@@ -106,28 +128,23 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                           wordBreak: "break-word",
                         }}
                       >
-                        {rubroLineaPendiente(row)}
+                        {row.rubro_nombre?.trim() || "—"}
                       </Typography>
-                      <EstablecimientoSecundarioLine item={row} />
                       <Typography
                         sx={{
                           fontFamily: tactic,
                           fontSize: "0.68rem",
                           fontWeight: 500,
                           lineHeight: 1.25,
-                          color:
-                            distritoTxt !== "—"
-                              ? GLASS_COLORS.textSecondary
-                              : "rgba(255,255,255,0.28)",
-                          wordBreak: "break-word",
+                          color: GLASS_COLORS.textSecondary,
                         }}
                       >
-                        {distritoTxt}
+                        {row.fecha ?? "—"} · {estadoPoolLabel(row.estado)}
                       </Typography>
                       <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                         <Chip
                           size="small"
-                          label={etiquetaTipoCorta(row)}
+                          label={origenLabel}
                           variant="outlined"
                           sx={{
                             height: 22,
@@ -137,24 +154,27 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
                             color: GLASS_COLORS.textSecondary,
                           }}
                         />
-                        <Chip
-                          size="small"
-                          label={prioridadCategoriaRow(row)}
-                          variant="outlined"
-                          sx={{
-                            height: 22,
-                            fontFamily: tactic,
-                            fontSize: "0.62rem",
-                            fontWeight: 700,
-                            borderColor: GLASS_COLORS.borderLight,
-                            color: GLASS_COLORS.textSecondary,
-                          }}
-                        />
                       </Stack>
                     </Stack>
-                    <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onQuitar(row.id)} sx={{ flexShrink: 0 }}>
-                      Quitar
-                    </AppButton>
+                    {puedeSacar ? (
+                      <AppButton
+                        dsVariant="ghost"
+                        dsSize="sm"
+                        onClick={() => void onQuitar(row.pool_id)}
+                        sx={{ flexShrink: 0 }}
+                        data-testid={`pool-sacar-${row.pool_id}`}
+                      >
+                        Sacar del pool
+                      </AppButton>
+                    ) : enGrupo ? (
+                      <Tooltip title="Primero eliminá el ítem del grupo. Luego podrás sacarlo del pool.">
+                        <span>
+                          <AppButton dsVariant="ghost" dsSize="sm" disabled sx={{ flexShrink: 0 }}>
+                            Sacar del pool
+                          </AppButton>
+                        </span>
+                      </Tooltip>
+                    ) : null}
                   </Stack>
                 </Stack>
               );
@@ -163,11 +183,13 @@ export function PoolDelDiaPanel({ items, onQuitar, onContinuarAsignacion }: Pool
         )}
       </Box>
 
-      <Box className="planificacion-panel-footer" sx={{ ...planificacionPanelFooterSx, pt: 1 }}>
-        <AppButton dsVariant="primary" fullWidth onClick={onContinuarAsignacion} disabled={items.length === 0}>
-          Continuar a asignación
-        </AppButton>
-      </Box>
+      {!compact && onContinuarAsignacion ? (
+        <Box className="planificacion-panel-footer" sx={{ ...planificacionPanelFooterSx, pt: 1 }}>
+          <AppButton dsVariant="primary" fullWidth onClick={onContinuarAsignacion} disabled={items.length === 0}>
+            Continuar a asignación
+          </AppButton>
+        </Box>
+      ) : null}
     </Stack>
   );
 }

@@ -64,6 +64,9 @@ def materializacion_notificacion_vencida_on_read_enabled() -> bool:
     )
 
 
+_ESTADOS_INICIADOR_BANDEJA_REINSPECCION_NOTIF = ("PENDIENTE", "PLANIFICADO")
+
+
 def estado_bloquea_nueva_materializacion_reinspeccion_notificacion(estado_iniciador: str | None) -> bool:
     """
     Indica si un iniciador `REINSPECCION_NOTIFICACION` en ese estado impide crear otro
@@ -523,7 +526,8 @@ def list_reinspeccion_notificacion_operativas(
     numero_notificacion: str | None = None,
 ) -> list[Actuaciones]:
     """
-    Lista actuaciones base INSPECCION con iniciador `REINSPECCION_NOTIFICACION` en `PENDIENTE`.
+    Lista actuaciones base INSPECCION con iniciador `REINSPECCION_NOTIFICACION` en cola operativa
+    (`PENDIENTE` o `PLANIFICADO` en ruta borrador/pool).
 
     Defensa en profundidad (lectura): misma noción de **vencida operativa** que el sync /
     `_eligible_inspecciones_vencidas` para la notificación: no borrada, `fecha_vencimiento`
@@ -554,7 +558,7 @@ def list_reinspeccion_notificacion_operativas(
             .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
             .filter(Actuaciones.tipo == "INSPECCION")
             .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
-            .filter(IniciadorRuta.estado_iniciador == "PENDIENTE")
+            .filter(IniciadorRuta.estado_iniciador.in_(_ESTADOS_INICIADOR_BANDEJA_REINSPECCION_NOTIF))
             .filter(IniciadorRuta.deleted_at.is_(None))
             .filter(Notificacion.deleted_at.is_(None))
             .filter(Notificacion.fecha_vencimiento.isnot(None))

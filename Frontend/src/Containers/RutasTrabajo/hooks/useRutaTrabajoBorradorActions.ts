@@ -19,6 +19,8 @@ export type UseRutaTrabajoBorradorActionsParams = {
   setItems: React.Dispatch<React.SetStateAction<IRutaItemMin[]>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   loadPendientes: () => Promise<void>;
+  /** Tras quitar ítem (p. ej. refrescar pool del día y detalle de borrador). */
+  onAfterDeleteItem?: () => Promise<void>;
 };
 
 /**
@@ -30,6 +32,7 @@ export function useRutaTrabajoBorradorActions({
   setItems,
   setError,
   loadPendientes,
+  onAfterDeleteItem,
 }: UseRutaTrabajoBorradorActionsParams) {
   const moveItem = useCallback(
     async (item: IRutaItemMin, targetGrupoId: number) => {
@@ -50,12 +53,15 @@ export function useRutaTrabajoBorradorActions({
       try {
         await deleteRutaItem(rutaId, item.id);
         setItems((prev) => prev.filter((it) => it.id !== item.id));
-        await loadPendientes();
+        await Promise.all([
+          loadPendientes(),
+          ...(onAfterDeleteItem ? [onAfterDeleteItem()] : []),
+        ]);
       } catch (err: any) {
         setError(err?.response?.data?.detail || "No se pudo quitar el item");
       }
     },
-    [rutaId, setItems, loadPendientes, setError]
+    [rutaId, setItems, loadPendientes, onAfterDeleteItem, setError]
   );
 
   const saveOtItem = useCallback(

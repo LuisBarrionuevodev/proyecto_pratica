@@ -151,10 +151,10 @@ describe("API operativa comprobaciones", () => {
   });
 });
 
-describe("ActasComprobacion — acciones pool OPER-RUTA.5", () => {
-  it("expone helper de acciones pool en componente compartido", () => {
+describe("ActasComprobacion — acciones pool OPER-RUTA.5/6", () => {
+  it("expone acción única en componente compartido", () => {
     const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
-    expect(cell).toContain("Agregar al pool");
-    expect(cell).toContain("createRutaPoolDia");
+    expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).toContain("AgregarARutaOperDialog");
   });
 });

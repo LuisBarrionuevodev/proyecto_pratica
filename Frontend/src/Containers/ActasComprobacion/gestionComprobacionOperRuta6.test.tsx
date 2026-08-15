@@ -6,14 +6,15 @@ import { puedeAgregarARutaDeTrabajo } from "../../utils/operRutaPoolAcciones";
 
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-describe("ActasComprobacion OPER-RUTA.5/6", () => {
+describe("ActasComprobacion OPER-RUTA.6", () => {
   const page = read("src/Containers/ActasComprobacion/ActasComprobacionPage.tsx");
   const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
 
-  it("Pendientes reinspección integra acciones pool", () => {
+  it("Pendientes reinspección integra botón único", () => {
     expect(page).toContain("OperRutaPoolAccionesCell");
     expect(page).toContain("accion_rein");
-    expect(cell).toContain('data-testid="oper-ruta-agregar-ruta-trabajo"');
+    expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).not.toContain("oper-ruta-agregar-pool");
   });
 
   it("expediente y oficio no integran OperRutaPoolAccionesCell en columnas", () => {

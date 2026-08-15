@@ -96,6 +96,10 @@ import {
 import { ReinspeccionOperativaAccionCell } from "./components/ReinspeccionOperativaAccionCell";
 import { OperRutaPoolAccionesCell } from "../../components/operRuta/OperRutaPoolAccionesCell";
 import {
+  estaBloqueadoParaGestionDocumental,
+  MENSAJE_BLOQUEO_GESTION_POOL_RUTA,
+} from "../../utils/operRutaPoolAcciones";
+import {
   type GuardarProrrogaResult,
   prorrogaAltaSuccessMessage,
   volvioEnPlazoDesdeExpedienteMeta,
@@ -113,8 +117,8 @@ import {
 } from "./utils/buildOperativaNotificacionFiltroPayload";
 import {
   notificacionEstadoOperativoChipColor,
-  notificacionEstadoOperativoLabel,
 } from "./utils/notificacionEstadoOperativo";
+import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
@@ -448,8 +452,11 @@ const GestionNotificacionPage = () => {
   const [exportError, setExportError] = useState<string | null>(null);
 
   const loadPendientesReinspeccionNotificacion = useCallback(
-    async (filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current) => {
-      setReinspeccionLoading(true);
+    async (
+      filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current,
+      opts?: { silent?: boolean }
+    ) => {
+      if (!opts?.silent) setReinspeccionLoading(true);
       setReinspeccionError(null);
       try {
         const rows = await perfTimed(
@@ -474,7 +481,7 @@ const GestionNotificacionPage = () => {
         setReinspeccionError(detail || "Error al cargar pendientes de reinspección");
         setReinspeccionItems([]);
       } finally {
-        setReinspeccionLoading(false);
+        if (!opts?.silent) setReinspeccionLoading(false);
       }
     },
     []
@@ -976,9 +983,9 @@ const GestionNotificacionPage = () => {
         id: "estado_operativo",
         header: "Estado operativo",
         size: 132,
-        accessorFn: (row) => notificacionEstadoOperativoLabel(row.estado_operativo_pool),
+        accessorFn: (row) => formatEstadoOperativoPoolLabel(row),
         Cell: ({ row }) => {
-          const label = notificacionEstadoOperativoLabel(row.original.estado_operativo_pool);
+          const label = formatEstadoOperativoPoolLabel(row.original);
           if (label === "—") return <BandejaEllipsisCell value="—" />;
           return (
             <Chip
@@ -1042,22 +1049,27 @@ const GestionNotificacionPage = () => {
         size: 248,
         grow: false,
         enableResizing: false,
-        Cell: ({ row }) => (
+        Cell: ({ row }) => {
+          const bloqueado = estaBloqueadoParaGestionDocumental(row.original);
+          return (
           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
             <OperRutaPoolAccionesCell
               row={row.original}
-              onRefresh={async () => {
-                await loadPendientesReinspeccionNotificacion();
+              onRefresh={async (opts) => {
+                await loadPendientesReinspeccionNotificacion(opAppliedRef.current, opts);
                 reinspeccionDataLoadedRef.current = true;
               }}
               onSuccess={(msg) => feedback.success(msg)}
               onError={(msg) => feedback.error(msg)}
             />
             <ReinspeccionOperativaAccionCell
+              disabled={bloqueado}
+              disabledReason={bloqueado ? MENSAJE_BLOQUEO_GESTION_POOL_RUTA : undefined}
               onProrroga={() => openModal(row.original, "soloExpediente", { reinspeccion: true })}
             />
           </Stack>
-        ),
+          );
+        },
       },
     ],
     [columnsDataCompact, openModal, loadPendientesReinspeccionNotificacion, feedback]

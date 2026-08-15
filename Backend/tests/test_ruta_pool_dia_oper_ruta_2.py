@@ -15,6 +15,7 @@ from app.domains.rutas_trabajo.services.ruta_pool_agregar_desde_pool_service imp
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import (
     create_ruta_pool_dia_entry,
     descartar_ruta_pool_dia_entry,
+    liberar_ruta_pool_dia_entry,
     list_ruta_pool_dia,
 )
 from app.models import Domicilio, IniciadorRuta, RutaItem, RutaPoolDia, RutaTrabajo, User
@@ -344,6 +345,54 @@ def test_agregar_desde_pool_asigna_ruta_borrador(app_ctx):
     assert row.ruta_item_id is not None
 
 
+def test_soft_delete_item_revierte_pool_en_fecha_ruta(app_ctx):
+    """OPER-RUTA.6E: al quitar ítem de grupo, pool vuelve EN_POOL en fecha de la ruta."""
+    from app.domains.rutas_trabajo.services.ruta_items_service import soft_delete_ruta_item
+
+    u = _mk_user()
+    ini = _mk_iniciador()
+    pool_fecha = _fecha_aislada()
+    ruta_fecha = pool_fecha + timedelta(days=45)
+    ruta = RutaTrabajo(
+        fecha=ruta_fecha,
+        turno="MANIANA",
+        estado_ruta="BORRADOR",
+        numero=random.randint(100, 32000),
+        created_by_user_id=u.id,
+    )
+    db.session.add(ruta)
+    db.session.flush()
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G Revert", estado="ACTIVO")
+    db.session.commit()
+
+    row = create_ruta_pool_dia_entry(
+        fecha=pool_fecha,
+        turno_id=None,
+        usuario_id=u.id,
+        iniciador_ruta_id=int(ini.id),
+    )
+    result = agregar_desde_pool_a_ruta(
+        ruta_id=int(ruta.id),
+        grupo_id=int(grupo.id),
+        pool_ids=[int(row.id)],
+    )
+    item = result["items"][0]
+    db.session.refresh(row)
+    assert row.estado == "ASIGNADO_A_RUTA"
+
+    items_before, _ = list_ruta_pool_dia(fecha=ruta_fecha, estado="EN_POOL")
+    assert not any(int(i.iniciador_ruta_id) == int(ini.id) for i in items_before)
+
+    soft_delete_ruta_item(ruta_id=int(ruta.id), item_id=int(item.id))
+
+    items_after, _ = list_ruta_pool_dia(fecha=ruta_fecha, estado="EN_POOL")
+    reverted = next(i for i in items_after if int(i.iniciador_ruta_id) == int(ini.id))
+    assert reverted.estado == "EN_POOL"
+    assert reverted.ruta_item_id is None
+    assert reverted.fecha == ruta_fecha
+    assert int(reverted.iniciador_ruta_id) == int(ini.id)
+
+
 def test_agregar_desde_pool_rechaza_ruta_publicada(app_ctx):
     u = _mk_user()
     ini = _mk_iniciador()
@@ -427,3 +476,116 @@ def test_api_post_pool_y_delete(client, auth_headers, app_ctx):
     rv_del = client.delete(f"/ruta-pool-dia/{pool_id}", headers=auth_headers)
     assert rv_del.status_code == 200
     assert rv_del.get_json()["item"]["estado"] == "DESCARTADO"
+
+
+def test_liberar_pool_en_pool_sin_ruta_item(app_ctx):
+    u = _mk_user()
+    ini = _mk_iniciador()
+    db.session.commit()
+    row = create_ruta_pool_dia_entry(
+        fecha=date.today(),
+        turno_id=None,
+        usuario_id=u.id,
+        iniciador_ruta_id=int(ini.id),
+    )
+    assert row.estado == "EN_POOL"
+    liberado = liberar_ruta_pool_dia_entry(pool_id=int(row.id))
+    assert liberado.estado == "DESCARTADO"
+    assert liberado.deleted_at is not None
+
+
+def test_liberar_pool_asignado_borrador_sin_ot(app_ctx):
+    u = _mk_user()
+    ini = _mk_iniciador()
+    ruta = _mk_ruta(user=u, estado="BORRADOR")
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G Lib", estado="ACTIVO")
+    db.session.commit()
+    row = create_ruta_pool_dia_entry(
+        fecha=date.today(),
+        turno_id=None,
+        usuario_id=u.id,
+        iniciador_ruta_id=int(ini.id),
+    )
+    agregar_desde_pool_a_ruta(
+        ruta_id=int(ruta.id),
+        grupo_id=int(grupo.id),
+        pool_ids=[int(row.id)],
+    )
+    db.session.refresh(row)
+    assert row.estado == "ASIGNADO_A_RUTA"
+    item_id = row.ruta_item_id
+    liberado = liberar_ruta_pool_dia_entry(pool_id=int(row.id))
+    assert liberado.estado == "DESCARTADO"
+    item = RutaItem.query.filter(RutaItem.id == item_id).first()
+    assert item is not None
+    assert item.deleted_at is not None
+    db.session.refresh(ini)
+    assert ini.estado_iniciador == "PENDIENTE"
+
+
+def test_liberar_pool_rechaza_ruta_publicada(app_ctx):
+    u = _mk_user()
+    ini = _mk_iniciador()
+    ruta = _mk_ruta(user=u, estado="BORRADOR")
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G PubLib", estado="ACTIVO")
+    db.session.commit()
+    row = create_ruta_pool_dia_entry(
+        fecha=date.today(),
+        turno_id=None,
+        usuario_id=u.id,
+        iniciador_ruta_id=int(ini.id),
+    )
+    agregar_desde_pool_a_ruta(
+        ruta_id=int(ruta.id),
+        grupo_id=int(grupo.id),
+        pool_ids=[int(row.id)],
+    )
+    ruta.estado_ruta = "PUBLICADA"
+    db.session.commit()
+    with pytest.raises(RuntimeError, match="publicada"):
+        liberar_ruta_pool_dia_entry(pool_id=int(row.id))
+
+
+def test_liberar_pool_rechaza_con_ot(app_ctx):
+    from app.models import OrdenTrabajo
+
+    u = _mk_user()
+    ini = _mk_iniciador()
+    ruta = _mk_ruta(user=u, estado="BORRADOR")
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G OT", estado="ACTIVO")
+    db.session.commit()
+    row = create_ruta_pool_dia_entry(
+        fecha=date.today(),
+        turno_id=None,
+        usuario_id=u.id,
+        iniciador_ruta_id=int(ini.id),
+    )
+    result = agregar_desde_pool_a_ruta(
+        ruta_id=int(ruta.id),
+        grupo_id=int(grupo.id),
+        pool_ids=[int(row.id)],
+    )
+    item = result["items"][0]
+    ot = OrdenTrabajo(numero_acta=f"{random.randint(0, 999999):06d}", mes=date.today().month, anio=date.today().year)
+    db.session.add(ot)
+    db.session.flush()
+    item.orden_trabajo_id = ot.id
+    db.session.commit()
+    with pytest.raises(RuntimeError, match="Orden de Trabajo"):
+        liberar_ruta_pool_dia_entry(pool_id=int(row.id))
+
+
+def test_api_liberar_pool_en_pool(client, auth_headers, app_ctx):
+    u = _mk_user()
+    ini = _mk_iniciador()
+    db.session.commit()
+    fecha = _fecha_aislada()
+    rv = client.post(
+        "/ruta-pool-dia",
+        headers=auth_headers,
+        json={"fecha": fecha.isoformat(), "iniciador_id": int(ini.id), "origen_tipo": "INICIADOR"},
+    )
+    pool_id = rv.get_json()["item"]["pool_id"]
+    rv_lib = client.post(f"/ruta-pool-dia/{pool_id}/liberar", headers=auth_headers)
+    assert rv_lib.status_code == 200, rv_lib.get_data(as_text=True)
+    assert rv_lib.get_json()["item"]["estado"] == "DESCARTADO"

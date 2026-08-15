@@ -68,6 +68,7 @@ class RutaPoolDiaCreateIn(BaseModel):
     actuacion_id: Optional[int] = Field(default=None, ge=1)
     fecha: date
     turno_id: Optional[int] = Field(default=None, ge=1)
+    ruta_trabajo_id: Optional[int] = Field(default=None, ge=1)
     observacion: Optional[str] = None
 
     @field_validator("origen_tipo")

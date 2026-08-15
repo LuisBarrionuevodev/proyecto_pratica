@@ -360,3 +360,32 @@ def test_reinspeccion_resuelto(app_ctx, client, auth_headers):
     db.session.commit()
     ctx = build_estado_operativo_pool_por_iniciador([int(ini.id)])[int(ini.id)]
     assert ctx["estado_operativo_pool"] == "resuelto"
+
+
+def test_pendientes_reinspeccion_incluye_en_ruta_borrador(app_ctx, client, auth_headers):
+    """OPER-RUTA.6D: comprobación en grupo borrador sigue visible en bandeja."""
+    u = _mk_user()
+    act, ini = _mk_reinspeccion_circuito(fecha=date(2026, 9, 5), user=u)
+    ruta = RutaTrabajo(
+        fecha=date.today() + timedelta(days=150),
+        turno="MANIANA",
+        estado_ruta="BORRADOR",
+        numero=random.randint(200, 32000),
+        created_by_user_id=u.id,
+    )
+    db.session.add(ruta)
+    db.session.flush()
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G2", estado="ACTIVO")
+    db.session.commit()
+    assign_iniciadores_to_grupo(ruta_id=int(ruta.id), grupo_id=int(grupo.id), iniciador_ids=[int(ini.id)])
+    db.session.refresh(ini)
+    assert ini.estado_iniciador == "PLANIFICADO"
+    rv = client.get(
+        "/actuaciones/comprobacion/pendientes-reinspeccion-oficio",
+        headers=auth_headers,
+        query_string={"omitir_rango_fecha": "true"},
+    )
+    assert rv.status_code == 200
+    row = next((i for i in rv.get_json()["items"] if i["id"] == act.id), None)
+    assert row is not None
+    assert row["estado_operativo_pool"] == "en_ruta_borrador"

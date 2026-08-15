@@ -67,7 +67,7 @@ function AsignacionPoolEmptyState({
     >
       <Inventory2OutlinedIcon sx={{ fontSize: 36, color: GLASS_COLORS.primary, opacity: 0.85, mb: 0.75 }} aria-hidden />
       <Typography sx={{ ...planificacionPanelTitleSx, fontSize: "0.9375rem", mb: 1, display: "block" }}>
-        Pool no disponible en esta sesión
+        Pool del día vacío
       </Typography>
       <Typography
         variant="body2"
@@ -125,6 +125,8 @@ export type RutasPlanificacionViewProps = {
   onContinuarMapaFinal: () => void;
   onVolverPlanificacion: () => void;
   onAssignIniciadoresToGrupo: (grupoId: number, iniciadorIds: number[]) => Promise<boolean>;
+  poolIdByIniciadorId: Record<number, number>;
+  onEliminarDelPoolSeleccion: (poolIds: number[]) => void | Promise<void>;
 };
 
 type AsignacionTopSectionProps = {
@@ -214,6 +216,8 @@ type AsignacionPoolColumnProps = {
   onSincronizarDetalle: () => void;
   detailLoading: boolean;
   onVolverPlanificacion: () => void;
+  poolIdByIniciadorId: Record<number, number>;
+  onEliminarDelPoolSeleccion: (poolIds: number[]) => void | Promise<void>;
 };
 
 const AsignacionPoolColumn = memo(function AsignacionPoolColumn({
@@ -231,6 +235,8 @@ const AsignacionPoolColumn = memo(function AsignacionPoolColumn({
   onSincronizarDetalle,
   detailLoading,
   onVolverPlanificacion,
+  poolIdByIniciadorId,
+  onEliminarDelPoolSeleccion,
 }: AsignacionPoolColumnProps) {
   return (
     <Grid size={{ xs: 12, md: 7 }}>
@@ -257,6 +263,8 @@ const AsignacionPoolColumn = memo(function AsignacionPoolColumn({
             distritoOptions={distritoFilterOptions}
             onSincronizarDetalle={onSincronizarDetalle}
             detailLoading={detailLoading}
+            poolIdByIniciadorId={poolIdByIniciadorId}
+            onEliminarDelPool={onEliminarDelPoolSeleccion}
           />
         )}
       </Paper>
@@ -353,6 +361,8 @@ function RutasPlanificacionView({
   onContinuarMapaFinal,
   onVolverPlanificacion,
   onAssignIniciadoresToGrupo,
+  poolIdByIniciadorId,
+  onEliminarDelPoolSeleccion,
 }: RutasPlanificacionViewProps) {
   const [selectedIniciadorIds, setSelectedIniciadorIds] = useState<number[]>([]);
   const [openAsignarGrupo, setOpenAsignarGrupo] = useState(false);
@@ -433,6 +443,8 @@ function RutasPlanificacionView({
           onSincronizarDetalle={onSincronizarDetalle}
           detailLoading={detailLoading}
           onVolverPlanificacion={onVolverPlanificacion}
+          poolIdByIniciadorId={poolIdByIniciadorId}
+          onEliminarDelPoolSeleccion={onEliminarDelPoolSeleccion}
         />
         <AsignacionGruposColumn
           detailLoading={detailLoading}

@@ -12,6 +12,9 @@ export interface IRutaPoolDiaRow {
   actuacion_id?: number | null;
   domicilio_id?: number | null;
   domicilio_texto?: string | null;
+  distrito_id?: number | null;
+  distrito_nombre?: string | null;
+  rubro_nombre?: string | null;
   ruta_trabajo_id?: number | null;
   ruta_item_id?: number | null;
   ruta_estado?: string | null;
@@ -26,6 +29,7 @@ export interface ICreateRutaPoolDiaRequest {
   actuacion_id?: number;
   fecha: string;
   turno_id?: number;
+  ruta_trabajo_id?: number;
   observacion?: string;
 }
 
@@ -82,5 +86,17 @@ export async function agregarDesdePoolRuta(
     `/rutas-trabajo/${rutaId}/agregar-desde-pool`,
     payload
   );
+  return data;
+}
+
+/** Baja lógica de entrada del pool (`DELETE /ruta-pool-dia/:id`). */
+export async function deleteRutaPoolDia(poolId: number): Promise<{ item: IRutaPoolDiaRow }> {
+  const { data } = await apiClient.delete<{ item: IRutaPoolDiaRow }>(`/ruta-pool-dia/${poolId}`);
+  return data;
+}
+
+/** Libera pool o ruta borrador sin OT (`POST /ruta-pool-dia/:id/liberar`). */
+export async function liberarRutaPoolDia(poolId: number): Promise<{ item: IRutaPoolDiaRow }> {
+  const { data } = await apiClient.post<{ item: IRutaPoolDiaRow }>(`/ruta-pool-dia/${poolId}/liberar`);
   return data;
 }

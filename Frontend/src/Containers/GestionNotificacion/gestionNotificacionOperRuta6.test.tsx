@@ -1,26 +1,33 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { puedeAgregarARutaDeTrabajo } from "../../utils/operRutaPoolAcciones";
-import { createRutaPoolDia } from "../../api/rutaPoolDiaApi";
-
-vi.mock("../../api/rutaPoolDiaApi", () => ({
-  createRutaPoolDia: vi.fn(),
-  listRutaPoolDia: vi.fn(),
-  agregarDesdePoolRuta: vi.fn(),
-}));
 
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-describe("GestionNotificacion OPER-RUTA.5/6", () => {
+describe("GestionNotificacion OPER-RUTA.6", () => {
   const page = read("src/Containers/GestionNotificacion/GestionNotificacionPage.tsx");
   const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
+  const dialog = read("src/components/operRuta/AgregarARutaOperDialog.tsx");
 
-  it("Pendiente reinspección integra OperRutaPoolAccionesCell", () => {
+  it("Pendiente reinspección integra botón único Agregar a ruta de trabajo", () => {
     expect(page).toContain("OperRutaPoolAccionesCell");
     expect(page).toContain("columnsReinspeccionOperativa");
     expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).not.toContain("Agregar al pool");
+    expect(cell).not.toContain('data-testid="oper-ruta-agregar-pool"');
+    expect(cell).not.toContain('data-testid="oper-ruta-agregar-ruta"');
+    expect(cell).toContain('data-testid="oper-ruta-agregar-ruta-trabajo"');
+  });
+
+  it("modal muestra fecha y opción crear ruta", () => {
+    expect(dialog).toContain("Fecha operativa");
+    expect(dialog).toContain("oper-ruta-sin-ruta");
+    expect(dialog).toContain("Crear ruta");
+    expect(dialog).toContain("oper-ruta-solo-pool");
+    expect(dialog).toContain("agregarDesdePoolRuta");
+    expect(dialog).toContain("createRutaPoolDia");
   });
 
   it("en plazo / por vencer no integran acciones pool en columnas operativas", () => {
@@ -38,28 +45,7 @@ describe("GestionNotificacion OPER-RUTA.5/6", () => {
     expect(puedeAgregarARutaDeTrabajo({ iniciador_id: 1, estado_operativo_pool: "en_pool" })).toBe(true);
   });
 
-  it("en_ruta_borrador no muestra acciones inválidas", () => {
+  it("en_ruta_borrador no muestra acción", () => {
     expect(puedeAgregarARutaDeTrabajo({ iniciador_id: 1, estado_operativo_pool: "en_ruta_borrador" })).toBe(false);
-  });
-});
-
-describe("createRutaPoolDia API", () => {
-  beforeEach(() => {
-    vi.mocked(createRutaPoolDia).mockResolvedValue({
-      item: { pool_id: 9, iniciador_id: 301, iniciador_ruta_id: 301, estado: "EN_POOL", fecha: "2026-05-01" },
-    });
-  });
-
-  it("envía iniciador_ruta_id y fecha", async () => {
-    await createRutaPoolDia({
-      origen_tipo: "INICIADOR",
-      iniciador_ruta_id: 301,
-      fecha: "2026-05-01",
-    });
-    expect(createRutaPoolDia).toHaveBeenCalledWith({
-      origen_tipo: "INICIADOR",
-      iniciador_ruta_id: 301,
-      fecha: "2026-05-01",
-    });
   });
 });

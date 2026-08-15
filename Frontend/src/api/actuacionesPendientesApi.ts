@@ -45,6 +45,15 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   ruta_status?: string | null;
   ruta_trabajo_id?: number | null;
   ruta_item_id?: number | null;
+  pool_id?: number | null;
+  pool_fecha?: string | null;
+  pool_estado?: string | null;
+  ruta_numero?: number | null;
+  ruta_fecha?: string | null;
+  ruta_turno?: string | null;
+  grupo_id?: number | null;
+  grupo_nombre?: string | null;
+  tiene_orden_trabajo?: boolean | null;
   distrito_id?: number | null;
   numero_esquina?: string | null;
   calle_ingresada?: string | null;

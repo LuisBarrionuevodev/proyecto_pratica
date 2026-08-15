@@ -78,6 +78,10 @@ import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { useAppFeedback } from "../../components/feedback";
 import { OperRutaPoolAccionesCell } from "../../components/operRuta/OperRutaPoolAccionesCell";
+import {
+  estaBloqueadoParaGestionDocumental,
+  MENSAJE_BLOQUEO_GESTION_POOL_RUTA,
+} from "../../utils/operRutaPoolAcciones";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 import { applyFormErrorsFromApi, parseApiError } from "../../utils/parseApiError";
 import {
@@ -117,8 +121,8 @@ import {
 } from "./utils/buildOperativaComprobacionFiltroPayload";
 import {
   notificacionEstadoOperativoChipColor,
-  notificacionEstadoOperativoLabel,
 } from "../GestionNotificacion/utils/notificacionEstadoOperativo";
+import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 
@@ -268,14 +272,14 @@ function trimToNull(s: string): string | null {
   return t || null;
 }
 
-function buildEstadoOperativoColumn<T extends { estado_operativo_pool?: string | null }>(): MRT_ColumnDef<T> {
+function buildEstadoOperativoColumn<T extends Parameters<typeof formatEstadoOperativoPoolLabel>[0]>(): MRT_ColumnDef<T> {
   return {
     id: "estado_operativo",
     header: "Estado operativo",
     size: 132,
-    accessorFn: (row) => notificacionEstadoOperativoLabel(row.estado_operativo_pool),
+    accessorFn: (row) => formatEstadoOperativoPoolLabel(row),
     Cell: ({ row }) => {
-      const label = notificacionEstadoOperativoLabel(row.original.estado_operativo_pool);
+      const label = formatEstadoOperativoPoolLabel(row.original);
       if (label === "—") return <BandejaEllipsisCell value="—" />;
       return (
         <Chip
@@ -826,8 +830,11 @@ const ActasComprobacionPage = () => {
     setSelectedRein(null);
   }, []);
 
-  const loadRein = useCallback(async (filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current) => {
-    setReinLoading(true);
+  const loadRein = useCallback(async (
+    filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
+    opts?: { silent?: boolean }
+  ) => {
+    if (!opts?.silent) setReinLoading(true);
     setReinError(null);
     const hasDateRange = Boolean(filters?.desde || filters?.hasta);
     try {
@@ -849,7 +856,7 @@ const ActasComprobacionPage = () => {
       setReinItems([]);
       setReinApiTotal(0);
     } finally {
-      setReinLoading(false);
+      if (!opts?.silent) setReinLoading(false);
     }
   }, []);
 
@@ -1045,21 +1052,38 @@ const ActasComprobacionPage = () => {
         grow: false,
         enableResizing: false,
         enableSorting: false,
-        Cell: ({ row }) => (
+        Cell: ({ row }) => {
+          const bloqueado = estaBloqueadoParaGestionDocumental(row.original);
+          const gestionarBtn = (
+            <AppButton
+              dsVariant="primary"
+              dsSize="sm"
+              disabled={bloqueado}
+              onClick={() => openModalRein(row.original)}
+            >
+              Gestionar oficio
+            </AppButton>
+          );
+          return (
           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
             <OperRutaPoolAccionesCell
               row={row.original}
-              onRefresh={async () => {
-                await loadRein();
+              onRefresh={async (opts) => {
+                await loadRein(opAppliedRef.current, opts);
               }}
               onSuccess={(msg) => feedback.success(msg)}
               onError={(msg) => feedback.error(msg)}
             />
-            <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalRein(row.original)}>
-              Gestionar oficio
-            </AppButton>
+            {bloqueado ? (
+              <Tooltip title={MENSAJE_BLOQUEO_GESTION_POOL_RUTA}>
+                <span>{gestionarBtn}</span>
+              </Tooltip>
+            ) : (
+              gestionarBtn
+            )}
           </Stack>
-        ),
+          );
+        },
       },
     ],
     [openModalRein, loadRein, feedback]

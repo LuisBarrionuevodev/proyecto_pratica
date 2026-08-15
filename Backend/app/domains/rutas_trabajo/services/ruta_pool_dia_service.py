@@ -20,7 +20,7 @@ from app.domains.rutas_trabajo.utils.rubro_operativo import (
     rubro_id_operativo_para_iniciador,
     rubro_nombre_operativo_para_iniciador,
 )
-from app.models import Domicilio, IniciadorRuta, RutaPoolDia, RutaTrabajo, User
+from app.models import Domicilio, IniciadorRuta, RutaItem, RutaPoolDia, RutaTrabajo, User
 
 
 def ruta_pool_dia_row_dict(pool: RutaPoolDia) -> dict[str, Any]:
@@ -184,6 +184,7 @@ def create_ruta_pool_dia_entry(
     origen_tipo: str | None = None,
     actuacion_id: int | None = None,
     observacion: str | None = None,
+    ruta_trabajo_id: int | None = None,
 ) -> RutaPoolDia:
     """
     Crea entrada EN_POOL para un iniciador elegible.
@@ -225,6 +226,7 @@ def create_ruta_pool_dia_entry(
         domicilio_id=domicilio_id,
         distrito_id=distrito_id,
         rubro_id=rubro_id,
+        ruta_trabajo_id=ruta_trabajo_id,
         estado="EN_POOL",
         observacion=(observacion or "").strip() or None,
     )
@@ -265,6 +267,89 @@ def descartar_ruta_pool_dia_entry(*, pool_id: int) -> RutaPoolDia:
     return row
 
 
+_ESTADOS_RUTA_NO_LIBERABLE = ("PUBLICADA", "EN_CURSO", "CERRADA")
+
+
+def liberar_ruta_pool_dia_entry(*, pool_id: int) -> RutaPoolDia:
+    """
+    Libera un pendiente del pool/ruta borrador de forma transaccional.
+
+    Parámetros:
+        pool_id: fila activa del pool.
+
+    Retorno:
+        Fila con estado ``DESCARTADO``.
+
+    Errores:
+        LookupError: pool inexistente.
+        RuntimeError: ruta publicada, con OT, o ítem en grupo sin eliminar primero.
+    """
+    row = (
+        RutaPoolDia.query.filter(
+            RutaPoolDia.id == pool_id,
+            RutaPoolDia.deleted_at.is_(None),
+        )
+        .options(joinedload(RutaPoolDia.ruta_trabajo))
+        .first()
+    )
+    if not row:
+        raise LookupError("Entrada de pool no encontrada")
+    if row.estado == "DESCARTADO":
+        return row
+
+    if row.estado == "EN_POOL":
+        if row.ruta_item_id is not None:
+            raise RuntimeError(
+                "Primero eliminá el ítem del grupo. Luego podrás sacarlo del pool."
+            )
+        return descartar_ruta_pool_dia_entry(pool_id=pool_id)
+
+    if row.estado != "ASIGNADO_A_RUTA":
+        raise RuntimeError("Estado de pool no liberable")
+
+    if not row.ruta_trabajo_id or not row.ruta_item_id:
+        raise RuntimeError("Entrada de pool inconsistente con la ruta")
+
+    ruta = row.ruta_trabajo or RutaTrabajo.query.get(row.ruta_trabajo_id)
+    estado_ruta = (ruta.estado_ruta or "").upper() if ruta else ""
+    if estado_ruta in _ESTADOS_RUTA_NO_LIBERABLE:
+        raise RuntimeError("No se puede sacar porque la ruta ya fue publicada o iniciada.")
+    if estado_ruta != "BORRADOR":
+        raise RuntimeError("No se puede liberar en el estado actual de la ruta.")
+
+    item = RutaItem.query.filter(
+        RutaItem.id == row.ruta_item_id,
+        RutaItem.deleted_at.is_(None),
+    ).first()
+    if item is None:
+        now = datetime.utcnow()
+        row.estado = "DESCARTADO"
+        row.deleted_at = now
+        row.updated_at = now
+        db.session.commit()
+        return row
+
+    if item.orden_trabajo_id is not None:
+        raise RuntimeError(
+            "No se puede sacar porque ya tiene Orden de Trabajo asignada. Primero gestioná la ruta."
+        )
+    if (item.estado_ejecucion or "").upper() == "REALIZADO":
+        raise RuntimeError("No se puede sacar porque el ítem ya tiene ejecución registrada.")
+
+    from app.domains.rutas_trabajo.services.ruta_items_service import soft_delete_ruta_item
+
+    soft_delete_ruta_item(ruta_id=int(row.ruta_trabajo_id), item_id=int(item.id))
+    refreshed = RutaPoolDia.query.filter(
+        RutaPoolDia.id == pool_id,
+        RutaPoolDia.deleted_at.is_(None),
+    ).first()
+    if refreshed is None:
+        raise LookupError("Entrada de pool no encontrada tras liberar ítem")
+    if refreshed.estado == "DESCARTADO":
+        return refreshed
+    return descartar_ruta_pool_dia_entry(pool_id=pool_id)
+
+
 def revert_pool_si_item_eliminado(*, ruta_item_id: int) -> RutaPoolDia | None:
     """
     Si un ítem de ruta BORRADOR se elimina, la fila de pool vuelve a EN_POOL.
@@ -282,9 +367,12 @@ def revert_pool_si_item_eliminado(*, ruta_item_id: int) -> RutaPoolDia | None:
     ).first()
     if not row:
         return None
+    ruta = row.ruta_trabajo
     now = datetime.utcnow()
     row.estado = "EN_POOL"
     row.ruta_trabajo_id = None
     row.ruta_item_id = None
+    if ruta is not None and ruta.fecha is not None:
+        row.fecha = ruta.fecha
     row.updated_at = now
     return row

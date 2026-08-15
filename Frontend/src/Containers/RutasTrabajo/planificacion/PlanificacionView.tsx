@@ -217,7 +217,7 @@ export function PlanificacionView({
 
   const handleAgregarDesdeMapa = useCallback(
     (row: IRutaIniciadorPendienteRow) => {
-      agregarAlPool(row);
+      void agregarAlPool(row);
       setMapPopupRow(null);
       setMapFocusIniciadorId(null);
     },
@@ -341,8 +341,9 @@ export function PlanificacionView({
           </Box>
           <Box sx={planificacionPoolSlotSx}>
             <PoolDelDiaPanel
-              items={ctrl.poolItemsOrdenados}
-              onQuitar={ctrl.quitarDelPool}
+              items={ctrl.poolBackendItems}
+              loading={poolControl.poolLoading}
+              onQuitar={poolControl.quitarDelPool}
               onContinuarAsignacion={handleContinuar}
             />
           </Box>

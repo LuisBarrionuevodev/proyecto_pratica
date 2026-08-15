@@ -83,10 +83,11 @@ describe("PR7.9 UI Ruta de Trabajo", () => {
     expect(src).toContain('item={row}');
   });
 
-  it("PoolDelDiaPanel muestra discriminadores debajo del rubro", () => {
+  it("PoolDelDiaPanel muestra datos del pool backend", () => {
     const src = read("src/Containers/RutasTrabajo/planificacion/PoolDelDiaPanel.tsx");
-    expect(src).toContain("EstablecimientoSecundarioLine");
-    expect(src).toContain("rubroLineaPendiente(row)");
+    expect(src).toContain("poolDiaOrigenLabel");
+    expect(src).toContain("domicilio_texto");
+    expect(src).toContain("rubro_nombre");
   });
 
   it("popup mapa operativo muestra discriminadores", () => {

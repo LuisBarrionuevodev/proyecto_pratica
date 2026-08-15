@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
 import {
   MaterialReactTable,
@@ -108,7 +108,14 @@ type TableProps = {
   distritoOptions: { value: string; label: string }[];
   onSincronizarDetalle?: () => void;
   detailLoading?: boolean;
+  poolIdByIniciadorId?: Record<number, number>;
+  onEliminarDelPool?: (poolIds: number[]) => void | Promise<void>;
 };
+
+type MrtProps = Omit<
+  TableProps,
+  "filters" | "onChangeFilters" | "distritoOptions" | "onSincronizarDetalle" | "detailLoading"
+>;
 
 function IniciadoresPoolTableMrt({
   rows,
@@ -117,7 +124,9 @@ function IniciadoresPoolTableMrt({
   assignedIniciadorIds,
   onSelectionChange,
   onAssignSelected,
-}: Omit<TableProps, "filters" | "onChangeFilters" | "distritoOptions" | "onSincronizarDetalle" | "detailLoading">) {
+  poolIdByIniciadorId,
+  onEliminarDelPool,
+}: MrtProps) {
   const rowSelection = useMemo<MRT_RowSelectionState>(
     () => Object.fromEntries(selectedIds.map((id) => [String(id), true])),
     [selectedIds]
@@ -144,20 +153,70 @@ function IniciadoresPoolTableMrt({
     [assignedIniciadorIds]
   );
 
+  const [eliminandoPool, setEliminandoPool] = useState(false);
+
+  const handleEliminarDelPool = useCallback(async () => {
+    if (!onEliminarDelPool || !poolIdByIniciadorId) return;
+    const poolIds = selectedIds
+      .map((id) => poolIdByIniciadorId[id])
+      .filter((pid): pid is number => pid != null);
+    if (!poolIds.length) return;
+    setEliminandoPool(true);
+    try {
+      await onEliminarDelPool(poolIds);
+    } finally {
+      setEliminandoPool(false);
+    }
+  }, [onEliminarDelPool, poolIdByIniciadorId, selectedIds]);
+
   const renderTopToolbarCustomActions = useCallback(() => {
     const nSel = selectedIds.length;
+    const puedeEliminar =
+      nSel > 0 &&
+      Boolean(onEliminarDelPool && poolIdByIniciadorId) &&
+      selectedIds.every(
+        (id) => !assignedIniciadorIds.has(id) && poolIdByIniciadorId![id] != null
+      );
+
     return (
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
         <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
           {totalEnPool} en pool · {rows.length} visibles
         </Typography>
         <Chip label={`${nSel} seleccionados`} color="primary" variant="filled" size="small" />
+        {onEliminarDelPool ? (
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            disabled={!puedeEliminar || eliminandoPool}
+            onClick={() => void handleEliminarDelPool()}
+            data-testid="asignacion-eliminar-del-pool"
+            sx={{
+              bgcolor: "error.main",
+              color: "error.contrastText",
+              "&:hover": { bgcolor: "error.dark" },
+              "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
+            }}
+          >
+            {eliminandoPool ? "Eliminando…" : "Eliminar del pool"}
+          </AppButton>
+        ) : null}
         <AppButton dsVariant="primary" dsSize="sm" onClick={onAssignSelected} disabled={nSel === 0}>
           Asignar seleccionados
         </AppButton>
       </Stack>
     );
-  }, [totalEnPool, rows.length, selectedIds.length, onAssignSelected]);
+  }, [
+    totalEnPool,
+    rows.length,
+    selectedIds,
+    assignedIniciadorIds,
+    onAssignSelected,
+    onEliminarDelPool,
+    poolIdByIniciadorId,
+    eliminandoPool,
+    handleEliminarDelPool,
+  ]);
 
   const columns = useMemo<MRT_ColumnDef<IRutaIniciadorPendienteRow>[]>(
     () => [
@@ -330,6 +389,8 @@ function TablaIniciadoresPendientesInner({
   distritoOptions,
   onSincronizarDetalle,
   detailLoading,
+  poolIdByIniciadorId,
+  onEliminarDelPool,
 }: TableProps) {
   /** Solo si el pool mezcla más de un distrito: el filtro aporta valor; si no, no mostramos el control. */
   const mostrarFiltroDistrito = distritoOptions.length > 2;
@@ -417,6 +478,8 @@ function TablaIniciadoresPendientesInner({
         assignedIniciadorIds={assignedIniciadorIds}
         onSelectionChange={onSelectionChange}
         onAssignSelected={onAssignSelected}
+        poolIdByIniciadorId={poolIdByIniciadorId}
+        onEliminarDelPool={onEliminarDelPool}
       />
     </Box>
   );

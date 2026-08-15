@@ -213,16 +213,31 @@ def test_estado_en_pool(app_ctx):
     u = _mk_user()
     act, _ = _mk_notif_act(fecha=date(2026, 9, 2), vencimiento=date.today() - timedelta(days=1))
     ini = _mk_iniciador_reinspeccion(act, u)
+    ruta = RutaTrabajo(
+        fecha=date(2026, 2, 26),
+        turno="MANIANA",
+        estado_ruta="BORRADOR",
+        numero=random.randint(200, 32000),
+        created_by_user_id=u.id,
+    )
+    db.session.add(ruta)
+    db.session.flush()
     db.session.commit()
     create_ruta_pool_dia_entry(
-        fecha=date.today(),
+        fecha=date(2026, 2, 26),
         turno_id=None,
         usuario_id=u.id,
         iniciador_ruta_id=int(ini.id),
+        ruta_trabajo_id=int(ruta.id),
     )
     ctx = build_estado_operativo_pool_por_iniciador([int(ini.id)])[int(ini.id)]
     assert ctx["estado_operativo_pool"] == "en_pool"
     assert ctx["pool_status"] == "EN_POOL"
+    assert ctx["pool_fecha"] == "2026-02-26"
+    assert ctx["ruta_trabajo_id"] == int(ruta.id)
+    assert ctx["ruta_numero"] == int(ruta.numero)
+    assert ctx["ruta_fecha"] == "2026-02-26"
+    assert ctx["ruta_turno"] == "MANIANA"
 
 
 def test_estado_en_ruta_borrador(app_ctx):
@@ -243,6 +258,9 @@ def test_estado_en_ruta_borrador(app_ctx):
     assign_iniciadores_to_grupo(ruta_id=int(ruta.id), grupo_id=int(grupo.id), iniciador_ids=[int(ini.id)])
     ctx = build_estado_operativo_pool_por_iniciador([int(ini.id)])[int(ini.id)]
     assert ctx["estado_operativo_pool"] == "en_ruta_borrador"
+    assert ctx["grupo_id"] == int(grupo.id)
+    assert ctx["grupo_nombre"] == "G"
+    assert ctx["ruta_numero"] == int(ruta.numero)
 
 
 def test_estado_en_ruta_publicada(app_ctx):
@@ -316,3 +334,45 @@ def test_pendientes_notificacion_route_expone_estado_en_pool(app_ctx, client, au
     row = next((i for i in rv.get_json() if i["id"] == act.id), None)
     assert row is not None
     assert row["estado_operativo_pool"] == "en_pool"
+
+
+def test_pendientes_notificacion_incluye_en_ruta_borrador(app_ctx, client, auth_headers):
+    """OPER-RUTA.6D: iniciador PLANIFICADO en grupo borrador sigue en bandeja."""
+    u = _mk_user()
+    act, _ = _mk_notif_act(fecha=date(2026, 10, 2), vencimiento=date.today() - timedelta(days=1))
+    ini = _mk_iniciador_reinspeccion(act, u)
+    ruta = RutaTrabajo(
+        fecha=date.today() + timedelta(days=45),
+        turno="MANIANA",
+        estado_ruta="BORRADOR",
+        numero=random.randint(200, 32000),
+        created_by_user_id=u.id,
+    )
+    db.session.add(ruta)
+    db.session.flush()
+    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G1", estado="ACTIVO")
+    db.session.commit()
+    assign_iniciadores_to_grupo(ruta_id=int(ruta.id), grupo_id=int(grupo.id), iniciador_ids=[int(ini.id)])
+    db.session.refresh(ini)
+    assert ini.estado_iniciador == "PLANIFICADO"
+    acts = list_reinspeccion_notificacion_operativas()
+    assert int(act.id) in {int(a.id) for a in acts}
+    rv = client.get("/actuaciones/pendientes-notificacion", headers=auth_headers)
+    assert rv.status_code == 200
+    row = next((i for i in rv.get_json() if i["id"] == act.id), None)
+    assert row is not None
+    assert row["estado_operativo_pool"] == "en_ruta_borrador"
+    assert row.get("grupo_nombre") == "G1"
+
+
+def test_pendientes_notificacion_excluye_cumplido(app_ctx, client, auth_headers):
+    u = _mk_user()
+    act, _ = _mk_notif_act(fecha=date(2026, 10, 3), vencimiento=date.today() - timedelta(days=1))
+    ini = _mk_iniciador_reinspeccion(act, u)
+    ini.estado_iniciador = "CUMPLIDO"
+    db.session.commit()
+    acts = list_reinspeccion_notificacion_operativas()
+    assert int(act.id) not in {int(a.id) for a in acts}
+    rv = client.get("/actuaciones/pendientes-notificacion", headers=auth_headers)
+    assert rv.status_code == 200
+    assert all(i["id"] != act.id for i in rv.get_json())

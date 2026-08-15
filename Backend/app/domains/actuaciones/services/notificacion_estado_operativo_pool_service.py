@@ -21,8 +21,49 @@ def _empty_ctx() -> dict[str, Any]:
         "ruta_status": None,
         "ruta_trabajo_id": None,
         "ruta_item_id": None,
+        "pool_id": None,
+        "pool_fecha": None,
+        "pool_estado": None,
+        "ruta_numero": None,
+        "ruta_fecha": None,
+        "ruta_turno": None,
+        "grupo_id": None,
+        "grupo_nombre": None,
         "iniciador_id": None,
+        "tiene_orden_trabajo": False,
     }
+
+
+def _apply_ruta_trabajo_meta(ctx: dict[str, Any], ruta: RutaTrabajo | None) -> None:
+    if ruta is None:
+        return
+    ctx["ruta_trabajo_id"] = int(ruta.id)
+    ctx["ruta_numero"] = int(ruta.numero) if ruta.numero is not None else None
+    ctx["ruta_fecha"] = ruta.fecha.isoformat() if ruta.fecha else None
+    ctx["ruta_turno"] = ruta.turno
+    ctx["ruta_status"] = ruta.estado_ruta
+
+
+def _apply_pool_meta(ctx: dict[str, Any], pool: RutaPoolDia) -> None:
+    ctx["pool_id"] = int(pool.id)
+    ctx["pool_fecha"] = pool.fecha.isoformat() if pool.fecha else None
+    ctx["pool_estado"] = pool.estado
+    if pool.ruta_trabajo_id is not None:
+        ctx["ruta_trabajo_id"] = int(pool.ruta_trabajo_id)
+    if pool.ruta_trabajo:
+        _apply_ruta_trabajo_meta(ctx, pool.ruta_trabajo)
+
+
+def _apply_grupo_meta(ctx: dict[str, Any], item: RutaItem | None) -> None:
+    if item is None:
+        return
+    ctx["ruta_item_id"] = int(item.id)
+    ctx["tiene_orden_trabajo"] = item.orden_trabajo_id is not None
+    if item.ruta_grupo_id is not None:
+        ctx["grupo_id"] = int(item.ruta_grupo_id)
+    grupo = getattr(item, "ruta_grupo", None)
+    if grupo is not None and getattr(grupo, "nombre", None):
+        ctx["grupo_nombre"] = grupo.nombre
 
 
 def _resolver_estado_desde_iniciador(
@@ -73,6 +114,9 @@ def _resolver_estado_desde_iniciador(
         ctx["ruta_item_id"] = int(item.id)
         ctx["ruta_trabajo_id"] = int(ruta.id)
         ctx["ruta_status"] = ruta.estado_ruta
+        ctx["tiene_orden_trabajo"] = item.orden_trabajo_id is not None
+        _apply_ruta_trabajo_meta(ctx, ruta)
+        _apply_grupo_meta(ctx, item)
         if estado_ruta in _ESTADOS_RUTA_PUBLICADA:
             ctx["estado_operativo_pool"] = "en_ruta_publicada"
             return ctx
@@ -85,11 +129,14 @@ def _resolver_estado_desde_iniciador(
             continue
         if pool.estado == "ASIGNADO_A_RUTA":
             ctx["pool_status"] = pool.estado
-            ctx["ruta_trabajo_id"] = pool.ruta_trabajo_id
-            ctx["ruta_item_id"] = pool.ruta_item_id
+            _apply_pool_meta(ctx, pool)
             ctx["estado_operativo_pool"] = "en_ruta_borrador"
-            if pool.ruta_trabajo:
-                ctx["ruta_status"] = pool.ruta_trabajo.estado_ruta
+            if pool.ruta_item_id:
+                item = next(
+                    (it for it in ruta_items if int(it.id) == int(pool.ruta_item_id)),
+                    None,
+                )
+                _apply_grupo_meta(ctx, item)
             return ctx
 
     for pool in pool_rows:
@@ -97,6 +144,7 @@ def _resolver_estado_desde_iniciador(
             continue
         if pool.estado == "EN_POOL":
             ctx["pool_status"] = pool.estado
+            _apply_pool_meta(ctx, pool)
             ctx["estado_operativo_pool"] = "en_pool"
             return ctx
 
@@ -149,7 +197,10 @@ def build_estado_operativo_pool_por_iniciador(
             RutaItem.iniciador_ruta_id.in_(ids),
             RutaItem.deleted_at.is_(None),
         )
-        .options(joinedload(RutaItem.ruta_trabajo))
+        .options(
+            joinedload(RutaItem.ruta_trabajo),
+            joinedload(RutaItem.ruta_grupo),
+        )
         .order_by(RutaItem.id.desc())
         .all()
     )
