@@ -27,7 +27,9 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_PaginationState,
   type MRT_TableOptions,
+  type MRT_Updater,
 } from "material-react-table";
 
 import {
@@ -40,6 +42,15 @@ import {
   type ISyncNotificacionesVencidasResponse,
 } from "../../api/actuacionesPendientesApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
+import {
+  buildClientPaginationSummary,
+  DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
+  resetClientPaginationPageIndex,
+} from "../../utils/buildClientPaginationSummary";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
 import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
 import { formatActuacionListDomicilioLinea } from "../../utils/formatDomicilioLineaVisible";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
@@ -63,8 +74,6 @@ import {
   filtroItemStyles,
   filtroSectionTitleStyles,
   filtroTitleStyles,
-  metaInfoStyles,
-  metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
@@ -221,6 +230,8 @@ type NotificacionBandejaTableProps = {
   /** Misma acotación de altura que Recorrido bajo panel documental (scroll del layout). */
   documentalListViewport?: boolean;
   getRowId?: (row: IActuacionesPendientesItem) => string;
+  pagination?: MRT_PaginationState;
+  onPaginationChange?: (updater: MRT_Updater<MRT_PaginationState>) => void;
 };
 
 /** Tabla MRT reutilizable (operativa vs historial). */
@@ -231,6 +242,8 @@ function NotificacionBandejaTable({
   toolbar,
   documentalListViewport,
   getRowId,
+  pagination,
+  onPaginationChange,
 }: NotificacionBandejaTableProps) {
   const documentalMrtLayout: Partial<MRT_TableOptions<IActuacionesPendientesItem>> | undefined = documentalListViewport
     ? {
@@ -269,7 +282,9 @@ function NotificacionBandejaTable({
       state: {
         isLoading: loading,
         showProgressBars: loading,
+        ...(pagination ? { pagination } : {}),
       },
+      ...(onPaginationChange ? { onPaginationChange } : {}),
     } as MRT_TableOptions<IActuacionesPendientesItem>
   );
   return <MaterialReactTable table={table} />;
@@ -324,6 +339,10 @@ const GestionNotificacionPage = () => {
     hasta: string | null;
   } | null>(null);
   const [historialApplied, setHistorialApplied] = useState<HistorialNotificacionFiltroPayload | null>(null);
+  const [historialPagination, setHistorialPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
+  });
 
   const distritoSelectOptionsHistorial = useMemo(
     () => [
@@ -571,6 +590,7 @@ const GestionNotificacionPage = () => {
       setHistorialError(null);
       setHistorialApplied(null);
       setHistorialMeta(null);
+      setHistorialPagination((prevPagination) => resetClientPaginationPageIndex(prevPagination));
     }
   }, [plazoSlice]);
 
@@ -595,6 +615,7 @@ const GestionNotificacionPage = () => {
 
     setHistorialLoading(true);
     setHistorialError(null);
+    setHistorialPagination((prev) => resetClientPaginationPageIndex(prev));
     try {
       const resp = await perfTimed(
         "notificaciones.loadHistorial",
@@ -1154,6 +1175,16 @@ const GestionNotificacionPage = () => {
   const mostrarTablaOperativa = plazoSlice !== "total";
   const mostrarHistorial = plazoSlice === "total";
 
+  const historialPaginationSummary = useMemo(
+    () =>
+      buildClientPaginationSummary({
+        pageIndex: historialPagination.pageIndex,
+        pageSize: historialPagination.pageSize,
+        totalRows: historialRows.length,
+      }),
+    [historialPagination.pageIndex, historialPagination.pageSize, historialRows.length]
+  );
+
   const handleExportNotificaciones = useCallback(
     async (options: {
       format: "excel" | "pdf";
@@ -1164,23 +1195,15 @@ const GestionNotificacionPage = () => {
       setExportLoading(true);
       setExportError(null);
       try {
-        const historialCtx =
-          plazoSlice === "total" && historialApplied
-            ? {
-                distritoId: historialApplied.distritoId,
-                contribuyenteQ: historialApplied.contribuyenteQ,
-                calleQ: historialApplied.calleQ,
-                numeroNotificacion: historialApplied.numeroNotificacion,
-                motivoQ: historialApplied.motivoQ,
-              }
-            : {};
-
         await exportNotificacionesDataset({
           format: options.format,
           desde: options.desde,
           hasta: options.hasta,
           plazoSlice,
-          ...historialCtx,
+          historialAppliedPayload:
+            plazoSlice === "total" && historialFiltroAplicado && historialApplied
+              ? historialApplied
+              : null,
         });
         feedback.success("Exportación generada");
         setExportOpen(false);
@@ -1193,7 +1216,7 @@ const GestionNotificacionPage = () => {
         setExportLoading(false);
       }
     },
-    [feedback, historialApplied, plazoSlice]
+    [feedback, historialApplied, historialFiltroAplicado, plazoSlice]
   );
 
   return (
@@ -1594,6 +1617,7 @@ const GestionNotificacionPage = () => {
                   setHistorialRows([]);
                   setHistorialError(null);
                   setHistorialApplied(null);
+                  setHistorialPagination((prev) => resetClientPaginationPageIndex(prev));
                 }}
                 startIcon={<ClearIcon />}
                 sx={filtroButtonSecondaryStyles}
@@ -1628,29 +1652,31 @@ const GestionNotificacionPage = () => {
           {!historialLoading && historialFiltroAplicado && (
             <>
               {historialMeta && (
-                <Box sx={metaInfoStyles}>
-                  <Typography sx={metaItemStyles}>
-                    <strong>Total:</strong> {historialMeta.total}
-                  </Typography>
-                  <Typography sx={metaItemStyles}>
-                    <strong>Mostrando:</strong> {historialRows.length} de {historialMeta.total}
-                  </Typography>
-                  <Typography sx={metaItemStyles}>
-                    <strong>Página:</strong> 1
-                  </Typography>
+                <BandejaTableSummary>
+                  <BandejaTableSummaryItem label="Total" value={historialMeta.total} />
+                  <BandejaTableSummaryItem
+                    label="Mostrando"
+                    value={`${historialPaginationSummary.visibleRows} de ${historialPaginationSummary.totalRows}`}
+                  />
+                  <BandejaTableSummaryItem
+                    label="Página"
+                    value={`${historialPaginationSummary.currentPage} de ${historialPaginationSummary.totalPages}`}
+                  />
                   {historialApplied?.period.kind === "global" ? (
-                    <Typography sx={metaItemStyles}>
-                      <strong>Período:</strong> búsqueda global (sin rango)
-                    </Typography>
+                    <BandejaTableSummaryItem
+                      label="Período"
+                      value="búsqueda global (sin rango)"
+                    />
                   ) : (
                     historialMeta.desde &&
                     historialMeta.hasta && (
-                      <Typography sx={metaItemStyles}>
-                        <strong>Rango:</strong> {historialMeta.desde} — {historialMeta.hasta}
-                      </Typography>
+                      <BandejaTableSummaryItem
+                        label="Rango"
+                        value={`${historialMeta.desde} — ${historialMeta.hasta}`}
+                      />
                     )
                   )}
-                </Box>
+                </BandejaTableSummary>
               )}
               <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
                 <NotificacionBandejaTable
@@ -1660,6 +1686,8 @@ const GestionNotificacionPage = () => {
                   toolbar={renderHistorialToolbarRefresh}
                   documentalListViewport
                   getRowId={(row) => notificacionHistorialRowKey(row)}
+                  pagination={historialPagination}
+                  onPaginationChange={setHistorialPagination}
                 />
               </Box>
             </>
@@ -1684,6 +1712,14 @@ const GestionNotificacionPage = () => {
         loading={exportLoading}
         error={exportError}
         onClearError={() => setExportError(null)}
+        showPeriod={
+          !(plazoSlice === "total" && historialFiltroAplicado && historialApplied)
+        }
+        scopeHint={
+          plazoSlice === "total" && historialFiltroAplicado && historialApplied
+            ? "Se exportará el resultado filtrado actual."
+            : undefined
+        }
         onExport={handleExportNotificaciones}
       />
 

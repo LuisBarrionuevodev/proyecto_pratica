@@ -30,7 +30,7 @@ import {
   BANDEJA_MRT_BODY_CELL_PROPS,
   splitMiddleDot,
 } from "../Actuaciones/Components/bandejaTableCells";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_PaginationState } from "material-react-table";
 
 import {
   createExpedienteDesdeActuacion,
@@ -68,8 +68,6 @@ import {
   filtroItemStyles,
   filtroSectionTitleStyles,
   filtroTitleStyles,
-  metaInfoStyles,
-  metaItemStyles,
   moduleContentColumnSx,
 } from "../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
@@ -125,6 +123,15 @@ import {
 import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./utils/documentalLabelFormat";
 import { perfLog, perfTimed } from "../../utils/perfLog";
+import {
+  buildClientPaginationSummary,
+  DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
+  resetClientPaginationPageIndex,
+} from "../../utils/buildClientPaginationSummary";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
 
 type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
 
@@ -1138,6 +1145,10 @@ const ActasComprobacionPage = () => {
   const [recExpediente, setRecExpediente] = useState("");
   const [recTipoFinal, setRecTipoFinal] = useState("");
   const [recItems, setRecItems] = useState<IComprobacionRecorridoRow[]>([]);
+  const [recPagination, setRecPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
+  });
   const [recFilterApplied, setRecFilterApplied] = useState(false);
   const [recAppliedPayload, setRecAppliedPayload] = useState<RecorridoComprobacionFiltroPayload | null>(null);
   const [recMeta, setRecMeta] = useState<{ total: number; desde: string | null; hasta: string | null } | null>(null);
@@ -1205,6 +1216,7 @@ const ActasComprobacionPage = () => {
       setRecError(built.error);
       return;
     }
+    setRecPagination((prev) => resetClientPaginationPageIndex(prev));
     setRecFilterApplied(true);
     void loadRecorridoSearch(built.payload);
   }, [
@@ -1326,6 +1338,16 @@ const ActasComprobacionPage = () => {
     [openDetalle]
   );
 
+  const recPaginationSummary = useMemo(
+    () =>
+      buildClientPaginationSummary({
+        pageIndex: recPagination.pageIndex,
+        pageSize: recPagination.pageSize,
+        totalRows: recItems.length,
+      }),
+    [recPagination.pageIndex, recPagination.pageSize, recItems.length]
+  );
+
   const tableRec = useMaterialReactTable({
     ...DARK_TABLE_CONFIG,
     ...bandejaComprobacionMrtLayout,
@@ -1333,6 +1355,10 @@ const ActasComprobacionPage = () => {
     data: recItems,
     enableEditing: false,
     enableRowSelection: false,
+    state: {
+      pagination: recPagination,
+    },
+    onPaginationChange: setRecPagination,
   });
 
   const tabIndex =
@@ -1348,25 +1374,14 @@ const ActasComprobacionPage = () => {
       setExportLoading(true);
       setExportError(null);
       try {
-        const recorridoCtx =
-          tab === "recorrido" && recAppliedPayload
-            ? {
-                distritoId: recAppliedPayload.distritoId,
-                contribuyenteQ: recAppliedPayload.contrib_q ?? null,
-                calleQ: recAppliedPayload.calle_q ?? null,
-                actaComprobacion: recAppliedPayload.acta_comprobacion ?? null,
-                oficioNumero: recAppliedPayload.oficio_numero ?? null,
-                expedienteNumero: recAppliedPayload.expediente_numero ?? null,
-                tipoFinal: recAppliedPayload.tipo_final ?? null,
-              }
-            : {};
+        const useAppliedRecorrido = tab === "recorrido" && recFilterApplied && recAppliedPayload != null;
 
         await exportComprobacionesDataset({
           format: options.format,
           desde: options.desde,
           hasta: options.hasta,
           slice: tab,
-          ...recorridoCtx,
+          recorridoAppliedPayload: useAppliedRecorrido ? recAppliedPayload : null,
         });
         feedback.success("Exportación generada");
         setExportOpen(false);
@@ -1379,7 +1394,7 @@ const ActasComprobacionPage = () => {
         setExportLoading(false);
       }
     },
-    [feedback, tab, recAppliedPayload]
+    [feedback, tab, recFilterApplied, recAppliedPayload]
   );
 
   return (
@@ -1829,6 +1844,7 @@ const ActasComprobacionPage = () => {
                       setRecMeta(null);
                       setRecItems([]);
                       setRecError(null);
+                      setRecPagination((prev) => resetClientPaginationPageIndex(prev));
                     }}
                     startIcon={<ClearIcon />}
                     sx={filtroButtonSecondaryStyles}
@@ -1862,29 +1878,31 @@ const ActasComprobacionPage = () => {
               ) : (
                 <>
                   {recMeta && (
-                    <Box sx={metaInfoStyles}>
-                      <Typography sx={metaItemStyles}>
-                        <strong>Total:</strong> {recMeta.total}
-                      </Typography>
-                      <Typography sx={metaItemStyles}>
-                        <strong>Mostrando:</strong> {recItems.length} de {recMeta.total}
-                      </Typography>
-                      <Typography sx={metaItemStyles}>
-                        <strong>Página:</strong> 1
-                      </Typography>
+                    <BandejaTableSummary>
+                      <BandejaTableSummaryItem label="Total" value={recMeta.total} />
+                      <BandejaTableSummaryItem
+                        label="Mostrando"
+                        value={`${recPaginationSummary.visibleRows} de ${recPaginationSummary.totalRows}`}
+                      />
+                      <BandejaTableSummaryItem
+                        label="Página"
+                        value={`${recPaginationSummary.currentPage} de ${recPaginationSummary.totalPages}`}
+                      />
                       {recAppliedPayload?.period.kind === "global" ? (
-                        <Typography sx={metaItemStyles}>
-                          <strong>Período:</strong> búsqueda global (sin rango)
-                        </Typography>
+                        <BandejaTableSummaryItem
+                          label="Período"
+                          value="búsqueda global (sin rango)"
+                        />
                       ) : (
                         recMeta.desde &&
                         recMeta.hasta && (
-                          <Typography sx={metaItemStyles}>
-                            <strong>Rango:</strong> {recMeta.desde} — {recMeta.hasta}
-                          </Typography>
+                          <BandejaTableSummaryItem
+                            label="Rango"
+                            value={`${recMeta.desde} — ${recMeta.hasta}`}
+                          />
                         )
                       )}
-                    </Box>
+                    </BandejaTableSummary>
                   )}
                   <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
                     <MaterialReactTable table={tableRec} />
@@ -1906,6 +1924,12 @@ const ActasComprobacionPage = () => {
         loading={exportLoading}
         error={exportError}
         onClearError={() => setExportError(null)}
+        showPeriod={!(tab === "recorrido" && recFilterApplied && recAppliedPayload)}
+        scopeHint={
+          tab === "recorrido" && recFilterApplied && recAppliedPayload
+            ? "Se exportará el mismo universo que el listado Recorrido con los filtros aplicados (Filtrar)."
+            : undefined
+        }
         onExport={handleExportComprobaciones}
       />
 

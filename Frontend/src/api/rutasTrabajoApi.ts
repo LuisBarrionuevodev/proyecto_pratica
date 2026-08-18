@@ -66,7 +66,24 @@ export interface IGetRutaTrabajoDetailResponse {
   grupos: IRutaGrupoMin[];
 }
 
-export interface IRutaIniciadorPendienteRow {
+export interface IDetalleOperativoItem {
+  label: string;
+  value: string;
+}
+
+/** Campos operativos compartidos entre pool, pendientes e ítems de ruta. */
+export interface IIniciadorOperativoCampos {
+  tipo_iniciador?: string | null;
+  tipo_iniciador_label?: string | null;
+  prioridad_label?: string | null;
+  detalle_operativo_texto?: string | null;
+  detalle_operativo_items?: IDetalleOperativoItem[];
+  motivo_denuncia?: string | null;
+  causa?: string | null;
+  prorroga_texto?: string | null;
+}
+
+export interface IRutaIniciadorPendienteRow extends IIniciadorOperativoCampos {
   id: number;
   tipo_iniciador: string;
   estado_iniciador: string;
@@ -121,6 +138,13 @@ export interface IRutaIniciadorPendienteRow {
     anio_notificacion?: number | null;
     fecha_vencimiento_notificacion?: string | null;
     numero_denuncia?: string | null;
+    numero_expediente?: string | null;
+    anio_expediente?: string | null;
+    prorroga_dias?: number | null;
+    prorroga_texto?: string | null;
+    causa?: string | null;
+    juzgado_nombre?: string | null;
+    motivo_denuncia?: string | null;
   };
 }
 
@@ -147,7 +171,7 @@ export interface IGetRutaIniciadoresPendientesParams {
   per_page?: number;
 }
 
-export interface IRutaItemMin {
+export interface IRutaItemMin extends IIniciadorOperativoCampos {
   id: number;
   ruta_trabajo_id: number;
   ruta_grupo_id: number;
@@ -177,6 +201,10 @@ export interface IRutaItemMin {
   /** Discriminadores operativos del relevamiento origen (ítem en ruta publicada/asignada). */
   nombre_fantasia?: string | null;
   angulo_esquina?: string | null;
+  prioridad?: number | null;
+  prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
+  badges?: IRutaIniciadorPendienteRow["badges"];
+  identificadores?: IRutaIniciadorPendienteRow["identificadores"];
 }
 
 export interface IAssignItemsRequest {

@@ -154,7 +154,7 @@ describe("API operativa comprobaciones", () => {
 describe("ActasComprobacion — acciones pool OPER-RUTA.5/6", () => {
   it("expone acción única en componente compartido", () => {
     const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
-    expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).toContain("OPER_RUTA_LABELS.GESTIONAR_EN_RUTA");
     expect(cell).toContain("AgregarARutaOperDialog");
   });
 });

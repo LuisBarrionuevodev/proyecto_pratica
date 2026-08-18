@@ -10,7 +10,16 @@ import {
 } from "material-react-table";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
-import { distritoNombrePendiente, rubroLineaPendiente, buildEstablecimientoSecundario } from "../planificacion/utils/iniciadorDisplay";
+import { detalleOperativoTexto } from "../utils/iniciadorDetalleOperativo";
+import {
+  ASIGNACION_COL_DETALLE_OPERATIVO,
+  ASIGNACION_COL_DOMICILIO_RUBRO,
+  ASIGNACION_COL_TIPO_PRIORIDAD,
+  domicilioLineaAsignacion,
+  prioridadDisplayOperativo,
+  rubroLineaAsignacion,
+  tipoLabelOperativo,
+} from "../utils/asignacionTableDisplay";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
@@ -40,26 +49,13 @@ const PRIORIDAD_OPTIONS = [
   { value: "ALTA", label: "Alta" },
 ] as const;
 
-const PRIORIDAD_CONFIG = {
-  alta: { label: "Alta", color: "#ffd9a2", bg: "rgba(184,120,34,0.30)" },
-  media: { label: "Media", color: "#c8dcff", bg: "rgba(58,103,182,0.30)" },
-  baja: { label: "Baja", color: "#bdf2d7", bg: "rgba(28,115,80,0.30)" },
-  none: { label: "Sin prioridad", color: "#c6d3ed", bg: "rgba(95,110,140,0.24)" },
-} as const;
-
-function prioridadCfg(p: number | null | undefined) {
-  if (p === null || p === undefined) return PRIORIDAD_CONFIG.none;
-  if (p >= 3) return PRIORIDAD_CONFIG.alta;
-  if (p === 2) return PRIORIDAD_CONFIG.media;
-  return PRIORIDAD_CONFIG.baja;
-}
-
-const TIPO_SX = {
-  fontSize: "11px",
-  height: 22,
-  backgroundColor: "rgba(23, 62, 140, 0.28)",
-  color: "#c9ddff",
+const TIPO_TEXT_SX = {
   fontFamily: '"Tactic Sans", sans-serif',
+  fontSize: "0.8125rem",
+  fontWeight: 600,
+  lineHeight: 1.35,
+  color: GLASS_COLORS.textPrimary,
+  wordBreak: "break-word",
 } as const;
 
 /** Pool Asignación: sin paginación ni ordenamiento MRT (filtros ya están fuera de la tabla). */
@@ -221,68 +217,85 @@ function IniciadoresPoolTableMrt({
   const columns = useMemo<MRT_ColumnDef<IRutaIniciadorPendienteRow>[]>(
     () => [
       {
-        id: "estado",
-        header: "Estado",
-        size: 110,
-        Cell: ({ row }) => {
-          const asignado = assignedIniciadorIds.has(row.original.id);
-          return (
-            <Chip
-              label={asignado ? "En ruta" : "Sin asignar"}
-              size="small"
-              color={asignado ? "success" : "default"}
-              variant="outlined"
-              sx={{ fontFamily: '"Tactic Sans", sans-serif', fontSize: "11px" }}
-            />
-          );
-        },
-      },
-      {
         id: "tipo_prioridad",
-        header: "Tipo · Prioridad",
-        size: 188,
+        header: ASIGNACION_COL_TIPO_PRIORIDAD,
+        size: 196,
         Cell: ({ row }) => {
-          const label = row.original.badges?.tipo_label ?? row.original.tipo_iniciador;
-          const cfg = prioridadCfg(row.original.prioridad);
+          const tipo = tipoLabelOperativo(row.original);
+          const prioridad = prioridadDisplayOperativo(row.original);
           return (
-            <Stack spacing={0.65} alignItems="flex-start" sx={{ py: 0.25, minWidth: 0 }}>
-              <Chip label={label} size="small" sx={TIPO_SX} />
-              <Chip
-                label={cfg.label}
-                size="small"
-                sx={{
-                  fontSize: "11px",
-                  height: 22,
-                  backgroundColor: cfg.bg,
-                  color: cfg.color,
-                  fontFamily: '"Tactic Sans", sans-serif',
-                }}
-              />
-            </Stack>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.45, minWidth: 0, py: 0.125 }}>
+              <Typography variant="body2" sx={TIPO_TEXT_SX}>
+                {tipo}
+              </Typography>
+              {prioridad ? (
+                <Chip
+                  label={prioridad.label}
+                  size="small"
+                  sx={{
+                    alignSelf: "flex-start",
+                    fontSize: "10px",
+                    height: 20,
+                    backgroundColor: prioridad.bg,
+                    color: prioridad.color,
+                    fontFamily: '"Tactic Sans", sans-serif',
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant="caption"
+                  sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
+                >
+                  —
+                </Typography>
+              )}
+            </Box>
           );
         },
       },
       {
-        id: "domicilio",
-        header: "Domicilio",
-        size: 262,
+        id: "detalle_operativo",
+        header: ASIGNACION_COL_DETALLE_OPERATIVO,
+        size: 280,
         Cell: ({ row }) => {
-          const orig = row.original;
-          const d =
-            orig.domicilio_texto ??
-            `${orig.domicilio?.calle ?? "-"} ${orig.domicilio?.numero ?? ""}`.trim();
-          const linea1 = d?.trim() || "—";
-          const rubroTxt = rubroLineaPendiente(orig);
-          const establecimientoTxt = buildEstablecimientoSecundario(orig);
-          const distritoTxt = distritoNombrePendiente(orig);
-          const tactic = '"Tactic Sans", sans-serif' as const;
-          const secundaria = {
-            fontFamily: tactic,
-            lineHeight: 1.28,
-            wordBreak: "break-word" as const,
-          };
+          const detalle = detalleOperativoTexto(row.original);
+          if (!detalle) {
+            return (
+              <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+                —
+              </Typography>
+            );
+          }
           return (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3, minWidth: 0, py: 0.125 }}>
+            <Typography
+              variant="caption"
+              title={detalle}
+              sx={{
+                fontFamily: '"Tactic Sans", sans-serif',
+                color: GLASS_COLORS.textSecondary,
+                lineHeight: 1.35,
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                wordBreak: "break-word",
+              }}
+            >
+              {detalle}
+            </Typography>
+          );
+        },
+      },
+      {
+        id: "domicilio_rubro",
+        header: ASIGNACION_COL_DOMICILIO_RUBRO,
+        size: 240,
+        Cell: ({ row }) => {
+          const domicilio = domicilioLineaAsignacion(row.original);
+          const rubro = rubroLineaAsignacion(row.original);
+          const tactic = '"Tactic Sans", sans-serif' as const;
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.35, minWidth: 0, py: 0.125 }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -294,50 +307,33 @@ function IniciadoresPoolTableMrt({
                   wordBreak: "break-word",
                 }}
               >
-                {linea1}
+                {domicilio}
               </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  ...secundaria,
-                  fontSize: "0.7rem",
-                  fontWeight: 500,
-                  color:
-                    distritoTxt !== "—" ? GLASS_COLORS.textSecondary : "rgba(255,255,255,0.28)",
-                }}
-              >
-                {distritoTxt}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  ...secundaria,
-                  fontSize: "0.68rem",
-                  fontWeight: 500,
-                  color: rubroTxt !== "—" ? GLASS_COLORS.textMuted : "rgba(255,255,255,0.22)",
-                }}
-              >
-                {rubroTxt}
-              </Typography>
-              {establecimientoTxt ? (
+              {rubro ? (
                 <Typography
                   variant="caption"
                   sx={{
-                    ...secundaria,
-                    fontSize: "0.66rem",
+                    fontFamily: tactic,
+                    fontSize: "0.7rem",
                     fontWeight: 500,
+                    lineHeight: 1.28,
                     color: GLASS_COLORS.textMuted,
+                    wordBreak: "break-word",
                   }}
                 >
-                  {establecimientoTxt}
+                  {rubro}
                 </Typography>
-              ) : null}
+              ) : (
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.22)", fontFamily: tactic }}>
+                  —
+                </Typography>
+              )}
             </Box>
           );
         },
       },
     ],
-    [assignedIniciadorIds]
+    []
   );
 
   const table = useMaterialReactTable({

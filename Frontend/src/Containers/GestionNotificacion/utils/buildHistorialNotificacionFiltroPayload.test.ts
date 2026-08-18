@@ -3,6 +3,7 @@ import {
   buildHistorialNotificacionFiltroPayload,
   historialNotificacionHasPeriodChosen,
   historialNotificacionHasSpecificSearch,
+  historialPayloadToExpedienteCall,
 } from "./buildHistorialNotificacionFiltroPayload";
 
 const emptyForm = {
@@ -97,5 +98,34 @@ describe("buildHistorialNotificacionFiltroPayload", () => {
     expect(
       historialNotificacionHasSpecificSearch({ ...emptyForm, contribuyenteQ: "Pérez" })
     ).toBe(true);
+  });
+});
+
+describe("historialPayloadToExpedienteCall", () => {
+  it("mes/anio no convierte a desde/hasta", () => {
+    const r = buildHistorialNotificacionFiltroPayload({
+      ...emptyForm,
+      mes: 3,
+      anio: 2025,
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const call = historialPayloadToExpedienteCall(r.payload);
+    expect(call.desde).toBeUndefined();
+    expect(call.hasta).toBeUndefined();
+    expect(call.opts.mes).toBe(3);
+    expect(call.opts.anio).toBe(2025);
+  });
+
+  it("global con número de notificación usa omitir_rango_fecha", () => {
+    const r = buildHistorialNotificacionFiltroPayload({
+      ...emptyForm,
+      numeroNotificacion: "123456",
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const call = historialPayloadToExpedienteCall(r.payload);
+    expect(call.opts.omitirRangoFecha).toBe(true);
+    expect(call.opts.numeroNotificacion).toBe("123456");
   });
 });

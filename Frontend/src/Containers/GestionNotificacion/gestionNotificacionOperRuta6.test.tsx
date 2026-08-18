@@ -11,20 +11,22 @@ describe("GestionNotificacion OPER-RUTA.6", () => {
   const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
   const dialog = read("src/components/operRuta/AgregarARutaOperDialog.tsx");
 
-  it("Pendiente reinspección integra botón único Agregar a ruta de trabajo", () => {
+  it("Pendiente reinspección integra botón Gestionar en ruta", () => {
     expect(page).toContain("OperRutaPoolAccionesCell");
     expect(page).toContain("columnsReinspeccionOperativa");
-    expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).toContain("OPER_RUTA_LABELS.GESTIONAR_EN_RUTA");
+    expect(cell).not.toContain("Agregar a ruta de trabajo");
     expect(cell).not.toContain("Agregar al pool");
     expect(cell).not.toContain('data-testid="oper-ruta-agregar-pool"');
     expect(cell).not.toContain('data-testid="oper-ruta-agregar-ruta"');
     expect(cell).toContain('data-testid="oper-ruta-agregar-ruta-trabajo"');
   });
 
-  it("modal muestra fecha y opción crear ruta", () => {
-    expect(dialog).toContain("Fecha operativa");
+  it("modal Gestionar en ruta mantiene fecha y acciones funcionales", () => {
+    expect(dialog).toContain("OPER_RUTA_LABELS.MODAL_TITULO");
+    expect(dialog).toContain("oper-ruta-fecha");
     expect(dialog).toContain("oper-ruta-sin-ruta");
-    expect(dialog).toContain("Crear ruta");
+    expect(dialog).toContain("OPER_RUTA_LABELS.CREAR_RUTA");
     expect(dialog).toContain("oper-ruta-solo-pool");
     expect(dialog).toContain("agregarDesdePoolRuta");
     expect(dialog).toContain("createRutaPoolDia");

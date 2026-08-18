@@ -167,3 +167,44 @@ export async function fetchRecorridoComprobacionConPayload(
 ): Promise<IComprobacionRecorridoListResponse> {
   return fetchComprobacionRecorrido(recorridoPayloadToApiParams(payload));
 }
+
+/** Rango de fechas para nombre de archivo / encabezado PDF según período aplicado en Recorrido. */
+export function recorridoExportFileRangeFromPayload(
+  payload: RecorridoComprobacionFiltroPayload
+): { desde: string; hasta: string } {
+  const period = payload.period;
+  if (period.kind === "month") {
+    const m = String(period.mes).padStart(2, "0");
+    const lastDay = new Date(period.anio, period.mes, 0).getDate();
+    return {
+      desde: `${period.anio}-${m}-01`,
+      hasta: `${period.anio}-${m}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }
+  if (period.kind === "range") {
+    return { desde: period.desde, hasta: period.hasta };
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  return { desde: today, hasta: today };
+}
+
+/** Líneas de resumen de filtros aplicados en Recorrido (export PDF). */
+export function buildRecorridoExportFiltrosResumen(payload: RecorridoComprobacionFiltroPayload): string[] {
+  const out: string[] = ["Recorrido: filtros aplicados en pantalla"];
+  const period = payload.period;
+  if (period.kind === "month") {
+    out.push(`Período: mes ${period.mes}/${period.anio}`);
+  } else if (period.kind === "range") {
+    out.push(`Período: ${period.desde} — ${period.hasta}`);
+  } else {
+    out.push("Período: búsqueda global (sin rango de fecha)");
+  }
+  if (payload.distritoId != null) out.push(`Distrito ID: ${payload.distritoId}`);
+  if (payload.contrib_q) out.push(`Contribuyente: ${payload.contrib_q}`);
+  if (payload.calle_q) out.push(`Calle: ${payload.calle_q}`);
+  if (payload.acta_comprobacion) out.push(`Nº comprobación: ${payload.acta_comprobacion}`);
+  if (payload.oficio_numero) out.push(`Nº oficio: ${payload.oficio_numero}`);
+  if (payload.expediente_numero) out.push(`Nº expediente: ${payload.expediente_numero}`);
+  if (payload.tipo_final) out.push(`Tipo final: ${payload.tipo_final}`);
+  return out;
+}

@@ -67,6 +67,22 @@ export function puedeSacarDeRutaPool(row: OperRutaPoolFila): boolean {
 
 export const MENSAJE_GESTIONAR_DESDE_RUTA_TRABAJO = "Gestionar desde Ruta de Trabajo";
 
+/** Etiquetas visibles en bandejas operativas y modal (VIS-OPER.1). */
+export const OPER_RUTA_LABELS = {
+  DAR_PRORROGA: "Dar prórroga",
+  GESTIONAR_EN_RUTA: "Gestionar en ruta",
+  SACAR_DE_RUTA: "Sacar de ruta",
+  MODAL_TITULO: "Gestionar en ruta",
+  AGREGAR_SOLO_A_LA_RUTA: "Agregar solo a la ruta",
+  AGREGAR_A_GRUPO: "Agregar a grupo",
+  CONFIRMAR_GRUPO: "Confirmar grupo",
+  CREAR_RUTA: "Crear ruta",
+  CREAR_GRUPO: "Crear grupo",
+  CREAR_GRUPO_NUEVO: "Crear grupo nuevo",
+} as const;
+
+export const MENSAJE_EXITO_SACAR_DE_RUTA = "Sacado de ruta.";
+
 export function debeMostrarGestionarDesdeRutaTrabajo(row: OperRutaPoolFila): boolean {
   const estado = normalizarEstadoOperativoPool(row.estado_operativo_pool);
   return estado === "en_ruta_borrador" || estado === "en_ruta_publicada";

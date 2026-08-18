@@ -16,16 +16,18 @@ describe("GestionNotificacion OPER-RUTA.6B", () => {
     expect(prorroga).toContain("disabled");
   });
 
-  it("muestra Sacar del pool en acciones", () => {
-    expect(cell).toContain("Sacar del pool");
-    expect(cell).toContain("oper-ruta-sacar-pool");
+  it("muestra Sacar de ruta en acciones danger", () => {
+    expect(cell).toContain("OPER_RUTA_LABELS.SACAR_DE_RUTA");
+    expect(cell).toContain('dsVariant="danger"');
+    expect(cell).toContain("oper-ruta-sacar-de-ruta");
     expect(cell).toContain("liberarRutaPoolDia");
+    expect(cell).not.toContain("Sacar del pool");
   });
 
-  it("modal permite solo pool y grupo", () => {
+  it("modal permite solo ruta y grupo", () => {
     expect(dialog).toContain("oper-ruta-solo-pool");
-    expect(dialog).toContain("Agregar solo al pool del día");
+    expect(dialog).toContain("OPER_RUTA_LABELS.AGREGAR_SOLO_A_LA_RUTA");
     expect(dialog).toContain("oper-ruta-modo-grupo");
-    expect(dialog).toContain("oper-ruta-confirmar-grupo");
+    expect(dialog).toContain("OPER_RUTA_LABELS.CONFIRMAR_GRUPO");
   });
 });

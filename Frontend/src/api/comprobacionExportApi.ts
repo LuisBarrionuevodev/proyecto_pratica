@@ -3,6 +3,7 @@ import {
   fetchComprobacionPendientesOficio,
   fetchComprobacionRecorrido,
   fetchPendientesReinspeccionOficio,
+  type IComprobacionRecorridoListParams,
 } from "./actuacionesComprobacionActasApi";
 import type { ComprobacionExportRow, ComprobacionExportSlice } from "../Containers/ActasComprobacion/utils/comprobacionExportTypes";
 import {
@@ -16,11 +17,17 @@ export type ComprobacionesExportFilters = {
   desde: string;
   hasta: string;
   slice: ComprobacionExportSlice;
+  /**
+   * Params completos de Recorrido (mismo contrato que el listado).
+   * Cuando está presente con slice=recorrido, tiene prioridad sobre desde/hasta sueltos.
+   */
+  recorridoApiParams?: IComprobacionRecorridoListParams;
   distritoId?: number | null;
   contribuyenteQ?: string | null;
   calleQ?: string | null;
   actaComprobacion?: string | null;
   oficioNumero?: string | null;
+  expedienteNumero?: string | null;
   tipoFinal?: string | null;
 };
 
@@ -50,15 +57,18 @@ export async function fetchAllComprobacionesForExport(
     return resp.items.map(mapReinspeccionPendienteRow);
   }
 
-  const resp = await fetchComprobacionRecorrido({
-    desde,
-    hasta,
-    distrito_id: distritoId ?? undefined,
-    contrib_q: filters.contribuyenteQ?.trim() || undefined,
-    calle_q: filters.calleQ?.trim() || undefined,
-    acta_comprobacion: filters.actaComprobacion?.trim() || undefined,
-    oficio_numero: filters.oficioNumero?.trim() || undefined,
-    tipo_final: filters.tipoFinal?.trim() || undefined,
-  });
+  const resp = await fetchComprobacionRecorrido(
+    filters.recorridoApiParams ?? {
+      desde,
+      hasta,
+      distrito_id: distritoId ?? undefined,
+      contrib_q: filters.contribuyenteQ?.trim() || undefined,
+      calle_q: filters.calleQ?.trim() || undefined,
+      acta_comprobacion: filters.actaComprobacion?.trim() || undefined,
+      oficio_numero: filters.oficioNumero?.trim() || undefined,
+      expediente_numero: filters.expedienteNumero?.trim() || undefined,
+      tipo_final: filters.tipoFinal?.trim() || undefined,
+    }
+  );
   return resp.items.map(mapRecorridoRow);
 }

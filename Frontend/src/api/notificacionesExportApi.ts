@@ -8,11 +8,20 @@ import {
   matchesPlazoSlice,
   type PlazoOperativoSlice,
 } from "../Containers/GestionNotificacion/gestionNotificacionPlazo";
+import {
+  historialPayloadToExpedienteCall,
+  type HistorialNotificacionFiltroPayload,
+} from "../Containers/GestionNotificacion/utils/buildHistorialNotificacionFiltroPayload";
 
 export type NotificacionesExportFilters = {
   desde: string;
   hasta: string;
   plazoSlice: PlazoOperativoSlice;
+  /**
+   * Filtros Historial ya aplicados en pantalla (Filtrar).
+   * Cuando está presente con plazoSlice=total, tiene prioridad sobre desde/hasta del diálogo.
+   */
+  historialAppliedPayload?: HistorialNotificacionFiltroPayload | null;
   distritoId?: number | null;
   contribuyenteQ?: string | null;
   calleQ?: string | null;
@@ -30,6 +39,22 @@ export async function fetchAllNotificacionesForExport(
   if (filters.plazoSlice === "vencidas_o_hoy") {
     const rein = await getPendientesReinspeccionNotificacion();
     return normalizeNotificacionBandejaItems(rein, "notificacion");
+  }
+
+  if (filters.plazoSlice === "total" && filters.historialAppliedPayload) {
+    const call = historialPayloadToExpedienteCall(filters.historialAppliedPayload);
+    const resp = await getActuacionesPendientesExpediente(
+      call.desde,
+      call.hasta,
+      "notificacion",
+      call.distritoId,
+      call.opts
+    );
+    let items = normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type);
+    items = items.filter(
+      (r) => r.source_type === "NOTIFICACION" || Boolean(String(r.acta_notificacion_num ?? "").trim())
+    );
+    return items;
   }
 
   const docOpts = {

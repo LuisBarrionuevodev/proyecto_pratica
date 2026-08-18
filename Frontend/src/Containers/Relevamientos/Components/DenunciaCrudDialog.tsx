@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 
 import type { IDenunciaGestionItem } from "../../../api/denunciasApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
@@ -13,6 +13,7 @@ import {
   denunciaCalleDisplay,
   denunciaNumeroDisplay,
 } from "../utils/denunciaCrudDisplay";
+import { DENUNCIA_MODAL_LABELS } from "../utils/denunciaModalLabels";
 import {
   CrudDialogActions,
   CrudDialogHeader,
@@ -21,6 +22,7 @@ import {
   CrudFormSlot,
   CrudGlassDialog,
 } from "../../../components/crudDialog";
+import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
 import { AppSelect, AppTextField } from "../../../ui";
 
 export type DenunciaCrudDialogProps = {
@@ -74,7 +76,7 @@ export function DenunciaCrudDialog({
     onClose();
   };
 
-  const titulo = isView ? "Denuncia" : "Editar denuncia";
+  const titulo = DENUNCIA_MODAL_LABELS.GESTIONAR_DENUNCIA;
   const subtitulo = [draft.fecha, draft.estado].filter(Boolean).join(" · ") || undefined;
 
   return (
@@ -107,6 +109,7 @@ export function DenunciaCrudDialog({
         />
       }
     >
+      <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
       <CrudFormErrorSummary message={globalError} />
 
       <CrudDialogSection title="Datos de la denuncia" variant="plain">
@@ -216,6 +219,7 @@ export function DenunciaCrudDialog({
           </CrudFormSlot>
         </Box>
       </CrudDialogSection>
+      </Stack>
     </CrudGlassDialog>
   );
 }

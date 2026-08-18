@@ -16,9 +16,10 @@ function render(ui: React.ReactElement) {
 }
 
 describe("ReinspeccionOperativaAccionCell", () => {
-  it("muestra solo botón Prórroga sin Ver detalle", () => {
+  it("muestra solo botón Dar prórroga sin Ver detalle", () => {
     const html = render(<ReinspeccionOperativaAccionCell onProrroga={() => undefined} />);
-    expect(html).toContain(">Prórroga<");
+    expect(html).toContain(">Dar prórroga<");
+    expect(html).not.toContain(">Prórroga<");
     expect(html).not.toContain("Ver detalle");
     expect(html).not.toContain("Detalle");
   });

@@ -6,12 +6,19 @@ import {
 import { downloadNotificacionesListadoPdf } from "../../../documentos/notificaciones/downloadNotificacionesListadoPdf";
 import { sliceLabel, type PlazoOperativoSlice } from "../gestionNotificacionPlazo";
 import { downloadNotificacionesExcel } from "./downloadNotificacionesExcel";
+import {
+  buildHistorialExportFiltrosResumen,
+  historialExportFileRangeFromPayload,
+  type HistorialNotificacionFiltroPayload,
+} from "./buildHistorialNotificacionFiltroPayload";
 
 export type ExportNotificacionesOptions = {
   format: ExportFormat;
   desde: string;
   hasta: string;
   plazoSlice: PlazoOperativoSlice;
+  /** Filtros Historial ya aplicados en pantalla (Filtrar). */
+  historialAppliedPayload?: HistorialNotificacionFiltroPayload | null;
   distritoId?: number | null;
   contribuyenteQ?: string | null;
   calleQ?: string | null;
@@ -39,15 +46,27 @@ function buildFiltrosResumen(filters: NotificacionesExportFilters): string[] {
  * No usa filas visibles ni paginación de la grilla.
  */
 export async function exportNotificacionesDataset(options: ExportNotificacionesOptions): Promise<void> {
+  const useHistorialApplied =
+    options.plazoSlice === "total" && options.historialAppliedPayload != null;
+
+  const fileRange = useHistorialApplied
+    ? historialExportFileRangeFromPayload(options.historialAppliedPayload!)
+    : { desde: options.desde, hasta: options.hasta };
+
   const filters: NotificacionesExportFilters = {
-    desde: options.desde,
-    hasta: options.hasta,
+    desde: fileRange.desde,
+    hasta: fileRange.hasta,
     plazoSlice: options.plazoSlice,
-    distritoId: options.distritoId,
-    contribuyenteQ: options.contribuyenteQ,
-    calleQ: options.calleQ,
-    numeroNotificacion: options.numeroNotificacion,
-    motivoQ: options.motivoQ,
+    historialAppliedPayload: useHistorialApplied ? options.historialAppliedPayload : undefined,
+    ...(useHistorialApplied
+      ? {}
+      : {
+          distritoId: options.distritoId,
+          contribuyenteQ: options.contribuyenteQ,
+          calleQ: options.calleQ,
+          numeroNotificacion: options.numeroNotificacion,
+          motivoQ: options.motivoQ,
+        }),
   };
 
   const items = await fetchAllNotificacionesForExport(filters);
@@ -56,18 +75,20 @@ export async function exportNotificacionesDataset(options: ExportNotificacionesO
     throw new Error("No hay notificaciones para exportar con el rango y filtros seleccionados.");
   }
 
-  const range = { desde: options.desde, hasta: options.hasta };
+  const filtrosResumen = useHistorialApplied
+    ? buildHistorialExportFiltrosResumen(options.historialAppliedPayload!)
+    : buildFiltrosResumen(filters);
 
   if (options.format === "excel") {
-    downloadNotificacionesExcel(items, range, options.plazoSlice);
+    downloadNotificacionesExcel(items, fileRange, options.plazoSlice);
     return;
   }
 
   await downloadNotificacionesListadoPdf({
     items,
-    desde: options.desde,
-    hasta: options.hasta,
+    desde: fileRange.desde,
+    hasta: fileRange.hasta,
     plazoSlice: options.plazoSlice,
-    filtrosResumen: buildFiltrosResumen(filters),
+    filtrosResumen,
   });
 }

@@ -1,5 +1,8 @@
 import type { IRutaGrupoMin, IRutaItemMin, IRutaTrabajo } from "../../api/rutasTrabajoApi";
 import { parseCoord } from "../../utils/mapCoords";
+import { tipoIniciadorDesdeCodigoApi } from "../../Containers/RutasTrabajo/planificacion/utils/iniciadorDisplay";
+import { detalleOperativoTexto } from "../../Containers/RutasTrabajo/utils/iniciadorDetalleOperativo";
+import { buildDetalleOperativoPdfSegments } from "../utils/detalleOperativoPdfSegments";
 import {
   buildBloqueDireccionOperativaPdf,
   buildEstablecimientoSecundarioText,
@@ -69,6 +72,13 @@ export function buildRutaPublicadaDocumentModel(
       establecimientoSecundario: buildEstablecimientoSecundarioText(it),
       ordenTrabajoLabel: otLabel(it),
       tipoIniciador: it.tipo_iniciador ?? null,
+      tipoIniciadorLabel:
+        it.tipo_iniciador_label?.trim() ||
+        tipoIniciadorDesdeCodigoApi(it.tipo_iniciador ?? null) ||
+        null,
+      prioridadLabel: it.prioridad_label ?? null,
+      detalleOperativoSegmentos: buildDetalleOperativoPdfSegments(it),
+      detalleOperativo: detalleOperativoTexto(it),
       lat: parseCoord(it.lat),
       lng: parseCoord(it.lng),
     }));

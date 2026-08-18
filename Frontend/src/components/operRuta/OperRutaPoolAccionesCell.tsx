@@ -11,6 +11,8 @@ import {
   puedeSacarDeRutaPool,
   debeMostrarGestionarDesdeRutaTrabajo,
   MENSAJE_GESTIONAR_DESDE_RUTA_TRABAJO,
+  MENSAJE_EXITO_SACAR_DE_RUTA,
+  OPER_RUTA_LABELS,
   type OperRutaPoolFila,
   type OperRutaRefreshOptions,
 } from "../../utils/operRutaPoolAcciones";
@@ -24,7 +26,7 @@ export type OperRutaPoolAccionesCellProps = {
   onError: (message: string) => void;
 };
 
-/** Acciones pool/ruta: agregar, sacar del pool o liberar de ruta borrador. */
+/** Acciones pool/ruta: gestionar en ruta, sacar de ruta o caption de ruta asignada. */
 export function OperRutaPoolAccionesCell({
   row,
   fechaOperativa,
@@ -38,8 +40,7 @@ export function OperRutaPoolAccionesCell({
   const [busy, setBusy] = useState(false);
 
   const showAgregar = puedeAgregarARutaDeTrabajo(row);
-  const showSacarPool = puedeSacarDelPool(row);
-  const showSacarRuta = puedeSacarDeRutaPool(row);
+  const showSacar = puedeSacarDelPool(row) || puedeSacarDeRutaPool(row);
   const mostrarCaption = debeMostrarGestionarDesdeRutaTrabajo(row);
 
   const handleDialogSuccess = useCallback(
@@ -59,63 +60,48 @@ export function OperRutaPoolAccionesCell({
     setBusy(true);
     try {
       await liberarRutaPoolDia(poolId);
-      onSuccess(showSacarRuta ? "Sacado de ruta/pool." : "Sacado del pool del día.");
+      onSuccess(MENSAJE_EXITO_SACAR_DE_RUTA);
       await onRefresh({ silent: true });
     } catch (err) {
-      onError(parseApiError(err, "No se pudo liberar el pendiente del pool/ruta.").message);
+      onError(parseApiError(err, "No se pudo sacar de ruta.").message);
     } finally {
       setBusy(false);
     }
-  }, [row.pool_id, onRefresh, onSuccess, onError, showSacarRuta]);
+  }, [row.pool_id, onRefresh, onSuccess, onError]);
 
-  if (!showAgregar && !showSacarPool && !showSacarRuta && !mostrarCaption) return null;
+  if (!showAgregar && !showSacar && !mostrarCaption) return null;
 
   return (
     <>
       <Stack spacing={0.5} alignItems="flex-start">
-        {(showAgregar || showSacarPool || showSacarRuta) && (
+        {(showAgregar || showSacar) && (
           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
             {showAgregar && (
-              <Tooltip title="Elegir fecha, turno, ruta y pool o grupo">
+              <Tooltip title="Elegir fecha, turno, ruta y grupo">
                 <span>
                   <AppButton
-                    dsVariant="secondary"
+                    dsVariant="primary"
                     dsSize="sm"
                     disabled={busy}
                     onClick={() => setDialogOpen(true)}
                     data-testid="oper-ruta-agregar-ruta-trabajo"
                   >
-                    {busy ? "…" : "Agregar a ruta de trabajo"}
+                    {busy ? "…" : OPER_RUTA_LABELS.GESTIONAR_EN_RUTA}
                   </AppButton>
                 </span>
               </Tooltip>
             )}
-            {showSacarPool && (
-              <Tooltip title="Quitar del pool operativo del día">
+            {showSacar && (
+              <Tooltip title="Quitar de la ruta operativa del día">
                 <span>
                   <AppButton
-                    dsVariant="ghost"
+                    dsVariant="danger"
                     dsSize="sm"
                     disabled={busy}
                     onClick={() => void handleLiberar()}
-                    data-testid="oper-ruta-sacar-pool"
+                    data-testid="oper-ruta-sacar-de-ruta"
                   >
-                    {busy ? "…" : "Sacar del pool"}
-                  </AppButton>
-                </span>
-              </Tooltip>
-            )}
-            {showSacarRuta && (
-              <Tooltip title="Quitar de ruta borrador y pool (sin OT)">
-                <span>
-                  <AppButton
-                    dsVariant="ghost"
-                    dsSize="sm"
-                    disabled={busy}
-                    onClick={() => void handleLiberar()}
-                    data-testid="oper-ruta-sacar-ruta-pool"
-                  >
-                    Sacar de ruta/pool
+                    {busy ? "…" : OPER_RUTA_LABELS.SACAR_DE_RUTA}
                   </AppButton>
                 </span>
               </Tooltip>

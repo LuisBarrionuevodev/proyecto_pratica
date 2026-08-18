@@ -98,9 +98,10 @@ describe("PR7.9 UI Ruta de Trabajo", () => {
     expect(src).toContain("rubroLineaPendiente(row)");
   });
 
-  it("TablaIniciadoresPendientes usa buildEstablecimientoSecundario", () => {
+  it("TablaIniciadoresPendientes muestra detalle operativo en columna dedicada", () => {
     const src = read("src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx");
-    expect(src).toContain("buildEstablecimientoSecundario");
+    expect(src).toContain("detalleOperativoTexto");
+    expect(src).toContain("ASIGNACION_COL_DETALLE_OPERATIVO");
   });
 
   it("tipos API incluyen nombre_fantasia y angulo_esquina", () => {

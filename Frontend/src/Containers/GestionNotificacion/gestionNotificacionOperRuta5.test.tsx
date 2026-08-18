@@ -20,7 +20,7 @@ describe("GestionNotificacion OPER-RUTA.5/6", () => {
   it("Pendiente reinspección integra OperRutaPoolAccionesCell", () => {
     expect(page).toContain("OperRutaPoolAccionesCell");
     expect(page).toContain("columnsReinspeccionOperativa");
-    expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).toContain("OPER_RUTA_LABELS.GESTIONAR_EN_RUTA");
   });
 
   it("en plazo / por vencer no integran acciones pool en columnas operativas", () => {

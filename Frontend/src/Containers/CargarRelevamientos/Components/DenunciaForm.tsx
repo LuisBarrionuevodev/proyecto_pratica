@@ -1,23 +1,30 @@
 import { useMemo, useState } from "react";
 import axios from "axios";
-import { Alert, Box, Typography } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
+import { Alert, Box, Stack, Typography } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import AddIcon from "@mui/icons-material/Add";
 
 import { createDenuncia } from "../../../api/denunciasApi";
+import {
+  CrudDialogActions,
+  CrudDialogHeader,
+  CrudDialogSection,
+  CrudFormErrorSummary,
+  CrudFormSlot,
+  CrudGlassDialog,
+} from "../../../components/crudDialog";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
+import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { dialogFormActionsRowSx, formDialogShortContentSx } from "../../../styles/formDialogStyles";
-import { AppButton, AppDialog, AppTextField, CardGlass } from "../../../ui";
+import { AppButton, AppTextField, CardGlass } from "../../../ui";
 import { alertBaseStyles, errorAlertStyles } from "../../Actuaciones/styles/filtroStyles";
+import { DENUNCIA_MODAL_LABELS } from "../../Relevamientos/utils/denunciaModalLabels";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
-/** Grid del modal: 1 col en xs/sm; máximo 2 cols en md+ (sin 3 columnas apretadas). Motivo usa `gridColumn: 1 / -1`. */
 const denunciaDialogFormGridSx = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", sm: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
   gap: 2,
   width: "100%",
   minWidth: 0,
@@ -72,6 +79,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
     setNumeroOEsquina("");
     setMotivo("");
     setErrors({});
+    setErrorMsg(null);
   };
 
   const handleSubmit = async () => {
@@ -146,7 +154,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
         </Typography>
       )}
 
-      {errorMsg && (
+      {errorMsg && !open && (
         <Alert severity="error" sx={errorAlertStyles} onClose={() => setErrorMsg(null)}>
           <strong>Error:</strong> {errorMsg}
         </Alert>
@@ -202,95 +210,119 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
             }}
             startIcon={<AddIcon />}
             sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
+            data-testid="denuncia-abrir-agregar"
           >
-            Nueva denuncia
+            {DENUNCIA_MODAL_LABELS.AGREGAR_DENUNCIA}
           </AppButton>
         </Box>
       </CardGlass>
 
-      <AppDialog
+      <CrudGlassDialog
         open={open}
         onClose={() => tryCloseModal()}
         onCloseButtonClick={() => tryCloseModal()}
-        title="Registrar denuncia"
-        contentDividers
-        contentSx={formDialogShortContentSx}
+        maxWidth="md"
+        title={
+          <CrudDialogHeader
+            domainChip="Denuncias"
+            mode="create"
+            titulo={DENUNCIA_MODAL_LABELS.AGREGAR_DENUNCIA}
+            subtitulo="Fecha, domicilio y motivo del reporte"
+          />
+        }
         actions={
-          <Box sx={dialogFormActionsRowSx}>
-            <AppButton
-              dsVariant="ghost"
-              onClick={handleClear}
-              startIcon={<ClearIcon />}
-              disabled={loading}
-            >
-              Limpiar
-            </AppButton>
-            <AppButton
-              dsVariant="primary"
-              onClick={handleSubmit}
-              startIcon={<SendIcon />}
-              loading={loading}
-            >
-              Guardar denuncia
-            </AppButton>
-          </Box>
+          <CrudDialogActions
+            mode="create"
+            onSave={() => void handleSubmit()}
+            loading={loading}
+            saveLabel={DENUNCIA_MODAL_LABELS.GUARDAR_DENUNCIA}
+            extraActions={
+              <AppButton
+                dsVariant="ghost"
+                dsSize="sm"
+                onClick={handleClear}
+                startIcon={<ClearIcon />}
+                disabled={loading}
+              >
+                {DENUNCIA_MODAL_LABELS.LIMPIAR}
+              </AppButton>
+            }
+          />
         }
       >
-        <Box sx={denunciaDialogFormGridSx}>
-          <AppTextField
-            appearance="glass"
-            fullWidth
-            required
-            type="date"
-            label="Fecha"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-            error={!!errors.fecha}
-            helperText={errors.fecha || ""}
-          />
-
-          <AppTextField
-            appearance="glass"
-            fullWidth
-            required
-            label="Calle"
-            value={calle}
-            onChange={(e) => setCalle(e.target.value)}
-            variant="outlined"
-            error={!!errors.calle}
-            helperText={errors.calle || ""}
-          />
-
-          <AppTextField
-            appearance="glass"
-            fullWidth
-            required
-            label="Número o esquina"
-            value={numeroOEsquina}
-            onChange={(e) => setNumeroOEsquina(e.target.value)}
-            variant="outlined"
-            error={!!errors.numeroOEsquina}
-            helperText={errors.numeroOEsquina || ""}
-          />
-
-          <AppTextField
-            appearance="glass"
-            fullWidth
-            required
-            label="Motivo"
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            variant="outlined"
-            multiline
-            minRows={3}
-            sx={{ gridColumn: "1 / -1" }}
-            error={!!errors.motivo}
-            helperText={errors.motivo || ""}
-          />
-        </Box>
-      </AppDialog>
+        <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
+          <CrudFormErrorSummary message={errorMsg} />
+          <CrudDialogSection title="Datos de la denuncia" variant="plain">
+            <Box sx={denunciaDialogFormGridSx}>
+              <CrudFormSlot label="Fecha" mode="edit" required error={!!errors.fecha} helperText={errors.fecha}>
+                <AppTextField
+                  appearance="glass"
+                  fullWidth
+                  required
+                  type="date"
+                  label="Fecha"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  error={!!errors.fecha}
+                  helperText={errors.fecha || undefined}
+                />
+              </CrudFormSlot>
+              <CrudFormSlot label="Calle" mode="edit" required error={!!errors.calle} helperText={errors.calle}>
+                <AppTextField
+                  appearance="glass"
+                  fullWidth
+                  required
+                  label="Calle"
+                  value={calle}
+                  onChange={(e) => setCalle(e.target.value)}
+                  error={!!errors.calle}
+                  helperText={errors.calle || undefined}
+                />
+              </CrudFormSlot>
+              <CrudFormSlot
+                label="Número o esquina"
+                mode="edit"
+                required
+                error={!!errors.numeroOEsquina}
+                helperText={errors.numeroOEsquina}
+              >
+                <AppTextField
+                  appearance="glass"
+                  fullWidth
+                  required
+                  label="Número o esquina"
+                  value={numeroOEsquina}
+                  onChange={(e) => setNumeroOEsquina(e.target.value)}
+                  error={!!errors.numeroOEsquina}
+                  helperText={errors.numeroOEsquina || undefined}
+                />
+              </CrudFormSlot>
+              <CrudFormSlot
+                label="Motivo"
+                mode="edit"
+                required
+                error={!!errors.motivo}
+                helperText={errors.motivo}
+                sx={{ gridColumn: { sm: "1 / -1" } }}
+              >
+                <AppTextField
+                  appearance="glass"
+                  fullWidth
+                  required
+                  label="Motivo"
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  multiline
+                  minRows={3}
+                  error={!!errors.motivo}
+                  helperText={errors.motivo || undefined}
+                />
+              </CrudFormSlot>
+            </Box>
+          </CrudDialogSection>
+        </Stack>
+      </CrudGlassDialog>
     </Box>
   );
 };

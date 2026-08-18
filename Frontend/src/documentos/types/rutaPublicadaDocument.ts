@@ -22,6 +22,11 @@ export type RutaDocumentoItemFila = {
   establecimientoSecundario: string | null;
   ordenTrabajoLabel: string | null;
   tipoIniciador: string | null;
+  tipoIniciadorLabel: string | null;
+  prioridadLabel: string | null;
+  /** Segmentos label+valor para PDF (no cortar entre label y número). */
+  detalleOperativoSegmentos: string[];
+  detalleOperativo: string | null;
   lat: number | null;
   lng: number | null;
 };

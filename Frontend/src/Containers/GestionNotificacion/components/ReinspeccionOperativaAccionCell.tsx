@@ -1,6 +1,7 @@
 import { Tooltip } from "@mui/material";
 
 import { AppButton } from "../../../ui";
+import { OPER_RUTA_LABELS } from "../../../utils/operRutaPoolAcciones";
 
 export type ReinspeccionOperativaAccionCellProps = {
   onProrroga: () => void;
@@ -16,7 +17,7 @@ export function ReinspeccionOperativaAccionCell({
 }: ReinspeccionOperativaAccionCellProps) {
   const button = (
     <AppButton dsVariant="primary" dsSize="sm" onClick={onProrroga} disabled={disabled}>
-      Prórroga
+      {OPER_RUTA_LABELS.DAR_PRORROGA}
     </AppButton>
   );
 

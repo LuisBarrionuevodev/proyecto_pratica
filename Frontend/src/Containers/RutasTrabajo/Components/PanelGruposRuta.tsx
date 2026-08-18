@@ -35,6 +35,7 @@ import {
   rubroOperativoDesdeItemYPool,
   tipoEtiquetaDesdeItemYPool,
 } from "../utils/rutaItemOperativoDesdeItemYPool";
+import { detalleOperativoTexto } from "../utils/iniciadorDetalleOperativo";
 import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
 
 interface Props {
@@ -313,12 +314,22 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
   const rubro = rubroOperativoDesdeItemYPool(item, iniciador);
   const distritoNombre = distritoOperativoDesdeItemYPool(item, iniciador);
   const tipoLabel = tipoEtiquetaDesdeItemYPool(item, iniciador);
+  const detalle = detalleOperativoTexto(iniciador ?? item);
 
   return (
     <Paper elevation={0} sx={rutasInstitutionalItemPaperSx}>
       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
         {direccion}
       </Typography>
+      {detalle ? (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mt: 0.35, lineHeight: 1.35, wordBreak: "break-word" }}
+        >
+          {detalle}
+        </Typography>
+      ) : null}
       <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }} alignItems="center" flexWrap="wrap">
         <Typography variant="caption" color="text.secondary">
           {distritoNombre ? `${rubro} · ${distritoNombre}` : rubro}

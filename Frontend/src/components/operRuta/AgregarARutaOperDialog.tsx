@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Box, CircularProgress, Collapse, Stack, Typography } from "@mui/material";
+import { CircularProgress, Stack, Typography } from "@mui/material";
 
 import {
   createRutaGrupo,
@@ -11,11 +11,22 @@ import {
   type RutaTurno,
 } from "../../api/rutasTrabajoApi";
 import { agregarDesdePoolRuta, createRutaPoolDia, listRutaPoolDia } from "../../api/rutaPoolDiaApi";
+import {
+  CrudDialogActions,
+  CrudDialogHeader,
+  CrudFormSlot,
+  CrudGlassDialog,
+} from "../../components/crudDialog";
+import { DocumentalCrudSection } from "../../components/documental/documentalCrudLayout";
+import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../styles/documentalModalTokens";
 import { AppButton, AppSelect, AppTextField } from "../../ui";
-import { AppDialog } from "../../ui/AppDialog";
 import { fechaLocalHoyIso } from "../../utils/dateRange";
 import { parseApiError } from "../../utils/parseApiError";
-import { normalizarEstadoOperativoPool, type OperRutaPoolFila } from "../../utils/operRutaPoolAcciones";
+import {
+  normalizarEstadoOperativoPool,
+  OPER_RUTA_LABELS,
+  type OperRutaPoolFila,
+} from "../../utils/operRutaPoolAcciones";
 
 export type AgregarARutaOperDialogProps = {
   open: boolean;
@@ -61,7 +72,7 @@ async function resolverPoolId(
 }
 
 /**
- * Modal operativo: fecha → turno → ruta → solo pool o asignar a grupo.
+ * Modal operativo: fecha → turno → ruta → solo ruta o asignar a grupo.
  */
 export function AgregarARutaOperDialog({
   open,
@@ -90,6 +101,11 @@ export function AgregarARutaOperDialog({
     () => rutas.filter((r) => r.turno === turno),
     [rutas, turno]
   );
+
+  const handleClose = useCallback(() => {
+    if (submitting || creatingRuta || creatingGrupo) return;
+    onClose();
+  }, [submitting, creatingRuta, creatingGrupo, onClose]);
 
   const loadGrupos = useCallback(
     async (targetRutaId: number) => {
@@ -188,7 +204,7 @@ export function AgregarARutaOperDialog({
 
   const rutaOptions = useMemo(
     () => [
-      { value: "", label: "Seleccioná ruta borrador" },
+      { value: "", label: "Seleccioná ruta" },
       ...rutasFiltradas.map((r) => ({
         value: String(r.id),
         label: r.display_name?.trim() || `Ruta #${r.numero} · ${r.fecha}`,
@@ -249,8 +265,8 @@ export function AgregarARutaOperDialog({
     try {
       const estado = normalizarEstadoOperativoPool(estadoOperativoPool);
       if (estado === "en_pool") {
-        onSuccess("Ya está en el pool del día.");
-        onClose();
+        onSuccess("Ya está en la ruta.");
+        handleClose();
         return;
       }
       await createRutaPoolDia({
@@ -259,14 +275,14 @@ export function AgregarARutaOperDialog({
         fecha,
         ruta_trabajo_id: rutaId ? Number(rutaId) : undefined,
       });
-      onSuccess("Agregado al pool del día.");
-      onClose();
+      onSuccess("Agregado a la ruta.");
+      handleClose();
     } catch (err) {
-      onError(parseApiError(err, "No se pudo agregar al pool del día.").message);
+      onError(parseApiError(err, "No se pudo agregar a la ruta.").message);
     } finally {
       setSubmitting(false);
     }
-  }, [iniciadorId, fecha, rutaId, estadoOperativoPool, onSuccess, onClose, onError]);
+  }, [iniciadorId, fecha, rutaId, estadoOperativoPool, onSuccess, handleClose, onError]);
 
   const handleAgregarAGrupo = useCallback(async () => {
     if (iniciadorId == null) {
@@ -290,143 +306,175 @@ export function AgregarARutaOperDialog({
         pool_ids: [poolId],
         grupo_id: Number(grupoId),
       });
-      onSuccess("Agregado al grupo de la ruta borrador.");
-      onClose();
+      onSuccess("Agregado al grupo de la ruta.");
+      handleClose();
     } catch (err) {
       if (poolCreated) {
-        onError("Se agregó al pool, pero no se pudo asignar a la ruta.");
+        onError("Se agregó a la ruta, pero no se pudo asignar al grupo.");
       } else {
-        onError(parseApiError(err, "No se pudo agregar a la ruta de trabajo.").message);
+        onError(parseApiError(err, "No se pudo agregar al grupo.").message);
       }
     } finally {
       setSubmitting(false);
     }
-  }, [iniciadorId, fecha, estadoOperativoPool, rutaId, grupoId, onSuccess, onClose, onError]);
+  }, [iniciadorId, fecha, estadoOperativoPool, rutaId, grupoId, onSuccess, handleClose, onError]);
 
   return (
-    <AppDialog open={open} onClose={onClose} title="Agregar a ruta de trabajo" maxWidth="sm" fullWidth>
-      <Stack spacing={2} sx={{ pt: 0.5 }}>
-        <AppTextField
-          appearance="dense"
-          label="Fecha operativa"
-          type="date"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          data-testid="oper-ruta-fecha"
+    <CrudGlassDialog
+      open={open}
+      onClose={handleClose}
+      onCloseButtonClick={handleClose}
+      maxWidth="md"
+      title={
+        <CrudDialogHeader
+          domainChip="Ruta de trabajo"
+          titulo={OPER_RUTA_LABELS.MODAL_TITULO}
+          subtitulo="Elegí fecha, turno y ruta para planificar el pendiente"
         />
-        <AppSelect
-          appearance="dense"
-          label="Turno"
-          value={turno}
-          onChange={(e) => setTurno(e.target.value as RutaTurno)}
-          options={[
-            { value: "MANIANA", label: "Mañana" },
-            { value: "TARDE", label: "Tarde" },
-          ]}
-          fullWidth
-        />
-
-        {loadingRutas ? (
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <CircularProgress size={20} />
-            <Typography variant="body2">Cargando rutas…</Typography>
-          </Stack>
-        ) : sinRutas ? (
-          <Stack spacing={1}>
-            <Typography variant="body2" color="text.secondary" data-testid="oper-ruta-sin-ruta">
-              No hay ruta borrador para esta fecha y turno. ¿Deseás crear una ruta nueva?
-            </Typography>
-            <AppButton dsVariant="secondary" dsSize="sm" onClick={() => void handleCrearRuta()} disabled={creatingRuta}>
-              {creatingRuta ? "Creando…" : "Crear ruta"}
-            </AppButton>
-          </Stack>
-        ) : (
-          <AppSelect
-            appearance="dense"
-            label="Ruta borrador"
-            value={rutaId}
-            onChange={(e) => setRutaId(String(e.target.value))}
-            options={rutaOptions}
-            fullWidth
+      }
+      actions={
+        modoGrupo && grupoId ? (
+          <CrudDialogActions
+            mode="edit"
+            onSave={() => void handleAgregarAGrupo()}
+            loading={submitting}
+            saveLabel={OPER_RUTA_LABELS.CONFIRMAR_GRUPO}
           />
-        )}
+        ) : undefined
+      }
+    >
+      <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
+        <DocumentalCrudSection title="Planificación" layout="stack">
+          <CrudFormSlot label="Fecha" mode="edit" required>
+            <AppTextField
+              appearance="glass"
+              label="Fecha"
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              data-testid="oper-ruta-fecha"
+            />
+          </CrudFormSlot>
+          <CrudFormSlot label="Turno" mode="edit" required>
+            <AppSelect
+              appearance="glass"
+              label="Turno"
+              value={turno}
+              onChange={(e) => setTurno(e.target.value as RutaTurno)}
+              options={[
+                { value: "MANIANA", label: "Mañana" },
+                { value: "TARDE", label: "Tarde" },
+              ]}
+              fullWidth
+            />
+          </CrudFormSlot>
 
-        {listoParaAcciones && (
-          <Stack spacing={1}>
-            <AppButton
-              dsVariant="secondary"
-              dsSize="sm"
-              onClick={() => void handleSoloPool()}
-              disabled={submitting}
-              data-testid="oper-ruta-solo-pool"
-            >
-              {submitting ? "Agregando…" : "Agregar solo al pool del día"}
-            </AppButton>
-            <AppButton
-              dsVariant="primary"
-              dsSize="sm"
-              onClick={() => setModoGrupo((v) => !v)}
-              disabled={submitting}
-              data-testid="oper-ruta-modo-grupo"
-            >
-              Agregar a grupo
-            </AppButton>
-          </Stack>
-        )}
+          {loadingRutas ? (
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <CircularProgress size={20} />
+              <Typography variant="body2">Cargando rutas…</Typography>
+            </Stack>
+          ) : sinRutas ? (
+            <Stack spacing={1.25}>
+              <Typography variant="body2" data-testid="oper-ruta-sin-ruta">
+                No hay ruta borrador para esta fecha y turno. ¿Deseás crear una ruta nueva?
+              </Typography>
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                onClick={() => void handleCrearRuta()}
+                disabled={creatingRuta}
+              >
+                {creatingRuta ? "Creando…" : OPER_RUTA_LABELS.CREAR_RUTA}
+              </AppButton>
+            </Stack>
+          ) : (
+            <CrudFormSlot label="Ruta" mode="edit" required>
+              <AppSelect
+                appearance="glass"
+                label="Ruta"
+                value={rutaId}
+                onChange={(e) => setRutaId(String(e.target.value))}
+                options={rutaOptions}
+                fullWidth
+              />
+            </CrudFormSlot>
+          )}
+        </DocumentalCrudSection>
 
-        <Collapse in={modoGrupo && Boolean(rutaId)}>
-          <Box sx={{ pt: 1 }}>
+        {listoParaAcciones ? (
+          <DocumentalCrudSection title="Acciones" layout="stack">
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                onClick={() => void handleSoloPool()}
+                disabled={submitting}
+                data-testid="oper-ruta-solo-pool"
+              >
+                {submitting ? "Agregando…" : OPER_RUTA_LABELS.AGREGAR_SOLO_A_LA_RUTA}
+              </AppButton>
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                onClick={() => setModoGrupo((v) => !v)}
+                disabled={submitting}
+                data-testid="oper-ruta-modo-grupo"
+              >
+                {OPER_RUTA_LABELS.AGREGAR_A_GRUPO}
+              </AppButton>
+            </Stack>
+          </DocumentalCrudSection>
+        ) : null}
+
+        {modoGrupo && Boolean(rutaId) ? (
+          <DocumentalCrudSection title="Grupo" layout="stack">
             {loadingGrupos ? (
               <Stack direction="row" alignItems="center" spacing={1}>
                 <CircularProgress size={20} />
                 <Typography variant="body2">Cargando grupos…</Typography>
               </Stack>
             ) : grupos.length === 0 ? (
-              <Stack spacing={1}>
-                <Typography variant="body2" color="text.secondary">
+              <Stack spacing={1.25}>
+                <Typography variant="body2">
                   La ruta no tiene grupos. Creá uno para asignar el pendiente.
                 </Typography>
-                <AppButton dsVariant="secondary" dsSize="sm" onClick={() => void handleCrearGrupo()} disabled={creatingGrupo}>
-                  {creatingGrupo ? "Creando…" : "Crear grupo"}
+                <AppButton
+                  dsVariant="primary"
+                  dsSize="sm"
+                  onClick={() => void handleCrearGrupo()}
+                  disabled={creatingGrupo}
+                >
+                  {creatingGrupo ? "Creando…" : OPER_RUTA_LABELS.CREAR_GRUPO}
                 </AppButton>
               </Stack>
             ) : (
-              <Stack spacing={1}>
-                <AppSelect
-                  appearance="dense"
-                  label="Grupo"
-                  value={grupoId}
-                  onChange={(e) => setGrupoId(String(e.target.value))}
-                  options={grupoOptions}
-                  fullWidth
-                />
-                <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void handleCrearGrupo()} disabled={creatingGrupo}>
-                  {creatingGrupo ? "Creando…" : "Crear grupo nuevo"}
+              <Stack spacing={1.25}>
+                <CrudFormSlot label="Grupo" mode="edit" required>
+                  <AppSelect
+                    appearance="glass"
+                    label="Grupo"
+                    value={grupoId}
+                    onChange={(e) => setGrupoId(String(e.target.value))}
+                    options={grupoOptions}
+                    fullWidth
+                  />
+                </CrudFormSlot>
+                <AppButton
+                  dsVariant="secondary"
+                  dsSize="sm"
+                  onClick={() => void handleCrearGrupo()}
+                  disabled={creatingGrupo}
+                >
+                  {creatingGrupo ? "Creando…" : OPER_RUTA_LABELS.CREAR_GRUPO_NUEVO}
                 </AppButton>
               </Stack>
             )}
-          </Box>
-        </Collapse>
-
-        <Stack direction="row" spacing={1} justifyContent="flex-end">
-          <AppButton dsVariant="ghost" dsSize="sm" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </AppButton>
-          {modoGrupo && (
-            <AppButton
-              dsVariant="primary"
-              dsSize="sm"
-              onClick={() => void handleAgregarAGrupo()}
-              disabled={submitting || !rutaId || !grupoId || iniciadorId == null}
-              data-testid="oper-ruta-confirmar-grupo"
-            >
-              {submitting ? "Agregando…" : "Confirmar grupo"}
-            </AppButton>
-          )}
-        </Stack>
+          </DocumentalCrudSection>
+        ) : null}
       </Stack>
-    </AppDialog>
+    </CrudGlassDialog>
   );
 }

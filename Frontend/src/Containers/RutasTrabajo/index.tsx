@@ -39,6 +39,7 @@ import {
   buildDistritoOptionsFromPool,
   filterAsignacionPoolRows,
 } from "./utils/filterAsignacionPool";
+import { buildIniciadorByIdMap } from "./utils/iniciadorDetalleOperativo";
 import {
   evaluarPublicacionRuta,
   resumenBloqueoPublicacion,
@@ -432,7 +433,10 @@ const RutasTrabajo = () => {
     () => new Set(itemsActivos.map((i) => i.iniciador_ruta_id)),
     [itemsActivos]
   );
-  const iniciadorById = useMemo(() => ({ ...poolRowsById }), [poolRowsById]);
+  const iniciadorById = useMemo(
+    () => buildIniciadorByIdMap(poolRowsById, itemsActivos),
+    [poolRowsById, itemsActivos]
+  );
 
   return (
     <Box

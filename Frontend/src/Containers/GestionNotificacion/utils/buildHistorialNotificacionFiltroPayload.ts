@@ -1,5 +1,6 @@
 import {
   getActuacionesPendientesExpediente,
+  type IActuacionesPendientesExpedienteOpts,
   type IActuacionesPendientesExpedienteResponse,
 } from "../../../api/actuacionesPendientesApi";
 
@@ -126,37 +127,106 @@ export function buildHistorialNotificacionFiltroPayload(
   };
 }
 
-/** Ejecuta GET historial notificaciones según payload aplicado. */
-export async function fetchHistorialNotificacionConPayload(
-  payload: HistorialNotificacionFiltroPayload
-): Promise<IActuacionesPendientesExpedienteResponse> {
-  const doc = {
+export type HistorialNotificacionExpedienteCall = {
+  desde?: string | null;
+  hasta?: string | null;
+  distritoId: number | null;
+  opts: IActuacionesPendientesExpedienteOpts;
+};
+
+function docOptsFromPayload(payload: HistorialNotificacionFiltroPayload): IActuacionesPendientesExpedienteOpts {
+  return {
     contribuyenteQ: payload.contribuyenteQ,
     calleQ: payload.calleQ,
     numeroNotificacion: payload.numeroNotificacion,
     motivoQ: payload.motivoQ,
   };
+}
+
+/** Params de `GET /actuaciones/pendientes/expediente` equivalentes al listado Historial. */
+export function historialPayloadToExpedienteCall(
+  payload: HistorialNotificacionFiltroPayload
+): HistorialNotificacionExpedienteCall {
+  const doc = docOptsFromPayload(payload);
 
   if (payload.period.kind === "month") {
-    return getActuacionesPendientesExpediente(undefined, undefined, "notificacion", payload.distritoId, {
-      mes: payload.period.mes,
-      anio: payload.period.anio,
-      ...doc,
-    });
+    return {
+      distritoId: payload.distritoId,
+      opts: {
+        mes: payload.period.mes,
+        anio: payload.period.anio,
+        ...doc,
+      },
+    };
   }
 
   if (payload.period.kind === "range") {
-    return getActuacionesPendientesExpediente(
-      payload.period.desde,
-      payload.period.hasta,
-      "notificacion",
-      payload.distritoId,
-      doc
-    );
+    return {
+      desde: payload.period.desde,
+      hasta: payload.period.hasta,
+      distritoId: payload.distritoId,
+      opts: doc,
+    };
   }
 
-  return getActuacionesPendientesExpediente(undefined, undefined, "notificacion", payload.distritoId, {
-    omitirRangoFecha: true,
-    ...doc,
-  });
+  return {
+    distritoId: payload.distritoId,
+    opts: {
+      omitirRangoFecha: true,
+      ...doc,
+    },
+  };
+}
+
+/** Rango de fechas para nombre de archivo / encabezado PDF según período aplicado en Historial. */
+export function historialExportFileRangeFromPayload(
+  payload: HistorialNotificacionFiltroPayload
+): { desde: string; hasta: string } {
+  const period = payload.period;
+  if (period.kind === "month") {
+    const m = String(period.mes).padStart(2, "0");
+    const lastDay = new Date(period.anio, period.mes, 0).getDate();
+    return {
+      desde: `${period.anio}-${m}-01`,
+      hasta: `${period.anio}-${m}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }
+  if (period.kind === "range") {
+    return { desde: period.desde, hasta: period.hasta };
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  return { desde: today, hasta: today };
+}
+
+/** Líneas de resumen de filtros aplicados en Historial (export PDF). */
+export function buildHistorialExportFiltrosResumen(payload: HistorialNotificacionFiltroPayload): string[] {
+  const out: string[] = ["Historial: filtros aplicados en pantalla"];
+  const period = payload.period;
+  if (period.kind === "month") {
+    out.push(`Período: mes ${period.mes}/${period.anio} (acta de notificación)`);
+  } else if (period.kind === "range") {
+    out.push(`Período: ${period.desde} — ${period.hasta}`);
+  } else {
+    out.push("Período: búsqueda global (sin rango de fecha)");
+  }
+  if (payload.distritoId != null) out.push(`Distrito ID: ${payload.distritoId}`);
+  if (payload.contribuyenteQ) out.push(`Contribuyente: ${payload.contribuyenteQ}`);
+  if (payload.calleQ) out.push(`Calle: ${payload.calleQ}`);
+  if (payload.numeroNotificacion) out.push(`Nº notif.: ${payload.numeroNotificacion}`);
+  if (payload.motivoQ) out.push(`Motivo: ${payload.motivoQ}`);
+  return out;
+}
+
+/** Ejecuta GET historial notificaciones según payload aplicado. */
+export async function fetchHistorialNotificacionConPayload(
+  payload: HistorialNotificacionFiltroPayload
+): Promise<IActuacionesPendientesExpedienteResponse> {
+  const call = historialPayloadToExpedienteCall(payload);
+  return getActuacionesPendientesExpediente(
+    call.desde,
+    call.hasta,
+    "notificacion",
+    call.distritoId,
+    call.opts
+  );
 }

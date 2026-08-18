@@ -1,8 +1,9 @@
 import { apiClient } from "./apiClient";
-import type { IRutaItemMin } from "./rutasTrabajoApi";
+import type { IIniciadorOperativoCampos, IRutaItemMin } from "./rutasTrabajoApi";
 
-export interface IRutaPoolDiaRow {
-  pool_id: number;
+export type { IDetalleOperativoItem, IIniciadorOperativoCampos } from "./rutasTrabajoApi";
+
+export interface IRutaPoolDiaRow extends IIniciadorOperativoCampos {  pool_id: number;
   fecha: string | null;
   turno_id?: number | null;
   estado: string;
@@ -15,6 +16,33 @@ export interface IRutaPoolDiaRow {
   distrito_id?: number | null;
   distrito_nombre?: string | null;
   rubro_nombre?: string | null;
+  prioridad?: number | null;
+  prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
+  nombre_fantasia?: string | null;
+  angulo_esquina?: string | null;
+  badges?: {
+    tipo_label?: string | null;
+    estado_label?: string | null;
+    origen_label?: string | null;
+    prioridad_label?: string | null;
+  };
+  identificadores?: {
+    numero_oficio?: string | null;
+    anio_oficio?: number | null;
+    numero_comprobacion?: string | null;
+    anio_comprobacion?: number | null;
+    numero_notificacion?: string | null;
+    anio_notificacion?: number | null;
+    fecha_vencimiento_notificacion?: string | null;
+    numero_denuncia?: string | null;
+    numero_expediente?: string | null;
+    anio_expediente?: string | null;
+    prorroga_dias?: number | null;
+    prorroga_texto?: string | null;
+    causa?: string | null;
+    juzgado_nombre?: string | null;
+    motivo_denuncia?: string | null;
+  };
   ruta_trabajo_id?: number | null;
   ruta_item_id?: number | null;
   ruta_estado?: string | null;

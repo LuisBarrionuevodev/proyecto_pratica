@@ -26,12 +26,14 @@ const DIALOG_OPEN_PERF = {
   disableAutoFocus: true,
 } as const;
 
-/** Mínimo usable para el virtualizer; el resto lo ocupa flex dentro del DialogContent sin scroll externo. */
-const LIST_VIEWPORT_MIN_HEIGHT_PX = 200;
+/** Altura fija del listado para que el modal no cambie de tamaño al filtrar. */
+const LIST_VIEWPORT_HEIGHT_PX = 320;
 
 const LIST_VIEWPORT_SX = {
-  flex: "1 1 auto",
-  minHeight: LIST_VIEWPORT_MIN_HEIGHT_PX,
+  flex: "0 0 auto",
+  height: LIST_VIEWPORT_HEIGHT_PX,
+  minHeight: LIST_VIEWPORT_HEIGHT_PX,
+  maxHeight: LIST_VIEWPORT_HEIGHT_PX,
   overflow: "auto" as const,
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
   borderRadius: "12px",
@@ -238,6 +240,13 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
             }}
           />
           <Box ref={listParentRef} sx={LIST_VIEWPORT_SX}>
+            {availableInspectores.length === 0 ? (
+              <Box sx={{ p: 2, textAlign: "center" }}>
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
+                  No hay inspectores que coincidan con la búsqueda.
+                </Typography>
+              </Box>
+            ) : (
             <Box
               sx={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
@@ -270,6 +279,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
                 );
               })}
             </Box>
+            )}
           </Box>
           <Box sx={{ pt: 0.5, flexShrink: 0 }}>
             <AppButton

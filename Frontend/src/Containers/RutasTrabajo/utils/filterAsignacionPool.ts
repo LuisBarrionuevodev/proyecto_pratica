@@ -33,7 +33,13 @@ export function filterAsignacionPoolRows(
         r.domicilio_texto ?? `${r.domicilio?.calle ?? "-"} ${r.domicilio?.numero ?? ""}`.trim();
       const hay = [
         r.tipo_iniciador,
+        r.tipo_iniciador_label,
         r.badges?.tipo_label,
+        r.detalle_operativo_texto,
+        ...(r.detalle_operativo_items ?? []).flatMap((it) => [it.label, it.value]),
+        r.motivo_denuncia,
+        r.causa,
+        r.prorroga_texto,
         String(r.prioridad ?? ""),
         dom,
         r.distrito_nombre,

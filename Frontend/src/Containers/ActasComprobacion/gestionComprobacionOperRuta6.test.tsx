@@ -10,10 +10,11 @@ describe("ActasComprobacion OPER-RUTA.6", () => {
   const page = read("src/Containers/ActasComprobacion/ActasComprobacionPage.tsx");
   const cell = read("src/components/operRuta/OperRutaPoolAccionesCell.tsx");
 
-  it("Pendientes reinspección integra botón único", () => {
+  it("Pendientes reinspección integra Gestionar en ruta", () => {
     expect(page).toContain("OperRutaPoolAccionesCell");
     expect(page).toContain("accion_rein");
-    expect(cell).toContain("Agregar a ruta de trabajo");
+    expect(cell).toContain("OPER_RUTA_LABELS.GESTIONAR_EN_RUTA");
+    expect(cell).not.toContain("Agregar a ruta de trabajo");
     expect(cell).not.toContain("oper-ruta-agregar-pool");
   });
 
