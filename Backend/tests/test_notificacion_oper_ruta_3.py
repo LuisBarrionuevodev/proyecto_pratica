@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -22,10 +22,12 @@ from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import create_ruta_pool_dia_entry
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, OrdenTrabajo, RutaItem, RutaTrabajo, User
+from tests.helpers.fixture_isolation import unique_ot_numero, uniq_ruta_numero
 
 
 def _unique() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    """Número de notificación (6 chars) aislado para filtros por subcadena."""
+    return uuid4().hex[:6].upper()
 
 
 @pytest.fixture
@@ -54,7 +56,7 @@ def _mk_notif_act(
     numero: str | None = None,
     vencimiento: date | None = None,
 ) -> tuple[Actuaciones, Notificacion]:
-    ot = OrdenTrabajo(numero_acta=_unique(), anio=fecha.year, mes=fecha.month)
+    ot = OrdenTrabajo(numero_acta=unique_ot_numero(), anio=fecha.year, mes=fecha.month)
     db.session.add(ot)
     db.session.flush()
     noti = Notificacion(numero_acta=numero or _unique(), anio=fecha.year, mes=fecha.month)
@@ -162,16 +164,18 @@ def test_pendiente_reinspeccion_filtra_por_desde_hasta(app_ctx):
 
 
 def test_en_plazo_filtra_por_numero_notificacion(app_ctx):
-    num = _unique()
+    token = uuid4().hex[:4].upper()
+    num = f"{token}01"[:6]
     act_ok, _ = _mk_notif_act(fecha=date(2026, 7, 1), numero=num, vencimiento=date.today() + timedelta(days=8))
     _mk_notif_act(fecha=date(2026, 7, 2), numero=_unique(), vencimiento=date.today() + timedelta(days=8))
     db.session.commit()
-    acts = get_pendientes_expediente(_filters_plazo(numero_notificacion=num[1:5]))
+    acts = get_pendientes_expediente(_filters_plazo(numero_notificacion=token))
     assert {int(a.id) for a in acts} == {int(act_ok.id)}
 
 
 def test_por_vencer_filtra_por_numero_notificacion(app_ctx):
-    num = _unique()
+    token = uuid4().hex[:4].upper()
+    num = f"{token}02"[:6]
     act_ok, _ = _mk_notif_act(fecha=date(2026, 7, 5), numero=num, vencimiento=date.today() + timedelta(days=2))
     _mk_notif_act(fecha=date(2026, 7, 6), numero=_unique(), vencimiento=date.today() + timedelta(days=2))
     db.session.commit()
@@ -181,7 +185,7 @@ def test_por_vencer_filtra_por_numero_notificacion(app_ctx):
                 "omitir_rango_fecha": True,
                 "source_type": "notificacion",
                 "plazo_slice": "por_vencer",
-                "numero_notificacion": num[0:4],
+                "numero_notificacion": token,
             }
         )
     )
@@ -190,13 +194,14 @@ def test_por_vencer_filtra_por_numero_notificacion(app_ctx):
 
 def test_pendiente_reinspeccion_filtra_por_numero_notificacion(app_ctx):
     u = _mk_user()
-    num = _unique()
+    token = uuid4().hex[:4].upper()
+    num = f"{token}03"[:6]
     act_ok, _ = _mk_notif_act(fecha=date(2026, 8, 1), numero=num, vencimiento=date.today() - timedelta(days=1))
     act_no, _ = _mk_notif_act(fecha=date(2026, 8, 2), numero=_unique(), vencimiento=date.today() - timedelta(days=1))
     _mk_iniciador_reinspeccion(act_ok, u)
     _mk_iniciador_reinspeccion(act_no, u)
     db.session.commit()
-    acts = list_reinspeccion_notificacion_operativas(numero_notificacion=num[1:5])
+    acts = list_reinspeccion_notificacion_operativas(numero_notificacion=token)
     assert {int(a.id) for a in acts} == {int(act_ok.id)}
 
 
@@ -217,7 +222,7 @@ def test_estado_en_pool(app_ctx):
         fecha=date(2026, 2, 26),
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(200, 32000),
+        numero=uniq_ruta_numero(),
         created_by_user_id=u.id,
     )
     db.session.add(ruta)
@@ -248,7 +253,7 @@ def test_estado_en_ruta_borrador(app_ctx):
         fecha=date.today() + timedelta(days=50),
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(200, 32000),
+        numero=uniq_ruta_numero(),
         created_by_user_id=u.id,
     )
     db.session.add(ruta)
@@ -271,7 +276,7 @@ def test_estado_en_ruta_publicada(app_ctx):
         fecha=date.today() + timedelta(days=60),
         turno="TARDE",
         estado_ruta="PUBLICADA",
-        numero=random.randint(200, 32000),
+        numero=uniq_ruta_numero(),
         created_by_user_id=u.id,
     )
     db.session.add(ruta)
@@ -345,7 +350,7 @@ def test_pendientes_notificacion_incluye_en_ruta_borrador(app_ctx, client, auth_
         fecha=date.today() + timedelta(days=45),
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(200, 32000),
+        numero=uniq_ruta_numero(),
         created_by_user_id=u.id,
     )
     db.session.add(ruta)

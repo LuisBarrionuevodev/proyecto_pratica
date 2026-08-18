@@ -4,7 +4,6 @@ GET /actuaciones/<id>/notificacion/expedientes-prorroga — trazabilidad de pró
 
 from __future__ import annotations
 
-import random
 from datetime import date
 
 from app.database import db
@@ -15,6 +14,7 @@ from app.domains.actuaciones.services.notificacion_timing_service import (
     inicializar_timing_notificacion,
 )
 from app.models import Actuaciones, Notificacion, OrdenTrabajo
+from tests.helpers.fixture_isolation import unique_ot_numero
 from sqlalchemy import inspect, text
 
 import pytest
@@ -43,7 +43,7 @@ def _ensure_expediente_prorroga_dias_otorgados_column(app):
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def _mk_actuacion_solo_notificacion() -> Actuaciones:

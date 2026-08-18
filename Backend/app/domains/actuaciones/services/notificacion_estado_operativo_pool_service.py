@@ -6,6 +6,10 @@ from typing import Any
 
 from sqlalchemy.orm import joinedload
 
+from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
+    pool_row_bloquea_planificacion,
+    ruta_item_bloquea_nueva_planificacion,
+)
 from app.models import IniciadorRuta, RutaItem, RutaPoolDia, RutaTrabajo
 
 _ESTADOS_POOL_ACTIVOS = ("EN_POOL", "ASIGNADO_A_RUTA")
@@ -105,7 +109,7 @@ def _resolver_estado_desde_iniciador(
     for item in ruta_items:
         if item.deleted_at is not None:
             continue
-        if (item.estado_ruta_item or "").upper() not in _ESTADOS_RUTA_ITEM_ABIERTOS:
+        if not ruta_item_bloquea_nueva_planificacion(item):
             continue
         ruta = item.ruta_trabajo
         if ruta is None:
@@ -127,16 +131,24 @@ def _resolver_estado_desde_iniciador(
     for pool in pool_rows:
         if pool.deleted_at is not None:
             continue
+        if not pool_row_bloquea_planificacion(pool, ruta_items=ruta_items):
+            continue
         if pool.estado == "ASIGNADO_A_RUTA":
             ctx["pool_status"] = pool.estado
             _apply_pool_meta(ctx, pool)
-            ctx["estado_operativo_pool"] = "en_ruta_borrador"
+            item = None
             if pool.ruta_item_id:
                 item = next(
                     (it for it in ruta_items if int(it.id) == int(pool.ruta_item_id)),
                     None,
                 )
-                _apply_grupo_meta(ctx, item)
+            _apply_grupo_meta(ctx, item)
+            ruta = item.ruta_trabajo if item is not None else pool.ruta_trabajo
+            estado_ruta = (ruta.estado_ruta or "").upper() if ruta is not None else ""
+            if estado_ruta in _ESTADOS_RUTA_PUBLICADA:
+                ctx["estado_operativo_pool"] = "en_ruta_publicada"
+            else:
+                ctx["estado_operativo_pool"] = "en_ruta_borrador"
             return ctx
 
     for pool in pool_rows:

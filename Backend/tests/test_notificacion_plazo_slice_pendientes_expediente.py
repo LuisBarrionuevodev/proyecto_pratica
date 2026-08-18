@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
 
 import pytest
@@ -26,11 +25,12 @@ from app.domains.actuaciones.utils.notificacion_plazo_slice import (
     dias_restantes_notificacion_act,
 )
 from app.models import Actuaciones, Notificacion, OrdenTrabajo
+from tests.helpers.fixture_isolation import unique_ot_numero
 from app.shared.utils.business_days_ar import contar_dias_habiles_inclusive
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 @pytest.fixture

@@ -9,6 +9,7 @@ from app.models import IniciadorRuta, RutaItem, RutaPoolDia, RutaTrabajo
 
 _ESTADOS_POOL_ACTIVOS = ("EN_POOL", "ASIGNADO_A_RUTA")
 _ESTADOS_RUTA_BLOQUEAN = ("PUBLICADA", "EN_CURSO", "CERRADA", "CANCELADA")
+_ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
 _TIPOS_PLANIFICABLES = {
     "RELEVAMIENTO",
     "DENUNCIA",
@@ -57,6 +58,54 @@ def infer_origen_tipo_para_iniciador(
     return "INICIADOR"
 
 
+def ruta_item_bloquea_nueva_planificacion(item: RutaItem | None) -> bool:
+    """
+    True si el ``RutaItem`` representa una asignación operativa vigente (OPER-RUTA.6F).
+
+    Ítems ``FINALIZADO`` (REALIZADO o NO_REALIZADO reencolable) no bloquean replanificación
+    aunque la ruta siga PUBLICADA/CERRADA en el historial.
+    """
+    if item is None or item.deleted_at is not None:
+        return False
+    if (item.estado_ruta_item or "").upper() == "FINALIZADO":
+        return False
+    estado_item = (item.estado_ruta_item or "").upper()
+    if estado_item not in _ESTADOS_RUTA_ITEM_ABIERTOS:
+        return False
+    ruta = item.ruta_trabajo
+    if ruta is None:
+        return True
+    estado_ruta = (ruta.estado_ruta or "").upper()
+    if estado_ruta in ("BORRADOR", "PUBLICADA", "EN_CURSO", "CERRADA", "CANCELADA"):
+        return True
+    return False
+
+
+def pool_row_bloquea_planificacion(
+    pool: RutaPoolDia,
+    *,
+    ruta_items: list[RutaItem] | None = None,
+) -> bool:
+    """
+    True si la fila de pool implica una planificación activa (no histórica).
+
+    ``ASIGNADO_A_RUTA`` ligado a un ítem ya ``FINALIZADO`` no bloquea replanificación.
+    """
+    if pool.deleted_at is not None:
+        return False
+    if pool.estado == "EN_POOL":
+        return True
+    if pool.estado == "ASIGNADO_A_RUTA":
+        if pool.ruta_item_id is None:
+            return True
+        items = ruta_items or []
+        item = next((it for it in items if int(it.id) == int(pool.ruta_item_id)), None)
+        if item is None:
+            item = RutaItem.query.filter(RutaItem.id == int(pool.ruta_item_id)).first()
+        return ruta_item_bloquea_nueva_planificacion(item)
+    return False
+
+
 def iniciador_en_ruta_borrador_activa(iniciador_id: int) -> RutaItem | None:
     """
     Retorna el ítem activo en ruta BORRADOR si existe.
@@ -67,15 +116,19 @@ def iniciador_en_ruta_borrador_activa(iniciador_id: int) -> RutaItem | None:
     Retorno:
         ``RutaItem`` activo o None.
     """
-    return (
+    item = (
         RutaItem.query.join(RutaTrabajo, RutaTrabajo.id == RutaItem.ruta_trabajo_id)
         .filter(
             RutaItem.iniciador_ruta_id == iniciador_id,
             RutaItem.deleted_at.is_(None),
             RutaTrabajo.estado_ruta == "BORRADOR",
         )
+        .order_by(RutaItem.id.desc())
         .first()
     )
+    if item is not None and ruta_item_bloquea_nueva_planificacion(item):
+        return item
+    return None
 
 
 def iniciador_en_ruta_no_borrador_activa(iniciador_id: int) -> RutaItem | None:
@@ -88,15 +141,20 @@ def iniciador_en_ruta_no_borrador_activa(iniciador_id: int) -> RutaItem | None:
     Retorno:
         ``RutaItem`` activo o None.
     """
-    return (
+    items = (
         RutaItem.query.join(RutaTrabajo, RutaTrabajo.id == RutaItem.ruta_trabajo_id)
         .filter(
             RutaItem.iniciador_ruta_id == iniciador_id,
             RutaItem.deleted_at.is_(None),
             RutaTrabajo.estado_ruta.in_(_ESTADOS_RUTA_BLOQUEAN),
         )
-        .first()
+        .order_by(RutaItem.id.desc())
+        .all()
     )
+    for item in items:
+        if ruta_item_bloquea_nueva_planificacion(item):
+            return item
+    return None
 
 
 def buscar_entrada_pool_activa(
@@ -132,7 +190,11 @@ def buscar_entrada_pool_activa(
         )
     else:
         return None
-    return q.first()
+    rows = q.order_by(RutaPoolDia.id.desc()).all()
+    for row in rows:
+        if pool_row_bloquea_planificacion(row):
+            return row
+    return None
 
 
 def validar_iniciador_elegible_para_pool(

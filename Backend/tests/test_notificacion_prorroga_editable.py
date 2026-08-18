@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date
 
 import pytest
@@ -28,6 +27,7 @@ from app.models import (
     User,
 )
 from sqlalchemy import inspect, text
+from tests.helpers.fixture_isolation import unique_ot_numero, uniq_ruta_numero
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +50,7 @@ def _ensure_expediente_prorroga_dias_otorgados_column(app):
 
 
 def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return unique_ot_numero()
 
 
 def _user() -> User:
@@ -212,7 +212,7 @@ def test_ultimo_expediente_ruta_item_realizado_bloquea(app) -> None:
                 turno="MANIANA",
                 estado_ruta="PUBLICADA",
                 created_by_user_id=u.id,
-                numero=random.randint(2, 32000),
+                numero=uniq_ruta_numero(),
             )
             db.session.add(ruta)
             db.session.flush()
