@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from decimal import Decimal
 
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
@@ -11,6 +12,25 @@ from app.domains.rutas_trabajo.utils.planificacion_prioridad import (
     prioridad_categoria_from_value,
 )
 from app.models import Domicilio, IniciadorRuta, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
+
+_TIPO_INICIADOR_LABELS: dict[str, str] = {
+    "RELEVAMIENTO": "Relevamiento",
+    "DENUNCIA": "Denuncia",
+    "REINSPECCION_NOTIFICACION": "Reinspección por notificación",
+    "REINSPECCION_OFICIO": "Reinspección por oficio",
+    "VERIFICAR_INFORMAR_OFICIO": "Verificar e informar",
+    "RATIFICACION_CLAUSURA_OFICIO": "Ratificación de clausura",
+    "RATIFICACION_DECOMISO_OFICIO": "Ratificación de decomiso",
+}
+
+_OFICIO_TIPOS_INICIADOR = frozenset(
+    {
+        "REINSPECCION_OFICIO",
+        "VERIFICAR_INFORMAR_OFICIO",
+        "RATIFICACION_CLAUSURA_OFICIO",
+        "RATIFICACION_DECOMISO_OFICIO",
+    }
+)
 
 _REF_PREFIX_ESQ = re.compile(r"^ref\.?\s+", re.IGNORECASE)
 
@@ -245,13 +265,224 @@ def ruta_grupo_to_min_dict(grupo: RutaGrupo) -> dict:
     }
 
 
-def _build_identificadores_iniciador(iniciador: IniciadorRuta) -> dict:
-    """
-    Números operativos para cards de planificación (STAB-10c).
+def _humanizar_codigo_tipo(codigo: str | None) -> str:
+    """Etiqueta legible para códigos de tipo no catalogados."""
+    key = _s(codigo)
+    if not key:
+        return "—"
+    return " ".join(part.capitalize() for part in key.split("_") if part)
 
-    Usa relaciones ya cargadas en ``planificable_iniciadores_base_query`` (oficio, notificación, comprobación).
+
+def _tipo_iniciador_label(tipo: str | None) -> str:
+    """Etiqueta operativa del tipo de iniciador."""
+    key = _s(tipo)
+    if not key:
+        return "—"
+    return _TIPO_INICIADOR_LABELS.get(key, _humanizar_codigo_tipo(key))
+
+
+def _format_acta_numero(numero: str | None, anio: int | None) -> str | None:
+    """Formato `número/año` para actas y documentos."""
+    num = _s(numero)
+    if not num:
+        return None
+    if anio is not None:
+        return f"{num}/{anio}"
+    return num
+
+
+def _expedientes_activos(exps: object) -> list:
+    """Filtra expedientes no eliminados desde relación ORM (lista o único)."""
+    if exps is None:
+        return []
+    rows = exps if isinstance(exps, list) else [exps]
+    return [row for row in rows if row is not None and getattr(row, "deleted_at", None) is None]
+
+
+def _mejor_expediente_por_fecha(exps: list) -> object | None:
+    """Selecciona el expediente más reciente por fecha/id."""
+    if not exps:
+        return None
+    return max(
+        exps,
+        key=lambda row: (
+            getattr(row, "fecha_expediente", None) or date.min,
+            getattr(row, "id", 0) or 0,
+        ),
+    )
+
+
+def _expediente_label(exp) -> str | None:
+    """Texto `número/año` de un expediente."""
+    if exp is None:
+        return None
+    num = _s(getattr(exp, "numero_expediente", None))
+    if not num:
+        return None
+    anio = getattr(exp, "anio", None)
+    if anio is not None and _s(str(anio)):
+        return f"{num}/{anio}"
+    return num
+
+
+def _append_detalle_item(items: list[dict[str, str]], label: str, value: str | None) -> None:
+    """Agrega par label/value si el valor no está vacío."""
+    val = _s(value)
+    if val:
+        items.append({"label": label, "value": val})
+
+
+def _build_prorroga_notificacion_texto(noti) -> str | None:
     """
-    out: dict = {
+    Resume prórroga de notificación: días otorgados y expediente asociado si existe.
+    """
+    if noti is None:
+        return None
+    partes: list[str] = []
+    dias = int(getattr(noti, "prorroga_dias", 0) or 0)
+    if dias > 0:
+        partes.append(f"{dias} días")
+    exps = [
+        row
+        for row in _expedientes_activos(getattr(noti, "expedientes", None))
+        if getattr(row, "tipo_expediente", None) == "PRORROGA_NOTIFICACION"
+    ]
+    exp = _mejor_expediente_por_fecha(exps)
+    if exp is not None:
+        exp_txt = _expediente_label(exp)
+        if exp_txt:
+            fecha = getattr(exp, "fecha_expediente", None)
+            if fecha is not None:
+                partes.append(f"Exp. {exp_txt} ({fecha.isoformat()})")
+            else:
+                partes.append(f"Exp. {exp_txt}")
+    return " · ".join(partes) if partes else None
+
+
+def _build_detalle_operativo_items(iniciador: IniciadorRuta) -> list[dict[str, str]]:
+    """
+    Ítems estructurados de detalle operativo según tipo de iniciador (asignación / export).
+    """
+    items: list[dict[str, str]] = []
+    tipo = _s(iniciador.tipo_iniciador)
+
+    if tipo == "REINSPECCION_NOTIFICACION":
+        noti = iniciador.notificacion
+        if noti is not None:
+            noti_txt = _format_acta_numero(noti.numero_acta, noti.anio)
+            _append_detalle_item(items, "Notif.", noti_txt)
+            prorroga_txt = _build_prorroga_notificacion_texto(noti)
+            if prorroga_txt:
+                _append_detalle_item(items, "Prórroga", prorroga_txt)
+            if noti.fecha_vencimiento is not None:
+                _append_detalle_item(items, "Vence", noti.fecha_vencimiento.isoformat())
+
+    elif tipo in _OFICIO_TIPOS_INICIADOR:
+        ofi = iniciador.oficio
+        comp = iniciador.comprobacion
+        if comp is None and ofi is not None:
+            comp = ofi.comprobacion
+        if comp is not None:
+            comp_txt = _format_acta_numero(comp.numero_acta, comp.anio)
+            _append_detalle_item(items, "Acta comp.", comp_txt)
+        if ofi is not None:
+            exp = _mejor_expediente_por_fecha(_expedientes_activos(ofi.expediente))
+            exp_txt = _expediente_label(exp)
+            if exp_txt:
+                _append_detalle_item(items, "Exp.", exp_txt)
+            ofi_txt = _format_acta_numero(ofi.numero_oficio, ofi.anio)
+            _append_detalle_item(items, "Oficio", ofi_txt)
+            _append_detalle_item(items, "Causa", ofi.causa)
+            juzgado = getattr(ofi, "juzgado", None)
+            if juzgado is not None:
+                _append_detalle_item(items, "Juzgado", getattr(juzgado, "nombre", None))
+
+    elif tipo == "DENUNCIA":
+        den = iniciador.denuncia
+        if den is not None:
+            _append_detalle_item(items, "Motivo", den.motivo)
+
+    elif tipo == "RELEVAMIENTO":
+        rel = iniciador.relevamiento
+        if rel is not None:
+            rubro = None
+            if rel.rubro and rel.rubro.nombre:
+                rubro = rel.rubro.nombre
+            _append_detalle_item(items, "Rubro", rubro)
+            _append_detalle_item(items, "Nombre fantasía", rel.nombre_fantasia)
+            _append_detalle_item(items, "Esquina", rel.angulo_esquina)
+
+    return items
+
+
+def _detalle_operativo_texto_desde_items(items: list[dict[str, str]]) -> str | None:
+    """Serializa ítems de detalle a una línea compacta."""
+    if not items:
+        return None
+    return " · ".join(f"{row['label']}: {row['value']}" for row in items)
+
+
+def iniciador_operativo_campos(iniciador: IniciadorRuta | None) -> dict:
+    """
+    Campos operativos compartidos para pool, pendientes y ítems de ruta.
+
+    Parámetros:
+        iniciador: instancia ORM con relaciones de documento cargadas si aplica.
+
+    Retorno:
+        dict con tipo, prioridad, identificadores y detalle operativo.
+    """
+    if iniciador is None:
+        return {
+            "tipo_iniciador": None,
+            "tipo_iniciador_label": None,
+            "prioridad": None,
+            "prioridad_categoria": None,
+            "prioridad_label": None,
+            "detalle_operativo_items": [],
+            "detalle_operativo_texto": None,
+            "identificadores": _build_identificadores_iniciador_empty(),
+            "nombre_fantasia": None,
+            "angulo_esquina": None,
+            "motivo_denuncia": None,
+            "causa": None,
+            "prorroga_texto": None,
+        }
+
+    identificadores = _build_identificadores_iniciador(iniciador)
+    detalle_items = _build_detalle_operativo_items(iniciador)
+    establecimiento = _establecimiento_campos_relevamiento(iniciador)
+    prioridad_raw = iniciador.prioridad
+    prioridad = prioridad_raw if isinstance(prioridad_raw, int) else None
+    prioridad_cat = prioridad_categoria_from_value(prioridad)
+    tipo_label = _tipo_iniciador_label(iniciador.tipo_iniciador)
+
+    return {
+        "tipo_iniciador": iniciador.tipo_iniciador,
+        "tipo_iniciador_label": tipo_label,
+        "prioridad": prioridad,
+        "prioridad_categoria": prioridad_cat,
+        "prioridad_label": f"P{prioridad}" if prioridad is not None else None,
+        "detalle_operativo_items": detalle_items,
+        "detalle_operativo_texto": _detalle_operativo_texto_desde_items(detalle_items),
+        "identificadores": identificadores,
+        "nombre_fantasia": establecimiento["nombre_fantasia"],
+        "angulo_esquina": establecimiento["angulo_esquina"],
+        "motivo_denuncia": identificadores.get("motivo_denuncia"),
+        "causa": identificadores.get("causa"),
+        "prorroga_texto": identificadores.get("prorroga_texto"),
+        "badges": {
+            "tipo_label": tipo_label,
+            "estado_label": (iniciador.estado_iniciador or "").replace("_", " "),
+            "origen_label": identificadores.get("origen_label") or "SIN_ORIGEN",
+            "prioridad_label": f"P{prioridad}" if prioridad is not None else "S/P",
+        },
+    }
+
+
+def _build_identificadores_iniciador_empty() -> dict:
+    """Plantilla vacía de identificadores documentales."""
+    return {
         "numero_oficio": None,
         "anio_oficio": None,
         "numero_comprobacion": None,
@@ -260,7 +491,35 @@ def _build_identificadores_iniciador(iniciador: IniciadorRuta) -> dict:
         "anio_notificacion": None,
         "fecha_vencimiento_notificacion": None,
         "numero_denuncia": None,
+        "numero_expediente": None,
+        "anio_expediente": None,
+        "prorroga_dias": None,
+        "prorroga_texto": None,
+        "causa": None,
+        "juzgado_nombre": None,
+        "motivo_denuncia": None,
+        "origen_label": None,
     }
+
+
+def _build_identificadores_iniciador(iniciador: IniciadorRuta) -> dict:
+    """
+    Números operativos para cards de planificación (STAB-10c).
+
+    Usa relaciones ya cargadas en ``planificable_iniciadores_base_query`` (oficio, notificación, comprobación).
+    """
+    out: dict = _build_identificadores_iniciador_empty()
+
+    origen = None
+    if iniciador.denuncia_id:
+        origen = "DENUNCIA"
+    elif iniciador.relevamiento_id:
+        origen = "RELEVAMIENTO"
+    elif iniciador.notificacion_id:
+        origen = "NOTIFICACION"
+    elif iniciador.oficio_id:
+        origen = "OFICIO"
+    out["origen_label"] = origen or "SIN_ORIGEN"
 
     ofi = iniciador.oficio
     if ofi is not None:
@@ -268,6 +527,18 @@ def _build_identificadores_iniciador(iniciador: IniciadorRuta) -> dict:
         if nof:
             out["numero_oficio"] = nof
         out["anio_oficio"] = ofi.anio
+        causa = _s(ofi.causa)
+        if causa:
+            out["causa"] = causa
+        juzgado = getattr(ofi, "juzgado", None)
+        if juzgado is not None:
+            jnom = _s(getattr(juzgado, "nombre", None))
+            if jnom:
+                out["juzgado_nombre"] = jnom
+        exp_ofi = _mejor_expediente_por_fecha(_expedientes_activos(ofi.expediente))
+        if exp_ofi is not None:
+            out["numero_expediente"] = _s(getattr(exp_ofi, "numero_expediente", None)) or None
+            out["anio_expediente"] = _s(getattr(exp_ofi, "anio", None)) or None
         comp_ofi = ofi.comprobacion
         if comp_ofi is not None:
             ncomp = _s(comp_ofi.numero_acta)
@@ -300,6 +571,18 @@ def _build_identificadores_iniciador(iniciador: IniciadorRuta) -> dict:
         out["anio_notificacion"] = noti.anio
         if noti.fecha_vencimiento is not None:
             out["fecha_vencimiento_notificacion"] = noti.fecha_vencimiento.isoformat()
+        dias_prorroga = int(noti.prorroga_dias or 0)
+        if dias_prorroga > 0:
+            out["prorroga_dias"] = dias_prorroga
+        prorroga_txt = _build_prorroga_notificacion_texto(noti)
+        if prorroga_txt:
+            out["prorroga_texto"] = prorroga_txt
+
+    den = iniciador.denuncia
+    if den is not None:
+        motivo = _s(den.motivo)
+        if motivo:
+            out["motivo_denuncia"] = motivo
 
     return out
 
@@ -342,9 +625,12 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
                 lat = la
                 lng = ln
 
+    operativo = iniciador_operativo_campos(iniciador)
+
     return {
         "id": iniciador.id,
         "tipo_iniciador": iniciador.tipo_iniciador,
+        "tipo_iniciador_label": operativo["tipo_iniciador_label"],
         "estado_iniciador": iniciador.estado_iniciador,
         "fecha_origen": iniciador.fecha_origen.isoformat() if iniciador.fecha_origen else None,
         "prioridad": iniciador.prioridad,
@@ -384,17 +670,18 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
         "lat": lat,
         "lng": lng,
         "geo_status": geo_status,
-        "prioridad_categoria": prioridad_categoria_from_value(iniciador.prioridad),
+        "prioridad_categoria": operativo["prioridad_categoria"],
+        "prioridad_label": operativo["prioridad_label"],
         "elegible_urgente": elegible_urgente_planificacion(
             iniciador.tipo_iniciador, iniciador.prioridad
         ),
-        "badges": {
-            "tipo_label": (iniciador.tipo_iniciador or "").replace("_", " "),
-            "estado_label": (iniciador.estado_iniciador or "").replace("_", " "),
-            "origen_label": origen or "SIN_ORIGEN",
-            "prioridad_label": f"P{iniciador.prioridad}" if iniciador.prioridad else "S/P",
-        },
-        "identificadores": _build_identificadores_iniciador(iniciador),
+        "badges": operativo["badges"],
+        "identificadores": operativo["identificadores"],
+        "detalle_operativo_items": operativo["detalle_operativo_items"],
+        "detalle_operativo_texto": operativo["detalle_operativo_texto"],
+        "motivo_denuncia": operativo["motivo_denuncia"],
+        "causa": operativo["causa"],
+        "prorroga_texto": operativo["prorroga_texto"],
     }
 
 
@@ -473,4 +760,5 @@ def ruta_item_to_min_dict(item: RutaItem) -> dict:
         "deleted_at": item.deleted_at.isoformat() if item.deleted_at else None,
     }
     base.update(_ruta_item_ubicacion_y_geo(item))
+    base.update(iniciador_operativo_campos(ini))
     return base

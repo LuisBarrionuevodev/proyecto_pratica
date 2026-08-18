@@ -7,7 +7,10 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.domains.rutas_trabajo.presenters.ruta_presenters import _build_domicilio_texto_desde_dom
+from app.domains.rutas_trabajo.presenters.ruta_presenters import (
+    _build_domicilio_texto_desde_dom,
+    iniciador_operativo_campos,
+)
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     cargar_domicilio_efectivo_orm,
 )
@@ -20,7 +23,25 @@ from app.domains.rutas_trabajo.utils.rubro_operativo import (
     rubro_id_operativo_para_iniciador,
     rubro_nombre_operativo_para_iniciador,
 )
-from app.models import Domicilio, IniciadorRuta, RutaItem, RutaPoolDia, RutaTrabajo, User
+from app.models import Comprobacion, Domicilio, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem, RutaPoolDia, RutaTrabajo, User
+
+
+def _iniciador_operativo_joinedload_options():
+    """Eager load de relaciones necesarias para detalle operativo en pool."""
+    return (
+        joinedload(RutaPoolDia.iniciador_ruta).options(
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
+            joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+            joinedload(IniciadorRuta.denuncia),
+            joinedload(IniciadorRuta.notificacion).joinedload(Notificacion.expedientes),
+            joinedload(IniciadorRuta.comprobacion),
+            joinedload(IniciadorRuta.oficio).options(
+                joinedload(Oficio.comprobacion),
+                joinedload(Oficio.juzgado),
+                joinedload(Oficio.expediente),
+            ),
+        ),
+    )
 
 
 def ruta_pool_dia_row_dict(pool: RutaPoolDia) -> dict[str, Any]:
@@ -63,6 +84,8 @@ def ruta_pool_dia_row_dict(pool: RutaPoolDia) -> dict[str, Any]:
 
     domicilio_texto = _build_domicilio_texto_desde_dom(dom)
 
+    operativo = iniciador_operativo_campos(iniciador)
+
     return {
         "pool_id": pool.id,
         "fecha": pool.fecha.isoformat() if pool.fecha else None,
@@ -87,6 +110,7 @@ def ruta_pool_dia_row_dict(pool: RutaPoolDia) -> dict[str, Any]:
         "created_at": pool.created_at.isoformat() if pool.created_at else None,
         "usuario_id": pool.usuario_id,
         "usuario_nombre": usuario_nombre,
+        **operativo,
     }
 
 
@@ -136,7 +160,7 @@ def list_ruta_pool_dia(
             RutaPoolDia.deleted_at.is_(None),
         )
         .options(
-            joinedload(RutaPoolDia.iniciador_ruta),
+            *_iniciador_operativo_joinedload_options(),
             joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.distrito),
             joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.rubro),
             joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.calle_catalogo),

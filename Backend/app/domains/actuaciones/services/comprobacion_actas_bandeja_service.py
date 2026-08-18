@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
-from sqlalchemy import and_, exists, or_
+from sqlalchemy import String, and_, exists, func, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
@@ -15,7 +15,6 @@ from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service impo
 from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_operativa
 from app.domains.actuaciones.services.oficio_list_service import list_oficios_by_comprobacion
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
-    comprobacion_recorrido_resumen_row,
     estado_recorrido_label,
     resultado_cumplimiento_recorrido,
 )
@@ -23,12 +22,177 @@ from app.domains.actuaciones.services.pendientes_service import (
     _apply_distrito_optional,
     _apply_fecha_comprobacion_acta,
 )
-from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
-    build_counts_by_eo_from_actuaciones,
-)
-from app.models import Actuaciones, Domicilio, Expediente, IniciadorRuta, Oficio
+from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, Oficio
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
+
+RECORRIDO_CAP_SIN_BUSQUEDA = 500
+
+
+def _recorrido_busqueda_especifica_activa(
+    *,
+    contrib_q: Optional[str] = None,
+    calle_q: Optional[str] = None,
+    numero_q: Optional[str] = None,
+    acta_comprobacion: Optional[str] = None,
+    expediente_numero: Optional[str] = None,
+    oficio_numero: Optional[str] = None,
+    estado_recorrido: Optional[str] = None,
+    tipo_final: Optional[str] = None,
+) -> bool:
+    """True si hay filtro documental/operativo que no debe verse afectado por el cap defensivo."""
+    return bool(
+        (contrib_q and contrib_q.strip())
+        or (calle_q and calle_q.strip())
+        or (numero_q and numero_q.strip())
+        or (acta_comprobacion and acta_comprobacion.strip())
+        or (expediente_numero and expediente_numero.strip())
+        or (oficio_numero and oficio_numero.strip())
+        or (estado_recorrido and estado_recorrido.strip())
+        or (tipo_final and tipo_final.strip())
+    )
+
+
+def _contains_ci(column, term: str):
+    """Subcadena case-insensitive (``ILIKE`` / ``lower LIKE``)."""
+    t = term.strip().lower()
+    return func.lower(column).contains(t)
+
+
+def _apply_recorrido_busqueda_sql(
+    query,
+    *,
+    contrib_q: Optional[str] = None,
+    calle_q: Optional[str] = None,
+    numero_q: Optional[str] = None,
+    acta_comprobacion: Optional[str] = None,
+    expediente_numero: Optional[str] = None,
+    oficio_numero: Optional[str] = None,
+):
+    """
+    Filtros documentales de Recorrido en SQL (``EXISTS`` para no duplicar actuaciones).
+
+    Parámetros:
+        query: consulta base de ``Actuaciones`` con comprobación.
+        contrib_q, calle_q, numero_q, acta_comprobacion, expediente_numero, oficio_numero:
+            subcadenas opcionales.
+
+    Retorno:
+        Query con restricciones adicionales.
+
+    Errores:
+        Ninguno.
+    """
+    if acta_comprobacion and acta_comprobacion.strip():
+        term = acta_comprobacion.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Comprobacion.id == Actuaciones.comprobacion_id,
+                    Comprobacion.deleted_at.is_(None),
+                    _contains_ci(Comprobacion.numero_acta, term),
+                )
+            )
+        )
+
+    if calle_q and calle_q.strip():
+        term = calle_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    _contains_ci(Domicilio.calle, term),
+                )
+            )
+        )
+
+    if numero_q and numero_q.strip():
+        term = numero_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    _contains_ci(Domicilio.numero, term),
+                )
+            )
+        )
+
+    if contrib_q and contrib_q.strip():
+        term = contrib_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    Contribuyente.id == Domicilio.contribuyente_id,
+                    or_(
+                        _contains_ci(Contribuyente.apellido, term),
+                        _contains_ci(Contribuyente.nombre, term),
+                        _contains_ci(Contribuyente.razon_social, term),
+                    ),
+                )
+            )
+        )
+
+    if oficio_numero and oficio_numero.strip():
+        term = oficio_numero.strip()
+        term_lower = term.lower()
+        term_flat = term_lower.replace("/", "")
+        oficio_blob = func.lower(
+            func.concat(
+                func.coalesce(Oficio.numero_oficio, ""),
+                "/",
+                func.cast(Oficio.anio, String),
+            )
+        )
+        query = query.filter(
+            exists().where(
+                and_(
+                    Oficio.comprobacion_id == Actuaciones.comprobacion_id,
+                    Oficio.deleted_at.is_(None),
+                    or_(
+                        _contains_ci(Oficio.numero_oficio, term),
+                        oficio_blob.contains(term_lower),
+                        func.replace(oficio_blob, "/", "").contains(term_flat),
+                    ),
+                )
+            )
+        )
+
+    if expediente_numero and expediente_numero.strip():
+        term = expediente_numero.strip()
+        term_lower = term.lower()
+        term_flat = term_lower.replace("/", "")
+        exp_blob = func.lower(
+            func.concat(
+                func.coalesce(Expediente.numero_expediente, ""),
+                "/",
+                func.coalesce(Expediente.anio, ""),
+            )
+        )
+        exp_digits = func.replace(
+            func.replace(func.lower(func.coalesce(Expediente.numero_expediente, "")), "/", ""),
+            " ",
+            "",
+        )
+        query = query.filter(
+            exists().where(
+                and_(
+                    Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+                    Expediente.deleted_at.is_(None),
+                    or_(
+                        _contains_ci(Expediente.numero_expediente, term),
+                        exp_blob.contains(term_lower),
+                        func.replace(exp_blob, "/", "").contains(term_flat),
+                        exp_digits.contains("".join(c for c in term_flat if c.isdigit()) or term_flat),
+                    ),
+                )
+            )
+        )
+
+    return query
 
 def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilters):
     """Actuaciones con envío + oficio + respuesta (sin filtrar por ruta a nivel actuación)."""
@@ -208,136 +372,56 @@ def list_comprobacion_recorrido(
     oficio_numero: Optional[str] = None,
     estado_recorrido: Optional[str] = None,
     tipo_final: Optional[str] = None,
-    limit: int = 500,
+    limit: int = RECORRIDO_CAP_SIN_BUSQUEDA,
 ) -> List[Actuaciones]:
     """
     Actuaciones con comprobación para vista consultiva de recorrido.
-    Filtros de texto opcionales (subcadena, case-insensitive) sobre ``comprobacion_recorrido_resumen_row``.
-    ``tipo_final`` usa ``resultado_cumplimiento_recorrido`` (incluye segunda visita si aplica).
+
+    Filtros documentales (acta, calle, contribuyente, oficio, expediente, etc.) se aplican en SQL
+    cuando hay búsqueda específica, **antes** de cualquier cap defensivo.
+
+    ``estado_recorrido`` y ``tipo_final`` requieren lógica de presentación y se aplican en Python
+    sobre el universo ya acotado por SQL / período.
+
+    Sin búsqueda específica se mantiene ``limit`` (500 por defecto) sobre ``id DESC``.
+
     Mes/año explícitos filtran ``Comprobacion.mes/anio``; rango filtra ``Actuaciones.fecha``.
     """
+    busqueda_especifica = _recorrido_busqueda_especifica_activa(
+        contrib_q=contrib_q,
+        calle_q=calle_q,
+        numero_q=numero_q,
+        acta_comprobacion=acta_comprobacion,
+        expediente_numero=expediente_numero,
+        oficio_numero=oficio_numero,
+        estado_recorrido=estado_recorrido,
+        tipo_final=tipo_final,
+    )
+
     q = Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
     q = _apply_fecha_comprobacion_acta(q, filters)
     distrito_id = getattr(filters, "distrito_id", None)
     q = _apply_distrito_optional(q, distrito_id)
-    rows: List[Actuaciones] = q.order_by(Actuaciones.id.desc()).limit(limit).all()
+    q = _apply_recorrido_busqueda_sql(
+        q,
+        contrib_q=contrib_q,
+        calle_q=calle_q,
+        numero_q=numero_q,
+        acta_comprobacion=acta_comprobacion,
+        expediente_numero=expediente_numero,
+        oficio_numero=oficio_numero,
+    )
 
-    counts_by_eo = build_counts_by_eo_from_actuaciones(rows)
+    q = q.order_by(Actuaciones.id.desc())
+    if busqueda_especifica:
+        rows: List[Actuaciones] = q.all()
+    else:
+        rows = q.limit(limit).all()
 
-    def _digits_only(value: str) -> str:
-        return "".join(c for c in value if c.isdigit())
+    if not (estado_recorrido and estado_recorrido.strip()) and not (tipo_final and tipo_final.strip()):
+        return rows
 
-    def _expediente_search_blob(act: Actuaciones, row: dict) -> str:
-        parts: list[str] = []
-        for item in row.get("oficios_resumen") or []:
-            if not isinstance(item, dict):
-                continue
-            parts.extend(
-                [
-                    str(item.get("expediente_texto") or ""),
-                    str(item.get("numero_expediente") or ""),
-                    str(item.get("anio_expediente") or ""),
-                    f"{item.get('numero_expediente') or ''}/{item.get('anio_expediente') or ''}",
-                    f"{item.get('numero_expediente') or ''}{item.get('anio_expediente') or ''}",
-                ]
-            )
-        parts.extend(
-            [
-                f"{row.get('expediente_numero') or ''}",
-                f"{row.get('expediente_anio') or ''}",
-                f"{row.get('expediente_numero') or ''}/{row.get('expediente_anio') or ''}",
-                f"{row.get('expediente_respuesta_numero') or ''}",
-                f"{row.get('expediente_respuesta_anio') or ''}",
-                f"{row.get('expediente_respuesta_numero') or ''}/{row.get('expediente_respuesta_anio') or ''}",
-            ]
-        )
-        cid = act.comprobacion_id
-        if cid:
-            exps = (
-                Expediente.query.filter_by(comprobacion_id=int(cid))
-                .filter(Expediente.deleted_at.is_(None))
-                .all()
-            )
-            for exp in exps:
-                num = getattr(exp, "numero_expediente", "") or ""
-                an = getattr(exp, "anio", "") or ""
-                parts.extend([str(num), str(an), f"{num}/{an}", f"{num}{an}"])
-        return " ".join(p for p in parts if p).lower()
-
-    def _expediente_matches_query(act: Actuaciones, row: dict, query: str) -> bool:
-        q = query.strip().lower()
-        if not q:
-            return True
-        blob = _expediente_search_blob(act, row)
-        if q in blob:
-            return True
-        if q.replace("/", "") in blob.replace("/", ""):
-            return True
-        q_digits = _digits_only(q)
-        if not q_digits:
-            return False
-        if q_digits in _digits_only(blob):
-            return True
-        q_norm = q_digits.lstrip("0") or q_digits
-        for item in row.get("oficios_resumen") or []:
-            if not isinstance(item, dict):
-                continue
-            exp_num = _digits_only(str(item.get("numero_expediente") or ""))
-            if not exp_num:
-                continue
-            if q_digits in exp_num or q_norm in exp_num.lstrip("0"):
-                return True
-        for exp in (
-            Expediente.query.filter_by(comprobacion_id=int(act.comprobacion_id))
-            .filter(Expediente.deleted_at.is_(None))
-            .all()
-            if act.comprobacion_id
-            else []
-        ):
-            exp_num = _digits_only(str(getattr(exp, "numero_expediente", "") or ""))
-            if exp_num and (q_digits in exp_num or q_norm in exp_num.lstrip("0")):
-                return True
-        return False
-
-    def _oficio_search_blob(row: dict) -> str:
-        parts: list[str] = []
-        if row.get("oficios_texto"):
-            parts.append(str(row["oficios_texto"]))
-        for item in row.get("oficios_resumen") or []:
-            if isinstance(item, dict):
-                parts.append(str(item.get("oficio_texto") or ""))
-                parts.append(
-                    f"{item.get('numero_oficio') or item.get('numero') or ''}"
-                    f"{item.get('anio_oficio') or item.get('anio') or ''}"
-                )
-        parts.append(f"{row.get('oficio_numero') or ''}{row.get('oficio_anio') or ''}")
-        return " ".join(parts).lower()
-
-    def _keep(act: Actuaciones) -> bool:
-        row = comprobacion_recorrido_resumen_row(act, counts_by_eo=counts_by_eo)
-        if contrib_q and contrib_q.strip():
-            blob = (
-                f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''} "
-                f"{row.get('razon_social') or ''}"
-            ).lower()
-            if contrib_q.strip().lower() not in blob:
-                return False
-        if calle_q and calle_q.strip():
-            if calle_q.strip().lower() not in (row.get("calle") or "").lower():
-                return False
-        if numero_q and numero_q.strip():
-            if numero_q.strip().lower() not in (row.get("numero") or "").lower():
-                return False
-        if acta_comprobacion and acta_comprobacion.strip():
-            ac = (row.get("acta_comprobacion_num") or "").lower()
-            if acta_comprobacion.strip().lower() not in ac:
-                return False
-        if expediente_numero and expediente_numero.strip():
-            if not _expediente_matches_query(act, row, expediente_numero):
-                return False
-        if oficio_numero and oficio_numero.strip():
-            if oficio_numero.strip().lower() not in _oficio_search_blob(row):
-                return False
+    def _keep_estado_y_tipo(act: Actuaciones) -> bool:
         if estado_recorrido and estado_recorrido.strip():
             if estado_recorrido_label(act).lower() != estado_recorrido.strip().lower():
                 return False
@@ -347,4 +431,4 @@ def list_comprobacion_recorrido(
                 return False
         return True
 
-    return [a for a in rows if _keep(a)]
+    return [a for a in rows if _keep_estado_y_tipo(a)]

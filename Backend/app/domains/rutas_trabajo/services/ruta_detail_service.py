@@ -3,8 +3,11 @@ from __future__ import annotations
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.models import (
+    Comprobacion,
     Domicilio,
     IniciadorRuta,
+    Notificacion,
+    Oficio,
     Relevamiento,
     RutaGrupo,
     RutaGrupoInspector,
@@ -48,6 +51,14 @@ def get_ruta_detail_min(ruta_id: int) -> tuple[RutaTrabajo, list[RutaGrupo]]:
                         joinedload(Domicilio.calle_catalogo),
                     ),
                     joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
+                    joinedload(IniciadorRuta.denuncia),
+                    joinedload(IniciadorRuta.notificacion).joinedload(Notificacion.expedientes),
+                    joinedload(IniciadorRuta.comprobacion),
+                    joinedload(IniciadorRuta.oficio).options(
+                        joinedload(Oficio.comprobacion),
+                        joinedload(Oficio.juzgado),
+                        joinedload(Oficio.expediente),
+                    ),
                 ),
             ),
         )
