@@ -3,7 +3,9 @@ from __future__ import annotations
 from flask import jsonify
 
 from app.domains.relevamientos.services.delete_service import eliminar_relevamiento
-from app.domains.relevamientos.services.operational_guard_service import RelevamientoNoOperativoError
+from app.domains.rutas_trabajo.services.anular_iniciador_por_origen_service import (
+    IniciadorOrigenEnUsoError,
+)
 
 from . import relevamiento
 
@@ -16,7 +18,7 @@ def borrar_relevamiento(relevamiento_id: int):
     try:
         eliminar_relevamiento(relevamiento_id)
         return jsonify({"ok": True}), 200
-    except RelevamientoNoOperativoError as e:
+    except IniciadorOrigenEnUsoError as e:
         return jsonify({"detail": str(e)}), 409
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400

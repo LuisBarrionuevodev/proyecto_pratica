@@ -110,37 +110,36 @@ describe("PR7.10 buildRutaPublicadaDocumentModel", () => {
     expect(fila?.anguloEsquina).toBeNull();
   });
 
-  it("órdenes de salida: solo dirección y ángulo", () => {
+  it("órdenes de salida: muestra distrito del ítem, no domicilio", () => {
     const item = itemBase({
+      distrito_nombre: "Distrito 10",
       nombre_fantasia: "El Toro",
       angulo_esquina: "NE",
     });
     const model = buildRutaPublicadaDocumentModel(rutaBase, [grupoBase], [item]);
     const salida = model.inspectoresSalida[0];
-    expect(salida?.direccionesRuta[0]).toBe("San Martín Y Maipú\nÁngulo: NE");
-    expect(salida?.direccionesRuta[0]).not.toContain("Carnicería");
-    expect(salida?.direccionesRuta[0]).not.toContain("fantasía");
+    expect(salida?.distritosTexto).toBe("Distrito 10");
+    expect(salida?.distritosTexto).not.toContain("San Martín");
+    expect(salida?.distritosTexto).not.toContain("Ángulo");
   });
 
-  it("distingue dos ítems misma esquina con distinto ángulo", () => {
+  it("órdenes de salida: agrupa distritos de varios ítems", () => {
     const itemA = itemBase({
       id: 501,
+      distrito_nombre: "Distrito 10",
       rubro_nombre: "Carnicería",
       nombre_fantasia: "El Toro",
       angulo_esquina: "NE",
     });
     const itemB = itemBase({
       id: 502,
+      distrito_nombre: "Distrito 2",
       rubro_nombre: "Verdulería",
       nombre_fantasia: null,
       angulo_esquina: "SO",
     });
     const model = buildRutaPublicadaDocumentModel(rutaBase, [grupoBase], [itemA, itemB]);
-    const dirs = model.inspectoresSalida[0]?.direccionesRuta ?? [];
-    expect(dirs).toHaveLength(2);
-    expect(dirs[0]).toBe("San Martín Y Maipú\nÁngulo: NE");
-    expect(dirs[1]).toBe("San Martín Y Maipú\nÁngulo: SO");
-    expect(dirs[0]).not.toBe(dirs[1]);
+    expect(model.inspectoresSalida[0]?.distritosTexto).toBe("Distritos 2 y 10");
   });
 });
 
@@ -151,9 +150,9 @@ describe("PR7.10 PDF renderers", () => {
     expect(src).toContain("tableBodyCellSecondary");
   });
 
-  it("OrdenesSalidaPdfDocument usa direccionesRuta multi-línea del modelo", () => {
+  it("OrdenesSalidaPdfDocument usa distritosTexto del modelo", () => {
     const src = read("src/documentos/renderers/OrdenesSalidaPdfDocument.tsx");
-    expect(src).toContain("direccionesRuta.join");
+    expect(src).toContain("distritosTexto");
     expect(src).toContain("textoDirecciones");
   });
 });

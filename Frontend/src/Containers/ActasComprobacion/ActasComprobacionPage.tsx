@@ -9,7 +9,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Divider,
   FormControlLabel,
   IconButton,
@@ -21,6 +20,10 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import {
+  BandejaTableSpinner,
+  BANDEJA_MRT_SPINNER_LOADING_STATE,
+} from "../../components/dataTable/bandejaTableLoading";
 import {
   BandejaActaChipCell,
   BandejaDomicilioYRubroCell,
@@ -117,6 +120,7 @@ import {
   buildOperativaComprobacionFiltroPayload,
   type OperativaComprobacionFiltroPayload,
 } from "./utils/buildOperativaComprobacionFiltroPayload";
+import { refreshComprobacionesPostOficio } from "./utils/refreshComprobacionesPostOficio";
 import {
   notificacionEstadoOperativoChipColor,
 } from "../GestionNotificacion/utils/notificacionEstadoOperativo";
@@ -366,8 +370,11 @@ const ActasComprobacionPage = () => {
   const [expNumeroForm, setExpNumeroForm] = useState("");
   const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
   const [savingExp, setSavingExp] = useState(false);
-  const loadExpediente = useCallback(async (filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current) => {
-    setExpLoading(true);
+  const loadExpediente = useCallback(async (
+    filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
+    opts?: { silent?: boolean }
+  ) => {
+    if (!opts?.silent) setExpLoading(true);
     setExpError(null);
     const hasDateRange = Boolean(filters?.desde || filters?.hasta);
     try {
@@ -389,7 +396,7 @@ const ActasComprobacionPage = () => {
       setExpItems([]);
       setExpTotalPendientes(0);
     } finally {
-      setExpLoading(false);
+      if (!opts?.silent) setExpLoading(false);
     }
   }, []);
 
@@ -529,6 +536,7 @@ const ActasComprobacionPage = () => {
     enableEditing: false,
     enableRowSelection: false,
     renderTopToolbarCustomActions: renderExpedienteToolbarRefresh,
+    state: { ...BANDEJA_MRT_SPINNER_LOADING_STATE },
   });
 
   // —— Pendientes de oficio (siempre mes corriente; sin filtro previo a la tabla)
@@ -578,8 +586,11 @@ const ActasComprobacionPage = () => {
     }
   }, []);
 
-  const loadOficio = useCallback(async (filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current) => {
-    setOficioLoading(true);
+  const loadOficio = useCallback(async (
+    filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
+    opts?: { silent?: boolean }
+  ) => {
+    if (!opts?.silent) setOficioLoading(true);
     setOficioError(null);
     const hasDateRange = Boolean(filters?.desde || filters?.hasta);
     try {
@@ -601,7 +612,7 @@ const ActasComprobacionPage = () => {
       setOficioItems([]);
       setOficioApiTotal(0);
     } finally {
-      setOficioLoading(false);
+      if (!opts?.silent) setOficioLoading(false);
     }
   }, []);
 
@@ -817,6 +828,7 @@ const ActasComprobacionPage = () => {
     enableEditing: false,
     enableRowSelection: false,
     renderTopToolbarCustomActions: renderOficioToolbarRefresh,
+    state: { ...BANDEJA_MRT_SPINNER_LOADING_STATE },
   });
 
   // —— Reinspección (sin filtro por mes: `omitir_rango_fecha` en API; refresco en toolbar)
@@ -917,17 +929,16 @@ const ActasComprobacionPage = () => {
     [loadExpediente, loadOficio, loadRein]
   );
 
-  const onReinBandejasActualizadas = useCallback(async () => {
-    tabLoadedRef.current.reinspeccion = false;
-    await ensureTabLoaded("reinspeccion", { force: true });
-  }, [ensureTabLoaded]);
-
-  const selectedReinKey = selectedRein != null ? reinBandejaRowKey(selectedRein) : null;
-  useEffect(() => {
-    if (!modalReinOpen || selectedReinKey == null) return;
-    const found = reinItems.find((r) => reinBandejaRowKey(r) === selectedReinKey);
-    if (found) setSelectedRein(found as ReinspeccionOperativoDetalleRow);
-  }, [reinItems, modalReinOpen, selectedReinKey]);
+  const refreshComprobacionesSlices = useCallback(async () => {
+    await refreshComprobacionesPostOficio({
+      filters: opAppliedRef.current,
+      activeTab: tab,
+      invalidatePendientesTabs,
+      loadExpediente,
+      loadOficio,
+      loadRein,
+    });
+  }, [tab, invalidatePendientesTabs, loadExpediente, loadOficio, loadRein]);
 
   /** Refetch puntual del modal de oficio (documental + lista de oficios de la comprobación). */
   const refreshModalOficioData = useCallback(async () => {
@@ -947,13 +958,24 @@ const ActasComprobacionPage = () => {
   /** Refresca solo la bandeja del slice activo (sin catálogos ni otras pestañas). */
   const refreshActiveBandeja = useCallback(async () => {
     if (tab === "recorrido") return;
-    await ensureTabLoaded(tab, { force: true });
-  }, [tab, ensureTabLoaded]);
+    await refreshComprobacionesSlices();
+  }, [tab, refreshComprobacionesSlices]);
 
   const reloadOficioModalDocumental = useCallback(async () => {
     await refreshModalOficioData();
-    await refreshActiveBandeja();
-  }, [refreshModalOficioData, refreshActiveBandeja]);
+    await refreshComprobacionesSlices();
+  }, [refreshModalOficioData, refreshComprobacionesSlices]);
+
+  const onReinBandejasActualizadas = useCallback(async () => {
+    await refreshComprobacionesSlices();
+  }, [refreshComprobacionesSlices]);
+
+  const selectedReinKey = selectedRein != null ? reinBandejaRowKey(selectedRein) : null;
+  useEffect(() => {
+    if (!modalReinOpen || selectedReinKey == null) return;
+    const found = reinItems.find((r) => reinBandejaRowKey(r) === selectedReinKey);
+    if (found) setSelectedRein(found as ReinspeccionOperativoDetalleRow);
+  }, [reinItems, modalReinOpen, selectedReinKey]);
 
   const handleSaveOficio = useCallback(
     async (payload: ComprobacionOficioAltaPayload) => {
@@ -1128,6 +1150,7 @@ const ActasComprobacionPage = () => {
     enableEditing: false,
     enableRowSelection: false,
     renderTopToolbarCustomActions: renderReinToolbarRefresh,
+    state: { ...BANDEJA_MRT_SPINNER_LOADING_STATE },
   });
 
   // —— Recorrido (período acotado vs buscador de texto)
@@ -1356,6 +1379,7 @@ const ActasComprobacionPage = () => {
     enableEditing: false,
     enableRowSelection: false,
     state: {
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
       pagination: recPagination,
     },
     onPaginationChange: setRecPagination,
@@ -1524,29 +1548,10 @@ const ActasComprobacionPage = () => {
                   {expError}
                 </Alert>
               )}
-              {expLoading && expItems.length === 0 && !expError ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
-                </Box>
+              {expLoading ? (
+                <BandejaTableSpinner />
               ) : (
-                <Box sx={{ position: "relative", opacity: expLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
-                  {expLoading && expItems.length > 0 && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <CircularProgress size={32} sx={{ color: COLORS.primary }} />
-                    </Box>
-                  )}
-                  <MaterialReactTable table={tableExpediente} />
-                </Box>
+                <MaterialReactTable table={tableExpediente} />
               )}
             </>
           )}
@@ -1563,29 +1568,10 @@ const ActasComprobacionPage = () => {
                   {oficioError}
                 </Alert>
               )}
-              {oficioLoading && oficioItems.length === 0 && !oficioError ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
-                </Box>
+              {oficioLoading ? (
+                <BandejaTableSpinner />
               ) : (
-                <Box sx={{ position: "relative", opacity: oficioLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
-                  {oficioLoading && oficioItems.length > 0 && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <CircularProgress size={32} sx={{ color: COLORS.primary }} />
-                    </Box>
-                  )}
-                  <MaterialReactTable table={tableOficio} />
-                </Box>
+                <MaterialReactTable table={tableOficio} />
               )}
             </>
           )}
@@ -1597,33 +1583,14 @@ const ActasComprobacionPage = () => {
                   {reinError}
                 </Alert>
               )}
-              {reinLoading && reinItems.length === 0 && !reinError ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                  <CircularProgress size={28} sx={{ color: COLORS.primary }} />
-                </Box>
-              ) : !reinLoading && !reinError && reinItems.length === 0 ? (
+              {reinLoading ? (
+                <BandejaTableSpinner />
+              ) : !reinError && reinItems.length === 0 ? (
                 <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 2 }}>
                   No hay comprobaciones pendientes de reinspección.
                 </Typography>
               ) : (
-                <Box sx={{ position: "relative", opacity: reinLoading ? 0.65 : 1, transition: "opacity 0.2s" }}>
-                  {reinLoading && reinItems.length > 0 && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <CircularProgress size={32} sx={{ color: COLORS.primary }} />
-                    </Box>
-                  )}
-                  <MaterialReactTable table={tableRein} />
-                </Box>
+                <MaterialReactTable table={tableRein} />
               )}
             </>
           )}
@@ -1872,9 +1839,7 @@ const ActasComprobacionPage = () => {
                   Usá búsqueda específica o elegí un período y tocá <strong>Filtrar</strong> para cargar el listado.
                 </Typography>
               ) : recLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress sx={{ color: COLORS.primary }} />
-                </Box>
+                <BandejaTableSpinner />
               ) : (
                 <>
                   {recMeta && (

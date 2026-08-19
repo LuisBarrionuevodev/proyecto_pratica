@@ -9,7 +9,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Divider,
   FormControlLabel,
   IconButton,
@@ -47,6 +46,10 @@ import {
   DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
   resetClientPaginationPageIndex,
 } from "../../utils/buildClientPaginationSummary";
+import {
+  BandejaTableSpinner,
+  BANDEJA_MRT_SPINNER_LOADING_STATE,
+} from "../../components/dataTable/bandejaTableLoading";
 import {
   BandejaTableSummary,
   BandejaTableSummaryItem,
@@ -124,6 +127,7 @@ import {
   buildOperativaNotificacionFiltroPayload,
   type OperativaNotificacionFiltroPayload,
 } from "./utils/buildOperativaNotificacionFiltroPayload";
+import { refreshNotificacionesPostProrroga } from "./utils/refreshNotificacionesPostProrroga";
 import {
   notificacionEstadoOperativoChipColor,
 } from "./utils/notificacionEstadoOperativo";
@@ -224,7 +228,6 @@ function trimToNull(s: string): string | null {
 
 type NotificacionBandejaTableProps = {
   rows: IActuacionesPendientesItem[];
-  loading: boolean;
   columns: MRT_ColumnDef<IActuacionesPendientesItem>[];
   toolbar?: () => React.ReactNode;
   /** Misma acotación de altura que Recorrido bajo panel documental (scroll del layout). */
@@ -237,7 +240,6 @@ type NotificacionBandejaTableProps = {
 /** Tabla MRT reutilizable (operativa vs historial). */
 function NotificacionBandejaTable({
   rows,
-  loading,
   columns,
   toolbar,
   documentalListViewport,
@@ -280,8 +282,7 @@ function NotificacionBandejaTable({
       ...(getRowId ? { getRowId: (row) => getRowId(row) } : {}),
       renderTopToolbarCustomActions: toolbar,
       state: {
-        isLoading: loading,
-        showProgressBars: loading,
+        ...BANDEJA_MRT_SPINNER_LOADING_STATE,
         ...(pagination ? { pagination } : {}),
       },
       ...(onPaginationChange ? { onPaginationChange } : {}),
@@ -402,7 +403,8 @@ const GestionNotificacionPage = () => {
     async (
       slice: OperativePlazoExpedienteSlice,
       force = false,
-      filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current
+      filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current,
+      opts?: { silent?: boolean }
     ) => {
       if (!operativePlazoSliceShouldFetch(slice, operativeSliceLoadedRef.current, force)) {
         perfLog("notificaciones.tab.cacheHit", { slice });
@@ -411,7 +413,7 @@ const GestionNotificacionPage = () => {
         }
         return;
       }
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       setError(null);
       const hasDateRange = Boolean(filters?.desde || filters?.hasta);
       try {
@@ -442,7 +444,7 @@ const GestionNotificacionPage = () => {
           setItems([]);
         }
       } finally {
-        setLoading(false);
+        if (!opts?.silent) setLoading(false);
       }
     },
     []
@@ -859,29 +861,23 @@ const GestionNotificacionPage = () => {
     dismissModal();
   };
 
+  const refreshNotificacionesSlices = useCallback(async () => {
+    await refreshNotificacionesPostProrroga({
+      filters: opAppliedRef.current,
+      activeSlice: plazoSliceRef.current,
+      invalidateOperativeSlices,
+      loadPlazoSlice: loadPlazoSliceData,
+      loadReinspeccion: loadPendientesReinspeccionNotificacion,
+    });
+  }, [invalidateOperativeSlices, loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
+
   const refreshBandejaActiva = useCallback(async () => {
     if (plazoSlice === "total") {
       if (historialFiltroAplicado) await recargarHistorialSiAplica();
       return;
     }
-    if (plazoSlice === "vencidas_o_hoy") {
-      await loadPendientesReinspeccionNotificacion();
-      reinspeccionDataLoadedRef.current = true;
-      return;
-    }
-    if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
-      invalidateOtherOperativeSlices(plazoSlice);
-      await loadPlazoSliceData(plazoSlice, true);
-      return;
-    }
-  }, [
-    plazoSlice,
-    historialFiltroAplicado,
-    recargarHistorialSiAplica,
-    loadPendientesReinspeccionNotificacion,
-    loadPlazoSliceData,
-    invalidateOtherOperativeSlices,
-  ]);
+    await refreshNotificacionesSlices();
+  }, [plazoSlice, historialFiltroAplicado, recargarHistorialSiAplica, refreshNotificacionesSlices]);
 
   const handleExpedienteMutacionExitosa = useCallback(
     async (mensaje: string) => {
@@ -1383,43 +1379,17 @@ const GestionNotificacionPage = () => {
 
       {mostrarTablaOperativa && (
         <>
-          {operativaLoading && filteredRowsOperativa.length === 0 && !operativaError ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-              <CircularProgress size={28} sx={{ color: COLORS.primary }} />
-            </Box>
+          {operativaLoading ? (
+            <BandejaTableSpinner />
           ) : (
-            <Box
-              sx={{
-                position: "relative",
-                opacity: operativaLoading ? 0.65 : 1,
-                transition: "opacity 0.2s",
-              }}
-            >
-              {operativaLoading && filteredRowsOperativa.length > 0 && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 1,
-                    pointerEvents: "none",
-                  }}
-                >
-                  <CircularProgress size={32} sx={{ color: COLORS.primary }} />
-                </Box>
-              )}
-              <NotificacionBandejaTable
-                rows={filteredRowsOperativa}
-                loading={operativaLoading}
-                columns={esTabReinspeccionOperativa ? columnsReinspeccionOperativa : columnsOperativa}
-                toolbar={renderOperativaToolbarRefresh}
-                getRowId={
-                  esTabReinspeccionOperativa ? (row) => reinspeccionNotificacionBandejaRowKey(row) : undefined
-                }
-              />
-            </Box>
+            <NotificacionBandejaTable
+              rows={filteredRowsOperativa}
+              columns={esTabReinspeccionOperativa ? columnsReinspeccionOperativa : columnsOperativa}
+              toolbar={renderOperativaToolbarRefresh}
+              getRowId={
+                esTabReinspeccionOperativa ? (row) => reinspeccionNotificacionBandejaRowKey(row) : undefined
+              }
+            />
           )}
         </>
       )}
@@ -1643,11 +1613,9 @@ const GestionNotificacionPage = () => {
             </Alert>
           ) : null}
 
-          {historialLoading && (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress sx={{ color: COLORS.primary }} />
-            </Box>
-          )}
+          {historialLoading ? (
+            <BandejaTableSpinner />
+          ) : null}
 
           {!historialLoading && historialFiltroAplicado && (
             <>
@@ -1681,7 +1649,6 @@ const GestionNotificacionPage = () => {
               <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
                 <NotificacionBandejaTable
                   rows={historialRows}
-                  loading={false}
                   columns={columnsHistorial}
                   toolbar={renderHistorialToolbarRefresh}
                   documentalListViewport

@@ -7,8 +7,8 @@ from app.models import Relevamiento
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_domicilio_if_orphan,
 )
-from app.domains.relevamientos.services.operational_guard_service import (
-    get_iniciador_pendiente_relevamiento,
+from app.domains.rutas_trabajo.services.anular_iniciador_por_origen_service import (
+    anular_iniciadores_por_origen,
 )
 
 
@@ -21,6 +21,7 @@ def eliminar_relevamiento(relevamiento_id: int) -> None:
 
     Raises:
         ValueError: si no existe.
+        IniciadorOrigenEnUsoError: si el iniciador ya fue utilizado operativamente.
     """
     rel = (
         Relevamiento.query.filter(
@@ -33,7 +34,11 @@ def eliminar_relevamiento(relevamiento_id: int) -> None:
     if not rel:
         raise ValueError("Relevamiento no encontrado.")
 
-    get_iniciador_pendiente_relevamiento(relevamiento_id)
+    anular_iniciadores_por_origen(
+        tipo_origen="RELEVAMIENTO",
+        origen_id=int(relevamiento_id),
+        cerrado_motivo="SOFT_DELETE_RELEVAMIENTO",
+    )
 
     old_domicilio_id = rel.domicilio_id
     rel.deleted_at = datetime.utcnow()

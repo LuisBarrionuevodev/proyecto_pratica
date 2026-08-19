@@ -41,7 +41,8 @@ function itemEsquina(
   id: number,
   rubro: string,
   fantasia: string,
-  angulo: string
+  angulo: string,
+  distrito = "Centro"
 ): IRutaItemMin {
   return {
     id,
@@ -55,7 +56,7 @@ function itemEsquina(
     estado_ruta_item: "ASIGNADO",
     deleted_at: null,
     domicilio_texto: "San Martín Y Maipú",
-    distrito_nombre: "Centro",
+    distrito_nombre: distrito,
     rubro_nombre: rubro,
     nombre_fantasia: fantasia,
     angulo_esquina: angulo,
@@ -74,19 +75,13 @@ describe("PR7.11 flujo PDF esquina multi-establecimiento", () => {
     expect(filas[1]?.establecimientoSecundario).toBe("Nombre fantasía: La Huerta · Esquina: SO");
   });
 
-  it("órdenes de salida: dos bloques separados en misma esquina (solo dirección + ángulo)", () => {
+  it("órdenes de salida: distritos únicos aunque haya varios ítems", () => {
     const items = [
-      itemEsquina(1, "Carnicería", "El Toro", "NE"),
-      itemEsquina(2, "Verdulería", "La Huerta", "SO"),
+      itemEsquina(1, "Carnicería", "El Toro", "NE", "Distrito 10"),
+      itemEsquina(2, "Verdulería", "La Huerta", "SO", "Distrito 10"),
     ];
     const model = buildRutaPublicadaDocumentModel(rutaBase, [grupoBase], items);
-    const dirs = model.inspectoresSalida[0]?.direccionesRuta ?? [];
-    expect(dirs).toHaveLength(2);
-    expect(dirs[0]).toBe("San Martín Y Maipú\nÁngulo: NE");
-    expect(dirs[1]).toBe("San Martín Y Maipú\nÁngulo: SO");
-    expect(dirs.join("\n\n")).not.toMatch(/null|undefined/i);
-    expect(dirs.join("\n")).not.toContain("Carnicería");
-    expect(dirs.join("\n")).not.toContain("fantasía");
+    expect(model.inspectoresSalida[0]?.distritosTexto).toBe("Distrito 10");
   });
 
   it("bloques PDF orden salida esperados literales", () => {

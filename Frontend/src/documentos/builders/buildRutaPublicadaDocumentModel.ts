@@ -2,11 +2,9 @@ import type { IRutaGrupoMin, IRutaItemMin, IRutaTrabajo } from "../../api/rutasT
 import { parseCoord } from "../../utils/mapCoords";
 import { tipoIniciadorDesdeCodigoApi } from "../../Containers/RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import { detalleOperativoTexto } from "../../Containers/RutasTrabajo/utils/iniciadorDetalleOperativo";
-import { buildDetalleOperativoPdfSegments } from "../utils/detalleOperativoPdfSegments";
-import {
-  buildBloqueDireccionOperativaPdf,
-  buildEstablecimientoSecundarioText,
-} from "../utils/establecimientoSecundario";
+import { buildDetalleOperativoResumenRutaExport } from "../utils/detalleOperativoResumenRutaExport";
+import { formatDistritosRutaExport } from "../utils/formatDistritosRutaExport";
+import { buildEstablecimientoSecundarioText } from "../utils/establecimientoSecundario";
 import type {
   RutaDocumentoGrupo,
   RutaDocumentoInspector,
@@ -77,7 +75,7 @@ export function buildRutaPublicadaDocumentModel(
         tipoIniciadorDesdeCodigoApi(it.tipo_iniciador ?? null) ||
         null,
       prioridadLabel: it.prioridad_label ?? null,
-      detalleOperativoSegmentos: buildDetalleOperativoPdfSegments(it),
+      detalleOperativoSegmentos: buildDetalleOperativoResumenRutaExport(it),
       detalleOperativo: detalleOperativoTexto(it),
       lat: parseCoord(it.lat),
       lng: parseCoord(it.lng),
@@ -91,7 +89,7 @@ export function buildRutaPublicadaDocumentModel(
     };
   });
 
-  const direccionesPorInspector = new Map<number, Map<number, string>>();
+  const distritosPorInspector = new Map<number, Set<string>>();
   const metaInspector = new Map<number, { nombre: string; legajo: string }>();
 
   for (const g of grupos) {
@@ -109,14 +107,14 @@ export function buildRutaPublicadaDocumentModel(
   grupos.forEach((g, ix) => grupoIxPorId.set(g.id, ix));
 
   for (const it of itemsActivos) {
-    const bloque = buildBloqueDireccionOperativaPdf(it);
+    const distrito = it.distrito_nombre?.trim();
     const grupo = grupos.find((x) => x.id === it.ruta_grupo_id);
     if (!grupo) continue;
     for (const row of grupo.inspectores) {
-      if (!direccionesPorInspector.has(row.inspector_id)) {
-        direccionesPorInspector.set(row.inspector_id, new Map());
+      if (!distritosPorInspector.has(row.inspector_id)) {
+        distritosPorInspector.set(row.inspector_id, new Set());
       }
-      direccionesPorInspector.get(row.inspector_id)!.set(it.id, bloque);
+      if (distrito) distritosPorInspector.get(row.inspector_id)!.add(distrito);
     }
   }
 
@@ -125,9 +123,7 @@ export function buildRutaPublicadaDocumentModel(
       inspectorId,
       nombreCompleto: m.nombre,
       numeroAfiliado: m.legajo,
-      direccionesRuta: Array.from(direccionesPorInspector.get(inspectorId)?.entries() ?? [])
-        .sort(([a], [b]) => a - b)
-        .map(([, text]) => text),
+      distritosTexto: formatDistritosRutaExport(distritosPorInspector.get(inspectorId) ?? []),
     }))
     .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, "es"));
 

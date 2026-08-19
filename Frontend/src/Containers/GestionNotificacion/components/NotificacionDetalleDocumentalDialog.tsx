@@ -591,7 +591,7 @@ export function NotificacionDetalleDocumentalDialog({
             mode="edit"
             onSave={() => void ejecutarAlta()}
             loading={saving}
-            saveLabel="Guardar expediente"
+            saveLabel={saving ? "Guardando…" : "Guardar expediente"}
           />
         ) : undefined
       }
@@ -620,6 +620,7 @@ export function NotificacionDetalleDocumentalDialog({
                   onChange={(e) => onExpNumeroChange(e.target.value)}
                   fullWidth
                   required
+                  disabled={saving}
                   error={Boolean(fieldErrors.expNumero)}
                   helperText={fieldErrors.expNumero || undefined}
                 />
@@ -634,6 +635,7 @@ export function NotificacionDetalleDocumentalDialog({
                   InputLabelProps={{ shrink: true }}
                   fullWidth
                   required
+                  disabled={saving}
                   error={Boolean(fieldErrors.expFecha)}
                   helperText={fieldErrors.expFecha || undefined}
                 />
@@ -647,6 +649,7 @@ export function NotificacionDetalleDocumentalDialog({
                   onChange={(e) => onProrrogaDiasChange(e.target.value)}
                   fullWidth
                   required
+                  disabled={saving}
                   error={Boolean(fieldErrors.prorrogaDias)}
                   helperText={fieldErrors.prorrogaDias || undefined}
                   inputProps={{ min: 0 }}

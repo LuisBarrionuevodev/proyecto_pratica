@@ -38,9 +38,10 @@ export type RutaDocumentoGrupo = {
   items: RutaDocumentoItemFila[];
 };
 
-/** Inspectores únicos con direcciones agregadas (órdenes de salida). */
+/** Inspectores únicos con distritos agregados (órdenes de salida). */
 export type RutaDocumentoInspectorSalida = RutaDocumentoInspector & {
-  direccionesRuta: string[];
+  /** Texto institucional: «Distrito 10» o «Distritos 2 y 10». */
+  distritosTexto: string;
 };
 
 /** Punto para mini-mapa del PDF (misma leyenda de colores que el mapa operativo por índice de grupo). */

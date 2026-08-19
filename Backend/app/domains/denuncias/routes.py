@@ -18,6 +18,9 @@ from app.domains.denuncias.services.denuncias_service import (
     listar_denuncias,
 )
 from app.domains.denuncias.services.operational_guard_service import DenunciaNoOperativaError
+from app.domains.rutas_trabajo.services.anular_iniciador_por_origen_service import (
+    IniciadorOrigenEnUsoError,
+)
 from app.shared.errors import pydantic_errors_to_cell_map
 
 denuncias_api = Blueprint("denuncias_api", __name__)
@@ -123,6 +126,8 @@ def update_denuncia_gestion_route(denuncia_id: int):
 def delete_denuncia(denuncia_id: int):
     try:
         return jsonify(eliminar_denuncia_logicamente(denuncia_id)), 200
+    except IniciadorOrigenEnUsoError as e:
+        return jsonify({"detail": str(e)}), 409
     except DenunciaNoOperativaError as e:
         return jsonify({"detail": str(e)}), 409
     except ValueError as e:

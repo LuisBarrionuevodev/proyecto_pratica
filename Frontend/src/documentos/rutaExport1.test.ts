@@ -126,4 +126,16 @@ describe("RUTA-EXPORT.1 RutaResumenPdfDocument renderer", () => {
   it("filas de grupo no se parten", () => {
     expect(src).toContain("GrupoItemRow");
   });
+
+  it("columnas Entregado y Recibido a la derecha de OT", () => {
+    const otIdx = src.indexOf('>OT</Text>');
+    const entIdx = src.indexOf(">Entregado</Text>");
+    const recIdx = src.indexOf(">Recibido</Text>");
+    expect(otIdx).toBeGreaterThan(-1);
+    expect(entIdx).toBeGreaterThan(otIdx);
+    expect(recIdx).toBeGreaterThan(entIdx);
+    expect(src).toContain("colEntregado");
+    expect(src).toContain("colRecibido");
+    expect(src).not.toContain("Prioridad:");
+  });
 });

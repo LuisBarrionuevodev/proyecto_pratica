@@ -23,8 +23,10 @@ from app.domains.denuncias.schemas import DenunciasGestionFilters, DenunciaGesti
 from app.domains.denuncias.services.operational_guard_service import (
     get_iniciador_pendiente_denuncia,
 )
+from app.domains.rutas_trabajo.services.anular_iniciador_por_origen_service import (
+    anular_iniciadores_por_origen,
+)
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
-    is_estado_activo,
     priority_for_tipo,
 )
 from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
@@ -184,8 +186,12 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
 
     Regla:
     - No borra físicamente.
-    - Si el domicilio queda huérfano luego del soft delete, lo marca deleted_at
-      y también soft-delete del geocode asociado.
+    - Anula iniciador, pool y ítems en ruta BORRADOR sin OT cuando es seguro.
+    - Si el domicilio queda huérfano, soft-delete del domicilio y geocode.
+
+    Errores:
+        ValueError: denuncia inexistente.
+        IniciadorOrigenEnUsoError: uso operativo (ruta publicada, OT, actuación).
     """
     _get_current_user_id()
     denuncia = (
@@ -199,25 +205,14 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
     if not denuncia:
         raise ValueError("Denuncia no encontrada.")
 
-    get_iniciador_pendiente_denuncia(denuncia_id)
+    anular_iniciadores_por_origen(
+        tipo_origen="DENUNCIA",
+        origen_id=int(denuncia_id),
+        cerrado_motivo="SOFT_DELETE_DENUNCIA",
+    )
 
     now = datetime.utcnow()
     domicilio_id = denuncia.domicilio_id
-
-    iniciadores = (
-        IniciadorRuta.query.filter(
-            IniciadorRuta.denuncia_id == denuncia.id,
-            IniciadorRuta.deleted_at.is_(None),
-        )
-        .all()
-    )
-    for ini in iniciadores:
-        ini.deleted_at = now
-        if is_estado_activo(ini.estado_iniciador):
-            ini.estado_iniciador = "ANULADO"
-        ini.cerrado_at = ini.cerrado_at or now
-        ini.cerrado_motivo = ini.cerrado_motivo or "SOFT_DELETE_DENUNCIA"
-        db.session.add(ini)
 
     denuncia.deleted_at = now
     if denuncia.estado != "CERRADA":

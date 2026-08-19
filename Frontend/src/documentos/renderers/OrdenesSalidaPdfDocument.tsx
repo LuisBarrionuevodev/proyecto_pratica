@@ -296,7 +296,7 @@ function OrdenUnInspector({
   separarArriba = false,
   margenAntesDeSiguiente = false,
 }: OrdenUnInspectorProps) {
-  const direccionesTexto = inspector.direccionesRuta.length > 0 ? inspector.direccionesRuta.join("\n") : " ";
+  const distritosTexto = inspector.distritosTexto?.trim() || "—";
 
   return (
     <View
@@ -370,7 +370,7 @@ function OrdenUnInspector({
                 <CheckCuadrado marcado />
               </View>
               <View style={styles.motivoValueCol}>
-                <Text style={styles.textoDirecciones}>{direccionesTexto}</Text>
+                <Text style={styles.textoDirecciones}>{distritosTexto}</Text>
               </View>
             </View>
             <View style={styles.motivoGridRowLast}>
