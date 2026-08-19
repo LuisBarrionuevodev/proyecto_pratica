@@ -19,6 +19,10 @@ _TIPOS_PLANIFICABLES = {
     "RATIFICACION_CLAUSURA_OFICIO",
     "RATIFICACION_DECOMISO_OFICIO",
 }
+_MSG_POOL_OTRA_RUTA = (
+    "El pendiente ya está asociado a otra ruta activa. "
+    "Sacalo de esa ruta antes de asignarlo a una nueva."
+)
 
 
 def _turno_clause(query, turno_id: int | None):
@@ -202,6 +206,7 @@ def validar_iniciador_elegible_para_pool(
     *,
     fecha: date,
     turno_id: int | None,
+    ruta_trabajo_id: int | None = None,
 ) -> None:
     """
     Valida reglas de elegibilidad para alta en pool.
@@ -209,6 +214,7 @@ def validar_iniciador_elegible_para_pool(
     Parámetros:
         iniciador: instancia ORM.
         fecha, turno_id: clave operativa del pool.
+        ruta_trabajo_id: ruta destino opcional; bloquea duplicados en otra ruta activa.
 
     Errores:
         RuntimeError: regla de negocio incumplida.
@@ -234,6 +240,12 @@ def validar_iniciador_elegible_para_pool(
         iniciador_ruta_id=int(iniciador.id),
     )
     if dup is not None:
+        dup_ruta_id = dup.ruta_trabajo_id
+        if ruta_trabajo_id is not None:
+            if dup_ruta_id is None or int(dup_ruta_id) != int(ruta_trabajo_id):
+                raise RuntimeError(_MSG_POOL_OTRA_RUTA)
+        elif dup_ruta_id is not None:
+            raise RuntimeError(_MSG_POOL_OTRA_RUTA)
         raise RuntimeError("El iniciador ya está en el pool del día")
 
 

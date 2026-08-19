@@ -12,6 +12,7 @@ import { buildPoolControlMaps } from "../utils/poolDiaDisplay";
 
 export type UseRutaPoolDiaBackendParams = {
   fecha: string | null | undefined;
+  rutaTrabajoId?: number | null;
   onError?: (message: string) => void;
 };
 
@@ -45,12 +46,15 @@ export function resolvePoolFechaConsulta(
  */
 export function useRutaPoolDiaBackend({
   fecha,
+  rutaTrabajoId,
   onError,
 }: UseRutaPoolDiaBackendParams): RutaPoolDiaBackendControl {
   const [poolItems, setPoolItems] = useState<IRutaPoolDiaRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fechaOperativa = fecha?.trim() || null;
+  const rutaIdOperativa =
+    rutaTrabajoId != null && Number.isFinite(Number(rutaTrabajoId)) ? Number(rutaTrabajoId) : null;
 
   const refreshPool = useCallback(
     async (fechaOverride?: string | null, opts?: RefreshPoolOptions) => {
@@ -65,6 +69,7 @@ export function useRutaPoolDiaBackend({
           fecha: f,
           estado: "EN_POOL",
           per_page: 100,
+          ...(rutaIdOperativa != null ? { ruta_trabajo_id: rutaIdOperativa } : {}),
         });
         setPoolItems(resp.items ?? []);
       } catch (err) {
@@ -74,7 +79,7 @@ export function useRutaPoolDiaBackend({
         if (!opts?.silent) setLoading(false);
       }
     },
-    [fechaOperativa, onError]
+    [fechaOperativa, rutaIdOperativa, onError]
   );
 
   useEffect(() => {
@@ -98,6 +103,7 @@ export function useRutaPoolDiaBackend({
           origen_tipo: "INICIADOR",
           iniciador_ruta_id: row.id,
           fecha: f,
+          ...(rutaIdOperativa != null ? { ruta_trabajo_id: rutaIdOperativa } : {}),
         });
         await refreshPool();
       } catch (err) {
@@ -105,7 +111,7 @@ export function useRutaPoolDiaBackend({
         throw err;
       }
     },
-    [fechaOperativa, onError, refreshPool]
+    [fechaOperativa, rutaIdOperativa, onError, refreshPool]
   );
 
   const quitarDelPool = useCallback(

@@ -52,23 +52,44 @@ function suggestedGrupoNombre(grupos: IRutaGrupoMin[]): string {
 async function resolverPoolId(
   iniciadorId: number,
   fecha: string,
-  estadoOperativo: string | null | undefined
+  estadoOperativo: string | null | undefined,
+  selectedRutaId: number
 ): Promise<number> {
   const estado = normalizarEstadoOperativoPool(estadoOperativo);
   if (estado === "en_pool") {
-    const resp = await listRutaPoolDia({ fecha, estado: "EN_POOL", per_page: 100 });
+    const resp = await listRutaPoolDia({
+      fecha,
+      estado: "EN_POOL",
+      per_page: 100,
+      ruta_trabajo_id: selectedRutaId,
+    });
     const match = (resp.items ?? []).find(
       (item) => Number(item.iniciador_id ?? item.iniciador_ruta_id) === iniciadorId
     );
-    if (match?.pool_id) return match.pool_id;
+    if (match?.pool_id) {
+      const poolRutaId = match.ruta_trabajo_id != null ? Number(match.ruta_trabajo_id) : null;
+      if (poolRutaId != null && poolRutaId !== selectedRutaId) {
+        throw new Error(
+          "El pendiente ya está asociado a otra ruta activa. Sacalo de esa ruta antes de asignarlo a una nueva."
+        );
+      }
+      return match.pool_id;
+    }
     throw new Error("No se encontró el ítem en el pool del día.");
   }
   const created = await createRutaPoolDia({
     origen_tipo: "INICIADOR",
     iniciador_ruta_id: iniciadorId,
     fecha,
+    ruta_trabajo_id: selectedRutaId,
   });
   return created.item.pool_id;
+}
+
+function logAssignUi(payload: Record<string, unknown>) {
+  if (import.meta.env.DEV) {
+    console.info("[OPER_RUTA_ASSIGN_UI]", payload);
+  }
 }
 
 /**
@@ -96,6 +117,39 @@ export function AgregarARutaOperDialog({
   const [rutaId, setRutaId] = useState("");
   const [grupoId, setGrupoId] = useState("");
   const [modoGrupo, setModoGrupo] = useState(false);
+
+  const resetRutaGrupo = useCallback(() => {
+    setRutaId("");
+    setGrupoId("");
+    setGrupos([]);
+    setModoGrupo(false);
+  }, []);
+
+  const handleFechaChange = useCallback(
+    (nextFecha: string) => {
+      setFecha(nextFecha);
+      resetRutaGrupo();
+    },
+    [resetRutaGrupo]
+  );
+
+  const handleTurnoChange = useCallback(
+    (nextTurno: RutaTurno) => {
+      setTurno(nextTurno);
+      resetRutaGrupo();
+    },
+    [resetRutaGrupo]
+  );
+
+  const handleRutaChange = useCallback(
+    (nextRutaId: string) => {
+      setRutaId(nextRutaId);
+      setGrupoId("");
+      setGrupos([]);
+      setModoGrupo(false);
+    },
+    []
+  );
 
   const rutasFiltradas = useMemo(
     () => rutas.filter((r) => r.turno === turno),
@@ -181,15 +235,12 @@ export function AgregarARutaOperDialog({
 
   useEffect(() => {
     if (!open) return;
-    if (rutasFiltradas.length === 1) {
+    if (rutasFiltradas.length === 1 && !rutaId) {
       setRutaId(String(rutasFiltradas[0].id));
     } else if (rutaId && !rutasFiltradas.some((r) => String(r.id) === rutaId)) {
-      setRutaId("");
-      setGrupos([]);
-      setGrupoId("");
-      setModoGrupo(false);
+      resetRutaGrupo();
     }
-  }, [open, rutasFiltradas, rutaId]);
+  }, [open, rutasFiltradas, rutaId, resetRutaGrupo]);
 
   useEffect(() => {
     if (!open || !rutaId || !modoGrupo) {
@@ -261,19 +312,39 @@ export function AgregarARutaOperDialog({
       onError("No se encontró el iniciador de la fila.");
       return;
     }
+    if (!rutaId) {
+      onError("Seleccioná o creá una ruta borrador.");
+      return;
+    }
+    const selectedRutaId = Number(rutaId);
     setSubmitting(true);
     try {
-      const estado = normalizarEstadoOperativoPool(estadoOperativoPool);
+      const ctx = operContext ?? null;
+      const estado = normalizarEstadoOperativoPool(ctx?.estado_operativo_pool ?? estadoOperativoPool);
       if (estado === "en_pool") {
+        const poolRutaId = ctx?.ruta_trabajo_id != null ? Number(ctx.ruta_trabajo_id) : null;
+        if (poolRutaId != null && poolRutaId !== selectedRutaId) {
+          onError(
+            "El pendiente ya está asociado a otra ruta activa. Sacalo de esa ruta antes de asignarlo a una nueva."
+          );
+          return;
+        }
         onSuccess("Ya está en la ruta.");
         handleClose();
         return;
       }
+      logAssignUi({
+        fecha,
+        turno,
+        selectedRutaId,
+        iniciadorId,
+        accion: "solo_pool",
+      });
       await createRutaPoolDia({
         origen_tipo: "INICIADOR",
         iniciador_ruta_id: iniciadorId,
         fecha,
-        ruta_trabajo_id: rutaId ? Number(rutaId) : undefined,
+        ruta_trabajo_id: selectedRutaId,
       });
       onSuccess("Agregado a la ruta.");
       handleClose();
@@ -282,7 +353,17 @@ export function AgregarARutaOperDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [iniciadorId, fecha, rutaId, estadoOperativoPool, onSuccess, handleClose, onError]);
+  }, [
+    iniciadorId,
+    fecha,
+    turno,
+    rutaId,
+    operContext,
+    estadoOperativoPool,
+    onSuccess,
+    handleClose,
+    onError,
+  ]);
 
   const handleAgregarAGrupo = useCallback(async () => {
     if (iniciadorId == null) {
@@ -299,10 +380,25 @@ export function AgregarARutaOperDialog({
     }
     setSubmitting(true);
     let poolCreated = false;
+    const selectedRutaId = Number(rutaId);
     try {
-      const poolId = await resolverPoolId(iniciadorId, fecha, estadoOperativoPool);
+      const poolId = await resolverPoolId(
+        iniciadorId,
+        fecha,
+        operContext?.estado_operativo_pool ?? estadoOperativoPool,
+        selectedRutaId
+      );
       poolCreated = normalizarEstadoOperativoPool(estadoOperativoPool) === "pendiente";
-      await agregarDesdePoolRuta(Number(rutaId), {
+      logAssignUi({
+        fecha,
+        turno,
+        selectedRutaId,
+        selectedGrupoId: Number(grupoId),
+        poolId,
+        iniciadorId,
+        accion: "agregar_grupo",
+      });
+      await agregarDesdePoolRuta(selectedRutaId, {
         pool_ids: [poolId],
         grupo_id: Number(grupoId),
       });
@@ -317,7 +413,7 @@ export function AgregarARutaOperDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [iniciadorId, fecha, estadoOperativoPool, rutaId, grupoId, onSuccess, handleClose, onError]);
+  }, [iniciadorId, fecha, turno, operContext, estadoOperativoPool, rutaId, grupoId, onSuccess, handleClose, onError]);
 
   return (
     <CrudGlassDialog
@@ -351,7 +447,7 @@ export function AgregarARutaOperDialog({
               label="Fecha"
               type="date"
               value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={(e) => handleFechaChange(e.target.value)}
               InputLabelProps={{ shrink: true }}
               fullWidth
               data-testid="oper-ruta-fecha"
@@ -362,7 +458,7 @@ export function AgregarARutaOperDialog({
               appearance="glass"
               label="Turno"
               value={turno}
-              onChange={(e) => setTurno(e.target.value as RutaTurno)}
+              onChange={(e) => handleTurnoChange(e.target.value as RutaTurno)}
               options={[
                 { value: "MANIANA", label: "Mañana" },
                 { value: "TARDE", label: "Tarde" },
@@ -396,7 +492,7 @@ export function AgregarARutaOperDialog({
                 appearance="glass"
                 label="Ruta"
                 value={rutaId}
-                onChange={(e) => setRutaId(String(e.target.value))}
+                onChange={(e) => handleRutaChange(String(e.target.value))}
                 options={rutaOptions}
                 fullWidth
               />

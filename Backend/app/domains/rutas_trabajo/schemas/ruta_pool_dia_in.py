@@ -24,6 +24,7 @@ class RutaPoolDiaListQuery(BaseModel):
     Parámetros:
         fecha: día operativo obligatorio.
         turno_id, distrito_id, rubro_id, estado, q: filtros opcionales.
+        ruta_trabajo_id: acota el pool a una ruta BORRADOR concreta.
         page, per_page: paginación 1-based.
     """
 
@@ -31,6 +32,7 @@ class RutaPoolDiaListQuery(BaseModel):
     turno_id: Optional[int] = None
     distrito_id: Optional[int] = None
     rubro_id: Optional[int] = None
+    ruta_trabajo_id: Optional[int] = Field(default=None, ge=1)
     estado: Optional[str] = None
     q: Optional[str] = None
     page: int = Field(default=1, ge=1)

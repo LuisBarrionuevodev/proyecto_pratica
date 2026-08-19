@@ -138,6 +138,7 @@ def list_ruta_pool_dia(
     turno_id: int | None = None,
     distrito_id: int | None = None,
     rubro_id: int | None = None,
+    ruta_trabajo_id: int | None = None,
     estado: str | None = None,
     q: str | None = None,
     page: int = 1,
@@ -148,7 +149,7 @@ def list_ruta_pool_dia(
 
     Parámetros:
         fecha: día operativo obligatorio.
-        turno_id, distrito_id, rubro_id, estado, q: filtros opcionales.
+        turno_id, distrito_id, rubro_id, ruta_trabajo_id, estado, q: filtros opcionales.
         page, per_page: paginación.
 
     Retorno:
@@ -179,6 +180,8 @@ def list_ruta_pool_dia(
         qry = qry.filter(RutaPoolDia.distrito_id == distrito_id)
     if rubro_id is not None:
         qry = qry.filter(RutaPoolDia.rubro_id == rubro_id)
+    if ruta_trabajo_id is not None:
+        qry = qry.filter(RutaPoolDia.ruta_trabajo_id == ruta_trabajo_id)
     if estado:
         qry = qry.filter(RutaPoolDia.estado == estado)
 
@@ -236,7 +239,12 @@ def create_ruta_pool_dia_entry(
     if not iniciador:
         raise LookupError("Iniciador no encontrado")
 
-    validar_iniciador_elegible_para_pool(iniciador, fecha=fecha, turno_id=turno_id)
+    validar_iniciador_elegible_para_pool(
+        iniciador,
+        fecha=fecha,
+        turno_id=turno_id,
+        ruta_trabajo_id=ruta_trabajo_id,
+    )
     origen = infer_origen_tipo_para_iniciador(iniciador, origen_tipo)
     domicilio_id, distrito_id, rubro_id = _resolve_snapshot_from_iniciador(iniciador)
 

@@ -70,6 +70,7 @@ export interface IListRutaPoolDiaParams {
   turno_id?: number;
   distrito_id?: number;
   rubro_id?: number;
+  ruta_trabajo_id?: number;
   estado?: string;
   q?: string;
   page?: number;

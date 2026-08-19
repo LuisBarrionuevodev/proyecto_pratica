@@ -18,7 +18,7 @@ def list_pool():
     """
     Lista paginada del pool del día.
 
-    Query params: fecha (obligatorio), turno_id, distrito_id, rubro_id, estado, q, page, per_page.
+    Query params: fecha (obligatorio), turno_id, distrito_id, rubro_id, ruta_trabajo_id, estado, q, page, per_page.
     """
     try:
         payload = RutaPoolDiaListQuery.model_validate(request.args.to_dict(flat=True))
@@ -27,6 +27,7 @@ def list_pool():
             turno_id=payload.turno_id,
             distrito_id=payload.distrito_id,
             rubro_id=payload.rubro_id,
+            ruta_trabajo_id=payload.ruta_trabajo_id,
             estado=payload.estado,
             q=payload.q,
             page=payload.page,

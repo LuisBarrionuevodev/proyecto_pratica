@@ -106,6 +106,7 @@ const RutasTrabajo = () => {
     quitarDelPool,
   } = useRutaPoolDiaBackend({
     fecha: ruta?.fecha,
+    rutaTrabajoId: rutaId,
     onError: handlePoolBackendError,
   });
 

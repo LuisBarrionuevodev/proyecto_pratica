@@ -15,9 +15,10 @@ describe("RutasTrabajo pool backend OPER-RUTA.6", () => {
     expect(index).toContain("agregarDesdePoolRuta");
   });
 
-  it("hook consulta GET /ruta-pool-dia con estado EN_POOL", () => {
+  it("hook consulta GET /ruta-pool-dia con estado EN_POOL y ruta_trabajo_id", () => {
     expect(hook).toContain("listRutaPoolDia");
     expect(hook).toContain('estado: "EN_POOL"');
+    expect(hook).toContain("ruta_trabajo_id");
     expect(hook).toContain("deleteRutaPoolDia");
   });
 
