@@ -129,7 +129,7 @@ export function useRutaPoolDiaBackend({
     async (poolId: number) => {
       try {
         await deleteRutaPoolDia(poolId);
-        await refreshPool();
+        await refreshPool(undefined, { silent: true });
       } catch (err) {
         onError?.(parseApiError(err, "No se pudo quitar del pool.").message);
         throw err;

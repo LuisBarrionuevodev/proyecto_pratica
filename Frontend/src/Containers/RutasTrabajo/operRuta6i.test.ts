@@ -9,10 +9,11 @@ function read(rel: string): string {
 }
 
 describe("OPER-RUTA.6I — mapa candidatos + pool quitar", () => {
-  it("M4 recarga candidatos cuando cambia el pool de la ruta", () => {
+  it("M4 oculta candidatos en pool localmente sin refetch (OPER-RUTA.7F.1)", () => {
     const src = read("Containers/RutasTrabajo/planificacion/hooks/usePlanificacionController.ts");
-    expect(src).toContain("poolIniciadorKey");
-    expect(src).toMatch(/\[distritoActivoId,\s*rutaId,\s*poolIniciadorKey\]/);
+    expect(src).toContain("sinPool(pendientesMapaRaw, poolSet)");
+    expect(src).toContain("loadPendientesMapa");
+    expect(src).not.toMatch(/poolIniciadorKey/);
   });
 
   it("planificación M4 usa solo agregables vía backend (pendientes-contexto)", () => {

@@ -20,8 +20,7 @@ export function sinPool<T extends { id: number }>(rows: T[], pool: Set<number>):
 
 /**
  * Filas M3 visibles en bandeja Urgentes (global).
- * Backend excluye no agregables (OPER-RUTA.6J); aquí se ocultan además ítems del pool local
- * hasta que termine el refresh tras agregar/quitar.
+ * Backend excluye no agregables (OPER-RUTA.6J); aquí se ocultan ítems del pool local al instante (OPER-RUTA.7F.1).
  */
 export function filtrarUrgentesVisibles<T extends { id: number }>(rows: T[], pool: Set<number>): T[] {
   return sinPool(rows, pool);

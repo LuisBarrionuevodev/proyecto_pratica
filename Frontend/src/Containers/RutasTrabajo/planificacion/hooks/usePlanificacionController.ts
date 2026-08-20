@@ -118,7 +118,6 @@ export function usePlanificacionController({
   });
 
   const poolSet = useMemo(() => toPoolSet(poolIniciadorIds), [poolIniciadorIds]);
-  const poolIniciadorKey = useMemo(() => poolIniciadorIds.slice().sort((a, b) => a - b).join(","), [poolIniciadorIds]);
 
   const rubroNombrePorId = useCallback(
     (id: number) => rubrosCatalogo.find((r) => r.id === id)?.nombre ?? null,
@@ -314,9 +313,10 @@ export function usePlanificacionController({
     void loadCargaDistritos();
   }, [loadCargaDistritos]);
 
+  /** Montaje y cambio de ruta: M3 global (no refetch al mutar pool — ocultar con filtrarUrgentesVisibles). */
   useEffect(() => {
     void loadUrgentes(1, 25);
-  }, [loadUrgentes, poolIniciadorKey]);
+  }, [rutaId, loadUrgentes]);
 
   /** M1 solo sin distrito activo; con distrito los KPIs salen de `metricasVisibles` (M4 mapa). */
   useEffect(() => {
@@ -330,32 +330,22 @@ export function usePlanificacionController({
   const pendientesMapaReqSeq = useRef(0);
   const lastDistritoLoadedRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    setListaContextoPage(1);
-    setFiltros({ ...FILTROS_VACIOS });
-  }, [distritoActivoId]);
-
-  useEffect(() => {
-    setListaContextoPage(1);
-  }, [cardActiva, filtros.q, filtros.rubro_id]);
-
-  /**
-   * M4 mapa: solo distrito (filtros panel en cliente). Lista y KPIs derivan del mismo dataset.
-   */
-  useEffect(() => {
-    if (distritoActivoId == null) {
-      lastDistritoLoadedRef.current = null;
-      setPendientesMapaRaw([]);
-      setLoading((s) => ({ ...s, pendientesContexto: false }));
-      return;
-    }
-    if (lastDistritoLoadedRef.current !== distritoActivoId) {
-      lastDistritoLoadedRef.current = distritoActivoId;
-      setPendientesMapaRaw([]);
-    }
-    const seq = ++pendientesMapaReqSeq.current;
-    const run = async () => {
-      setLoading((s) => ({ ...s, pendientesContexto: true }));
+  const loadPendientesMapa = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (distritoActivoId == null) {
+        lastDistritoLoadedRef.current = null;
+        setPendientesMapaRaw([]);
+        setLoading((s) => ({ ...s, pendientesContexto: false }));
+        return;
+      }
+      if (lastDistritoLoadedRef.current !== distritoActivoId) {
+        lastDistritoLoadedRef.current = distritoActivoId;
+        setPendientesMapaRaw([]);
+      }
+      const seq = ++pendientesMapaReqSeq.current;
+      if (!opts?.silent) {
+        setLoading((s) => ({ ...s, pendientesContexto: true }));
+      }
       try {
         const base = buildM4QueryBase(distritoActivoId);
         const merged = new Map<number, IRutaIniciadorPendienteRow>();
@@ -396,9 +386,25 @@ export function usePlanificacionController({
           setLoading((s) => ({ ...s, pendientesContexto: false }));
         }
       }
-    };
-    void run();
-  }, [distritoActivoId, rutaId, poolIniciadorKey]);
+    },
+    [distritoActivoId, rutaId]
+  );
+
+  useEffect(() => {
+    setListaContextoPage(1);
+    setFiltros({ ...FILTROS_VACIOS });
+  }, [distritoActivoId]);
+
+  useEffect(() => {
+    setListaContextoPage(1);
+  }, [cardActiva, filtros.q, filtros.rubro_id]);
+
+  /**
+   * M4 mapa: solo distrito (filtros panel en cliente). Pool oculta candidatos vía sinPool (OPER-RUTA.7F.1).
+   */
+  useEffect(() => {
+    void loadPendientesMapa();
+  }, [loadPendientesMapa]);
 
   const seleccionarDistrito = useCallback((id: number | null) => {
     setDistritoActivoId(id);
@@ -448,6 +454,7 @@ export function usePlanificacionController({
     pendientesParaMapa,
     pendientesMeta,
     loadPendientesContextoPage,
+    refreshPendientesMapa: loadPendientesMapa,
     loading,
     distritoCatalogo,
     loadingDistritoCatalogo,

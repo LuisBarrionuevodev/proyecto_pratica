@@ -82,6 +82,25 @@ def filtrar_iniciadores_agregables_a_ruta(
     ruta_trabajo_id: int,
 ) -> list[IniciadorRuta]:
     """Filtra iniciadores no agregables al mapa de la ruta indicada."""
+    return filtrar_iniciadores_agregables_a_ruta_batch(iniciadores, int(ruta_trabajo_id))
+
+
+def filtrar_iniciadores_agregables_a_ruta_batch(
+    iniciadores: list[IniciadorRuta],
+    ruta_trabajo_id: int,
+) -> list[IniciadorRuta]:
+    """
+    Filtra iniciadores no agregables en lote (misma semántica que llamadas unitarias).
+
+    Parámetros:
+        iniciadores: lista ORM ya cargada.
+        ruta_trabajo_id: ruta de planificación (6G).
+
+    Retorno:
+        Sublista agregable.
+    """
+    if not iniciadores:
+        return []
     return [
         ini
         for ini in iniciadores

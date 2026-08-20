@@ -6,19 +6,23 @@ M4 reutiliza get_iniciadores_pendientes_para_ruta con distrito obligatorio.
 
 from __future__ import annotations
 
+import time
+
 from sqlalchemy import func
 
+from app.database import db
 from app.models import Domicilio, Distrito, IniciadorRuta
 from app.domains.rutas_trabajo.services.iniciadores_pendientes_service import (
     assert_ruta_borrador_para_planificacion,
     get_iniciadores_pendientes_para_ruta,
     planificable_iniciadores_base_query,
-)
-from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
-    filtrar_iniciadores_agregables_a_ruta,
+    _enriquecer_domicilio_efectivo_pagina,
 )
 from app.domains.rutas_trabajo.utils.urgentes_filtros import apply_urgentes_filtros
-from app.domains.rutas_trabajo.utils.planificacion_debug import medir_oper_ruta_7a
+from app.domains.rutas_trabajo.utils.planificacion_debug import medir_oper_ruta_7d
+from app.domains.rutas_trabajo.utils.planificacion_m4_sql import apply_sql_exclusion_pool_y_ruta_activa
+
+_MAX_PER_PAGE_URGENTES = 100
 
 # Desglose "Oficios urgentes" en cards: tipos derivados de oficio (no incluye notificación).
 TIPOS_OFICIO_METRICA: tuple[str, ...] = (
@@ -129,9 +133,12 @@ def get_planificacion_urgentes(
     """
     M3: bandeja urgentes — elegible_urgente (tipo != RELEVAMIENTO y prioridad >= 3).
 
-    Si ``distrito_id`` se informa, el universo coincide con M1 (métrica ``alta``) para ese distrito.
+    Si ``distrito_id`` se informa, el universo coincide con M1 (métrica ``alta``) para ese distrito
+    (domicilio FK del iniciador, no domicilio efectivo M4).
 
     Solo incluye iniciadores agregables (OPER-RUTA.6I/6J): sin pool/ruta activa en ninguna ruta.
+
+    OPER-RUTA.7D: filtros SQL + paginación real + exclusiones NOT EXISTS (reutiliza 7B).
 
     Orden: prioridad DESC, fecha_origen ASC, id ASC.
 
@@ -139,13 +146,26 @@ def get_planificacion_urgentes(
         (lista IniciadorRuta, total)
     """
     assert_ruta_borrador_para_planificacion(ruta_id)
-    with medir_oper_ruta_7a("URGENTES", ruta=ruta_id, page=page, per_page=per_page) as dbg:
+    per_page = min(int(per_page), _MAX_PER_PAGE_URGENTES)
+    order = (
+        IniciadorRuta.prioridad.desc(),
+        IniciadorRuta.fecha_origen.asc(),
+        IniciadorRuta.id.asc(),
+    )
+
+    with medir_oper_ruta_7d(
+        "URGENTES",
+        ruta=ruta_id,
+        page=page,
+        per_page=per_page,
+        distrito=distrito_id if distrito_id is not None else "",
+    ) as dbg:
         query = planificable_iniciadores_base_query().filter(
             IniciadorRuta.tipo_iniciador != "RELEVAMIENTO",
             IniciadorRuta.prioridad >= 3,
         )
         if distrito_id is not None:
-            query = query.filter(Domicilio.distrito_id == distrito_id)
+            query = query.filter(Domicilio.distrito_id == int(distrito_id))
         query = apply_urgentes_filtros(
             query,
             tipo_urgente=tipo_urgente,
@@ -156,19 +176,29 @@ def get_planificacion_urgentes(
             q_domicilio=q_domicilio,
             rubro_id=rubro_id,
         )
-        candidatos = query.order_by(
-            IniciadorRuta.prioridad.desc(),
-            IniciadorRuta.fecha_origen.asc(),
-            IniciadorRuta.id.asc(),
-        ).all()
-        dbg["rows_base"] = len(candidatos)
-        pre_ag = len(candidatos)
-        filtrados = filtrar_iniciadores_agregables_a_ruta(candidatos, int(ruta_id))
-        dbg["rows_final"] = len(filtrados)
-        dbg["descartados_agregables"] = pre_ag - len(filtrados)
-        total = len(filtrados)
-        start = (page - 1) * per_page
-        items = filtrados[start : start + per_page]
+        query = apply_sql_exclusion_pool_y_ruta_activa(query)
+
+        t_count = time.perf_counter()
+        total = query.count()
+        dbg["count_ms"] = int((time.perf_counter() - t_count) * 1000)
+        dbg["total"] = total
+        dbg["rows_page"] = 0
+
+        t_sql = time.perf_counter()
+        items = (
+            query.order_by(*order)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        dbg["sql_ms"] = int((time.perf_counter() - t_sql) * 1000)
+        dbg["rows_page"] = len(items)
+
+        t_enrich = time.perf_counter()
+        _enriquecer_domicilio_efectivo_pagina(items)
+        dbg["enrich_ms"] = int((time.perf_counter() - t_enrich) * 1000)
+
+        db.session.commit()
         return items, total
 
 

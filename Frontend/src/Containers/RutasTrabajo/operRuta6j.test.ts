@@ -11,10 +11,11 @@ function read(rel: string): string {
 }
 
 describe("OPER-RUTA.6J — urgentes globales agregables", () => {
-  it("M3 recarga urgentes cuando cambia el pool de la ruta", () => {
+  it("M3 oculta urgentes en pool localmente sin refetch al mutar pool (7F.1)", () => {
     const src = read("Containers/RutasTrabajo/planificacion/hooks/usePlanificacionController.ts");
-    expect(src).toContain("poolIniciadorKey");
-    expect(src).toMatch(/loadUrgentes\(1,\s*25\)[\s\S]*\[loadUrgentes,\s*poolIniciadorKey\]/);
+    expect(src).toContain("filtrarUrgentesVisibles(urgentesRaw, poolSet)");
+    expect(src).toMatch(/\[rutaId,\s*loadUrgentes\]/);
+    expect(src).not.toMatch(/poolIniciadorKey/);
   });
 
   it("M3 endpoint urgentes usa ruta borrador (planificacionApi)", () => {
