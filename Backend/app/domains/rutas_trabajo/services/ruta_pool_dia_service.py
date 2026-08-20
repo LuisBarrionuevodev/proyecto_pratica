@@ -15,10 +15,14 @@ from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     cargar_domicilio_efectivo_orm,
 )
 from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
+    _ESTADOS_POOL_ACTIVOS,
+    _MSG_POOL_OTRA_RUTA,
     calcular_puede_agregar_a_ruta,
     infer_origen_tipo_para_iniciador,
+    pool_row_bloquea_planificacion,
     validar_iniciador_elegible_para_pool,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
 from app.domains.rutas_trabajo.utils.rubro_operativo import (
     rubro_id_operativo_para_iniciador,
     rubro_nombre_operativo_para_iniciador,
@@ -214,13 +218,14 @@ def create_ruta_pool_dia_entry(
     ruta_trabajo_id: int | None = None,
 ) -> RutaPoolDia:
     """
-    Crea entrada EN_POOL para un iniciador elegible.
+    Crea o reutiliza entrada EN_POOL para un iniciador elegible (idempotente por ruta).
 
     Parámetros:
         fecha, turno_id: clave del día.
         usuario_id: auditoría.
         iniciador_ruta_id: iniciador planificable.
         origen_tipo, actuacion_id, observacion: metadata opcional.
+        ruta_trabajo_id: ruta destino (OPER-RUTA.6H).
 
     Retorno:
         ``RutaPoolDia`` persistido.
@@ -228,43 +233,217 @@ def create_ruta_pool_dia_entry(
     Errores:
         LookupError, RuntimeError.
     """
+    if ruta_trabajo_id is None:
+        iniciador = (
+            IniciadorRuta.query.options(
+                joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
+                joinedload(IniciadorRuta.relevamiento),
+            )
+            .filter(IniciadorRuta.id == iniciador_ruta_id)
+            .first()
+        )
+        if not iniciador:
+            raise LookupError("Iniciador no encontrado")
+
+        validar_iniciador_elegible_para_pool(
+            iniciador,
+            fecha=fecha,
+            turno_id=turno_id,
+            ruta_trabajo_id=ruta_trabajo_id,
+        )
+        origen = infer_origen_tipo_para_iniciador(iniciador, origen_tipo)
+        domicilio_id, distrito_id, rubro_id = _resolve_snapshot_from_iniciador(iniciador)
+
+        row = RutaPoolDia(
+            fecha=fecha,
+            turno_id=turno_id,
+            usuario_id=usuario_id,
+            origen_tipo=origen,
+            iniciador_ruta_id=int(iniciador.id),
+            actuacion_id=actuacion_id or iniciador.actuacion_id,
+            domicilio_id=domicilio_id,
+            distrito_id=distrito_id,
+            rubro_id=rubro_id,
+            ruta_trabajo_id=ruta_trabajo_id,
+            estado="EN_POOL",
+            observacion=(observacion or "").strip() or None,
+        )
+        db.session.add(row)
+        db.session.commit()
+        return row
+
+    return ensure_pool_en_pool_para_ruta(
+        iniciador_ruta_id=int(iniciador_ruta_id),
+        fecha=fecha,
+        ruta_trabajo_id=int(ruta_trabajo_id),
+        turno_id=turno_id,
+        usuario_id=usuario_id,
+        origen_tipo=origen_tipo,
+        actuacion_id=actuacion_id,
+        observacion=observacion,
+        commit=True,
+    )
+
+
+def ensure_pool_en_pool_para_ruta(
+    *,
+    iniciador_ruta_id: int,
+    fecha,
+    ruta_trabajo_id: int,
+    turno_id: int | None = None,
+    usuario_id: int | None = None,
+    origen_tipo: str | None = None,
+    actuacion_id: int | None = None,
+    observacion: str | None = None,
+    commit: bool = True,
+) -> RutaPoolDia:
+    """
+    Garantiza exactamente una fila EN_POOL para iniciador + fecha + ruta (OPER-RUTA.6I).
+
+    Parámetros:
+        iniciador_ruta_id, fecha, ruta_trabajo_id: clave operativa.
+        turno_id, usuario_id, origen_tipo, actuacion_id, observacion: metadata pool.
+        commit: si True hace commit al final.
+
+    Retorno:
+        Fila EN_POOL existente, reactivada o creada.
+
+    Errores:
+        LookupError, RuntimeError (pool activo en otra ruta).
+    """
+    ruta = RutaTrabajo.query.get(int(ruta_trabajo_id))
+    if not ruta:
+        raise LookupError("Ruta de trabajo no encontrada")
+
     iniciador = (
         IniciadorRuta.query.options(
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
             joinedload(IniciadorRuta.relevamiento),
         )
-        .filter(IniciadorRuta.id == iniciador_ruta_id)
+        .filter(IniciadorRuta.id == int(iniciador_ruta_id))
         .first()
     )
     if not iniciador:
         raise LookupError("Iniciador no encontrado")
 
+    now = datetime.utcnow()
+    pools_activos = (
+        RutaPoolDia.query.filter(
+            RutaPoolDia.iniciador_ruta_id == int(iniciador_ruta_id),
+            RutaPoolDia.deleted_at.is_(None),
+            RutaPoolDia.estado.in_(_ESTADOS_POOL_ACTIVOS),
+        )
+        .all()
+    )
+    for pool in pools_activos:
+        if not pool_row_bloquea_planificacion(pool):
+            continue
+        dup_ruta_id = pool.ruta_trabajo_id
+        if dup_ruta_id is not None and int(dup_ruta_id) == int(ruta_trabajo_id):
+            if pool.estado == "EN_POOL":
+                pool.fecha = fecha
+                pool.updated_at = now
+                if commit:
+                    db.session.commit()
+                return pool
+            continue
+        if dup_ruta_id is None or int(dup_ruta_id) != int(ruta_trabajo_id):
+            raise RuntimeError(_MSG_POOL_OTRA_RUTA)
+
+    orphan = (
+        RutaPoolDia.query.filter(
+            RutaPoolDia.iniciador_ruta_id == int(iniciador_ruta_id),
+            RutaPoolDia.ruta_trabajo_id.is_(None),
+            RutaPoolDia.deleted_at.is_(None),
+            RutaPoolDia.estado == "EN_POOL",
+        )
+        .order_by(RutaPoolDia.id.desc())
+        .first()
+    )
+    if orphan is not None:
+        orphan.ruta_trabajo_id = int(ruta_trabajo_id)
+        orphan.fecha = fecha
+        orphan.updated_at = now
+        if commit:
+            db.session.commit()
+        return orphan
+
     validar_iniciador_elegible_para_pool(
         iniciador,
         fecha=fecha,
         turno_id=turno_id,
-        ruta_trabajo_id=ruta_trabajo_id,
+        ruta_trabajo_id=int(ruta_trabajo_id),
     )
     origen = infer_origen_tipo_para_iniciador(iniciador, origen_tipo)
     domicilio_id, distrito_id, rubro_id = _resolve_snapshot_from_iniciador(iniciador)
+    uid = int(usuario_id) if usuario_id is not None else get_current_user_id_or_fallback()
 
     row = RutaPoolDia(
         fecha=fecha,
         turno_id=turno_id,
-        usuario_id=usuario_id,
+        usuario_id=uid,
         origen_tipo=origen,
         iniciador_ruta_id=int(iniciador.id),
         actuacion_id=actuacion_id or iniciador.actuacion_id,
         domicilio_id=domicilio_id,
         distrito_id=distrito_id,
         rubro_id=rubro_id,
-        ruta_trabajo_id=ruta_trabajo_id,
+        ruta_trabajo_id=int(ruta_trabajo_id),
         estado="EN_POOL",
         observacion=(observacion or "").strip() or None,
     )
     db.session.add(row)
-    db.session.commit()
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
     return row
+
+
+def devolver_iniciador_al_pool_ruta(
+    *,
+    iniciador_ruta_id: int,
+    ruta_trabajo_id: int,
+    ruta_item_id: int | None = None,
+    fecha=None,
+    turno_id: int | None = None,
+    usuario_id: int | None = None,
+) -> RutaPoolDia:
+    """
+    Devuelve un iniciador al pool EN_POOL de la misma ruta tras quitar ítem o eliminar grupo.
+
+    Idempotente: reutiliza fila ASIGNADO_A_RUTA vinculada al ítem o ``ensure_pool_en_pool_para_ruta``.
+    """
+    ruta = RutaTrabajo.query.get(int(ruta_trabajo_id))
+    if not ruta:
+        raise LookupError("Ruta de trabajo no encontrada")
+    pool_fecha = fecha or ruta.fecha
+    now = datetime.utcnow()
+
+    if ruta_item_id is not None:
+        row = RutaPoolDia.query.filter(
+            RutaPoolDia.ruta_item_id == int(ruta_item_id),
+            RutaPoolDia.estado == "ASIGNADO_A_RUTA",
+            RutaPoolDia.deleted_at.is_(None),
+        ).first()
+        if row is not None:
+            row.estado = "EN_POOL"
+            row.ruta_item_id = None
+            row.ruta_trabajo_id = int(ruta_trabajo_id)
+            if pool_fecha is not None:
+                row.fecha = pool_fecha
+            row.updated_at = now
+            db.session.add(row)
+            return row
+
+    return ensure_pool_en_pool_para_ruta(
+        iniciador_ruta_id=int(iniciador_ruta_id),
+        fecha=pool_fecha,
+        ruta_trabajo_id=int(ruta_trabajo_id),
+        turno_id=turno_id,
+        usuario_id=usuario_id,
+        commit=False,
+    )
 
 
 def descartar_ruta_pool_dia_entry(*, pool_id: int) -> RutaPoolDia:
@@ -402,8 +581,9 @@ def revert_pool_si_item_eliminado(*, ruta_item_id: int) -> RutaPoolDia | None:
     ruta = row.ruta_trabajo
     now = datetime.utcnow()
     row.estado = "EN_POOL"
-    row.ruta_trabajo_id = None
     row.ruta_item_id = None
+    if row.ruta_trabajo_id is None and ruta is not None:
+        row.ruta_trabajo_id = int(ruta.id)
     if ruta is not None and ruta.fecha is not None:
         row.fecha = ruta.fecha
     row.updated_at = now

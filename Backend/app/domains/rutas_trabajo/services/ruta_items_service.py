@@ -5,7 +5,10 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
 from app.database import db
-from app.domains.rutas_trabajo.services.ruta_pool_dia_service import revert_pool_si_item_eliminado
+from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
+    assert_ruta_item_liberable_desde_grupo,
+)
+from app.domains.rutas_trabajo.services.ruta_pool_dia_service import devolver_iniciador_al_pool_ruta
 from app.models import IniciadorRuta, RutaGrupo, RutaItem, RutaTrabajo
 
 from .auth_service import get_current_user_id_or_fallback
@@ -155,13 +158,14 @@ def move_ruta_item(*, ruta_id: int, item_id: int, target_grupo_id: int) -> RutaI
 
 def soft_delete_ruta_item(*, ruta_id: int, item_id: int) -> RutaItem:
     """
-    Soft delete de item y rollback de iniciador a PENDIENTE.
+    Soft delete de item y devolución del iniciador al pool EN_POOL de la misma ruta.
 
     Libera la orden de trabajo del ítem (orden_trabajo_id = None) para que la OT
     pueda reutilizarse en borrador y no quede reservada por un ítem eliminado.
     """
-    _get_ruta_borrador_or_fail(ruta_id)
+    ruta = _get_ruta_borrador_or_fail(ruta_id)
     item = _get_item_activo_or_fail(ruta_id=ruta_id, item_id=item_id)
+    assert_ruta_item_liberable_desde_grupo(item)
 
     iniciador = IniciadorRuta.query.get(item.iniciador_ruta_id)
     if not iniciador:
@@ -172,21 +176,25 @@ def soft_delete_ruta_item(*, ruta_id: int, item_id: int) -> RutaItem:
     item.orden_trabajo_id = None
     iniciador.estado_iniciador = "PENDIENTE"
     iniciador.updated_at = now
-    revert_pool_si_item_eliminado(ruta_item_id=int(item.id))
+    devolver_iniciador_al_pool_ruta(
+        iniciador_ruta_id=int(iniciador.id),
+        ruta_trabajo_id=int(ruta_id),
+        ruta_item_id=int(item.id),
+        fecha=ruta.fecha,
+    )
     db.session.commit()
     return item
 
 
 def soft_delete_grupo(*, ruta_id: int, grupo_id: int) -> dict:
     """
-    Soft delete de grupo y de sus items activos, devolviendo iniciadores a PENDIENTE.
+    Soft delete de grupo y devolución de ítems seguros al pool EN_POOL de la misma ruta.
 
-    En cada ítem se libera orden_trabajo_id para no dejar OT fantasma en borrador.
+    Si algún ítem tiene OT, actuación o ejecución REALIZADO, bloquea con 409 (sin cambios parciales).
     """
-    _get_ruta_borrador_or_fail(ruta_id)
+    ruta = _get_ruta_borrador_or_fail(ruta_id)
     grupo = _get_grupo_activo_or_fail(ruta_id=ruta_id, grupo_id=grupo_id)
 
-    now = datetime.utcnow()
     active_items = (
         RutaItem.query.filter(
             RutaItem.ruta_grupo_id == grupo_id,
@@ -197,6 +205,10 @@ def soft_delete_grupo(*, ruta_id: int, grupo_id: int) -> dict:
         .all()
     )
 
+    for item in active_items:
+        assert_ruta_item_liberable_desde_grupo(item)
+
+    now = datetime.utcnow()
     iniciador_ids = [item.iniciador_ruta_id for item in active_items]
     iniciadores = (
         IniciadorRuta.query.filter(IniciadorRuta.id.in_(iniciador_ids)).all()
@@ -214,7 +226,12 @@ def soft_delete_grupo(*, ruta_id: int, grupo_id: int) -> dict:
             if iniciador:
                 iniciador.estado_iniciador = "PENDIENTE"
                 iniciador.updated_at = now
-            revert_pool_si_item_eliminado(ruta_item_id=int(item.id))
+            devolver_iniciador_al_pool_ruta(
+                iniciador_ruta_id=int(item.iniciador_ruta_id),
+                ruta_trabajo_id=int(ruta_id),
+                ruta_item_id=int(item.id),
+                fecha=ruta.fecha,
+            )
         db.session.commit()
     except Exception:
         db.session.rollback()

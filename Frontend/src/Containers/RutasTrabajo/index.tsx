@@ -101,6 +101,7 @@ const RutasTrabajo = () => {
     poolRowsById,
     poolIdByIniciadorId,
     loading: poolLoading,
+    agregandoIniciadorIds,
     refreshPool,
     agregarAlPool,
     quitarDelPool,
@@ -172,6 +173,7 @@ const RutasTrabajo = () => {
       poolBackendItems,
       poolIdByIniciadorId,
       poolLoading,
+      agregandoIniciadorIds,
       agregarAlPool,
       quitarDelPool,
       refreshPool,
@@ -182,6 +184,7 @@ const RutasTrabajo = () => {
       poolBackendItems,
       poolIdByIniciadorId,
       poolLoading,
+      agregandoIniciadorIds,
       agregarAlPool,
       quitarDelPool,
       refreshPool,
@@ -403,12 +406,15 @@ const RutasTrabajo = () => {
         await deleteRutaGrupo(rutaId, grupo.id);
         setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
         setItems((prev) => prev.filter((it) => it.ruta_grupo_id !== grupo.id));
-        await refreshPool(ruta?.fecha, { silent: true });
+        await Promise.all([
+          refreshRutaBorrador({ showLoading: false }),
+          refreshPool(ruta?.fecha, { silent: true }),
+        ]);
       } catch (err: any) {
         setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
       }
     },
-    [rutaId, ruta?.fecha, refreshPool]
+    [rutaId, ruta?.fecha, refreshPool, refreshRutaBorrador]
   );
 
   const handleSincronizarBorradorAsignacion = useCallback(() => {

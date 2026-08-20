@@ -108,7 +108,12 @@ class GridValidateService:
 
         if kind == "relevamientos":
             fecha_efectiva = self._fecha_relevamiento_efectiva_lote(batch_id, row.fecha)
-            row = row.model_copy(update={"fecha": fecha_efectiva})
+            updates: dict[str, Any] = {"fecha": fecha_efectiva}
+            if not row.numero_tipo:
+                detected = detect_numero_o_esquina(row.numero)
+                if detected in ("NUMERO", "ESQUINA", "OTRO"):
+                    updates["numero_tipo"] = detected
+            row = row.model_copy(update=updates)
 
         # 1.5) Reglas UI específicas de actuaciones
         if kind == "actuaciones":

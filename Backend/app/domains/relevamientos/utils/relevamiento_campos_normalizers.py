@@ -82,6 +82,29 @@ def resolver_angulo_esquina_para_persistencia(
     return angulo
 
 
+def inferir_numero_tipo_domicilio(
+    numero: str | None,
+    numero_tipo: str | None = None,
+) -> str | None:
+    """
+    Infiere ``NUMERO`` / ``ESQUINA`` / ``OTRO`` cuando el payload no trae ``numero_tipo``
+    (p. ej. grilla Glide). Misma heurística que validación de lote.
+    """
+    if numero_tipo:
+        nt = str(numero_tipo).strip().upper()
+        if nt in ("NUMERO", "ESQUINA", "OTRO"):
+            return nt
+    if numero:
+        from app.domains.geolocalizacion.normalizacion_calles.services.numero_esquina_detector import (
+            detect_numero_o_esquina,
+        )
+
+        detected = detect_numero_o_esquina(str(numero))
+        if detected in ("NUMERO", "ESQUINA", "OTRO"):
+            return detected
+    return None
+
+
 def campos_establecimiento_desde_payload(
     payload: dict,
     *,

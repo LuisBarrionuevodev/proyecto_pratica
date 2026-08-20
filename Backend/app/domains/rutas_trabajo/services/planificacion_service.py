@@ -14,7 +14,11 @@ from app.domains.rutas_trabajo.services.iniciadores_pendientes_service import (
     get_iniciadores_pendientes_para_ruta,
     planificable_iniciadores_base_query,
 )
+from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
+    filtrar_iniciadores_agregables_a_ruta,
+)
 from app.domains.rutas_trabajo.utils.urgentes_filtros import apply_urgentes_filtros
+from app.domains.rutas_trabajo.utils.planificacion_debug import medir_oper_ruta_7a
 
 # Desglose "Oficios urgentes" en cards: tipos derivados de oficio (no incluye notificación).
 TIPOS_OFICIO_METRICA: tuple[str, ...] = (
@@ -127,40 +131,45 @@ def get_planificacion_urgentes(
 
     Si ``distrito_id`` se informa, el universo coincide con M1 (métrica ``alta``) para ese distrito.
 
+    Solo incluye iniciadores agregables (OPER-RUTA.6I/6J): sin pool/ruta activa en ninguna ruta.
+
     Orden: prioridad DESC, fecha_origen ASC, id ASC.
 
     Retorno:
         (lista IniciadorRuta, total)
     """
     assert_ruta_borrador_para_planificacion(ruta_id)
-    query = planificable_iniciadores_base_query().filter(
-        IniciadorRuta.tipo_iniciador != "RELEVAMIENTO",
-        IniciadorRuta.prioridad >= 3,
-    )
-    if distrito_id is not None:
-        query = query.filter(Domicilio.distrito_id == distrito_id)
-    query = apply_urgentes_filtros(
-        query,
-        tipo_urgente=tipo_urgente,
-        q=q,
-        numero_oficio=numero_oficio,
-        numero_comprobacion=numero_comprobacion,
-        q_identificador=q_identificador,
-        q_domicilio=q_domicilio,
-        rubro_id=rubro_id,
-    )
-    total = query.count()
-    items = (
-        query.order_by(
+    with medir_oper_ruta_7a("URGENTES", ruta=ruta_id, page=page, per_page=per_page) as dbg:
+        query = planificable_iniciadores_base_query().filter(
+            IniciadorRuta.tipo_iniciador != "RELEVAMIENTO",
+            IniciadorRuta.prioridad >= 3,
+        )
+        if distrito_id is not None:
+            query = query.filter(Domicilio.distrito_id == distrito_id)
+        query = apply_urgentes_filtros(
+            query,
+            tipo_urgente=tipo_urgente,
+            q=q,
+            numero_oficio=numero_oficio,
+            numero_comprobacion=numero_comprobacion,
+            q_identificador=q_identificador,
+            q_domicilio=q_domicilio,
+            rubro_id=rubro_id,
+        )
+        candidatos = query.order_by(
             IniciadorRuta.prioridad.desc(),
             IniciadorRuta.fecha_origen.asc(),
             IniciadorRuta.id.asc(),
-        )
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-        .all()
-    )
-    return items, total
+        ).all()
+        dbg["rows_base"] = len(candidatos)
+        pre_ag = len(candidatos)
+        filtrados = filtrar_iniciadores_agregables_a_ruta(candidatos, int(ruta_id))
+        dbg["rows_final"] = len(filtrados)
+        dbg["descartados_agregables"] = pre_ag - len(filtrados)
+        total = len(filtrados)
+        start = (page - 1) * per_page
+        items = filtrados[start : start + per_page]
+        return items, total
 
 
 def get_planificacion_pendientes_contexto(
@@ -193,4 +202,5 @@ def get_planificacion_pendientes_contexto(
         per_page=per_page,
         orden_planificacion=True,
         planificacion_orden=orden,
+        solo_agregables_ruta=True,
     )

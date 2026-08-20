@@ -103,6 +103,11 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         raise ValueError("No se pudo resolver domicilio.")
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
 
+    nombre_fantasia, angulo_esquina = campos_establecimiento_desde_payload(
+        payload,
+        numero_tipo=getattr(dom, "numero_tipo", None),
+    )
+
     assert_sin_relevamiento_activo_duplicado(
         dom,
         mes=mes,

@@ -48,6 +48,7 @@ export type PlanificacionMapaDistritosProps = {
   onAgregarDesdeMapa?: (row: IRutaIniciadorPendienteRow) => void;
   /** Ids en pool (mapa deshabilita “Agregar” si ya está). */
   poolIniciadorIds?: number[];
+  agregandoIniciadorIds?: ReadonlySet<number>;
 };
 
 /**
@@ -75,6 +76,7 @@ export function PlanificacionMapaDistritos({
     /* noop */
   },
   poolIniciadorIds = [],
+  agregandoIniciadorIds,
 }: PlanificacionMapaDistritosProps) {
   const geoData = useMemo(() => {
     const base = distritosGeoRaw as FeatureCollection;
@@ -210,6 +212,7 @@ export function PlanificacionMapaDistritos({
                 flyToRow={mapFlyToRow}
                 popupOpenNonce={mapPopupOpenNonce}
                 poolIniciadorIds={poolIniciadorIds}
+                agregandoIniciadorIds={agregandoIniciadorIds}
                 onMarkerClick={onMapMarkerClick}
                 onPopupClose={onMapPopupClose}
                 onAgregar={onAgregarDesdeMapa}

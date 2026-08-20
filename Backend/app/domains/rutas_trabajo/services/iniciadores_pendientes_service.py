@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Query, joinedload
 
@@ -7,6 +9,10 @@ from app.database import db
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_efectivo_para_iniciador,
 )
+from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
+    filtrar_iniciadores_agregables_a_ruta,
+)
+from app.domains.rutas_trabajo.utils.planificacion_debug import medir_oper_ruta_7a
 from app.models import Domicilio, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem, RutaTrabajo
 
 
@@ -110,6 +116,7 @@ def get_iniciadores_pendientes_para_ruta(
     per_page: int,
     orden_planificacion: bool = False,
     planificacion_orden: str | None = None,
+    solo_agregables_ruta: bool = False,
 ) -> tuple[list[IniciadorRuta], int]:
     """
     Lista iniciadores planificables para una ruta en BORRADOR.
@@ -120,6 +127,7 @@ def get_iniciadores_pendientes_para_ruta(
     - excluye iniciadores ya tomados por RutaItem no eliminado de rutas activas.
     - para slice 1, ruta activa = BORRADOR.
     - filtros opcionales: tipo, prioridad, distrito, calle_catalogo_id (domicilio), q, turno_sugerido.
+    - solo_agregables_ruta: excluye iniciadores en pool/ruta activa (mapa M4).
 
     Returns:
     - tupla (items, total)
@@ -130,67 +138,101 @@ def get_iniciadores_pendientes_para_ruta(
     """
     assert_ruta_borrador_para_planificacion(ruta_id)
 
-    query = planificable_iniciadores_base_query()
+    with medir_oper_ruta_7a(
+        "M4",
+        ruta=ruta_id,
+        distrito=distrito if distrito is not None else "",
+        page=page,
+        per_page=per_page,
+        solo_agregables=int(solo_agregables_ruta),
+    ) as dbg:
+        query = planificable_iniciadores_base_query()
 
-    if tipo:
-        query = query.filter(IniciadorRuta.tipo_iniciador == tipo)
-    if prioridad_categoria == "BAJA":
-        query = query.filter(IniciadorRuta.prioridad == 1)
-    elif prioridad_categoria == "MEDIA":
-        query = query.filter(IniciadorRuta.prioridad == 2)
-    elif prioridad_categoria == "ALTA":
-        query = query.filter(IniciadorRuta.prioridad >= 3)
-    elif prioridad is not None:
-        query = query.filter(IniciadorRuta.prioridad == prioridad)
-    if calle_catalogo_id is not None:
-        query = query.filter(Domicilio.calle_catalogo_id == calle_catalogo_id)
-    if turno_sugerido:
-        query = query.filter(IniciadorRuta.turno_sugerido == turno_sugerido)
-    if q:
-        term = f"%{q}%"
-        query = query.filter(
-            or_(
-                Domicilio.calle.ilike(term),
-                Domicilio.numero.ilike(term),
-                IniciadorRuta.observaciones.ilike(term),
+        if tipo:
+            query = query.filter(IniciadorRuta.tipo_iniciador == tipo)
+        if prioridad_categoria == "BAJA":
+            query = query.filter(IniciadorRuta.prioridad == 1)
+        elif prioridad_categoria == "MEDIA":
+            query = query.filter(IniciadorRuta.prioridad == 2)
+        elif prioridad_categoria == "ALTA":
+            query = query.filter(IniciadorRuta.prioridad >= 3)
+        elif prioridad is not None:
+            query = query.filter(IniciadorRuta.prioridad == prioridad)
+        if calle_catalogo_id is not None:
+            query = query.filter(Domicilio.calle_catalogo_id == calle_catalogo_id)
+        if turno_sugerido:
+            query = query.filter(IniciadorRuta.turno_sugerido == turno_sugerido)
+        if q:
+            term = f"%{q}%"
+            query = query.filter(
+                or_(
+                    Domicilio.calle.ilike(term),
+                    Domicilio.numero.ilike(term),
+                    IniciadorRuta.observaciones.ilike(term),
+                )
             )
-        )
 
-    if orden_planificacion:
-        order = _orden_planificacion_sql(planificacion_orden)
-    else:
-        order = (
-            IniciadorRuta.fecha_origen.asc(),
-            IniciadorRuta.prioridad.asc(),
-            IniciadorRuta.id.asc(),
-        )
-
-    if distrito is not None:
-        candidatos = query.order_by(*order).all()
-        filtrados: list[IniciadorRuta] = []
-        for ini in candidatos:
-            efectivo = resolve_domicilio_efectivo_para_iniciador(
-                ini,
-                apply_backfill=True,
-                try_sync=True,
+        if orden_planificacion:
+            order = _orden_planificacion_sql(planificacion_orden)
+        else:
+            order = (
+                IniciadorRuta.fecha_origen.asc(),
+                IniciadorRuta.prioridad.asc(),
+                IniciadorRuta.id.asc(),
             )
-            dom_ef = db.session.get(Domicilio, efectivo.domicilio_id) if efectivo.domicilio_id else None
-            if dom_ef and dom_ef.distrito_id == distrito:
-                filtrados.append(ini)
-        total = len(filtrados)
-        start = (page - 1) * per_page
-        items = filtrados[start : start + per_page]
+
+        if distrito is not None:
+            t_sql = time.perf_counter()
+            candidatos = query.order_by(*order).all()
+            dbg["rows_base"] = len(candidatos)
+            dbg["sql_fetch_ms"] = int((time.perf_counter() - t_sql) * 1000)
+            filtrados: list[IniciadorRuta] = []
+            for ini in candidatos:
+                efectivo = resolve_domicilio_efectivo_para_iniciador(
+                    ini,
+                    apply_backfill=True,
+                    try_sync=True,
+                )
+                dom_ef = db.session.get(Domicilio, efectivo.domicilio_id) if efectivo.domicilio_id else None
+                if dom_ef and dom_ef.distrito_id == distrito:
+                    filtrados.append(ini)
+            dbg["rows_distrito"] = len(filtrados)
+            pre_ag = len(filtrados)
+            if solo_agregables_ruta:
+                filtrados = filtrar_iniciadores_agregables_a_ruta(filtrados, ruta_id)
+            dbg["rows_final"] = len(filtrados)
+            dbg["descartados_agregables"] = pre_ag - len(filtrados)
+            total = len(filtrados)
+            start = (page - 1) * per_page
+            items = filtrados[start : start + per_page]
+            db.session.commit()
+            return items, total
+
+        if solo_agregables_ruta:
+            t_sql = time.perf_counter()
+            candidatos = query.order_by(*order).all()
+            dbg["rows_base"] = len(candidatos)
+            dbg["sql_fetch_ms"] = int((time.perf_counter() - t_sql) * 1000)
+            pre_ag = len(candidatos)
+            filtrados = filtrar_iniciadores_agregables_a_ruta(candidatos, ruta_id)
+            dbg["rows_final"] = len(filtrados)
+            dbg["descartados_agregables"] = pre_ag - len(filtrados)
+            total = len(filtrados)
+            start = (page - 1) * per_page
+            items = filtrados[start : start + per_page]
+            for ini in items:
+                resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=True)
+            db.session.commit()
+            return items, total
+
+        total = query.count()
+        items = (
+            query.order_by(*order)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        for ini in items:
+            resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=True)
         db.session.commit()
         return items, total
-
-    total = query.count()
-    items = (
-        query.order_by(*order)
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-        .all()
-    )
-    for ini in items:
-        resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=True)
-    db.session.commit()
-    return items, total

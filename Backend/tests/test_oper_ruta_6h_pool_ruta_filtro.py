@@ -206,14 +206,14 @@ def test_liberar_por_pool_id_solo_afecta_ese_pool(app_ctx) -> None:
     assert pool_b.estado == "EN_POOL"
 
 
-def test_crear_pool_misma_ruta_duplicado_rechaza(app_ctx) -> None:
+def test_crear_pool_misma_ruta_duplicado_es_idempotente(app_ctx) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     fecha = date(2098, 4, 5)
     ruta_tarde = _mk_ruta_borrador(u, fecha=fecha, turno="TARDE")
     db.session.commit()
 
-    create_ruta_pool_dia_entry(
+    p1 = create_ruta_pool_dia_entry(
         fecha=fecha,
         turno_id=None,
         usuario_id=u.id,
@@ -221,14 +221,14 @@ def test_crear_pool_misma_ruta_duplicado_rechaza(app_ctx) -> None:
         ruta_trabajo_id=int(ruta_tarde.id),
     )
 
-    with pytest.raises(RuntimeError, match="El iniciador ya está en el pool del día"):
-        create_ruta_pool_dia_entry(
-            fecha=fecha,
-            turno_id=None,
-            usuario_id=u.id,
-            iniciador_ruta_id=int(ini.id),
-            ruta_trabajo_id=int(ruta_tarde.id),
-        )
+    p2 = create_ruta_pool_dia_entry(
+        fecha=fecha,
+        turno_id=None,
+        usuario_id=u.id,
+        iniciador_ruta_id=int(ini.id),
+        ruta_trabajo_id=int(ruta_tarde.id),
+    )
+    assert int(p1.id) == int(p2.id)
 
 
 def test_crear_pool_otra_ruta_activa_rechaza_409(app_ctx) -> None:

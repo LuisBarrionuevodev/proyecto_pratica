@@ -31,6 +31,79 @@ def _turno_clause(query, turno_id: int | None):
     return query.filter(RutaPoolDia.turno_id == turno_id)
 
 
+_MSG_ITEM_NO_LIBERABLE = (
+    "No se puede quitar porque ya tiene Orden de Trabajo, ejecución o actuación vinculada."
+)
+
+
+def es_iniciador_agregable_a_ruta(iniciador_id: int, ruta_trabajo_id: int) -> bool:
+    """
+    True si el iniciador puede mostrarse como candidato agregable en el mapa de la ruta.
+
+    Usa reglas OPER-RUTA.6F/6G/6H: pool/ruta activa de otra ruta, ítem borrador/publicado
+    o estados no pendientes bloquean.
+    """
+    iniciador = IniciadorRuta.query.filter(
+        IniciadorRuta.id == int(iniciador_id),
+        IniciadorRuta.deleted_at.is_(None),
+        IniciadorRuta.estado_iniciador == "PENDIENTE",
+    ).first()
+    if not iniciador:
+        return False
+
+    if iniciador_en_ruta_no_borrador_activa(int(iniciador_id)) is not None:
+        return False
+
+    if iniciador_en_ruta_borrador_activa(int(iniciador_id)) is not None:
+        return False
+
+    pools = (
+        RutaPoolDia.query.filter(
+            RutaPoolDia.iniciador_ruta_id == int(iniciador_id),
+            RutaPoolDia.deleted_at.is_(None),
+            RutaPoolDia.estado.in_(_ESTADOS_POOL_ACTIVOS),
+        )
+        .all()
+    )
+    for pool in pools:
+        if not pool_row_bloquea_planificacion(pool):
+            continue
+        dup_ruta_id = pool.ruta_trabajo_id
+        if dup_ruta_id is None or int(dup_ruta_id) != int(ruta_trabajo_id):
+            return False
+        # EN_POOL / ASIGNADO activo en esta misma ruta → no candidato (va al panel pool/grupo).
+        return False
+
+    return True
+
+
+def filtrar_iniciadores_agregables_a_ruta(
+    iniciadores: list[IniciadorRuta],
+    ruta_trabajo_id: int,
+) -> list[IniciadorRuta]:
+    """Filtra iniciadores no agregables al mapa de la ruta indicada."""
+    return [
+        ini
+        for ini in iniciadores
+        if es_iniciador_agregable_a_ruta(int(ini.id), int(ruta_trabajo_id))
+    ]
+
+
+def assert_ruta_item_liberable_desde_grupo(item: RutaItem) -> None:
+    """
+    Valida que un ítem de ruta BORRADOR pueda volver al pool (Quitar / Eliminar grupo).
+
+    Errores:
+        RuntimeError: OT, actuación o ejecución REALIZADO.
+    """
+    if item.orden_trabajo_id is not None:
+        raise RuntimeError(_MSG_ITEM_NO_LIBERABLE)
+    if item.actuacion_id is not None:
+        raise RuntimeError(_MSG_ITEM_NO_LIBERABLE)
+    if (item.estado_ejecucion or "").strip().upper() == "REALIZADO":
+        raise RuntimeError(_MSG_ITEM_NO_LIBERABLE)
+
+
 def infer_origen_tipo_para_iniciador(
     iniciador: IniciadorRuta,
     origen_tipo_solicitado: str | None,

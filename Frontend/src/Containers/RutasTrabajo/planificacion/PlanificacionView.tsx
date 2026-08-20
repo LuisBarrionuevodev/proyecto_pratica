@@ -56,7 +56,7 @@ export function PlanificacionView({
   poolControl,
 }: PlanificacionViewProps) {
   const ctrl = usePlanificacionController({ rutaId, onError, poolControl });
-  const { agregarAlPool } = poolControl;
+  const { agregarAlPool, agregandoIniciadorIds } = poolControl;
 
   const distritoNombreActivo = useMemo(() => {
     if (ctrl.distritoActivoId == null) return null;
@@ -216,10 +216,14 @@ export function PlanificacionView({
   }, []);
 
   const handleAgregarDesdeMapa = useCallback(
-    (row: IRutaIniciadorPendienteRow) => {
-      void agregarAlPool(row);
-      setMapPopupRow(null);
-      setMapFocusIniciadorId(null);
+    async (row: IRutaIniciadorPendienteRow) => {
+      try {
+        await agregarAlPool(row);
+        setMapPopupRow(null);
+        setMapFocusIniciadorId(null);
+      } catch {
+        /* error ya mostrado por onError del hook pool */
+      }
     },
     [agregarAlPool]
   );
@@ -313,6 +317,7 @@ export function PlanificacionView({
             onMapPopupClose={handleMapPopupClose}
             onAgregarDesdeMapa={handleAgregarDesdeMapa}
             poolIniciadorIds={poolControl.poolIniciadorIds}
+            agregandoIniciadorIds={agregandoIniciadorIds}
           />
         </Grid>
         <Grid

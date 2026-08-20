@@ -68,6 +68,7 @@ export type PlanificacionPoolControl = {
   poolLoading?: boolean;
   agregarAlPool: (row: IRutaIniciadorPendienteRow) => void | Promise<void>;
   quitarDelPool: (poolId: number) => void | Promise<void>;
+  agregandoIniciadorIds?: ReadonlySet<number>;
   refreshPool?: (fechaOverride?: string | null, opts?: { silent?: boolean }) => Promise<void>;
 };
 
@@ -117,6 +118,7 @@ export function usePlanificacionController({
   });
 
   const poolSet = useMemo(() => toPoolSet(poolIniciadorIds), [poolIniciadorIds]);
+  const poolIniciadorKey = useMemo(() => poolIniciadorIds.slice().sort((a, b) => a - b).join(","), [poolIniciadorIds]);
 
   const rubroNombrePorId = useCallback(
     (id: number) => rubrosCatalogo.find((r) => r.id === id)?.nombre ?? null,
@@ -157,7 +159,7 @@ export function usePlanificacionController({
   /** Mapa y lista comparten filtro por card sobre el mismo universo de pins. */
   const pendientesParaMapa = pendientesFiltradosPorCard;
 
-  /** M3: backend ya filtra urgentes; solo excluir ítems en pool del día (cardActiva no aplica). */
+  /** M3: backend filtra agregables (6J); además ocultar pool local hasta refrescar. */
   const urgentesVisibles = useMemo(
     () => filtrarUrgentesVisibles(urgentesRaw, poolSet),
     [urgentesRaw, poolSet]
@@ -314,7 +316,7 @@ export function usePlanificacionController({
 
   useEffect(() => {
     void loadUrgentes(1, 25);
-  }, [loadUrgentes]);
+  }, [loadUrgentes, poolIniciadorKey]);
 
   /** M1 solo sin distrito activo; con distrito los KPIs salen de `metricasVisibles` (M4 mapa). */
   useEffect(() => {
@@ -396,7 +398,7 @@ export function usePlanificacionController({
       }
     };
     void run();
-  }, [distritoActivoId, rutaId]);
+  }, [distritoActivoId, rutaId, poolIniciadorKey]);
 
   const seleccionarDistrito = useCallback((id: number | null) => {
     setDistritoActivoId(id);

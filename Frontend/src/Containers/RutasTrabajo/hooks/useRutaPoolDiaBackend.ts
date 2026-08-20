@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import {
@@ -27,6 +27,7 @@ export type RutaPoolDiaBackendControl = {
   poolRowsById: Record<number, IRutaIniciadorPendienteRow>;
   poolIdByIniciadorId: Record<number, number>;
   loading: boolean;
+  agregandoIniciadorIds: ReadonlySet<number>;
   refreshPool: (fechaOverride?: string | null, opts?: RefreshPoolOptions) => Promise<void>;
   agregarAlPool: (row: IRutaIniciadorPendienteRow, fecha?: string) => Promise<void>;
   quitarDelPool: (poolId: number) => Promise<void>;
@@ -51,6 +52,8 @@ export function useRutaPoolDiaBackend({
 }: UseRutaPoolDiaBackendParams): RutaPoolDiaBackendControl {
   const [poolItems, setPoolItems] = useState<IRutaPoolDiaRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [agregandoIniciadorIds, setAgregandoIniciadorIds] = useState<Set<number>>(() => new Set());
+  const agregandoRef = useRef<Set<number>>(new Set());
 
   const fechaOperativa = fecha?.trim() || null;
   const rutaIdOperativa =
@@ -98,6 +101,11 @@ export function useRutaPoolDiaBackend({
         onError?.("No hay fecha operativa para agregar al pool.");
         return;
       }
+      if (agregandoRef.current.has(row.id)) {
+        return;
+      }
+      agregandoRef.current.add(row.id);
+      setAgregandoIniciadorIds(new Set(agregandoRef.current));
       try {
         await createRutaPoolDia({
           origen_tipo: "INICIADOR",
@@ -105,10 +113,13 @@ export function useRutaPoolDiaBackend({
           fecha: f,
           ...(rutaIdOperativa != null ? { ruta_trabajo_id: rutaIdOperativa } : {}),
         });
-        await refreshPool();
+        await refreshPool(f, { silent: true });
       } catch (err) {
         onError?.(parseApiError(err, "No se pudo agregar al pool del día.").message);
         throw err;
+      } finally {
+        agregandoRef.current.delete(row.id);
+        setAgregandoIniciadorIds(new Set(agregandoRef.current));
       }
     },
     [fechaOperativa, rutaIdOperativa, onError, refreshPool]
@@ -133,6 +144,7 @@ export function useRutaPoolDiaBackend({
     poolRowsById,
     poolIdByIniciadorId,
     loading,
+    agregandoIniciadorIds,
     refreshPool,
     agregarAlPool,
     quitarDelPool,

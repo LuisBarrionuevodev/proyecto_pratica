@@ -18,6 +18,7 @@ const MAP_POP_CARD_WIDTH = 236;
 export type PlanificacionMapaGeopuntoOperativaCardProps = {
   row: IRutaIniciadorPendienteRow;
   yaEnPool: boolean;
+  agregando?: boolean;
   onAgregarAlPool: () => void;
 };
 
@@ -27,6 +28,7 @@ export type PlanificacionMapaGeopuntoOperativaCardProps = {
 export function PlanificacionMapaGeopuntoOperativaCard({
   row,
   yaEnPool,
+  agregando = false,
   onAgregarAlPool,
 }: PlanificacionMapaGeopuntoOperativaCardProps) {
   const direccion = lineaPrincipalPendiente(row);
@@ -115,11 +117,11 @@ export function PlanificacionMapaGeopuntoOperativaCard({
             dsVariant="primary"
             dsSize="sm"
             fullWidth
-            disabled={yaEnPool}
+            disabled={yaEnPool || agregando}
             onClick={onAgregarAlPool}
             sx={{ minHeight: 28, py: 0.35, fontSize: "0.75rem", fontWeight: 700 }}
           >
-            Agregar
+            {agregando ? "Agregando…" : "Agregar"}
           </AppButton>
           {yaEnPool ? (
             <Typography

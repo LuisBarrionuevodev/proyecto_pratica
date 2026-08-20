@@ -30,7 +30,7 @@ import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { shouldRefreshRelevamientosAfterSaveFailure } from "../utils/refreshOnSavePolicy";
-import { relevamientoEstablecimientoLines } from "../utils/relevamientoCrudDisplay";
+import { relevamientoAnguloEsquinaDisplay, relevamientoEstablecimientoLines } from "../utils/relevamientoCrudDisplay";
 import {
   DARK_TABLE_CONFIG,
   COLORS,
@@ -308,6 +308,14 @@ const TablaRelevamientos = ({
             </Box>
           );
         },
+      },
+      {
+        accessorKey: "angulo_esquina",
+        header: "Ángulo",
+        size: 80,
+        Cell: ({ row }) => (
+          <BandejaEllipsisCell value={relevamientoAnguloEsquinaDisplay(row.original) ?? "—"} />
+        ),
       },
       {
         accessorKey: "turno",

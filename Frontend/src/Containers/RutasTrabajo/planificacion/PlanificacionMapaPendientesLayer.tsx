@@ -27,6 +27,7 @@ type PendienteMarkerProps = {
   showPopup: boolean;
   popupOpenNonce: number;
   inPool: boolean;
+  agregando: boolean;
   onMarkerClick: (row: IRutaIniciadorPendienteRow) => void;
   onPopupClose: () => void;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
@@ -43,6 +44,7 @@ function PendientePlanifMarker({
   showPopup,
   popupOpenNonce,
   inPool,
+  agregando,
   onMarkerClick,
   onPopupClose,
   onAgregar,
@@ -86,6 +88,7 @@ function PendientePlanifMarker({
           <PlanificacionMapaGeopuntoOperativaCard
             row={row}
             yaEnPool={inPool}
+            agregando={agregando}
             onAgregarAlPool={() => onAgregar(row)}
           />
         </Popup>
@@ -105,6 +108,7 @@ export type PlanificacionMapaPendientesLayerProps = {
   popupOpenNonce?: number;
   /** Ids ya presentes en el pool del día (botón deshabilitado + leyenda breve). */
   poolIniciadorIds?: number[];
+  agregandoIniciadorIds?: ReadonlySet<number>;
   onMarkerClick: (row: IRutaIniciadorPendienteRow) => void;
   onPopupClose: () => void;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
@@ -121,12 +125,14 @@ export function PlanificacionMapaPendientesLayer({
   flyToRow,
   popupOpenNonce = 0,
   poolIniciadorIds = [],
+  agregandoIniciadorIds,
   onMarkerClick,
   onPopupClose,
   onAgregar,
 }: PlanificacionMapaPendientesLayerProps) {
   const puntos = useMemo(() => rows.filter((r) => parseIniciadorLatLng(r) != null), [rows]);
   const poolSet = useMemo(() => new Set(poolIniciadorIds), [poolIniciadorIds]);
+  const agregandoSet = agregandoIniciadorIds ?? new Set<number>();
 
   if (!visible) return null;
 
@@ -149,6 +155,7 @@ export function PlanificacionMapaPendientesLayer({
             showPopup={showPopup}
             popupOpenNonce={popupOpenNonce}
             inPool={inPool}
+            agregando={agregandoSet.has(row.id)}
             onMarkerClick={onMarkerClick}
             onPopupClose={onPopupClose}
             onAgregar={onAgregar}

@@ -20,7 +20,8 @@ export function sinPool<T extends { id: number }>(rows: T[], pool: Set<number>):
 
 /**
  * Filas M3 visibles en bandeja Urgentes (global).
- * Solo excluye ítems ya agregados al pool del día; no depende de distrito ni cardActiva.
+ * Backend excluye no agregables (OPER-RUTA.6J); aquí se ocultan además ítems del pool local
+ * hasta que termine el refresh tras agregar/quitar.
  */
 export function filtrarUrgentesVisibles<T extends { id: number }>(rows: T[], pool: Set<number>): T[] {
   return sinPool(rows, pool);
