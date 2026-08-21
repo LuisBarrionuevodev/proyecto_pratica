@@ -3,9 +3,6 @@ import { Box, Chip, CircularProgress, Stack, Tooltip, Typography } from "@mui/ma
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
-import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
-import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
-import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 import {
   planificacionFixedSectionSx,
   planificacionPanelColumnSx,
@@ -16,10 +13,16 @@ import {
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
+import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIniciadorCompactCard";
+import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
+import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
+import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type UrgentesPanelProps = {
+  /** `embedded`: dentro del sidebar 7C (sin paper ni filtros duplicados). */
+  variant?: "standalone" | "embedded";
   rows: IRutaIniciadorPendienteRow[];
   loading: boolean;
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
@@ -36,6 +39,7 @@ export type UrgentesPanelProps = {
  * Bandeja M3 global: independiente del distrito del mapa y de KPIs.
  */
 export function UrgentesPanel({
+  variant = "standalone",
   rows,
   loading,
   onAgregar,
@@ -46,6 +50,7 @@ export function UrgentesPanel({
   onFiltrar,
   onLimpiarFiltros,
 }: UrgentesPanelProps) {
+  const embedded = variant === "embedded";
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.perPage) || 1);
   const poolHidden = ocultosPorPoolEnPagina > 0;
   const emptyCopy =
@@ -55,39 +60,36 @@ export function UrgentesPanel({
         ? `Las ${ocultosPorPoolEnPagina} fila${ocultosPorPoolEnPagina === 1 ? "" : "s"} de esta página están en el pool del día. Use «Siguiente» o quite ítems del pool.`
         : "Sin ítems en esta página.";
 
-  return (
-    <Stack
-      sx={{
-        ...rutasInstitutionalPanelPaperSx,
-        ...planificacionPanelColumnSx,
-        gap: 0.75,
-      }}
-    >
-      <Box sx={planificacionFixedSectionSx}>
-        <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <Typography sx={planificacionPanelTitleSx}>Urgentes globales</Typography>
-          <Tooltip title="Bandeja global: no cambia al seleccionar distrito en el mapa." arrow placement="top">
-            <Chip
-              label="Global"
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ height: 22, fontSize: "0.6875rem", fontWeight: 600, cursor: "help" }}
-            />
-          </Tooltip>
-        </Stack>
-      </Box>
+  const listViewportSx = embedded
+    ? { ...planificacionSidebarListViewportSx, ...rutasInstitutionalScrollSx }
+    : { ...planificacionUrgentesListViewportSx, ...rutasInstitutionalScrollSx };
 
-      {onFiltrar && onLimpiarFiltros ? (
+  const content = (
+    <>
+      {!embedded ? (
+        <Box sx={planificacionFixedSectionSx}>
+          <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
+            <Typography sx={planificacionPanelTitleSx}>Urgentes globales</Typography>
+            <Tooltip title="Bandeja global: no cambia al seleccionar distrito en el mapa." arrow placement="top">
+              <Chip
+                label="Global"
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ height: 22, fontSize: "0.6875rem", fontWeight: 600, cursor: "help" }}
+              />
+            </Tooltip>
+          </Stack>
+        </Box>
+      ) : null}
+
+      {!embedded && onFiltrar && onLimpiarFiltros ? (
         <Box sx={planificacionFixedSectionSx}>
           <UrgentesFiltroPanel onFiltrar={onFiltrar} onLimpiar={onLimpiarFiltros} loading={loading} />
         </Box>
       ) : null}
 
-      <Box
-        className="planificacion-list-body"
-        sx={{ ...planificacionUrgentesListViewportSx, ...rutasInstitutionalScrollSx }}
-      >
+      <Box className="planificacion-list-body" sx={listViewportSx}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />
@@ -157,6 +159,26 @@ export function UrgentesPanel({
           </AppButton>
         </Stack>
       </Stack>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <Stack sx={{ ...planificacionPanelColumnSx, flex: 1, minHeight: 0, gap: 0.75 }}>
+        {content}
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack
+      sx={{
+        ...rutasInstitutionalPanelPaperSx,
+        ...planificacionPanelColumnSx,
+        gap: 0.75,
+      }}
+    >
+      {content}
     </Stack>
   );
 }

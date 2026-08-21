@@ -12,16 +12,9 @@ import { AppButton } from "../../../ui";
 import { RutaResumenHeaderCard, rutaResumenHeaderAccionButtonSx } from "../Components/RutaResumenHeaderCard";
 import { estadoRutaVisible, turnoLabel } from "../utils/rutaResumenLabels";
 import { PlanificacionMapaDistritos } from "./PlanificacionMapaDistritos";
-import { PendientesContextoPanel } from "./PendientesContextoPanel";
-import { PlanificacionSummaryCards } from "./PlanificacionSummaryCards";
-import { PoolDelDiaPanel } from "./PoolDelDiaPanel";
-import { UrgentesPanel } from "./UrgentesPanel";
+import { PlanificacionSidebarPanel } from "./PlanificacionSidebarPanel";
 import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
-import {
-  planificacionPoolSlotSx,
-  planificacionRightColumnSx,
-  planificacionUrgentesSlotSx,
-} from "../styles/institutionalVisual";
+import { PLANIFICACION_MY_MAPS_HEIGHT } from "./planificacionMyMapsLayout";
 
 export type PlanificacionViewProps = {
   ruta: IRutaTrabajo;
@@ -45,7 +38,7 @@ function distritoIdRow(row: IRutaIniciadorPendienteRow): number | null {
 }
 
 /**
- * Vista Planificación: cards, mapa distrital (M2), urgentes (M3), pendientes contexto (M4), pool local.
+ * Vista Planificación OPER-RUTA.7C: panel lateral unificado + mapa amplio tipo My Maps.
  */
 export function PlanificacionView({
   ruta,
@@ -65,6 +58,11 @@ export function PlanificacionView({
     const hit = ctrl.cargaPorDistrito.find((c) => c.distrito_id === ctrl.distritoActivoId);
     return hit?.distrito_nombre ?? null;
   }, [ctrl.distritoCatalogo, ctrl.cargaPorDistrito, ctrl.distritoActivoId]);
+
+  const rubroNombreActivo = useMemo(() => {
+    if (ctrl.filtros.rubro_id == null) return null;
+    return ctrl.rubroNombrePorId(ctrl.filtros.rubro_id);
+  }, [ctrl.filtros.rubro_id, ctrl.rubroNombrePorId]);
 
   const handleContinuar = useCallback(() => {
     onContinuarAsignacion();
@@ -228,6 +226,11 @@ export function PlanificacionView({
     [agregarAlPool]
   );
 
+  const metricasLoading =
+    ctrl.distritoActivoId == null
+      ? ctrl.loading.metricas || ctrl.loading.metricasInicial
+      : ctrl.loading.pendientesContexto;
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minWidth: 0 }}>
       <RutaResumenHeaderCard
@@ -264,43 +267,52 @@ export function PlanificacionView({
         }
       />
 
-      <PlanificacionSummaryCards
-        metricas={ctrl.metricasVisibles}
-        cardActiva={ctrl.cardActiva}
-        onCardChange={ctrl.setCardActiva}
-        usaDatasetVisible={ctrl.distritoActivoId != null}
-        loading={
-          ctrl.distritoActivoId == null
-            ? ctrl.loading.metricas || ctrl.loading.metricasInicial
-            : ctrl.loading.pendientesContexto
-        }
-      />
-
       <Grid
         container
         spacing={2}
         sx={{
           alignItems: "stretch",
           minHeight: 480,
-          maxHeight: "min(82vh, 880px)",
+          maxHeight: PLANIFICACION_MY_MAPS_HEIGHT,
           minWidth: 0,
         }}
+        data-testid="planificacion-my-maps-layout"
       >
-        <Grid size={{ xs: 12, lg: 3 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
-          <PendientesContextoPanel
+        <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+          <PlanificacionSidebarPanel
             distritoActivoId={ctrl.distritoActivoId}
             distritoNombre={distritoNombreActivo}
-            rows={ctrl.pendientesContextoVisibles}
-            meta={ctrl.pendientesMeta}
-            loading={ctrl.loading.pendientesContexto}
-            onFiltrar={ctrl.aplicarFiltrosPendientesContexto}
-            onLimpiar={handleReiniciarPendientesContexto}
-            onPageChange={ctrl.loadPendientesContextoPage}
-            onAgregar={ctrl.agregarAlPool}
+            metricas={ctrl.metricasVisibles}
+            metricasLoading={metricasLoading}
+            cardActiva={ctrl.cardActiva}
+            onCardChange={ctrl.setCardActiva}
+            filtrosAplicados={ctrl.filtros}
+            onFiltrarCandidatos={ctrl.aplicarFiltrosPendientesContexto}
+            onLimpiarCandidatos={handleReiniciarPendientesContexto}
+            rubroNombre={rubroNombreActivo}
+            candidatosRows={ctrl.pendientesContextoVisibles}
+            candidatosMeta={ctrl.pendientesMeta}
+            candidatosLoading={ctrl.loading.pendientesContexto}
+            onCandidatosPageChange={ctrl.loadPendientesContextoPage}
+            onAgregarCandidato={ctrl.agregarAlPool}
             onVerEnMapa={handleVerEnMapa}
+            urgentesRows={ctrl.urgentesVisibles}
+            urgentesMeta={ctrl.urgentesMeta}
+            urgentesLoading={ctrl.loading.urgentes}
+            urgentesOcultosPorPoolEnPagina={ctrl.urgentesOcultosPorPoolEnPagina}
+            onUrgentesPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
+            onAgregarUrgente={ctrl.agregarAlPool}
+            urgentesFiltros={ctrl.urgentesFiltrosAplicados}
+            onFiltrarUrgentes={ctrl.aplicarFiltrosUrgentes}
+            onLimpiarUrgentes={ctrl.limpiarFiltrosUrgentes}
+            poolItems={ctrl.poolBackendItems}
+            poolLoading={poolControl.poolLoading}
+            onQuitarPool={poolControl.quitarDelPool}
+            onContinuarAsignacion={handleContinuar}
           />
         </Grid>
-        <Grid size={{ xs: 12, lg: 6 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+
+        <Grid size={{ xs: 12, lg: 8 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
           <PlanificacionMapaDistritos
             cargaPorDistrito={ctrl.cargaPorDistrito}
             distritoCatalogo={ctrl.distritoCatalogo}
@@ -319,39 +331,6 @@ export function PlanificacionView({
             poolIniciadorIds={poolControl.poolIniciadorIds}
             agregandoIniciadorIds={agregandoIniciadorIds}
           />
-        </Grid>
-        <Grid
-          size={{ xs: 12, lg: 3 }}
-          sx={{
-            ...planificacionRightColumnSx,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-            minWidth: 0,
-            alignSelf: "stretch",
-          }}
-        >
-          <Box sx={planificacionUrgentesSlotSx}>
-            <UrgentesPanel
-              rows={ctrl.urgentesVisibles}
-              loading={ctrl.loading.urgentes}
-              onAgregar={ctrl.agregarAlPool}
-              meta={ctrl.urgentesMeta}
-              ocultosPorPoolEnPagina={ctrl.urgentesOcultosPorPoolEnPagina}
-              onPageChange={(p) => void ctrl.loadUrgentes(p, ctrl.urgentesMeta.perPage)}
-              onVerEnMapa={handleVerEnMapa}
-              onFiltrar={ctrl.aplicarFiltrosUrgentes}
-              onLimpiarFiltros={ctrl.limpiarFiltrosUrgentes}
-            />
-          </Box>
-          <Box sx={planificacionPoolSlotSx}>
-            <PoolDelDiaPanel
-              items={ctrl.poolBackendItems}
-              loading={poolControl.poolLoading}
-              onQuitar={poolControl.quitarDelPool}
-              onContinuarAsignacion={handleContinuar}
-            />
-          </Box>
         </Grid>
       </Grid>
     </Box>

@@ -434,6 +434,8 @@ export function usePlanificacionController({
     cardActiva,
     setCardActiva,
     filtros,
+    urgentesFiltrosAplicados,
+    rubroNombrePorId,
     aplicarFiltrosPendientesContexto,
     reiniciarFiltrosPendientesContexto,
     poolIniciadorIds,

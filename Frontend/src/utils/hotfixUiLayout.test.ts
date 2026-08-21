@@ -5,15 +5,13 @@ import { resolve } from "node:path";
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
 describe("HOTFIX-UI-LAYOUT — Urgentes/Pool sin encimar", () => {
-  it("columna derecha usa flex slots con overflow hidden", () => {
+  it("planificación 7C usa sidebar unificado con tabs (sin columna derecha dual)", () => {
     const view = read("src/Containers/RutasTrabajo/planificacion/PlanificacionView.tsx");
-    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
-    expect(styles).toContain("planificacionRightColumnSx");
-    expect(styles).toContain("planificacionUrgentesSlotSx");
-    expect(styles).toContain("planificacionPoolSlotSx");
-    expect(view).toContain("planificacionUrgentesSlotSx");
-    expect(view).toContain("planificacionPoolSlotSx");
-    expect(view).not.toContain("gridTemplateRows");
+    const sidebar = read("src/Containers/RutasTrabajo/planificacion/PlanificacionSidebarPanel.tsx");
+    expect(view).toContain("PlanificacionSidebarPanel");
+    expect(sidebar).toContain("planificacionSidebarShellSx");
+    expect(view).not.toContain("planificacionRightColumnSx");
+    expect(view).not.toContain("planificacionUrgentesSlotSx");
   });
 
   it("paneles usan patrón column + list viewport + fixed sections", () => {

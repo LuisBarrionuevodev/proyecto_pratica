@@ -11,12 +11,15 @@ import {
   rutasInstitutionalPanelPaperSx,
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
+import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
 import { poolDiaOrigenLabel } from "../utils/poolDiaDisplay";
 import { puedeSacarDelPoolPanel } from "../../../utils/operRutaPoolAcciones";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type PoolDelDiaPanelProps = {
+  /** `embedded`: dentro del sidebar 7C (sin paper duplicado). */
+  variant?: "standalone" | "embedded";
   items: IRutaPoolDiaRow[];
   loading?: boolean;
   onQuitar: (poolId: number) => void | Promise<void>;
@@ -36,45 +39,47 @@ function estadoPoolLabel(estado: string | null | undefined): string {
  * Pool del día desde backend (`GET /ruta-pool-dia`): header fijo, lista con scroll, acción abajo.
  */
 export function PoolDelDiaPanel({
+  variant = "standalone",
   items,
   loading = false,
   onQuitar,
   onContinuarAsignacion,
   compact = false,
 }: PoolDelDiaPanelProps) {
-  return (
-    <Stack
-      sx={{
-        ...rutasInstitutionalPanelPaperSx,
-        ...planificacionPanelColumnSx,
-        gap: 1,
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="baseline"
-        sx={planificacionFixedSectionSx}
-        gap={1}
-      >
-        <Typography sx={planificacionPanelTitleSx}>Pool del día</Typography>
-        <Typography
-          sx={{
-            fontFamily: tactic,
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            color: GLASS_COLORS.textSecondary,
-            flexShrink: 0,
-          }}
+  const embedded = variant === "embedded";
+  const listViewportSx = embedded
+    ? { ...planificacionSidebarListViewportSx, ...rutasInstitutionalScrollSx }
+    : { ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx };
+
+  const content = (
+    <>
+      {!embedded ? (
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="baseline"
+          sx={planificacionFixedSectionSx}
+          gap={1}
         >
-          {items.length}
-        </Typography>
-      </Stack>
+          <Typography sx={planificacionPanelTitleSx}>Pool del día</Typography>
+          <Typography
+            sx={{
+              fontFamily: tactic,
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: GLASS_COLORS.textSecondary,
+              flexShrink: 0,
+            }}
+          >
+            {items.length}
+          </Typography>
+        </Stack>
+      ) : null}
 
       <Box
         className="planificacion-list-body"
         data-testid="pool-del-dia-list"
-        sx={{ ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx }}
+        sx={listViewportSx}
       >
         {loading ? (
           <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1 }}>
@@ -183,13 +188,33 @@ export function PoolDelDiaPanel({
         )}
       </Box>
 
-      {!compact && onContinuarAsignacion ? (
+      {!compact && !embedded && onContinuarAsignacion ? (
         <Box className="planificacion-panel-footer" sx={{ ...planificacionPanelFooterSx, pt: 1 }}>
           <AppButton dsVariant="primary" fullWidth onClick={onContinuarAsignacion} disabled={items.length === 0}>
             Continuar a asignación
           </AppButton>
         </Box>
       ) : null}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <Stack sx={{ ...planificacionPanelColumnSx, flex: 1, minHeight: 0, gap: 0.75 }}>
+        {content}
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack
+      sx={{
+        ...rutasInstitutionalPanelPaperSx,
+        ...planificacionPanelColumnSx,
+        gap: 1,
+      }}
+    >
+      {content}
     </Stack>
   );
 }

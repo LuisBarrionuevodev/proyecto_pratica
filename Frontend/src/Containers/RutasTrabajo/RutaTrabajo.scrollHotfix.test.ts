@@ -38,10 +38,10 @@ describe("Scroll hotfix — Ruta de Trabajo panel derecho", () => {
   });
 
   it("4. slots flex y overflow solo en listas internas", () => {
-    const view = read("src/Containers/RutasTrabajo/planificacion/PlanificacionView.tsx");
-    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
-    expect(view).toContain("planificacionRightColumnSx");
-    expect(styles).toContain('overflowY: "auto"');
-    expect(styles).not.toContain('minHeight: "16rem"');
+    const sidebar = read("src/Containers/RutasTrabajo/planificacion/PlanificacionSidebarPanel.tsx");
+    const layout = read("src/Containers/RutasTrabajo/planificacion/planificacionMyMapsLayout.ts");
+    expect(sidebar).toContain("planificacionSidebarTabBodySx");
+    expect(layout).toContain('overflowY: "auto"');
+    expect(layout).not.toContain('minHeight: "16rem"');
   });
 });

@@ -99,20 +99,19 @@ describe("HOTFIX urgentes globales — sin distrito del mapa", () => {
 });
 
 describe("FIX FINAL urgentes — layout y filtros", () => {
-  it("Urgentes usa viewport con altura mínima definida", () => {
+  it("Urgentes usa viewport flex con scroll interno (7C sidebar)", () => {
     const urgentes = read("src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx");
-    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
-    expect(styles).toContain("planificacionUrgentesListViewportSx");
-    expect(styles).toContain("16rem");
-    expect(urgentes).toContain("planificacionUrgentesListViewportSx");
+    const layout = read("src/Containers/RutasTrabajo/planificacion/planificacionMyMapsLayout.ts");
+    expect(layout).toContain("planificacionSidebarListViewportSx");
+    expect(layout).toContain('flex: "1 1 0"');
+    expect(urgentes).toContain("planificacionSidebarListViewportSx");
     expect(urgentes).toContain("planificacionFixedSectionSx");
   });
 
-  it("slot Urgentes tiene minHeight para no colapsar con pool", () => {
-    const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
-    expect(styles).toContain("planificacionUrgentesSlotSx");
-    expect(styles).toMatch(/planificacionUrgentesSlotSx[\s\S]*minHeight/);
-    expect(styles).toContain("planificacionPoolListViewportSx");
+  it("sidebar 7C garantiza altura mínima del shell lateral", () => {
+    const layout = read("src/Containers/RutasTrabajo/planificacion/planificacionMyMapsLayout.ts");
+    expect(layout).toContain("planificacionSidebarShellSx");
+    expect(layout).toContain("minHeight: 480");
   });
 });
 
