@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Paper, Snackbar } from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { Box } from "@mui/material";
 import type { CatalogItem } from "../../api/gridApi";
+import { useAppFeedback } from "../../components/feedback/useAppFeedback";
 import { fetchInspectoresCatalogItemsCached } from "../../utils/inspectoresCatalogCache";
-import { GLASS_COLORS, moduleSlicesPanelPaperSx } from "../../styles/GlassStyles";
 import {
   assignRutaItems,
   createRutaGrupo,
@@ -29,7 +29,9 @@ import {
   useRutasTrabajoSession,
 } from "./hooks";
 import { useRutaPoolDiaBackend } from "./hooks/useRutaPoolDiaBackend";
-import { RutasTrabajoFlowStepper, type RutaFlowStep } from "./Components/RutasTrabajoFlowStepper";
+import { type RutaFlowStep } from "./Components/RutasTrabajoFlowStepper";
+import { RutaTrabajoCompactHeader } from "./Components/RutaTrabajoCompactHeader";
+import { computeAsignacionContinuarMapaFinal } from "./utils/asignacionContinuarMapaFinal";
 import { RutasEmptyView } from "./views/RutasEmptyView";
 import { RutasPlanificacionView } from "./views/RutasPlanificacionView";
 import { RutasMapaOperativoView } from "./views/RutasMapaOperativoView";
@@ -45,16 +47,6 @@ import {
   resumenBloqueoPublicacion,
 } from "./utils/rutaPublicarReadiness";
 
-const rutasAlertSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
-  border: `1px solid ${GLASS_COLORS.borderMedium}`,
-  borderRadius: "10px",
-  backgroundColor: GLASS_COLORS.cardBg,
-  color: "#FFFFFF",
-  "& .MuiAlert-icon": { color: "#FFFFFF" },
-  "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
-} as const;
-
 const RutasTrabajo = () => {
   /** Flujo secuencial: 1 Planificación → 2 Asignación → 3 Mapa final (desbloqueo solo por CTA). */
   const [flowStep, setFlowStep] = useState<RutaFlowStep>(1);
@@ -67,8 +59,14 @@ const RutasTrabajo = () => {
   });
   /** Solo carga/refresco completo del detail de ruta (no PATCH sueltos). */
   const [detailLoading, setDetailLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const feedback = useAppFeedback();
+  const notifyError = useCallback<Dispatch<SetStateAction<string | null>>>(
+    (msg) => {
+      const text = typeof msg === "function" ? msg(null) : msg;
+      if (text?.trim()) feedback.error(text.trim());
+    },
+    [feedback]
+  );
 
   const [openCrearGrupo, setOpenCrearGrupo] = useState(false);
   const [openCrearRuta, setOpenCrearRuta] = useState(false);
@@ -91,9 +89,12 @@ const RutasTrabajo = () => {
   /** Ruta publicada u otro estado no borrador: mapa en preview histórica solo lectura. */
   const vistaHistoricaReadOnly = Boolean(ruta && ruta.estado_ruta !== "BORRADOR");
 
-  const handlePoolBackendError = useCallback((msg: string) => {
-    setError(msg);
-  }, []);
+  const handlePoolBackendError = useCallback(
+    (msg: string) => {
+      feedback.error(msg);
+    },
+    [feedback]
+  );
 
   const {
     poolItems: poolBackendItems,
@@ -114,7 +115,6 @@ const RutasTrabajo = () => {
   const loadRutaDetail = useCallback(async (targetRutaId: number, opts?: { showLoading?: boolean }) => {
     const showLoading = opts?.showLoading !== false;
     if (showLoading) setDetailLoading(true);
-    setError(null);
     try {
       const detail = await getRutaTrabajoDetail(targetRutaId);
       setRuta(detail.ruta);
@@ -129,7 +129,7 @@ const RutasTrabajo = () => {
       setFlowStep(esBorrador ? 1 : 3);
       setFlowMaxUnlocked(esBorrador ? 1 : 3);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
+      notifyError(err?.response?.data?.detail || "No se pudo cargar el detalle de la ruta");
       setRuta(null);
       setGrupos([]);
       setItems([]);
@@ -144,7 +144,6 @@ const RutasTrabajo = () => {
     if (!rutaId) return;
     const showLoading = opts?.showLoading !== false;
     if (showLoading) setDetailLoading(true);
-    setError(null);
     try {
       const detail = await getRutaTrabajoDetail(rutaId);
       setRuta(detail.ruta);
@@ -153,7 +152,7 @@ const RutasTrabajo = () => {
       const reconstructedItems = (detail.grupos ?? []).flatMap((g) => g.items ?? []);
       setItems(reconstructedItems);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo sincronizar el borrador");
+      notifyError(err?.response?.data?.detail || "No se pudo sincronizar el borrador");
     } finally {
       if (showLoading) setDetailLoading(false);
     }
@@ -206,8 +205,6 @@ const RutasTrabajo = () => {
   useRutasTrabajoSession(loadRutaDetail);
 
   const handleCreateRuta = async (payload: { fecha: string; turno: "MANIANA" | "TARDE"; observaciones?: string }) => {
-    setError(null);
-    setSuccessMessage(null);
     try {
       const resp = await createRutaTrabajo({
         fecha: payload.fecha,
@@ -217,9 +214,9 @@ const RutasTrabajo = () => {
       await loadRutaDetail(resp.item.id);
       setOpenCrearRuta(false);
       setCrearRutaFechaSugerida(null);
-      setSuccessMessage(`Ruta ${resp.item.numero} creada en BORRADOR.`);
+      feedback.success(`Ruta ${resp.item.numero} creada en BORRADOR.`);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo crear la ruta");
+      notifyError(err?.response?.data?.detail || "No se pudo crear la ruta");
     }
   };
 
@@ -231,9 +228,12 @@ const RutasTrabajo = () => {
   }, []);
 
   /** Debe ser estable: `usePlanificacionController` depende de `onError` en load* y efectos M1–M4. */
-  const handlePlanificacionError = useCallback((msg: string) => {
-    setError(msg);
-  }, []);
+  const handlePlanificacionError = useCallback(
+    (msg: string) => {
+      feedback.error(msg);
+    },
+    [feedback]
+  );
 
   /** Limpia sesión y estado local: vuelve a la pantalla de elegir borrador / crear ruta (también tras publicar). */
   const resetVistaRutaTrabajo = useCallback(() => {
@@ -247,8 +247,6 @@ const RutasTrabajo = () => {
     setGrupoSeleccionado(null);
     setFlowStep(1);
     setFlowMaxUnlocked(1);
-    setError(null);
-    setSuccessMessage(null);
   }, []);
 
   const handlePublicarRuta = useCallback(async () => {
@@ -256,17 +254,15 @@ const RutasTrabajo = () => {
 
     const readiness = evaluarPublicacionRuta(grupos, itemsActivos);
     if (!readiness.puedePublicar) {
-      setError(readiness.blockers.join(" "));
+      notifyError(readiness.blockers.join(" "));
       return;
     }
 
     setPublishingRuta(true);
-    setError(null);
-    setSuccessMessage(null);
     try {
       await publicarRutaTrabajo(rutaId);
       await loadRutaDetail(rutaId, { showLoading: true });
-      setSuccessMessage(
+      feedback.success(
         "Ruta publicada. Usá «Descargar resumen (PDF)» y «Descargar órdenes de salida y órdenes de trabajo» en esta pantalla para la documentación oficial."
       );
     } catch (err: unknown) {
@@ -274,18 +270,18 @@ const RutasTrabajo = () => {
       const status = ax?.response?.status;
       const detail = ax?.response?.data?.detail;
       if (typeof detail === "string") {
-        setError(detail);
+        notifyError(detail);
       } else if (status === 409) {
-        setError(
+        notifyError(
           "No se cumplen las condiciones para publicar. Revisá inspectores por grupo, ítems activos y OT en cada ítem."
         );
       } else {
-        setError("No se pudo publicar la ruta. Intentá de nuevo más tarde.");
+        notifyError("No se pudo publicar la ruta. Intentá de nuevo más tarde.");
       }
     } finally {
       setPublishingRuta(false);
     }
-  }, [grupos, itemsActivos, loadRutaDetail, publishingRuta, ruta?.estado_ruta, rutaId]);
+  }, [feedback, grupos, itemsActivos, loadRutaDetail, publishingRuta, ruta?.estado_ruta, rutaId]);
 
   useEffect(() => {
     const loadInspectores = async () => {
@@ -303,7 +299,7 @@ const RutasTrabajo = () => {
     useRutaTrabajoBorradorActions({
       rutaId,
       setItems,
-      setError,
+      setError: notifyError,
       loadPendientes,
       onAfterDeleteItem: syncPoolTrasQuitarItem,
     });
@@ -319,15 +315,13 @@ const RutasTrabajo = () => {
 
   const handleCreateGrupo = async () => {
     if (!rutaId) return;
-    setError(null);
-    setSuccessMessage(null);
     try {
       const resp = await createRutaGrupo(rutaId, {});
       setGrupos((prev) => [...prev, { ...resp.item, items: resp.item.items ?? [] }]);
       setOpenCrearGrupo(false);
-      setSuccessMessage("Grupo creado correctamente.");
+      feedback.success("Grupo creado correctamente.");
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "No se pudo crear el grupo");
+      notifyError(err?.response?.data?.detail || "No se pudo crear el grupo");
     }
   };
 
@@ -341,13 +335,11 @@ const RutasTrabajo = () => {
       if (!rutaId || !grupoSeleccionado) return;
       const grupoActual = grupos.find((g) => g.id === grupoSeleccionado.id);
       if (!grupoActual) {
-        setError("El grupo seleccionado ya no existe en el borrador actual.");
+        notifyError("El grupo seleccionado ya no existe en el borrador actual.");
         await loadRutaDetail(rutaId);
         return;
       }
       const grupoId = grupoSeleccionado.id;
-      setError(null);
-      setSuccessMessage(null);
       try {
         const resp = await replaceRutaGrupoInspectores(rutaId, grupoId, {
           inspector_ids: inspectorIds,
@@ -355,19 +347,17 @@ const RutasTrabajo = () => {
         setGrupos((prev) => prev.map((g) => (g.id === grupoId ? { ...g, inspectores: resp.items } : g)));
         setOpenAsignarInspectores(false);
         setGrupoSeleccionado(null);
-        setSuccessMessage("Inspectores del grupo actualizados.");
+        feedback.success("Inspectores del grupo actualizados.");
       } catch (err: any) {
-        setError(err?.response?.data?.detail || "No se pudieron actualizar inspectores");
+        notifyError(err?.response?.data?.detail || "No se pudieron actualizar inspectores");
       }
     },
-    [grupoSeleccionado, grupos, loadRutaDetail, rutaId]
+    [feedback, grupoSeleccionado, grupos, loadRutaDetail, rutaId]
   );
 
   const assignIniciadoresToGrupo = useCallback(
     async (grupoId: number, iniciadorIds: number[]): Promise<boolean> => {
       if (!rutaId || iniciadorIds.length === 0) return false;
-      setError(null);
-      setSuccessMessage(null);
       try {
         const poolIds = iniciadorIds
           .map((id) => poolIdByIniciadorId[id])
@@ -389,14 +379,14 @@ const RutasTrabajo = () => {
             return Array.from(map.values());
           });
         }
-        setSuccessMessage("Iniciadores asignados correctamente.");
+        feedback.success("Iniciadores asignados correctamente.");
         return true;
       } catch (err: any) {
-        setError(err?.response?.data?.detail || "No se pudo asignar la selección");
+        notifyError(err?.response?.data?.detail || "No se pudo asignar la selección");
         return false;
       }
     },
-    [rutaId, poolIdByIniciadorId, refreshPool]
+    [feedback, rutaId, poolIdByIniciadorId, refreshPool, ruta?.fecha]
   );
 
   const handleDeleteGrupo = useCallback(
@@ -411,7 +401,7 @@ const RutasTrabajo = () => {
           refreshPool(ruta?.fecha, { silent: true }),
         ]);
       } catch (err: any) {
-        setError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
+        notifyError(err?.response?.data?.detail || "No se pudo eliminar el grupo");
       }
     },
     [rutaId, ruta?.fecha, refreshPool, refreshRutaBorrador]
@@ -445,6 +435,24 @@ const RutasTrabajo = () => {
     [poolRowsById, itemsActivos]
   );
 
+  const continuarMapaFinalState = useMemo(
+    () => computeAsignacionContinuarMapaFinal(poolRowsOrdered.length, itemsActivos),
+    [poolRowsOrdered.length, itemsActivos]
+  );
+
+  const otSinGuardarAvisoRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (flowStep !== 2) {
+      otSinGuardarAvisoRef.current = null;
+      return;
+    }
+    const n = continuarMapaFinalState.itemsSinOtCount;
+    if (n <= 0) return;
+    if (otSinGuardarAvisoRef.current === n) return;
+    otSinGuardarAvisoRef.current = n;
+    feedback.warning(`${n} ítem${n === 1 ? "" : "s"} sin OT guardada.`);
+  }, [continuarMapaFinalState.itemsSinOtCount, feedback, flowStep]);
+
   return (
     <Box
       sx={{
@@ -454,52 +462,46 @@ const RutasTrabajo = () => {
         p: 3,
         display: "flex",
         flexDirection: "column",
-        gap: 2.2,
+        gap: 1.25,
+        minHeight: rutaId != null ? "calc(100vh - 200px)" : undefined,
       }}
     >
-        {rutaId != null && ruta?.estado_ruta === "BORRADOR" && (
-          <Paper
-            elevation={0}
-            sx={{
-              ...moduleSlicesPanelPaperSx,
-              width: "100%",
-              minWidth: 0,
-              maxWidth: "100%",
-              boxSizing: "border-box",
+        {rutaId != null && ruta != null && ruta.estado_ruta === "BORRADOR" && (
+          <RutaTrabajoCompactHeader
+            ruta={ruta}
+            flowStep={flowStep}
+            flowMaxUnlocked={flowMaxUnlocked}
+            onStepChange={setFlowStep}
+            onElegirOtraRuta={resetVistaRutaTrabajo}
+            onContinuarAsignacion={() => {
+              setFlowMaxUnlocked((m): RutaFlowStep => (m < 2 ? 2 : m));
+              setFlowStep(2);
             }}
-          >
-            <RutasTrabajoFlowStepper
-              flowStep={flowStep}
-              flowMaxUnlocked={flowMaxUnlocked}
-              onStepChange={setFlowStep}
-            />
-          </Paper>
+            onVolverPlanificacion={handleVolverPlanificacion}
+            onContinuarMapaFinal={handleContinuarMapaFinal}
+            continuarMapaFinalDisabled={!continuarMapaFinalState.puedeContinuar}
+            continuarMapaFinalTooltip={continuarMapaFinalState.tooltip}
+            onVolverAsignacion={() => setFlowStep(2)}
+            onPublicarRuta={flowStep === 3 ? handlePublicarRuta : undefined}
+            canPublish={puedeIntentarPublicar}
+            publicarTooltip={publicarTooltip}
+            publishingRuta={publishingRuta}
+          />
         )}
 
-        {error && (
-          <Alert severity="error" sx={rutasAlertSx}>
-            {error}
-          </Alert>
+        {rutaId != null && ruta != null && ruta.estado_ruta !== "BORRADOR" && flowStep === 3 && (
+          <RutaTrabajoCompactHeader
+            ruta={ruta}
+            flowStep={3}
+            flowMaxUnlocked={3}
+            onStepChange={() => {
+              /* histórico: sin stepper interactivo */
+            }}
+            showStepper={false}
+            readOnly
+            onVolverAlListado={resetVistaRutaTrabajo}
+          />
         )}
-        <Snackbar
-          open={Boolean(successMessage)}
-          autoHideDuration={5000}
-          onClose={(_, reason) => {
-            if (reason === "clickaway") return;
-            setSuccessMessage(null);
-          }}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-          sx={{ top: { sm: 88 } }}
-        >
-          <Alert
-            onClose={() => setSuccessMessage(null)}
-            severity="success"
-            variant="filled"
-            sx={{ ...rutasAlertSx, width: "100%" }}
-          >
-            {successMessage}
-          </Alert>
-        </Snackbar>
 
         {rutaId == null && (
           <RutasEmptyView
@@ -512,17 +514,16 @@ const RutasTrabajo = () => {
         )}
 
         {flowStep === 1 && rutaId != null && ruta != null && (
-          <PlanificacionView
-            ruta={ruta}
-            rutaId={rutaId}
-            poolControl={poolControl}
-            onError={handlePlanificacionError}
-            onVolverAElegirRuta={resetVistaRutaTrabajo}
-            onContinuarAsignacion={() => {
-              setFlowMaxUnlocked((m): RutaFlowStep => (m < 2 ? 2 : m));
-              setFlowStep(2);
-            }}
-          />
+          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <PlanificacionView
+              ruta={ruta}
+              rutaId={rutaId}
+              grupos={grupos}
+              itemsActivos={itemsActivos}
+              poolControl={poolControl}
+              onError={handlePlanificacionError}
+            />
+          </Box>
         )}
 
         {flowStep === 2 && rutaId != null && ruta != null && (
@@ -547,7 +548,6 @@ const RutasTrabajo = () => {
             onMoverItem={handleMoveItem}
             onQuitarItem={handleQuitarItem}
             onGuardarOtItem={handleSaveOt}
-            onContinuarMapaFinal={handleContinuarMapaFinal}
             onVolverPlanificacion={handleVolverPlanificacion}
             onAssignIniciadoresToGrupo={assignIniciadoresToGrupo}
             poolIdByIniciadorId={poolIdByIniciadorId}
@@ -561,7 +561,6 @@ const RutasTrabajo = () => {
             grupos={grupos}
             itemsActivos={itemsActivos}
             iniciadorById={iniciadorById}
-            onVolverAsignacion={() => setFlowStep(2)}
             onPublicarRuta={handlePublicarRuta}
             canPublish={puedeIntentarPublicar}
             publicarTooltip={publicarTooltip}
@@ -569,7 +568,6 @@ const RutasTrabajo = () => {
             publishingRuta={publishingRuta}
             detailLoading={detailLoading}
             vistaHistoricaReadOnly={vistaHistoricaReadOnly}
-            onVolverAlListado={resetVistaRutaTrabajo}
             onEditarInspectores={
               vistaHistoricaReadOnly
                 ? undefined

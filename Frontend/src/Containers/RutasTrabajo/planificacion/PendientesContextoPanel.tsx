@@ -68,8 +68,9 @@ export function PendientesContextoPanel({
 
   const listBody = (
     <>
-      <Box
+        <Box
         className="planificacion-list-body"
+        data-testid="planificacion-sidebar-flex-list"
         sx={
           embedded
             ? { ...planificacionSidebarListViewportSx, ...rutasInstitutionalScrollSx }
@@ -89,7 +90,9 @@ export function PendientesContextoPanel({
           </Box>
         ) : rows.length === 0 ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
-            {distritoActivoId == null ? "Seleccioná un distrito en el mapa." : "Sin candidatos con los filtros actuales."}
+            {distritoActivoId == null
+              ? "Elegí un distrito en el mapa."
+              : "Sin candidatos con los filtros actuales."}
           </Typography>
         ) : (
           <Stack spacing={0.75} sx={{ pb: 0.5 }}>

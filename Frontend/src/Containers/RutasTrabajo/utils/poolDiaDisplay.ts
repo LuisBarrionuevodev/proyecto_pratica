@@ -61,6 +61,8 @@ export function poolDiaRowToIniciadorPendiente(row: IRutaPoolDiaRow): IRutaInici
       actuacion_id: row.actuacion_id ?? null,
     },
     observaciones: null,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
   };
 }
 

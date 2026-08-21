@@ -31,28 +31,36 @@ function StepConnector({ disabled }: { disabled: boolean }) {
         backgroundColor: disabled ? GLASS_COLORS.borderLight : GLASS_COLORS.borderMedium,
         opacity: 0.85,
         alignSelf: "center",
-        width: { xs: 1, sm: 24 },
-        height: { xs: 14, sm: 1 },
+        width: 16,
+        height: 1,
       }}
     />
   );
 }
 
 /**
- * Navegación secuencial del borrador: paso actual, completados y futuros bloqueados hasta avanzar con CTA.
- * En `xs` se apila en columna para no forzar ancho horizontal; en `sm+` fila con conectores horizontales.
+ * Navegación secuencial del borrador: tres pasos siempre en fila horizontal.
  */
 export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChange }: RutasTrabajoFlowStepperProps) {
   return (
     <Stack
       component="nav"
       aria-label="Etapas del borrador de ruta"
-      direction={{ xs: "column", sm: "row" }}
-      alignItems={{ xs: "stretch", sm: "center" }}
-      flexWrap={{ sm: "wrap" }}
+      direction="row"
+      alignItems="center"
+      flexWrap="nowrap"
       useFlexGap
-      spacing={1}
-      sx={{ width: "100%", minWidth: 0, maxWidth: "100%", boxSizing: "border-box" }}
+      spacing={0.75}
+      sx={{
+        width: "auto",
+        minWidth: 0,
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflowX: "auto",
+        overflowY: "hidden",
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": { display: "none" },
+      }}
     >
       {STEPS.map(({ step, label }, idx) => {
         const disabled = step > flowMaxUnlocked;
@@ -86,18 +94,19 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
                     ? "rgba(255,255,255,0.06)"
                     : "rgba(0,0,0,0.2)",
                 color: disabled ? GLASS_COLORS.textMuted : GLASS_COLORS.textPrimary,
-                px: 1.5,
-                py: 0.75,
+                px: { xs: 1, sm: 1.25 },
+                py: 0.625,
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: disabled ? 0.45 : 1,
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 0.75,
+                gap: 0.5,
                 minWidth: 0,
-                width: { xs: "100%", sm: "auto" },
-                maxWidth: "100%",
+                flexShrink: 0,
+                width: "auto",
+                maxWidth: "none",
                 boxSizing: "border-box",
-                justifyContent: { xs: "flex-start", sm: "center" },
+                justifyContent: "center",
                 textAlign: "left",
                 transition: "background-color 0.15s, border-color 0.15s",
                 "&:hover:not(:disabled)": {
@@ -133,7 +142,7 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
                   minWidth: 0,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: { xs: "normal", sm: "nowrap" },
+                  whiteSpace: "nowrap",
                 }}
               >
                 {label}

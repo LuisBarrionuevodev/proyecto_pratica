@@ -7,8 +7,25 @@ import {
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
 
-/** Altura compartida panel lateral + mapa (OPER-RUTA.7C). */
-export const PLANIFICACION_MY_MAPS_HEIGHT = "min(82vh, 880px)";
+/**
+ * Reserva vertical aproximada: shell app + header institucional + header compacto + pool strip + paddings.
+ * OPER-RUTA.7C.3: main area ocupa el resto del viewport.
+ */
+export const PLANIFICACION_CHROME_OFFSET_PX = 280;
+
+/** Altura del bloque panel + mapa (flex child o calc). */
+export const PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX = 580;
+
+export const planificacionMainAreaSx: SxProps<Theme> = {
+  flex: "1 1 auto",
+  minHeight: PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX,
+  height: `max(${PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX}px, calc(100vh - ${PLANIFICACION_CHROME_OFFSET_PX}px))`,
+  minWidth: 0,
+  alignItems: "stretch",
+};
+
+/** @deprecated Usar planificacionMainAreaSx; mantener alias para mapa interno. */
+export const PLANIFICACION_MY_MAPS_HEIGHT = "100%";
 
 /** Shell lateral único: filtros + tabs + lista + acciones. */
 export const planificacionSidebarShellSx: SxProps<Theme> = {
@@ -17,8 +34,9 @@ export const planificacionSidebarShellSx: SxProps<Theme> = {
   p: 1.5,
   gap: 1,
   height: "100%",
-  minHeight: 480,
-  maxHeight: PLANIFICACION_MY_MAPS_HEIGHT,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
 };
 
 /** Área scrolleable del contenido del tab activo. */

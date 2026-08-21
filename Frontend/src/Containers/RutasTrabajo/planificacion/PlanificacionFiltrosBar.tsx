@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Chip, Stack, TextField, Typography } from "@mui/material";
-import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import { Stack, TextField, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
@@ -10,7 +9,6 @@ import {
   filterCompactSecondaryButtonSx,
 } from "../../Actuaciones/styles/filtroStyles";
 import { planificacionTextFieldSx } from "../styles/institutionalVisual";
-import { PlanificacionActiveFiltersChips } from "./components/PlanificacionActiveFiltersChips";
 import { PlanificacionRubroSelect } from "./components/PlanificacionRubroSelect";
 import { PlanificacionTipoFilterChips } from "./components/PlanificacionTipoFilterChips";
 import { planificacionFiltrosBarSx } from "./planificacionMyMapsLayout";
@@ -20,13 +18,12 @@ import type {
   PlanificacionFiltrosLista,
   UrgentesFiltrosAplicados,
 } from "./types/planificacion.types";
-import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
+import type { PlanificacionSidebarTab } from "./PlanificacionSidebarPanel";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type PlanificacionFiltrosBarProps = {
   distritoActivoId: number | null;
-  distritoNombre?: string | null;
   metricas: IPlanificacionMetricas | null;
   cardActiva: PlanificacionCardKey;
   onCardChange: (card: PlanificacionCardKey) => void;
@@ -36,19 +33,18 @@ export type PlanificacionFiltrosBarProps = {
   onLimpiarCandidatos: () => void;
   candidatosLoading?: boolean;
   rubroNombre?: string | null;
-  sidebarTab: "candidatos" | "urgentes" | "pool" | "resumen";
-  urgentesFiltros?: UrgentesFiltrosAplicados;
-  onFiltrarUrgentes?: (filtros: UrgentesFiltrosAplicados) => void;
-  onLimpiarUrgentes?: () => void;
+  sidebarTab: PlanificacionSidebarTab;
+  urgentesFiltros: UrgentesFiltrosAplicados;
+  onFiltrarUrgentes: (filtros: UrgentesFiltrosAplicados) => void;
+  onLimpiarUrgentes: () => void;
   urgentesLoading?: boolean;
 };
 
 /**
- * Barra de filtros visible del panel lateral (distrito, tipo, rubro, búsqueda).
+ * Filtros compactos del panel lateral (tipo, rubro, búsqueda) según tab activo.
  */
 export function PlanificacionFiltrosBar({
   distritoActivoId,
-  distritoNombre,
   metricas,
   cardActiva,
   onCardChange,
@@ -57,7 +53,6 @@ export function PlanificacionFiltrosBar({
   onFiltrarCandidatos,
   onLimpiarCandidatos,
   candidatosLoading,
-  rubroNombre,
   sidebarTab,
   urgentesFiltros,
   onFiltrarUrgentes,
@@ -66,11 +61,22 @@ export function PlanificacionFiltrosBar({
 }: PlanificacionFiltrosBarProps) {
   const [q, setQ] = useState(filtrosAplicados.q);
   const [rubroId, setRubroId] = useState<number | null>(filtrosAplicados.rubro_id);
+  const [urgenteTipo, setUrgenteTipo] = useState(urgentesFiltros.tipo_urgente);
+  const [urgenteRubroId, setUrgenteRubroId] = useState<number | null>(urgentesFiltros.rubro_id);
+  const [urgenteQ, setUrgenteQ] = useState(urgentesFiltros.q_domicilio);
 
   useEffect(() => {
     setQ(filtrosAplicados.q);
     setRubroId(filtrosAplicados.rubro_id);
   }, [filtrosAplicados.q, filtrosAplicados.rubro_id, distritoActivoId]);
+
+  useEffect(() => {
+    setUrgenteTipo(urgentesFiltros.tipo_urgente);
+    setUrgenteRubroId(urgentesFiltros.rubro_id);
+    setUrgenteQ(urgentesFiltros.q_domicilio);
+  }, [urgentesFiltros.tipo_urgente, urgentesFiltros.rubro_id, urgentesFiltros.q_domicilio]);
+
+  const isTotalMapa = sidebarTab === "total-mapa";
 
   const handleFiltrarCandidatos = () => {
     onFiltrarCandidatos({ q: q.trim(), rubro_id: rubroId });
@@ -82,105 +88,104 @@ export function PlanificacionFiltrosBar({
     onLimpiarCandidatos();
   };
 
+  const handleFiltrarUrgentes = () => {
+    onFiltrarUrgentes({
+      tipo_urgente: urgenteTipo,
+      rubro_id: urgenteRubroId,
+      q_identificador: "",
+      q_domicilio: urgenteQ.trim(),
+    });
+  };
+
+  const handleLimpiarUrgentes = () => {
+    setUrgenteTipo("");
+    setUrgenteRubroId(null);
+    setUrgenteQ("");
+    onLimpiarUrgentes();
+  };
+
+  const handleUrgenteTipoChange = (tipo: UrgentesFiltrosAplicados["tipo_urgente"]) => {
+    setUrgenteTipo(tipo);
+    onFiltrarUrgentes({
+      tipo_urgente: tipo,
+      rubro_id: urgenteRubroId,
+      q_identificador: "",
+      q_domicilio: urgenteQ.trim(),
+    });
+  };
+
   return (
     <Stack sx={planificacionFiltrosBarSx} spacing={0.75}>
-      <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
-        <Typography
-          sx={{
-            fontFamily: tactic,
-            fontSize: "0.65rem",
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: GLASS_COLORS.textMuted,
-          }}
-        >
-          Distrito
+      {distritoActivoId == null && isTotalMapa ? (
+        <Typography sx={{ fontFamily: tactic, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
+          Elegí un distrito en el mapa
         </Typography>
-        <Chip
-          size="small"
-          icon={<MapOutlinedIcon sx={{ fontSize: "0.9rem !important" }} />}
-          label={
-            distritoActivoId != null
-              ? distritoNombre ?? `Distrito ${distritoActivoId}`
-              : "Elegí en el mapa →"
-          }
-          color={distritoActivoId != null ? "primary" : "default"}
-          variant={distritoActivoId != null ? "filled" : "outlined"}
-          sx={{
-            height: 26,
-            fontFamily: tactic,
-            fontSize: "0.72rem",
-            fontWeight: 700,
-            maxWidth: "100%",
-          }}
-        />
-      </Stack>
-
-      <PlanificacionTipoFilterChips
-        metricas={metricas}
-        cardActiva={cardActiva}
-        onCardChange={onCardChange}
-        loading={metricasLoading}
-        disabled={distritoActivoId == null && metricas == null}
-      />
-
-      <Stack spacing={0.75}>
-        <PlanificacionRubroSelect
-          value={rubroId}
-          onChange={setRubroId}
-          disabled={candidatosLoading || distritoActivoId == null}
-        />
-        <TextField
-          size="small"
-          fullWidth
-          label="Buscar domicilio"
-          placeholder="Calle o número"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleFiltrarCandidatos()}
-          disabled={distritoActivoId == null}
-          sx={planificacionTextFieldSx}
-        />
-        <Stack direction="row" spacing={1} alignItems="center" sx={filterCompactActionsSx}>
-          <AppButton
-            dsVariant="ghost"
-            dsSize="sm"
-            onClick={handleLimpiarCandidatos}
-            disabled={candidatosLoading}
-            sx={filterCompactSecondaryButtonSx}
-          >
-            Limpiar
-          </AppButton>
-          <AppButton
-            dsVariant="primary"
-            dsSize="sm"
-            onClick={handleFiltrarCandidatos}
-            disabled={candidatosLoading || distritoActivoId == null}
-            sx={filterCompactPrimaryButtonSx}
-          >
-            Buscar
-          </AppButton>
-        </Stack>
-      </Stack>
-
-      {sidebarTab === "urgentes" && onFiltrarUrgentes && onLimpiarUrgentes ? (
-        <UrgentesFiltroPanel
-          onFiltrar={onFiltrarUrgentes}
-          onLimpiar={onLimpiarUrgentes}
-          loading={urgentesLoading}
-        />
       ) : null}
 
-      <PlanificacionActiveFiltersChips
-        distritoActivoId={distritoActivoId}
-        distritoNombre={distritoNombre}
-        cardActiva={cardActiva}
-        filtrosCandidatos={filtrosAplicados}
-        rubroNombre={rubroNombre}
-        urgentesFiltros={urgentesFiltros}
-        showUrgentesFilters={sidebarTab === "urgentes"}
+      {isTotalMapa ? (
+        <PlanificacionTipoFilterChips
+          variant="totalMapa"
+          metricas={metricas}
+          cardActiva={cardActiva}
+          onCardChange={onCardChange}
+          loading={metricasLoading}
+          disabled={distritoActivoId == null && metricas == null}
+        />
+      ) : (
+        <PlanificacionTipoFilterChips
+          variant="urgentes"
+          urgenteTipoActivo={urgenteTipo}
+          onUrgenteTipoChange={handleUrgenteTipoChange}
+          disabled={urgentesLoading}
+        />
+      )}
+
+      <PlanificacionRubroSelect
+        value={isTotalMapa ? rubroId : urgenteRubroId}
+        onChange={isTotalMapa ? setRubroId : setUrgenteRubroId}
+        disabled={(isTotalMapa ? candidatosLoading : urgentesLoading) || (isTotalMapa && distritoActivoId == null)}
       />
+
+      <TextField
+        size="small"
+        fullWidth
+        label="Buscar domicilio o referencia"
+        placeholder="Calle, número o referencia"
+        value={isTotalMapa ? q : urgenteQ}
+        onChange={(e) => (isTotalMapa ? setQ(e.target.value) : setUrgenteQ(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+          if (isTotalMapa) handleFiltrarCandidatos();
+          else handleFiltrarUrgentes();
+        }}
+        disabled={isTotalMapa ? distritoActivoId == null : urgentesLoading}
+        sx={planificacionTextFieldSx}
+      />
+
+      <Stack direction="row" spacing={1} alignItems="center" sx={filterCompactActionsSx}>
+        <AppButton
+          dsVariant="ghost"
+          dsSize="sm"
+          onClick={isTotalMapa ? handleLimpiarCandidatos : handleLimpiarUrgentes}
+          disabled={isTotalMapa ? candidatosLoading : urgentesLoading}
+          sx={filterCompactSecondaryButtonSx}
+        >
+          Limpiar
+        </AppButton>
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
+          onClick={isTotalMapa ? handleFiltrarCandidatos : handleFiltrarUrgentes}
+          disabled={
+            isTotalMapa
+              ? candidatosLoading || distritoActivoId == null
+              : urgentesLoading
+          }
+          sx={filterCompactPrimaryButtonSx}
+        >
+          Buscar
+        </AppButton>
+      </Stack>
     </Stack>
   );
 }

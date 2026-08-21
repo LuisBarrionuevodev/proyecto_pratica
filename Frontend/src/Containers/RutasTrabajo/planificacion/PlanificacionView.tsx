@@ -1,28 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, Grid } from "@mui/material";
 
-import type { IRutaIniciadorPendienteRow, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
+import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import {
   usePlanificacionController,
   type PlanificacionPoolControl,
 } from "./hooks/usePlanificacionController";
 
-import { AppButton } from "../../../ui";
-import { RutaResumenHeaderCard, rutaResumenHeaderAccionButtonSx } from "../Components/RutaResumenHeaderCard";
-import { estadoRutaVisible, turnoLabel } from "../utils/rutaResumenLabels";
 import { PlanificacionMapaDistritos } from "./PlanificacionMapaDistritos";
+import { PlanificacionPoolCardsStrip } from "./PlanificacionPoolCardsStrip";
 import { PlanificacionSidebarPanel } from "./PlanificacionSidebarPanel";
 import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
-import { PLANIFICACION_MY_MAPS_HEIGHT } from "./planificacionMyMapsLayout";
+import { buildPlanificacionUsedMarkers } from "./utils/buildPlanificacionUsedMarkers";
+import {
+  buildPlanificacionPoolStripItems,
+  countPlanificacionPoolStripItems,
+} from "./utils/buildPlanificacionPoolStripItems";
+import { planificacionMainAreaSx } from "./planificacionMyMapsLayout";
 
 export type PlanificacionViewProps = {
   ruta: IRutaTrabajo;
   rutaId: number;
+  grupos: IRutaGrupoMin[];
+  itemsActivos: IRutaItemMin[];
   onError: (msg: string) => void;
-  /** Vuelve a la prepantalla (lista de borradores / crear ruta). */
-  onVolverAElegirRuta: () => void;
-  onContinuarAsignacion: () => void;
   /** Pool del día compartido con Asignación (estado elevado al contenedor del módulo). */
   poolControl: PlanificacionPoolControl;
 };
@@ -43,13 +44,13 @@ function distritoIdRow(row: IRutaIniciadorPendienteRow): number | null {
 export function PlanificacionView({
   ruta,
   rutaId,
+  grupos,
+  itemsActivos,
   onError,
-  onVolverAElegirRuta,
-  onContinuarAsignacion,
   poolControl,
 }: PlanificacionViewProps) {
   const ctrl = usePlanificacionController({ rutaId, onError, poolControl });
-  const { agregarAlPool, agregandoIniciadorIds } = poolControl;
+  const { agregarAlPool, agregandoIniciadorIds, quitarDelPool, poolLoading } = poolControl;
 
   const distritoNombreActivo = useMemo(() => {
     if (ctrl.distritoActivoId == null) return null;
@@ -64,12 +65,8 @@ export function PlanificacionView({
     return ctrl.rubroNombrePorId(ctrl.filtros.rubro_id);
   }, [ctrl.filtros.rubro_id, ctrl.rubroNombrePorId]);
 
-  const handleContinuar = useCallback(() => {
-    onContinuarAsignacion();
-  }, [onContinuarAsignacion]);
-
-  const [mapPopupRow, setMapPopupRow] = useState<IRutaIniciadorPendienteRow | null>(null);
   const [mapFocusIniciadorId, setMapFocusIniciadorId] = useState<number | null>(null);
+  const [mapPopupRow, setMapPopupRow] = useState<IRutaIniciadorPendienteRow | null>(null);
   const [mapFlyToRow, setMapFlyToRow] = useState<IRutaIniciadorPendienteRow | null>(null);
   const [mapPopupOpenNonce, setMapPopupOpenNonce] = useState(0);
   const [pendingVerEnMapaRow, setPendingVerEnMapaRow] = useState<IRutaIniciadorPendienteRow | null>(null);
@@ -231,57 +228,79 @@ export function PlanificacionView({
       ? ctrl.loading.metricas || ctrl.loading.metricasInicial
       : ctrl.loading.pendientesContexto;
 
+  const candidatosByIniciadorId = useMemo(() => {
+    const map: Record<number, IRutaIniciadorPendienteRow> = { ...poolControl.poolRowsById };
+    for (const row of ctrl.pendientesParaMapa) {
+      map[row.id] = row;
+    }
+    return map;
+  }, [poolControl.poolRowsById, ctrl.pendientesParaMapa]);
+
+  const usedMarkers = useMemo(
+    () =>
+      buildPlanificacionUsedMarkers({
+        poolItems: poolControl.poolBackendItems,
+        grupos,
+        itemsActivos,
+        poolRowsById: poolControl.poolRowsById,
+        candidatosByIniciadorId,
+        distritoActivoId: ctrl.distritoActivoId,
+      }),
+    [
+      poolControl.poolBackendItems,
+      poolControl.poolRowsById,
+      grupos,
+      itemsActivos,
+      candidatosByIniciadorId,
+      ctrl.distritoActivoId,
+    ]
+  );
+
+  const poolStripItems = useMemo(
+    () =>
+      buildPlanificacionPoolStripItems({
+        poolItems: poolControl.poolBackendItems,
+        grupos,
+        itemsActivos,
+        poolRowsById: poolControl.poolRowsById,
+        candidatosByIniciadorId,
+      }),
+    [poolControl.poolBackendItems, poolControl.poolRowsById, grupos, itemsActivos, candidatosByIniciadorId]
+  );
+
+  const poolStripCounts = useMemo(() => countPlanificacionPoolStripItems(poolStripItems), [poolStripItems]);
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", minWidth: 0 }}>
-      <RutaResumenHeaderCard
-        title="Resumen de ruta"
-        chips={[
-          ...(estadoRutaVisible(ruta.estado_ruta)
-            ? [{ key: "estado", label: estadoRutaVisible(ruta.estado_ruta)!, variant: "estado" as const }]
-            : []),
-          { key: "fecha", label: ruta.fecha },
-          { key: "turno", label: turnoLabel(ruta.turno) },
-        ]}
-        actions={
-          <>
-            <AppButton
-              dsVariant="secondary"
-              dsSize="md"
-              fullWidth
-              startIcon={<ArrowBackIcon />}
-              onClick={onVolverAElegirRuta}
-              sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 600 }}
-            >
-              Elegir otra ruta
-            </AppButton>
-            <AppButton
-              dsVariant="primary"
-              dsSize="md"
-              fullWidth
-              onClick={handleContinuar}
-              sx={{ ...rutaResumenHeaderAccionButtonSx, fontWeight: 700 }}
-            >
-              Continuar a asignación
-            </AppButton>
-          </>
-        }
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+        width: "100%",
+        minWidth: 0,
+        flex: 1,
+        minHeight: 0,
+      }}
+      data-testid="planificacion-view"
+    >
+      <PlanificacionPoolCardsStrip
+        ruta={ruta}
+        items={poolStripItems}
+        enPool={poolStripCounts.enPool}
+        enGrupo={poolStripCounts.enGrupo}
+        loading={poolLoading}
+        onQuitarDelPool={quitarDelPool}
       />
 
       <Grid
         container
         spacing={2}
-        sx={{
-          alignItems: "stretch",
-          minHeight: 480,
-          maxHeight: PLANIFICACION_MY_MAPS_HEIGHT,
-          minWidth: 0,
-        }}
+        sx={planificacionMainAreaSx}
         data-testid="planificacion-my-maps-layout"
       >
-        <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+        <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, height: "100%" }}>
           <PlanificacionSidebarPanel
             distritoActivoId={ctrl.distritoActivoId}
-            distritoNombre={distritoNombreActivo}
             metricas={ctrl.metricasVisibles}
             metricasLoading={metricasLoading}
             cardActiva={ctrl.cardActiva}
@@ -305,14 +324,10 @@ export function PlanificacionView({
             urgentesFiltros={ctrl.urgentesFiltrosAplicados}
             onFiltrarUrgentes={ctrl.aplicarFiltrosUrgentes}
             onLimpiarUrgentes={ctrl.limpiarFiltrosUrgentes}
-            poolItems={ctrl.poolBackendItems}
-            poolLoading={poolControl.poolLoading}
-            onQuitarPool={poolControl.quitarDelPool}
-            onContinuarAsignacion={handleContinuar}
           />
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 8 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+        <Grid size={{ xs: 12, lg: 8 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, height: "100%" }}>
           <PlanificacionMapaDistritos
             cargaPorDistrito={ctrl.cargaPorDistrito}
             distritoCatalogo={ctrl.distritoCatalogo}
@@ -330,6 +345,7 @@ export function PlanificacionView({
             onAgregarDesdeMapa={handleAgregarDesdeMapa}
             poolIniciadorIds={poolControl.poolIniciadorIds}
             agregandoIniciadorIds={agregandoIniciadorIds}
+            usedMarkers={usedMarkers}
           />
         </Grid>
       </Grid>

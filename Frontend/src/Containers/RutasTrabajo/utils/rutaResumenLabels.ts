@@ -28,3 +28,17 @@ export function fechaRutaLegible(fecha: string | null | undefined): string {
     return fecha;
   }
 }
+
+/** Línea «Borrador · 2026-08-19 · Mañana · …» para paneles operativos. */
+export function buildRutaContextoLine(
+  ruta: { estado_ruta?: string; fecha?: string; turno?: string },
+  suffix?: string | null
+): string {
+  const parts = [
+    estadoRutaVisible(ruta.estado_ruta),
+    ruta.fecha?.trim() || null,
+    ruta.turno ? turnoLabel(ruta.turno) : null,
+    suffix?.trim() || null,
+  ].filter(Boolean) as string[];
+  return parts.length > 0 ? parts.join(" · ") : "—";
+}

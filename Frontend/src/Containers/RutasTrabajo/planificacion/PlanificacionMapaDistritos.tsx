@@ -11,7 +11,10 @@ import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { ICargaDistritoRow } from "./types/planificacion.types";
 import { enrichPlanificacionDistritosGeoJson } from "./utils/mergePlanificacionDistritosGeo";
 import { PlanificacionMapaDistritoLabelsLayer } from "./PlanificacionMapaDistritoLabelsLayer";
+import { PlanificacionMapaLegend } from "./PlanificacionMapaLegend";
 import { PlanificacionMapaPendientesLayer } from "./PlanificacionMapaPendientesLayer";
+import { PlanificacionMapaUsedLayer } from "./PlanificacionMapaUsedLayer";
+import type { PlanificacionUsedMarker } from "./utils/buildPlanificacionUsedMarkers";
 
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -49,6 +52,8 @@ export type PlanificacionMapaDistritosProps = {
   /** Ids en pool (mapa deshabilita “Agregar” si ya está). */
   poolIniciadorIds?: number[];
   agregandoIniciadorIds?: ReadonlySet<number>;
+  /** Pines rojos de iniciadores ya agregados (pool / grupo). */
+  usedMarkers?: PlanificacionUsedMarker[];
 };
 
 /**
@@ -77,6 +82,7 @@ export function PlanificacionMapaDistritos({
   },
   poolIniciadorIds = [],
   agregandoIniciadorIds,
+  usedMarkers = [],
 }: PlanificacionMapaDistritosProps) {
   const geoData = useMemo(() => {
     const base = distritosGeoRaw as FeatureCollection;
@@ -120,7 +126,7 @@ export function PlanificacionMapaDistritos({
   const mapKey = `${distritoActivoId ?? "none"}-${geoData.features.length}-${distritoCatalogo.length}`;
 
   return (
-    <Box sx={{ position: "relative", width: "100%", minWidth: 0 }}>
+    <Box sx={{ position: "relative", width: "100%", minWidth: 0, height: "100%", minHeight: 0 }}>
       {loadingCatalogo && distritoCatalogo.length === 0 ? (
         <Box
           sx={{
@@ -142,13 +148,13 @@ export function PlanificacionMapaDistritos({
             borderRadius: 2,
             overflow: "hidden",
             border: `1px solid ${GLASS_COLORS.borderMedium}`,
-            height: "min(48vh, 420px)",
+            height: "100%",
             minHeight: 280,
             "& .leaflet-container": {
               fontFamily: tactic,
               background: "#1a1d22",
             },
-            "& .leaflet-div-icon.planif-leaflet-pin, & .leaflet-div-icon.planif-leaflet-distrito-num": {
+            "& .leaflet-div-icon.planif-leaflet-pin, & .leaflet-div-icon.planif-leaflet-distrito-num, & .leaflet-div-icon.planif-leaflet-used-pin": {
               background: "transparent !important",
               border: "none !important",
             },
@@ -218,7 +224,12 @@ export function PlanificacionMapaDistritos({
                 onAgregar={onAgregarDesdeMapa}
               />
             </Pane>
+            <Pane name="planif-used-pane" style={{ zIndex: 660 }}>
+              <PlanificacionMapaUsedLayer markers={usedMarkers} visible={distritoActivoId != null} />
+            </Pane>
           </MapContainer>
+
+          <PlanificacionMapaLegend />
 
           <Stack
             spacing={0.5}

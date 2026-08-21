@@ -105,6 +105,8 @@ export function iniciadorPendienteDesdeItemMin(item: IRutaItemMin): IRutaIniciad
     prorroga_texto: item.prorroga_texto ?? null,
     badges: item.badges,
     identificadores: item.identificadores,
+    lat: item.lat ?? null,
+    lng: item.lng ?? null,
   };
 }
 

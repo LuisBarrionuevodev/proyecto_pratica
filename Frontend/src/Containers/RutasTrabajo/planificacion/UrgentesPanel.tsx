@@ -89,7 +89,7 @@ export function UrgentesPanel({
         </Box>
       ) : null}
 
-      <Box className="planificacion-list-body" sx={listViewportSx}>
+      <Box className="planificacion-list-body" data-testid="planificacion-sidebar-flex-list" sx={listViewportSx}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />

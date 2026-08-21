@@ -31,3 +31,20 @@ export function planificacionPendientePinIcon(priority: PrioridadCat, focused: b
     popupAnchor: [0, -h + 4],
   });
 }
+
+/** Pin redondo rojo para iniciadores ya agregados a la ruta (pool / grupo). */
+export function planificacionUsedPinIcon(focused = false): L.DivIcon {
+  const size = focused ? 18 : 14;
+  const html = `<div style="
+    width:${size}px;height:${size}px;border-radius:50%;
+    background:#d32f2f;border:2px solid rgba(255,255,255,0.92);
+    box-shadow:0 2px 6px rgba(0,0,0,0.45);
+  "></div>`;
+  return L.divIcon({
+    className: "planif-leaflet-used-pin",
+    html,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2 + 2)],
+  });
+}

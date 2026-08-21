@@ -16,23 +16,21 @@ describe("OPER-RUTA.7C — layout My Maps planificación", () => {
     expect(view).not.toContain("planificacionUrgentesSlotSx");
   });
 
-  it("sidebar panel integra filtros, tabs y acciones rápidas", () => {
+  it("sidebar panel integra filtros y tabs 7C.1", () => {
     const sidebar = read("src/Containers/RutasTrabajo/planificacion/PlanificacionSidebarPanel.tsx");
     expect(sidebar).toContain("PlanificacionFiltrosBar");
-    expect(sidebar).toContain("Candidatos");
+    expect(sidebar).toContain("Total mapa");
     expect(sidebar).toContain("Urgentes");
-    expect(sidebar).toContain("Pool");
-    expect(sidebar).toContain("Resumen");
-    expect(sidebar).toContain('data-testid="planificacion-continuar-asignacion"');
     expect(sidebar).toContain('variant="embedded"');
+    expect(sidebar).not.toContain("PoolDelDiaPanel");
+    expect(sidebar).not.toContain("planificacion-continuar-asignacion");
   });
 
-  it("filtros bar muestra distrito, tipo, rubro y búsqueda", () => {
+  it("filtros bar muestra tipo, rubro y búsqueda compacta", () => {
     const filtros = read("src/Containers/RutasTrabajo/planificacion/PlanificacionFiltrosBar.tsx");
     expect(filtros).toContain("PlanificacionTipoFilterChips");
     expect(filtros).toContain("PlanificacionRubroSelect");
-    expect(filtros).toContain("Buscar domicilio");
-    expect(filtros).toContain("PlanificacionActiveFiltersChips");
+    expect(filtros).toContain("Buscar domicilio o referencia");
   });
 
   it("paneles soportan variant embedded sin duplicar paper", () => {
