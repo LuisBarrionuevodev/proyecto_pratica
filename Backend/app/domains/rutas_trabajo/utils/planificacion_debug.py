@@ -102,3 +102,13 @@ def medir_oper_ruta_7d(tag: str, **campos_base) -> Iterator[dict]:
     finally:
         stats["total_ms"] = int((time.perf_counter() - t0) * 1000)
         log_oper_ruta_7d(tag, **stats)
+
+
+def log_oper_ruta_m4_relev_debug(**campos) -> None:
+    """
+    Emite ``[OPER_RUTA_M4_RELEV_DEBUG]`` si debug está habilitado (7B hotfix relevamientos).
+    """
+    if not planificacion_debug_habilitado():
+        return
+    parts = " ".join(f"{k}={v}" for k, v in campos.items())
+    logger.warning("[OPER_RUTA_M4_RELEV_DEBUG] %s", parts)

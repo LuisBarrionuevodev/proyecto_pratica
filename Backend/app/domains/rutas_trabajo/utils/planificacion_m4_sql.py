@@ -6,14 +6,16 @@ Filtros server-side: pool/ruta activa (NOT EXISTS) y distrito por domicilio efec
 
 from __future__ import annotations
 
-from sqlalchemy import and_, case, exists, func, or_, select
+from sqlalchemy import and_, case, exists, func, literal, or_, select
 from sqlalchemy.orm import Query, aliased
 
 from app.models import (
     Actuaciones,
     Comprobacion,
     Denuncia,
+    Distrito,
     Domicilio,
+    DomicilioGeocode,
     IniciadorRuta,
     Notificacion,
     Oficio,
@@ -119,6 +121,64 @@ def _act_comp_domicilio_scalar(oficio_alias: Oficio):
     )
 
 
+def _punto_geom_desde_geocode(geo_alias: DomicilioGeocode):
+    """WKT POINT(lng lat) desde fila geocode (misma convención que resolve_distrito_id)."""
+    point_wkt = func.concat(
+        literal("POINT("),
+        geo_alias.lng,
+        literal(" "),
+        geo_alias.lat,
+        literal(")"),
+    )
+    return func.ST_GeomFromText(point_wkt, 4326)
+
+
+def _distrito_contiene_punto_geocode(geo_alias: DomicilioGeocode, distrito_id: int):
+    """
+    EXISTS: el punto geocode cae dentro del polígono del distrito.
+
+    Replica ``resolve_distrito_id`` cuando ``domicilio.distrito_id`` aún es NULL
+    (path legacy M4 hacía backfill antes del filtro; 7B optimizado no).
+    """
+    point_geom = _punto_geom_desde_geocode(geo_alias)
+    swapped = func.ST_SwapXY(Distrito.geom)
+    return exists(
+        select(literal(1))
+        .select_from(Distrito)
+        .where(
+            Distrito.id == int(distrito_id),
+            Distrito.geom.isnot(None),
+            or_(
+                func.ST_Contains(swapped, point_geom),
+                func.ST_Intersects(swapped, point_geom),
+            ),
+        )
+        .correlate(geo_alias)
+    )
+
+
+def _filtro_distrito_efectivo_clause(dom_efectivo, geo_efectivo, distrito_id: int):
+    """
+    Coincide con path legacy M4:
+    - ``domicilio.distrito_id == distrito`` cuando FK está persistida;
+    - si FK es NULL pero hay geocode OK, resuelve por polígono (como backfill + mapa geo).
+    """
+    fk_match = dom_efectivo.distrito_id == int(distrito_id)
+    geo_ok = and_(
+        geo_efectivo.domicilio_id.isnot(None),
+        geo_efectivo.deleted_at.is_(None),
+        geo_efectivo.geo_status == "OK",
+        geo_efectivo.lat.isnot(None),
+        geo_efectivo.lng.isnot(None),
+    )
+    spatial_match = and_(
+        dom_efectivo.distrito_id.is_(None),
+        geo_ok,
+        _distrito_contiene_punto_geocode(geo_efectivo, int(distrito_id)),
+    )
+    return or_(fk_match, spatial_match)
+
+
 def apply_joins_y_filtro_distrito_efectivo(query: Query, distrito_id: int) -> Query:
     """
     Joins para domicilio efectivo (PR5) y filtro ``distrito_id`` en SQL.
@@ -133,6 +193,8 @@ def apply_joins_y_filtro_distrito_efectivo(query: Query, distrito_id: int) -> Qu
     den = aliased(Denuncia)
     act_ini = aliased(Actuaciones)
     ofi = aliased(Oficio)
+
+    geo_efectivo = aliased(DomicilioGeocode)
 
     act_notif_dom = _act_notif_domicilio_scalar()
     act_comp_dom = _act_comp_domicilio_scalar(ofi)
@@ -200,6 +262,16 @@ def apply_joins_y_filtro_distrito_efectivo(query: Query, distrito_id: int) -> Qu
         .outerjoin(ofi, ofi.id == IniciadorRuta.oficio_id)
         .outerjoin(dom_origen, dom_origen.id == origen_dom_id)
         .outerjoin(dom_efectivo, dom_efectivo.id == effective_dom_id)
-        .filter(dom_efectivo.distrito_id == int(distrito_id))
+        .outerjoin(
+            geo_efectivo,
+            and_(
+                geo_efectivo.domicilio_id == dom_efectivo.id,
+                geo_efectivo.deleted_at.is_(None),
+                geo_efectivo.geo_status == "OK",
+                geo_efectivo.lat.isnot(None),
+                geo_efectivo.lng.isnot(None),
+            ),
+        )
+        .filter(_filtro_distrito_efectivo_clause(dom_efectivo, geo_efectivo, int(distrito_id)))
     )
     return query
