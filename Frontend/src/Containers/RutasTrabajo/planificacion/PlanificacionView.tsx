@@ -244,7 +244,6 @@ export function PlanificacionView({
         itemsActivos,
         poolRowsById: poolControl.poolRowsById,
         candidatosByIniciadorId,
-        distritoActivoId: ctrl.distritoActivoId,
       }),
     [
       poolControl.poolBackendItems,
@@ -252,7 +251,6 @@ export function PlanificacionView({
       grupos,
       itemsActivos,
       candidatosByIniciadorId,
-      ctrl.distritoActivoId,
     ]
   );
 

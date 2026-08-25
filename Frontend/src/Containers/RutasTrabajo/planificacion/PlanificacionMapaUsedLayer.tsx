@@ -8,15 +8,13 @@ const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type PlanificacionMapaUsedLayerProps = {
   markers: PlanificacionUsedMarker[];
-  visible?: boolean;
 };
 
 /**
  * Capa de pines rojos para iniciadores ya agregados a la ruta (pool / grupo).
+ * Siempre visible cuando hay markers (OPER-RUTA.FUNCIONAL-2A).
  */
-export function PlanificacionMapaUsedLayer({ markers, visible = true }: PlanificacionMapaUsedLayerProps) {
-  if (!visible) return null;
-
+export function PlanificacionMapaUsedLayer({ markers }: PlanificacionMapaUsedLayerProps) {
   return (
     <>
       {markers.map((m) => (

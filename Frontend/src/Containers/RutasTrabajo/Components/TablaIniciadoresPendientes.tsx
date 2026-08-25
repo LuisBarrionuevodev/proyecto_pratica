@@ -24,6 +24,7 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect } from "../../../ui";
+import { RutasOperativaChip } from "./RutasOperativaChip";
 import {
   asignacionFiltroInputSlotSx,
   planificacionPanelFooterMetaSx,
@@ -180,7 +181,7 @@ function IniciadoresPoolTableMrt({
         <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
           {totalEnPool} en pool · {rows.length} visibles
         </Typography>
-        <Chip label={`${nSel} seleccionados`} color="primary" variant="filled" size="small" />
+        <RutasOperativaChip label={`${nSel} seleccionados`} color="primary" />
         {onEliminarDelPool ? (
           <AppButton
             dsVariant="danger"

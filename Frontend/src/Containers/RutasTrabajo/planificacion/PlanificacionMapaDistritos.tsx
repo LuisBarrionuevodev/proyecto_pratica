@@ -225,7 +225,7 @@ export function PlanificacionMapaDistritos({
               />
             </Pane>
             <Pane name="planif-used-pane" style={{ zIndex: 660 }}>
-              <PlanificacionMapaUsedLayer markers={usedMarkers} visible={distritoActivoId != null} />
+              <PlanificacionMapaUsedLayer markers={usedMarkers} />
             </Pane>
           </MapContainer>
 

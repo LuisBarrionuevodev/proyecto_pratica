@@ -43,26 +43,18 @@ function resolveCoords(
   return parseLatLng(primary) ?? (fallback ? parseIniciadorLatLng(fallback) : null);
 }
 
-function matchesDistrito(
-  distritoId: number | null | undefined,
-  distritoActivoId: number | null | undefined
-): boolean {
-  if (distritoActivoId == null) return true;
-  if (distritoId == null) return true;
-  return distritoId === distritoActivoId;
-}
-
 export type BuildPlanificacionUsedMarkersInput = {
   poolItems: IRutaPoolDiaRow[];
   grupos: IRutaGrupoMin[];
   itemsActivos: IRutaItemMin[];
   poolRowsById?: Record<number, IRutaIniciadorPendienteRow>;
   candidatosByIniciadorId?: Record<number, IRutaIniciadorPendienteRow>;
-  distritoActivoId?: number | null;
 };
 
 /**
  * Pines rojos de iniciadores ya agregados a la ruta (pool / grupo), deduplicados con prioridad grupo.
+ *
+ * Visibilidad territorial independiente del distrito activo del mapa (OPER-RUTA.FUNCIONAL-2A).
  */
 export function buildPlanificacionUsedMarkers({
   poolItems,
@@ -70,7 +62,6 @@ export function buildPlanificacionUsedMarkers({
   itemsActivos,
   poolRowsById = {},
   candidatosByIniciadorId = {},
-  distritoActivoId = null,
 }: BuildPlanificacionUsedMarkersInput): PlanificacionUsedMarker[] {
   const byId = new Map<number, PlanificacionUsedMarker>();
   const grupoById = new Map(grupos.map((g) => [g.id, g]));
@@ -78,7 +69,6 @@ export function buildPlanificacionUsedMarkers({
   for (const pool of poolItems) {
     const iniId = resolveIniciadorId(pool);
     if (iniId == null) continue;
-    if (!matchesDistrito(pool.distrito_id, distritoActivoId)) continue;
 
     const fallback = poolRowsById[iniId] ?? candidatosByIniciadorId[iniId];
     const coords = resolveCoords(pool, fallback);
@@ -98,7 +88,6 @@ export function buildPlanificacionUsedMarkers({
   for (const item of itemsActivos) {
     const iniId = item.iniciador_ruta_id;
     if (!iniId) continue;
-    if (!matchesDistrito(item.distrito_id, distritoActivoId)) continue;
 
     const fallback = poolRowsById[iniId] ?? candidatosByIniciadorId[iniId];
     const coords = resolveCoords(item, fallback);
