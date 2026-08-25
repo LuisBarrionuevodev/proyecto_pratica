@@ -29,6 +29,7 @@ import {
   planificacionPanelFooterMetaSx,
   planificacionTextFieldSx,
   rutasAsignacionNeutralContainedButtonSx,
+  rutasOperativaChipSx,
 } from "../styles/institutionalVisual";
 
 const TIPO_INICIADOR_OPTIONS = [
@@ -182,17 +183,11 @@ function IniciadoresPoolTableMrt({
         <Chip label={`${nSel} seleccionados`} color="primary" variant="filled" size="small" />
         {onEliminarDelPool ? (
           <AppButton
-            dsVariant="primary"
+            dsVariant="danger"
             dsSize="sm"
             disabled={!puedeEliminar || eliminandoPool}
             onClick={() => void handleEliminarDelPool()}
             data-testid="asignacion-eliminar-del-pool"
-            sx={{
-              bgcolor: "error.main",
-              color: "error.contrastText",
-              "&:hover": { bgcolor: "error.dark" },
-              "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
-            }}
           >
             {eliminandoPool ? "Eliminando…" : "Eliminar del pool"}
           </AppButton>
@@ -232,13 +227,18 @@ function IniciadoresPoolTableMrt({
                 <Chip
                   label={prioridad.label}
                   size="small"
+                  variant="outlined"
                   sx={{
+                    ...rutasOperativaChipSx,
                     alignSelf: "flex-start",
-                    fontSize: "10px",
-                    height: 20,
+                    height: 24,
                     backgroundColor: prioridad.bg,
                     color: prioridad.color,
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    borderColor: prioridad.color,
+                    "& .MuiChip-label": {
+                      fontWeight: 700,
+                      color: prioridad.color,
+                    },
                   }}
                 />
               ) : (

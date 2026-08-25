@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   Divider,
   MenuItem,
   Paper,
@@ -19,6 +18,7 @@ import type {
   IRutaItemMin,
 } from "../../../api/rutasTrabajoApi";
 import { AppButton } from "../../../ui";
+import { RutasOperativaChip } from "./RutasOperativaChip";
 import { MIN_INSPECTORES_POR_GRUPO_PUBLICAR } from "../utils/rutaPublicarReadiness";
 import {
   asignacionItemOtTextFieldRootSx,
@@ -210,12 +210,10 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             {grupo.nombre}
           </Typography>
-          <Stack direction="row" spacing={0.75} sx={{ mt: 0.5 }}>
-            <Chip size="small" label={`${groupItems.length} items`} color="primary" variant="outlined" />
-            <Chip
-              size="small"
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+            <RutasOperativaChip label={`${groupItems.length} items`} color="primary" />
+            <RutasOperativaChip
               label={`${grupo.inspectores.length} inspectores`}
-              variant="outlined"
               color={grupo.inspectores.length < MIN_INSPECTORES_POR_GRUPO_PUBLICAR ? "warning" : "default"}
             />
           </Stack>
@@ -330,12 +328,12 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
           {detalle}
         </Typography>
       ) : null}
-      <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }} alignItems="center" flexWrap="wrap">
+      <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }} alignItems="center" flexWrap="wrap" useFlexGap>
         <Typography variant="caption" color="text.secondary">
           {distritoNombre ? `${rubro} · ${distritoNombre}` : rubro}
         </Typography>
-        <Chip label={tipoLabel} size="small" variant="outlined" />
-        <Chip label={otUi.chipLabel} size="small" color={otUi.chipColor} variant="outlined" />
+        <RutasOperativaChip label={tipoLabel} />
+        <RutasOperativaChip label={otUi.chipLabel} color={otUi.chipColor} />
       </Stack>
       <Stack
         direction={{ xs: "column", sm: "row" }}

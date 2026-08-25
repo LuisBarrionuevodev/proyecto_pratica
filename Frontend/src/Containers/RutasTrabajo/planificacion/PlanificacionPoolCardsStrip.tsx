@@ -1,9 +1,10 @@
-import { Box, Chip, Paper, Stack, Typography } from "@mui/material";
+import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui";
 import { RutaContextoLine } from "../Components/RutaContextoLine";
+import { RutasOperativaChip } from "../Components/RutasOperativaChip";
 import { planificacionPanelTitleSx, rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
 import type { PlanificacionPoolStripItem } from "./utils/buildPlanificacionPoolStripItems";
 
@@ -99,19 +100,11 @@ export function PlanificacionPoolCardsStrip({
               data-testid={`planificacion-pool-card-${item.iniciadorId}`}
               sx={{ ...cardSx, scrollSnapAlign: "start" }}
             >
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
-                <Chip
-                  size="small"
-                  label={item.tipoLabel}
-                  variant="outlined"
-                  sx={{ height: 20, fontSize: "0.625rem", borderColor: GLASS_COLORS.borderLight }}
-                />
-                <Chip
-                  size="small"
+              <Stack direction="row" spacing={0.7} flexWrap="wrap" useFlexGap alignItems="center">
+                <RutasOperativaChip label={item.tipoLabel} />
+                <RutasOperativaChip
                   label={item.estadoLabel}
                   color={item.estado === "grupo" ? "primary" : "default"}
-                  variant="outlined"
-                  sx={{ height: 20, fontSize: "0.625rem" }}
                 />
               </Stack>
               <Typography
@@ -149,7 +142,7 @@ export function PlanificacionPoolCardsStrip({
                   {item.grupoNombre ? ` · ${item.grupoNombre}` : ""}
                 </Typography>
                 {item.puedeQuitar && item.poolId != null && onQuitarDelPool ? (
-                  <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void onQuitarDelPool(item.poolId!)}>
+                  <AppButton dsVariant="danger" dsSize="sm" onClick={() => void onQuitarDelPool(item.poolId!)}>
                     Quitar
                   </AppButton>
                 ) : null}

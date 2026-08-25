@@ -286,3 +286,40 @@ export const asignacionItemRowNeutralButtonSx: SxProps<Theme> = {
   px: 2,
   fontSize: "0.875rem",
 };
+
+/**
+ * Chip operativo unificado (tipos, estados, métricas) — referencia visual Asignación.
+ * Conservar `color` de MUI para semántica; la geometría y tipografía son compartidas.
+ */
+export const rutasOperativaChipSx: SxProps<Theme> = {
+  height: 24,
+  maxWidth: "100%",
+  fontFamily: TACTIC,
+  fontSize: "0.6875rem",
+  fontWeight: 700,
+  borderRadius: "8px",
+  "& .MuiChip-label": {
+    px: 0.85,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: 240,
+  },
+  "&.MuiChip-outlined": {
+    borderColor: GLASS_COLORS.borderMedium,
+    color: GLASS_COLORS.textSecondary,
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  "&.MuiChip-outlined.MuiChip-colorPrimary": {
+    borderColor: "rgba(1, 102, 255, 0.45)",
+    color: GLASS_COLORS.textPrimary,
+  },
+  "&.MuiChip-outlined.MuiChip-colorSuccess": {
+    borderColor: "rgba(76, 175, 80, 0.45)",
+  },
+  "&.MuiChip-outlined.MuiChip-colorWarning": {
+    borderColor: "rgba(255, 193, 7, 0.45)",
+  },
+};

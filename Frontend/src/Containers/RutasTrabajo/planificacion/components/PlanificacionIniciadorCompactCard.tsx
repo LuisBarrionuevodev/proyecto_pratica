@@ -1,9 +1,10 @@
-import { Box, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
 import { AppButton } from "../../../../ui";
+import { RutasOperativaChip } from "../../Components/RutasOperativaChip";
 import {
   abrirUbicacionEnMapaExterno,
   distritoNombrePendiente,
@@ -91,36 +92,9 @@ export function PlanificacionIniciadorCompactCard({
       }}
     >
       <Stack spacing={0.65}>
-        <Stack direction="row" alignItems="center" flexWrap="wrap" useFlexGap spacing={0.5}>
-          <Chip
-            size="small"
-            label={cat}
-            variant="outlined"
-            sx={{
-              height: 22,
-              fontFamily: tactic,
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              ...chipPrioridadSx(cat),
-            }}
-          />
-          <Chip
-            size="small"
-            label={etiquetaTipoCorta(row)}
-            variant="outlined"
-            sx={{
-              height: 22,
-              maxWidth: "100%",
-              fontFamily: tactic,
-              fontSize: "0.65rem",
-              fontWeight: 600,
-              borderColor: GLASS_COLORS.borderMedium,
-              color: GLASS_COLORS.textSecondary,
-              backgroundColor: "rgba(255,255,255,0.03)",
-              "& .MuiChip-label": { px: 0.85, overflow: "hidden", textOverflow: "ellipsis" },
-            }}
-          />
+        <Stack direction="row" alignItems="center" flexWrap="wrap" useFlexGap spacing={0.7}>
+          <RutasOperativaChip label={cat} sx={chipPrioridadSx(cat)} />
+          <RutasOperativaChip label={etiquetaTipoCorta(row)} />
         </Stack>
         <Typography
           sx={{
