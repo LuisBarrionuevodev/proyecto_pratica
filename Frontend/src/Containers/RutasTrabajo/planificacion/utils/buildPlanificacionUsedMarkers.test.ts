@@ -16,7 +16,7 @@ function pool(overrides: Partial<IRutaPoolDiaRow> = {}): IRutaPoolDiaRow {
     domicilio_texto: "Calle 1",
     rubro_nombre: "Panadería",
     ...overrides,
-  } as IRutaPoolDiaRow;
+  };
 }
 
 const grupoA: IRutaGrupoMin = {

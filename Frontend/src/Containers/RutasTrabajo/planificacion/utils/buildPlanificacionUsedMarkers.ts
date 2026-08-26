@@ -36,11 +36,26 @@ function resolveIniciadorId(pool: IRutaPoolDiaRow): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-function resolveCoords(
-  primary: LatLngSource | null | undefined,
-  fallback?: IRutaIniciadorPendienteRow | null
+/**
+ * Prefiere la primera fuente con coordenadas válidas (pool propio > poolRowsById > candidatos M4).
+ */
+function resolveCoordsFromSources(
+  sources: Array<LatLngSource | IRutaIniciadorPendienteRow | null | undefined>
 ): { lat: number; lng: number } | null {
-  return parseLatLng(primary) ?? (fallback ? parseIniciadorLatLng(fallback) : null);
+  for (const source of sources) {
+    if (!source) continue;
+    const coords = parseLatLng(source);
+    if (coords) return coords;
+  }
+  return null;
+}
+
+function pickFallbackRow(
+  iniId: number,
+  poolRowsById: Record<number, IRutaIniciadorPendienteRow>,
+  candidatosByIniciadorId: Record<number, IRutaIniciadorPendienteRow>
+): IRutaIniciadorPendienteRow | undefined {
+  return poolRowsById[iniId] ?? candidatosByIniciadorId[iniId];
 }
 
 export type BuildPlanificacionUsedMarkersInput = {
@@ -70,8 +85,8 @@ export function buildPlanificacionUsedMarkers({
     const iniId = resolveIniciadorId(pool);
     if (iniId == null) continue;
 
-    const fallback = poolRowsById[iniId] ?? candidatosByIniciadorId[iniId];
-    const coords = resolveCoords(pool, fallback);
+    const fallback = pickFallbackRow(iniId, poolRowsById, candidatosByIniciadorId);
+    const coords = resolveCoordsFromSources([pool, poolRowsById[iniId], candidatosByIniciadorId[iniId]]);
     if (!coords) continue;
 
     byId.set(iniId, {
@@ -89,8 +104,8 @@ export function buildPlanificacionUsedMarkers({
     const iniId = item.iniciador_ruta_id;
     if (!iniId) continue;
 
-    const fallback = poolRowsById[iniId] ?? candidatosByIniciadorId[iniId];
-    const coords = resolveCoords(item, fallback);
+    const fallback = pickFallbackRow(iniId, poolRowsById, candidatosByIniciadorId);
+    const coords = resolveCoordsFromSources([item, poolRowsById[iniId], candidatosByIniciadorId[iniId]]);
     if (!coords) continue;
 
     const grupo = grupoById.get(item.ruta_grupo_id);

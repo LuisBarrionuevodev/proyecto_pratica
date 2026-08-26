@@ -127,6 +127,27 @@ def _numeric_to_float(value: Decimal | float | int | None) -> float | None:
     return float(value)
 
 
+def domicilio_geocode_campos(dom: Domicilio | None) -> dict[str, float | str | None]:
+    """
+    Extrae lat/lng/geo_status desde domicilio → geocode.
+
+    Misma regla operativa que M4 e ítems de ruta: ambos coords deben existir en geocode.
+    """
+    lat: float | None = None
+    lng: float | None = None
+    geo_status: str | None = None
+    if dom:
+        gc = dom.geocode
+        if gc:
+            geo_status = str(gc.geo_status) if gc.geo_status is not None else None
+            la = _numeric_to_float(gc.lat)
+            ln = _numeric_to_float(gc.lng)
+            if la is not None and ln is not None:
+                lat = la
+                lng = ln
+    return {"lat": lat, "lng": lng, "geo_status": geo_status}
+
+
 def _rubro_nombre_para_iniciador(
     iniciador: IniciadorRuta | None,
     dom: Domicilio | None,
@@ -196,14 +217,10 @@ def _ruta_item_ubicacion_y_geo(item: RutaItem) -> dict:
         distrito_nombre = dom.distrito.nombre if dom.distrito else None
         rubro_nombre = _rubro_nombre_para_iniciador(ini, dom)
 
-        gc = dom.geocode
-        if gc:
-            geo_status = str(gc.geo_status) if gc.geo_status is not None else None
-            la = _numeric_to_float(gc.lat)
-            ln = _numeric_to_float(gc.lng)
-            if la is not None and ln is not None:
-                lat = la
-                lng = ln
+        geo = domicilio_geocode_campos(dom)
+        lat = geo["lat"]
+        lng = geo["lng"]
+        geo_status = geo["geo_status"]
 
     establecimiento = _establecimiento_campos_relevamiento(ini)
     return {
@@ -612,18 +629,10 @@ def iniciador_pendiente_to_row(iniciador: IniciadorRuta) -> dict:
     distrito_id = dom.distrito_id if dom else None
     distrito_nombre = dom.distrito.nombre if dom and dom.distrito else None
 
-    lat: float | None = None
-    lng: float | None = None
-    geo_status: str | None = None
-    if dom:
-        gc = dom.geocode
-        if gc:
-            geo_status = str(gc.geo_status) if gc.geo_status is not None else None
-            la = _numeric_to_float(gc.lat)
-            ln = _numeric_to_float(gc.lng)
-            if la is not None and ln is not None:
-                lat = la
-                lng = ln
+    geo = domicilio_geocode_campos(dom)
+    lat = geo["lat"]
+    lng = geo["lng"]
+    geo_status = geo["geo_status"]
 
     operativo = iniciador_operativo_campos(iniciador)
 

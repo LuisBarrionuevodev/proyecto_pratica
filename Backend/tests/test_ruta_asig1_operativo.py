@@ -17,6 +17,7 @@ from app.models import (
     Comprobacion,
     Denuncia,
     Domicilio,
+    DomicilioGeocode,
     Expediente,
     IniciadorRuta,
     Notificacion,
@@ -257,5 +258,91 @@ def test_pool_row_dict_incluye_tipo_iniciador_real(app_ctx) -> None:
         assert row["tipo_iniciador"] == "DENUNCIA"
         assert row["tipo_iniciador_label"] == "Denuncia"
         assert row["prioridad"] == 2
+    finally:
+        db.session.rollback()
+
+
+def test_pool_row_dict_incluye_geocode_desde_domicilio(app_ctx) -> None:
+    """OPER-RUTA.FUNCIONAL-2A.1 — pool expone lat/lng/geo_status como M4 e ítems de ruta."""
+    try:
+        u = _mk_user()
+        dom = Domicilio(calle=f"PoolGeo{_unique_num()}", numero="42")
+        db.session.add(dom)
+        db.session.flush()
+        geo = DomicilioGeocode(
+            domicilio_id=dom.id,
+            lat=-26.8245,
+            lng=-65.2223,
+            geo_status="OK",
+        )
+        db.session.add(geo)
+        db.session.flush()
+        ini = IniciadorRuta(
+            tipo_iniciador="DENUNCIA",
+            estado_iniciador="PENDIENTE",
+            fecha_origen=date.today(),
+            anio=2026,
+            mes=8,
+            domicilio_id=dom.id,
+            prioridad=2,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ini)
+        db.session.flush()
+        pool = RutaPoolDia(
+            fecha=date.today(),
+            estado="EN_POOL",
+            origen_tipo="INICIADOR",
+            iniciador_ruta_id=ini.id,
+            domicilio_id=dom.id,
+            usuario_id=u.id,
+        )
+        db.session.add(pool)
+        db.session.flush()
+        db.session.refresh(pool)
+
+        row = ruta_pool_dia_row_dict(pool)
+        assert row["lat"] == pytest.approx(-26.8245)
+        assert row["lng"] == pytest.approx(-65.2223)
+        assert row["geo_status"] == "OK"
+    finally:
+        db.session.rollback()
+
+
+def test_pool_row_dict_sin_geocode_expone_nulls(app_ctx) -> None:
+    """OPER-RUTA.FUNCIONAL-2A.1 — domicilio sin geocode no inventa ubicación."""
+    try:
+        u = _mk_user()
+        dom = Domicilio(calle=f"PoolSinGeo{_unique_num()}", numero="1")
+        db.session.add(dom)
+        db.session.flush()
+        ini = IniciadorRuta(
+            tipo_iniciador="DENUNCIA",
+            estado_iniciador="PENDIENTE",
+            fecha_origen=date.today(),
+            anio=2026,
+            mes=8,
+            domicilio_id=dom.id,
+            prioridad=1,
+            created_by_user_id=u.id,
+        )
+        db.session.add(ini)
+        db.session.flush()
+        pool = RutaPoolDia(
+            fecha=date.today(),
+            estado="EN_POOL",
+            origen_tipo="INICIADOR",
+            iniciador_ruta_id=ini.id,
+            domicilio_id=dom.id,
+            usuario_id=u.id,
+        )
+        db.session.add(pool)
+        db.session.flush()
+        db.session.refresh(pool)
+
+        row = ruta_pool_dia_row_dict(pool)
+        assert row["lat"] is None
+        assert row["lng"] is None
+        assert row["geo_status"] is None
     finally:
         db.session.rollback()

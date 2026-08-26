@@ -48,6 +48,10 @@ export interface IRutaPoolDiaRow extends IIniciadorOperativoCampos {  pool_id: n
   ruta_estado?: string | null;
   puede_agregar_a_ruta?: boolean;
   motivo_bloqueo?: string | null;
+  /** Geocodificación del domicilio efectivo (OPER-RUTA.FUNCIONAL-2A.1). */
+  lat?: number | null;
+  lng?: number | null;
+  geo_status?: string | null;
 }
 
 export interface ICreateRutaPoolDiaRequest {

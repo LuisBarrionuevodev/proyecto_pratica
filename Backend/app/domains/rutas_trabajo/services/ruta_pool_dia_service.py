@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 from app.database import db
 from app.domains.rutas_trabajo.presenters.ruta_presenters import (
     _build_domicilio_texto_desde_dom,
+    domicilio_geocode_campos,
     iniciador_operativo_campos,
 )
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
@@ -34,6 +35,7 @@ def _iniciador_operativo_joinedload_options():
     """Eager load de relaciones necesarias para detalle operativo en pool."""
     return (
         joinedload(RutaPoolDia.iniciador_ruta).options(
+            joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.geocode),
             joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),
             joinedload(IniciadorRuta.relevamiento).joinedload(Relevamiento.rubro),
             joinedload(IniciadorRuta.denuncia),
@@ -89,6 +91,7 @@ def ruta_pool_dia_row_dict(pool: RutaPoolDia) -> dict[str, Any]:
     domicilio_texto = _build_domicilio_texto_desde_dom(dom)
 
     operativo = iniciador_operativo_campos(iniciador)
+    geo = domicilio_geocode_campos(dom)
 
     return {
         "pool_id": pool.id,
@@ -114,6 +117,9 @@ def ruta_pool_dia_row_dict(pool: RutaPoolDia) -> dict[str, Any]:
         "created_at": pool.created_at.isoformat() if pool.created_at else None,
         "usuario_id": pool.usuario_id,
         "usuario_nombre": usuario_nombre,
+        "lat": geo["lat"],
+        "lng": geo["lng"],
+        "geo_status": geo["geo_status"],
         **operativo,
     }
 
@@ -167,6 +173,7 @@ def list_ruta_pool_dia(
         .options(
             *_iniciador_operativo_joinedload_options(),
             joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.distrito),
+            joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.geocode),
             joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.rubro),
             joinedload(RutaPoolDia.domicilio).joinedload(Domicilio.calle_catalogo),
             joinedload(RutaPoolDia.distrito),
