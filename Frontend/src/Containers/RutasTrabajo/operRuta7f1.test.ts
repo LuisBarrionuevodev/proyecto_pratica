@@ -49,7 +49,7 @@ describe("OPER-RUTA.7F.1 — sin refetch M4/M3 al mutar pool", () => {
   });
 
   it("expone refreshPendientesMapa para recarga manual de candidatos", () => {
-    expect(controllerSrc).toContain("refreshPendientesMapa: loadPendientesMapa");
+    expect(controllerSrc).toContain("refreshPendientesMapa: () => loadPendientesMapa({ forceRefresh: true })");
   });
 
   it("quitar item / eliminar grupo no toca planificación M3/M4", () => {

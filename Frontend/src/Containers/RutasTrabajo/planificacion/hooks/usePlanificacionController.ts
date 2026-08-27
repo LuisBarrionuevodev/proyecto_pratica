@@ -29,6 +29,13 @@ import type {
   PlanificacionFiltrosLista,
   UrgentesFiltrosAplicados,
 } from "../types/planificacion.types";
+import {
+  M4DistritoCache,
+  M4_MAP_MAX_PAGES,
+  M4_PAGE_MAP_CHUNK,
+  buildPoolRowsByIniciadorId,
+  invalidateM4CacheOnPoolRemoval,
+} from "../utils/m4DistritoCache";
 
 const FILTROS_VACIOS: PlanificacionFiltrosLista = {
   q: "",
@@ -44,10 +51,6 @@ const URGENTES_FILTROS_VACIOS: UrgentesFiltrosAplicados = {
 
 /** Tamaño de página de la lista “Pendientes del contexto”. */
 const M4_PAGE_LIST_SIZE = 25;
-/** Chunk M4 por request para armar el universo del mapa (tope API típico). */
-const M4_PAGE_MAP_CHUNK = 500;
-/** Tope de páginas M4 consecutivas para el mapa (evita bucles infinitos). */
-const M4_MAP_MAX_PAGES = 40;
 
 /**
  * Parámetros M4 para carga del mapa (solo distrito; filtros panel en cliente — STAB-10d).
@@ -328,26 +331,43 @@ export function usePlanificacionController({
   }, [distritoActivoId, loadMetricas]);
 
   const pendientesMapaReqSeq = useRef(0);
-  const lastDistritoLoadedRef = useRef<number | null>(null);
+  const m4DistritoCacheRef = useRef(new M4DistritoCache());
+  const poolSnapshotRef = useRef({
+    iniciadorIds: [] as number[],
+    rowsByIniciadorId: {} as Record<number, IRutaPoolDiaRow>,
+  });
 
   const loadPendientesMapa = useCallback(
-    async (opts?: { silent?: boolean }) => {
+    async (opts?: { silent?: boolean; forceRefresh?: boolean }) => {
       if (distritoActivoId == null) {
-        lastDistritoLoadedRef.current = null;
+        pendientesMapaReqSeq.current += 1;
         setPendientesMapaRaw([]);
         setLoading((s) => ({ ...s, pendientesContexto: false }));
         return;
       }
-      if (lastDistritoLoadedRef.current !== distritoActivoId) {
-        lastDistritoLoadedRef.current = distritoActivoId;
-        setPendientesMapaRaw([]);
+
+      const distritoId = distritoActivoId;
+      const cache = m4DistritoCacheRef.current;
+
+      if (!opts?.forceRefresh) {
+        const cached = cache.get(distritoId);
+        if (cached) {
+          pendientesMapaReqSeq.current += 1;
+          setPendientesMapaRaw(cached.rows);
+          setLoading((s) => ({ ...s, pendientesContexto: false }));
+          return;
+        }
+      } else {
+        cache.delete(distritoId);
       }
+
+      setPendientesMapaRaw([]);
       const seq = ++pendientesMapaReqSeq.current;
       if (!opts?.silent) {
         setLoading((s) => ({ ...s, pendientesContexto: true }));
       }
       try {
-        const base = buildM4QueryBase(distritoActivoId);
+        const base = buildM4QueryBase(distritoId);
         const merged = new Map<number, IRutaIniciadorPendienteRow>();
         let page = 1;
         let totalReported = 0;
@@ -374,7 +394,13 @@ export function usePlanificacionController({
             `Hay ${totalReported} pendientes en contexto; en el mapa se cargaron ${merged.size} (límite de volumen). Use filtros para acotar o revise la lista paginada.`
           );
         }
-        setPendientesMapaRaw(Array.from(merged.values()));
+        const rows = Array.from(merged.values());
+        setPendientesMapaRaw(rows);
+        cache.set(distritoId, {
+          rows,
+          totalReported,
+          fetchedAt: Date.now(),
+        });
       } catch (e: unknown) {
         if (seq !== pendientesMapaReqSeq.current) return;
         const ax = e as { response?: { data?: { detail?: string; errors?: unknown } } };
@@ -389,6 +415,20 @@ export function usePlanificacionController({
     },
     [distritoActivoId, rutaId]
   );
+
+  useEffect(() => {
+    const prev = poolSnapshotRef.current;
+    invalidateM4CacheOnPoolRemoval(
+      m4DistritoCacheRef.current,
+      prev.iniciadorIds,
+      poolIniciadorIds,
+      prev.rowsByIniciadorId
+    );
+    poolSnapshotRef.current = {
+      iniciadorIds: [...poolIniciadorIds],
+      rowsByIniciadorId: buildPoolRowsByIniciadorId(poolBackendItems),
+    };
+  }, [poolIniciadorIds, poolBackendItems]);
 
   useEffect(() => {
     setListaContextoPage(1);
@@ -456,7 +496,7 @@ export function usePlanificacionController({
     pendientesParaMapa,
     pendientesMeta,
     loadPendientesContextoPage,
-    refreshPendientesMapa: loadPendientesMapa,
+    refreshPendientesMapa: () => loadPendientesMapa({ forceRefresh: true }),
     loading,
     distritoCatalogo,
     loadingDistritoCatalogo,

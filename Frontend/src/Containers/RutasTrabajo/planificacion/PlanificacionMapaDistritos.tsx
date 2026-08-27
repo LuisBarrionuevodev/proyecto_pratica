@@ -123,7 +123,7 @@ export function PlanificacionMapaDistritos({
     };
   };
 
-  const mapKey = `${distritoActivoId ?? "none"}-${geoData.features.length}-${distritoCatalogo.length}`;
+  const geoJsonKey = `${geoData.features.length}-${distritoCatalogo.length}`;
 
   return (
     <Box sx={{ position: "relative", width: "100%", minWidth: 0, height: "100%", minHeight: 0 }}>
@@ -193,7 +193,7 @@ export function PlanificacionMapaDistritos({
           <MapContainer center={TUCUMAN_CENTER} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
             <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
             <GeoJSON
-              key={mapKey}
+              key={geoJsonKey}
               data={geoData}
               style={styleFn as L.StyleFunction}
               onEachFeature={(feature, layer) => {
