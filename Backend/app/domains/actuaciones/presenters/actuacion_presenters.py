@@ -962,6 +962,7 @@ def actuacion_to_grid_row(
         "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
         "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),
         "resultado_cumplimiento_oficio": _enum_to_str(getattr(act, "resultado_cumplimiento_oficio", None)),
+        "realizo_nueva_inspeccion": getattr(act, "realizo_nueva_inspeccion", None),
 
         "doc_nro": doc_nro,
         "contrib_apellido": contrib_apellido,

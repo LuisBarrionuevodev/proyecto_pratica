@@ -184,6 +184,30 @@ def _persist_resultado_cumplimiento_oficio(
     act.resultado_cumplimiento_oficio = val
 
 
+def _persist_realizo_nueva_inspeccion(
+    act: Actuaciones,
+    ini: IniciadorRuta,
+    payload: CompletarTrabajoCierreCompletoIn,
+) -> None:
+    """
+    Persiste ``realizo_nueva_inspeccion`` solo en flujo Verificar e informar.
+
+    Parámetros:
+        act: actuación del cierre.
+        ini: iniciador del ítem.
+        payload: body validado del cierre.
+
+    Retorno:
+        None (mutación in-place).
+    """
+    if not es_flujo_verificar_informar(ini.tipo_iniciador, payload.tipo_actuacion):
+        return
+    val = payload.realizo_nueva_inspeccion
+    if val is None:
+        return
+    act.realizo_nueva_inspeccion = bool(val)
+
+
 def _validar_payload_verificar_informar(
     ini: IniciadorRuta,
     payload: CompletarTrabajoCierreCompletoIn,
@@ -535,6 +559,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.domicilio_id = act.domicilio_id
 
         _persist_resultado_cumplimiento_oficio(act, ini, payload, bucket=bucket)
+        _persist_realizo_nueva_inspeccion(act, ini, payload)
 
         # 2) RutaItem + Iniciador
         item.observaciones_ejecucion = payload.observaciones_ejecucion

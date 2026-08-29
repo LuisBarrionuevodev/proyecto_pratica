@@ -242,6 +242,10 @@ export interface IPatchItemOtResponse {
   item: IRutaItemMin;
 }
 
+export interface IClearItemOtResponse {
+  item: IRutaItemMin;
+}
+
 export interface IPublicarRutaTrabajoResponse {
   ruta: IRutaTrabajo;
   items: IRutaItemMin[];
@@ -396,6 +400,17 @@ export const patchRutaItemOrdenTrabajo = async (
   const { data } = await apiClient.patch<IPatchItemOtResponse>(
     `/rutas-trabajo/${rutaId}/items/${itemId}/orden-trabajo`,
     payload
+  );
+  return data;
+};
+
+/** Libera la OT del ítem (orden_trabajo_id = null). No elimina la entidad OrdenTrabajo. */
+export const clearRutaItemOrdenTrabajo = async (
+  rutaId: number,
+  itemId: number
+): Promise<IClearItemOtResponse> => {
+  const { data } = await apiClient.delete<IClearItemOtResponse>(
+    `/rutas-trabajo/${rutaId}/items/${itemId}/orden-trabajo`
   );
   return data;
 };

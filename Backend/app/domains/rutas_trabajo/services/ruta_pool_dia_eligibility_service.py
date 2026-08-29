@@ -123,6 +123,24 @@ def assert_ruta_item_liberable_desde_grupo(item: RutaItem) -> None:
         raise RuntimeError(_MSG_ITEM_NO_LIBERABLE)
 
 
+_MSG_ITEM_SIN_OT = "El ítem no tiene una orden de trabajo asignada"
+
+
+def assert_ruta_item_ot_liberable(item: RutaItem) -> None:
+    """
+    Valida que un ítem BORRADOR pueda liberar su OT (desasociar FK sin quitar el ítem).
+
+    Errores:
+        RuntimeError: sin OT, actuación vinculada o ejecución REALIZADO.
+    """
+    if item.orden_trabajo_id is None:
+        raise RuntimeError(_MSG_ITEM_SIN_OT)
+    if item.actuacion_id is not None:
+        raise RuntimeError(_MSG_ITEM_NO_LIBERABLE)
+    if (item.estado_ejecucion or "").strip().upper() == "REALIZADO":
+        raise RuntimeError(_MSG_ITEM_NO_LIBERABLE)
+
+
 def infer_origen_tipo_para_iniciador(
     iniciador: IniciadorRuta,
     origen_tipo_solicitado: str | None,

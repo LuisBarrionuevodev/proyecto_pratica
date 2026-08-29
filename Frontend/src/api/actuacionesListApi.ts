@@ -28,8 +28,10 @@ export interface IActuacionListItem {
     contraproducencia: string | null;
     /** Flag explícito al corregir cierre operativo (borrar contraproducencia reencolada). */
     limpiar_contraproducencia?: boolean;
-    /** Presente en respuesta API (reinspección por oficio, etc.). */
-    resultado_cumplimiento_oficio?: string | null;
+  /** Presente en respuesta API (reinspección por oficio, etc.). */
+  resultado_cumplimiento_oficio?: string | null;
+  /** Verificar e informar: true/false; null en ratificaciones. */
+  realizo_nueva_inspeccion?: boolean | null;
     doc_nro: string | null;
     contrib_apellido: string | null;
     contrib_nombre: string | null;

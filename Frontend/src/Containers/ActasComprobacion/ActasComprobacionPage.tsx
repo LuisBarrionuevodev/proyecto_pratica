@@ -122,6 +122,17 @@ import {
 } from "./utils/buildOperativaComprobacionFiltroPayload";
 import { refreshComprobacionesPostOficio } from "./utils/refreshComprobacionesPostOficio";
 import {
+  clearPersistKeyIfMatch,
+  GESTION_PERSIST_OPS,
+  GESTION_RECONCILE_REFRESH_MSG,
+  invalidatePendingMutationCallbacks,
+  isMutationSeqCurrent,
+  isPersistingForRow,
+  nextMutationSeq,
+  runGestionReconcile,
+  type GestionPersistKey,
+} from "../../utils/gestionMutationLifecycle";
+import {
   notificacionEstadoOperativoChipColor,
 } from "../GestionNotificacion/utils/notificacionEstadoOperativo";
 import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
@@ -369,7 +380,11 @@ const ActasComprobacionPage = () => {
   const [modalExpError, setModalExpError] = useState<string | null>(null);
   const [expNumeroForm, setExpNumeroForm] = useState("");
   const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
-  const [savingExp, setSavingExp] = useState(false);
+  const [persistKey, setPersistKey] = useState<GestionPersistKey | null>(null);
+  const mutationSeqRef = useRef(0);
+  const selectedExpRef = useRef<IActuacionesPendientesItem | null>(null);
+  const selectedOficioRef = useRef<OficioOperativoRow | null>(null);
+  const tabRef = useRef<TabKey>(tab);
   const loadExpediente = useCallback(async (
     filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
     opts?: { silent?: boolean }
@@ -402,6 +417,8 @@ const ActasComprobacionPage = () => {
 
   const openModalExp = useCallback(
     (row: IActuacionesPendientesItem) => {
+      invalidatePendingMutationCallbacks(mutationSeqRef);
+      setPersistKey(null);
       setSelectedExp(row);
       setExpNumeroForm("");
       setExpFechaForm(defaultRange.hasta);
@@ -411,35 +428,21 @@ const ActasComprobacionPage = () => {
     [defaultRange.hasta]
   );
 
-  const closeModalExp = () => {
-    if (savingExp) return;
+  const dismissModalExp = useCallback(() => {
     setModalExpOpen(false);
     setSelectedExp(null);
-  };
-
-  const handleSaveExpediente = async () => {
-    if (!selectedExp) return;
-    if (!expNumeroForm.trim() || !expFechaForm) {
-      setModalExpError("Completá número y fecha del expediente de comprobación");
-      return;
-    }
-    setSavingExp(true);
     setModalExpError(null);
-    try {
-      const payload: ICreateExpedienteRequest = {
-        expediente_numero: expNumeroForm.trim(),
-        fecha_expediente: expFechaForm,
-        source_type: "COMPROBACION",
-      };
-      await createExpedienteDesdeActuacion(selectedExp.id, payload);
-      closeModalExp();
-      await refreshActiveBandeja();
-    } catch (err: unknown) {
-      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
-      setModalExpError(detail || "No se pudo añadir el expediente");
-    } finally {
-      setSavingExp(false);
-    }
+  }, []);
+
+  const modalExpPersisting = isPersistingForRow(
+    persistKey,
+    selectedExp?.id,
+    GESTION_PERSIST_OPS.compExpedienteSalida
+  );
+
+  const closeModalExp = () => {
+    if (modalExpPersisting) return;
+    dismissModalExp();
   };
 
   const columnsExpediente = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
@@ -547,9 +550,9 @@ const ActasComprobacionPage = () => {
   const [juzgados, setJuzgados] = useState<IJuzgadoCatalogItem[]>([]);
   const [selectedOficio, setSelectedOficio] = useState<OficioOperativoRow | null>(null);
   const [modalOficioOpen, setModalOficioOpen] = useState(false);
-  const [savingOficio, setSavingOficio] = useState(false);
   const [modalOficioError, setModalOficioError] = useState<string | null>(null);
   const [modalOficioFieldErrors, setModalOficioFieldErrors] = useState<Record<string, string>>({});
+  const [modalDocReconciling, setModalDocReconciling] = useState(false);
   const [modalDoc, setModalDoc] = useState<IComprobacionDocumentalResponse | null>(null);
   const [modalDocLoading, setModalDocLoading] = useState(false);
   const [modalDocError, setModalDocError] = useState<string | null>(null);
@@ -618,6 +621,8 @@ const ActasComprobacionPage = () => {
 
   const openModalOficio = useCallback(
     async (row: OficioOperativoRow) => {
+      invalidatePendingMutationCallbacks(mutationSeqRef);
+      setPersistKey(null);
       setSelectedOficio(row);
       setModalOficioError(null);
       setModalDoc(null);
@@ -649,6 +654,24 @@ const ActasComprobacionPage = () => {
       }
     },
     [loadOficiosForComprobacion]
+  );
+
+  useEffect(() => {
+    selectedExpRef.current = selectedExp;
+  }, [selectedExp]);
+
+  useEffect(() => {
+    selectedOficioRef.current = selectedOficio;
+  }, [selectedOficio]);
+
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
+
+  const modalOficioPersisting = isPersistingForRow(
+    persistKey,
+    selectedOficio?.id,
+    GESTION_PERSIST_OPS.compOficioAlta
   );
 
   useEffect(() => {
@@ -714,18 +737,23 @@ const ActasComprobacionPage = () => {
   ]);
 
   const closeModalOficio = () => {
-    if (savingOficio) return;
+    if (modalOficioPersisting) return;
+    dismissModalOficio();
+  };
+
+  const dismissModalOficio = useCallback(() => {
     setModalOficioOpen(false);
     setSelectedOficio(null);
     setModalDoc(null);
     setModalDocError(null);
     setModalDocLoading(false);
+    setModalDocReconciling(false);
     setModalOficios([]);
     setModalOficiosError(null);
     setModalOficiosLoading(false);
     setModalOficioError(null);
     setModalOficioFieldErrors({});
-  };
+  }, []);
 
   const columnsOficio = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
     () => [
@@ -929,6 +957,7 @@ const ActasComprobacionPage = () => {
     [loadExpediente, loadOficio, loadRein]
   );
 
+  /** Refresca solo la bandeja del slice activo (sin catálogos ni otras pestañas). */
   const refreshComprobacionesSlices = useCallback(async () => {
     await refreshComprobacionesPostOficio({
       filters: opAppliedRef.current,
@@ -955,16 +984,114 @@ const ActasComprobacionPage = () => {
     }
   }, [selectedOficio, loadOficiosForComprobacion]);
 
-  /** Refresca solo la bandeja del slice activo (sin catálogos ni otras pestañas). */
-  const refreshActiveBandeja = useCallback(async () => {
-    if (tab === "recorrido") return;
-    await refreshComprobacionesSlices();
-  }, [tab, refreshComprobacionesSlices]);
-
   const reloadOficioModalDocumental = useCallback(async () => {
     await refreshModalOficioData();
     await refreshComprobacionesSlices();
   }, [refreshModalOficioData, refreshComprobacionesSlices]);
+
+  /** Reconciliación de bandejas en background (todas silent). */
+  const reconcileComprobacionesSilent = useCallback(() => {
+    runGestionReconcile(
+      async () => {
+        if (tabRef.current === "recorrido") return;
+        await refreshComprobacionesPostOficio({
+          filters: opAppliedRef.current,
+          activeTab: tabRef.current,
+          invalidatePendientesTabs,
+          loadExpediente: (filters) => loadExpediente(filters, { silent: true }),
+          loadOficio: (filters) => loadOficio(filters, { silent: true }),
+          loadRein: (filters) => loadRein(filters, { silent: true }),
+        });
+      },
+      () => {
+        feedback.error(GESTION_RECONCILE_REFRESH_MSG);
+      }
+    );
+  }, [feedback, invalidatePendientesTabs, loadExpediente, loadOficio, loadRein]);
+
+  /** Tras alta de oficio: actualiza documental en modal sin bloquear persistencia. */
+  const reconcileOficioPostAlta = useCallback(
+    (actuacionId: number, seq: number) => {
+      setModalDocReconciling(true);
+      runGestionReconcile(
+        async () => {
+          try {
+            if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+            if (selectedOficioRef.current?.id !== actuacionId) return;
+            const doc = await fetchComprobacionDocumental(actuacionId);
+            if (!isMutationSeqCurrent(mutationSeqRef, seq) || selectedOficioRef.current?.id !== actuacionId) {
+              return;
+            }
+            setModalDoc(doc);
+            setModalDocError(null);
+            await loadOficiosForComprobacion(doc.comprobacion_id);
+            if (tabRef.current !== "recorrido") {
+              await refreshComprobacionesPostOficio({
+                filters: opAppliedRef.current,
+                activeTab: tabRef.current,
+                invalidatePendientesTabs,
+                loadExpediente: (filters) => loadExpediente(filters, { silent: true }),
+                loadOficio: (filters) => loadOficio(filters, { silent: true }),
+                loadRein: (filters) => loadRein(filters, { silent: true }),
+              });
+            }
+          } finally {
+            if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+              setModalDocReconciling(false);
+            }
+          }
+        },
+        () => {
+          if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+            setModalDocReconciling(false);
+          }
+          feedback.error(GESTION_RECONCILE_REFRESH_MSG);
+        }
+      );
+    },
+    [feedback, invalidatePendientesTabs, loadExpediente, loadOficio, loadRein, loadOficiosForComprobacion]
+  );
+
+  const handleSaveExpediente = useCallback(async () => {
+    if (!selectedExp) return;
+    if (!expNumeroForm.trim() || !expFechaForm) {
+      setModalExpError("Completá número y fecha del expediente de comprobación");
+      return;
+    }
+    const actuacionId = selectedExp.id;
+    const seq = nextMutationSeq(mutationSeqRef);
+    setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.compExpedienteSalida });
+    setModalExpError(null);
+    try {
+      const payload: ICreateExpedienteRequest = {
+        expediente_numero: expNumeroForm.trim(),
+        fecha_expediente: expFechaForm,
+        source_type: "COMPROBACION",
+      };
+      await createExpedienteDesdeActuacion(actuacionId, payload);
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+
+      setPersistKey((prev) =>
+        clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compExpedienteSalida)
+      );
+
+      if (selectedExpRef.current?.id === actuacionId && isMutationSeqCurrent(mutationSeqRef, seq)) {
+        dismissModalExp();
+      }
+
+      reconcileComprobacionesSilent();
+    } catch (err: unknown) {
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setModalExpError(detail || "No se pudo añadir el expediente");
+    } finally {
+      if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+        setPersistKey((prev) =>
+          clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compExpedienteSalida)
+        );
+      }
+    }
+  }, [selectedExp, expNumeroForm, expFechaForm, dismissModalExp, reconcileComprobacionesSilent]);
 
   const onReinBandejasActualizadas = useCallback(async () => {
     await refreshComprobacionesSlices();
@@ -986,11 +1113,13 @@ const ActasComprobacionPage = () => {
         setModalOficioError(null);
         return;
       }
-      setSavingOficio(true);
+      const actuacionId = selectedOficio.id;
+      const seq = nextMutationSeq(mutationSeqRef);
+      setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.compOficioAlta });
       setModalOficioError(null);
       setModalOficioFieldErrors({});
       try {
-        await createOficioDesdeActuacion(selectedOficio.id, {
+        await createOficioDesdeActuacion(actuacionId, {
           numero_oficio: payload.numero_oficio.trim(),
           fecha_oficio: payload.fecha_oficio,
           juzgado_id: Number(payload.juzgado_id),
@@ -998,20 +1127,27 @@ const ActasComprobacionPage = () => {
           numero_expediente_oficio: payload.numero_expediente_oficio.trim(),
           fecha_expediente_oficio: payload.fecha_expediente_oficio,
         });
+        if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+
+        setPersistKey((prev) => clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compOficioAlta));
+
         feedback.success("Oficio registrado correctamente.");
         setModalOficioError(null);
         setModalOficioFieldErrors({});
-        await refreshModalOficioData();
-        await refreshActiveBandeja();
+
+        reconcileOficioPostAlta(actuacionId, seq);
       } catch (err: unknown) {
+        if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
         const parsed = applyOficioAltaErrorsFromApi(err);
         setModalOficioFieldErrors(parsed.fieldErrors);
         setModalOficioError(parsed.globalMessage);
       } finally {
-        setSavingOficio(false);
+        if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+          setPersistKey((prev) => clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compOficioAlta));
+        }
       }
     },
-    [selectedOficio, refreshModalOficioData, refreshActiveBandeja, feedback]
+    [selectedOficio, feedback, reconcileOficioPostAlta]
   );
 
   const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
@@ -1907,7 +2043,7 @@ const ActasComprobacionPage = () => {
         expFecha={expFechaForm}
         onExpFechaChange={setExpFechaForm}
         modalApiError={modalExpError}
-        saving={savingExp}
+        saving={modalExpPersisting}
         onGuardar={handleSaveExpediente}
       />
 
@@ -1918,6 +2054,7 @@ const ActasComprobacionPage = () => {
         juzgados={juzgados}
         documental={modalDoc}
         documentalLoading={modalDocLoading}
+        documentalReconciling={modalDocReconciling}
         documentalError={modalDocError}
         oficios={modalOficios}
         oficiosLoading={modalOficiosLoading}
@@ -1926,7 +2063,7 @@ const ActasComprobacionPage = () => {
         defaultFechaAlta={defaultRange.hasta}
         modalApiError={modalOficioError}
         modalFieldErrors={modalOficioFieldErrors}
-        saving={savingOficio}
+        saving={modalOficioPersisting}
         onGuardarAlta={handleSaveOficio}
       />
 

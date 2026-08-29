@@ -584,5 +584,132 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).toContain("Motivos de notificación");
   });
 
+  it("reinspección por oficio genérica no muestra layout normal ni notificación editable", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "REINSPECCION",
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain('disabled=""');
+    expect(html).not.toContain("Motivos de notificación");
+    expect(html).not.toContain("Actas labradas");
+  });
+
+  it("ratificación clausura mantiene modo ratificación con circuito oficio", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "RATIFICACION DE CLAUSURA",
+          resultado_cumplimiento_oficio: "CUMPLE",
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Dio cumplimiento?");
+    expect(html).not.toContain("Motivos de notificación");
+    expect(html).toContain('disabled=""');
+  });
+
+  it("ratificación clausura con contra muestra campos de resultado operativo editables", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "RATIFICACION DE CLAUSURA",
+          contraproducencia: "NO SE RATIFICÓ",
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Dio cumplimiento?");
+  });
+
+  it("verificar e informar muestra pregunta de nueva inspección en edición", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "VERIFICAR E INFORMAR",
+          realizo_nueva_inspeccion: false,
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Realizó nueva inspección?");
+  });
+
+  it("verificar e informar sin actas persistidas no muestra bloque de actas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "VERIFICAR E INFORMAR",
+          acta_inspeccion_num: null,
+          acta_notificacion_num: null,
+          acta_comprobacion_num: null,
+          acta_clausura_num: null,
+          acta_decomiso_num: null,
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).not.toContain("Actas labradas");
+  });
+
 });
 

@@ -30,5 +30,6 @@ from . import completar_trabajo_cerrar  # noqa: E402,F401
 from . import completar_trabajo_detalle  # noqa: E402,F401
 from . import epicollect_import  # noqa: E402,F401
 from . import actas_quitar_canal_actas  # noqa: E402,F401
+from . import corregir_cierre_oficio  # noqa: E402,F401
 
 __all__ = ["actuacion"]

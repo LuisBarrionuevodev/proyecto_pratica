@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
-import {
-  createRutaPoolDia,
-  deleteRutaPoolDia,
-  listRutaPoolDia,
-  type IRutaPoolDiaRow,
-} from "../../../api/rutaPoolDiaApi";
+import { createRutaPoolDia, deleteRutaPoolDia, type IRutaPoolDiaRow } from "../../../api/rutaPoolDiaApi";
 import { parseApiError } from "../../../utils/parseApiError";
 import { buildPoolControlMaps } from "../utils/poolDiaDisplay";
+import { prunePoolItemsByIds } from "../utils/poolAssignSync";
+import { fetchRutaPoolDiaEnPoolAll } from "../utils/poolEnPoolList";
 
 export type UseRutaPoolDiaBackendParams = {
   fecha: string | null | undefined;
@@ -29,6 +26,8 @@ export type RutaPoolDiaBackendControl = {
   loading: boolean;
   agregandoIniciadorIds: ReadonlySet<number>;
   refreshPool: (fechaOverride?: string | null, opts?: RefreshPoolOptions) => Promise<void>;
+  /** Quita filas del snapshot local por pool_id (p. ej. tras agregar-desde-pool). */
+  prunePoolEntriesByIds: (poolIds: readonly number[]) => void;
   agregarAlPool: (row: IRutaIniciadorPendienteRow, fecha?: string) => Promise<void>;
   quitarDelPool: (poolId: number) => Promise<void>;
 };
@@ -54,32 +53,43 @@ export function useRutaPoolDiaBackend({
   const [loading, setLoading] = useState(false);
   const [agregandoIniciadorIds, setAgregandoIniciadorIds] = useState<Set<number>>(() => new Set());
   const agregandoRef = useRef<Set<number>>(new Set());
+  const refreshPoolReqSeq = useRef(0);
 
   const fechaOperativa = fecha?.trim() || null;
   const rutaIdOperativa =
     rutaTrabajoId != null && Number.isFinite(Number(rutaTrabajoId)) ? Number(rutaTrabajoId) : null;
 
+  const prunePoolEntriesByIds = useCallback((poolIds: readonly number[]) => {
+    if (poolIds.length === 0) return;
+    setPoolItems((prev) => prunePoolItemsByIds(prev, poolIds));
+  }, []);
+
   const refreshPool = useCallback(
     async (fechaOverride?: string | null, opts?: RefreshPoolOptions) => {
       const f = resolvePoolFechaConsulta(fechaOverride, fechaOperativa);
       if (!f) {
+        refreshPoolReqSeq.current += 1;
         setPoolItems([]);
         return;
       }
+      const seq = ++refreshPoolReqSeq.current;
       if (!opts?.silent) setLoading(true);
       try {
-        const resp = await listRutaPoolDia({
+        const items = await fetchRutaPoolDiaEnPoolAll({
           fecha: f,
           estado: "EN_POOL",
-          per_page: 100,
           ...(rutaIdOperativa != null ? { ruta_trabajo_id: rutaIdOperativa } : {}),
         });
-        setPoolItems(resp.items ?? []);
+        if (seq !== refreshPoolReqSeq.current) return;
+        setPoolItems(items);
       } catch (err) {
+        if (seq !== refreshPoolReqSeq.current) return;
         onError?.(parseApiError(err, "No se pudo cargar el pool del día.").message);
         setPoolItems([]);
       } finally {
-        if (!opts?.silent) setLoading(false);
+        if (seq === refreshPoolReqSeq.current && !opts?.silent) {
+          setLoading(false);
+        }
       }
     },
     [fechaOperativa, rutaIdOperativa, onError]
@@ -146,6 +156,7 @@ export function useRutaPoolDiaBackend({
     loading,
     agregandoIniciadorIds,
     refreshPool,
+    prunePoolEntriesByIds,
     agregarAlPool,
     quitarDelPool,
   };

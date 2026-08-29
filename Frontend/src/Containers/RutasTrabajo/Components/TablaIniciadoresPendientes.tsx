@@ -125,6 +125,11 @@ function IniciadoresPoolTableMrt({
   poolIdByIniciadorId,
   onEliminarDelPool,
 }: MrtProps) {
+  const rowsDisponibles = useMemo(
+    () => rows.filter((row) => !assignedIniciadorIds.has(row.id)),
+    [rows, assignedIniciadorIds]
+  );
+
   const rowSelection = useMemo<MRT_RowSelectionState>(
     () => Object.fromEntries(selectedIds.map((id) => [String(id), true])),
     [selectedIds]
@@ -179,7 +184,7 @@ function IniciadoresPoolTableMrt({
     return (
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
         <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
-          {totalEnPool} en pool · {rows.length} visibles
+          {totalEnPool} en pool · {rowsDisponibles.length} visibles
         </Typography>
         <RutasOperativaChip label={`${nSel} seleccionados`} color="primary" />
         {onEliminarDelPool ? (
@@ -200,7 +205,7 @@ function IniciadoresPoolTableMrt({
     );
   }, [
     totalEnPool,
-    rows.length,
+    rowsDisponibles.length,
     selectedIds,
     assignedIniciadorIds,
     onAssignSelected,
@@ -341,7 +346,7 @@ function IniciadoresPoolTableMrt({
     ...DARK_TABLE_CONFIG,
     ...ASIGNACION_INICIADORES_MRT_OPTIONS,
     columns,
-    data: rows,
+    data: rowsDisponibles,
     getRowId: getIniciadorPoolRowId,
 
     enableEditing: false,

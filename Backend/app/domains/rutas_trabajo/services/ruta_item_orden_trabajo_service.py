@@ -5,6 +5,9 @@ from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
+from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import (
+    assert_ruta_item_ot_liberable,
+)
 from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
     ruta_item_reserva_orden_trabajo,
     validar_orden_trabajo_disponible_para_publicar,
@@ -140,4 +143,68 @@ def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabaj
     )
     if not refreshed:
         raise LookupError("Item no encontrado para la ruta indicada")
+    return refreshed
+
+
+def liberar_orden_trabajo_on_item(*, ruta_id: int, item_id: int) -> RutaItem:
+    """
+    Desasocia la OT de un RutaItem activo en ruta BORRADOR (``orden_trabajo_id = NULL``).
+
+    No elimina la entidad ``OrdenTrabajo`` ni modifica grupo, pool ni iniciador.
+
+    Parámetros:
+        ruta_id: ruta BORRADOR dueña del ítem.
+        item_id: PK del ``RutaItem``.
+
+    Retorno:
+        ``RutaItem`` actualizado con ``orden_trabajo_id`` en null.
+
+    Errores:
+        LookupError: ruta o ítem inexistente / de otra ruta.
+        RuntimeError: ruta no BORRADOR, ítem sin OT, actuación o ejecución REALIZADO.
+    """
+    ruta = RutaTrabajo.query.get(ruta_id)
+    if not ruta:
+        raise LookupError("Ruta de trabajo no encontrada")
+    if ruta.estado_ruta != "BORRADOR":
+        raise RuntimeError("La ruta debe estar en BORRADOR")
+
+    item = (
+        RutaItem.query.filter(
+            RutaItem.id == item_id,
+            RutaItem.ruta_trabajo_id == ruta_id,
+            RutaItem.deleted_at.is_(None),
+        )
+        .options(joinedload(RutaItem.iniciador_ruta))
+        .first()
+    )
+    if not item:
+        raise LookupError("Item no encontrado para la ruta indicada")
+
+    assert_ruta_item_ot_liberable(item)
+
+    grupo_id = item.ruta_grupo_id
+    try:
+        item.orden_trabajo_id = None
+        db.session.add(item)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+    refreshed = (
+        RutaItem.query.filter(
+            RutaItem.id == item_id,
+            RutaItem.ruta_trabajo_id == ruta_id,
+            RutaItem.deleted_at.is_(None),
+        )
+        .options(
+            joinedload(RutaItem.orden_trabajo),
+            joinedload(RutaItem.iniciador_ruta).joinedload(IniciadorRuta.domicilio),
+        )
+        .first()
+    )
+    if not refreshed:
+        raise LookupError("Item no encontrado para la ruta indicada")
+    assert refreshed.ruta_grupo_id == grupo_id
     return refreshed

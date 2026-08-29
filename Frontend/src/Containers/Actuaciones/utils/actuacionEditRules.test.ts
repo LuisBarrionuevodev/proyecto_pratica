@@ -7,26 +7,27 @@ import {
   detectBlockedActaClearAttempt,
   getActuacionEditableFields,
   resolveActuacionEditStart,
+  resolveActuacionModoEdicion,
   tieneExpedienteBloqueoEdicion,
 } from "./actuacionEditRules";
 
 const baseRow = { id: 1 } as IActuacionListItem;
 
-describe("actuacionEditRules âÿÿ expediente", () => {
-  it("detecta bloqueo por notificaciÃ³n con expediente", () => {
+describe("actuacionEditRules ÿÿÿ expediente", () => {
+  it("detecta bloqueo por notificaci?n con expediente", () => {
     expect(tieneExpedienteBloqueoEdicion({ ...baseRow, notificacion_editable: false })).toBe(true);
   });
 
-  it("detecta bloqueo por comprobaciÃ³n con expediente", () => {
+  it("detecta bloqueo por comprobaci?n con expediente", () => {
     expect(tieneExpedienteBloqueoEdicion({ ...baseRow, comprobacion_editable: false })).toBe(true);
   });
 
-  it("permite ediciÃ³n sin expediente asociado", () => {
+  it("permite edici?n sin expediente asociado", () => {
     expect(tieneExpedienteBloqueoEdicion(baseRow)).toBe(false);
     expect(resolveActuacionEditStart(baseRow)).toEqual({ allowed: true });
   });
 
-  it("bloquea ediciÃ³n con mensaje estÃ¡ndar cuando hay expediente", () => {
+  it("bloquea edici?n con mensaje est?ndar cuando hay expediente", () => {
     const result = resolveActuacionEditStart({ ...baseRow, comprobacion_editable: false });
     expect(result).toEqual({
       allowed: false,
@@ -72,7 +73,7 @@ describe("getActuacionEditableFields", () => {
     expect(fields.domicilioEditBlockedReason).toBeNull();
   });
 
-  it("reinspeccion por oficio bloquea domicilio", () => {
+  it("reinspeccion por oficio bloquea domicilio y usa modo reinspeccion_oficio", () => {
     const fields = getActuacionEditableFields({
       ...baseRow,
       tipo_actuacion: "REINSPECCION",
@@ -81,6 +82,10 @@ describe("getActuacionEditableFields", () => {
         "La actuaci?n proviene de una reinspecci?n y el domicilio no puede modificarse.",
       documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
     });
+    expect(fields.modoEdicion).toBe("reinspeccion_oficio");
+    expect(fields.canEditContribuyente).toBe(false);
+    expect(fields.canEditNotificacion).toBe(false);
+    expect(fields.canEditActas).toBe(false);
     expect(fields.canEditDomicilio).toBe(false);
     expect(fields.domicilioEditBlockedReason).toBeTruthy();
   });
@@ -95,7 +100,7 @@ describe("getActuacionEditableFields", () => {
     expect(fields.canEditDomicilio).toBe(false);
   });
 
-  it("ratificaciÃ³n de decomiso no permite editar contribuyente", () => {
+  it("ratificaci?n de decomiso no permite editar contribuyente", () => {
     const fields = getActuacionEditableFields({
       ...baseRow,
       tipo_actuacion: "RATIFICACION_DECOMISO",
@@ -112,11 +117,83 @@ describe("getActuacionEditableFields", () => {
     expect(fields.modoEdicion).toBe("verificar_informar");
     expect(fields.canEditContribuyente).toBe(false);
     expect(fields.canEditDomicilio).toBe(false);
+    expect(fields.canEditActas).toBe(false);
+  });
+
+  it("verificar e informar con actas persistidas habilita bloque de actas", () => {
+    const fields = getActuacionEditableFields({
+      ...baseRow,
+      tipo_actuacion: "VERIFICAR E INFORMAR",
+      acta_inspeccion_num: "100/2026",
+    });
+    expect(fields.modoEdicion).toBe("verificar_informar");
+    expect(fields.canEditActas).toBe(true);
+  });
+});
+
+describe("resolveActuacionModoEdicion", () => {
+  it("REINSPECCION + circuito OFICIO resuelve reinspeccion_oficio y no normal", () => {
+    const row = {
+      ...baseRow,
+      tipo_actuacion: "REINSPECCION",
+      documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+    } as IActuacionListItem;
+    expect(resolveActuacionModoEdicion(row)).toBe("reinspeccion_oficio");
+    expect(resolveActuacionModoEdicion(row)).not.toBe("normal");
+  });
+
+  it("ratificaci?n clausura con circuito oficio sigue en modo ratificacion", () => {
+    expect(
+      resolveActuacionModoEdicion({
+        ...baseRow,
+        tipo_actuacion: "RATIFICACION DE CLAUSURA",
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      })
+    ).toBe("ratificacion");
+  });
+
+  it("ratificaci?n decomiso con circuito oficio sigue en modo ratificacion", () => {
+    expect(
+      resolveActuacionModoEdicion({
+        ...baseRow,
+        tipo_actuacion: "RATIFICACION DE DECOMISO",
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      })
+    ).toBe("ratificacion");
+  });
+
+  it("verificar e informar con circuito oficio sigue en modo verificar_informar", () => {
+    expect(
+      resolveActuacionModoEdicion({
+        ...baseRow,
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      })
+    ).toBe("verificar_informar");
+  });
+
+  it("reinspecci?n por notificaci?n no regresa a normal", () => {
+    expect(
+      resolveActuacionModoEdicion({
+        ...baseRow,
+        tipo_actuacion: "REINSPECCION",
+        documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+      })
+    ).toBe("reinspeccion_notificacion");
+  });
+
+  it("F5: resuelve solo desde datos del row sin estado previo", () => {
+    const rowSimulandoF5 = {
+      id: 99,
+      tipo_actuacion: "REINSPECCION",
+      documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: { oficio: "12/2026" } },
+    } as IActuacionListItem;
+    expect(resolveActuacionModoEdicion(rowSimulandoF5)).toBe("reinspeccion_oficio");
   });
 });
 
 describe("detectBlockedActaClearAttempt", () => {
-  it("detecta borrado de acta de notificaciÃ³n bloqueada", () => {
+  it("detecta borrado de acta de notificaci?n bloqueada", () => {
     const baseline = {
       ...baseRow,
       notificacion_editable: false,
@@ -126,7 +203,7 @@ describe("detectBlockedActaClearAttempt", () => {
     expect(detectBlockedActaClearAttempt(draft, baseline)).toBe(MENSAJE_BLOQUEO_ACTA_DOCUMENTACION);
   });
 
-  it("detecta borrado de acta de comprobaciÃ³n bloqueada", () => {
+  it("detecta borrado de acta de comprobaci?n bloqueada", () => {
     const baseline = {
       ...baseRow,
       comprobacion_editable: false,
@@ -136,4 +213,4 @@ describe("detectBlockedActaClearAttempt", () => {
     expect(detectBlockedActaClearAttempt(draft, baseline)).toBe(MENSAJE_BLOQUEO_ACTA_DOCUMENTACION);
   });
 });
-
+

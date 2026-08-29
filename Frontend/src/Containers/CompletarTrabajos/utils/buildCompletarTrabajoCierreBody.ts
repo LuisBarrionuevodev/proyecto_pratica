@@ -15,6 +15,9 @@ import {
   domicilioRowParaHidratacionCompletarTrabajo,
 } from "../../../utils/domicilioCalleUi";
 import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
+import {
+  esReinspeccionOficioPendienteSubtipo,
+} from "./completarTrabajoTipoIniciadorUi";
 
 export type CompletarTrabajoFormFields = {
   tipo_actuacion: string;
@@ -44,6 +47,23 @@ export type CompletarTrabajoFormFields = {
   acta_decomiso_num: string;
   decomiso_kilos_total: string;
 };
+
+export type ReinspeccionOficioTipoActuacionValidation =
+  | { ok: true }
+  | { ok: false; field: "tipo_actuacion"; message: string };
+
+/**
+ * Bloquea cierre de `REINSPECCION_OFICIO` sin subtipo de oficio elegido.
+ */
+export function validateReinspeccionOficioTipoActuacionRequired(
+  tipoIniciador: string | null | undefined,
+  tipoActuacion: string | null | undefined
+): ReinspeccionOficioTipoActuacionValidation {
+  if (!esReinspeccionOficioPendienteSubtipo(tipoIniciador, tipoActuacion)) {
+    return { ok: true };
+  }
+  return { ok: false, field: "tipo_actuacion", message: "Elegí el tipo de actuación." };
+}
 
 function s(v: string): string | undefined {
   const t = v.trim();

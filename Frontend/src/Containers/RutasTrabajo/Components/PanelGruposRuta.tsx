@@ -18,6 +18,8 @@ import type {
   IRutaItemMin,
 } from "../../../api/rutasTrabajoApi";
 import { AppButton } from "../../../ui";
+import { ConfirmDialog } from "../../../ui";
+import { useAppFeedback } from "../../../components/feedback/useAppFeedback";
 import { RutasOperativaChip } from "./RutasOperativaChip";
 import { MIN_INSPECTORES_POR_GRUPO_PUBLICAR } from "../utils/rutaPublicarReadiness";
 import {
@@ -47,6 +49,7 @@ interface Props {
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => Promise<void>;
   onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
+  onQuitarOtItem?: (item: IRutaItemMin) => Promise<boolean>;
 }
 
 type OtUiKind = "sin_guardar" | "pendiente_guardar" | "guardada";
@@ -117,6 +120,9 @@ type RutaGrupoItemRowProps = {
   onGuardarOt: (item: IRutaItemMin, otDraft: string) => void;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
+  onRequestQuitarOt?: (item: IRutaItemMin) => void;
+  canQuitarOt: boolean;
+  clearingThis: boolean;
   /** Error de guardado OT (p. ej. 409) mostrado bajo el campo en este ítem. */
   otInlineError?: string;
 };
@@ -144,8 +150,11 @@ type GrupoRutaSectionProps = {
   onGuardarOt: (item: IRutaItemMin, otDraft: string) => void;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
+  onRequestQuitarOt?: (item: IRutaItemMin) => void;
+  canQuitarOt: boolean;
   /** Mensaje de error inline por ítem (conflicto OT, etc.). */
   otInlineErrorByItem: Record<number, string>;
+  clearingItemIdInSection: number | null;
 };
 
 function grupoRutaSectionPropsAreEqual(prev: GrupoRutaSectionProps, next: GrupoRutaSectionProps): boolean {
@@ -164,6 +173,9 @@ function grupoRutaSectionPropsAreEqual(prev: GrupoRutaSectionProps, next: GrupoR
   if (prev.onGuardarOt !== next.onGuardarOt) return false;
   if (prev.onMoverItem !== next.onMoverItem) return false;
   if (prev.onQuitarItem !== next.onQuitarItem) return false;
+  if (prev.onRequestQuitarOt !== next.onRequestQuitarOt) return false;
+  if (prev.canQuitarOt !== next.canQuitarOt) return false;
+  if (prev.clearingItemIdInSection !== next.clearingItemIdInSection) return false;
   for (const it of prev.groupItems) {
     const id = it.id;
     if ((prev.otDraftForItem[id] ?? "") !== (next.otDraftForItem[id] ?? "")) return false;
@@ -194,7 +206,10 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
   onGuardarOt,
   onMoverItem,
   onQuitarItem,
+  onRequestQuitarOt,
+  canQuitarOt,
   otInlineErrorByItem,
+  clearingItemIdInSection,
 }: GrupoRutaSectionProps) {
   const accent = `hsl(${(grupo.id * 61) % 360} 75% 58%)`;
 
@@ -261,6 +276,7 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
             const otDraft = otDraftForItem[item.id] ?? "";
             const target = targetForItem[item.id] ?? "";
             const savingThis = savingItemIdInSection === item.id;
+            const clearingThis = clearingItemIdInSection === item.id;
             const otInlineError = otInlineErrorByItem[item.id];
             return (
               <RutaGrupoItemRow
@@ -270,7 +286,9 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
                 otDraft={otDraft}
                 target={target}
                 savingThis={savingThis}
+                clearingThis={clearingThis}
                 canMove={canMove}
+                canQuitarOt={canQuitarOt && item.orden_trabajo_id != null}
                 moveTargets={moveTargets}
                 otInlineError={otInlineError}
                 onOtDraftChange={onOtDraftChange}
@@ -278,6 +296,7 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
                 onGuardarOt={onGuardarOt}
                 onMoverItem={onMoverItem}
                 onQuitarItem={onQuitarItem}
+                onRequestQuitarOt={onRequestQuitarOt}
               />
             );
           })
@@ -293,7 +312,9 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
   otDraft,
   target,
   savingThis,
+  clearingThis,
   canMove,
+  canQuitarOt,
   moveTargets,
   otInlineError,
   onOtDraftChange,
@@ -301,9 +322,10 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
   onGuardarOt,
   onMoverItem,
   onQuitarItem,
+  onRequestQuitarOt,
 }: RutaGrupoItemRowProps) {
   const otUi = useMemo(() => otUiState(item, otDraft), [item, otDraft]);
-  const puedeGuardarOt = otDraft.trim().length > 0 && !savingThis;
+  const puedeGuardarOt = otDraft.trim().length > 0 && !savingThis && !clearingThis;
   const otErrorMsg = otInlineError?.trim() ?? "";
   const hasOtInlineError = Boolean(otErrorMsg);
 
@@ -380,6 +402,18 @@ const RutaGrupoItemRow = memo(function RutaGrupoItemRow({
         >
           {savingThis ? "Guardando…" : "Guardar OT"}
         </AppButton>
+        {canQuitarOt ? (
+          <AppButton
+            dsVariant="danger"
+            dsSize="md"
+            loading={clearingThis}
+            disabled={savingThis || clearingThis}
+            onClick={() => onRequestQuitarOt?.(item)}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" }, width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}
+          >
+            {clearingThis ? "Quitando…" : "QUITAR OT"}
+          </AppButton>
+        ) : null}
         <Box sx={{ width: { xs: "100%", sm: "auto" }, minWidth: { sm: 180 }, maxWidth: { sm: 280 }, flex: { sm: "0 0 auto" } }}>
           <TextField
             select
@@ -437,11 +471,18 @@ function PanelGruposRutaInner({
   onMoverItem,
   onQuitarItem,
   onGuardarOtItem,
+  onQuitarOtItem,
 }: Props) {
+  const feedback = useAppFeedback();
   const [targetByItem, setTargetByItem] = useState<Record<number, number | "">>({});
   const [expandedByGrupo, setExpandedByGrupo] = useState<Record<number, boolean>>({});
   const [otDraftByItem, setOtDraftByItem] = useState<Record<number, string>>({});
   const [savingOtItemId, setSavingOtItemId] = useState<number | null>(null);
+  const [clearingOtItemId, setClearingOtItemId] = useState<number | null>(null);
+  const [quitarOtPending, setQuitarOtPending] = useState<{
+    item: IRutaItemMin;
+    otLabel: string;
+  } | null>(null);
   /** Conflicto OT u otro 409: mensaje por `item.id`, solo en la card del ítem. */
   const [otInlineErrorByItem, setOtInlineErrorByItem] = useState<Record<number, string>>({});
 
@@ -539,6 +580,37 @@ function PanelGruposRutaInner({
     [onGuardarOtItem]
   );
 
+  const handleRequestQuitarOt = useCallback((item: IRutaItemMin) => {
+    const otLabel = (item.orden_trabajo?.numero_acta ?? "").trim() || String(item.orden_trabajo_id ?? "");
+    setQuitarOtPending({ item, otLabel });
+  }, []);
+
+  const handleConfirmQuitarOt = useCallback(async () => {
+    if (!onQuitarOtItem || !quitarOtPending) return;
+    const { item } = quitarOtPending;
+    setClearingOtItemId(item.id);
+    try {
+      const ok = await onQuitarOtItem(item);
+      if (ok) {
+        setOtDraftByItem((prev) => {
+          const next = { ...prev };
+          delete next[item.id];
+          return next;
+        });
+        setOtInlineErrorByItem((prev) => {
+          if (prev[item.id] == null) return prev;
+          const next = { ...prev };
+          delete next[item.id];
+          return next;
+        });
+        setQuitarOtPending(null);
+        feedback.success("Orden de trabajo quitada del ítem.");
+      }
+    } finally {
+      setClearingOtItemId((id) => (id === item.id ? null : id));
+    }
+  }, [feedback, onQuitarOtItem, quitarOtPending]);
+
   const toggleGrupoExpanded = useCallback((grupoId: number) => {
     setExpandedByGrupo((prev) => ({
       ...prev,
@@ -577,6 +649,8 @@ function PanelGruposRutaInner({
           }
           const savingItemIdInSection =
             savingOtItemId != null && groupItems.some((i) => i.id === savingOtItemId) ? savingOtItemId : null;
+          const clearingItemIdInSection =
+            clearingOtItemId != null && groupItems.some((i) => i.id === clearingOtItemId) ? clearingOtItemId : null;
 
           return (
             <GrupoRutaSection
@@ -586,11 +660,13 @@ function PanelGruposRutaInner({
               expanded={expanded}
               moveTargets={moveTargets}
               canMove={canMove}
+              canQuitarOt={Boolean(onQuitarOtItem)}
               iniciadorById={iniciadorById}
               otDraftForItem={otDraftForItem}
               targetForItem={targetForItem}
               otInlineErrorByItem={otInlineErrorByItem}
               savingItemIdInSection={savingItemIdInSection}
+              clearingItemIdInSection={clearingItemIdInSection}
               onToggleExpanded={toggleGrupoExpanded}
               onEditarInspectores={onEditarInspectores}
               onEliminarGrupo={onEliminarGrupo}
@@ -599,10 +675,27 @@ function PanelGruposRutaInner({
               onGuardarOt={handleGuardarOt}
               onMoverItem={onMoverItem}
               onQuitarItem={onQuitarItem}
+              onRequestQuitarOt={onQuitarOtItem ? handleRequestQuitarOt : undefined}
             />
           );
         })}
       </Stack>
+      <ConfirmDialog
+        open={quitarOtPending != null}
+        onClose={() => {
+          if (clearingOtItemId != null) return;
+          setQuitarOtPending(null);
+        }}
+        onConfirm={handleConfirmQuitarOt}
+        title="Quitar orden de trabajo"
+        confirmLabel="Quitar OT"
+        destructive
+        loading={clearingOtItemId != null}
+      >
+        {quitarOtPending
+          ? `¿Quitar la OT ${quitarOtPending.otLabel} de este ítem? La OT quedará disponible para volver a utilizarse.`
+          : null}
+      </ConfirmDialog>
     </Box>
   );
 }

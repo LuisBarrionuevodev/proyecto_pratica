@@ -30,6 +30,9 @@ class Actuaciones(db.Model):
         nullable=True,
     )
 
+    # Verificar e informar: True/False si realizó nueva inspección; NULL en ratificaciones y casos ambiguos.
+    realizo_nueva_inspeccion = db.Column(db.Boolean, nullable=True)
+
     # --- FKs (tal cual tu modelo) ---
     orden_trabajo_id = db.Column(
         db.Integer,
@@ -159,6 +162,7 @@ class Actuaciones(db.Model):
             "tipo": self.tipo.value if self.tipo else None,
             "contraproducencia": self.contraproducencia.value if self.contraproducencia else None,
             "resultado_cumplimiento_oficio": rc_out,
+            "realizo_nueva_inspeccion": getattr(self, "realizo_nueva_inspeccion", None),
             "orden_trabajo_id": self.orden_trabajo_id,
             "notificacion_id": self.notificacion_id,
             "comprobacion_id": self.comprobacion_id,

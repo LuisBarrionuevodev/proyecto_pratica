@@ -241,4 +241,106 @@ describe("CompletarTrabajoModal", () => {
     expect(html).toContain("Notificación origen (solo lectura)");
     expect(html).toContain("—");
   });
+
+  it("REINSPECCION_OFICIO sin subtipo muestra selector y oculta inspección normal", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_OFICIO",
+          tipo_actuacion: "REINSPECCION",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Cierre por oficio");
+    expect(html).toContain("Tipo de actuación");
+    expect(html).not.toContain("N° acta de inspección");
+    expect(html).not.toContain("N° acta de notificación");
+    expect(html).not.toContain("Contraproducencia");
+  });
+
+  it("REINSPECCION_OFICIO con ratificación clausura muestra cumplimiento sin inspección normal", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_OFICIO",
+          tipo_actuacion: "RATIFICACION DE CLAUSURA",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Dio cumplimiento?");
+    expect(html).not.toContain("N° acta de inspección");
+    expect(html).not.toContain("N° acta de notificación");
+  });
+
+  it("REINSPECCION_OFICIO con ratificación decomiso muestra cumplimiento sin inspección normal", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_OFICIO",
+          tipo_actuacion: "RATIFICACION DE DECOMISO",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Dio cumplimiento?");
+    expect(html).not.toContain("N° acta de inspección");
+  });
+
+  it("REINSPECCION_OFICIO verificar e informar sin nueva inspección no muestra actas normales", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_OFICIO",
+          tipo_actuacion: "VERIFICAR E INFORMAR",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Realizó nueva inspección?");
+    expect(html).not.toContain("N° acta de inspección");
+    expect(html).not.toContain("N° acta de notificación");
+  });
+
+  it("reinspección por notificación mantiene flujo sin regresión de oficio", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({
+          tipo_iniciador: "REINSPECCION_NOTIFICACION",
+          tipo_actuacion: "REINSPECCION",
+          notificacion_origen_texto: "000123/2026",
+        })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Notificación origen (solo lectura)");
+    expect(html).not.toContain("Cierre por oficio");
+    expect(html).not.toContain("Tipo de actuación");
+  });
 });

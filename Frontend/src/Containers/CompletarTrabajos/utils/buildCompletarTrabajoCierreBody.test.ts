@@ -444,3 +444,24 @@ describe("buildCompletarTrabajoCierreBody verificar e informar", () => {
     expect(body.acta_inspeccion_num).toBe("000042");
   });
 });
+
+describe("validateReinspeccionOficioTipoActuacionRequired", () => {
+  it("bloquea cierre sin subtipo de oficio", async () => {
+    const { validateReinspeccionOficioTipoActuacionRequired } = await import(
+      "./buildCompletarTrabajoCierreBody"
+    );
+    expect(validateReinspeccionOficioTipoActuacionRequired("REINSPECCION_OFICIO", null)).toEqual({
+      ok: false,
+      field: "tipo_actuacion",
+      message: "Elegí el tipo de actuación.",
+    });
+    expect(validateReinspeccionOficioTipoActuacionRequired("REINSPECCION_OFICIO", "REINSPECCION")).toEqual({
+      ok: false,
+      field: "tipo_actuacion",
+      message: "Elegí el tipo de actuación.",
+    });
+    expect(
+      validateReinspeccionOficioTipoActuacionRequired("REINSPECCION_OFICIO", "RATIFICACION DE CLAUSURA")
+    ).toEqual({ ok: true });
+  });
+});

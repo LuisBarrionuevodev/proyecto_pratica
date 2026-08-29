@@ -811,6 +811,8 @@ export type ComprobacionOficioOperativoDialogProps = {
   juzgados: IJuzgadoCatalogItem[];
   documental: IComprobacionDocumentalResponse | null;
   documentalLoading: boolean;
+  /** Actualización documental tras guardar (no bloquea cierre ni Guardar). */
+  documentalReconciling?: boolean;
   documentalError: string | null;
   oficios: OficioComprobacionItem[];
   oficiosLoading: boolean;
@@ -840,6 +842,7 @@ export function ComprobacionOficioOperativoDialog({
   onGuardarAlta,
   documental,
   documentalLoading,
+  documentalReconciling = false,
   documentalError,
   oficios,
   oficiosLoading,
@@ -879,6 +882,11 @@ export function ComprobacionOficioOperativoDialog({
     >
       {!displayRow ? null : (
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
+          {documentalReconciling && !documentalLoading ? (
+            <Alert severity="info" sx={documentalGlassAlertSx}>
+              <Typography variant="body2">Actualizando información…</Typography>
+            </Alert>
+          ) : null}
           {documentalError ? (
             <Alert severity="warning" sx={documentalGlassAlertSx}>
               <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>

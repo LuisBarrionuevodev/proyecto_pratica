@@ -100,6 +100,10 @@ export function mapBusinessDetailToFieldErrors(message: string): Record<string, 
   if (m.includes("juzgado")) return { juzgado_id: message };
   if (m.includes("expediente")) return { numero_expediente_oficio: message };
   if (m.includes("contraproducencia")) return { contraproducencia: message };
+  if (m.includes("resultado de cumplimiento")) return { resultado_cumplimiento_oficio: message };
+  if (m.includes("nueva inspección") || m.includes("nueva inspeccion") || m.includes("quitar las actas")) {
+    return { realizo_nueva_inspeccion: message };
+  }
   if (m.includes("rubro")) return { rubro_nombre: message };
   if (m.includes("domicilio") || m.includes("calle")) return { calle: message };
   return null;

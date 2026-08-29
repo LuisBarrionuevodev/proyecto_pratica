@@ -4,7 +4,6 @@ import type { CatalogItem } from "../../api/gridApi";
 import { useAppFeedback } from "../../components/feedback/useAppFeedback";
 import { fetchInspectoresCatalogItemsCached } from "../../utils/inspectoresCatalogCache";
 import {
-  assignRutaItems,
   createRutaGrupo,
   createRutaTrabajo,
   deleteRutaGrupo,
@@ -41,6 +40,7 @@ import {
   buildDistritoOptionsFromPool,
   filterAsignacionPoolRows,
 } from "./utils/filterAsignacionPool";
+import { filterPoolRowsDisponibles, resolvePoolIdsForIniciadores } from "./utils/poolAssignSync";
 import { buildIniciadorByIdMap } from "./utils/iniciadorDetalleOperativo";
 import {
   evaluarPublicacionRuta,
@@ -104,6 +104,7 @@ const RutasTrabajo = () => {
     loading: poolLoading,
     agregandoIniciadorIds,
     refreshPool,
+    prunePoolEntriesByIds,
     agregarAlPool,
     quitarDelPool,
   } = useRutaPoolDiaBackend({
@@ -195,12 +196,25 @@ const RutasTrabajo = () => {
     [poolIniciadorIds, poolRowsById]
   );
 
-  const iniciadoresTablaAsignacion = useMemo(
-    () => filterAsignacionPoolRows(poolRowsOrdered, asignacionFilters),
-    [poolRowsOrdered, asignacionFilters]
+  const assignedIniciadorIds = useMemo(
+    () => new Set(itemsActivos.map((i) => i.iniciador_ruta_id)),
+    [itemsActivos]
   );
 
-  const distritoFilterOptions = useMemo(() => buildDistritoOptionsFromPool(poolRowsOrdered), [poolRowsOrdered]);
+  const poolRowsDisponibles = useMemo(
+    () => filterPoolRowsDisponibles(poolRowsOrdered, assignedIniciadorIds),
+    [poolRowsOrdered, assignedIniciadorIds]
+  );
+
+  const iniciadoresTablaAsignacion = useMemo(
+    () => filterAsignacionPoolRows(poolRowsDisponibles, asignacionFilters),
+    [poolRowsDisponibles, asignacionFilters]
+  );
+
+  const distritoFilterOptions = useMemo(
+    () => buildDistritoOptionsFromPool(poolRowsDisponibles),
+    [poolRowsDisponibles]
+  );
 
   useRutasTrabajoSession(loadRutaDetail);
 
@@ -295,7 +309,7 @@ const RutasTrabajo = () => {
     void loadInspectores();
   }, []);
 
-  const { moveItem: handleMoveItem, deleteItem: handleQuitarItem, saveOtItem: handleSaveOt } =
+  const { moveItem: handleMoveItem, deleteItem: handleQuitarItem, saveOtItem: handleSaveOt, clearOrdenTrabajo: handleClearOt } =
     useRutaTrabajoBorradorActions({
       rutaId,
       setItems,
@@ -358,27 +372,29 @@ const RutasTrabajo = () => {
   const assignIniciadoresToGrupo = useCallback(
     async (grupoId: number, iniciadorIds: number[]): Promise<boolean> => {
       if (!rutaId || iniciadorIds.length === 0) return false;
-      try {
-        const poolIds = iniciadorIds
-          .map((id) => poolIdByIniciadorId[id])
-          .filter((pid): pid is number => pid != null);
 
-        if (poolIds.length === iniciadorIds.length) {
-          const resp = await agregarDesdePoolRuta(rutaId, { pool_ids: poolIds, grupo_id: grupoId });
-          setItems((prev) => {
-            const map = new Map(prev.map((i) => [i.id, i]));
-            resp.items.forEach((i) => map.set(i.id, i));
-            return Array.from(map.values());
-          });
-          await refreshPool(ruta?.fecha);
-        } else {
-          const resp = await assignRutaItems(rutaId, grupoId, { iniciador_ids: iniciadorIds });
-          setItems((prev) => {
-            const map = new Map(prev.map((i) => [i.id, i]));
-            resp.items.forEach((i) => map.set(i.id, i));
-            return Array.from(map.values());
-          });
-        }
+      const { poolIds, missingIniciadorIds } = resolvePoolIdsForIniciadores(
+        iniciadorIds,
+        poolIdByIniciadorId
+      );
+
+      if (missingIniciadorIds.length > 0) {
+        notifyError(
+          `No se pudo resolver el pool para ${missingIniciadorIds.length} iniciador(es). Sincronizá el pool e intentá de nuevo.`
+        );
+        await refreshPool(ruta?.fecha, { silent: true });
+        return false;
+      }
+
+      try {
+        const resp = await agregarDesdePoolRuta(rutaId, { pool_ids: poolIds, grupo_id: grupoId });
+        setItems((prev) => {
+          const map = new Map(prev.map((i) => [i.id, i]));
+          resp.items.forEach((i) => map.set(i.id, i));
+          return Array.from(map.values());
+        });
+        prunePoolEntriesByIds(poolIds);
+        await refreshPool(ruta?.fecha, { silent: true });
         feedback.success("Iniciadores asignados correctamente.");
         return true;
       } catch (err: any) {
@@ -386,7 +402,15 @@ const RutasTrabajo = () => {
         return false;
       }
     },
-    [feedback, rutaId, poolIdByIniciadorId, refreshPool, ruta?.fecha]
+    [
+      feedback,
+      notifyError,
+      rutaId,
+      poolIdByIniciadorId,
+      prunePoolEntriesByIds,
+      refreshPool,
+      ruta?.fecha,
+    ]
   );
 
   const handleDeleteGrupo = useCallback(
@@ -426,18 +450,14 @@ const RutasTrabajo = () => {
   const handleVolverPlanificacion = useCallback(() => setFlowStep(1), []);
 
   const canCreateGrupo = useMemo(() => Boolean(rutaId), [rutaId]);
-  const assignedIniciadorIds = useMemo(
-    () => new Set(itemsActivos.map((i) => i.iniciador_ruta_id)),
-    [itemsActivos]
-  );
   const iniciadorById = useMemo(
     () => buildIniciadorByIdMap(poolRowsById, itemsActivos),
     [poolRowsById, itemsActivos]
   );
 
   const continuarMapaFinalState = useMemo(
-    () => computeAsignacionContinuarMapaFinal(poolRowsOrdered.length, itemsActivos),
-    [poolRowsOrdered.length, itemsActivos]
+    () => computeAsignacionContinuarMapaFinal(poolRowsDisponibles.length, itemsActivos),
+    [poolRowsDisponibles.length, itemsActivos]
   );
 
   const otSinGuardarAvisoRef = useRef<number | null>(null);
@@ -533,7 +553,7 @@ const RutasTrabajo = () => {
             itemsActivos={itemsActivos}
             itemsCount={itemsActivos.length}
             iniciadoresTabla={iniciadoresTablaAsignacion}
-            totalEnPool={poolRowsOrdered.length}
+            totalEnPool={poolRowsDisponibles.length}
             assignedIniciadorIds={assignedIniciadorIds}
             filters={asignacionFilters}
             detailLoading={detailLoading}
@@ -548,6 +568,7 @@ const RutasTrabajo = () => {
             onMoverItem={handleMoveItem}
             onQuitarItem={handleQuitarItem}
             onGuardarOtItem={handleSaveOt}
+            onQuitarOtItem={handleClearOt}
             onVolverPlanificacion={handleVolverPlanificacion}
             onAssignIniciadoresToGrupo={assignIniciadoresToGrupo}
             poolIdByIniciadorId={poolIdByIniciadorId}

@@ -6,6 +6,11 @@ import {
   isRatificacionDecomiso,
   isReinspeccionPorNotificacion,
   isVerificarEInformar,
+  tieneClausuraLabrada,
+  tieneComprobacionLabrada,
+  tieneDecomisoLabrado,
+  tieneInspeccionLabrada,
+  tieneNotificacionLabradaMotivos,
 } from "./actuacionesExportPdfResumen";
 
 /** Mensaje estándar cuando la edición está bloqueada por expediente en notificación/comprobación. */
@@ -19,6 +24,7 @@ export const MENSAJE_BLOQUEO_ACTA_DOCUMENTACION =
 export type ActuacionModoEdicion =
   | "normal"
   | "reinspeccion_notificacion"
+  | "reinspeccion_oficio"
   | "ratificacion"
   | "verificar_informar";
 
@@ -52,6 +58,22 @@ export function actaComprobacionBloqueadaEdicion(row: IActuacionListItem): boole
   return row.comprobacion_editable === false;
 }
 
+/** Reinspección por oficio genérica (circuito documental, sin subtipo ratificación/verificar). */
+function isReinspeccionOficioGenericaEdicion(row: IActuacionListItem): boolean {
+  return row.documentacion_contexto?.circuito === "REINSPECCION_OFICIO";
+}
+
+/** Actas o datos persistidos del flujo de inspección normal (paridad Completar Trabajo). */
+export function tieneActasInspeccionNormalPersistidas(row: IActuacionListItem): boolean {
+  return (
+    tieneInspeccionLabrada(row) ||
+    tieneNotificacionLabradaMotivos(row) ||
+    tieneComprobacionLabrada(row) ||
+    tieneClausuraLabrada(row) ||
+    tieneDecomisoLabrado(row)
+  );
+}
+
 /**
  * Resuelve el modo de edición CRUD según tipo de actuación / circuito documental.
  */
@@ -59,6 +81,7 @@ export function resolveActuacionModoEdicion(row: IActuacionListItem): ActuacionM
   if (isReinspeccionPorNotificacion(row)) return "reinspeccion_notificacion";
   if (isRatificacionClausura(row) || isRatificacionDecomiso(row)) return "ratificacion";
   if (isVerificarEInformar(row)) return "verificar_informar";
+  if (isReinspeccionOficioGenericaEdicion(row)) return "reinspeccion_oficio";
   if (isInspeccionIntegralOrDenuncia(row)) return "normal";
 
   const tipo = String(row.tipo_actuacion ?? "")
@@ -82,20 +105,43 @@ function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdi
   return modo === "normal";
 }
 
+export type ActuacionEditableFieldsOptions = {
+  /** Estado UI de «¿Realizó nueva inspección?» en edición Verificar (antes de guardar). */
+  verificarRealizoNuevaInspeccion?: "" | "si" | "no";
+};
+
 /**
  * Permisos de edición por tipo de actuación (paridad operativa con Completar Trabajo).
  */
-export function getActuacionEditableFields(row: IActuacionListItem): ActuacionEditableFields {
+export function getActuacionEditableFields(
+  row: IActuacionListItem,
+  options?: ActuacionEditableFieldsOptions
+): ActuacionEditableFields {
   const modo = resolveActuacionModoEdicion(row);
   const normal = modo === "normal";
+  const verificarRealizo =
+    options?.verificarRealizoNuevaInspeccion ??
+    (row.realizo_nueva_inspeccion === true
+      ? "si"
+      : row.realizo_nueva_inspeccion === false
+        ? "no"
+        : "");
+  const canEditActas =
+    normal ||
+    modo === "reinspeccion_notificacion" ||
+    (modo === "verificar_informar" &&
+      (verificarRealizo === "si" || tieneActasInspeccionNormalPersistidas(row)));
+
+  const canEditResultadoOperativo =
+    modo === "ratificacion" || modo === "verificar_informar" || modo === "reinspeccion_oficio";
 
   return {
     canEditContribuyente: normal,
     canEditDomicilio: resolveCanEditDomicilio(row, modo),
     domicilioEditBlockedReason: row.domicilio_edit_blocked_reason ?? null,
-    canEditActas: true,
+    canEditActas,
     canEditNotificacion: normal,
-    canEditResultadoOperativo: !normal,
+    canEditResultadoOperativo,
     modoEdicion: modo,
   };
 }

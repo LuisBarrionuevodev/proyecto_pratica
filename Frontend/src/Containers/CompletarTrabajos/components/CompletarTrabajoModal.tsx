@@ -71,9 +71,9 @@ import {
   esFlujoVerificarInformar,
   esRatificacionOficio,
   esReinspeccionOficioGenerico,
+  esReinspeccionOficioPendienteSubtipo,
   esTipoActuacionVerificarInformar,
   esVerificarInformarOficio,
-  REALIZO_NUEVA_INSPECCION_OPTS,
   TIPO_ACTUACION_VERIFICAR_INFORMAR,
   tipoActuacionEfectivoOficio,
   tipoActuacionFijoDesdeIniciadorOficio,
@@ -89,6 +89,7 @@ import {
   motivosNotificacionFromSlots,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
+import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
@@ -600,10 +601,22 @@ export function CompletarTrabajoModal({
   const visitaRealizada = !contraproducencia.trim();
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const displayRow = resolvedRow ?? row;
-  const tipoActuacionOficioEfectivo = useMemo(
-    () => tipoActuacionEfectivoOficio(displayRow?.tipo_iniciador, tipoActuacionOficio),
-    [displayRow?.tipo_iniciador, tipoActuacionOficio]
-  );
+  const tipoActuacionOficioEfectivo = useMemo(() => {
+    const fromState = tipoActuacionOficio.trim();
+    const fromRow = tipoActuacionInicialReinspeccionOficio(displayRow?.tipo_actuacion);
+    const fromEsperado = tipoActuacionInicialReinspeccionOficio(
+      displayRow?.tipo_actuacion_esperado ?? tipoActuacionEsperadoRef
+    );
+    const fijo = tipoActuacionFijoDesdeIniciadorOficio(displayRow?.tipo_iniciador);
+    const merged = fijo || fromState || fromRow || fromEsperado || null;
+    return tipoActuacionEfectivoOficio(displayRow?.tipo_iniciador, merged);
+  }, [
+    displayRow?.tipo_iniciador,
+    displayRow?.tipo_actuacion,
+    displayRow?.tipo_actuacion_esperado,
+    tipoActuacionOficio,
+    tipoActuacionEsperadoRef,
+  ]);
   const esFlujoVerificarInformarUi = esFlujoVerificarInformar(
     displayRow?.tipo_iniciador,
     tipoActuacionOficioEfectivo
@@ -613,6 +626,10 @@ export function CompletarTrabajoModal({
     tipoActuacionOficioEfectivo
   );
   const esReinspeccionOficioGenericoUi = esReinspeccionOficioGenerico(displayRow?.tipo_iniciador);
+  const esReinspeccionOficioPendienteSubtipoUi = esReinspeccionOficioPendienteSubtipo(
+    displayRow?.tipo_iniciador,
+    tipoActuacionOficioEfectivo
+  );
   const esReinspeccionNotificacion = displayRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
   const notificacionOrigenTexto = formatNotificacionOrigenReadonly(displayRow);
   const verificarMuestraInspeccionNormal =
@@ -620,6 +637,7 @@ export function CompletarTrabajoModal({
   const verificarSinInspeccionNormal =
     esFlujoVerificarInformarUi && realizoNuevaInspeccion === "no";
   const muestraFlujoInspeccionNormal =
+    !esReinspeccionOficioPendienteSubtipoUi &&
     !esFlujoCumplimientoRatificacionUi &&
     (!esFlujoVerificarInformarUi || verificarMuestraInspeccionNormal);
   const showContribDomicilioEditable = showContribuyenteDomicilioEditableEnCompletarTrabajo(
@@ -882,6 +900,12 @@ export function CompletarTrabajoModal({
       }
 
       // Sí → validación y cierre con inspección normal (continúa abajo).
+    }
+
+    if (esReinspeccionOficioPendienteSubtipo(resolvedRow.tipo_iniciador, tipoActuacionOficioEfectivo)) {
+      setFieldErrors({ tipo_actuacion: "Elegí el tipo de actuación." });
+      feedback.warning(MENSAJE_VALIDACION_LOCAL);
+      return;
     }
 
     const preValidation = validateActuacionFormForSubmit(
@@ -1269,13 +1293,16 @@ export function CompletarTrabajoModal({
       {displayRow && esFlujoVerificarInformarUi && (
         <CompletarBloque title="Verificar e informar">
         <Box sx={col}>
-          <AppSelect
-            appearance="glass"
-            label="¿Realizó nueva inspección?"
-            value={realizoNuevaInspeccion}
-            onChange={(e) => {
-              const next = e.target.value as string;
-              setRealizoNuevaInspeccion(next);
+          <ReinspeccionOficioResultadoFields
+            esRatificacion={false}
+            esVerificar
+            cumplimientoUi=""
+            onCumplimientoUiChange={() => {}}
+            contraproducencia={contraproducencia}
+            onContraproducenciaChange={() => {}}
+            contraOptions={[]}
+            realizoNuevaInspeccion={realizoNuevaInspeccion as "" | "si" | "no"}
+            onRealizoNuevaInspeccionChange={(next) => {
               if (next !== "si") {
                 setActaInspeccion("");
                 setActaNotificacion("");
@@ -1286,15 +1313,11 @@ export function CompletarTrabajoModal({
                 setActaDecomiso("");
                 setDecomisoKilos("");
               }
+              setRealizoNuevaInspeccion(next);
               clearFe("realizo_nueva_inspeccion");
             }}
-            fullWidth
-            options={REALIZO_NUEVA_INSPECCION_OPTS}
-            error={Boolean(fe("realizo_nueva_inspeccion"))}
-            helperText={
-              fe("realizo_nueva_inspeccion") ||
-              "Si realizó inspección, elegí Sí para cargar actas. Si no, elegí No para cerrar sin actas normales."
-            }
+            fieldErrors={fieldErrors}
+            verificarContraExterna
           />
         </Box>
         </CompletarBloque>

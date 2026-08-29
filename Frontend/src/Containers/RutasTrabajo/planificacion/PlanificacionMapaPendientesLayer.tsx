@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
 import type { Marker as LeafletMarker } from "leaflet";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { PlanificacionMapaGeopuntoOperativaCard } from "./components/PlanificacionMapaGeopuntoOperativaCard";
 import { parseIniciadorLatLng } from "./utils/iniciadorCoords";
-import { prioridadCategoriaRow } from "./utils/iniciadorDisplay";
+import { prioridadCategoriaRow, type PrioridadCat } from "./utils/iniciadorDisplay";
 import { planificacionPendientePinIcon } from "./utils/planificacionMapaPins";
+import {
+  arePendienteMarkerPropsEqual,
+  pendienteMarkerRowSignature,
+  type PendienteMarkerCompareProps,
+} from "./utils/planificacionPendienteMarkerCompare";
 
 function MapFlyTo({ target }: { target: IRutaIniciadorPendienteRow | null }) {
   const map = useMap();
@@ -23,6 +28,8 @@ type PendienteMarkerProps = {
   row: IRutaIniciadorPendienteRow;
   lat: number;
   lng: number;
+  priority: PrioridadCat;
+  rowSignature: string;
   isFocus: boolean;
   showPopup: boolean;
   popupOpenNonce: number;
@@ -33,13 +40,43 @@ type PendienteMarkerProps = {
   onAgregar: (row: IRutaIniciadorPendienteRow) => void;
 };
 
+function pendienteMarkerPropsToCompare(props: PendienteMarkerProps): PendienteMarkerCompareProps {
+  return {
+    iniciadorId: props.row.id,
+    lat: props.lat,
+    lng: props.lng,
+    priority: props.priority,
+    rowSignature: props.rowSignature,
+    isFocus: props.isFocus,
+    showPopup: props.showPopup,
+    popupOpenNonce: props.popupOpenNonce,
+    inPool: props.inPool,
+    agregando: props.agregando,
+  };
+}
+
+function pendientePlanifMarkerAreEqual(prev: PendienteMarkerProps, next: PendienteMarkerProps): boolean {
+  if (
+    prev.onMarkerClick !== next.onMarkerClick ||
+    prev.onPopupClose !== next.onPopupClose ||
+    prev.onAgregar !== next.onAgregar
+  ) {
+    return false;
+  }
+  return arePendienteMarkerPropsEqual(
+    pendienteMarkerPropsToCompare(prev),
+    pendienteMarkerPropsToCompare(next)
+  );
+}
+
 /**
  * Un marcador + popup controlado: abre el popup al primer toque o al foco desde la lista (flyTo + estado).
  */
-function PendientePlanifMarker({
+const PendientePlanifMarker = memo(function PendientePlanifMarker({
   row,
   lat,
   lng,
+  priority,
   isFocus,
   showPopup,
   popupOpenNonce,
@@ -50,6 +87,14 @@ function PendientePlanifMarker({
   onAgregar,
 }: PendienteMarkerProps) {
   const markerRef = useRef<LeafletMarker | null>(null);
+  const rowRef = useRef(row);
+  rowRef.current = row;
+
+  const onMarkerClickRef = useRef(onMarkerClick);
+  onMarkerClickRef.current = onMarkerClick;
+
+  const onAgregarRef = useRef(onAgregar);
+  onAgregarRef.current = onAgregar;
 
   useEffect(() => {
     if (!showPopup) return;
@@ -61,7 +106,25 @@ function PendientePlanifMarker({
     return () => window.cancelAnimationFrame(id);
   }, [showPopup, row.id, popupOpenNonce]);
 
-  const icon = planificacionPendientePinIcon(prioridadCategoriaRow(row), isFocus);
+  const markerClickHandlers = useMemo(
+    () => ({
+      click: () => onMarkerClickRef.current(rowRef.current),
+    }),
+    []
+  );
+
+  const popupCloseHandlers = useMemo(
+    () => ({
+      remove: onPopupClose,
+    }),
+    [onPopupClose]
+  );
+
+  const handleAgregarAlPool = useCallback(() => {
+    onAgregarRef.current(rowRef.current);
+  }, []);
+
+  const icon = planificacionPendientePinIcon(priority, isFocus);
 
   return (
     <Marker
@@ -69,16 +132,12 @@ function PendientePlanifMarker({
       position={[lat, lng]}
       icon={icon}
       zIndexOffset={isFocus ? 800 : 0}
-      eventHandlers={{
-        click: () => onMarkerClick(row),
-      }}
+      eventHandlers={markerClickHandlers}
     >
       {showPopup ? (
         <Popup
           key={`${row.id}-${popupOpenNonce}`}
-          eventHandlers={{
-            remove: onPopupClose,
-          }}
+          eventHandlers={popupCloseHandlers}
           maxWidth={248}
           minWidth={220}
           autoPan
@@ -89,13 +148,13 @@ function PendientePlanifMarker({
             row={row}
             yaEnPool={inPool}
             agregando={agregando}
-            onAgregarAlPool={() => onAgregar(row)}
+            onAgregarAlPool={handleAgregarAlPool}
           />
         </Popup>
       ) : null}
     </Marker>
   );
-}
+}, pendientePlanifMarkerAreEqual);
 
 export type PlanificacionMapaPendientesLayerProps = {
   rows: IRutaIniciadorPendienteRow[];
@@ -151,6 +210,8 @@ export function PlanificacionMapaPendientesLayer({
             row={row}
             lat={ll.lat}
             lng={ll.lng}
+            priority={prioridadCategoriaRow(row)}
+            rowSignature={pendienteMarkerRowSignature(row)}
             isFocus={isFocus}
             showPopup={showPopup}
             popupOpenNonce={popupOpenNonce}

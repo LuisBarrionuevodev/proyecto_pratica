@@ -57,11 +57,29 @@ import {
   detectBlockedActaClearAttempt,
   getActuacionEditableFields,
   resolveActuacionEditStart,
+  tieneActasInspeccionNormalPersistidas,
   tieneExpedienteBloqueoEdicion,
 } from "../utils/actuacionEditRules";
 import { buildContraproducenciaCrudSelectOptions } from "../utils/contraproducenciaCrudOptions";
 import { getContraproducenciaUxHint } from "../../CompletarTrabajos/utils/contraproducenciaUxHint";
+import { filtrarContraproducenciasPorTipoIniciador } from "../../CompletarTrabajos/utils/contraproducenciasPorTipoIniciador";
 import { scrollActuacionFormToFirstFieldError } from "../utils/actuacionFormScroll";
+import { corregirCierreOficio } from "../../../api/corregirCierreOficioApi";
+import {
+  mapApiErrorsToFormState,
+  parseApiError,
+} from "../../../utils/parseApiError";
+import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
+import {
+  resolveReinspeccionOficioFormContext,
+  tipoIniciadorInferidoDesdeActuacion,
+  type ReinspeccionOficioCumplimientoUi,
+} from "../../../shared/reinspeccionOficio/resolveReinspeccionOficioFormContext";
+import {
+  oficioCorreccionDirty,
+  oficioCorreccionPayloadFromUi,
+  validateReinspeccionOficioForm,
+} from "../../../shared/reinspeccionOficio/reinspeccionOficioValidation";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -716,8 +734,20 @@ export function ActuacionDetalleDialog({
   const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
+  const [oficioCumplimientoUi, setOficioCumplimientoUi] = useState<ReinspeccionOficioCumplimientoUi>("");
+  const [oficioContra, setOficioContra] = useState("");
+  const [oficioRealizo, setOficioRealizo] = useState<"" | "si" | "no">("");
+  const [oficioFieldErrors, setOficioFieldErrors] = useState<Record<string, string>>({});
 
-  const editableFields = useMemo(() => getActuacionEditableFields(draft), [draft]);
+  const oficioFormCtx = useMemo(
+    () => (isEditing ? resolveReinspeccionOficioFormContext({ row: draft, mode: "edit" }) : null),
+    [isEditing, draft]
+  );
+
+  const editableFields = useMemo(
+    () => getActuacionEditableFields(draft, { verificarRealizoNuevaInspeccion: oficioRealizo }),
+    [draft, oficioRealizo]
+  );
 
   const registerActaFlush = useCallback((fn: () => void) => {
     actaFlushRegistry.current.add(fn);
@@ -732,9 +762,23 @@ export function ActuacionDetalleDialog({
       setEditBaseline(initialEditing ? { ...draft } : null);
       setEpicollectOtrosExpanded(false);
       setInspectoresAddInput("");
+      setOficioCumplimientoUi("");
+      setOficioContra("");
+      setOficioRealizo("");
+      setOficioFieldErrors({});
       actaFlushRegistry.current.clear();
     }
   }, [open, draft.id, initialEditing]);
+
+  useEffect(() => {
+    if (!isEditing || !editBaseline) return;
+    const ctx = resolveReinspeccionOficioFormContext({ row: editBaseline, mode: "edit" });
+    if (!ctx) return;
+    setOficioCumplimientoUi(ctx.cumplimientoUi);
+    setOficioContra(ctx.contraproducencia);
+    setOficioRealizo(ctx.realizoNuevaInspeccion);
+    setOficioFieldErrors({});
+  }, [isEditing, editBaseline?.id]);
 
   useEffect(() => {
     if (!open || !isEditing) return;
@@ -783,6 +827,21 @@ export function ActuacionDetalleDialog({
     [draft.contraproducencia]
   );
 
+  const oficioContraOpts = useMemo(() => {
+    if (!oficioFormCtx) return [];
+    const tipoIni = tipoIniciadorInferidoDesdeActuacion(draft);
+    const filtradas = filtrarContraproducenciasPorTipoIniciador(
+      mergedCatalogs.contraproducencias ?? [],
+      tipoIni,
+      oficioContra,
+      oficioFormCtx.subtipo
+    );
+    return filtradas.map((s) => ({ value: s, label: s || "—" }));
+  }, [draft, mergedCatalogs.contraproducencias, oficioContra, oficioFormCtx]);
+
+  const muestraOficioResultadoEditable =
+    isEditing && oficioFormCtx != null && editableFields.canEditResultadoOperativo;
+
   const handleClose = useCallback(() => {
     if (saving) return;
     onClose();
@@ -818,7 +877,7 @@ export function ActuacionDetalleDialog({
     setIsEditing(true);
   }, [draft, feedback, onDraftChange]);
 
-  const handleSaveClick = useCallback(() => {
+  const handleSaveClick = useCallback(async () => {
     actaFlushRegistry.current.forEach((fn) => fn());
     const baseline = editBaseline ?? draft;
     const blockedMsg = detectBlockedActaClearAttempt(draft, baseline);
@@ -826,8 +885,73 @@ export function ActuacionDetalleDialog({
       feedback.warning(blockedMsg);
       return;
     }
-    void onSave();
-  }, [draft, editBaseline, feedback, onSave]);
+
+    const oficioCtx = resolveReinspeccionOficioFormContext({ row: draft, mode: "edit" });
+    if (oficioCtx && editableFields.canEditResultadoOperativo) {
+      const tieneActas = tieneActasInspeccionNormalPersistidas(draft);
+      const validation = validateReinspeccionOficioForm({
+        esRatificacion: oficioCtx.esRatificacion,
+        esVerificar: oficioCtx.esVerificar,
+        cumplimientoUi: oficioCumplimientoUi,
+        contraproducencia: oficioContra,
+        realizoNuevaInspeccion: oficioRealizo,
+        tieneActasInspeccionNormal: tieneActas,
+      });
+      if (!validation.ok) {
+        setOficioFieldErrors({ [validation.field]: validation.message });
+        feedback.warning(validation.message);
+        return;
+      }
+
+      const dirty = oficioCorreccionDirty(
+        {
+          resultado_cumplimiento_oficio: baseline.resultado_cumplimiento_oficio,
+          contraproducencia: baseline.contraproducencia,
+          realizo_nueva_inspeccion: baseline.realizo_nueva_inspeccion,
+        },
+        {
+          cumplimientoUi: oficioCumplimientoUi,
+          contraproducencia: oficioContra,
+          realizoNuevaInspeccion: oficioRealizo,
+        }
+      );
+
+      if (dirty) {
+        try {
+          const payload = oficioCorreccionPayloadFromUi({
+            tipoActuacion: oficioCtx.subtipo,
+            cumplimientoUi: oficioCumplimientoUi,
+            contraproducencia: oficioContra,
+            realizoNuevaInspeccion: oficioRealizo,
+            esRatificacion: oficioCtx.esRatificacion,
+            esVerificar: oficioCtx.esVerificar,
+          });
+          const updated = await corregirCierreOficio(Number(draft.id), payload);
+          onDraftChange(updated);
+          setEditBaseline((prev) => (prev ? { ...prev, ...updated } : prev));
+          setOficioFieldErrors({});
+        } catch (err) {
+          const parsed = parseApiError(err);
+          const { fieldErrors } = mapApiErrorsToFormState(parsed);
+          setOficioFieldErrors(fieldErrors);
+          feedback.error(parsed.message);
+          return;
+        }
+      }
+    }
+
+    await onSave();
+  }, [
+    draft,
+    editBaseline,
+    editableFields.canEditResultadoOperativo,
+    feedback,
+    oficioContra,
+    oficioCumplimientoUi,
+    oficioRealizo,
+    onDraftChange,
+    onSave,
+  ]);
 
   const applyInspectoresNombres = useCallback(
     (nombres: string[]) => {
@@ -1000,13 +1124,16 @@ export function ActuacionDetalleDialog({
   }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
 
   const edicionVista = useMemo(() => {
-    const e = (key: string) => fieldErrors[key] ?? "";
+    const e = (key: string) => fieldErrors[key] ?? oficioFieldErrors[key] ?? "";
     const fieldHelper = (key: string) => e(key) || "\u00a0";
     const ro = (key: string) => readOnlyColumns.includes(key);
     const canContrib = editableFields.canEditContribuyente;
     const canDom = editableFields.canEditDomicilio;
     const domicilioBloqueoMotivo = editableFields.domicilioEditBlockedReason;
     const canNotifEdit = editableFields.canEditNotificacion;
+    const canEditActas = editableFields.canEditActas;
+    const canEditContraproducencia =
+      editableFields.modoEdicion === "normal" || editableFields.modoEdicion === "reinspeccion_notificacion";
     const helperBloqueo = (key: string, locked: boolean) => {
       const msg = locked ? e(key) : e(key);
       return msg || "\u00a0";
@@ -1268,6 +1395,7 @@ export function ActuacionDetalleDialog({
                 sx={roFieldSx}
                 fullWidth
               />
+              {!muestraOficioResultadoEditable ? (
               <AppSelect
                 appearance="glass"
                 label="Contraproducencia"
@@ -1277,7 +1405,7 @@ export function ActuacionDetalleDialog({
                   onDraftChange({ contraproducencia: v || null });
                 }}
                 options={contraCrudOptions}
-                disabled={saving}
+                disabled={saving || !canEditContraproducencia}
                 error={!!e("contraproducencia")}
                 helperText={
                   fieldHelper("contraproducencia") ||
@@ -1285,6 +1413,7 @@ export function ActuacionDetalleDialog({
                 }
                 fullWidth
               />
+              ) : null}
             </Box>
             <Box sx={{ mt: 2, width: "100%" }}>
               <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
@@ -1342,6 +1471,7 @@ export function ActuacionDetalleDialog({
           </Box>
         </DocumentalBloque>
 
+        {canEditActas ? (
         <DocumentalBloque overline="Actas labradas">
           <Box sx={{ ...col, width: "100%" }}>
             <ActaNumFieldLazy
@@ -1435,8 +1565,56 @@ export function ActuacionDetalleDialog({
             />
           </Box>
         </DocumentalBloque>
+        ) : null}
 
-        {muestraResultadoSeguimientoEdicion ? (
+        {muestraOficioResultadoEditable && oficioFormCtx ? (
+          <DocumentalBloque overline="Resultado operativo">
+            <Box sx={edicionGapBloqueAPrimerControlSx}>
+              <ReinspeccionOficioResultadoFields
+                esRatificacion={oficioFormCtx.esRatificacion}
+                esVerificar={oficioFormCtx.esVerificar}
+                subtipoReadonly
+                cumplimientoUi={oficioCumplimientoUi}
+                onCumplimientoUiChange={(v) => {
+                  setOficioCumplimientoUi(v);
+                  if (v !== "CONTRAPRODUCENCIA") setOficioContra("");
+                  setOficioFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.resultado_cumplimiento_oficio;
+                    delete next.contraproducencia;
+                    return next;
+                  });
+                }}
+                contraproducencia={oficioContra}
+                onContraproducenciaChange={(v) => {
+                  setOficioContra(v);
+                  setOficioFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.contraproducencia;
+                    return next;
+                  });
+                }}
+                contraOptions={oficioContraOpts}
+                realizoNuevaInspeccion={oficioRealizo}
+                onRealizoNuevaInspeccionChange={(v) => {
+                  setOficioRealizo(v);
+                  setOficioFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.realizo_nueva_inspeccion;
+                    return next;
+                  });
+                }}
+                fieldErrors={{ ...fieldErrors, ...oficioFieldErrors }}
+                disabled={saving}
+              />
+            </Box>
+            {documentacionTramiteModalTieneContenido(draft) ? (
+              <Box sx={{ mt: 2 }}>
+                <DocumentacionTramiteModalLectura draft={draft} />
+              </Box>
+            ) : null}
+          </DocumentalBloque>
+        ) : muestraResultadoSeguimientoEdicion ? (
           <DocumentalBloque overline="Resultado operativo">
             {tieneResultado ? (
               <Box sx={edicionGapBloqueAPrimerControlSx}>
@@ -1516,6 +1694,13 @@ export function ActuacionDetalleDialog({
   }, [
     draft,
     fieldErrors,
+    oficioFieldErrors,
+    oficioFormCtx,
+    oficioCumplimientoUi,
+    oficioContra,
+    oficioRealizo,
+    oficioContraOpts,
+    muestraOficioResultadoEditable,
     readOnlyColumns,
     editableFields,
     registerActaFlush,
@@ -1525,6 +1710,8 @@ export function ActuacionDetalleDialog({
     mergedCatalogs,
     rubrosOptions,
     motivoComprobacionOptions,
+    contraCrudOptions,
+    contraUxHint,
     epicollectOtrosExpanded,
     toggleEpicollectOtros,
     onDraftChange,

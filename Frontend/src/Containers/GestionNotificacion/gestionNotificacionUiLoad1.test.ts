@@ -27,9 +27,10 @@ describe("UI-LOAD.1 Notificaciones — loading único", () => {
     expect(dialog).toContain("loading={delSaving}");
   });
 
-  it("post prórroga usa refreshNotificacionesPostProrroga", () => {
+  it("post prórroga usa reconcile en background", () => {
     expect(page).toContain("refreshNotificacionesPostProrroga");
-    expect(page).toContain("refreshNotificacionesSlices");
+    expect(page).toContain("reconcileBandejasSilent");
+    expect(page).toContain("runGestionReconcile");
   });
 });
 

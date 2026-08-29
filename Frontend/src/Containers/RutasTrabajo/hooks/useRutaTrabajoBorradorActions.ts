@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 
 import {
+  clearRutaItemOrdenTrabajo,
   deleteRutaItem,
   moveRutaItem,
   patchRutaItemOrdenTrabajo,
@@ -95,5 +96,21 @@ export function useRutaTrabajoBorradorActions({
     [rutaId, setItems, setError]
   );
 
-  return { moveItem, deleteItem, saveOtItem };
+  const clearOrdenTrabajo = useCallback(
+    async (item: IRutaItemMin): Promise<boolean> => {
+      if (!rutaId) return false;
+      try {
+        const resp = await clearRutaItemOrdenTrabajo(rutaId, item.id);
+        setItems((prev) => prev.map((it) => (it.id === resp.item.id ? resp.item : it)));
+        return true;
+      } catch (err: unknown) {
+        const ax = err as { response?: { data?: { detail?: string } } };
+        setError(ax?.response?.data?.detail || "No se pudo quitar la orden de trabajo del ítem");
+        return false;
+      }
+    },
+    [rutaId, setItems, setError]
+  );
+
+  return { moveItem, deleteItem, saveOtItem, clearOrdenTrabajo };
 }

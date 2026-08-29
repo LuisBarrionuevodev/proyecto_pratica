@@ -16,10 +16,12 @@ describe("RutasTrabajo pool backend OPER-RUTA.6", () => {
   });
 
   it("hook consulta GET /ruta-pool-dia con estado EN_POOL y ruta_trabajo_id", () => {
-    expect(hook).toContain("listRutaPoolDia");
+    expect(hook).toContain("fetchRutaPoolDiaEnPoolAll");
     expect(hook).toContain('estado: "EN_POOL"');
     expect(hook).toContain("ruta_trabajo_id");
     expect(hook).toContain("deleteRutaPoolDia");
+    expect(hook).toContain("prunePoolEntriesByIds");
+    expect(hook).toContain("refreshPoolReqSeq");
   });
 
   it("PoolDelDiaPanel renderiza filas backend con origen y estado", () => {

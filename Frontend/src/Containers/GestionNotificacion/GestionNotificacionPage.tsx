@@ -129,6 +129,17 @@ import {
 } from "./utils/buildOperativaNotificacionFiltroPayload";
 import { refreshNotificacionesPostProrroga } from "./utils/refreshNotificacionesPostProrroga";
 import {
+  clearPersistKeyIfMatch,
+  GESTION_PERSIST_OPS,
+  GESTION_RECONCILE_REFRESH_MSG,
+  invalidatePendingMutationCallbacks,
+  isMutationSeqCurrent,
+  isPersistingForRow,
+  nextMutationSeq,
+  runGestionReconcile,
+  type GestionPersistKey,
+} from "../../utils/gestionMutationLifecycle";
+import {
   notificacionEstadoOperativoChipColor,
 } from "./utils/notificacionEstadoOperativo";
 import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
@@ -457,9 +468,26 @@ const GestionNotificacionPage = () => {
   const [expNumero, setExpNumero] = useState("");
   const [expFecha, setExpFecha] = useState("");
   const [prorrogaDias, setProrrogaDias] = useState("0");
-  const [saving, setSaving] = useState(false);
+  const [persistKey, setPersistKey] = useState<GestionPersistKey | null>(null);
+  const mutationSeqRef = useRef(0);
+  const selectedRef = useRef<IActuacionesPendientesItem | null>(null);
+  const historialFiltroAplicadoRef = useRef(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [modalApiError, setModalApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    historialFiltroAplicadoRef.current = historialFiltroAplicado;
+  }, [historialFiltroAplicado]);
+
+  const modalAltaExpedientePersisting = isPersistingForRow(
+    persistKey,
+    selected?.id,
+    GESTION_PERSIST_OPS.notifAltaExpediente
+  );
 
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<
@@ -777,6 +805,8 @@ const GestionNotificacionPage = () => {
       variant: NotificacionDetalleModalVariant,
       opts?: { reinspeccion?: boolean }
     ) => {
+    invalidatePendingMutationCallbacks(mutationSeqRef);
+    setPersistKey(null);
     setModalVariant(variant);
     setModalEsReinspeccionNotificacion(Boolean(opts?.reinspeccion));
     setSelected(row);
@@ -857,40 +887,61 @@ const GestionNotificacionPage = () => {
   }, []);
 
   const closeModal = () => {
-    if (saving) return;
+    if (modalAltaExpedientePersisting) return;
     dismissModal();
   };
 
-  const refreshNotificacionesSlices = useCallback(async () => {
-    await refreshNotificacionesPostProrroga({
-      filters: opAppliedRef.current,
-      activeSlice: plazoSliceRef.current,
-      invalidateOperativeSlices,
-      loadPlazoSlice: loadPlazoSliceData,
-      loadReinspeccion: loadPendientesReinspeccionNotificacion,
-    });
-  }, [invalidateOperativeSlices, loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
-
-  const refreshBandejaActiva = useCallback(async () => {
-    if (plazoSlice === "total") {
-      if (historialFiltroAplicado) await recargarHistorialSiAplica();
-      return;
-    }
-    await refreshNotificacionesSlices();
-  }, [plazoSlice, historialFiltroAplicado, recargarHistorialSiAplica, refreshNotificacionesSlices]);
+  const reconcileBandejasSilent = useCallback(() => {
+    runGestionReconcile(
+      async () => {
+        if (plazoSliceRef.current === "total") {
+          if (historialFiltroAplicadoRef.current) {
+            await recargarHistorialSiAplica();
+          }
+          return;
+        }
+        await refreshNotificacionesPostProrroga({
+          filters: opAppliedRef.current,
+          activeSlice: plazoSliceRef.current,
+          invalidateOperativeSlices,
+          loadPlazoSlice: (slice, force, filters) =>
+            loadPlazoSliceData(slice, force, filters, { silent: true }),
+          loadReinspeccion: (filters) => loadPendientesReinspeccionNotificacion(filters, { silent: true }),
+        });
+      },
+      () => {
+        feedback.error(GESTION_RECONCILE_REFRESH_MSG);
+      }
+    );
+  }, [
+    feedback,
+    invalidateOperativeSlices,
+    loadPlazoSliceData,
+    loadPendientesReinspeccionNotificacion,
+    recargarHistorialSiAplica,
+  ]);
 
   const handleExpedienteMutacionExitosa = useCallback(
-    async (mensaje: string) => {
+    (mensaje: string) => {
+      const actuacionId = selectedRef.current?.id ?? null;
+      const seq = mutationSeqRef.current;
       perfLog("notificaciones.modal.mutacion.refetch", { mensaje, slice: plazoSlice });
       feedback.success(mensaje);
-      await refreshBandejaActiva();
-      dismissModal();
+      if (
+        actuacionId != null &&
+        selectedRef.current?.id === actuacionId &&
+        isMutationSeqCurrent(mutationSeqRef, seq)
+      ) {
+        dismissModal();
+      }
+      reconcileBandejasSilent();
     },
-    [feedback, refreshBandejaActiva, plazoSlice, dismissModal]
+    [feedback, plazoSlice, dismissModal, reconcileBandejasSilent]
   );
 
   const handleSave = useCallback(async (): Promise<GuardarProrrogaResult> => {
     if (!selected) return { ok: false };
+    const actuacionId = selected.id;
     const next: Record<string, string> = {};
     if (!expNumero.trim()) next.expNumero = "Completá el número de expediente.";
     if (!expFecha) next.expFecha = "Completá la fecha de expediente.";
@@ -901,7 +952,8 @@ const GestionNotificacionPage = () => {
     setFieldErrors(next);
     if (Object.keys(next).length > 0) return { ok: false };
 
-    setSaving(true);
+    const seq = nextMutationSeq(mutationSeqRef);
+    setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.notifAltaExpediente });
     setModalApiError(null);
     try {
       const payload: ICreateExpedienteRequest = {
@@ -910,17 +962,33 @@ const GestionNotificacionPage = () => {
         source_type: "NOTIFICACION",
         prorroga_dias: Number(prorrogaDias) || 0,
       };
-      const resp = await createExpedienteDesdeActuacion(selected.id, payload);
-      setExpNumero("");
-      setExpFecha("");
-      setProrrogaDias("0");
-      setFieldErrors({});
-      await refreshBandejaActiva();
+      const resp = await createExpedienteDesdeActuacion(actuacionId, payload);
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) {
+        return { ok: false };
+      }
+
+      if (selectedRef.current?.id === actuacionId) {
+        setExpNumero("");
+        setExpFecha("");
+        setProrrogaDias("0");
+        setFieldErrors({});
+      }
+
+      setPersistKey((prev) => clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.notifAltaExpediente));
+
       const volvioEnPlazo = volvioEnPlazoDesdeExpedienteMeta(resp.meta?.next_state_hint);
       feedback.success(prorrogaAltaSuccessMessage(volvioEnPlazo));
-      dismissModal();
+
+      if (selectedRef.current?.id === actuacionId && isMutationSeqCurrent(mutationSeqRef, seq)) {
+        dismissModal();
+      }
+
+      reconcileBandejasSilent();
       return { ok: true, volvioEnPlazo };
     } catch (err: unknown) {
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) {
+        return { ok: false };
+      }
       const detail =
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
@@ -928,17 +996,11 @@ const GestionNotificacionPage = () => {
       setModalApiError(detail || "No se pudo añadir el expediente de plazo");
       return { ok: false };
     } finally {
-      setSaving(false);
+      if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+        setPersistKey((prev) => clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.notifAltaExpediente));
+      }
     }
-  }, [
-    selected,
-    expNumero,
-    expFecha,
-    prorrogaDias,
-    refreshBandejaActiva,
-    feedback,
-    dismissModal,
-  ]);
+  }, [selected, expNumero, expFecha, prorrogaDias, feedback, dismissModal, reconcileBandejasSilent]);
 
   /** Anchos reducidos para dar lugar a la columna Acción (MRT sin resize en bandeja). */
   const columnsDataCompact = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
@@ -1725,7 +1787,7 @@ const GestionNotificacionPage = () => {
         }}
         fieldErrors={fieldErrors}
         modalApiError={modalApiError}
-        saving={saving}
+        saving={modalAltaExpedientePersisting}
         onGuardar={handleSave}
         onExpedienteMutacionExitosa={handleExpedienteMutacionExitosa}
       />

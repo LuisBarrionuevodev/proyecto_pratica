@@ -52,6 +52,30 @@ export function esReinspeccionOficioGenerico(tipo: string | null | undefined): b
   return normTipo(tipo) === "REINSPECCION_OFICIO";
 }
 
+const SUBTIPOS_ACTUACION_OFICIO = [
+  "RATIFICACION DE CLAUSURA",
+  "RATIFICACION DE DECOMISO",
+  "VERIFICAR E INFORMAR",
+] as const;
+
+/** Subtipo válido de cierre por oficio (no incluye `REINSPECCION` genérico). */
+export function esSubtipoActuacionOficioValido(tipoActuacion: string | null | undefined): boolean {
+  const t = normTipoActuacion(tipoActuacion);
+  return (SUBTIPOS_ACTUACION_OFICIO as readonly string[]).includes(t);
+}
+
+/**
+ * `REINSPECCION_OFICIO` sin subtipo de oficio elegido todavía.
+ * Mientras sea true, no debe mostrarse el flujo de inspección normal.
+ */
+export function esReinspeccionOficioPendienteSubtipo(
+  tipoIniciador: string | null | undefined,
+  tipoActuacion?: string | null
+): boolean {
+  if (!esReinspeccionOficioGenerico(tipoIniciador)) return false;
+  return !esSubtipoActuacionOficioValido(tipoActuacion);
+}
+
 /** Tipo de actuación fijo cuando el iniciador ya es específico (post-promoción). */
 export function tipoActuacionFijoDesdeIniciadorOficio(
   tipoIniciador: string | null | undefined
