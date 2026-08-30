@@ -13,6 +13,10 @@ import {
   isReinspeccionPorNotificacion,
   isVerificarEInformar,
 } from "../../Containers/Actuaciones/utils/actuacionesExportPdfResumen";
+import {
+  resolveVerificarEstadoFromPersisted,
+  type VerificarEstadoResuelto,
+} from "./verificarEstadoOperativo";
 
 export type ReinspeccionOficioFormMode = "completar" | "edit";
 
@@ -31,6 +35,8 @@ export type ReinspeccionOficioFormContext = {
   cumplimientoUi: ReinspeccionOficioCumplimientoUi;
   contraproducencia: string;
   realizoNuevaInspeccion: "" | "si" | "no";
+  /** Estado operativo canónico Verificar (incluye INCONSISTENTE si persistido híbrido). */
+  verificarEstadoOperativo: VerificarEstadoResuelto;
   resultadoPersistido: string | null;
   realizoPersistido: boolean | null;
 };
@@ -125,12 +131,13 @@ export function resolveReinspeccionOficioFormContext(
   return {
     esCircuitoOficio: esCircuito || Boolean(tIni && esReinspeccionOficioGenerico(tIni)),
     subtipo,
-    subtipoReadonly: mode === "edit",
+    subtipoReadonly: false,
     esRatificacion,
     esVerificar,
     cumplimientoUi: resolveCumplimientoUiFromPersisted(row),
     contraproducencia: (row.contraproducencia ?? "").trim(),
     realizoNuevaInspeccion: realizoNuevaInspeccionFromPersisted(row.realizo_nueva_inspeccion),
+    verificarEstadoOperativo: resolveVerificarEstadoFromPersisted(row),
     resultadoPersistido: row.resultado_cumplimiento_oficio ?? null,
     realizoPersistido: row.realizo_nueva_inspeccion ?? null,
   };

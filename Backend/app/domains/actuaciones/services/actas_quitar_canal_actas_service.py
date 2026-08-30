@@ -22,12 +22,99 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     notificacion_editable_desde_canal_actas,
 )
 
-_TIPOS: Final[frozenset[str]] = frozenset(
+TIPOS_ACTA_CANAL: Final[frozenset[str]] = frozenset(
     {"INSPECCION", "NOTIFICACION", "COMPROBACION", "CLAUSURA", "DECOMISO"}
 )
 _MSG_DOC_ASOCIADA = (
     "Esta acta tiene documentación asociada y debe modificarse desde su sección correspondiente."
 )
+
+
+def normalizar_tipo_acta_canal(tipo: str) -> str:
+    """
+    Normaliza y valida el tipo de acta del canal CRUD.
+
+    Errores:
+        ValueError: tipo inválido.
+    """
+    t = (tipo or "").strip().upper()
+    if t not in TIPOS_ACTA_CANAL:
+        raise ValueError(f"Tipo de acta inválido: {tipo!r}.")
+    return t
+
+
+def quitar_acta_de_actuacion_en_sesion(act: Actuaciones, tipo: str) -> None:
+    """
+    Quita el vínculo del acta indicada con la actuación en la sesión actual (sin commit).
+
+    Parámetros:
+        act: instancia ORM persistida.
+        tipo: ``INSPECCION`` | ``NOTIFICACION`` | ``COMPROBACION`` | ``CLAUSURA`` | ``DECOMISO``.
+
+    Errores:
+        ValueError: acta inexistente o reglas documentales bloquean notif/comp.
+    """
+    t = normalizar_tipo_acta_canal(tipo)
+
+    if t == "NOTIFICACION":
+        nid = act.notificacion_id
+        if nid is None:
+            raise ValueError("No hay acta de notificación vinculada.")
+        if not notificacion_editable_desde_canal_actas(nid):
+            raise ValueError(_MSG_DOC_ASOCIADA)
+        act.notificacion_id = None
+        db.session.add(act)
+        db.session.flush()
+        soft_delete_notificacion_if_orphan(int(nid))
+
+    elif t == "COMPROBACION":
+        cid = act.comprobacion_id
+        if cid is None:
+            raise ValueError("No hay acta de comprobación vinculada.")
+        if not comprobacion_editable_desde_canal_actas(cid):
+            raise ValueError(_MSG_DOC_ASOCIADA)
+        act.comprobacion_id = None
+        db.session.add(act)
+        db.session.flush()
+        soft_delete_comprobacion_if_orphan(int(cid))
+
+    elif t == "INSPECCION":
+        ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+        if ins is None:
+            raise ValueError("No hay acta de inspección vinculada.")
+        db.session.delete(ins)
+
+    elif t == "CLAUSURA":
+        cl = Clausura.query.filter_by(actuacion_id=act.id).first()
+        if cl is None:
+            raise ValueError("No hay acta de clausura vinculada.")
+        db.session.delete(cl)
+
+    elif t == "DECOMISO":
+        dec = Decomiso.query.filter_by(actuacion_id=act.id).first()
+        if dec is None:
+            raise ValueError("No hay acta de decomiso vinculada.")
+        db.session.delete(dec)
+
+    else:
+        raise ValueError(f"Tipo no implementado: {t!r}.")
+
+
+def quitar_actas_de_actuacion_en_sesion(act: Actuaciones, tipos: list[str]) -> None:
+    """
+    Quita varias actas en la misma sesión (sin commit).
+
+    Parámetros:
+        act: actuación persistida.
+        tipos: lista de tipos de acta a quitar.
+
+    Errores:
+        ValueError: ver ``quitar_acta_de_actuacion_en_sesion``.
+    """
+    for tipo in tipos:
+        quitar_acta_de_actuacion_en_sesion(act, tipo)
+    db.session.flush()
+    db.session.expire(act)
 
 
 def quitar_acta_canal_actas(actuacion_id: int, tipo: str) -> Actuaciones:
@@ -44,58 +131,12 @@ def quitar_acta_canal_actas(actuacion_id: int, tipo: str) -> Actuaciones:
     Errores:
         ValueError: tipo inválido, actuación inexistente, o reglas documentales bloquean notif/comp.
     """
-    t = (tipo or "").strip().upper()
-    if t not in _TIPOS:
-        raise ValueError(f"Tipo de acta inválido: {tipo!r}.")
-
     act = Actuaciones.query.get(actuacion_id)
     if not act:
         raise ValueError("Actuación no encontrada.")
 
     try:
-        if t == "NOTIFICACION":
-            nid = act.notificacion_id
-            if nid is None:
-                raise ValueError("No hay acta de notificación vinculada.")
-            if not notificacion_editable_desde_canal_actas(nid):
-                raise ValueError(_MSG_DOC_ASOCIADA)
-            act.notificacion_id = None
-            db.session.add(act)
-            db.session.flush()
-            soft_delete_notificacion_if_orphan(int(nid))
-
-        elif t == "COMPROBACION":
-            cid = act.comprobacion_id
-            if cid is None:
-                raise ValueError("No hay acta de comprobación vinculada.")
-            if not comprobacion_editable_desde_canal_actas(cid):
-                raise ValueError(_MSG_DOC_ASOCIADA)
-            act.comprobacion_id = None
-            db.session.add(act)
-            db.session.flush()
-            soft_delete_comprobacion_if_orphan(int(cid))
-
-        elif t == "INSPECCION":
-            ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
-            if ins is None:
-                raise ValueError("No hay acta de inspección vinculada.")
-            db.session.delete(ins)
-
-        elif t == "CLAUSURA":
-            cl = Clausura.query.filter_by(actuacion_id=act.id).first()
-            if cl is None:
-                raise ValueError("No hay acta de clausura vinculada.")
-            db.session.delete(cl)
-
-        elif t == "DECOMISO":
-            dec = Decomiso.query.filter_by(actuacion_id=act.id).first()
-            if dec is None:
-                raise ValueError("No hay acta de decomiso vinculada.")
-            db.session.delete(dec)
-
-        else:
-            raise ValueError(f"Tipo no implementado: {t!r}.")
-
+        quitar_acta_de_actuacion_en_sesion(act, tipo)
         db.session.commit()
     except Exception:
         db.session.rollback()

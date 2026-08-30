@@ -45,6 +45,7 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_expediente_if_orphan,
 )
 from app.domains.actuaciones.services.actas_canal_payload_guard import (
+    rechazar_campos_operativos_oficio_en_put_canal_actas,
     rechazar_oficio_expediente_en_payload_canal_actas,
 )
 from app.domains.actuaciones.services.expediente_actas_edit_guard import (
@@ -60,6 +61,9 @@ from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_servic
     CorregirCierreOperativoError,
     aplicar_sincronizacion_tras_limpiar_contraproducencia,
     assert_puede_limpiar_contraproducencia,
+)
+from app.domains.actuaciones.services.actuacion_reencolado_service import (
+    procesar_establecimiento_contraproducencia_desde_put,
 )
 from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     assert_puede_editar_domicilio_actuacion,
@@ -217,6 +221,26 @@ def aplicar_payload_actuacion(
             elif geo_snapshot is not None:
                 preservar_geocode_existente_al_editar_domicilio(int(dom.id), geo_snapshot)
 
+    elif contrib is not None or rubro is not None:
+        if not act.domicilio_id:
+            raise ValueError("La actuación no tiene domicilio asociado para actualizar titular o rubro.")
+        dom_actual = db.session.get(Domicilio, int(act.domicilio_id))
+        if dom_actual is None:
+            raise ValueError("Domicilio de la actuación no encontrado.")
+        from app.domains.domicilios.services.domicilio_update_service import _aplicar_rubro_contrib_seguro
+
+        relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
+        dom = _aplicar_rubro_contrib_seguro(
+            dom_actual,
+            contribuyente=contrib,
+            rubro=rubro,
+            numero_tipo=None,
+            contexto="ACTUACION",
+            origen_id=int(act.id) if getattr(act, "id", None) else None,
+        )
+        act.domicilio_id = dom.id
+        act.domicilio = dom
+
     # Inspectores
     if "inspectores" in payload:
         raw_ins = payload.get("inspectores") or []
@@ -303,8 +327,13 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
             old_contribuyente_id = old_dom.contribuyente_id
 
     limpiar_contra = bool(payload.get("limpiar_contraproducencia"))
+    contra_anterior = (act.contraproducencia or "").strip()
     item_correccion = None
     ini_correccion = None
+    ini_operativo = resolve_iniciador_operativo_actuacion(actuacion_id)
+    rechazar_campos_operativos_oficio_en_put_canal_actas(
+        act, payload, iniciador=ini_operativo
+    )
     if limpiar_contra:
         item_correccion, ini_correccion = assert_puede_limpiar_contraproducencia(act)
 
@@ -316,6 +345,13 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
             act,
             item=item_correccion,
             ini=ini_correccion,
+        )
+    elif "contraproducencia" in payload:
+        contra_nueva = (act.contraproducencia or "").strip()
+        procesar_establecimiento_contraproducencia_desde_put(
+            act,
+            contra_anterior=contra_anterior,
+            contra_nueva=contra_nueva,
         )
 
     try_vincular_establecimiento_operativo_desde_actuacion(

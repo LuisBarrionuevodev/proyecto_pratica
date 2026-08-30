@@ -258,6 +258,78 @@ describe("validateActuacionFormForSubmit — CRUD Editar Actuación", () => {
   });
 });
 
+describe("actuacionCrudValidationContext — reinspección por oficio (FIX.4.1)", () => {
+  const oficioBase: IActuacionListItem = {
+    ...baseRow,
+    tipo_actuacion: "RATIFICACION DE CLAUSURA",
+    documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+    acta_inspeccion_num: null,
+    acta_comprobacion_num: null,
+    contraproducencia: null,
+    contrib_apellido: "",
+    contrib_nombre: "",
+    doc_nro: "",
+  };
+
+  const oficioCtx = (subtipo: string, verificarEstado: "" | "SI_INSPECCION" | "NO_INSPECCION" | "CONTRAPRODUCENCIA") => ({
+    oficioValidationContext: { subtipo, verificarEstadoOperativo: verificarEstado },
+  });
+
+  it("Ratificación Clausura Contra→CUMPLE (clearingContra) no exige acta inspección", () => {
+    const original = { ...oficioBase, contraproducencia: "LOCAL CERRADO" };
+    const row = { ...oficioBase, contraproducencia: null, resultado_cumplimiento_oficio: "CUMPLE" };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, { originalRow: original, ...oficioCtx("RATIFICACION DE CLAUSURA", "") })
+    );
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  });
+
+  it("Verificar NO no exige acta inspección", () => {
+    const row = {
+      ...oficioBase,
+      tipo_actuacion: "VERIFICAR E INFORMAR",
+      realizo_nueva_inspeccion: false,
+    };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "NO_INSPECCION"))
+    );
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+  });
+
+  it("Verificar SI sin acta exige acta inspección", () => {
+    const row = {
+      ...oficioBase,
+      tipo_actuacion: "VERIFICAR E INFORMAR",
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: null,
+      acta_comprobacion_num: null,
+    };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"))
+    );
+    expect(result.fieldErrors.acta_inspeccion_num).toBe(
+      ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida
+    );
+  });
+
+  it("contexto Oficio: includeCompletarTrabajoRules solo en Verificar SI", () => {
+    const row = { ...oficioBase, documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} } };
+    const ctxSi = actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"));
+    const ctxNo = actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "NO_INSPECCION"));
+    const ctxRatif = actuacionCrudValidationContext(
+      row,
+      oficioCtx("RATIFICACION DE CLAUSURA", "")
+    );
+    expect(ctxSi.includeCompletarTrabajoRules).toBe(true);
+    expect(ctxNo.includeCompletarTrabajoRules).toBe(false);
+    expect(ctxRatif.includeCompletarTrabajoRules).toBe(false);
+  });
+});
+
 describe("normalizeActuacionRowForCrudSubmit", () => {
   it("normaliza acta 25 a 000025 en fila", () => {
     const normalized = normalizeActuacionRowForCrudSubmit({ ...baseRow, acta_inspeccion_num: "25" });

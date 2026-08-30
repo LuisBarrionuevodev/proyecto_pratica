@@ -9,6 +9,11 @@ import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacion
 import { buildActuacionFormGlobalError } from "../utils/actuacionFormErrors";
 import { buildInspectoresForCanal } from "../utils/buildInspectoresForCanal";
 import { isReinspeccionPorNotificacion } from "../utils/actuacionesExportPdfResumen";
+import { isReinspeccionOficioCircuitRow } from "../../../shared/reinspeccionOficio/isReinspeccionOficioCircuitRow";
+import {
+  usaInspeccionNormalReinspeccionOficio,
+  type ReinspeccionOficioValidationContextInput,
+} from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import {
   ACTUACION_ACTA_NUM_FIELDS,
   ACTUACION_ACTA_NUM_INVALID_MSG,
@@ -109,6 +114,11 @@ export type ActuacionFormValidationContext = {
   canEditContribuyente?: boolean;
   /** CRUD: false en ratificación/verificar e informar (no exigir calle/rubro). */
   canEditDomicilio?: boolean;
+  /**
+   * Reinspección por oficio: true solo en Verificar + SI_INSPECCION.
+   * Undefined fuera del circuito Oficio (comportamiento legacy).
+   */
+  usaInspeccionNormal?: boolean;
 };
 
 export type ActuacionFormValidationResult = {
@@ -176,6 +186,8 @@ export function validateActuacionFormForSubmit(
   const sharedRules = context.includeSharedFormRules === true || crudEdit;
   const completarRules = context.includeCompletarTrabajoRules === true;
   const tieneContraproducencia = Boolean(contra);
+  const debeValidarInspeccionNormalActas =
+    completarRules && context.usaInspeccionNormal !== false;
 
   if (crudEdit) {
     const fecha = trim(form.fecha_actuacion);
@@ -229,7 +241,7 @@ export function validateActuacionFormForSubmit(
   const actaInspeccion = trim(form.acta_inspeccion_num);
   const actaNotificacion = trim(form.acta_notificacion_num);
 
-  if (completarRules && visitaRealizada && !tieneContraproducencia && !actaInspeccion && !actaComprobacion) {
+  if (debeValidarInspeccionNormalActas && visitaRealizada && !tieneContraproducencia && !actaInspeccion && !actaComprobacion) {
     fieldErrors.acta_inspeccion_num = ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida;
   }
 
@@ -274,7 +286,12 @@ export function validateActuacionFormForSubmit(
     if (actaNotificacion && motivos.length === 0) {
       fieldErrors.notificacion_motivo_1 = ACTUACION_VALIDATION_MESSAGES.notificacionMotivo;
     }
-    if (sharedRules && actaNotificacion && !actaInspeccion) {
+    if (
+      sharedRules &&
+      actaNotificacion &&
+      !actaInspeccion &&
+      context.usaInspeccionNormal !== false
+    ) {
       fieldErrors.acta_inspeccion_num = ACTUACION_VALIDATION_MESSAGES.notificacionRequiereInspeccion;
     }
   }
@@ -298,26 +315,58 @@ export function validateActuacionFormForSubmit(
   };
 }
 
+/** Opciones para el contexto CRUD de validación de actuaciones. */
+export type ActuacionCrudValidationContextOptions = {
+  originalRow?: IActuacionListItem | null;
+  /** Estado destino del formulario Oficio (subtipo + máquina Verificar). */
+  oficioValidationContext?: ReinspeccionOficioValidationContextInput;
+};
+
 /** Contexto por defecto para el CRUD de Actuaciones (modal detalle). */
 export function actuacionCrudValidationContext(
   row: IActuacionListItem,
-  opts?: { originalRow?: IActuacionListItem | null }
+  opts?: ActuacionCrudValidationContextOptions
 ): ActuacionFormValidationContext {
-  const editable = getActuacionEditableFields(row);
+  const esOficio = isReinspeccionOficioCircuitRow(row);
+  const oficioCtx = opts?.oficioValidationContext;
+  const editable = getActuacionEditableFields(row, {
+    oficioSubtipo: oficioCtx?.subtipo,
+    verificarEstadoOperativo: oficioCtx?.verificarEstadoOperativo,
+  });
   const hadContra = Boolean(String(opts?.originalRow?.contraproducencia ?? "").trim());
   const clearingContra = hadContra && !String(row.contraproducencia ?? "").trim();
+
+  const usaInspeccionNormal =
+    esOficio && oficioCtx != null
+      ? usaInspeccionNormalReinspeccionOficio(oficioCtx.subtipo, oficioCtx.verificarEstadoOperativo)
+      : undefined;
+
+  let includeCompletarTrabajoRules: boolean;
+  let visitaRealizada: boolean | undefined;
+
+  if (esOficio && usaInspeccionNormal !== undefined) {
+    includeCompletarTrabajoRules = usaInspeccionNormal;
+    visitaRealizada = usaInspeccionNormal ? true : undefined;
+  } else {
+    includeCompletarTrabajoRules = clearingContra;
+    visitaRealizada = clearingContra ? true : undefined;
+  }
+
+  const skipNotifPorOficio = esOficio && usaInspeccionNormal === false;
 
   return {
     includeCrudEditRules: true,
     includeSharedFormRules: true,
-    includeCompletarTrabajoRules: clearingContra,
-    visitaRealizada: clearingContra ? true : undefined,
+    includeCompletarTrabajoRules,
+    visitaRealizada,
+    usaInspeccionNormal,
     canEditContribuyente: editable.canEditContribuyente,
     canEditDomicilio: editable.canEditDomicilio,
     omitNumeroManual: false,
     notificacionEditable: editable.canEditNotificacion && row.notificacion_editable !== false,
     comprobacionEditable: row.comprobacion_editable !== false,
-    skipNotificacionActaRules: isReinspeccionPorNotificacion(row) || !editable.canEditNotificacion,
+    skipNotificacionActaRules:
+      isReinspeccionPorNotificacion(row) || !editable.canEditNotificacion || skipNotifPorOficio,
   };
 }
 

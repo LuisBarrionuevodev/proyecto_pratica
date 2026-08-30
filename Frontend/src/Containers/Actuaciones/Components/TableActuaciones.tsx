@@ -27,7 +27,7 @@ import { GridLegend } from "./GridLegend";
 import { AnimatedTable, useTableRefresh } from "../../../animations";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
-import { ActuacionDetalleDialog } from "./ActuacionDetalleDialog";
+import { ActuacionDetalleDialog, type ActuacionSaveOptions } from "./ActuacionDetalleDialog";
 
 import {
   loadingStyles,
@@ -213,43 +213,52 @@ const TablaActuaciones = ({
     setEditOriginalRow(null);
   }, []);
 
-  const handleDialogSave = useCallback(async () => {
-    if (!editDraft) return;
-    const id = Number(editDraft.id);
-    setEditSaving(true);
-    try {
-      const result = await submitActuacionRow({
-        id,
-        fullRow: editDraft,
-        originalRow: editOriginalRow,
-        skipValidation,
-        skipUpdate,
-        onBeforeSave,
-        onAfterSave,
-        onValidationPassed: () => {
-          setRowErrors((prev) => ({ ...prev, [id]: {} }));
-        },
-      });
+  const handleDialogSave = useCallback(
+    async (
+      rowOverride?: IActuacionListItem,
+      options?: ActuacionSaveOptions
+    ) => {
+      const row = rowOverride ?? editDraft;
+      if (!row) return;
+      const id = Number(row.id);
+      setEditSaving(true);
+      try {
+        const result = await submitActuacionRow({
+          id,
+          fullRow: row,
+          originalRow: editOriginalRow,
+          oficioCorrectionApplied: options?.oficioCorrectionApplied ?? false,
+          actasClearedByOficioCorrection: options?.actasClearedByOficioCorrection ?? [],
+          oficioValidationContext: options?.oficioValidationContext,
+          skipValidation,
+          skipUpdate,
+          onBeforeSave,
+          onAfterSave,
+          onValidationPassed: () => {
+            setRowErrors((prev) => ({ ...prev, [id]: {} }));
+          },
+        });
 
-      if (!result.ok) {
-        if (result.kind === "validation" || result.kind === "backend_fields") {
-          setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
+        if (!result.ok) {
+          if (result.kind === "validation" || result.kind === "backend_fields") {
+            setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
+            notifyActuacionSaveResult(result, feedback);
+            return;
+          }
           notifyActuacionSaveResult(result, feedback);
           return;
         }
-        notifyActuacionSaveResult(result, feedback);
-        return;
-      }
 
-      notifyActuacionSaveResult(result, feedback);
-      setEditDraft(null);
-      setEditOriginalRow(null);
-      triggerRefresh();
-      setTimeout(() => onRefresh?.(), 100);
-    } finally {
-      setEditSaving(false);
-    }
-  }, [
+        notifyActuacionSaveResult(result, feedback);
+        setEditDraft(null);
+        setEditOriginalRow(null);
+        triggerRefresh();
+        setTimeout(() => onRefresh?.(), 100);
+      } finally {
+        setEditSaving(false);
+      }
+    },
+    [
     editDraft,
     editOriginalRow,
     onRefresh,

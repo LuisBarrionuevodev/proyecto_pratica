@@ -57,7 +57,7 @@ describe("resolveReinspeccionOficioFormContext", () => {
     });
     expect(ctx?.esRatificacion).toBe(true);
     expect(ctx?.cumplimientoUi).toBe("CUMPLE");
-    expect(ctx?.subtipoReadonly).toBe(true);
+    expect(ctx?.subtipoReadonly).toBe(false);
   });
 
   it("Clausura contra histórica", () => {
@@ -126,6 +126,33 @@ describe("resolveReinspeccionOficioFormContext", () => {
       mode: "edit",
     });
     expect(amb?.realizoNuevaInspeccion).toBe("");
+    expect(amb?.verificarEstadoOperativo).toBe("");
+  });
+
+  it("Verificar contra pura", () => {
+    const ctx = resolveReinspeccionOficioFormContext({
+      row: baseRow({
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        contraproducencia: "LOCAL CERRADO",
+        realizo_nueva_inspeccion: null,
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      }),
+      mode: "edit",
+    });
+    expect(ctx?.verificarEstadoOperativo).toBe("CONTRAPRODUCENCIA");
+  });
+
+  it("Verificar híbrido", () => {
+    const ctx = resolveReinspeccionOficioFormContext({
+      row: baseRow({
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        contraproducencia: "LOCAL CERRADO",
+        realizo_nueva_inspeccion: true,
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      }),
+      mode: "edit",
+    });
+    expect(ctx?.verificarEstadoOperativo).toBe("INCONSISTENTE");
   });
 
   it("circuito no oficio retorna null en edit", () => {

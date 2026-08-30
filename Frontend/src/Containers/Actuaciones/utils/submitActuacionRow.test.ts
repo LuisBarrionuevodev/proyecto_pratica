@@ -501,4 +501,116 @@ describe("submitActuacionRow pipeline", () => {
     expect(putBody.numero).toBeUndefined();
     expect(putBody.nombre_local).toBe("Solo nombre local");
   });
+
+  it("circuito REINSPECCION_OFICIO omite campos operativos del PUT sin flag (Fix 2C.3)", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        tipo_actuacion: "RATIFICACION DE CLAUSURA",
+        contraproducencia: "LOCAL CERRADO",
+        resultado_cumplimiento_oficio: "CUMPLE",
+        realizo_nueva_inspeccion: false,
+        limpiar_contraproducencia: true,
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      } as IActuacionListItem,
+      oficioCorrectionApplied: false,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.contraproducencia).toBeUndefined();
+    expect(putBody.realizo_nueva_inspeccion).toBeUndefined();
+    expect(putBody.limpiar_contraproducencia).toBeUndefined();
+    expect(putBody.resultado_cumplimiento_oficio).toBeUndefined();
+  });
+
+  it("omite contraproducencia del PUT tras corrección oficio (Fix 2C.2)", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        contraproducencia: "LOCAL CERRADO",
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      } as IActuacionListItem,
+      oficioCorrectionApplied: true,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.contraproducencia).toBeUndefined();
+    expect(putBody.realizo_nueva_inspeccion).toBeUndefined();
+  });
+
+  it("Reinspección Notificación sigue enviando contraproducencia en PUT", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        contraproducencia: "LOCAL CERRADO",
+        documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+      } as IActuacionListItem,
+      oficioCorrectionApplied: false,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.contraproducencia).toBe("LOCAL CERRADO");
+  });
+
+  it("GESTIÓN-FIX.3: no llama quitar-acta si ya fue procesada por corregir-cierre-oficio", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = {
+      ...baseRow,
+      tipo_actuacion: "VERIFICAR E INFORMAR",
+      acta_inspeccion_num: "000123",
+      documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+    } as IActuacionListItem;
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...original, acta_inspeccion_num: "" },
+      originalRow: original,
+      actasClearedByOficioCorrection: ["INSPECCION"],
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(mockedPostQuitarActa).not.toHaveBeenCalled();
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
+
+  it("GESTIÓN-FIX.3: sin corrección oficio sigue llamando quitar-acta al borrar acta", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedPostQuitarActa.mockResolvedValue({ ...baseRow, acta_inspeccion_num: null } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = { ...baseRow, acta_inspeccion_num: "000123" };
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...original, acta_inspeccion_num: "" },
+      originalRow: original,
+      actasClearedByOficioCorrection: [],
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(mockedPostQuitarActa).toHaveBeenCalledWith(1, "INSPECCION");
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
 });

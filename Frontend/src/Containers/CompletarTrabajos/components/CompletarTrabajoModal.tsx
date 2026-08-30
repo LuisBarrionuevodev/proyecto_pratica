@@ -90,6 +90,7 @@ import {
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
 import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
+import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
@@ -633,7 +634,15 @@ export function CompletarTrabajoModal({
   const esReinspeccionNotificacion = displayRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
   const notificacionOrigenTexto = formatNotificacionOrigenReadonly(displayRow);
   const verificarMuestraInspeccionNormal =
-    esFlujoVerificarInformarUi && realizoNuevaInspeccion === "si";
+    esFlujoVerificarInformarUi &&
+    usaInspeccionNormalReinspeccionOficio(
+      tipoActuacionOficioEfectivo ?? "",
+      realizoNuevaInspeccion === "si"
+        ? "SI_INSPECCION"
+        : realizoNuevaInspeccion === "no"
+          ? "NO_INSPECCION"
+          : ""
+    );
   const verificarSinInspeccionNormal =
     esFlujoVerificarInformarUi && realizoNuevaInspeccion === "no";
   const muestraFlujoInspeccionNormal =

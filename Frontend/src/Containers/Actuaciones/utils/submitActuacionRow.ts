@@ -1,6 +1,9 @@
-import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
 import { postQuitarActaCanalActas } from "../../../api/actuacionesListApi";
-import { updateActuacion } from "../../../api/actuacionesApi";import { validateRow } from "../../../api/gridApi";
+import { updateActuacion } from "../../../api/actuacionesApi";
+import { validateRow } from "../../../api/gridApi";
+import { isReinspeccionOficioCircuitRow } from "../../../shared/reinspeccionOficio/isReinspeccionOficioCircuitRow";
+import type { ReinspeccionOficioValidationContextInput } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import {
   DEFAULT_FIELD_ERROR_SUMMARY,
   mapApiErrorsToFormState,
@@ -66,18 +69,45 @@ const ACTUACION_CANAL_PUT_OMIT_KEYS = [
   "comprobacion_previa_num",
 ] as const;
 
-export function sanitizeActuacionRowForCanalActasPut(row: IActuacionListItem): IActuacionListItem {
+/** Campos operativos de reinspección por oficio: dueños del POST `corregir-cierre-oficio`. */
+const OFICIO_OPERATIONAL_PUT_OMIT_KEYS = [
+  "contraproducencia",
+  "realizo_nueva_inspeccion",
+  "limpiar_contraproducencia",
+] as const;
+
+export type SanitizeActuacionPutOptions = {
+  /**
+   * Fuerza omitir campos operativos Oficio en PUT.
+   * Por defecto se infiere desde `documentacion_contexto.circuito === REINSPECCION_OFICIO`.
+   */
+  omitOficioOperationalFields?: boolean;
+};
+
+export function sanitizeActuacionRowForCanalActasPut(
+  row: IActuacionListItem,
+  options?: SanitizeActuacionPutOptions
+): IActuacionListItem {
   const copy: Record<string, unknown> = { ...row };
 
   for (const key of ACTUACION_CANAL_PUT_OMIT_KEYS) {
     delete copy[key];
   }
 
-  const contra = String(copy.contraproducencia ?? "").trim();
+  const omitOficioOperational =
+    options?.omitOficioOperationalFields ?? isReinspeccionOficioCircuitRow(row);
+
+  if (omitOficioOperational) {
+    for (const key of OFICIO_OPERATIONAL_PUT_OMIT_KEYS) {
+      delete copy[key];
+    }
+  } else {
+    const contra = String(copy.contraproducencia ?? "").trim();
+    copy.contraproducencia = contra || null;
+  }
 
   return {
     ...(copy as IActuacionListItem),
-    contraproducencia: contra || null,
     expediente_numero: null,
     expediente_anio: null,
     oficio_numero: null,
@@ -254,6 +284,12 @@ export type SubmitActuacionRowParams = {
   fullRow: IActuacionListItem;
   /** Fila al abrir edición; necesaria para detectar actas vaciadas y llamar quitar-acta. */
   originalRow?: IActuacionListItem | null;
+  /** Tras `corregir-cierre-oficio`: omitir campos operativos del PUT genérico. */
+  oficioCorrectionApplied?: boolean;
+  /** Actas ya quitadas por `corregir-cierre-oficio` en el mismo Guardar (evita doble delete). */
+  actasClearedByOficioCorrection?: ActaCanalQuitarTipo[];
+  /** Estado destino del formulario Oficio para validación contextualizada (FIX.4.1). */
+  oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   skipValidation: boolean;
   skipUpdate: boolean;
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
@@ -270,15 +306,36 @@ export type SubmitActuacionRowParams = {
  * Sin UI: el llamador aplica `setRowErrors` / `alert` según el resultado.
  */
 export async function submitActuacionRow(params: SubmitActuacionRowParams): Promise<SubmitActuacionRowResult> {
-  const { id, fullRow, originalRow, skipValidation, skipUpdate, onBeforeSave, onAfterSave, onValidationPassed } =
-    params;
+  const {
+    id,
+    fullRow,
+    originalRow,
+    oficioCorrectionApplied = false,
+    actasClearedByOficioCorrection = [],
+    oficioValidationContext,
+    skipValidation,
+    skipUpdate,
+    onBeforeSave,
+    onAfterSave,
+    onValidationPassed,
+  } = params;
 
   let rowToSubmit = fullRow;
 
   if (!skipValidation) {
+    const rowForValidation =
+      oficioValidationContext != null
+        ? {
+            ...fullRow,
+            tipo_actuacion: oficioValidationContext.subtipo.trim() || fullRow.tipo_actuacion,
+          }
+        : fullRow;
     const clientValidation = validateActuacionFormForSubmit(
-      fullRow,
-      actuacionCrudValidationContext(fullRow, { originalRow })
+      rowForValidation,
+      actuacionCrudValidationContext(rowForValidation, {
+        originalRow,
+        oficioValidationContext,
+      })
     );
     if (!clientValidation.canSubmit) {
       return {
@@ -309,6 +366,8 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   }
 
   const actasToClear = originalRow ? detectActasClearedByUser(originalRow, rowToSubmit) : [];
+  const alreadyCleared = new Set(actasClearedByOficioCorrection);
+  const actasPendingClear = actasToClear.filter(({ tipo }) => !alreadyCleared.has(tipo));
 
   const rowForCanal = sanitizeActuacionRowForCanalActasPut(rowToSubmit);
   const inspectores = buildInspectoresForCanal(rowForCanal);
@@ -344,7 +403,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     }
 
     if (!skipUpdate) {
-      for (const { tipo } of actasToClear) {
+      for (const { tipo } of actasPendingClear) {
         await postQuitarActaCanalActas(id, tipo);
       }
       await updateActuacion(id, rowWithInspectores as any);

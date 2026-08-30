@@ -17,31 +17,12 @@ MSG_REINGRESO_EN_RUTA = (
     "Revisá la ruta asociada antes de corregir la actuación."
 )
 
+from app.domains.actuaciones.services.actuacion_reencolado_service import (
+    iniciador_tiene_item_abierto_en_ruta_operativa,
+    resolver_item_e_iniciador,
+)
+
 _ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
-
-
-def _iniciador_tiene_item_abierto_en_ruta_operativa(
-    iniciador_id: int,
-    *,
-    excluir_ruta_item_id: int | None = None,
-) -> bool:
-    """
-    True si el iniciador tiene otro ítem no finalizado en ruta PUBLICADA o EN_CURSO.
-
-    Réplica acotada de ``completar_trabajo_cierre_service`` para evitar import circular.
-    """
-    q = (
-        RutaItem.query.join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .filter(
-            RutaItem.iniciador_ruta_id == int(iniciador_id),
-            RutaItem.deleted_at.is_(None),
-            RutaItem.estado_ruta_item.in_(_ESTADOS_RUTA_ITEM_ABIERTOS),
-            RutaTrabajo.estado_ruta.in_(("PUBLICADA", "EN_CURSO")),
-        )
-    )
-    if excluir_ruta_item_id is not None:
-        q = q.filter(RutaItem.id != int(excluir_ruta_item_id))
-    return q.first() is not None
 
 
 class CorregirCierreOperativoError(ValueError):
@@ -49,27 +30,8 @@ class CorregirCierreOperativoError(ValueError):
 
 
 def _resolver_item_e_iniciador(act: Actuaciones) -> tuple[RutaItem | None, IniciadorRuta | None]:
-    """
-    Obtiene el ítem de ruta vinculado a la actuación y su iniciador.
-
-    Parámetros:
-        act: actuación persistida.
-
-    Retorno:
-        Tupla (ruta_item, iniciador); ambos None si la actuación no proviene de ruta.
-    """
-    item = (
-        RutaItem.query.filter(
-            RutaItem.actuacion_id == act.id,
-            RutaItem.deleted_at.is_(None),
-        )
-        .order_by(RutaItem.id.desc())
-        .first()
-    )
-    if item is None:
-        return None, None
-    ini = db.session.get(IniciadorRuta, item.iniciador_ruta_id)
-    return item, ini
+    """Alias interno: ver ``resolver_item_e_iniciador`` en ``actuacion_reencolado_service``."""
+    return resolver_item_e_iniciador(act)
 
 
 def assert_puede_limpiar_contraproducencia(
@@ -118,7 +80,7 @@ def assert_puede_limpiar_contraproducencia(
         if otro_ejecutado is not None:
             raise CorregirCierreOperativoError(MSG_REINGRESO_EN_RUTA)
 
-        if _iniciador_tiene_item_abierto_en_ruta_operativa(
+        if iniciador_tiene_item_abierto_en_ruta_operativa(
             ini.id,
             excluir_ruta_item_id=item.id,
         ):

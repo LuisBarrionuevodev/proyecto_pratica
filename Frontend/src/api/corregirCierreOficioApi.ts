@@ -1,11 +1,12 @@
 import { apiClient } from "./apiClient";
-import type { IActuacionListItem } from "./actuacionesListApi";
+import type { ActaCanalQuitarTipo, IActuacionListItem } from "./actuacionesListApi";
 
 export type CorregirCierreOficioBody = {
   tipo_actuacion: string;
   resultado_cumplimiento_oficio?: string | null;
   contraproducencia?: string | null;
   realizo_nueva_inspeccion?: boolean | null;
+  actas_a_quitar?: ActaCanalQuitarTipo[];
 };
 
 /**

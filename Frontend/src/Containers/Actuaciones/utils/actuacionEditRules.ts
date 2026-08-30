@@ -1,4 +1,7 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import { isReinspeccionOficioCircuitRow } from "../../../shared/reinspeccionOficio/isReinspeccionOficioCircuitRow";
+import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
+import type { VerificarEstadoOperativo } from "../../../shared/reinspeccionOficio/verificarEstadoOperativo";
 
 import {
   isInspeccionIntegralOrDenuncia,
@@ -34,6 +37,10 @@ export type ActuacionEditableFields = {
   /** Motivo de bloqueo de domicilio (PR7.15, desde backend). */
   domicilioEditBlockedReason: string | null;
   canEditActas: boolean;
+  /** Solo Verificar + SI_INSPECCION en reinspección por oficio; undefined fuera del circuito. */
+  usaInspeccionNormal?: boolean;
+  /** True cuando debe validarse/completarse acta de inspección normal (≠ mostrar actas para quitar). */
+  debeValidarActasInspeccionNormal?: boolean;
   canEditNotificacion: boolean;
   canEditResultadoOperativo: boolean;
   modoEdicion: ActuacionModoEdicion;
@@ -108,6 +115,10 @@ function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdi
 export type ActuacionEditableFieldsOptions = {
   /** Estado UI de «¿Realizó nueva inspección?» en edición Verificar (antes de guardar). */
   verificarRealizoNuevaInspeccion?: "" | "si" | "no";
+  /** Subtipo destino del formulario Oficio (puede diferir de `row.tipo_actuacion` persistido). */
+  oficioSubtipo?: string;
+  /** Estado operativo Verificar destino (formulario Oficio). */
+  verificarEstadoOperativo?: VerificarEstadoOperativo;
 };
 
 /**
@@ -117,7 +128,12 @@ export function getActuacionEditableFields(
   row: IActuacionListItem,
   options?: ActuacionEditableFieldsOptions
 ): ActuacionEditableFields {
-  const modo = resolveActuacionModoEdicion(row);
+  const esOficio = isReinspeccionOficioCircuitRow(row);
+  const rowForModo =
+    esOficio && options?.oficioSubtipo?.trim()
+      ? { ...row, tipo_actuacion: options.oficioSubtipo.trim() }
+      : row;
+  const modo = resolveActuacionModoEdicion(rowForModo);
   const normal = modo === "normal";
   const verificarRealizo =
     options?.verificarRealizoNuevaInspeccion ??
@@ -126,11 +142,24 @@ export function getActuacionEditableFields(
       : row.realizo_nueva_inspeccion === false
         ? "no"
         : "");
+
+  const usaInspeccionNormal = esOficio
+    ? usaInspeccionNormalReinspeccionOficio(
+        options?.oficioSubtipo ?? row.tipo_actuacion,
+        options?.verificarEstadoOperativo ?? ""
+      )
+    : undefined;
+
+  const verificarRealizoLegacy = modo === "verificar_informar" && !esOficio && verificarRealizo === "si";
+  const muestraInspeccionNormalOficio = usaInspeccionNormal === true;
+  const tieneActasPersistidas = tieneActasInspeccionNormalPersistidas(row);
+
   const canEditActas =
     normal ||
     modo === "reinspeccion_notificacion" ||
-    (modo === "verificar_informar" &&
-      (verificarRealizo === "si" || tieneActasInspeccionNormalPersistidas(row)));
+    verificarRealizoLegacy ||
+    muestraInspeccionNormalOficio ||
+    (esOficio && tieneActasPersistidas);
 
   const canEditResultadoOperativo =
     modo === "ratificacion" || modo === "verificar_informar" || modo === "reinspeccion_oficio";
@@ -140,6 +169,8 @@ export function getActuacionEditableFields(
     canEditDomicilio: resolveCanEditDomicilio(row, modo),
     domicilioEditBlockedReason: row.domicilio_edit_blocked_reason ?? null,
     canEditActas,
+    usaInspeccionNormal,
+    debeValidarActasInspeccionNormal: usaInspeccionNormal === true,
     canEditNotificacion: normal,
     canEditResultadoOperativo,
     modoEdicion: modo,

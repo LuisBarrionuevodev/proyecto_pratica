@@ -53,87 +53,10 @@ from app.domains.actuaciones.utils.contraproducencia_por_tipo_iniciador import (
     contraproducencia_permitida_en_completar_trabajo,
 )
 
-_ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
-
-
-def _iniciador_tiene_item_abierto_en_ruta_operativa(
-    iniciador_id: int,
-    *,
-    excluir_ruta_item_id: int | None = None,
-) -> bool:
-    """
-    True si el iniciador tiene otro ítem no finalizado en ruta PUBLICADA o EN_CURSO.
-
-    Parámetros:
-        iniciador_id: iniciador a evaluar.
-        excluir_ruta_item_id: ítem que se está cerrando (no cuenta).
-
-    Retorno:
-        False si solo quedan ítems finalizados o la ruta no es operativa.
-    """
-    q = (
-        RutaItem.query.join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .filter(
-            RutaItem.iniciador_ruta_id == int(iniciador_id),
-            RutaItem.deleted_at.is_(None),
-            RutaItem.estado_ruta_item.in_(_ESTADOS_RUTA_ITEM_ABIERTOS),
-            RutaTrabajo.estado_ruta.in_(("PUBLICADA", "EN_CURSO")),
-        )
-    )
-    if excluir_ruta_item_id is not None:
-        q = q.filter(RutaItem.id != int(excluir_ruta_item_id))
-    return q.first() is not None
-
-
-def _reencolar_iniciador_si_oficio_no_cumple(
-    *,
-    ini: IniciadorRuta,
-    act: Actuaciones,
-    item: RutaItem,
-    now: datetime,
-) -> None:
-    """
-    STAB-4: reinspección por oficio con resultado NO_CUMPLE vuelve a pendientes si no hay otra ruta activa.
-
-    Conservador: no duplica iniciador; no reencola si queda otro ítem abierto en ruta operativa.
-    """
-    if not es_flujo_cumplimiento_oficio(ini.tipo_iniciador):
-        return
-    if getattr(act, "resultado_cumplimiento_oficio", None) != "NO_CUMPLE":
-        return
-    if _iniciador_tiene_item_abierto_en_ruta_operativa(ini.id, excluir_ruta_item_id=item.id):
-        return
-    _aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo="OFICIO_NO_CUMPLE")
-
-
-def _aplicar_reencolado_iniciador(
-    ini: IniciadorRuta,
-    now: datetime,
-    *,
-    act: Actuaciones | None = None,
-    cerrado_motivo: str | None = None,
-) -> None:
-    """
-    Devuelve un iniciador al backlog planificable con prioridad alta y fecha de reingreso actualizada.
-
-    Parámetros:
-        ini: iniciador a reactivar.
-        now: timestamp de cierre (UTC naive, coherente con el resto del servicio).
-        act: actuación del cierre; define ``fecha_origen`` operativa (mínimo hoy UTC).
-        cerrado_motivo: traza opcional (p. ej. OFICIO_NO_CUMPLE); None limpia cierre previo.
-    """
-    hoy = now.date()
-    act_fecha = getattr(act, "fecha", None) if act is not None else None
-    fecha_reencolado = act_fecha if act_fecha is not None and act_fecha >= hoy else hoy
-
-    ini.estado_iniciador = "PENDIENTE"
-    ini.prioridad = max(int(ini.prioridad or 0), 5)
-    ini.cerrado_at = None
-    ini.cerrado_motivo = cerrado_motivo
-    ini.fecha_origen = fecha_reencolado
-    ini.anio = fecha_reencolado.year
-    ini.mes = fecha_reencolado.month
-
+from app.domains.actuaciones.services.actuacion_reencolado_service import (
+    aplicar_reencolado_iniciador,
+    reencolar_iniciador_si_oficio_no_cumple,
+)
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
 )
@@ -573,7 +496,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.estado_iniciador = "CUMPLIDO"
             ini.cerrado_at = None
             ini.cerrado_motivo = None
-            _reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item, now=now)
+            reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item, now=now)
             _vincular_notificacion_reinspeccion_en_acta(act=act, ini=ini, bucket=bucket)
         elif bucket == ContrapBucket.NO_EXISTE_LOCAL:
             assert stored_contra is not None
@@ -588,7 +511,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             item.estado_ejecucion = "NO_REALIZADO"
             item.estado_ruta_item = "FINALIZADO"
             item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
-            _aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
+            aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
 
         if domicilio_mutado and act.domicilio_id and getattr(act, "id", None):
             from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (

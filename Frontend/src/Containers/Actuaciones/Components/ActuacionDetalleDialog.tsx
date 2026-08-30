@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
 import {
   MOTIVOS_NOTIFICACION_MAX,
   mergeMotivosNotifCatalogStrings,
@@ -64,22 +64,30 @@ import { buildContraproducenciaCrudSelectOptions } from "../utils/contraproducen
 import { getContraproducenciaUxHint } from "../../CompletarTrabajos/utils/contraproducenciaUxHint";
 import { filtrarContraproducenciasPorTipoIniciador } from "../../CompletarTrabajos/utils/contraproducenciasPorTipoIniciador";
 import { scrollActuacionFormToFirstFieldError } from "../utils/actuacionFormScroll";
+import { mergeActuacionAfterOficioCorrection } from "../utils/mergeActuacionAfterOficioCorrection";
 import { corregirCierreOficio } from "../../../api/corregirCierreOficioApi";
+import { detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import {
   mapApiErrorsToFormState,
   parseApiError,
 } from "../../../utils/parseApiError";
-import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
+import { ReinspeccionOficioForm } from "../../../shared/reinspeccionOficio/ReinspeccionOficioForm";
 import {
   resolveReinspeccionOficioFormContext,
   tipoIniciadorInferidoDesdeActuacion,
-  type ReinspeccionOficioCumplimientoUi,
 } from "../../../shared/reinspeccionOficio/resolveReinspeccionOficioFormContext";
 import {
   oficioCorreccionDirty,
   oficioCorreccionPayloadFromUi,
   validateReinspeccionOficioForm,
 } from "../../../shared/reinspeccionOficio/reinspeccionOficioValidation";
+import { tipoIniciadorDesdeSubtipoActuacionOficio } from "../../../shared/reinspeccionOficio/reinspeccionOficioSubtipo";
+import type { ReinspeccionOficioValidationContextInput } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
+import { useReinspeccionOficioFormState } from "../../../shared/reinspeccionOficio/useReinspeccionOficioFormState";
+import {
+  MSG_VERIFICAR_LEGACY_INCONSISTENTE,
+  resolveVerificarEstadoFromPersisted,
+} from "../../../shared/reinspeccionOficio/verificarEstadoOperativo";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -113,6 +121,15 @@ export type ActuacionEditCatalogs = {
   motivosComprobacion: string[];
 };
 
+export type ActuacionSaveOptions = {
+  /** True si `corregir-cierre-oficio` ya persistió campos operativos de Oficio. */
+  oficioCorrectionApplied?: boolean;
+  /** Actas ya eliminadas por `corregir-cierre-oficio` en el mismo Guardar. */
+  actasClearedByOficioCorrection?: ActaCanalQuitarTipo[];
+  /** Estado destino del formulario Oficio para validación CRUD contextualizada. */
+  oficioValidationContext?: ReinspeccionOficioValidationContextInput;
+};
+
 export type ActuacionDetalleDialogProps = {
   open: boolean;
   draft: IActuacionListItem;
@@ -126,7 +143,7 @@ export type ActuacionDetalleDialogProps = {
   canEdit?: boolean;
   onClose: () => void;
   onDraftChange: (patch: Partial<IActuacionListItem>) => void;
-  onSave: () => void | Promise<void>;
+  onSave: (rowOverride?: IActuacionListItem, options?: ActuacionSaveOptions) => void | Promise<void>;
   /** Solo tests SSR; evita portal de MUI Dialog. */
   disablePortal?: boolean;
   /** Solo tests: abrir directamente en edición. */
@@ -730,14 +747,14 @@ export function ActuacionDetalleDialog({
   const feedback = useAppFeedback();
   const scrollContainerRef = useCrudDialogScrollContainer();
   const actaFlushRegistry = useRef<Set<() => void>>(new Set());
+  const verificarInconsistentWarnedRef = useRef<number | string | null>(null);
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
-  const [oficioCumplimientoUi, setOficioCumplimientoUi] = useState<ReinspeccionOficioCumplimientoUi>("");
-  const [oficioContra, setOficioContra] = useState("");
-  const [oficioRealizo, setOficioRealizo] = useState<"" | "si" | "no">("");
   const [oficioFieldErrors, setOficioFieldErrors] = useState<Record<string, string>>({});
+  const oficioForm = useReinspeccionOficioFormState({ mode: "edit", initialRow: draft });
+  const resetOficioFormFromRow = oficioForm.resetFromRow;
 
   const oficioFormCtx = useMemo(
     () => (isEditing ? resolveReinspeccionOficioFormContext({ row: draft, mode: "edit" }) : null),
@@ -745,8 +762,20 @@ export function ActuacionDetalleDialog({
   );
 
   const editableFields = useMemo(
-    () => getActuacionEditableFields(draft, { verificarRealizoNuevaInspeccion: oficioRealizo }),
-    [draft, oficioRealizo]
+    () =>
+      getActuacionEditableFields(draft, {
+        verificarRealizoNuevaInspeccion: oficioForm.realizoNuevaInspeccion,
+        oficioSubtipo: oficioFormCtx ? oficioForm.subtipo : undefined,
+        verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : undefined,
+      }),
+    [
+      draft,
+      oficioForm.realizoNuevaInspeccion,
+      oficioForm.subtipo,
+      oficioForm.esVerificar,
+      oficioForm.verificarEstadoOperativo,
+      oficioFormCtx,
+    ]
   );
 
   const registerActaFlush = useCallback((fn: () => void) => {
@@ -762,23 +791,28 @@ export function ActuacionDetalleDialog({
       setEditBaseline(initialEditing ? { ...draft } : null);
       setEpicollectOtrosExpanded(false);
       setInspectoresAddInput("");
-      setOficioCumplimientoUi("");
-      setOficioContra("");
-      setOficioRealizo("");
+      resetOficioFormFromRow(draft);
       setOficioFieldErrors({});
+      verificarInconsistentWarnedRef.current = null;
       actaFlushRegistry.current.clear();
     }
-  }, [open, draft.id, initialEditing]);
+    // Solo al abrir o cambiar de actuación: no resetear si el padre actualiza `draft` al entrar en edición.
+  }, [open, draft.id, initialEditing, resetOficioFormFromRow]);
 
   useEffect(() => {
     if (!isEditing || !editBaseline) return;
     const ctx = resolveReinspeccionOficioFormContext({ row: editBaseline, mode: "edit" });
     if (!ctx) return;
-    setOficioCumplimientoUi(ctx.cumplimientoUi);
-    setOficioContra(ctx.contraproducencia);
-    setOficioRealizo(ctx.realizoNuevaInspeccion);
+    resetOficioFormFromRow(editBaseline);
+    const estadoResuelto = resolveVerificarEstadoFromPersisted(editBaseline);
+    if (estadoResuelto === "INCONSISTENTE") {
+      if (verificarInconsistentWarnedRef.current !== editBaseline.id) {
+        verificarInconsistentWarnedRef.current = editBaseline.id;
+        feedback.warning(MSG_VERIFICAR_LEGACY_INCONSISTENTE);
+      }
+    }
     setOficioFieldErrors({});
-  }, [isEditing, editBaseline?.id]);
+  }, [isEditing, editBaseline, feedback, resetOficioFormFromRow]);
 
   useEffect(() => {
     if (!open || !isEditing) return;
@@ -828,16 +862,18 @@ export function ActuacionDetalleDialog({
   );
 
   const oficioContraOpts = useMemo(() => {
-    if (!oficioFormCtx) return [];
-    const tipoIni = tipoIniciadorInferidoDesdeActuacion(draft);
+    if (!oficioFormCtx || !oficioForm.subtipo.trim()) return [];
+    const tipoIni =
+      tipoIniciadorDesdeSubtipoActuacionOficio(oficioForm.subtipo) ??
+      tipoIniciadorInferidoDesdeActuacion(draft);
     const filtradas = filtrarContraproducenciasPorTipoIniciador(
       mergedCatalogs.contraproducencias ?? [],
       tipoIni,
-      oficioContra,
-      oficioFormCtx.subtipo
+      oficioForm.contraproducencia,
+      oficioForm.subtipo
     );
     return filtradas.map((s) => ({ value: s, label: s || "—" }));
-  }, [draft, mergedCatalogs.contraproducencias, oficioContra, oficioFormCtx]);
+  }, [draft, mergedCatalogs.contraproducencias, oficioForm.contraproducencia, oficioForm.subtipo, oficioFormCtx]);
 
   const muestraOficioResultadoEditable =
     isEditing && oficioFormCtx != null && editableFields.canEditResultadoOperativo;
@@ -886,16 +922,23 @@ export function ActuacionDetalleDialog({
       return;
     }
 
+    let rowForSubmit: IActuacionListItem = draft;
+    let oficioCorrectionApplied = false;
+    let actasClearedByOficioCorrection: ActaCanalQuitarTipo[] = [];
+    const actasToClear = detectActasClearedByUser(baseline, draft).map((a) => a.tipo);
+
     const oficioCtx = resolveReinspeccionOficioFormContext({ row: draft, mode: "edit" });
     if (oficioCtx && editableFields.canEditResultadoOperativo) {
       const tieneActas = tieneActasInspeccionNormalPersistidas(draft);
       const validation = validateReinspeccionOficioForm({
-        esRatificacion: oficioCtx.esRatificacion,
-        esVerificar: oficioCtx.esVerificar,
-        cumplimientoUi: oficioCumplimientoUi,
-        contraproducencia: oficioContra,
-        realizoNuevaInspeccion: oficioRealizo,
+        esRatificacion: oficioForm.esRatificacion,
+        esVerificar: oficioForm.esVerificar,
+        cumplimientoUi: oficioForm.cumplimientoUi,
+        contraproducencia: oficioForm.contraproducencia,
+        realizoNuevaInspeccion: oficioForm.realizoNuevaInspeccion,
+        verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : undefined,
         tieneActasInspeccionNormal: tieneActas,
+        subtipoPendiente: !oficioForm.subtipo.trim(),
       });
       if (!validation.ok) {
         setOficioFieldErrors({ [validation.field]: validation.message });
@@ -905,30 +948,46 @@ export function ActuacionDetalleDialog({
 
       const dirty = oficioCorreccionDirty(
         {
+          tipo_actuacion: baseline.tipo_actuacion,
           resultado_cumplimiento_oficio: baseline.resultado_cumplimiento_oficio,
           contraproducencia: baseline.contraproducencia,
           realizo_nueva_inspeccion: baseline.realizo_nueva_inspeccion,
         },
         {
-          cumplimientoUi: oficioCumplimientoUi,
-          contraproducencia: oficioContra,
-          realizoNuevaInspeccion: oficioRealizo,
+          tipoActuacion: oficioForm.subtipo,
+          cumplimientoUi: oficioForm.cumplimientoUi,
+          contraproducencia: oficioForm.contraproducencia,
+          realizoNuevaInspeccion: oficioForm.realizoNuevaInspeccion,
+          verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : undefined,
         }
       );
 
       if (dirty) {
         try {
-          const payload = oficioCorreccionPayloadFromUi({
-            tipoActuacion: oficioCtx.subtipo,
-            cumplimientoUi: oficioCumplimientoUi,
-            contraproducencia: oficioContra,
-            realizoNuevaInspeccion: oficioRealizo,
-            esRatificacion: oficioCtx.esRatificacion,
-            esVerificar: oficioCtx.esVerificar,
-          });
+          const payload = {
+            ...oficioCorreccionPayloadFromUi({
+              tipoActuacion: oficioForm.subtipo,
+              cumplimientoUi: oficioForm.cumplimientoUi,
+              contraproducencia: oficioForm.contraproducencia,
+              realizoNuevaInspeccion: oficioForm.realizoNuevaInspeccion,
+              verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : undefined,
+              esRatificacion: oficioForm.esRatificacion,
+              esVerificar: oficioForm.esVerificar,
+            }),
+            ...(actasToClear.length > 0 ? { actas_a_quitar: actasToClear } : {}),
+          };
           const updated = await corregirCierreOficio(Number(draft.id), payload);
-          onDraftChange(updated);
-          setEditBaseline((prev) => (prev ? { ...prev, ...updated } : prev));
+          rowForSubmit = mergeActuacionAfterOficioCorrection({
+            correctedRow: updated,
+            pendingDraft: draft,
+          });
+          oficioCorrectionApplied = true;
+          if (actasToClear.length > 0) {
+            actasClearedByOficioCorrection = actasToClear;
+          }
+          onDraftChange(rowForSubmit);
+          setEditBaseline((prev) => (prev ? { ...prev, ...rowForSubmit } : prev));
+          oficioForm.resetFromRow(rowForSubmit);
           setOficioFieldErrors({});
         } catch (err) {
           const parsed = parseApiError(err);
@@ -940,15 +999,23 @@ export function ActuacionDetalleDialog({
       }
     }
 
-    await onSave();
+    await onSave(rowForSubmit, {
+      oficioCorrectionApplied,
+      actasClearedByOficioCorrection,
+      oficioValidationContext:
+        oficioCtx != null
+          ? {
+              subtipo: oficioForm.subtipo,
+              verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : "",
+            }
+          : undefined,
+    });
   }, [
     draft,
     editBaseline,
     editableFields.canEditResultadoOperativo,
     feedback,
-    oficioContra,
-    oficioCumplimientoUi,
-    oficioRealizo,
+    oficioForm,
     onDraftChange,
     onSave,
   ]);
@@ -1474,6 +1541,8 @@ export function ActuacionDetalleDialog({
         {canEditActas ? (
         <DocumentalBloque overline="Actas labradas">
           <Box sx={{ ...col, width: "100%" }}>
+            {(editableFields.debeValidarActasInspeccionNormal ||
+              Boolean(draft.acta_inspeccion_num?.trim())) && (
             <ActaNumFieldLazy
               label={ACTA_FIELD_LABELS.inspeccion}
               value={draft.acta_inspeccion_num}
@@ -1483,6 +1552,7 @@ export function ActuacionDetalleDialog({
               error={!!e("acta_inspeccion_num")}
               helperText={fieldHelper("acta_inspeccion_num")}
             />
+            )}
 
             {canNotifEdit ? (
               lockedNotif ? (
@@ -1570,40 +1640,9 @@ export function ActuacionDetalleDialog({
         {muestraOficioResultadoEditable && oficioFormCtx ? (
           <DocumentalBloque overline="Resultado operativo">
             <Box sx={edicionGapBloqueAPrimerControlSx}>
-              <ReinspeccionOficioResultadoFields
-                esRatificacion={oficioFormCtx.esRatificacion}
-                esVerificar={oficioFormCtx.esVerificar}
-                subtipoReadonly
-                cumplimientoUi={oficioCumplimientoUi}
-                onCumplimientoUiChange={(v) => {
-                  setOficioCumplimientoUi(v);
-                  if (v !== "CONTRAPRODUCENCIA") setOficioContra("");
-                  setOficioFieldErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.resultado_cumplimiento_oficio;
-                    delete next.contraproducencia;
-                    return next;
-                  });
-                }}
-                contraproducencia={oficioContra}
-                onContraproducenciaChange={(v) => {
-                  setOficioContra(v);
-                  setOficioFieldErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.contraproducencia;
-                    return next;
-                  });
-                }}
+              <ReinspeccionOficioForm
+                form={oficioForm}
                 contraOptions={oficioContraOpts}
-                realizoNuevaInspeccion={oficioRealizo}
-                onRealizoNuevaInspeccionChange={(v) => {
-                  setOficioRealizo(v);
-                  setOficioFieldErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.realizo_nueva_inspeccion;
-                    return next;
-                  });
-                }}
                 fieldErrors={{ ...fieldErrors, ...oficioFieldErrors }}
                 disabled={saving}
               />
@@ -1696,9 +1735,7 @@ export function ActuacionDetalleDialog({
     fieldErrors,
     oficioFieldErrors,
     oficioFormCtx,
-    oficioCumplimientoUi,
-    oficioContra,
-    oficioRealizo,
+    oficioForm,
     oficioContraOpts,
     muestraOficioResultadoEditable,
     readOnlyColumns,

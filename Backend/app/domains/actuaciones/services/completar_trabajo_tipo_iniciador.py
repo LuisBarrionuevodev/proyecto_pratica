@@ -125,6 +125,66 @@ def tipo_actuacion_fijo_para_iniciador_oficio(tipo_iniciador: str | None) -> str
         return None
 
 
+def es_subtipo_actuacion_oficio(tipo_actuacion: str | None) -> bool:
+    """
+    True si ``tipo_actuacion`` es uno de los subtipos válidos de reinspección por oficio.
+
+    Parámetros:
+        tipo_actuacion: valor de catálogo ``Actuaciones.tipo``.
+
+    Retorno:
+        False si es None, vacío o no reconocido.
+    """
+    if not tipo_actuacion:
+        return False
+    normalizado = _normalizar_tipo_actuacion_catalogo(tipo_actuacion)
+    permitidos = {_normalizar_tipo_actuacion_catalogo(x) for x in _REINSPECCION_OFICIO_TIPOS_PERMITIDOS}
+    return normalizado in permitidos
+
+
+def es_subtipo_verificar_informar(tipo_actuacion: str | None) -> bool:
+    """True si el subtipo corresponde a Verificar e informar."""
+    if not tipo_actuacion:
+        return False
+    return (
+        _normalizar_tipo_actuacion_catalogo(tipo_actuacion)
+        == _normalizar_tipo_actuacion_catalogo("VERIFICAR E INFORMAR")
+    )
+
+
+def es_subtipo_ratificacion_oficio(tipo_actuacion: str | None) -> bool:
+    """True si el subtipo es ratificación de clausura o decomiso."""
+    if not tipo_actuacion:
+        return False
+    n = _normalizar_tipo_actuacion_catalogo(tipo_actuacion)
+    return n.startswith("RATIFICACION")
+
+
+def sincronizar_tipo_iniciador_con_tipo_actuacion_oficio(
+    ini: IniciadorRuta,
+    tipo_actuacion: str,
+) -> None:
+    """
+    Alinea ``tipo_iniciador`` con el subtipo de actuación de oficio (promoción o corrección).
+
+    Parámetros:
+        ini: iniciador persistido (mutado in-place, sin commit).
+        tipo_actuacion: subtipo destino (catálogo ``Actuaciones.tipo``).
+
+    Errores:
+        ValueError: subtipo no reconocido para oficio.
+    """
+    if not es_subtipo_actuacion_oficio(tipo_actuacion):
+        raise ValueError(
+            "El tipo de actuación debe ser uno de "
+            f"{sorted(_REINSPECCION_OFICIO_TIPOS_PERMITIDOS)!r} (recibido {tipo_actuacion!r})."
+        )
+    nuevo = tipo_iniciador_oficio_desde_tipo_actuacion(tipo_actuacion)
+    if not nuevo:
+        raise ValueError(f"Subtipo de actuación no reconocido para oficio: {tipo_actuacion!r}")
+    ini.tipo_iniciador = nuevo
+
+
 def promover_iniciador_reinspeccion_oficio_segun_tipo(
     ini: IniciadorRuta,
     tipo_actuacion: str | None,
@@ -142,9 +202,7 @@ def promover_iniciador_reinspeccion_oficio_segun_tipo(
     """
     if ini.tipo_iniciador != "REINSPECCION_OFICIO" or not tipo_actuacion:
         return
-    nuevo = tipo_iniciador_oficio_desde_tipo_actuacion(tipo_actuacion)
-    if nuevo:
-        ini.tipo_iniciador = nuevo
+    sincronizar_tipo_iniciador_con_tipo_actuacion_oficio(ini, tipo_actuacion)
 
 
 def validar_tipo_actuacion_para_iniciador(

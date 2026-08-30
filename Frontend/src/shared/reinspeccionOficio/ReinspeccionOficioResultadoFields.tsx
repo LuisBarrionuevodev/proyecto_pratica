@@ -6,6 +6,10 @@ import {
   REALIZO_NUEVA_INSPECCION_OPTS,
 } from "../../Containers/CompletarTrabajos/utils/completarTrabajoTipoIniciadorUi";
 import type { ReinspeccionOficioCumplimientoUi } from "./resolveReinspeccionOficioFormContext";
+import {
+  VERIFICAR_ESTADO_OPTS,
+  type VerificarEstadoOperativo,
+} from "./verificarEstadoOperativo";
 
 const CUMPLIMIENTO_OPTS: { value: string; label: string }[] = [
   { value: "", label: "—" },
@@ -26,6 +30,9 @@ export type ReinspeccionOficioResultadoFieldsProps = {
   contraOptions: { value: string; label: string }[];
   realizoNuevaInspeccion: "" | "si" | "no";
   onRealizoNuevaInspeccionChange: (v: "" | "si" | "no") => void;
+  /** Estado operativo unificado Verificar (Editar Actuación). */
+  verificarEstadoOperativo?: VerificarEstadoOperativo;
+  onVerificarEstadoOperativoChange?: (v: VerificarEstadoOperativo) => void;
   fieldErrors?: Record<string, string>;
   disabled?: boolean;
   /** Completar Trabajo muestra contraproducencia en bloque aparte cuando Verificar = No. */
@@ -46,11 +53,14 @@ export function ReinspeccionOficioResultadoFields({
   contraOptions,
   realizoNuevaInspeccion,
   onRealizoNuevaInspeccionChange,
+  verificarEstadoOperativo = "",
+  onVerificarEstadoOperativoChange,
   fieldErrors = {},
   disabled = false,
   verificarContraExterna = false,
 }: ReinspeccionOficioResultadoFieldsProps) {
   const fe = (k: string) => fieldErrors[k] ?? "";
+  const usaEstadoOperativoVerificar = esVerificar && !verificarContraExterna && onVerificarEstadoOperativoChange;
 
   return (
     <Stack spacing={2} component="div">
@@ -85,7 +95,42 @@ export function ReinspeccionOficioResultadoFields({
         </>
       ) : null}
 
-      {esVerificar ? (
+      {esVerificar && usaEstadoOperativoVerificar ? (
+        <Box>
+          <AppSelect
+            appearance="glass"
+            label="Resultado de la verificación"
+            value={verificarEstadoOperativo}
+            onChange={(e) =>
+              onVerificarEstadoOperativoChange((e.target.value as VerificarEstadoOperativo) || "")
+            }
+            fullWidth
+            options={VERIFICAR_ESTADO_OPTS}
+            disabled={disabled}
+            error={Boolean(fe("verificar_estado_operativo"))}
+            helperText={
+              fe("verificar_estado_operativo") ||
+              "Indicá si hubo contraproducencia, si no realizó nueva inspección o si sí la realizó."
+            }
+          />
+          {verificarEstadoOperativo === "CONTRAPRODUCENCIA" ? (
+            <AppSelect
+              appearance="glass"
+              label="Contraproducencia"
+              value={contraproducencia}
+              onChange={(e) => onContraproducenciaChange(e.target.value as string)}
+              fullWidth
+              sx={{ mt: 2 }}
+              options={[{ value: "", label: "—" }, ...contraOptions]}
+              disabled={disabled}
+              error={Boolean(fe("contraproducencia"))}
+              helperText={fe("contraproducencia") || undefined}
+            />
+          ) : null}
+        </Box>
+      ) : null}
+
+      {esVerificar && !usaEstadoOperativoVerificar ? (
         <Box>
           <AppSelect
             appearance="glass"

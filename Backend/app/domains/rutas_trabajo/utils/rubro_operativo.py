@@ -123,15 +123,20 @@ def titular_operativo_visible_para_iniciador(
     """
     Indica si titular/contrib debe mostrarse en UI operativa del trabajo.
 
-    Relevamientos y denuncias pendientes no heredan titular de ``domicilio`` compartido.
+    Relevamientos y denuncias pendientes no heredan titular de ``domicilio`` compartido,
+    salvo que el titular esté ya asociado al domicilio de la actuación (constatado/persistido).
 
     Parámetros:
         iniciador: origen del ítem de ruta.
         act: actuación vinculada al ítem.
 
     Retorno:
-        False para relevamiento/denuncia con visita aún no realizada.
+        False para relevamiento/denuncia con visita no realizada y sin contrib en domicilio act.
     """
+    if act is not None:
+        dom = getattr(act, "domicilio", None)
+        if dom is not None and getattr(dom, "contribuyente_id", None) is not None:
+            return True
     if iniciador and iniciador.tipo_iniciador in ("RELEVAMIENTO", "DENUNCIA"):
         if act is not None and not _actuacion_visita_realizada(act):
             return False

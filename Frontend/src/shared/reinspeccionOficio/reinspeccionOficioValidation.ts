@@ -1,4 +1,13 @@
 import type { ReinspeccionOficioCumplimientoUi } from "./resolveReinspeccionOficioFormContext";
+import {
+  isPersistedVerificarOperationalInconsistent,
+  MSG_VERIFICAR_ESTADO_REQUERIDO,
+  MSG_VERIFICAR_SI_A_CONTRA_CON_ACTAS,
+  resolveVerificarEstadoFromPersisted,
+  verificarEstadoToPayload,
+  type VerificarEstadoOperativo,
+  type VerificarEstadoResuelto,
+} from "./verificarEstadoOperativo";
 
 export type ReinspeccionOficioValidationInput = {
   esRatificacion: boolean;
@@ -6,6 +15,7 @@ export type ReinspeccionOficioValidationInput = {
   cumplimientoUi: ReinspeccionOficioCumplimientoUi;
   contraproducencia: string;
   realizoNuevaInspeccion: "" | "si" | "no";
+  verificarEstadoOperativo?: VerificarEstadoOperativo;
   tieneActasInspeccionNormal: boolean;
   subtipoPendiente?: boolean;
 };
@@ -18,6 +28,8 @@ export const MSG_RESULTADO_REQUERIDO = "Resultado de cumplimiento: seleccione un
 export const MSG_REALIZO_REQUERIDO = "Nueva inspección: indique si realizó una nueva inspección.";
 export const MSG_SI_A_NO_CON_ACTAS =
   "Para indicar que no realizó una nueva inspección, primero debe quitar las actas labradas.";
+
+export { MSG_VERIFICAR_ESTADO_REQUERIDO, isPersistedVerificarOperationalInconsistent };
 export const MSG_SUBTIPO_REQUERIDO = "Elegí el tipo de actuación.";
 
 /**
@@ -45,11 +57,32 @@ export function validateReinspeccionOficioForm(
   }
 
   if (input.esVerificar) {
-    if (!input.realizoNuevaInspeccion) {
-      return { ok: false, field: "realizo_nueva_inspeccion", message: MSG_REALIZO_REQUERIDO };
+    const estado = input.verificarEstadoOperativo ?? "";
+    if (!estado) {
+      return {
+        ok: false,
+        field: "verificar_estado_operativo",
+        message: MSG_VERIFICAR_ESTADO_REQUERIDO,
+      };
     }
-    if (input.realizoNuevaInspeccion === "no" && input.tieneActasInspeccionNormal) {
-      return { ok: false, field: "realizo_nueva_inspeccion", message: MSG_SI_A_NO_CON_ACTAS };
+    if (estado === "CONTRAPRODUCENCIA" && !input.contraproducencia.trim()) {
+      return {
+        ok: false,
+        field: "contraproducencia",
+        message: "Seleccioná la contraproducencia correspondiente.",
+      };
+    }
+    if (input.tieneActasInspeccionNormal) {
+      if (estado === "NO_INSPECCION") {
+        return { ok: false, field: "verificar_estado_operativo", message: MSG_SI_A_NO_CON_ACTAS };
+      }
+      if (estado === "CONTRAPRODUCENCIA") {
+        return {
+          ok: false,
+          field: "verificar_estado_operativo",
+          message: MSG_VERIFICAR_SI_A_CONTRA_CON_ACTAS,
+        };
+      }
     }
     return { ok: true };
   }
@@ -57,11 +90,24 @@ export function validateReinspeccionOficioForm(
   return { ok: true };
 }
 
+/**
+ * True si el estado persistido viola el invariante CUMPLE + contraproducencia.
+ */
+export function isPersistedOficioOperationalInconsistent(original: {
+  resultado_cumplimiento_oficio?: string | null;
+  contraproducencia?: string | null;
+}): boolean {
+  const res = (original.resultado_cumplimiento_oficio ?? "").trim().toUpperCase();
+  const contra = (original.contraproducencia ?? "").trim();
+  return res === "CUMPLE" && Boolean(contra);
+}
+
 export function oficioCorreccionPayloadFromUi(params: {
   tipoActuacion: string;
   cumplimientoUi: ReinspeccionOficioCumplimientoUi;
   contraproducencia: string;
   realizoNuevaInspeccion: "" | "si" | "no";
+  verificarEstadoOperativo?: VerificarEstadoOperativo;
   esRatificacion: boolean;
   esVerificar: boolean;
 }): {
@@ -87,35 +133,60 @@ export function oficioCorreccionPayloadFromUi(params: {
     }
     return base;
   }
-  if (params.esVerificar) {
-    const rni =
-      params.realizoNuevaInspeccion === "si"
-        ? true
-        : params.realizoNuevaInspeccion === "no"
-          ? false
-          : null;
-    return {
-      ...base,
-      realizo_nueva_inspeccion: rni,
-      contraproducencia: params.contraproducencia.trim() || null,
-      resultado_cumplimiento_oficio: null,
-    };
+  if (params.esVerificar && params.verificarEstadoOperativo) {
+    return verificarEstadoToPayload({
+      tipoActuacion: params.tipoActuacion,
+      verificarEstado: params.verificarEstadoOperativo,
+      contraproducencia: params.contraproducencia,
+    });
   }
   return base;
 }
 
 export function oficioCorreccionDirty(
   original: {
+    tipo_actuacion?: string | null;
     resultado_cumplimiento_oficio?: string | null;
     contraproducencia?: string | null;
     realizo_nueva_inspeccion?: boolean | null;
   },
   current: {
+    tipoActuacion?: string;
     cumplimientoUi: ReinspeccionOficioCumplimientoUi;
     contraproducencia: string;
     realizoNuevaInspeccion: "" | "si" | "no";
+    verificarEstadoOperativo?: VerificarEstadoOperativo;
   }
 ): boolean {
+  const origTipo = (original.tipo_actuacion ?? "").trim();
+  const currTipo = (current.tipoActuacion ?? origTipo).trim();
+  if (origTipo && currTipo && origTipo !== currTipo) {
+    return true;
+  }
+  if (isPersistedOficioOperationalInconsistent(original)) {
+    return true;
+  }
+  if (isPersistedVerificarOperationalInconsistent(original)) {
+    return true;
+  }
+
+  const origVerificarEstado = resolveVerificarEstadoFromPersisted(original);
+  if (origVerificarEstado === "INCONSISTENTE") {
+    return true;
+  }
+  if (current.verificarEstadoOperativo !== undefined) {
+    if (origVerificarEstado !== current.verificarEstadoOperativo) {
+      return true;
+    }
+    if (
+      current.verificarEstadoOperativo === "CONTRAPRODUCENCIA" &&
+      (original.contraproducencia ?? "").trim() !== current.contraproducencia.trim()
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   const origCumpl =
     (original.resultado_cumplimiento_oficio ?? "").trim().toUpperCase() === "CUMPLE"
       ? "CUMPLE"
@@ -138,3 +209,6 @@ export function oficioCorreccionDirty(
     origRealizo !== current.realizoNuevaInspeccion
   );
 }
+
+/** Re-export para tests y consumidores. */
+export type { VerificarEstadoOperativo, VerificarEstadoResuelto };
