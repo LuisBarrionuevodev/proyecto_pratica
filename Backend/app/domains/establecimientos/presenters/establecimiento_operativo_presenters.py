@@ -71,6 +71,8 @@ def establecimiento_operativo_list_row(eo: EstablecimientoOperativo) -> Dict[str
     rub = getattr(dom, "rubro", None)
     dist = getattr(dom, "distrito", None)
     contrib = getattr(dom, "contribuyente", None)
+    rubro_vigente = getattr(eo, "_rubro_vigente_listado", None)
+    rubro_nombre = rubro_vigente if rubro_vigente else (getattr(rub, "nombre", None) if rub else None)
 
     out.update(
         {
@@ -82,7 +84,7 @@ def establecimiento_operativo_list_row(eo: EstablecimientoOperativo) -> Dict[str
             "contrib_nombre": getattr(contrib, "nombre", None) if contrib else None,
             "razon_social": getattr(contrib, "razon_social", None) if contrib else None,
             "documento": getattr(contrib, "documento", None) if contrib else None,
-            "rubro_nombre": getattr(rub, "nombre", None) if rub else None,
+            "rubro_nombre": rubro_nombre,
             "distrito_id": dom.distrito_id,
             "distrito_nombre": getattr(dist, "nombre", None) if dist else None,
         }

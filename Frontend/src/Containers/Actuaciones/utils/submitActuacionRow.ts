@@ -3,6 +3,7 @@ import { postQuitarActaCanalActas } from "../../../api/actuacionesListApi";
 import { updateActuacion } from "../../../api/actuacionesApi";
 import { validateRow } from "../../../api/gridApi";
 import { isReinspeccionOficioCircuitRow } from "../../../shared/reinspeccionOficio/isReinspeccionOficioCircuitRow";
+import { omiteIdentidadOperativaRow } from "../../../shared/circuitoOperativo/resolveCircuitoOperativo";
 import type { ReinspeccionOficioValidationContextInput } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import {
   DEFAULT_FIELD_ERROR_SUMMARY,
@@ -22,6 +23,7 @@ import {
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
+import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
 import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
@@ -156,6 +158,48 @@ function applyDomicilioCalleSubmitGuard(
   delete blockedCopy.numero;
   delete blockedCopy.numero_tipo;
   return blockedCopy as IActuacionListItem;
+}
+
+/** FIX.9 — Circuito RN/Oficio: el PUT residual no es dueño de identidad operativa. */
+function applyCircuitoResidualOperationalStrip(
+  row: IActuacionListItem,
+  originalRow?: IActuacionListItem | null,
+  oficioValidationContext?: ReinspeccionOficioValidationContextInput
+): IActuacionListItem {
+  const esOficio =
+    isReinspeccionOficioCircuitRow(row) ||
+    oficioValidationContext != null ||
+    Boolean(originalRow && isReinspeccionOficioCircuitRow(originalRow));
+  const omiteIdentidad =
+    omiteIdentidadOperativaRow(row) ||
+    (originalRow != null && omiteIdentidadOperativaRow(originalRow)) ||
+    esOficio;
+  if (!omiteIdentidad) return row;
+
+  const copy: Record<string, unknown> = { ...row };
+  if (row.can_edit_domicilio !== true) {
+    delete copy.calle;
+    delete copy.numero;
+    delete copy.numero_tipo;
+  }
+  if (row.can_edit_rubro !== true) {
+    delete copy.rubro_nombre;
+  }
+  delete copy.contrib_apellido;
+  delete copy.contrib_nombre;
+  delete copy.razon_social;
+  delete copy.doc_nro;
+  delete copy.nombre_local;
+  return copy as IActuacionListItem;
+}
+
+/** @deprecated Usar applyCircuitoResidualOperationalStrip */
+function applyOficioResidualOperationalStrip(
+  row: IActuacionListItem,
+  originalRow?: IActuacionListItem | null,
+  oficioValidationContext?: ReinspeccionOficioValidationContextInput
+): IActuacionListItem {
+  return applyCircuitoResidualOperationalStrip(row, originalRow, oficioValidationContext);
 }
 
 /** Mapeo de errores (backend / grilla Glide → snake_case del modal de edición). */
@@ -352,6 +396,11 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const correccionCierre = Boolean(rowToSubmit.limpiar_contraproducencia);
 
   rowToSubmit = applyDomicilioCalleSubmitGuard(rowToSubmit, originalRow);
+  rowToSubmit = applyOficioResidualOperationalStrip(
+    rowToSubmit,
+    originalRow,
+    oficioValidationContext
+  );
 
   if (originalRow) {
     const blockedMsg = detectBlockedActaClearAttempt(rowToSubmit, originalRow);
@@ -368,10 +417,19 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const actasToClear = originalRow ? detectActasClearedByUser(originalRow, rowToSubmit) : [];
   const alreadyCleared = new Set(actasClearedByOficioCorrection);
   const actasPendingClear = actasToClear.filter(({ tipo }) => !alreadyCleared.has(tipo));
+  const esReinspeccionNotificacion =
+    (originalRow != null && isReinspeccionPorNotificacion(originalRow)) ||
+    isReinspeccionPorNotificacion(rowToSubmit);
 
   const rowForCanal = sanitizeActuacionRowForCanalActasPut(rowToSubmit);
   const inspectores = buildInspectoresForCanal(rowForCanal);
-  const rowWithInspectores = { ...rowForCanal, inspectores };
+  const rowWithInspectores: IActuacionListItem & { actas_a_quitar?: ActaCanalQuitarTipo[] } = {
+    ...rowForCanal,
+    inspectores,
+  };
+  if (esReinspeccionNotificacion && actasPendingClear.length > 0) {
+    rowWithInspectores.actas_a_quitar = actasPendingClear.map(({ tipo }) => tipo);
+  }
 
   if (!skipValidation) {
     const v = await validateRow({
@@ -403,8 +461,10 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     }
 
     if (!skipUpdate) {
-      for (const { tipo } of actasPendingClear) {
-        await postQuitarActaCanalActas(id, tipo);
+      if (!esReinspeccionNotificacion) {
+        for (const { tipo } of actasPendingClear) {
+          await postQuitarActaCanalActas(id, tipo);
+        }
       }
       await updateActuacion(id, rowWithInspectores as any);
     }

@@ -172,17 +172,15 @@ def _cerrar_segundo_intento_realizado(
 
 
 @pytest.mark.parametrize(
-    ("primer_cierre", "tipo_esperado", "tipo_iniciador_esperado"),
+    ("primer_cierre", "tipo_esperado"),
     [
         (
             {"contraproducencia": "LOCAL CERRADO", "tipo_actuacion": "VERIFICAR E INFORMAR"},
             "VERIFICAR E INFORMAR",
-            "VERIFICAR_INFORMAR_OFICIO",
         ),
         (
             {"contraproducencia": "NO SE RATIFICÓ", "tipo_actuacion": "RATIFICACION DE CLAUSURA"},
             "RATIFICACION DE CLAUSURA",
-            "RATIFICACION_CLAUSURA_OFICIO",
         ),
         (
             {
@@ -190,7 +188,6 @@ def _cerrar_segundo_intento_realizado(
                 "tipo_actuacion": "RATIFICACION DE DECOMISO",
             },
             "RATIFICACION DE DECOMISO",
-            "RATIFICACION_DECOMISO_OFICIO",
         ),
     ],
 )
@@ -198,11 +195,9 @@ def test_subtipo_oficio_conservado_tras_contraproducencia_y_segundo_intento(
     app_ctx,
     primer_cierre: dict[str, str],
     tipo_esperado: str,
-    tipo_iniciador_esperado: str,
 ) -> None:
     """
-    Intento 1 no realizado + subtipo elegido → iniciador promovido → republicación y cierre
-    conservan el tipo visible en Actuaciones.
+    FIX.5: intento 1 con contra → ini genérico REINSPECCION_OFICIO → republicación crea act nueva.
     """
     for nombre in (
         primer_cierre.get("contraproducencia"),
@@ -213,8 +208,13 @@ def test_subtipo_oficio_conservado_tras_contraproducencia_y_segundo_intento(
             _ensure_catalog_contraproducencia(nombre)
 
     suf = uuid4().hex[:8]
-    item, _act1, ini, u = _mk_reinspeccion_oficio_item(suf)
+    item, act1, ini, u = _mk_reinspeccion_oficio_item(suf)
     user_id = int(u.id)
+    act1_id = int(act1.id)
+    item1_id = int(item.id)
+    snap_fecha = act1.fecha
+    snap_tipo = str(act1.tipo)
+    snap_contra_antes = act1.contraproducencia
 
     cerrar_completar_trabajo_por_ruta_item(
         ruta_item_id=item.id,
@@ -224,20 +224,53 @@ def test_subtipo_oficio_conservado_tras_contraproducencia_y_segundo_intento(
     db.session.expunge_all()
 
     ini_db = db.session.get(IniciadorRuta, ini.id)
+    act1_db = db.session.get(Actuaciones, act1_id)
+    item1_db = db.session.get(RutaItem, item1_id)
     assert ini_db is not None
     assert ini_db.estado_iniciador == "PENDIENTE"
-    assert ini_db.tipo_iniciador == tipo_iniciador_esperado
+    assert ini_db.tipo_iniciador == "REINSPECCION_OFICIO"
+    assert act1_db is not None
+    assert str(act1_db.tipo) == tipo_esperado
+    assert act1_db.contraproducencia == primer_cierre.get("contraproducencia")
+    assert item1_db is not None and int(item1_db.actuacion_id or 0) == act1_id
 
     item2 = _republicar_iniciador_pendiente(ini_db, user_id)
+    act1_hist = db.session.get(Actuaciones, act1_id)
+    assert act1_hist is not None
+    assert act1_hist.fecha == snap_fecha
+    assert str(act1_hist.tipo) == tipo_esperado
+    assert act1_hist.contraproducencia == primer_cierre.get("contraproducencia")
+    assert int(item2.id) != item1_id
+    assert item2.actuacion_id is not None
+    assert int(item2.actuacion_id) != act1_id
+
     act_pub = db.session.get(Actuaciones, item2.actuacion_id)
     assert act_pub is not None
-    assert str(act_pub.tipo) == tipo_esperado
+    assert str(act_pub.tipo) == "REINSPECCION"
 
-    act_final = _cerrar_segundo_intento_realizado(
-        item2,
-        user_id,
-        tipo_iniciador=tipo_iniciador_esperado,
-    )
+    if tipo_esperado == "VERIFICAR E INFORMAR":
+        act_final = _cerrar_segundo_intento_realizado(
+            item2,
+            user_id,
+            tipo_iniciador="REINSPECCION_OFICIO",
+        )
+    else:
+        cerrar_completar_trabajo_por_ruta_item(
+            ruta_item_id=item2.id,
+            payload=CompletarTrabajoCierreCompletoIn.model_validate(
+                {
+                    "tipo_actuacion": tipo_esperado,
+                    "resultado_cumplimiento_oficio": "CUMPLE",
+                }
+            ),
+            ejecutado_por_user_id=user_id,
+        )
+        db.session.expunge_all()
+        item2_db = db.session.get(RutaItem, item2.id)
+        assert item2_db is not None and item2_db.actuacion_id is not None
+        act_final = db.session.get(Actuaciones, item2_db.actuacion_id)
+        assert act_final is not None
+    assert int(act_final.id) != act1_id
     assert str(act_final.tipo) == tipo_esperado
 
     list_row = actuacion_to_list_item(act_final)

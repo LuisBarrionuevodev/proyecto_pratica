@@ -60,6 +60,14 @@ def quitar_acta_de_actuacion_en_sesion(act: Actuaciones, tipo: str) -> None:
         nid = act.notificacion_id
         if nid is None:
             raise ValueError("No hay acta de notificación vinculada.")
+        from app.domains.actuaciones.services.oficio_circuito_service import (
+            notificacion_es_origen_reinspeccion_notificacion_en_actuacion,
+        )
+
+        if notificacion_es_origen_reinspeccion_notificacion_en_actuacion(act, notificacion_id=int(nid)):
+            raise ValueError(
+                "No se puede quitar la notificación de origen de la reinspección por notificación."
+            )
         if not notificacion_editable_desde_canal_actas(nid):
             raise ValueError(_MSG_DOC_ASOCIADA)
         act.notificacion_id = None

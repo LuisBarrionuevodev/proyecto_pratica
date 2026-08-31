@@ -551,6 +551,36 @@ describe("submitActuacionRow pipeline", () => {
     expect(putBody.realizo_nueva_inspeccion).toBeUndefined();
   });
 
+  it("FIX.7: circuito Oficio omite nombre_local del PUT pero conserva inspectores", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        tipo_actuacion: "VERIFICAR E INFORMAR",
+        documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        inspector1: "Accardi",
+        inspector2: "Alamo",
+        calle: "OTRA",
+        rubro_nombre: "OTRO",
+        nombre_local: "OTRO LOCAL",
+        doc_nro: "123",
+      } as IActuacionListItem,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.inspector1).toBe("Accardi");
+    expect(putBody.inspector2).toBe("Alamo");
+    expect(putBody.calle).toBeUndefined();
+    expect(putBody.rubro_nombre).toBeUndefined();
+    expect(putBody.nombre_local).toBeUndefined();
+    expect(putBody.doc_nro).toBeUndefined();
+  });
+
   it("Reinspección Notificación sigue enviando contraproducencia en PUT", async () => {
     mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);
@@ -612,5 +642,38 @@ describe("submitActuacionRow pipeline", () => {
 
     expect(mockedPostQuitarActa).toHaveBeenCalledWith(1, "INSPECCION");
     expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
+
+  it("GESTIÓN-FIX.8: reinspección notificación envía actas_a_quitar en PUT sin POST previo", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = {
+      ...baseRow,
+      tipo_actuacion: "REINSPECCION",
+      acta_inspeccion_num: "000123",
+      acta_comprobacion_num: "000456",
+      comprobacion_motivo: "Motivo",
+      documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+    } as IActuacionListItem;
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...original,
+        acta_inspeccion_num: "",
+        acta_comprobacion_num: "",
+        comprobacion_motivo: "",
+        contraproducencia: "LOCAL CERRADO",
+      },
+      originalRow: original,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(mockedPostQuitarActa).not.toHaveBeenCalled();
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.actas_a_quitar).toEqual(["INSPECCION", "COMPROBACION"]);
+    expect(putBody.contraproducencia).toBe("LOCAL CERRADO");
   });
 });

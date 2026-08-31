@@ -63,10 +63,12 @@ from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_servic
     assert_puede_limpiar_contraproducencia,
 )
 from app.domains.actuaciones.services.actuacion_reencolado_service import (
+    assert_actuacion_editable_sin_intento_posterior,
     procesar_establecimiento_contraproducencia_desde_put,
 )
 from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     assert_puede_editar_domicilio_actuacion,
+    assert_puede_editar_rubro_actuacion,
     puede_editar_domicilio_actuacion,
     resolve_iniciador_operativo_actuacion,
 )
@@ -135,6 +137,15 @@ def aplicar_payload_actuacion(
     """
     rechazar_oficio_expediente_en_payload_canal_actas(payload)
 
+    from app.domains.actuaciones.services.oficio_circuito_service import (
+        actuacion_es_circuito_reinspeccion_oficio,
+    )
+
+    es_oficio_circuito = (
+        getattr(act, "id", None) is not None
+        and actuacion_es_circuito_reinspeccion_oficio(int(act.id))
+    )
+
     # Fecha
     if payload.get("fecha_actuacion"):
         mes, anio, fecha = parse_fecha_grid(payload["fecha_actuacion"])
@@ -149,7 +160,7 @@ def aplicar_payload_actuacion(
         act.contraproducencia = payload.get("contraproducencia")
 
     # Nombre de fantasía del local (columna en actuaciones)
-    if "nombre_local" in payload:
+    if "nombre_local" in payload and not es_oficio_circuito:
         raw_nl = payload.get("nombre_local")
         act.nombre_local = (str(raw_nl).strip() or None) if raw_nl is not None else None
 
@@ -165,9 +176,17 @@ def aplicar_payload_actuacion(
             act.orden_trabajo_id = ot.id
 
     # Catálogos y domicilio
-    rubro = get_rubro_o_falla(payload.get("rubro_nombre")) if "rubro_nombre" in payload else None
-    contrib = resolve_contribuyente(payload.get("contribuyente")) if "contribuyente" in payload else None
-    if "domicilio" in payload:
+    rubro = (
+        get_rubro_o_falla(payload.get("rubro_nombre"))
+        if "rubro_nombre" in payload and not es_oficio_circuito
+        else None
+    )
+    contrib = (
+        resolve_contribuyente(payload.get("contribuyente"))
+        if "contribuyente" in payload and not es_oficio_circuito
+        else None
+    )
+    if "domicilio" in payload and not es_oficio_circuito:
         dom_payload = payload.get("domicilio") or {}
         ini_operativo = (
             resolve_iniciador_operativo_actuacion(int(act.id)) if getattr(act, "id", None) else None
@@ -221,12 +240,17 @@ def aplicar_payload_actuacion(
             elif geo_snapshot is not None:
                 preservar_geocode_existente_al_editar_domicilio(int(dom.id), geo_snapshot)
 
-    elif contrib is not None or rubro is not None:
+    elif (contrib is not None or rubro is not None) and not es_oficio_circuito:
         if not act.domicilio_id:
             raise ValueError("La actuación no tiene domicilio asociado para actualizar titular o rubro.")
         dom_actual = db.session.get(Domicilio, int(act.domicilio_id))
         if dom_actual is None:
             raise ValueError("Domicilio de la actuación no encontrado.")
+        ini_operativo = (
+            resolve_iniciador_operativo_actuacion(int(act.id)) if getattr(act, "id", None) else None
+        )
+        if rubro is not None:
+            assert_puede_editar_rubro_actuacion(act, ini_operativo)
         from app.domains.domicilios.services.domicilio_update_service import _aplicar_rubro_contrib_seguro
 
         relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
@@ -309,6 +333,39 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         ValueError: si la actuación no existe o si se violan reglas de negocio/validaciones.
     """
     act = _get_actuacion_or_404(actuacion_id)
+    assert_actuacion_editable_sin_intento_posterior(actuacion_id)
+
+    from app.domains.actuaciones.services.oficio_circuito_service import (
+        actuacion_es_circuito_reinspeccion_oficio,
+    )
+
+    if actuacion_es_circuito_reinspeccion_oficio(actuacion_id):
+        identity_keys = (
+            "rubro_nombre",
+            "contribuyente",
+            "domicilio",
+            "calle",
+            "numero",
+            "numero_tipo",
+            "doc_nro",
+            "contrib_apellido",
+            "contrib_nombre",
+            "razon_social",
+        )
+        if any(k in payload and payload.get(k) not in (None, "") for k in identity_keys):
+            raise ValueError(
+                "No se puede modificar la identidad del establecimiento en una actuación "
+                "de reinspección por oficio."
+            )
+        raw_nl = payload.get("nombre_local")
+        if raw_nl is not None and str(raw_nl).strip():
+            nl_norm = str(raw_nl).strip()
+            actual_nl = (str(act.nombre_local).strip() if act.nombre_local else None) or None
+            if nl_norm != (actual_nl or ""):
+                raise ValueError(
+                    "No se puede modificar la identidad del establecimiento en una actuación "
+                    "de reinspección por oficio."
+                )
 
     # Snapshot pre-update para cleanup post-commit.
     old_domicilio_id: int | None = act.domicilio_id
@@ -338,6 +395,17 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         item_correccion, ini_correccion = assert_puede_limpiar_contraproducencia(act)
 
     assert_canal_actas_permite_payload_notificacion_comprobacion(act, payload)
+
+    actas_a_quitar = payload.pop("actas_a_quitar", None)
+    if actas_a_quitar:
+        from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
+            quitar_actas_de_actuacion_en_sesion,
+        )
+
+        quitar_actas_de_actuacion_en_sesion(act, list(actas_a_quitar))
+        db.session.flush()
+        db.session.expire(act)
+
     aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
 
     if limpiar_contra:

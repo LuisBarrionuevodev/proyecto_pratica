@@ -8,6 +8,7 @@ from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_efectivo_para_iniciador,
 )
 from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
+    _actuacion_puede_reutilizarse_en_publicacion,
     actuacion_pertenece_iniciador,
     buscar_actuacion_ocupante_orden_trabajo,
     buscar_actuacion_reintento_reutilizable,
@@ -347,7 +348,9 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                     int(item.orden_trabajo_id)
                 )
                 if ocupante_global is not None:
-                    if actuacion_pertenece_iniciador(ocupante_global.id, ini.id):
+                    if actuacion_pertenece_iniciador(ocupante_global.id, ini.id) and _actuacion_puede_reutilizarse_en_publicacion(
+                        ocupante_global, ini.id
+                    ):
                         act = ocupante_global
                         act_ot_antes = act.orden_trabajo_id
                         modo = "reutilizar_ocupante_global"

@@ -423,11 +423,46 @@ def buscar_actuacion_reintento_reutilizable(
 
     Retorno:
         Actuación previa si proviene de un cierre NO_REALIZADO reencolable; si no, None.
+
+    Regla FIX.5:
+        Si el iniciador ya tiene intentos históricos cerrados (NO_REALIZADO + actuación),
+        no se reutiliza ninguna actuación: cada nuevo intento crea fila nueva.
     """
+    from app.domains.actuaciones.services.actuacion_reencolado_service import (
+        iniciador_tiene_intentos_historicos_cerrados,
+    )
+
+    if iniciador_tiene_intentos_historicos_cerrados(iniciador_ruta_id):
+        return None
     act = _buscar_actuacion_desde_items_no_realizado(iniciador_ruta_id)
     if act is not None:
         return act
     return _buscar_actuacion_por_contraproducencia_liberada(iniciador_ruta_id)
+
+
+def _actuacion_puede_reutilizarse_en_publicacion(
+    act: Actuaciones,
+    iniciador_ruta_id: int,
+) -> bool:
+    """
+    False si la actuación es histórica inmutable o el iniciador ya tuvo un intento cerrado.
+
+    Parámetros:
+        act: candidata a reutilizar.
+        iniciador_ruta_id: iniciador del ítem en publicación.
+
+    Retorno:
+        True solo si puede mutarse para un nuevo intento (política legacy sin historial).
+    """
+    from app.domains.actuaciones.services.actuacion_reencolado_service import (
+        iniciador_tiene_intentos_historicos_cerrados,
+    )
+
+    if iniciador_tiene_intentos_historicos_cerrados(iniciador_ruta_id):
+        return False
+    if (act.contraproducencia or "").strip():
+        return False
+    return True
 
 
 def resolver_actuacion_para_publicar_item(
@@ -465,7 +500,9 @@ def resolver_actuacion_para_publicar_item(
         .order_by(RutaItem.id.desc())
         .first()
     )
-    if act_con_ot_objetivo is not None:
+    if act_con_ot_objetivo is not None and _actuacion_puede_reutilizarse_en_publicacion(
+        act_con_ot_objetivo, iniciador_ruta_id
+    ):
         return act_con_ot_objetivo
 
     reintento = buscar_actuacion_reintento_reutilizable(iniciador_ruta_id)
@@ -484,7 +521,9 @@ def resolver_actuacion_para_publicar_item(
 
     # PR11.1f: si la OT objetivo ya está en otra actuación del mismo iniciador, reutilizar
     # esa fila en lugar de actualizar ``reintento`` (evita IntegrityError ix_orden_trabajo_id).
-    if actuacion_pertenece_iniciador(ocupante.id, iniciador_ruta_id):
+    if actuacion_pertenece_iniciador(ocupante.id, iniciador_ruta_id) and _actuacion_puede_reutilizarse_en_publicacion(
+        ocupante, iniciador_ruta_id
+    ):
         return ocupante
 
     # OT tomada por otro flujo: no devolver ``reintento`` (el UPDATE fallaría en commit).
@@ -529,7 +568,9 @@ def evaluar_actuacion_para_publicar_item(
         return None
 
     if actuacion_pertenece_iniciador(ocupante.id, iniciador_ruta_id):
-        return ocupante
+        if _actuacion_puede_reutilizarse_en_publicacion(ocupante, iniciador_ruta_id):
+            return ocupante
+        return None
 
     ini = iniciador or db.session.get(IniciadorRuta, iniciador_ruta_id)
     item_ctx = item or db.session.get(RutaItem, ruta_item_id)

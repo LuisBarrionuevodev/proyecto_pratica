@@ -26,6 +26,14 @@ _TIPOS_CUMPLIMIENTO_OFICIO: frozenset[str] = frozenset(
     }
 )
 
+_TIPOS_INICIADOR_OFICIO_PROMOVIDO_RESET: frozenset[str] = frozenset(
+    {
+        "VERIFICAR_INFORMAR_OFICIO",
+        "RATIFICACION_CLAUSURA_OFICIO",
+        "RATIFICACION_DECOMISO_OFICIO",
+    }
+)
+
 
 def _normalizar_tipo_actuacion_catalogo(s: str) -> str:
     a = s.strip().upper().replace("_", " ")
@@ -183,6 +191,36 @@ def sincronizar_tipo_iniciador_con_tipo_actuacion_oficio(
     if not nuevo:
         raise ValueError(f"Subtipo de actuación no reconocido para oficio: {tipo_actuacion!r}")
     ini.tipo_iniciador = nuevo
+
+
+def es_iniciador_circuito_reinspeccion_oficio(tipo_iniciador: str | None) -> bool:
+    """
+    True si el iniciador pertenece al circuito de reinspección por oficio (genérico o promovido).
+
+    Parámetros:
+        tipo_iniciador: valor de ``IniciadorRuta.tipo_iniciador``.
+
+    Retorno:
+        False si es None, vacío o no es oficio.
+    """
+    if not tipo_iniciador:
+        return False
+    t = str(tipo_iniciador).strip().upper()
+    return t == "REINSPECCION_OFICIO" or t in _TIPOS_INICIADOR_OFICIO_PROMOVIDO_RESET
+
+
+def reset_iniciador_reinspeccion_oficio_generico(ini: IniciadorRuta) -> None:
+    """
+    Restaura ``tipo_iniciador`` al genérico tras contraproducencia reencolable (GESTIÓN-FIX.5).
+
+    Solo transforma subtipos promovidos; si ya es ``REINSPECCION_OFICIO`` no hace nada.
+
+    Parámetros:
+        ini: iniciador persistido (mutado in-place, sin commit).
+    """
+    t = (ini.tipo_iniciador or "").strip().upper()
+    if t in _TIPOS_INICIADOR_OFICIO_PROMOVIDO_RESET:
+        ini.tipo_iniciador = "REINSPECCION_OFICIO"
 
 
 def promover_iniciador_reinspeccion_oficio_segun_tipo(

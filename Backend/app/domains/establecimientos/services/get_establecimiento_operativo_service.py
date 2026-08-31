@@ -11,6 +11,11 @@ from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.domains.establecimientos.utils.domicilio_display import domicilio_texto_ficha_detalle
+from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
+    actuaciones_filter_identidad_logica_desde_domicilio,
+    count_actuaciones_identidad_logica,
+    ultima_actuacion_identidad_logica,
+)
 from app.models import Actuaciones, Domicilio, EstablecimientoOperativo
 
 
@@ -44,25 +49,14 @@ def get_establecimiento_operativo_con_metricas(
     if dom is not None and dom.deleted_at is not None:
         return None, 0, None, None
 
-    cnt = (
-        db.session.query(func.count(Actuaciones.id))
-        .filter(Actuaciones.establecimiento_operativo_id == establecimiento_id)
-        .scalar()
-    )
-    cnt_int = int(cnt or 0)
-
-    ultima = (
-        db.session.query(func.max(Actuaciones.fecha))
-        .filter(Actuaciones.establecimiento_operativo_id == establecimiento_id)
-        .scalar()
-    )
-
-    ultima_act = (
-        Actuaciones.query.filter(Actuaciones.establecimiento_operativo_id == establecimiento_id)
-        .options(joinedload(Actuaciones.domicilio).joinedload(Domicilio.calle_catalogo))
-        .order_by(Actuaciones.fecha.desc(), Actuaciones.id.desc())
-        .first()
-    )
-    dom_ultima_act = ultima_act.domicilio if ultima_act is not None else None
+    if dom is None:
+        cnt_int = 0
+        ultima = None
+        dom_ultima_act = None
+    else:
+        cnt_int = count_actuaciones_identidad_logica(dom)
+        ultima_act = ultima_actuacion_identidad_logica(dom)
+        ultima = ultima_act.fecha if ultima_act is not None else None
+        dom_ultima_act = ultima_act.domicilio if ultima_act is not None else None
 
     return eo, cnt_int, ultima, dom_ultima_act

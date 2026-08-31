@@ -51,6 +51,9 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
     """
     query = Actuaciones.query.options(
         joinedload(Actuaciones.inspector),
+        joinedload(Actuaciones.inspeccion),
+        joinedload(Actuaciones.clausura),
+        joinedload(Actuaciones.decomiso),
         joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),
         joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
         joinedload(Actuaciones.epicollect_detalle),

@@ -13,6 +13,7 @@ from app.domains.actuaciones.schemas.corregir_cierre_oficio_in import CorregirCi
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     es_subtipo_ratificacion_oficio,
     es_subtipo_verificar_informar,
+    reset_iniciador_reinspeccion_oficio_generico,
     sincronizar_tipo_iniciador_con_tipo_actuacion_oficio,
 )
 from app.domains.actuaciones.schemas.list_filters import _coerce_catalog_value
@@ -32,6 +33,7 @@ from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
 from app.domains.actuaciones.services.actuacion_reencolado_service import (
     aplicar_reencolado_iniciador,
     aplicar_sincronizacion_tras_establecer_contraproducencia,
+    assert_actuacion_editable_sin_intento_posterior,
 )
 from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
     quitar_actas_de_actuacion_en_sesion,
@@ -175,6 +177,7 @@ def _aplicar_contraproducencia_ratificacion(
     item.estado_ruta_item = "FINALIZADO"
     item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
     aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
+    reset_iniciador_reinspeccion_oficio_generico(ini)
 
 
 def _corregir_ratificacion(
@@ -329,6 +332,7 @@ def corregir_cierre_oficio(
         LookupError, ValueError: ver mensajes en helpers y validaciones.
     """
     act, item, ini = resolver_item_iniciador_por_actuacion(actuacion_id)
+    assert_actuacion_editable_sin_intento_posterior(actuacion_id)
     tipo_destino = _validar_subtipo_oficio_destino(payload.tipo_actuacion)
     subtipo_anterior = getattr(act, "tipo", None)
     subtipo_cambio = _normalizar_tipo_actuacion(subtipo_anterior) != _normalizar_tipo_actuacion(

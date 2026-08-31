@@ -325,8 +325,191 @@ describe("actuacionCrudValidationContext — reinspección por oficio (FIX.4.1)"
       oficioCtx("RATIFICACION DE CLAUSURA", "")
     );
     expect(ctxSi.includeCompletarTrabajoRules).toBe(true);
+    expect(ctxSi.usaActasNuevaInspeccion).toBe(true);
+    expect(ctxSi.esReinspeccionOficio).toBe(true);
     expect(ctxNo.includeCompletarTrabajoRules).toBe(false);
+    expect(ctxNo.usaActasNuevaInspeccion).toBe(false);
     expect(ctxRatif.includeCompletarTrabajoRules).toBe(false);
+    expect(ctxRatif.usaActasNuevaInspeccion).toBe(false);
+  });
+});
+
+describe("actuacionCrudValidationContext — FIX.6.1 Oficio sin domicilio/contrib", () => {
+  const oficioBase: IActuacionListItem = {
+    ...baseRow,
+    tipo_actuacion: "VERIFICAR E INFORMAR",
+    documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+    calle: "",
+    numero: "",
+    rubro_nombre: "",
+    contrib_apellido: "",
+    contrib_nombre: "",
+    doc_nro: "",
+    acta_inspeccion_num: null,
+    acta_comprobacion_num: null,
+    contraproducencia: "LOCAL CERRADO",
+    realizo_nueva_inspeccion: false,
+    can_edit_domicilio: true,
+  };
+
+  const oficioCtx = (subtipo: string, verificarEstado: "" | "SI_INSPECCION" | "NO_INSPECCION" | "CONTRAPRODUCENCIA") => ({
+    oficioValidationContext: { subtipo, verificarEstadoOperativo: verificarEstado },
+  });
+
+  function assertSinDomicilioNiActa(
+    row: IActuacionListItem,
+    ctxOpts: ReturnType<typeof oficioCtx>
+  ) {
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, ctxOpts)
+    );
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.rubro_nombre).toBeUndefined();
+    expect(result.fieldErrors.contrib_apellido).toBeUndefined();
+    expect(result.fieldErrors.doc_nro).toBeUndefined();
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  }
+
+  it("FIX.6.1: can_edit_domicilio true no exige calle/rubro en Oficio", () => {
+    assertSinDomicilioNiActa(oficioBase, oficioCtx("VERIFICAR E INFORMAR", "CONTRAPRODUCENCIA"));
+  });
+
+  it("FIX.6.1: Verificar CONTRA sin actas ni domicilio", () => {
+    assertSinDomicilioNiActa(oficioBase, oficioCtx("VERIFICAR E INFORMAR", "CONTRAPRODUCENCIA"));
+  });
+
+  it("FIX.6.1: Verificar NO sin actas ni domicilio", () => {
+    const row = { ...oficioBase, contraproducencia: null, realizo_nueva_inspeccion: false };
+    assertSinDomicilioNiActa(row, oficioCtx("VERIFICAR E INFORMAR", "NO_INSPECCION"));
+  });
+
+  it("FIX.6.1: Ratificación Clausura CUMPLE sin domicilio ni actas", () => {
+    const row = {
+      ...oficioBase,
+      tipo_actuacion: "RATIFICACION DE CLAUSURA",
+      contraproducencia: null,
+      resultado_cumplimiento_oficio: "CUMPLE",
+      realizo_nueva_inspeccion: null,
+    };
+    assertSinDomicilioNiActa(row, oficioCtx("RATIFICACION DE CLAUSURA", ""));
+  });
+
+  it("FIX.6.1: Ratificación Decomiso CUMPLE sin domicilio ni actas", () => {
+    const row = {
+      ...oficioBase,
+      tipo_actuacion: "RATIFICACION DE DECOMISO",
+      contraproducencia: null,
+      resultado_cumplimiento_oficio: "CUMPLE",
+      realizo_nueva_inspeccion: null,
+    };
+    assertSinDomicilioNiActa(row, oficioCtx("RATIFICACION DE DECOMISO", ""));
+  });
+
+  it("FIX.6.1: Verificar SI sin acta exige acta pero no calle", () => {
+    const row = {
+      ...oficioBase,
+      contraproducencia: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: null,
+      acta_comprobacion_num: null,
+    };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"))
+    );
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.rubro_nombre).toBeUndefined();
+    expect(result.fieldErrors.contrib_apellido).toBeUndefined();
+    expect(result.fieldErrors.acta_inspeccion_num).toBe(
+      ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida
+    );
+  });
+
+  it("FIX.6.1: Verificar SI con acta válida no exige calle", () => {
+    const row = {
+      ...oficioBase,
+      contraproducencia: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: "000042",
+    };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"))
+    );
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  });
+
+  it("FIX.6.1: undefined usaInspeccionNormal en Oficio no valida actas", () => {
+    const row = {
+      ...oficioBase,
+      contraproducencia: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: null,
+    };
+    const result = validateActuacionFormForSubmit(row, {
+      includeCrudEditRules: true,
+      includeSharedFormRules: true,
+      includeCompletarTrabajoRules: true,
+      visitaRealizada: true,
+      esReinspeccionOficio: true,
+      usaInspeccionNormal: undefined,
+      usaActasNuevaInspeccion: undefined,
+    });
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+  });
+
+  it("FIX.6.1: contexto sin circuito pero con oficioValidationContext", () => {
+    const row = {
+      ...baseRow,
+      tipo_actuacion: "VERIFICAR E INFORMAR",
+      documentacion_contexto: undefined,
+      calle: "",
+      rubro_nombre: "",
+      contrib_apellido: "",
+      contrib_nombre: "",
+      doc_nro: "",
+      contraproducencia: "LOCAL CERRADO",
+      realizo_nueva_inspeccion: false,
+      can_edit_domicilio: true,
+      acta_inspeccion_num: null,
+    };
+    const ctx = actuacionCrudValidationContext(row, {
+      oficioValidationContext: {
+        subtipo: "VERIFICAR E INFORMAR",
+        verificarEstadoOperativo: "CONTRAPRODUCENCIA",
+      },
+    });
+    expect(ctx.esReinspeccionOficio).toBe(true);
+    expect(ctx.usaActasNuevaInspeccion).toBe(false);
+    const result = validateActuacionFormForSubmit(row, ctx);
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  });
+
+  it("FIX.6.1: Clausura CUMPLE → Verificar SI exige acta sin calle", () => {
+    const row = {
+      ...oficioBase,
+      tipo_actuacion: "VERIFICAR E INFORMAR",
+      contraproducencia: null,
+      resultado_cumplimiento_oficio: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: null,
+      acta_comprobacion_num: null,
+      calle: "",
+      rubro_nombre: "",
+      can_edit_domicilio: true,
+    };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"))
+    );
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.acta_inspeccion_num).toBeTruthy();
   });
 });
 

@@ -10,6 +10,9 @@ from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.domains.actuaciones.schemas.actuacion_patch_in import ActuacionPatchIn
 from app.shared.errors import pydantic_errors_to_cell_map
+from app.domains.actuaciones.utils.circuito_operativo import (
+    build_actuacion_grid_validation_context,
+)
 from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
 from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
     CorregirCierreOperativoError,
@@ -27,7 +30,11 @@ def actualizar_actuacion_route(actuacion_id: int):
     try:
         data["id"] = actuacion_id
 
-        row = ActuacionGridRowIn.model_validate(data)
+        validation_ctx = build_actuacion_grid_validation_context(actuacion_id)
+        row = ActuacionGridRowIn.model_validate(
+            data,
+            context=validation_ctx,
+        )
         payload = map_actuacion_row(row)
 
         act = actualizar_actuacion_service(actuacion_id, payload)

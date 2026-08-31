@@ -28,6 +28,8 @@ export interface IActuacionListItem {
     contraproducencia: string | null;
     /** Flag explícito al corregir cierre operativo (borrar contraproducencia reencolada). */
     limpiar_contraproducencia?: boolean;
+    /** GESTIÓN-FIX.8: baja transaccional de actas en PUT (reinspección por notificación). */
+    actas_a_quitar?: ActaCanalQuitarTipo[];
   /** Presente en respuesta API (reinspección por oficio, etc.). */
   resultado_cumplimiento_oficio?: string | null;
   /** Verificar e informar: true/false; null en ratificaciones. */
@@ -79,6 +81,12 @@ export interface IActuacionListItem {
     /** PR7.15 — edición de domicilio desde CRUD (solo actuación base de relevamiento). */
     can_edit_domicilio?: boolean;
     domicilio_edit_blocked_reason?: string | null;
+    /** FIX.6 — edición de rubro operativo desacoplada de domicilio. */
+    can_edit_rubro?: boolean;
+    rubro_edit_blocked_reason?: string | null;
+    /** FIX.5 — false si existe un intento posterior del mismo iniciador. */
+    actuacion_editable?: boolean;
+    motivo_bloqueo_edicion?: string | null;
     /** Ficha operativa (mismo domicilio canónico); null si aún no vinculada. */
     establecimiento_operativo_id?: number | null;
     /** Cantidad de actuaciones con la misma ficha (incluye la actual). */

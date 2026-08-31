@@ -5,7 +5,20 @@ from datetime import datetime, date
 from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy import func
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+
+from app.domains.actuaciones.schemas.corregir_cierre_oficio_in import ActaCanalQuitarTipo
+from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
+    normalizar_tipo_acta_canal,
+)
 
 from app.database import db
 from app.models import (
@@ -168,6 +181,8 @@ class ActuacionGridRowIn(BaseModel):
     contraproducencia: Optional[str] = None
     # True cuando el usuario borró contraproducencia en edición (PUT no debe omitir el clear).
     limpiar_contraproducencia: bool = False
+    # GESTIÓN-FIX.8: baja transaccional de actas de visita (mismo formato que corrección Oficio).
+    actas_a_quitar: Optional[list[ActaCanalQuitarTipo]] = None
 
     # Inspectores (catálogo DB)
     # Lista canónica para persistir (sin tope). Si viene, tiene prioridad sobre inspector1/2/3.
@@ -306,6 +321,22 @@ class ActuacionGridRowIn(BaseModel):
             return None
         return _coerce_catalog_value(v, CatalogContraproducencia, "contraproducencia")
 
+    @field_validator("actas_a_quitar", mode="before")
+    @classmethod
+    def normalize_actas_a_quitar(cls, v: object) -> object:
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            raise ValueError("actas_a_quitar debe ser una lista de tipos de acta.")
+        out: list[str] = []
+        seen: set[str] = set()
+        for raw in v:
+            t = normalizar_tipo_acta_canal(str(raw))
+            if t not in seen:
+                seen.add(t)
+                out.append(t)
+        return out or None
+
     @field_validator("comprobacion_motivo", mode="before")
     @classmethod
     def parse_motivo_comprobacion(cls, v: Any) -> Any:
@@ -351,8 +382,11 @@ class ActuacionGridRowIn(BaseModel):
 
     # ---------- Reglas de negocio (after, errores por celda) ----------
     @model_validator(mode="after")
-    def reglas_negocio_base(self) -> "ActuacionGridRowIn":
-
+    def reglas_negocio_base(self, info: ValidationInfo) -> "ActuacionGridRowIn":
+        ctx = info.context or {}
+        omite_identidad = bool(ctx.get("omite_identidad_operativa")) or bool(
+            ctx.get("es_reinspeccion_oficio")
+        )
 
         field_errors: Dict[str, str] = {}
         # Canal actas: prohibido cargar aquí oficio ni expediente administrativo
@@ -409,39 +443,42 @@ class ActuacionGridRowIn(BaseModel):
                     "Si solo cargás OT/fecha, debés elegir una contraproducencia (p. ej. NO_HUBO)."
                 )
 
-        # 2) Contribuyente: si hay nombre/apellido/razón social, doc obligatorio
-        if (self.contrib_apellido or self.contrib_nombre or self.razon_social) and not self.doc_nro:
-            field_errors["doc_nro"] = "Documento obligatorio si cargás contribuyente."
+        if not omite_identidad:
+            # 2) Contribuyente: si hay nombre/apellido/razón social, doc obligatorio
+            if (self.contrib_apellido or self.contrib_nombre or self.razon_social) and not self.doc_nro:
+                field_errors["doc_nro"] = "Documento obligatorio si cargás contribuyente."
 
-        # 3) Domicilio: calle y número juntos
-        if (self.calle and not self.numero) or (self.numero and not self.calle):
-            if not self.calle:
-                field_errors["calle"] = "Calle obligatoria si cargás número."
-            if not self.numero:
-                field_errors["numero"] = "Número obligatorio si cargás calle."
+            # 3) Domicilio: calle y número juntos
+            if (self.calle and not self.numero) or (self.numero and not self.calle):
+                if not self.calle:
+                    field_errors["calle"] = "Calle obligatoria si cargás número."
+                if not self.numero:
+                    field_errors["numero"] = "Número obligatorio si cargás calle."
 
-        # 4) Reglas según tipo/contraproducencia
-        if self.tipo_actuacion:
-            # Debe haber al menos un inspector cargado
-            if not self.inspectores_resueltos():
-                field_errors["inspectores"] = "Debe cargar al menos un inspector."
-            # PR7.15d: en edición (id), omitir calle/número/rubro/doc si no se envía domicilio geo.
-            envia_domicilio_geo = bool(self.calle or self.numero)
-            exige_domicilio_completo = envia_domicilio_geo or self.id is None
-            if exige_domicilio_completo:
-                if not self.calle or not self.numero:
-                    field_errors["calle"] = "Calle obligatoria cuando hay tipo de actuación."
-                    field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
-                if not self.rubro_nombre:
-                    field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
-                if not self.doc_nro:
-                    field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
-        else:
-            # Si NO hay tipo pero hay contraproducencia + fecha: permitir con calle y número sin contribuyente
-            if self.contraproducencia and self.fecha_actuacion:
-                if not self.calle or not self.numero:
-                    field_errors["calle"] = "Calle obligatoria si cargás contraproducencia."
-                    field_errors["numero"] = "Número obligatorio si cargás contraproducencia."
+            # 4) Reglas según tipo/contraproducencia
+            if self.tipo_actuacion:
+                # Debe haber al menos un inspector cargado
+                if not self.inspectores_resueltos():
+                    field_errors["inspectores"] = "Debe cargar al menos un inspector."
+                # PR7.15d: en edición (id), omitir calle/número/rubro/doc si no se envía domicilio geo.
+                envia_domicilio_geo = bool(self.calle or self.numero)
+                exige_domicilio_completo = envia_domicilio_geo or self.id is None
+                if exige_domicilio_completo:
+                    if not self.calle or not self.numero:
+                        field_errors["calle"] = "Calle obligatoria cuando hay tipo de actuación."
+                        field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
+                    if not self.rubro_nombre:
+                        field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
+                    if not self.doc_nro:
+                        field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
+            else:
+                # Si NO hay tipo pero hay contraproducencia + fecha: permitir con calle y número sin contribuyente
+                if self.contraproducencia and self.fecha_actuacion:
+                    if not self.calle or not self.numero:
+                        field_errors["calle"] = "Calle obligatoria si cargás contraproducencia."
+                        field_errors["numero"] = "Número obligatorio si cargás contraproducencia."
+        elif self.tipo_actuacion and not self.inspectores_resueltos():
+            field_errors["inspectores"] = "Debe cargar al menos un inspector."
 
         # Notificación: acta ⇒ al menos un motivo
         if self.acta_notificacion_num:

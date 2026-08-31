@@ -340,6 +340,7 @@ def test_clausura_cumple_a_verificar_contra_reencola_pool(app_ctx) -> None:
     ini_db = db.session.get(IniciadorRuta, ini_id)
     assert ini_db is not None
     assert ini_db.estado_iniciador == "PENDIENTE"
+    assert ini_db.tipo_iniciador == "REINSPECCION_OFICIO"
     planif = {row.id for row in planificable_iniciadores_base_query().all()}
     assert ini_id in planif
 

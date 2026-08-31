@@ -16,9 +16,13 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
 )
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     es_flujo_cumplimiento_oficio,
+    es_iniciador_circuito_reinspeccion_oficio,
+    reset_iniciador_reinspeccion_oficio_generico,
 )
 from app.domains.actuaciones.services.oficio_circuito_service import (
     actuacion_tiene_actas_inspeccion_normal,
+    actuacion_tiene_actas_visita_reinspeccion_notificacion,
+    actuacion_tiene_evidencia_operativa_real,
 )
 from app.models import Actuaciones, IniciadorRuta, RutaItem, RutaTrabajo
 
@@ -26,7 +30,16 @@ MSG_CONTRA_CON_ACTAS = (
     "Para registrar una contraproducencia, primero debe quitar las actas labradas."
 )
 
+MSG_ACTUACION_BLOQUEADA_INTENTO_POSTERIOR = (
+    "Esta actuación no puede editarse porque existe un intento posterior asociado al mismo iniciador."
+)
+
+MSG_ACTUACION_BLOQUEADA_INTENTO_EN_CURSO = (
+    "Esta actuación no puede corregirse porque existe un intento posterior en curso."
+)
+
 _ESTADOS_RUTA_ITEM_ABIERTOS = ("PENDIENTE_ASIGNACION", "ASIGNADO", "EN_PROCESO")
+_ESTADOS_RUTA_ITEM_PLANIFICADOS = ("PENDIENTE_ASIGNACION", "ASIGNADO")
 
 
 def resolver_item_e_iniciador(act: Actuaciones) -> tuple[RutaItem | None, IniciadorRuta | None]:
@@ -48,6 +61,204 @@ def resolver_item_e_iniciador(act: Actuaciones) -> tuple[RutaItem | None, Inicia
         return None, None
     ini = db.session.get(IniciadorRuta, item.iniciador_ruta_id)
     return item, ini
+
+
+def iniciador_tiene_intentos_historicos_cerrados(iniciador_ruta_id: int) -> bool:
+    """
+    True si el iniciador ya cerró al menos un ítem NO_REALIZADO con actuación histórica.
+
+    Usado al publicar rutas para no reutilizar actuaciones de intentos anteriores (FIX.5).
+
+    Parámetros:
+        iniciador_ruta_id: PK del iniciador.
+
+    Retorno:
+        False si no hay ítems finalizados sin realizar con actuación vinculada.
+    """
+    return (
+        db.session.query(RutaItem.id)
+        .filter(
+            RutaItem.iniciador_ruta_id == int(iniciador_ruta_id),
+            RutaItem.deleted_at.is_(None),
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion == "NO_REALIZADO",
+            RutaItem.actuacion_id.isnot(None),
+        )
+        .limit(1)
+        .first()
+        is not None
+    )
+
+
+def ruta_item_es_intento_posterior_bloqueante(item: RutaItem) -> bool:
+    """
+    True si el ítem representa un reintento iniciado o finalizado (FIX.9).
+
+    Un ítem solo planificado (publicado sin ejecución real) no bloquea la actuación anterior.
+
+    Parámetros:
+        item: ítem de ruta posterior al intento evaluado.
+
+    Retorno:
+        True si debe considerarse intento posterior real.
+    """
+    return motivo_bloqueo_intento_posterior_item(item) is not None
+
+
+def motivo_bloqueo_intento_posterior_item(item: RutaItem) -> str | None:
+    """
+    Mensaje de bloqueo si el ítem posterior impide editar/corregir el intento anterior.
+
+    Parámetros:
+        item: ítem de ruta evaluado.
+
+    Retorno:
+        Mensaje de bloqueo o None si el ítem no bloquea.
+    """
+    if item.deleted_at is not None:
+        return None
+
+    estado_item = (item.estado_ruta_item or "").strip().upper()
+    estado_ejec = (item.estado_ejecucion or "").strip().upper() if item.estado_ejecucion else ""
+
+    if estado_item == "FINALIZADO" or estado_ejec in ("REALIZADO", "NO_REALIZADO"):
+        return MSG_ACTUACION_BLOQUEADA_INTENTO_POSTERIOR
+
+    if item.ejecutado_at is not None:
+        return MSG_ACTUACION_BLOQUEADA_INTENTO_EN_CURSO
+
+    if item.actuacion_id is not None:
+        act = db.session.get(Actuaciones, int(item.actuacion_id))
+        if act is not None and actuacion_tiene_evidencia_operativa_real(act):
+            if estado_item == "EN_PROCESO":
+                return MSG_ACTUACION_BLOQUEADA_INTENTO_EN_CURSO
+            return MSG_ACTUACION_BLOQUEADA_INTENTO_POSTERIOR
+
+    return None
+
+
+def ruta_item_es_reintento_planificado_cancelable(item: RutaItem) -> bool:
+    """
+    True si el ítem posterior puede anularse al corregir el intento anterior.
+
+    Parámetros:
+        item: ítem de ruta del reintento.
+
+    Retorno:
+        False si ya bloquea o no es un reintento planificado.
+    """
+    if item.deleted_at is not None:
+        return False
+    if ruta_item_es_intento_posterior_bloqueante(item):
+        return False
+    estado_item = (item.estado_ruta_item or "").strip().upper()
+    if estado_item in _ESTADOS_RUTA_ITEM_PLANIFICADOS:
+        return True
+    if estado_item == "EN_PROCESO" and item.actuacion_id is not None:
+        act = db.session.get(Actuaciones, int(item.actuacion_id))
+        if act is None or not actuacion_tiene_evidencia_operativa_real(act):
+            return True
+    return False
+
+
+def _items_posteriores_mismo_iniciador(item: RutaItem) -> list[RutaItem]:
+    """Ítems posteriores activos del mismo iniciador."""
+    return (
+        RutaItem.query.filter(
+            RutaItem.iniciador_ruta_id == int(item.iniciador_ruta_id),
+            RutaItem.id > int(item.id),
+            RutaItem.deleted_at.is_(None),
+        )
+        .order_by(RutaItem.id.asc())
+        .all()
+    )
+
+
+def actuacion_bloqueada_por_intento_posterior(actuacion_id: int) -> tuple[bool, str | None]:
+    """
+    Indica si una actuación quedó histórica por un intento posterior real del mismo iniciador.
+
+    Política FIX.9: bloquea solo si hay reintento iniciado o finalizado, no por mera planificación.
+
+    Parámetros:
+        actuacion_id: PK de la actuación evaluada.
+
+    Retorno:
+        Tupla ``(bloqueada, motivo)``; motivo None si es editable.
+    """
+    item = (
+        RutaItem.query.filter(
+            RutaItem.actuacion_id == int(actuacion_id),
+            RutaItem.deleted_at.is_(None),
+        )
+        .order_by(RutaItem.id.asc())
+        .first()
+    )
+    if item is None:
+        return False, None
+
+    posteriores = _items_posteriores_mismo_iniciador(item)
+    for posterior in posteriores:
+        motivo = motivo_bloqueo_intento_posterior_item(posterior)
+        if motivo:
+            return True, motivo
+    return False, None
+
+
+def assert_actuacion_editable_sin_intento_posterior(actuacion_id: int) -> None:
+    """
+    Valida que la actuación no esté supersedida por un intento posterior.
+
+    Errores:
+        ValueError: si existe un ``RutaItem`` posterior con actuación del mismo iniciador.
+    """
+    bloqueada, motivo = actuacion_bloqueada_por_intento_posterior(actuacion_id)
+    if bloqueada:
+        raise ValueError(motivo or MSG_ACTUACION_BLOQUEADA_INTENTO_POSTERIOR)
+
+
+def build_actuacion_editable_flags_por_actuacion_id(
+    act_ids: list[int],
+) -> dict[int, dict[str, object]]:
+    """
+    Precarga flags de edición por actuación para listados sin N+1.
+
+    Parámetros:
+        act_ids: ids de actuaciones del page.
+
+    Retorno:
+        Mapa ``actuacion_id`` → ``{actuacion_editable, motivo_bloqueo_edicion}``.
+    """
+    if not act_ids:
+        return {}
+    base: dict[int, dict[str, object]] = {
+        int(i): {"actuacion_editable": True, "motivo_bloqueo_edicion": None} for i in act_ids
+    }
+    items = (
+        RutaItem.query.filter(
+            RutaItem.actuacion_id.in_(act_ids),
+            RutaItem.deleted_at.is_(None),
+        )
+        .order_by(RutaItem.id.asc())
+        .all()
+    )
+    act_to_item: dict[int, RutaItem] = {}
+    for ri in items:
+        if ri.actuacion_id is None:
+            continue
+        key = int(ri.actuacion_id)
+        if key not in act_to_item:
+            act_to_item[key] = ri
+    if not act_to_item:
+        return base
+    for aid in act_to_item:
+        bloqueada, motivo = actuacion_bloqueada_por_intento_posterior(int(aid))
+        if bloqueada:
+            base[int(aid)] = {
+                "actuacion_editable": False,
+                "motivo_bloqueo_edicion": motivo or MSG_ACTUACION_BLOQUEADA_INTENTO_POSTERIOR,
+            }
+    return base
 
 
 def iniciador_tiene_item_abierto_en_ruta_operativa(
@@ -77,6 +288,43 @@ def iniciador_tiene_item_abierto_en_ruta_operativa(
     if excluir_ruta_item_id is not None:
         q = q.filter(RutaItem.id != int(excluir_ruta_item_id))
     return q.first() is not None
+
+
+def cancelar_reintentos_posteriores_planificados(
+    ini: IniciadorRuta,
+    *,
+    item_origen_id: int,
+    now: datetime,
+) -> None:
+    """
+    Anula ítems de reintento planificados (sin ejecución real) al corregir un intento anterior.
+
+    Parámetros:
+        ini: iniciador del intento corregido.
+        item_origen_id: ítem de la actuación que se corrige (no se toca).
+        now: timestamp para ``deleted_at``.
+
+    Side effects:
+        Soft-delete de ``RutaItem`` planificados y desvincula actuaciones borrador sin evidencia.
+    """
+    posteriores = (
+        RutaItem.query.filter(
+            RutaItem.iniciador_ruta_id == int(ini.id),
+            RutaItem.id > int(item_origen_id),
+            RutaItem.deleted_at.is_(None),
+        )
+        .order_by(RutaItem.id.asc())
+        .all()
+    )
+    for bi in posteriores:
+        if not ruta_item_es_reintento_planificado_cancelable(bi):
+            motivo = motivo_bloqueo_intento_posterior_item(bi)
+            if motivo:
+                raise ValueError(motivo)
+            continue
+        bi.deleted_at = now
+        bi.orden_trabajo_id = None
+        db.session.add(bi)
 
 
 def aplicar_reencolado_iniciador(
@@ -208,6 +456,24 @@ def aplicar_sincronizacion_tras_establecer_contraproducencia(
         ini.updated_at = ts
         db.session.add(ini)
 
+    if reencolar and es_iniciador_circuito_reinspeccion_oficio(ini.tipo_iniciador):
+        reset_iniciador_reinspeccion_oficio_generico(ini)
+        db.session.add(ini)
+
+
+def _actuacion_tiene_actas_bloqueando_contraproducencia(
+    act: Actuaciones,
+    ini: IniciadorRuta | None,
+) -> bool:
+    """
+    Detecta actas incompatibles con registrar contraproducencia desde PUT.
+
+    En REINSPECCION_NOTIFICACION ignora la notificación de origen (solo actas de visita).
+    """
+    if ini is not None and ini.tipo_iniciador == "REINSPECCION_NOTIFICACION":
+        return actuacion_tiene_actas_visita_reinspeccion_notificacion(act)
+    return actuacion_tiene_actas_inspeccion_normal(act)
+
 
 def procesar_establecimiento_contraproducencia_desde_put(
     act: Actuaciones,
@@ -242,7 +508,7 @@ def procesar_establecimiento_contraproducencia_desde_put(
     ts = now or datetime.utcnow()
     visita_realizada = _visita_estaba_realizada(act, contra_anterior=contra_anterior, item=item)
 
-    if visita_realizada and actuacion_tiene_actas_inspeccion_normal(act):
+    if visita_realizada and _actuacion_tiene_actas_bloqueando_contraproducencia(act, ini):
         raise ValueError(MSG_CONTRA_CON_ACTAS)
 
     ya_reencolado = bool(contra_anterior) and ini is not None and ini.estado_iniciador == "PENDIENTE"

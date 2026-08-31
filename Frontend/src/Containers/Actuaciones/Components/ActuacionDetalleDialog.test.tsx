@@ -544,6 +544,38 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).not.toContain("Acta de notificación");
   });
 
+  it("FIX.9: RN realizada hidrata acta de inspección persistida en edición", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "REINSPECCION",
+          contraproducencia: null,
+          acta_inspeccion_num: "005032",
+          acta_comprobacion_num: "000200",
+          acta_clausura_num: null,
+          acta_decomiso_num: null,
+          acta_notificacion_num: null,
+          documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+          origen_reinspeccion_notificacion: { notificacion_acta_numero: "000050" },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Actas labradas");
+    expect(html).toContain("005032");
+    expect(html).toContain("000200");
+  });
+
   it("ratificación de clausura deja documento readonly en edición", () => {
     const html = render(
       <ActuacionDetalleDialog
@@ -593,6 +625,11 @@ describe("ActuacionDetalleDialog", () => {
         draft={{
           ...baseRow,
           tipo_actuacion: "REINSPECCION",
+          acta_inspeccion_num: null,
+          acta_notificacion_num: null,
+          acta_comprobacion_num: null,
+          acta_clausura_num: null,
+          acta_decomiso_num: null,
           documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
         }}
         fieldErrors={{}}
@@ -669,6 +706,9 @@ describe("ActuacionDetalleDialog", () => {
           ...baseRow,
           tipo_actuacion: "VERIFICAR E INFORMAR",
           realizo_nueva_inspeccion: false,
+          acta_inspeccion_num: null,
+          acta_notificacion_num: null,
+          acta_comprobacion_num: null,
           documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
         }}
         fieldErrors={{}}
@@ -680,7 +720,7 @@ describe("ActuacionDetalleDialog", () => {
         onSave={() => undefined}
       />
     );
-    expect(html).toContain("¿Realizó nueva inspección?");
+    expect(html).toContain("Resultado de la verificación");
   });
 
   it("verificar e informar sin actas persistidas no muestra bloque de actas", () => {
@@ -711,5 +751,72 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).not.toContain("Actas labradas");
   });
 
+  it("verificar con actas persistidas muestra inspección y notificación para quitar", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "VERIFICAR E INFORMAR",
+          realizo_nueva_inspeccion: true,
+          acta_inspeccion_num: "005032",
+          acta_notificacion_num: "001234",
+          notificacion_motivo_1: "Falta de habilitación",
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Actas labradas");
+    expect(html).toContain("005032");
+    expect(html).toContain("001234");
+    expect(html).toContain("Motivos de notificación");
+  });
+
+  it("verificar SI_INSPECCION muestra bloque completo de actas labradas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "VERIFICAR E INFORMAR",
+          realizo_nueva_inspeccion: true,
+          contraproducencia: null,
+          acta_inspeccion_num: null,
+          acta_notificacion_num: null,
+          acta_comprobacion_num: null,
+          acta_clausura_num: null,
+          acta_decomiso_num: null,
+          can_edit_domicilio: false,
+          can_edit_rubro: false,
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Actas labradas");
+    expect(html).toContain("N° acta de inspección");
+    expect(html).toContain("N° acta de notificación");
+    expect(html).toContain("Motivos de notificación");
+    expect(html).toContain("N° acta de comprobación");
+    expect(html).toContain("N° acta de clausura");
+    expect(html).toContain("N° acta de decomiso");
+  });
 });
 

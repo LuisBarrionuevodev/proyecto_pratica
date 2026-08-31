@@ -90,6 +90,32 @@ describe("pipeline corrección Oficio → submit Actuaciones", () => {
     expect(putBody.limpiar_contraproducencia).toBeUndefined();
   });
 
+  it("FIX.6.2 — PUT Oficio omite calle/rubro/contrib stale del payload", async () => {
+    const row = {
+      ...baseOficioRow(),
+      calle: "",
+      numero: "",
+      rubro_nombre: "",
+      doc_nro: "",
+      contrib_apellido: "",
+      contrib_nombre: "",
+      can_edit_domicilio: false,
+      can_edit_rubro: false,
+    } as IActuacionListItem;
+    await submitActuacionRow({
+      id: 99,
+      fullRow: row,
+      skipValidation: true,
+      skipUpdate: false,
+    });
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBeUndefined();
+    expect(putBody.numero).toBeUndefined();
+    expect(putBody.rubro_nombre).toBeUndefined();
+    expect(putBody.doc_nro).toBeUndefined();
+    expect(putBody.contrib_apellido).toBeUndefined();
+  });
+
   it("Ratificación CUMPLE tras clearingContra no exige acta inspección (FIX.4.1)", async () => {
     const original = baseOficioRow();
     const rowForSubmit = mergeActuacionAfterOficioCorrection({
@@ -158,6 +184,9 @@ describe("pipeline corrección Oficio → submit Actuaciones", () => {
       realizo_nueva_inspeccion: true,
       acta_inspeccion_num: null,
       acta_comprobacion_num: null,
+      calle: "",
+      rubro_nombre: "",
+      can_edit_domicilio: true,
     };
 
     const result = await submitActuacionRow({
@@ -172,7 +201,134 @@ describe("pipeline corrección Oficio → submit Actuaciones", () => {
     if (!result.ok) {
       expect(result.kind).toBe("validation");
       expect(result.fieldErrors.acta_inspeccion_num).toBeTruthy();
+      expect(result.fieldErrors.calle).toBeUndefined();
     }
     expect(mockedUpdateActuacion).not.toHaveBeenCalled();
+  });
+
+  it("FIX.6.1: Verificar SI → CONTRA tras quitar actas no exige calle ni acta", async () => {
+    const original = {
+      ...baseOficioRow(),
+      contraproducencia: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: "000123",
+      acta_notificacion_num: "000456",
+      calle: "",
+      rubro_nombre: "",
+      contrib_apellido: "",
+      contrib_nombre: "",
+      doc_nro: "",
+      can_edit_domicilio: true,
+    };
+    const rowForSubmit = mergeActuacionAfterOficioCorrection({
+      correctedRow: {
+        ...original,
+        contraproducencia: "LOCAL CERRADO",
+        realizo_nueva_inspeccion: false,
+        acta_inspeccion_num: null,
+        acta_notificacion_num: null,
+      },
+      pendingDraft: {
+        ...original,
+        acta_inspeccion_num: null,
+        acta_notificacion_num: null,
+      },
+    });
+
+    const result = await submitActuacionRow({
+      id: 99,
+      fullRow: rowForSubmit,
+      originalRow: original,
+      oficioCorrectionApplied: true,
+      actasClearedByOficioCorrection: ["INSPECCION", "NOTIFICACION"],
+      oficioValidationContext: {
+        subtipo: "VERIFICAR E INFORMAR",
+        verificarEstadoOperativo: "CONTRAPRODUCENCIA",
+      },
+      skipValidation: false,
+      skipUpdate: true,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      expect(result.fieldErrors.calle).toBeUndefined();
+      expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    }
+  });
+
+  it("FIX.6.1: Verificar SI → NO tras quitar actas no exige calle ni acta", async () => {
+    const original = {
+      ...baseOficioRow(),
+      contraproducencia: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: "000123",
+      calle: "",
+      rubro_nombre: "",
+      can_edit_domicilio: true,
+    };
+    const rowForSubmit = mergeActuacionAfterOficioCorrection({
+      correctedRow: {
+        ...original,
+        contraproducencia: null,
+        realizo_nueva_inspeccion: false,
+        acta_inspeccion_num: null,
+      },
+      pendingDraft: { ...original, acta_inspeccion_num: null },
+    });
+
+    const result = await submitActuacionRow({
+      id: 99,
+      fullRow: rowForSubmit,
+      originalRow: original,
+      oficioCorrectionApplied: true,
+      actasClearedByOficioCorrection: ["INSPECCION"],
+      oficioValidationContext: {
+        subtipo: "VERIFICAR E INFORMAR",
+        verificarEstadoOperativo: "NO_INSPECCION",
+      },
+      skipValidation: false,
+      skipUpdate: true,
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("FIX.6.1: Verificar SI → Clausura CUMPLE pipeline sin calle ni acta", async () => {
+    const original = {
+      ...baseOficioRow(),
+      contraproducencia: null,
+      realizo_nueva_inspeccion: true,
+      acta_inspeccion_num: "000123",
+      calle: "",
+      rubro_nombre: "",
+      can_edit_domicilio: true,
+    };
+    const rowForSubmit = mergeActuacionAfterOficioCorrection({
+      correctedRow: {
+        ...original,
+        tipo_actuacion: "RATIFICACION DE CLAUSURA",
+        resultado_cumplimiento_oficio: "CUMPLE",
+        realizo_nueva_inspeccion: null,
+        acta_inspeccion_num: null,
+      },
+      pendingDraft: { ...original, acta_inspeccion_num: null },
+    });
+
+    const result = await submitActuacionRow({
+      id: 99,
+      fullRow: rowForSubmit,
+      originalRow: original,
+      oficioCorrectionApplied: true,
+      actasClearedByOficioCorrection: ["INSPECCION"],
+      oficioValidationContext: { subtipo: "RATIFICACION DE CLAUSURA", verificarEstadoOperativo: "" },
+      skipValidation: false,
+      skipUpdate: true,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      expect(result.fieldErrors.calle).toBeUndefined();
+      expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    }
   });
 });

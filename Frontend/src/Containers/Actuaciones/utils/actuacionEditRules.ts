@@ -20,6 +20,10 @@ import {
 export const MENSAJE_BLOQUEO_EXPEDIENTE_EDICION =
   "Esta actuación tiene un expediente asociado a una notificación o comprobación. Editá primero esa sección y luego volvé a Actuaciones si necesitás modificar datos generales.";
 
+/** FIX.5 — actuación histórica con intento posterior del mismo iniciador. */
+export const MENSAJE_BLOQUEO_INTENTO_POSTERIOR =
+  "Esta actuación no puede editarse porque existe un intento posterior asociado al mismo iniciador.";
+
 /** Intento de borrar acta con documentación asociada desde CRUD Actuaciones. */
 export const MENSAJE_BLOQUEO_ACTA_DOCUMENTACION =
   "Esta acta tiene documentación asociada y debe modificarse desde la sección correspondiente.";
@@ -36,6 +40,11 @@ export type ActuacionEditableFields = {
   canEditDomicilio: boolean;
   /** Motivo de bloqueo de domicilio (PR7.15, desde backend). */
   domicilioEditBlockedReason: string | null;
+  /** FIX.6 — rubro operativo desacoplado de domicilio (p. ej. Denuncia en corrección). */
+  canEditRubro: boolean;
+  rubroEditBlockedReason: string | null;
+  /** FIX.7 — nombre de fantasía del local. */
+  canEditNombreLocal: boolean;
   canEditActas: boolean;
   /** Solo Verificar + SI_INSPECCION en reinspección por oficio; undefined fuera del circuito. */
   usaInspeccionNormal?: boolean;
@@ -105,11 +114,83 @@ export function resolveActuacionModoEdicion(row: IActuacionListItem): ActuacionM
   return "normal";
 }
 
+export type ActaTipoPersistida =
+  | "INSPECCION"
+  | "NOTIFICACION"
+  | "COMPROBACION"
+  | "CLAUSURA"
+  | "DECOMISO";
+
+/**
+ * C — debe mostrar acta persistida para quitar (independiente de crear/validar).
+ */
+export function debeMostrarActaPersistidaParaQuitar(
+  tipo: ActaTipoPersistida,
+  row: IActuacionListItem
+): boolean {
+  switch (tipo) {
+    case "INSPECCION":
+      return tieneInspeccionLabrada(row);
+    case "NOTIFICACION":
+      return (
+        tieneNotificacionLabradaMotivos(row) || Boolean(String(row.acta_notificacion_num ?? "").trim())
+      );
+    case "COMPROBACION":
+      return (
+        tieneComprobacionLabrada(row) || Boolean(String(row.acta_comprobacion_num ?? "").trim())
+      );
+    case "CLAUSURA":
+      return tieneClausuraLabrada(row);
+    case "DECOMISO":
+      return tieneDecomisoLabrado(row);
+    default:
+      return false;
+  }
+}
+
+/** Si el campo de acta debe renderizarse en edición (crear, validar o quitar persistida). */
+export function debeMostrarCampoActaEnEdicion(
+  tipo: ActaTipoPersistida,
+  row: IActuacionListItem,
+  fields: ActuacionEditableFields,
+  baseline?: IActuacionListItem | null
+): boolean {
+  if (tipo === "NOTIFICACION" && fields.modoEdicion === "reinspeccion_notificacion") {
+    return false;
+  }
+
+  const persisted =
+    debeMostrarActaPersistidaParaQuitar(tipo, row) ||
+    (baseline ? debeMostrarActaPersistidaParaQuitar(tipo, baseline) : false);
+
+  if (fields.modoEdicion === "normal") {
+    return true;
+  }
+
+  if (fields.modoEdicion === "reinspeccion_notificacion") {
+    const destinoRealizado = !trim(row.contraproducencia);
+    return destinoRealizado || persisted;
+  }
+
+  if (fields.debeValidarActasInspeccionNormal) {
+    return true;
+  }
+
+  return persisted;
+}
+
 function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdicion): boolean {
   if (row.can_edit_domicilio === true) return true;
   if (row.can_edit_domicilio === false) return false;
   // Fallback sin flag backend (tests locales / datos viejos).
   return modo === "normal";
+}
+
+function resolveCanEditRubro(row: IActuacionListItem, modo: ActuacionModoEdicion): boolean {
+  if (row.can_edit_rubro === true) return true;
+  if (row.can_edit_rubro === false) return false;
+  // Fallback sin flag backend: paridad con domicilio en modo normal.
+  return resolveCanEditDomicilio(row, modo);
 }
 
 export type ActuacionEditableFieldsOptions = {
@@ -119,6 +200,8 @@ export type ActuacionEditableFieldsOptions = {
   oficioSubtipo?: string;
   /** Estado operativo Verificar destino (formulario Oficio). */
   verificarEstadoOperativo?: VerificarEstadoOperativo;
+  /** Fila al abrir edición; mantiene bloque Actas aunque el usuario vacíe campos en draft. */
+  baselineRow?: IActuacionListItem;
 };
 
 /**
@@ -128,7 +211,9 @@ export function getActuacionEditableFields(
   row: IActuacionListItem,
   options?: ActuacionEditableFieldsOptions
 ): ActuacionEditableFields {
-  const esOficio = isReinspeccionOficioCircuitRow(row);
+  const esOficio =
+    isReinspeccionOficioCircuitRow(row) || Boolean(options?.oficioSubtipo?.trim());
+  const esOficioHardBlock = esOficio;
   const rowForModo =
     esOficio && options?.oficioSubtipo?.trim()
       ? { ...row, tipo_actuacion: options.oficioSubtipo.trim() }
@@ -152,7 +237,9 @@ export function getActuacionEditableFields(
 
   const verificarRealizoLegacy = modo === "verificar_informar" && !esOficio && verificarRealizo === "si";
   const muestraInspeccionNormalOficio = usaInspeccionNormal === true;
-  const tieneActasPersistidas = tieneActasInspeccionNormalPersistidas(row);
+  const tieneActasPersistidas =
+    tieneActasInspeccionNormalPersistidas(row) ||
+    (options?.baselineRow ? tieneActasInspeccionNormalPersistidas(options.baselineRow) : false);
 
   const canEditActas =
     normal ||
@@ -165,13 +252,17 @@ export function getActuacionEditableFields(
     modo === "ratificacion" || modo === "verificar_informar" || modo === "reinspeccion_oficio";
 
   return {
-    canEditContribuyente: normal,
-    canEditDomicilio: resolveCanEditDomicilio(row, modo),
+    canEditContribuyente: esOficioHardBlock ? false : normal,
+    canEditDomicilio: esOficioHardBlock ? false : resolveCanEditDomicilio(row, modo),
     domicilioEditBlockedReason: row.domicilio_edit_blocked_reason ?? null,
+    canEditRubro: esOficioHardBlock ? false : resolveCanEditRubro(row, modo),
+    rubroEditBlockedReason: row.rubro_edit_blocked_reason ?? null,
+    canEditNombreLocal: esOficioHardBlock ? false : normal,
     canEditActas,
     usaInspeccionNormal,
     debeValidarActasInspeccionNormal: usaInspeccionNormal === true,
-    canEditNotificacion: normal,
+    canEditNotificacion:
+      (normal || muestraInspeccionNormalOficio) && modo !== "reinspeccion_notificacion",
     canEditResultadoOperativo,
     modoEdicion: modo,
   };
@@ -186,6 +277,12 @@ export type ActuacionEditStartResult = { allowed: true } | { allowed: false; mes
  * @returns `{ allowed: true }` o bloqueo con mensaje de advertencia.
  */
 export function resolveActuacionEditStart(row: IActuacionListItem): ActuacionEditStartResult {
+  if (row.actuacion_editable === false) {
+    return {
+      allowed: false,
+      message: row.motivo_bloqueo_edicion?.trim() || MENSAJE_BLOQUEO_INTENTO_POSTERIOR,
+    };
+  }
   if (tieneExpedienteBloqueoEdicion(row)) {
     return { allowed: false, message: MENSAJE_BLOQUEO_EXPEDIENTE_EDICION };
   }

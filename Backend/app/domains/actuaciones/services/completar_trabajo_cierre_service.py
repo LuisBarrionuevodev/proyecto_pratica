@@ -41,6 +41,7 @@ from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     es_flujo_cumplimiento_oficio,
     es_flujo_verificar_informar,
     promover_iniciador_reinspeccion_oficio_segun_tipo,
+    reset_iniciador_reinspeccion_oficio_generico,
     validar_tipo_actuacion_para_iniciador,
 )
 from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
@@ -226,6 +227,13 @@ def _apply_domicilio_rubro(
     Retorna:
         Tupla (vinculó domicilio, geocode sellado tras edición legal/nomenclatural).
     """
+    from app.domains.actuaciones.services.oficio_circuito_service import (
+        es_iniciador_reinspeccion_oficio,
+    )
+
+    if es_iniciador_reinspeccion_oficio(ini.tipo_iniciador):
+        return False, False
+
     if not _domicilio_rubro_patch_solicitado(payload):
         return False, False
 
@@ -475,7 +483,11 @@ def cerrar_completar_trabajo_por_ruta_item(
                 if nombres_grupo:
                     act.inspector = get_inspectores_o_falla(nombres_grupo)
 
-        if payload.nombre_local is not None:
+        from app.domains.actuaciones.services.oficio_circuito_service import (
+            es_iniciador_reinspeccion_oficio,
+        )
+
+        if payload.nombre_local is not None and not es_iniciador_reinspeccion_oficio(ini.tipo_iniciador):
             act.nombre_local = str(payload.nombre_local).strip() or None
 
         if act.domicilio_id and ini.domicilio_id != act.domicilio_id:
@@ -512,6 +524,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             item.estado_ruta_item = "FINALIZADO"
             item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
             aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
+            reset_iniciador_reinspeccion_oficio_generico(ini)
 
         if domicilio_mutado and act.domicilio_id and getattr(act, "id", None):
             from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
@@ -524,7 +537,7 @@ def cerrar_completar_trabajo_por_ruta_item(
                 int(act.domicilio_id),
             )
 
-        if bucket == ContrapBucket.NONE:
+        if act.domicilio_id:
             eid = resolve_establecimiento_por_domicilio(
                 act.domicilio_id,
                 created_by_user_id=ejecutado_por_user_id,
@@ -532,7 +545,8 @@ def cerrar_completar_trabajo_por_ruta_item(
             if eid is not None:
                 act.establecimiento_operativo_id = eid
 
-        promover_iniciador_reinspeccion_oficio_segun_tipo(ini, payload.tipo_actuacion)
+        if bucket == ContrapBucket.NONE:
+            promover_iniciador_reinspeccion_oficio_segun_tipo(ini, payload.tipo_actuacion)
 
         ini.updated_at = now
         db.session.add(act)

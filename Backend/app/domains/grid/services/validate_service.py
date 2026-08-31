@@ -92,9 +92,17 @@ class GridValidateService:
                 normalized=None,
             )
 
+        validation_ctx: dict[str, object] = {}
+        if kind == "actuaciones" and row_internal.get("id") is not None:
+            from app.domains.actuaciones.utils.circuito_operativo import (
+                build_actuacion_grid_validation_context,
+            )
+
+            validation_ctx = build_actuacion_grid_validation_context(int(row_internal["id"]))
+
         # 1) Pydantic (fase 1)
         try:
-            row = handler.schema.model_validate(row_internal)
+            row = handler.schema.model_validate(row_internal, context=validation_ctx or None)
         except ValidationError as e:
             errors_internal = pydantic_errors_to_cell_map(e)
             errors_glide = reverse_map_errors(errors_internal, handler.column_map)
@@ -128,11 +136,15 @@ class GridValidateService:
                     normalized=None,
                 )
 
-            if tipo_norm in (
-                "RATIFICACION DE CLAUSURA",
-                "RATIFICACION DE DECOMISO",
-                "VERIFICAR E INFORMAR",
-            ) and not row.comprobacion_previa_num:
+            if (
+                not validation_ctx.get("es_reinspeccion_oficio")
+                and tipo_norm in (
+                    "RATIFICACION DE CLAUSURA",
+                    "RATIFICACION DE DECOMISO",
+                    "VERIFICAR E INFORMAR",
+                )
+                and not row.comprobacion_previa_num
+            ):
                 return ValidateRowResponse(
                     batch_id=batch_id,
                     row_id=row_id,

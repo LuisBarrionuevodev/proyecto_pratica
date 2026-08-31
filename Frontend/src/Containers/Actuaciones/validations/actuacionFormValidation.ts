@@ -8,12 +8,14 @@ import { getActuacionEditableFields } from "../utils/actuacionEditRules";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
 import { buildActuacionFormGlobalError } from "../utils/actuacionFormErrors";
 import { buildInspectoresForCanal } from "../utils/buildInspectoresForCanal";
-import { isReinspeccionPorNotificacion } from "../utils/actuacionesExportPdfResumen";
+import { isReinspeccionPorNotificacion, isVerificarEInformar } from "../utils/actuacionesExportPdfResumen";
 import { isReinspeccionOficioCircuitRow } from "../../../shared/reinspeccionOficio/isReinspeccionOficioCircuitRow";
+import { omiteIdentidadOperativaRow } from "../../../shared/circuitoOperativo/resolveCircuitoOperativo";
 import {
   usaInspeccionNormalReinspeccionOficio,
   type ReinspeccionOficioValidationContextInput,
 } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
+import { resolveVerificarEstadoFromPersisted } from "../../../shared/reinspeccionOficio/verificarEstadoOperativo";
 import {
   ACTUACION_ACTA_NUM_FIELDS,
   ACTUACION_ACTA_NUM_INVALID_MSG,
@@ -115,8 +117,20 @@ export type ActuacionFormValidationContext = {
   /** CRUD: false en ratificación/verificar e informar (no exigir calle/rubro). */
   canEditDomicilio?: boolean;
   /**
-   * Reinspección por oficio: true solo en Verificar + SI_INSPECCION.
+   * Circuito reinspección por oficio (circuito documental o contexto Oficio del formulario).
+   * Cuando es true, omitir requeridos de domicilio/contribuyente del cierre.
+   */
+  esReinspeccionOficio?: boolean;
+  /** FIX.9 — RN/Oficio: omitir validación de identidad operativa. */
+  omiteIdentidadOperativa?: boolean;
+  /**
+   * Verificar + SI_INSPECCION: validar actas y dependencias de nueva inspección.
    * Undefined fuera del circuito Oficio (comportamiento legacy).
+   */
+  usaActasNuevaInspeccion?: boolean;
+  /**
+   * Alias estricto de `usaActasNuevaInspeccion` (FIX.4.1 / FIX.6.1).
+   * True solo en Verificar + SI_INSPECCION; false explícito en otras ramas Oficio.
    */
   usaInspeccionNormal?: boolean;
 };
@@ -161,6 +175,25 @@ function validateCrudActaNumeros(fieldErrors: Record<string, string>, form: Actu
   }
 }
 
+/** True solo cuando el contexto exige validar actas de nueva inspección (semántica estricta). */
+function resolveUsaActasNuevaInspeccion(context: ActuacionFormValidationContext): boolean {
+  if (context.usaActasNuevaInspeccion === true) return true;
+  if (context.usaInspeccionNormal === true) return true;
+  return false;
+}
+
+function resolveVerificarEstadoForOficioActas(
+  row: IActuacionListItem,
+  oficioCtx?: ReinspeccionOficioValidationContextInput
+): ReinspeccionOficioValidationContextInput["verificarEstadoOperativo"] {
+  if (oficioCtx?.verificarEstadoOperativo != null && oficioCtx.verificarEstadoOperativo !== "") {
+    return oficioCtx.verificarEstadoOperativo;
+  }
+  if (!isVerificarEInformar(row)) return "";
+  const persisted = resolveVerificarEstadoFromPersisted(row);
+  return persisted === "INCONSISTENTE" ? "" : persisted;
+}
+
 /**
  * Validaciones cliente compartidas (Completar trabajo + CRUD Actuaciones).
  *
@@ -186,8 +219,17 @@ export function validateActuacionFormForSubmit(
   const sharedRules = context.includeSharedFormRules === true || crudEdit;
   const completarRules = context.includeCompletarTrabajoRules === true;
   const tieneContraproducencia = Boolean(contra);
-  const debeValidarInspeccionNormalActas =
-    completarRules && context.usaInspeccionNormal !== false;
+  const esReinspeccionOficio = context.esReinspeccionOficio === true;
+  const omiteIdentidad =
+    context.omiteIdentidadOperativa === true ||
+    omiteIdentidadOperativaRow(form as IActuacionListItem);
+  const usaActasNuevaInspeccion = resolveUsaActasNuevaInspeccion(context);
+  const debeValidarActaMinima = esReinspeccionOficio
+    ? completarRules && usaActasNuevaInspeccion
+    : completarRules && context.usaInspeccionNormal !== false;
+  const validarReglasActasDocumentales = esReinspeccionOficio
+    ? usaActasNuevaInspeccion
+    : context.usaInspeccionNormal !== false;
 
   if (crudEdit) {
     const fecha = trim(form.fecha_actuacion);
@@ -201,7 +243,7 @@ export function validateActuacionFormForSubmit(
       fieldErrors.tipo_actuacion = ACTUACION_VALIDATION_MESSAGES.tipoRequerido;
     }
 
-    if (context.canEditDomicilio !== false) {
+    if (!omiteIdentidad && !esReinspeccionOficio && context.canEditDomicilio !== false) {
       if (!trim(form.calle)) {
         fieldErrors.calle = ACTUACION_VALIDATION_MESSAGES.calleRequerida;
       }
@@ -212,7 +254,14 @@ export function validateActuacionFormForSubmit(
     }
   }
 
-  if (sharedRules && visitaRealizada && !tieneContraproducencia && context.canEditContribuyente !== false) {
+  if (
+    sharedRules &&
+    visitaRealizada &&
+    !tieneContraproducencia &&
+    !omiteIdentidad &&
+    !esReinspeccionOficio &&
+    context.canEditContribuyente !== false
+  ) {
     if (!hasTitularPersonaOrazonSocial(form)) {
       fieldErrors.contrib_apellido = ACTUACION_VALIDATION_MESSAGES.titularRequerido;
     }
@@ -241,15 +290,15 @@ export function validateActuacionFormForSubmit(
   const actaInspeccion = trim(form.acta_inspeccion_num);
   const actaNotificacion = trim(form.acta_notificacion_num);
 
-  if (debeValidarInspeccionNormalActas && visitaRealizada && !tieneContraproducencia && !actaInspeccion && !actaComprobacion) {
+  if (debeValidarActaMinima && visitaRealizada && !tieneContraproducencia && !actaInspeccion && !actaComprobacion) {
     fieldErrors.acta_inspeccion_num = ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida;
   }
 
   if (!lockedComp) {
-    if (visitaRealizada && actaComprobacion && !comprobacionMotivo) {
+    if (validarReglasActasDocumentales && visitaRealizada && actaComprobacion && !comprobacionMotivo) {
       fieldErrors.comprobacion_motivo = ACTUACION_VALIDATION_MESSAGES.comprobacionMotivoSiHayActa;
     }
-    if (esNoPermiteInspeccion) {
+    if (validarReglasActasDocumentales && esNoPermiteInspeccion) {
       const msg = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteInspeccion;
       if (!actaComprobacion) {
         fieldErrors.acta_comprobacion_num = msg;
@@ -260,11 +309,11 @@ export function validateActuacionFormForSubmit(
     }
   }
 
-  if (esCorrectivaRubroContraproducencia(contra) && !trim(form.rubro_nombre)) {
+  if (!omiteIdentidad && !esReinspeccionOficio && esCorrectivaRubroContraproducencia(contra) && !trim(form.rubro_nombre)) {
     fieldErrors.rubro_nombre = ACTUACION_VALIDATION_MESSAGES.rubroCorrectiva;
   }
 
-  if (esCorrectivaDireccionContraproducencia(contra)) {
+  if (!omiteIdentidad && !esReinspeccionOficio && esCorrectivaDireccionContraproducencia(contra)) {
     if (!trim(form.calle)) {
       fieldErrors.calle = ACTUACION_VALIDATION_MESSAGES.calleCorrectiva;
     }
@@ -283,15 +332,10 @@ export function validateActuacionFormForSubmit(
       form.notificacion_motivo_2,
       form.notificacion_motivo_3
     );
-    if (actaNotificacion && motivos.length === 0) {
+    if (actaNotificacion && motivos.length === 0 && validarReglasActasDocumentales) {
       fieldErrors.notificacion_motivo_1 = ACTUACION_VALIDATION_MESSAGES.notificacionMotivo;
     }
-    if (
-      sharedRules &&
-      actaNotificacion &&
-      !actaInspeccion &&
-      context.usaInspeccionNormal !== false
-    ) {
+    if (sharedRules && actaNotificacion && !actaInspeccion && validarReglasActasDocumentales) {
       fieldErrors.acta_inspeccion_num = ACTUACION_VALIDATION_MESSAGES.notificacionRequiereInspeccion;
     }
   }
@@ -327,8 +371,8 @@ export function actuacionCrudValidationContext(
   row: IActuacionListItem,
   opts?: ActuacionCrudValidationContextOptions
 ): ActuacionFormValidationContext {
-  const esOficio = isReinspeccionOficioCircuitRow(row);
   const oficioCtx = opts?.oficioValidationContext;
+  const esReinspeccionOficio = isReinspeccionOficioCircuitRow(row) || oficioCtx != null;
   const editable = getActuacionEditableFields(row, {
     oficioSubtipo: oficioCtx?.subtipo,
     verificarEstadoOperativo: oficioCtx?.verificarEstadoOperativo,
@@ -336,32 +380,38 @@ export function actuacionCrudValidationContext(
   const hadContra = Boolean(String(opts?.originalRow?.contraproducencia ?? "").trim());
   const clearingContra = hadContra && !String(row.contraproducencia ?? "").trim();
 
-  const usaInspeccionNormal =
-    esOficio && oficioCtx != null
-      ? usaInspeccionNormalReinspeccionOficio(oficioCtx.subtipo, oficioCtx.verificarEstadoOperativo)
-      : undefined;
+  const subtipoForActas = (oficioCtx?.subtipo ?? row.tipo_actuacion ?? "").trim();
+  const verificarEstadoForActas = resolveVerificarEstadoForOficioActas(row, oficioCtx);
+  const usaActasNuevaInspeccion = esReinspeccionOficio
+    ? usaInspeccionNormalReinspeccionOficio(subtipoForActas, verificarEstadoForActas)
+    : undefined;
 
   let includeCompletarTrabajoRules: boolean;
   let visitaRealizada: boolean | undefined;
 
-  if (esOficio && usaInspeccionNormal !== undefined) {
-    includeCompletarTrabajoRules = usaInspeccionNormal;
-    visitaRealizada = usaInspeccionNormal ? true : undefined;
+  if (esReinspeccionOficio) {
+    includeCompletarTrabajoRules = usaActasNuevaInspeccion === true;
+    visitaRealizada = usaActasNuevaInspeccion === true ? true : undefined;
   } else {
     includeCompletarTrabajoRules = clearingContra;
     visitaRealizada = clearingContra ? true : undefined;
   }
 
-  const skipNotifPorOficio = esOficio && usaInspeccionNormal === false;
+  const skipNotifPorOficio = esReinspeccionOficio && usaActasNuevaInspeccion !== true;
+
+  const omiteIdentidad = omiteIdentidadOperativaRow(row) || esReinspeccionOficio;
 
   return {
     includeCrudEditRules: true,
     includeSharedFormRules: true,
     includeCompletarTrabajoRules,
     visitaRealizada,
-    usaInspeccionNormal,
-    canEditContribuyente: editable.canEditContribuyente,
-    canEditDomicilio: editable.canEditDomicilio,
+    esReinspeccionOficio: esReinspeccionOficio || undefined,
+    omiteIdentidadOperativa: omiteIdentidad || undefined,
+    usaActasNuevaInspeccion,
+    usaInspeccionNormal: usaActasNuevaInspeccion,
+    canEditContribuyente: omiteIdentidad ? false : editable.canEditContribuyente,
+    canEditDomicilio: omiteIdentidad ? false : editable.canEditDomicilio,
     omitNumeroManual: false,
     notificacionEditable: editable.canEditNotificacion && row.notificacion_editable !== false,
     comprobacionEditable: row.comprobacion_editable !== false,

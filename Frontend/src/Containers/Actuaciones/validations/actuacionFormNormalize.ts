@@ -1,5 +1,6 @@
 import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
+import { isReinspeccionPorNotificacion } from "../utils/actuacionesExportPdfResumen";
 /** Campos de número de acta labrada en el formulario CRUD. */
 export const ACTUACION_ACTA_NUM_FIELDS = [
   "acta_inspeccion_num",
@@ -146,12 +147,14 @@ export function detectActasClearedByUser(
   draft: IActuacionListItem
 ): ActaClearDetection[] {
   const cleared: ActaClearDetection[] = [];
+  const skipNotificacionOrigen = isReinspeccionPorNotificacion(original);
 
   if (trimActaNum(original.acta_inspeccion_num) && !trimActaNum(draft.acta_inspeccion_num)) {
     cleared.push({ tipo: "INSPECCION", field: "acta_inspeccion_num" });
   }
 
   if (
+    !skipNotificacionOrigen &&
     trimActaNum(original.acta_notificacion_num) &&
     !trimActaNum(draft.acta_notificacion_num) &&
     motivosNotificacionVacios(draft)

@@ -835,14 +835,10 @@ export function CompletarTrabajoModal({
           observaciones_ejecucion: observacionesEjecucion.trim(),
           ...ACTA_KEYS_EMPTY,
         };
-        const base = baselineInspectoresRef.current;
-        const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
         await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
           includeTipoActuacion: true,
           omitPrecargadoPr2: false,
-          ...(inspectoresDirty
-            ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
-            : {}),
+          inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList),
         });
         if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
           emitGestionNotificacionReinspeccionRefresh();
@@ -885,15 +881,11 @@ export function CompletarTrabajoModal({
             observaciones_ejecucion: observacionesEjecucion.trim(),
             ...ACTA_KEYS_EMPTY,
           };
-          const base = baselineInspectoresRef.current;
-          const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
           await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
             includeTipoActuacion: true,
             omitPrecargadoPr2: false,
             incluirInspeccionNormal: false,
-            ...(inspectoresDirty
-              ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
-              : {}),
+            inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList),
           });
           feedback.success("Trabajo completado correctamente.");
           onSuccess(resolvedRow.ruta_item_id);
@@ -1015,14 +1007,10 @@ export function CompletarTrabajoModal({
         });
       }
 
-      const base = baselineInspectoresRef.current;
-      const inspectoresDirty = !sameInspectoresListOrder(inspectoresList, base);
       await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
         omitPrecargadoPr2: !esFlujoVerificarInformarUi,
         includeTipoActuacion: esFlujoVerificarInformarUi,
-        ...(inspectoresDirty
-          ? { inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList) }
-          : {}),
+        inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList),
       });
       if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
         emitGestionNotificacionReinspeccionRefresh();

@@ -127,6 +127,8 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
 
     if row.comprobacion_previa_num:
         payload["comprobacion_previa_num"] = _clean_str(row.comprobacion_previa_num)
-    
+
+    if row.actas_a_quitar:
+        payload["actas_a_quitar"] = list(row.actas_a_quitar)
 
     return payload

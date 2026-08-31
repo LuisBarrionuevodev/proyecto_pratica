@@ -46,6 +46,10 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
 )
 from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     puede_editar_domicilio_actuacion,
+    puede_editar_rubro_actuacion,
+)
+from app.domains.actuaciones.services.actuacion_reencolado_service import (
+    actuacion_bloqueada_por_intento_posterior,
 )
 from app.domains.domicilios.utils.domicilio_calle_ui import (
     calle_cargada_desde_domicilio,
@@ -99,12 +103,48 @@ class ActuacionGridBatchMaps:
 def _domicilio_edit_flags_for_grid(
     act: Actuaciones,
     ini_ruta: Optional[IniciadorRuta],
+    *,
+    editable_override: dict[str, object] | None = None,
 ) -> dict[str, Any]:
-    """Flags PR7.15 para habilitar/bloquear edición de domicilio en CRUD Actuaciones."""
-    puede, motivo = puede_editar_domicilio_actuacion(act, ini_ruta)
+    """Flags PR7.15 / FIX.6 para edición de domicilio y rubro en CRUD Actuaciones."""
+    puede_dom, motivo_dom = puede_editar_domicilio_actuacion(act, ini_ruta)
+    puede_rubro, motivo_rubro = puede_editar_rubro_actuacion(
+        act, ini_ruta, editable_override=editable_override
+    )
     return {
-        "can_edit_domicilio": puede,
-        "domicilio_edit_blocked_reason": motivo,
+        "can_edit_domicilio": puede_dom,
+        "domicilio_edit_blocked_reason": motivo_dom,
+        "can_edit_rubro": puede_rubro,
+        "rubro_edit_blocked_reason": motivo_rubro if not puede_rubro else None,
+    }
+
+
+def _actuacion_edit_flags_for_grid(
+    act: Actuaciones,
+    *,
+    editable_override: dict[str, object] | None = None,
+) -> dict[str, Any]:
+    """
+    Flags de edición general de actuación (FIX.5: bloqueo por intento posterior).
+
+    Parámetros:
+        act: actuación persistida.
+        editable_override: mapa precargado ``{actuacion_editable, motivo_bloqueo_edicion}``.
+
+    Retorno:
+        Dict con ``actuacion_editable`` y ``motivo_bloqueo_edicion``.
+    """
+    if editable_override is not None:
+        editable = bool(editable_override.get("actuacion_editable", True))
+        motivo = editable_override.get("motivo_bloqueo_edicion")
+        if motivo is not None:
+            motivo = str(motivo)
+    else:
+        bloqueada, motivo = actuacion_bloqueada_por_intento_posterior(int(act.id))
+        editable = not bloqueada
+    return {
+        "actuacion_editable": editable,
+        "motivo_bloqueo_edicion": motivo if not editable else None,
     }
 
 
@@ -701,6 +741,7 @@ def actuacion_to_grid_row(
     counts_by_eo: dict[int, int] | None = None,
     iniciador_desde_ruta: IniciadorRuta | None = None,
     batch: ActuacionGridBatchMaps | None = None,
+    editable_override: dict[str, object] | None = None,
 ) -> Dict[str, Any]:
     """
     Convierte una Actuación (con relaciones) al formato plano
@@ -881,6 +922,19 @@ def actuacion_to_grid_row(
     circuito = _clasificar_circuito_documental(act, ini_ruta)
     propia_doc = _propia_payload_for_circuito(circuito, act, batch)
 
+    es_notif_origen_rn = (
+        circuito == "REINSPECCION_NOTIFICACION"
+        and ini_ruta is not None
+        and ini_ruta.notificacion_id is not None
+        and act.notificacion_id is not None
+        and int(act.notificacion_id) == int(ini_ruta.notificacion_id)
+    )
+    if es_notif_origen_rn:
+        acta_notificacion_num = None
+        notificacion_motivo_1 = None
+        notificacion_motivo_2 = None
+        notificacion_motivo_3 = None
+
     origen_ofi: Optional[Dict[str, Any]] = None
     origen_notif: Optional[Dict[str, Any]] = None
     if circuito == "REINSPECCION_OFICIO" and ini_ruta is not None:
@@ -1004,9 +1058,16 @@ def actuacion_to_grid_row(
         "origen_reinspeccion_oficio": origen_ofi,
         "origen_reinspeccion_notificacion": origen_notif,
 
-        "notificacion_editable": notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None)),
+        "notificacion_editable": (
+            False
+            if es_notif_origen_rn
+            else notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None))
+        ),
         "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
-        **_domicilio_edit_flags_for_grid(act, ini_ruta),
+        **_domicilio_edit_flags_for_grid(
+            act, ini_ruta, editable_override=editable_override
+        ),
+        **_actuacion_edit_flags_for_grid(act, editable_override=editable_override),
         **_epicollect_detalle_for_grid(act),
         **_epicollect_evidencias_for_grid(act),
     }

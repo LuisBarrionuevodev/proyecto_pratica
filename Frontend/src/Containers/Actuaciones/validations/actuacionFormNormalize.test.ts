@@ -135,6 +135,39 @@ describe("detectActasClearedByUser", () => {
     expect(out.acta_notificacion_num).toBeNull();
     expect(out.notificacion_motivo_1).toBeNull();
   });
+
+  it("FIX.6.2 — detecta inspección y notificación vaciadas", () => {
+    const original = {
+      ...baseRow,
+      acta_inspeccion_num: "5032",
+      acta_notificacion_num: "812",
+    };
+    const draft = {
+      ...original,
+      acta_inspeccion_num: "",
+      acta_notificacion_num: "",
+      notificacion_motivo_1: null,
+    };
+    expect(detectActasClearedByUser(original, draft).map((a) => a.tipo)).toEqual([
+      "INSPECCION",
+      "NOTIFICACION",
+    ]);
+  });
+
+  it("FIX.8 — reinspección notificación no marca notificación origen para quitar", () => {
+    const original = {
+      ...baseRow,
+      documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+      acta_inspeccion_num: "5032",
+      acta_notificacion_num: "812",
+    };
+    const draft = {
+      ...original,
+      acta_inspeccion_num: "",
+      acta_notificacion_num: "",
+    };
+    expect(detectActasClearedByUser(original, draft).map((a) => a.tipo)).toEqual(["INSPECCION"]);
+  });
 });
 
 describe("validateDocNro en normalize", () => {

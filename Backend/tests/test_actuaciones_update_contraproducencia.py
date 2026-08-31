@@ -127,7 +127,8 @@ def test_limpiar_contraproducencia_reencolada_resuelve_iniciador(app_ctx) -> Non
     assert ini_id not in planif_despues
 
 
-def test_limpiar_contraproducencia_bloqueada_si_reingreso_en_ruta_publicada(app_ctx) -> None:
+def test_limpiar_contraproducencia_cancela_reintento_planificado_en_ruta_publicada(app_ctx) -> None:
+    """FIX.9: ítem posterior planificado en ruta publicada se cancela al corregir Act A."""
     suf = uuid4().hex[:8]
     item_id, act_id, ini_id, user_id, _ruta_borrador_id, _dom_id = _mk_relevamiento_en_ruta_publicada(suf)
     act = db.session.get(Actuaciones, act_id)
@@ -160,6 +161,7 @@ def test_limpiar_contraproducencia_bloqueada_si_reingreso_en_ruta_publicada(app_
     )
     db.session.add(item_abierto)
     db.session.commit()
+    item_abierto_id = int(item_abierto.id)
 
     inspectores = Inspector.query.limit(2).all()
     if len(inspectores) < 2:
@@ -174,13 +176,15 @@ def test_limpiar_contraproducencia_bloqueada_si_reingreso_en_ruta_publicada(app_
         )
     )
     payload = map_actuacion_row(row)
-    with pytest.raises(CorregirCierreOperativoError, match=MSG_REINGRESO_EN_RUTA[:20]):
-        actualizar_actuacion(act_id, payload)
-
+    actualizar_actuacion(act_id, payload)
     db.session.expunge_all()
+
     act_db = db.session.get(Actuaciones, act_id)
     ini_db = db.session.get(IniciadorRuta, ini_id)
+    item_abierto_db = db.session.get(RutaItem, item_abierto_id)
     assert act_db is not None
-    assert act_db.contraproducencia == "LOCAL CERRADO"
+    assert act_db.contraproducencia is None
     assert ini_db is not None
-    assert ini_db.estado_iniciador == "PENDIENTE"
+    assert ini_db.estado_iniciador == "CUMPLIDO"
+    assert item_abierto_db is not None
+    assert item_abierto_db.deleted_at is not None

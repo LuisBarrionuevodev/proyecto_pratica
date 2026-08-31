@@ -18,7 +18,8 @@ MSG_REINGRESO_EN_RUTA = (
 )
 
 from app.domains.actuaciones.services.actuacion_reencolado_service import (
-    iniciador_tiene_item_abierto_en_ruta_operativa,
+    cancelar_reintentos_posteriores_planificados,
+    motivo_bloqueo_intento_posterior_item,
     resolver_item_e_iniciador,
 )
 
@@ -52,7 +53,7 @@ def assert_puede_limpiar_contraproducencia(
         Tupla (item, ini) resuelta.
 
     Errores:
-        CorregirCierreOperativoError: reingreso en ruta publicada/en curso o ya re-ejecutado.
+        CorregirCierreOperativoError: reintento posterior iniciado o finalizado.
         ValueError: cierre definitivo no corregible desde este flujo.
     """
     if not (act.contraproducencia or "").strip():
@@ -67,24 +68,19 @@ def assert_puede_limpiar_contraproducencia(
         )
 
     if ini is not None and item is not None:
-        otro_ejecutado = (
+        posteriores = (
             RutaItem.query.filter(
                 RutaItem.iniciador_ruta_id == ini.id,
-                RutaItem.id != item.id,
-                RutaItem.actuacion_id.isnot(None),
-                RutaItem.actuacion_id != act.id,
+                RutaItem.id > item.id,
                 RutaItem.deleted_at.is_(None),
             )
-            .first()
+            .order_by(RutaItem.id.asc())
+            .all()
         )
-        if otro_ejecutado is not None:
-            raise CorregirCierreOperativoError(MSG_REINGRESO_EN_RUTA)
-
-        if iniciador_tiene_item_abierto_en_ruta_operativa(
-            ini.id,
-            excluir_ruta_item_id=item.id,
-        ):
-            raise CorregirCierreOperativoError(MSG_REINGRESO_EN_RUTA)
+        for posterior in posteriores:
+            motivo = motivo_bloqueo_intento_posterior_item(posterior)
+            if motivo:
+                raise CorregirCierreOperativoError(motivo)
 
     return item, ini
 
@@ -150,6 +146,15 @@ def aplicar_sincronizacion_tras_limpiar_contraproducencia(
         return
 
     _sacar_de_rutas_borrador(ini, excluir_item_id=item.id if item else None, now=ts)
+    if item is not None:
+        try:
+            cancelar_reintentos_posteriores_planificados(
+                ini,
+                item_origen_id=int(item.id),
+                now=ts,
+            )
+        except ValueError as exc:
+            raise CorregirCierreOperativoError(str(exc)) from exc
 
     if ini.estado_iniciador in ("PENDIENTE", "EN_EJECUCION"):
         ini.estado_iniciador = "CUMPLIDO"

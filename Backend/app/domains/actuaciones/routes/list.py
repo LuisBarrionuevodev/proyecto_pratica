@@ -13,6 +13,9 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     build_actuacion_grid_batch_maps,
     build_iniciador_ruta_por_actuacion_id,
 )
+from app.domains.actuaciones.services.actuacion_reencolado_service import (
+    build_actuacion_editable_flags_por_actuacion_id,
+)
 
 from . import actuacion
 
@@ -73,12 +76,14 @@ def listar_actuaciones():
         act_ids = [int(a.id) for a in items_raw]
         iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
         batch = build_actuacion_grid_batch_maps(items_raw, iniciador_map)
+        editable_map = build_actuacion_editable_flags_por_actuacion_id(act_ids)
         items_dto = [
             actuacion_to_grid_row(
                 act,
                 counts_by_eo=counts_by_eo,
                 iniciador_desde_ruta=iniciador_map.get(int(act.id)),
                 batch=batch,
+                editable_override=editable_map.get(int(act.id)),
             )
             for act in items_raw
         ]

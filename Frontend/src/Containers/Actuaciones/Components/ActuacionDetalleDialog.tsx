@@ -54,6 +54,7 @@ import {
   actuacionDocumentacionPropiaTramiteSegments,
 } from "../utils/actuacionDocumentacionVisual";
 import {
+  debeMostrarCampoActaEnEdicion,
   detectBlockedActaClearAttempt,
   getActuacionEditableFields,
   resolveActuacionEditStart,
@@ -767,9 +768,11 @@ export function ActuacionDetalleDialog({
         verificarRealizoNuevaInspeccion: oficioForm.realizoNuevaInspeccion,
         oficioSubtipo: oficioFormCtx ? oficioForm.subtipo : undefined,
         verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : undefined,
+        baselineRow: editBaseline ?? undefined,
       }),
     [
       draft,
+      editBaseline,
       oficioForm.realizoNuevaInspeccion,
       oficioForm.subtipo,
       oficioForm.esVerificar,
@@ -1196,9 +1199,32 @@ export function ActuacionDetalleDialog({
     const ro = (key: string) => readOnlyColumns.includes(key);
     const canContrib = editableFields.canEditContribuyente;
     const canDom = editableFields.canEditDomicilio;
+    const canRubro = editableFields.canEditRubro;
+    const canNombreLocal = editableFields.canEditNombreLocal;
     const domicilioBloqueoMotivo = editableFields.domicilioEditBlockedReason;
     const canNotifEdit = editableFields.canEditNotificacion;
     const canEditActas = editableFields.canEditActas;
+    const actasBaseline = editBaseline ?? draft;
+    const mostrarInspeccion = debeMostrarCampoActaEnEdicion(
+      "INSPECCION",
+      draft,
+      editableFields,
+      actasBaseline
+    );
+    const mostrarNotificacion = debeMostrarCampoActaEnEdicion(
+      "NOTIFICACION",
+      draft,
+      editableFields,
+      actasBaseline
+    );
+    const mostrarComprobacion = debeMostrarCampoActaEnEdicion(
+      "COMPROBACION",
+      draft,
+      editableFields,
+      actasBaseline
+    );
+    const mostrarClausura = debeMostrarCampoActaEnEdicion("CLAUSURA", draft, editableFields, actasBaseline);
+    const mostrarDecomiso = debeMostrarCampoActaEnEdicion("DECOMISO", draft, editableFields, actasBaseline);
     const canEditContraproducencia =
       editableFields.modoEdicion === "normal" || editableFields.modoEdicion === "reinspeccion_notificacion";
     const helperBloqueo = (key: string, locked: boolean) => {
@@ -1279,7 +1305,7 @@ export function ActuacionDetalleDialog({
             size="small"
             options={motivosDisponiblesAgregar}
             value={null}
-            disabled={lockedNotif || motivosNotifSeleccionados.length >= MOTIVOS_NOTIFICACION_MAX}
+            disabled={lockedNotif || !canNotifEdit || motivosNotifSeleccionados.length >= MOTIVOS_NOTIFICACION_MAX}
             onChange={(_, value) => {
               if (!value || lockedNotif) return;
               if (motivosNotifSeleccionados.includes(value)) return;
@@ -1362,10 +1388,10 @@ export function ActuacionDetalleDialog({
             label="Nombre de fantasía"
             value={draft.nombre_local ?? ""}
             onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
-            disabled={!canContrib}
+            disabled={!canNombreLocal}
             error={!!e("nombre_local")}
             helperText={fieldHelper("nombre_local")}
-            sx={{ mt: 2, ...(!canContrib ? roFieldSx : {}) }}
+            sx={{ mt: 2, ...(!canNombreLocal ? roFieldSx : {}) }}
             fullWidth
           />
           <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
@@ -1375,7 +1401,7 @@ export function ActuacionDetalleDialog({
               value={draft.rubro_nombre ?? ""}
               onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
               options={rubrosOptions}
-              disabled={ro("rubro_nombre") || !canDom}
+              disabled={ro("rubro_nombre") || !canRubro}
               error={!!e("rubro_nombre")}
               helperText={fieldHelper("rubro_nombre")}
               fullWidth
@@ -1541,8 +1567,7 @@ export function ActuacionDetalleDialog({
         {canEditActas ? (
         <DocumentalBloque overline="Actas labradas">
           <Box sx={{ ...col, width: "100%" }}>
-            {(editableFields.debeValidarActasInspeccionNormal ||
-              Boolean(draft.acta_inspeccion_num?.trim())) && (
+            {mostrarInspeccion ? (
             <ActaNumFieldLazy
               label={ACTA_FIELD_LABELS.inspeccion}
               value={draft.acta_inspeccion_num}
@@ -1552,9 +1577,9 @@ export function ActuacionDetalleDialog({
               error={!!e("acta_inspeccion_num")}
               helperText={fieldHelper("acta_inspeccion_num")}
             />
-            )}
+            ) : null}
 
-            {canNotifEdit ? (
+            {mostrarNotificacion ? (
               lockedNotif ? (
                 <Box sx={edicionActaBloqueadaShellSx}>
                   <Typography
@@ -1577,7 +1602,8 @@ export function ActuacionDetalleDialog({
               )
             ) : null}
 
-            {lockedComp ? (
+            {mostrarComprobacion ? (
+            lockedComp ? (
               <Box sx={edicionActaBloqueadaShellSx}>
                 <Typography
                   variant="caption"
@@ -1596,9 +1622,12 @@ export function ActuacionDetalleDialog({
               </Box>
             ) : (
               gridComprobacion
-            )}
+            )
+            ) : null}
 
+            {mostrarClausura || mostrarDecomiso ? (
             <Box sx={edicionGrid2ColSx}>
+              {mostrarClausura ? (
               <ActaNumFieldLazy
                 label={ACTA_FIELD_LABELS.clausura}
                 value={draft.acta_clausura_num}
@@ -1608,6 +1637,8 @@ export function ActuacionDetalleDialog({
                 error={!!e("acta_clausura_num")}
                 helperText={fieldHelper("acta_clausura_num")}
               />
+              ) : null}
+              {mostrarDecomiso ? (
               <ActaNumFieldLazy
                 label={ACTA_FIELD_LABELS.decomiso}
                 value={draft.acta_decomiso_num}
@@ -1617,7 +1648,10 @@ export function ActuacionDetalleDialog({
                 error={!!e("acta_decomiso_num")}
                 helperText={fieldHelper("acta_decomiso_num")}
               />
+              ) : null}
             </Box>
+            ) : null}
+            {mostrarDecomiso ? (
             <AppTextField
               appearance="glass"
               label="Kilos decomisados"
@@ -1633,6 +1667,7 @@ export function ActuacionDetalleDialog({
               helperText={fieldHelper("decomiso_kilos_total")}
               fullWidth
             />
+            ) : null}
           </Box>
         </DocumentalBloque>
         ) : null}
@@ -1740,6 +1775,7 @@ export function ActuacionDetalleDialog({
     muestraOficioResultadoEditable,
     readOnlyColumns,
     editableFields,
+    editBaseline,
     registerActaFlush,
     numeroEditorLabel,
     lockedNotif,
