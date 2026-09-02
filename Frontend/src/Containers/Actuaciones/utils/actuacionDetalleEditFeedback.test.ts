@@ -23,11 +23,21 @@ function simulateEditStartFeedback(
 }
 
 describe("actuacionDetalleEditFeedback", () => {
-  it("bloqueo por expediente dispara feedback.warning", () => {
+  it("bloqueo total por expediente dispara feedback.warning", () => {
     const warn = vi.fn();
-    const allowed = simulateEditStartFeedback({ ...baseRow, comprobacion_editable: false }, warn);
+    const allowed = simulateEditStartFeedback(
+      { ...baseRow, actuacion_bloqueada_por_expediente: true },
+      warn
+    );
     expect(allowed).toBe(false);
     expect(warn).toHaveBeenCalledWith(MENSAJE_BLOQUEO_EXPEDIENTE_EDICION);
+  });
+
+  it("acta con expediente no bloquea apertura del modal (FIX.10A)", () => {
+    const warn = vi.fn();
+    const allowed = simulateEditStartFeedback({ ...baseRow, comprobacion_editable: false }, warn);
+    expect(allowed).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("bloqueo por intento posterior dispara feedback.warning", () => {

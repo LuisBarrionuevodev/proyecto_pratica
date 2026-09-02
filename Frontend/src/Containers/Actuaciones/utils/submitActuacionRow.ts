@@ -15,7 +15,7 @@ import {
   buildActuacionFormGlobalError,
   finalizeActuacionFormErrors,
 } from "./actuacionFormErrors";
-import { buildInspectoresForCanal } from "./buildInspectoresForCanal";
+import { buildInspectoresForCanal, inspectoresListEqual } from "./buildInspectoresForCanal";
 import {
   actuacionCrudValidationContext,
   validateActuacionFormForSubmit,
@@ -425,8 +425,15 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const inspectores = buildInspectoresForCanal(rowForCanal);
   const rowWithInspectores: IActuacionListItem & { actas_a_quitar?: ActaCanalQuitarTipo[] } = {
     ...rowForCanal,
-    inspectores,
   };
+  if (originalRow) {
+    const baselineInspectores = buildInspectoresForCanal(originalRow);
+    if (inspectores.length > 0 || !inspectoresListEqual(inspectores, baselineInspectores)) {
+      rowWithInspectores.inspectores = inspectores;
+    }
+  } else if (inspectores.length > 0) {
+    rowWithInspectores.inspectores = inspectores;
+  }
   if (esReinspeccionNotificacion && actasPendingClear.length > 0) {
     rowWithInspectores.actas_a_quitar = actasPendingClear.map(({ tipo }) => tipo);
   }

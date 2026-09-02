@@ -22,13 +22,25 @@ describe("actuacionEditRules ÿÿÿ expediente", () => {
     expect(tieneExpedienteBloqueoEdicion({ ...baseRow, comprobacion_editable: false })).toBe(true);
   });
 
-  it("permite edici?n sin expediente asociado", () => {
+  it("permite edición sin expediente asociado", () => {
     expect(tieneExpedienteBloqueoEdicion(baseRow)).toBe(false);
     expect(resolveActuacionEditStart(baseRow)).toEqual({ allowed: true });
   });
 
-  it("bloquea edici?n con mensaje est?ndar cuando hay expediente", () => {
-    const result = resolveActuacionEditStart({ ...baseRow, comprobacion_editable: false });
+  it("permite edición cuando solo el acta tiene expediente (FIX.10A)", () => {
+    expect(
+      resolveActuacionEditStart({ ...baseRow, comprobacion_editable: false })
+    ).toEqual({ allowed: true });
+    expect(
+      resolveActuacionEditStart({ ...baseRow, notificacion_editable: false })
+    ).toEqual({ allowed: true });
+  });
+
+  it("bloquea edición solo con actuacion_bloqueada_por_expediente", () => {
+    const result = resolveActuacionEditStart({
+      ...baseRow,
+      actuacion_bloqueada_por_expediente: true,
+    });
     expect(result).toEqual({
       allowed: false,
       message: MENSAJE_BLOQUEO_EXPEDIENTE_EDICION,

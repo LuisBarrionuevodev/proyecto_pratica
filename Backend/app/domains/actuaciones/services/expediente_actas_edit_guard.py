@@ -80,6 +80,16 @@ def comprobacion_editable_desde_canal_actas(comprobacion_id: int | None) -> bool
     return not comprobacion_tiene_documentacion_bloqueante(comprobacion_id)
 
 
+def actuacion_bloqueada_por_expediente_desde_canal_actas() -> bool:
+    """
+    Bloqueo total del modal CRUD por expediente (GESTIÓN-FIX.10A).
+
+    El expediente en notificación/comprobación solo restringe esos campos
+    (``notificacion_editable`` / ``comprobacion_editable``), no toda la actuación.
+    """
+    return False
+
+
 def assert_canal_actas_permite_payload_notificacion_comprobacion(
     act: Actuaciones, payload: Dict[str, Any]
 ) -> None:

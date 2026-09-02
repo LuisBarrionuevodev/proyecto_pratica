@@ -40,7 +40,11 @@ from app.domains.actuaciones.config.epicollect_sectors_display import (
     EPICOLLECT_SECTORES_CONDICIONES_FIELDS,
     EPICOLLECT_SECTOR_FIELD_IDS,
 )
+from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
+    list_active_inspector_nombres_for_actuacion,
+)
 from app.domains.actuaciones.services.expediente_actas_edit_guard import (
+    actuacion_bloqueada_por_expediente_desde_canal_actas,
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
@@ -844,12 +848,15 @@ def actuacion_to_grid_row(
     inspector2 = None
     inspector3 = None
 
-    insp_list: List[Any] = getattr(act, "inspector", None) or []
-    if insp_list:
-        insp_list = sorted(insp_list, key=lambda x: getattr(x, "id", 0))
-    nombres: List[str] = []
-    if insp_list:
-        for i in insp_list:
+    insp_list: List[Any] = []
+    if getattr(act, "id", None):
+        nombres = list_active_inspector_nombres_for_actuacion(int(act.id))
+    else:
+        raw_insp = getattr(act, "inspector", None) or []
+        if raw_insp:
+            raw_insp = sorted(raw_insp, key=lambda x: getattr(x, "id", 0))
+        nombres = []
+        for i in raw_insp:
             n = getattr(i, "nombre", None)
             if n:
                 nombres.append(str(n).strip())
@@ -1064,6 +1071,7 @@ def actuacion_to_grid_row(
             else notificacion_editable_desde_canal_actas(getattr(act, "notificacion_id", None))
         ),
         "comprobacion_editable": comprobacion_editable_desde_canal_actas(getattr(act, "comprobacion_id", None)),
+        "actuacion_bloqueada_por_expediente": actuacion_bloqueada_por_expediente_desde_canal_actas(),
         **_domicilio_edit_flags_for_grid(
             act, ini_ruta, editable_override=editable_override
         ),

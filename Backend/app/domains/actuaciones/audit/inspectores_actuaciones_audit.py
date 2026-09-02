@@ -42,6 +42,34 @@ def count_active_inspectores_for_actuacion(actuacion_id: int) -> int:
     return int(n or 0)
 
 
+def list_active_inspector_nombres_for_actuacion(actuacion_id: int) -> list[str]:
+    """
+    Nombres de inspectores activos (``deleted_at IS NULL`` en ``actuaciones_inspector``).
+
+    Parámetros:
+        actuacion_id: PK de actuaciones.
+
+    Retorno:
+        Lista ordenada por id de inspector.
+    """
+    from app.models import Inspector
+
+    rows = (
+        db.session.query(Inspector.nombre)
+        .join(
+            actuaciones_inspector,
+            actuaciones_inspector.c.inspector_id == Inspector.id,
+        )
+        .filter(
+            actuaciones_inspector.c.actuaciones_id == int(actuacion_id),
+            actuaciones_inspector.c.deleted_at.is_(None),
+        )
+        .order_by(Inspector.id.asc())
+        .all()
+    )
+    return [str(r[0]).strip() for r in rows if r[0] and str(r[0]).strip()]
+
+
 def _distribution_rows() -> list[tuple[int, int]]:
     """
     Por cada actuación con al menos un inspector activo, devuelve (actuaciones_id, cantidad).

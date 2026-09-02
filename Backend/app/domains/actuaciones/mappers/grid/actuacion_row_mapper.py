@@ -58,8 +58,11 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         "tipo_actuacion": _enum_value(row.tipo_actuacion),
         "rubro_nombre": _clean_str(row.rubro_nombre),
         "nombre_local": _clean_str(row.nombre_local),
-        "inspectores": inspectores_payload,
     }
+    if row.inspectores is not None or any(
+        _clean_str(x) for x in (row.inspector1, row.inspector2, row.inspector3)
+    ):
+        payload["inspectores"] = inspectores_payload
     if row.limpiar_contraproducencia:
         payload["limpiar_contraproducencia"] = True
         payload["contraproducencia"] = None

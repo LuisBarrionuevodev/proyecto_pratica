@@ -56,12 +56,17 @@ export type ActuacionEditableFields = {
 };
 
 /**
- * Indica si la actuación tiene expediente asociado que impide editar desde el modal de Actuaciones.
+ * Indica si la actuación tiene expediente asociado que impide editar campos de acta.
  *
  * Usa flags ya presentes en el detalle/listado (`notificacion_editable`, `comprobacion_editable`).
  */
 export function tieneExpedienteBloqueoEdicion(row: IActuacionListItem): boolean {
   return row.notificacion_editable === false || row.comprobacion_editable === false;
+}
+
+/** Bloqueo total del modal por expediente (GESTIÓN-FIX.10A). */
+export function actuacionBloqueadaPorExpedienteTotal(row: IActuacionListItem): boolean {
+  return row.actuacion_bloqueada_por_expediente === true;
 }
 
 /** Acta de notificación bloqueada por expediente/documentación. */
@@ -246,6 +251,7 @@ export function getActuacionEditableFields(
     modo === "reinspeccion_notificacion" ||
     verificarRealizoLegacy ||
     muestraInspeccionNormalOficio ||
+    (modo === "verificar_informar" && tieneActasPersistidas) ||
     (esOficio && tieneActasPersistidas);
 
   const canEditResultadoOperativo =
@@ -283,7 +289,7 @@ export function resolveActuacionEditStart(row: IActuacionListItem): ActuacionEdi
       message: row.motivo_bloqueo_edicion?.trim() || MENSAJE_BLOQUEO_INTENTO_POSTERIOR,
     };
   }
-  if (tieneExpedienteBloqueoEdicion(row)) {
+  if (actuacionBloqueadaPorExpedienteTotal(row)) {
     return { allowed: false, message: MENSAJE_BLOQUEO_EXPEDIENTE_EDICION };
   }
   return { allowed: true };

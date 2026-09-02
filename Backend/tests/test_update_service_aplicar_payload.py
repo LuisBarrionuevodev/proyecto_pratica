@@ -46,6 +46,10 @@ def test_aplicar_payload_sincroniza_act_domicilio_tras_get_or_create() -> None:
 
     with (
         patch(
+            "app.domains.actuaciones.services.oficio_circuito_service.actuacion_es_circuito_reinspeccion_oficio",
+            return_value=False,
+        ),
+        patch(
             "app.domains.actuaciones.services.update_service.get_rubro_o_falla",
             return_value=MagicMock(),
         ),
@@ -107,6 +111,10 @@ def test_aplicar_payload_rechaza_domicilio_si_bloqueado() -> None:
     }
 
     with (
+        patch(
+            "app.domains.actuaciones.services.oficio_circuito_service.actuacion_es_circuito_reinspeccion_oficio",
+            return_value=False,
+        ),
         patch(
             "app.domains.actuaciones.services.update_service.get_rubro_o_falla",
             return_value=MagicMock(),

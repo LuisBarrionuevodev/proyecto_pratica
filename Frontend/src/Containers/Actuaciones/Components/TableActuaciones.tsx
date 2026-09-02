@@ -165,10 +165,7 @@ const TablaActuaciones = ({
 
   // Catálogos combinados (reusa helper del grid)
   const hasBloqueoExpediente = useMemo(
-    () =>
-      data.some(
-        (r) => r.notificacion_editable === false || r.comprobacion_editable === false
-      ),
+    () => data.some((r) => r.actuacion_bloqueada_por_expediente === true),
     [data]
   );
 

@@ -109,6 +109,18 @@ def _get_actuacion_or_404(actuacion_id: int) -> Actuaciones:
     return act
 
 
+def _actuacion_id_int(act: Actuaciones) -> int | None:
+    """Id persistido de la actuación; ignora mocks u otros valores no enteros."""
+    raw = getattr(act, "id", None)
+    return raw if isinstance(raw, int) else None
+
+
+def _domicilio_id_int(act: Actuaciones) -> int | None:
+    """FK domicilio persistida; ignora mocks u otros valores no enteros."""
+    raw = getattr(act, "domicilio_id", None)
+    return raw if isinstance(raw, int) else None
+
+
 def aplicar_payload_actuacion(
     act: Actuaciones,
     payload: Dict[str, Any],
@@ -141,10 +153,9 @@ def aplicar_payload_actuacion(
         actuacion_es_circuito_reinspeccion_oficio,
     )
 
-    es_oficio_circuito = (
-        getattr(act, "id", None) is not None
-        and actuacion_es_circuito_reinspeccion_oficio(int(act.id))
-    )
+    act_id = _actuacion_id_int(act)
+    domicilio_id_int = _domicilio_id_int(act)
+    es_oficio_circuito = act_id is not None and actuacion_es_circuito_reinspeccion_oficio(act_id)
 
     # Fecha
     if payload.get("fecha_actuacion"):
@@ -188,9 +199,7 @@ def aplicar_payload_actuacion(
     )
     if "domicilio" in payload and not es_oficio_circuito:
         dom_payload = payload.get("domicilio") or {}
-        ini_operativo = (
-            resolve_iniciador_operativo_actuacion(int(act.id)) if getattr(act, "id", None) else None
-        )
+        ini_operativo = resolve_iniciador_operativo_actuacion(act_id) if act_id else None
         puede_editar_dom, motivo_dom = puede_editar_domicilio_actuacion(act, ini_operativo)
         if not puede_editar_dom and (dom_payload.get("calle") or dom_payload.get("numero")):
             raise ValueError(motivo_dom or "No se puede editar el domicilio de esta actuación.")
@@ -202,26 +211,26 @@ def aplicar_payload_actuacion(
 
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
         allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
-        dom_actual = db.session.get(Domicilio, int(act.domicilio_id)) if act.domicilio_id else None
+        dom_actual = db.session.get(Domicilio, domicilio_id_int) if domicilio_id_int else None
         texto_cambia = domicilio_payload_cambia_texto_geografico(dom_actual, dom_payload)
         if texto_cambia:
             assert_puede_editar_domicilio_actuacion(act, ini_operativo)
         cambios_domicilio = dom_payload if texto_cambia or dom_actual is None else {}
         if puede_editar_dom and texto_cambia and dom_actual is not None:
             cambios_domicilio = _domicilio_cambios_explicitos_crud(dom_actual, cambios_domicilio)
-        relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
-        domicilio_id_anterior = act.domicilio_id
+        relevamiento_id = relevamiento_id_desde_actuacion(act_id) if act_id else None
+        domicilio_id_anterior = domicilio_id_int
         geo_snapshot = (
             snapshot_domicilio_geocode(int(dom_actual.id)) if dom_actual is not None else None
         )
 
         outcome = aplicar_edicion_domicilio_operativo(
-            domicilio_id_actual=act.domicilio_id,
+            domicilio_id_actual=domicilio_id_int,
             cambios=cambios_domicilio,
             contribuyente=contrib,
             rubro=rubro,
             contexto="ACTUACION",
-            origen_id=int(act.id) if getattr(act, "id", None) else 0,
+            origen_id=act_id or 0,
             modo_explicito=payload.get("modo_domicilio"),
             allow_missing_catalogs=allow_missing_catalogs,
             relevamiento_id=relevamiento_id,
@@ -240,38 +249,42 @@ def aplicar_payload_actuacion(
             elif geo_snapshot is not None:
                 preservar_geocode_existente_al_editar_domicilio(int(dom.id), geo_snapshot)
 
-    elif (contrib is not None or rubro is not None) and not es_oficio_circuito:
-        if not act.domicilio_id:
-            raise ValueError("La actuación no tiene domicilio asociado para actualizar titular o rubro.")
-        dom_actual = db.session.get(Domicilio, int(act.domicilio_id))
+    elif not es_oficio_circuito and domicilio_id_int:
+        dom_actual = db.session.get(Domicilio, domicilio_id_int)
         if dom_actual is None:
             raise ValueError("Domicilio de la actuación no encontrado.")
-        ini_operativo = (
-            resolve_iniciador_operativo_actuacion(int(act.id)) if getattr(act, "id", None) else None
+        hay_cambio_real_rubro = rubro is not None and (
+            dom_actual.rubro_id is None or int(dom_actual.rubro_id) != int(rubro.id)
         )
-        if rubro is not None:
-            assert_puede_editar_rubro_actuacion(act, ini_operativo)
-        from app.domains.domicilios.services.domicilio_update_service import _aplicar_rubro_contrib_seguro
+        hay_cambio_real_contrib = contrib is not None and (
+            dom_actual.contribuyente_id is None
+            or int(dom_actual.contribuyente_id) != int(contrib.id)
+        )
+        if hay_cambio_real_rubro or hay_cambio_real_contrib:
+            ini_operativo = resolve_iniciador_operativo_actuacion(act_id) if act_id else None
+            if hay_cambio_real_rubro:
+                assert_puede_editar_rubro_actuacion(act, ini_operativo)
+            from app.domains.domicilios.services.domicilio_update_service import _aplicar_rubro_contrib_seguro
 
-        relevamiento_id = relevamiento_id_desde_actuacion(int(act.id)) if getattr(act, "id", None) else None
-        dom = _aplicar_rubro_contrib_seguro(
-            dom_actual,
-            contribuyente=contrib,
-            rubro=rubro,
-            numero_tipo=None,
-            contexto="ACTUACION",
-            origen_id=int(act.id) if getattr(act, "id", None) else None,
-        )
-        act.domicilio_id = dom.id
-        act.domicilio = dom
+            relevamiento_id = relevamiento_id_desde_actuacion(act_id) if act_id else None
+            dom = _aplicar_rubro_contrib_seguro(
+                dom_actual,
+                contribuyente=contrib if hay_cambio_real_contrib else None,
+                rubro=rubro if hay_cambio_real_rubro else None,
+                numero_tipo=None,
+                contexto="ACTUACION",
+                origen_id=act_id,
+            )
+            act.domicilio_id = dom.id
+            act.domicilio = dom
 
     # Inspectores
     if "inspectores" in payload:
         raw_ins = payload.get("inspectores") or []
         nombres = [str(x).strip() for x in raw_ins if str(x).strip()]
-        if getattr(act, "id", None):
+        if act_id:
             log_truncation_risk_if_applicable(
-                actuacion_id=int(act.id),
+                actuacion_id=act_id,
                 payload_inspectores_nombres=nombres,
             )
         act.inspector = get_inspectores_o_falla(nombres) if nombres else []

@@ -136,11 +136,7 @@ class Actuaciones(db.Model):
 
     __table_args__ = (
     db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),
-
-    db.UniqueConstraint(
-        "anio", "tipo", "notificacion_id",
-        name="uq_act_anio_tipo_notificacion"
-    ),
+    db.Index("ix_act_anio_tipo_notificacion", "anio", "tipo", "notificacion_id"),
     db.UniqueConstraint(
         "anio", "tipo", "comprobacion_id",
         name="uq_act_anio_tipo_comprobacion"

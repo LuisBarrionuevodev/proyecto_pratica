@@ -78,6 +78,8 @@ export interface IActuacionListItem {
     notificacion_editable?: boolean;
     /** false si la comprobación ya tiene expediente de envío. */
     comprobacion_editable?: boolean;
+    /** true solo cuando una regla bloquea toda la actuación (no confundir con flags de acta). */
+    actuacion_bloqueada_por_expediente?: boolean;
     /** PR7.15 — edición de domicilio desde CRUD (solo actuación base de relevamiento). */
     can_edit_domicilio?: boolean;
     domicilio_edit_blocked_reason?: string | null;

@@ -237,6 +237,13 @@ function dedupeInspectoresPreserveOrder(names: string[]): string[] {
   return out;
 }
 
+/** FIX.10A: lista visible siempre se envía; `[]` solo si el usuario vació el selector. */
+function resolveInspectoresExplicitos(list: string[], dirty: boolean): string[] | undefined {
+  if (list.length > 0) return dedupeInspectoresPreserveOrder(list);
+  if (dirty) return [];
+  return undefined;
+}
+
 /**
  * Lista inicial: grupo de ruta (orden estable); si no hay, `inspectores[]` o slots 1–3 de la fila.
  */
@@ -410,6 +417,7 @@ export function CompletarTrabajoModal({
   const [tipoActuacionEsperadoRef, setTipoActuacionEsperadoRef] = useState<string | null>(null);
 
   const [inspectoresList, setInspectoresList] = useState<string[]>([]);
+  const [inspectoresDirty, setInspectoresDirty] = useState(false);
   /** Búsqueda en Autocompletes de agregar ítem; se limpia tras cada selección. */
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
   const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
@@ -462,6 +470,7 @@ export function CompletarTrabajoModal({
     if (!open || !resolvedRow) return;
     const initial = initialInspectoresList(resolvedRow, inspectoresGrupo);
     setInspectoresList(initial);
+    setInspectoresDirty(false);
     baselineInspectoresRef.current = initial;
 
     setFieldErrors({});
@@ -583,6 +592,7 @@ export function CompletarTrabajoModal({
     setObservacionesEjecucion("");
     setFieldErrors({});
     setInspectoresList([]);
+    setInspectoresDirty(false);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
     baselineInspectoresRef.current = [];
@@ -838,7 +848,7 @@ export function CompletarTrabajoModal({
         await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
           includeTipoActuacion: true,
           omitPrecargadoPr2: false,
-          inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList),
+          inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
         });
         if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
           emitGestionNotificacionReinspeccionRefresh();
@@ -885,7 +895,7 @@ export function CompletarTrabajoModal({
             includeTipoActuacion: true,
             omitPrecargadoPr2: false,
             incluirInspeccionNormal: false,
-            inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList),
+            inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
           });
           feedback.success("Trabajo completado correctamente.");
           onSuccess(resolvedRow.ruta_item_id);
@@ -1010,7 +1020,7 @@ export function CompletarTrabajoModal({
       await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
         omitPrecargadoPr2: !esFlujoVerificarInformarUi,
         includeTipoActuacion: esFlujoVerificarInformarUi,
-        inspectoresExplicitos: dedupeInspectoresPreserveOrder(inspectoresList),
+        inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
       });
       if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
         emitGestionNotificacionReinspeccionRefresh();
@@ -1139,6 +1149,7 @@ export function CompletarTrabajoModal({
                   size="small"
                   onDelete={() => {
                     setInspectoresList((prev) => prev.filter((_, i) => i !== idx));
+                    setInspectoresDirty(true);
                     clearFe("inspectores");
                   }}
                   sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
@@ -1158,6 +1169,7 @@ export function CompletarTrabajoModal({
             onChange={(_, value) => {
               if (value && !inspectoresList.includes(value)) {
                 setInspectoresList((prev) => [...prev, value]);
+                setInspectoresDirty(true);
                 clearFe("inspectores");
                 setInspectoresAddInput("");
               }

@@ -362,11 +362,14 @@ class ActuacionGridRowIn(BaseModel):
         """
         Lista de nombres de inspectores para validación y mapper.
 
-        Si ``inspectores`` viene informado (incluye lista vacía), es la fuente canónica.
+        Si ``inspectores`` viene con elementos, es la fuente canónica.
+        Si es lista vacía explícita, se conserva (intención de limpiar).
         Si es ``None``, se derivan de inspector1/2/3 (compatibilidad grilla / Excel).
         """
         if self.inspectores is not None:
-            return list(self.inspectores)
+            if len(self.inspectores) > 0:
+                return list(self.inspectores)
+            return []
         return [x for x in [self.inspector1, self.inspector2, self.inspector3] if x]
 
     @field_validator("numero_tipo", mode="before")

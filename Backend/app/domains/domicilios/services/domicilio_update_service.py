@@ -56,6 +56,18 @@ def _aplicar_rubro_contrib_seguro(
     exclude_rel = int(origen_id) if contexto == "RELEVAMIENTO" and origen_id else None
     exclude_den = int(origen_id) if contexto == "DENUNCIA" and origen_id else None
 
+    contrib_sin_cambio = contribuyente is None or (
+        dom.contribuyente_id is not None and int(dom.contribuyente_id) == int(contribuyente.id)
+    )
+    rubro_sin_cambio = rubro is None or (
+        dom.rubro_id is not None and int(dom.rubro_id) == int(rubro.id)
+    )
+    numero_tipo_sin_cambio = numero_tipo is None or dom.numero_tipo == numero_tipo
+    if contrib_sin_cambio and rubro_sin_cambio and numero_tipo_sin_cambio:
+        return dom
+
+    domicilio_id_anterior = int(dom.id)
+
     if debe_fork_domicilio_operativo(
         dom,
         contribuyente=contribuyente,
@@ -72,6 +84,12 @@ def _aplicar_rubro_contrib_seguro(
         )
         db.session.add(nuevo)
         db.session.flush()
+        if int(nuevo.id) != domicilio_id_anterior:
+            from app.domains.domicilios.services.domicilio_completar_trabajo_service import (
+                heredar_geocode_domicilio_desde_origen,
+            )
+
+            heredar_geocode_domicilio_desde_origen(domicilio_id_anterior, int(nuevo.id))
         return nuevo
 
     changed = False
