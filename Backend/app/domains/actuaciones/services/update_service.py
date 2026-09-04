@@ -36,6 +36,9 @@ from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_
 from app.domains.establecimientos.services.vincular_establecimiento_operativo_actuacion_service import (
     try_vincular_establecimiento_operativo_desde_actuacion,
 )
+from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
+    resolve_establecimiento_por_domicilio,
+)
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_contribuyente_if_orphan,
     soft_delete_domicilio_if_orphan,
@@ -119,6 +122,75 @@ def _domicilio_id_int(act: Actuaciones) -> int | None:
     """FK domicilio persistida; ignora mocks u otros valores no enteros."""
     raw = getattr(act, "domicilio_id", None)
     return raw if isinstance(raw, int) else None
+
+
+def _sincronizar_domicilio_relevamiento_direccion_incorrecta_si_aplica(
+    act: Actuaciones,
+    *,
+    domicilio_id_anterior: int | None,
+    limpiar_contra: bool,
+) -> None:
+    """
+    GESTIÓN-FIX.10A.2-B: alinea relevamiento origen e iniciador activo cuando, tras
+    ``DIRECCION INCORRECTA``, el PUT de actuación cambia ``domicilio_id``.
+
+    Parámetros:
+        act: actuación ya mutada por ``aplicar_payload_actuacion``.
+        domicilio_id_anterior: FK domicilio antes del PUT.
+        limpiar_contra: si True, no propaga (contra removida en el mismo request).
+
+    Errores:
+        No lanza; omite silenciosamente si no aplica la policy.
+    """
+    if limpiar_contra:
+        return
+
+    domicilio_id_nuevo = _domicilio_id_int(act)
+    if domicilio_id_nuevo is None or domicilio_id_anterior == domicilio_id_nuevo:
+        return
+
+    from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+        es_contraproducencia_correctiva_direccion,
+    )
+
+    if not es_contraproducencia_correctiva_direccion(act.contraproducencia):
+        return
+
+    actuacion_id = _actuacion_id_int(act)
+    if actuacion_id is None:
+        return
+
+    ini = resolve_iniciador_operativo_actuacion(actuacion_id)
+    if ini is None or (ini.tipo_iniciador or "").strip().upper() != "RELEVAMIENTO":
+        return
+
+    from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+        estados_propagables_domicilio,
+        propagar_domicilio_a_iniciadores_activos,
+    )
+    from app.models import Relevamiento
+
+    estado = (ini.estado_iniciador or "").strip().upper()
+    if estado not in estados_propagables_domicilio():
+        return
+
+    if not ini.relevamiento_id:
+        return
+
+    rel = db.session.get(Relevamiento, int(ini.relevamiento_id))
+    if rel is None:
+        return
+
+    rel.domicilio_id = domicilio_id_nuevo
+    db.session.add(rel)
+    propagar_domicilio_a_iniciadores_activos(
+        "RELEVAMIENTO",
+        int(rel.id),
+        int(domicilio_id_nuevo),
+    )
+    if ini.domicilio_id is None or int(ini.domicilio_id) != int(domicilio_id_nuevo):
+        ini.domicilio_id = domicilio_id_nuevo
+        db.session.add(ini)
 
 
 def aplicar_payload_actuacion(
@@ -310,6 +382,35 @@ def aplicar_payload_actuacion(
         attach_decomiso(act, payload.get("decomiso"), crear=False)
 
 
+def _resolver_establecimiento_operativo_tras_contraproducencia_put(act: Actuaciones) -> None:
+    """
+    Paridad con Completar trabajo al establecer contraproducencia desde PUT.
+
+    Qué hace:
+        Si la actuación quedó con contraproducencia operativa y ``domicilio_id`` final,
+        delega en ``resolve_establecimiento_por_domicilio`` (FIX.7) y asigna el EO canónico.
+
+    Parámetros:
+        act: actuación ya mutada en sesión (payload + sync de contraproducencia aplicados).
+
+    Retorno:
+        None. Modifica ``act`` en memoria; sin commit.
+
+    Errores:
+        Ninguno explícito; integridad DB puede fallar al commit del llamador.
+    """
+    if not (act.contraproducencia or "").strip():
+        return
+    if act.domicilio_id is None:
+        return
+    eid = resolve_establecimiento_por_domicilio(
+        int(act.domicilio_id),
+        created_by_user_id=get_current_user_id_or_fallback(),
+    )
+    if eid is not None:
+        act.establecimiento_operativo_id = eid
+
+
 def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuaciones:
     """
     Actualiza una `Actuaciones` existente desde el canal **CargarActuacion** (PUT grilla).
@@ -324,6 +425,8 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     - Delega el núcleo de mutación a `aplicar_payload_actuacion` (misma semántica histórica).
     - Tras aplicar el payload, intenta vincular ``establecimiento_operativo_id`` si corresponde
       (``try_vincular_establecimiento_operativo_desde_actuacion``).
+    - Si el PUT establece contraproducencia operativa, resuelve EO con la misma semántica que
+      Completar trabajo (``resolve_establecimiento_por_domicilio`` sobre el domicilio final).
     - Persiste con `db.session.commit()` al final.
 
     Cleanup post-update (soft delete):
@@ -434,19 +537,21 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
             contra_anterior=contra_anterior,
             contra_nueva=contra_nueva,
         )
+        _resolver_establecimiento_operativo_tras_contraproducencia_put(act)
 
     try_vincular_establecimiento_operativo_desde_actuacion(
         act,
         created_by_user_id=get_current_user_id_or_fallback(),
     )
 
+    _sincronizar_domicilio_relevamiento_direccion_incorrecta_si_aplica(
+        act,
+        domicilio_id_anterior=old_domicilio_id,
+        limpiar_contra=limpiar_contra,
+    )
+
     db.session.add(act)
     db.session.commit()
-
-    # PR7.15: corrección de domicilio desde CRUD no propaga a iniciadores (solo relevamiento base editable).
-    if act.domicilio_id and old_domicilio_id == act.domicilio_id:
-        # STAB-7: corrección in-place — datos actualizados en la misma fila de domicilio.
-        pass
 
     # Garbage collector post-update:
     # - si cambió el domicilio, intentar soft-delete del domicilio viejo si quedó huérfano.

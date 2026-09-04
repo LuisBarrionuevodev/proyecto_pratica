@@ -21,6 +21,10 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     priority_for_tipo,
 )
 from app.domains.actuaciones.utils.actuaciones_bandeja_eager import apply_bandeja_grid_eager
+from app.domains.actuaciones.utils.actuacion_base_workflow_documental import (
+    actuacion_equivale_a_inspeccion_para_workflow_documental,
+    filtro_sql_actuacion_base_workflow_documental,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -89,14 +93,17 @@ def elegir_actuacion_base_inspeccion_para_notificacion(
     candidates: list[Actuaciones],
 ) -> Actuaciones | None:
     """
-    Elige la actuación base INSPECCION para materializar el iniciador por notificación vencida.
+    Elige la actuación base de nueva inspección para materializar el iniciador por notificación vencida.
 
-    Regla explícita (Fase A): si hay varias actuaciones INSPECCION elegibles para la misma
+    Regla explícita (Fase A): si hay varias actuaciones elegibles para la misma
     notificación, se usa **la de mayor `id`** (la más reciente en inserción).
     """
-    if not candidates:
+    elegibles = [
+        a for a in candidates if actuacion_equivale_a_inspeccion_para_workflow_documental(a)
+    ]
+    if not elegibles:
         return None
-    return max(candidates, key=lambda a: a.id)
+    return max(elegibles, key=lambda a: a.id)
 
 
 def _agrupar_eligible_por_notificacion_id(
@@ -246,7 +253,7 @@ def _subq_reinsp_via_ruta_item_misma_notificacion():
 
 def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     """
-    Retorna actuaciones base INSPECCION elegibles para crear iniciador por
+    Retorna actuaciones base de nueva inspección elegibles para crear iniciador por
     vencimiento de notificación.
 
     Puede haber **varias filas** por el mismo `notificacion_id`; la elección de una sola
@@ -256,7 +263,7 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     Elegibilidad:
     - notificación no borrada.
     - fecha_vencimiento no nula y <= hoy.
-    - actuación base de tipo INSPECCION.
+    - actuación base: ``INSPECCION`` o ``VERIFICAR E INFORMAR`` con ``realizo_nueva_inspeccion``.
     - domicilio operativo (domicilio_id no nulo y domicilio no soft-deleteado).
     - sin reinspección ya registrada para la misma notificación.
 
@@ -269,7 +276,7 @@ def _eligible_inspecciones_vencidas() -> list[Actuaciones]:
     return (
         Actuaciones.query.join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
         .join(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
-        .filter(Actuaciones.tipo == "INSPECCION")
+        .filter(filtro_sql_actuacion_base_workflow_documental())
         .filter(Actuaciones.notificacion_id.isnot(None))
         .filter(Actuaciones.domicilio_id.isnot(None))
         .filter(Domicilio.deleted_at.is_(None))
@@ -526,16 +533,16 @@ def list_reinspeccion_notificacion_operativas(
     numero_notificacion: str | None = None,
 ) -> list[Actuaciones]:
     """
-    Lista actuaciones base INSPECCION con iniciador `REINSPECCION_NOTIFICACION` en cola operativa
-    (`PENDIENTE` o `PLANIFICADO` en ruta borrador/pool).
+    Lista actuaciones base de nueva inspección con iniciador `REINSPECCION_NOTIFICACION` en cola
+    operativa (`PENDIENTE` o `PLANIFICADO` en ruta borrador/pool).
 
-    Defensa en profundidad (lectura): misma noción de **vencida operativa** que el sync /
-    `_eligible_inspecciones_vencidas` para la notificación: no borrada, `fecha_vencimiento`
-    no nula y ``<=`` fecha de consulta. Así una prórroga que mueve el vencimiento al futuro
-    deja de listarse aunque el sync aún no haya corrido.
+    Defensa en profundidad (lectura): misma noción de **vencida operativa** y de actuación base
+    que el sync / `_eligible_inspecciones_vencidas` para la notificación: no borrada,
+    `fecha_vencimiento` no nula y ``<=`` fecha de consulta. Así una prórroga que mueve el
+    vencimiento al futuro deja de listarse aunque el sync aún no haya corrido.
 
     Incluye actuaciones **mixtas** (con ``comprobacion_id``) si el iniciador materializado apunta a
-    esa actuación (alineado con PR1/PR3).
+    esa actuación (alineado con PR1/PR3). Incluye ``VERIFICAR E INFORMAR`` con nueva inspección.
 
     Parámetros:
         desde, hasta: filtro opcional sobre ``Actuaciones.fecha``.
@@ -556,7 +563,7 @@ def list_reinspeccion_notificacion_operativas(
         apply_bandeja_grid_eager(
             Actuaciones.query.join(IniciadorRuta, IniciadorRuta.actuacion_id == Actuaciones.id)
             .join(Notificacion, Notificacion.id == Actuaciones.notificacion_id)
-            .filter(Actuaciones.tipo == "INSPECCION")
+            .filter(filtro_sql_actuacion_base_workflow_documental())
             .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
             .filter(IniciadorRuta.estado_iniciador.in_(_ESTADOS_INICIADOR_BANDEJA_REINSPECCION_NOTIF))
             .filter(IniciadorRuta.deleted_at.is_(None))

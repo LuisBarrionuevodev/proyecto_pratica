@@ -77,6 +77,77 @@ _MSG_ACTAS_NO_VERIFICAR_SIN_INSPECCION = (
 )
 
 
+def _sincronizar_domicilio_relevamiento_direccion_incorrecta_en_cierre(
+    act: Actuaciones,
+    ini: IniciadorRuta,
+    *,
+    domicilio_id_anterior: int | None,
+    contraproducencia: str | None,
+) -> bool:
+    """
+    GESTIÓN-FIX.10A.2-C: alinea relevamiento origen e iniciador cuando Completar Trabajo
+    corrige ``domicilio_id`` con ``DIRECCION INCORRECTA`` en un cierre RELEVAMIENTO.
+
+    Parámetros:
+        act: actuación ya mutada en el cierre.
+        ini: iniciador operativo del ítem de ruta.
+        domicilio_id_anterior: FK domicilio antes de mutar en el cierre.
+        contraproducencia: valor normalizado de contraproducencia del cierre.
+
+    Retorno:
+        True si aplicó sincronización desde relevamiento origen.
+
+    Errores:
+        ValueError: si tras sincronizar el domicilio efectivo no coincide con el corregido.
+    """
+    from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+        es_contraproducencia_correctiva_direccion,
+    )
+    from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
+        estados_propagables_domicilio,
+        propagar_domicilio_a_iniciadores_activos,
+        resolve_domicilio_efectivo_para_iniciador,
+    )
+
+    if (ini.tipo_iniciador or "").strip().upper() != "RELEVAMIENTO":
+        return False
+
+    if not es_contraproducencia_correctiva_direccion(contraproducencia):
+        return False
+
+    domicilio_id_nuevo = int(act.domicilio_id) if act.domicilio_id else None
+    if domicilio_id_nuevo is None or domicilio_id_anterior == domicilio_id_nuevo:
+        return False
+
+    if not ini.relevamiento_id:
+        return False
+
+    rel = db.session.get(Relevamiento, int(ini.relevamiento_id))
+    if rel is None:
+        return False
+
+    rel.domicilio_id = domicilio_id_nuevo
+    db.session.add(rel)
+    propagar_domicilio_a_iniciadores_activos(
+        "RELEVAMIENTO",
+        int(rel.id),
+        domicilio_id_nuevo,
+    )
+    estado = (ini.estado_iniciador or "").strip().upper()
+    if estado in estados_propagables_domicilio():
+        if ini.domicilio_id is None or int(ini.domicilio_id) != domicilio_id_nuevo:
+            ini.domicilio_id = domicilio_id_nuevo
+            db.session.add(ini)
+
+    eff = resolve_domicilio_efectivo_para_iniciador(ini)
+    if eff.domicilio_id != domicilio_id_nuevo:
+        raise ValueError(
+            "Tras corregir domicilio por DIRECCION INCORRECTA, el domicilio efectivo "
+            "del iniciador no coincide con el domicilio corregido."
+        )
+    return True
+
+
 def _clean_str_cierre(v: Any) -> str | None:
     if v is None:
         return None
@@ -413,6 +484,8 @@ def cerrar_completar_trabajo_por_ruta_item(
 
     now = datetime.utcnow()
     domicilio_mutado = False
+    domicilio_id_anterior: int | None = int(act.domicilio_id) if act.domicilio_id else None
+    relevamiento_domicilio_sincronizado = False
 
     try:
         # 1) Actuación
@@ -493,6 +566,13 @@ def cerrar_completar_trabajo_por_ruta_item(
         if act.domicilio_id and ini.domicilio_id != act.domicilio_id:
             ini.domicilio_id = act.domicilio_id
 
+        relevamiento_domicilio_sincronizado = _sincronizar_domicilio_relevamiento_direccion_incorrecta_en_cierre(
+            act,
+            ini,
+            domicilio_id_anterior=domicilio_id_anterior,
+            contraproducencia=stored_contra if bucket != ContrapBucket.NONE else act.contraproducencia,
+        )
+
         _persist_resultado_cumplimiento_oficio(act, ini, payload, bucket=bucket)
         _persist_realizo_nueva_inspeccion(act, ini, payload)
 
@@ -526,7 +606,12 @@ def cerrar_completar_trabajo_por_ruta_item(
             aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
             reset_iniciador_reinspeccion_oficio_generico(ini)
 
-        if domicilio_mutado and act.domicilio_id and getattr(act, "id", None):
+        if (
+            domicilio_mutado
+            and act.domicilio_id
+            and getattr(act, "id", None)
+            and not relevamiento_domicilio_sincronizado
+        ):
             from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
                 propagar_domicilio_a_iniciadores_activos,
             )
