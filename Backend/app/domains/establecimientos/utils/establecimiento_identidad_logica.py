@@ -73,6 +73,28 @@ def identidad_logica_completa(dom: Domicilio, contrib: Contribuyente | None = No
     return bool(ck and calle_k and num_k)
 
 
+def domicilio_puede_resolver_establecimiento_operativo(
+    dom: Domicilio | None,
+    contrib: Contribuyente | None = None,
+) -> bool:
+    """
+    Gate FIX.10B.1.2: True si el domicilio tiene identidad lógica completa (FIX.7).
+
+    Parámetros:
+        dom: domicilio ancla del cierre/edición.
+        contrib: contribuyente opcional si no está cargado en ``dom``.
+
+    Retorno:
+        False si el domicilio es None, está eliminado o la identidad lógica es incompleta.
+
+    Errores:
+        Ninguno.
+    """
+    if dom is None or getattr(dom, "deleted_at", None) is not None:
+        return False
+    return identidad_logica_completa(dom, contrib)
+
+
 def contribuyente_ids_logicos(dom: Domicilio, contrib: Contribuyente | None = None) -> list[int]:
     """
     IDs de contribuyente equivalentes lógicamente (mismo documento normalizado).
@@ -171,6 +193,37 @@ def actuaciones_filter_identidad_logica_desde_domicilio(dom: Domicilio):
     if not dom_ids:
         return Actuaciones.domicilio_id == -1
     return Actuaciones.domicilio_id.in_(dom_ids)
+
+
+def grupo_eo_sostenido_por_actuaciones(eos: Iterable[EstablecimientoOperativo]) -> bool:
+    """
+    True si hay actuaciones en la identidad lógica del grupo (FIX.7 / forks COW).
+
+    No limita a ``act.establecimiento_operativo_id``; cuenta por domicilios de la business key.
+    """
+    for eo in eos:
+        dom = eo.domicilio
+        if dom is None:
+            continue
+        if count_actuaciones_identidad_logica(dom) > 0:
+            return True
+    return False
+
+
+def eo_tiene_actuacion_vinculada(eo_id: int) -> bool:
+    """True si alguna actuación apunta a esta ficha por ``establecimiento_operativo_id``."""
+    return (
+        db.session.query(Actuaciones.id)
+        .filter(Actuaciones.establecimiento_operativo_id == int(eo_id))
+        .limit(1)
+        .first()
+        is not None
+    )
+
+
+def grupo_eo_tiene_actuacion_vinculada(eos: Iterable[EstablecimientoOperativo]) -> bool:
+    """True si alguna ficha del grupo conserva actuaciones vinculadas por FK."""
+    return any(eo_tiene_actuacion_vinculada(int(eo.id)) for eo in eos)
 
 
 def count_actuaciones_identidad_logica(dom: Domicilio) -> int:

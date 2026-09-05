@@ -22,6 +22,7 @@ import {
 } from "../validations/actuacionFormValidation";
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
+import { applyContribuyenteClearFlag } from "./contribuyenteCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
 import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
 import {
@@ -393,6 +394,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   }
 
   rowToSubmit = applyContraproducenciaClearFlag(originalRow, rowToSubmit);
+  rowToSubmit = applyContribuyenteClearFlag(originalRow, rowToSubmit);
   const correccionCierre = Boolean(rowToSubmit.limpiar_contraproducencia);
 
   rowToSubmit = applyDomicilioCalleSubmitGuard(rowToSubmit, originalRow);
@@ -420,6 +422,12 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const esReinspeccionNotificacion =
     (originalRow != null && isReinspeccionPorNotificacion(originalRow)) ||
     isReinspeccionPorNotificacion(rowToSubmit);
+  const tieneContraproducenciaFinal =
+    !correccionCierre &&
+    !rowToSubmit.limpiar_contraproducencia &&
+    Boolean(String(rowToSubmit.contraproducencia ?? "").trim());
+  const actasQuitarEnPutTransaccional =
+    actasPendingClear.length > 0 && (esReinspeccionNotificacion || tieneContraproducenciaFinal);
 
   const rowForCanal = sanitizeActuacionRowForCanalActasPut(rowToSubmit);
   const inspectores = buildInspectoresForCanal(rowForCanal);
@@ -434,7 +442,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   } else if (inspectores.length > 0) {
     rowWithInspectores.inspectores = inspectores;
   }
-  if (esReinspeccionNotificacion && actasPendingClear.length > 0) {
+  if (actasQuitarEnPutTransaccional) {
     rowWithInspectores.actas_a_quitar = actasPendingClear.map(({ tipo }) => tipo);
   }
 
@@ -468,7 +476,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     }
 
     if (!skipUpdate) {
-      if (!esReinspeccionNotificacion) {
+      if (!actasQuitarEnPutTransaccional) {
         for (const { tipo } of actasPendingClear) {
           await postQuitarActaCanalActas(id, tipo);
         }

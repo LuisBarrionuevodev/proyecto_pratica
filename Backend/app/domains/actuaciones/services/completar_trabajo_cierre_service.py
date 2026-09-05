@@ -47,6 +47,9 @@ from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
 from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
     resolve_establecimiento_por_domicilio,
 )
+from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
+    domicilio_puede_resolver_establecimiento_operativo,
+)
 from app.models import CatalogTipoActuacion
 
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
@@ -623,12 +626,16 @@ def cerrar_completar_trabajo_por_ruta_item(
             )
 
         if act.domicilio_id:
-            eid = resolve_establecimiento_por_domicilio(
-                act.domicilio_id,
-                created_by_user_id=ejecutado_por_user_id,
-            )
-            if eid is not None:
-                act.establecimiento_operativo_id = eid
+            dom_eo = db.session.get(Domicilio, int(act.domicilio_id))
+            if domicilio_puede_resolver_establecimiento_operativo(dom_eo):
+                eid = resolve_establecimiento_por_domicilio(
+                    act.domicilio_id,
+                    created_by_user_id=ejecutado_por_user_id,
+                )
+                if eid is not None:
+                    act.establecimiento_operativo_id = eid
+            else:
+                act.establecimiento_operativo_id = None
 
         if bucket == ContrapBucket.NONE:
             promover_iniciador_reinspeccion_oficio_segun_tipo(ini, payload.tipo_actuacion)

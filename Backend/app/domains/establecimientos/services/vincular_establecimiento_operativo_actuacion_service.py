@@ -12,6 +12,10 @@ from app.models import Actuaciones, Domicilio, EstablecimientoOperativo
 from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
     resolve_establecimiento_por_domicilio,
 )
+from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
+    domicilio_puede_resolver_establecimiento_operativo,
+    identidad_logica_completa,
+)
 
 
 def _tipo_actuacion_presente(act: Actuaciones) -> bool:
@@ -79,19 +83,22 @@ def try_vincular_establecimiento_operativo_desde_actuacion(
         act.establecimiento_operativo_id = None
         return
 
+    dom = db.session.get(Domicilio, act.domicilio_id)
+    if dom is None or getattr(dom, "deleted_at", None) is not None:
+        act.establecimiento_operativo_id = None
+        return
+
+    if not domicilio_puede_resolver_establecimiento_operativo(dom):
+        act.establecimiento_operativo_id = None
+        return
+
     if act.establecimiento_operativo_id is not None and not _establecimiento_coincide_domicilio(act):
         act.establecimiento_operativo_id = None
 
     if act.establecimiento_operativo_id is not None:
         return
 
-    dom = db.session.get(Domicilio, act.domicilio_id)
-    if dom is None or getattr(dom, "deleted_at", None) is not None:
-        return
-
     if not _tipo_actuacion_presente(act):
-        return
-    if not _domicilio_cumple_ancla_operativa(dom):
         return
 
     eid = resolve_establecimiento_por_domicilio(

@@ -16,7 +16,10 @@ from app.domains.actuaciones.attach.decomiso import attach_decomiso
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
-from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
+from app.domains.domicilios.services.domicilio_update_service import (
+    aplicar_edicion_domicilio_operativo,
+    _aplicar_rubro_contrib_seguro,
+)
 from app.domains.domicilios.services.domicilio_completar_trabajo_service import (
     heredar_geocode_domicilio_desde_origen,
     relevamiento_id_desde_actuacion,
@@ -38,6 +41,9 @@ from app.domains.establecimientos.services.vincular_establecimiento_operativo_ac
 )
 from app.domains.establecimientos.services.resolve_establecimiento_por_domicilio import (
     resolve_establecimiento_por_domicilio,
+)
+from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
+    domicilio_puede_resolver_establecimiento_operativo,
 )
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_contribuyente_if_orphan,
@@ -264,11 +270,13 @@ def aplicar_payload_actuacion(
         if "rubro_nombre" in payload and not es_oficio_circuito
         else None
     )
-    contrib = (
-        resolve_contribuyente(payload.get("contribuyente"))
-        if "contribuyente" in payload and not es_oficio_circuito
-        else None
-    )
+    contrib = None
+    contrib_clear = False
+    if "contribuyente" in payload and not es_oficio_circuito:
+        if payload.get("contribuyente") is None:
+            contrib_clear = True
+        else:
+            contrib = resolve_contribuyente(payload.get("contribuyente"))
     if "domicilio" in payload and not es_oficio_circuito:
         dom_payload = payload.get("domicilio") or {}
         ini_operativo = resolve_iniciador_operativo_actuacion(act_id) if act_id else None
@@ -278,7 +286,7 @@ def aplicar_payload_actuacion(
         # si mandan domicilio, exige que rubro/contrib estén presentes o ya existan
         if rubro is None:
             rubro = get_rubro_o_falla(payload.get("rubro_nombre"))
-        if contrib is None:
+        if contrib is None and not contrib_clear and payload.get("contribuyente"):
             contrib = resolve_contribuyente(payload.get("contribuyente"))
 
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
@@ -306,6 +314,7 @@ def aplicar_payload_actuacion(
             modo_explicito=payload.get("modo_domicilio"),
             allow_missing_catalogs=allow_missing_catalogs,
             relevamiento_id=relevamiento_id,
+            limpiar_contribuyente=contrib_clear,
         )
         dom = outcome.domicilio
         act.domicilio_id = dom.id if dom else None
@@ -328,11 +337,23 @@ def aplicar_payload_actuacion(
         hay_cambio_real_rubro = rubro is not None and (
             dom_actual.rubro_id is None or int(dom_actual.rubro_id) != int(rubro.id)
         )
-        hay_cambio_real_contrib = contrib is not None and (
+        hay_cambio_real_contrib = (not contrib_clear) and contrib is not None and (
             dom_actual.contribuyente_id is None
             or int(dom_actual.contribuyente_id) != int(contrib.id)
         )
-        if hay_cambio_real_rubro or hay_cambio_real_contrib:
+        if contrib_clear and dom_actual.contribuyente_id is not None:
+            dom = _aplicar_rubro_contrib_seguro(
+                dom_actual,
+                contribuyente=None,
+                rubro=None,
+                numero_tipo=None,
+                contexto="ACTUACION",
+                origen_id=act_id,
+                limpiar_contribuyente=True,
+            )
+            act.domicilio_id = dom.id
+            act.domicilio = dom
+        elif hay_cambio_real_rubro or hay_cambio_real_contrib:
             ini_operativo = resolve_iniciador_operativo_actuacion(act_id) if act_id else None
             if hay_cambio_real_rubro:
                 assert_puede_editar_rubro_actuacion(act, ini_operativo)
@@ -384,11 +405,12 @@ def aplicar_payload_actuacion(
 
 def _resolver_establecimiento_operativo_tras_contraproducencia_put(act: Actuaciones) -> None:
     """
-    Paridad con Completar trabajo al establecer contraproducencia desde PUT.
+    Paridad acotada con Completar trabajo al establecer contraproducencia desde PUT.
 
     Qué hace:
-        Si la actuación quedó con contraproducencia operativa y ``domicilio_id`` final,
-        delega en ``resolve_establecimiento_por_domicilio`` (FIX.7) y asigna el EO canónico.
+        Si la actuación quedó con contraproducencia operativa y el domicilio final cumple
+        ``identidad_logica_completa`` (FIX.7), delega en ``resolve_establecimiento_por_domicilio``.
+        Si la identidad dejó de ser válida, desvincula ``establecimiento_operativo_id``.
 
     Parámetros:
         act: actuación ya mutada en sesión (payload + sync de contraproducencia aplicados).
@@ -402,6 +424,11 @@ def _resolver_establecimiento_operativo_tras_contraproducencia_put(act: Actuacio
     if not (act.contraproducencia or "").strip():
         return
     if act.domicilio_id is None:
+        act.establecimiento_operativo_id = None
+        return
+    dom = db.session.get(Domicilio, act.domicilio_id)
+    if not domicilio_puede_resolver_establecimiento_operativo(dom):
+        act.establecimiento_operativo_id = None
         return
     eid = resolve_establecimiento_por_domicilio(
         int(act.domicilio_id),
@@ -518,7 +545,11 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
             quitar_actas_de_actuacion_en_sesion,
         )
 
-        quitar_actas_de_actuacion_en_sesion(act, list(actas_a_quitar))
+        quitar_actas_de_actuacion_en_sesion(
+            act,
+            list(actas_a_quitar),
+            tolerar_ausentes=True,
+        )
         db.session.flush()
         db.session.expire(act)
 

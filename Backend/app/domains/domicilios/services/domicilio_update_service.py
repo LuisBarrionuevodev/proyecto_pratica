@@ -39,6 +39,7 @@ def _aplicar_rubro_contrib_seguro(
     numero_tipo: str | None,
     contexto: str | None = None,
     origen_id: int | None = None,
+    limpiar_contribuyente: bool = False,
 ) -> Domicilio:
     """
     Aplica rubro/contrib sin pisar domicilios compartidos (PR12 copy-on-write).
@@ -55,6 +56,38 @@ def _aplicar_rubro_contrib_seguro(
     exclude_act = int(origen_id) if contexto in ("ACTUACION", "COMPLETAR_TRABAJO") and origen_id else None
     exclude_rel = int(origen_id) if contexto == "RELEVAMIENTO" and origen_id else None
     exclude_den = int(origen_id) if contexto == "DENUNCIA" and origen_id else None
+
+    if limpiar_contribuyente:
+        if dom.contribuyente_id is None:
+            return dom
+        domicilio_id_anterior = int(dom.id)
+        if debe_fork_domicilio_operativo(
+            dom,
+            contribuyente=None,
+            rubro=rubro,
+            exclude_actuacion_id=exclude_act,
+            exclude_relevamiento_id=exclude_rel,
+            exclude_denuncia_id=exclude_den,
+            limpiar_contribuyente=True,
+        ):
+            nuevo = clonar_domicilio_operativo(
+                dom,
+                contribuyente=None,
+                rubro=rubro if rubro is not None else None,
+                numero_tipo=numero_tipo,
+            )
+            db.session.add(nuevo)
+            db.session.flush()
+            if int(nuevo.id) != domicilio_id_anterior:
+                from app.domains.domicilios.services.domicilio_completar_trabajo_service import (
+                    heredar_geocode_domicilio_desde_origen,
+                )
+
+                heredar_geocode_domicilio_desde_origen(domicilio_id_anterior, int(nuevo.id))
+            return nuevo
+        dom.contribuyente_id = None
+        db.session.add(dom)
+        return dom
 
     contrib_sin_cambio = contribuyente is None or (
         dom.contribuyente_id is not None and int(dom.contribuyente_id) == int(contribuyente.id)
@@ -75,6 +108,7 @@ def _aplicar_rubro_contrib_seguro(
         exclude_actuacion_id=exclude_act,
         exclude_relevamiento_id=exclude_rel,
         exclude_denuncia_id=exclude_den,
+        limpiar_contribuyente=False,
     ):
         nuevo = clonar_domicilio_operativo(
             dom,
@@ -150,6 +184,7 @@ def aplicar_edicion_domicilio_operativo(
     allow_missing_catalogs: bool = False,
     usar_basico: bool = False,
     relevamiento_id: int | None = None,
+    limpiar_contribuyente: bool = False,
 ) -> AplicarDomicilioOutcome:
     """
     Resuelve policy y aplica edici?n de domicilio sin commit.
@@ -183,7 +218,7 @@ def aplicar_edicion_domicilio_operativo(
                 domicilio_id_cambio=False,
             )
         dom = db.session.get(Domicilio, int(domicilio_id_actual))
-        if dom and (contribuyente is not None or rubro is not None):
+        if dom and (contribuyente is not None or rubro is not None or limpiar_contribuyente):
             dom = _aplicar_rubro_contrib_seguro(
                 dom,
                 contribuyente=contribuyente,
@@ -191,6 +226,7 @@ def aplicar_edicion_domicilio_operativo(
                 numero_tipo=None,
                 contexto=contexto,
                 origen_id=origen_id,
+                limpiar_contribuyente=limpiar_contribuyente,
             )
             policy = EditDomicilioPolicy(
                 modo="CREAR_NUEVO" if int(dom.id) != int(domicilio_id_actual) else "EDITAR_MISMA_FILA",

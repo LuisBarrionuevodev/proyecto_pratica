@@ -12,6 +12,9 @@ from sqlalchemy.orm import joinedload
 from app.database import db
 from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
     agrupar_eo_por_identidad_logica,
+    domicilio_puede_resolver_establecimiento_operativo,
+    grupo_eo_sostenido_por_actuaciones,
+    identidad_logica_completa,
     rubro_vigente_identidad_logica,
     seleccionar_eo_canonico_del_grupo,
 )
@@ -81,8 +84,13 @@ def list_establecimientos_operativos(
     for eos in groups.values():
         canon = seleccionar_eo_canonico_del_grupo(eos)
         dom = canon.domicilio
-        if dom is not None:
-            canon._rubro_vigente_listado = rubro_vigente_identidad_logica(dom)  # type: ignore[attr-defined]
+        if dom is None:
+            continue
+        if not identidad_logica_completa(dom):
+            continue
+        if not grupo_eo_sostenido_por_actuaciones(eos):
+            continue
+        canon._rubro_vigente_listado = rubro_vigente_identidad_logica(dom)  # type: ignore[attr-defined]
         canonical.append(canon)
 
     canonical.sort(key=lambda e: int(e.id), reverse=True)

@@ -79,8 +79,10 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
             "numero_tipo": _clean_str(row.numero_tipo),
         }
 
-    # Contribuyente
-    if row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
+    # Contribuyente: ``limpiar_contribuyente`` → clear explícito; ausente → preserve; datos → update.
+    if row.limpiar_contribuyente:
+        payload["contribuyente"] = None
+    elif row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
         payload["contribuyente"] = {
             "doc_nro": _clean_str(row.doc_nro),
             "apellido": _clean_str(row.contrib_apellido),

@@ -248,12 +248,12 @@ describe("submitActuacionRow pipeline", () => {
     expect(putBody.acta_inspeccion_num).toBeNull();
   });
 
-  it("acta existente borrada llama POST quitar-acta antes del PUT", async () => {
+  it("acta existente borrada sin contraproducencia llama POST quitar-acta antes del PUT", async () => {
     mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
     mockedPostQuitarActa.mockResolvedValue({ ...baseRow, acta_inspeccion_num: null } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);
 
-    const original = { ...baseRow, acta_inspeccion_num: "000123" };
+    const original = { ...baseRow, contraproducencia: null, acta_inspeccion_num: "000123" };
     await submitActuacionRow({
       id: 1,
       fullRow: { ...original, acta_inspeccion_num: "" },
@@ -267,6 +267,45 @@ describe("submitActuacionRow pipeline", () => {
       mockedUpdateActuacion.mock.invocationCallOrder[0]!
     );
     expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.actas_a_quitar).toBeUndefined();
+  });
+
+  it("GESTIÓN-FIX.10B.1.3: quitar acta con contraproducencia final usa PUT transaccional sin POST", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const original = {
+      ...baseRow,
+      contraproducencia: null,
+      acta_inspeccion_num: "000123",
+      doc_nro: "20345678901",
+      contrib_apellido: "Pérez",
+      contrib_nombre: "Juan",
+    };
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...original,
+        acta_inspeccion_num: "",
+        contraproducencia: "LOCAL CERRADO",
+        doc_nro: null,
+        contrib_apellido: null,
+        contrib_nombre: null,
+        limpiar_contribuyente: true,
+      },
+      originalRow: original,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(mockedPostQuitarActa).not.toHaveBeenCalled();
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.actas_a_quitar).toEqual(["INSPECCION"]);
+    expect(putBody.contraproducencia).toBe("LOCAL CERRADO");
+    expect(putBody.limpiar_contribuyente).toBe(true);
+    expect(putBody.tipo_actuacion).toBe("INSPECCION");
+    expect(putBody.acta_inspeccion_num).toBeNull();
   });
 
   it("acta existente borrada no usa fallback al original en PUT", async () => {
@@ -274,7 +313,7 @@ describe("submitActuacionRow pipeline", () => {
     mockedPostQuitarActa.mockResolvedValue({ ...baseRow, acta_inspeccion_num: null } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);
 
-    const original = { ...baseRow, acta_inspeccion_num: "000123" };
+    const original = { ...baseRow, contraproducencia: null, acta_inspeccion_num: "000123" };
     await submitActuacionRow({
       id: 1,
       fullRow: { ...original, acta_inspeccion_num: "" },
@@ -322,6 +361,7 @@ describe("submitActuacionRow pipeline", () => {
 
     const original = {
       ...baseRow,
+      contraproducencia: null,
       acta_comprobacion_num: "000200",
       comprobacion_motivo: "Incumplimiento",
     };
@@ -630,7 +670,7 @@ describe("submitActuacionRow pipeline", () => {
     mockedPostQuitarActa.mockResolvedValue({ ...baseRow, acta_inspeccion_num: null } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);
 
-    const original = { ...baseRow, acta_inspeccion_num: "000123" };
+    const original = { ...baseRow, contraproducencia: null, acta_inspeccion_num: "000123" };
     await submitActuacionRow({
       id: 1,
       fullRow: { ...original, acta_inspeccion_num: "" },

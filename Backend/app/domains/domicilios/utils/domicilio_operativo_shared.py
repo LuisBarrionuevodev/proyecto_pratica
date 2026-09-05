@@ -64,6 +64,7 @@ def debe_fork_domicilio_operativo(
     exclude_actuacion_id: int | None = None,
     exclude_relevamiento_id: int | None = None,
     exclude_denuncia_id: int | None = None,
+    limpiar_contribuyente: bool = False,
 ) -> bool:
     """
     True si aplicar rubro/contrib al domicilio existente contaminaría otros orígenes.
@@ -77,6 +78,14 @@ def debe_fork_domicilio_operativo(
     """
     contrib_id = contribuyente.id if contribuyente is not None else None
     rubro_id = rubro.id if rubro is not None else None
+
+    if limpiar_contribuyente and dom.contribuyente_id is not None:
+        return domicilio_compartido_operativamente(
+            int(dom.id),
+            exclude_actuacion_id=exclude_actuacion_id,
+            exclude_relevamiento_id=exclude_relevamiento_id,
+            exclude_denuncia_id=exclude_denuncia_id,
+        )
 
     conflicto_contrib = (
         contrib_id is not None

@@ -181,6 +181,8 @@ class ActuacionGridRowIn(BaseModel):
     contraproducencia: Optional[str] = None
     # True cuando el usuario borró contraproducencia en edición (PUT no debe omitir el clear).
     limpiar_contraproducencia: bool = False
+    # True cuando el usuario vació explícitamente todos los campos de contribuyente en edición.
+    limpiar_contribuyente: bool = False
     # GESTIÓN-FIX.8: baja transaccional de actas de visita (mismo formato que corrección Oficio).
     actas_a_quitar: Optional[list[ActaCanalQuitarTipo]] = None
 
@@ -448,7 +450,9 @@ class ActuacionGridRowIn(BaseModel):
 
         if not omite_identidad:
             # 2) Contribuyente: si hay nombre/apellido/razón social, doc obligatorio
-            if (self.contrib_apellido or self.contrib_nombre or self.razon_social) and not self.doc_nro:
+            if not self.limpiar_contribuyente and (
+                self.contrib_apellido or self.contrib_nombre or self.razon_social
+            ) and not self.doc_nro:
                 field_errors["doc_nro"] = "Documento obligatorio si cargás contribuyente."
 
             # 3) Domicilio: calle y número juntos
@@ -472,7 +476,7 @@ class ActuacionGridRowIn(BaseModel):
                         field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
                     if not self.rubro_nombre:
                         field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
-                    if not self.doc_nro:
+                    if not self.limpiar_contribuyente and not self.doc_nro:
                         field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
             else:
                 # Si NO hay tipo pero hay contraproducencia + fecha: permitir con calle y número sin contribuyente

@@ -28,6 +28,8 @@ export interface IActuacionListItem {
     contraproducencia: string | null;
     /** Flag explícito al corregir cierre operativo (borrar contraproducencia reencolada). */
     limpiar_contraproducencia?: boolean;
+    /** Flag explícito al vaciar titular en edición (desvincula contribuyente del domicilio operativo). */
+    limpiar_contribuyente?: boolean;
     /** GESTIÓN-FIX.8: baja transaccional de actas en PUT (reinspección por notificación). */
     actas_a_quitar?: ActaCanalQuitarTipo[];
   /** Presente en respuesta API (reinspección por oficio, etc.). */

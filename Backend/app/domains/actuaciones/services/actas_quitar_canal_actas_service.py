@@ -43,22 +43,30 @@ def normalizar_tipo_acta_canal(tipo: str) -> str:
     return t
 
 
-def quitar_acta_de_actuacion_en_sesion(act: Actuaciones, tipo: str) -> None:
+def quitar_acta_de_actuacion_en_sesion(
+    act: Actuaciones,
+    tipo: str,
+    *,
+    tolerar_ausente: bool = False,
+) -> None:
     """
     Quita el vínculo del acta indicada con la actuación en la sesión actual (sin commit).
 
     Parámetros:
         act: instancia ORM persistida.
         tipo: ``INSPECCION`` | ``NOTIFICACION`` | ``COMPROBACION`` | ``CLAUSURA`` | ``DECOMISO``.
+        tolerar_ausente: si es ``True`` y el acta ya no está vinculada, no hace nada (idempotencia PUT).
 
     Errores:
-        ValueError: acta inexistente o reglas documentales bloquean notif/comp.
+        ValueError: acta inexistente (salvo ``tolerar_ausente``) o reglas documentales bloquean notif/comp.
     """
     t = normalizar_tipo_acta_canal(tipo)
 
     if t == "NOTIFICACION":
         nid = act.notificacion_id
         if nid is None:
+            if tolerar_ausente:
+                return
             raise ValueError("No hay acta de notificación vinculada.")
         from app.domains.actuaciones.services.oficio_circuito_service import (
             notificacion_es_origen_reinspeccion_notificacion_en_actuacion,
@@ -78,6 +86,8 @@ def quitar_acta_de_actuacion_en_sesion(act: Actuaciones, tipo: str) -> None:
     elif t == "COMPROBACION":
         cid = act.comprobacion_id
         if cid is None:
+            if tolerar_ausente:
+                return
             raise ValueError("No hay acta de comprobación vinculada.")
         if not comprobacion_editable_desde_canal_actas(cid):
             raise ValueError(_MSG_DOC_ASOCIADA)
@@ -89,18 +99,24 @@ def quitar_acta_de_actuacion_en_sesion(act: Actuaciones, tipo: str) -> None:
     elif t == "INSPECCION":
         ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
         if ins is None:
+            if tolerar_ausente:
+                return
             raise ValueError("No hay acta de inspección vinculada.")
         db.session.delete(ins)
 
     elif t == "CLAUSURA":
         cl = Clausura.query.filter_by(actuacion_id=act.id).first()
         if cl is None:
+            if tolerar_ausente:
+                return
             raise ValueError("No hay acta de clausura vinculada.")
         db.session.delete(cl)
 
     elif t == "DECOMISO":
         dec = Decomiso.query.filter_by(actuacion_id=act.id).first()
         if dec is None:
+            if tolerar_ausente:
+                return
             raise ValueError("No hay acta de decomiso vinculada.")
         db.session.delete(dec)
 
@@ -108,19 +124,25 @@ def quitar_acta_de_actuacion_en_sesion(act: Actuaciones, tipo: str) -> None:
         raise ValueError(f"Tipo no implementado: {t!r}.")
 
 
-def quitar_actas_de_actuacion_en_sesion(act: Actuaciones, tipos: list[str]) -> None:
+def quitar_actas_de_actuacion_en_sesion(
+    act: Actuaciones,
+    tipos: list[str],
+    *,
+    tolerar_ausentes: bool = False,
+) -> None:
     """
     Quita varias actas en la misma sesión (sin commit).
 
     Parámetros:
         act: actuación persistida.
         tipos: lista de tipos de acta a quitar.
+        tolerar_ausentes: si es ``True``, omitir actas ya ausentes (idempotencia PUT).
 
     Errores:
         ValueError: ver ``quitar_acta_de_actuacion_en_sesion``.
     """
     for tipo in tipos:
-        quitar_acta_de_actuacion_en_sesion(act, tipo)
+        quitar_acta_de_actuacion_en_sesion(act, tipo, tolerar_ausente=tolerar_ausentes)
     db.session.flush()
     db.session.expire(act)
 

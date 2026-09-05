@@ -337,6 +337,19 @@ def test_listado_deduplica_eo_historicos(app_ctx) -> None:
         eid = resolve_establecimiento_por_domicilio(d.id, created_by_user_id=u.id)
         if eid is not None:
             eo_ids.append(eid)
+    ot = OrdenTrabajo(numero_acta=f"{random.randint(0, 999999):06d}", anio=2026, mes=8)
+    db.session.add(ot)
+    db.session.flush()
+    act = Actuaciones(
+        fecha=date(2026, 8, 1),
+        mes=8,
+        anio=2026,
+        tipo="INSPECCION",
+        orden_trabajo_id=ot.id,
+        domicilio_id=doms[0].id,
+        establecimiento_operativo_id=min(eo_ids) if eo_ids else None,
+    )
+    db.session.add(act)
     db.session.commit()
 
     items, total = list_establecimientos_operativos(page=1, page_size=500, calle=calle)
