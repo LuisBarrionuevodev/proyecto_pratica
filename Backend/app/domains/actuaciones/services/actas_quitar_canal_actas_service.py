@@ -21,6 +21,7 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
+from app.domains.actuaciones.utils.put_actuacion_diag import diag_enabled, log_acta_dependencies, log_quitar_acta
 
 TIPOS_ACTA_CANAL: Final[frozenset[str]] = frozenset(
     {"INSPECCION", "NOTIFICACION", "COMPROBACION", "CLAUSURA", "DECOMISO"}
@@ -61,67 +62,97 @@ def quitar_acta_de_actuacion_en_sesion(
         ValueError: acta inexistente (salvo ``tolerar_ausente``) o reglas documentales bloquean notif/comp.
     """
     t = normalizar_tipo_acta_canal(tipo)
+    act_id = int(act.id)
 
-    if t == "NOTIFICACION":
-        nid = act.notificacion_id
-        if nid is None:
-            if tolerar_ausente:
-                return
-            raise ValueError("No hay acta de notificación vinculada.")
-        from app.domains.actuaciones.services.oficio_circuito_service import (
-            notificacion_es_origen_reinspeccion_notificacion_en_actuacion,
-        )
-
-        if notificacion_es_origen_reinspeccion_notificacion_en_actuacion(act, notificacion_id=int(nid)):
-            raise ValueError(
-                "No se puede quitar la notificación de origen de la reinspección por notificación."
+    try:
+        if t == "NOTIFICACION":
+            if diag_enabled():
+                log_acta_dependencies(act, t)
+            nid = act.notificacion_id
+            if nid is None:
+                if tolerar_ausente:
+                    if diag_enabled():
+                        log_quitar_acta(act_id, t, "AUSENTE", "notificacion_id=None")
+                    return
+                raise ValueError("No hay acta de notificación vinculada.")
+            from app.domains.actuaciones.services.oficio_circuito_service import (
+                notificacion_es_origen_reinspeccion_notificacion_en_actuacion,
             )
-        if not notificacion_editable_desde_canal_actas(nid):
-            raise ValueError(_MSG_DOC_ASOCIADA)
-        act.notificacion_id = None
-        db.session.add(act)
-        db.session.flush()
-        soft_delete_notificacion_if_orphan(int(nid))
 
-    elif t == "COMPROBACION":
-        cid = act.comprobacion_id
-        if cid is None:
-            if tolerar_ausente:
-                return
-            raise ValueError("No hay acta de comprobación vinculada.")
-        if not comprobacion_editable_desde_canal_actas(cid):
-            raise ValueError(_MSG_DOC_ASOCIADA)
-        act.comprobacion_id = None
-        db.session.add(act)
-        db.session.flush()
-        soft_delete_comprobacion_if_orphan(int(cid))
+            if notificacion_es_origen_reinspeccion_notificacion_en_actuacion(act, notificacion_id=int(nid)):
+                raise ValueError(
+                    "No se puede quitar la notificación de origen de la reinspección por notificación."
+                )
+            if not notificacion_editable_desde_canal_actas(nid):
+                raise ValueError(_MSG_DOC_ASOCIADA)
+            act.notificacion_id = None
+            db.session.add(act)
+            db.session.flush()
+            soft_delete_notificacion_if_orphan(int(nid))
+            if diag_enabled():
+                log_quitar_acta(act_id, t, "OK", f"notificacion_id={nid}")
 
-    elif t == "INSPECCION":
-        ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
-        if ins is None:
-            if tolerar_ausente:
-                return
-            raise ValueError("No hay acta de inspección vinculada.")
-        db.session.delete(ins)
+        elif t == "COMPROBACION":
+            if diag_enabled():
+                log_acta_dependencies(act, t)
+            cid = act.comprobacion_id
+            if cid is None:
+                if tolerar_ausente:
+                    if diag_enabled():
+                        log_quitar_acta(act_id, t, "AUSENTE", "comprobacion_id=None")
+                    return
+                raise ValueError("No hay acta de comprobación vinculada.")
+            if not comprobacion_editable_desde_canal_actas(cid):
+                raise ValueError(_MSG_DOC_ASOCIADA)
+            act.comprobacion_id = None
+            db.session.add(act)
+            db.session.flush()
+            soft_delete_comprobacion_if_orphan(int(cid))
+            if diag_enabled():
+                log_quitar_acta(act_id, t, "OK", f"comprobacion_id={cid}")
 
-    elif t == "CLAUSURA":
-        cl = Clausura.query.filter_by(actuacion_id=act.id).first()
-        if cl is None:
-            if tolerar_ausente:
-                return
-            raise ValueError("No hay acta de clausura vinculada.")
-        db.session.delete(cl)
+        elif t == "INSPECCION":
+            ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+            if ins is None:
+                if tolerar_ausente:
+                    if diag_enabled():
+                        log_quitar_acta(act_id, t, "AUSENTE", "sin fila inspeccion")
+                    return
+                raise ValueError("No hay acta de inspección vinculada.")
+            db.session.delete(ins)
+            if diag_enabled():
+                log_quitar_acta(act_id, t, "OK", f"numero_acta={getattr(ins, 'numero_acta', None)}")
 
-    elif t == "DECOMISO":
-        dec = Decomiso.query.filter_by(actuacion_id=act.id).first()
-        if dec is None:
-            if tolerar_ausente:
-                return
-            raise ValueError("No hay acta de decomiso vinculada.")
-        db.session.delete(dec)
+        elif t == "CLAUSURA":
+            cl = Clausura.query.filter_by(actuacion_id=act.id).first()
+            if cl is None:
+                if tolerar_ausente:
+                    if diag_enabled():
+                        log_quitar_acta(act_id, t, "AUSENTE", "sin fila clausura")
+                    return
+                raise ValueError("No hay acta de clausura vinculada.")
+            db.session.delete(cl)
+            if diag_enabled():
+                log_quitar_acta(act_id, t, "OK", f"numero_acta={getattr(cl, 'numero_acta', None)}")
 
-    else:
-        raise ValueError(f"Tipo no implementado: {t!r}.")
+        elif t == "DECOMISO":
+            dec = Decomiso.query.filter_by(actuacion_id=act.id).first()
+            if dec is None:
+                if tolerar_ausente:
+                    if diag_enabled():
+                        log_quitar_acta(act_id, t, "AUSENTE", "sin fila decomiso")
+                    return
+                raise ValueError("No hay acta de decomiso vinculada.")
+            db.session.delete(dec)
+            if diag_enabled():
+                log_quitar_acta(act_id, t, "OK", f"numero_acta={getattr(dec, 'numero_acta', None)}")
+
+        else:
+            raise ValueError(f"Tipo no implementado: {t!r}.")
+    except Exception as exc:
+        if diag_enabled():
+            log_quitar_acta(act_id, t, "ERROR", f"{type(exc).__name__}: {exc}")
+        raise
 
 
 def quitar_actas_de_actuacion_en_sesion(

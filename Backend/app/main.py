@@ -84,6 +84,10 @@ def create_app(config_override: dict | None = None):
     register_phase1_jwt_guard(app)
     register_dev_post_root_logger(app)
 
+    from app.domains.actuaciones.utils.put_actuacion_diag import configure_diag_logging
+
+    configure_diag_logging()
+
     app.url_map.strict_slashes = False
   
     app.register_blueprint(actuacion_bp, url_prefix="/actuaciones")

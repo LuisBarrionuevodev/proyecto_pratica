@@ -18,6 +18,10 @@ from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_servic
     CorregirCierreOperativoError,
 )
 from app.domains.actuaciones.services.patch_service import actualizar_actuacion_parcial
+from app.domains.actuaciones.utils.put_actuacion_diag import (
+    log_exception,
+    log_put_request,
+)
 
 from . import actuacion
 
@@ -36,6 +40,7 @@ def actualizar_actuacion_route(actuacion_id: int):
             context=validation_ctx,
         )
         payload = map_actuacion_row(row)
+        log_put_request(actuacion_id, data, payload)
 
         act = actualizar_actuacion_service(actuacion_id, payload)
         return jsonify(actuacion_to_grid_row(act)), 200
@@ -47,6 +52,7 @@ def actualizar_actuacion_route(actuacion_id: int):
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
     except Exception as e:
+        log_exception(actuacion_id, e)
         return jsonify({"detail": "Error interno", "error": str(e)}), 500
 
 

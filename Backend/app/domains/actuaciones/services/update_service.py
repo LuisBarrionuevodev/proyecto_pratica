@@ -81,6 +81,7 @@ from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     puede_editar_domicilio_actuacion,
     resolve_iniciador_operativo_actuacion,
 )
+from app.domains.actuaciones.utils.put_actuacion_diag import log_actas_before, log_stage
 
 
 def _norm_dom_str(v: Any) -> str | None:
@@ -357,7 +358,6 @@ def aplicar_payload_actuacion(
             ini_operativo = resolve_iniciador_operativo_actuacion(act_id) if act_id else None
             if hay_cambio_real_rubro:
                 assert_puede_editar_rubro_actuacion(act, ini_operativo)
-            from app.domains.domicilios.services.domicilio_update_service import _aplicar_rubro_contrib_seguro
 
             relevamiento_id = relevamiento_id_desde_actuacion(act_id) if act_id else None
             dom = _aplicar_rubro_contrib_seguro(
@@ -476,6 +476,7 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         ValueError: si la actuación no existe o si se violan reglas de negocio/validaciones.
     """
     act = _get_actuacion_or_404(actuacion_id)
+    log_stage(actuacion_id, "0_entrada")
     assert_actuacion_editable_sin_intento_posterior(actuacion_id)
 
     from app.domains.actuaciones.services.oficio_circuito_service import (
@@ -540,11 +541,13 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     assert_canal_actas_permite_payload_notificacion_comprobacion(act, payload)
 
     actas_a_quitar = payload.pop("actas_a_quitar", None)
+    log_actas_before(act, list(actas_a_quitar) if actas_a_quitar else None)
     if actas_a_quitar:
         from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
             quitar_actas_de_actuacion_en_sesion,
         )
 
+        log_stage(actuacion_id, "1_actas_a_quitar_inicio")
         quitar_actas_de_actuacion_en_sesion(
             act,
             list(actas_a_quitar),
@@ -552,16 +555,21 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         )
         db.session.flush()
         db.session.expire(act)
+        log_stage(actuacion_id, "1_actas_a_quitar_fin")
 
+    log_stage(actuacion_id, "2_aplicar_payload_inicio")
     aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
+    log_stage(actuacion_id, "2_aplicar_payload_fin")
 
     if limpiar_contra:
+        log_stage(actuacion_id, "3_limpiar_contraproducencia_sync")
         aplicar_sincronizacion_tras_limpiar_contraproducencia(
             act,
             item=item_correccion,
             ini=ini_correccion,
         )
     elif "contraproducencia" in payload:
+        log_stage(actuacion_id, "3_contraproducencia_sync")
         contra_nueva = (act.contraproducencia or "").strip()
         procesar_establecimiento_contraproducencia_desde_put(
             act,
@@ -570,10 +578,12 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         )
         _resolver_establecimiento_operativo_tras_contraproducencia_put(act)
 
+    log_stage(actuacion_id, "4_eo_vincular_inicio")
     try_vincular_establecimiento_operativo_desde_actuacion(
         act,
         created_by_user_id=get_current_user_id_or_fallback(),
     )
+    log_stage(actuacion_id, "4_eo_vincular_fin")
 
     _sincronizar_domicilio_relevamiento_direccion_incorrecta_si_aplica(
         act,
@@ -582,7 +592,9 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     )
 
     db.session.add(act)
+    log_stage(actuacion_id, "5_commit_inicio")
     db.session.commit()
+    log_stage(actuacion_id, "5_commit_fin")
 
     # Garbage collector post-update:
     # - si cambió el domicilio, intentar soft-delete del domicilio viejo si quedó huérfano.
@@ -611,7 +623,9 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         ran_cleanup = True
 
     if ran_cleanup:
+        log_stage(actuacion_id, "6_cleanup_commit")
         db.session.commit()
 
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
+    log_stage(actuacion_id, "7_fin")
     return act
