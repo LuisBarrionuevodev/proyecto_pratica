@@ -42,7 +42,9 @@ export async function fetchAllNotificacionesForExport(
   }
 
   if (filters.plazoSlice === "total" && filters.historialAppliedPayload) {
-    const call = historialPayloadToExpedienteCall(filters.historialAppliedPayload);
+    const call = historialPayloadToExpedienteCall(filters.historialAppliedPayload, undefined, {
+      includePagination: false,
+    });
     const resp = await getActuacionesPendientesExpediente(
       call.desde,
       call.hasta,

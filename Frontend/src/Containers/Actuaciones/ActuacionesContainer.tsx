@@ -25,12 +25,12 @@ import {
 } from "../../api/actuacionesPendientesApi";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import type { MRT_ColumnDef } from "material-react-table";
-import type { IActuacionListItem } from "../../api/actuacionesListApi";
+import type { IActuacionListItem, IActuacionesListFilters } from "../../api/actuacionesListApi";
 import { ACTUACIONES_COMPOSITE_COLUMN_IDS } from "./Components/actuacionesCompositeColumns";
 import { useAppFeedback } from "../../components/feedback";
 import { ExportDataDialog } from "../../ui";
 import { applyFormErrorsFromApi } from "../../utils/parseApiError";
-import { buildActuacionesExportFiltersFromMeta } from "./utils/buildActuacionesFiltroPayload";
+import { buildActuacionesExportFiltersFromMeta, actuacionesMetaHasAnchorFilters, actuacionesMetaToListFilters } from "./utils/buildActuacionesFiltroPayload";
 import { exportActuacionesDataset } from "./utils/exportActuacionesDataset";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 
@@ -75,15 +75,7 @@ const ActuacionesContainer = (): JSX.Element => {
   const [pendingError, setPendingError] = useState<string | null>(null);
 
   const handleFiltrarTodos = useCallback(
-    (filtros: {
-      desde: string | null;
-      hasta: string | null;
-      tipo: string | null;
-      contraproducencia: string | null;
-      orden_trabajo: string | null;
-      actuacion_id?: number | null;
-      q?: string | null;
-    }) => {
+    (filtros: IActuacionesListFilters) => {
       void buscar(filtros);
     },
     [buscar]
@@ -96,17 +88,7 @@ const ActuacionesContainer = (): JSX.Element => {
   const handleListaPageChange = useCallback(
     (page: number, pageSize: number) => {
       if (!meta) return;
-      void buscar({
-        desde: meta.desde,
-        hasta: meta.hasta,
-        tipo: meta.tipo,
-        contraproducencia: meta.contraproducencia,
-        orden_trabajo: meta.orden_trabajo,
-        actuacion_id: meta.actuacion_id ?? null,
-        q: meta.q ?? null,
-        page,
-        page_size: pageSize,
-      });
+      void buscar(actuacionesMetaToListFilters(meta, { page, page_size: pageSize }));
     },
     [buscar, meta]
   );
@@ -261,8 +243,6 @@ const ActuacionesContainer = (): JSX.Element => {
         <>
             <FiltroFechas
               onFiltrar={handleFiltrarTodos}
-              initialDesde=""
-              initialHasta=""
               onLimpiarLista={limpiarLista}
             />
 
@@ -298,15 +278,22 @@ const ActuacionesContainer = (): JSX.Element => {
                   label="Página"
                   value={`${meta.page} / ${Math.max(1, Math.ceil(meta.total / meta.page_size))}`}
                 />
-                {meta.q ? (
+                {meta.orden_trabajo ? (
+                  <BandejaTableSummaryItem label="OT" value={meta.orden_trabajo} />
+                ) : null}
+                {meta.documento_q ? (
+                  <BandejaTableSummaryItem label="DNI/CUIT" value={meta.documento_q} />
+                ) : null}
+                {meta.calle_q ? (
+                  <BandejaTableSummaryItem label="Domicilio" value={meta.calle_q} />
+                ) : null}
+                {meta.contribuyente_q ? (
+                  <BandejaTableSummaryItem label="Contribuyente" value={meta.contribuyente_q} />
+                ) : null}
+                {meta.acta_comprobacion ? (
                   <BandejaTableSummaryItem
-                    label="Búsqueda"
-                    value={
-                      <>
-                        {meta.q}
-                        {meta.busqueda_global && !meta.desde && !meta.hasta ? " (sin rango)" : ""}
-                      </>
-                    }
+                    label="Acta comprobación"
+                    value={meta.acta_comprobacion}
                   />
                 ) : null}
                 {meta.desde && meta.hasta ? (
@@ -314,7 +301,7 @@ const ActuacionesContainer = (): JSX.Element => {
                     label="Rango"
                     value={`${meta.desde} - ${meta.hasta}`}
                   />
-                ) : !meta.q ? (
+                ) : !actuacionesMetaHasAnchorFilters(meta) ? (
                   <BandejaTableSummaryItem label="Rango" value="todas las fechas" />
                 ) : null}
                 {meta.tipo ? (
@@ -356,7 +343,7 @@ const ActuacionesContainer = (): JSX.Element => {
               loading={exportLoading}
               error={exportError}
               onClearError={() => setExportError(null)}
-              showPeriod={!meta?.q}
+              showPeriod={!actuacionesMetaHasAnchorFilters(meta ?? { total: 0, page: 1, page_size: 50, desde: null, hasta: null, tipo: null, contraproducencia: null, orden_trabajo: null })}
               scopeHint={
                 meta?.q
                   ? `Se exportará el universo de la búsqueda «${meta.q}»${

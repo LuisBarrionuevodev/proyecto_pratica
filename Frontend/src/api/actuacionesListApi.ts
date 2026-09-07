@@ -161,6 +161,15 @@ export interface IActuacionesListMeta {
     orden_trabajo: string | null;
     actuacion_id?: number | null;
     q?: string | null;
+    calle_q?: string | null;
+    documento_q?: string | null;
+    contribuyente_q?: string | null;
+    inspector_id?: number | null;
+    acta_inspeccion?: string | null;
+    acta_notificacion?: string | null;
+    acta_comprobacion?: string | null;
+    acta_clausura?: string | null;
+    acta_decomiso?: string | null;
     busqueda_global?: boolean;
 }
 
@@ -177,6 +186,15 @@ export interface IActuacionesListFilters {
     orden_trabajo?: string | null;
     actuacion_id?: number | null;
     q?: string | null;
+    calle_q?: string | null;
+    documento_q?: string | null;
+    contribuyente_q?: string | null;
+    inspector_id?: number | null;
+    acta_inspeccion?: string | null;
+    acta_notificacion?: string | null;
+    acta_comprobacion?: string | null;
+    acta_clausura?: string | null;
+    acta_decomiso?: string | null;
     page?: number;
     page_size?: number;
 }
@@ -201,6 +219,15 @@ export const getActuacionesFiltered = async (
     if (filters?.orden_trabajo) params.orden_trabajo = filters.orden_trabajo;
     if (filters?.actuacion_id) params.actuacion_id = String(filters.actuacion_id);
     if (filters?.q) params.q = filters.q;
+    if (filters?.calle_q) params.calle_q = filters.calle_q;
+    if (filters?.documento_q) params.documento_q = filters.documento_q;
+    if (filters?.contribuyente_q) params.contribuyente_q = filters.contribuyente_q;
+    if (filters?.inspector_id) params.inspector_id = String(filters.inspector_id);
+    if (filters?.acta_inspeccion) params.acta_inspeccion = filters.acta_inspeccion;
+    if (filters?.acta_notificacion) params.acta_notificacion = filters.acta_notificacion;
+    if (filters?.acta_comprobacion) params.acta_comprobacion = filters.acta_comprobacion;
+    if (filters?.acta_clausura) params.acta_clausura = filters.acta_clausura;
+    if (filters?.acta_decomiso) params.acta_decomiso = filters.acta_decomiso;
     if (filters?.page) params.page = String(filters.page);
     if (filters?.page_size) params.page_size = String(filters.page_size);
 

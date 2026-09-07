@@ -489,7 +489,7 @@ const TablaActuaciones = ({
     enableSelectAll: false,
     enableSorting: true,
     enableColumnFilters: true,
-    enableGlobalFilter: true,
+    enableGlobalFilter: false,
     enableRowActions: !hideRowActions,
     /** Acciones a la izquierda (primera columna de datos cuando no hay selección). */
     positionActionsColumn: "first",

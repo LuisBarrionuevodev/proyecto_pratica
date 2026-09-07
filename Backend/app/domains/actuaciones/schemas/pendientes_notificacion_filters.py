@@ -20,10 +20,12 @@ class PendientesNotificacionFilters(BaseModel):
     desde: Optional[date] = None
     hasta: Optional[date] = None
     numero_notificacion: Optional[str] = None
+    calle_q: Optional[str] = None
+    orden_trabajo: Optional[str] = None
 
-    @field_validator("numero_notificacion")
+    @field_validator("numero_notificacion", "calle_q", "orden_trabajo")
     @classmethod
-    def _strip_numero(cls, v: Optional[str]) -> Optional[str]:
+    def _strip_optional(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return None
         s = str(v).strip()

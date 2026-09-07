@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from flask import jsonify, request
 from pydantic import ValidationError
 
@@ -8,7 +10,9 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_posterior_comprobacion_por_actuacion_id,
     build_reinspeccion_comprobacion_por_actuacion_id,
+    get_historial_notificacion_expediente_paginado,
     get_pendientes_expediente,
+    _historial_paginacion_solicitada,
 )
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
@@ -58,7 +62,12 @@ def pendientes_expediente_list():
         perf_key = f"{list_channel}.pendientes_expediente"
 
         query_timer = PerfTimer()
-        acts = get_pendientes_expediente(filters)
+        historial_paginado = list_channel == "notificacion" and _historial_paginacion_solicitada(filters)
+        if historial_paginado:
+            acts, total_rows = get_historial_notificacion_expediente_paginado(filters)
+        else:
+            acts = get_pendientes_expediente(filters)
+            total_rows = len(acts)
         query_ms = query_timer.elapsed_ms()
         rows_base = len(acts)
         plazo_slice_param = (
@@ -122,13 +131,19 @@ def pendientes_expediente_list():
         body = {
             "items": items,
             "meta": {
-                "total": len(items),
+                "total": total_rows if historial_paginado else len(items),
                 "desde": filters.desde.isoformat() if filters.desde else None,
                 "hasta": filters.hasta.isoformat() if filters.hasta else None,
                 "source_type": filters.source_type or "all",
                 "plazo_slice": plazo_slice_param,
             },
         }
+        if historial_paginado:
+            page = max(1, int(filters.page or 1))
+            page_size = max(1, min(100, int(filters.page_size or 10)))
+            body["meta"]["page"] = page
+            body["meta"]["page_size"] = page_size
+            body["meta"]["pages"] = max(1, math.ceil(total_rows / page_size) if page_size else 1)
         perf_endpoint_log(
             perf_key,
             rows_base=rows_base,

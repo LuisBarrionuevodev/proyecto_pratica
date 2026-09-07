@@ -1,132 +1,259 @@
-import { Box, Divider, FormControlLabel, Switch, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Box, Divider, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { fetchTiposActuacion, fetchContraproducencias } from "../../../api/gridApi";
+import { fetchInspectores, fetchTiposActuacion } from "../../../api/gridApi";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
+import type { BandejaPeriodMode } from "../../../utils/bandejaFiltroPeriodUi";
+import {
+  BANDEJA_MESES_OPTS_WITH_EMPTY,
+  bandejaDefaultMonthYear,
+  bandejaYearOptions,
+} from "../../../utils/bandejaFiltroPeriodUi";
 
 import {
-    filtroContainerStyles,
-    filtroTitleStyles,
-    filtroGridStyles,
-    filtroItemStyles,
-    filtroButtonsStyles,
-    filtroButtonPrimaryStyles,
-    filtroButtonSecondaryStyles,
-    filtroSectionTitleStyles,
+  filtroContainerStyles,
+  filtroTitleStyles,
+  filtroGridStyles,
+  filtroItemStyles,
+  filtroButtonsStyles,
+  filtroButtonPrimaryStyles,
+  filtroButtonSecondaryStyles,
+  filtroSectionTitleStyles,
 } from "../styles/filtroStyles";
 import type { IActuacionesListFilters } from "../../../api/actuacionesListApi";
 import {
-  ACTUACIONES_BUSQUEDA_ESPECIFICA_MIN_CHARS,
-  actuacionesBusquedaEspecificaValida,
-  buildActuacionesFiltroPayload,
+  ACTUACIONES_FILTRO_FORM_VACIO,
+  ACTUACIONES_TEXTO_MIN_CHARS,
+  validateActuacionesFiltroForm,
 } from "../utils/buildActuacionesFiltroPayload";
 
 export type ActuacionesFiltroPayload = IActuacionesListFilters;
 
 interface FiltroFechasProps {
   onFiltrar: (filtros: IActuacionesListFilters) => void;
-  initialDesde?: string;
-  initialHasta?: string;
   onLimpiarLista?: () => void;
 }
 
 /**
- * Filtros de Actuaciones: búsqueda específica (acta/global) separada del rango de fechas.
+ * Filtros de Actuaciones: datos + actas + período (PERF.1-A1 / A1.1).
  */
-const FiltroFechas = ({
-  onFiltrar,
-  initialDesde = "",
-  initialHasta = "",
-  onLimpiarLista,
-}: FiltroFechasProps) => {
-  const [desde, setDesde] = useState<string>(initialDesde);
-  const [hasta, setHasta] = useState<string>(initialHasta);
-  const [tipo, setTipo] = useState<string>("");
-  const [contraproducencia, setContraproducencia] = useState<string>("");
-  const [busquedaEspecifica, setBusquedaEspecifica] = useState<string>("");
-  const [combinarConRango, setCombinarConRango] = useState(false);
+const FiltroFechas = ({ onFiltrar, onLimpiarLista }: FiltroFechasProps) => {
+  const [form, setForm] = useState(ACTUACIONES_FILTRO_FORM_VACIO);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
-  const [catalogContras, setCatalogContras] = useState<string[]>([]);
+  const [catalogInspectores, setCatalogInspectores] = useState<{ id: number; nombre: string }[]>(
+    []
+  );
+
+  const defaultMonthYear = useMemo(() => bandejaDefaultMonthYear(), []);
 
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [tipos, contras] = await Promise.all([fetchTiposActuacion(), fetchContraproducencias()]);
-        setCatalogTipos([...new Set(tipos.items.map((t: { nombre: string }) => t.nombre))]);
-        setCatalogContras([...new Set(contras.items.map((c: { nombre: string }) => c.nombre))]);
+        const [tipos, inspectores] = await Promise.all([
+          fetchTiposActuacion(),
+          fetchInspectores(),
+        ]);
+        setCatalogTipos([...new Set(tipos.items.map((t) => t.nombre))]);
+        setCatalogInspectores(
+          inspectores.items.map((i) => ({ id: i.id, nombre: i.nombre }))
+        );
       } catch (error) {
         console.error("Error cargando catálogos de filtros:", error);
       }
     };
-    loadCatalogs();
+    void loadCatalogs();
   }, []);
 
-  const hasSpecificDraft = busquedaEspecifica.trim().length > 0;
-  const hasRangeDraft = Boolean(desde || hasta || tipo || contraproducencia);
+  const patchForm = (patch: Partial<typeof form>) => {
+    setForm((prev) => ({ ...prev, ...patch }));
+    if (validationError) setValidationError(null);
+  };
+
+  const handlePeriodModeChange = (mode: BandejaPeriodMode) => {
+    if (mode === "month") {
+      patchForm({ periodMode: mode, desde: "", hasta: "" });
+    } else {
+      patchForm({ periodMode: mode, mes: "", anio: "" });
+    }
+  };
 
   const handleFiltrar = () => {
-    const trimmed = busquedaEspecifica.trim();
-    if (trimmed.length > 0 && !actuacionesBusquedaEspecificaValida(trimmed)) {
-      setValidationError(
-        `Ingresá al menos ${ACTUACIONES_BUSQUEDA_ESPECIFICA_MIN_CHARS} caracteres para la búsqueda específica.`
-      );
-      return;
-    }
-    if (!trimmed && !hasRangeDraft) {
-      setValidationError("Completá la búsqueda específica o el rango de fechas y filtros.");
+    const result = validateActuacionesFiltroForm(form);
+    if (!result.ok) {
+      setValidationError(result.error);
       return;
     }
     setValidationError(null);
-    onFiltrar(
-      buildActuacionesFiltroPayload({
-        desde,
-        hasta,
-        tipo,
-        contraproducencia,
-        busquedaEspecifica,
-        combinarConRango,
-      })
-    );
+    onFiltrar(result.payload);
   };
 
   const handleLimpiar = () => {
-    setDesde(initialDesde);
-    setHasta(initialHasta);
-    setTipo("");
-    setContraproducencia("");
-    setBusquedaEspecifica("");
-    setCombinarConRango(false);
+    setForm(ACTUACIONES_FILTRO_FORM_VACIO);
     setValidationError(null);
     onLimpiarLista?.();
   };
 
   const tipoOptions = [{ value: "", label: "Todos" }, ...catalogTipos.map((t) => ({ value: t, label: t }))];
-  const contraproducenciaOptions = [
-    { value: "", label: "Todas" },
-    ...catalogContras.map((c) => ({ value: c, label: c })),
+  const inspectorOptions = [
+    { value: "", label: "Todos" },
+    ...catalogInspectores.map((i) => ({ value: String(i.id), label: i.nombre })),
   ];
 
   return (
     <Box sx={filtroContainerStyles}>
       <Typography sx={filtroTitleStyles}>Filtros de búsqueda</Typography>
 
-      <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
-
-      <Box sx={{ ...filtroGridStyles, gridTemplateColumns: { xs: "1fr", md: "1fr" }, mb: 1 }}>
+      <Typography sx={filtroSectionTitleStyles}>Datos de la actuación</Typography>
+      <Box sx={filtroGridStyles}>
         <Box sx={filtroItemStyles}>
           <AppTextField
             appearance="dense"
             fullWidth
-            label="Buscar por acta o texto"
-            value={busquedaEspecifica}
-            onChange={(e) => {
-              setBusquedaEspecifica(e.target.value);
-              if (validationError) setValidationError(null);
+            label="N.º Orden de Trabajo"
+            value={form.ordenTrabajo}
+            onChange={(e) => patchForm({ ordenTrabajo: e.target.value })}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
             }}
-            placeholder="Nº de acta, calle, expediente, oficio…"
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="Domicilio (calle)"
+            value={form.calleQ}
+            onChange={(e) => patchForm({ calleQ: e.target.value })}
+            placeholder={`Mín. ${ACTUACIONES_TEXTO_MIN_CHARS} caracteres`}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="DNI / CUIT"
+            value={form.documentoQ}
+            onChange={(e) => patchForm({ documentoQ: e.target.value })}
+            placeholder={`Mín. ${ACTUACIONES_TEXTO_MIN_CHARS} caracteres`}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="Nombre / Razón social"
+            value={form.contribuyenteQ}
+            onChange={(e) => patchForm({ contribuyenteQ: e.target.value })}
+            placeholder={`Mín. ${ACTUACIONES_TEXTO_MIN_CHARS} caracteres`}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            fullWidth
+            label="Tipo de actuación"
+            value={form.tipo}
+            onChange={(e) => patchForm({ tipo: e.target.value })}
+            variant="outlined"
+            options={tipoOptions}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            fullWidth
+            label="Inspector"
+            value={form.inspectorId === "" ? "" : String(form.inspectorId)}
+            onChange={(e) =>
+              patchForm({
+                inspectorId: e.target.value === "" ? "" : Number(e.target.value),
+              })
+            }
+            variant="outlined"
+            options={inspectorOptions}
+          />
+        </Box>
+      </Box>
+
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
+
+      <Typography sx={filtroSectionTitleStyles}>Actas</Typography>
+      <Box sx={filtroGridStyles}>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="N.º Acta Inspección"
+            value={form.actaInspeccion}
+            onChange={(e) => patchForm({ actaInspeccion: e.target.value })}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="N.º Acta Notificación"
+            value={form.actaNotificacion}
+            onChange={(e) => patchForm({ actaNotificacion: e.target.value })}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="N.º Acta Comprobación"
+            value={form.actaComprobacion}
+            onChange={(e) => patchForm({ actaComprobacion: e.target.value })}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="N.º Acta Clausura"
+            value={form.actaClausura}
+            onChange={(e) => patchForm({ actaClausura: e.target.value })}
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFiltrar();
+            }}
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppTextField
+            appearance="dense"
+            fullWidth
+            label="N.º Acta Decomiso"
+            value={form.actaDecomiso}
+            onChange={(e) => patchForm({ actaDecomiso: e.target.value })}
             variant="outlined"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleFiltrar();
@@ -135,87 +262,87 @@ const FiltroFechas = ({
         </Box>
       </Box>
 
-      {hasSpecificDraft && (
-        <FormControlLabel
-          sx={{
-            mb: 1.5,
-            ml: 0,
-            "& .MuiFormControlLabel-label": {
-              color: "rgba(255,255,255,0.85)",
-              fontFamily: '"Tactic Sans", sans-serif',
-              fontSize: "0.85rem",
-            },
-          }}
-          control={
-            <Switch
-              size="small"
-              checked={combinarConRango}
-              onChange={(e) => setCombinarConRango(e.target.checked)}
-              color="primary"
-            />
-          }
-          label="Combinar también con rango de fechas y filtros"
-        />
-      )}
-
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
 
-      <Typography sx={filtroSectionTitleStyles}>Rango de fechas</Typography>
-
+      <Typography sx={filtroSectionTitleStyles}>Período</Typography>
       <Box sx={filtroGridStyles}>
         <Box sx={filtroItemStyles}>
-          <AppTextField
-            appearance="dense"
-            fullWidth
-            type="date"
-            label="Desde (opcional)"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-          />
-        </Box>
-
-        <Box sx={filtroItemStyles}>
-          <AppTextField
-            appearance="dense"
-            fullWidth
-            type="date"
-            label="Hasta (opcional)"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-          />
-        </Box>
-
-        <Box sx={filtroItemStyles}>
           <AppSelect
             appearance="dense"
             fullWidth
-            label="Tipo de Actuación"
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
+            label="Vista de período"
+            value={form.periodMode}
+            onChange={(e) => handlePeriodModeChange(e.target.value as BandejaPeriodMode)}
             variant="outlined"
-            options={tipoOptions}
+            options={[
+              { value: "month", label: "Mes y año" },
+              { value: "range", label: "Fecha desde / hasta" },
+            ]}
           />
         </Box>
-
-        <Box sx={filtroItemStyles}>
-          <AppSelect
-            appearance="dense"
-            fullWidth
-            label="Contraproducencia"
-            value={contraproducencia}
-            onChange={(e) => setContraproducencia(e.target.value)}
-            variant="outlined"
-            options={contraproducenciaOptions}
-          />
-        </Box>
+        {form.periodMode === "month" ? (
+          <>
+            <Box sx={filtroItemStyles}>
+              <AppSelect
+                appearance="dense"
+                fullWidth
+                label="Mes"
+                value={form.mes === "" ? "" : String(form.mes)}
+                onChange={(e) =>
+                  patchForm({ mes: e.target.value === "" ? "" : Number(e.target.value) })
+                }
+                variant="outlined"
+                options={BANDEJA_MESES_OPTS_WITH_EMPTY}
+              />
+            </Box>
+            <Box sx={filtroItemStyles}>
+              <AppSelect
+                appearance="dense"
+                fullWidth
+                label="Año"
+                value={form.anio === "" ? "" : String(form.anio)}
+                onChange={(e) =>
+                  patchForm({ anio: e.target.value === "" ? "" : Number(e.target.value) })
+                }
+                variant="outlined"
+                options={bandejaYearOptions(defaultMonthYear.anio)}
+              />
+            </Box>
+          </>
+        ) : (
+          <>
+            <Box sx={filtroItemStyles}>
+              <AppTextField
+                appearance="dense"
+                fullWidth
+                label="Desde"
+                type="date"
+                value={form.desde}
+                onChange={(e) => patchForm({ desde: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+              />
+            </Box>
+            <Box sx={filtroItemStyles}>
+              <AppTextField
+                appearance="dense"
+                fullWidth
+                label="Hasta"
+                type="date"
+                value={form.hasta}
+                onChange={(e) => patchForm({ hasta: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+              />
+            </Box>
+          </>
+        )}
       </Box>
 
       {validationError && (
-        <Typography sx={{ color: "#E53935", fontSize: "0.85rem", mb: 1.5 }}>{validationError}</Typography>
+        <Typography sx={{ color: "#E53935", fontSize: "0.85rem", mb: 1.5, mt: 1 }}>
+          {validationError}
+        </Typography>
       )}
 
       <Box sx={filtroButtonsStyles}>

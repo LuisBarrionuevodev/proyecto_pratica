@@ -3,6 +3,7 @@ import {
   type IActuacionesPendientesExpedienteOpts,
   type IActuacionesPendientesExpedienteResponse,
 } from "../../../api/actuacionesPendientesApi";
+import { DEFAULT_BANDEJA_CLIENT_PAGE_SIZE } from "../../../utils/buildClientPaginationSummary";
 
 export type HistorialNotificacionPeriodMode = "month" | "range";
 
@@ -21,7 +22,7 @@ export interface HistorialNotificacionFiltroForm {
   numeroNotificacion: string;
   calleQ: string;
   contribuyenteQ: string;
-  motivoQ: string;
+  motivoId: number | "";
   combinarConPeriodo: boolean;
 }
 
@@ -31,7 +32,9 @@ export interface HistorialNotificacionFiltroPayload {
   contribuyenteQ?: string;
   calleQ?: string;
   numeroNotificacion?: string;
-  motivoQ?: string;
+  motivoId?: number;
+  /** Nombre legible del motivo (resumen export PDF). */
+  motivoNombre?: string;
 }
 
 function trimOpt(value: string): string | undefined {
@@ -45,7 +48,7 @@ export function historialNotificacionHasSpecificSearch(form: HistorialNotificaci
     trimOpt(form.numeroNotificacion) ||
       trimOpt(form.calleQ) ||
       trimOpt(form.contribuyenteQ) ||
-      trimOpt(form.motivoQ)
+      form.motivoId !== ""
   );
 }
 
@@ -67,7 +70,7 @@ function docOptsFromForm(form: HistorialNotificacionFiltroForm) {
     contribuyenteQ: trimOpt(form.contribuyenteQ),
     calleQ: trimOpt(form.calleQ),
     numeroNotificacion: trimOpt(form.numeroNotificacion),
-    motivoQ: trimOpt(form.motivoQ),
+    motivoId: form.motivoId === "" ? undefined : form.motivoId,
   };
 }
 
@@ -75,7 +78,8 @@ function docOptsFromForm(form: HistorialNotificacionFiltroForm) {
  * Arma payload de historial separando búsqueda específica y período (PR8.1b).
  */
 export function buildHistorialNotificacionFiltroPayload(
-  form: HistorialNotificacionFiltroForm
+  form: HistorialNotificacionFiltroForm,
+  motivoCatalog?: ReadonlyArray<{ id: number; nombre: string }>
 ): { ok: true; payload: HistorialNotificacionFiltroPayload } | { ok: false; error: string } {
   const specific = historialNotificacionHasSpecificSearch(form);
   const periodChosen = historialNotificacionHasPeriodChosen(form);
@@ -106,6 +110,10 @@ export function buildHistorialNotificacionFiltroPayload(
 
   const distritoId = form.distritoId === "" ? null : form.distritoId;
   const doc = docOptsFromForm(form);
+  const motivoNombre =
+    doc.motivoId != null
+      ? motivoCatalog?.find((m) => m.id === doc.motivoId)?.nombre
+      : undefined;
 
   let period: HistorialNotificacionAppliedPeriod;
   if (usePeriod) {
@@ -123,6 +131,7 @@ export function buildHistorialNotificacionFiltroPayload(
       period,
       distritoId,
       ...doc,
+      ...(motivoNombre ? { motivoNombre } : {}),
     },
   };
 }
@@ -139,15 +148,38 @@ function docOptsFromPayload(payload: HistorialNotificacionFiltroPayload): IActua
     contribuyenteQ: payload.contribuyenteQ,
     calleQ: payload.calleQ,
     numeroNotificacion: payload.numeroNotificacion,
-    motivoQ: payload.motivoQ,
+    motivoId: payload.motivoId,
+  };
+}
+
+export type HistorialPayloadToExpedienteOptions = {
+  /** Si false, no envía page/page_size (exportación completa). */
+  includePagination?: boolean;
+};
+
+export type HistorialNotificacionPagination = {
+  page: number;
+  pageSize: number;
+};
+
+function paginationOpts(
+  pagination?: HistorialNotificacionPagination
+): Pick<IActuacionesPendientesExpedienteOpts, "page" | "pageSize"> {
+  return {
+    page: pagination?.page ?? 1,
+    pageSize: pagination?.pageSize ?? DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
   };
 }
 
 /** Params de `GET /actuaciones/pendientes/expediente` equivalentes al listado Historial. */
 export function historialPayloadToExpedienteCall(
-  payload: HistorialNotificacionFiltroPayload
+  payload: HistorialNotificacionFiltroPayload,
+  pagination?: HistorialNotificacionPagination,
+  callOpts?: HistorialPayloadToExpedienteOptions
 ): HistorialNotificacionExpedienteCall {
   const doc = docOptsFromPayload(payload);
+  const pageOpts =
+    callOpts?.includePagination === false ? {} : paginationOpts(pagination);
 
   if (payload.period.kind === "month") {
     return {
@@ -156,6 +188,7 @@ export function historialPayloadToExpedienteCall(
         mes: payload.period.mes,
         anio: payload.period.anio,
         ...doc,
+        ...pageOpts,
       },
     };
   }
@@ -165,7 +198,10 @@ export function historialPayloadToExpedienteCall(
       desde: payload.period.desde,
       hasta: payload.period.hasta,
       distritoId: payload.distritoId,
-      opts: doc,
+      opts: {
+        ...doc,
+        ...pageOpts,
+      },
     };
   }
 
@@ -174,6 +210,7 @@ export function historialPayloadToExpedienteCall(
     opts: {
       omitirRangoFecha: true,
       ...doc,
+      ...pageOpts,
     },
   };
 }
@@ -213,15 +250,17 @@ export function buildHistorialExportFiltrosResumen(payload: HistorialNotificacio
   if (payload.contribuyenteQ) out.push(`Contribuyente: ${payload.contribuyenteQ}`);
   if (payload.calleQ) out.push(`Calle: ${payload.calleQ}`);
   if (payload.numeroNotificacion) out.push(`Nº notif.: ${payload.numeroNotificacion}`);
-  if (payload.motivoQ) out.push(`Motivo: ${payload.motivoQ}`);
+  if (payload.motivoNombre) out.push(`Motivo: ${payload.motivoNombre}`);
+  else if (payload.motivoId != null) out.push(`Motivo ID: ${payload.motivoId}`);
   return out;
 }
 
-/** Ejecuta GET historial notificaciones según payload aplicado. */
+/** Ejecuta GET historial notificaciones según payload aplicado (paginación server-side). */
 export async function fetchHistorialNotificacionConPayload(
-  payload: HistorialNotificacionFiltroPayload
+  payload: HistorialNotificacionFiltroPayload,
+  pagination?: HistorialNotificacionPagination
 ): Promise<IActuacionesPendientesExpedienteResponse> {
-  const call = historialPayloadToExpedienteCall(payload);
+  const call = historialPayloadToExpedienteCall(payload, pagination);
   return getActuacionesPendientesExpediente(
     call.desde,
     call.hasta,

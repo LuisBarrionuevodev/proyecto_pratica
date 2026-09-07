@@ -8,7 +8,20 @@ from sqlalchemy import exists, func, or_, and_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Actuaciones, Comprobacion, Domicilio, Expediente, IniciadorRuta, Notificacion, RutaItem
+from app.models import (
+    Actuaciones,
+    Comprobacion,
+    Contribuyente,
+    Domicilio,
+    Expediente,
+    IniciadorRuta,
+    Motivo,
+    Notificacion,
+    OrdenTrabajo,
+    RutaItem,
+)
+from app.models.notificacion_motivo import notificacion_motivo
+from app.utils.actas import acta_6
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
@@ -141,7 +154,42 @@ def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
     apareciendo (gestión continua). Métricas `dias_restantes` / `plazos_otorgados` en presenter.
     """
     query = Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
-    return _apply_fecha_notificacion_acta(query, filters)
+    query = _apply_fecha_notificacion_acta(query, filters)
+    if _plazo_slice_operativo_activo(filters) and filters.numero_notificacion:
+        query = _apply_numero_notificacion_sql_exacto(query, filters.numero_notificacion)
+    return query
+
+
+def _apply_numero_notificacion_sql_exacto(query, numero_raw: str):
+    """
+    Filtro operativo por Nº notificación exacto normalizado (``acta_6``) en SQL.
+
+    Seguro antes del dedupe: todas las actuaciones con el mismo ``notificacion_id`` comparten
+    el mismo ``Notificacion.numero_acta`` vía FK.
+
+    Parámetros:
+        query: consulta sobre ``Actuaciones``.
+        numero_raw: valor ingresado por el usuario.
+
+    Retorno:
+        Query restringida con ``EXISTS`` sobre ``notificacion``.
+    """
+    num = acta_6(numero_raw)
+    return query.filter(
+        exists().where(
+            and_(
+                Notificacion.id == Actuaciones.notificacion_id,
+                Notificacion.numero_acta == num,
+                Notificacion.deleted_at.is_(None),
+            )
+        )
+    )
+
+
+def _plazo_slice_operativo_activo(filters: ActuacionesPendientesFilters) -> bool:
+    """True si el cliente pidió slice operativo En plazo / Por vencer."""
+    ps = (filters.plazo_slice or "").strip().lower()
+    return ps in ("en_plazo", "por_vencer")
 
 
 def build_notificacion_expediente_bandeja_metrics(
@@ -203,6 +251,190 @@ def dedupe_actuaciones_canonicas_por_notificacion(acts: List[Actuaciones]) -> Li
             out.append(max(group, key=lambda a: int(a.id)))
     out.sort(key=lambda a: int(a.id), reverse=True)
     return out
+
+
+def _contains_ci(column, term: str):
+    """Subcadena case-insensitive (Historial SQL)."""
+    t = term.strip().lower()
+    return func.lower(column).contains(t)
+
+
+def pick_canonical_actuacion_ids_from_tuples(
+    rows: list[tuple[int, int | None, Any]],
+) -> list[int]:
+    """
+    Misma regla de canonicalidad que ``dedupe_actuaciones_canonicas_por_notificacion``, solo IDs.
+
+    Parámetros:
+        rows: tuplas ``(actuacion_id, notificacion_id, tipo)``.
+
+    Retorno:
+        IDs canónicos ordenados por ``id`` descendente.
+    """
+    by_noti: Dict[int, list[tuple[int, Any]]] = defaultdict(list)
+    sin_noti: list[int] = []
+    for act_id, noti_id, tipo in rows:
+        if noti_id is None:
+            sin_noti.append(int(act_id))
+            continue
+        by_noti[int(noti_id)].append((int(act_id), tipo))
+
+    out: list[int] = list(sin_noti)
+    for group in by_noti.values():
+        inspecciones = [aid for aid, t in group if t == "INSPECCION"]
+        if inspecciones:
+            out.append(max(inspecciones))
+        else:
+            out.append(max(aid for aid, _ in group))
+    out.sort(reverse=True)
+    return out
+
+
+def _historial_paginacion_solicitada(filters: ActuacionesPendientesFilters) -> bool:
+    """True si el cliente pidió paginación server-side de Historial notificación."""
+    return (
+        filters.page is not None
+        and filters.page_size is not None
+        and not _plazo_slice_operativo_activo(filters)
+    )
+
+
+def _apply_historial_documental_sql(query, filters: ActuacionesPendientesFilters):
+    """
+    Filtros documentales de Historial en SQL sobre la actuación canónica.
+
+    Aplica sobre ``Actuaciones`` ya restringidas a IDs canónicos (post-dedupe conceptual).
+    Semántica alineada al filtro Python legacy vía ``actuacion_to_grid_row``.
+    """
+    if filters.calle_q:
+        term = filters.calle_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    _contains_ci(Domicilio.calle, term),
+                )
+            )
+        )
+
+    if filters.contribuyente_q:
+        term = filters.contribuyente_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    Contribuyente.id == Domicilio.contribuyente_id,
+                    Contribuyente.deleted_at.is_(None),
+                    or_(
+                        _contains_ci(Contribuyente.apellido, term),
+                        _contains_ci(Contribuyente.nombre, term),
+                        _contains_ci(Contribuyente.razon_social, term),
+                    ),
+                )
+            )
+        )
+
+    if filters.numero_notificacion:
+        q = filters.numero_notificacion.replace(" ", "").lower()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Notificacion.id == Actuaciones.notificacion_id,
+                    Notificacion.deleted_at.is_(None),
+                    func.lower(func.replace(Notificacion.numero_acta, " ", "")).contains(q),
+                )
+            )
+        )
+
+    if filters.motivo_id:
+        mid = int(filters.motivo_id)
+        query = query.filter(
+            exists().where(
+                and_(
+                    Notificacion.id == Actuaciones.notificacion_id,
+                    notificacion_motivo.c.notificacion_id == Notificacion.id,
+                    notificacion_motivo.c.motivo == mid,
+                )
+            )
+        )
+
+    return query
+
+
+def get_historial_notificacion_expediente_paginado(
+    filters: ActuacionesPendientesFilters,
+) -> tuple[list[Actuaciones], int]:
+    """
+    Historial notificación: canonicalidad + filtros SQL + count + paginación + eager página actual.
+
+    Pipeline:
+        base (período/distrito)
+        → pick canónico por notificacion_id
+        → filtros documentales SQL sobre actuación canónica
+        → total
+        → LIMIT/OFFSET ids
+        → eager + presenter (en route) solo página actual
+
+    Parámetros:
+        filters: debe incluir ``page`` y ``page_size``.
+
+    Retorno:
+        Tupla ``(actuaciones_página, total_canónicas_filtradas)``.
+    """
+    distrito_id = getattr(filters, "distrito_id", None)
+    base = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+    rows = base.with_entities(
+        Actuaciones.id,
+        Actuaciones.notificacion_id,
+        Actuaciones.tipo,
+    ).all()
+    canonical_ids = pick_canonical_actuacion_ids_from_tuples(rows)
+    if not canonical_ids:
+        return [], 0
+
+    q = Actuaciones.query.filter(Actuaciones.id.in_(canonical_ids))
+    q = _apply_historial_documental_sql(q, filters)
+    total = q.with_entities(Actuaciones.id).distinct().count()
+
+    page = max(1, int(filters.page or 1))
+    page_size = max(1, min(100, int(filters.page_size or 10)))
+    offset = (page - 1) * page_size
+    page_ids = [
+        int(r[0])
+        for r in q.with_entities(Actuaciones.id)
+        .order_by(Actuaciones.id.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    ]
+    if not page_ids:
+        return [], total
+
+    order_index = {aid: idx for idx, aid in enumerate(page_ids)}
+    acts = apply_bandeja_grid_eager(
+        Actuaciones.query.filter(Actuaciones.id.in_(page_ids))
+    ).all()
+    acts.sort(key=lambda a: order_index.get(int(a.id), 0))
+    return acts, total
+
+
+def get_historial_notificacion_legacy_ids(filters: ActuacionesPendientesFilters) -> list[int]:
+    """
+    Pipeline legacy Historial (materialización completa + filtro Python) para tests de regresión.
+
+    No usar en producción cuando ``page``/``page_size`` están presentes.
+    """
+    distrito_id = getattr(filters, "distrito_id", None)
+    query = apply_bandeja_grid_eager(
+        _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+    )
+    acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
+    if _notificacion_documental_filters_active(filters):
+        acts = _filter_actuaciones_documental_notificacion(acts, filters)
+    return [int(a.id) for a in acts]
 
 
 def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
@@ -424,23 +656,85 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         acts = reload_actuaciones_bandeja_eager(query.order_by(Actuaciones.id.desc()).all())
     if source_type == "notificacion":
         acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
-    if source_type == "notificacion" and _notificacion_documental_filters_active(filters):
+    if (
+        source_type == "notificacion"
+        and _notificacion_documental_filters_active(filters)
+        and not _historial_paginacion_solicitada(filters)
+    ):
         acts = _filter_actuaciones_documental_notificacion(acts, filters)
     if source_type == "comprobacion" and _comprobacion_documental_filters_active(filters):
         acts = _filter_actuaciones_documental_comprobacion(acts, filters)
     if source_type == "notificacion" and getattr(filters, "plazo_slice", None):
         acts = filter_actuaciones_notificacion_por_plazo_slice(acts, filters.plazo_slice)
+    if (
+        source_type == "notificacion"
+        and _plazo_slice_operativo_activo(filters)
+        and (filters.calle_q or filters.orden_trabajo)
+    ):
+        acts = _filter_actuaciones_operativos_calle_ot(acts, filters)
     return acts
 
 
 def _notificacion_documental_filters_active(filters: ActuacionesPendientesFilters) -> bool:
-    """True si llegó algún filtro documental opcional (solo rama notificación)."""
+    """True si llegó algún filtro documental opcional (solo rama notificación / historial)."""
+    operativo = _plazo_slice_operativo_activo(filters)
+    calle_en_documental = filters.calle_q if not operativo else None
+    numero_en_documental = filters.numero_notificacion if not operativo else None
     return bool(
         filters.contribuyente_q
-        or filters.calle_q
-        or filters.numero_notificacion
+        or calle_en_documental
+        or numero_en_documental
         or filters.motivo_q
+        or filters.motivo_id
     )
+
+
+def _filter_actuaciones_operativos_calle_ot(
+    acts: List[Actuaciones],
+    filters: ActuacionesPendientesFilters,
+) -> List[Actuaciones]:
+    """
+    Filtra actuaciones NOTIFICACION por calle (contains CI) y/o OT exacta normalizada.
+
+    Se aplica tras dedupe y ``plazo_slice`` en bandeja operativa para preservar población base.
+    Usa relaciones eager (domicilio, orden_trabajo) sin alterar elegibilidad previa.
+
+    Parámetros:
+        acts: actuaciones ya filtradas por reglas de bandeja.
+        filters: ``calle_q`` y/o ``orden_trabajo``.
+
+    Retorno:
+        Subconjunto que cumple los filtros operativos activos.
+    """
+    if not acts:
+        return []
+    ot_id: int | None = None
+    if filters.orden_trabajo:
+        ot_norm = acta_6(filters.orden_trabajo)
+        ot = (
+            OrdenTrabajo.query.filter(
+                OrdenTrabajo.numero_acta == ot_norm,
+                OrdenTrabajo.deleted_at.is_(None),
+            )
+            .order_by(OrdenTrabajo.id.desc())
+            .first()
+        )
+        if not ot:
+            return []
+        ot_id = int(ot.id)
+
+    calle_term = (filters.calle_q or "").strip().lower()
+    out: List[Actuaciones] = []
+    for act in acts:
+        if calle_term:
+            dom = getattr(act, "domicilio", None)
+            calle_val = (getattr(dom, "calle", None) or "").lower()
+            if calle_term not in calle_val:
+                continue
+        if ot_id is not None and int(act.orden_trabajo_id or 0) != ot_id:
+            continue
+        out.append(act)
+    return out
 
 
 def _comprobacion_documental_filters_active(filters: ActuacionesPendientesFilters) -> bool:
@@ -469,16 +763,21 @@ def _filter_actuaciones_documental_notificacion(
             ).lower()
             if filters.contribuyente_q.lower() not in blob:
                 continue
-        if filters.calle_q:
+        if filters.calle_q and not _plazo_slice_operativo_activo(filters):
             calle = (row.get("calle") or "").lower()
             if filters.calle_q.lower() not in calle:
                 continue
-        if filters.numero_notificacion:
+        if filters.numero_notificacion and not _plazo_slice_operativo_activo(filters):
             num = (row.get("acta_notificacion_num") or "").replace(" ", "").lower()
             q = filters.numero_notificacion.replace(" ", "").lower()
             if q not in num:
                 continue
-        if filters.motivo_q:
+        if filters.motivo_id:
+            noti = getattr(act, "notificacion", None)
+            motivo_ids = {int(m.id) for m in (noti.motivos if noti else [])}
+            if int(filters.motivo_id) not in motivo_ids:
+                continue
+        elif filters.motivo_q:
             parts = [
                 row.get("notificacion_motivo_1"),
                 row.get("notificacion_motivo_2"),

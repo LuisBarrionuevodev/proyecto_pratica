@@ -51,14 +51,24 @@ export const useActuacionesFiltradas = (): UseActuacionesFiltradas => {
             const response = await getActuacionesFiltered(merged);
             setActuaciones(response.items);
             setMeta(response.meta);
-            const specificLookup = Boolean(filters?.q || filters?.actuacion_id);
+            const specificLookup = Boolean(
+                filters?.orden_trabajo ||
+                    filters?.actuacion_id ||
+                    filters?.documento_q ||
+                    filters?.calle_q ||
+                    filters?.contribuyente_q ||
+                    filters?.acta_inspeccion ||
+                    filters?.acta_notificacion ||
+                    filters?.acta_comprobacion ||
+                    filters?.acta_clausura ||
+                    filters?.acta_decomiso
+            );
             if (
                 specificLookup &&
                 response.items.length === 0 &&
                 response.meta.total === 0
             ) {
-                const term = filters?.q?.trim() || `id ${filters?.actuacion_id}`;
-                setError(`Sin actuaciones para «${term}». Probá otro texto o ampliá el criterio.`);
+                setError("Sin actuaciones para los filtros indicados. Probá ampliar el criterio.");
             } else if (
                 filters?.orden_trabajo &&
                 response.items.length === 0 &&

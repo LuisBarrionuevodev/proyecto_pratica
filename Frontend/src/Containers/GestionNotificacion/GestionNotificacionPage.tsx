@@ -81,6 +81,7 @@ import {
 } from "../Actuaciones/styles/filtroStyles";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
+import { fetchMotivos, type CatalogItem } from "../../api/gridApi";
 import { useAppFeedback } from "../../components/feedback";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 import { applyFormErrorsFromApi } from "../../utils/parseApiError";
@@ -127,6 +128,7 @@ import {
   buildOperativaNotificacionFiltroPayload,
   type OperativaNotificacionFiltroPayload,
 } from "./utils/buildOperativaNotificacionFiltroPayload";
+import { shouldResetOperativaFiltroOnTabChange } from "./utils/operativaNotificacionTabChange";
 import { refreshNotificacionesPostProrroga } from "./utils/refreshNotificacionesPostProrroga";
 import {
   clearPersistKeyIfMatch,
@@ -246,6 +248,8 @@ type NotificacionBandejaTableProps = {
   getRowId?: (row: IActuacionesPendientesItem) => string;
   pagination?: MRT_PaginationState;
   onPaginationChange?: (updater: MRT_Updater<MRT_PaginationState>) => void;
+  manualPagination?: boolean;
+  rowCount?: number;
 };
 
 /** Tabla MRT reutilizable (operativa vs historial). */
@@ -257,6 +261,8 @@ function NotificacionBandejaTable({
   getRowId,
   pagination,
   onPaginationChange,
+  manualPagination,
+  rowCount,
 }: NotificacionBandejaTableProps) {
   const documentalMrtLayout: Partial<MRT_TableOptions<IActuacionesPendientesItem>> | undefined = documentalListViewport
     ? {
@@ -291,6 +297,7 @@ function NotificacionBandejaTable({
       enableColumnFilters: false,
       enableGlobalFilter: false,
       ...(getRowId ? { getRowId: (row) => getRowId(row) } : {}),
+      ...(manualPagination ? { manualPagination: true, rowCount: rowCount ?? 0 } : {}),
       renderTopToolbarCustomActions: toolbar,
       state: {
         ...BANDEJA_MRT_SPINNER_LOADING_STATE,
@@ -334,13 +341,15 @@ const GestionNotificacionPage = () => {
   const [histContribQ, setHistContribQ] = useState("");
   const [histCalleQ, setHistCalleQ] = useState("");
   const [histNumNotif, setHistNumNotif] = useState("");
-  const [histMotivoQ, setHistMotivoQ] = useState("");
+  const [histMotivoId, setHistMotivoId] = useState<number | "">("");
   const [opDesde, setOpDesde] = useState<string | null>(null);
   const [opHasta, setOpHasta] = useState<string | null>(null);
   const [opNumNotif, setOpNumNotif] = useState("");
+  const [opCalleQ, setOpCalleQ] = useState("");
   const [opApplied, setOpApplied] = useState<OperativaNotificacionFiltroPayload | null>(null);
   const opAppliedRef = useRef<OperativaNotificacionFiltroPayload | null>(null);
   const [distritosHistorial, setDistritosHistorial] = useState<DistritoCatalogoItem[]>([]);
+  const [motivosHistorial, setMotivosHistorial] = useState<CatalogItem[]>([]);
   const [historialFiltroAplicado, setHistorialFiltroAplicado] = useState(false);
   const [historialRows, setHistorialRows] = useState<IActuacionesPendientesItem[]>([]);
   const [historialLoading, setHistorialLoading] = useState(false);
@@ -349,6 +358,9 @@ const GestionNotificacionPage = () => {
     total: number;
     desde: string | null;
     hasta: string | null;
+    page?: number;
+    page_size?: number;
+    pages?: number;
   } | null>(null);
   const [historialApplied, setHistorialApplied] = useState<HistorialNotificacionFiltroPayload | null>(null);
   const [historialPagination, setHistorialPagination] = useState<MRT_PaginationState>({
@@ -364,14 +376,31 @@ const GestionNotificacionPage = () => {
     [distritosHistorial]
   );
 
+  const motivoSelectOptionsHistorial = useMemo(
+    () => [
+      { value: "", label: "Todos los motivos" },
+      ...motivosHistorial.map((m) => ({ value: String(m.id), label: m.nombre })),
+    ],
+    [motivosHistorial]
+  );
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const r = await fetchDistritosCatalogo();
-        if (!cancelled) setDistritosHistorial(r.items ?? []);
+        const [distritosRes, motivosRes] = await Promise.all([
+          fetchDistritosCatalogo(),
+          fetchMotivos(),
+        ]);
+        if (!cancelled) {
+          setDistritosHistorial(distritosRes.items ?? []);
+          setMotivosHistorial(motivosRes.items ?? []);
+        }
       } catch {
-        if (!cancelled) setDistritosHistorial([]);
+        if (!cancelled) {
+          setDistritosHistorial([]);
+          setMotivosHistorial([]);
+        }
       }
     })();
     return () => {
@@ -435,6 +464,7 @@ const GestionNotificacionPage = () => {
               omitirRangoFecha: !hasDateRange,
               plazoSlice: slice,
               numeroNotificacion: filters?.numeroNotificacion ?? null,
+              calleQ: filters?.calleQ ?? null,
             }),
           (r) => ({ slice, rows: r.items.length, total: r.meta.total })
         );
@@ -515,6 +545,7 @@ const GestionNotificacionPage = () => {
               desde: filters?.desde ?? null,
               hasta: filters?.hasta ?? null,
               numeroNotificacion: filters?.numeroNotificacion ?? null,
+              calleQ: filters?.calleQ ?? null,
             }),
           (r) => ({ rows: r.length })
         );
@@ -541,10 +572,10 @@ const GestionNotificacionPage = () => {
       desde: opDesde,
       hasta: opHasta,
       numeroNotificacion: opNumNotif,
+      calleQ: opCalleQ,
     });
     setOpApplied(payload);
     opAppliedRef.current = payload;
-    invalidateOperativeSlices();
     const active = plazoSliceRef.current;
     if (active === "en_plazo" || active === "por_vencer") {
       void loadPlazoSliceData(active, true, payload);
@@ -555,7 +586,7 @@ const GestionNotificacionPage = () => {
     opDesde,
     opHasta,
     opNumNotif,
-    invalidateOperativeSlices,
+    opCalleQ,
     loadPlazoSliceData,
     loadPendientesReinspeccionNotificacion,
   ]);
@@ -564,40 +595,56 @@ const GestionNotificacionPage = () => {
     setOpDesde(null);
     setOpHasta(null);
     setOpNumNotif("");
+    setOpCalleQ("");
     setOpApplied(null);
     opAppliedRef.current = null;
-    invalidateOperativeSlices();
     const active = plazoSliceRef.current;
     if (active === "en_plazo" || active === "por_vencer") {
       void loadPlazoSliceData(active, true, null);
     } else if (active === "vencidas_o_hoy") {
       void loadPendientesReinspeccionNotificacion(null);
     }
-  }, [invalidateOperativeSlices, loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
+  }, [loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
 
   useEffect(() => {
+    const prev = prevPlazoSliceRef.current;
+    const tabChanged = plazoSlice !== prev;
+
+    if (tabChanged) {
+      if (shouldResetOperativaFiltroOnTabChange(prev, plazoSlice)) {
+        setOpNumNotif("");
+        setOpCalleQ("");
+        setOpApplied(null);
+        opAppliedRef.current = null;
+      }
+      if (plazoSlice === "total" && prev !== "total") {
+        setHistorialFiltroAplicado(false);
+        setHistorialRows([]);
+        setHistorialError(null);
+        setHistorialApplied(null);
+        setHistorialMeta(null);
+        setHistorialPagination((prevPagination) => resetClientPaginationPageIndex(prevPagination));
+      }
+      prevPlazoSliceRef.current = plazoSlice;
+    }
+
     plazoSliceRef.current = plazoSlice;
-  }, [plazoSlice]);
 
-  useEffect(() => {
     if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
-      perfLog("notificaciones.tab.fetch", { slice: plazoSlice });
-      void loadPlazoSliceData(plazoSlice);
+      perfLog("notificaciones.tab.fetch", { slice: plazoSlice, tabChanged });
+      const filters = tabChanged ? null : opAppliedRef.current;
+      void loadPlazoSliceData(plazoSlice, tabChanged, filters);
+    } else if (plazoSlice === "vencidas_o_hoy") {
+      if (tabChanged || !reinspeccionDataLoadedRef.current) {
+        perfLog("notificaciones.tab.lazy", { slice: plazoSlice, tabChanged });
+        void loadPendientesReinspeccionNotificacion(tabChanged ? null : opAppliedRef.current).then(() => {
+          reinspeccionDataLoadedRef.current = true;
+        });
+      } else {
+        perfLog("notificaciones.tab.cacheHit", { slice: plazoSlice });
+      }
     }
-  }, [plazoSlice, loadPlazoSliceData]);
-
-  /** Lazy-load: cola reinspección solo al entrar por primera vez a esa pestaña. */
-  useEffect(() => {
-    if (plazoSlice !== "vencidas_o_hoy") return;
-    if (reinspeccionDataLoadedRef.current) {
-      perfLog("notificaciones.tab.cacheHit", { slice: plazoSlice });
-      return;
-    }
-    perfLog("notificaciones.tab.lazy", { slice: plazoSlice, fetch: "loadPendientesReinspeccion" });
-    void loadPendientesReinspeccionNotificacion().then(() => {
-      reinspeccionDataLoadedRef.current = true;
-    });
-  }, [plazoSlice, loadPendientesReinspeccionNotificacion]);
+  }, [plazoSlice, loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
 
   useEffect(() => {
     return subscribeGestionNotificacionReinspeccionRefresh(() => {
@@ -610,22 +657,9 @@ const GestionNotificacionPage = () => {
     });
   }, [loadPendientesReinspeccionNotificacion]);
 
-  /** Al volver a entrar en Historial desde otra pestaña, se pide de nuevo aplicar filtro (sin tabla inicial). */
-  useEffect(() => {
-    const prev = prevPlazoSliceRef.current;
-    prevPlazoSliceRef.current = plazoSlice;
-    if (plazoSlice === "total" && prev !== "total") {
-      setHistorialFiltroAplicado(false);
-      setHistorialRows([]);
-      setHistorialError(null);
-      setHistorialApplied(null);
-      setHistorialMeta(null);
-      setHistorialPagination((prevPagination) => resetClientPaginationPageIndex(prevPagination));
-    }
-  }, [plazoSlice]);
-
-  const loadHistorialDesdeFiltro = useCallback(async () => {
-    const built = buildHistorialNotificacionFiltroPayload({
+  const loadHistorialDesdeFiltro = useCallback(() => {
+    const built = buildHistorialNotificacionFiltroPayload(
+      {
       periodMode: histPeriodMode,
       mes: histMes,
       anio: histAnio,
@@ -635,45 +669,20 @@ const GestionNotificacionPage = () => {
       numeroNotificacion: histNumNotif,
       calleQ: histCalleQ,
       contribuyenteQ: histContribQ,
-      motivoQ: histMotivoQ,
+      motivoId: histMotivoId,
       combinarConPeriodo: histCombinarConPeriodo,
-    });
+      },
+      motivosHistorial
+    );
     if (!built.ok) {
       setHistorialError(built.error);
       return;
     }
 
-    setHistorialLoading(true);
     setHistorialError(null);
+    setHistorialApplied(built.payload);
+    setHistorialFiltroAplicado(true);
     setHistorialPagination((prev) => resetClientPaginationPageIndex(prev));
-    try {
-      const resp = await perfTimed(
-        "notificaciones.loadHistorial",
-        () => fetchHistorialNotificacionConPayload(built.payload),
-        (r) => ({ rows: r.items.length, total: r.meta.total })
-      );
-
-      setHistorialRows(historialNotificacionRows(resp.items, resp.meta.source_type));
-      setHistorialMeta({
-        total: resp.meta.total,
-        desde: resp.meta.desde,
-        hasta: resp.meta.hasta,
-      });
-      setHistorialApplied(built.payload);
-      setHistorialFiltroAplicado(true);
-    } catch (err: unknown) {
-      const detail =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
-          : null;
-      setHistorialError(detail || "Error al cargar el historial");
-      setHistorialRows([]);
-      setHistorialFiltroAplicado(false);
-      setHistorialApplied(null);
-      setHistorialMeta(null);
-    } finally {
-      setHistorialLoading(false);
-    }
   }, [
     histPeriodMode,
     histMes,
@@ -684,8 +693,63 @@ const GestionNotificacionPage = () => {
     histContribQ,
     histCalleQ,
     histNumNotif,
-    histMotivoQ,
+    histMotivoId,
     histCombinarConPeriodo,
+    motivosHistorial,
+  ]);
+
+  useEffect(() => {
+    if (!historialFiltroAplicado || !historialApplied) return;
+
+    let cancelled = false;
+    setHistorialLoading(true);
+    setHistorialError(null);
+
+    void perfTimed(
+      "notificaciones.loadHistorial",
+      () =>
+        fetchHistorialNotificacionConPayload(historialApplied, {
+          page: historialPagination.pageIndex + 1,
+          pageSize: historialPagination.pageSize,
+        }),
+      (r) => ({ rows: r.items.length, total: r.meta.total, page: r.meta.page })
+    )
+      .then((resp) => {
+        if (cancelled) return;
+        setHistorialRows(historialNotificacionRows(resp.items, resp.meta.source_type));
+        setHistorialMeta({
+          total: resp.meta.total,
+          desde: resp.meta.desde,
+          hasta: resp.meta.hasta,
+          page: resp.meta.page,
+          page_size: resp.meta.page_size,
+          pages: resp.meta.pages,
+        });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const detail =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+            : null;
+        setHistorialError(detail || "Error al cargar el historial");
+        setHistorialRows([]);
+        setHistorialFiltroAplicado(false);
+        setHistorialApplied(null);
+        setHistorialMeta(null);
+      })
+      .finally(() => {
+        if (!cancelled) setHistorialLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    historialFiltroAplicado,
+    historialApplied,
+    historialPagination.pageIndex,
+    historialPagination.pageSize,
   ]);
 
   const recargarHistorialSiAplica = useCallback(async () => {
@@ -693,12 +757,18 @@ const GestionNotificacionPage = () => {
     setHistorialLoading(true);
     setHistorialError(null);
     try {
-      const resp = await fetchHistorialNotificacionConPayload(historialApplied);
+      const resp = await fetchHistorialNotificacionConPayload(historialApplied, {
+        page: historialPagination.pageIndex + 1,
+        pageSize: historialPagination.pageSize,
+      });
       setHistorialRows(historialNotificacionRows(resp.items, resp.meta.source_type));
       setHistorialMeta({
         total: resp.meta.total,
         desde: resp.meta.desde,
         hasta: resp.meta.hasta,
+        page: resp.meta.page,
+        page_size: resp.meta.page_size,
+        pages: resp.meta.pages,
       });
     } catch (err: unknown) {
       const detail =
@@ -709,7 +779,12 @@ const GestionNotificacionPage = () => {
     } finally {
       setHistorialLoading(false);
     }
-  }, [historialFiltroAplicado, historialApplied]);
+  }, [
+    historialFiltroAplicado,
+    historialApplied,
+    historialPagination.pageIndex,
+    historialPagination.pageSize,
+  ]);
 
   const handleSyncNotificacionesVencidas = useCallback(async () => {
     setSyncLoading(true);
@@ -1238,9 +1313,14 @@ const GestionNotificacionPage = () => {
       buildClientPaginationSummary({
         pageIndex: historialPagination.pageIndex,
         pageSize: historialPagination.pageSize,
-        totalRows: historialRows.length,
+        totalRows: historialMeta?.total ?? historialRows.length,
       }),
-    [historialPagination.pageIndex, historialPagination.pageSize, historialRows.length]
+    [
+      historialPagination.pageIndex,
+      historialPagination.pageSize,
+      historialMeta?.total,
+      historialRows.length,
+    ]
   );
 
   const handleExportNotificaciones = useCallback(
@@ -1409,9 +1489,20 @@ const GestionNotificacionPage = () => {
                 appearance="dense"
                 fullWidth
                 label="Nº notificación"
-                placeholder="Fragmento del acta"
+                placeholder="Nº exacto (ej. 928 → 000928)"
                 value={opNumNotif}
                 onChange={(e) => setOpNumNotif(e.target.value)}
+                variant="outlined"
+              />
+            </Box>
+            <Box sx={filtroItemStyles}>
+              <AppTextField
+                appearance="dense"
+                fullWidth
+                label="Calle"
+                placeholder="Ej. san martin"
+                value={opCalleQ}
+                onChange={(e) => setOpCalleQ(e.target.value)}
                 variant="outlined"
               />
             </Box>
@@ -1495,14 +1586,16 @@ const GestionNotificacionPage = () => {
                 />
               </Box>
               <Box sx={filtroItemStyles}>
-                <AppTextField
+                <AppSelect
                   appearance="dense"
                   fullWidth
                   label="Motivo / infracción"
-                  placeholder="Texto en motivos de la notificación"
-                  value={histMotivoQ}
-                  onChange={(e) => setHistMotivoQ(e.target.value)}
+                  value={histMotivoId === "" ? "" : String(histMotivoId)}
+                  onChange={(e) =>
+                    setHistMotivoId(e.target.value === "" ? "" : Number(e.target.value))
+                  }
                   variant="outlined"
+                  options={motivoSelectOptionsHistorial}
                 />
               </Box>
             </Box>
@@ -1517,7 +1610,7 @@ const GestionNotificacionPage = () => {
               numeroNotificacion: histNumNotif,
               calleQ: histCalleQ,
               contribuyenteQ: histContribQ,
-              motivoQ: histMotivoQ,
+              motivoId: histMotivoId,
               combinarConPeriodo: histCombinarConPeriodo,
             }) && (
               <FormControlLabel
@@ -1643,7 +1736,7 @@ const GestionNotificacionPage = () => {
                   setHistContribQ("");
                   setHistCalleQ("");
                   setHistNumNotif("");
-                  setHistMotivoQ("");
+                  setHistMotivoId("");
                   setHistorialFiltroAplicado(false);
                   setHistorialMeta(null);
                   setHistorialRows([]);
@@ -1717,6 +1810,8 @@ const GestionNotificacionPage = () => {
                   getRowId={(row) => notificacionHistorialRowKey(row)}
                   pagination={historialPagination}
                   onPaginationChange={setHistorialPagination}
+                  manualPagination
+                  rowCount={historialMeta?.total ?? 0}
                 />
               </Box>
             </>

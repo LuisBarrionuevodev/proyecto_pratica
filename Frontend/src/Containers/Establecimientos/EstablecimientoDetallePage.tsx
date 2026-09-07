@@ -33,14 +33,9 @@ import {
   type IEstablecimientoOperativoDetail,
   type IEstablecimientoOperativoHistorialRow,
 } from "../../api/establecimientosOperativosApi";
+import { formatFechaDateOnlyEsAR } from "../../utils/formatFechaDateOnlyEsAR";
 
 const HIST_PAGE_SIZE = 20;
-
-function formatFecha(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("es-AR", { dateStyle: "medium" });
-}
 
 function dash(v: string | null | undefined): string {
   const t = v?.trim();
@@ -179,7 +174,7 @@ export default function EstablecimientoDetallePage() {
         accessorKey: "fecha",
         header: "FECHA",
         size: 130,
-        Cell: ({ row }) => <BandejaEllipsisCell value={formatFecha(row.original.fecha)} />,
+        Cell: ({ row }) => <BandejaEllipsisCell value={formatFechaDateOnlyEsAR(row.original.fecha)} />,
       },
       {
         accessorKey: "tipo_actuacion",

@@ -7,12 +7,12 @@ import logging
 import os
 
 from flask_jwt_extended import get_jwt_identity
-from sqlalchemy import and_, exists, or_
+from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, RutaItem, User
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, OrdenTrabajo, RutaItem, User
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_operativo_para_iniciador,
 )
@@ -25,6 +25,7 @@ from app.domains.actuaciones.utils.actuacion_base_workflow_documental import (
     actuacion_equivale_a_inspeccion_para_workflow_documental,
     filtro_sql_actuacion_base_workflow_documental,
 )
+from app.utils.actas import acta_6
 
 logger = logging.getLogger(__name__)
 
@@ -531,6 +532,8 @@ def list_reinspeccion_notificacion_operativas(
     desde: date | None = None,
     hasta: date | None = None,
     numero_notificacion: str | None = None,
+    calle_q: str | None = None,
+    orden_trabajo: str | None = None,
 ) -> list[Actuaciones]:
     """
     Lista actuaciones base de nueva inspección con iniciador `REINSPECCION_NOTIFICACION` en cola
@@ -547,6 +550,8 @@ def list_reinspeccion_notificacion_operativas(
     Parámetros:
         desde, hasta: filtro opcional sobre ``Actuaciones.fecha``.
         numero_notificacion: subcadena sobre ``Notificacion.numero_acta``.
+        calle_q: subcadena case-insensitive en ``domicilio.calle`` (AND sobre elegibilidad RN).
+        orden_trabajo: OT exacta normalizada con ``acta_6`` (AND sobre elegibilidad RN).
     """
     today = date.today()
     subq_reinsp = _subq_reinsp_exitosa_misma_notificacion()
@@ -580,6 +585,30 @@ def list_reinspeccion_notificacion_operativas(
     if hasta is not None:
         q = q.filter(Actuaciones.fecha <= hasta)
     if numero_notificacion and str(numero_notificacion).strip():
-        term = f"%{str(numero_notificacion).strip()}%"
-        q = q.filter(Notificacion.numero_acta.like(term))
+        num = acta_6(numero_notificacion)
+        q = q.filter(Notificacion.numero_acta == num)
+    if calle_q and str(calle_q).strip():
+        term = str(calle_q).strip().lower()
+        q = q.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    func.lower(Domicilio.calle).contains(term),
+                )
+            )
+        )
+    if orden_trabajo and str(orden_trabajo).strip():
+        ot_norm = acta_6(orden_trabajo)
+        ot = (
+            OrdenTrabajo.query.filter(
+                OrdenTrabajo.numero_acta == ot_norm,
+                OrdenTrabajo.deleted_at.is_(None),
+            )
+            .order_by(OrdenTrabajo.id.desc())
+            .first()
+        )
+        if not ot:
+            return []
+        q = q.filter(Actuaciones.orden_trabajo_id == int(ot.id))
     return q.order_by(Actuaciones.id.desc()).all()

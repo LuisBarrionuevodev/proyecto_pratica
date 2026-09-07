@@ -12,12 +12,7 @@ import { HistorialInspectoresCell } from "./components/HistorialInspectoresCell"
 import { RubroChip } from "./components/RubroChip";
 import { historialActasTramitesChipLabels } from "./utils/historialActasTramitesVisual";
 import { historialContribuyenteDomicilioTexto } from "./utils/historialContribuyenteDomicilio";
-
-function formatFecha(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("es-AR", { dateStyle: "medium" });
-}
+import { formatFechaDateOnlyEsAR } from "../../utils/formatFechaDateOnlyEsAR";
 
 /**
  * Columnas del historial por DNI/CUIT (consulta; incluye domicilio y rubro por fila).
@@ -28,7 +23,7 @@ export function buildHistorialContribuyenteColumns(): MRT_ColumnDef<IHistorialCo
       accessorKey: "fecha",
       header: "FECHA",
       size: 130,
-      Cell: ({ row }) => <BandejaEllipsisCell value={formatFecha(row.original.fecha)} />,
+      Cell: ({ row }) => <BandejaEllipsisCell value={formatFechaDateOnlyEsAR(row.original.fecha)} />,
     },
     {
       accessorKey: "tipo_actuacion",

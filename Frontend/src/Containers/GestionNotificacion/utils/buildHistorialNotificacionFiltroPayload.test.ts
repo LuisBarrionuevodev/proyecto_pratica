@@ -6,6 +6,11 @@ import {
   historialPayloadToExpedienteCall,
 } from "./buildHistorialNotificacionFiltroPayload";
 
+const MOTIVOS_CATALOG = [
+  { id: 10, nombre: "FALTA DE HABILITACION" },
+  { id: 20, nombre: "HIGIENE" },
+];
+
 const emptyForm = {
   periodMode: "month" as const,
   mes: "" as const,
@@ -16,7 +21,7 @@ const emptyForm = {
   numeroNotificacion: "",
   calleQ: "",
   contribuyenteQ: "",
-  motivoQ: "",
+  motivoId: "" as const,
   combinarConPeriodo: false,
 };
 
@@ -39,15 +44,22 @@ describe("buildHistorialNotificacionFiltroPayload", () => {
     }
   });
 
-  it("motivo/infracción sin combinar es global", () => {
-    const r = buildHistorialNotificacionFiltroPayload({
-      ...emptyForm,
-      mes: 7,
-      anio: 2026,
-      motivoQ: "higiene",
-    });
+  it("motivo seleccionado sin combinar es global y envía motivo_id", () => {
+    const r = buildHistorialNotificacionFiltroPayload(
+      {
+        ...emptyForm,
+        mes: 7,
+        anio: 2026,
+        motivoId: 10,
+      },
+      MOTIVOS_CATALOG
+    );
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.payload.period.kind).toBe("global");
+    if (r.ok) {
+      expect(r.payload.period.kind).toBe("global");
+      expect(r.payload.motivoId).toBe(10);
+      expect(r.payload.motivoNombre).toBe("FALTA DE HABILITACION");
+    }
   });
 
   it("mes/año elegidos se envían sin búsqueda específica", () => {
@@ -99,6 +111,11 @@ describe("buildHistorialNotificacionFiltroPayload", () => {
       historialNotificacionHasSpecificSearch({ ...emptyForm, contribuyenteQ: "Pérez" })
     ).toBe(true);
   });
+
+  it("detecta búsqueda específica por motivo_id", () => {
+    expect(historialNotificacionHasSpecificSearch({ ...emptyForm, motivoId: 10 })).toBe(true);
+    expect(historialNotificacionHasSpecificSearch(emptyForm)).toBe(false);
+  });
 });
 
 describe("historialPayloadToExpedienteCall", () => {
@@ -127,5 +144,45 @@ describe("historialPayloadToExpedienteCall", () => {
     const call = historialPayloadToExpedienteCall(r.payload);
     expect(call.opts.omitirRangoFecha).toBe(true);
     expect(call.opts.numeroNotificacion).toBe("123456");
+    expect(call.opts.page).toBe(1);
+    expect(call.opts.pageSize).toBe(10);
+  });
+
+  it("motivo_id en opts, no motivo_q", () => {
+    const r = buildHistorialNotificacionFiltroPayload(
+      { ...emptyForm, motivoId: 20 },
+      MOTIVOS_CATALOG
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const call = historialPayloadToExpedienteCall(r.payload);
+    expect(call.opts.motivoId).toBe(20);
+    expect(call.opts).not.toHaveProperty("motivoQ");
+  });
+
+  it("paginación server-side en opts", () => {
+    const r = buildHistorialNotificacionFiltroPayload({
+      ...emptyForm,
+      mes: 3,
+      anio: 2025,
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const call = historialPayloadToExpedienteCall(r.payload, { page: 2, pageSize: 10 });
+    expect(call.opts.page).toBe(2);
+    expect(call.opts.pageSize).toBe(10);
+  });
+
+  it("export sin paginación cuando includePagination es false", () => {
+    const r = buildHistorialNotificacionFiltroPayload({
+      ...emptyForm,
+      mes: 3,
+      anio: 2025,
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const call = historialPayloadToExpedienteCall(r.payload, undefined, { includePagination: false });
+    expect(call.opts.page).toBeUndefined();
+    expect(call.opts.pageSize).toBeUndefined();
   });
 });

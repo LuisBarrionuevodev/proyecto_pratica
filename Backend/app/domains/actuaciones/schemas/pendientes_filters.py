@@ -63,15 +63,22 @@ class ActuacionesPendientesFilters(BaseModel):
     numero_notificacion: Optional[str] = None
     numero_comprobacion: Optional[str] = None
     motivo_q: Optional[str] = None
+    # Historial notificación: filtro exacto por FK motivo (selector en UI).
+    motivo_id: Optional[int] = None
+    # Filtros operativos (En plazo / Por vencer): aplican tras ``plazo_slice`` en service.
+    orden_trabajo: Optional[str] = None
     # Solo aplica con ``source_type=notificacion`` en pendientes/expediente.
     plazo_slice: Optional[str] = None
+    # Paginación server-side (Historial notificaciones); no enviar en bandeja operativa.
+    page: Optional[int] = None
+    page_size: Optional[int] = None
 
     @field_validator("omitir_rango_fecha", mode="before")
     @classmethod
     def _omitir_rango_fecha_bool(cls, v: Any) -> bool:
         return _coerce_bool_optional(v)
 
-    @field_validator("distrito_id", "mes", "anio", mode="before")
+    @field_validator("distrito_id", "mes", "anio", "page", "page_size", "motivo_id", mode="before")
     @classmethod
     def _empty_int_optional(cls, v: Any) -> Any:
         if v is None or v == "":
@@ -87,6 +94,7 @@ class ActuacionesPendientesFilters(BaseModel):
         "numero_notificacion",
         "numero_comprobacion",
         "motivo_q",
+        "orden_trabajo",
         mode="before",
     )
     @classmethod
@@ -156,4 +164,8 @@ class ActuacionesPendientesFilters(BaseModel):
 
         if self.desde and self.hasta and self.desde > self.hasta:
             raise ValueError("desde debe ser menor o igual que hasta")
+        if self.page is not None and int(self.page) < 1:
+            raise ValueError("page debe ser >= 1")
+        if self.page_size is not None and int(self.page_size) < 1:
+            raise ValueError("page_size debe ser >= 1")
         return self

@@ -80,6 +80,8 @@ def get_pendientes_notificacion():
         desde=filters.desde,
         hasta=filters.hasta,
         numero_notificacion=filters.numero_notificacion,
+        calle_q=filters.calle_q,
+        orden_trabajo=filters.orden_trabajo,
     )
     query_ms = query_timer.elapsed_ms()
     rows_base = len(acts)

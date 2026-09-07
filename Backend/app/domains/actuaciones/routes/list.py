@@ -63,6 +63,8 @@ def listar_actuaciones():
             params["page_size"] = int(params["page_size"])
         if "actuacion_id" in params and params["actuacion_id"]:
             params["actuacion_id"] = int(params["actuacion_id"])
+        if "inspector_id" in params and params["inspector_id"]:
+            params["inspector_id"] = int(params["inspector_id"])
         
         # Validar con Pydantic
         filters = ActuacionesListFilters.model_validate(params)

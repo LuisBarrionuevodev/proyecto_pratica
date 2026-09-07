@@ -25,7 +25,11 @@ describe("FILTROS-4 Notificaciones Historial paginación UI", () => {
     expect(s).toContain("buildClientPaginationSummary");
     expect(s).toContain("BandejaTableSummary");
     expect(s).toContain("onPaginationChange={setHistorialPagination}");
-    expect(s).toContain("resetClientPaginationPageIndex");
+    expect(s).toContain("motivoSelectOptionsHistorial");
+    expect(s).toContain("Todos los motivos");
+    expect(s).toContain("fetchMotivos");
+    expect(s).toContain("manualPagination");
+    expect(s).toContain("rowCount={historialMeta?.total");
   });
 
   it("resetea página al filtrar y limpiar", () => {

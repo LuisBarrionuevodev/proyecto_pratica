@@ -83,6 +83,10 @@ export interface IActuacionesPendientesExpedienteResponse {
     desde: string | null;
     hasta: string | null;
     source_type?: "all" | "notificacion" | "comprobacion";
+    /** Historial notificación con paginación server-side. */
+    page?: number;
+    page_size?: number;
+    pages?: number;
   };
 }
 
@@ -213,6 +217,8 @@ export type IPendientesReinspeccionNotificacionOpts = {
   desde?: string | null;
   hasta?: string | null;
   numeroNotificacion?: string | null;
+  calleQ?: string | null;
+  ordenTrabajo?: string | null;
 };
 
 /**
@@ -226,6 +232,10 @@ export const getPendientesReinspeccionNotificacion = async (
   if (opts?.hasta) params.hasta = opts.hasta;
   const nn = opts?.numeroNotificacion?.trim();
   if (nn) params.numero_notificacion = nn;
+  const cq = opts?.calleQ?.trim();
+  if (cq) params.calle_q = cq;
+  const ot = opts?.ordenTrabajo?.trim();
+  if (ot) params.orden_trabajo = ot;
   const { data } = await apiClient.get<IActuacionesPendientesItem[]>("/actuaciones/pendientes-notificacion", {
     params,
   });
@@ -263,11 +273,19 @@ export type IActuacionesPendientesExpedienteOpts = {
   contribuyenteQ?: string | null;
   calleQ?: string | null;
   numeroNotificacion?: string | null;
+  /** Historial: FK exacta sobre notificacion_motivo. */
+  motivoId?: number | null;
+  /** Legacy texto; no enviar desde Historial nuevo. */
   motivoQ?: string | null;
   /** Solo con ``source_type=notificacion`` en pendientes/expediente operativo. */
   plazoSlice?: NotificacionPlazoSliceParam | null;
   /** Subcadena en Nº acta de comprobación (solo rama comprobacion). */
   numeroComprobacion?: string | null;
+  /** OT exacta normalizada (bandeja operativa notificación). */
+  ordenTrabajo?: string | null;
+  /** Paginación server-side (solo Historial notificación). */
+  page?: number;
+  pageSize?: number;
 };
 
 export const getActuacionesPendientesExpediente = async (
@@ -293,9 +311,14 @@ export const getActuacionesPendientesExpediente = async (
   if (nn) params.numero_notificacion = nn;
   const nc = opts?.numeroComprobacion?.trim();
   if (nc) params.numero_comprobacion = nc;
+  if (opts?.motivoId != null && opts.motivoId > 0) params.motivo_id = String(opts.motivoId);
   const mq = opts?.motivoQ?.trim();
   if (mq) params.motivo_q = mq;
+  const otc = opts?.ordenTrabajo?.trim();
+  if (otc) params.orden_trabajo = otc;
   if (opts?.plazoSlice) params.plazo_slice = opts.plazoSlice;
+  if (opts?.page != null && opts.page >= 1) params.page = String(opts.page);
+  if (opts?.pageSize != null && opts.pageSize >= 1) params.page_size = String(opts.pageSize);
   const { data } = await apiClient.get<IActuacionesPendientesExpedienteResponse>(
     "/actuaciones/pendientes/expediente",
     { params }

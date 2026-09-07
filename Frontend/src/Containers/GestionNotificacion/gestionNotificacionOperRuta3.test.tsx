@@ -5,6 +5,10 @@ import {
   operativaNotificacionTieneFiltro,
 } from "./utils/buildOperativaNotificacionFiltroPayload";
 import {
+  isOperativeNotificacionTab,
+  shouldResetOperativaFiltroOnTabChange,
+} from "./utils/operativaNotificacionTabChange";
+import {
   notificacionEstadoOperativoChipColor,
   notificacionEstadoOperativoLabel,
 } from "./utils/notificacionEstadoOperativo";
@@ -18,18 +22,28 @@ vi.mock("../../api/actuacionesPendientesApi", () => ({
 }));
 
 describe("buildOperativaNotificacionFiltroPayload", () => {
-  it("normaliza desde/hasta y número", () => {
+  it("U1 — payload sin OT, solo número y calle", () => {
     expect(
       buildOperativaNotificacionFiltroPayload({
         desde: " 2026-04-01 ",
         hasta: "2026-04-30",
         numeroNotificacion: " 8091 ",
+        calleQ: " san martin ",
       })
     ).toEqual({
       desde: "2026-04-01",
       hasta: "2026-04-30",
       numeroNotificacion: "8091",
+      calleQ: "san martin",
     });
+    expect(
+      buildOperativaNotificacionFiltroPayload({
+        desde: null,
+        hasta: null,
+        numeroNotificacion: "",
+        calleQ: "",
+      })
+    ).not.toHaveProperty("ordenTrabajo");
   });
 
   it("detecta si hay filtros activos", () => {
@@ -38,15 +52,27 @@ describe("buildOperativaNotificacionFiltroPayload", () => {
         desde: null,
         hasta: null,
         numeroNotificacion: null,
+        calleQ: null,
       })
     ).toBe(false);
     expect(
       operativaNotificacionTieneFiltro({
-        desde: "2026-04-01",
+        desde: null,
         hasta: null,
-        numeroNotificacion: null,
+        numeroNotificacion: "123",
+        calleQ: null,
       })
     ).toBe(true);
+  });
+});
+
+describe("operativaNotificacionTabChange", () => {
+  it("U5/U6 — reset al cambiar entre tabs operativos", () => {
+    expect(shouldResetOperativaFiltroOnTabChange("en_plazo", "por_vencer")).toBe(true);
+    expect(shouldResetOperativaFiltroOnTabChange("por_vencer", "vencidas_o_hoy")).toBe(true);
+    expect(shouldResetOperativaFiltroOnTabChange("en_plazo", "en_plazo")).toBe(false);
+    expect(shouldResetOperativaFiltroOnTabChange("en_plazo", "total")).toBe(false);
+    expect(isOperativeNotificacionTab("total")).toBe(false);
   });
 });
 
@@ -69,6 +95,7 @@ describe("notificacionEstadoOperativo", () => {
 
 describe("API operativa notificaciones", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(getActuacionesPendientesExpediente).mockResolvedValue({
       items: [],
       meta: { total: 0, desde: null, hasta: null, source_type: "notificacion" },
@@ -76,50 +103,58 @@ describe("API operativa notificaciones", () => {
     vi.mocked(getPendientesReinspeccionNotificacion).mockResolvedValue([]);
   });
 
-  it("en plazo envía desde/hasta sin omitir_rango_fecha cuando hay rango", async () => {
-    await getActuacionesPendientesExpediente("2026-04-01", "2026-04-30", "notificacion", null, {
+  it("U2 — en plazo envía solo plazo_slice=en_plazo con número", async () => {
+    await getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
+      omitirRangoFecha: true,
       plazoSlice: "en_plazo",
       numeroNotificacion: "123",
     });
     expect(getActuacionesPendientesExpediente).toHaveBeenCalledWith(
-      "2026-04-01",
-      "2026-04-30",
+      undefined,
+      undefined,
       "notificacion",
       null,
-      expect.objectContaining({
-        plazoSlice: "en_plazo",
-        numeroNotificacion: "123",
-      })
+      expect.objectContaining({ plazoSlice: "en_plazo", numeroNotificacion: "123" })
     );
-    const opts = vi.mocked(getActuacionesPendientesExpediente).mock.calls[0][4];
-    expect(opts?.omitirRangoFecha).toBeUndefined();
+    expect(getPendientesReinspeccionNotificacion).not.toHaveBeenCalled();
   });
 
-  it("en plazo mantiene omitir_rango_fecha sin fechas", async () => {
+  it("U3 — por vencer envía solo plazo_slice=por_vencer", async () => {
     await getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
       omitirRangoFecha: true,
-      plazoSlice: "en_plazo",
+      plazoSlice: "por_vencer",
+      numeroNotificacion: "456",
     });
     expect(getActuacionesPendientesExpediente).toHaveBeenCalledWith(
       undefined,
       undefined,
       "notificacion",
       null,
-      expect.objectContaining({ omitirRangoFecha: true, plazoSlice: "en_plazo" })
+      expect.objectContaining({ plazoSlice: "por_vencer", numeroNotificacion: "456" })
     );
   });
 
-  it("pendiente reinspección envía filtros al backend", async () => {
+  it("U4 — reinspección solo pendientes-notificacion", async () => {
     await getPendientesReinspeccionNotificacion({
-      desde: "2026-05-01",
-      hasta: "2026-05-31",
       numeroNotificacion: "456",
+      calleQ: "mitre",
     });
     expect(getPendientesReinspeccionNotificacion).toHaveBeenCalledWith({
-      desde: "2026-05-01",
-      hasta: "2026-05-31",
       numeroNotificacion: "456",
+      calleQ: "mitre",
     });
+    expect(getActuacionesPendientesExpediente).not.toHaveBeenCalled();
+  });
+
+  it("en plazo envía calle sin OT", async () => {
+    await getActuacionesPendientesExpediente(undefined, undefined, "notificacion", null, {
+      omitirRangoFecha: true,
+      plazoSlice: "en_plazo",
+      calleQ: "san martin",
+    });
+    const opts = vi.mocked(getActuacionesPendientesExpediente).mock.calls.at(-1)?.[4];
+    expect(opts).toMatchObject({ calleQ: "san martin", plazoSlice: "en_plazo" });
+    expect(opts).not.toHaveProperty("ordenTrabajo");
   });
 });
 

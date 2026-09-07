@@ -27,7 +27,7 @@ const emptyForm = {
   numeroNotificacion: "",
   calleQ: "",
   contribuyenteQ: "",
-  motivoQ: "",
+  motivoId: "" as const,
   combinarConPeriodo: false,
 };
 
