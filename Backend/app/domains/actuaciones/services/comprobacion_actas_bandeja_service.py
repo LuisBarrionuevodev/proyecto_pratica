@@ -21,6 +21,7 @@ from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
 from app.domains.actuaciones.services.pendientes_service import (
     _apply_distrito_optional,
     _apply_fecha_comprobacion_acta,
+    apply_numero_comprobacion_sql,
 )
 from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, Oficio
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
@@ -57,6 +58,49 @@ def _contains_ci(column, term: str):
     """Subcadena case-insensitive (``ILIKE`` / ``lower LIKE``)."""
     t = term.strip().lower()
     return func.lower(column).contains(t)
+
+
+def _oficio_numero_matches(ofi: Oficio, term: str) -> bool:
+    """
+    True si el oficio coincide con el término (parcial, número/año, sin ``/``).
+
+    Alineado a ``_apply_recorrido_busqueda_sql`` ``oficio_numero``, scoped a un oficio.
+    """
+    if not term or not str(term).strip():
+        return True
+    t = str(term).strip()
+    t_lower = t.lower()
+    t_flat = t_lower.replace("/", "")
+    num = (getattr(ofi, "numero_oficio", None) or "").lower()
+    anio = str(getattr(ofi, "anio", None) or "")
+    blob = f"{getattr(ofi, 'numero_oficio', None) or ''}/{anio}".lower()
+    blob_flat = blob.replace("/", "")
+    return t_lower in num or t_lower in blob or t_flat in blob_flat
+
+
+def _expediente_numero_matches(exp: Expediente, term: str) -> bool:
+    """
+    True si el expediente coincide con el término (parcial, número/año, dígitos).
+
+    Alineado a ``_apply_recorrido_busqueda_sql`` ``expediente_numero``.
+    """
+    if not term or not str(term).strip():
+        return True
+    t = str(term).strip()
+    t_lower = t.lower()
+    t_flat = t_lower.replace("/", "")
+    num = (getattr(exp, "numero_expediente", None) or "").lower()
+    anio = str(getattr(exp, "anio", None) or "")
+    blob = f"{getattr(exp, 'numero_expediente', None) or ''}/{anio}".lower()
+    blob_flat = blob.replace("/", "")
+    exp_digits = num.replace("/", "").replace(" ", "")
+    term_digits = "".join(c for c in t_flat if c.isdigit()) or t_flat
+    return (
+        t_lower in num
+        or t_lower in blob
+        or t_flat in blob_flat
+        or term_digits in exp_digits
+    )
 
 
 def _apply_recorrido_busqueda_sql(
@@ -242,6 +286,7 @@ def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilte
     q = _apply_fecha_comprobacion_acta(q, filters)
     distrito_id = getattr(filters, "distrito_id", None)
     q = _apply_distrito_optional(q, distrito_id)
+    q = apply_numero_comprobacion_sql(q, filters.numero_comprobacion)
     return q.order_by(Actuaciones.id.desc())
 
 
@@ -309,11 +354,20 @@ def list_pendientes_reinspeccion_oficio_filas(
     """
     acts = _query_actuaciones_circuito_reinspeccion(filters).all()
     filas: List[Tuple[Actuaciones, Oficio, Optional[IniciadorRuta]]] = []
+    numero_oficio = getattr(filters, "numero_oficio", None)
+    expediente_respuesta_numero = getattr(filters, "expediente_respuesta_numero", None)
     for act in acts:
         if act.comprobacion_id is None:
             continue
         for ofi in list_oficios_by_comprobacion(int(act.comprobacion_id)):
-            if _expediente_respuesta_por_oficio(ofi.id) is None:
+            exp_resp = _expediente_respuesta_por_oficio(ofi.id)
+            if exp_resp is None:
+                continue
+            if numero_oficio and not _oficio_numero_matches(ofi, numero_oficio):
+                continue
+            if expediente_respuesta_numero and not _expediente_numero_matches(
+                exp_resp, expediente_respuesta_numero
+            ):
                 continue
             ini = _iniciador_para_oficio_en_actuacion(ofi, act)
             if iniciador_en_ruta_operativa(ini):

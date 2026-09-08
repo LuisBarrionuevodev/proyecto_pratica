@@ -100,6 +100,97 @@ def _apply_distrito_optional(query, distrito_id: Optional[int]):
     )
 
 
+def _numero_comprobacion_normalizado_sql(column):
+    """``lower(replace(coalesce(column,''), ' ', ''))`` — alineado al filtro Python legacy."""
+    return func.lower(func.replace(func.coalesce(column, ""), " ", ""))
+
+
+def apply_numero_comprobacion_sql(query, numero_comprobacion: Optional[str]):
+    """
+    Filtra actuaciones cuya comprobación vinculada coincide por subcadena en ``numero_acta``.
+
+    Semántica: case-insensitive, espacios ignorados, parcial (``q in numero``).
+    Usa ``EXISTS`` para no multiplicar filas del query principal.
+
+    Parámetros:
+        query: consulta de ``Actuaciones``.
+        numero_comprobacion: término opcional del filtro UI.
+
+    Retorno:
+        Query sin cambios si el término es vacío; si no, query restringida.
+
+    Errores:
+        Ninguno.
+    """
+    if not numero_comprobacion or not str(numero_comprobacion).strip():
+        return query
+    q_norm = str(numero_comprobacion).replace(" ", "").lower()
+    if not q_norm:
+        return query
+    num_norm = _numero_comprobacion_normalizado_sql(Comprobacion.numero_acta)
+    return query.filter(
+        exists().where(
+            and_(
+                Comprobacion.id == Actuaciones.comprobacion_id,
+                Comprobacion.deleted_at.is_(None),
+                num_norm.contains(q_norm),
+            )
+        )
+    )
+
+
+def apply_expediente_envio_numero_sql(query, expediente_envio_numero: Optional[str]):
+    """
+    Filtra actuaciones cuyo expediente de **envío** (``oficio_id`` NULL) coincide por subcadena.
+
+    Semántica alineada a Recorrido ``expediente_numero``: parcial, número/año, dígitos.
+    No incluye expedientes de respuesta de oficio.
+
+    Parámetros:
+        query: consulta de ``Actuaciones``.
+        expediente_envio_numero: término opcional del filtro UI.
+
+    Retorno:
+        Query sin cambios si el término es vacío; si no, query restringida.
+
+    Errores:
+        Ninguno.
+    """
+    if not expediente_envio_numero or not str(expediente_envio_numero).strip():
+        return query
+    term = str(expediente_envio_numero).strip()
+    term_lower = term.lower()
+    term_flat = term_lower.replace("/", "")
+    exp_blob = func.lower(
+        func.concat(
+            func.coalesce(Expediente.numero_expediente, ""),
+            "/",
+            func.coalesce(Expediente.anio, ""),
+        )
+    )
+    exp_digits = func.replace(
+        func.replace(func.lower(func.coalesce(Expediente.numero_expediente, "")), "/", ""),
+        " ",
+        "",
+    )
+    term_digits = "".join(c for c in term_flat if c.isdigit()) or term_flat
+    return query.filter(
+        exists().where(
+            and_(
+                Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+                Expediente.oficio_id.is_(None),
+                Expediente.deleted_at.is_(None),
+                or_(
+                    func.lower(Expediente.numero_expediente).contains(term_lower),
+                    exp_blob.contains(term_lower),
+                    func.replace(exp_blob, "/", "").contains(term_flat),
+                    exp_digits.contains(term_digits),
+                ),
+            )
+        )
+    )
+
+
 def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
     query = (
         Actuaciones.query.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
@@ -641,6 +732,7 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         query = apply_bandeja_grid_eager(
             _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
         )
+        query = apply_numero_comprobacion_sql(query, filters.numero_comprobacion)
     elif source_type == "notificacion":
         query = apply_bandeja_grid_eager(
             _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
@@ -662,8 +754,6 @@ def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Act
         and not _historial_paginacion_solicitada(filters)
     ):
         acts = _filter_actuaciones_documental_notificacion(acts, filters)
-    if source_type == "comprobacion" and _comprobacion_documental_filters_active(filters):
-        acts = _filter_actuaciones_documental_comprobacion(acts, filters)
     if source_type == "notificacion" and getattr(filters, "plazo_slice", None):
         acts = filter_actuaciones_notificacion_por_plazo_slice(acts, filters.plazo_slice)
     if (
@@ -737,11 +827,6 @@ def _filter_actuaciones_operativos_calle_ot(
     return out
 
 
-def _comprobacion_documental_filters_active(filters: ActuacionesPendientesFilters) -> bool:
-    """True si llegó filtro por Nº comprobación (bandejas comprobación)."""
-    return bool(filters.numero_comprobacion)
-
-
 def _filter_actuaciones_documental_notificacion(
     acts: List[Actuaciones],
     filters: ActuacionesPendientesFilters,
@@ -790,26 +875,6 @@ def _filter_actuaciones_documental_notificacion(
     return out
 
 
-def _filter_actuaciones_documental_comprobacion(
-    acts: List[Actuaciones],
-    filters: ActuacionesPendientesFilters,
-) -> List[Actuaciones]:
-    """
-    Filtra actuaciones COMPROBACION por subcadena en ``acta_comprobacion_num`` (grilla).
-    """
-    if not acts or not filters.numero_comprobacion:
-        return acts
-    counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
-    q = filters.numero_comprobacion.replace(" ", "").lower()
-    out: List[Actuaciones] = []
-    for act in acts:
-        row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
-        num = (row.get("acta_comprobacion_num") or "").replace(" ", "").lower()
-        if q in num:
-            out.append(act)
-    return out
-
-
 def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
     """
     Lista actuaciones en estado "esperando oficio".
@@ -845,7 +910,6 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
     )
     query = _apply_fecha(query, filters.desde, filters.hasta)
     query = _apply_distrito_optional(query, getattr(filters, "distrito_id", None))
-    acts = query.order_by(Actuaciones.id.desc()).all()
-    if _comprobacion_documental_filters_active(filters):
-        acts = _filter_actuaciones_documental_comprobacion(acts, filters)
-    return acts
+    query = apply_numero_comprobacion_sql(query, filters.numero_comprobacion)
+    query = apply_expediente_envio_numero_sql(query, filters.expediente_envio_numero)
+    return query.order_by(Actuaciones.id.desc()).all()

@@ -62,6 +62,11 @@ class ActuacionesPendientesFilters(BaseModel):
     calle_q: Optional[str] = None
     numero_notificacion: Optional[str] = None
     numero_comprobacion: Optional[str] = None
+    # Bandeja pendiente oficio (comprobación): expediente de envío (`oficio_id` NULL).
+    expediente_envio_numero: Optional[str] = None
+    # Bandeja reinspección por oficio: filtros scoped a cada fila/oficio (post-fan-out).
+    numero_oficio: Optional[str] = None
+    expediente_respuesta_numero: Optional[str] = None
     motivo_q: Optional[str] = None
     # Historial notificación: filtro exacto por FK motivo (selector en UI).
     motivo_id: Optional[int] = None
@@ -93,6 +98,9 @@ class ActuacionesPendientesFilters(BaseModel):
         "calle_q",
         "numero_notificacion",
         "numero_comprobacion",
+        "expediente_envio_numero",
+        "numero_oficio",
+        "expediente_respuesta_numero",
         "motivo_q",
         "orden_trabajo",
         mode="before",

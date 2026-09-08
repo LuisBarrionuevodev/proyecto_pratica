@@ -80,13 +80,6 @@ def comprobacion_pendientes_reinspeccion_oficio():
             )
             for act, ofi, ini in filas
         ]
-        if filters.numero_comprobacion:
-            q_num = filters.numero_comprobacion.replace(" ", "").lower()
-            items = [
-                row
-                for row in items
-                if q_num in (row.get("acta_comprobacion_num") or "").replace(" ", "").lower()
-            ]
         ini_ids = [
             int(row["iniciador_id"])
             for row in items

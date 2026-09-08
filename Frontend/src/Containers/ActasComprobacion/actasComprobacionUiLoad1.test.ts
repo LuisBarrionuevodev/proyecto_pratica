@@ -35,24 +35,27 @@ describe("UI-LOAD.1 Comprobaciones — loading único", () => {
 });
 
 describe("refreshComprobacionesPostOficio", () => {
-  it("refresca tres bandejas pendientes; activa sin silent", async () => {
-    const invalidatePendientesTabs = vi.fn();
+  it("invalida tabs indicados y recarga base sin filtros", async () => {
+    const invalidateOperativaBaseTabs = vi.fn();
     const loadExpediente = vi.fn().mockResolvedValue(undefined);
     const loadOficio = vi.fn().mockResolvedValue(undefined);
     const loadRein = vi.fn().mockResolvedValue(undefined);
 
-    await refreshComprobacionesPostOficio({
-      filters: null,
-      activeTab: "oficio",
-      invalidatePendientesTabs,
-      loadExpediente,
-      loadOficio,
-      loadRein,
-    });
+    await refreshComprobacionesPostOficio(
+      {
+        filters: null,
+        activeTab: "oficio",
+        invalidateOperativaBaseTabs,
+        loadExpediente,
+        loadOficio,
+        loadRein,
+      },
+      ["expediente", "oficio", "reinspeccion"]
+    );
 
-    expect(invalidatePendientesTabs).toHaveBeenCalledOnce();
-    expect(loadOficio).toHaveBeenCalledWith(null, { silent: false });
-    expect(loadExpediente).toHaveBeenCalledWith(null, { silent: true });
-    expect(loadRein).toHaveBeenCalledWith(null, { silent: true });
+    expect(invalidateOperativaBaseTabs).toHaveBeenCalledWith(["expediente", "oficio", "reinspeccion"]);
+    expect(loadOficio).toHaveBeenCalledWith(null, { silent: false, forceBaseRefresh: true });
+    expect(loadExpediente).toHaveBeenCalledWith(null, { silent: true, forceBaseRefresh: true });
+    expect(loadRein).toHaveBeenCalledWith(null, { silent: true, forceBaseRefresh: true });
   });
 });

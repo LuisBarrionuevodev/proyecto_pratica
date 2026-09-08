@@ -166,6 +166,36 @@ export function BandejaDomicilioYRubroCell({
 }
 
 /**
+ * Establecimiento en bandeja: contribuyente, domicilio y rubro apilados.
+ */
+export function BandejaEstablecimientoCell({
+  contribuyente,
+  domicilioLinea,
+  rubro,
+}: {
+  contribuyente: string;
+  domicilioLinea: string;
+  rubro?: string | null;
+}) {
+  const c = (contribuyente ?? "").trim() || "—";
+  const d = (domicilioLinea ?? "").trim() || "—";
+  const r = (rubro ?? "").trim();
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.35, maxWidth: "100%" }}>
+      <BandejaEllipsisCell value={c} />
+      <BandejaEllipsisCell value={d} />
+      {r ? (
+        <Tooltip title={r} placement="top-start" enterDelay={400}>
+          <Chip size="small" variant="outlined" label={r} sx={chipSx} />
+        </Tooltip>
+      ) : (
+        <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>—</Typography>
+      )}
+    </Box>
+  );
+}
+
+/**
  * Segmento de chip para contraproducencia (misma convención que columna compuesta de Actuaciones).
  */
 export function contraproducenciaBandejaSegment(contra: string | null | undefined): string {

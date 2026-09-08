@@ -6,6 +6,7 @@ const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
 import {
   buildOperativaComprobacionFiltroPayload,
+  buildOperativaComprobacionFiltroPayloadForTab,
   operativaComprobacionTieneFiltro,
 } from "./utils/buildOperativaComprobacionFiltroPayload";
 import {
@@ -50,19 +51,37 @@ describe("buildOperativaComprobacionFiltroPayload", () => {
 
   it("detecta si hay filtros activos", () => {
     expect(
-      operativaComprobacionTieneFiltro({
+      operativaComprobacionTieneFiltro("expediente", {
         desde: null,
         hasta: null,
         numeroComprobacion: null,
       })
     ).toBe(false);
     expect(
-      operativaComprobacionTieneFiltro({
+      operativaComprobacionTieneFiltro("expediente", {
         desde: "2026-04-01",
         hasta: null,
         numeroComprobacion: null,
       })
     ).toBe(true);
+  });
+
+  it("oficio payload incluye expediente de envío", () => {
+    expect(
+      buildOperativaComprobacionFiltroPayloadForTab("oficio", {
+        desde: null,
+        hasta: null,
+        numeroComprobacion: "456",
+        expedienteEnvioNumero: "789",
+        numeroOficio: "",
+        expedienteRespuestaNumero: "",
+      })
+    ).toEqual({
+      desde: null,
+      hasta: null,
+      numeroComprobacion: "456",
+      expedienteEnvioNumero: "789",
+    });
   });
 });
 
@@ -130,23 +149,29 @@ describe("API operativa comprobaciones", () => {
     );
   });
 
-  it("oficio envía numero_comprobacion al backend", async () => {
+  it("oficio envía numero_comprobacion y expediente_envio al backend", async () => {
     await fetchComprobacionPendientesOficio(null, null, null, {
       omitirRangoFecha: true,
       numeroComprobacion: "456",
+      expedienteEnvioNumero: "789",
     });
     expect(fetchComprobacionPendientesOficio).toHaveBeenCalledWith(null, null, null, {
       omitirRangoFecha: true,
       numeroComprobacion: "456",
+      expedienteEnvioNumero: "789",
     });
   });
 
   it("reinspección envía filtros al backend", async () => {
     await fetchPendientesReinspeccionOficio("2026-05-01", "2026-05-31", null, {
       numeroComprobacion: "789",
+      numeroOficio: "O1",
+      expedienteRespuestaNumero: "R1",
     });
     expect(fetchPendientesReinspeccionOficio).toHaveBeenCalledWith("2026-05-01", "2026-05-31", null, {
       numeroComprobacion: "789",
+      numeroOficio: "O1",
+      expedienteRespuestaNumero: "R1",
     });
   });
 });

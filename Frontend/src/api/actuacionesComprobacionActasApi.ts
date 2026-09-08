@@ -5,6 +5,7 @@ export type FetchComprobacionPendientesOficioOpts = {
   /** Igual que pendientes/expediente: sin acotar por mes cuando es true (evita filas “perdidas” fuera del mes). */
   omitirRangoFecha?: boolean;
   numeroComprobacion?: string | null;
+  expedienteEnvioNumero?: string | null;
 };
 
 /** Reutiliza el mismo contrato que la bandeja esperando oficio. */
@@ -21,6 +22,8 @@ export async function fetchComprobacionPendientesOficio(
   if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const nc = opts?.numeroComprobacion?.trim();
   if (nc) params.numero_comprobacion = nc;
+  const ne = opts?.expedienteEnvioNumero?.trim();
+  if (ne) params.expediente_envio_numero = ne;
   const { data } = await apiClient.get<IPendientesOficioResponse>("/actuaciones/pendientes/oficio", { params });
   return data;
 }
@@ -112,6 +115,8 @@ export type FetchPendientesReinspeccionOficioOpts = {
   /** Sin acotar por mes (evita filas fuera del mes corriente; mismo criterio que pendientes/oficio). */
   omitirRangoFecha?: boolean;
   numeroComprobacion?: string | null;
+  numeroOficio?: string | null;
+  expedienteRespuestaNumero?: string | null;
 };
 
 export async function fetchPendientesReinspeccionOficio(
@@ -127,6 +132,10 @@ export async function fetchPendientesReinspeccionOficio(
   if (opts?.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const nc = opts?.numeroComprobacion?.trim();
   if (nc) params.numero_comprobacion = nc;
+  const no = opts?.numeroOficio?.trim();
+  if (no) params.numero_oficio = no;
+  const er = opts?.expedienteRespuestaNumero?.trim();
+  if (er) params.expediente_respuesta_numero = er;
   const { data } = await apiClient.get<IReinspeccionOficioResponse>(
     "/actuaciones/comprobacion/pendientes-reinspeccion-oficio",
     { params }
