@@ -38,10 +38,13 @@ describe("GESTIÓN-FIX.1A Notificación", () => {
     expect(reconcileIdx).toBeGreaterThan(dismissIdx);
   });
 
-  it("reconciliación en background con todos los loads silent", () => {
+  it("reconciliación en background vía refreshNotificacionesPostProrroga", () => {
     expect(page).toContain("runGestionReconcile");
     expect(page).toContain("GESTION_RECONCILE_REFRESH_MSG");
-    expect(page).toMatch(/reconcileBandejasSilent[\s\S]*silent: true/);
+    const reconcileBlock = page.slice(page.indexOf("const reconcileBandejasSilent"), page.indexOf("const handleExpedienteMutacionExitosa"));
+    expect(reconcileBlock).toContain("refreshNotificacionesPostProrroga");
+    const refreshUtil = read("src/Containers/GestionNotificacion/utils/refreshNotificacionesPostProrroga.ts");
+    expect(refreshUtil).toMatch(/silent: activeSlice !==/);
   });
 
   it("mutación inline usa reconcile sin await en handler padre", () => {

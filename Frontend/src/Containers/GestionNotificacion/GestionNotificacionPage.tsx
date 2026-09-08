@@ -88,8 +88,6 @@ import { applyFormErrorsFromApi } from "../../utils/parseApiError";
 import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
 import {
   matchesPlazoSlice,
-  operativePlazoSlicePeerToInvalidate,
-  operativePlazoSliceShouldFetch,
   sliceLabel,
   type PlazoOperativoSlice,
   type OperativePlazoExpedienteSlice,
@@ -129,7 +127,19 @@ import {
   type OperativaNotificacionFiltroPayload,
 } from "./utils/buildOperativaNotificacionFiltroPayload";
 import { shouldResetOperativaFiltroOnTabChange } from "./utils/operativaNotificacionTabChange";
-import { refreshNotificacionesPostProrroga } from "./utils/refreshNotificacionesPostProrroga";
+import {
+  createOperativaNotificacionBaseCacheState,
+  invalidateOperativaNotificacionBaseTabs as invalidateOperativaNotificacionBaseTabsInState,
+  isOperativaNotificacionBaseLoad,
+  resolveOperativaNotificacionTabLoadAction,
+  type OperativaNotificacionSlice,
+} from "./utils/operativaNotificacionBaseCache";
+import {
+  MUTATION_INVALIDATE_ALL_OPERATIVE,
+  MUTATION_INVALIDATE_REINSPECCION,
+  refreshNotificacionesPostProrroga,
+  resolveNotificacionMutationInvalidateTabs,
+} from "./utils/refreshNotificacionesPostProrroga";
 import {
   clearPersistKeyIfMatch,
   GESTION_PERSIST_OPS,
@@ -410,46 +420,52 @@ const GestionNotificacionPage = () => {
 
   const prevPlazoSliceRef = useRef<PlazoOperativoSlice>(plazoSlice);
   const plazoSliceRef = useRef<PlazoOperativoSlice>(plazoSlice);
-  const operativeSliceLoadedRef = useRef<Record<OperativePlazoExpedienteSlice, boolean>>({
-    en_plazo: false,
-    por_vencer: false,
-  });
-  const [itemsBySlice, setItemsBySlice] = useState<
-    Record<OperativePlazoExpedienteSlice, IActuacionesPendientesItem[]>
+  const operativaBaseCacheRef = useRef(createOperativaNotificacionBaseCacheState());
+  const modalEsReinspeccionNotificacionRef = useRef(false);
+  const [operativeBaseTotals, setOperativeBaseTotals] = useState<
+    Record<OperativaNotificacionSlice, number>
   >({
-    en_plazo: [],
-    por_vencer: [],
+    en_plazo: 0,
+    por_vencer: 0,
+    reinspeccion: 0,
   });
-  const itemsBySliceRef = useRef(itemsBySlice);
-  itemsBySliceRef.current = itemsBySlice;
-  const reinspeccionDataLoadedRef = useRef(false);
 
-  const invalidateOtherOperativeSlices = useCallback((active: OperativePlazoExpedienteSlice) => {
-    const other = operativePlazoSlicePeerToInvalidate(active);
-    operativeSliceLoadedRef.current[other] = false;
+  const invalidateOperativaBaseTabs = useCallback((slices: OperativaNotificacionSlice[]) => {
+    invalidateOperativaNotificacionBaseTabsInState(operativaBaseCacheRef.current, slices);
   }, []);
 
   useEffect(() => {
     opAppliedRef.current = opApplied;
   }, [opApplied]);
 
-  const invalidateOperativeSlices = useCallback(() => {
-    operativeSliceLoadedRef.current.en_plazo = false;
-    operativeSliceLoadedRef.current.por_vencer = false;
-    reinspeccionDataLoadedRef.current = false;
+  const restorePlazoSliceFromBase = useCallback((slice: OperativePlazoExpedienteSlice) => {
+    const snap = operativaBaseCacheRef.current[slice].snapshot;
+    if (!snap) return false;
+    setItems(snap.items);
+    setOperativeBaseTotals((prev) => ({ ...prev, [slice]: snap.total }));
+    setError(null);
+    return true;
   }, []);
 
   const loadPlazoSliceData = useCallback(
     async (
       slice: OperativePlazoExpedienteSlice,
-      force = false,
       filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current,
-      opts?: { silent?: boolean }
+      opts?: { silent?: boolean; forceBaseRefresh?: boolean }
     ) => {
-      if (!operativePlazoSliceShouldFetch(slice, operativeSliceLoadedRef.current, force)) {
-        perfLog("notificaciones.tab.cacheHit", { slice });
+      const isBase = isOperativaNotificacionBaseLoad(filters);
+      if (opts?.forceBaseRefresh && isBase) {
+        operativaBaseCacheRef.current[slice].valid = false;
+        operativaBaseCacheRef.current[slice].snapshot = null;
+      }
+      if (
+        !opts?.forceBaseRefresh &&
+        resolveOperativaNotificacionTabLoadAction(slice, filters, operativaBaseCacheRef.current) ===
+          "restore-base"
+      ) {
+        perfLog("notificaciones.tab.baseCacheHit", { slice });
         if (plazoSliceRef.current === slice) {
-          setItems(itemsBySliceRef.current[slice]);
+          restorePlazoSliceFromBase(slice);
         }
         return;
       }
@@ -469,8 +485,13 @@ const GestionNotificacionPage = () => {
           (r) => ({ slice, rows: r.items.length, total: r.meta.total })
         );
         const normalized = normalizeNotificacionBandejaItems(resp.items, resp.meta.source_type);
-        setItemsBySlice((prev) => ({ ...prev, [slice]: normalized }));
-        operativeSliceLoadedRef.current[slice] = true;
+        if (isBase) {
+          operativaBaseCacheRef.current[slice] = {
+            valid: true,
+            snapshot: { items: normalized, total: resp.meta.total },
+          };
+          setOperativeBaseTotals((prev) => ({ ...prev, [slice]: resp.meta.total }));
+        }
         if (plazoSliceRef.current === slice) {
           setItems(normalized);
         }
@@ -488,7 +509,7 @@ const GestionNotificacionPage = () => {
         if (!opts?.silent) setLoading(false);
       }
     },
-    []
+    [restorePlazoSliceFromBase]
   );
 
   const [selected, setSelected] = useState<IActuacionesPendientesItem | null>(null);
@@ -508,6 +529,10 @@ const GestionNotificacionPage = () => {
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+
+  useEffect(() => {
+    modalEsReinspeccionNotificacionRef.current = modalEsReinspeccionNotificacion;
+  }, [modalEsReinspeccionNotificacion]);
 
   useEffect(() => {
     historialFiltroAplicadoRef.current = historialFiltroAplicado;
@@ -530,11 +555,34 @@ const GestionNotificacionPage = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  const restoreReinspeccionFromBase = useCallback(() => {
+    const snap = operativaBaseCacheRef.current.reinspeccion.snapshot;
+    if (!snap) return false;
+    setReinspeccionItems(snap.items);
+    setOperativeBaseTotals((prev) => ({ ...prev, reinspeccion: snap.total }));
+    setReinspeccionError(null);
+    return true;
+  }, []);
+
   const loadPendientesReinspeccionNotificacion = useCallback(
     async (
       filters: OperativaNotificacionFiltroPayload | null = opAppliedRef.current,
-      opts?: { silent?: boolean }
+      opts?: { silent?: boolean; forceBaseRefresh?: boolean }
     ) => {
+      const isBase = isOperativaNotificacionBaseLoad(filters);
+      if (opts?.forceBaseRefresh && isBase) {
+        operativaBaseCacheRef.current.reinspeccion.valid = false;
+        operativaBaseCacheRef.current.reinspeccion.snapshot = null;
+      }
+      if (
+        !opts?.forceBaseRefresh &&
+        resolveOperativaNotificacionTabLoadAction("reinspeccion", filters, operativaBaseCacheRef.current) ===
+          "restore-base"
+      ) {
+        perfLog("notificaciones.tab.baseCacheHit", { slice: "vencidas_o_hoy" });
+        restoreReinspeccionFromBase();
+        return;
+      }
       if (!opts?.silent) setReinspeccionLoading(true);
       setReinspeccionError(null);
       try {
@@ -549,10 +597,17 @@ const GestionNotificacionPage = () => {
             }),
           (r) => ({ rows: r.length })
         );
-        setReinspeccionItems(
-          normalizeNotificacionBandejaItems(rows, "notificacion").map(mapPendienteReinspeccionNotificacionToGestionRow)
+        const normalized = normalizeNotificacionBandejaItems(rows, "notificacion").map(
+          mapPendienteReinspeccionNotificacionToGestionRow
         );
-        reinspeccionDataLoadedRef.current = true;
+        if (isBase) {
+          operativaBaseCacheRef.current.reinspeccion = {
+            valid: true,
+            snapshot: { items: normalized, total: normalized.length },
+          };
+          setOperativeBaseTotals((prev) => ({ ...prev, reinspeccion: normalized.length }));
+        }
+        setReinspeccionItems(normalized);
       } catch (err: unknown) {
         const detail =
           err && typeof err === "object" && "response" in err
@@ -564,7 +619,7 @@ const GestionNotificacionPage = () => {
         if (!opts?.silent) setReinspeccionLoading(false);
       }
     },
-    []
+    [restoreReinspeccionFromBase]
   );
 
   const handleApplyOperativaFiltro = useCallback(() => {
@@ -578,7 +633,7 @@ const GestionNotificacionPage = () => {
     opAppliedRef.current = payload;
     const active = plazoSliceRef.current;
     if (active === "en_plazo" || active === "por_vencer") {
-      void loadPlazoSliceData(active, true, payload);
+      void loadPlazoSliceData(active, payload);
     } else if (active === "vencidas_o_hoy") {
       void loadPendientesReinspeccionNotificacion(payload);
     }
@@ -600,7 +655,7 @@ const GestionNotificacionPage = () => {
     opAppliedRef.current = null;
     const active = plazoSliceRef.current;
     if (active === "en_plazo" || active === "por_vencer") {
-      void loadPlazoSliceData(active, true, null);
+      void loadPlazoSliceData(active, null);
     } else if (active === "vencidas_o_hoy") {
       void loadPendientesReinspeccionNotificacion(null);
     }
@@ -632,30 +687,21 @@ const GestionNotificacionPage = () => {
 
     if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
       perfLog("notificaciones.tab.fetch", { slice: plazoSlice, tabChanged });
-      const filters = tabChanged ? null : opAppliedRef.current;
-      void loadPlazoSliceData(plazoSlice, tabChanged, filters);
+      void loadPlazoSliceData(plazoSlice, null);
     } else if (plazoSlice === "vencidas_o_hoy") {
-      if (tabChanged || !reinspeccionDataLoadedRef.current) {
-        perfLog("notificaciones.tab.lazy", { slice: plazoSlice, tabChanged });
-        void loadPendientesReinspeccionNotificacion(tabChanged ? null : opAppliedRef.current).then(() => {
-          reinspeccionDataLoadedRef.current = true;
-        });
-      } else {
-        perfLog("notificaciones.tab.cacheHit", { slice: plazoSlice });
-      }
+      perfLog("notificaciones.tab.lazy", { slice: plazoSlice, tabChanged });
+      void loadPendientesReinspeccionNotificacion(null);
     }
   }, [plazoSlice, loadPlazoSliceData, loadPendientesReinspeccionNotificacion]);
 
   useEffect(() => {
     return subscribeGestionNotificacionReinspeccionRefresh(() => {
-      reinspeccionDataLoadedRef.current = false;
+      invalidateOperativaBaseTabs(MUTATION_INVALIDATE_REINSPECCION);
       if (plazoSliceRef.current === "vencidas_o_hoy") {
-        void loadPendientesReinspeccionNotificacion().then(() => {
-          reinspeccionDataLoadedRef.current = true;
-        });
+        void loadPendientesReinspeccionNotificacion(null, { forceBaseRefresh: true });
       }
     });
-  }, [loadPendientesReinspeccionNotificacion]);
+  }, [invalidateOperativaBaseTabs, loadPendientesReinspeccionNotificacion]);
 
   const loadHistorialDesdeFiltro = useCallback(() => {
     const built = buildHistorialNotificacionFiltroPayload(
@@ -792,18 +838,12 @@ const GestionNotificacionPage = () => {
     try {
       const metrics = await postSyncNotificacionesVencidas();
       setSyncFeedback({ kind: "success", metrics });
-      operativeSliceLoadedRef.current.en_plazo = false;
-      operativeSliceLoadedRef.current.por_vencer = false;
+      invalidateOperativaBaseTabs(MUTATION_INVALIDATE_ALL_OPERATIVE);
       const active = plazoSliceRef.current;
       if (active === "en_plazo" || active === "por_vencer") {
-        await loadPlazoSliceData(active, true);
-      }
-      if (reinspeccionDataLoadedRef.current || active === "vencidas_o_hoy") {
-        reinspeccionDataLoadedRef.current = false;
-        if (active === "vencidas_o_hoy") {
-          await loadPendientesReinspeccionNotificacion();
-          reinspeccionDataLoadedRef.current = true;
-        }
+        await loadPlazoSliceData(active, null, { forceBaseRefresh: true });
+      } else if (active === "vencidas_o_hoy") {
+        await loadPendientesReinspeccionNotificacion(null, { forceBaseRefresh: true });
       }
       if (historialFiltroAplicado) {
         await recargarHistorialSiAplica();
@@ -831,7 +871,7 @@ const GestionNotificacionPage = () => {
     } finally {
       setSyncLoading(false);
     }
-  }, [loadPlazoSliceData, loadPendientesReinspeccionNotificacion, historialFiltroAplicado, recargarHistorialSiAplica]);
+  }, [invalidateOperativaBaseTabs, loadPlazoSliceData, loadPendientesReinspeccionNotificacion, historialFiltroAplicado, recargarHistorialSiAplica]);
 
   const notificacionRows = useMemo(
     () => items.filter((r) => r.source_type === "NOTIFICACION"),
@@ -840,15 +880,15 @@ const GestionNotificacionPage = () => {
 
   const sliceCounts = useMemo(
     () => ({
-      en_plazo: itemsBySlice.en_plazo.length,
-      por_vencer: itemsBySlice.por_vencer.length,
-      vencidas_o_hoy: reinspeccionItems.length,
+      en_plazo: operativeBaseTotals.en_plazo,
+      por_vencer: operativeBaseTotals.por_vencer,
+      vencidas_o_hoy: operativeBaseTotals.reinspeccion,
       total: historialMeta?.total ?? (historialFiltroAplicado ? historialRows.length : 0),
     }),
     [
-      itemsBySlice.en_plazo.length,
-      itemsBySlice.por_vencer.length,
-      reinspeccionItems.length,
+      operativeBaseTotals.en_plazo,
+      operativeBaseTotals.por_vencer,
+      operativeBaseTotals.reinspeccion,
       historialMeta?.total,
       historialFiltroAplicado,
       historialRows.length,
@@ -908,9 +948,10 @@ const GestionNotificacionPage = () => {
     const aid = Number.parseInt(raw, 10);
     if (!Number.isFinite(aid)) return;
 
+    const cache = operativaBaseCacheRef.current;
     const rowPlazo =
-      itemsBySlice.en_plazo.find((r) => r.id === aid && r.source_type === "NOTIFICACION") ??
-      itemsBySlice.por_vencer.find((r) => r.id === aid && r.source_type === "NOTIFICACION") ??
+      cache.en_plazo.snapshot?.items.find((r) => r.id === aid && r.source_type === "NOTIFICACION") ??
+      cache.por_vencer.snapshot?.items.find((r) => r.id === aid && r.source_type === "NOTIFICACION") ??
       items.find((r) => r.id === aid && r.source_type === "NOTIFICACION");
     const rowRein = reinspeccionItems.find((r) => r.id === aid);
     const row = rowRein ?? rowPlazo;
@@ -952,7 +993,7 @@ const GestionNotificacionPage = () => {
       `Actuación n.º ${aid}: el plazo no coincide con ninguna pestaña operativa actual (revisá «Historial de notificaciones» por período). OT ${(row.orden_trabajo_numero ?? "").trim() || "—"}.`
     );
     clearParam();
-  }, [loading, reinspeccionLoading, items, itemsBySlice, reinspeccionItems, searchParams, setSearchParams, openModal]);
+  }, [loading, reinspeccionLoading, items, operativeBaseTotals, reinspeccionItems, searchParams, setSearchParams, openModal]);
 
   const dismissModal = useCallback(() => {
     setModalOpen(false);
@@ -975,14 +1016,18 @@ const GestionNotificacionPage = () => {
           }
           return;
         }
-        await refreshNotificacionesPostProrroga({
-          filters: opAppliedRef.current,
-          activeSlice: plazoSliceRef.current,
-          invalidateOperativeSlices,
-          loadPlazoSlice: (slice, force, filters) =>
-            loadPlazoSliceData(slice, force, filters, { silent: true }),
-          loadReinspeccion: (filters) => loadPendientesReinspeccionNotificacion(filters, { silent: true }),
-        });
+        await refreshNotificacionesPostProrroga(
+          {
+            activeSlice: plazoSliceRef.current,
+            invalidateOperativaBaseTabs,
+            loadPlazoSlice: (slice, filters, opts) => loadPlazoSliceData(slice, filters, opts),
+            loadReinspeccion: (filters, opts) => loadPendientesReinspeccionNotificacion(filters, opts),
+          },
+          resolveNotificacionMutationInvalidateTabs(
+            plazoSliceRef.current,
+            modalEsReinspeccionNotificacionRef.current
+          )
+        );
       },
       () => {
         feedback.error(GESTION_RECONCILE_REFRESH_MSG);
@@ -990,7 +1035,7 @@ const GestionNotificacionPage = () => {
     );
   }, [
     feedback,
-    invalidateOperativeSlices,
+    invalidateOperativaBaseTabs,
     loadPlazoSliceData,
     loadPendientesReinspeccionNotificacion,
     recargarHistorialSiAplica,
@@ -1210,8 +1255,11 @@ const GestionNotificacionPage = () => {
             <OperRutaPoolAccionesCell
               row={row.original}
               onRefresh={async (opts) => {
-                await loadPendientesReinspeccionNotificacion(opAppliedRef.current, opts);
-                reinspeccionDataLoadedRef.current = true;
+                invalidateOperativaBaseTabs(MUTATION_INVALIDATE_REINSPECCION);
+                await loadPendientesReinspeccionNotificacion(opAppliedRef.current, {
+                  ...opts,
+                  forceBaseRefresh: isOperativaNotificacionBaseLoad(opAppliedRef.current),
+                });
               }}
               onSuccess={(msg) => feedback.success(msg)}
               onError={(msg) => feedback.error(msg)}
@@ -1226,25 +1274,22 @@ const GestionNotificacionPage = () => {
         },
       },
     ],
-    [columnsDataCompact, openModal, loadPendientesReinspeccionNotificacion, feedback]
+    [columnsDataCompact, openModal, loadPendientesReinspeccionNotificacion, invalidateOperativaBaseTabs, feedback]
   );
 
   const refreshOperativaActiva = useCallback(async () => {
     if (esTabReinspeccionOperativa) {
-      await loadPendientesReinspeccionNotificacion();
-      reinspeccionDataLoadedRef.current = true;
+      await loadPendientesReinspeccionNotificacion(null, { forceBaseRefresh: true });
       return;
     }
     if (plazoSlice === "en_plazo" || plazoSlice === "por_vencer") {
-      invalidateOtherOperativeSlices(plazoSlice);
-      await loadPlazoSliceData(plazoSlice, true);
+      await loadPlazoSliceData(plazoSlice, null, { forceBaseRefresh: true });
     }
   }, [
     esTabReinspeccionOperativa,
     plazoSlice,
     loadPendientesReinspeccionNotificacion,
     loadPlazoSliceData,
-    invalidateOtherOperativeSlices,
   ]);
 
   const renderOperativaToolbarRefresh = useCallback(
@@ -1297,12 +1342,12 @@ const GestionNotificacionPage = () => {
     (slice: Exclude<PlazoOperativoSlice, "total">): string => {
       if (slice === "vencidas_o_hoy") {
         if (reinspeccionLoading) return "…";
-        return String(reinspeccionItems.length);
+        return String(operativeBaseTotals.reinspeccion);
       }
-      if (loading) return "…";
-      return String(sliceCounts[slice]);
+      if (loading && plazoSlice === slice) return "…";
+      return String(operativeBaseTotals[slice]);
     },
-    [loading, reinspeccionLoading, reinspeccionItems.length, sliceCounts]
+    [loading, reinspeccionLoading, plazoSlice, operativeBaseTotals]
   );
 
   const mostrarTablaOperativa = plazoSlice !== "total";

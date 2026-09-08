@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { refreshNotificacionesPostProrroga } from "./utils/refreshNotificacionesPostProrroga";
+import {
+  MUTATION_INVALIDATE_PLAZO,
+  refreshNotificacionesPostProrroga,
+} from "./utils/refreshNotificacionesPostProrroga";
 
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
@@ -35,38 +38,42 @@ describe("UI-LOAD.1 Notificaciones — loading único", () => {
 });
 
 describe("refreshNotificacionesPostProrroga", () => {
-  it("refresca los tres slices; activo sin silent", async () => {
-    const invalidateOperativeSlices = vi.fn();
+  it("invalida slices indicados y recarga base; activo sin silent", async () => {
+    const invalidateOperativaBaseTabs = vi.fn();
     const loadPlazoSlice = vi.fn().mockResolvedValue(undefined);
     const loadReinspeccion = vi.fn().mockResolvedValue(undefined);
 
-    await refreshNotificacionesPostProrroga({
-      filters: null,
-      activeSlice: "en_plazo",
-      invalidateOperativeSlices,
-      loadPlazoSlice,
-      loadReinspeccion,
-    });
+    await refreshNotificacionesPostProrroga(
+      {
+        activeSlice: "en_plazo",
+        invalidateOperativaBaseTabs,
+        loadPlazoSlice,
+        loadReinspeccion,
+      },
+      MUTATION_INVALIDATE_PLAZO
+    );
 
-    expect(invalidateOperativeSlices).toHaveBeenCalledOnce();
-    expect(loadPlazoSlice).toHaveBeenCalledWith("en_plazo", true, null, { silent: false });
-    expect(loadPlazoSlice).toHaveBeenCalledWith("por_vencer", true, null, { silent: true });
-    expect(loadReinspeccion).toHaveBeenCalledWith(null, { silent: true });
+    expect(invalidateOperativaBaseTabs).toHaveBeenCalledWith(MUTATION_INVALIDATE_PLAZO);
+    expect(loadPlazoSlice).toHaveBeenCalledWith("en_plazo", null, { silent: false, forceBaseRefresh: true });
+    expect(loadPlazoSlice).toHaveBeenCalledWith("por_vencer", null, { silent: true, forceBaseRefresh: true });
+    expect(loadReinspeccion).not.toHaveBeenCalled();
   });
 
   it("pendiente reinspección activo refresca reinspeccion visible", async () => {
     const loadPlazoSlice = vi.fn().mockResolvedValue(undefined);
     const loadReinspeccion = vi.fn().mockResolvedValue(undefined);
 
-    await refreshNotificacionesPostProrroga({
-      filters: null,
-      activeSlice: "vencidas_o_hoy",
-      invalidateOperativeSlices: vi.fn(),
-      loadPlazoSlice,
-      loadReinspeccion,
-    });
+    await refreshNotificacionesPostProrroga(
+      {
+        activeSlice: "vencidas_o_hoy",
+        invalidateOperativaBaseTabs: vi.fn(),
+        loadPlazoSlice,
+        loadReinspeccion,
+      },
+      MUTATION_INVALIDATE_PLAZO
+    );
 
-    expect(loadReinspeccion).toHaveBeenCalledWith(null, { silent: false });
-    expect(loadPlazoSlice).toHaveBeenCalledWith("en_plazo", true, null, { silent: true });
+    expect(loadReinspeccion).not.toHaveBeenCalled();
+    expect(loadPlazoSlice).toHaveBeenCalledWith("en_plazo", null, { silent: true, forceBaseRefresh: true });
   });
 });
