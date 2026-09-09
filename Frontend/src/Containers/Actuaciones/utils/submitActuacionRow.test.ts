@@ -73,11 +73,17 @@ describe("submitActuacionRow error map", () => {
     expect(mapped.acta_comprobacion_num).toBe("Número inválido");
   });
 
-  it("mapea actas anidadas a celda de inspección", () => {
-    const mapped = normalizeActuacionRowErrors({
-      "actas.0.numero": "Revisá las actas cargadas",
-    });
-    expect(mapped.acta_inspeccion_num).toBe("Revisá las actas cargadas");
+  it("mapea actas anidadas por tipo", () => {
+    expect(
+      normalizeActuacionRowErrors({
+        "actas.comprobacion.numero": "Revisá la acta de comprobación",
+      }).acta_comprobacion_num
+    ).toBe("Revisá la acta de comprobación");
+    expect(
+      normalizeActuacionRowErrors({
+        "actas.0.numero": "Revisá las actas cargadas",
+      })._row
+    ).toBe("Revisá las actas cargadas");
   });
 
   it("incluye alias nro_acta en el mapa", () => {

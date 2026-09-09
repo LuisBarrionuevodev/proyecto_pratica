@@ -857,9 +857,9 @@ export function CompletarTrabajoModal({
         onSuccess(resolvedRow.ruta_item_id);
         onClose();
       } catch (e) {
-        const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
+        const { fieldErrors: nextFe, generalMessage, severity } = applyCompletarTrabajoFieldErrorsFromApi(e);
         setFieldErrors(nextFe);
-        feedback.error(generalMessage);
+        if (generalMessage) feedback[severity](generalMessage);
       } finally {
         setSaving(false);
       }
@@ -901,9 +901,9 @@ export function CompletarTrabajoModal({
           onSuccess(resolvedRow.ruta_item_id);
           onClose();
         } catch (e) {
-          const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
+          const { fieldErrors: nextFe, generalMessage, severity } = applyCompletarTrabajoFieldErrorsFromApi(e);
           setFieldErrors(nextFe);
-          feedback.error(generalMessage);
+          if (generalMessage) feedback[severity](generalMessage);
         } finally {
           setSaving(false);
         }
@@ -1029,9 +1029,9 @@ export function CompletarTrabajoModal({
       onSuccess(resolvedRow.ruta_item_id);
       onClose();
     } catch (e) {
-      const { fieldErrors: nextFe, generalMessage } = applyCompletarTrabajoFieldErrorsFromApi(e);
+      const { fieldErrors: nextFe, generalMessage, severity } = applyCompletarTrabajoFieldErrorsFromApi(e);
       setFieldErrors(nextFe);
-      feedback.error(generalMessage);
+      if (generalMessage) feedback[severity](generalMessage);
     } finally {
       setSaving(false);
     }

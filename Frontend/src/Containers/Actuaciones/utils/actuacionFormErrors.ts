@@ -1,41 +1,13 @@
-/** Etiquetas humanas para errores del modal de actuación. */
-export const ACTUACION_FIELD_LABELS: Record<string, string> = {
-  orden_trabajo_numero: "OT",
-  fecha_actuacion: "Fecha de la visita",
-  tipo_actuacion: "Tipo de actuación",
-  contraproducencia: "Contraproducencia",
-  inspectores: "Inspectores a cargo",
-  inspector1: "Inspector 1",
-  inspector2: "Inspector 2",
-  inspector3: "Inspector 3",
-  calle: "Calle",
-  numero: "Número o referencia",
-  numero_tipo: "Tipo de numeración",
-  nombre_local: "Nombre de fantasía",
-  rubro_nombre: "Rubro",
-  doc_nro: "N.º de documento",
-  contrib_apellido: "Apellido",
-  contrib_nombre: "Nombre",
-  razon_social: "Razón social",
-  acta_inspeccion_num: "Acta de inspección",
-  acta_notificacion_num: "Acta de notificación",
-  notificacion_motivo_1: "Motivo de notificación",
-  notificacion_motivo_2: "Motivo de notificación 2",
-  notificacion_motivo_3: "Motivo de notificación 3",
-  acta_comprobacion_num: "Acta de comprobación",
-  comprobacion_motivo: "Motivo de comprobación",
-  acta_clausura_num: "Acta de clausura",
-  acta_decomiso_num: "Acta de decomiso",
-  decomiso_kilos_total: "Kilos decomisados",
-  notificacion_previa_num: "Acta notificación previa",
-  comprobacion_previa_num: "Acta comprobación previa",
-  expediente_numero: "Expediente",
-  expediente_anio: "Año expediente",
-  oficio_numero: "Número de oficio",
-  oficio_anio: "Año de oficio",
-  oficio_causa: "Causa de oficio",
-  numero_oficio: "Número de oficio",
-};
+import {
+  ACTUACION_VALIDATION_FIELD_LABELS,
+  getActuacionValidationFieldLabel,
+} from "../validations/actuacionValidationFieldLabels";
+import { ACTUACION_ROW_ONLY_VALIDATOR_KEYS } from "../validations/normalizeActuacionApiError";
+
+/** @deprecated Usar `getActuacionValidationFieldLabel` / `ACTUACION_VALIDATION_FIELD_LABELS`. */
+export const ACTUACION_FIELD_LABELS: Record<string, string> = ACTUACION_VALIDATION_FIELD_LABELS;
+
+export { getActuacionValidationFieldLabel };
 
 /** Campos documentales del canal actas: no se envían en PUT desde esta pantalla. */
 export const ACTUACION_CANAL_DOCUMENTAL_FIELD_KEYS = new Set<string>([
@@ -63,7 +35,7 @@ export const ACTUACION_HIDDEN_DIALOG_FIELDS = new Set<string>([
   "oficio_causa",
 ]);
 
-export const ACTUACION_ROW_ONLY_ERROR_KEYS = new Set<string>(["_row", "_global", "detail"]);
+export const ACTUACION_ROW_ONLY_ERROR_KEYS = ACTUACION_ROW_ONLY_VALIDATOR_KEYS;
 
 /**
  * Separa errores inline de mensajes de fila/global.
@@ -138,7 +110,7 @@ export function finalizeActuacionFormErrors(
 
     if (key === "oficio_numero" && (msg.includes("obligatorio") || msg.includes("obligatorios"))) {
       rowMessages.push(
-        `${ACTUACION_FIELD_LABELS.oficio_numero}: ${msg} Gestioná el oficio desde «Esperando oficio», no desde el detalle de actuación.`
+        `${getActuacionValidationFieldLabel("oficio_numero")}: ${msg} Gestioná el oficio desde «Esperando oficio», no desde el detalle de actuación.`
       );
       continue;
     }
@@ -160,12 +132,12 @@ export function buildActuacionFormGlobalError(
   const keys = Object.keys(fieldErrors).filter((k) => fieldErrors[k]?.trim());
 
   if (keys.length > 0) {
-    const labels = keys.map((k) => ACTUACION_FIELD_LABELS[k] ?? k);
+    const labels = keys.map((k) => getActuacionValidationFieldLabel(k));
     chunks.push(`Revisá: ${labels.join(", ")}.`);
 
     const hiddenDetails = keys
       .filter((k) => ACTUACION_HIDDEN_DIALOG_FIELDS.has(k))
-      .map((k) => `${ACTUACION_FIELD_LABELS[k] ?? k}: ${fieldErrors[k]}`);
+      .map((k) => `${getActuacionValidationFieldLabel(k)}: ${fieldErrors[k]}`);
     if (hiddenDetails.length > 0) {
       chunks.push(hiddenDetails.join(" "));
     }

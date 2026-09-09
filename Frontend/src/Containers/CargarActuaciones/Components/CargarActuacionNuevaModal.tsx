@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
-import axios from "axios";
 import {
-  Alert,
   Autocomplete,
   Box,
   Chip,
@@ -32,7 +30,12 @@ import {
   MOTIVOS_NOTIFICACION_MAX,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
-import { applyFormErrorsFromApi, applyFormErrorsFromMap } from "../../../utils/parseApiError";
+import { applyFormErrorsFromMap } from "../../../utils/parseApiError";
+import {
+  ACTUACION_FIELD_ERROR_SUMMARY,
+  normalizeActuacionApiError,
+} from "../../Actuaciones/validations/normalizeActuacionApiError";
+import { notifyActuacionApiError } from "../../Actuaciones/utils/actuacionSaveFeedback";
 import {
   CrudDialogHeader,
   CrudDialogSection,
@@ -97,6 +100,14 @@ const CARGAR_ACTUACION_ERROR_OPTIONS = {
   fallbackMessage: "Error al validar o guardar.",
 } as const;
 
+function toCargarGlideFieldErrors(errors: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(errors)) {
+    out[INTERNAL_ERR_TO_GLIDE[k] ?? k] = v;
+  }
+  return out;
+}
+
 function emptyTextFields(): Record<GlideTextKey, string> {
   return Object.fromEntries(GLIDE_KEYS.map((k) => [k, ""])) as Record<GlideTextKey, string>;
 }
@@ -152,7 +163,6 @@ export function CargarActuacionNuevaModal() {
   const [catalogsBootstrapping, setCatalogsBootstrapping] = useState(true);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [globalError, setGlobalError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const catalogs = useMemo(
@@ -189,22 +199,20 @@ export function CargarActuacionNuevaModal() {
   const ensureBatch = useCallback(async (): Promise<string | null> => {
     if (batchId) return batchId;
     setStartingBatch(true);
-    setGlobalError(null);
     try {
       const { batch_id } = await startBatch("actuaciones");
       setBatchId(batch_id);
       return batch_id;
     } catch (e: unknown) {
-      if (axios.isAxiosError(e)) {
-        setGlobalError(e.response?.data?.detail ?? e.response?.data?.message ?? "No se pudo iniciar el lote.");
-      } else {
-        setGlobalError("No se pudo iniciar el lote.");
-      }
+      const normalized = normalizeActuacionApiError(e, {
+        fallbackMessage: "No se pudo iniciar el lote.",
+      });
+      notifyActuacionApiError(normalized, feedback);
       return null;
     } finally {
       setStartingBatch(false);
     }
-  }, [batchId]);
+  }, [batchId, feedback]);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,10 +226,9 @@ export function CargarActuacionNuevaModal() {
         setCatalogRubros(data.rubros);
         setCatalogMotivosComprobacion(data.motivosComprobacion);
         setCatalogsReady(true);
-        setGlobalError(null);
       } catch {
         if (!cancelled) {
-          setGlobalError("Error cargando catálogos. Probá de nuevo más tarde.");
+          feedback.error("Error cargando catálogos. Probá de nuevo más tarde.");
           setCatalogsReady(false);
         }
       } finally {
@@ -232,7 +239,7 @@ export function CargarActuacionNuevaModal() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [feedback]);
 
   useEffect(() => {
     if (!open) return;
@@ -247,7 +254,6 @@ export function CargarActuacionNuevaModal() {
     setNotifMotivosAddInput("");
     setTitularModo("persona");
     setFieldErrors({});
-    setGlobalError(null);
     setRowId(generateRowId());
   }, []);
 
@@ -324,7 +330,6 @@ export function CargarActuacionNuevaModal() {
 
   const handleSubmit = async () => {
     setFieldErrors({});
-    setGlobalError(null);
 
     const bid = await ensureBatch();
     if (!bid) return;
@@ -342,9 +347,13 @@ export function CargarActuacionNuevaModal() {
 
       const validation = applyFormErrorsFromMap(response.errors, CARGAR_ACTUACION_ERROR_OPTIONS);
       setFieldErrors(validation.fieldErrors);
-      setGlobalError(validation.globalMessage);
 
       if (!response.ok || !response.normalized) {
+        if (validation.globalMessage) {
+          feedback.warning(validation.globalMessage);
+        } else if (Object.keys(validation.fieldErrors).length > 0) {
+          feedback.warning(ACTUACION_FIELD_ERROR_SUMMARY);
+        }
         return;
       }
 
@@ -363,11 +372,12 @@ export function CargarActuacionNuevaModal() {
 
       const commit = applyFormErrorsFromMap(mine?.errors, CARGAR_ACTUACION_ERROR_OPTIONS);
       setFieldErrors(commit.fieldErrors);
-      setGlobalError(commit.globalMessage ?? "No se pudo confirmar la carga.");
+      const commitMsg = commit.globalMessage ?? "No se pudo confirmar la carga.";
+      feedback.warning(commitMsg);
     } catch (e: unknown) {
-      const parsed = applyFormErrorsFromApi(e, CARGAR_ACTUACION_ERROR_OPTIONS);
-      setFieldErrors(parsed.fieldErrors);
-      setGlobalError(parsed.globalMessage);
+      const normalized = normalizeActuacionApiError(e, CARGAR_ACTUACION_ERROR_OPTIONS);
+      setFieldErrors(toCargarGlideFieldErrors(normalized.fieldErrors));
+      notifyActuacionApiError(normalized, feedback);
     } finally {
       setLoading(false);
     }
@@ -422,7 +432,6 @@ export function CargarActuacionNuevaModal() {
           <AppButton
             dsVariant="primary"
             onClick={() => {
-              setGlobalError(null);
               setFieldErrors({});
               setOpen(true);
             }}
@@ -504,12 +513,6 @@ export function CargarActuacionNuevaModal() {
         {!catalogsBootstrapping && (
           <>
         {open && startingBatch && !batchId ? <LinearProgress sx={{ borderRadius: 1 }} /> : null}
-
-        {globalError && (
-          <Alert severity="error" sx={{ borderRadius: 2, whiteSpace: "pre-line" }} onClose={() => setGlobalError(null)}>
-            {globalError}
-          </Alert>
-        )}
 
         <CargarActuacionBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>

@@ -311,7 +311,8 @@ describe("actuacionCrudValidationContext — reinspección por oficio (FIX.4.1)"
       row,
       actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"))
     );
-    expect(result.fieldErrors.acta_inspeccion_num).toBe(
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.globalError).toBe(
       ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida
     );
   });
@@ -422,7 +423,8 @@ describe("actuacionCrudValidationContext — FIX.6.1 Oficio sin domicilio/contri
     expect(result.fieldErrors.calle).toBeUndefined();
     expect(result.fieldErrors.rubro_nombre).toBeUndefined();
     expect(result.fieldErrors.contrib_apellido).toBeUndefined();
-    expect(result.fieldErrors.acta_inspeccion_num).toBe(
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.globalError).toBe(
       ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida
     );
   });
@@ -509,7 +511,10 @@ describe("actuacionCrudValidationContext — FIX.6.1 Oficio sin domicilio/contri
       actuacionCrudValidationContext(row, oficioCtx("VERIFICAR E INFORMAR", "SI_INSPECCION"))
     );
     expect(result.fieldErrors.calle).toBeUndefined();
-    expect(result.fieldErrors.acta_inspeccion_num).toBeTruthy();
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.globalError).toBe(
+      ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida
+    );
   });
 });
 
@@ -599,13 +604,14 @@ describe("validateActuacionFormForSubmit — Completar trabajo", () => {
     expect(result.fieldErrors.rubro_nombre).toBe(ACTUACION_VALIDATION_MESSAGES.rubroCorrectiva);
   });
 
-  it("visita realizada sin actas bloquea", () => {
+  it("visita realizada sin actas bloquea con mensaje global OR", () => {
     const result = validateActuacionFormForSubmit(
       { ...visitaRealizadaForm, acta_inspeccion_num: "", acta_comprobacion_num: "" },
       ctx()
     );
     expect(result.canSubmit).toBe(false);
-    expect(result.fieldErrors.acta_inspeccion_num).toBe(
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.globalError).toBe(
       ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida
     );
   });

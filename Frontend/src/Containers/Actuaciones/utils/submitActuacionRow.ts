@@ -7,9 +7,15 @@ import { omiteIdentidadOperativaRow } from "../../../shared/circuitoOperativo/re
 import type { ReinspeccionOficioValidationContextInput } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import {
   DEFAULT_FIELD_ERROR_SUMMARY,
-  mapApiErrorsToFormState,
   type FormErrorsFromApi,
 } from "../../../utils/parseApiError";
+import {
+  ACTUACION_ROW_ERROR_KEY_MAP,
+} from "../validations/actuacionApiFieldKeyMap";
+import {
+  mapActuacionApiFieldKey,
+  normalizeActuacionApiError,
+} from "../validations/normalizeActuacionApiError";
 import {
   ACTUACION_ROW_ONLY_ERROR_KEYS,
   buildActuacionFormGlobalError,
@@ -204,77 +210,7 @@ function applyOficioResidualOperationalStrip(
 }
 
 /** Mapeo de errores (backend / grilla Glide → snake_case del modal de edición). */
-export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
-  "Orden de trabajo": "orden_trabajo_numero",
-  orden_trabajo_numero: "orden_trabajo_numero",
-  orden_trabajo: "orden_trabajo_numero",
-  "Fecha actuación": "fecha_actuacion",
-  fecha_actuacion: "fecha_actuacion",
-  fecha: "fecha_actuacion",
-  "Tipo actuación": "tipo_actuacion",
-  tipo_actuacion: "tipo_actuacion",
-  tipo: "tipo_actuacion",
-  Contraproducencia: "contraproducencia",
-  contraproducencia: "contraproducencia",
-  "Inspector 1": "inspector1",
-  "Inspector 2": "inspector2",
-  "Inspector 3": "inspector3",
-  Inspectores: "inspectores",
-  inspectores: "inspectores",
-  inspector: "inspectores",
-  Calle: "calle",
-  calle: "calle",
-  domicilio: "calle",
-  Número: "numero",
-  numero: "numero",
-  "Tipo de numeración": "numero_tipo",
-  numero_tipo: "numero_tipo",
-  Rubro: "rubro_nombre",
-  rubro_nombre: "rubro_nombre",
-  rubro: "rubro_nombre",
-  Apellido: "contrib_apellido",
-  Nombre: "contrib_nombre",
-  "Razón social": "razon_social",
-  DNI: "doc_nro",
-  "Acta inspección": "acta_inspeccion_num",
-  acta_inspeccion_num: "acta_inspeccion_num",
-  nro_acta_inspeccion: "acta_inspeccion_num",
-  "Acta notificación": "acta_notificacion_num",
-  acta_notificacion_num: "acta_notificacion_num",
-  nro_acta_notificacion: "acta_notificacion_num",
-  "Motivo notif 1": "notificacion_motivo_1",
-  "Motivo notif 2": "notificacion_motivo_2",
-  "Motivo notif 3": "notificacion_motivo_3",
-  "Acta comprobación": "acta_comprobacion_num",
-  acta_comprobacion_num: "acta_comprobacion_num",
-  nro_acta_comprobacion: "acta_comprobacion_num",
-  "Motivo comprobación": "comprobacion_motivo",
-  comprobacion_motivo: "comprobacion_motivo",
-  motivo: "comprobacion_motivo",
-  "Acta clausura": "acta_clausura_num",
-  acta_clausura_num: "acta_clausura_num",
-  nro_acta_clausura: "acta_clausura_num",
-  "Acta decomiso": "acta_decomiso_num",
-  acta_decomiso_num: "acta_decomiso_num",
-  nro_acta_decomiso: "acta_decomiso_num",
-  "Kilos decomiso": "decomiso_kilos_total",
-  "Nombre local": "nombre_local",
-  "Acta notificación previa": "notificacion_previa_num",
-  "Acta comprobación previa": "comprobacion_previa_num",
-  "Expediente año": "expediente_anio",
-  "Expediente número": "expediente_numero",
-  "Oficio año": "oficio_anio",
-  "Oficio número": "oficio_numero",
-  "Oficio causa": "oficio_causa",
-  oficio_numero: "oficio_numero",
-  numero_oficio: "oficio_numero",
-  oficio_anio: "oficio_anio",
-  oficio_causa: "oficio_causa",
-  oficio: "oficio_numero",
-  expediente_numero: "expediente_numero",
-  expediente_anio: "expediente_anio",
-  expediente: "expediente_numero",
-};
+export { ACTUACION_ROW_ERROR_KEY_MAP } from "../validations/actuacionApiFieldKeyMap";
 
 export const ACTUACION_FORM_ERROR_OPTIONS = {
   fieldKeyAliases: ACTUACION_ROW_ERROR_KEY_MAP,
@@ -284,9 +220,8 @@ export const ACTUACION_FORM_ERROR_OPTIONS = {
 } as const;
 
 function mapActuacionErrorKey(key: string): string {
-  if (key in ACTUACION_ROW_ERROR_KEY_MAP) return ACTUACION_ROW_ERROR_KEY_MAP[key];
-  if (key.startsWith("actas.")) return "acta_inspeccion_num";
-  return key;
+  const mapped = mapActuacionApiFieldKey(key);
+  return mapped === "_row" ? "_row" : mapped;
 }
 
 export function normalizeActuacionRowErrors(errors?: Record<string, string>): Record<string, string> {
@@ -300,21 +235,20 @@ export function normalizeActuacionRowErrors(errors?: Record<string, string>): Re
 }
 
 export function applyActuacionErrorsFromApi(err: unknown): FormErrorsFromApi {
-  const parsed = mapApiErrorsToFormState(err, ACTUACION_FORM_ERROR_OPTIONS);
-  const normalized = normalizeActuacionRowErrors(parsed.fieldErrors);
-  const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(normalized, {
+  const normalized = normalizeActuacionApiError(err, {
+    fallbackMessage: ACTUACION_FORM_ERROR_OPTIONS.fallbackMessage,
+    fieldErrorSummary: ACTUACION_FORM_ERROR_OPTIONS.fieldErrorSummary,
+  });
+  const normalizedFields = normalizeActuacionRowErrors(normalized.fieldErrors);
+  const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(normalizedFields, {
     ignoreCrudObsoleteFields: true,
   });
-  const extraRow =
-    parsed.globalMessage &&
-    parsed.globalMessage !== DEFAULT_FIELD_ERROR_SUMMARY &&
-    !rowMessages.includes(parsed.globalMessage)
-      ? [parsed.globalMessage]
-      : [];
-  return {
-    fieldErrors,
-    globalMessage: buildActuacionFormGlobalError(fieldErrors, [...rowMessages, ...extraRow]),
-  };
+  const allRowMessages = [...rowMessages, ...normalized.rowMessages];
+  const built = buildActuacionFormGlobalError(fieldErrors, allRowMessages);
+  const globalMessage =
+    built ??
+    (Object.keys(fieldErrors).length === 0 && normalized.message ? normalized.message : built);
+  return { fieldErrors, globalMessage };
 }
 
 export type SubmitActuacionRowResult =
@@ -322,7 +256,7 @@ export type SubmitActuacionRowResult =
   | { ok: false; kind: "validation"; fieldErrors: Record<string, string>; globalMessage?: string | null }
   | { ok: false; kind: "backend_fields"; fieldErrors: Record<string, string>; globalMessage?: string | null }
   | { ok: false; kind: "reingreso_blocked"; message: string }
-  | { ok: false; kind: "generic"; message: string };
+  | { ok: false; kind: "generic"; message: string; errorKind?: import("../validations/normalizeActuacionApiError").NormalizedActuacionErrorKind };
 
 export type SubmitActuacionRowParams = {
   id: number;
@@ -497,8 +431,12 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     if (status === 409 && detail) {
       return { ok: false, kind: "reingreso_blocked", message: String(detail) };
     }
-    const parsed = applyActuacionErrorsFromApi(error);
-    if (Object.keys(parsed.fieldErrors).length > 0) {
+    const normalized = normalizeActuacionApiError(error, {
+      fallbackMessage: ACTUACION_FORM_ERROR_OPTIONS.fallbackMessage,
+      fieldErrorSummary: ACTUACION_FORM_ERROR_OPTIONS.fieldErrorSummary,
+    });
+    if (Object.keys(normalized.fieldErrors).length > 0) {
+      const parsed = applyActuacionErrorsFromApi(error);
       return {
         ok: false,
         kind: "backend_fields",
@@ -506,7 +444,11 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
         globalMessage: parsed.globalMessage,
       };
     }
-    const msg = parsed.globalMessage ?? "No se pudo actualizar el registro.";
-    return { ok: false, kind: "generic", message: msg };
+    return {
+      ok: false,
+      kind: "generic",
+      message: normalized.message || ACTUACION_FORM_ERROR_OPTIONS.fallbackMessage,
+      errorKind: normalized.kind,
+    };
   }
 }

@@ -1,12 +1,22 @@
 import type { AppFeedback, FeedbackSeverity } from "../../../components/feedback/GlobalFeedbackProvider";
-import { ACTUACION_FIELD_LABELS } from "./actuacionFormErrors";
+import { getActuacionValidationFieldLabel } from "../validations/actuacionValidationFieldLabels";
 import type { ActuacionFormValidationResult } from "../validations/actuacionFormValidation";
 import type { SubmitActuacionRowResult } from "./submitActuacionRow";
+import {
+  feedbackSeverityForActuacionError,
+  type NormalizedActuacionErrorKind,
+} from "../validations/normalizeActuacionApiError";
 
 export const MENSAJE_GUARDADO_OK = "Actuación guardada correctamente.";
 export const MENSAJE_CORRECCION_OK = "Actuación corregida correctamente.";
 export const MENSAJE_VALIDACION_LOCAL = "Revisá los campos marcados antes de guardar.";
 export const MENSAJE_ERROR_GRAVE = "No se pudo guardar la actuación.";
+
+function labelsFromFieldErrors(fieldErrors: Record<string, string>): string[] {
+  return Object.keys(fieldErrors)
+    .filter((k) => fieldErrors[k]?.trim())
+    .map((k) => getActuacionValidationFieldLabel(k));
+}
 
 /**
  * Arma el mensaje del popup superior para errores de guardado.
@@ -29,12 +39,13 @@ export function buildActuacionSaveFeedbackMessage(result: SubmitActuacionRowResu
 
   if (result.kind === "validation" || result.kind === "backend_fields") {
     const global = result.globalMessage?.trim();
+    if (global && !global.startsWith("Revisá:")) {
+      return { severity: "warning", message: global };
+    }
     if (global?.startsWith("Revisá:")) {
       return { severity: "warning", message: global };
     }
-    const labels = Object.keys(result.fieldErrors)
-      .filter((k) => result.fieldErrors[k]?.trim())
-      .map((k) => ACTUACION_FIELD_LABELS[k] ?? k);
+    const labels = labelsFromFieldErrors(result.fieldErrors);
     if (labels.length > 0) {
       return { severity: "warning", message: `Revisá: ${labels.join(", ")}.` };
     }
@@ -44,8 +55,11 @@ export function buildActuacionSaveFeedbackMessage(result: SubmitActuacionRowResu
     return { severity: "warning", message: MENSAJE_VALIDACION_LOCAL };
   }
 
+  const severity: FeedbackSeverity =
+    result.errorKind != null ? feedbackSeverityForActuacionError(result.errorKind) : "error";
+
   return {
-    severity: "error",
+    severity,
     message: result.message?.trim() || MENSAJE_ERROR_GRAVE,
   };
 }
@@ -69,16 +83,29 @@ export function notifyActuacionFormValidationResult(
 ): void {
   if (result.canSubmit) return;
   const global = result.globalError?.trim();
+  if (global && !global.startsWith("Revisá:")) {
+    feedback.warning(global);
+    return;
+  }
   if (global?.startsWith("Revisá:")) {
     feedback.warning(global);
     return;
   }
-  const labels = Object.keys(result.fieldErrors)
-    .filter((k) => result.fieldErrors[k]?.trim())
-    .map((k) => ACTUACION_FIELD_LABELS[k] ?? k);
+  const labels = labelsFromFieldErrors(result.fieldErrors);
   if (labels.length > 0) {
     feedback.warning(`Revisá: ${labels.join(", ")}.`);
     return;
   }
   feedback.warning(global || MENSAJE_VALIDACION_LOCAL);
+}
+
+/** Emite toast según error API normalizado del dominio actuaciones. */
+export function notifyActuacionApiError(
+  normalized: { kind: NormalizedActuacionErrorKind; message: string },
+  feedback: AppFeedback
+): void {
+  const severity = feedbackSeverityForActuacionError(normalized.kind);
+  if (normalized.message.trim()) {
+    feedback[severity](normalized.message);
+  }
 }

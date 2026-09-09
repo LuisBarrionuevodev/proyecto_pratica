@@ -31,7 +31,8 @@ export const ACTUACION_VALIDATION_MESSAGES = {
   comprobacionMotivoSiHayActa: "Si cargás acta de comprobación, elegí un motivo de comprobación.",
   comprobacionNoPermiteInspeccion:
     'Para "No permite inspección" debe cargar acta de comprobación y motivo.',
-  actaInspeccionOComprobacionRequerida: "Debe cargar acta de inspección o acta de comprobación.",
+  actaInspeccionOComprobacionRequerida:
+    "Debe registrar al menos un acta de inspección o comprobación.",
   rubroCorrectiva: "Debe indicar el rubro correcto.",
   calleCorrectiva: "Con «dirección incorrecta» completá la calle corregida.",
   numeroCorrectiva: "Con «dirección incorrecta» completá el número corregido.",
@@ -206,6 +207,7 @@ export function validateActuacionFormForSubmit(
   context: ActuacionFormValidationContext = {}
 ): ActuacionFormValidationResult {
   const fieldErrors: Record<string, string> = {};
+  const rowMessages: string[] = [];
   const warnings: string[] = [];
 
   const contra = trim(form.contraproducencia);
@@ -291,7 +293,7 @@ export function validateActuacionFormForSubmit(
   const actaNotificacion = trim(form.acta_notificacion_num);
 
   if (debeValidarActaMinima && visitaRealizada && !tieneContraproducencia && !actaInspeccion && !actaComprobacion) {
-    fieldErrors.acta_inspeccion_num = ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida;
+    rowMessages.push(ACTUACION_VALIDATION_MESSAGES.actaInspeccionOComprobacionRequerida);
   }
 
   if (!lockedComp) {
@@ -349,13 +351,13 @@ export function validateActuacionFormForSubmit(
     fieldErrors.decomiso_kilos_total = ACTUACION_VALIDATION_MESSAGES.kilosNumericos;
   }
 
-  const globalError = buildActuacionFormGlobalError(fieldErrors, warnings);
+  const globalError = buildActuacionFormGlobalError(fieldErrors, [...rowMessages, ...warnings]);
 
   return {
     fieldErrors,
     globalError,
     warnings,
-    canSubmit: Object.keys(fieldErrors).length === 0,
+    canSubmit: Object.keys(fieldErrors).length === 0 && rowMessages.length === 0,
   };
 }
 

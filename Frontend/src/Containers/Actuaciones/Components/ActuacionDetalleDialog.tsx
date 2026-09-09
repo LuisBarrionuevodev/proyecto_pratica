@@ -69,9 +69,9 @@ import { mergeActuacionAfterOficioCorrection } from "../utils/mergeActuacionAfte
 import { corregirCierreOficio } from "../../../api/corregirCierreOficioApi";
 import { detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import {
-  mapApiErrorsToFormState,
-  parseApiError,
-} from "../../../utils/parseApiError";
+  normalizeActuacionApiError,
+} from "../validations/normalizeActuacionApiError";
+import { notifyActuacionApiError } from "../utils/actuacionSaveFeedback";
 import { ReinspeccionOficioForm } from "../../../shared/reinspeccionOficio/ReinspeccionOficioForm";
 import {
   resolveReinspeccionOficioFormContext,
@@ -993,10 +993,11 @@ export function ActuacionDetalleDialog({
           oficioForm.resetFromRow(rowForSubmit);
           setOficioFieldErrors({});
         } catch (err) {
-          const parsed = parseApiError(err);
-          const { fieldErrors } = mapApiErrorsToFormState(parsed);
-          setOficioFieldErrors(fieldErrors);
-          feedback.error(parsed.message);
+          const normalized = normalizeActuacionApiError(err, {
+            fallbackMessage: "No se pudo corregir el cierre por oficio.",
+          });
+          setOficioFieldErrors(normalized.fieldErrors);
+          notifyActuacionApiError(normalized, feedback);
           return;
         }
       }

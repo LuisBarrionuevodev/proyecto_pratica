@@ -1,37 +1,14 @@
 import {
-  applyFormErrorsFromApi,
-  applyFormErrorsFromMap,
-  DEFAULT_FIELD_ERROR_SUMMARY,
-  parseApiError,
-} from "../../../utils/parseApiError";
+  ACTUACION_FIELD_ERROR_SUMMARY,
+  feedbackSeverityForActuacionError,
+  normalizeActuacionApiError,
+} from "../../Actuaciones/validations/normalizeActuacionApiError";
+import type { FeedbackSeverity } from "../../../components/feedback/GlobalFeedbackProvider";
 
-/** Validadores Pydantic `model_validator` cuyo mensaje va al resumen, no a un input concreto. */
-const ROW_ONLY_VALIDATORS = new Set(["no_actas_si_visita_no_realizada"]);
+/** Texto breve del toast cuando hay errores inline en Completar trabajo. */
+export const COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY = ACTUACION_FIELD_ERROR_SUMMARY;
 
-/** Claves de error API → campo del formulario (cuando el `loc` de Pydantic no coincide con el nombre del payload). */
-const FIELD_KEY_ALIASES: Record<string, string> = {
-  comprobacion_exige_motivo_si_hay_acta: "comprobacion_motivo",
-  notificacion_exige_motivo_si_hay_acta: "notificacion_motivo_1",
-};
-
-/** Texto breve del Alert cuando hay errores inline en Completar trabajo. */
-export const COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY = DEFAULT_FIELD_ERROR_SUMMARY;
-
-const COMPLETAR_OPTIONS = {
-  fieldKeyAliases: FIELD_KEY_ALIASES,
-  rowOnlyKeys: ROW_ONLY_VALIDATORS,
-  fieldErrorSummary: COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY,
-  fallbackMessage: "No se pudo guardar el cierre.",
-} as const;
-
-/**
- * Si el backend devolvió 422 con mapa por campo, retorna ese mapa; si no, null.
- */
-export function parseCompletarTrabajoFieldErrors(err: unknown): Record<string, string> | null {
-  const parsed = parseApiError(err, COMPLETAR_OPTIONS.fallbackMessage);
-  if (!parsed.rawFieldErrors || Object.keys(parsed.rawFieldErrors).length === 0) return null;
-  return parsed.rawFieldErrors;
-}
+const COMPLETAR_FALLBACK = "No se pudo guardar el cierre.";
 
 /**
  * Convierte la respuesta de error del cierre en mensaje general breve + mapa por campo para inline.
@@ -39,12 +16,17 @@ export function parseCompletarTrabajoFieldErrors(err: unknown): Record<string, s
 export function applyCompletarTrabajoFieldErrorsFromApi(err: unknown): {
   fieldErrors: Record<string, string>;
   generalMessage: string | null;
+  severity: FeedbackSeverity;
 } {
-  const { fieldErrors, globalMessage } = applyFormErrorsFromApi(err, COMPLETAR_OPTIONS);
-  if (Object.keys(fieldErrors).length > 0) {
-    return { fieldErrors, generalMessage: globalMessage };
-  }
-  return { fieldErrors, generalMessage: globalMessage ?? formatCompletarTrabajoApiError(err) };
+  const normalized = normalizeActuacionApiError(err, {
+    fallbackMessage: COMPLETAR_FALLBACK,
+    fieldErrorSummary: COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY,
+  });
+  return {
+    fieldErrors: normalized.fieldErrors,
+    generalMessage: normalized.message || null,
+    severity: feedbackSeverityForActuacionError(normalized.kind),
+  };
 }
 
 /**
@@ -52,10 +34,17 @@ export function applyCompletarTrabajoFieldErrorsFromApi(err: unknown): {
  * Solo para errores globales sin mapa por campo.
  */
 export function formatCompletarTrabajoApiError(err: unknown): string {
-  const parsed = parseApiError(err, COMPLETAR_OPTIONS.fallbackMessage);
-  if (parsed.rawFieldErrors) {
-    const { globalMessage } = applyFormErrorsFromMap(parsed.rawFieldErrors, COMPLETAR_OPTIONS);
-    if (globalMessage) return globalMessage;
-  }
-  return parsed.message;
+  return normalizeActuacionApiError(err, {
+    fallbackMessage: COMPLETAR_FALLBACK,
+    fieldErrorSummary: COMPLETAR_TRABAJO_FIELD_ERROR_SUMMARY,
+  }).message;
+}
+
+/**
+ * Si el backend devolvió 422 con mapa por campo, retorna ese mapa; si no, null.
+ */
+export function parseCompletarTrabajoFieldErrors(err: unknown): Record<string, string> | null {
+  const normalized = normalizeActuacionApiError(err, { fallbackMessage: COMPLETAR_FALLBACK });
+  if (Object.keys(normalized.fieldErrors).length === 0) return null;
+  return normalized.fieldErrors;
 }
