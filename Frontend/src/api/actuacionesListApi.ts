@@ -44,6 +44,13 @@ export interface IActuacionListItem {
     /** EpiCollect5; solo lectura en UI; no se envía en PUT canal actas. */
     ec5_uuid?: string | null;
     acta_inspeccion_num: string | null;
+    /** Checklist inspección: lectura (id/codigo/nombre/estado) o escritura (item_id/estado). */
+    items_acta_inspeccion?: Array<
+      | { id: number; codigo: string; nombre: string; estado: "BIEN" | "OBSERVADO" }
+      | { item_id: number; estado: "BIEN" | "OBSERVADO" }
+    > | null;
+    /** Personas sin carnet en acta de notificación (lectura/escritura). */
+    cantidad_personas_sin_carnet_sanidad?: number | null;
     acta_notificacion_num: string | null;
     notificacion_motivo_1: string | null;
     notificacion_motivo_2: string | null;

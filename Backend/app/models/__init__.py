@@ -16,6 +16,8 @@ from .actuaciones import Actuaciones
 from .actuacion_media import ActuacionMedia
 from .actuacion_epicollect_detalle import ActuacionEpicollectDetalle
 from .inspeccion import Inspeccion
+from .item_acta_inspeccion import ItemActaInspeccion
+from .acta_inspeccion_item import ActaInspeccionItem
 from .clausura import Clausura
 from .decomiso import Decomiso
 from .inspector import Inspector
@@ -62,6 +64,8 @@ __all__ = [
     "ActuacionMedia",
     "ActuacionEpicollectDetalle",
     "Inspeccion",
+    "ItemActaInspeccion",
+    "ActaInspeccionItem",
     "Clausura",
     "Decomiso",
     "Inspector",

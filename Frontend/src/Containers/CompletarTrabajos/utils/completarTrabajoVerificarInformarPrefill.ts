@@ -1,6 +1,13 @@
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
+import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
+import {
+  cantidadPersonasSinCarnetFromRow,
+  estadosMapFromRow,
+  itemsActaInspeccionWriteFromEstados,
+} from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 
 export type CompletarTrabajoOperativoHydration = {
   calle: string;
@@ -13,6 +20,8 @@ export type CompletarTrabajoOperativoHydration = {
   razonSocial: string;
   nombreLocal: string;
   actaInspeccion: string;
+  checklistEstados: Record<number, ItemInspeccionEstadoUx>;
+  personasSinCarnet: string;
   actaNotificacion: string;
   notifMotivosSeleccion: string[];
   actaComprobacion: string;
@@ -24,10 +33,10 @@ export type CompletarTrabajoOperativoHydration = {
 
 /**
  * Hidrata campos operativos de inspección normal desde la fila de Completar trabajo.
- * Usado en Verificar e informar con nueva inspección y flujos equivalentes.
  */
 export function operativoHydrationFromRow(
-  row: ICompletarTrabajoPendienteRow
+  row: ICompletarTrabajoPendienteRow,
+  catalog: IItemActaInspeccionCatalogItem[] = []
 ): CompletarTrabajoOperativoHydration {
   const domicilio = domicilioRowParaHidratacionCompletarTrabajo(row);
   const kilos = row.decomiso_kilos_total;
@@ -42,6 +51,8 @@ export function operativoHydrationFromRow(
     razonSocial: row.razon_social ?? "",
     nombreLocal: row.nombre_local ?? "",
     actaInspeccion: row.acta_inspeccion_num ?? "",
+    checklistEstados: estadosMapFromRow(row, catalog),
+    personasSinCarnet: cantidadPersonasSinCarnetFromRow(row),
     actaNotificacion: row.acta_notificacion_num ?? "",
     notifMotivosSeleccion: motivosNotificacionFromSlots(
       row.notificacion_motivo_1,
@@ -54,4 +65,10 @@ export function operativoHydrationFromRow(
     actaDecomiso: row.acta_decomiso_num ?? "",
     decomisoKilos: kilos == null ? "" : String(kilos),
   };
+}
+
+export function checklistWriteFromEstados(
+  estados: Record<number, ItemInspeccionEstadoUx>
+) {
+  return itemsActaInspeccionWriteFromEstados(estados);
 }

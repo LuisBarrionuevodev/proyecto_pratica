@@ -45,6 +45,21 @@ import {
 import { DOC_MODAL_BLOCK_STACK_SPACING, DOC_MODAL_TEXT } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
 import { AppButton, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
+import {
+  InspeccionChecklistFields,
+  isValidActaInspeccionNum,
+} from "../../Actuaciones/Components/InspeccionChecklistFields";
+import {
+  PersonasSinCarnetField,
+  isValidActaNotificacionNum,
+} from "../../Actuaciones/Components/PersonasSinCarnetField";
+import {
+  estadosMapFromRow,
+  itemsActaInspeccionWriteFromEstados,
+  sortCatalogItems,
+} from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -81,6 +96,8 @@ const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
   razon_social: "Razón social",
   doc_nro: "DNI",
   acta_inspeccion_num: "Acta inspección",
+  items_acta_inspeccion: "Condiciones de inspección",
+  cantidad_personas_sin_carnet_sanidad: "Personas sin carnet de sanidad",
   acta_notificacion_num: "Acta notificación",
   notificacion_motivo_1: "Motivo notif 1",
   notificacion_motivo_2: "Motivo notif 2",
@@ -158,6 +175,13 @@ export function CargarActuacionNuevaModal() {
   const [catalogMotivos, setCatalogMotivos] = useState<string[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [catalogMotivosComprobacion, setCatalogMotivosComprobacion] = useState<string[]>([]);
+  const [catalogItemsActaInspeccion, setCatalogItemsActaInspeccion] = useState<
+    IItemActaInspeccionCatalogItem[]
+  >([]);
+  const [checklistEstados, setChecklistEstados] = useState<Record<number, ItemInspeccionEstadoUx>>({});
+  const [personasSinCarnet, setPersonasSinCarnet] = useState("0");
+  const [checklistItemsTouched, setChecklistItemsTouched] = useState(false);
+  const [personasSinCarnetTouched, setPersonasSinCarnetTouched] = useState(false);
   const [catalogsReady, setCatalogsReady] = useState(false);
   /** True hasta que termine el primer fetch de catálogos (éxito o error); para paridad con preload de Completar trabajo. */
   const [catalogsBootstrapping, setCatalogsBootstrapping] = useState(true);
@@ -225,6 +249,9 @@ export function CargarActuacionNuevaModal() {
         setCatalogMotivos(data.motivos);
         setCatalogRubros(data.rubros);
         setCatalogMotivosComprobacion(data.motivosComprobacion);
+        const items = sortCatalogItems(data.itemsActaInspeccion ?? []);
+        setCatalogItemsActaInspeccion(items);
+        setChecklistEstados(estadosMapFromRow({}, items));
         setCatalogsReady(true);
       } catch {
         if (!cancelled) {
@@ -253,6 +280,10 @@ export function CargarActuacionNuevaModal() {
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
     setTitularModo("persona");
+    setInspeccionItemIds([]);
+    setCantidadCarnets("0");
+    setChecklistItemsTouched(false);
+    setChecklistCarnetsTouched(false);
     setFieldErrors({});
     setRowId(generateRowId());
   }, []);
@@ -319,8 +350,29 @@ export function CargarActuacionNuevaModal() {
     (row as Record<string, unknown>)["Motivo notif 2"] = slots.m2 || null;
     (row as Record<string, unknown>)["Motivo notif 3"] = slots.m3 || null;
 
+    if (checklistItemsTouched) {
+      (row as Record<string, unknown>).items_acta_inspeccion =
+        itemsActaInspeccionWriteFromEstados(checklistEstados);
+    }
+    if (personasSinCarnetTouched && isValidActaNotificacionNum(texts["Acta notificación"])) {
+      const cantidad = parseInt(personasSinCarnet, 10);
+      if (!Number.isNaN(cantidad) && cantidad >= 0) {
+        (row as Record<string, unknown>).cantidad_personas_sin_carnet_sanidad = cantidad;
+      }
+    }
+
     return row;
-  }, [inspectoresList, rowId, texts, titularModo, notifMotivosSel]);
+  }, [
+    personasSinCarnet,
+    personasSinCarnetTouched,
+    checklistItemsTouched,
+    checklistEstados,
+    inspectoresList,
+    rowId,
+    texts,
+    titularModo,
+    notifMotivosSel,
+  ]);
 
   const toSelectOptions = (columnId: string): AppSelectOption[] =>
     getDropdownOptions(columnId, catalogs).map((label) => ({
@@ -743,7 +795,6 @@ export function CargarActuacionNuevaModal() {
 
         <CargarActuacionBloque title="Actas labradas">
         <Box sx={{ ...col, width: "100%" }}>
-          <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="N° acta de inspección"
@@ -756,6 +807,21 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta inspección"))}
             helperText={errorFor("Acta inspección") || undefined}
           />
+          <InspeccionChecklistFields
+            appearance="glass"
+            catalog={catalogItemsActaInspeccion}
+            estados={checklistEstados}
+            onEstadosChange={(estados) => {
+              setChecklistEstados(estados);
+              setChecklistItemsTouched(true);
+              clearFe("items_acta_inspeccion");
+            }}
+            disabled={!isValidActaInspeccionNum(texts["Acta inspección"])}
+            errors={{
+              items: errorFor("items_acta_inspeccion"),
+            }}
+          />
+          <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="N° acta de notificación"
@@ -835,6 +901,17 @@ export function CargarActuacionNuevaModal() {
                 }
               />
             )}
+          />
+          <PersonasSinCarnetField
+            appearance="glass"
+            value={personasSinCarnet}
+            onChange={(v) => {
+              setPersonasSinCarnet(v);
+              setPersonasSinCarnetTouched(true);
+              clearFe("cantidad_personas_sin_carnet_sanidad");
+            }}
+            disabled={!isValidActaNotificacionNum(texts["Acta notificación"])}
+            error={errorFor("cantidad_personas_sin_carnet_sanidad")}
           />
           <Box sx={edicionGrid2ColSx}>
           <AppTextField

@@ -71,6 +71,7 @@ const catalogs = {
   tipos: ["Inspección"],
   contraproducencias: ["No", "Sí"],
   motivosComprobacion: ["Incumplimiento"],
+  itemsActaInspeccion: [],
 };
 
 describe("ActuacionDetalleDialog domicilio sin catálogo", () => {

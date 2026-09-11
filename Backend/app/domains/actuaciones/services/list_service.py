@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from sqlalchemy import and_, exists, func, or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import db
 from app.domains.actuaciones.schemas.list_filters import (
@@ -11,6 +11,7 @@ from app.domains.actuaciones.schemas.list_filters import (
     _has_anchor_filters,
 )
 from app.models import (
+    ActaInspeccionItem,
     Actuaciones,
     Clausura,
     Comprobacion,
@@ -241,7 +242,9 @@ def listar_actuaciones_con_filtros(filters: ActuacionesListFilters) -> Dict[str,
     """
     query = Actuaciones.query.options(
         joinedload(Actuaciones.inspector),
-        joinedload(Actuaciones.inspeccion),
+        joinedload(Actuaciones.inspeccion)
+        .selectinload(Inspeccion.checklist_items)
+        .joinedload(ActaInspeccionItem.item),
         joinedload(Actuaciones.clausura),
         joinedload(Actuaciones.decomiso),
         joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),

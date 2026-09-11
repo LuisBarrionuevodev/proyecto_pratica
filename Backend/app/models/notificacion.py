@@ -13,6 +13,11 @@ class Notificacion(db.Model):
     prorroga_dias = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     fecha_notificacion = db.Column(db.Date, nullable=True, index=True)
     fecha_vencimiento = db.Column(db.Date, nullable=True, index=True)
+    cantidad_personas_sin_carnet_sanidad = db.Column(
+        db.Integer,
+        nullable=False,
+        server_default=db.text("0"),
+    )
 
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
@@ -42,6 +47,9 @@ class Notificacion(db.Model):
             "prorroga_dias": self.prorroga_dias,
             "fecha_notificacion": self.fecha_notificacion.isoformat() if self.fecha_notificacion else None,
             "fecha_vencimiento": self.fecha_vencimiento.isoformat() if self.fecha_vencimiento else None,
+            "cantidad_personas_sin_carnet_sanidad": int(
+                self.cantidad_personas_sin_carnet_sanidad or 0
+            ),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "deleted_at": self.deleted_at,

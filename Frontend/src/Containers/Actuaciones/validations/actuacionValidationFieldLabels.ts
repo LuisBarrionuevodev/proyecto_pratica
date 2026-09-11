@@ -4,6 +4,8 @@
  */
 export const ACTUACION_VALIDATION_FIELD_LABELS: Record<string, string> = {
   acta_inspeccion_num: "N.º de acta de inspección",
+  items_acta_inspeccion: "Condiciones de inspección",
+  cantidad_personas_sin_carnet_sanidad: "Personas sin carnet de sanidad",
   acta_comprobacion_num: "N.º de acta de comprobación",
   acta_notificacion_num: "N.º de acta de notificación",
   acta_clausura_num: "N.º de acta de clausura",

@@ -7,6 +7,9 @@ from pydantic import ValidationError
 
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
+    reload_actuaciones_inspeccion_checklist_eager,
+)
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.domains.actuaciones.schemas.actuacion_patch_in import ActuacionPatchIn
 from app.shared.errors import pydantic_errors_to_cell_map
@@ -43,7 +46,8 @@ def actualizar_actuacion_route(actuacion_id: int):
         log_put_request(actuacion_id, data, payload)
 
         act = actualizar_actuacion_service(actuacion_id, payload)
-        return jsonify(actuacion_to_grid_row(act)), 200
+        act_reload = reload_actuaciones_inspeccion_checklist_eager([act])[0]
+        return jsonify(actuacion_to_grid_row(act_reload)), 200
 
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422

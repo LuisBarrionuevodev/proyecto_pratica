@@ -34,6 +34,18 @@ import {
 import { AppSelect, AppTextField } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { ActaNumFieldLazy } from "../../Actuaciones/Components/ActaNumFieldLazy";
+import {
+  InspeccionChecklistFields,
+  isValidActaInspeccionNum,
+} from "../../Actuaciones/Components/InspeccionChecklistFields";
+import {
+  PersonasSinCarnetField,
+  isValidActaNotificacionNum,
+} from "../../Actuaciones/Components/PersonasSinCarnetField";
+import {
+  checklistWriteFromEstados,
+} from "../utils/completarTrabajoVerificarInformarPrefill";
+import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import { NumeroEsquinaFreeEditor } from "../../Actuaciones/Components/NumeroEsquinaFreeEditor";
 import {
   MENSAJE_VALIDACION_LOCAL,
@@ -293,6 +305,10 @@ type OperativoFieldSetters = {
   setTitularModo: (v: TitularModoCompletarTrabajo) => void;
   setNombreLocal: (v: string) => void;
   setActaInspeccion: (v: string) => void;
+  setChecklistEstados: (v: Record<number, ItemInspeccionEstadoUx>) => void;
+  setPersonasSinCarnet: (v: string) => void;
+  setChecklistItemsTouched: (v: boolean) => void;
+  setPersonasSinCarnetTouched: (v: boolean) => void;
   setActaNotificacion: (v: string) => void;
   setNotifMotivosSeleccion: (v: string[]) => void;
   setActaComprobacion: (v: string) => void;
@@ -302,8 +318,12 @@ type OperativoFieldSetters = {
   setDecomisoKilos: (v: string) => void;
 };
 
-function hydrateOperativoFieldsFromRow(row: ICompletarTrabajoPendienteRow, set: OperativoFieldSetters): void {
-  const h = operativoHydrationFromRow(row);
+function hydrateOperativoFieldsFromRow(
+  row: ICompletarTrabajoPendienteRow,
+  set: OperativoFieldSetters,
+  catalog: { id: number; codigo: string; nombre: string; activo: boolean; orden: number }[]
+): void {
+  const h = operativoHydrationFromRow(row, catalog);
   set.setCalle(h.calle);
   set.setNumero(h.numero);
   set.setNumeroTipo(h.numeroTipo);
@@ -315,6 +335,10 @@ function hydrateOperativoFieldsFromRow(row: ICompletarTrabajoPendienteRow, set: 
   set.setTitularModo(titularModoInicialDesdeRow(row));
   set.setNombreLocal(h.nombreLocal);
   set.setActaInspeccion(h.actaInspeccion);
+  set.setChecklistEstados(h.checklistEstados);
+  set.setPersonasSinCarnet(h.personasSinCarnet);
+  set.setChecklistItemsTouched(false);
+  set.setPersonasSinCarnetTouched(false);
   set.setActaNotificacion(h.actaNotificacion);
   set.setNotifMotivosSeleccion(h.notifMotivosSeleccion);
   set.setActaComprobacion(h.actaComprobacion);
@@ -336,6 +360,10 @@ function clearOperativoFields(set: OperativoFieldSetters): void {
   set.setTitularModo("persona");
   set.setNombreLocal("");
   set.setActaInspeccion("");
+  set.setChecklistEstados({});
+  set.setPersonasSinCarnet("0");
+  set.setChecklistItemsTouched(false);
+  set.setPersonasSinCarnetTouched(false);
   set.setActaNotificacion("");
   set.setNotifMotivosSeleccion([]);
   set.setActaComprobacion("");
@@ -381,6 +409,7 @@ export function CompletarTrabajoModal({
     contraproducencias: [],
     inspectores: [],
     rubros: [],
+    itemsActaInspeccion: [],
   };
   const [contraproducencia, setContraproducencia] = useState("");
   const [calle, setCalle] = useState("");
@@ -394,6 +423,10 @@ export function CompletarTrabajoModal({
   const [titularModo, setTitularModo] = useState<TitularModoCompletarTrabajo>("persona");
   const [nombreLocal, setNombreLocal] = useState("");
   const [actaInspeccion, setActaInspeccion] = useState("");
+  const [checklistEstados, setChecklistEstados] = useState<Record<number, ItemInspeccionEstadoUx>>({});
+  const [personasSinCarnet, setPersonasSinCarnet] = useState("0");
+  const [checklistItemsTouched, setChecklistItemsTouched] = useState(false);
+  const [personasSinCarnetTouched, setPersonasSinCarnetTouched] = useState(false);
   const [actaNotificacion, setActaNotificacion] = useState("");
   const [notifMotivosSeleccion, setNotifMotivosSeleccion] = useState<string[]>([]);
   const [actaComprobacion, setActaComprobacion] = useState("");
@@ -486,6 +519,10 @@ export function CompletarTrabajoModal({
       setTitularModo,
       setNombreLocal,
       setActaInspeccion,
+      setChecklistEstados,
+      setPersonasSinCarnet,
+      setChecklistItemsTouched,
+      setPersonasSinCarnetTouched,
       setActaNotificacion,
       setNotifMotivosSeleccion,
       setActaComprobacion,
@@ -509,7 +546,7 @@ export function CompletarTrabajoModal({
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
       if (esFlujoVerificarInformar(resolvedRow.tipo_iniciador, tipoIni)) {
-        hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
+        hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
       } else {
         clearOperativoFields(operativoSetters);
       }
@@ -521,7 +558,7 @@ export function CompletarTrabajoModal({
       setRealizoNuevaInspeccion("");
       setContraproducencia(resolvedRow.contraproducencia ?? "");
       setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
-      hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
+      hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
       return;
@@ -557,10 +594,10 @@ export function CompletarTrabajoModal({
     setResultadoCumplimientoOficio("");
     setObservacionesEjecucion(resolvedRow.observaciones_ejecucion ?? "");
     setContraproducencia(resolvedRow.contraproducencia ?? "");
-    hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
+    hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
-  }, [open, resolvedRow, inspectoresGrupo, tipoActuacionEsperadoRef]);
+  }, [open, resolvedRow, inspectoresGrupo, tipoActuacionEsperadoRef, catalogs?.itemsActaInspeccion]);
 
   useEffect(() => {
     if (open) return;
@@ -576,6 +613,10 @@ export function CompletarTrabajoModal({
       setTitularModo,
       setNombreLocal,
       setActaInspeccion,
+      setChecklistEstados,
+      setPersonasSinCarnet,
+      setChecklistItemsTouched,
+      setPersonasSinCarnetTouched,
       setActaNotificacion,
       setNotifMotivosSeleccion,
       setActaComprobacion,
@@ -693,6 +734,10 @@ export function CompletarTrabajoModal({
       setTitularModo,
       setNombreLocal,
       setActaInspeccion,
+      setChecklistEstados,
+      setPersonasSinCarnet,
+      setChecklistItemsTouched,
+      setPersonasSinCarnetTouched,
       setActaNotificacion,
       setNotifMotivosSeleccion,
       setActaComprobacion,
@@ -702,7 +747,7 @@ export function CompletarTrabajoModal({
       setDecomisoKilos,
     };
     if (realizoNuevaInspeccion === "si") {
-      hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters);
+      hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
       return;
     }
     if (realizoNuevaInspeccion === "no") {
@@ -712,6 +757,7 @@ export function CompletarTrabajoModal({
     open,
     resolvedRow,
     resolvedRow?.ruta_item_id,
+    catalogs?.itemsActaInspeccion,
     tipoActuacionOficioEfectivo,
     realizoNuevaInspeccion,
   ]);
@@ -1008,6 +1054,15 @@ export function CompletarTrabajoModal({
             notificacion_motivo_2: notifSlots.m2,
             notificacion_motivo_3: notifSlots.m3,
           });
+        }
+        if (checklistItemsTouched) {
+          values.items_acta_inspeccion = checklistWriteFromEstados(checklistEstados);
+        }
+        if (personasSinCarnetTouched && !esReinspeccionNotificacion) {
+          const cantidad = parseInt(personasSinCarnet, 10);
+          if (!Number.isNaN(cantidad) && cantidad >= 0) {
+            values.cantidad_personas_sin_carnet_sanidad = cantidad;
+          }
         }
       } else if (esNoPermiteInspeccion) {
         Object.assign(values, {
@@ -1587,18 +1642,32 @@ export function CompletarTrabajoModal({
           )}
           {visitaRealizada && (
             <>
+              <ActaNumFieldLazy
+                appearance="glass"
+                label="N° acta de inspección"
+                value={actaInspeccion || null}
+                onCommit={(v) => {
+                  setActaInspeccion(v ?? "");
+                  clearFe("acta_inspeccion_num");
+                }}
+                error={Boolean(fe("acta_inspeccion_num"))}
+                helperText={fe("acta_inspeccion_num") || undefined}
+              />
+              <InspeccionChecklistFields
+                appearance="glass"
+                catalog={catalogs?.itemsActaInspeccion ?? []}
+                estados={checklistEstados}
+                onEstadosChange={(estados) => {
+                  setChecklistEstados(estados);
+                  setChecklistItemsTouched(true);
+                  clearFe("items_acta_inspeccion");
+                }}
+                disabled={!isValidActaInspeccionNum(actaInspeccion)}
+                errors={{
+                  items: fe("items_acta_inspeccion"),
+                }}
+              />
               <Box sx={edicionGrid2ColSx}>
-                <ActaNumFieldLazy
-                  appearance="glass"
-                  label="N° acta de inspección"
-                  value={actaInspeccion || null}
-                  onCommit={(v) => {
-                    setActaInspeccion(v ?? "");
-                    clearFe("acta_inspeccion_num");
-                  }}
-                  error={Boolean(fe("acta_inspeccion_num"))}
-                  helperText={fe("acta_inspeccion_num") || undefined}
-                />
                 {esReinspeccionNotificacion ? (
                   <Box
                     sx={{
@@ -1700,6 +1769,17 @@ export function CompletarTrabajoModal({
                         }
                       />
                     )}
+                  />
+                  <PersonasSinCarnetField
+                    appearance="glass"
+                    value={personasSinCarnet}
+                    onChange={(v) => {
+                      setPersonasSinCarnet(v);
+                      setPersonasSinCarnetTouched(true);
+                      clearFe("cantidad_personas_sin_carnet_sanidad");
+                    }}
+                    disabled={!isValidActaNotificacionNum(actaNotificacion)}
+                    error={fe("cantidad_personas_sin_carnet_sanidad")}
                   />
                 </>
               ) : null}

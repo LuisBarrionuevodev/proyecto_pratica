@@ -16,6 +16,9 @@ from pydantic import (
 )
 
 from app.domains.actuaciones.schemas.corregir_cierre_oficio_in import ActaCanalQuitarTipo
+from app.domains.actuaciones.schemas.item_acta_inspeccion_estado_in import (
+    ItemActaInspeccionEstadoIn,
+)
 from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
     normalizar_tipo_acta_canal,
 )
@@ -206,8 +209,10 @@ class ActuacionGridRowIn(BaseModel):
 
     # Actas
     acta_inspeccion_num: Optional[str] = None
+    items_acta_inspeccion: Optional[List[ItemActaInspeccionEstadoIn]] = None
 
     acta_notificacion_num: Optional[str] = None
+    cantidad_personas_sin_carnet_sanidad: Optional[int] = Field(default=None, ge=0)
     notificacion_motivo_1: Optional[str] = None
     notificacion_motivo_2: Optional[str] = None
     notificacion_motivo_3: Optional[str] = None
@@ -273,6 +278,45 @@ class ActuacionGridRowIn(BaseModel):
     @classmethod
     def strip_empty_to_none(cls, v: Any) -> Any:
         return _clean_str(v)
+
+    @model_validator(mode="before")
+    @classmethod
+    def rechazar_contrato_checklist_v1(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "items_acta_inspeccion_ids" in data:
+            raise ValueError(
+                "items_acta_inspeccion_ids ya no es válido. Use items_acta_inspeccion con estado BIEN u OBSERVADO."
+            )
+        if "cantidad_carnets_sanidad" in data:
+            raise ValueError(
+                "cantidad_carnets_sanidad ya no es válido. Use cantidad_personas_sin_carnet_sanidad en la notificación."
+            )
+        return data
+
+    @field_validator("items_acta_inspeccion", mode="before")
+    @classmethod
+    def normalize_items_acta_inspeccion(cls, v: Any) -> Any:
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            raise ValueError("items_acta_inspeccion debe ser una lista.")
+        return v
+
+    @field_validator("cantidad_personas_sin_carnet_sanidad", mode="before")
+    @classmethod
+    def normalize_cantidad_personas_sin_carnet(cls, v: Any) -> Any:
+        if v is None or v == "":
+            return None
+        if isinstance(v, float) and not float(v).is_integer():
+            raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.")
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.") from None
+        if n < 0:
+            raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser >= 0.")
+        return n
 
     @field_validator("inspectores", mode="before")
     @classmethod

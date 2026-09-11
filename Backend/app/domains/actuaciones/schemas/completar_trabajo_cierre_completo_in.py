@@ -5,6 +5,9 @@ from typing import Any, List, Literal, Optional
 from pydantic import ConfigDict, ValidationError, field_validator, model_validator
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
+from app.domains.actuaciones.schemas.item_acta_inspeccion_estado_in import (
+    ItemActaInspeccionEstadoIn,
+)
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
     es_contraproducencia_correctiva_direccion,
     es_contraproducencia_correctiva_rubro,
@@ -70,7 +73,9 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     inspectores: Optional[List[str]] = None
 
     acta_inspeccion_num: Optional[str] = None
+    items_acta_inspeccion: Optional[List[ItemActaInspeccionEstadoIn]] = None
     acta_notificacion_num: Optional[str] = None
+    cantidad_personas_sin_carnet_sanidad: Optional[int] = None
     notificacion_motivo_1: Optional[str] = None
     notificacion_motivo_2: Optional[str] = None
     notificacion_motivo_3: Optional[str] = None
@@ -153,6 +158,36 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             return u
         raise ValueError("resultado_cumplimiento_oficio debe ser CUMPLE o NO_CUMPLE.")
 
+    @model_validator(mode="before")
+    @classmethod
+    def rechazar_contrato_checklist_v1(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "items_acta_inspeccion_ids" in data:
+            raise ValueError(
+                "items_acta_inspeccion_ids ya no es válido. Use items_acta_inspeccion con estado BIEN u OBSERVADO."
+            )
+        if "cantidad_carnets_sanidad" in data:
+            raise ValueError(
+                "cantidad_carnets_sanidad ya no es válido. Use cantidad_personas_sin_carnet_sanidad."
+            )
+        return data
+
+    @field_validator("cantidad_personas_sin_carnet_sanidad", mode="before")
+    @classmethod
+    def normalize_cantidad_personas_sin_carnet(cls, v: object) -> object:
+        if v is None or v == "":
+            return None
+        if isinstance(v, float) and not float(v).is_integer():
+            raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.")
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.") from None
+        if n < 0:
+            raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser >= 0.")
+        return n
+
     @field_validator("inspectores", mode="before")
     @classmethod
     def normalize_inspectores(cls, v: object) -> object:
@@ -226,6 +261,8 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         if es_no_permite_inspeccion_contraproducencia(self.contraproducencia):
             bloque: list[tuple[str, bool]] = [
                 ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
+                ("items_acta_inspeccion", self.items_acta_inspeccion is not None),
+                ("cantidad_personas_sin_carnet_sanidad", self.cantidad_personas_sin_carnet_sanidad is not None),
                 ("acta_notificacion_num", bool(self.acta_notificacion_num)),
                 ("acta_decomiso_num", bool(self.acta_decomiso_num)),
                 (
@@ -244,6 +281,8 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         else:
             bloque = [
                 ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
+                ("items_acta_inspeccion", self.items_acta_inspeccion is not None),
+                ("cantidad_personas_sin_carnet_sanidad", self.cantidad_personas_sin_carnet_sanidad is not None),
                 ("acta_notificacion_num", bool(self.acta_notificacion_num)),
                 ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),
                 ("acta_clausura_num", bool(self.acta_clausura_num)),

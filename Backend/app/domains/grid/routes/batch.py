@@ -22,6 +22,9 @@ from app.domains.geolocalizacion.geocode.services.pipeline_service import (
     pipeline_post_commit,
 )
 from app.domains.catalogos.services.rubros_catalog_service import listar_rubros_catalogo
+from app.domains.catalogos.services.item_acta_inspeccion_catalog_service import (
+    listar_items_acta_inspeccion_catalogo,
+)
 from app.models import (
     Inspector,
     Motivo,
@@ -246,6 +249,16 @@ def list_motivos_comprobacion():
         lambda: CatalogMotivoComprobacion.query.order_by(CatalogMotivoComprobacion.nombre.asc()).all(),
         lambda m: {"id": m.id, "nombre": m.nombre},
     )
+
+
+@grid.get("/catalogs/items-acta-inspeccion")
+def list_items_acta_inspeccion():
+    """
+    Catálogo de condiciones de acta de inspección para dropdowns del grid.
+
+    Response: {"items": [{"id", "codigo", "nombre", "orden"}]}
+    """
+    return jsonify({"items": listar_items_acta_inspeccion_catalogo(solo_activos=True)}), 200
 
 
 @grid.get("/catalogs/rubros")

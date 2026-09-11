@@ -18,6 +18,15 @@ import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContra
 import {
   esReinspeccionOficioPendienteSubtipo,
 } from "./completarTrabajoTipoIniciadorUi";
+import {
+  cantidadPersonasSinCarnetFromRow,
+  itemsActaInspeccionWriteFromEstados,
+  estadosMapFromRow,
+} from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type {
+  ItemActaInspeccionWrite,
+  ItemInspeccionEstado,
+} from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 
 export type CompletarTrabajoFormFields = {
   tipo_actuacion: string;
@@ -37,6 +46,8 @@ export type CompletarTrabajoFormFields = {
   /** Verificar e informar: true = inspección normal; false = cierre sin actas normales. */
   realizo_nueva_inspeccion: string;
   acta_inspeccion_num: string;
+  items_acta_inspeccion: ItemActaInspeccionWrite[];
+  cantidad_personas_sin_carnet_sanidad: string;
   acta_notificacion_num: string;
   notificacion_motivo_1: string;
   notificacion_motivo_2: string;
@@ -107,6 +118,14 @@ export type BuildCierreBodyOptions = {
    */
   explicitUserFields?: Set<string>;
 };
+
+function parseCantidadPersonasSinCarnet(value: string): number | undefined {
+  const t = value.trim();
+  if (t === "") return undefined;
+  const n = parseInt(t, 10);
+  if (Number.isNaN(n) || n < 0) return undefined;
+  return n;
+}
 
 function fieldExplicit(key: string, options?: BuildCierreBodyOptions): boolean {
   if (!options?.explicitUserFields) return true;
@@ -268,6 +287,13 @@ export function buildCompletarTrabajoCierreBody(
       body.resultado_cumplimiento_oficio = rc;
     }
     if (s(f.acta_inspeccion_num)) body.acta_inspeccion_num = s(f.acta_inspeccion_num);
+    if (fieldExplicit("items_acta_inspeccion", options)) {
+      body.items_acta_inspeccion = f.items_acta_inspeccion ?? [];
+    }
+    if (fieldExplicit("cantidad_personas_sin_carnet_sanidad", options)) {
+      const cantidad = parseCantidadPersonasSinCarnet(f.cantidad_personas_sin_carnet_sanidad);
+      if (cantidad !== undefined) body.cantidad_personas_sin_carnet_sanidad = cantidad;
+    }
     if (s(f.acta_notificacion_num)) body.acta_notificacion_num = s(f.acta_notificacion_num);
     if (s(f.notificacion_motivo_1)) body.notificacion_motivo_1 = s(f.notificacion_motivo_1);
     if (s(f.notificacion_motivo_2)) body.notificacion_motivo_2 = s(f.notificacion_motivo_2);
@@ -307,6 +333,8 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   resultado_cumplimiento_oficio: "",
   realizo_nueva_inspeccion: "",
   acta_inspeccion_num: "",
+  items_acta_inspeccion: [],
+  cantidad_personas_sin_carnet_sanidad: "0",
   acta_notificacion_num: "",
   notificacion_motivo_1: "",
   notificacion_motivo_2: "",
@@ -336,6 +364,43 @@ function mergeRow(
 
 function trimStr(v: string | null | undefined): string {
   return (v ?? "").trim();
+}
+
+/** Ítem checklist en shape read (API detalle) o write (modal Completar). */
+type ChecklistItemReadOrWrite = {
+  item_id?: number;
+  id?: number;
+  codigo?: string;
+  nombre?: string;
+  estado?: ItemInspeccionEstado | string | null;
+};
+
+/**
+ * Normaliza un ítem de checklist a write shape V2.
+ * Descarta entradas sin estado BIEN/OBSERVADO o sin id resoluble.
+ */
+function normalizeChecklistItemForWrite(item: ChecklistItemReadOrWrite): ItemActaInspeccionWrite | null {
+  const estado = item.estado;
+  if (estado !== "BIEN" && estado !== "OBSERVADO") {
+    return null;
+  }
+  const rawId = item.item_id ?? item.id;
+  if (rawId == null || !Number.isFinite(Number(rawId)) || Number(rawId) < 1) {
+    return null;
+  }
+  return { item_id: Number(rawId), estado };
+}
+
+function checklistItemsFromRow(
+  items: ChecklistItemReadOrWrite[] | null | undefined
+): ItemActaInspeccionWrite[] {
+  const out: ItemActaInspeccionWrite[] = [];
+  for (const item of items ?? []) {
+    const normalized = normalizeChecklistItemForWrite(item);
+    if (normalized) out.push(normalized);
+  }
+  out.sort((a, b) => a.item_id - b.item_id);
+  return out;
 }
 
 function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFormFields {
@@ -368,6 +433,8 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     resultado_cumplimiento_oficio: row.resultado_cumplimiento_oficio ?? "",
     realizo_nueva_inspeccion: "",
     acta_inspeccion_num: row.acta_inspeccion_num ?? "",
+    items_acta_inspeccion: checklistItemsFromRow(row.items_acta_inspeccion ?? []),
+    cantidad_personas_sin_carnet_sanidad: cantidadPersonasSinCarnetFromRow(row),
     acta_notificacion_num: row.acta_notificacion_num ?? "",
     notificacion_motivo_1: row.notificacion_motivo_1 ?? "",
     notificacion_motivo_2: row.notificacion_motivo_2 ?? "",

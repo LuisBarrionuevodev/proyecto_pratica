@@ -445,6 +445,101 @@ describe("buildCompletarTrabajoCierreBody verificar e informar", () => {
   });
 });
 
+const baseRowCompletar = { ruta_item_id: 1 } as ICompletarTrabajoPendienteRow;
+
+describe("buildCompletarTrabajoCierreBody checklist V2", () => {
+  it("CASO A — write shape preserva item_id", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [{ item_id: 1, estado: "BIEN" }],
+    });
+    expect(body.items_acta_inspeccion).toEqual([{ item_id: 1, estado: "BIEN" }]);
+  });
+
+  it("CASO B — read shape mapea id a item_id", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [
+        {
+          id: 3,
+          codigo: "TIENE_DEPOSITO",
+          nombre: "Depósito",
+          estado: "OBSERVADO",
+        },
+      ],
+    });
+    expect(body.items_acta_inspeccion).toEqual([{ item_id: 3, estado: "OBSERVADO" }]);
+  });
+
+  it("CASO C — mixed write y read shapes", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [
+        { item_id: 1, estado: "BIEN" },
+        { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", estado: "OBSERVADO" },
+      ],
+    });
+    expect(body.items_acta_inspeccion).toEqual([
+      { item_id: 1, estado: "BIEN" },
+      { item_id: 3, estado: "OBSERVADO" },
+    ]);
+  });
+
+  it("CASO D — explicit clear envía []", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [],
+    });
+    expect(body.items_acta_inspeccion).toEqual([]);
+  });
+
+  it("CASO E — untouched omite items_acta_inspeccion", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+    });
+    expect(body.items_acta_inspeccion).toBeUndefined();
+  });
+
+  it("regresión 422 — Baño BIEN no pierde item_id en request", () => {
+    const idBano = 1;
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [{ item_id: idBano, estado: "BIEN" }],
+    });
+    expect(body.acta_inspeccion_num).toBe("000123");
+    expect(body.items_acta_inspeccion).toEqual([{ item_id: idBano, estado: "BIEN" }]);
+    expect(JSON.stringify(body.items_acta_inspeccion)).toContain('"item_id":1');
+    expect(JSON.stringify(body.items_acta_inspeccion)).not.toBe('[{"estado":"BIEN"}]');
+  });
+
+  it("descarta ítem con estado sin id resoluble", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [{ estado: "BIEN" }],
+    });
+    expect(body.items_acta_inspeccion).toEqual([]);
+  });
+
+  it("no incluye estado NONE en payload", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [
+        { item_id: 1, estado: "BIEN" },
+        { item_id: 2, estado: "NONE" },
+      ],
+    });
+    expect(body.items_acta_inspeccion).toEqual([{ item_id: 1, estado: "BIEN" }]);
+  });
+});
+
 describe("validateReinspeccionOficioTipoActuacionRequired", () => {
   it("bloquea cierre sin subtipo de oficio", async () => {
     const { validateReinspeccionOficioTipoActuacionRequired } = await import(

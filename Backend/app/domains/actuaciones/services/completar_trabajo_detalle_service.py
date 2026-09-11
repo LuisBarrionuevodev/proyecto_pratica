@@ -4,7 +4,18 @@ from typing import Any
 
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, RutaGrupo, RutaGrupoInspector, RutaItem, RutaTrabajo
+from app.models import (
+    ActaInspeccionItem,
+    Actuaciones,
+    Domicilio,
+    IniciadorRuta,
+    Inspeccion,
+    Relevamiento,
+    RutaGrupo,
+    RutaGrupoInspector,
+    RutaItem,
+    RutaTrabajo,
+)
 
 from app.domains.actuaciones.presenters.completar_trabajo_presenters import (
     ruta_item_completar_trabajo_detalle,
@@ -39,6 +50,9 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
                 joinedload(Actuaciones.domicilio).joinedload(Domicilio.rubro),
                 joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
                 selectinload(Actuaciones.inspector),
+                joinedload(Actuaciones.inspeccion)
+                .selectinload(Inspeccion.checklist_items)
+                .joinedload(ActaInspeccionItem.item),
             ),
             joinedload(RutaItem.iniciador_ruta).options(
                 joinedload(IniciadorRuta.domicilio).joinedload(Domicilio.rubro),

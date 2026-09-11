@@ -129,3 +129,72 @@ def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             raise ValueError(
                 f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
             )
+
+
+def _normalizar_cantidad_personas_sin_carnet(raw: Any) -> int:
+    """Valida cantidad_personas_sin_carnet_sanidad (entero >= 0, no decimal)."""
+    if raw is None:
+        raise ValueError("cantidad_personas_sin_carnet_sanidad no puede ser nula.")
+    if isinstance(raw, float) and not raw.is_integer():
+        raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.")
+    try:
+        cantidad = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.") from None
+    if cantidad < 0:
+        raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser >= 0.")
+    return cantidad
+
+
+def _tiene_notificacion_resoluble(actuacion: Actuaciones, payload: dict[str, Any]) -> bool:
+    """True si la actuación ya tiene o está creando Notificación en este payload."""
+    if actuacion.notificacion_id:
+        noti = db.session.get(Notificacion, int(actuacion.notificacion_id))
+        if noti and noti.deleted_at is None:
+            return True
+    notif_data = payload.get("notificacion")
+    if isinstance(notif_data, dict) and acta_6(notif_data.get("acta_num")):
+        return True
+    if acta_6(payload.get("acta_notificacion_num")):
+        return True
+    return False
+
+
+def aplicar_personas_sin_carnet_desde_payload(
+    actuacion: Actuaciones,
+    payload: dict[str, Any],
+) -> None:
+    """
+    Aplica ``cantidad_personas_sin_carnet_sanidad`` si viene explícito (misma transacción attach).
+
+    Reglas:
+    - Ausencia de clave → no modifica.
+    - Requiere Notificación existente o en creación en el mismo payload si valor > 0.
+    - El campo pertenece a ``Notificacion``, no a ``Inspeccion``.
+
+    Errores:
+        ValueError: validación o ausencia de acta de notificación.
+    """
+    if "cantidad_personas_sin_carnet_sanidad" not in payload:
+        return
+
+    cantidad = _normalizar_cantidad_personas_sin_carnet(
+        payload.get("cantidad_personas_sin_carnet_sanidad")
+    )
+
+    if not _tiene_notificacion_resoluble(actuacion, payload):
+        if cantidad > 0:
+            raise ValueError(
+                "Para registrar personas sin carnet de sanidad debe cargar un acta de notificación."
+            )
+        return
+
+    noti = None
+    if actuacion.notificacion_id:
+        noti = db.session.get(Notificacion, int(actuacion.notificacion_id))
+
+    if noti is None:
+        return
+
+    noti.cantidad_personas_sin_carnet_sanidad = cantidad
+    db.session.add(noti)

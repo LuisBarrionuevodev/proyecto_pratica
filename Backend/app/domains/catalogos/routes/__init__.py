@@ -5,3 +5,4 @@ from flask import Blueprint
 catalogos = Blueprint("catalogos", __name__)
 
 from . import rubros  # noqa: E402,F401
+from . import item_acta_inspeccion  # noqa: E402,F401

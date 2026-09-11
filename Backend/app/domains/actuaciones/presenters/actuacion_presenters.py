@@ -63,6 +63,7 @@ from app.domains.domicilios.utils.domicilio_calle_ui import (
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
+from app.domains.actuaciones.attach.inspeccion import items_acta_inspeccion_read_dtos
 from app.models import Actuaciones, Comprobacion, Expediente, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem
 from app.domains.rutas_trabajo.utils.rubro_operativo import (
     rubro_nombre_operativo_para_iniciador,
@@ -879,6 +880,7 @@ def actuacion_to_grid_row(
     decomiso = getattr(act, "decomiso", None)
 
     acta_inspeccion_num = getattr(inspeccion, "numero_acta", None) if inspeccion else None
+    items_acta_inspeccion = items_acta_inspeccion_read_dtos(inspeccion)
     acta_clausura_num = getattr(clausura, "numero_acta", None) if clausura else None
     acta_decomiso_num = getattr(decomiso, "numero_acta", None) if decomiso else None
     decomiso_kilos_total = getattr(decomiso, "cantidad", None) if decomiso else None
@@ -890,6 +892,9 @@ def actuacion_to_grid_row(
     comp = getattr(act, "comprobacion", None)
 
     acta_notificacion_num = getattr(noti, "numero_acta", None) if noti else None
+    cantidad_personas_sin_carnet_sanidad = (
+        int(getattr(noti, "cantidad_personas_sin_carnet_sanidad", 0) or 0) if noti else 0
+    )
     acta_comprobacion_num = getattr(comp, "numero_acta", None) if comp else None
     comprobacion_motivo = getattr(comp, "motivo", None) if comp else None
 
@@ -1037,6 +1042,8 @@ def actuacion_to_grid_row(
         "establecimiento_actuaciones_en_ficha": en_ficha,
 
         "acta_inspeccion_num": acta_inspeccion_num,
+        "items_acta_inspeccion": items_acta_inspeccion,
+        "cantidad_personas_sin_carnet_sanidad": cantidad_personas_sin_carnet_sanidad,
 
         "acta_notificacion_num": acta_notificacion_num,
         "notificacion_motivo_1": notificacion_motivo_1,

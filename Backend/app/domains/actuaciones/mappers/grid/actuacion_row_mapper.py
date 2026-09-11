@@ -96,6 +96,14 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     if row.acta_inspeccion_num:
         payload["acta_inspeccion_num"] = _clean_str(row.acta_inspeccion_num)
 
+    if "items_acta_inspeccion" in row.model_fields_set:
+        items = row.items_acta_inspeccion or []
+        payload["items_acta_inspeccion"] = [
+            {"item_id": int(i.item_id), "estado": str(i.estado)} for i in items
+        ]
+    if "cantidad_personas_sin_carnet_sanidad" in row.model_fields_set:
+        payload["cantidad_personas_sin_carnet_sanidad"] = row.cantidad_personas_sin_carnet_sanidad
+
     # Notificación: service llama attach_notificacion(act, payload.get("notificacion"))
     # helpers esperan data["acta_num"] + motivos + previa_num
     if row.acta_notificacion_num:

@@ -1,5 +1,3 @@
-from sqlalchemy import event
-
 from app.database import db
 
 
@@ -30,6 +28,12 @@ class Inspeccion(db.Model):
         onupdate=db.func.current_timestamp(),
     )
     actuaciones = db.relationship("Actuaciones", back_populates="inspeccion")
+    checklist_items = db.relationship(
+        "ActaInspeccionItem",
+        back_populates="inspeccion",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_ai_numero_anio"),
     )
@@ -49,5 +53,3 @@ class Inspeccion(db.Model):
             data["actuacion"] = self.actuaciones.to_dict() if self.actuaciones else None
 
         return data
-
-

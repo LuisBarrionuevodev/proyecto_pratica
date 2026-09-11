@@ -137,7 +137,21 @@ const catalogs = {
   contraproducencias: ["No", "Sí"],
 
   motivosComprobacion: ["Incumplimiento"],
+  itemsActaInspeccion: [],
 
+};
+
+const itemsActaInspeccionCatalog = [
+  { id: 1, codigo: "TIENE_BANO", nombre: "Baño", activo: true, orden: 1 },
+  { id: 2, codigo: "TIENE_SALON", nombre: "Salón", activo: true, orden: 2 },
+  { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", activo: true, orden: 3 },
+  { id: 4, codigo: "TIENE_COCINA_MESA_TRABAJO", nombre: "Cocina / mesa de trabajo", activo: true, orden: 4 },
+  { id: 5, codigo: "VAJILLA_MANTEL", nombre: "Vajilla / mantel", activo: true, orden: 5 },
+];
+
+const catalogsWithChecklist = {
+  ...catalogs,
+  itemsActaInspeccion: itemsActaInspeccionCatalog,
 };
 
 
@@ -817,6 +831,114 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).toContain("N° acta de comprobación");
     expect(html).toContain("N° acta de clausura");
     expect(html).toContain("N° acta de decomiso");
+  });
+
+  it("modo VER muestra checklist readonly con estados persistidos y filas NONE", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          items_acta_inspeccion: [
+            { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
+            { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", estado: "OBSERVADO" },
+          ],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Condiciones verificadas");
+    expect(html).toContain("Baño");
+    expect(html).toContain("Depósito");
+    expect(html).toContain("Salón");
+    expect(html).toContain("Cocina / cuadra");
+    expect(html).toContain("Vajilla / mantel");
+    expect(html).toContain('value="BIEN"');
+    expect(html).toContain('value="OBSERVADO"');
+  });
+
+  it("modo VER muestra cantidad de personas sin carnet con notificación de visita", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          acta_notificacion_num: "732394",
+          notificacion_motivo_1: "Falta de habilitación",
+          cantidad_personas_sin_carnet_sanidad: 2,
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Cantidad de personas sin carnet de sanidad");
+    expect(html).toContain("2");
+  });
+
+  it("modo edición hidrata checklist persistido al abrir", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          items_acta_inspeccion: [
+            { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
+            { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", estado: "OBSERVADO" },
+          ],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Condiciones verificadas");
+    expect(html).toContain('value="BIEN"');
+    expect(html).toContain('value="OBSERVADO"');
+  });
+
+  it("RN con notificación origen no muestra personas sin carnet en VER", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "REINSPECCION",
+          acta_inspeccion_num: "005032",
+          acta_notificacion_num: null,
+          cantidad_personas_sin_carnet_sanidad: 3,
+          documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+          origen_reinspeccion_notificacion: { notificacion_acta_numero: "000050" },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).not.toContain("Cantidad de personas sin carnet de sanidad");
   });
 });
 

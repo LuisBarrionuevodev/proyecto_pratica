@@ -224,6 +224,14 @@ describe("submitActuacionRow pipeline", () => {
     expect((sanitized as any).origen_reinspeccion_oficio).toBeUndefined();
   });
 
+  it("sanitize conserva items_acta_inspeccion write válido", () => {
+    const sanitized = sanitizeActuacionRowForCanalActasPut({
+      ...baseRow,
+      items_acta_inspeccion: [{ item_id: 1, estado: "OBSERVADO" }],
+    } as IActuacionListItem);
+    expect(sanitized.items_acta_inspeccion).toEqual([{ item_id: 1, estado: "OBSERVADO" }]);
+  });
+
   it("normaliza actas antes del PUT", async () => {
     mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);
@@ -721,5 +729,80 @@ describe("submitActuacionRow pipeline", () => {
     const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
     expect(putBody.actas_a_quitar).toEqual(["INSPECCION", "COMPROBACION"]);
     expect(putBody.contraproducencia).toBe("LOCAL CERRADO");
+  });
+});
+
+describe("submitActuacionRow checklist inspección", () => {
+  const checklistCatalog = [
+    { id: 1, codigo: "TIENE_BANO", nombre: "Baño", activo: true, orden: 1 },
+    { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", activo: true, orden: 3 },
+  ];
+
+  const originalWithChecklist = {
+    ...baseRow,
+    items_acta_inspeccion: [
+      { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
+      { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", estado: "OBSERVADO" },
+    ],
+  } as IActuacionListItem;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+  });
+
+  it("touched: PUT contiene items_acta_inspeccion y sanitize no lo elimina", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...originalWithChecklist,
+        items_acta_inspeccion: [{ item_id: 1, estado: "OBSERVADO" }],
+      },
+      originalRow: originalWithChecklist,
+      inspeccionChecklistTouched: { items: true },
+      inspeccionChecklistCatalog: checklistCatalog,
+      skipValidation: true,
+      skipUpdate: false,
+    });
+
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.items_acta_inspeccion).toEqual([{ item_id: 1, estado: "OBSERVADO" }]);
+  });
+
+  it("untouched: PUT no contiene items_acta_inspeccion", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: originalWithChecklist,
+      originalRow: originalWithChecklist,
+      inspeccionChecklistTouched: { items: false },
+      inspeccionChecklistCatalog: checklistCatalog,
+      skipValidation: true,
+      skipUpdate: false,
+    });
+
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.items_acta_inspeccion).toBeUndefined();
+  });
+
+  it("clear touched: PUT contiene items_acta_inspeccion=[]", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...originalWithChecklist,
+        items_acta_inspeccion: [],
+      },
+      originalRow: originalWithChecklist,
+      inspeccionChecklistTouched: { items: true },
+      inspeccionChecklistCatalog: checklistCatalog,
+      skipValidation: true,
+      skipUpdate: false,
+    });
+
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.items_acta_inspeccion).toEqual([]);
   });
 });

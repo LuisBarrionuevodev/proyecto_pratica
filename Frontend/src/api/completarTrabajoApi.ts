@@ -49,6 +49,13 @@ export interface ICompletarTrabajoPendienteRow {
   contrib_nombre?: string | null;
   razon_social?: string | null;
   acta_inspeccion_num?: string | null;
+  items_acta_inspeccion?: Array<{
+    id: number;
+    codigo: string;
+    nombre: string;
+    estado: "BIEN" | "OBSERVADO";
+  }> | null;
+  cantidad_personas_sin_carnet_sanidad?: number | null;
   acta_notificacion_num?: string | null;
   notificacion_origen_id?: number | null;
   notificacion_origen_anio?: number | null;
@@ -199,6 +206,8 @@ export interface ICompletarTrabajoCierreBody {
   razon_social?: string | null;
   observaciones_ejecucion?: string | null;
   acta_inspeccion_num?: string | null;
+  items_acta_inspeccion?: Array<{ item_id: number; estado: "BIEN" | "OBSERVADO" }> | null;
+  cantidad_personas_sin_carnet_sanidad?: number | null;
   acta_notificacion_num?: string | null;
   notificacion_motivo_1?: string | null;
   notificacion_motivo_2?: string | null;

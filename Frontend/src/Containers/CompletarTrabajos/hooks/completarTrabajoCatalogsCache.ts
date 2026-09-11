@@ -5,6 +5,10 @@ import {
   fetchMotivosComprobacion,
 } from "../../../api/gridApi";
 import {
+  fetchItemsActaInspeccionCatalog,
+  type IItemActaInspeccionCatalogItem,
+} from "../../../api/itemActaInspeccionCatalogApi";
+import {
   fetchRubrosCatalogoCached,
   rubroItemsToNombres,
 } from "../../../utils/rubrosCatalogCache";
@@ -16,18 +20,20 @@ export type CompletarTrabajoCatalogs = {
   inspectores: string[];
   /** Nombres canónicos de `Rubro` (GET /grid/catalogs/rubros). */
   rubros: string[];
+  itemsActaInspeccion: IItemActaInspeccionCatalogItem[];
 };
 
 let memoryCache: CompletarTrabajoCatalogs | null = null;
 let inflight: Promise<CompletarTrabajoCatalogs> | null = null;
 
 async function loadFromApi(): Promise<CompletarTrabajoCatalogs> {
-  const [motivos, motivosComp, contras, insp, rubrosItems] = await Promise.all([
+  const [motivos, motivosComp, contras, insp, rubrosItems, itemsActaInspeccion] = await Promise.all([
     fetchMotivos(),
     fetchMotivosComprobacion(),
     fetchContraproducencias(),
     fetchInspectores(),
     fetchRubrosCatalogoCached(),
+    fetchItemsActaInspeccionCatalog(),
   ]);
   return {
     motivos: [...new Set(motivos.items.map((i) => i.nombre))],
@@ -35,6 +41,7 @@ async function loadFromApi(): Promise<CompletarTrabajoCatalogs> {
     contraproducencias: [...new Set(contras.items.map((i) => i.nombre))],
     inspectores: [...new Set(insp.items.map((i) => i.nombre))],
     rubros: rubroItemsToNombres(rubrosItems),
+    itemsActaInspeccion,
   };
 }
 
@@ -47,6 +54,7 @@ export function fetchCompletarTrabajoCatalogsCached(): Promise<CompletarTrabajoC
       ...memoryCache,
       inspectores: memoryCache.inspectores ?? [],
       rubros: memoryCache.rubros ?? [],
+      itemsActaInspeccion: memoryCache.itemsActaInspeccion ?? [],
     });
   }
   if (inflight) return inflight;

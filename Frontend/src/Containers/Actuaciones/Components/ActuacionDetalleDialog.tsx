@@ -47,6 +47,22 @@ import { NumeroEsquinaFreeEditor } from "./NumeroEsquinaFreeEditor";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
 import { ActaNumFieldLazy } from "./ActaNumFieldLazy";
+import {
+  InspeccionChecklistFields,
+  isValidActaInspeccionNum,
+} from "./InspeccionChecklistFields";
+import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
+import {
+  cantidadPersonasSinCarnetFromRow,
+  estadosMapFromRow,
+  itemsActaInspeccionWriteFromEstados,
+  planChecklistHydration,
+} from "../utils/inspeccionChecklistSubmit";
+import type { ItemInspeccionEstadoUx } from "../utils/inspeccionChecklistSubmit";
+import {
+  PersonasSinCarnetField,
+  isValidActaNotificacionNum,
+} from "./PersonasSinCarnetField";
 import { ACTA_FIELD_LABELS } from "../utils/actaFieldLabels";
 import { ActuacionDocumentacionChips } from "./ActuacionDocumentacionChips";
 import {
@@ -120,6 +136,7 @@ export type ActuacionEditCatalogs = {
   tipos: string[];
   contraproducencias: string[];
   motivosComprobacion: string[];
+  itemsActaInspeccion: IItemActaInspeccionCatalogItem[];
 };
 
 export type ActuacionSaveOptions = {
@@ -129,6 +146,7 @@ export type ActuacionSaveOptions = {
   actasClearedByOficioCorrection?: ActaCanalQuitarTipo[];
   /** Estado destino del formulario Oficio para validación CRUD contextualizada. */
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
+  inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
 };
 
 export type ActuacionDetalleDialogProps = {
@@ -291,7 +309,15 @@ function epicollectSnapshotLecturaHayContenido(draft: IActuacionListItem): boole
 /**
  * Lectura documental de actas por tipo: número destacado, datos secundarios subordinados.
  */
-function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
+function ActasVisitaLectura({
+  draft,
+  catalog,
+  lockedNotif,
+}: {
+  draft: IActuacionListItem;
+  catalog: IItemActaInspeccionCatalogItem[];
+  lockedNotif: boolean;
+}) {
   const nIns = draft.acta_inspeccion_num;
   const nNot = draft.acta_notificacion_num;
   const nComp = draft.acta_comprobacion_num;
@@ -319,12 +345,25 @@ function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
   const numComp = (nComp != null && String(nComp).trim() !== "") ? dash(nComp) : "—";
   const numDec = (nDec != null && String(nDec).trim() !== "") ? dash(nDec) : "—";
 
+  const showPersonasSinCarnet =
+    !lockedNotif && isValidActaNotificacionNum(nNot != null ? String(nNot) : null);
+
   return (
     <Box sx={{ ...col, width: "100%" }}>
-      <Box sx={edicionGrid2ColSx}>
-        {showInspeccion ? (
+      {showInspeccion ? (
+        <>
           <CrudFormSlot label="N° acta de inspección" mode="view" value={dash(nIns)} />
-        ) : null}
+          {catalog.length > 0 ? (
+            <InspeccionChecklistFields
+              catalog={catalog}
+              estados={estadosMapFromRow(draft, catalog)}
+              onEstadosChange={() => undefined}
+              readOnly
+            />
+          ) : null}
+        </>
+      ) : null}
+      <Box sx={edicionGrid2ColSx}>
         {showNotificacion ? (
           <CrudFormSlot label="N° acta de notificación" mode="view" value={numNot} />
         ) : null}
@@ -343,6 +382,14 @@ function ActasVisitaLectura({ draft }: { draft: IActuacionListItem }) {
           label="Motivos de notificación"
           mode="view"
           value={motivosNoti.join(" · ")}
+          sx={{ mt: 0.5 }}
+        />
+      ) : null}
+      {showPersonasSinCarnet ? (
+        <CrudFormSlot
+          label="Cantidad de personas sin carnet de sanidad"
+          mode="view"
+          value={cantidadPersonasSinCarnetFromRow(draft)}
           sx={{ mt: 0.5 }}
         />
       ) : null}
@@ -1013,6 +1060,11 @@ export function ActuacionDetalleDialog({
               verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : "",
             }
           : undefined,
+      inspeccionChecklistTouched: {
+        items: checklistItemsTouchedRef.current,
+        carnets: personasSinCarnetTouchedRef.current,
+      },
+      inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
     });
   }, [
     draft,
@@ -1049,6 +1101,41 @@ export function ActuacionDetalleDialog({
     },
     [onDraftChange]
   );
+
+  const checklistItemsTouchedRef = useRef(false);
+  const personasSinCarnetTouchedRef = useRef(false);
+  const hydratedChecklistActIdRef = useRef<number | null>(null);
+  const [checklistEstados, setChecklistEstados] = useState<Record<number, ItemInspeccionEstadoUx>>(
+    () => estadosMapFromRow(draft, catalogs.itemsActaInspeccion ?? [])
+  );
+
+  useEffect(() => {
+    const catalog = catalogs.itemsActaInspeccion ?? [];
+    const plan = planChecklistHydration({
+      open,
+      actId: draft.id,
+      hydratedActId: hydratedChecklistActIdRef.current,
+      touched: checklistItemsTouchedRef.current,
+      catalogLength: catalog.length,
+    });
+
+    if (plan === "close") {
+      hydratedChecklistActIdRef.current = null;
+      return;
+    }
+
+    if (plan === "act_change") {
+      checklistItemsTouchedRef.current = false;
+      personasSinCarnetTouchedRef.current = false;
+      hydratedChecklistActIdRef.current = draft.id;
+      setChecklistEstados(estadosMapFromRow(draft, catalog));
+      return;
+    }
+
+    if (plan === "catalog_late") {
+      setChecklistEstados(estadosMapFromRow(draft, catalog));
+    }
+  }, [open, draft.id, draft.items_acta_inspeccion, catalogs.itemsActaInspeccion]);
 
   const commitActaInspeccion = useCallback(
     (value: string | null) => onDraftChange({ acta_inspeccion_num: value }),
@@ -1164,7 +1251,11 @@ export function ActuacionDetalleDialog({
 
       {actasVisitaHayContenido(draft) ? (
         <DocumentalBloque overline="Actas labradas">
-          <ActasVisitaLectura draft={draft} />
+          <ActasVisitaLectura
+            draft={draft}
+            catalog={catalogs.itemsActaInspeccion ?? []}
+            lockedNotif={draft.notificacion_editable === false}
+          />
         </DocumentalBloque>
       ) : null}
 
@@ -1192,7 +1283,7 @@ export function ActuacionDetalleDialog({
       ) : null}
     </Stack>
     );
-  }, [draft, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
+  }, [draft, catalogs.itemsActaInspeccion, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
 
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? oficioFieldErrors[key] ?? "";
@@ -1324,6 +1415,21 @@ export function ActuacionDetalleDialog({
               />
             )}
           />
+        {!lockedNotif ? (
+          <PersonasSinCarnetField
+            appearance="glass"
+            value={cantidadPersonasSinCarnetFromRow(draft)}
+            onChange={(v) => {
+              personasSinCarnetTouchedRef.current = true;
+              const n = parseInt(v, 10);
+              onDraftChange({
+                cantidad_personas_sin_carnet_sanidad: Number.isNaN(n) || n < 0 ? 0 : n,
+              });
+            }}
+            disabled={!isValidActaNotificacionNum(draft.acta_notificacion_num) || saving}
+            error={e("cantidad_personas_sin_carnet_sanidad")}
+          />
+        ) : null}
       </Box>
     );
 
@@ -1569,6 +1675,7 @@ export function ActuacionDetalleDialog({
         <DocumentalBloque overline="Actas labradas">
           <Box sx={{ ...col, width: "100%" }}>
             {mostrarInspeccion ? (
+            <>
             <ActaNumFieldLazy
               label={ACTA_FIELD_LABELS.inspeccion}
               value={draft.acta_inspeccion_num}
@@ -1578,6 +1685,22 @@ export function ActuacionDetalleDialog({
               error={!!e("acta_inspeccion_num")}
               helperText={fieldHelper("acta_inspeccion_num")}
             />
+            <InspeccionChecklistFields
+              catalog={catalogs.itemsActaInspeccion ?? []}
+              estados={checklistEstados}
+              onEstadosChange={(estados) => {
+                checklistItemsTouchedRef.current = true;
+                setChecklistEstados(estados);
+                onDraftChange({
+                  items_acta_inspeccion: itemsActaInspeccionWriteFromEstados(estados),
+                });
+              }}
+              disabled={!isValidActaInspeccionNum(draft.acta_inspeccion_num) || saving}
+              errors={{
+                items: e("items_acta_inspeccion"),
+              }}
+            />
+            </>
             ) : null}
 
             {mostrarNotificacion ? (

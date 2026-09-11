@@ -165,6 +165,14 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
     if row.acta_inspeccion_num:
         payload["acta_inspeccion_num"] = _zfill6_if_digit(_clean_str(row.acta_inspeccion_num))
 
+    if "items_acta_inspeccion" in row.model_fields_set:
+        items = row.items_acta_inspeccion or []
+        payload["items_acta_inspeccion"] = [
+            {"item_id": int(i.item_id), "estado": str(i.estado)} for i in items
+        ]
+    if "cantidad_personas_sin_carnet_sanidad" in row.model_fields_set:
+        payload["cantidad_personas_sin_carnet_sanidad"] = row.cantidad_personas_sin_carnet_sanidad
+
     motivos_nf: list[str] = []
     _seen_m: set[str] = set()
     for raw in (

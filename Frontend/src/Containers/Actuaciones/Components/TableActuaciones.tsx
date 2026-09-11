@@ -18,6 +18,7 @@ import {
   fetchContraproducencias,
   fetchMotivosComprobacion,
 } from "../../../api/gridApi";
+import { fetchItemsActaInspeccionCatalog } from "../../../api/itemActaInspeccionCatalogApi";
 import {
   fetchRubrosCatalogoCached,
   rubroItemsToNombres,
@@ -116,6 +117,7 @@ const TablaActuaciones = ({
     tipos: string[];
     contras: string[];
     motivosComprobacion: string[];
+    itemsActaInspeccion: import("../../../api/itemActaInspeccionCatalogApi").IItemActaInspeccionCatalogItem[];
   } | null>(null);
   // ✅ errores por celda por idActuacion
   const feedback = useAppFeedback();
@@ -136,13 +138,15 @@ const TablaActuaciones = ({
     let cancelled = false;
     const loadCatalogs = async () => {
       try {
-        const [inspectores, motivos, rubrosItems, tipos, contras, motivosComp] = await Promise.all([
+        const [inspectores, motivos, rubrosItems, tipos, contras, motivosComp, itemsActaInspeccion] =
+          await Promise.all([
           fetchInspectores(),
           fetchMotivos(),
           fetchRubrosCatalogoCached(),
           fetchTiposActuacion(),
           fetchContraproducencias(),
           fetchMotivosComprobacion(),
+          fetchItemsActaInspeccionCatalog(),
         ]);
         if (cancelled) return;
         setCatalogBundle({
@@ -152,6 +156,7 @@ const TablaActuaciones = ({
           tipos: [...new Set(tipos.items.map((t: any) => t.nombre))],
           contras: [...new Set(contras.items.map((c: any) => c.nombre))],
           motivosComprobacion: [...new Set(motivosComp.items.map((m: any) => m.nombre))],
+          itemsActaInspeccion,
         });
       } catch (error) {
         console.error("Error cargando catálogos:", error);
@@ -177,6 +182,7 @@ const TablaActuaciones = ({
       tipos: catalogBundle?.tipos ?? [],
       contraproducencias: catalogBundle?.contras ?? [],
       motivosComprobacion: catalogBundle?.motivosComprobacion ?? [],
+      itemsActaInspeccion: catalogBundle?.itemsActaInspeccion ?? [],
     }),
     [catalogBundle]
   );
@@ -227,6 +233,7 @@ const TablaActuaciones = ({
           oficioCorrectionApplied: options?.oficioCorrectionApplied ?? false,
           actasClearedByOficioCorrection: options?.actasClearedByOficioCorrection ?? [],
           oficioValidationContext: options?.oficioValidationContext,
+          inspeccionChecklistTouched: options?.inspeccionChecklistTouched,
           skipValidation,
           skipUpdate,
           onBeforeSave,

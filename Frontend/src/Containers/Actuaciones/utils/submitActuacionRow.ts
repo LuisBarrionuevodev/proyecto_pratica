@@ -30,6 +30,10 @@ import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "..
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
 import { applyContribuyenteClearFlag } from "./contribuyenteCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
+import {
+  stripUntouchedInspeccionChecklistFromPut,
+  stripUntouchedPersonasSinCarnetFromPut,
+} from "./inspeccionChecklistSubmit";
 import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
 import {
   domicilioCalleCargadaEditable,
@@ -269,6 +273,9 @@ export type SubmitActuacionRowParams = {
   actasClearedByOficioCorrection?: ActaCanalQuitarTipo[];
   /** Estado destino del formulario Oficio para validación contextualizada (FIX.4.1). */
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
+  /** Semántica touched para checklist de inspección (legacy PUT protection). */
+  inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
+  inspeccionChecklistCatalog?: import("../../../api/itemActaInspeccionCatalogApi").IItemActaInspeccionCatalogItem[];
   skipValidation: boolean;
   skipUpdate: boolean;
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
@@ -292,6 +299,8 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     oficioCorrectionApplied = false,
     actasClearedByOficioCorrection = [],
     oficioValidationContext,
+    inspeccionChecklistTouched,
+    inspeccionChecklistCatalog,
     skipValidation,
     skipUpdate,
     onBeforeSave,
@@ -336,6 +345,17 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     rowToSubmit,
     originalRow,
     oficioValidationContext
+  );
+  rowToSubmit = stripUntouchedInspeccionChecklistFromPut(
+    rowToSubmit,
+    originalRow,
+    inspeccionChecklistTouched,
+    inspeccionChecklistCatalog
+  );
+  rowToSubmit = stripUntouchedPersonasSinCarnetFromPut(
+    rowToSubmit,
+    originalRow,
+    inspeccionChecklistTouched
   );
 
   if (originalRow) {
