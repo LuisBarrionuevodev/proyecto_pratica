@@ -26,12 +26,17 @@ from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
     fetch_no_realizadas_visita_rows,
     is_contraproducencia_excluida_valor,
 )
+from app.domains.actuaciones.services.completar_trabajo_contraproducencia import _loose_key
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     BUCKET_RATIFICACION_CLAUSURA,
     BUCKET_RATIFICACION_DECOMISO,
+    BUCKET_REINSPECCION_NOTIFICACION,
     BUCKET_REINSPECCION_OFICIO,
+    BUCKET_RELEVAMIENTO,
     BUCKET_VERIFICAR_INFORMAR,
     bucket_operativo,
+    canonical_tipo_iniciador,
+    loose_key_tipo_operativo,
     visitas_realizadas_por_tipo_iniciador,
 )
 from app.domains.indicadores.services.indicadores_resumen_service import (
@@ -447,6 +452,215 @@ def _row_from_item(
         dibujable_en_mapa=geo_eff["tiene_geocode_ok"],
         en_ventana_mapa_fecha=en_ventana_mapa,
     )
+
+
+def _golden_estados_ejecucion(ejecucion: str | None) -> frozenset[str]:
+    """Estados de ``estado_ejecucion`` admitidos según filtro UI (TODOS | REALIZADO | NO_REALIZADO)."""
+    if not ejecucion:
+        return frozenset({"REALIZADO", "NO_REALIZADO"})
+    key = str(ejecucion).strip().upper()
+    if key in ("", "TODOS", "ALL"):
+        return frozenset({"REALIZADO", "NO_REALIZADO"})
+    if key == "REALIZADO":
+        return frozenset({"REALIZADO"})
+    if key in ("NO_REALIZADO", "NO REALIZADO", "NO_REALIZADOS"):
+        return frozenset({"NO_REALIZADO"})
+    return frozenset({"REALIZADO", "NO_REALIZADO"})
+
+
+def _golden_tipos_iniciador_origen(origen: str | None) -> frozenset[str] | None:
+    """Resuelve filtro de origen a valores de ``IniciadorRuta.tipo_iniciador`` (sin llamar al mapa)."""
+    if not origen:
+        return None
+    key = str(origen).strip().upper()
+    if key in ("", "TODOS", "ALL"):
+        return None
+    if key in ("OFICIO", "OFICIOS", "REINSPECCION_OFICIO", "REINSPECCIONES_OFICIO"):
+        return frozenset(TIPOS_OFICIO)
+    if key in ("NOTIFICACION", "NOTIFICACIONES", "NOTIFICACION_VENCIDA", "REINSPECCION_NOTIFICACION"):
+        return frozenset({"REINSPECCION_NOTIFICACION"})
+    if key in ("DENUNCIAS", "DENUNCIA"):
+        return frozenset({"DENUNCIA"})
+    if key in ("RELEVAMIENTOS", "RELEVAMIENTO"):
+        return frozenset({"RELEVAMIENTO"})
+    return frozenset({key})
+
+
+def _golden_filtro_motivo(motivo: str | None) -> str | None:
+    """Normaliza filtro de motivo no realizado."""
+    if not motivo:
+        return None
+    key = str(motivo).strip().upper()
+    if key in ("", "TODAS", "ALL"):
+        return None
+    return key
+
+
+def _golden_motivo_coincide(
+    filtro: str,
+    motivo: str | None,
+    contraproducencia: str | None,
+) -> bool:
+    """True si el ítem NO_REALIZADO coincide con el motivo (canónico + fallback legacy)."""
+    m = (motivo or "").strip().upper()
+    if m == filtro:
+        return True
+    if not m and contraproducencia:
+        cp = _loose_key(str(contraproducencia))
+        aliases = {
+            "LOCAL_CERRADO": (_loose_key("LOCAL CERRADO"), _loose_key("LOCAL_CERRADO")),
+            "NO_EXISTE_LOCAL": (_loose_key("NO EXISTE LOCAL"), _loose_key("NO_EXISTE_LOCAL")),
+            "INCLEMENCIA_TIEMPO": (_loose_key("INCLEMENCIA TIEMPO"), _loose_key("INCLEMENCIA_TIEMPO")),
+            "OTRO": (_loose_key("OTRO"),),
+        }
+        if filtro in aliases and cp in aliases[filtro]:
+            return True
+    return False
+
+
+def _golden_filtro_tipo_operativo(tipo: str | None) -> str | None:
+    """Normaliza filtro de tipo operativo (bucket de realizados)."""
+    if not tipo:
+        return None
+    key = str(tipo).strip().upper()
+    if key in ("", "TODOS", "ALL"):
+        return None
+    return key
+
+
+def _golden_tipo_operativo_coincide(
+    tipo_filtro: str,
+    tipo_iniciador: str | None,
+    actuacion_tipo: str | None,
+) -> bool:
+    """True si un REALIZADO coincide con el filtro de tipo (misma regla que indicadores/mapa)."""
+    key = str(tipo_filtro).strip().upper()
+    bucket = bucket_operativo(tipo_iniciador, actuacion_tipo)
+
+    if key == "INSPECCION":
+        loose = loose_key_tipo_operativo(actuacion_tipo)
+        if bucket == BUCKET_RELEVAMIENTO:
+            return True
+        if loose and "inspeccion" in loose and "reinspeccion" not in loose:
+            return True
+        return False
+    if key == "REINSPECCION":
+        return bucket in (BUCKET_REINSPECCION_OFICIO, BUCKET_REINSPECCION_NOTIFICACION)
+    if key == "RATIFICACION_CLAUSURA":
+        return bucket == BUCKET_RATIFICACION_CLAUSURA
+    if key == "RATIFICACION_DECOMISO":
+        return bucket == BUCKET_RATIFICACION_DECOMISO
+    if key == "VERIFICAR_INFORMAR":
+        return bucket == BUCKET_VERIFICAR_INFORMAR
+
+    tipos_legacy = _golden_tipos_iniciador_origen(tipo_filtro)
+    if tipos_legacy is None:
+        return True
+    ini_canon = canonical_tipo_iniciador(tipo_iniciador) or ""
+    return ini_canon in tipos_legacy
+
+
+def _golden_domicilio_efectivo_orm(act: Actuaciones, ini: IniciadorRuta) -> Domicilio | None:
+    """Domicilio operativo para filtros golden (coalesce actuación, iniciador)."""
+    act_dom_id = int(act.domicilio_id) if act.domicilio_id is not None else None
+    ini_dom_id = int(ini.domicilio_id) if ini.domicilio_id is not None else None
+    eff_id = _domicilio_efectivo_id(act_dom_id, ini_dom_id)
+    if eff_id is None:
+        return None
+    if act_dom_id == eff_id and act.domicilio is not None:
+        return act.domicilio
+    if ini_dom_id == eff_id and ini.domicilio is not None:
+        return ini.domicilio
+    return db.session.get(Domicilio, eff_id)
+
+
+def fetch_filtered_operativo_ids(
+    desde: date,
+    hasta: date,
+    *,
+    distrito_id: int | None = None,
+    inspector_id: int | None = None,
+    ejecucion: str = "TODOS",
+    origen: str | None = None,
+    motivo_no_realizado: str | None = None,
+    rubro_id: int | None = None,
+    tipo: str | None = None,
+) -> set[int]:
+    """
+    Oracle independiente: IDs de ``RutaItem`` del universo operativo filtrado.
+
+    Construye desde el contrato canónico (``_base_intentos_query``) y aplica filtros
+    en memoria sin delegar al servicio productivo del mapa. Solo diagnóstico/tests.
+
+    Universo base:
+        ``RutaItem`` activo + ``RutaTrabajo`` PUBLICADA + FINALIZADO +
+        ``estado_ejecucion`` REALIZADO/NO_REALIZADO + actuación con OT.
+
+    Filtros aplicados:
+        fecha (``RutaTrabajo.fecha``), distrito efectivo, inspector, origen,
+        ejecución, motivo no realizado, rubro operativo, tipo operativo (solo REALIZADO).
+
+    Parámetros:
+        desde, hasta: rango inclusive sobre fecha de ruta.
+        Resto: equivalentes a ``GET /map/operativo/realizados``.
+
+    Retorno:
+        Conjunto de ``RutaItem.id`` del universo filtrado.
+    """
+    estados = _golden_estados_ejecucion(ejecucion)
+    tipos_origen = _golden_tipos_iniciador_origen(origen)
+    filtro_motivo = _golden_filtro_motivo(motivo_no_realizado)
+    filtro_tipo = _golden_filtro_tipo_operativo(tipo)
+
+    ids: set[int] = set()
+    for item in _base_intentos_query(desde, hasta).order_by(RutaItem.id).all():
+        act = item.actuacion
+        ini = item.iniciador_ruta
+        if act is None or ini is None:
+            continue
+
+        estado_ej = str(item.estado_ejecucion or "")
+        if estado_ej not in estados:
+            continue
+
+        if tipos_origen is not None:
+            ti = str(ini.tipo_iniciador or "").strip()
+            if ti not in tipos_origen:
+                continue
+
+        if distrito_id is not None:
+            dom_eff = _golden_domicilio_efectivo_orm(act, ini)
+            dist_eff = dom_eff.distrito_id if dom_eff else None
+            if dist_eff != distrito_id:
+                continue
+
+        if inspector_id is not None and not _inspector_participa(item, act, inspector_id):
+            continue
+
+        if filtro_motivo:
+            if estado_ej == "NO_REALIZADO":
+                if not _golden_motivo_coincide(
+                    filtro_motivo,
+                    item.motivo_no_realizado,
+                    act.contraproducencia,
+                ):
+                    continue
+            elif estado_ej == "REALIZADO":
+                continue
+
+        if filtro_tipo and estado_ej == "REALIZADO":
+            tipo_act = str(act.tipo) if act.tipo is not None else None
+            if not _golden_tipo_operativo_coincide(filtro_tipo, ini.tipo_iniciador, tipo_act):
+                continue
+
+        if rubro_id is not None:
+            dom_eff = _golden_domicilio_efectivo_orm(act, ini)
+            rid_op = rubro_id_operativo_para_iniciador(ini, dom_eff, act=act)
+            if rid_op != int(rubro_id):
+                continue
+
+        ids.add(int(item.id))
+    return ids
 
 
 def fetch_golden_dataset(

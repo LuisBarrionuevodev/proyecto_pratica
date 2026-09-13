@@ -6,7 +6,6 @@ import { useSearchParams } from "react-router-dom";
 import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
 import { getOperativoMonthToDateRange } from "../../utils/dateRange";
-import { OperativoPeriodoLabel } from "../../components/OperativoPeriodoLabel";
 import { fetchRubrosCatalogoCached } from "../../utils/rubrosCatalogCache";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
@@ -205,7 +204,16 @@ const MapPage = () => {
 
   const handleEjecucionChange = useCallback(
     (v: string) => {
-      patchFiltrosUiRef({ ejecucion: v });
+      const patch: Partial<FiltrosRealizadosSnapshot> = { ejecucion: v };
+      if (v === "REALIZADO") {
+        patch.motivoNoRealizado = "TODAS";
+        setMotivoNoRealizado("TODAS");
+      }
+      if (v !== "REALIZADO") {
+        patch.realizadoTipoIniciador = "TODOS";
+        setRealizadoTipoIniciador("TODOS");
+      }
+      patchFiltrosUiRef(patch);
       setEjecucion(v);
       if (modo === "realizados") loadRealizadosFromRef();
     },
@@ -299,6 +307,34 @@ const MapPage = () => {
     });
   }, [cargarRealizadosConSnapshotUi]);
 
+  const handleLimpiarFiltros = useCallback(() => {
+    const range = getOperativoMonthToDateRange();
+    patchFiltrosUiRef({
+      from: range.desde,
+      to: range.hasta,
+      distritoId: "",
+      inspectorId: "",
+      ejecucion: "TODOS",
+      origen: "TODOS",
+      motivoNoRealizado: "TODAS",
+      realizadoTipoIniciador: "TODOS",
+      realizadoRubroId: "",
+      realizadoRubroLabel: "",
+    });
+    setFechaDesde(range.desde);
+    setFechaHasta(range.hasta);
+    setDistritoId("");
+    setInspectorId("");
+    setEjecucion("TODOS");
+    setOrigen("TODOS");
+    setMotivoNoRealizado("TODAS");
+    setRealizadoTipoIniciador("TODOS");
+    setRealizadoRubroId("");
+    if (modo === "realizados") {
+      loadRealizadosFromRef();
+    }
+  }, [modo, patchFiltrosUiRef, loadRealizadosFromRef]);
+
   return (
     <Stack sx={functionalPageShellSx}>
       {modo === "realizados" && error && (
@@ -326,7 +362,6 @@ const MapPage = () => {
         />
       ) : (
         <>
-          <OperativoPeriodoLabel desde={fechaDesde} hasta={fechaHasta} />
           <MapaFiltrosUnificados
             fechaDesde={fechaDesde}
             fechaHasta={fechaHasta}
@@ -351,22 +386,24 @@ const MapPage = () => {
             inspectores={inspectores}
             onAplicar={handleAplicar}
             onRefrescar={refrescarOperativoDesdeFormulario}
+            onLimpiar={handleLimpiarFiltros}
           />
 
           <Grid
             container
             spacing={2}
-            sx={
-              mapExpanded
-                ? {
-                    alignItems: "stretch",
-                    minHeight: { xs: "72vh", md: "min(92vh, 960px)" },
-                  }
-                : undefined
-            }
+            sx={{
+              alignItems: "stretch",
+              ...(mapExpanded
+                ? { minHeight: { xs: "72vh", md: "min(92vh, 960px)" } }
+                : {}),
+            }}
           >
             {!mapExpanded && (
-              <Grid size={{ xs: 12, md: 4 }} sx={{ order: { xs: 2, md: 1 } }}>
+              <Grid
+                size={{ xs: 12, md: 4 }}
+                sx={{ order: { xs: 2, md: 1 }, display: "flex", flexDirection: "column" }}
+              >
                 <PanelResumenOperativo features={features} meta={meta} />
               </Grid>
             )}
@@ -376,14 +413,15 @@ const MapPage = () => {
                 order: { xs: 1, md: 2 },
                 display: "flex",
                 flexDirection: "column",
-                minHeight: mapExpanded ? { xs: "72vh", md: "min(92vh, 960px)" } : undefined,
-                flex: mapExpanded ? 1 : undefined,
+                alignSelf: "stretch",
+                minHeight: mapExpanded ? { xs: "72vh", md: "min(92vh, 960px)" } : { xs: 420 },
               }}
             >
               <MapaCanvas
                 features={features}
                 loading={loading}
                 mapExpanded={mapExpanded}
+                fillParentHeight={!mapExpanded}
                 onToggleExpand={() => setMapExpanded((e) => !e)}
                 emptyMessage={infoMessage}
               />

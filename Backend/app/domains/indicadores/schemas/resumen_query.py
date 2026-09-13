@@ -11,9 +11,9 @@ class IndicadoresResumenQuery(BaseModel):
     Query params para GET resumen de indicadores.
 
     Parámetros:
-        desde: inicio del rango (inclusive), fecha de actuación.
-        hasta: fin del rango (inclusive).
-        distrito_id: filtra actuaciones cuyo domicilio pertenece al distrito.
+        desde: inicio del rango (inclusive), fecha operativa de ``RutaTrabajo``.
+        hasta: fin del rango (inclusive), fecha operativa de ``RutaTrabajo``.
+        distrito_id: filtra visitas cuyo domicilio efectivo pertenece al distrito.
         inspector_id: filtra actuaciones donde el inspector figura en la relación (no borrada).
 
     Errores de validación: Pydantic ValidationError si fechas inválidas o desde > hasta.

@@ -1,52 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Alert,
-  Box,
-  ButtonBase,
-  Chip,
-  CircularProgress,
-  Divider,
-  IconButton,
-  Stack,
-  Typography,
-} from "@mui/material";
-import ChevronLeft from "@mui/icons-material/ChevronLeft";
-import ChevronRight from "@mui/icons-material/ChevronRight";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
-import { GLASS_COLORS, moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { fechaLocalHoyIso, toIsoDateLocal } from "../../../utils/dateRange";
-import {
-  InstitutionalMonthCalendarGrid,
-} from "../../../components/calendar/InstitutionalMonthCalendarGrid";
+import { InstitutionalMonthCalendarGrid } from "../../../components/calendar/InstitutionalMonthCalendarGrid";
 import {
   getCompletarTrabajoPendientesResumen,
   type ICompletarTrabajoPendienteDiaResumen,
 } from "../../../api/completarTrabajoApi";
 import { AppButton } from "../../../ui";
 import {
-  planificacionPanelSubtitleSx,
-  rutasInstitutionalDividerSx,
   rutasInstitutionalResumenPaperSx,
   rutasResumenTitleSx,
 } from "../../RutasTrabajo/styles/institutionalVisual";
 import type { CompletarTrabajosEmptyProps } from "../types";
+import { pendientesFooterLabel } from "../utils/completarTrabajoCalendarDisplay";
 
 const TACTIC = '"Tactic Sans", sans-serif' as const;
 
-const CARRUSEL_SCROLL_PX = 380;
-
-/** Ancho máximo del contenido (full-width con cap cómodo en pantallas grandes). */
 const COMPLETAR_CONTENT_MAX_PX = 1400;
+const COMPLETAR_CALENDAR_CELL_MIN_HEIGHT = 56;
 
-/** Bloque superior (pendientes + carrusel): glass liviano F3.8c; el almanaque usa panel tipo Rutas (`rutasInstitutionalResumenPaperSx`). */
-const principalGlassSurfaceSx = {
-  ...moduleContentPanelPaperSx,
-  maxWidth: COMPLETAR_CONTENT_MAX_PX,
-  mx: "auto",
-  boxSizing: "border-box" as const,
-};
-
-/** Misma superficie que el panel del calendario en Rutas trabajo (`calendarPanelSurfaceSx`). */
 const completarCalendarPanelSurfaceSx = {
   ...rutasInstitutionalResumenPaperSx,
   width: "100%",
@@ -55,14 +29,14 @@ const completarCalendarPanelSurfaceSx = {
   boxSizing: "border-box" as const,
 };
 
-const carruselScrollSx = {
-  overflowX: "auto" as const,
-  overflowY: "hidden" as const,
-  scrollSnapType: "x proximity" as const,
-  scrollbarWidth: "none" as const,
-  msOverflowStyle: "none" as const,
-  pb: 0.5,
-  "&::-webkit-scrollbar": { display: "none" },
+const pendientesFooterSx = {
+  fontFamily: TACTIC,
+  fontSize: "0.68rem",
+  fontWeight: 600,
+  lineHeight: 1.2,
+  color: "inherit",
+  textAlign: "center" as const,
+  px: 0.25,
 };
 
 function compareIso(a: string, b: string): number {
@@ -80,20 +54,6 @@ function defaultResumenRango(): { desde: string; hasta: string } {
   const hastaDt = new Date(hoy);
   hastaDt.setDate(hastaDt.getDate() + 30);
   return { desde: toIsoDateLocal(desdeDt), hasta: toIsoDateLocal(hastaDt) };
-}
-
-function formatFechaOperativaCorta(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  try {
-    return new Intl.DateTimeFormat("es-AR", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    }).format(new Date(y, m - 1, d));
-  } catch {
-    return iso;
-  }
 }
 
 function buildDiasMap(dias: ICompletarTrabajoPendienteDiaResumen[]): Map<string, ICompletarTrabajoPendienteDiaResumen> {
@@ -149,108 +109,8 @@ function titleCeldaCalendario(est: DiaCeldaEstado): string {
   }
 }
 
-type DiaCarouselCardProps = {
-  dia: ICompletarTrabajoPendienteDiaResumen;
-  hoyIso: string;
-  onElegir: (fechaIso: string) => void;
-};
-
-function DiaCarouselCard({ dia, hoyIso, onElegir }: DiaCarouselCardProps) {
-  const { fecha, total, atrasado } = dia;
-  const esHoy = fecha === hoyIso;
-
-  return (
-    <ButtonBase
-      focusRipple
-      onClick={() => onElegir(fecha)}
-      sx={{
-        flex: "0 0 auto",
-        scrollSnapAlign: "start" as const,
-        width: { xs: 216, sm: 244, md: 262 },
-        minWidth: { xs: 216, sm: 244, md: 262 },
-        maxWidth: { xs: 216, sm: 244, md: 262 },
-        minHeight: { xs: 132, sm: 140 },
-        textAlign: "left",
-        borderRadius: "14px",
-        p: { xs: 1.5, sm: 1.75 },
-        display: "block",
-        bgcolor: "rgba(255,255,255,0.03)",
-        border: `1px solid ${GLASS_COLORS.borderLight}`,
-        transition: "border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease",
-        ...(atrasado
-          ? {
-              borderColor: "rgba(255, 138, 128, 0.65)",
-              boxShadow: "inset 0 0 0 1px rgba(255, 138, 128, 0.12)",
-            }
-          : {
-              borderColor: "rgba(255,255,255,0.12)",
-            }),
-        "&:hover": {
-          bgcolor: "rgba(255,255,255,0.06)",
-          borderColor: GLASS_COLORS.borderMedium,
-        },
-        "&.Mui-focusVisible": {
-          outline: `2px solid ${GLASS_COLORS.primary}`,
-          outlineOffset: 2,
-        },
-      }}
-    >
-      <Stack spacing={0.85} alignItems="flex-start" justifyContent="space-between" sx={{ minHeight: 1 }}>
-        <Stack direction="row" spacing={0.6} alignItems="center" flexWrap="wrap" useFlexGap>
-          {atrasado ? (
-            <Chip
-              size="small"
-              label="Atrasado"
-              color="warning"
-              variant="outlined"
-              sx={{ height: 24, fontSize: "0.68rem", fontFamily: TACTIC, fontWeight: 700 }}
-            />
-          ) : null}
-          {esHoy ? (
-            <Chip
-              size="small"
-              label="Hoy"
-              variant="outlined"
-              sx={{
-                height: 24,
-                fontSize: "0.65rem",
-                fontFamily: TACTIC,
-                borderColor: GLASS_COLORS.primary,
-                color: GLASS_COLORS.primary,
-              }}
-            />
-          ) : null}
-        </Stack>
-        <Typography
-          sx={{
-            fontFamily: TACTIC,
-            fontWeight: 700,
-            fontSize: { xs: "0.95rem", sm: "1rem" },
-            color: GLASS_COLORS.textPrimary,
-            lineHeight: 1.25,
-            textTransform: "capitalize",
-          }}
-        >
-          {formatFechaOperativaCorta(fecha)}
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: TACTIC,
-            color: GLASS_COLORS.textSecondary,
-            fontSize: { xs: "0.78rem", sm: "0.8125rem" },
-            fontWeight: 600,
-            lineHeight: 1.35,
-          }}
-        >
-          {total === 1 ? "1 pendiente" : `${total} pendientes`}
-        </Typography>
-      </Stack>
-    </ButtonBase>
-  );
-}
-
 /**
- * Entrada al módulo: superficie glass grande con pendientes + carrusel; debajo, calendario operativo.
+ * Entrada al módulo: calendario operativo como selector principal de jornada.
  */
 export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTrabajosEmptyProps) {
   const hoyLocal = fechaLocalHoyIso();
@@ -269,13 +129,7 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
   });
   const [selectedCalDay, setSelectedCalDay] = useState<string | null>(defaultSeleccion);
 
-  const carruselRef = useRef<HTMLDivElement>(null);
-
   const diasMap = useMemo(() => buildDiasMap(dias), [dias]);
-  const diasCarrusel = useMemo(
-    () => dias.filter((d) => categoriaCalendarioDesdeRow(d) === "CON_PENDIENTES"),
-    [dias]
-  );
 
   const cargarResumen = useCallback(async () => {
     setLoading(true);
@@ -315,111 +169,49 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
     [onVerTrabajos]
   );
 
-  const scrollCarrusel = (delta: number) => {
-    carruselRef.current?.scrollBy({ left: delta, behavior: "smooth" });
-  };
-
   const hoyIso = metaResumen?.hoy ?? hoyLocal;
   const rangoDesde = metaResumen?.desde ?? rango.desde;
   const rangoHasta = metaResumen?.hasta ?? rango.hasta;
 
   return (
-    <Stack spacing={2.25} sx={{ width: "100%", maxWidth: COMPLETAR_CONTENT_MAX_PX, mx: "auto" }}>
-      {loading ? (
-        <Box sx={principalGlassSurfaceSx}>
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress size={36} />
-          </Box>
-        </Box>
-      ) : null}
+    <Stack spacing={2} sx={{ width: "100%", maxWidth: COMPLETAR_CONTENT_MAX_PX, mx: "auto" }}>
+      <Box sx={completarCalendarPanelSurfaceSx}>
+        <Stack spacing={2}>
+          <Typography sx={rutasResumenTitleSx}>Calendario operativo</Typography>
 
-      {error ? (
-        <Box sx={principalGlassSurfaceSx}>
-          <Alert severity="error" variant="outlined" sx={{ borderRadius: 2 }}>
-            {error}
-            <Box sx={{ mt: 1 }}>
-              <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void cargarResumen()}>
-                Reintentar
-              </AppButton>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+              <CircularProgress size={36} />
             </Box>
-          </Alert>
-        </Box>
-      ) : null}
+          ) : null}
 
-      {!loading && !error ? (
-        <>
-          <Box sx={principalGlassSurfaceSx}>
-            <Stack spacing={2}>
-              <Typography sx={rutasResumenTitleSx}>Trabajos pendientes</Typography>
-              <Divider sx={rutasInstitutionalDividerSx} />
-              {diasCarrusel.length === 0 ? (
-                <Typography sx={{ ...planificacionPanelSubtitleSx, fontSize: "0.78rem" }}>
-                  Sin jornadas en el rango cargado.
-                </Typography>
-              ) : (
-                <Box sx={{ position: "relative", mx: { xs: -0.5, sm: -0.25 } }}>
-                  <IconButton
-                    size="small"
-                    aria-label="Desplazar carrusel a la izquierda"
-                    onClick={() => scrollCarrusel(-CARRUSEL_SCROLL_PX)}
-                    sx={{
-                      display: { xs: "none", md: "flex" },
-                      position: "absolute",
-                      left: -2,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      zIndex: 2,
-                      bgcolor: "rgba(0,0,0,0.32)",
-                      color: GLASS_COLORS.textPrimary,
-                      "&:hover": { bgcolor: "rgba(0,0,0,0.48)" },
-                    }}
-                  >
-                    <ChevronLeft />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    aria-label="Desplazar carrusel a la derecha"
-                    onClick={() => scrollCarrusel(CARRUSEL_SCROLL_PX)}
-                    sx={{
-                      display: { xs: "none", md: "flex" },
-                      position: "absolute",
-                      right: -2,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      zIndex: 2,
-                      bgcolor: "rgba(0,0,0,0.32)",
-                      color: GLASS_COLORS.textPrimary,
-                      "&:hover": { bgcolor: "rgba(0,0,0,0.48)" },
-                    }}
-                  >
-                    <ChevronRight />
-                  </IconButton>
-                  <Box
-                    ref={carruselRef}
-                    sx={{ ...carruselScrollSx, display: "flex", gap: { xs: 1.25, sm: 1.5 }, px: { xs: 0, md: 3 }, py: 0.25 }}
-                  >
-                    {diasCarrusel.map((dia) => (
-                      <DiaCarouselCard key={dia.fecha} dia={dia} hoyIso={hoyIso} onElegir={abrirGrid} />
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </Stack>
-          </Box>
+          {error ? (
+            <Alert severity="error" variant="outlined" sx={{ borderRadius: 2 }}>
+              {error}
+              <Box sx={{ mt: 1 }}>
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void cargarResumen()}>
+                  Reintentar
+                </AppButton>
+              </Box>
+            </Alert>
+          ) : null}
 
-          <Box sx={completarCalendarPanelSurfaceSx}>
-            <Stack spacing={1.5}>
-              <Typography sx={rutasResumenTitleSx}>Calendario operativo</Typography>
+          {!loading && !error ? (
+            <>
               <InstitutionalMonthCalendarGrid
                 monthAnchor={calMes}
                 onMonthChange={setCalMes}
                 hoyIso={hoyIso}
                 selectedIso={selectedCalDay}
                 onSelectDay={setSelectedCalDay}
+                cellMinHeight={COMPLETAR_CALENDAR_CELL_MIN_HEIGHT}
+                cellGap={0.75}
                 aria-label="Calendario operativo: pendiente, completo o sin actividad según el resumen del servidor"
                 getDayTitle={(ctx) => {
                   const est = estadoCeldaCalendario(ctx.iso, diasMap, rangoDesde, rangoHasta);
-                  return titleCeldaCalendario(est);
+                  const pendientes = pendientesFooterLabel(diasMap.get(ctx.iso));
+                  const base = titleCeldaCalendario(est);
+                  return pendientes ? `${base} — ${pendientes}` : base;
                 }}
                 getDayButtonSx={(ctx) => {
                   const est = estadoCeldaCalendario(ctx.iso, diasMap, rangoDesde, rangoHasta);
@@ -439,12 +231,11 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                         : est === "completo"
                           ? "1px solid rgba(129, 199, 132, 0.35)"
                           : `1px solid ${GLASS_COLORS.borderLight}`;
-                  const color = "#FFFFFF";
                   return {
                     bgcolor: bg,
                     border,
-                    color,
-                    minHeight: 40,
+                    color: "#FFFFFF",
+                    minHeight: COMPLETAR_CALENDAR_CELL_MIN_HEIGHT,
                     "&:hover": {
                       bgcolor:
                         est === "sin_actividad" || est === "sin_dato_fuera"
@@ -452,6 +243,11 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                           : "rgba(255,255,255,0.06)",
                     },
                   };
+                }}
+                renderDayFooter={(ctx) => {
+                  const label = pendientesFooterLabel(diasMap.get(ctx.iso));
+                  if (!label) return undefined;
+                  return <Typography component="span" sx={pendientesFooterSx}>{label}</Typography>;
                 }}
               />
               <Stack
@@ -473,10 +269,10 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                   Ir a la grilla del día
                 </AppButton>
               </Stack>
-            </Stack>
-          </Box>
-        </>
-      ) : null}
+            </>
+          ) : null}
+        </Stack>
+      </Box>
     </Stack>
   );
 }

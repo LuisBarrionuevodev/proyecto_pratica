@@ -693,35 +693,82 @@ class MapaOperativoCierresResult:
     meta: dict[str, Any]
 
 
-def list_mapa_operativo_cierres_geo_with_meta(
+@dataclass
+class _MapaCierresFiltrosCtx:
+    """Contexto de filtros post-query para cierres operativos del mapa."""
+
+    filtro_motivo: str | None
+    filtro_tipo_operativo: str | None
+    rubro_id: int | None
+
+
+def _mapa_cierre_pasa_filtros_universo(
+    item: RutaItem,
+    act: Actuaciones,
+    ini: IniciadorRuta,
+    ctx: _MapaCierresFiltrosCtx,
+) -> bool:
+    """
+    True si el ítem entra al universo operativo (``meta.total_operativos``) con los filtros dados.
+
+    Parámetros:
+        item, act, ini: entidades hidratadas del intento.
+        ctx: motivo, tipo operativo y rubro ya normalizados.
+
+    Retorno:
+        False si debe excluirse del universo filtrado.
+    """
+    estado_ej = str(item.estado_ejecucion or "")
+    if ctx.filtro_motivo and estado_ej == "NO_REALIZADO":
+        if not _motivo_coincide_filtro_mapa(
+            ctx.filtro_motivo,
+            item.motivo_no_realizado,
+            act.contraproducencia,
+        ):
+            return False
+    elif ctx.filtro_motivo and estado_ej == "REALIZADO":
+        return False
+
+    tipo_act_str = str(act.tipo) if act.tipo is not None else None
+    if ctx.filtro_tipo_operativo and estado_ej == "REALIZADO":
+        if not _realizado_coincide_filtro_tipo_operativo(
+            ctx.filtro_tipo_operativo,
+            str(ini.tipo_iniciador),
+            tipo_act_str,
+        ):
+            return False
+
+    if ctx.rubro_id is not None:
+        dom = _domicilio_efectivo_orm(act, ini)
+        rid_op = rubro_id_operativo_para_iniciador(ini, dom, act=act)
+        if rid_op != int(ctx.rubro_id):
+            return False
+
+    return True
+
+
+def _build_mapa_cierres_query(
     *,
-    desde: Optional[str],
-    hasta: Optional[str],
-    distrito_id: Optional[int] = None,
-    tipo: Optional[str] = None,
-    inspector_id: Optional[int] = None,
-    definicion: Optional[str] = None,
-    rubro_id: Optional[int] = None,
-    ejecucion: Optional[str] = None,
-    origen: Optional[str] = None,
-    motivo_no_realizado: Optional[str] = None,
-) -> MapaOperativoCierresResult:
+    d_desde: date,
+    d_hasta: date,
+    estados: tuple[str, ...],
+    tipos_origen: tuple[str, ...] | None,
+    distrito_id: int | None,
+    inspector_id: int | None,
+    definicion_key: str | None,
+):
     """
-    Cierres operativos (REALIZADO y/o NO_REALIZADO) con resumen de universo vs dibujables.
+    Query ORM de cierres operativos del mapa con filtros SQL aplicados.
 
-    Período: ``RutaTrabajo.fecha``. Coordenadas: domicilio efectivo con geocode OK.
+    Parámetros:
+        d_desde, d_hasta: rango inclusive sobre ``RutaTrabajo.fecha``.
+        estados: tupla de ``estado_ejecucion`` (REALIZADO / NO_REALIZADO).
+        tipos_origen, distrito_id, inspector_id, definicion_key: filtros opcionales.
+
+    Retorno:
+        Query de ``RutaItem`` con opciones de carga para el loop del mapa.
     """
-    d_desde = _parse_date(desde)
-    d_hasta = _parse_date(hasta)
-    if d_desde is None or d_hasta is None:
-        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
-
-    estados = _normalize_filtro_ejecucion(ejecucion)
-    filtro_tipo_operativo = _normalize_filtro_tipo_realizados(tipo)
-    tipos_origen = _normalize_filtro_origen(origen)
-    filtro_motivo = _normalize_filtro_motivo_no_realizado(motivo_no_realizado)
     dom_eff = aliased(Domicilio)
-
     q = (
         RutaItem.query.join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
         .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
@@ -746,14 +793,114 @@ def list_mapa_operativo_cierres_geo_with_meta(
         q = q.filter(_realizados_inspector_coincide(inspector_id))
     if tipos_origen is not None:
         q = _aplicar_filtro_tipo_iniciador(q, tipos_origen)
-
-    definicion_key = _definicion_actuacion_filtro(definicion)
     if definicion_key == "CLAUSURA":
         q = q.filter(Actuaciones.clausura.has())
     elif definicion_key == "DECOMISO":
         q = q.filter(Actuaciones.decomiso.has())
     elif definicion_key == "CLAUSURA_DECOMISO":
         q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
+    return q
+
+
+def collect_mapa_operativo_universe_ids(
+    *,
+    desde: Optional[str],
+    hasta: Optional[str],
+    distrito_id: Optional[int] = None,
+    tipo: Optional[str] = None,
+    inspector_id: Optional[int] = None,
+    definicion: Optional[str] = None,
+    rubro_id: Optional[int] = None,
+    ejecucion: Optional[str] = None,
+    origen: Optional[str] = None,
+    motivo_no_realizado: Optional[str] = None,
+) -> set[int]:
+    """
+    IDs de ``RutaItem`` del universo operativo filtrado (sin requerir geocode).
+
+    Misma semántica que ``list_mapa_operativo_cierres_geo_with_meta`` → ``meta.total_operativos``.
+    Uso interno / tests; no exponer como endpoint productivo.
+
+    Parámetros:
+        desde, hasta: fechas ISO obligatorias.
+        Resto: mismos filtros que el mapa operativo unificado.
+
+    Retorno:
+        Conjunto de ``RutaItem.id`` que cuentan en el universo filtrado.
+
+    Errores:
+        ValueError si faltan fechas válidas.
+    """
+    d_desde = _parse_date(desde)
+    d_hasta = _parse_date(hasta)
+    if d_desde is None or d_hasta is None:
+        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
+
+    estados = _normalize_filtro_ejecucion(ejecucion)
+    ctx = _MapaCierresFiltrosCtx(
+        filtro_motivo=_normalize_filtro_motivo_no_realizado(motivo_no_realizado),
+        filtro_tipo_operativo=_normalize_filtro_tipo_realizados(tipo),
+        rubro_id=int(rubro_id) if rubro_id is not None else None,
+    )
+    q = _build_mapa_cierres_query(
+        d_desde=d_desde,
+        d_hasta=d_hasta,
+        estados=estados,
+        tipos_origen=_normalize_filtro_origen(origen),
+        distrito_id=distrito_id,
+        inspector_id=inspector_id,
+        definicion_key=_definicion_actuacion_filtro(definicion),
+    )
+    ids: set[int] = set()
+    for item in q.order_by(RutaItem.id).all():
+        act = item.actuacion
+        ini = item.iniciador_ruta
+        if act is None or ini is None:
+            continue
+        if not _mapa_cierre_pasa_filtros_universo(item, act, ini, ctx):
+            continue
+        ids.add(int(item.id))
+    return ids
+
+
+def list_mapa_operativo_cierres_geo_with_meta(
+    *,
+    desde: Optional[str],
+    hasta: Optional[str],
+    distrito_id: Optional[int] = None,
+    tipo: Optional[str] = None,
+    inspector_id: Optional[int] = None,
+    definicion: Optional[str] = None,
+    rubro_id: Optional[int] = None,
+    ejecucion: Optional[str] = None,
+    origen: Optional[str] = None,
+    motivo_no_realizado: Optional[str] = None,
+) -> MapaOperativoCierresResult:
+    """
+    Cierres operativos (REALIZADO y/o NO_REALIZADO) con resumen de universo vs dibujables.
+
+    Período: ``RutaTrabajo.fecha``. Coordenadas: domicilio efectivo con geocode OK.
+    """
+    d_desde = _parse_date(desde)
+    d_hasta = _parse_date(hasta)
+    if d_desde is None or d_hasta is None:
+        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
+
+    estados = _normalize_filtro_ejecucion(ejecucion)
+    ctx = _MapaCierresFiltrosCtx(
+        filtro_motivo=_normalize_filtro_motivo_no_realizado(motivo_no_realizado),
+        filtro_tipo_operativo=_normalize_filtro_tipo_realizados(tipo),
+        rubro_id=int(rubro_id) if rubro_id is not None else None,
+    )
+    q = _build_mapa_cierres_query(
+        d_desde=d_desde,
+        d_hasta=d_hasta,
+        estados=estados,
+        tipos_origen=_normalize_filtro_origen(origen),
+        distrito_id=distrito_id,
+        inspector_id=inspector_id,
+        definicion_key=_definicion_actuacion_filtro(definicion),
+    )
 
     meta = {
         "total_operativos": 0,
@@ -773,31 +920,12 @@ def list_mapa_operativo_cierres_geo_with_meta(
         if act is None or ini is None:
             continue
 
-        estado_ej = str(item.estado_ejecucion or "")
-        if filtro_motivo and estado_ej == "NO_REALIZADO":
-            if not _motivo_coincide_filtro_mapa(
-                filtro_motivo,
-                item.motivo_no_realizado,
-                act.contraproducencia,
-            ):
-                continue
-        elif filtro_motivo and estado_ej == "REALIZADO":
+        if not _mapa_cierre_pasa_filtros_universo(item, act, ini, ctx):
             continue
 
+        estado_ej = str(item.estado_ejecucion or "")
         tipo_act_str = str(act.tipo) if act.tipo is not None else None
-        if filtro_tipo_operativo and estado_ej == "REALIZADO":
-            if not _realizado_coincide_filtro_tipo_operativo(
-                filtro_tipo_operativo,
-                str(ini.tipo_iniciador),
-                tipo_act_str,
-            ):
-                continue
-
         dom = _domicilio_efectivo_orm(act, ini)
-        if rubro_id is not None:
-            rid_op = rubro_id_operativo_para_iniciador(ini, dom, act=act)
-            if rid_op != int(rubro_id):
-                continue
 
         meta["total_operativos"] += 1
         if estado_ej == "REALIZADO":

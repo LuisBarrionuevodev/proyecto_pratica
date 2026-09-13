@@ -40,6 +40,10 @@ export type InstitutionalMonthCalendarGridProps = {
   getDayButtonSx?: (ctx: MonthCalendarDayContext) => SxProps<Theme>;
   /** Contenido bajo el número (punto, chip cantidad, etc.). */
   renderDayFooter?: (ctx: MonthCalendarDayContext) => ReactNode;
+  /** Altura mínima de celdas de día (px). */
+  cellMinHeight?: number;
+  /** Separación entre celdas (theme spacing). */
+  cellGap?: number;
   /** aria-label del grid */
   "aria-label"?: string;
 };
@@ -57,6 +61,8 @@ export function InstitutionalMonthCalendarGrid({
   getDayTitle,
   getDayButtonSx,
   renderDayFooter,
+  cellMinHeight = 40,
+  cellGap = 0.5,
   "aria-label": ariaLabel = "Calendario mensual",
 }: InstitutionalMonthCalendarGridProps) {
   const y = monthAnchor.getFullYear();
@@ -112,7 +118,7 @@ export function InstitutionalMonthCalendarGrid({
         sx={{
           display: "grid",
           gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 0.5,
+          gap: cellGap,
           textAlign: "center",
         }}
       >
@@ -127,7 +133,7 @@ export function InstitutionalMonthCalendarGrid({
         ))}
         {cells.map((cell) => {
           if (cell.iso == null || cell.dayNum == null) {
-            return <Box key={cell.key} sx={{ minHeight: 40 }} />;
+            return <Box key={cell.key} sx={{ minHeight: cellMinHeight }} />;
           }
           const ctx: MonthCalendarDayContext = {
             iso: cell.iso,
@@ -162,11 +168,11 @@ export function InstitutionalMonthCalendarGrid({
               title={title}
               onClick={() => onSelectDay(cell.iso!)}
               sx={{
-                minHeight: 40,
+                minHeight: cellMinHeight,
                 borderRadius: "10px",
                 fontFamily: TACTIC,
                 fontWeight: ctx.esHoy ? 800 : 600,
-                fontSize: "0.8rem",
+                fontSize: cellMinHeight >= 52 ? "0.88rem" : "0.8rem",
                 color: "#FFFFFF",
                 bgcolor: "rgba(255,255,255,0.025)",
                 border: `1px solid ${GLASS_COLORS.borderLight}`,

@@ -46,5 +46,13 @@ describe("PanelResumenOperativo — OPER-ANALYTICS.4.1", () => {
     expect(html).toContain("35");
     expect(html).toContain("Por tipo de iniciador · con ubicación (3)");
     expect(html).not.toContain("Por tipo de iniciador</");
+    expect(html).toContain("Realizados");
+    expect(html).toContain("Leyenda del mapa");
+    expect(html).toContain("Resumen operativo");
+    expect(html).toContain("font-size:1.25rem");
+    expect(html).toContain("font-weight:700");
+    expect(html).toContain("font-weight:500");
+    expect(html).toContain("color:#fff");
+    expect(html).toMatch(/color:rgb\(25, 118, 210\)|color:#1976d2/);
   });
 });

@@ -17,6 +17,7 @@ from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
 )
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     actuacion_ids_realizadas_subquery,
+    domicilio_id_efectivo_expr,
     query_top_rubros_cierres_realizados,
     visitas_realizadas_por_tipo_iniciador as _visitas_realizadas_por_tipo_iniciador,
 )
@@ -518,8 +519,9 @@ def query_decomiso_kg_por_rubro(
     inspector_id: Optional[int] = None,
 ) -> list[tuple[str, float]]:
     """
-    Suma ``decomiso.cantidad`` (kg) por rubro del domicilio de la actuación.
+    Suma ``decomiso.cantidad`` (kg) por rubro del domicilio efectivo de la visita.
 
+    Domicilio efectivo: ``coalesce(Actuaciones.domicilio_id, IniciadorRuta.domicilio_id)``.
     Actuaciones sin rubro se agrupan en ``Sin rubro``.
     """
     sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
@@ -529,9 +531,14 @@ def query_decomiso_kg_por_rubro(
         .select_from(Decomiso)
         .join(Actuaciones, Actuaciones.id == Decomiso.actuacion_id)
         .join(sq, sq.c.id == Actuaciones.id)
-        .outerjoin(Domicilio, Domicilio.id == Actuaciones.domicilio_id)
+        .join(RutaItem, RutaItem.actuacion_id == Actuaciones.id)
+        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .outerjoin(Domicilio, Domicilio.id == domicilio_id_efectivo_expr())
         .outerjoin(Rubro, Rubro.id == Domicilio.rubro_id)
-        .filter(Decomiso.cantidad.isnot(None))
+        .filter(
+            Decomiso.cantidad.isnot(None),
+            RutaItem.deleted_at.is_(None),
+        )
         .group_by(rubro_label)
         .order_by(func.sum(Decomiso.cantidad).desc())
         .all()

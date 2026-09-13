@@ -75,11 +75,13 @@ export function useMapaOperativo() {
         setFeatures([]);
         return;
       }
+      const ejecucionNorm = (p.ejecucion ?? "TODOS").trim().toUpperCase();
       const queryParams = {
         desde: p.from,
         hasta: p.to,
         distrito_id: _distritoNum(p.distritoId),
-        tipo: mapaRealizadosTipoQueryValue(p.tipo),
+        tipo:
+          ejecucionNorm === "REALIZADO" ? mapaRealizadosTipoQueryValue(p.tipo) : undefined,
         inspector_id: _inspectorNum(p.inspectorId),
         rubro_id: mapaRealizadosRubroQueryValue(p.rubroId ?? ""),
         ejecucion: mapaEjecucionQueryValue(p.ejecucion ?? "TODOS"),

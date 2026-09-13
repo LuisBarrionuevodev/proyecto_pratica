@@ -60,3 +60,64 @@ export const mapaOperativoInnerCardSx: SxProps<Theme> = {
   ...moduleHeroCardSx,
   p: 1.75,
 };
+
+const tacticFont = '"Tactic Sans", sans-serif';
+
+/** Título principal del panel lateral (Resumen operativo). */
+export const mapaOperativoPanelTitleSx: SxProps<Theme> = {
+  color: "#fff",
+  fontWeight: 700,
+  fontSize: "1.25rem",
+  lineHeight: 1.3,
+  fontFamily: tacticFont,
+  letterSpacing: "0.02em",
+};
+
+/** Títulos de subcajas (Trabajos operativos, Por tipo, Leyenda). */
+export const mapaOperativoCardTitleSx: SxProps<Theme> = {
+  color: "#fff",
+  fontWeight: 700,
+  fontSize: "0.875rem",
+  lineHeight: 1.35,
+  fontFamily: tacticFont,
+};
+
+/** Fila métrica / tipo: contenedor unificado. */
+export const mapaOperativoMetricRowSx: SxProps<Theme> = {
+  minHeight: 28,
+  py: 0.35,
+};
+
+/** Label de fila (métricas y tipos de iniciador). */
+export const mapaOperativoMetricRowLabelSx: SxProps<Theme> = {
+  color: "#fff",
+  fontWeight: 500,
+  fontSize: "0.875rem",
+  lineHeight: 1.35,
+  fontFamily: tacticFont,
+};
+
+/** Valor numérico de fila (métricas y tipos de iniciador). */
+export const mapaOperativoMetricRowValueSx: SxProps<Theme> = {
+  color: "primary.main",
+  fontWeight: 700,
+  fontSize: "0.875rem",
+  lineHeight: 1.35,
+  fontFamily: tacticFont,
+};
+
+/** Total destacado de trabajos operativos. */
+export const mapaOperativoHeroValueSx: SxProps<Theme> = {
+  color: "primary.main",
+  fontWeight: 700,
+  fontFamily: tacticFont,
+};
+
+/** Texto de ítems de leyenda (peso normal). */
+export const mapaOperativoLegendLabelSx: SxProps<Theme> = {
+  color: "#fff",
+  fontWeight: 400,
+  fontSize: "0.875rem",
+  lineHeight: 1.35,
+  fontFamily: tacticFont,
+};

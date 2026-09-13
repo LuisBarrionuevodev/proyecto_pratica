@@ -42,6 +42,7 @@ export type MapaFiltrosUnificadosProps = {
   inspectores: CatalogItem[];
   onAplicar: () => void;
   onRefrescar: () => void;
+  onLimpiar: () => void;
 };
 
 /** Filtros del modo Realizados en MapPage. */
@@ -69,6 +70,7 @@ export function MapaFiltrosUnificados({
   inspectores,
   onAplicar,
   onRefrescar,
+  onLimpiar,
 }: MapaFiltrosUnificadosProps) {
   const ejecucionOptions = MAPA_EJECUCION_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
   const origenOptions = MAPA_ORIGEN_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
@@ -78,6 +80,7 @@ export function MapaFiltrosUnificados({
   }));
   const tipoOptions = MAPA_TIPO_INICIADOR_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
   const motivoDisabled = ejecucion === "REALIZADO";
+  const tipoDisabled = ejecucion !== "REALIZADO";
   const inspectorOptions = [
     { value: "", label: "Todos los inspectores" },
     ...inspectores.map((i) => ({ value: String(i.id), label: i.nombre })),
@@ -137,7 +140,7 @@ export function MapaFiltrosUnificados({
         <Box sx={filtroItemStyles}>
           <AppSelect
             appearance="dense"
-            label="Contraproducencia"
+            label="Motivo no realizado"
             value={motivoNoRealizado}
             onChange={(e) => onMotivoNoRealizadoChange(String(e.target.value))}
             options={motivoOptions}
@@ -176,6 +179,7 @@ export function MapaFiltrosUnificados({
             value={realizadoTipoIniciador}
             onChange={(e) => onRealizadoTipoIniciadorChange(String(e.target.value))}
             options={tipoOptions}
+            disabled={tipoDisabled}
             data-testid="mapa-realizados-filtro-tipo"
             SelectProps={{ displayEmpty: false }}
             variant="outlined"
@@ -201,6 +205,15 @@ export function MapaFiltrosUnificados({
         </AppButton>
         <AppButton dsVariant="primary" dsSize="sm" onClick={onRefrescar} sx={filtroButtonPrimaryStyles}>
           Refrescar
+        </AppButton>
+        <AppButton
+          dsVariant="primary"
+          dsSize="sm"
+          onClick={onLimpiar}
+          sx={filtroButtonPrimaryStyles}
+          data-testid="mapa-realizados-limpiar-filtros"
+        >
+          Limpiar filtros
         </AppButton>
       </Box>
     </Box>

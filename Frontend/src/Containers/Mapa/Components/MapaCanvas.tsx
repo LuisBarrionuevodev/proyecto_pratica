@@ -185,10 +185,12 @@ function OperativoDistritosGeo() {
 
 function MapInvalidateSize({
   mapExpanded,
+  fillParentHeight,
   featureCount,
   loading,
 }: {
   mapExpanded: boolean;
+  fillParentHeight: boolean;
   featureCount: number;
   loading: boolean;
 }) {
@@ -198,11 +200,13 @@ function MapInvalidateSize({
     run();
     const t1 = window.setTimeout(run, 60);
     const t2 = window.setTimeout(run, 280);
+    const t3 = fillParentHeight ? window.setTimeout(run, 600) : undefined;
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
+      if (t3 !== undefined) window.clearTimeout(t3);
     };
-  }, [map, mapExpanded, featureCount, loading]);
+  }, [map, mapExpanded, fillParentHeight, featureCount, loading]);
   return null;
 }
 
@@ -233,23 +237,34 @@ export type MapaCanvasProps = {
   features: MapPointFeature[];
   loading: boolean;
   mapExpanded: boolean;
+  /** En layout de dos columnas: ocupar la altura del panel lateral. */
+  fillParentHeight?: boolean;
   onToggleExpand: () => void;
   /** Mensaje contextual cuando no hay puntos (p. ej. filtro sin resultados). */
   emptyMessage?: string | null;
 };
 
 /** Mapa Leaflet del modo Realizados en MapPage. */
-export function MapaCanvas({ features, loading, mapExpanded, onToggleExpand, emptyMessage }: MapaCanvasProps) {
+export function MapaCanvas({
+  features,
+  loading,
+  mapExpanded,
+  fillParentHeight = false,
+  onToggleExpand,
+  emptyMessage,
+}: MapaCanvasProps) {
   return (
     <Box
       sx={{
         ...mapaOperativoSurfaceSx,
         position: "relative",
-        flex: mapExpanded ? 1 : undefined,
-        alignSelf: mapExpanded ? "stretch" : undefined,
+        flex: mapExpanded || fillParentHeight ? 1 : undefined,
+        alignSelf: mapExpanded || fillParentHeight ? "stretch" : undefined,
         width: "100%",
-        minHeight: mapExpanded ? { xs: "70vh", md: "min(92vh, 920px)" } : 420,
-        height: mapExpanded ? { xs: "70vh", md: "min(92vh, 920px)" } : 480,
+        minHeight: mapExpanded
+          ? { xs: "70vh", md: "min(92vh, 920px)" }
+          : 420,
+        height: mapExpanded ? { xs: "70vh", md: "min(92vh, 920px)" } : fillParentHeight ? undefined : 480,
         overflow: "hidden",
         "& .leaflet-container": {
           fontFamily: '"Tactic Sans", sans-serif',
@@ -288,7 +303,12 @@ export function MapaCanvas({ features, loading, mapExpanded, onToggleExpand, emp
       )}
 
       <MapContainer center={DEFAULT_CENTER} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-        <MapInvalidateSize mapExpanded={mapExpanded} featureCount={features.length} loading={loading} />
+        <MapInvalidateSize
+          mapExpanded={mapExpanded}
+          fillParentHeight={fillParentHeight}
+          featureCount={features.length}
+          loading={loading}
+        />
         <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
         <OperativoDistritosGeo />
         <FitBounds features={features} />

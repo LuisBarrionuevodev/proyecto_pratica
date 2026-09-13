@@ -36,6 +36,22 @@ describe("MapaFiltrosUnificados — Realizados", () => {
     expect(filtro).toContain('data-testid="mapa-realizados-filtro-tipo"');
     expect(filtro).toContain("MAPA_TIPO_INICIADOR_OPTIONS");
   });
+
+  it("FILTERS.2: motivo no realizado y tipo condicionado a ejecución", () => {
+    expect(filtro).toContain('label="Motivo no realizado"');
+    expect(filtro).toContain("tipoDisabled");
+    expect(filtro).toContain("onLimpiar");
+  });
+
+  it("MAPA-UX.1: Limpiar filtros usa estilo primary como Aplicar/Refrescar", () => {
+    expect(filtro).toContain('data-testid="mapa-realizados-limpiar-filtros"');
+    expect(filtro).toContain("onClick={onLimpiar}");
+    const limpiarIdx = filtro.indexOf('data-testid="mapa-realizados-limpiar-filtros"');
+    const limpiarBlock = filtro.slice(Math.max(0, limpiarIdx - 160), limpiarIdx + 40);
+    expect(limpiarBlock).toContain('dsVariant="primary"');
+    expect(limpiarBlock).toContain("filtroButtonPrimaryStyles");
+    expect(limpiarBlock).not.toContain('dsVariant="secondary"');
+  });
 });
 
 describe("useMapaOperativo — rubro Realizados", () => {

@@ -19,9 +19,14 @@ describe("OPER-ANALYTICS.4.1 — rango default Mapa", () => {
     expect(src).not.toContain("getCurrentMonthRange");
   });
 
-  it("MapPage muestra período operativo visible", () => {
-    const src = read("src/Containers/Mapa/MapPage.tsx");
-    expect(src).toContain("OperativoPeriodoLabel");
+  it("MapPage no muestra OperativoPeriodoLabel (rango en inputs Desde/Hasta)", () => {
+    const mapPage = read("src/Containers/Mapa/MapPage.tsx");
+    expect(mapPage).not.toContain("OperativoPeriodoLabel");
+  });
+
+  it("Dashboard conserva OperativoPeriodoLabel", () => {
+    const panel = read("src/Containers/Dashboard/Components/Panel.tsx");
+    expect(panel).toContain("OperativoPeriodoLabel");
   });
 
   it("2026-09-13: default Dashboard Mensual == default Mapa", () => {
