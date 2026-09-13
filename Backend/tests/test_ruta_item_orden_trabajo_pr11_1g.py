@@ -157,7 +157,8 @@ def test_pr11_1g_patch_ot_otro_iniciador_no_realizado_clima_bloquea(app_ctx) -> 
     assert exc_info.value.debug.get("estado_ejecucion_ocupante") == "NO_REALIZADO"
 
 
-def test_pr11_1g_patch_ot_mismo_iniciador_reintento_permite(app_ctx) -> None:
+def test_pr11_1g_patch_ot_mismo_iniciador_reintento_rechaza_misma_ot(app_ctx) -> None:
+    """Tras intento cerrado NO_REALIZADO, la OT histórica no puede reasignarse en PATCH."""
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
     ini = _mk_iniciador_relevamiento()
@@ -170,14 +171,15 @@ def test_pr11_1g_patch_ot_mismo_iniciador_reintento_permite(app_ctx) -> None:
     item1_db = RutaItem.query.get(item1.id)
     _cerrar_local_cerrado(item1_db.id, u.id)
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
-    updated = set_orden_trabajo_on_item(
-        ruta_id=ruta2.id,
-        item_id=item2.id,
-        numero_orden_trabajo=ot_num,
-    )
-    assert updated.orden_trabajo_id is not None
-    assert updated.orden_trabajo.numero_acta == ot_num
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=_unique_num(), fecha_ruta=hoy)
+    with pytest.raises(RutaPublicarDebugError) as exc_info:
+        set_orden_trabajo_on_item(
+            ruta_id=ruta2.id,
+            item_id=item2.id,
+            numero_orden_trabajo=ot_num,
+        )
+    _assert_ot_consumida_409(exc_info.value, ot_num=ot_num)
+    assert exc_info.value.debug.get("iniciador_ocupante_id") == ini.id
 
 
 def test_pr11_1g_patch_ot_mismo_iniciador_ot_libre_permite(app_ctx) -> None:
@@ -205,8 +207,8 @@ def test_pr11_1g_patch_ot_mismo_iniciador_ot_libre_permite(app_ctx) -> None:
     assert updated.orden_trabajo.numero_acta == ot2
 
 
-def test_pr11_1g_patch_item_soft_deleted_no_bloquea_ot(app_ctx) -> None:
-    """Ítem soft-deleted del mismo iniciador no debe bloquear reasignar la OT en borrador."""
+def test_pr11_1g_patch_item_soft_deleted_sigue_bloqueando_ot_historica(app_ctx) -> None:
+    """Soft-delete del ítem no libera la OT consumida por la actuación histórica."""
     from datetime import datetime
 
     u = User.query.filter(User.is_active.is_(True)).first()
@@ -214,6 +216,9 @@ def test_pr11_1g_patch_item_soft_deleted_no_bloquea_ot(app_ctx) -> None:
     ini = _mk_iniciador_relevamiento()
     hoy = date.today()
     ot_num = _unique_num()
+    ot_nueva = _unique_num()
+    while ot_nueva == ot_num:
+        ot_nueva = _unique_num()
 
     ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
     publicar_ruta_trabajo(ruta_id=ruta1.id)
@@ -223,10 +228,18 @@ def test_pr11_1g_patch_item_soft_deleted_no_bloquea_ot(app_ctx) -> None:
     item1_db.deleted_at = datetime.utcnow()
     db.session.commit()
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=_unique_num(), fecha_ruta=hoy)
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_nueva, fecha_ruta=hoy)
+    with pytest.raises(RutaPublicarDebugError) as exc_info:
+        set_orden_trabajo_on_item(
+            ruta_id=ruta2.id,
+            item_id=item2.id,
+            numero_orden_trabajo=ot_num,
+        )
+    _assert_ot_consumida_409(exc_info.value, ot_num=ot_num)
+
     updated = set_orden_trabajo_on_item(
         ruta_id=ruta2.id,
         item_id=item2.id,
-        numero_orden_trabajo=ot_num,
+        numero_orden_trabajo=ot_nueva,
     )
-    assert updated.orden_trabajo.numero_acta == ot_num
+    assert updated.orden_trabajo.numero_acta == ot_nueva

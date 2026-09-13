@@ -1,11 +1,5 @@
 import type { Periodo } from "../../../types/periodos";
-
-function toIsoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+import { getOperativoMonthToDateRange, toIsoDateLocal } from "../../../utils/dateRange";
 
 /**
  * Convierte el período UI en rango [desde, hasta] inclusive (referencia: hoy).
@@ -19,8 +13,7 @@ export function periodoToDateRange(periodo: Periodo, ref: Date = new Date()): { 
       desde.setDate(desde.getDate() - 6);
       break;
     case "Mensual":
-      desde = new Date(ref.getFullYear(), ref.getMonth(), 1);
-      break;
+      return getOperativoMonthToDateRange(ref);
     case "Trimestral": {
       const qStart = Math.floor(ref.getMonth() / 3) * 3;
       desde = new Date(ref.getFullYear(), qStart, 1);
@@ -33,5 +26,5 @@ export function periodoToDateRange(periodo: Periodo, ref: Date = new Date()): { 
       break;
   }
 
-  return { desde: toIsoDate(desde), hasta: toIsoDate(hasta) };
+  return { desde: toIsoDateLocal(desde), hasta: toIsoDateLocal(hasta) };
 }

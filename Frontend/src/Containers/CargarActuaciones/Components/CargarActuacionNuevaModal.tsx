@@ -13,12 +13,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
-import {
-  startBatch,
-  validateRow,
-  commitBatch,
-  type GridRow,
-} from "../../../api/gridApi";
+import { startBatch, type GridRow } from "../../../api/gridApi";
 import { fetchCompletarTrabajoCatalogsCached } from "../../CompletarTrabajos/hooks/completarTrabajoCatalogsCache";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { useAppFeedback } from "../../../components/feedback";
@@ -30,12 +25,10 @@ import {
   MOTIVOS_NOTIFICACION_MAX,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
-import { applyFormErrorsFromMap } from "../../../utils/parseApiError";
-import {
-  ACTUACION_FIELD_ERROR_SUMMARY,
-  normalizeActuacionApiError,
-} from "../../Actuaciones/validations/normalizeActuacionApiError";
+import { normalizeActuacionApiError } from "../../Actuaciones/validations/normalizeActuacionApiError";
 import { notifyActuacionApiError } from "../../Actuaciones/utils/actuacionSaveFeedback";
+import { getCargarActuacionChecklistV2ResetState } from "../utils/cargarActuacionModalLifecycle";
+import { submitCargarActuacionNuevaRow } from "../utils/cargarActuacionNuevaSubmit";
 import {
   CrudDialogHeader,
   CrudDialogSection,
@@ -86,44 +79,6 @@ const GLIDE_KEYS = [
 type GlideTextKey = (typeof GLIDE_KEYS)[number];
 
 type TitularModo = "persona" | "razon_social";
-
-const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
-  orden_trabajo_numero: "Orden de trabajo",
-  fecha_actuacion: "Fecha actuación",
-  rubro_nombre: "Rubro",
-  contrib_apellido: "Apellido",
-  contrib_nombre: "Nombre",
-  razon_social: "Razón social",
-  doc_nro: "DNI",
-  acta_inspeccion_num: "Acta inspección",
-  items_acta_inspeccion: "Condiciones de inspección",
-  cantidad_personas_sin_carnet_sanidad: "Personas sin carnet de sanidad",
-  acta_notificacion_num: "Acta notificación",
-  notificacion_motivo_1: "Motivo notif 1",
-  notificacion_motivo_2: "Motivo notif 2",
-  notificacion_motivo_3: "Motivo notif 3",
-  acta_comprobacion_num: "Acta comprobación",
-  comprobacion_motivo: "Motivo comprobación",
-  acta_clausura_num: "Acta clausura",
-  acta_decomiso_num: "Acta decomiso",
-  decomiso_kilos_total: "Kilos decomiso",
-  inspectores: "Inspectores",
-  calle: "Calle",
-  numero: "Número",
-};
-
-const CARGAR_ACTUACION_ERROR_OPTIONS = {
-  fieldKeyAliases: INTERNAL_ERR_TO_GLIDE,
-  fallbackMessage: "Error al validar o guardar.",
-} as const;
-
-function toCargarGlideFieldErrors(errors: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(errors)) {
-    out[INTERNAL_ERR_TO_GLIDE[k] ?? k] = v;
-  }
-  return out;
-}
 
 function emptyTextFields(): Record<GlideTextKey, string> {
   return Object.fromEntries(GLIDE_KEYS.map((k) => [k, ""])) as Record<GlideTextKey, string>;
@@ -274,16 +229,17 @@ export function CargarActuacionNuevaModal() {
   }, [open, ensureBatch]);
 
   const resetForm = useCallback(() => {
+    const checklistV2Reset = getCargarActuacionChecklistV2ResetState();
     setTexts(emptyTextFields());
     setNotifMotivosSel([]);
     setInspectoresList([]);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
     setTitularModo("persona");
-    setInspeccionItemIds([]);
-    setCantidadCarnets("0");
-    setChecklistItemsTouched(false);
-    setChecklistCarnetsTouched(false);
+    setChecklistEstados(checklistV2Reset.checklistEstados);
+    setPersonasSinCarnet(checklistV2Reset.personasSinCarnet);
+    setChecklistItemsTouched(checklistV2Reset.checklistItemsTouched);
+    setPersonasSinCarnetTouched(checklistV2Reset.personasSinCarnetTouched);
     setFieldErrors({});
     setRowId(generateRowId());
   }, []);
@@ -390,46 +346,15 @@ export function CargarActuacionNuevaModal() {
     try {
       const gridRow = buildGridRow();
       const payload = extractDataColumns(gridRow) as Partial<GridRow>;
-
-      const response = await validateRow({
-        batch_id: bid,
-        row_id: rowId,
-        row: payload as GridRow,
+      await submitCargarActuacionNuevaRow({
+        batchId: bid,
+        rowId,
+        payload,
+        feedback,
+        resetForm,
+        closeModal: () => setOpen(false),
+        setFieldErrors,
       });
-
-      const validation = applyFormErrorsFromMap(response.errors, CARGAR_ACTUACION_ERROR_OPTIONS);
-      setFieldErrors(validation.fieldErrors);
-
-      if (!response.ok || !response.normalized) {
-        if (validation.globalMessage) {
-          feedback.warning(validation.globalMessage);
-        } else if (Object.keys(validation.fieldErrors).length > 0) {
-          feedback.warning(ACTUACION_FIELD_ERROR_SUMMARY);
-        }
-        return;
-      }
-
-      const commitResp = await commitBatch({
-        batch_id: bid,
-        rows: [{ row_id: rowId, normalized: response.normalized as unknown as GridRow }],
-      });
-
-      const mine = commitResp.results?.find((r) => r.row_id === rowId);
-      if (mine?.ok) {
-        feedback.success("Actuación guardada correctamente.");
-        resetForm();
-        setOpen(false);
-        return;
-      }
-
-      const commit = applyFormErrorsFromMap(mine?.errors, CARGAR_ACTUACION_ERROR_OPTIONS);
-      setFieldErrors(commit.fieldErrors);
-      const commitMsg = commit.globalMessage ?? "No se pudo confirmar la carga.";
-      feedback.warning(commitMsg);
-    } catch (e: unknown) {
-      const normalized = normalizeActuacionApiError(e, CARGAR_ACTUACION_ERROR_OPTIONS);
-      setFieldErrors(toCargarGlideFieldErrors(normalized.fieldErrors));
-      notifyActuacionApiError(normalized, feedback);
     } finally {
       setLoading(false);
     }

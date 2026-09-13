@@ -15,6 +15,15 @@ export type ActuacionPdfResumenPair = {
   value: string;
 };
 
+/** Título de la sección de resumen en PDF/Excel de exportación (universo documental). */
+export const ACTUACIONES_EXPORT_RESUMEN_TITLE = "Resumen de actuaciones exportadas";
+
+/** Subtítulo del bloque de actas en exportación (no KPI operativo del Dashboard). */
+export const ACTUACIONES_EXPORT_ACTAS_SECTION_TITLE =
+  "Actas registradas en las actuaciones exportadas";
+
+export const ACTUACIONES_EXPORT_TOTAL_INDICATOR = "Total de actuaciones exportadas";
+
 /** Normalización para coincidencias con catálogo / backend (mayúsculas, espacio único). */
 export function normalizeTipoExport(val: unknown): string {
   return String(val ?? "")
@@ -183,7 +192,7 @@ export function computeActuacionesPdfResumenRows(items: IActuacionListItem[]): A
   const fmtKg = kgTotal <= 0 ? "0" : kgTotal >= 100 ? String(Math.round(kgTotal)) : kgTotal.toFixed(1);
 
   return [
-    { indicator: "Actuaciones realizadas", value: String(total) },
+    { indicator: ACTUACIONES_EXPORT_TOTAL_INDICATOR, value: String(total) },
     { indicator: "Inspección Integral o Denuncia", value: String(inspeccionDenuncia) },
     { indicator: "Reinspecciones por Notificación", value: String(reinspeccionNotificacion) },
     { indicator: "Reinspecciones por Oficio", value: String(reinspeccionOficio) },

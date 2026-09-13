@@ -215,8 +215,8 @@ def test_estado_canonico_finalizado_no_realizado_cuenta(app_ctx) -> None:
         db.session.rollback()
 
 
-def test_estado_legado_no_realizado_sigue_contando(app_ctx) -> None:
-    """Ítems legados con eri=NO_REALIZADO siguen en el KPI."""
+def test_estado_legado_no_realizado_no_entra_universo_canonico(app_ctx) -> None:
+    """Ítems legados eri=NO_REALIZADO quedan fuera del universo canónico OPER-ANALYTICS.3."""
     try:
         before = build_indicadores_no_realizadas(_DESDE, _HASTA).total
         item, _act = _mk_no_realizada("RELEVAMIENTO", "LOCAL_CERRADO", date(2026, 7, 15))
@@ -224,7 +224,7 @@ def test_estado_legado_no_realizado_sigue_contando(app_ctx) -> None:
         item.estado_ejecucion = "NO_REALIZADO"
         db.session.flush()
         after = build_indicadores_no_realizadas(_DESDE, _HASTA).total
-        assert after == before + 1
+        assert after == before
     finally:
         db.session.rollback()
 
@@ -240,16 +240,20 @@ def test_bucket_no_existe_direccion_incorrecta(app_ctx) -> None:
         db.session.rollback()
 
 
-def test_no_hubo_excluido_de_top_y_por_tipo(app_ctx) -> None:
+def test_no_hubo_cuenta_en_total_pero_no_en_top(app_ctx) -> None:
     try:
+        before_total = build_indicadores_no_realizadas(_DESDE, _HASTA).total
         before = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
         _mk_no_realizada("RELEVAMIENTO", "NO_HUBO", date(2026, 7, 16))
         db.session.flush()
         after = _por_tipo_dict(build_indicadores_no_realizadas(_DESDE, _HASTA))
-        assert after["inspeccion"] == before["inspeccion"]
+        after_total = build_indicadores_no_realizadas(_DESDE, _HASTA).total
+        assert after_total == before_total + 1
+        assert after["inspeccion"] == before["inspeccion"] + 1
         out = build_indicadores_no_realizadas(_DESDE, _HASTA)
         labels = {r.contraproducencia.lower() for r in out.top_contraproducencias}
         assert "no hubo" not in labels
+        assert sum(r.cantidad for r in out.contraproducencias_resumen) == out.total
     finally:
         db.session.rollback()
 
@@ -418,11 +422,16 @@ def test_filtro_inspector_id_sin_duplicar(app_ctx) -> None:
 
 def test_periodo_vacio_ceros_y_arrays(app_ctx) -> None:
     try:
-        out = build_indicadores_no_realizadas(date(2099, 1, 1), date(2099, 1, 31))
+        from tests.helpers.fixture_isolation import fecha_fixture_aislada
+
+        vacia = fecha_fixture_aislada(anio=2066)
+        out = build_indicadores_no_realizadas(vacia, vacia)
+        assert out.total == 0
         assert out.por_tipo.inspeccion == 0
         assert out.por_tipo.denuncia == 0
         assert out.top_contraproducencias == []
         assert out.distritos_con_mas_no_realizadas == []
+        assert sum(r.cantidad for r in out.contraproducencias_resumen) == 0
     finally:
         db.session.rollback()
 

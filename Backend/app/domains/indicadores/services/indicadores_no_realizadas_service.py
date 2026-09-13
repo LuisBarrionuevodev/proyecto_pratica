@@ -28,7 +28,7 @@ def build_indicadores_no_realizadas(
     inspector_id: Optional[int] = None,
 ) -> IndicadoresNoRealizadasOut:
     """
-    Bloque no realizadas: trabajos no realizados con contraproducencia real en el período.
+    Bloque no realizadas: intentos operativos NO_REALIZADO canónicos en el período.
 
     Parámetros:
         desde, hasta: rango sobre ``RutaTrabajo.fecha`` (período operativo de la ruta).

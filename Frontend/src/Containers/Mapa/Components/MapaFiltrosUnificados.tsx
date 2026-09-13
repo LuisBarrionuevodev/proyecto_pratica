@@ -11,7 +11,12 @@ import {
   filtroGridStyles,
   filtroItemStyles,
 } from "../../Actuaciones/styles/filtroStyles";
-import { MAPA_TIPO_INICIADOR_OPTIONS } from "../constants/mapaOperativo";
+import {
+  MAPA_EJECUCION_OPTIONS,
+  MAPA_MOTIVO_NO_REALIZADO_OPTIONS,
+  MAPA_ORIGEN_OPTIONS,
+  MAPA_TIPO_INICIADOR_OPTIONS,
+} from "../constants/mapaOperativo";
 
 export type MapaFiltrosUnificadosProps = {
   fechaDesde: string;
@@ -21,6 +26,12 @@ export type MapaFiltrosUnificadosProps = {
   distritoId: string;
   onDistritoIdChange: (v: string) => void;
   distritoOptions: { value: string; label: string }[];
+  ejecucion: string;
+  onEjecucionChange: (v: string) => void;
+  origen: string;
+  onOrigenChange: (v: string) => void;
+  motivoNoRealizado: string;
+  onMotivoNoRealizadoChange: (v: string) => void;
   realizadoTipoIniciador: string;
   onRealizadoTipoIniciadorChange: (v: string) => void;
   realizadoRubroId: string;
@@ -42,6 +53,12 @@ export function MapaFiltrosUnificados({
   distritoId,
   onDistritoIdChange,
   distritoOptions,
+  ejecucion,
+  onEjecucionChange,
+  origen,
+  onOrigenChange,
+  motivoNoRealizado,
+  onMotivoNoRealizadoChange,
   realizadoTipoIniciador,
   onRealizadoTipoIniciadorChange,
   realizadoRubroId,
@@ -53,7 +70,14 @@ export function MapaFiltrosUnificados({
   onAplicar,
   onRefrescar,
 }: MapaFiltrosUnificadosProps) {
+  const ejecucionOptions = MAPA_EJECUCION_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+  const origenOptions = MAPA_ORIGEN_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+  const motivoOptions = MAPA_MOTIVO_NO_REALIZADO_OPTIONS.map((o) => ({
+    value: o.value,
+    label: o.label,
+  }));
   const tipoOptions = MAPA_TIPO_INICIADOR_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+  const motivoDisabled = ejecucion === "REALIZADO";
   const inspectorOptions = [
     { value: "", label: "Todos los inspectores" },
     ...inspectores.map((i) => ({ value: String(i.id), label: i.nombre })),
@@ -82,6 +106,43 @@ export function MapaFiltrosUnificados({
             value={fechaHasta}
             onChange={(e) => onFechaHastaChange(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            variant="outlined"
+            fullWidth
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            label="Ejecución"
+            value={ejecucion}
+            onChange={(e) => onEjecucionChange(String(e.target.value))}
+            options={ejecucionOptions}
+            data-testid="mapa-realizados-filtro-ejecucion"
+            variant="outlined"
+            fullWidth
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            label="Origen"
+            value={origen}
+            onChange={(e) => onOrigenChange(String(e.target.value))}
+            options={origenOptions}
+            data-testid="mapa-realizados-filtro-origen"
+            variant="outlined"
+            fullWidth
+          />
+        </Box>
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            label="Contraproducencia"
+            value={motivoNoRealizado}
+            onChange={(e) => onMotivoNoRealizadoChange(String(e.target.value))}
+            options={motivoOptions}
+            disabled={motivoDisabled}
+            data-testid="mapa-realizados-filtro-motivo"
             variant="outlined"
             fullWidth
           />

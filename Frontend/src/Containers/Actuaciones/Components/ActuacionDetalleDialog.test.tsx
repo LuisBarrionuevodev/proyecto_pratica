@@ -888,6 +888,30 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).toContain("2");
   });
 
+  it("modo VER muestra 0 personas sin carnet cuando el valor persistido es cero", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          acta_notificacion_num: "732394",
+          notificacion_motivo_1: "Falta de habilitación",
+          cantidad_personas_sin_carnet_sanidad: 0,
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Cantidad de personas sin carnet de sanidad");
+    expect(html).toContain(">0<");
+  });
+
   it("modo edición hidrata checklist persistido al abrir", () => {
     const html = render(
       <ActuacionDetalleDialog

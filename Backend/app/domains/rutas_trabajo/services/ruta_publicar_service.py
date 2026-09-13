@@ -7,6 +7,9 @@ from app.database import db
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_efectivo_para_iniciador,
 )
+from app.domains.rutas_trabajo.services.ruta_pool_dia_service import (
+    descartar_sobrantes_en_pool_de_ruta_trabajo,
+)
 from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
     _actuacion_puede_reutilizarse_en_publicacion,
     actuacion_pertenece_iniciador,
@@ -260,6 +263,8 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
     anio = int(fecha.year)
 
     try:
+        descartar_sobrantes_en_pool_de_ruta_trabajo(ruta.id)
+
         items_debug: list[dict] = []
         for item in items_activos:
             ini = item.iniciador_ruta

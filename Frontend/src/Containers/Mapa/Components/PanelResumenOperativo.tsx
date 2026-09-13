@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 
-import type { MapPointFeature } from "../../../api/mapApi";
+import type { MapOperativoMeta, MapPointFeature } from "../../../api/mapApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui/AppButton";
 import { mapaOperativoGlassPanelSx, mapaOperativoInnerCardSx } from "./mapaOperativoStyles";
@@ -93,10 +93,11 @@ function MapLegendSample({ shape, color, label }: { shape: MapLegendShape; color
 
 export type PanelResumenOperativoProps = {
   features: MapPointFeature[];
+  meta: MapOperativoMeta | null;
 };
 
-/** Columna izquierda del modo Realizados en MapPage. */
-export function PanelResumenOperativo({ features }: PanelResumenOperativoProps) {
+/** Columna izquierda del modo operativo en MapPage. */
+export function PanelResumenOperativo({ features, meta }: PanelResumenOperativoProps) {
   const byTipoReal = countTipoIniciador(features);
 
   const distRow = (label: string, value: number | string) => (
@@ -141,11 +142,17 @@ export function PanelResumenOperativo({ features }: PanelResumenOperativoProps) 
             variant="subtitle2"
             sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}
           >
-            Visitas realizadas
+            Trabajos operativos
           </Typography>
           <Typography variant="h3" sx={{ color: GLASS_COLORS.primary, fontWeight: 700, fontFamily: '"Tactic Sans", sans-serif' }}>
-            {features.length}
+            {meta?.total_operativos ?? 0}
           </Typography>
+          <Stack spacing={0.35} sx={{ mt: 1 }}>
+            {distRow("Realizados", meta?.realizados ?? 0)}
+            {distRow("No realizados", meta?.no_realizados ?? 0)}
+            {distRow("Con ubicación", meta?.total_dibujables ?? features.length)}
+            {distRow("Sin ubicación", meta?.total_sin_geocode ?? 0)}
+          </Stack>
         </Paper>
 
         <Paper elevation={0} sx={mapaOperativoInnerCardSx}>
@@ -153,7 +160,8 @@ export function PanelResumenOperativo({ features }: PanelResumenOperativoProps) 
             variant="subtitle2"
             sx={{ fontWeight: 600, color: GLASS_COLORS.textPrimary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}
           >
-            Por tipo de iniciador
+            Por tipo de iniciador · con ubicación
+            {features.length > 0 ? ` (${features.length})` : ""}
           </Typography>
           <Stack spacing={0.5}>
             {Object.keys(byTipoReal).length === 0 ? (
@@ -175,7 +183,8 @@ export function PanelResumenOperativo({ features }: PanelResumenOperativoProps) 
           >
             Leyenda del mapa
           </Typography>
-          <MapLegendSample shape="pin" color={COLORS.success} label="Visita realizada" />
+          <MapLegendSample shape="pin" color={COLORS.success} label="Realizado" />
+          <MapLegendSample shape="pin" color={COLORS.warning} label="No realizado" />
         </Paper>
       </Stack>
 

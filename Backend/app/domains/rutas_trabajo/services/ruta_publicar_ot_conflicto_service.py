@@ -29,6 +29,24 @@ class ConflictoOrdenTrabajoPublicar:
     item_deleted_at: bool
 
 
+def _item_consumio_ot_intento_historico(item: RutaItem) -> bool:
+    """
+    True si el ítem cerró un intento real que consumió su OT.
+
+    Aplica a intentos FINALIZADO con ejecución REALIZADO/NO_REALIZADO, o cierres
+    legados con ``estado_ejecucion=NO_REALIZADO`` ya ejecutados.
+    """
+    if item.deleted_at is not None or item.actuacion_id is None:
+        return False
+    estado_item = (item.estado_ruta_item or "").strip().upper()
+    estado_ejec = (item.estado_ejecucion or "").strip().upper() if item.estado_ejecucion else ""
+    if estado_item == "FINALIZADO" and estado_ejec in ("NO_REALIZADO", "REALIZADO"):
+        return True
+    if estado_ejec == "NO_REALIZADO" and item.ejecutado_at is not None:
+        return True
+    return False
+
+
 def _item_es_reintento_no_realizado(
     item: RutaItem,
     *,
@@ -63,9 +81,11 @@ def _ruta_item_libera_reserva_ot(item: RutaItem) -> bool:
         return True
     if item.estado_ruta_item == "CANCELADO":
         return True
+    if _item_consumio_ot_intento_historico(item):
+        return False
     if item.estado_ruta_item == "NO_REALIZADO":
         return True
-    if item.estado_ruta_item == "FINALIZADO" and item.estado_ejecucion == "NO_REALIZADO":
+    if item.estado_ejecucion == "NO_REALIZADO" and item.ejecutado_at is None:
         return True
     return False
 
@@ -510,14 +530,18 @@ def resolver_actuacion_para_publicar_item(
         return None
 
     if int(reintento.orden_trabajo_id or 0) == int(orden_trabajo_id):
-        return reintento
+        if _actuacion_puede_reutilizarse_en_publicacion(reintento, iniciador_ruta_id):
+            return reintento
+        return None
 
     ocupante = buscar_actuacion_ocupante_orden_trabajo(
         orden_trabajo_id,
         excluir_actuacion_id=reintento.id,
     )
     if ocupante is None:
-        return reintento
+        if _actuacion_puede_reutilizarse_en_publicacion(reintento, iniciador_ruta_id):
+            return reintento
+        return None
 
     # PR11.1f: si la OT objetivo ya está en otra actuación del mismo iniciador, reutilizar
     # esa fila en lugar de actualizar ``reintento`` (evita IntegrityError ix_orden_trabajo_id).
@@ -606,19 +630,22 @@ def validar_orden_trabajo_disponible_para_publicar(
         RutaPublicarDebugError: conflicto real de OT con detalle del registro bloqueante.
     """
     item_ctx = item or db.session.get(RutaItem, ruta_item_id)
-    ocupante_otro = buscar_ocupante_ot_de_otro_iniciador(
-        orden_trabajo_id=orden_trabajo_id,
-        iniciador_ruta_id=iniciador.id,
-    )
-    if ocupante_otro is not None:
-        raise_orden_trabajo_ocupada_por_otro_flujo(
-            orden_trabajo_id=orden_trabajo_id,
-            ruta_item_id=ruta_item_id,
-            ocupante=ocupante_otro,
-            iniciador=iniciador,
-            item=item_ctx,
-            ruta=ruta,
+    ocupante_ot = buscar_actuacion_ocupante_orden_trabajo(orden_trabajo_id)
+    if ocupante_ot is not None:
+        mismo_iniciador = actuacion_pertenece_iniciador(ocupante_ot.id, iniciador.id)
+        puede_reutilizar = (
+            mismo_iniciador
+            and _actuacion_puede_reutilizarse_en_publicacion(ocupante_ot, iniciador.id)
         )
+        if not puede_reutilizar:
+            raise_orden_trabajo_ocupada_por_otro_flujo(
+                orden_trabajo_id=orden_trabajo_id,
+                ruta_item_id=ruta_item_id,
+                ocupante=ocupante_ot,
+                iniciador=iniciador,
+                item=item_ctx,
+                ruta=ruta,
+            )
 
     act_reintento = buscar_actuacion_reintento_reutilizable(iniciador.id)
     conflicto = buscar_conflicto_orden_trabajo_al_publicar(

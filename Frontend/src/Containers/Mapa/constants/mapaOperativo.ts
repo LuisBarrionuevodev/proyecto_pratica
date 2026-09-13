@@ -1,3 +1,46 @@
+/** Filtro de ejecución en mapa operativo. */
+export const MAPA_EJECUCION_OPTIONS = [
+  { value: "TODOS", label: "Todos" },
+  { value: "REALIZADO", label: "Realizados" },
+  { value: "NO_REALIZADO", label: "No realizados" },
+] as const;
+
+/** Filtro de origen operativo (``tipo_iniciador``). */
+export const MAPA_ORIGEN_OPTIONS = [
+  { value: "TODOS", label: "Todos" },
+  { value: "RELEVAMIENTO", label: "Relevamiento" },
+  { value: "DENUNCIA", label: "Denuncia" },
+  { value: "REINSPECCION_NOTIFICACION", label: "Reinspección notificación" },
+  { value: "OFICIO", label: "Oficio" },
+] as const;
+
+/** Filtro de motivo no realizado (solo aplica si ejecución incluye NO_REALIZADO). */
+export const MAPA_MOTIVO_NO_REALIZADO_OPTIONS = [
+  { value: "TODAS", label: "Todas" },
+  { value: "LOCAL_CERRADO", label: "Local cerrado" },
+  { value: "NO_EXISTE_LOCAL", label: "No existe local" },
+  { value: "INCLEMENCIA_TIEMPO", label: "Inclemencia tiempo" },
+  { value: "OTRO", label: "Otro" },
+] as const;
+
+export function mapaMotivoQueryValue(motivo: string): string | undefined {
+  const v = motivo?.trim();
+  if (!v || v === "TODAS") return undefined;
+  return v;
+}
+
+export function mapaOrigenQueryValue(origen: string): string | undefined {
+  const v = origen?.trim();
+  if (!v || v === "TODOS") return undefined;
+  return v;
+}
+
+export function mapaEjecucionQueryValue(ejecucion: string): string {
+  const v = ejecucion?.trim();
+  if (!v || v === "TODOS") return "TODOS";
+  return v;
+}
+
 /** Filtro de tipo operativo en Mapa > Realizados (alineado a Actuaciones). */
 export const MAPA_TIPO_INICIADOR_OPTIONS = [
   { value: "TODOS", label: "Todos" },

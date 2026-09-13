@@ -453,6 +453,60 @@ def devolver_iniciador_al_pool_ruta(
     )
 
 
+def descartar_ruta_pool_dia_row(row: RutaPoolDia, *, commit: bool = False) -> RutaPoolDia:
+    """
+    Marca una fila de pool como DESCARTADO (baja lógica).
+
+    Parámetros:
+        row: instancia ORM activa.
+        commit: si True persiste de inmediato; si False solo flush en sesión.
+
+    Retorno:
+        Fila actualizada.
+
+    Errores:
+        RuntimeError: si la fila ya está ASIGNADO_A_RUTA.
+    """
+    if row.estado == "ASIGNADO_A_RUTA":
+        raise RuntimeError("No se puede descartar una entrada ya asignada a ruta")
+    if row.estado == "DESCARTADO":
+        return row
+
+    now = datetime.utcnow()
+    row.estado = "DESCARTADO"
+    row.deleted_at = now
+    row.updated_at = now
+    if commit:
+        db.session.commit()
+    return row
+
+
+def descartar_sobrantes_en_pool_de_ruta_trabajo(ruta_id: int) -> list[RutaPoolDia]:
+    """
+    Descarta filas pool-only (EN_POOL sin ruta_item) asociadas a una ruta.
+
+    Usado al publicar: libera iniciadores que quedaron solo en staging de planificación.
+
+    Parámetros:
+        ruta_id: ruta en publicación.
+
+    Retorno:
+        Filas descartadas en la sesión actual (sin commit).
+    """
+    rows = (
+        RutaPoolDia.query.filter(
+            RutaPoolDia.ruta_trabajo_id == int(ruta_id),
+            RutaPoolDia.deleted_at.is_(None),
+            RutaPoolDia.estado == "EN_POOL",
+            RutaPoolDia.ruta_item_id.is_(None),
+        )
+        .all()
+    )
+    for row in rows:
+        descartar_ruta_pool_dia_row(row, commit=False)
+    return rows
+
+
 def descartar_ruta_pool_dia_entry(*, pool_id: int) -> RutaPoolDia:
     """
     Baja lógica de entrada del pool (DESCARTADO).
@@ -472,17 +526,7 @@ def descartar_ruta_pool_dia_entry(*, pool_id: int) -> RutaPoolDia:
     ).first()
     if not row:
         raise LookupError("Entrada de pool no encontrada")
-    if row.estado == "ASIGNADO_A_RUTA":
-        raise RuntimeError("No se puede descartar una entrada ya asignada a ruta")
-    if row.estado == "DESCARTADO":
-        return row
-
-    now = datetime.utcnow()
-    row.estado = "DESCARTADO"
-    row.deleted_at = now
-    row.updated_at = now
-    db.session.commit()
-    return row
+    return descartar_ruta_pool_dia_row(row, commit=True)
 
 
 _ESTADOS_RUTA_NO_LIBERABLE = ("PUBLICADA", "EN_CURSO", "CERRADA")

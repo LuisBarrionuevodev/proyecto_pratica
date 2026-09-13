@@ -1,6 +1,10 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import type { ActuacionPdfResumenPair } from "../../Containers/Actuaciones/utils/actuacionesExportPdfResumen";
+import {
+  ACTUACIONES_EXPORT_ACTAS_SECTION_TITLE,
+  ACTUACIONES_EXPORT_RESUMEN_TITLE,
+} from "../../Containers/Actuaciones/utils/actuacionesExportPdfResumen";
 import { INSTITUTIONAL_DIRECTION_LINE } from "../core/institutionalCopy";
 import {
   PDF_DESIGN_COLORS,
@@ -233,6 +237,10 @@ function DataRow({ row }: { row: ActuacionVisualPdfRow }) {
   );
 }
 
+function isActaExportIndicator(indicator: string): boolean {
+  return indicator.trim().toLowerCase().startsWith("actas de ");
+}
+
 function ResumenTabla({ rows }: { rows: ActuacionPdfResumenPair[] }) {
   return (
     <View>
@@ -299,8 +307,10 @@ export function ActuacionesListadoPdfDocument({ model, membreteSrc }: Actuacione
         <Text style={styles.metaMuted}>
           Total registros: {model.totalRegistros} · {filtros}
         </Text>
-        <Text style={styles.resumenTitle}>Inspecciones bromatológicas</Text>
-        <ResumenTabla rows={model.resumen} />
+        <Text style={styles.resumenTitle}>{ACTUACIONES_EXPORT_RESUMEN_TITLE}</Text>
+        <ResumenTabla rows={model.resumen.filter((r) => !isActaExportIndicator(r.indicator))} />
+        <Text style={styles.resumenTitle}>{ACTUACIONES_EXPORT_ACTAS_SECTION_TITLE}</Text>
+        <ResumenTabla rows={model.resumen.filter((r) => isActaExportIndicator(r.indicator))} />
         <PageFooter model={model} sheetIndex={1} totalSheets={totalSheets} />
       </Page>
 

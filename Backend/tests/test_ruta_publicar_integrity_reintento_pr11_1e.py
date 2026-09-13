@@ -123,12 +123,9 @@ def _insertar_segunda_actuacion_legacy_dual(
     return int(act2.id), int(ot2_row.id)
 
 
-def test_pr11_1e_republicar_misma_ot_no_integrity_error_caso_qa(app_ctx) -> None:
+def test_pr11_1e_republicar_misma_ot_rechaza_caso_qa(app_ctx) -> None:
     """
-    Caso QA: actuación previa ya tiene la OT objetivo; no debe INSERT duplicado.
-
-    Simula IntegrityError ix_actuaciones_orden_trabajo_id al intentar CREATE en lugar
-    de reutilizar la actuación del intento NO_REALIZADO.
+    Caso QA: OT histórica tras NO_REALIZADO → rechazo temprano, sin INSERT ni mutación.
     """
     ini = _mk_iniciador_relevamiento()
     from app.models import User
@@ -157,23 +154,27 @@ def test_pr11_1e_republicar_misma_ot_no_integrity_error_caso_qa(app_ctx) -> None
         iniciador_ruta_id=ini.id,
         orden_trabajo_id=ot_id,
     )
-    assert resolved is not None
-    assert resolved.id == act_id
+    assert resolved is None
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
+    from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
+
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
+    from tests.test_ruta_publicar_orden_trabajo_pr11_1 import _liberar_iniciador_tras_fallo_asignacion_ot
+
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
     db.session.expire_all()
-    item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_id
+    act_db_after = Actuaciones.query.get(act_id)
+    assert act_db_after is not None
+    assert act_db_after.contraproducencia == "LOCAL CERRADO"
     assert (
         Actuaciones.query.filter(Actuaciones.orden_trabajo_id == ot_id).count() == 1
     )
 
 
-def test_pr11_1e_resolver_prefiere_actuacion_con_ot_objetivo(app_ctx) -> None:
-    """Si hay dos actuaciones del iniciador, usa la que ya tiene la OT nueva."""
+def test_pr11_1e_resolver_no_reutiliza_actuacion_historica_con_ot_distinta(app_ctx) -> None:
+    """Tras intento cerrado, resolver no devuelve actuación histórica para otra OT."""
     rub = Rubro.query.first()
     ins = Inspector.query.first()
     assert rub and ins
@@ -228,12 +229,12 @@ def test_pr11_1e_resolver_prefiere_actuacion_con_ot_objetivo(app_ctx) -> None:
         iniciador_ruta_id=ini.id,
         orden_trabajo_id=ot2_id,
     )
-    assert resolved is not None
-    assert resolved.id == act2_id
+    assert resolved is None
 
-    ruta3, item3 = _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
-    publicar_ruta_trabajo(ruta_id=ruta3.id)
-    db.session.expire_all()
-    item3_db = RutaItem.query.get(item3.id)
-    assert item3_db is not None
-    assert item3_db.actuacion_id == act2_id
+    from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
+
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
+    from tests.test_ruta_publicar_orden_trabajo_pr11_1 import _liberar_iniciador_tras_fallo_asignacion_ot
+
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)

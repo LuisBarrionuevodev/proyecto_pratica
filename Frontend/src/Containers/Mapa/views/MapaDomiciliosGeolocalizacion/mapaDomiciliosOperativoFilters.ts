@@ -26,7 +26,7 @@ export const GESTION_DOMICILIOS_FILTROS: GestionDomiciliosFiltroOption[] = [
 export const MAPA_DOMICILIOS_SUBTABS: GestionDomiciliosFiltroOption[] = [
   { value: "requiere_accion", label: "Para revisar" },
   { value: "geolocalizado", label: "En el mapa" },
-  { value: "manual", label: "Validados" },
+  { value: "manual", label: "Domicilios validados" },
   { value: "todos", label: "Todos" },
 ];
 

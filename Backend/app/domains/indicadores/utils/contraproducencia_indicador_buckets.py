@@ -53,6 +53,30 @@ def empty_contraproducencia_buckets() -> dict[str, int]:
     return {k: 0 for k in BUCKET_ORDER}
 
 
+def classify_motivo_no_realizado_indicador(
+    motivo: str | None,
+    contraproducencia: str | None = None,
+) -> str:
+    """
+    Clasifica un intento NO_REALIZADO en bucket fijo de indicadores.
+
+    Prioridad: ``RutaItem.motivo_no_realizado``; fallback legacy por contraproducencia.
+    Siempre retorna una clave de ``BUCKET_ORDER`` (sin excluir del total).
+    """
+    if motivo:
+        mk = _loose_key(str(motivo))
+        if mk in (_loose_key("LOCAL_CERRADO"), _loose_key("LOCAL CERRADO")):
+            return BUCKET_LOCAL_CERRADO
+        if mk in (_loose_key("NO_EXISTE_LOCAL"), _loose_key("NO EXISTE LOCAL")):
+            return BUCKET_NO_EXISTE
+        if mk in (_loose_key("INCLEMENCIA_TIEMPO"), _loose_key("INCLEMENCIA TIEMPO")):
+            return BUCKET_CLIMA
+        if mk == _loose_key("OTRO"):
+            return BUCKET_OTRAS
+    bucket = classify_contraproducencia_indicador(contraproducencia)
+    return bucket or BUCKET_OTRAS
+
+
 def classify_contraproducencia_indicador(raw: str | None) -> str | None:
     """
     Clasifica contraproducencia cruda en bucket de indicadores.
@@ -100,6 +124,17 @@ def merge_contraproducencia_counts(
     bucket = classify_contraproducencia_indicador(raw)
     if bucket:
         merged[bucket] = merged.get(bucket, 0) + int(count)
+
+
+def merge_no_realizado_motivo_counts(
+    merged: dict[str, int],
+    motivo: str | None,
+    contraproducencia: str | None,
+    count: int,
+) -> None:
+    """Suma ``count`` al bucket de motivo/contraproducencia (universo canónico NR)."""
+    bucket = classify_motivo_no_realizado_indicador(motivo, contraproducencia)
+    merged[bucket] = merged.get(bucket, 0) + int(count)
 
 
 def sum_productividad_buckets(buckets: dict[str, int]) -> int:

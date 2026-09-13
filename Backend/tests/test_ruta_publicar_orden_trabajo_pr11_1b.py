@@ -42,6 +42,7 @@ from app.models import (
 from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _dos_inspectores,
     _fecha_ruta_aislada_mismo_anio,
+    _liberar_iniciador_tras_fallo_asignacion_ot,
     _mk_iniciador_reinspeccion_notificacion,
     _mk_user,
     _publicar_y_cerrar_no_realizado,
@@ -175,7 +176,7 @@ def _publicar_cerrar_reencolar(
         (_mk_iniciador_denuncia, "INSPECCION"),
     ],
 )
-def test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot(
+def test_pr11_1b_relevamiento_y_denuncia_rechazan_misma_ot(
     app_ctx, mk_ini, tipo_cierre
 ) -> None:
     ini = mk_ini()
@@ -186,17 +187,16 @@ def test_pr11_1b_relevamiento_y_denuncia_republican_misma_ot(
     act_prev = _publicar_cerrar_reencolar(
         ini, ot_num=ot_num, user_id=u.id, tipo=tipo_cierre, fecha_ruta=fecha
     )
+    hist_contra = act_prev.contraproducencia
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
     db.session.expire_all()
-    item2_db = RutaItem.query.get(item2.id)
     act_db = Actuaciones.query.get(act_prev.id)
-    assert item2_db is not None and act_db is not None
-    assert item2_db.actuacion_id == act_prev.id
-    assert act_db.orden_trabajo_id == item2_db.orden_trabajo_id
-    assert act_db.contraproducencia is None
+    assert act_db is not None
+    assert act_db.contraproducencia == hist_contra
 
 
 def test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot(app_ctx) -> None:
@@ -207,16 +207,17 @@ def test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot(app_ctx) -> No
         u.id,
         contra="LOCAL CERRADO",
     )
-    _ = act_prev
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
     db.session.expire_all()
-    item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None and item2_db.actuacion_id is not None
+    act_db = Actuaciones.query.get(act_prev.id)
+    assert act_db is not None
+    assert act_db.contraproducencia == "LOCAL CERRADO"
 
 
-def test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica(app_ctx) -> None:
-    """Ítem legado con estado_ruta_item=NO_REALIZADO no debe provocar IntegrityError al republicar."""
+def test_pr11_1b_item_legacy_estado_ruta_no_realizado_rechaza_misma_ot(app_ctx) -> None:
+    """Ítem legado NO_REALIZADO mantiene OT consumida: misma OT debe fallar sin IntegrityError."""
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
@@ -236,13 +237,9 @@ def test_pr11_1b_item_legacy_estado_ruta_no_realizado_republica(app_ctx) -> None
     item_prev.estado_ejecucion = "NO_REALIZADO"
     db.session.commit()
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
-
-    db.session.expire_all()
-    item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_prev.id
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
 
 def test_pr11_1b_ot_en_proceso_sigue_bloqueando(app_ctx) -> None:
@@ -265,11 +262,14 @@ def test_pr11_1b_ot_en_proceso_sigue_bloqueando(app_ctx) -> None:
         publicar_ruta_trabajo(ruta_id=ruta2.id)
 
 
-def test_pr11_1b_item_soft_deleted_no_bloquea_ot(app_ctx) -> None:
+def test_pr11_1b_item_soft_deleted_publica_con_ot_nueva(app_ctx) -> None:
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
     ot_num = _unique_num()
+    ot_nueva = _unique_num()
+    while ot_nueva == ot_num:
+        ot_nueva = _unique_num()
     act_prev = _publicar_cerrar_reencolar(ini, ot_num=ot_num, user_id=u.id)
 
     item_prev = (
@@ -285,13 +285,18 @@ def test_pr11_1b_item_soft_deleted_no_bloquea_ot(app_ctx) -> None:
     item_prev.deleted_at = datetime.utcnow()
     db.session.commit()
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
+
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_nueva)
     publicar_ruta_trabajo(ruta_id=ruta2.id)
 
     db.session.expire_all()
     item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id is not None
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
+    assert item2_db is not None and act2_db is not None
+    assert act2_db.id != act_prev.id
 
 
 def test_pr11_1b_actuacion_base_sin_item_sigue_bloqueando_ot(app_ctx) -> None:

@@ -5,8 +5,8 @@ Fuente de verdad:
 - **Pendientes (cola)**: ``IniciadorRuta`` en ``PENDIENTE`` sin ítem en ruta ``BORRADOR``, con geocode OK.
 - **Pendientes (en ruta)**: ``RutaItem`` ``EN_PROCESO`` en ruta ``PUBLICADA`` únicamente (completar trabajo pendiente).
   No incluye ítems en rutas ``BORRADOR`` ni otros estados de ruta.
-- **Realizados**: ``RutaItem`` ``FINALIZADO`` + ``estado_ejecucion == REALIZADO`` (visita realizada), fecha de cierre
-  ``coalesce(date(ejecutado_at), RutaTrabajo.fecha)`` dentro del rango.
+- **Cierres operativos**: ``RutaItem`` ``FINALIZADO`` + ``estado_ejecucion`` REALIZADO/NO_REALIZADO;
+  período por ``RutaTrabajo.fecha``; geocode del domicilio efectivo (coalesce actuación/iniciador).
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from datetime import date
 from typing import Any, Optional
 
 from sqlalchemy import and_, exists, func, or_
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import aliased, joinedload, selectinload
 
 from app.database import db
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
@@ -568,6 +568,315 @@ def list_mapa_operativo_pendientes_geo(
     return points
 
 
+def _normalize_filtro_ejecucion(ejecucion: Optional[str]) -> tuple[str, ...]:
+    """Normaliza filtro de ejecución: TODOS | REALIZADO | NO_REALIZADO."""
+    if not ejecucion:
+        return ("REALIZADO", "NO_REALIZADO")
+    key = str(ejecucion).strip().upper()
+    if key in ("", "TODOS", "ALL"):
+        return ("REALIZADO", "NO_REALIZADO")
+    if key == "REALIZADO":
+        return ("REALIZADO",)
+    if key in ("NO_REALIZADO", "NO REALIZADO", "NO_REALIZADOS"):
+        return ("NO_REALIZADO",)
+    return ("REALIZADO", "NO_REALIZADO")
+
+
+def _normalize_filtro_origen(origen: Optional[str]) -> Optional[tuple[str, ...]]:
+    """Filtro por ``IniciadorRuta.tipo_iniciador`` (origen operativo)."""
+    return _tipos_filtro_mapa_operativo(origen)
+
+
+def _normalize_filtro_motivo_no_realizado(motivo: Optional[str]) -> Optional[str]:
+    """Filtro de motivo no realizado (``RutaItem.motivo_no_realizado``)."""
+    if not motivo:
+        return None
+    key = str(motivo).strip().upper()
+    if key in ("", "TODAS", "ALL"):
+        return None
+    return key
+
+
+def _motivo_coincide_filtro_mapa(
+    filtro: Optional[str],
+    motivo: Optional[str],
+    contraproducencia: Optional[str],
+) -> bool:
+    """True si el ítem coincide con filtro de motivo/contraproducencia."""
+    if filtro is None:
+        return True
+    m = (motivo or "").strip().upper()
+    if m == filtro:
+        return True
+    if not m and contraproducencia:
+        from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+            _loose_key,
+        )
+
+        cp = _loose_key(str(contraproducencia))
+        aliases = {
+            "LOCAL_CERRADO": (_loose_key("LOCAL CERRADO"), _loose_key("LOCAL_CERRADO")),
+            "NO_EXISTE_LOCAL": (_loose_key("NO EXISTE LOCAL"), _loose_key("NO_EXISTE_LOCAL")),
+            "INCLEMENCIA_TIEMPO": (_loose_key("INCLEMENCIA TIEMPO"), _loose_key("INCLEMENCIA_TIEMPO")),
+            "OTRO": (_loose_key("OTRO"),),
+        }
+        if filtro in aliases and cp in aliases[filtro]:
+            return True
+    return False
+
+
+def _domicilio_id_efectivo_expr():
+    """Misma regla que indicadores: coalesce(actuación, iniciador)."""
+    return func.coalesce(Actuaciones.domicilio_id, IniciadorRuta.domicilio_id)
+
+
+def _domicilio_efectivo_orm(act: Actuaciones | None, ini: IniciadorRuta | None) -> Domicilio | None:
+    """Domicilio operativo: actuación, o iniciador si actuación no tiene."""
+    if act is not None and act.domicilio is not None:
+        return act.domicilio
+    if ini is not None and ini.domicilio is not None:
+        return ini.domicilio
+    act_id = int(act.domicilio_id) if act and act.domicilio_id is not None else None
+    ini_id = int(ini.domicilio_id) if ini and ini.domicilio_id is not None else None
+    dom_id = act_id if act_id is not None else ini_id
+    if dom_id is None:
+        return None
+    return db.session.get(Domicilio, dom_id)
+
+
+def _cierre_operativo_options():
+    return [
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.domicilio).selectinload(
+            Domicilio.geocode
+        ),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.domicilio).selectinload(
+            Domicilio.distrito
+        ),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.domicilio).selectinload(
+            Domicilio.contribuyente
+        ),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.domicilio).selectinload(
+            Domicilio.rubro
+        ),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.inspector),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.inspeccion),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.notificacion),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.comprobacion),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.clausura),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.decomiso),
+        selectinload(RutaItem.actuacion).selectinload(Actuaciones.orden_trabajo),
+        selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.domicilio).selectinload(
+            Domicilio.geocode
+        ),
+        selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.domicilio).selectinload(
+            Domicilio.distrito
+        ),
+        selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.domicilio).selectinload(
+            Domicilio.contribuyente
+        ),
+        selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.oficio).selectinload(
+            Oficio.expediente
+        ),
+        selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.notificacion),
+        selectinload(RutaItem.iniciador_ruta)
+        .selectinload(IniciadorRuta.relevamiento)
+        .selectinload(Relevamiento.rubro),
+        joinedload(RutaItem.ruta_trabajo),
+    ]
+
+
+@dataclass
+class MapaOperativoCierresResult:
+    """Puntos dibujables + resumen del universo operativo filtrado."""
+
+    points: list[dict[str, Any]]
+    meta: dict[str, Any]
+
+
+def list_mapa_operativo_cierres_geo_with_meta(
+    *,
+    desde: Optional[str],
+    hasta: Optional[str],
+    distrito_id: Optional[int] = None,
+    tipo: Optional[str] = None,
+    inspector_id: Optional[int] = None,
+    definicion: Optional[str] = None,
+    rubro_id: Optional[int] = None,
+    ejecucion: Optional[str] = None,
+    origen: Optional[str] = None,
+    motivo_no_realizado: Optional[str] = None,
+) -> MapaOperativoCierresResult:
+    """
+    Cierres operativos (REALIZADO y/o NO_REALIZADO) con resumen de universo vs dibujables.
+
+    Período: ``RutaTrabajo.fecha``. Coordenadas: domicilio efectivo con geocode OK.
+    """
+    d_desde = _parse_date(desde)
+    d_hasta = _parse_date(hasta)
+    if d_desde is None or d_hasta is None:
+        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
+
+    estados = _normalize_filtro_ejecucion(ejecucion)
+    filtro_tipo_operativo = _normalize_filtro_tipo_realizados(tipo)
+    tipos_origen = _normalize_filtro_origen(origen)
+    filtro_motivo = _normalize_filtro_motivo_no_realizado(motivo_no_realizado)
+    dom_eff = aliased(Domicilio)
+
+    q = (
+        RutaItem.query.join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
+        .outerjoin(dom_eff, dom_eff.id == _domicilio_id_efectivo_expr())
+        .filter(
+            RutaItem.deleted_at.is_(None),
+            IniciadorRuta.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion.in_(estados),
+            RutaTrabajo.estado_ruta == "PUBLICADA",
+            Actuaciones.orden_trabajo_id.isnot(None),
+            RutaTrabajo.fecha >= d_desde,
+            RutaTrabajo.fecha <= d_hasta,
+        )
+        .options(*_cierre_operativo_options())
+    )
+    if distrito_id is not None:
+        q = q.filter(dom_eff.distrito_id == distrito_id)
+    if inspector_id is not None:
+        q = q.filter(_realizados_inspector_coincide(inspector_id))
+    if tipos_origen is not None:
+        q = _aplicar_filtro_tipo_iniciador(q, tipos_origen)
+
+    definicion_key = _definicion_actuacion_filtro(definicion)
+    if definicion_key == "CLAUSURA":
+        q = q.filter(Actuaciones.clausura.has())
+    elif definicion_key == "DECOMISO":
+        q = q.filter(Actuaciones.decomiso.has())
+    elif definicion_key == "CLAUSURA_DECOMISO":
+        q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
+
+    meta = {
+        "total_operativos": 0,
+        "total_dibujables": 0,
+        "total_sin_geocode": 0,
+        "realizados": 0,
+        "no_realizados": 0,
+        "realizados_sin_geo": 0,
+        "no_realizados_sin_geo": 0,
+    }
+    points: list[dict[str, Any]] = []
+
+    for item in q.order_by(RutaItem.id).all():
+        act = item.actuacion
+        ini = item.iniciador_ruta
+        ruta = item.ruta_trabajo
+        if act is None or ini is None:
+            continue
+
+        estado_ej = str(item.estado_ejecucion or "")
+        if filtro_motivo and estado_ej == "NO_REALIZADO":
+            if not _motivo_coincide_filtro_mapa(
+                filtro_motivo,
+                item.motivo_no_realizado,
+                act.contraproducencia,
+            ):
+                continue
+        elif filtro_motivo and estado_ej == "REALIZADO":
+            continue
+
+        tipo_act_str = str(act.tipo) if act.tipo is not None else None
+        if filtro_tipo_operativo and estado_ej == "REALIZADO":
+            if not _realizado_coincide_filtro_tipo_operativo(
+                filtro_tipo_operativo,
+                str(ini.tipo_iniciador),
+                tipo_act_str,
+            ):
+                continue
+
+        dom = _domicilio_efectivo_orm(act, ini)
+        if rubro_id is not None:
+            rid_op = rubro_id_operativo_para_iniciador(ini, dom, act=act)
+            if rid_op != int(rubro_id):
+                continue
+
+        meta["total_operativos"] += 1
+        if estado_ej == "REALIZADO":
+            meta["realizados"] += 1
+        elif estado_ej == "NO_REALIZADO":
+            meta["no_realizados"] += 1
+
+        dom_id = int(dom.id) if dom else None
+        lat, lng, dist_id, _ubic = (
+            _coords_desde_domicilio_id(dom_id) if dom_id else (None, None, None, None)
+        )
+        dibujable = lat is not None and lng is not None
+        if dibujable:
+            meta["total_dibujables"] += 1
+        else:
+            meta["total_sin_geocode"] += 1
+            if estado_ej == "REALIZADO":
+                meta["realizados_sin_geo"] += 1
+            elif estado_ej == "NO_REALIZADO":
+                meta["no_realizados_sin_geo"] += 1
+            continue
+
+        if distrito_id is not None and dist_id != distrito_id:
+            continue
+
+        geo_dom = dom.geocode if dom else None
+        dist_nom = None
+        if dom and dom.distrito:
+            dist_nom = getattr(dom.distrito, "nombre", None) or getattr(dom.distrito, "codigo", None)
+        actas = _actas_labradas_payload(act)
+        ot_num = getattr(act.orden_trabajo, "numero_acta", None) if act.orden_trabajo else None
+        nl = getattr(act, "nombre_local", None)
+        nombre_local_val = (str(nl).strip() or None) if nl is not None else None
+        deco = getattr(act, "decomiso", None)
+        kg_deco = float(getattr(deco, "kilos_total", 0) or 0) if deco else None
+        fecha_operativa = ruta.fecha if ruta else None
+        map_layer = "ruta_no_realizado" if estado_ej == "NO_REALIZADO" else "ruta_realizado"
+
+        base: dict[str, Any] = {
+            "domicilio_id": dom_id,
+            "lat": float(lat),
+            "lng": float(lng),
+            "distrito_id": dist_id,
+            "distrito_nombre": dist_nom,
+            "map_layer": map_layer,
+            "iniciador_id": int(ini.id),
+            "ruta_item_id": int(item.id),
+            "actuacion_id": int(act.id),
+            "tipo_iniciador": str(ini.tipo_iniciador),
+            "estado_ejecucion": estado_ej,
+            "motivo_no_realizado": item.motivo_no_realizado,
+            "fecha_ref": fecha_operativa.isoformat() if fecha_operativa else None,
+            "fecha_operativa": fecha_operativa.isoformat() if fecha_operativa else None,
+            "ejecutado_at": item.ejecutado_at.isoformat() if item.ejecutado_at else None,
+            "has_act": True,
+            "has_rel": str(ini.tipo_iniciador) == "RELEVAMIENTO",
+            "act_count": 1,
+            "rel_count": 0,
+            "inspectores": _inspectores_csv(act),
+            "contribuyente_o_razon_social": _contribuyente_linea(dom.contribuyente if dom else None),
+            "domicilio_texto": _domicilio_linea(dom),
+            "acta_inspeccion": actas.get("acta_inspeccion"),
+            "acta_notificacion": actas.get("acta_notificacion"),
+            "acta_comprobacion": actas.get("acta_comprobacion"),
+            "acta_clausura": actas.get("acta_clausura"),
+            "acta_decomiso": actas.get("acta_decomiso"),
+            "kg_decomisados": kg_deco,
+            "prioridad_categoria": None,
+            "orden_trabajo_numero": str(ot_num).strip() if ot_num else None,
+            "nombre_local": nombre_local_val,
+            "tipo_actuacion": tipo_act_str,
+            "doc_contribuyente": _documento_contribuyente(dom.contribuyente if dom else None),
+        }
+        base.update(_contexto_popup_realizado(ini))
+        points.append(base)
+
+    return MapaOperativoCierresResult(points=points, meta=meta)
+
+
 def _definicion_actuacion_filtro(definicion: Optional[str]) -> Optional[str]:
     """
     Normaliza el filtro UI «definición» (actas de clausura / decomiso) para la query de realizados.
@@ -600,161 +909,29 @@ def list_mapa_operativo_realizados_geo(
     inspector_id: Optional[int] = None,
     definicion: Optional[str] = None,
     rubro_id: Optional[int] = None,
+    ejecucion: Optional[str] = None,
+    origen: Optional[str] = None,
+    motivo_no_realizado: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """
-    Puntos «realizados»: cierres con visita realizada (``RutaItem`` finalizado + ``REALIZADO``).
+    Puntos dibujables de cierres operativos (compat: sin ``ejecucion`` filtra REALIZADO+NO_REALIZADO).
 
-    Fecha operativa: ``coalesce(date(ejecutado_at), RutaTrabajo.fecha)`` dentro del rango inclusive.
-    Coordenadas: ``Actuaciones.domicilio_id`` (post-corrección en Completar trabajo) con geocode OK.
-
-    Filtro opcional ``definicion``: restringe a actuaciones con acta de clausura y/o decomiso según UI
-    (``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``).
-
-    Filtro opcional ``tipo``: buckets operativos alineados a Actuaciones
-    (``INSPECCION``, ``REINSPECCION``, ``RATIFICACION_CLAUSURA``, ``RATIFICACION_DECOMISO``,
-    ``VERIFICAR_INFORMAR``).
-
-    Filtro opcional ``rubro_id``: rubro operativo del cierre (relevamiento / visita / domicilio).
+    Período: ``RutaTrabajo.fecha``. Coordenadas: domicilio efectivo con geocode OK.
     """
-    d_desde = _parse_date(desde)
-    d_hasta = _parse_date(hasta)
-    if d_desde is None or d_hasta is None:
-        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
-    filtro_tipo_operativo = _normalize_filtro_tipo_realizados(tipo)
-
-    fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
-
-    q = (
-        RutaItem.query.join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
-        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
-        .join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, _geo_ok_join())
-        .filter(
-            RutaItem.deleted_at.is_(None),
-            RutaItem.actuacion_id.isnot(None),
-            RutaItem.estado_ruta_item == "FINALIZADO",
-            RutaItem.estado_ejecucion == "REALIZADO",
-            RutaTrabajo.estado_ruta == "PUBLICADA",
-            fecha_cierre >= d_desde,
-            fecha_cierre <= d_hasta,
-            Actuaciones.domicilio_id.isnot(None),
-            Domicilio.deleted_at.is_(None),
-        )
-        .options(
-            selectinload(RutaItem.actuacion)
-            .selectinload(Actuaciones.domicilio)
-            .selectinload(Domicilio.geocode),
-            selectinload(RutaItem.actuacion)
-            .selectinload(Actuaciones.domicilio)
-            .selectinload(Domicilio.distrito),
-            selectinload(RutaItem.actuacion)
-            .selectinload(Actuaciones.domicilio)
-            .selectinload(Domicilio.contribuyente),
-            selectinload(RutaItem.actuacion)
-            .selectinload(Actuaciones.domicilio)
-            .selectinload(Domicilio.rubro),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.inspector),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.inspeccion),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.notificacion),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.comprobacion),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.clausura),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.decomiso),
-            selectinload(RutaItem.actuacion).selectinload(Actuaciones.orden_trabajo),
-            selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.oficio).selectinload(
-                Oficio.expediente
-            ),
-            selectinload(RutaItem.iniciador_ruta).selectinload(IniciadorRuta.notificacion),
-            selectinload(RutaItem.iniciador_ruta)
-            .selectinload(IniciadorRuta.relevamiento)
-            .selectinload(Relevamiento.rubro),
-            joinedload(RutaItem.ruta_trabajo),
-        )
+    ej = ejecucion if ejecucion is not None else "REALIZADO"
+    result = list_mapa_operativo_cierres_geo_with_meta(
+        desde=desde,
+        hasta=hasta,
+        distrito_id=distrito_id,
+        tipo=tipo,
+        inspector_id=inspector_id,
+        definicion=definicion,
+        rubro_id=rubro_id,
+        ejecucion=ej,
+        origen=origen,
+        motivo_no_realizado=motivo_no_realizado,
     )
-    if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
-    if inspector_id is not None:
-        q = q.filter(_realizados_inspector_coincide(inspector_id))
-
-    definicion_key = _definicion_actuacion_filtro(definicion)
-    if definicion_key == "CLAUSURA":
-        q = q.filter(Actuaciones.clausura.has())
-    elif definicion_key == "DECOMISO":
-        q = q.filter(Actuaciones.decomiso.has())
-    elif definicion_key == "CLAUSURA_DECOMISO":
-        q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
-
-    points: list[dict[str, Any]] = []
-    for item in q.order_by(RutaItem.id).all():
-        act = item.actuacion
-        ini = item.iniciador_ruta
-        dom = act.domicilio if act else None
-        geo = dom.geocode if dom else None
-        if (
-            geo is None
-            or geo.lat is None
-            or geo.lng is None
-            or str(getattr(geo, "geo_status", "") or "") != "OK"
-        ):
-            continue
-        ej = item.ejecutado_at
-        fecha_ref = ej.date() if ej else (item.ruta_trabajo.fecha if item.ruta_trabajo else None)
-        dist_nom = None
-        if dom and dom.distrito:
-            dist_nom = getattr(dom.distrito, "nombre", None) or getattr(dom.distrito, "codigo", None)
-        actas = _actas_labradas_payload(act)
-        ot_num = None
-        if act and getattr(act, "orden_trabajo", None):
-            ot_num = getattr(act.orden_trabajo, "numero_acta", None)
-        nl = getattr(act, "nombre_local", None) if act else None
-        nombre_local_val = (str(nl).strip() or None) if nl is not None else None
-        tipo_act = getattr(act, "tipo", None) if act else None
-        tipo_act_str = str(tipo_act) if tipo_act is not None else None
-        if filtro_tipo_operativo and not _realizado_coincide_filtro_tipo_operativo(
-            filtro_tipo_operativo,
-            str(ini.tipo_iniciador) if ini else None,
-            tipo_act_str,
-        ):
-            continue
-        if rubro_id is not None:
-            rid_op = rubro_id_operativo_para_iniciador(ini, dom, act=act)
-            if rid_op != int(rubro_id):
-                continue
-        doc_c = _documento_contribuyente(dom.contribuyente if dom else None)
-
-        base: dict[str, Any] = {
-            "domicilio_id": int(dom.id) if dom else None,
-            "lat": float(geo.lat),
-            "lng": float(geo.lng),
-            "distrito_id": int(dom.distrito_id) if dom and dom.distrito_id is not None else None,
-            "distrito_nombre": dist_nom,
-            "map_layer": "ruta_realizado",
-            "iniciador_id": int(ini.id) if ini else None,
-            "ruta_item_id": int(item.id),
-            "actuacion_id": int(act.id) if act else None,
-            "tipo_iniciador": str(ini.tipo_iniciador) if ini else None,
-            "fecha_ref": fecha_ref.isoformat() if fecha_ref else None,
-            "has_act": True,
-            "has_rel": str(ini.tipo_iniciador) == "RELEVAMIENTO" if ini else False,
-            "act_count": 1,
-            "rel_count": 0,
-            "inspectores": _inspectores_csv(act),
-            "contribuyente_o_razon_social": _contribuyente_linea(dom.contribuyente if dom else None),
-            "domicilio_texto": _domicilio_linea(dom),
-            "acta_inspeccion": actas.get("acta_inspeccion"),
-            "acta_notificacion": actas.get("acta_notificacion"),
-            "acta_comprobacion": actas.get("acta_comprobacion"),
-            "acta_clausura": actas.get("acta_clausura"),
-            "acta_decomiso": actas.get("acta_decomiso"),
-            "prioridad_categoria": None,
-            "orden_trabajo_numero": str(ot_num).strip() if ot_num else None,
-            "nombre_local": nombre_local_val,
-            "tipo_actuacion": tipo_act_str,
-            "doc_contribuyente": doc_c,
-        }
-        base.update(_contexto_popup_realizado(ini))
-        points.append(base)
-    return points
+    return result.points
 
 
 _TIPOS_PENDIENTES_COLA_KPI: tuple[str, ...] = (
@@ -1110,67 +1287,14 @@ def count_mapa_operativo_realizados_visita(
         definicion: mismo filtro opcional que el GeoJSON (clausura / decomiso / ambos).
         rubro_id: rubro operativo del cierre (misma regla que el listado GeoJSON).
     """
-    if rubro_id is not None:
-        return len(
-            list_mapa_operativo_realizados_geo(
-                desde=desde,
-                hasta=hasta,
-                distrito_id=distrito_id,
-                tipo=tipo,
-                inspector_id=inspector_id,
-                definicion=definicion,
-                rubro_id=rubro_id,
-            )
-        )
-    d_desde = _parse_date(desde)
-    d_hasta = _parse_date(hasta)
-    if d_desde is None or d_hasta is None:
-        raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
-    filtro_tipo_operativo = _normalize_filtro_tipo_realizados(tipo)
-    fecha_cierre = func.coalesce(func.date(RutaItem.ejecutado_at), RutaTrabajo.fecha)
-    q = (
-        db.session.query(func.count(RutaItem.id))
-        .select_from(RutaItem)
-        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
-        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
-        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
-        .join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
-        .join(DomicilioGeocode, _geo_ok_join())
-        .filter(
-            RutaItem.deleted_at.is_(None),
-            RutaItem.actuacion_id.isnot(None),
-            RutaItem.estado_ruta_item == "FINALIZADO",
-            RutaItem.estado_ejecucion == "REALIZADO",
-            RutaTrabajo.estado_ruta == "PUBLICADA",
-            fecha_cierre >= d_desde,
-            fecha_cierre <= d_hasta,
-            Actuaciones.domicilio_id.isnot(None),
-            Domicilio.deleted_at.is_(None),
-        )
+    result = list_mapa_operativo_cierres_geo_with_meta(
+        desde=desde,
+        hasta=hasta,
+        distrito_id=distrito_id,
+        tipo=tipo,
+        inspector_id=inspector_id,
+        definicion=definicion,
+        rubro_id=rubro_id,
+        ejecucion="REALIZADO",
     )
-    if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
-    if inspector_id is not None:
-        q = q.filter(_realizados_inspector_coincide(inspector_id))
-
-    definicion_key = _definicion_actuacion_filtro(definicion)
-    if definicion_key == "CLAUSURA":
-        q = q.filter(Actuaciones.clausura.has())
-    elif definicion_key == "DECOMISO":
-        q = q.filter(Actuaciones.decomiso.has())
-    elif definicion_key == "CLAUSURA_DECOMISO":
-        q = q.filter(Actuaciones.clausura.has(), Actuaciones.decomiso.has())
-
-    if filtro_tipo_operativo:
-        rows = q.with_entities(IniciadorRuta.tipo_iniciador, Actuaciones.tipo).all()
-        return sum(
-            1
-            for ini_t, act_t in rows
-            if _realizado_coincide_filtro_tipo_operativo(
-                filtro_tipo_operativo,
-                str(ini_t) if ini_t is not None else None,
-                str(act_t) if act_t is not None else None,
-            )
-        )
-
-    return int(q.scalar() or 0)
+    return len(result.points)

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import {
+  ACTUACIONES_EXPORT_TOTAL_INDICATOR,
   computeActuacionesPdfResumenRows,
   isInspeccionIntegralOrDenuncia,
   isRatificacionClausura,
@@ -138,6 +139,12 @@ describe("actuacionesExportPdfResumen", () => {
     });
     expect(tieneNotificacionLabradaMotivos(row)).toBe(false);
     expect(valueForIndicator(computeActuacionesPdfResumenRows([row]), "Actas de notificación")).toBe(0);
+  });
+
+  it("total exportado usa label documental (no KPI operativo)", () => {
+    const rows = computeActuacionesPdfResumenRows([baseRow(), baseRow({ id: 2 })]);
+    expect(rows.find((r) => r.indicator === ACTUACIONES_EXPORT_TOTAL_INDICATOR)?.value).toBe("2");
+    expect(rows.some((r) => r.indicator === "Actuaciones realizadas")).toBe(false);
   });
 
   it("kilos solo si hay decomiso propio", () => {

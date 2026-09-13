@@ -43,7 +43,7 @@ from app.domains.indicadores.utils.contraproducencia_indicador_buckets import (
     BUCKET_NO_SE_RATIFICO,
     BUCKET_OTRAS,
     empty_contraproducencia_buckets,
-    merge_contraproducencia_counts,
+    merge_no_realizado_motivo_counts,
     sum_productividad_buckets,
 )
 from app.models import (
@@ -344,9 +344,9 @@ def _no_realizadas_inspector_visita_pairs(
     hasta: date,
     distrito_id: Optional[int] = None,
     inspector_id: Optional[int] = None,
-) -> list[tuple[int, int, str, str | None]]:
+) -> list[tuple[int, int, str, str | None, str | None]]:
     """
-    Pares únicos (ruta_item_id, inspector_id) con contraproducencia de la visita.
+    Pares únicos (ruta_item_id, inspector_id, motivo, contraproducencia) de la visita.
 
     Usa el mismo universo de visitas que ``/no-realizadas`` (``fetch_no_realizadas_visita_rows``).
     """
@@ -374,7 +374,7 @@ def _no_realizadas_inspector_visita_pairs(
     for act_id, iid, nombre in insp_q.all():
         inspectores_por_actuacion[int(act_id)].append((int(iid), str(nombre)))
 
-    pairs: list[tuple[int, int, str, str | None]] = []
+    pairs: list[tuple[int, int, str, str | None, str | None]] = []
     seen: set[tuple[int, int]] = set()
     for visita in visitas:
         for iid, nombre in inspectores_por_actuacion.get(visita.actuacion_id, []):
@@ -382,7 +382,15 @@ def _no_realizadas_inspector_visita_pairs(
             if key in seen:
                 continue
             seen.add(key)
-            pairs.append((visita.ruta_item_id, iid, nombre, visita.contraproducencia))
+            pairs.append(
+                (
+                    visita.ruta_item_id,
+                    iid,
+                    nombre,
+                    visita.motivo_no_realizado,
+                    visita.contraproducencia,
+                )
+            )
     return pairs
 
 
@@ -406,7 +414,7 @@ def query_inspectores_no_realizadas(
     label_counts: dict[int, dict[str, int]] = defaultdict(dict)
     seen_pairs: set[tuple[int, int]] = set()
 
-    for ri_id, iid, nombre, raw in pairs:
+    for ri_id, iid, nombre, motivo, contra in pairs:
         pair_key = (ri_id, iid)
         if pair_key in seen_pairs:
             continue
@@ -419,9 +427,10 @@ def query_inspectores_no_realizadas(
             }
         buckets = per_inspector[iid]["buckets"]
         assert isinstance(buckets, dict)
-        merge_contraproducencia_counts(buckets, raw, 1)
-        if not is_contraproducencia_excluida_valor(raw):
-            label = format_contraproducencia_label(str(raw))
+        merge_no_realizado_motivo_counts(buckets, motivo, contra, 1)
+        label_src = motivo or contra
+        if label_src:
+            label = format_contraproducencia_label(str(label_src))
             if label:
                 label_counts[iid][label] = label_counts[iid].get(label, 0) + 1
 

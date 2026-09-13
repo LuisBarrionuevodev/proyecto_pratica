@@ -6,9 +6,20 @@ export interface MapPointFeature {
   properties: Record<string, any>;
 }
 
+export interface MapOperativoMeta {
+  total_operativos: number;
+  total_dibujables: number;
+  total_sin_geocode: number;
+  realizados: number;
+  no_realizados: number;
+  realizados_sin_geo: number;
+  no_realizados_sin_geo: number;
+}
+
 export interface MapPointFeatureCollection {
   type: "FeatureCollection";
   features: MapPointFeature[];
+  meta?: MapOperativoMeta;
 }
 
 export interface HeatmapItem {
@@ -93,6 +104,9 @@ export const getMapOperativoRealizadosFC = async (params: {
   tipo?: string;
   inspector_id?: number;
   rubro_id?: number;
+  ejecucion?: string;
+  origen?: string;
+  motivo_no_realizado?: string;
   _?: number;
 }) => {
   const { data } = await apiClient.get<MapPointFeatureCollection>("/map/operativo/realizados", { params });

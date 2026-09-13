@@ -20,6 +20,7 @@ from app.domains.geolocalizacion.geocode.schemas.gestion_domicilios_query import
     GestionDomiciliosQuery,
 )
 from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
+    list_mapa_operativo_cierres_geo_with_meta,
     list_mapa_operativo_pendientes_geo,
     list_mapa_operativo_realizados_geo,
 )
@@ -289,17 +290,19 @@ def map_operativo_pendientes_alias():
 @geolocalizacion_map.get("/map/operativo/realizados")
 def map_operativo_realizados():
     """
-    Mapa operativo — realizados: ``RutaItem`` finalizado con visita realizada en el rango.
+    Mapa operativo — cierres (REALIZADO / NO_REALIZADO) en el rango por ``RutaTrabajo.fecha``.
 
-    Query opcional: ``definicion`` (``TODOS``, ``CLAUSURA``, ``DECOMISO``, ``CLAUSURA_DECOMISO``),
-    ``rubro_id`` (rubro operativo del cierre).
+    Query opcional: ``ejecucion`` (``TODOS``, ``REALIZADO``, ``NO_REALIZADO``),
+    ``origen`` (``RELEVAMIENTO``, ``DENUNCIA``, ``REINSPECCION_NOTIFICACION``, ``OFICIO``),
+    ``motivo_no_realizado``, ``definicion``, ``rubro_id``.
     """
     params = request.args.to_dict()
     distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
     inspector_id = int(params["inspector_id"]) if params.get("inspector_id") else None
     rubro_id = int(params["rubro_id"]) if params.get("rubro_id") else None
+    ejecucion = params.get("ejecucion") or params.get("estado_ejecucion")
     try:
-        items = list_mapa_operativo_realizados_geo(
+        result = list_mapa_operativo_cierres_geo_with_meta(
             desde=params.get("desde") or params.get("from"),
             hasta=params.get("hasta") or params.get("to"),
             distrito_id=distrito_id,
@@ -307,10 +310,17 @@ def map_operativo_realizados():
             inspector_id=inspector_id,
             definicion=params.get("definicion"),
             rubro_id=rubro_id,
+            ejecucion=ejecucion or "TODOS",
+            origen=params.get("origen"),
+            motivo_no_realizado=params.get("motivo_no_realizado")
+            or params.get("motivo")
+            or params.get("contraproducencia"),
         )
+        items = result.points
     except ValueError as exc:
         return jsonify({"detail": str(exc)}), 400
     body, status = _fc_from_points(items)
+    body["meta"] = result.meta
     return jsonify(body), status
 
 

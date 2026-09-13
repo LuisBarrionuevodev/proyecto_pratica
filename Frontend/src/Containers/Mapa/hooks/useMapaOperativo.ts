@@ -1,7 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 
-import { getMapOperativoRealizadosFC, type MapPointFeature } from "../../../api/mapApi";
 import {
+  getMapOperativoRealizadosFC,
+  type MapOperativoMeta,
+  type MapPointFeature,
+} from "../../../api/mapApi";
+import {
+  mapaEjecucionQueryValue,
+  mapaMotivoQueryValue,
+  mapaOrigenQueryValue,
   mapaRealizadosEmptyMessage,
   mapaRealizadosRubroQueryValue,
   mapaRealizadosTipoQueryValue,
@@ -15,6 +22,9 @@ export type MapaOperativoLoadParams = {
   inspectorId: string;
   rubroId?: string;
   rubroLabel?: string;
+  ejecucion?: string;
+  origen?: string;
+  motivoNoRealizado?: string;
 };
 
 /** Opciones de carga (p. ej. forzar red al pulsar Refrescar). */
@@ -34,6 +44,7 @@ function debugRealizados(label: string, payload: unknown) {
  */
 export function useMapaOperativo() {
   const [features, setFeatures] = useState<MapPointFeature[]>([]);
+  const [meta, setMeta] = useState<MapOperativoMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -53,6 +64,7 @@ export function useMapaOperativo() {
   const loadRealizados = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
     const seq = ++loadSeqRef.current;
     setFeatures([]);
+    setMeta(null);
     setInfoMessage(null);
     setLoading(true);
     setError(null);
@@ -70,6 +82,9 @@ export function useMapaOperativo() {
         tipo: mapaRealizadosTipoQueryValue(p.tipo),
         inspector_id: _inspectorNum(p.inspectorId),
         rubro_id: mapaRealizadosRubroQueryValue(p.rubroId ?? ""),
+        ejecucion: mapaEjecucionQueryValue(p.ejecucion ?? "TODOS"),
+        origen: mapaOrigenQueryValue(p.origen ?? "TODOS"),
+        motivo_no_realizado: mapaMotivoQueryValue(p.motivoNoRealizado ?? "TODAS"),
         ...(opts?.forceNetwork ? { _: Date.now() } : {}),
       };
       debugRealizados("[tipo selected]", p.tipo);
@@ -80,6 +95,7 @@ export function useMapaOperativo() {
       const feats = fc.features ?? [];
       debugRealizados("[response count]", feats.length);
       setFeatures(feats);
+      setMeta(fc.meta ?? null);
       if (feats.length === 0) {
         setInfoMessage(
           mapaRealizadosEmptyMessage({ tipo: p.tipo, rubroLabel: p.rubroLabel })
@@ -99,6 +115,7 @@ export function useMapaOperativo() {
 
   return {
     features,
+    meta,
     loading,
     error,
     infoMessage,

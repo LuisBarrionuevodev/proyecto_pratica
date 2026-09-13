@@ -5,7 +5,8 @@ import { useSearchParams } from "react-router-dom";
 
 import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
 import { fetchInspectores, type CatalogItem } from "../../api/gridApi";
-import { getCurrentMonthRange } from "../../utils/dateRange";
+import { getOperativoMonthToDateRange } from "../../utils/dateRange";
+import { OperativoPeriodoLabel } from "../../components/OperativoPeriodoLabel";
 import { fetchRubrosCatalogoCached } from "../../utils/rubrosCatalogCache";
 import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
@@ -27,6 +28,9 @@ type FiltrosRealizadosSnapshot = {
   to: string;
   distritoId: string;
   inspectorId: string;
+  ejecucion: string;
+  origen: string;
+  motivoNoRealizado: string;
   realizadoTipoIniciador: string;
   realizadoRubroId: string;
   realizadoRubroLabel: string;
@@ -37,13 +41,16 @@ type FiltrosRealizadosSnapshot = {
  */
 const MapPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
+  const defaultRange = useMemo(() => getOperativoMonthToDateRange(), []);
 
   const modo = useMemo(() => parseMapaModo(searchParams.get("modo")), [searchParams]);
   const [fechaDesde, setFechaDesde] = useState(defaultRange.desde);
   const [fechaHasta, setFechaHasta] = useState(defaultRange.hasta);
   const [distritoId, setDistritoId] = useState("");
 
+  const [ejecucion, setEjecucion] = useState("TODOS");
+  const [origen, setOrigen] = useState("TODOS");
+  const [motivoNoRealizado, setMotivoNoRealizado] = useState("TODAS");
   const [realizadoTipoIniciador, setRealizadoTipoIniciador] = useState("TODOS");
   const [realizadoRubroId, setRealizadoRubroId] = useState("");
   const [inspectorId, setInspectorId] = useState("");
@@ -58,13 +65,16 @@ const MapPage = () => {
     { value: "", label: "Todos los distritos" },
   ]);
 
-  const { features, loading, error, infoMessage, loadRealizados } = useMapaOperativo();
+  const { features, meta, loading, error, infoMessage, loadRealizados } = useMapaOperativo();
 
   const filtrosUiRef = useRef<FiltrosRealizadosSnapshot>({
     from: fechaDesde,
     to: fechaHasta,
     distritoId,
     inspectorId,
+    ejecucion,
+    origen,
+    motivoNoRealizado,
     realizadoTipoIniciador,
     realizadoRubroId,
     realizadoRubroLabel: "",
@@ -74,6 +84,9 @@ const MapPage = () => {
     to: fechaHasta,
     distritoId,
     inspectorId,
+    ejecucion,
+    origen,
+    motivoNoRealizado,
     realizadoTipoIniciador,
     realizadoRubroId,
     realizadoRubroLabel:
@@ -96,6 +109,9 @@ const MapPage = () => {
           tipo: s.realizadoTipoIniciador,
           rubroId: s.realizadoRubroId,
           rubroLabel: s.realizadoRubroLabel,
+          ejecucion: s.ejecucion,
+          origen: s.origen,
+          motivoNoRealizado: s.motivoNoRealizado,
         },
         opts
       );
@@ -183,6 +199,33 @@ const MapPage = () => {
       if (modo === "realizados") {
         loadRealizadosFromRef();
       }
+    },
+    [modo, patchFiltrosUiRef, loadRealizadosFromRef]
+  );
+
+  const handleEjecucionChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ ejecucion: v });
+      setEjecucion(v);
+      if (modo === "realizados") loadRealizadosFromRef();
+    },
+    [modo, patchFiltrosUiRef, loadRealizadosFromRef]
+  );
+
+  const handleOrigenChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ origen: v });
+      setOrigen(v);
+      if (modo === "realizados") loadRealizadosFromRef();
+    },
+    [modo, patchFiltrosUiRef, loadRealizadosFromRef]
+  );
+
+  const handleMotivoChange = useCallback(
+    (v: string) => {
+      patchFiltrosUiRef({ motivoNoRealizado: v });
+      setMotivoNoRealizado(v);
+      if (modo === "realizados") loadRealizadosFromRef();
     },
     [modo, patchFiltrosUiRef, loadRealizadosFromRef]
   );
@@ -283,6 +326,7 @@ const MapPage = () => {
         />
       ) : (
         <>
+          <OperativoPeriodoLabel desde={fechaDesde} hasta={fechaHasta} />
           <MapaFiltrosUnificados
             fechaDesde={fechaDesde}
             fechaHasta={fechaHasta}
@@ -291,6 +335,12 @@ const MapPage = () => {
             distritoId={distritoId}
             onDistritoIdChange={handleDistritoIdChange}
             distritoOptions={distritoOptions}
+            ejecucion={ejecucion}
+            onEjecucionChange={handleEjecucionChange}
+            origen={origen}
+            onOrigenChange={handleOrigenChange}
+            motivoNoRealizado={motivoNoRealizado}
+            onMotivoNoRealizadoChange={handleMotivoChange}
             realizadoTipoIniciador={realizadoTipoIniciador}
             onRealizadoTipoIniciadorChange={handleRealizadoTipoChange}
             realizadoRubroId={realizadoRubroId}
@@ -317,7 +367,7 @@ const MapPage = () => {
           >
             {!mapExpanded && (
               <Grid size={{ xs: 12, md: 4 }} sx={{ order: { xs: 2, md: 1 } }}>
-                <PanelResumenOperativo features={features} />
+                <PanelResumenOperativo features={features} meta={meta} />
               </Grid>
             )}
             <Grid

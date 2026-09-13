@@ -110,11 +110,10 @@ def _asignar_ot_consumida_a_item(item_id: int, ot_id: int) -> None:
     db.session.commit()
 
 
-def test_pr11_1f_dos_actuaciones_mismo_iniciador_prefiere_ocupante_ot_objetivo(app_ctx) -> None:
+def test_pr11_1f_dos_actuaciones_mismo_iniciador_ot_historica_bloquea(app_ctx) -> None:
     """
     Estado legacy: dos actuaciones del mismo iniciador con OT distintas.
-    Al republicar con OT del segundo intento, debe reutilizar act2 (ya tiene esa OT)
-    y no actualizar act1 (evita IntegrityError ix_orden_trabajo_id).
+    La OT del segundo intento histórico queda consumida: republicar con esa OT → 409.
     """
     rub = Rubro.query.first()
     ins = Inspector.query.first()
@@ -169,23 +168,18 @@ def test_pr11_1f_dos_actuaciones_mismo_iniciador_prefiere_ocupante_ot_objetivo(a
         iniciador_ruta_id=ini.id,
         orden_trabajo_id=ot2_id,
     )
-    assert resolved is not None
-    assert resolved.id == act2_id
+    assert resolved is None
 
     count_ini_antes = _count_actuaciones_iniciador(ini.id)
-    ruta3, item3 = _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
-    publicar_ruta_trabajo(ruta_id=ruta3.id)
-    db.session.expire_all()
-
-    item3_db = RutaItem.query.get(item3.id)
-    assert item3_db is not None
-    assert item3_db.actuacion_id == act2_id
+    with pytest.raises(RutaPublicarDebugError) as exc_info:
+        _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
+    _assert_ot_consumida_por_otro_flujo(exc_info.value, ot_num=ot2)
     assert _count_actuaciones_iniciador(ini.id) == count_ini_antes
     assert Actuaciones.query.filter(Actuaciones.orden_trabajo_id == ot2_id).count() == 1
 
 
-def test_pr11_1f_republicar_misma_ot_no_crea_segunda_actuacion_local_cerrado(app_ctx) -> None:
-    """Caso QA: actuación previa con OT objetivo + LOCAL CERRADO → reutilizar, no INSERT."""
+def test_pr11_1f_republicar_misma_ot_rechaza_local_cerrado(app_ctx) -> None:
+    """Caso QA: OT histórica tras LOCAL CERRADO → 409, sin segunda actuación ni mutar A."""
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
@@ -206,13 +200,14 @@ def test_pr11_1f_republicar_misma_ot_no_crea_segunda_actuacion_local_cerrado(app
     assert act_db.contraproducencia == "LOCAL CERRADO"
 
     count_ini_antes = _count_actuaciones_iniciador(ini.id)
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
-    db.session.expire_all()
+    with pytest.raises(RutaPublicarDebugError) as exc_info:
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
+    _assert_ot_consumida_por_otro_flujo(exc_info.value, ot_num=ot_num)
 
-    item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_id
+    db.session.expire_all()
+    act_db = Actuaciones.query.get(act_id)
+    assert act_db is not None
+    assert act_db.contraproducencia == "LOCAL CERRADO"
     assert _count_actuaciones_iniciador(ini.id) == count_ini_antes
     assert Actuaciones.query.filter(Actuaciones.orden_trabajo_id == ot_id).count() == 1
 
@@ -307,8 +302,8 @@ def test_pr11_1f_ot_consumida_otro_iniciador_no_realizado_bloquea(app_ctx) -> No
     assert exc_info.value.debug.get("estado_ejecucion_ocupante") == "NO_REALIZADO"
 
 
-def test_pr11_1f_reintento_mismo_iniciador_ot_libre_publica_ok(app_ctx) -> None:
-    """Reintento del mismo iniciador con OT libre publica correctamente."""
+def test_pr11_1f_reintento_mismo_iniciador_ot_libre_crea_actuacion_nueva(app_ctx) -> None:
+    """Reintento del mismo iniciador con OT libre crea Actuación nueva (FIX.5)."""
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
@@ -330,13 +325,14 @@ def test_pr11_1f_reintento_mismo_iniciador_ot_libre_publica_ok(app_ctx) -> None:
     db.session.expire_all()
 
     item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_id
+    act1_db = Actuaciones.query.get(act_id)
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
     ot2_row = OrdenTrabajo.query.filter_by(numero_acta=ot2, anio=hoy.year).first()
-    assert ot2_row is not None
-    act_db = Actuaciones.query.get(act_id)
-    assert act_db is not None
-    assert act_db.orden_trabajo_id == ot2_row.id
+    assert item2_db is not None and act1_db is not None and act2_db is not None and ot2_row is not None
+    assert act2_db.id != act_id
+    assert act1_db.contraproducencia == "LOCAL CERRADO"
+    assert act2_db.contraproducencia is None
+    assert act2_db.orden_trabajo_id == ot2_row.id
 
 
 def test_pr11_1f_reintento_mismo_iniciador_ot_ocupada_por_otro_bloquea(app_ctx) -> None:
@@ -364,7 +360,7 @@ def test_pr11_1f_reintento_mismo_iniciador_ot_ocupada_por_otro_bloquea(app_ctx) 
     item_b_db = RutaItem.query.get(item_b.id)
     _cerrar_local_cerrado(item_b_db.id, u.id)
 
-    ruta_c, item_c = _setup_borrador_con_iniciador(ini_b, numero_ot=ot_libre, fecha_ruta=hoy)
+    ruta_c, item_c = _setup_borrador_con_iniciador(ini_b, numero_ot=_unique_num(), fecha_ruta=hoy)
     _asignar_ot_consumida_a_item(item_c.id, ot_id)
 
     with pytest.raises(RutaPublicarDebugError) as exc_info:

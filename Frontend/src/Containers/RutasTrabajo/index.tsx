@@ -276,6 +276,7 @@ const RutasTrabajo = () => {
     try {
       await publicarRutaTrabajo(rutaId);
       await loadRutaDetail(rutaId, { showLoading: true });
+      await refreshPool(ruta?.fecha, { silent: true });
       feedback.success(
         "Ruta publicada. Usá «Descargar resumen (PDF)» y «Descargar órdenes de salida y órdenes de trabajo» en esta pantalla para la documentación oficial."
       );
@@ -295,7 +296,17 @@ const RutasTrabajo = () => {
     } finally {
       setPublishingRuta(false);
     }
-  }, [feedback, grupos, itemsActivos, loadRutaDetail, publishingRuta, ruta?.estado_ruta, rutaId]);
+  }, [
+    feedback,
+    grupos,
+    itemsActivos,
+    loadRutaDetail,
+    publishingRuta,
+    refreshPool,
+    ruta?.estado_ruta,
+    ruta?.fecha,
+    rutaId,
+  ]);
 
   useEffect(() => {
     const loadInspectores = async () => {

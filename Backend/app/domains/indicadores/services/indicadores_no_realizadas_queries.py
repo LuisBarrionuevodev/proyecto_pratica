@@ -1,15 +1,15 @@
 """
 Agregaciones para GET /api/indicadores/no-realizadas.
 
-KPI Dashboard — no realizada con contraproducencia (trabajo no concretado):
-- ``RutaItem`` en ruta ``PUBLICADA``, cierre no realizado (``FINALIZADO``+``NO_REALIZADO``
-  canónico de Completar trabajo, o legado ``NO_REALIZADO``+``NO_REALIZADO``), con
-  ``actuacion_id`` no nulo.
+KPI Dashboard — intentos operativos NO_REALIZADO (universo canónico OPER-ANALYTICS.3):
+- ``RutaItem`` ``FINALIZADO`` + ``estado_ejecucion == NO_REALIZADO`` en ruta ``PUBLICADA``.
+- ``actuacion_id`` y ``orden_trabajo_id`` no nulos.
 - Período: ``RutaTrabajo.fecha`` en rango (día operativo de la ruta).
-- Contraproducencia real en la actuación (no vacía, no ``NO_HUBO``).
+- No exige contraproducencia para pertenecer al total; los buckets clasifican por
+  ``motivo_no_realizado`` (fallback legacy: contraproducencia de actuación).
 - ``tipo_iniciador`` dentro de los buckets del bloque (incluye circuito oficio híbrido).
 
-No exige cierre administrativo terminal del iniciador (``LOCAL CERRADO`` reencolable cuenta).
+Legado ``estado_ruta_item == NO_REALIZADO`` sin modelo canónico: no entra al total nuevo.
 Para cierres finales sin reencola, ver ``_no_realizadas_finales_administrativas_filters()``.
 """
 
@@ -21,6 +21,7 @@ from datetime import date
 from typing import Optional
 
 from sqlalchemy import String, and_, func, or_
+from sqlalchemy.orm import aliased
 
 from app.database import db
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
@@ -30,6 +31,7 @@ from app.domains.indicadores.schemas.no_realizadas_out import NoRealizadasPorTip
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     TIPOS_INICIADOR_OFICIO_REALIZADA,
     _fecha_periodo_operativo_expr,
+    domicilio_id_efectivo_expr,
 )
 from app.domains.indicadores.services.indicadores_resumen_service import (
     _CONTRAP_EXCLUIDAS_TOP,
@@ -81,6 +83,7 @@ class NoRealizadaVisitaRow:
     ruta_item_id: int
     actuacion_id: int
     contraproducencia: str | None
+    motivo_no_realizado: str | None
     distrito_id: int | None
     fecha: date
 
@@ -92,40 +95,42 @@ def fetch_no_realizadas_visita_rows(
     inspector_id: Optional[int] = None,
 ) -> list[NoRealizadaVisitaRow]:
     """
-    Lista de visitas no realizadas con contraproducencia real (una fila por ``ruta_item_id``).
+    Lista de intentos NO_REALIZADO canónicos (una fila por ``ruta_item_id``).
 
     Parámetros:
         desde, hasta: rango sobre ``RutaTrabajo.fecha``.
         distrito_id, inspector_id: filtros opcionales.
 
     Retorno:
-        Filas únicas por ``ruta_item_id`` con actuación y contraproducencia persistida.
+        Filas únicas por ``ruta_item_id`` con motivo y contraproducencia persistida.
     """
     fecha_periodo = _fecha_periodo_operativo_expr()
+    dom_eff = aliased(Domicilio)
     q = (
         db.session.query(
             RutaItem.id,
             RutaItem.actuacion_id,
             Actuaciones.contraproducencia,
-            Domicilio.distrito_id,
+            RutaItem.motivo_no_realizado,
+            dom_eff.distrito_id,
             fecha_periodo,
         )
         .select_from(RutaItem)
         .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
         .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
         .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
-        .outerjoin(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
-        .filter(*_intentos_no_realizados_con_contraproducencia_filters(desde, hasta))
+        .outerjoin(dom_eff, dom_eff.id == domicilio_id_efectivo_expr())
+        .filter(*_intentos_no_realizados_canonicos_filters(desde, hasta))
         .order_by(RutaItem.id)
     )
     if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
+        q = q.filter(dom_eff.distrito_id == distrito_id)
     if inspector_id is not None:
         q = q.filter(_realizados_inspector_coincide(inspector_id))
 
     seen: set[int] = set()
     out: list[NoRealizadaVisitaRow] = []
-    for ri_id, act_id, contra, dist_id, fecha in q.all():
+    for ri_id, act_id, contra, motivo, dist_id, fecha in q.all():
         ri_id = int(ri_id)
         if ri_id in seen:
             continue
@@ -135,6 +140,7 @@ def fetch_no_realizadas_visita_rows(
                 ruta_item_id=ri_id,
                 actuacion_id=int(act_id),
                 contraproducencia=contra if contra is None else str(contra),
+                motivo_no_realizado=motivo if motivo is None else str(motivo),
                 distrito_id=int(dist_id) if dist_id is not None else None,
                 fecha=fecha,
             )
@@ -153,12 +159,17 @@ def aggregate_contraproducencia_buckets_from_visita_rows(
     """
     from app.domains.indicadores.utils.contraproducencia_indicador_buckets import (
         empty_contraproducencia_buckets,
-        merge_contraproducencia_counts,
+        merge_no_realizado_motivo_counts,
     )
 
     buckets = empty_contraproducencia_buckets()
     for row in rows:
-        merge_contraproducencia_counts(buckets, row.contraproducencia, 1)
+        merge_no_realizado_motivo_counts(
+            buckets,
+            row.motivo_no_realizado,
+            row.contraproducencia,
+            1,
+        )
     return buckets
 
 
@@ -232,6 +243,34 @@ def _ruta_item_cerrado_no_realizado_expr():
     )
 
 
+def _intentos_no_realizados_canonicos_filters(
+    desde: date,
+    hasta: date,
+    *,
+    limitar_tipos_dashboard: bool = True,
+):
+    """
+    Filtros del KPI visible: intentos NO_REALIZADO canónicos en el período.
+
+    Período operativo: ``RutaTrabajo.fecha``. No filtra ``estado_iniciador`` ni contraproducencia.
+    """
+    fecha_periodo = _fecha_periodo_operativo_expr()
+    clauses = [
+        RutaItem.deleted_at.is_(None),
+        IniciadorRuta.deleted_at.is_(None),
+        RutaItem.actuacion_id.isnot(None),
+        RutaItem.estado_ruta_item == "FINALIZADO",
+        RutaItem.estado_ejecucion == "NO_REALIZADO",
+        RutaTrabajo.estado_ruta == "PUBLICADA",
+        Actuaciones.orden_trabajo_id.isnot(None),
+        fecha_periodo >= desde,
+        fecha_periodo <= hasta,
+    ]
+    if limitar_tipos_dashboard:
+        clauses.append(IniciadorRuta.tipo_iniciador.in_(_TIPOS_NO_REALIZADAS))
+    return clauses
+
+
 def _intentos_no_realizados_con_contraproducencia_filters(
     desde: date,
     hasta: date,
@@ -239,9 +278,9 @@ def _intentos_no_realizados_con_contraproducencia_filters(
     limitar_tipos_dashboard: bool = True,
 ):
     """
-    Filtros del KPI visible: trabajos NO_REALIZADO con contraproducencia real en el período.
+    Filtros legacy con contraproducencia real (diagnóstico / compat).
 
-    Período operativo: ``RutaTrabajo.fecha``. No filtra ``estado_iniciador``.
+    Período operativo: ``RutaTrabajo.fecha``. Incluye cierre legado ``NO_REALIZADO``+``NO_REALIZADO``.
     """
     fecha_periodo = _fecha_periodo_operativo_expr()
     clauses = [
@@ -260,7 +299,7 @@ def _intentos_no_realizados_con_contraproducencia_filters(
 
 
 # Alias legible para el endpoint y productividad.
-_no_realizadas_operativo_filters = _intentos_no_realizados_con_contraproducencia_filters
+_no_realizadas_operativo_filters = _intentos_no_realizados_canonicos_filters
 
 
 def _no_realizadas_finales_administrativas_filters(
@@ -293,22 +332,23 @@ def _no_realizadas_base_query(
     inspector_id: Optional[int] = None,
 ):
     """
-    Query base de ítems no realizados con contraproducencia (KPI Dashboard).
+    Query base de ítems NO_REALIZADO canónicos (KPI Dashboard).
 
     Retorno:
         Query SQLAlchemy (sin ejecutar) sobre ``RutaItem``.
     """
+    dom_eff = aliased(Domicilio)
     q = (
         db.session.query(RutaItem.id)
         .select_from(RutaItem)
         .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
         .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
         .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
-        .outerjoin(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
-        .filter(*_intentos_no_realizados_con_contraproducencia_filters(desde, hasta))
+        .outerjoin(dom_eff, dom_eff.id == domicilio_id_efectivo_expr())
+        .filter(*_intentos_no_realizados_canonicos_filters(desde, hasta))
     )
     if distrito_id is not None:
-        q = q.filter(Domicilio.distrito_id == distrito_id)
+        q = q.filter(dom_eff.distrito_id == distrito_id)
     if inspector_id is not None:
         q = q.filter(_realizados_inspector_coincide(inspector_id))
     return q
@@ -367,7 +407,7 @@ def query_no_realizadas_por_tipo(
     inspector_id: Optional[int] = None,
 ) -> NoRealizadasPorTipo:
     """
-    Cuenta no realizadas con contraproducencia por bucket de ``tipo_iniciador``.
+    Cuenta NO_REALIZADO canónicos por bucket de ``tipo_iniciador``.
     """
     rows = (
         _no_realizadas_base_query(desde, hasta, distrito_id, inspector_id)
@@ -430,10 +470,9 @@ def query_contraproducencias_resumen_counts(
     Retorno:
         (total, mapa bucket → cantidad). Una visita (``ruta_item_id``) por bucket como máximo.
     """
-    buckets = aggregate_contraproducencia_buckets_from_visita_rows(
-        fetch_no_realizadas_visita_rows(desde, hasta, distrito_id, inspector_id)
-    )
-    total = sum(buckets.values())
+    rows = fetch_no_realizadas_visita_rows(desde, hasta, distrito_id, inspector_id)
+    buckets = aggregate_contraproducencia_buckets_from_visita_rows(rows)
+    total = len(rows)
     return total, buckets
 
 
@@ -451,7 +490,8 @@ def query_distritos_con_mas_no_realizadas(
     Retorno:
         Lista de (distrito_id, codigo, nombre, cantidad). Sin distrito → id 0, SIN_DISTRITO.
     """
-    distrito_id_expr = func.coalesce(Domicilio.distrito_id, _SIN_DISTRITO_ID)
+    dom_eff = aliased(Domicilio)
+    distrito_id_expr = func.coalesce(dom_eff.distrito_id, _SIN_DISTRITO_ID)
     distrito_codigo_expr = func.coalesce(
         func.cast(Distrito.codigo, String),
         _SIN_DISTRITO_CODIGO,
@@ -466,7 +506,8 @@ def query_distritos_con_mas_no_realizadas(
             distrito_nombre_expr,
             func.count(func.distinct(RutaItem.id)),
         )
-        .outerjoin(Distrito, Distrito.id == Domicilio.distrito_id)
+        .outerjoin(dom_eff, dom_eff.id == domicilio_id_efectivo_expr())
+        .outerjoin(Distrito, Distrito.id == dom_eff.distrito_id)
         .group_by(distrito_id_expr, distrito_codigo_expr, distrito_nombre_expr)
         .order_by(func.count(func.distinct(RutaItem.id)).desc())
         .limit(limit)

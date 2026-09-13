@@ -175,6 +175,31 @@ def _setup_borrador_con_iniciador(
     return ruta, item
 
 
+def _liberar_iniciador_tras_fallo_asignacion_ot(ini_id: int) -> None:
+    """Restaura PENDIENTE y limpia ítems borrador huérfanos tras rechazo de OT en asignación."""
+    from datetime import datetime
+
+    ini_db = IniciadorRuta.query.get(ini_id)
+    if ini_db is None:
+        return
+    now = datetime.utcnow()
+    activos = (
+        RutaItem.query.join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .filter(
+            RutaItem.iniciador_ruta_id == ini_id,
+            RutaItem.deleted_at.is_(None),
+            RutaTrabajo.estado_ruta == "BORRADOR",
+            RutaItem.estado_ruta_item.in_(("ASIGNADO", "PENDIENTE_ASIGNACION")),
+        )
+        .all()
+    )
+    for it in activos:
+        it.deleted_at = now
+    ini_db.estado_iniciador = "PENDIENTE"
+    ini_db.updated_at = now
+    db.session.commit()
+
+
 def _publicar_y_cerrar_no_realizado(
     ruta: RutaTrabajo,
     item: RutaItem,
@@ -216,30 +241,33 @@ def test_pr11_1_reinspeccion_notificacion_publica_con_ot_nueva(app_ctx) -> None:
     assert act.notificacion_id == ini.notificacion_id
 
 
-def test_pr11_1_reencolado_no_realizado_republica_sin_falso_409_misma_ot(app_ctx) -> None:
+def test_pr11_1_reencolado_no_realizado_rechaza_misma_ot(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
     fecha = _fecha_ruta_aislada_mismo_anio(2026)
     ot_num = _unique_num()
     ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
     act_prev = _publicar_y_cerrar_no_realizado(ruta1, item1, u.id)
+    hist_contra = act_prev.contraproducencia
+    hist_ot_id = act_prev.orden_trabajo_id
 
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
     db.session.expire_all()
-    item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_prev.id
     act_prev_db = Actuaciones.query.get(act_prev.id)
     assert act_prev_db is not None
-    assert act_prev_db.orden_trabajo_id == item2_db.orden_trabajo_id
+    assert act_prev_db.contraproducencia == hist_contra
+    assert act_prev_db.orden_trabajo_id == hist_ot_id
 
 
-def test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta(app_ctx) -> None:
+def test_pr11_1_reencolado_no_realizado_publica_con_ot_distinta(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
     fecha = _fecha_ruta_aislada_mismo_anio(2026)
     ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=_unique_num(), fecha_ruta=fecha)
     act_prev = _publicar_y_cerrar_no_realizado(ruta1, item1, u.id)
+    hist_contra = act_prev.contraproducencia
+    hist_ot_id = act_prev.orden_trabajo_id
 
     nueva_ot = _unique_num()
     ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=nueva_ot, fecha_ruta=fecha)
@@ -248,11 +276,16 @@ def test_pr11_1_reencolado_no_realizado_republica_con_ot_distinta(app_ctx) -> No
     db.session.expire_all()
     item2_db = RutaItem.query.get(item2.id)
     act_prev_db = Actuaciones.query.get(act_prev.id)
-    assert item2_db is not None and act_prev_db is not None
-    assert item2_db.actuacion_id == act_prev_db.id
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
     ot = OrdenTrabajo.query.filter_by(numero_acta=nueva_ot, anio=2026).first()
-    assert ot is not None
-    assert act_prev_db.orden_trabajo_id == ot.id
+    assert item2_db is not None and act_prev_db is not None and act2_db is not None and ot is not None
+    assert item2_db.id != item1.id
+    assert act2_db.id != act_prev_db.id
+    assert act_prev_db.contraproducencia == hist_contra
+    assert act_prev_db.orden_trabajo_id == hist_ot_id
+    assert act2_db.contraproducencia is None
+    assert act2_db.orden_trabajo_id == ot.id
+    assert item2_db.estado_ruta_item == "EN_PROCESO"
 
 
 def test_pr11_1_ot_en_actuacion_activa_en_proceso_bloquea(app_ctx) -> None:
@@ -275,7 +308,7 @@ def test_pr11_1_ot_en_actuacion_activa_en_proceso_bloquea(app_ctx) -> None:
         publicar_ruta_trabajo(ruta_id=ruta2.id)
 
 
-def test_pr11_1_item_no_realizado_no_genera_conflicto_ot(app_ctx) -> None:
+def test_pr11_1_item_no_realizado_genera_conflicto_ot_historica(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
     ot_num = _unique_num()
     ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
@@ -286,7 +319,44 @@ def test_pr11_1_item_no_realizado_no_genera_conflicto_ot(app_ctx) -> None:
         ruta_item_id=999_999,
         iniciador_ruta_id=ini.id,
     )
-    assert conflicto is None
+    assert conflicto is not None
+    assert conflicto.actuacion_id == act_prev.id
+
+
+def test_pr11_1_reintento_ot_consumida_luego_ot_libre(app_ctx) -> None:
+    """OT histórica bloquea reintento; OT nueva publica Actuación distinta (FIX.5)."""
+    from tests.helpers.fixture_isolation import unique_ot_numero
+
+    ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
+    fecha = _fecha_ruta_aislada_mismo_anio(2026)
+    ot1 = unique_ot_numero()
+    ot2 = unique_ot_numero()
+    while ot2 == ot1:
+        ot2 = unique_ot_numero()
+
+    ruta1, item1 = _setup_borrador_con_iniciador(ini, numero_ot=ot1, fecha_ruta=fecha)
+    act1 = _publicar_y_cerrar_no_realizado(ruta1, item1, u.id)
+    hist_contra = act1.contraproducencia
+
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot1, fecha_ruta=fecha)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
+
+    db.session.expire_all()
+    act1_db = Actuaciones.query.get(act1.id)
+    assert act1_db is not None
+    assert act1_db.contraproducencia == hist_contra
+
+    ruta3, item3 = _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=fecha)
+    publicar_ruta_trabajo(ruta_id=ruta3.id)
+    db.session.expire_all()
+    item3_db = RutaItem.query.get(item3.id)
+    act2_db = Actuaciones.query.get(item3_db.actuacion_id) if item3_db else None
+    assert item3_db is not None and act2_db is not None
+    assert item3_db.id != item1.id
+    assert act2_db.id != act1_db.id
+    assert act2_db.contraproducencia is None
+    assert item3_db.estado_ruta_item == "EN_PROCESO"
 
 
 def test_pr11_1_actuacion_base_inspeccion_bloquea_misma_ot(app_ctx) -> None:

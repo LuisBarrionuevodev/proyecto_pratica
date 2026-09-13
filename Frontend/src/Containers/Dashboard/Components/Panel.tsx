@@ -29,6 +29,7 @@ import { useIndicadoresPendientes } from "../hooks/useIndicadoresPendientes";
 import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas";
 import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
+import { OperativoPeriodoLabel } from "../../../components/OperativoPeriodoLabel";
 import { periodoToDateRange } from "../utils/periodoDateRange";
 import { isDashboardSectionReady } from "../utils/dashboardSectionReady";
 import { calcTotalNoRealizadas } from "../utils/noRealizadasContraproducencias";
@@ -356,6 +357,8 @@ const Panel = () => {
           </Tooltip>
           </Box>
       </Paper>
+
+      <OperativoPeriodoLabel desde={desde} hasta={hasta} />
 
       <Box sx={{ position: "relative", minHeight: showGlobalLoader ? 320 : undefined }}>
         <DashboardIndicadoresRefreshingOverlay visible={isRefreshing} />

@@ -20,6 +20,7 @@ from app.domains.denuncias.services.denuncias_service import crear_denuncia_con_
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
+from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 from app.models import (
     Actuaciones,
     IniciadorRuta,
@@ -31,6 +32,7 @@ from app.models import (
 )
 
 from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
+    _liberar_iniciador_tras_fallo_asignacion_ot,
     _mk_iniciador_reinspeccion_notificacion,
     _mk_user,
     _publicar_y_cerrar_no_realizado,
@@ -92,12 +94,14 @@ def _republicar_mismo_dia_ot_distinta(
     item2_db = RutaItem.query.get(item2.id)
     act_db = Actuaciones.query.get(act_prev.id)
     ot_db = OrdenTrabajo.query.filter_by(numero_acta=ot2, anio=fecha.year).first()
-    assert item2_db is not None and act_db is not None and ot_db is not None
-    assert item2_db.actuacion_id == act_prev.id
-    assert act_db.orden_trabajo_id == ot_db.id
-    assert act_db.contraproducencia is None
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
+    assert item2_db is not None and act_db is not None and act2_db is not None and ot_db is not None
+    assert act2_db.id != act_prev.id
+    assert act_db.contraproducencia == "LOCAL CERRADO"
+    assert act2_db.contraproducencia is None
+    assert act2_db.orden_trabajo_id == ot_db.id
     assert item2_db.ruta_trabajo.fecha == fecha
-    return act_db, ot_db
+    return act2_db, ot_db
 
 
 def test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado(app_ctx) -> None:
@@ -131,12 +135,14 @@ def test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado(a
     item2_db = RutaItem.query.get(item2.id)
     act_db = Actuaciones.query.get(act_prev.id)
     ot_db = OrdenTrabajo.query.filter_by(numero_acta=ot2, anio=fecha.year).first()
-    assert item2_db is not None and act_db is not None and ot_db is not None
-    assert item2_db.actuacion_id == act_prev.id
-    assert act_db.orden_trabajo_id == ot_db.id
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
+    assert item2_db is not None and act_db is not None and act2_db is not None and ot_db is not None
+    assert act2_db.id != act_prev.id
+    assert act_db.contraproducencia == "LOCAL CERRADO"
+    assert act2_db.orden_trabajo_id == ot_db.id
 
 
-def test_pr11_1c_mismo_dia_misma_ot_sigue_ok(app_ctx) -> None:
+def test_pr11_1c_mismo_dia_misma_ot_rechaza_reintento(app_ctx) -> None:
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
@@ -145,12 +151,13 @@ def test_pr11_1c_mismo_dia_misma_ot_sigue_ok(app_ctx) -> None:
     act_prev = _publicar_cerrar_reencolar(
         ini, ot_num=ot_num, user_id=u.id, fecha_ruta=fecha
     )
-    ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
-    publicar_ruta_trabajo(ruta_id=ruta2.id)
+    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
+        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
+    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
     db.session.expire_all()
-    item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_prev.id
+    act_db = Actuaciones.query.get(act_prev.id)
+    assert act_db is not None
+    assert act_db.contraproducencia == "LOCAL CERRADO"
 
 
 def test_pr11_1c_item_en_proceso_sigue_bloqueando_ot(app_ctx) -> None:
@@ -258,8 +265,10 @@ def test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot(app_ctx) -> 
     db.session.expire_all()
     item2_db = RutaItem.query.get(item2.id)
     act_db = Actuaciones.query.get(act_prev.id)
-    assert item2_db is not None and act_db is not None
-    assert item2_db.actuacion_id == act_prev.id
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
+    assert item2_db is not None and act_db is not None and act2_db is not None
+    assert act2_db.id != act_prev.id
+    assert act_db.contraproducencia == "LOCAL CERRADO"
 
 
 def test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item(app_ctx) -> None:
@@ -293,5 +302,8 @@ def test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item(app_c
 
     db.session.expire_all()
     item2_db = RutaItem.query.get(item2.id)
-    assert item2_db is not None
-    assert item2_db.actuacion_id == act_prev.id
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
+    act_db = Actuaciones.query.get(act_prev.id)
+    assert item2_db is not None and act2_db is not None and act_db is not None
+    assert act2_db.id != act_prev.id
+    assert act_db.contraproducencia == "LOCAL CERRADO"

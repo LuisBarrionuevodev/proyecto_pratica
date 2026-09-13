@@ -98,6 +98,13 @@ function MapaRealizadoPopup({ p }: { p: Record<string, unknown> }) {
   const otNum = (p.orden_trabajo_numero != null && String(p.orden_trabajo_numero).trim()) || "";
   const otLine = (p.orden_trabajo_texto != null && String(p.orden_trabajo_texto).trim()) || "";
   const otDisplay = otNum || otLine || "—";
+  const fechaOp =
+    (p.fecha_operativa != null && String(p.fecha_operativa).trim()) ||
+    (p.fecha_ref != null && String(p.fecha_ref).trim()) ||
+    "";
+  const estadoEj = String(p.estado_ejecucion ?? "").trim();
+  const motivoNr = String(p.motivo_no_realizado ?? "").trim();
+  const kgDeco = p.kg_decomisados;
   const actasLines: { label: string; value: string }[] = [];
   for (const [key, label] of Object.entries(ACTA_LABELS)) {
     const v = p[key];
@@ -129,6 +136,12 @@ function MapaRealizadoPopup({ p }: { p: Record<string, unknown> }) {
           {otDisplay}
         </Box>
       </Box>
+      <RealizadoCompactRow label="Fecha operativa" value={fechaOp || "—"} />
+      <RealizadoCompactRow
+        label="Ejecución"
+        value={estadoEj === "NO_REALIZADO" ? "No realizado" : estadoEj === "REALIZADO" ? "Realizado" : "—"}
+      />
+      {motivoNr ? <RealizadoCompactRow label="Motivo no realizado" value={motivoNr.replace(/_/g, " ")} /> : null}
       {tipoAct && tipoAct !== "—" ? <RealizadoCompactRow label="Tipo actuación" value={tipoAct} /> : null}
       <RealizadoCompactRow label="Nombre fantasía" value={local} />
       <RealizadoCompactRow label="Contribuyente" value={contrib} />
@@ -136,6 +149,9 @@ function MapaRealizadoPopup({ p }: { p: Record<string, unknown> }) {
       <RealizadoCompactRow label="Domicilio" value={domicilioConDistrito} />
       <RealizadoCompactRow label="Inspectores" value={insp} />
       <RealizadoCompactRow label="Actas" value={actasResumen} />
+      {kgDeco != null && String(kgDeco).trim() !== "" ? (
+        <RealizadoCompactRow label="Kg decomisados" value={String(kgDeco)} />
+      ) : null}
       {oficio ? <RealizadoCompactRow label="Oficio" value={oficio} /> : null}
       {expe ? <RealizadoCompactRow label="Expediente" value={expe} /> : null}
       {notifO ? <RealizadoCompactRow label="Notif. origen" value={notifO} /> : null}
