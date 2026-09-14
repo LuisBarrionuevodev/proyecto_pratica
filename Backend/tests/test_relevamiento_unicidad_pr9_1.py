@@ -9,6 +9,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.grid.services.batch_store import InMemoryBatchStore
@@ -45,12 +46,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 (revision b7e8f9a0c1d2) aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _payload(
@@ -69,7 +69,7 @@ def _payload(
         dom["numero_tipo"] = tipo
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -88,14 +88,14 @@ def _uniq(prefix: str) -> str:
 
 
 def test_pr91_numero_mismo_establecimiento_mismo_mes_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91NumDup")
     try:
         p1 = _payload(
             calle=calle,
             numero="34",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-03-10",
             nombre_fantasia="Panadería",
         )
@@ -107,14 +107,14 @@ def test_pr91_numero_mismo_establecimiento_mismo_mes_bloquea(app_ctx, require_pr
 
 
 def test_pr91_numero_mismo_establecimiento_otro_mes_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91NumMes")
     try:
         p1 = _payload(
             calle=calle,
             numero="34",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-03-10",
             nombre_fantasia="Panadería",
         )
@@ -125,13 +125,13 @@ def test_pr91_numero_mismo_establecimiento_otro_mes_permite(app_ctx, require_pr7
 
 
 def test_pr91_numero_distinto_rubro_mismo_mes_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first()
     if rub2 is None:
         pytest.skip("Se requiere un segundo rubro")
     calle = _uniq("Pr91NumRub")
     try:
-        p1 = _payload(calle=calle, numero="34", rubro=rub.nombre, inspector=ins.nombre, fecha="2026-05-10")
+        p1 = _payload(calle=calle, numero="34", rubro=rub.nombre, inspector=rel.nombre, fecha="2026-05-10")
         crear_relevamiento_desde_payload(p1)
         crear_relevamiento_desde_payload({**p1, "rubro_nombre": rub2.nombre})
     finally:
@@ -139,14 +139,14 @@ def test_pr91_numero_distinto_rubro_mismo_mes_permite(app_ctx, require_pr72_migr
 
 
 def test_pr91_numero_distinto_nombre_mismo_mes_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91NumNom")
     try:
         p1 = _payload(
             calle=calle,
             numero="34",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-05-10",
             nombre_fantasia="Local A",
         )
@@ -160,14 +160,14 @@ def test_pr91_numero_distinto_nombre_mismo_mes_permite(app_ctx, require_pr72_mig
 
 
 def test_pr91_esquina_mismo_angulo_mismo_mes_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91EsqDup")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Norte",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-03-10",
             tipo="ESQUINA",
             angulo_esquina="NE",
@@ -181,14 +181,14 @@ def test_pr91_esquina_mismo_angulo_mismo_mes_bloquea(app_ctx, require_pr72_migra
 
 
 def test_pr91_esquina_mismo_angulo_distinto_mes_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91EsqMes")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Sur",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-03-10",
             tipo="ESQUINA",
             angulo_esquina="NE",
@@ -204,17 +204,17 @@ def test_pr91_esquina_mismo_angulo_distinto_mes_permite(app_ctx, require_pr72_mi
 
 
 def test_pr91_batch_mismo_mes_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91BatchDup")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     try:
-        p = _payload(calle=calle, numero="881", rubro=rub.nombre, inspector=ins.nombre, fecha="2026-03-10")
+        p = _payload(calle=calle, numero="881", rubro=rub.nombre, inspector=rel.nombre, fecha="2026-03-10")
         crear_relevamiento_desde_payload(p)
         raw = {
             "fecha": "2026-03-27",
-            "inspector": ins.nombre,
+            "relevador": rel.nombre,
             "calle": calle,
             "numero": "881",
             "rubro": rub.nombre,
@@ -227,17 +227,17 @@ def test_pr91_batch_mismo_mes_bloquea(app_ctx, require_pr72_migration) -> None:
 
 
 def test_pr91_batch_otro_mes_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91BatchOk")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     try:
-        p = _payload(calle=calle, numero="882", rubro=rub.nombre, inspector=ins.nombre, fecha="2026-03-10")
+        p = _payload(calle=calle, numero="882", rubro=rub.nombre, inspector=rel.nombre, fecha="2026-03-10")
         crear_relevamiento_desde_payload(p)
         raw = {
             "fecha": "2026-05-27",
-            "inspector": ins.nombre,
+            "relevador": rel.nombre,
             "calle": calle,
             "numero": "882",
             "rubro": rub.nombre,
@@ -249,14 +249,14 @@ def test_pr91_batch_otro_mes_permite(app_ctx, require_pr72_migration) -> None:
 
 
 def test_pr91_batch_lote_mismo_mes_duplicado_interno(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr91BatchInt")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     base = {
         "fecha": "2026-03-15",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "y Oeste",
         "rubro": rub.nombre,

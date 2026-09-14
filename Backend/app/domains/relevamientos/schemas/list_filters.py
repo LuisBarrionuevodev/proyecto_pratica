@@ -13,7 +13,7 @@ class RelevamientosListFilters(BaseModel):
     Filtros:
         - desde: fecha desde (YYYY-MM-DD)
         - hasta: fecha hasta (YYYY-MM-DD)
-        - inspector: nombre o id (string)
+        - relevador: nombre o id (string)
         - calle: texto libre
         - numero: texto libre
         - page: página actual (default 1)
@@ -22,7 +22,7 @@ class RelevamientosListFilters(BaseModel):
 
     desde: Optional[date] = None
     hasta: Optional[date] = None
-    inspector: Optional[str] = None
+    relevador: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
     page: int = 1

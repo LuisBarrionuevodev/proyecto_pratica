@@ -28,12 +28,14 @@ from app.models import (
     IniciadorRuta,
     Inspector,
     OrdenTrabajo,
+    Relevador,
     Relevamiento,
     Rubro,
     RutaItem,
     RutaTrabajo,
     User,
 )
+from tests.relevamiento_test_helpers import relevador_y_rubro
 
 
 def _unique_num() -> str:
@@ -54,18 +56,10 @@ def app_ctx():
         db.session.rollback()
 
 
-def _inspector_y_rubro() -> tuple[Inspector, Rubro]:
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro en BD")
-    return ins, rub
-
-
-def _payload_relevamiento(*, calle: str, numero: str, ins: Inspector, rub: Rubro, fecha: str = "2026-06-10"):
+def _payload_relevamiento(*, calle: str, numero: str, rev: Relevador, rub: Rubro, fecha: str = "2026-06-10"):
     return {
         "fecha": fecha,
-        "inspector_nombre": ins.nombre,
+        "relevadores_nombres": [rev.nombre],
         "domicilio": {"calle": calle, "numero": numero},
         "rubro_nombre": rub.nombre,
     }
@@ -91,9 +85,9 @@ def test_policy_correccion_edita_misma_fila(app_ctx) -> None:
 
 def test_corregir_calle_relevamiento_misma_fila(app_ctx) -> None:
     try:
-        ins, rub = _inspector_y_rubro()
+        rev, rub = relevador_y_rubro()
         calle = _uniq("Stab7Rel")
-        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="10", ins=ins, rub=rub))
+        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="10", rev=rev, rub=rub))
         ini = IniciadorRuta.query.filter_by(relevamiento_id=rel.id).first()
         assert ini is not None
         dom_antes = rel.domicilio_id
@@ -101,7 +95,7 @@ def test_corregir_calle_relevamiento_misma_fila(app_ctx) -> None:
         nueva_calle = calle + " Corregida"
         actualizar_relevamiento(
             rel.id,
-            _payload_relevamiento(calle=nueva_calle, numero="10", ins=ins, rub=rub, fecha="2026-06-11"),
+            _payload_relevamiento(calle=nueva_calle, numero="10", rev=rev, rub=rub, fecha="2026-06-11"),
         )
 
         db.session.refresh(rel)

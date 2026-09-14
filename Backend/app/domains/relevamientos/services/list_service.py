@@ -5,7 +5,7 @@ from typing import Any, Dict
 from sqlalchemy import and_, exists, func
 
 from app.database import db
-from app.models import Relevamiento, Inspector, Domicilio, IniciadorRuta
+from app.models import Relevamiento, Relevador, Domicilio, IniciadorRuta, relevamiento_relevador
 from app.domains.relevamientos.schemas.list_filters import RelevamientosListFilters
 
 
@@ -16,12 +16,16 @@ def _apply_common_filters(query, filters: RelevamientosListFilters):
     if filters.hasta:
         query = query.filter(Relevamiento.fecha <= filters.hasta)
 
-    if filters.inspector:
-        s = str(filters.inspector).strip()
+    if filters.relevador:
+        s = str(filters.relevador).strip()
+        query = query.join(
+            relevamiento_relevador,
+            relevamiento_relevador.c.relevamiento_id == Relevamiento.id,
+        ).join(Relevador, Relevador.id == relevamiento_relevador.c.relevador_id)
         if s.isdigit():
-            query = query.filter(Relevamiento.inspector_id == int(s))
+            query = query.filter(Relevador.id == int(s))
         else:
-            query = query.join(Inspector).filter(func.upper(Inspector.nombre) == s.upper())
+            query = query.filter(func.upper(Relevador.nombre) == s.upper())
 
     if filters.calle or filters.numero:
         query = query.join(Domicilio, Relevamiento.domicilio_id == Domicilio.id).filter(
@@ -39,7 +43,7 @@ def listar_relevamientos_con_filtros(filters: RelevamientosListFilters) -> Dict[
     Lista relevamientos aplicando filtros y paginación.
 
     Args:
-        filters: filtros validados (desde, hasta, inspector, calle, numero).
+        filters: filtros validados (desde, hasta, relevador, calle, numero).
 
     Returns:
         dict con items y meta.
@@ -61,7 +65,7 @@ def listar_relevamientos_con_filtros(filters: RelevamientosListFilters) -> Dict[
             "page_size": filters.page_size,
             "desde": filters.desde.isoformat() if filters.desde else None,
             "hasta": filters.hasta.isoformat() if filters.hasta else None,
-            "inspector": filters.inspector,
+            "relevador": filters.relevador,
             "calle": filters.calle,
             "numero": filters.numero,
         },
@@ -79,7 +83,7 @@ def listar_relevamientos_realizados_actuacion_completada_con_filtros(
       (cierre exitoso vía Completar trabajo; la actuación vive en el ítem de ruta, no necesariamente en ``iniciador.actuacion_id``).
 
     Args:
-        filters: filtros de fecha/inspector/calle/número y paginación.
+        filters: filtros de fecha/relevador/calle/número y paginación.
 
     Returns:
         dict con ``items`` (``Relevamiento``) y ``meta``.
@@ -115,7 +119,7 @@ def listar_relevamientos_realizados_actuacion_completada_con_filtros(
             "page_size": filters.page_size,
             "desde": filters.desde.isoformat() if filters.desde else None,
             "hasta": filters.hasta.isoformat() if filters.hasta else None,
-            "inspector": filters.inspector,
+            "relevador": filters.relevador,
             "calle": filters.calle,
             "numero": filters.numero,
         },
@@ -164,7 +168,7 @@ def listar_relevamientos_operativos_con_filtros(filters: RelevamientosListFilter
             "page_size": filters.page_size,
             "desde": filters.desde.isoformat() if filters.desde else None,
             "hasta": filters.hasta.isoformat() if filters.hasta else None,
-            "inspector": filters.inspector,
+            "relevador": filters.relevador,
             "calle": filters.calle,
             "numero": filters.numero,
         },

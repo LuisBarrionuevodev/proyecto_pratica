@@ -22,7 +22,8 @@ def map_relevamiento_row(row: RelevamientoGridRowIn) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
         "id": row.id,
         "fecha": row.fecha.isoformat(),
-        "inspector_nombre": _clean_str(row.inspector),
+        "relevador_ids": row.relevador_ids,
+        "relevadores_nombres": row.relevadores_nombres_resueltos(),
         "domicilio": {
             "calle": _clean_str(row.calle),
             "numero": _clean_str(row.numero),

@@ -42,6 +42,7 @@ from app.models import (
     RutaTrabajo,
     User,
 )
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 
 
 def _unique_num() -> str:
@@ -135,7 +136,7 @@ def _setup_ruta_publicada_con_item(ini: IniciadorRuta) -> RutaItem:
 
 
 def _crear_esquina_dos_iniciadores():
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     rub_a = Rubro(nombre=_uniq("CarnPr712"))
     rub_b = Rubro(nombre=_uniq("VerdPr712"))
     db.session.add_all([rub_a, rub_b])
@@ -144,7 +145,7 @@ def _crear_esquina_dos_iniciadores():
     rel_a = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-01",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": calle, "numero": "y Jose Colombres", "numero_tipo": "ESQUINA"},
             "rubro_nombre": rub_a.nombre,
             "nombre_fantasia": "Local NE",
@@ -154,7 +155,7 @@ def _crear_esquina_dos_iniciadores():
     rel_b = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-02",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": calle, "numero": "y Jose Colombres", "numero_tipo": "ESQUINA"},
             "rubro_nombre": rub_b.nombre,
             "nombre_fantasia": "Local SE",
@@ -180,7 +181,7 @@ def _set_geocode_ok(domicilio_id: int, *, lat: str = "-26.8300000", lng: str = "
 
 def test_pr712_san_martin_y_catamarca_queda_catamarca_1000(app_ctx, require_pr72_migration) -> None:
     """Caso obligatorio: ESQUINA → domicilio real NUMERO con calle del payload."""
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     rub = Rubro(nombre=_uniq("PanPr712"))
     db.session.add(rub)
     db.session.flush()
@@ -189,7 +190,7 @@ def test_pr712_san_martin_y_catamarca_queda_catamarca_1000(app_ctx, require_pr72
         rel = crear_relevamiento_desde_payload(
             {
                 "fecha": "2026-07-10",
-                "inspector_nombre": ins.nombre,
+                "relevadores_nombres": [rev.nombre],
                 "domicilio": {
                     "calle": calle_esquina,
                     "numero": "y Catamarca",
@@ -310,7 +311,7 @@ def test_pr712_completar_no_muta_otro_iniciador_misma_interseccion(
 
 
 def test_pr712_nuevo_domicilio_hereda_geocode_origen(app_ctx, require_pr72_migration) -> None:
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     rub = Rubro(nombre=_uniq("CafePr712"))
     db.session.add(rub)
     db.session.flush()
@@ -318,7 +319,7 @@ def test_pr712_nuevo_domicilio_hereda_geocode_origen(app_ctx, require_pr72_migra
         rel = crear_relevamiento_desde_payload(
             {
                 "fecha": "2026-07-11",
-                "inspector_nombre": ins.nombre,
+                "relevadores_nombres": [rev.nombre],
                 "domicilio": {"calle": _uniq("Belgrano"), "numero": "y Mitre", "numero_tipo": "ESQUINA"},
                 "rubro_nombre": rub.nombre,
             }
@@ -366,7 +367,7 @@ def test_pr712_nuevo_domicilio_hereda_geocode_origen(app_ctx, require_pr72_migra
 def test_pr712_actuacion_crud_relevamiento_no_muta_domicilio_origen(
     app_ctx, require_pr72_migration
 ) -> None:
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     rub = Rubro(nombre=_uniq("RotiPr712"))
     db.session.add(rub)
     db.session.flush()
@@ -375,7 +376,7 @@ def test_pr712_actuacion_crud_relevamiento_no_muta_domicilio_origen(
         rel = crear_relevamiento_desde_payload(
             {
                 "fecha": "2026-07-12",
-                "inspector_nombre": ins.nombre,
+                "relevadores_nombres": [rev.nombre],
                 "domicilio": {"calle": calle, "numero": "y San Lorenzo", "numero_tipo": "ESQUINA"},
                 "rubro_nombre": rub.nombre,
             }

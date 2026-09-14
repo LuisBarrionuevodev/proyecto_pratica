@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 from pydantic import ValidationError
 
 from app.database import db
@@ -49,12 +50,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 (revision b7e8f9a0c1d2) aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _payload(
@@ -73,7 +73,7 @@ def _payload(
         dom["numero_tipo"] = tipo
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -135,12 +135,12 @@ def test_pr73_establishment_key_preparada() -> None:
 
 
 def test_pr73_schema_angulo_invalido_422(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     with pytest.raises(ValidationError):
         RelevamientoGridRowIn.model_validate(
             {
                 "fecha": "2026-05-10",
-                "inspector": ins.nombre,
+                "relevador": ins.nombre,
                 "calle": "Test",
                 "numero": "100",
                 "rubro": rub.nombre,
@@ -153,7 +153,7 @@ def test_pr73_schema_angulo_invalido_422(app_ctx) -> None:
 
 
 def test_pr73_create_con_nombre_fantasia(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("FantasiaPR73")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -161,7 +161,7 @@ def test_pr73_create_con_nombre_fantasia(app_ctx, require_pr72_migration) -> Non
                 calle=calle,
                 numero="100",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 nombre_fantasia="Carnicería El Toro",
             )
         )
@@ -172,7 +172,7 @@ def test_pr73_create_con_nombre_fantasia(app_ctx, require_pr72_migration) -> Non
 
 
 def test_pr73_create_nombre_fantasia_vacio_null(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("FantasiaVaciaPR73")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -180,7 +180,7 @@ def test_pr73_create_nombre_fantasia_vacio_null(app_ctx, require_pr72_migration)
                 calle=calle,
                 numero="101",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 nombre_fantasia="   ",
             )
         )
@@ -190,7 +190,7 @@ def test_pr73_create_nombre_fantasia_vacio_null(app_ctx, require_pr72_migration)
 
 
 def test_pr73_create_angulo_esquina_normalizado(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("AnguloPR73")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -198,7 +198,7 @@ def test_pr73_create_angulo_esquina_normalizado(app_ctx, require_pr72_migration)
                 calle=calle,
                 numero="y Norte",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="ESQUINA",
                 angulo_esquina="se",
             )
@@ -209,7 +209,7 @@ def test_pr73_create_angulo_esquina_normalizado(app_ctx, require_pr72_migration)
 
 
 def test_pr73_create_angulo_en_numero_no_persiste(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("AnguloNumPR73")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -217,7 +217,7 @@ def test_pr73_create_angulo_en_numero_no_persiste(app_ctx, require_pr72_migratio
                 calle=calle,
                 numero="200",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 angulo_esquina="NE",
             )
         )
@@ -227,11 +227,11 @@ def test_pr73_create_angulo_en_numero_no_persiste(app_ctx, require_pr72_migratio
 
 
 def test_pr73_legacy_sin_campos_nuevos(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("LegacyPR73")
     try:
         rel = crear_relevamiento_desde_payload(
-            _payload(calle=calle, numero="50", rubro=rub.nombre, inspector=ins.nombre)
+            _payload(calle=calle, numero="50", rubro=rub.nombre, inspector=rel.nombre)
         )
         assert rel.nombre_fantasia is None
         assert rel.angulo_esquina is None
@@ -240,7 +240,7 @@ def test_pr73_legacy_sin_campos_nuevos(app_ctx, require_pr72_migration) -> None:
 
 
 def test_pr73_update_modifica_nombre_y_angulo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("UpdatePR73")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -248,7 +248,7 @@ def test_pr73_update_modifica_nombre_y_angulo(app_ctx, require_pr72_migration) -
                 calle=calle,
                 numero="y Sur",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="ESQUINA",
             )
         )
@@ -258,7 +258,7 @@ def test_pr73_update_modifica_nombre_y_angulo(app_ctx, require_pr72_migration) -
                 calle=calle,
                 numero="y Sur",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="ESQUINA",
                 nombre_fantasia="Panadería Sol",
                 angulo_esquina="NO",
@@ -271,7 +271,7 @@ def test_pr73_update_modifica_nombre_y_angulo(app_ctx, require_pr72_migration) -
 
 
 def test_pr73_update_esquina_a_numero_limpia_angulo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("LimpiaAngPR73")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -279,7 +279,7 @@ def test_pr73_update_esquina_a_numero_limpia_angulo(app_ctx, require_pr72_migrat
                 calle=calle,
                 numero="y Este",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="ESQUINA",
                 angulo_esquina="NE",
             )
@@ -290,7 +290,7 @@ def test_pr73_update_esquina_a_numero_limpia_angulo(app_ctx, require_pr72_migrat
                 calle=calle,
                 numero="300",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="NUMERO",
                 angulo_esquina="NE",
             ),
@@ -301,7 +301,7 @@ def test_pr73_update_esquina_a_numero_limpia_angulo(app_ctx, require_pr72_migrat
 
 
 def test_pr73_esquina_dos_rubros_unicidad_actual_ok(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first() or rub
     calle = _uniq("EsquinaDupPR73")
     try:
@@ -310,7 +310,7 @@ def test_pr73_esquina_dos_rubros_unicidad_actual_ok(app_ctx, require_pr72_migrat
                 calle=calle,
                 numero="y Oeste",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="ESQUINA",
                 angulo_esquina="NE",
             )
@@ -320,7 +320,7 @@ def test_pr73_esquina_dos_rubros_unicidad_actual_ok(app_ctx, require_pr72_migrat
                 calle=calle,
                 numero="y Oeste",
                 rubro=rub2.nombre,
-                inspector=ins.nombre,
+                inspector=rel.nombre,
                 tipo="ESQUINA",
                 angulo_esquina="SE",
                 fecha="2026-05-12",

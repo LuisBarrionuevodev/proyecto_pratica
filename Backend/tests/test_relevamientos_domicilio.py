@@ -10,12 +10,13 @@ import random
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.denuncias.services.denuncias_service import crear_denuncia_con_iniciador
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.relevamientos.services.update_service import actualizar_relevamiento
-from app.models import Domicilio, Inspector, Relevamiento, Rubro
+from app.models import Domicilio, Relevador, Relevamiento, Rubro
 
 
 def _unique_num() -> str:
@@ -36,35 +37,31 @@ def app_ctx():
         db.session.rollback()
 
 
-def _inspector_y_rubro() -> tuple[Inspector, Rubro]:
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro en BD")
-    return ins, rub
+def _relevador_y_rubro() -> tuple[Relevador, Rubro]:
+    return get_or_create_test_relevador(), get_test_rubro()
 
 
 def _payload_relevamiento(
     *,
     calle: str,
     numero: str,
-    ins: Inspector,
+    rev: Relevador,
     rub: Rubro,
     fecha: str = "2026-06-02",
 ) -> dict:
     return {
         "fecha": fecha,
-        "inspector_nombre": ins.nombre,
+        "relevadores_nombres": [rev.nombre],
         "domicilio": {"calle": calle, "numero": numero},
         "rubro_nombre": rub.nombre,
     }
 
 
 def test_crear_relevamiento_crea_domicilio_y_vincula(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     calle = _uniq("TestRelevamientoDomicilio")
     rel = crear_relevamiento_desde_payload(
-        _payload_relevamiento(calle=calle, numero="123", ins=ins, rub=rub)
+        _payload_relevamiento(calle=calle, numero="123", rev=rev, rub=rub)
     )
     assert rel.domicilio_id is not None
     dom = db.session.get(Domicilio, rel.domicilio_id)
@@ -75,9 +72,9 @@ def test_crear_relevamiento_crea_domicilio_y_vincula(app_ctx) -> None:
 
 
 def test_crear_relevamiento_reutiliza_domicilio_existente(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     calle = _uniq("RelDomReuse")
-    p = _payload_relevamiento(calle=calle, numero="456", ins=ins, rub=rub)
+    p = _payload_relevamiento(calle=calle, numero="456", rev=rev, rub=rub)
     r1 = crear_relevamiento_desde_payload(p)
     with pytest.raises(ValueError, match="Ya existe un relevamiento activo"):
         crear_relevamiento_desde_payload({**p, "fecha": "2026-06-03", "rubro_nombre": rub.nombre})
@@ -91,16 +88,16 @@ def test_crear_relevamiento_reutiliza_domicilio_existente(app_ctx) -> None:
 
 
 def test_editar_relevamiento_cambia_calle_misma_fila(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     calle = _uniq("RelDomEdit")
     rel = crear_relevamiento_desde_payload(
-        _payload_relevamiento(calle=calle, numero="10", ins=ins, rub=rub)
+        _payload_relevamiento(calle=calle, numero="10", rev=rev, rub=rub)
     )
     dom_id_antes = rel.domicilio_id
     nueva_calle = calle + " Sur"
     actualizar_relevamiento(
         rel.id,
-        _payload_relevamiento(calle=nueva_calle, numero="10", ins=ins, rub=rub, fecha="2026-06-03"),
+        _payload_relevamiento(calle=nueva_calle, numero="10", rev=rev, rub=rub, fecha="2026-06-03"),
     )
     db.session.refresh(rel)
     dom = db.session.get(Domicilio, dom_id_antes)
@@ -109,12 +106,12 @@ def test_editar_relevamiento_cambia_calle_misma_fila(app_ctx) -> None:
 
 
 def test_crear_relevamiento_sin_calle_falla(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     with pytest.raises(ValueError, match="Calle y número"):
         crear_relevamiento_desde_payload(
             {
                 "fecha": "2026-06-02",
-                "inspector_nombre": ins.nombre,
+                "relevadores_nombres": [rev.nombre],
                 "domicilio": {"calle": "", "numero": "1"},
                 "rubro_nombre": rub.nombre,
             }

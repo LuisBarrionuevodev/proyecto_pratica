@@ -66,7 +66,7 @@ export function applyRelevamientoDomicilioSubmitGuard(
 /** Mapeo de errores (grid / backend → claves de columna de la tabla). */
 export const RELEVAMIENTO_ROW_ERROR_KEY_MAP: Record<string, string> = {
   Fecha: "fecha",
-  Inspector: "inspector",
+  Relevador: "relevador",
   Calle: "calle",
   Numero: "numero",
   Rubro: "rubro",
@@ -95,7 +95,10 @@ export function buildRelevamientoGridRow(row: IRelevamientoListItem) {
   return {
     ID: row.id,
     Fecha: row.fecha,
-    Inspector: row.inspector,
+    Relevador:
+      row.relevadores?.map((r) => r.nombre).join(", ") ??
+      row.relevadores_label ??
+      "",
     Calle: row.calle,
     Numero: row.numero,
     Rubro: row.rubro,
@@ -111,7 +114,10 @@ export function buildRelevamientoGridRow(row: IRelevamientoListItem) {
  * Normaliza valores de edición (selects MRT) al shape que acepta el API.
  */
 export function normalizeRelevamientoRowForApi(row: IRelevamientoListItem): IRelevamientoListItem {
-  const copy = applyEstablecimientoCamposToPayload({ ...row });
+  const copy = applyEstablecimientoCamposToPayload({ ...row }) as IRelevamientoListItem;
+  if (copy.relevador_ids?.length) {
+    copy.relevador_ids = [...new Set(copy.relevador_ids)];
+  }
   const ea = copy.esta_abierto as unknown;
   if (ea === "Sí" || ea === "Si" || ea === "si") copy.esta_abierto = true;
   else if (ea === "No" || ea === "no") copy.esta_abierto = false;

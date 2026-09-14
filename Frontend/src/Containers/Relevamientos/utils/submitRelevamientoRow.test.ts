@@ -13,7 +13,8 @@ describe("submitRelevamientoRow — payload domicilio", () => {
   const baseRow: IRelevamientoListItem = {
     id: 42,
     fecha: "2026-06-02",
-    inspector: "Inspector Uno",
+    relevadores_label: "Fabian Esquivel",
+    relevador_ids: [1],
     calle: "TestRelevamientoDomicilio_abc",
     numero: "123",
     rubro: "Panadería",
@@ -25,7 +26,7 @@ describe("submitRelevamientoRow — payload domicilio", () => {
     const normalized = normalizeRelevamientoRowForApi(baseRow);
     expect(normalized.calle).toBe("TestRelevamientoDomicilio_abc");
     expect(normalized.numero).toBe("123");
-    expect(normalized.inspector).toBe("Inspector Uno");
+    expect(normalized.relevador_ids).toEqual([1]);
     expect(normalized.rubro).toBe("Panadería");
   });
 

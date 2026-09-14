@@ -15,6 +15,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.orm import joinedload
 
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
+
 from app.database import db
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
@@ -204,16 +206,16 @@ def test_completar_trabajo_cambio_esquina_conserva_geocode(app_ctx) -> None:
 def test_relevamiento_update_sin_cambio_direccion_conserva_geocode(app_ctx) -> None:
     from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 
-    ins = Inspector.query.first()
+    rev = get_or_create_test_relevador()
     rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro")
+    if rub is None:
+        pytest.skip("Se requiere rubro")
     suf = uuid4().hex[:8]
     calle = f"RelGeoPres_{suf}"
     rel = crear_relevamiento_desde_payload(
         {
             "fecha": "20/06/2026",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": calle, "numero": "10"},
             "rubro_nombre": rub.nombre,
         }
@@ -232,7 +234,7 @@ def test_relevamiento_update_sin_cambio_direccion_conserva_geocode(app_ctx) -> N
         rel.id,
         {
             "fecha": "21/06/2026",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": calle, "numero": "10"},
             "rubro_nombre": rub.nombre,
         },

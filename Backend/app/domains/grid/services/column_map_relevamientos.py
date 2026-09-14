@@ -4,7 +4,8 @@ from __future__ import annotations
 COLUMN_MAP_RELEVAMIENTOS = {
     "ID": "id",
     "Fecha": "fecha",
-    "Inspector": "inspector",
+    "Relevador": "relevador",
+    "Inspector": "relevador",
     "Calle": "calle",
     "Numero": "numero",
     "Número": "numero",

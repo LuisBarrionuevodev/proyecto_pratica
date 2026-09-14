@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import random
-from datetime import date, timedelta
+from datetime import date
 from uuid import uuid4
 
 import pytest
@@ -40,10 +39,12 @@ from app.models import (
     RutaTrabajo,
     User,
 )
+from tests.helpers.fixture_isolation import fecha_fixture_aislada, uniq_ruta_numero, unique_ot_numero
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 
 
-def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
+def _contrib_doc_aislado() -> str:
+    return str(int(uuid4().hex[:8], 16) % 90_000_000 + 10_000_000)
 
 
 def _uniq(prefix: str) -> str:
@@ -52,8 +53,7 @@ def _uniq(prefix: str) -> str:
 
 def _fecha_fixture_aislada() -> date:
     """Día aislado para evitar colisiones en BD compartida."""
-    n = int(uuid4().hex[:8], 16) % 3650
-    return date(2090, 1, 1) + timedelta(days=n)
+    return fecha_fixture_aislada()
 
 
 @pytest.fixture
@@ -94,10 +94,10 @@ def _dos_inspectores() -> tuple[Inspector, Inspector]:
     return rows[0], rows[1]
 
 
-def _payload_esquina(*, calle: str, rubro: str, inspector: str, fecha: str):
+def _payload_esquina(*, calle: str, rubro: str, relevador: str, fecha: str):
     return {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [relevador],
         "domicilio": {"calle": calle, "numero": "y Maipu", "numero_tipo": "ESQUINA"},
         "rubro_nombre": rubro,
     }
@@ -113,7 +113,7 @@ def _setup_ruta_y_publicar(ini_ids: list[int], *, fecha_ruta: date | None = None
         fecha=f,
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
         created_by_user_id=u.id,
     )
     db.session.add(ruta)
@@ -134,7 +134,7 @@ def _setup_ruta_y_publicar(ini_ids: list[int], *, fecha_ruta: date | None = None
         set_orden_trabajo_on_item(
             ruta_id=ruta.id,
             item_id=item.id,
-            numero_orden_trabajo=_unique_num(),
+            numero_orden_trabajo=unique_ot_numero(),
         )
     db.session.commit()
     publicar_ruta_trabajo(ruta_id=ruta.id)
@@ -171,7 +171,7 @@ def _cargar_actuacion_manual_esquina(
         pytest.skip("Se requiere motivo en catálogo")
     payload = {
         "fecha_actuacion": fecha_actuacion or "21/07/2026",
-        "orden_trabajo_numero": _unique_num(),
+        "orden_trabajo_numero": unique_ot_numero(),
         "tipo_actuacion": "INSPECCION",
         "rubro_nombre": rubro.nombre,
         "contribuyente": {
@@ -181,7 +181,7 @@ def _cargar_actuacion_manual_esquina(
         },
         "domicilio": {"calle": calle, "numero": "y Maipu", "numero_tipo": "ESQUINA"},
         "inspectores": [ins.nombre],
-        "acta_inspeccion_num": _unique_num(),
+        "acta_inspeccion_num": unique_ot_numero(),
         "notificacion": {"acta_num": acta_notif, "motivos": [motivo.nombre]},
     }
     return crear_actuacion_desde_payload(payload)
@@ -189,18 +189,18 @@ def _cargar_actuacion_manual_esquina(
 
 def test_cargar_actuacion_no_contamina_relevamiento(app_ctx, require_pr72_migration) -> None:
     try:
-        ins = _inspector()
+        rev = get_or_create_test_relevador()
         rub_pan = Rubro(nombre=_uniq("PanaderiaPR12"))
         rub_carn = Rubro(nombre=_uniq("CarniceriaPR12"))
         db.session.add_all([rub_pan, rub_carn])
         db.session.flush()
 
         calle = _uniq("SanMartinMaipuPR12")
-        acta_notif = _unique_num()
+        acta_notif = unique_ot_numero()
         act_manual = _cargar_actuacion_manual_esquina(
             calle=calle,
             rubro=rub_pan,
-            contrib_doc=str(random.randint(10_000_000, 99_999_999)),
+            contrib_doc=_contrib_doc_aislado(),
             acta_notif=acta_notif,
         )
         dom_manual_id = act_manual.domicilio_id
@@ -212,7 +212,7 @@ def test_cargar_actuacion_no_contamina_relevamiento(app_ctx, require_pr72_migrat
             _payload_esquina(
                 calle=calle,
                 rubro=rub_carn.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 fecha="2026-07-22",
             )
         )
@@ -252,11 +252,11 @@ def test_cargar_actuacion_no_contamina_denuncia(app_ctx, require_pr72_migration,
         db.session.flush()
 
         calle = _uniq("DenunciaPR12")
-        acta_notif = _unique_num()
+        acta_notif = unique_ot_numero()
         _cargar_actuacion_manual_esquina(
             calle=calle,
             rubro=rub_pan,
-            contrib_doc=str(random.randint(10_000_000, 99_999_999)),
+            contrib_doc=_contrib_doc_aislado(),
             acta_notif=acta_notif,
         )
 
@@ -282,7 +282,7 @@ def test_cargar_actuacion_no_contamina_denuncia(app_ctx, require_pr72_migration,
 
 def test_relevamiento_no_pisa_rubro_actuacion_manual(app_ctx, require_pr72_migration) -> None:
     try:
-        ins = _inspector()
+        rev = get_or_create_test_relevador()
         rub_pan = Rubro(nombre=_uniq("PanManualPR12"))
         rub_carn = Rubro(nombre=_uniq("CarnRelPR12"))
         db.session.add_all([rub_pan, rub_carn])
@@ -292,8 +292,8 @@ def test_relevamiento_no_pisa_rubro_actuacion_manual(app_ctx, require_pr72_migra
         act_manual = _cargar_actuacion_manual_esquina(
             calle=calle,
             rubro=rub_pan,
-            contrib_doc=str(random.randint(10_000_000, 99_999_999)),
-            acta_notif=_unique_num(),
+            contrib_doc=_contrib_doc_aislado(),
+            acta_notif=unique_ot_numero(),
         )
         act_manual_id = act_manual.id
         dom_manual_id = act_manual.domicilio_id
@@ -304,7 +304,7 @@ def test_relevamiento_no_pisa_rubro_actuacion_manual(app_ctx, require_pr72_migra
             _payload_esquina(
                 calle=calle,
                 rubro=rub_carn.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 fecha="2026-07-23",
             )
         )
@@ -324,18 +324,18 @@ def test_relevamiento_no_pisa_rubro_actuacion_manual(app_ctx, require_pr72_migra
 
 def test_completar_trabajo_no_hereda_actas_por_domicilio(app_ctx, require_pr72_migration) -> None:
     try:
-        ins = _inspector()
+        rev = get_or_create_test_relevador()
         rub_pan = Rubro(nombre=_uniq("ActasPR12"))
         rub_carn = Rubro(nombre=_uniq("ActasRelPR12"))
         db.session.add_all([rub_pan, rub_carn])
         db.session.flush()
 
         calle = _uniq("ActasEsquinaPR12")
-        acta_notif = _unique_num()
+        acta_notif = unique_ot_numero()
         _cargar_actuacion_manual_esquina(
             calle=calle,
             rubro=rub_pan,
-            contrib_doc=str(random.randint(10_000_000, 99_999_999)),
+            contrib_doc=_contrib_doc_aislado(),
             acta_notif=acta_notif,
         )
 
@@ -343,7 +343,7 @@ def test_completar_trabajo_no_hereda_actas_por_domicilio(app_ctx, require_pr72_m
             _payload_esquina(
                 calle=calle,
                 rubro=rub_carn.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 fecha="2026-07-24",
             )
         )
@@ -374,7 +374,7 @@ def test_historial_dni_agrupa_sin_prefill_operativo(app_ctx, require_pr72_migrat
             lambda: int(u.id),
         )
 
-        doc = str(random.randint(10_000_000, 99_999_999))
+        doc = _contrib_doc_aislado()
         rub = Rubro(nombre=_uniq("HistPR12"))
         db.session.add(rub)
         db.session.flush()
@@ -384,7 +384,7 @@ def test_historial_dni_agrupa_sin_prefill_operativo(app_ctx, require_pr72_migrat
             calle=calle,
             rubro=rub,
             contrib_doc=doc,
-            acta_notif=_unique_num(),
+            acta_notif=unique_ot_numero(),
         )
 
         den, ini = crear_denuncia_con_iniciador(

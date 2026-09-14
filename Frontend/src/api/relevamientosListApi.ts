@@ -1,9 +1,16 @@
 import { apiClient } from "./apiClient";
 
+export interface IRelevadorRef {
+  id: number;
+  nombre: string;
+}
+
 export interface IRelevamientoListItem {
   id: number;
   fecha: string | null;
-  inspector: string | null;
+  relevadores?: IRelevadorRef[];
+  relevadores_label?: string | null;
+  relevador_ids?: number[];
   calle: string | null;
   calle_raw?: string | null;
   calle_cargada?: string | null;
@@ -39,7 +46,7 @@ export interface IRelevamientosListMeta {
   page_size: number;
   desde: string | null;
   hasta: string | null;
-  inspector: string | null;
+  relevador: string | null;
   calle: string | null;
   numero: string | null;
 }
@@ -52,7 +59,7 @@ export interface IRelevamientosListResponse {
 export interface IRelevamientosListFilters {
   desde?: string | null;
   hasta?: string | null;
-  inspector?: string | null;
+  relevador?: string | null;
   calle?: string | null;
   numero?: string | null;
   page?: number;
@@ -66,7 +73,7 @@ export const getRelevamientosFiltered = async (
   const params: Record<string, string> = {};
   if (filters?.desde) params.desde = filters.desde;
   if (filters?.hasta) params.hasta = filters.hasta;
-  if (filters?.inspector) params.inspector = filters.inspector;
+  if (filters?.relevador) params.relevador = filters.relevador;
   if (filters?.calle) params.calle = filters.calle;
   if (filters?.numero) params.numero = filters.numero;
   if (filters?.page) params.page = String(filters.page);
@@ -86,7 +93,7 @@ export const getRelevamientosRealizadosActuacionCompletadaFiltered = async (
   const params: Record<string, string> = {};
   if (filters?.desde) params.desde = filters.desde;
   if (filters?.hasta) params.hasta = filters.hasta;
-  if (filters?.inspector) params.inspector = filters.inspector;
+  if (filters?.relevador) params.relevador = filters.relevador;
   if (filters?.calle) params.calle = filters.calle;
   if (filters?.numero) params.numero = filters.numero;
   if (filters?.page) params.page = String(filters.page);
@@ -104,7 +111,7 @@ export const getRelevamientosOperativosFiltered = async (
   const params: Record<string, string> = {};
   if (filters?.desde) params.desde = filters.desde;
   if (filters?.hasta) params.hasta = filters.hasta;
-  if (filters?.inspector) params.inspector = filters.inspector;
+  if (filters?.relevador) params.relevador = filters.relevador;
   if (filters?.calle) params.calle = filters.calle;
   if (filters?.numero) params.numero = filters.numero;
   if (filters?.page) params.page = String(filters.page);

@@ -45,6 +45,7 @@ from app.models import (
     RutaTrabajo,
     User,
 )
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 
 
 def _unique_num() -> str:
@@ -97,7 +98,7 @@ def _payload_esquina(
     *,
     calle: str,
     rubro: str,
-    inspector: str,
+    relevador: str,
     fecha: str,
     nombre_fantasia: str | None = None,
     angulo_esquina: str | None = None,
@@ -105,7 +106,7 @@ def _payload_esquina(
     dom = {"calle": calle, "numero": "y Maipu", "numero_tipo": "ESQUINA"}
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [relevador],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -117,7 +118,7 @@ def _payload_esquina(
 
 
 def _crear_esquina_multi_establecimiento():
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     rub_a = Rubro(nombre=_uniq("PanaderiaHotfix"))
     rub_b = Rubro(nombre=_uniq("CarniceriaHotfix"))
     db.session.add_all([rub_a, rub_b])
@@ -128,7 +129,7 @@ def _crear_esquina_multi_establecimiento():
         _payload_esquina(
             calle=calle,
             rubro=rub_a.nombre,
-            inspector=ins.nombre,
+            relevador=rev.nombre,
             fecha="2026-07-01",
             nombre_fantasia="Panadería NE",
             angulo_esquina="NE",
@@ -138,7 +139,7 @@ def _crear_esquina_multi_establecimiento():
         _payload_esquina(
             calle=calle,
             rubro=rub_b.nombre,
-            inspector=ins.nombre,
+            relevador=rev.nombre,
             fecha="2026-07-02",
             nombre_fantasia="Carnicería SO",
             angulo_esquina="SO",
@@ -271,12 +272,12 @@ def test_domicilio_rubro_distinto_no_pisa_relevamiento(app_ctx, require_pr72_mig
         db.session.add(dom)
         db.session.flush()
 
-        ins = _inspector()
+        rev = get_or_create_test_relevador()
         rel = crear_relevamiento_desde_payload(
             _payload_esquina(
                 calle=dom.calle,
                 rubro=rub_pan.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 fecha="2026-07-03",
                 angulo_esquina="NE",
             )

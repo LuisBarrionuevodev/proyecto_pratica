@@ -39,6 +39,8 @@ from app.models import (
     User,
 )
 
+from tests.helpers.fixture_isolation import unique_ot_numero
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _dos_inspectores,
     _fecha_ruta_aislada_mismo_anio,
@@ -47,7 +49,6 @@ from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _mk_user,
     _publicar_y_cerrar_no_realizado,
     _setup_borrador_con_iniciador,
-    _unique_num,
 )
 
 
@@ -99,11 +100,11 @@ def _mk_iniciador_relevamiento() -> IniciadorRuta:
     rub = Rubro.query.first()
     if rub is None:
         pytest.skip("Se requiere rubro")
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     rel = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-10",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": f"RelPr111b_{uuid4().hex[:8]}", "numero": "10"},
             "rubro_nombre": rub.nombre,
         }
@@ -183,7 +184,7 @@ def test_pr11_1b_relevamiento_y_denuncia_rechazan_misma_ot(
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
     fecha = _fecha_ruta_aislada_mismo_anio(2026)
-    ot_num = _unique_num()
+    ot_num = unique_ot_numero()
     act_prev = _publicar_cerrar_reencolar(
         ini, ot_num=ot_num, user_id=u.id, tipo=tipo_cierre, fecha_ruta=fecha
     )
@@ -201,7 +202,7 @@ def test_pr11_1b_relevamiento_y_denuncia_rechazan_misma_ot(
 
 def test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot(app_ctx) -> None:
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
-    ot_num = _unique_num()
+    ot_num = unique_ot_numero()
     act_prev = _publicar_y_cerrar_no_realizado(
         *_setup_borrador_con_iniciador(ini, numero_ot=ot_num)[:2],
         u.id,
@@ -221,7 +222,7 @@ def test_pr11_1b_item_legacy_estado_ruta_no_realizado_rechaza_misma_ot(app_ctx) 
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
-    ot_num = _unique_num()
+    ot_num = unique_ot_numero()
     act_prev = _publicar_cerrar_reencolar(ini, ot_num=ot_num, user_id=u.id)
 
     item_prev = (
@@ -244,7 +245,7 @@ def test_pr11_1b_item_legacy_estado_ruta_no_realizado_rechaza_misma_ot(app_ctx) 
 
 def test_pr11_1b_ot_en_proceso_sigue_bloqueando(app_ctx) -> None:
     ini1 = _mk_iniciador_relevamiento()
-    ot_num = _unique_num()
+    ot_num = unique_ot_numero()
     ruta1, item1 = _setup_borrador_con_iniciador(ini1, numero_ot=ot_num)
     publicar_ruta_trabajo(ruta_id=ruta1.id)
     db.session.expire_all()
@@ -252,7 +253,7 @@ def test_pr11_1b_ot_en_proceso_sigue_bloqueando(app_ctx) -> None:
     assert item1_db is not None
 
     ini2 = _mk_iniciador_relevamiento()
-    ruta2, item2 = _setup_borrador_con_iniciador(ini2, numero_ot=_unique_num())
+    ruta2, item2 = _setup_borrador_con_iniciador(ini2, numero_ot=unique_ot_numero())
     item2_db = RutaItem.query.get(item2.id)
     assert item2_db is not None
     item2_db.orden_trabajo_id = item1_db.orden_trabajo_id
@@ -266,10 +267,10 @@ def test_pr11_1b_item_soft_deleted_publica_con_ot_nueva(app_ctx) -> None:
     ini = _mk_iniciador_relevamiento()
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
-    ot_num = _unique_num()
-    ot_nueva = _unique_num()
+    ot_num = unique_ot_numero()
+    ot_nueva = unique_ot_numero()
     while ot_nueva == ot_num:
-        ot_nueva = _unique_num()
+        ot_nueva = unique_ot_numero()
     act_prev = _publicar_cerrar_reencolar(ini, ot_num=ot_num, user_id=u.id)
 
     item_prev = (

@@ -32,12 +32,14 @@ from app.models import (
     Inspector,
     Notificacion,
     OrdenTrabajo,
+    Relevador,
     Relevamiento,
     Rubro,
     RutaItem,
     RutaTrabajo,
     User,
 )
+from tests.relevamiento_test_helpers import relevador_y_rubro
 
 
 def _unique_num() -> str:
@@ -64,14 +66,6 @@ def _ensure_active_user() -> User:
     return u
 
 
-def _inspector_y_rubro() -> tuple[Inspector, Rubro]:
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro en BD")
-    return ins, rub
-
-
 @pytest.fixture
 def app_ctx():
     from app import create_app
@@ -82,10 +76,10 @@ def app_ctx():
         db.session.rollback()
 
 
-def _payload_relevamiento(*, calle: str, numero: str, ins: Inspector, rub: Rubro, fecha: str = "2026-06-10"):
+def _payload_relevamiento(*, calle: str, numero: str, rev: Relevador, rub: Rubro, fecha: str = "2026-06-10"):
     return {
         "fecha": fecha,
-        "inspector_nombre": ins.nombre,
+        "relevadores_nombres": [rev.nombre],
         "domicilio": {"calle": calle, "numero": numero},
         "rubro_nombre": rub.nombre,
     }
@@ -93,9 +87,9 @@ def _payload_relevamiento(*, calle: str, numero: str, ins: Inspector, rub: Rubro
 
 def test_editar_relevamiento_pendiente_actualiza_iniciador(app_ctx) -> None:
     try:
-        ins, rub = _inspector_y_rubro()
+        rev, rub = relevador_y_rubro()
         calle = _uniq("PR2Rel")
-        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="10", ins=ins, rub=rub))
+        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="10", rev=rev, rub=rub))
         ini = IniciadorRuta.query.filter_by(relevamiento_id=rel.id, tipo_iniciador="RELEVAMIENTO").first()
         assert ini is not None
         dom_antes = ini.domicilio_id
@@ -103,7 +97,7 @@ def test_editar_relevamiento_pendiente_actualiza_iniciador(app_ctx) -> None:
         nueva_calle = _uniq("PR2RelNueva")
         actualizar_relevamiento(
             rel.id,
-            _payload_relevamiento(calle=nueva_calle, numero="20", ins=ins, rub=rub, fecha="2026-06-11"),
+            _payload_relevamiento(calle=nueva_calle, numero="20", rev=rev, rub=rub, fecha="2026-06-11"),
         )
 
         db.session.refresh(rel)
@@ -164,9 +158,9 @@ def test_editar_relevamiento_iniciador_cumplido_no_actualiza(app_ctx) -> None:
 
 def test_propagacion_no_dispara_geocode_si_nuevo_domicilio_ya_ok(app_ctx, monkeypatch) -> None:
     try:
-        ins, rub = _inspector_y_rubro()
+        rev, rub = relevador_y_rubro()
         calle = _uniq("PR2Geo")
-        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="30", ins=ins, rub=rub))
+        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="30", rev=rev, rub=rub))
         ini = IniciadorRuta.query.filter_by(relevamiento_id=rel.id).first()
         assert ini is not None
 
@@ -206,9 +200,9 @@ def test_backfill_distrito_en_propagacion(app_ctx, monkeypatch) -> None:
         if not dist:
             pytest.skip("Sin distritos en BD")
 
-        ins, rub = _inspector_y_rubro()
+        rev, rub = relevador_y_rubro()
         rel = crear_relevamiento_desde_payload(
-            _payload_relevamiento(calle=_uniq("PR2Dist"), numero="50", ins=ins, rub=rub)
+            _payload_relevamiento(calle=_uniq("PR2Dist"), numero="50", rev=rev, rub=rub)
         )
 
         dom = Domicilio(calle=_uniq("BFpr2"), numero="60", distrito_id=None)
@@ -235,9 +229,9 @@ def test_backfill_distrito_en_propagacion(app_ctx, monkeypatch) -> None:
 
 def test_domicilio_anterior_no_se_borra_si_sigue_referenciado(app_ctx) -> None:
     try:
-        ins, rub = _inspector_y_rubro()
+        rev, rub = relevador_y_rubro()
         calle = _uniq("PR2Ref")
-        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="70", ins=ins, rub=rub))
+        rel = crear_relevamiento_desde_payload(_payload_relevamiento(calle=calle, numero="70", rev=rev, rub=rub))
         old_dom_id = rel.domicilio_id
 
         ot = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=6)
@@ -256,7 +250,7 @@ def test_domicilio_anterior_no_se_borra_si_sigue_referenciado(app_ctx) -> None:
 
         actualizar_relevamiento(
             rel.id,
-            _payload_relevamiento(calle=_uniq("PR2RefNuevo"), numero="80", ins=ins, rub=rub, fecha="2026-06-12"),
+            _payload_relevamiento(calle=_uniq("PR2RefNuevo"), numero="80", rev=rev, rub=rub, fecha="2026-06-12"),
         )
 
         old_dom = db.session.get(Domicilio, old_dom_id)
@@ -423,9 +417,9 @@ def test_ruta_publicada_no_muta_iniciador(app_ctx) -> None:
 
 def test_no_duplica_domicilio_en_propagacion(app_ctx) -> None:
     try:
-        ins, rub = _inspector_y_rubro()
+        rev, rub = relevador_y_rubro()
         rel = crear_relevamiento_desde_payload(
-            _payload_relevamiento(calle=_uniq("PR2Dup"), numero="90", ins=ins, rub=rub)
+            _payload_relevamiento(calle=_uniq("PR2Dup"), numero="90", rev=rev, rub=rub)
         )
         dom_id = rel.domicilio_id
         propagar_domicilio_a_iniciadores_activos("RELEVAMIENTO", rel.id, rel.domicilio_id)

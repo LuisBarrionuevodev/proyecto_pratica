@@ -24,6 +24,7 @@ from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service impor
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import Actuaciones, IniciadorRuta, Inspector, OrdenTrabajo, Rubro, RutaItem, RutaTrabajo
 
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _dos_inspectores,
     _setup_borrador_con_iniciador,
@@ -176,8 +177,8 @@ def test_pr11_1e_republicar_misma_ot_rechaza_caso_qa(app_ctx) -> None:
 def test_pr11_1e_resolver_no_reutiliza_actuacion_historica_con_ot_distinta(app_ctx) -> None:
     """Tras intento cerrado, resolver no devuelve actuación histórica para otra OT."""
     rub = Rubro.query.first()
-    ins = Inspector.query.first()
-    assert rub and ins
+    rev = get_or_create_test_relevador()
+    assert rub is not None
     from app.models import User
 
     u = User(
@@ -193,7 +194,7 @@ def test_pr11_1e_resolver_no_reutiliza_actuacion_historica_con_ot_distinta(app_c
     rel = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-10",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": f"Pr11e_{uuid4().hex[:6]}", "numero": "1"},
             "rubro_nombre": rub.nombre,
         }

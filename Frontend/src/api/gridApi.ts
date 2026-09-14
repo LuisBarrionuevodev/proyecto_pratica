@@ -211,6 +211,14 @@ export const fetchInspectores = async (): Promise<CatalogResponse> => {
 };
 
 /**
+ * Catálogo de relevadores (dominio Relevamientos).
+ */
+export const fetchRelevadores = async (): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/relevadores");
+  return data;
+};
+
+/**
  * Catálogo de motivos (para dropdowns)
  */
 export const fetchMotivos = async (): Promise<CatalogResponse> => {

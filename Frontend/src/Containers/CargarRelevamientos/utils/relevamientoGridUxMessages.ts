@@ -6,7 +6,7 @@
 export function humanizeRelevamientoColumnLabel(glideKey: string): string {
   const map: Record<string, string> = {
     Fecha: "Fecha",
-    Inspector: "Inspector",
+    Relevador: "Relevador",
     Calle: "Calle",
     Numero: "Número o esquina",
     Número: "Número o esquina",
@@ -31,10 +31,11 @@ export function translateRelevamientoValidationMessage(raw: string): string {
   const exactPairs: Array<[string, string]> = [
     ["Calle obligatoria.", "Completá la calle."],
     ["Número obligatorio.", "Completá el número o la esquina."],
-    ["Inspector obligatorio.", "Elegí un inspector."],
+    ["Relevador obligatorio.", "Elegí al menos un relevador."],
     ["Rubro obligatorio.", "Completá el rubro."],
     ["Fecha obligatoria.", "Completá la fecha."],
-    ["Inspector inválido.", "El inspector no está en el catálogo."],
+    ["Relevador inválido.", "El relevador no está en el catálogo."],
+    ["Relevador inactivo.", "El relevador está inactivo."],
     ["Rubro inválido.", "El rubro no existe en el catálogo."],
     ["Formato de fecha inválido. Use DD/MM/YYYY o YYYY-MM-DD.", "La fecha no es válida. Usá DD/MM/AAAA o AAAA-MM-DD."],
     [

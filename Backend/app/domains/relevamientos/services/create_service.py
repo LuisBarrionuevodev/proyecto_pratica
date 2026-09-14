@@ -6,8 +6,14 @@ from typing import Any, Dict
 from app.database import db
 from app.models import Domicilio, Relevamiento
 from app.utils.fechas import parse_fecha_grid
-from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
+from app.domains.relevamientos.catalogs.relevador import (
+    get_relevadores_o_falla,
+    resolve_relevador_nombres_o_falla,
+)
+from app.domains.relevamientos.services.relevamiento_relevadores_service import (
+    sync_relevamiento_relevadores,
+)
 from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
@@ -31,7 +37,7 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     Crea un Relevamiento desde un payload canon.
 
     Args:
-        payload: dict canon (sin DB) con inspector, domicilio y rubro.
+        payload: dict canon (sin DB) con relevadores, domicilio y rubro.
             Si no trae ``fecha``, se usa la fecha actual del servidor (PR9.4).
 
     Returns:
@@ -41,7 +47,8 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         ValueError: si faltan campos obligatorios o reglas de negocio.
     """
     fecha_raw = payload.get("fecha")
-    inspector_nombre = payload.get("inspector_nombre")
+    relevador_ids = payload.get("relevador_ids")
+    relevadores_nombres = payload.get("relevadores_nombres") or []
     domicilio = payload.get("domicilio") or {}
     calle = domicilio.get("calle")
     numero = domicilio.get("numero")
@@ -49,15 +56,18 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
 
     if not fecha_raw:
         fecha_raw = date.today().isoformat()
-    if not inspector_nombre:
-        raise ValueError("Inspector obligatorio.")
+    if not relevador_ids and not relevadores_nombres:
+        raise ValueError("Relevador obligatorio.")
     if not calle or not numero:
         raise ValueError("Calle y número son obligatorios.")
     if not rubro_nombre:
         raise ValueError("Rubro obligatorio.")
 
     mes, anio, fecha = parse_fecha_grid(fecha_raw)
-    inspector = get_inspectores_o_falla([inspector_nombre])[0]
+    if relevador_ids:
+        relevadores = get_relevadores_o_falla(relevador_ids)
+    else:
+        relevadores = resolve_relevador_nombres_o_falla(relevadores_nombres)
     rubro = get_rubro_o_falla(rubro_nombre)
     dom_payload = {
         "calle": calle,
@@ -126,7 +136,7 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         fecha=fecha,
         mes=mes,
         anio=anio,
-        inspector_id=inspector.id,
+        inspector_id=None,
         domicilio_id=dom.id,
         rubro_id=rubro.id if rubro else None,
         nombre_fantasia=nombre_fantasia,
@@ -136,6 +146,7 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     )
     db.session.add(rel)
     db.session.flush()
+    sync_relevamiento_relevadores(rel, [r.id for r in relevadores])
 
     iniciador = get_or_create_iniciador_from_relevamiento(rel)
     db.session.add(iniciador)

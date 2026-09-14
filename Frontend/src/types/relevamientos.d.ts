@@ -1,7 +1,14 @@
+export interface IRelevadorRef {
+  id: number;
+  nombre: string;
+}
+
 export interface IRelevamiento {
   id: number;
   fecha: string | null;
-  inspector: string | null;
+  relevadores?: IRelevadorRef[];
+  relevadores_label?: string | null;
+  relevador_ids?: number[];
   calle: string | null;
   numero: string | null;
   numero_tipo?: string | null;

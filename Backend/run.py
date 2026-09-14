@@ -37,6 +37,7 @@ def _seed_catalogos_base() -> dict[str, int]:
         seed_turnos_base,
         upsert_inspectores_canonicos,
     )
+    from app.domains.relevamientos.seeds.relevadores_canonicos import upsert_relevadores_canonicos
     from app.models import (
         CatalogContraproducencia,
         CatalogMotivoComprobacion,
@@ -90,6 +91,10 @@ def _seed_catalogos_base() -> dict[str, int]:
     created += i_created
     updated += i_updated
     skipped += i_skipped
+    r_created, r_updated, r_skipped = upsert_relevadores_canonicos(db.session)
+    created += r_created
+    updated += r_updated
+    skipped += r_skipped
     legacy_removed = remove_legacy_placeholder_inspectors(db.session)
 
     for nombre in [

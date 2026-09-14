@@ -14,6 +14,8 @@ from uuid import uuid4
 
 import pytest
 
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
+
 from app.database import db
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
@@ -430,15 +432,15 @@ def test_nomenclatura_sigue_pudiendo_disparar_geocode(app_ctx, monkeypatch) -> N
 
 
 def test_relevamiento_nuevo_crea_domicilio(app_ctx) -> None:
-    ins = Inspector.query.first()
+    rev = get_or_create_test_relevador()
     rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro")
+    if rub is None:
+        pytest.skip("Se requiere rubro")
     calle = f"RelGeo_{uuid4().hex[:8]}"
     rel = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-06-20",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": calle, "numero": "42"},
             "rubro_nombre": rub.nombre,
         }

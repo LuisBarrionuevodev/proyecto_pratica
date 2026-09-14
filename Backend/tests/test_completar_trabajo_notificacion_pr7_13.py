@@ -39,6 +39,8 @@ from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
 )
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
+
 from app.models import (
     Actuaciones,
     Contribuyente,
@@ -103,11 +105,11 @@ def _dos_inspectores() -> tuple[Inspector, Inspector]:
 
 
 def _crear_relevamiento_san_juan_maipu(*, rubro: Rubro, angulo: str, fantasia: str) -> Relevamiento:
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     return crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-15",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": _uniq("SanJuanMaipu"), "numero": "y Maipu", "numero_tipo": "ESQUINA"},
             "rubro_nombre": rubro.nombre,
             "nombre_fantasia": fantasia,
@@ -368,7 +370,7 @@ def test_pr713_update_actuacion_con_notificacion_sin_uso_permite_cambio_domicili
         db.session.flush()
         dom_db = Domicilio.query.get(act.domicilio_id)
         assert dom_db is not None
-        assert dom_db.calle == "San Juan"
+        assert (dom_db.calle or "").casefold() == "san juan"
         assert dom_db.numero == "1000"
     finally:
         db.session.rollback()

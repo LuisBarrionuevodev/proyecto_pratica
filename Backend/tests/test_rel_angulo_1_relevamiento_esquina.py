@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.relevamientos.presenters.relevamiento_presenter import relevamiento_to_row
@@ -34,12 +35,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 (revision b7e8f9a0c1d2) aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _uniq(prefix: str) -> str:
@@ -60,7 +60,7 @@ def _payload_esquina(
         dom["numero_tipo"] = numero_tipo
     out = {
         "fecha": "2026-05-10",
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -73,14 +73,14 @@ def test_rel_angulo_1_create_esquina_sin_numero_tipo_persiste_angulo(
     app_ctx, require_pr72_migration
 ) -> None:
     """Regresión grilla: sin numero_tipo explícito pero número tipo esquina."""
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("RelAnguloCreate")
     rel = crear_relevamiento_desde_payload(
         _payload_esquina(
             calle=calle,
             numero="y Mitre",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             angulo_esquina="NE",
         )
     )
@@ -90,14 +90,14 @@ def test_rel_angulo_1_create_esquina_sin_numero_tipo_persiste_angulo(
 
 
 def test_rel_angulo_1_update_esquina_cambia_angulo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("RelAnguloUpd")
     rel = crear_relevamiento_desde_payload(
         _payload_esquina(
             calle=calle,
             numero="y San Martín",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             angulo_esquina="NE",
             numero_tipo="ESQUINA",
         )
@@ -108,7 +108,7 @@ def test_rel_angulo_1_update_esquina_cambia_angulo(app_ctx, require_pr72_migrati
             calle=calle,
             numero="y San Martín",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             angulo_esquina="SO",
             numero_tipo="ESQUINA",
         ),
@@ -118,14 +118,14 @@ def test_rel_angulo_1_update_esquina_cambia_angulo(app_ctx, require_pr72_migrati
 
 
 def test_rel_angulo_1_cambio_a_numero_limpia_angulo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("RelAnguloNum")
     rel = crear_relevamiento_desde_payload(
         _payload_esquina(
             calle=calle,
             numero="y Colón",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             angulo_esquina="SE",
             numero_tipo="ESQUINA",
         )
@@ -136,7 +136,7 @@ def test_rel_angulo_1_cambio_a_numero_limpia_angulo(app_ctx, require_pr72_migrat
             calle=calle,
             numero="1200",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             angulo_esquina="SE",
             numero_tipo="NUMERO",
         ),
@@ -145,14 +145,14 @@ def test_rel_angulo_1_cambio_a_numero_limpia_angulo(app_ctx, require_pr72_migrat
 
 
 def test_rel_angulo_1_unicidad_mismo_angulo_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("RelAnguloDup")
     numero = "y Rivadavia"
     base = _payload_esquina(
         calle=calle,
         numero=numero,
         rubro=rub.nombre,
-        inspector=ins.nombre,
+        inspector=rel.nombre,
         angulo_esquina="NE",
         numero_tipo="ESQUINA",
     )
@@ -162,14 +162,14 @@ def test_rel_angulo_1_unicidad_mismo_angulo_bloquea(app_ctx, require_pr72_migrat
 
 
 def test_rel_angulo_1_unicidad_distinto_angulo_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("RelAnguloDist")
     numero = "y Belgrano"
     base = _payload_esquina(
         calle=calle,
         numero=numero,
         rubro=rub.nombre,
-        inspector=ins.nombre,
+        inspector=rel.nombre,
         angulo_esquina="NE",
         numero_tipo="ESQUINA",
     )

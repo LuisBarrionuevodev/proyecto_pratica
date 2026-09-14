@@ -5,7 +5,7 @@ import { getDropdownOptions } from "../CargarActuaciones/config/dropdownOptions"
 import { humanizeRelevamientoColumnLabel } from "./utils/relevamientoGridUxMessages";
 
 const emptyCatalogs = {
-  inspectores: [],
+  relevadores: [],
   motivos: [],
   rubros: [],
   tipos: [],
@@ -35,15 +35,15 @@ describe("CargarRelevamientos grid PR7.4", () => {
 });
 
 describe("CargarRelevamientos grid PR9.4 — sin columna Fecha", () => {
-  it("no incluye columna Fecha y la primera columna es Inspector", () => {
+  it("no incluye columna Fecha y la primera columna es Relevador", () => {
     const ids = COLUMN_DEFINITIONS.map((c) => c.id);
     expect(ids).not.toContain("Fecha");
-    expect(ids[0]).toBe("Inspector");
+    expect(ids[0]).toBe("Relevador");
   });
 
   it("payload de grilla no incluye Fecha al extraer columnas de datos", () => {
     const row = {
-      Inspector: "Inspector Uno",
+      Relevador: "Fabian Esquivel",
       Calle: "Maipú",
       Numero: "100",
       Rubro: "Panadería",
@@ -52,7 +52,7 @@ describe("CargarRelevamientos grid PR9.4 — sin columna Fecha", () => {
     const { Fecha, ...data } = row as Record<string, unknown>;
     expect(Fecha).toBeUndefined();
     expect(data).toMatchObject({
-      Inspector: "Inspector Uno",
+      Relevador: "Fabian Esquivel",
       Calle: "Maipú",
       Numero: "100",
       Rubro: "Panadería",

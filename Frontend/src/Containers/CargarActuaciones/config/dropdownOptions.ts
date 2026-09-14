@@ -16,8 +16,9 @@
 export const getDropdownOptions = (
     columnId: string,
     catalogs: {
-        inspectores: string[];
-        motivos: string[];
+    inspectores: string[];
+    relevadores?: string[];
+    motivos: string[];
         rubros: string[];
         tipos: string[];
         contraproducencias: string[];
@@ -26,6 +27,7 @@ export const getDropdownOptions = (
 ): string[] => {
     // Detectar tipo de columna
     // "Inspectores" (lista) no usa dropdown de celda; solo columnas "Inspector …" sueltas.
+    const isRelevador = columnId === "Relevador";
     const isInspector = columnId.startsWith("Inspector") && columnId !== "Inspectores";
     const isMotivoNotif = columnId.startsWith("Motivo notif");
     const isMotivoComprobacion = columnId === "Motivo comprobación";
@@ -36,6 +38,9 @@ export const getDropdownOptions = (
     // Retornar opciones del catálogo con opción vacía al inicio
     if (isMotivoComprobacion) {
         return ["", ...catalogs.motivosComprobacion];
+    }
+    if (isRelevador) {
+        return ["", ...(catalogs.relevadores ?? [])];
     }
     if (isInspector) {
         return ["", ...catalogs.inspectores];

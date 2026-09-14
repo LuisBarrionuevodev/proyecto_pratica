@@ -21,6 +21,8 @@ from .acta_inspeccion_item import ActaInspeccionItem
 from .clausura import Clausura
 from .decomiso import Decomiso
 from .inspector import Inspector
+from .relevador import Relevador
+from .relevamiento_relevador import relevamiento_relevador
 from .relevamiento import Relevamiento
 from .catalog_tipo_actuacion import CatalogTipoActuacion
 from .catalog_contraproducencia import CatalogContraproducencia
@@ -69,6 +71,8 @@ __all__ = [
     "Clausura",
     "Decomiso",
     "Inspector",
+    "Relevador",
+    "relevamiento_relevador",
     "Relevamiento",
     "ContraEnum",
     "Tipo",

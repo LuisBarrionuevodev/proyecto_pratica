@@ -145,22 +145,7 @@ export function InstitutionalMonthCalendarGrid({
           const title = getDayTitle?.(ctx) ?? "";
           const footerEl = renderDayFooter ? renderDayFooter(ctx) : undefined;
           const secondRow =
-            footerEl !== undefined ? (
-              footerEl
-            ) : ctx.esHoy ? (
-              <Box
-                component="span"
-                sx={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  bgcolor: GLASS_COLORS.primary,
-                  opacity: 0.85,
-                }}
-              />
-            ) : (
-              <Box sx={{ height: 5 }} />
-            );
+            footerEl !== undefined ? footerEl : <Box sx={{ height: 5 }} />;
 
           return (
             <ButtonBase
@@ -168,11 +153,12 @@ export function InstitutionalMonthCalendarGrid({
               title={title}
               onClick={() => onSelectDay(cell.iso!)}
               sx={{
+                position: "relative",
                 minHeight: cellMinHeight,
                 borderRadius: "10px",
                 fontFamily: TACTIC,
-                fontWeight: ctx.esHoy ? 800 : 600,
-                fontSize: cellMinHeight >= 52 ? "0.88rem" : "0.8rem",
+                fontWeight: ctx.esHoy ? 800 : 700,
+                fontSize: cellMinHeight >= 68 ? "1.05rem" : cellMinHeight >= 52 ? "0.9rem" : "0.8rem",
                 color: "#FFFFFF",
                 bgcolor: "rgba(255,255,255,0.025)",
                 border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -183,10 +169,26 @@ export function InstitutionalMonthCalendarGrid({
                   outline: `2px solid ${GLASS_COLORS.primary}`,
                   outlineOffset: 2,
                 },
+                ...(ctx.esHoy
+                  ? {
+                      "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        bgcolor: GLASS_COLORS.primary,
+                        opacity: 0.9,
+                        pointerEvents: "none",
+                      },
+                    }
+                  : {}),
                 ...extraSx,
               }}
             >
-              <Stack alignItems="center" spacing={0.15} sx={{ py: 0.25 }}>
+              <Stack alignItems="center" spacing={0.35} sx={{ py: cellMinHeight >= 68 ? 0.5 : 0.25, px: 0.25 }}>
                 <span>{cell.dayNum}</span>
                 {secondRow}
               </Stack>

@@ -19,7 +19,8 @@ import {
   validateBatch,
   commitBatch,
   type GridRow,
-  fetchInspectores,
+  fetchRelevadores,
+  type CatalogItem,
 } from "../../../api/gridApi";
 import {
   fetchRubrosCatalogoCached,
@@ -55,22 +56,38 @@ import {
   translateRelevamientoValidationMessage,
 } from "../utils/relevamientoGridUxMessages";
 import {
+  buildInitialRelevamientoGridData,
+  readRelevamientoDrafts,
+  syncRelevadorIdsOnRow,
+  syncRelevamientoDraftsAfterGridChange,
+  writeRelevamientoDrafts,
+} from "../utils/relevamientoDraftSessionStorage";
+import {
+  relevamientoDataColGridCell,
+  relevamientoInspectorDataCol,
+  relevamientoInspectorGridCell,
+  relevamientoLastEditableGridCell,
+  relevamientoResolveTabDataCol,
+  RELEVAMIENTO_FIRST_EDITABLE_COL_INDEX,
+  resolveRelevamientoShiftTabBackwardStep,
+  resolveRelevamientoTabForwardStep,
+} from "../utils/relevamientoGridNavigation";
+import {
   normalizarAnguloEsquinaFrontend,
   normalizarNombreFantasiaFrontend,
   relevamientoAnguloEsAplicable,
 } from "../../Relevamientos/utils/relevamientoCamposForm";
+import { useAppSession } from "../../../auth/AppSessionProvider";
 
 interface TablaCargarRelevamientosGlideStyledProps {
   showTitle?: boolean;
 }
 
-/** Con `rowMarkers="both"`, la primera columna de datos está desplazada en 1 respecto al canvas. */
-const ROW_MARKERS_BOTH_OFFSET = 1;
-
 const CELL_ERROR_META_KEYS = new Set(["_row", "detail", "_global"]);
+const RELEVAMIENTO_DRAFT_SAVE_DEBOUNCE_MS = 300;
 
 /** Campos mínimos solo para color “lista para enviar” en UI — sin llamadas al backend. */
-const MIN_VISUAL_FIELD_IDS = ["Inspector", "Calle", "Numero", "Rubro"] as const;
+const MIN_VISUAL_FIELD_IDS = ["Relevador", "Calle", "Numero", "Rubro"] as const;
 
 /**
  * True si la fila tiene los datos mínimos cargados (sin llamadas al backend).
@@ -116,30 +133,41 @@ function buildValidationRailEntries(rows: GridRow[]): ValidationRailEntry[] {
 const TablaCargarRelevamientosGlideStyled = ({
   showTitle = true,
 }: TablaCargarRelevamientosGlideStyledProps) => {
+  const session = useAppSession();
   const initialRows = useMemo(() => createEmptyRows(5), []);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [data, setData] = useState<GridRow[]>(initialRows);
   const [isValidatingAll, setIsValidatingAll] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
+  const [catalogRelevadores, setCatalogRelevadores] = useState<CatalogItem[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [gridSelection, setGridSelection] = useState<GridSelection | undefined>(undefined);
 
   const gridRef = useRef<any>(null);
+  const gridSelectionRef = useRef<GridSelection | undefined>(undefined);
   const dataRef = useRef<GridRow[]>(initialRows);
   const startingBatchRef = useRef<boolean>(false);
+  const draftsHydratedRef = useRef(false);
+  const draftSaveTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const sessionUsernameRef = useRef(session.username);
+
+  const catalogRelevadorNombres = useMemo(
+    () => [...new Set(catalogRelevadores.map((i) => i.nombre))],
+    [catalogRelevadores]
+  );
 
   const catalogs = useMemo(
     () => ({
-      inspectores: catalogInspectores,
+      inspectores: [],
+      relevadores: catalogRelevadorNombres,
       motivos: [],
       rubros: catalogRubros,
       tipos: [],
       contraproducencias: [],
       motivosComprobacion: [],
     }),
-    [catalogInspectores, catalogRubros]
+    [catalogRelevadorNombres, catalogRubros]
   );
 
   const ensureBatchStarted = useCallback(async (): Promise<string | null> => {
@@ -164,16 +192,70 @@ const TablaCargarRelevamientosGlideStyled = ({
   }, [data]);
 
   useEffect(() => {
+    gridSelectionRef.current = gridSelection;
+  }, [gridSelection]);
+
+  useEffect(() => {
+    sessionUsernameRef.current = session.username;
+  }, [session.username]);
+
+  const flushRelevamientoDraftsToSession = useCallback(() => {
+    if (!draftsHydratedRef.current) return;
+    const username = sessionUsernameRef.current;
+    if (!username) return;
+    if (draftSaveTimerRef.current !== null) {
+      window.clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
+    writeRelevamientoDrafts(username, dataRef.current);
+  }, []);
+
+  const scheduleRelevamientoDraftSave = useCallback(() => {
+    if (!draftsHydratedRef.current) return;
+    if (session.status !== "ready" || !session.username) return;
+    if (draftSaveTimerRef.current !== null) {
+      window.clearTimeout(draftSaveTimerRef.current);
+    }
+    draftSaveTimerRef.current = window.setTimeout(() => {
+      draftSaveTimerRef.current = null;
+      writeRelevamientoDrafts(session.username, dataRef.current);
+    }, RELEVAMIENTO_DRAFT_SAVE_DEBOUNCE_MS);
+  }, [session.status, session.username]);
+
+  useEffect(() => {
+    if (session.status === "loading") return;
+    if (draftsHydratedRef.current) return;
+    draftsHydratedRef.current = true;
+    const drafts = readRelevamientoDrafts(session.username);
+    if (drafts.length > 0) {
+      setData(buildInitialRelevamientoGridData(drafts, catalogRelevadores));
+    }
+  }, [session.status, session.username, catalogRelevadores]);
+
+  useEffect(() => {
+    scheduleRelevamientoDraftSave();
+  }, [data, scheduleRelevamientoDraftSave]);
+
+  useEffect(() => {
+    const onPageHide = () => flushRelevamientoDraftsToSession();
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      flushRelevamientoDraftsToSession();
+    };
+  }, [flushRelevamientoDraftsToSession]);
+
+  useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectoresResp, rubrosItems] = await Promise.all([
-          fetchInspectores(),
+        const [relevadoresResp, rubrosItems] = await Promise.all([
+          fetchRelevadores(),
           fetchRubrosCatalogoCached(),
         ]);
-        setCatalogInspectores([...new Set(inspectoresResp.items.map((i) => i.nombre))]);
+        setCatalogRelevadores(relevadoresResp.items);
         setCatalogRubros(rubroItemsToNombres(rubrosItems));
       } catch (error: any) {
-        setGlobalError("Error cargando catálogos (inspectores/rubros).");
+        setGlobalError("Error cargando catálogos (relevadores/rubros).");
       }
     };
     loadCatalogs();
@@ -304,8 +386,8 @@ const TablaCargarRelevamientosGlideStyled = ({
       setIsCommitting(true);
       const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
       // Future: hook global de notificaciones cuando exista el sistema unificado (éxito parcial/total).
-      setData((prev) =>
-        prev.map((row) => {
+      setData((prev) => {
+        const next = prev.map((row) => {
           const result = commitResp.results.find((r) => r.row_id === row._rowId);
           if (!result) return row;
           if (result.ok && result.persisted?.id) {
@@ -325,15 +407,17 @@ const TablaCargarRelevamientosGlideStyled = ({
             _cellErrors: result.errors || {},
             _rowError: buildRowErrorSummary(result.errors) || "Error en commit",
           };
-        })
-      );
+        });
+        syncRelevamientoDraftsAfterGridChange(session.username, next);
+        return next;
+      });
     } catch (error: any) {
       setGlobalError(error?.response?.data?.message || "Error en commit batch");
     } finally {
       setIsValidatingAll(false);
       setIsCommitting(false);
     }
-  }, [ensureBatchStarted, validateBatchRows]);
+  }, [ensureBatchStarted, session.username, validateBatchRows]);
 
   const handleCellEdit = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell): Promise<void> => {
@@ -400,6 +484,10 @@ const TablaCargarRelevamientosGlideStyled = ({
         updatedRow = { ...updatedRow, _state: "PENDIENTE", _normalized: undefined };
       }
 
+      if (columnId === "Relevador") {
+        updatedRow = syncRelevadorIdsOnRow(updatedRow, catalogRelevadores);
+      }
+
       setData((prev) => {
         const newData = [...prev];
         newData[row] = updatedRow;
@@ -411,72 +499,95 @@ const TablaCargarRelevamientosGlideStyled = ({
         void validateRow({ batch_id: batchSessionId, row_id: rowId, row: {} }).catch(() => {});
       }
     },
-    [data, ensureBatchStarted]
+    [data, ensureBatchStarted, catalogRelevadores]
   );
 
-  const handleAddRow = () => {
-    setData((prev) => [...prev, createEmptyRow()]);
-  };
+  const focusGridCell = useCallback((dataCol: number, rowIndex: number) => {
+    const applySelection = () => {
+      setGridSelection({
+        columns: CompactSelection.empty(),
+        rows: CompactSelection.empty(),
+        current: {
+          cell: [dataCol, rowIndex],
+          range: { x: dataCol, y: rowIndex, width: 1, height: 1 },
+          rangeStack: [],
+        },
+      });
+    };
+    applySelection();
+    requestAnimationFrame(() => {
+      applySelection();
+      gridRef.current?.focus?.();
+    });
+  }, []);
 
-  /**
-   * Navegación tipo planilla: Tab en la última columna de datos ("Está abierto") pasa a la primera
-   * columna de la fila siguiente; en la última fila útil, dispara appendRow (nueva fila + foco col 0).
-   */
-  /** Enfoca la grilla en la primera celda con error de la fila (o la primera columna de datos). */
-  const focusRowInGrid = useCallback((rowIndex: number) => {
-    const row = dataRef.current[rowIndex];
-    let colGrid = ROW_MARKERS_BOTH_OFFSET;
-    if (row && rowHasData(row)) {
-      const ce = row._cellErrors || {};
-      for (let i = 0; i < COLUMN_DEFINITIONS.length; i++) {
-        const id = COLUMN_DEFINITIONS[i].id;
-        if (ce[id]) {
-          colGrid = ROW_MARKERS_BOTH_OFFSET + i;
-          break;
+  /** Enfoca la grilla en la primera celda con error de la fila (o Relevador). */
+  const focusRowInGrid = useCallback(
+    (rowIndex: number) => {
+      const row = dataRef.current[rowIndex];
+      let dataCol = relevamientoInspectorDataCol();
+      if (row && rowHasData(row)) {
+        const ce = row._cellErrors || {};
+        for (let i = 0; i < COLUMN_DEFINITIONS.length; i++) {
+          const id = COLUMN_DEFINITIONS[i].id;
+          if (ce[id]) {
+            dataCol = i;
+            break;
+          }
         }
       }
-    }
-    setGridSelection({
-      columns: CompactSelection.empty(),
-      rows: CompactSelection.empty(),
-      current: {
-        cell: [colGrid, rowIndex],
-        range: { x: colGrid, y: rowIndex, width: 1, height: 1 },
-        rangeStack: [],
-      },
-    });
-  }, []);
+      focusGridCell(dataCol, rowIndex);
+    },
+    [focusGridCell]
+  );
 
-  const handleGridKeyDown = useCallback((event: GridKeyEventArgs) => {
-    if (event.key !== "Tab" || event.shiftKey) return;
-    const loc = event.location;
-    if (loc === undefined) return;
-    const [colGrid, row] = loc;
-    const lastDataColGrid = ROW_MARKERS_BOTH_OFFSET + COLUMN_DEFINITIONS.length - 1;
-    if (colGrid !== lastDataColGrid) return;
+  const handleGridKeyDown = useCallback(
+    (event: GridKeyEventArgs) => {
+      if (event.key !== "Tab") return;
+      const active = relevamientoResolveTabDataCol(
+        event.location,
+        gridSelectionRef.current?.current?.cell
+      );
+      if (!active) return;
+      const { dataCol, row } = active;
 
-    event.cancel();
-    event.preventDefault();
-    event.stopPropagation();
+      if (event.shiftKey) {
+        const back = resolveRelevamientoShiftTabBackwardStep(dataCol, row);
+        if (!back) return;
+        event.cancel();
+        if (back.type === "prev-col") {
+          const [targetDataCol, targetRow] = relevamientoDataColGridCell(back.dataCol, back.row);
+          focusGridCell(targetDataCol, targetRow);
+          return;
+        }
+        const [targetDataCol, targetRow] = relevamientoLastEditableGridCell(back.row);
+        focusGridCell(targetDataCol, targetRow);
+        return;
+      }
 
-    const numRows = dataRef.current.length;
-    const isAtLastUsableRow = row >= numRows - 1;
+      const forward = resolveRelevamientoTabForwardStep(dataCol, row, dataRef.current.length);
+      if (!forward) return;
 
-    if (isAtLastUsableRow) {
-      void gridRef.current?.appendRow(0, false);
-      return;
-    }
+      event.cancel();
+      event.preventDefault();
+      event.stopPropagation();
 
-    setGridSelection({
-      columns: CompactSelection.empty(),
-      rows: CompactSelection.empty(),
-      current: {
-        cell: [ROW_MARKERS_BOTH_OFFSET, row + 1],
-        range: { x: ROW_MARKERS_BOTH_OFFSET, y: row + 1, width: 1, height: 1 },
-        rangeStack: [],
-      },
-    });
-  }, []);
+      if (forward.type === "next-col") {
+        const [targetDataCol, targetRow] = relevamientoDataColGridCell(forward.dataCol, forward.row);
+        focusGridCell(targetDataCol, targetRow);
+        return;
+      }
+
+      if (forward.type === "append-row-first-col") {
+        void gridRef.current?.appendRow(relevamientoInspectorDataCol(), true);
+        return;
+      }
+
+      const [targetDataCol, targetRow] = relevamientoInspectorGridCell(forward.row);
+      focusGridCell(targetDataCol, targetRow);
+    },
+    [focusGridCell]
+  );
 
   const columns = useMemo<GridColumn[]>(
     () =>
@@ -489,7 +600,6 @@ const TablaCargarRelevamientosGlideStyled = ({
           /** Solo Calle crece: reduce presión de scroll horizontal en notebooks. */
           grow: col.id === "Calle" ? 1 : 0,
           group: col.group,
-          icon: col.icon,
           themeOverride: groupConfig
             ? {
                 bgHeader: groupConfig.color,
@@ -633,16 +743,14 @@ const TablaCargarRelevamientosGlideStyled = ({
     void ensureBatchStarted();
   }, [ensureBatchStarted]);
 
-  const handleFinishedEditing = useCallback(
-    (_newValue: GridCell | undefined, [col, row]: Item) => {
-      if (row === data.length - 1 && col === COLUMN_DEFINITIONS.length - 1) {
-        setTimeout(() => handleAddRow(), 100);
-      }
-    },
-    [data]
-  );
-
-  const onRowAppended = useCallback(() => handleAddRow(), []);
+  const onRowAppended = useCallback(() => {
+    setData((prev) => [...prev, createEmptyRow()]);
+    requestAnimationFrame(() => {
+      const rowIdx = dataRef.current.length - 1;
+      const [dataCol] = relevamientoInspectorGridCell(rowIdx);
+      focusGridCell(dataCol, rowIdx);
+    });
+  }, [focusGridCell]);
   const rowsWithData = data.filter(rowHasData);
   const validationRailEntries = useMemo(() => buildValidationRailEntries(data), [data]);
 
@@ -749,7 +857,6 @@ const TablaCargarRelevamientosGlideStyled = ({
             onCellEdited={handleCellEdit}
             onCellClicked={handleCellClicked}
             onKeyDown={handleGridKeyDown}
-            onFinishedEditing={handleFinishedEditing}
             onRowAppended={onRowAppended}
             customRenderers={allCells}
             theme={gridTheme}
@@ -765,6 +872,7 @@ const TablaCargarRelevamientosGlideStyled = ({
               sticky: false,
               tint: true,
               hint: "Presioná Enter o hacé clic para agregar una fila…",
+              targetColumn: RELEVAMIENTO_FIRST_EDITABLE_COL_INDEX,
             }}
             getCellsForSelection={true}
             freezeColumns={0}

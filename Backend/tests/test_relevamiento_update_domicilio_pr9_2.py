@@ -8,6 +8,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.domicilios.services.domicilio_edit_policy_service import (
@@ -18,8 +19,11 @@ from app.domains.relevamientos.services.create_service import crear_relevamiento
 from app.domains.relevamientos.services.relevamiento_iniciador_service import (
     get_or_create_iniciador_from_relevamiento,
 )
+from app.domains.relevamientos.services.relevamiento_relevadores_service import (
+    sync_relevamiento_relevadores,
+)
 from app.domains.relevamientos.services.update_service import actualizar_relevamiento
-from app.models import Domicilio, IniciadorRuta, Inspector, Relevamiento, Rubro
+from app.models import Domicilio, IniciadorRuta, Relevador, Relevamiento, Rubro
 
 
 @pytest.fixture
@@ -46,12 +50,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro en BD")
-    return ins, rub
+def _relevador_y_rubro():
+    rev = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rev, rub
+
 
 
 def _uniq(prefix: str) -> str:
@@ -63,7 +66,7 @@ def _payload(
     calle: str,
     numero: str,
     rubro: str,
-    inspector: str,
+    relevador: str,
     fecha: str = "2026-03-10",
     tipo: str | None = None,
     nombre_fantasia: str | None = None,
@@ -74,7 +77,7 @@ def _payload(
         dom["numero_tipo"] = tipo
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [relevador],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -91,7 +94,7 @@ def _mk_relevamiento_compartido_mismo_domicilio(
     rubro_nombre: str,
     nombre_fantasia: str,
     domicilio_id: int,
-    ins,
+    rev: Relevador,
 ) -> Relevamiento:
     """Segundo relevamiento en el mismo mes compartiendo domicilio_id (setup PR9.2)."""
     from app.utils.fechas import parse_fecha_grid
@@ -102,13 +105,14 @@ def _mk_relevamiento_compartido_mismo_domicilio(
         fecha=fecha,
         mes=mes,
         anio=anio,
-        inspector_id=ins.id,
+        inspector_id=None,
         domicilio_id=domicilio_id,
         rubro_id=rub.id if rub else None,
         nombre_fantasia=nombre_fantasia,
     )
     db.session.add(rel)
     db.session.flush()
+    sync_relevamiento_relevadores(rel, [rev.id])
     ini = get_or_create_iniciador_from_relevamiento(rel)
     db.session.add(ini)
     db.session.commit()
@@ -117,16 +121,16 @@ def _mk_relevamiento_compartido_mismo_domicilio(
 
 def test_pr92_policy_compartido_cow_al_cambiar_geo(app_ctx) -> None:
     try:
-        ins, rub = _inspector_y_rubro()
+        rev, rub = _relevador_y_rubro()
         calle = _uniq("Pr92Pol")
-        p = _payload(calle=calle, numero="10", rubro=rub.nombre, inspector=ins.nombre, nombre_fantasia="A")
+        p = _payload(calle=calle, numero="10", rubro=rub.nombre, relevador=rev.nombre, nombre_fantasia="A")
         r1 = crear_relevamiento_desde_payload(p)
         _mk_relevamiento_compartido_mismo_domicilio(
             base_payload=p,
             rubro_nombre=rub.nombre,
             nombre_fantasia="B",
             domicilio_id=int(r1.domicilio_id),
-            ins=ins,
+            rev=rev,
         )
         assert domicilio_compartido_para_edicion_relevamiento(
             int(r1.domicilio_id),
@@ -146,12 +150,12 @@ def test_pr92_policy_compartido_cow_al_cambiar_geo(app_ctx) -> None:
 
 @patch("app.domains.relevamientos.services.update_service.on_domicilio_changed")
 def test_pr92_edit_solo_owner_recalcula_geocode(mock_geo, app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     calle = _uniq("Pr92Geo")
     nueva_calle = _uniq("MendozaPr92Geo")
     try:
         rel = crear_relevamiento_desde_payload(
-            _payload(calle=calle, numero="34", rubro=rub.nombre, inspector=ins.nombre, nombre_fantasia="Pan")
+            _payload(calle=calle, numero="34", rubro=rub.nombre, relevador=rev.nombre, nombre_fantasia="Pan")
         )
         mock_geo.reset_mock()
         actualizar_relevamiento(
@@ -160,7 +164,7 @@ def test_pr92_edit_solo_owner_recalcula_geocode(mock_geo, app_ctx, require_pr72_
                 calle=nueva_calle,
                 numero="500",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 nombre_fantasia="Pan",
             ),
         )
@@ -175,7 +179,7 @@ def test_pr92_edit_solo_owner_recalcula_geocode(mock_geo, app_ctx, require_pr72_
 
 
 def test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first()
     if rub2 is None:
         pytest.skip("Se requiere segundo rubro")
@@ -186,7 +190,7 @@ def test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado(app_ctx, requi
             calle=calle,
             numero="34",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            relevador=rev.nombre,
             nombre_fantasia="Panadería",
         )
         r1 = crear_relevamiento_desde_payload(p_base)
@@ -195,7 +199,7 @@ def test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado(app_ctx, requi
             rubro_nombre=rub2.nombre,
             nombre_fantasia="Carnicería",
             domicilio_id=int(r1.domicilio_id),
-            ins=ins,
+            rev=rev,
         )
         assert r1.domicilio_id == r2.domicilio_id
         dom_id_antes = r1.domicilio_id
@@ -209,7 +213,7 @@ def test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado(app_ctx, requi
                 calle=nueva_calle,
                 numero="500",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 nombre_fantasia="Panadería",
             ),
         )
@@ -231,7 +235,7 @@ def test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado(app_ctx, requi
 
 
 def test_pr92_edit_esquina_a_numero_domicilio_correcto(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     calle = _uniq("Pr92EsqNum")
     try:
         rel = crear_relevamiento_desde_payload(
@@ -239,7 +243,7 @@ def test_pr92_edit_esquina_a_numero_domicilio_correcto(app_ctx, require_pr72_mig
                 calle=calle,
                 numero="y Maipú",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 tipo="ESQUINA",
                 angulo_esquina="NE",
             )
@@ -250,7 +254,7 @@ def test_pr92_edit_esquina_a_numero_domicilio_correcto(app_ctx, require_pr72_mig
                 calle=calle,
                 numero="500",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 tipo="NUMERO",
             ),
         )
@@ -265,14 +269,14 @@ def test_pr92_edit_esquina_a_numero_domicilio_correcto(app_ctx, require_pr72_mig
 
 
 def test_pr92_edit_mismo_establecimiento_otro_mes_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = _relevador_y_rubro()
     calle = _uniq("Pr92Mes")
     try:
         p = _payload(
             calle=calle,
             numero="77",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            relevador=rev.nombre,
             fecha="2026-03-10",
             nombre_fantasia="Local",
         )
@@ -285,7 +289,7 @@ def test_pr92_edit_mismo_establecimiento_otro_mes_permite(app_ctx, require_pr72_
                 calle=calle,
                 numero="77",
                 rubro=rub.nombre,
-                inspector=ins.nombre,
+                relevador=rev.nombre,
                 fecha="2026-05-15",
                 nombre_fantasia="Local",
             ),

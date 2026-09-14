@@ -23,6 +23,7 @@ from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ru
 from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 from app.models import Actuaciones, IniciadorRuta, Inspector, OrdenTrabajo, Rubro, RutaItem, User
 
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 from tests.test_ruta_publicar_integrity_reintento_pr11_1e import (
     _insertar_segunda_actuacion_legacy_dual,
 )
@@ -116,8 +117,8 @@ def test_pr11_1f_dos_actuaciones_mismo_iniciador_ot_historica_bloquea(app_ctx) -
     La OT del segundo intento histórico queda consumida: republicar con esa OT → 409.
     """
     rub = Rubro.query.first()
-    ins = Inspector.query.first()
-    assert rub and ins
+    rev = get_or_create_test_relevador()
+    assert rub is not None
     u = User(
         username=f"u_pr11f_{uuid4().hex[:8]}",
         email=f"pr11f_{uuid4().hex[:8]}@t.local",
@@ -131,7 +132,7 @@ def test_pr11_1f_dos_actuaciones_mismo_iniciador_ot_historica_bloquea(app_ctx) -
     rel = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-10",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": f"Pr11f_{uuid4().hex[:6]}", "numero": "1"},
             "rubro_nombre": rub.nombre,
         }

@@ -15,7 +15,9 @@ function render(ui: React.ReactElement) {
 const baseRow: IRelevamientoListItem = {
   id: 7,
   fecha: "2026-05-10",
-  inspector: "García",
+  relevadores_label: "García",
+  relevador_ids: [1],
+  relevadores: [{ id: 1, nombre: "García" }],
   calle: "San Martín",
   calle_estado: "OK",
   calle_normalizada: "Av. San Martín",
@@ -27,7 +29,13 @@ const baseRow: IRelevamientoListItem = {
   editable: true,
 };
 
-const catalogs = { inspectores: ["García", "López"], rubros: ["Carnicería"] };
+const catalogs = {
+  relevadores: [
+    { id: 1, nombre: "García" },
+    { id: 2, nombre: "López" },
+  ],
+  rubros: ["Carnicería"],
+};
 
 import { buildNumeroTipoDraftPatch, relevamientoRowParaEdicion } from "../utils/relevamientoCamposForm";
 

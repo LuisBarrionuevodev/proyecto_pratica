@@ -8,6 +8,7 @@ from datetime import date, datetime
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.grid.services.batch_store import InMemoryBatchStore
@@ -21,7 +22,7 @@ from app.domains.relevamientos.services.relevamiento_unicidad_service import (
     RELEVAMIENTO_UNICIDAD_ESTABLECIMIENTO_MSG,
     RELEVAMIENTO_UNICIDAD_NUMERO_MSG,
 )
-from app.models import IniciadorRuta, Inspector, Relevamiento, Rubro
+from app.models import Domicilio, IniciadorRuta, Inspector, Relevamiento, Rubro
 
 
 @pytest.fixture
@@ -48,12 +49,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _payload(
@@ -67,7 +67,7 @@ def _payload(
 ):
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": {"calle": calle, "numero": numero},
         "rubro_nombre": rubro,
     }
@@ -81,17 +81,23 @@ def _uniq(prefix: str) -> str:
 
 
 def test_pr76_numero_recambio_rubro_crea_iniciador_nuevo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first()
     if not rub2:
         pytest.skip("Se requiere segundo rubro")
     calle = _uniq("RecambioRubro")
     try:
-        p1 = _payload(calle=calle, numero="234", rubro=rub.nombre, inspector=ins.nombre)
+        p1 = _payload(calle=calle, numero="234", rubro=rub.nombre, inspector=rel.nombre)
         r1 = crear_relevamiento_desde_payload(p1)
         p2 = {**p1, "fecha": "2026-07-02", "rubro_nombre": rub2.nombre}
         r2 = crear_relevamiento_desde_payload(p2)
-        assert r1.domicilio_id == r2.domicilio_id
+        assert r1.rubro_id != r2.rubro_id
+        assert r1.domicilio_id != r2.domicilio_id
+        dom1 = db.session.get(Domicilio, r1.domicilio_id)
+        dom2 = db.session.get(Domicilio, r2.domicilio_id)
+        assert dom1 is not None and dom2 is not None
+        assert dom1.calle == calle and dom2.calle == calle
+        assert dom1.numero == "234" and dom2.numero == "234"
         ini1 = IniciadorRuta.query.filter_by(relevamiento_id=r1.id, deleted_at=None).count()
         ini2 = IniciadorRuta.query.filter_by(relevamiento_id=r2.id, deleted_at=None).count()
         assert ini1 >= 1
@@ -101,14 +107,14 @@ def test_pr76_numero_recambio_rubro_crea_iniciador_nuevo(app_ctx, require_pr72_m
 
 
 def test_pr76_numero_mismo_nombre_normalizado_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("NomNorm")
     try:
         p1 = _payload(
             calle=calle,
             numero="10",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             nombre_fantasia="Mi Local",
         )
         crear_relevamiento_desde_payload(p1)
@@ -121,10 +127,10 @@ def test_pr76_numero_mismo_nombre_normalizado_bloquea(app_ctx, require_pr72_migr
 
 
 def test_pr76_numero_soft_delete_permite_nuevo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("NumSD")
     try:
-        p = _payload(calle=calle, numero="20", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="20", rubro=rub.nombre, inspector=rel.nombre)
         rel = crear_relevamiento_desde_payload(p)
         rel.deleted_at = datetime.utcnow()
         db.session.commit()
@@ -134,11 +140,11 @@ def test_pr76_numero_soft_delete_permite_nuevo(app_ctx, require_pr72_migration) 
 
 
 def test_pr76_esquina_regla_pr75_intacta(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqIntacta")
     try:
         p = {
-            **_payload(calle=calle, numero="y Test", rubro=rub.nombre, inspector=ins.nombre),
+            **_payload(calle=calle, numero="y Test", rubro=rub.nombre, inspector=rel.nombre),
             "domicilio": {"calle": calle, "numero": "y Test", "numero_tipo": "ESQUINA"},
             "angulo_esquina": "NE",
         }
@@ -150,7 +156,10 @@ def test_pr76_esquina_regla_pr75_intacta(app_ctx, require_pr72_migration) -> Non
 
 
 def test_pr76_auditoria_multi_establecimiento_numero(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
+    ins = Inspector.query.first()
+    if ins is None:
+        pytest.skip("Inspector requerido para fixture legacy")
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first()
     if not rub2:
         pytest.skip("Se requiere segundo rubro")
@@ -193,14 +202,14 @@ def test_pr76_auditoria_multi_establecimiento_numero(app_ctx, require_pr72_migra
 
 
 def test_pr76_batch_numero_duplicado_exacto_en_lote(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     calle = _uniq("BatchDup")
     raw = {
         "fecha": "2026-07-06",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "99",
         "rubro": rub.nombre,
@@ -212,7 +221,7 @@ def test_pr76_batch_numero_duplicado_exacto_en_lote(app_ctx, require_pr72_migrat
 
 
 def test_pr76_batch_numero_distinto_rubro_en_lote(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first()
     if not rub2:
         pytest.skip("Se requiere segundo rubro")
@@ -222,7 +231,7 @@ def test_pr76_batch_numero_distinto_rubro_en_lote(app_ctx, require_pr72_migratio
     calle = _uniq("BatchRub")
     base = {
         "fecha": "2026-07-08",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "77",
         "rubro": rub.nombre,

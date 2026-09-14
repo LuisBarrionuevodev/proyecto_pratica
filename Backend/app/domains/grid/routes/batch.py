@@ -22,6 +22,7 @@ from app.domains.geolocalizacion.geocode.services.pipeline_service import (
     pipeline_post_commit,
 )
 from app.domains.catalogos.services.rubros_catalog_service import listar_rubros_catalogo
+from app.domains.relevamientos.catalogs.relevador import listar_relevadores_catalogo
 from app.domains.catalogos.services.item_acta_inspeccion_catalog_service import (
     listar_items_acta_inspeccion_catalogo,
 )
@@ -183,6 +184,16 @@ def commit_batch():
 
     resp = CommitBatchResponse(batch_id=req.batch_id, results=results)
     return jsonify(resp.model_dump()), 200
+
+
+@grid.get("/catalogs/relevadores")
+def list_relevadores():
+    """
+    Devuelve catálogo de relevadores para dropdowns del grid de relevamientos.
+
+    Response: {"items": [{"id": int, "nombre": str}]}
+    """
+    return jsonify({"items": listar_relevadores_catalogo(solo_activos=True)}), 200
 
 
 @grid.get("/catalogs/inspectores")

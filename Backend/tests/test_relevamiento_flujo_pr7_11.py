@@ -13,6 +13,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 from sqlalchemy.orm import joinedload
 
 from app.database import db
@@ -79,11 +80,8 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 (revision b7e8f9a0c1d2) aplicada en BD")
 
 
-def _inspector() -> Inspector:
-    ins = Inspector.query.first()
-    if ins is None:
-        pytest.skip("Se requiere al menos un inspector en catálogo")
-    return ins
+def _relevador():
+    return get_or_create_test_relevador()
 
 
 def _dos_inspectores() -> tuple[Inspector, Inspector]:
@@ -105,7 +103,7 @@ def _payload_esquina(
     dom = {"calle": calle, "numero": "y Maipu", "numero_tipo": "ESQUINA"}
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -122,7 +120,7 @@ def _crear_esquina_multi_establecimiento():
 
     Retorna (rel_a, rel_b, ini_a, ini_b, rub_a, rub_b, dom).
     """
-    ins = _inspector()
+    rel = _relevador()
     rub_a = Rubro(nombre=_uniq("CarnPr711"))
     rub_b = Rubro(nombre=_uniq("VerdPr711"))
     db.session.add_all([rub_a, rub_b])
@@ -133,7 +131,7 @@ def _crear_esquina_multi_establecimiento():
         _payload_esquina(
             calle=calle,
             rubro=rub_a.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-07-01",
             nombre_fantasia="El Toro",
             angulo_esquina="NE",
@@ -143,7 +141,7 @@ def _crear_esquina_multi_establecimiento():
         _payload_esquina(
             calle=calle,
             rubro=rub_b.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-07-02",
             nombre_fantasia="La Huerta",
             angulo_esquina="SO",
@@ -386,7 +384,7 @@ def test_pr711_completar_trabajo_cambia_domicilio_relevamiento_intacto(
 def test_pr711_numero_recambio_rubro_distingue_y_duplicado_bloquea(
     app_ctx, require_pr72_migration
 ) -> None:
-    ins = _inspector()
+    rel = _relevador()
     rub_carn = Rubro(nombre=_uniq("CarnNum711"))
     rub_poll = Rubro(nombre=_uniq("PollNum711"))
     db.session.add_all([rub_carn, rub_poll])
@@ -395,7 +393,7 @@ def test_pr711_numero_recambio_rubro_distingue_y_duplicado_bloquea(
     try:
         p1 = {
             "fecha": "2026-07-05",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rel.nombre],
             "domicilio": {"calle": calle, "numero": "234"},
             "rubro_nombre": rub_carn.nombre,
         }
@@ -403,7 +401,14 @@ def test_pr711_numero_recambio_rubro_distingue_y_duplicado_bloquea(
         r2 = crear_relevamiento_desde_payload(
             {**p1, "fecha": "2026-07-06", "rubro_nombre": rub_poll.nombre}
         )
-        assert r1.domicilio_id == r2.domicilio_id
+        assert r1.rubro_id == rub_carn.id
+        assert r2.rubro_id == rub_poll.id
+        assert r1.domicilio_id != r2.domicilio_id
+        dom1 = db.session.get(Domicilio, r1.domicilio_id)
+        dom2 = db.session.get(Domicilio, r2.domicilio_id)
+        assert dom1 is not None and dom2 is not None
+        assert dom1.calle == calle and dom2.calle == calle
+        assert dom1.numero == "234" and dom2.numero == "234"
 
         ini1 = IniciadorRuta.query.filter_by(relevamiento_id=r1.id, deleted_at=None).first()
         ini2 = IniciadorRuta.query.filter_by(relevamiento_id=r2.id, deleted_at=None).first()

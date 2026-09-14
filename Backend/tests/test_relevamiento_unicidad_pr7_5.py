@@ -8,6 +8,7 @@ from datetime import date, datetime
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.grid.services.batch_store import InMemoryBatchStore
@@ -49,12 +50,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 (revision b7e8f9a0c1d2) aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _payload(
@@ -73,7 +73,7 @@ def _payload(
         dom["numero_tipo"] = tipo
     out = {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -92,10 +92,10 @@ def _uniq(prefix: str) -> str:
 
 
 def test_pr75_numero_mismo_rubro_sin_nombre_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("NumDup")
     try:
-        p1 = _payload(calle=calle, numero="501", rubro=rub.nombre, inspector=ins.nombre)
+        p1 = _payload(calle=calle, numero="501", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p1)
         with pytest.raises(ValueError, match="establecimiento en el mismo domicilio"):
             crear_relevamiento_desde_payload({**p1, "fecha": "2026-05-11"})
@@ -104,14 +104,14 @@ def test_pr75_numero_mismo_rubro_sin_nombre_bloquea(app_ctx, require_pr72_migrat
 
 
 def test_pr75_numero_mismo_rubro_nombre_distinto_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("NumNom")
     try:
         p1 = _payload(
             calle=calle,
             numero="502",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             nombre_fantasia="Local A",
         )
         crear_relevamiento_desde_payload(p1)
@@ -126,7 +126,7 @@ def test_pr75_numero_mismo_rubro_nombre_distinto_permite(app_ctx, require_pr72_m
 
 
 def test_pr75_esquina_dos_rubros_distintos_ok(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first() or rub
     calle = _uniq("Esq2Rub")
     try:
@@ -134,7 +134,7 @@ def test_pr75_esquina_dos_rubros_distintos_ok(app_ctx, require_pr72_migration) -
             calle=calle,
             numero="y Norte",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             angulo_esquina="NE",
         )
@@ -146,14 +146,14 @@ def test_pr75_esquina_dos_rubros_distintos_ok(app_ctx, require_pr72_migration) -
 
 
 def test_pr75_esquina_mismo_rubro_distinto_angulo_ok(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqAng")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Sur",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             angulo_esquina="NE",
         )
@@ -165,14 +165,14 @@ def test_pr75_esquina_mismo_rubro_distinto_angulo_ok(app_ctx, require_pr72_migra
 
 
 def test_pr75_esquina_mismo_rubro_mismo_angulo_bloqueado(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqDupAng")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Oeste",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             angulo_esquina="SE",
         )
@@ -185,14 +185,14 @@ def test_pr75_esquina_mismo_rubro_mismo_angulo_bloqueado(app_ctx, require_pr72_m
 
 
 def test_pr75_esquina_mismo_rubro_distinto_nombre_ok(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqNom")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Este",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             nombre_fantasia="El Toro",
         )
@@ -204,14 +204,14 @@ def test_pr75_esquina_mismo_rubro_distinto_nombre_ok(app_ctx, require_pr72_migra
 
 
 def test_pr75_esquina_mismo_nombre_normalizado_bloqueado(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqNomDup")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Centro",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             nombre_fantasia="Pan Express",
         )
@@ -224,14 +224,14 @@ def test_pr75_esquina_mismo_nombre_normalizado_bloqueado(app_ctx, require_pr72_m
 
 
 def test_pr75_esquina_legacy_vacio_mismo_rubro_bloquea_alta(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqLegCreate")
     try:
         p1 = _payload(
             calle=calle,
             numero="y Legacy",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
         )
         crear_relevamiento_desde_payload(p1)
@@ -243,14 +243,14 @@ def test_pr75_esquina_legacy_vacio_mismo_rubro_bloquea_alta(app_ctx, require_pr7
 
 
 def test_pr75_update_mismo_registro_no_se_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqUpSelf")
     try:
         p = _payload(
             calle=calle,
             numero="y Self",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             angulo_esquina="NE",
             nombre_fantasia="Uno",
@@ -262,14 +262,14 @@ def test_pr75_update_mismo_registro_no_se_bloquea(app_ctx, require_pr72_migratio
 
 
 def test_pr75_update_angulo_a_existente_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqUpAng")
     try:
         base = _payload(
             calle=calle,
             numero="y UpAng",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
         )
         r1 = crear_relevamiento_desde_payload({**base, "angulo_esquina": "NE"})
@@ -282,14 +282,14 @@ def test_pr75_update_angulo_a_existente_bloquea(app_ctx, require_pr72_migration)
 
 
 def test_pr75_soft_delete_no_bloquea_nuevo(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("EsqSD")
     try:
         p = _payload(
             calle=calle,
             numero="y Soft",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
             angulo_esquina="SO",
         )
@@ -307,7 +307,10 @@ def test_pr75_legacy_update_coexistencia_no_bloquea(app_ctx, require_pr72_migrat
         assert_sin_relevamiento_activo_duplicado,
     )
 
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
+    ins = Inspector.query.first()
+    if ins is None:
+        pytest.skip("Inspector requerido para fixture legacy")
     calle = _uniq("EsqLegUp")
     try:
         dom = Domicilio(calle=calle, numero="y LegacyUp", numero_tipo="ESQUINA")
@@ -348,7 +351,10 @@ def test_pr75_legacy_update_coexistencia_no_bloquea(app_ctx, require_pr72_migrat
 
 
 def test_pr75_auditoria_detecta_colision_exacta(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
+    ins = Inspector.query.first()
+    if ins is None:
+        pytest.skip("Inspector requerido para fixture legacy")
     calle = _uniq("AudExact")
     try:
         dom = Domicilio(calle=calle, numero="y Audit", numero_tipo="ESQUINA")
@@ -377,7 +383,10 @@ def test_pr75_auditoria_detecta_colision_exacta(app_ctx, require_pr72_migration)
 
 
 def test_pr75_auditoria_reporta_legacy_vacio(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
+    ins = Inspector.query.first()
+    if ins is None:
+        pytest.skip("Inspector requerido para fixture legacy")
     calle = _uniq("AudLeg")
     try:
         dom = Domicilio(calle=calle, numero="y LegAudit", numero_tipo="ESQUINA")
@@ -405,14 +414,14 @@ def test_pr75_auditoria_reporta_legacy_vacio(app_ctx, require_pr72_migration) ->
 
 
 def test_pr75_batch_esquina_mismo_rubro_angulo_duplicado(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     calle = _uniq("BatchEsqDup")
     base = {
         "fecha": "2026-05-22",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "y Batch",
         "rubro": rub.nombre,
@@ -426,14 +435,14 @@ def test_pr75_batch_esquina_mismo_rubro_angulo_duplicado(app_ctx, require_pr72_m
 
 
 def test_pr75_batch_esquina_mismo_rubro_distinto_angulo_ok(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     calle = _uniq("BatchEsqOk")
     base = {
         "fecha": "2026-05-24",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "y BatchOk",
         "rubro": rub.nombre,
@@ -451,17 +460,17 @@ def test_pr75_batch_esquina_mismo_rubro_distinto_angulo_ok(app_ctx, require_pr72
 
 
 def test_pr75_batch_numero_distinto_rubro_permite(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("BatchNumOk")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     try:
-        p = _payload(calle=calle, numero="880", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="880", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p)
         raw = {
             "fecha": "2026-05-26",
-            "inspector": ins.nombre,
+            "relevador": rel.nombre,
             "calle": calle,
             "numero": "880",
             "rubro": rub.nombre,
@@ -478,17 +487,17 @@ def test_pr75_batch_numero_distinto_rubro_permite(app_ctx, require_pr72_migratio
 
 
 def test_pr75_batch_numero_duplicado_exacto_bloquea(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("BatchNumDup")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     try:
-        p = _payload(calle=calle, numero="881", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="881", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p)
         raw = {
             "fecha": "2026-05-27",
-            "inspector": ins.nombre,
+            "relevador": rel.nombre,
             "calle": calle,
             "numero": "881",
             "rubro": rub.nombre,

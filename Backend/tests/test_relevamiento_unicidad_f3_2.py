@@ -10,6 +10,7 @@ from datetime import date, datetime
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.grid.services.batch_store import InMemoryBatchStore
@@ -33,12 +34,11 @@ def app_ctx():
         db.session.rollback()
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _payload(*, calle: str, numero: str, rubro: str, inspector: str, fecha: str = "2026-05-10", tipo: str | None = None):
@@ -47,7 +47,7 @@ def _payload(*, calle: str, numero: str, rubro: str, inspector: str, fecha: str 
         dom["numero_tipo"] = tipo
     return {
         "fecha": fecha,
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": dom,
         "rubro_nombre": rubro,
     }
@@ -59,10 +59,10 @@ def _uniq(prefix: str) -> str:
 
 def test_f32_altura_segundo_rubro_permitido_pr76(app_ctx) -> None:
     """PR7.6: mismo domicilio NUMERO con rubro distinto permite segundo relevamiento."""
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("SanMartínF32")
     try:
-        p1 = _payload(calle=calle, numero="1009", rubro=rub.nombre, inspector=ins.nombre)
+        p1 = _payload(calle=calle, numero="1009", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p1)
         p2 = {
             **p1,
@@ -79,10 +79,10 @@ def test_f32_altura_segundo_rubro_permitido_pr76(app_ctx) -> None:
 
 
 def test_f32_altura_mismo_rubro_sin_nombre_bloqueado(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("SanMartínDup")
     try:
-        p1 = _payload(calle=calle, numero="1010", rubro=rub.nombre, inspector=ins.nombre)
+        p1 = _payload(calle=calle, numero="1010", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p1)
         with pytest.raises(ValueError, match="establecimiento en el mismo domicilio"):
             crear_relevamiento_desde_payload({**p1, "fecha": "2026-05-12"})
@@ -91,7 +91,7 @@ def test_f32_altura_mismo_rubro_sin_nombre_bloqueado(app_ctx) -> None:
 
 
 def test_f32_esquina_dos_rubros_ok(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first() or rub
     calle = _uniq("MaipúF32")
     try:
@@ -99,7 +99,7 @@ def test_f32_esquina_dos_rubros_ok(app_ctx) -> None:
             calle=calle,
             numero="y Salta",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             tipo="ESQUINA",
         )
         p2 = {
@@ -114,10 +114,10 @@ def test_f32_esquina_dos_rubros_ok(app_ctx) -> None:
 
 
 def test_f32_soft_delete_permite_nuevo(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("SarmientoF32SD")
     try:
-        p = _payload(calle=calle, numero="200", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="200", rubro=rub.nombre, inspector=rel.nombre)
         rel = crear_relevamiento_desde_payload(p)
         rel.deleted_at = datetime.utcnow()
         db.session.commit()
@@ -127,10 +127,10 @@ def test_f32_soft_delete_permite_nuevo(app_ctx) -> None:
 
 
 def test_f32_update_mismo_domicilio_ok(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("LapridaF32U")
     try:
-        p = _payload(calle=calle, numero="50", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="50", rubro=rub.nombre, inspector=rel.nombre)
         rel = crear_relevamiento_desde_payload(p)
         p2 = {**p, "fecha": "2026-05-25", "esta_abierto": True}
         actualizar_relevamiento(rel.id, p2)
@@ -139,12 +139,12 @@ def test_f32_update_mismo_domicilio_ok(app_ctx) -> None:
 
 
 def test_f32_update_a_domicilio_ocupado_bloquea(app_ctx) -> None:
-    """PR7.6/PR9.2: reasignar a domicilio existente (misma calle/número) está permitido."""
-    ins, rub = _inspector_y_rubro()
+    """PR7.6: reasignar al mismo establecimiento (domicilio + rubro + mes) se bloquea."""
+    rel, rub = _relevador_y_rubro()
     base = _uniq("MitreF32B")
     try:
-        p1 = _payload(calle=base, numero="1", rubro=rub.nombre, inspector=ins.nombre)
-        p2 = _payload(calle=base, numero="2", rubro=rub.nombre, inspector=ins.nombre, fecha="2026-05-06")
+        p1 = _payload(calle=base, numero="1", rubro=rub.nombre, inspector=rel.nombre)
+        p2 = _payload(calle=base, numero="2", rubro=rub.nombre, inspector=rel.nombre, fecha="2026-05-06")
         r1 = crear_relevamiento_desde_payload(p1)
         r2 = crear_relevamiento_desde_payload(
             {
@@ -152,17 +152,14 @@ def test_f32_update_a_domicilio_ocupado_bloquea(app_ctx) -> None:
                 "domicilio": {"calle": f"{base} Otro", "numero": "99"},
             }
         )
-        actualizar_relevamiento(
-            r2.id,
-            {**p2, "domicilio": {"calle": base, "numero": "1"}},
-        )
+        with pytest.raises(ValueError, match="establecimiento en el mismo domicilio"):
+            actualizar_relevamiento(
+                r2.id,
+                {**p2, "domicilio": {"calle": base, "numero": "1"}},
+            )
         db.session.refresh(r1)
         db.session.refresh(r2)
-        dom_r1 = db.session.get(Domicilio, r1.domicilio_id)
-        dom_r2 = db.session.get(Domicilio, r2.domicilio_id)
-        assert dom_r1 is not None and dom_r2 is not None
-        assert dom_r1.calle == base and dom_r1.numero == "1"
-        assert dom_r2.calle == base and dom_r2.numero == "1"
+        assert r1.domicilio_id != r2.domicilio_id
     finally:
         db.session.rollback()
 
@@ -192,17 +189,17 @@ def test_assert_esquina_no_bloquea_dos(app_ctx) -> None:
 
 
 def test_f32_validate_batch_segunda_altura_distinto_rubro_ok_pr76(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     calle = _uniq("JunínF32V")
     try:
-        p = _payload(calle=calle, numero="300", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="300", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p)
         raw = {
             "fecha": "2026-05-15",
-            "inspector": ins.nombre,
+            "relevador": rel.nombre,
             "calle": calle,
             "numero": "300",
             "rubro": rub.nombre,
@@ -219,17 +216,17 @@ def test_f32_validate_batch_segunda_altura_distinto_rubro_ok_pr76(app_ctx) -> No
 
 
 def test_f32_validate_batch_mismo_establecimiento_numero_falla(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     calle = _uniq("JunínF32Dup")
     try:
-        p = _payload(calle=calle, numero="301", rubro=rub.nombre, inspector=ins.nombre)
+        p = _payload(calle=calle, numero="301", rubro=rub.nombre, inspector=rel.nombre)
         crear_relevamiento_desde_payload(p)
         raw = {
             "fecha": "2026-05-16",
-            "inspector": ins.nombre,
+            "relevador": rel.nombre,
             "calle": calle,
             "numero": "301",
             "rubro": rub.nombre,
@@ -242,14 +239,14 @@ def test_f32_validate_batch_mismo_establecimiento_numero_falla(app_ctx) -> None:
 
 
 def test_f32_validate_mismo_lote_dos_alturas_mismo_establecimiento_bloquea(app_ctx) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("LoteDupAlt")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
     batch_id = store.start_batch(kind="relevamientos")
     raw = {
         "fecha": "2026-05-21",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "100",
         "rubro": rub.nombre,
@@ -267,7 +264,7 @@ def test_f32_validate_mismo_lote_dos_alturas_mismo_establecimiento_bloquea(app_c
 
 def test_f32_validate_batch_dos_esquinas_ok(app_ctx) -> None:
     """Texto de esquina sin `numero_tipo` explícito: detección igual que en alta."""
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     rub2 = Rubro.query.filter(Rubro.id != rub.id).first() or rub
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -275,7 +272,7 @@ def test_f32_validate_batch_dos_esquinas_ok(app_ctx) -> None:
     calle = _uniq("CatamarcaF32E")
     base = {
         "fecha": "2026-05-18",
-        "inspector": ins.nombre,
+        "relevador": rel.nombre,
         "calle": calle,
         "numero": "y Mendoza",
         "rubro": rub.nombre,

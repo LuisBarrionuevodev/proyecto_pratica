@@ -11,6 +11,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro
 
 from app.database import db
 from app.domains.grid.services.batch_store import InMemoryBatchStore
@@ -46,12 +47,11 @@ def require_pr72_migration(app_ctx):
         pytest.skip("Requiere migración PR7.2 (revision b7e8f9a0c1d2) aplicada en BD")
 
 
-def _inspector_y_rubro():
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere al menos un inspector y un rubro en la BD de test")
-    return ins, rub
+def _relevador_y_rubro():
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    return rel, rub
+
 
 
 def _payload(
@@ -63,7 +63,7 @@ def _payload(
     fecha: str | None = "2026-03-10",
 ):
     out = {
-        "inspector_nombre": inspector,
+        "relevadores_nombres": [inspector],
         "domicilio": {"calle": calle, "numero": numero},
         "rubro_nombre": rubro,
     }
@@ -85,7 +85,7 @@ def _raw_grid(
     fecha: str | None = None,
 ) -> dict:
     raw = {
-        "inspector": inspector,
+        "relevador": inspector,
         "calle": calle,
         "numero": numero,
         "rubro": rubro,
@@ -96,11 +96,11 @@ def _raw_grid(
 
 
 def test_pr94_create_sin_fecha_asigna_fecha_actual(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr94Create")
     fixed = date(2026, 7, 16)
     try:
-        p = _payload(calle=calle, numero="10", rubro=rub.nombre, inspector=ins.nombre, fecha=None)
+        p = _payload(calle=calle, numero="10", rubro=rub.nombre, inspector=rel.nombre, fecha=None)
         with patch("app.domains.relevamientos.services.create_service.date") as mock_date:
             mock_date.today.return_value = fixed
             rel = crear_relevamiento_desde_payload(p)
@@ -112,7 +112,7 @@ def test_pr94_create_sin_fecha_asigna_fecha_actual(app_ctx, require_pr72_migrati
 
 
 def test_pr94_batch_sin_fecha_usa_fecha_lote(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr94BatchDate")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -120,7 +120,7 @@ def test_pr94_batch_sin_fecha_usa_fecha_lote(app_ctx, require_pr72_migration) ->
     st = store.get(batch_id)
     st.fecha_relevamiento_default = date(2026, 3, 18)
     try:
-        raw = _raw_grid(calle=calle, numero="22", rubro=rub.nombre, inspector=ins.nombre)
+        raw = _raw_grid(calle=calle, numero="22", rubro=rub.nombre, inspector=rel.nombre)
         resp = svc.validate_row(batch_id, "r1", raw, "relevamientos")
         assert resp.ok is True, resp.errors
         assert resp.normalized is not None
@@ -130,7 +130,7 @@ def test_pr94_batch_sin_fecha_usa_fecha_lote(app_ctx, require_pr72_migration) ->
 
 
 def test_pr94_batch_filas_comparten_fecha_efectiva(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr94BatchShared")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -138,7 +138,7 @@ def test_pr94_batch_filas_comparten_fecha_efectiva(app_ctx, require_pr72_migrati
     st = store.get(batch_id)
     st.fecha_relevamiento_default = date(2026, 4, 5)
     try:
-        base = _raw_grid(calle=calle, numero="33", rubro=rub.nombre, inspector=ins.nombre)
+        base = _raw_grid(calle=calle, numero="33", rubro=rub.nombre, inspector=rel.nombre)
         r1 = svc.validate_row(batch_id, "a", base, "relevamientos")
         r2 = svc.validate_row(
             batch_id,
@@ -154,7 +154,7 @@ def test_pr94_batch_filas_comparten_fecha_efectiva(app_ctx, require_pr72_migrati
 
 
 def test_pr94_batch_unicidad_mensual_usa_fecha_efectiva(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr94BatchUnic")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -163,9 +163,9 @@ def test_pr94_batch_unicidad_mensual_usa_fecha_efectiva(app_ctx, require_pr72_mi
     st.fecha_relevamiento_default = date(2026, 3, 20)
     try:
         crear_relevamiento_desde_payload(
-            _payload(calle=calle, numero="55", rubro=rub.nombre, inspector=ins.nombre, fecha="2026-03-10")
+            _payload(calle=calle, numero="55", rubro=rub.nombre, inspector=rel.nombre, fecha="2026-03-10")
         )
-        raw = _raw_grid(calle=calle, numero="55", rubro=rub.nombre, inspector=ins.nombre)
+        raw = _raw_grid(calle=calle, numero="55", rubro=rub.nombre, inspector=rel.nombre)
         resp = svc.validate_row(batch_id, "n1", raw, "relevamientos")
         assert resp.ok is False
         assert RELEVAMIENTO_UNICIDAD_NUMERO_MSG in (resp.errors.get("_row") or "")
@@ -174,7 +174,7 @@ def test_pr94_batch_unicidad_mensual_usa_fecha_efectiva(app_ctx, require_pr72_mi
 
 
 def test_pr94_batch_duplicado_interno_sin_fecha(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr94BatchDup")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -182,7 +182,7 @@ def test_pr94_batch_duplicado_interno_sin_fecha(app_ctx, require_pr72_migration)
     st = store.get(batch_id)
     st.fecha_relevamiento_default = date(2026, 3, 21)
     try:
-        base = _raw_grid(calle=calle, numero="66", rubro=rub.nombre, inspector=ins.nombre)
+        base = _raw_grid(calle=calle, numero="66", rubro=rub.nombre, inspector=rel.nombre)
         assert svc.validate_row(batch_id, "a", base, "relevamientos").ok is True
         resp = svc.validate_row(batch_id, "b", base, "relevamientos")
         assert resp.ok is False
@@ -192,7 +192,7 @@ def test_pr94_batch_duplicado_interno_sin_fecha(app_ctx, require_pr72_migration)
 
 
 def test_pr94_batch_legacy_con_fecha_respeta_fecha_enviada(app_ctx, require_pr72_migration) -> None:
-    ins, rub = _inspector_y_rubro()
+    rel, rub = _relevador_y_rubro()
     calle = _uniq("Pr94Legacy")
     store = InMemoryBatchStore()
     svc = GridValidateService(store)
@@ -201,13 +201,13 @@ def test_pr94_batch_legacy_con_fecha_respeta_fecha_enviada(app_ctx, require_pr72
     st.fecha_relevamiento_default = date(2026, 3, 1)
     try:
         crear_relevamiento_desde_payload(
-            _payload(calle=calle, numero="77", rubro=rub.nombre, inspector=ins.nombre, fecha="2026-03-10")
+            _payload(calle=calle, numero="77", rubro=rub.nombre, inspector=rel.nombre, fecha="2026-03-10")
         )
         raw = _raw_grid(
             calle=calle,
             numero="77",
             rubro=rub.nombre,
-            inspector=ins.nombre,
+            inspector=rel.nombre,
             fecha="2026-05-27",
         )
         resp = svc.validate_row(batch_id, "n1", raw, "relevamientos")

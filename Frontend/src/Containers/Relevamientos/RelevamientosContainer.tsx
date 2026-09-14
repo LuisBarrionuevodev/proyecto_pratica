@@ -22,14 +22,14 @@ const RelevamientosContainer = (): JSX.Element => {
     (filtros: {
       desde: string | null;
       hasta: string | null;
-      inspector: string | null;
+      relevador: string | null;
       calle: string | null;
       numero: string | null;
     }) => {
       void buscar({
         desde: filtros.desde,
         hasta: filtros.hasta,
-        inspector: filtros.inspector,
+        relevador: filtros.relevador,
         calle: filtros.calle,
         numero: filtros.numero,
         page: 1,
@@ -44,7 +44,7 @@ const RelevamientosContainer = (): JSX.Element => {
     void buscar({
       desde: meta.desde,
       hasta: meta.hasta,
-      inspector: meta.inspector,
+      relevador: meta.relevador,
       calle: meta.calle,
       numero: meta.numero,
       page: meta.page,
@@ -86,7 +86,7 @@ const RelevamientosContainer = (): JSX.Element => {
 
       {!hasSearched && !loading && (
         <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
-          Definí el rango de fechas (y opcionalmente inspector/calle/número) y pulsá <strong>Filtrar</strong>.
+          Definí el rango de fechas (y opcionalmente relevador/calle/número) y pulsá <strong>Filtrar</strong>.
         </Typography>
       )}
 
@@ -106,9 +106,9 @@ const RelevamientosContainer = (): JSX.Element => {
               <strong>Rango:</strong> {meta.desde} - {meta.hasta}
             </Typography>
           )}
-          {meta.inspector && (
+          {meta.relevador && (
             <Typography sx={metaItemStyles}>
-              <strong>Inspector:</strong> {meta.inspector}
+              <strong>Relevador:</strong> {meta.relevador}
             </Typography>
           )}
           {meta.calle && (

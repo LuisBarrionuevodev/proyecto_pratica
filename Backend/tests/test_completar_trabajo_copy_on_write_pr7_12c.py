@@ -15,6 +15,7 @@ import pytest
 from sqlalchemy.orm import joinedload
 
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero
+from tests.relevamiento_test_helpers import get_or_create_test_relevador
 
 from app.database import db
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
@@ -122,12 +123,12 @@ def _crear_relevamiento_san_juan_maipu(
     fantasia: str,
     calle: str | None = None,
 ) -> Relevamiento:
-    ins = _inspector()
+    rev = get_or_create_test_relevador()
     calle_eff = calle or _uniq("SanJuanMaipu")
     return crear_relevamiento_desde_payload(
         {
             "fecha": "2026-07-15",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": calle_eff, "numero": "y Maipu", "numero_tipo": "ESQUINA"},
             "rubro_nombre": rubro.nombre,
             "nombre_fantasia": fantasia,

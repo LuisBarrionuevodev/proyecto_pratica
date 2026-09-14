@@ -1,5 +1,6 @@
-import { Box } from "@mui/material";
+import { Autocomplete, Box, Chip, TextField } from "@mui/material";
 
+import type { CatalogItem } from "../../../api/gridApi";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import NumeroEsquinaEditor from "../../../components/shared/NumeroEsquinaEditor";
 import {
@@ -31,7 +32,7 @@ import {
 } from "../utils/relevamientoCrudDisplay";
 
 export type RelevamientoEditCatalogs = {
-  inspectores: string[];
+  relevadores: CatalogItem[];
   rubros: string[];
 };
 
@@ -110,7 +111,14 @@ export function RelevamientoCrudDialog({
   };
 
   const titulo = isView ? "Relevamiento" : "Editar relevamiento";
-  const subtitulo = [draft.fecha, draft.inspector].filter(Boolean).join(" · ") || undefined;
+  const subtitulo =
+    [draft.fecha, draft.relevadores_label ?? draft.relevadores?.map((r) => r.nombre).join(" · ")]
+      .filter(Boolean)
+      .join(" · ") || undefined;
+
+  const selectedRelevadores = catalogs.relevadores.filter((r) =>
+    (draft.relevador_ids ?? draft.relevadores?.map((x) => x.id) ?? []).includes(r.id)
+  );
 
   return (
     <CrudGlassDialog
@@ -194,25 +202,41 @@ export function RelevamientoCrudDialog({
             />
           </CrudFormSlot>
           <CrudFormSlot
-            label="Inspector"
+            label="Relevador"
             mode={mode}
-            value={draft.inspector}
+            value={draft.relevadores_label ?? draft.relevadores?.map((r) => r.nombre).join(" · ")}
             required
-            error={!!e("inspector")}
-            helperText={e("inspector")}
+            error={!!e("relevador") || !!e("relevador_ids")}
+            helperText={e("relevador") || e("relevador_ids")}
             sx={{ gridColumn: { sm: "1 / -1" } }}
           >
-            <AppSelect
-              appearance="glass"
-              label="Inspector"
-              value={draft.inspector ?? ""}
-              onChange={(ev) => onDraftChange({ inspector: ev.target.value as string })}
-              options={opts(["", ...catalogs.inspectores])}
-              fullWidth
-              disabled={ro("inspector")}
-              error={!!e("inspector")}
-              helperText={e("inspector") || undefined}
-              required
+            <Autocomplete
+              multiple
+              options={catalogs.relevadores}
+              getOptionLabel={(o) => o.nombre}
+              value={selectedRelevadores}
+              onChange={(_ev, value) => {
+                onDraftChange({
+                  relevador_ids: value.map((v) => v.id),
+                  relevadores: value.map((v) => ({ id: v.id, nombre: v.nombre })),
+                  relevadores_label: value.map((v) => v.nombre).join(" · "),
+                });
+              }}
+              disabled={ro("relevador_ids")}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip {...getTagProps({ index })} key={option.id} label={option.nombre} size="small" />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Relevador"
+                  required
+                  error={!!e("relevador") || !!e("relevador_ids")}
+                  helperText={e("relevador") || e("relevador_ids") || undefined}
+                />
+              )}
             />
           </CrudFormSlot>
         </Box>

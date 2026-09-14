@@ -60,6 +60,11 @@ class Relevamiento(db.Model):
     deleted_at = db.Column(db.DateTime, nullable=True, index=True)
 
     inspector = db.relationship("Inspector", back_populates="relevamientos")
+    relevadores = db.relationship(
+        "Relevador",
+        secondary="relevamiento_relevador",
+        back_populates="relevamientos",
+    )
     domicilio = db.relationship("Domicilio", back_populates="relevamiento")
     rubro = db.relationship("Rubro", back_populates="relevamiento")
     created_by_user = db.relationship("User")

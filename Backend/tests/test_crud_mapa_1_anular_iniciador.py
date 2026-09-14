@@ -46,6 +46,7 @@ from app.models import (
     User,
 )
 from tests.helpers.fixture_isolation import fecha_fixture_aislada, fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
+from tests.relevamiento_test_helpers import relevador_y_rubro
 
 
 @pytest.fixture
@@ -78,20 +79,12 @@ def _ensure_user() -> User:
     return u
 
 
-def _inspector_y_rubro() -> tuple[Inspector, Rubro]:
-    ins = Inspector.query.first()
-    rub = Rubro.query.first()
-    if ins is None or rub is None:
-        pytest.skip("Se requiere inspector y rubro en BD de test")
-    return ins, rub
-
-
 def _crear_relevamiento(*, mock_user) -> tuple[object, IniciadorRuta]:
-    ins, rub = _inspector_y_rubro()
+    rev, rub = relevador_y_rubro()
     rel = crear_relevamiento_desde_payload(
         {
             "fecha": "2026-08-15",
-            "inspector_nombre": ins.nombre,
+            "relevadores_nombres": [rev.nombre],
             "domicilio": {"calle": _uniq("RelCrudMapa"), "numero": "10"},
             "rubro_nombre": rub.nombre,
         }

@@ -9,7 +9,7 @@ import {
 } from "material-react-table";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import { deleteRelevamiento } from "../../../api/relevamientosApi";
-import { startBatch, fetchInspectores } from "../../../api/gridApi";
+import { startBatch, fetchRelevadores, type CatalogItem } from "../../../api/gridApi";
 import {
   fetchRubrosCatalogoCached,
   rubroItemsToNombres,
@@ -85,7 +85,7 @@ const TablaRelevamientos = ({
   const loading = externalLoading || false;
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
   const [batchId, setBatchId] = useState<string | null>(null);
-  const [catalogInspectores, setCatalogInspectores] = useState<string[]>([]);
+  const [catalogRelevadores, setCatalogRelevadores] = useState<CatalogItem[]>([]);
   const [catalogRubros, setCatalogRubros] = useState<string[]>([]);
   const [crudDraft, setCrudDraft] = useState<IRelevamientoListItem | null>(null);
   const [crudBaseline, setCrudBaseline] = useState<IRelevamientoListItem | null>(null);
@@ -113,8 +113,8 @@ const TablaRelevamientos = ({
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const [inspectores, rubrosItems] = await Promise.all([fetchInspectores(), fetchRubrosCatalogoCached()]);
-        setCatalogInspectores([...new Set(inspectores.items.map((i: any) => i.nombre))]);
+        const [relevadores, rubrosItems] = await Promise.all([fetchRelevadores(), fetchRubrosCatalogoCached()]);
+        setCatalogRelevadores(relevadores.items);
         setCatalogRubros(rubroItemsToNombres(rubrosItems));
       } catch (error) {
         console.error("Error cargando catálogos:", error);
@@ -159,10 +159,10 @@ const TablaRelevamientos = ({
 
   const catalogs = useMemo(
     () => ({
-      inspectores: catalogInspectores,
+      relevadores: catalogRelevadores,
       rubros: mergeLegacyRubroNames(catalogRubros, crudDraft?.rubro),
     }),
-    [catalogInspectores, catalogRubros, crudDraft?.rubro]
+    [catalogRelevadores, catalogRubros, crudDraft?.rubro]
   );
 
   const closeCrudDialog = useCallback(() => {
@@ -249,10 +249,14 @@ const TablaRelevamientos = ({
         Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
       },
       {
-        accessorKey: "inspector",
-        header: "Inspector",
+        accessorKey: "relevadores_label",
+        header: "Relevador",
         size: 200,
-        Cell: ({ cell }) => <BandejaEllipsisCell value={relevamientoCellText(cell.getValue())} />,
+        Cell: ({ row }) => (
+          <BandejaEllipsisCell
+            value={relevamientoCellText(row.original.relevadores_label ?? row.original.relevadores?.map((r) => r.nombre).join(" · "))}
+          />
+        ),
       },
       {
         accessorKey: "calle",
