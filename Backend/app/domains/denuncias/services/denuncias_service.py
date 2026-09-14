@@ -12,7 +12,10 @@ from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_domicilio_if_orphan,
 )
 from app.shared.services.domicilio_repo import get_or_create_domicilio_basico
-from app.domains.domicilios.services.domicilio_update_service import aplicar_edicion_domicilio_operativo
+from app.domains.domicilios.services.domicilio_update_service import (
+    aislar_domicilio_sin_titular_heredado,
+    aplicar_edicion_domicilio_operativo,
+)
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
@@ -67,7 +70,8 @@ def _resolver_domicilio_id(
         dom = Domicilio.query.get(domicilio_id)
         if not dom or dom.deleted_at is not None:
             raise ValueError("Domicilio no encontrado.")
-        return int(domicilio_id)
+        dom = aislar_domicilio_sin_titular_heredado(dom, contexto="DENUNCIA", origen_id=None)
+        return int(dom.id)
 
     if not calle:
         raise ValueError("Debe enviar domicilio_id o calle.")
@@ -77,6 +81,7 @@ def _resolver_domicilio_id(
         raise ValueError("Debe enviar número o intersección.")
 
     dom = get_or_create_domicilio_basico(calle.strip(), numero_final)
+    dom = aislar_domicilio_sin_titular_heredado(dom, contexto="DENUNCIA", origen_id=None)
     numero_tipo_override = "NUMERO" if numero and str(numero).strip() else "ESQUINA"
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
     db.session.commit()

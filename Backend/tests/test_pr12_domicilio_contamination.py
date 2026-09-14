@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from datetime import date
 from uuid import uuid4
 
@@ -9,6 +10,18 @@ import pytest
 from sqlalchemy.orm import joinedload
 
 from app.database import db
+from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
+    CompletarTrabajoCierreCompletoIn,
+)
+from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
+    cerrar_completar_trabajo_por_ruta_item,
+)
+from app.domains.establecimientos.services.historial_contribuyente_service import (
+    list_historial_por_documento,
+)
+from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
+    eo_canonico_id_para_domicilio,
+)
 from app.domains.actuaciones.presenters.actuacion_presenters import (
     actuacion_to_grid_row,
     build_iniciador_ruta_por_actuacion_id,
@@ -409,5 +422,352 @@ def test_historial_dni_agrupa_sin_prefill_operativo(app_ctx, require_pr72_migrat
         row = ruta_item_completar_trabajo_to_row(items[0])
         assert row.get("doc_nro") in (None, "")
         assert act_manual.domicilio.contribuyente.documento == doc
+    finally:
+        db.session.rollback()
+
+
+def test_denuncia_fork_preserva_domicilio_historico(app_ctx, require_pr72_migration, monkeypatch) -> None:
+    """Alta denuncia sin titular: fork COW; fila histórica de actuación manual intacta."""
+    try:
+        u = User.query.filter(User.is_active.is_(True)).first()
+        if u is None:
+            pytest.skip("Se requiere usuario activo")
+        monkeypatch.setattr(
+            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            lambda: int(u.id),
+        )
+
+        rub = Rubro(nombre=_uniq("ForkDenPR12"))
+        db.session.add(rub)
+        db.session.flush()
+
+        calle = _uniq("ForkDenPR12")
+        doc_a = _contrib_doc_aislado()
+        act_manual = _cargar_actuacion_manual_esquina(
+            calle=calle,
+            rubro=rub,
+            contrib_doc=doc_a,
+            acta_notif=unique_ot_numero(),
+        )
+        dom_hist_id = act_manual.domicilio_id
+
+        den, _ini = crear_denuncia_con_iniciador(
+            fecha=date(2026, 7, 26),
+            domicilio_id=None,
+            calle=calle,
+            numero="y Maipu",
+            interseccion=None,
+            motivo="PR12 fork denuncia",
+        )
+        dom_den = db.session.get(Domicilio, den.domicilio_id)
+        dom_hist = db.session.get(Domicilio, dom_hist_id)
+        assert dom_den is not None and dom_hist is not None
+        assert den.domicilio_id != dom_hist_id
+        assert dom_hist.contribuyente_id is not None
+        assert dom_den.contribuyente_id is None
+    finally:
+        db.session.rollback()
+
+
+def test_relevamiento_mismo_rubro_no_hereda_titular(app_ctx, require_pr72_migration) -> None:
+    """Relevamiento mismo rubro/geo que actuación manual sin titular propio: no hereda DNI."""
+    try:
+        rev = get_or_create_test_relevador()
+        rub = Rubro(nombre=_uniq("MismoRubPR12"))
+        db.session.add(rub)
+        db.session.flush()
+
+        calle = _uniq("MismoRubPR12")
+        doc_a = _contrib_doc_aislado()
+        act_manual = _cargar_actuacion_manual_esquina(
+            calle=calle,
+            rubro=rub,
+            contrib_doc=doc_a,
+            acta_notif=unique_ot_numero(),
+        )
+
+        rel = crear_relevamiento_desde_payload(
+            _payload_esquina(
+                calle=calle,
+                rubro=rub.nombre,
+                relevador=rev.nombre,
+                fecha="2026-07-27",
+            )
+        )
+        dom_rel = db.session.get(Domicilio, rel.domicilio_id)
+        dom_hist = db.session.get(Domicilio, act_manual.domicilio_id)
+        assert dom_rel is not None and dom_hist is not None
+        assert rel.domicilio_id != act_manual.domicilio_id
+        assert dom_hist.contribuyente_id is not None
+        assert dom_rel.contribuyente_id is None
+
+        ini = IniciadorRuta.query.filter(
+            IniciadorRuta.relevamiento_id == rel.id,
+            IniciadorRuta.deleted_at.is_(None),
+        ).first()
+        assert ini is not None
+        items = _setup_ruta_y_publicar([ini.id])
+        row = ruta_item_completar_trabajo_to_row(items[0])
+        assert row.get("doc_nro") in (None, "")
+    finally:
+        db.session.rollback()
+
+
+def test_denuncia_numero_no_hereda_titular(app_ctx, require_pr72_migration, monkeypatch) -> None:
+    """Calle + número (no esquina): denuncia sin titular no hereda contrib histórico."""
+    try:
+        u = User.query.filter(User.is_active.is_(True)).first()
+        if u is None:
+            pytest.skip("Se requiere usuario activo")
+        monkeypatch.setattr(
+            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            lambda: int(u.id),
+        )
+
+        rub = Rubro(nombre=_uniq("NumDenPR12"))
+        db.session.add(rub)
+        db.session.flush()
+
+        calle = _uniq("SanJuanPR12")
+        ins = _inspector()
+        motivo = Motivo.query.first()
+        if motivo is None:
+            pytest.skip("Se requiere motivo")
+        doc_a = _contrib_doc_aislado()
+        act_manual = crear_actuacion_desde_payload(
+            {
+                "fecha_actuacion": "21/07/2026",
+                "orden_trabajo_numero": unique_ot_numero(),
+                "tipo_actuacion": "INSPECCION",
+                "rubro_nombre": rub.nombre,
+                "contribuyente": {"doc_nro": doc_a, "apellido": "Hist", "nombre": "A"},
+                "domicilio": {"calle": calle, "numero": "500", "numero_tipo": "NUMERO"},
+                "inspectores": [ins.nombre],
+                "acta_inspeccion_num": unique_ot_numero(),
+                "notificacion": {"acta_num": unique_ot_numero(), "motivos": [motivo.nombre]},
+            }
+        )
+
+        den, ini = crear_denuncia_con_iniciador(
+            fecha=date(2026, 7, 28),
+            domicilio_id=None,
+            calle=calle,
+            numero="500",
+            interseccion=None,
+            motivo="PR12 numero",
+        )
+        assert den.domicilio_id != act_manual.domicilio_id
+
+        items = _setup_ruta_y_publicar([ini.id])
+        row = ruta_item_completar_trabajo_to_row(items[0])
+        assert row.get("doc_nro") in (None, "")
+    finally:
+        db.session.rollback()
+
+
+def test_cambio_titular_denuncia_t0_t1_t2(app_ctx, require_pr72_migration, monkeypatch) -> None:
+    """T0 histórico A → T1 denuncia sin titular → T2 visita captura B; EO distintos."""
+    try:
+        u = User.query.filter(User.is_active.is_(True)).first()
+        if u is None:
+            pytest.skip("Se requiere usuario activo")
+        monkeypatch.setattr(
+            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            lambda: int(u.id),
+        )
+
+        rub = Rubro(nombre=_uniq("CambioTitPR12"))
+        db.session.add(rub)
+        db.session.flush()
+
+        calle = _uniq("CambioTitPR12")
+        doc_a = _contrib_doc_aislado()
+        doc_b = _contrib_doc_aislado()
+        while doc_b == doc_a:
+            doc_b = _contrib_doc_aislado()
+
+        ins = _inspector()
+        motivo = Motivo.query.first()
+        if motivo is None:
+            pytest.skip("Se requiere motivo")
+
+        act_hist = crear_actuacion_desde_payload(
+            {
+                "fecha_actuacion": "21/07/2026",
+                "orden_trabajo_numero": unique_ot_numero(),
+                "tipo_actuacion": "INSPECCION",
+                "rubro_nombre": rub.nombre,
+                "contribuyente": {"doc_nro": doc_a, "apellido": "Titular", "nombre": "A"},
+                "domicilio": {"calle": calle, "numero": "500", "numero_tipo": "NUMERO"},
+                "inspectores": [ins.nombre],
+                "acta_inspeccion_num": unique_ot_numero(),
+                "notificacion": {"acta_num": unique_ot_numero(), "motivos": [motivo.nombre]},
+            }
+        )
+        dom_hist_id = act_hist.domicilio_id
+
+        den, ini = crear_denuncia_con_iniciador(
+            fecha=date(2026, 7, 29),
+            domicilio_id=None,
+            calle=calle,
+            numero="500",
+            interseccion=None,
+            motivo="PR12 cambio titular",
+        )
+        items = _setup_ruta_y_publicar([ini.id])
+        item = items[0]
+        row_pre = ruta_item_completar_trabajo_to_row(item)
+        assert row_pre.get("doc_nro") in (None, "")
+
+        cerrar_completar_trabajo_por_ruta_item(
+            ruta_item_id=item.id,
+            payload=CompletarTrabajoCierreCompletoIn.model_validate(
+                {
+                    "tipo_actuacion": "INSPECCION",
+                    "acta_inspeccion_num": f"{random.randint(1000, 99999)}",
+                    "contrib_apellido": "Titular",
+                    "contrib_nombre": "B",
+                    "doc_nro": doc_b,
+                }
+            ),
+            ejecutado_por_user_id=int(u.id),
+        )
+        db.session.expire_all()
+
+        act_hist_db = db.session.get(Actuaciones, act_hist.id)
+        act_nueva = db.session.get(Actuaciones, item.actuacion_id)
+        dom_hist = db.session.get(Domicilio, dom_hist_id)
+        assert act_hist_db is not None and act_nueva is not None and dom_hist is not None
+        assert dom_hist.contribuyente.documento == doc_a
+        assert act_nueva.domicilio_id != dom_hist_id
+        assert act_nueva.domicilio.contribuyente.documento == doc_b
+
+        eo_a = eo_canonico_id_para_domicilio(dom_hist)
+        eo_b = eo_canonico_id_para_domicilio(act_nueva.domicilio)
+        assert eo_a is not None and eo_b is not None
+        assert int(eo_a) != int(eo_b)
+    finally:
+        db.session.rollback()
+
+
+def test_denuncia_mismo_titular_explicito_valido(app_ctx, require_pr72_migration, monkeypatch) -> None:
+    """Captura explícita del mismo titular histórico A en visita denuncia: válido."""
+    try:
+        u = User.query.filter(User.is_active.is_(True)).first()
+        if u is None:
+            pytest.skip("Se requiere usuario activo")
+        monkeypatch.setattr(
+            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            lambda: int(u.id),
+        )
+
+        rub = Rubro(nombre=_uniq("MismoTitPR12"))
+        db.session.add(rub)
+        db.session.flush()
+
+        calle = _uniq("MismoTitPR12")
+        doc_a = _contrib_doc_aislado()
+        ins = _inspector()
+        motivo = Motivo.query.first()
+        if motivo is None:
+            pytest.skip("Se requiere motivo")
+
+        crear_actuacion_desde_payload(
+            {
+                "fecha_actuacion": "21/07/2026",
+                "orden_trabajo_numero": unique_ot_numero(),
+                "tipo_actuacion": "INSPECCION",
+                "rubro_nombre": rub.nombre,
+                "contribuyente": {"doc_nro": doc_a, "apellido": "Titular", "nombre": "A"},
+                "domicilio": {"calle": calle, "numero": "600", "numero_tipo": "NUMERO"},
+                "inspectores": [ins.nombre],
+                "acta_inspeccion_num": unique_ot_numero(),
+                "notificacion": {"acta_num": unique_ot_numero(), "motivos": [motivo.nombre]},
+            }
+        )
+
+        _den, ini = crear_denuncia_con_iniciador(
+            fecha=date(2026, 7, 30),
+            domicilio_id=None,
+            calle=calle,
+            numero="600",
+            interseccion=None,
+            motivo="PR12 mismo titular explícito",
+        )
+        items = _setup_ruta_y_publicar([ini.id])
+        item = items[0]
+
+        cerrar_completar_trabajo_por_ruta_item(
+            ruta_item_id=item.id,
+            payload=CompletarTrabajoCierreCompletoIn.model_validate(
+                {
+                    "tipo_actuacion": "INSPECCION",
+                    "acta_inspeccion_num": f"{random.randint(1000, 99999)}",
+                    "contrib_apellido": "Titular",
+                    "contrib_nombre": "A",
+                    "doc_nro": doc_a,
+                }
+            ),
+            ejecutado_por_user_id=int(u.id),
+        )
+        db.session.expire_all()
+        act_nueva = db.session.get(Actuaciones, item.actuacion_id)
+        assert act_nueva is not None
+        assert str(act_nueva.domicilio.contribuyente.documento) == doc_a
+        row = ruta_item_completar_trabajo_to_row(
+            RutaItem.query.filter_by(id=item.id)
+            .options(
+                joinedload(RutaItem.actuacion).joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
+                joinedload(RutaItem.iniciador_ruta),
+            )
+            .first()
+        )
+        assert str(row.get("doc_nro") or "").replace(".", "") == doc_a
+    finally:
+        db.session.rollback()
+
+
+def test_historial_no_agrupa_denuncia_pendiente_sin_titular(
+    app_ctx, require_pr72_migration, monkeypatch
+) -> None:
+    """Denuncia publicada sin titular no aparece en historial del DNI ajeno."""
+    try:
+        u = User.query.filter(User.is_active.is_(True)).first()
+        if u is None:
+            pytest.skip("Se requiere usuario activo")
+        monkeypatch.setattr(
+            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            lambda: int(u.id),
+        )
+
+        rub = Rubro(nombre=_uniq("HistNoAgrPR12"))
+        db.session.add(rub)
+        db.session.flush()
+
+        calle = _uniq("HistNoAgrPR12")
+        doc_a = _contrib_doc_aislado()
+        _cargar_actuacion_manual_esquina(
+            calle=calle,
+            rubro=rub,
+            contrib_doc=doc_a,
+            acta_notif=unique_ot_numero(),
+        )
+
+        _den, ini = crear_denuncia_con_iniciador(
+            fecha=date(2026, 7, 31),
+            domicilio_id=None,
+            calle=calle,
+            numero="y Maipu",
+            interseccion=None,
+            motivo="PR12 historial no agrupa",
+        )
+        items = _setup_ruta_y_publicar([ini.id])
+        act_den = items[0].actuacion
+        assert act_den is not None
+
+        entries, total, _norm = list_historial_por_documento(doc_a, limit=200)
+        act_ids = {e.act.id for e in entries if e.act is not None}
+        assert act_den.id not in act_ids
+        assert total >= 1
     finally:
         db.session.rollback()

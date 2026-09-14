@@ -31,6 +31,48 @@ class AplicarDomicilioOutcome:
     domicilio_id_cambio: bool
 
 
+def aislar_domicilio_sin_titular_heredado(
+    dom: Domicilio,
+    *,
+    contexto: str,
+    origen_id: int | None = None,
+    rubro: Optional[Rubro] = None,
+    numero_tipo: str | None = None,
+) -> Domicilio:
+    """
+    PR12-TITULAR: orígenes sin titular explícito no heredan contrib de geo compartida.
+
+    Si la fila reutilizada tiene ``contribuyente_id`` de otro snapshot histórico,
+    aplica copy-on-write con ``contribuyente_id=NULL`` sin mutar la fila original compartida.
+
+    Parámetros:
+        dom: domicilio resuelto por calle/número.
+        contexto: DENUNCIA o RELEVAMIENTO.
+        origen_id: id del origen para excluir del conteo de uso compartido.
+        rubro: rubro operativo a conservar en el fork (relevamiento).
+        numero_tipo: override opcional de tipo de número.
+
+    Retorno:
+        Misma fila o clon sin titular heredado.
+
+    Errores:
+        Ninguno.
+    """
+    if dom.contribuyente_id is None:
+        return dom
+    if contexto not in ("DENUNCIA", "RELEVAMIENTO"):
+        return dom
+    return _aplicar_rubro_contrib_seguro(
+        dom,
+        contribuyente=None,
+        rubro=rubro,
+        numero_tipo=numero_tipo,
+        contexto=contexto,
+        origen_id=origen_id,
+        limpiar_contribuyente=True,
+    )
+
+
 def _aplicar_rubro_contrib_seguro(
     dom: Domicilio,
     *,
@@ -271,6 +313,18 @@ def aplicar_edicion_domicilio_operativo(
             contexto=contexto,
             origen_id=origen_id,
         )
+        if contribuyente is None:
+            dom = aislar_domicilio_sin_titular_heredado(
+                dom,
+                contexto=contexto,
+                origen_id=origen_id,
+                rubro=rubro,
+                numero_tipo=(
+                    str(cambios_dict["numero_tipo"]).strip().upper()
+                    if cambios_dict.get("numero_tipo")
+                    else None
+                ),
+            )
         return AplicarDomicilioOutcome(
             domicilio=dom,
             policy=policy,
@@ -283,18 +337,27 @@ def aplicar_edicion_domicilio_operativo(
             dom = db.session.get(Domicilio, int(policy.domicilio_id_objetivo))
             if dom is None or dom.deleted_at is not None:
                 raise ValueError("Domicilio existente para reasignar no encontrado.")
+            numero_tipo_reasignar = (
+                str(cambios_dict["numero_tipo"]).strip().upper()
+                if cambios_dict.get("numero_tipo")
+                else None
+            )
             dom = _aplicar_rubro_contrib_seguro(
                 dom,
                 contribuyente=contribuyente,
                 rubro=rubro,
-                numero_tipo=(
-                    str(cambios_dict["numero_tipo"]).strip().upper()
-                    if cambios_dict.get("numero_tipo")
-                    else None
-                ),
+                numero_tipo=numero_tipo_reasignar,
                 contexto=contexto,
                 origen_id=origen_id,
             )
+            if contribuyente is None:
+                dom = aislar_domicilio_sin_titular_heredado(
+                    dom,
+                    contexto=contexto,
+                    origen_id=origen_id,
+                    rubro=rubro,
+                    numero_tipo=numero_tipo_reasignar,
+                )
             return AplicarDomicilioOutcome(
                 domicilio=dom,
                 policy=policy,
@@ -304,19 +367,28 @@ def aplicar_edicion_domicilio_operativo(
 
     # CREAR_NUEVO: comportamiento historico get-or-create.
     if usar_basico:
+        numero_tipo_crear = (
+            str(cambios_dict["numero_tipo"]).strip().upper()
+            if cambios_dict.get("numero_tipo")
+            else None
+        )
         dom = get_or_create_domicilio_basico(str(calle).strip(), str(numero).strip())
         dom = _aplicar_rubro_contrib_seguro(
             dom,
             contribuyente=contribuyente,
             rubro=rubro,
-            numero_tipo=(
-                str(cambios_dict["numero_tipo"]).strip().upper()
-                if cambios_dict.get("numero_tipo")
-                else None
-            ),
+            numero_tipo=numero_tipo_crear,
             contexto=contexto,
             origen_id=origen_id if origen_id else None,
         )
+        if contribuyente is None:
+            dom = aislar_domicilio_sin_titular_heredado(
+                dom,
+                contexto=contexto,
+                origen_id=origen_id if origen_id else None,
+                rubro=rubro,
+                numero_tipo=numero_tipo_crear,
+            )
     else:
         dom = get_or_create_domicilio(
             cambios_dict,

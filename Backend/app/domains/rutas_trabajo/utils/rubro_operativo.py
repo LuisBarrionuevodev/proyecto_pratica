@@ -9,6 +9,19 @@ def _s(value: str | None) -> str:
     return (value or "").strip()
 
 
+def _ruta_item_de_actuacion(act: Actuaciones) -> RutaItem | None:
+    """Ítem de ruta activo vinculado a la actuación, si existe."""
+    if act.id is None:
+        return None
+    return (
+        RutaItem.query.filter(
+            RutaItem.actuacion_id == int(act.id),
+            RutaItem.deleted_at.is_(None),
+        )
+        .first()
+    )
+
+
 def _actuacion_visita_realizada(act: Actuaciones) -> bool:
     """
     True si el ítem de ruta vinculado cerró la visita como realizada (no reencolado).
@@ -19,18 +32,32 @@ def _actuacion_visita_realizada(act: Actuaciones) -> bool:
     Retorno:
         True si ``estado_ejecucion == REALIZADO`` en el ``RutaItem`` activo.
     """
-    if act.id is None:
-        return False
-    item = (
-        RutaItem.query.filter(
-            RutaItem.actuacion_id == int(act.id),
-            RutaItem.deleted_at.is_(None),
-        )
-        .first()
-    )
+    item = _ruta_item_de_actuacion(act)
     if item is None:
         return False
     return (item.estado_ejecucion or "").strip().upper() == "REALIZADO"
+
+
+def _actuacion_visita_cerrada(act: Actuaciones) -> bool:
+    """
+    True si la visita operativa del ítem de ruta ya fue cerrada (con o sin actas).
+
+    Incluye cierres por contraproducencia (``estado_ejecucion == NO_REALIZADO``) cuando
+    el ítem quedó ``FINALIZADO`` y tiene ``ejecutado_at``.
+
+    Parámetros:
+        act: actuación publicada desde ruta.
+
+    Retorno:
+        True si el trabajo ya no está pendiente de ejecución en ruta.
+    """
+    item = _ruta_item_de_actuacion(act)
+    if item is None:
+        return False
+    if (item.estado_ejecucion or "").strip().upper() == "REALIZADO":
+        return True
+    estado_item = (item.estado_ruta_item or "").strip().upper()
+    return estado_item == "FINALIZADO" and item.ejecutado_at is not None
 
 
 def rubro_id_operativo_para_iniciador(
@@ -131,13 +158,18 @@ def titular_operativo_visible_para_iniciador(
         act: actuación vinculada al ítem.
 
     Retorno:
-        False para relevamiento/denuncia con visita no realizada y sin contrib en domicilio act.
+        False para relevamiento/denuncia pendiente o realizada sin titular capturado en la visita.
     """
+    if iniciador and iniciador.tipo_iniciador in ("RELEVAMIENTO", "DENUNCIA"):
+        if act is None:
+            return False
+        if not _actuacion_visita_cerrada(act):
+            return False
+        dom = getattr(act, "domicilio", None)
+        return dom is not None and getattr(dom, "contribuyente_id", None) is not None
+
     if act is not None:
         dom = getattr(act, "domicilio", None)
         if dom is not None and getattr(dom, "contribuyente_id", None) is not None:
             return True
-    if iniciador and iniciador.tipo_iniciador in ("RELEVAMIENTO", "DENUNCIA"):
-        if act is not None and not _actuacion_visita_realizada(act):
-            return False
     return True

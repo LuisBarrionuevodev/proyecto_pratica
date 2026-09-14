@@ -132,6 +132,23 @@ def _iniciador_ids_para_contrib(contrib_ids: list[int]) -> set[int]:
     )
     ids.update(int(r[0]) for r in rows_comp)
 
+    rows_dom_act = (
+        db.session.query(IniciadorRuta.id)
+        .join(RutaItem, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
+        .join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
+        .filter(
+            IniciadorRuta.deleted_at.is_(None),
+            RutaItem.deleted_at.is_(None),
+            RutaItem.estado_ejecucion == "REALIZADO",
+            Domicilio.contribuyente_id.in_(contrib_ids),
+            IniciadorRuta.tipo_iniciador.in_(("RELEVAMIENTO", "DENUNCIA")),
+        )
+        .all()
+    )
+    ids.update(int(r[0]) for r in rows_dom_act)
+
+    # Pendientes / titular propio del iniciador (snapshot sin herencia geo tras PR12-TITULAR).
     rows_dom = (
         db.session.query(IniciadorRuta.id)
         .join(Domicilio, IniciadorRuta.domicilio_id == Domicilio.id)
