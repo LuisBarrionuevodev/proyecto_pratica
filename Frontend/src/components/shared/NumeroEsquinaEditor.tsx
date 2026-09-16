@@ -215,7 +215,7 @@ const NumeroEsquinaEditor = ({
           renderInput={(params) => (
             <TextField
               {...params}
-              label={`${label} (esquina)`}
+              label={label}
               error={error}
               helperText={helperText}
               InputProps={{

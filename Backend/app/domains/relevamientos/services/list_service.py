@@ -3,10 +3,49 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from sqlalchemy import and_, exists, func
+from sqlalchemy.orm import joinedload
 
 from app.database import db
-from app.models import Relevamiento, Relevador, Domicilio, IniciadorRuta, relevamiento_relevador
+from app.domains.domicilios.utils.domicilio_distrito_display import (
+    domicilio_distrito_listado_sql_predicates,
+)
 from app.domains.relevamientos.schemas.list_filters import RelevamientosListFilters
+from app.models import (
+    Domicilio,
+    DomicilioGeocode,
+    IniciadorRuta,
+    Relevador,
+    Relevamiento,
+    relevamiento_relevador,
+)
+
+
+def _relevamiento_gestion_list_query_options():
+    """
+    Eager load de domicilio → distrito/geocode y catálogos de fila para evitar N+1 en presenters.
+    """
+    return [
+        joinedload(Relevamiento.domicilio).joinedload(Domicilio.distrito),
+        joinedload(Relevamiento.domicilio).joinedload(Domicilio.geocode),
+        joinedload(Relevamiento.rubro),
+        joinedload(Relevamiento.relevadores),
+    ]
+
+
+def _build_list_meta(filters: RelevamientosListFilters, total: int) -> Dict[str, Any]:
+    """Meta de paginación y filtros activos para listados de relevamientos."""
+    return {
+        "total": total,
+        "page": filters.page,
+        "page_size": filters.page_size,
+        "desde": filters.desde.isoformat() if filters.desde else None,
+        "hasta": filters.hasta.isoformat() if filters.hasta else None,
+        "relevador": filters.relevador,
+        "calle": filters.calle,
+        "numero": filters.numero,
+        "esta_abierto": filters.esta_abierto,
+        "distrito_id": filters.distrito_id,
+    }
 
 
 def _apply_common_filters(query, filters: RelevamientosListFilters):
@@ -27,7 +66,8 @@ def _apply_common_filters(query, filters: RelevamientosListFilters):
         else:
             query = query.filter(func.upper(Relevador.nombre) == s.upper())
 
-    if filters.calle or filters.numero:
+    needs_domicilio = bool(filters.calle or filters.numero or filters.distrito_id is not None)
+    if needs_domicilio:
         query = query.join(Domicilio, Relevamiento.domicilio_id == Domicilio.id).filter(
             Domicilio.deleted_at.is_(None)
         )
@@ -35,6 +75,23 @@ def _apply_common_filters(query, filters: RelevamientosListFilters):
             query = query.filter(func.upper(Domicilio.calle).like(f"%{filters.calle.upper()}%"))
         if filters.numero:
             query = query.filter(Domicilio.numero == str(filters.numero).strip())
+
+    if filters.esta_abierto is not None:
+        query = query.filter(Relevamiento.esta_abierto.is_(filters.esta_abierto))
+
+    if filters.distrito_id is not None:
+        if not needs_domicilio:
+            query = query.join(Domicilio, Relevamiento.domicilio_id == Domicilio.id).filter(
+                Domicilio.deleted_at.is_(None)
+            )
+        query = query.join(
+            DomicilioGeocode,
+            and_(
+                DomicilioGeocode.domicilio_id == Domicilio.id,
+                DomicilioGeocode.deleted_at.is_(None),
+            ),
+        ).filter(domicilio_distrito_listado_sql_predicates(filters.distrito_id))
+
     return query
 
 
@@ -55,20 +112,16 @@ def listar_relevamientos_con_filtros(filters: RelevamientosListFilters) -> Dict[
     total = query.count()
     query = query.order_by(Relevamiento.id.desc())
     offset = (filters.page - 1) * filters.page_size
-    items = query.offset(offset).limit(filters.page_size).all()
+    items = (
+        query.options(*_relevamiento_gestion_list_query_options())
+        .offset(offset)
+        .limit(filters.page_size)
+        .all()
+    )
 
     return {
         "items": items,
-        "meta": {
-            "total": total,
-            "page": filters.page,
-            "page_size": filters.page_size,
-            "desde": filters.desde.isoformat() if filters.desde else None,
-            "hasta": filters.hasta.isoformat() if filters.hasta else None,
-            "relevador": filters.relevador,
-            "calle": filters.calle,
-            "numero": filters.numero,
-        },
+        "meta": _build_list_meta(filters, total),
     }
 
 
@@ -109,20 +162,16 @@ def listar_relevamientos_realizados_actuacion_completada_con_filtros(
     total = query.count()
     query = query.order_by(Relevamiento.id.desc())
     offset = (filters.page - 1) * filters.page_size
-    items = query.offset(offset).limit(filters.page_size).all()
+    items = (
+        query.options(*_relevamiento_gestion_list_query_options())
+        .offset(offset)
+        .limit(filters.page_size)
+        .all()
+    )
 
     return {
         "items": items,
-        "meta": {
-            "total": total,
-            "page": filters.page,
-            "page_size": filters.page_size,
-            "desde": filters.desde.isoformat() if filters.desde else None,
-            "hasta": filters.hasta.isoformat() if filters.hasta else None,
-            "relevador": filters.relevador,
-            "calle": filters.calle,
-            "numero": filters.numero,
-        },
+        "meta": _build_list_meta(filters, total),
     }
 
 
@@ -158,18 +207,14 @@ def listar_relevamientos_operativos_con_filtros(filters: RelevamientosListFilter
     total = query.count()
     query = query.order_by(Relevamiento.id.desc())
     offset = (filters.page - 1) * filters.page_size
-    items = query.offset(offset).limit(filters.page_size).all()
+    items = (
+        query.options(*_relevamiento_gestion_list_query_options())
+        .offset(offset)
+        .limit(filters.page_size)
+        .all()
+    )
 
     return {
         "items": items,
-        "meta": {
-            "total": total,
-            "page": filters.page,
-            "page_size": filters.page_size,
-            "desde": filters.desde.isoformat() if filters.desde else None,
-            "hasta": filters.hasta.isoformat() if filters.hasta else None,
-            "relevador": filters.relevador,
-            "calle": filters.calle,
-            "numero": filters.numero,
-        },
+        "meta": _build_list_meta(filters, total),
     }

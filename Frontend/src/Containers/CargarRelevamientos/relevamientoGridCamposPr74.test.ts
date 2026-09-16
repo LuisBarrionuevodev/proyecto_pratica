@@ -30,7 +30,16 @@ describe("CargarRelevamientos grid PR7.4", () => {
 
   it("humaniza etiquetas de columnas nuevas", () => {
     expect(humanizeRelevamientoColumnLabel("Nombre fantasía")).toBe("Nombre fantasía");
-    expect(humanizeRelevamientoColumnLabel("Ángulo esquina")).toBe("Ángulo esquina");
+    expect(humanizeRelevamientoColumnLabel("Numero")).toBe("Número / esquina");
+    expect(humanizeRelevamientoColumnLabel("Ángulo esquina")).toBe("Orientación");
+  });
+
+  it("REL-ANGULO.2: headers visibles en definición de columnas", () => {
+    const numero = COLUMN_DEFINITIONS.find((c) => c.id === "Numero");
+    const orientacion = COLUMN_DEFINITIONS.find((c) => c.id === "Ángulo esquina");
+    expect(numero?.title).toBe("Número / esquina");
+    expect(orientacion?.title).toBe("Orientación");
+    expect(orientacion?.id).toBe("Ángulo esquina");
   });
 });
 

@@ -134,7 +134,7 @@ describe("RelevamientoCrudDialog", () => {
     expect(html).toContain("Opcional. Sirve para distinguir locales en una misma esquina.");
   });
 
-  it("muestra Ángulo esquina solo en ESQUINA", () => {
+  it("REL-ANGULO.2: muestra Orientación solo en ESQUINA y labels por modo", () => {
     const esquinaHtml = render(
       <RelevamientoCrudDialog
         open
@@ -150,14 +150,15 @@ describe("RelevamientoCrudDialog", () => {
         saving={false}
         catalogs={catalogs}
         readOnlyColumns={[]}
-        numeroEditorLabel="Número o esquina"
+        numeroEditorLabel="Número"
         onClose={() => undefined}
         onDraftChange={() => undefined}
         onSave={() => undefined}
       />
     );
-    expect(esquinaHtml).toContain("Ángulo esquina");
-    expect(esquinaHtml).toContain("Solo para esquinas/intersecciones.");
+    expect(esquinaHtml).toContain("Calle de esquina");
+    expect(esquinaHtml).toContain("Orientación");
+    expect(esquinaHtml).toContain("Ubicación del local en la esquina: NE, NO, SE o SO.");
 
     const numeroHtml = render(
       <RelevamientoCrudDialog
@@ -175,7 +176,8 @@ describe("RelevamientoCrudDialog", () => {
         onSave={() => undefined}
       />
     );
-    expect(numeroHtml).not.toContain("Ángulo esquina");
+    expect(numeroHtml).not.toContain("Calle de esquina");
+    expect(numeroHtml).not.toContain("Orientación");
   });
 
   it("cambiar ESQUINA → NUMERO limpia ángulo y número en patch", () => {

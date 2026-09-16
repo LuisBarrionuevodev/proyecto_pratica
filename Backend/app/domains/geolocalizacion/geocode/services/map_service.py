@@ -25,6 +25,11 @@ from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
 from app.domains.geolocalizacion.geocoding.services.reverse_geocode_service import (
     reverse_geocode,
 )
+from app.domains.geolocalizacion.geocode.services.district_events import log_district_event
+from app.domains.geolocalizacion.geocode.services.distrito_backfill_service import (
+    backfill_distrito_for_domicilio_if_needed,
+)
+from app.domains.geolocalizacion.geocode.services.distritos_service import resolve_distrito_id
 from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency import (
     log_barrio_distrito_consistency,
 )
@@ -417,6 +422,62 @@ def get_details(
     }
 
 
+def _resolve_distrito_en_geocode_manual(
+    *,
+    dom: Domicilio,
+    domicilio_id: int,
+    lat: float,
+    lng: float,
+    geo_status: str,
+) -> None:
+    """
+    Resuelve y asigna ``distrito_id`` para un geocode manual sin interrumpir el guardado.
+
+    Registra ``district_assigned``, ``district_no_match`` o ``district_error``.
+    """
+    try:
+        resolved_distrito_id = resolve_distrito_id(float(lat), float(lng))
+        dom.distrito_id = resolved_distrito_id
+        db.session.add(dom)
+        log_barrio_distrito_consistency(
+            domicilio=dom,
+            source="MANUAL",
+            lat=float(lat),
+            lng=float(lng),
+        )
+        if resolved_distrito_id is None:
+            log_district_event(
+                event="district_no_match",
+                domicilio_id=domicilio_id,
+                lat=float(lat),
+                lng=float(lng),
+                source="MANUAL",
+                geo_status=geo_status,
+                distrito_id=None,
+            )
+        else:
+            log_district_event(
+                event="district_assigned",
+                domicilio_id=domicilio_id,
+                lat=float(lat),
+                lng=float(lng),
+                source="MANUAL",
+                geo_status=geo_status,
+                distrito_id=int(resolved_distrito_id),
+            )
+    except Exception as exc:  # noqa: BLE001 - no debe cortar geocode manual
+        log_district_event(
+            event="district_error",
+            domicilio_id=domicilio_id,
+            lat=float(lat),
+            lng=float(lng),
+            source="MANUAL",
+            geo_status=geo_status,
+            distrito_id=None,
+            error=str(exc),
+        )
+
+
 def save_manual_geocode(
     domicilio_id: int,
     lat: float,
@@ -425,6 +486,9 @@ def save_manual_geocode(
 ) -> Dict[str, object]:
     """
     Guarda geolocalización manual desde mapa y opcionalmente reverse.
+
+    Persiste coordenadas aunque falle la resolución de distrito. Tras el commit del
+    geocode, intenta backfill si el domicilio sigue sin ``distrito_id``.
 
     Args:
         domicilio_id: id del domicilio.
@@ -458,25 +522,28 @@ def save_manual_geocode(
         rev = reverse_geocode(lat, lng)
         geo.raw_json = {"manual": True, "reverse": rev}
 
-    try:
-        # Si no hay match queda en None y se persiste sin romper el flujo manual.
-        dom.distrito_id = resolve_distrito_id(float(lat), float(lng))
-        db.session.add(dom)
-        log_barrio_distrito_consistency(
-            domicilio=dom,
-            source="MANUAL",
-            lat=float(lat),
-            lng=float(lng),
-        )
-    except Exception as exc:  # noqa: BLE001 - no debe cortar geocode manual
-        logger.warning(
-            "No se pudo resolver distrito en map manual geocode (domicilio_id=%s): %s",
-            domicilio_id,
-            exc,
-        )
+    _resolve_distrito_en_geocode_manual(
+        dom=dom,
+        domicilio_id=domicilio_id,
+        lat=float(lat),
+        lng=float(lng),
+        geo_status=str(geo.geo_status or ""),
+    )
 
     db.session.add(geo)
     db.session.commit()
+
+    if dom.distrito_id is None:
+        try:
+            if backfill_distrito_for_domicilio_if_needed(domicilio_id):
+                db.session.commit()
+        except Exception as exc:  # noqa: BLE001 - geocode ya persistido
+            logger.warning(
+                "Backfill distrito post map manual geocode falló (domicilio_id=%s): %s",
+                domicilio_id,
+                exc,
+            )
+
     return {"ok": True, "domicilio_id": domicilio_id}
 
 

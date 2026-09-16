@@ -40,7 +40,8 @@ describe("TablaCargarRelevamientosGlideStyled — headers", () => {
     expect(src).not.toContain("icon: col.icon");
     expect(cols).not.toContain("icon: col.icon");
     expect(cols).not.toContain("GridColumnIcon.HeaderNumber");
-    expect(cols).toContain('title: "Ángulo esquina"');
+    expect(cols).toContain('title: "Orientación"');
+    expect(cols).toContain('title: "Número / esquina"');
   });
 });
 
@@ -48,7 +49,7 @@ describe("columnDefinitions — Ángulo esquina", () => {
   const cols = read("src/Containers/CargarRelevamientos/config/columnDefinitions.ts");
 
   it("ancho suficiente para label completo", () => {
-    expect(cols).toContain("RELEVAMIENTO_ANGULO_ESQUINA_COL_WIDTH = 148");
+    expect(cols).toContain("RELEVAMIENTO_ANGULO_ESQUINA_COL_WIDTH = 128");
     expect(cols).toContain("width: RELEVAMIENTO_ANGULO_ESQUINA_COL_WIDTH");
   });
 });

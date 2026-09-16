@@ -81,7 +81,7 @@ export function RelevamientoCrudDialog({
   catalogs,
   readOnlyColumns,
   numeroCallesOptions,
-  numeroEditorLabel,
+  numeroEditorLabel: _numeroEditorLabel,
   numeroAllowFreeSolo = false,
   globalError = null,
   canEdit = true,
@@ -104,6 +104,9 @@ export function RelevamientoCrudDialog({
     numero_tipo: draft.numero_tipo,
     numero: draft.numero,
   });
+
+  const numeroModoEsquina = (draft.numero_tipo ?? "").toUpperCase() === "ESQUINA";
+  const numeroFieldLabel = numeroModoEsquina ? "Calle de esquina" : "Número";
 
   const handleClose = () => {
     if (saving) return;
@@ -265,7 +268,7 @@ export function RelevamientoCrudDialog({
             />
           </CrudFormSlot>
           <CrudFormSlot
-            label={numeroEditorLabel}
+            label={numeroFieldLabel}
             mode={mode}
             value={relevamientoNumeroDisplay(draft)}
             error={!!e("numero")}
@@ -278,7 +281,7 @@ export function RelevamientoCrudDialog({
                 onDraftChange(buildNumeroTipoDraftPatch(editorMode, draft))
               }
               extraCalles={numeroCallesOptions}
-              label={numeroEditorLabel}
+              label={numeroFieldLabel}
               error={!!e("numero")}
               helperText={e("numero")}
               allowFreeSolo={numeroAllowFreeSolo}
@@ -287,15 +290,17 @@ export function RelevamientoCrudDialog({
           </CrudFormSlot>
           {anguloAplica ? (
             <CrudFormSlot
-              label="Ángulo esquina"
+              label="Orientación"
               mode={mode}
               value={relevamientoAnguloEsquinaDisplay(draft)}
               error={!!e("angulo_esquina")}
-              helperText={e("angulo_esquina") || "Solo para esquinas/intersecciones."}
+              helperText={
+                e("angulo_esquina") || "Ubicación del local en la esquina: NE, NO, SE o SO."
+              }
             >
               <AppSelect
                 appearance="glass"
-                label="Ángulo esquina"
+                label="Orientación"
                 value={draft.angulo_esquina ?? ""}
                 onChange={(ev) => {
                   const v = ev.target.value as string;
@@ -307,7 +312,9 @@ export function RelevamientoCrudDialog({
                 ]}
                 fullWidth
                 error={!!e("angulo_esquina")}
-                helperText={e("angulo_esquina") || "Solo para esquinas/intersecciones."}
+                helperText={
+                  e("angulo_esquina") || "Ubicación del local en la esquina: NE, NO, SE o SO."
+                }
               />
             </CrudFormSlot>
           ) : null}

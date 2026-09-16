@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,7 +17,6 @@ import {
 import { submitRelevamientoRow } from "../utils/submitRelevamientoRow";
 import { relevamientoRowParaEdicion } from "../utils/relevamientoCamposForm";
 import { RelevamientoCrudDialog } from "./RelevamientoCrudDialog";
-import { turnoCargaLabel } from "../../CargarRelevamientos/config/relevamientoTurnOptions";
 import {
   BandejaEllipsisCell,
   BANDEJA_MRT_BODY_CELL_PROPS,
@@ -30,7 +29,13 @@ import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { shouldRefreshRelevamientosAfterSaveFailure } from "../utils/refreshOnSavePolicy";
-import { relevamientoAnguloEsquinaDisplay, relevamientoEstablecimientoLines } from "../utils/relevamientoCrudDisplay";
+import {
+  relevamientoDistritoDisplay,
+  relevamientoEstaAbiertoDisplay,
+  relevamientoEstablecimientoLines,
+  relevamientoRelevadoresLineas,
+  relevamientoTurnoDisplay,
+} from "../utils/relevamientoCrudDisplay";
 import {
   DARK_TABLE_CONFIG,
   COLORS,
@@ -71,7 +76,7 @@ const TablaRelevamientos = ({
   hideDeleteAction = false,
   skipValidation = false,
   skipUpdate = false,
-  numeroHeader = "Numero",
+  numeroHeader = "Número / esquina",
   numeroEditorLabel = "Número",
   extraColumns = [],
   onBeforeSave,
@@ -251,16 +256,32 @@ const TablaRelevamientos = ({
       {
         accessorKey: "relevadores_label",
         header: "Relevador",
-        size: 200,
-        Cell: ({ row }) => (
-          <BandejaEllipsisCell
-            value={relevamientoCellText(row.original.relevadores_label ?? row.original.relevadores?.map((r) => r.nombre).join(" · "))}
-          />
-        ),
+        size: 220,
+        Cell: ({ row }) => {
+          const nombres = relevamientoRelevadoresLineas(row.original);
+          const turno = relevamientoTurnoDisplay(row.original.turno);
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, minWidth: 0 }}>
+              <Typography
+                variant="body2"
+                sx={{ whiteSpace: "pre-line", lineHeight: 1.35 }}
+                title={nombres}
+                noWrap={false}
+              >
+                {nombres}
+              </Typography>
+              {turno ? (
+                <Typography variant="caption" color="text.secondary" noWrap title={turno}>
+                  {turno}
+                </Typography>
+              ) : null}
+            </Box>
+          );
+        },
       },
       {
         accessorKey: "calle",
-        header: "Calle",
+        header: "Domicilio",
         size: 200,
         Cell: ({ row }) => {
           if (row.original.calle_estado === "OK" && row.original.calle_normalizada) {
@@ -307,38 +328,29 @@ const TablaRelevamientos = ({
                 </Typography>
               ) : null}
               {anguloChip ? (
-                <Chip label={anguloChip} size="small" sx={{ alignSelf: "flex-start", height: 20, fontSize: "0.7rem" }} />
+                <Typography variant="caption" color="text.secondary" noWrap title={anguloChip}>
+                  {anguloChip}
+                </Typography>
               ) : null}
             </Box>
           );
         },
       },
       {
-        accessorKey: "angulo_esquina",
-        header: "Ángulo",
-        size: 80,
-        Cell: ({ row }) => (
-          <BandejaEllipsisCell value={relevamientoAnguloEsquinaDisplay(row.original) ?? "—"} />
-        ),
-      },
-      {
-        accessorKey: "turno",
-        header: "Turno",
-        size: 130,
-        Cell: ({ cell }) => (
-          <BandejaEllipsisCell value={turnoCargaLabel(cell.getValue() as string | null)} />
-        ),
-      },
-      {
         accessorKey: "esta_abierto",
         header: "Está abierto",
-        size: 130,
-        Cell: ({ cell }) => {
-          const v = cell.getValue() as boolean | string | null | undefined;
-          if (v === true || v === "Sí") return <BandejaEllipsisCell value="Sí" />;
-          if (v === false || v === "No") return <BandejaEllipsisCell value="No" />;
-          return <BandejaEllipsisCell value="—" />;
-        },
+        size: 120,
+        Cell: ({ row }) => (
+          <BandejaEllipsisCell value={relevamientoEstaAbiertoDisplay(row.original.esta_abierto)} />
+        ),
+      },
+      {
+        accessorKey: "distrito_mostrar",
+        header: "Distrito",
+        size: 140,
+        Cell: ({ row }) => (
+          <BandejaEllipsisCell value={relevamientoDistritoDisplay(row.original)} />
+        ),
       },
     ];
     return [...baseColumns, ...extraColumns];

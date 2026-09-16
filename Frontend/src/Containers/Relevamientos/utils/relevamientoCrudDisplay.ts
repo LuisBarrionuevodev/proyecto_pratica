@@ -49,10 +49,30 @@ export function relevamientoAnguloEsquinaDisplay(row: IRelevamientoListItem): st
   return ang;
 }
 
-/** Etiqueta corta para chip de ángulo en listado. */
-export function relevamientoAnguloChipLabel(row: IRelevamientoListItem): string | null {
+/** Línea secundaria de orientación en columna Rubro. */
+export function relevamientoOrientacionLinea(row: IRelevamientoListItem): string | null {
   const ang = relevamientoAnguloEsquinaDisplay(row);
-  return ang ? `Esquina ${ang}` : null;
+  return ang ? `Orientación: ${ang}` : null;
+}
+
+/** @deprecated Usar relevamientoOrientacionLinea */
+export function relevamientoAnguloChipLabel(row: IRelevamientoListItem): string | null {
+  return relevamientoOrientacionLinea(row);
+}
+
+/** Nombres completos de relevadores (uno por línea si hay varios). */
+export function relevamientoRelevadoresLineas(row: IRelevamientoListItem): string {
+  const fromList = (row.relevadores ?? []).map((r) => r.nombre).filter(Boolean);
+  if (fromList.length > 0) return fromList.join("\n");
+  const label = row.relevadores_label?.trim();
+  if (label) return label.replace(/\s*·\s*/g, "\n");
+  return "—";
+}
+
+/** Distrito visible en bandeja (solo valor mostrable del backend). */
+export function relevamientoDistritoDisplay(row: IRelevamientoListItem): string {
+  const v = row.distrito_mostrar?.trim();
+  return v || "—";
 }
 
 export type RelevamientoEstablecimientoLines = {
@@ -67,11 +87,11 @@ export function relevamientoEstablecimientoLines(row: IRelevamientoListItem): Re
   const bits: string[] = [];
   const nf = relevamientoNombreFantasiaDisplay(row);
   if (nf) bits.push(`Nombre fantasía: ${nf}`);
-  const anguloChip = relevamientoAnguloChipLabel(row);
+  const orientacionLinea = relevamientoOrientacionLinea(row);
   return {
     primary,
     secondary: bits.length ? bits.join(" · ") : null,
-    anguloChip,
+    anguloChip: orientacionLinea,
   };
 }
 

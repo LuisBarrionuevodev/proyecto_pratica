@@ -12,7 +12,8 @@ import DataEditor, {
 import "@glideapps/glide-data-grid/dist/index.css";
 import { allCells } from "@glideapps/glide-data-grid-cells";
 import "@glideapps/glide-data-grid-cells/dist/index.css";
-import { Box, Typography, CircularProgress, LinearProgress } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { Box, Tooltip, Typography, CircularProgress, LinearProgress } from "@mui/material";
 import {
   startBatch,
   validateRow,
@@ -37,7 +38,11 @@ import {
   gridContainerStyles,
   calculateRelevamientoTableHeight,
 } from "../styles/cargarRelevamientosStyles";
-import { COLUMN_DEFINITIONS, GROUP_CONFIG } from "../config/columnDefinitions";
+import {
+  COLUMN_DEFINITIONS,
+  GROUP_CONFIG,
+  RELEVAMIENTO_COLUMN_HEADER_TOOLTIPS,
+} from "../config/columnDefinitions";
 import {
   TURNO_DROPDOWN_LABELS,
   turnoDropdownLabelToStored,
@@ -797,6 +802,42 @@ const TablaCargarRelevamientosGlideStyled = ({
             >
               Mandar todo (validar y guardar)
             </AppButton>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 2,
+              justifyContent: "flex-end",
+              alignItems: "center",
+            }}
+            aria-hidden={false}
+          >
+            {(["Numero", "Ángulo esquina"] as const).map((columnId) => {
+              const tooltip = RELEVAMIENTO_COLUMN_HEADER_TOOLTIPS[columnId];
+              const title = COLUMN_DEFINITIONS.find((c) => c.id === columnId)?.title;
+              if (!tooltip || !title) return null;
+              return (
+                <Tooltip key={columnId} title={tooltip} arrow describeChild>
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      color: GLASS_COLORS.textMuted,
+                      fontSize: "0.75rem",
+                      cursor: "help",
+                    }}
+                    aria-label={`Ayuda: ${title}. ${tooltip}`}
+                  >
+                    <InfoOutlinedIcon sx={{ fontSize: 14 }} aria-hidden />
+                    {title}
+                  </Box>
+                </Tooltip>
+              );
+            })}
           </Box>
 
           <Box sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}>

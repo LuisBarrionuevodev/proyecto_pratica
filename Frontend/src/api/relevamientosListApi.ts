@@ -38,6 +38,10 @@ export interface IRelevamientoListItem {
   esta_abierto?: boolean | null;
   nombre_fantasia?: string | null;
   angulo_esquina?: "NE" | "NO" | "SE" | "SO" | null;
+  distrito_id?: number | null;
+  distrito_codigo?: number | null;
+  distrito_nombre?: string | null;
+  distrito_mostrar?: string | null;
 }
 
 export interface IRelevamientosListMeta {
@@ -49,6 +53,8 @@ export interface IRelevamientosListMeta {
   relevador: string | null;
   calle: string | null;
   numero: string | null;
+  esta_abierto?: boolean | null;
+  distrito_id?: number | null;
 }
 
 export interface IRelevamientosListResponse {
@@ -62,8 +68,28 @@ export interface IRelevamientosListFilters {
   relevador?: string | null;
   calle?: string | null;
   numero?: string | null;
+  esta_abierto?: boolean | null;
+  distrito_id?: number | null;
   page?: number;
   page_size?: number;
+}
+
+function appendRelevamientosListParams(
+  params: Record<string, string>,
+  filters?: IRelevamientosListFilters
+): void {
+  if (filters?.desde) params.desde = filters.desde;
+  if (filters?.hasta) params.hasta = filters.hasta;
+  if (filters?.relevador) params.relevador = filters.relevador;
+  if (filters?.calle) params.calle = filters.calle;
+  if (filters?.numero) params.numero = filters.numero;
+  if (filters?.esta_abierto === true) params.esta_abierto = "true";
+  if (filters?.esta_abierto === false) params.esta_abierto = "false";
+  if (filters?.distrito_id != null && filters.distrito_id > 0) {
+    params.distrito_id = String(filters.distrito_id);
+  }
+  if (filters?.page) params.page = String(filters.page);
+  if (filters?.page_size) params.page_size = String(filters.page_size);
 }
 
 /** Listado completo sin filtro de actuación completada (p. ej. otros consumidores de API). */
@@ -71,13 +97,7 @@ export const getRelevamientosFiltered = async (
   filters?: IRelevamientosListFilters
 ): Promise<IRelevamientosListResponse> => {
   const params: Record<string, string> = {};
-  if (filters?.desde) params.desde = filters.desde;
-  if (filters?.hasta) params.hasta = filters.hasta;
-  if (filters?.relevador) params.relevador = filters.relevador;
-  if (filters?.calle) params.calle = filters.calle;
-  if (filters?.numero) params.numero = filters.numero;
-  if (filters?.page) params.page = String(filters.page);
-  if (filters?.page_size) params.page_size = String(filters.page_size);
+  appendRelevamientosListParams(params, filters);
 
   const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos", { params });
   return data;
@@ -91,13 +111,7 @@ export const getRelevamientosRealizadosActuacionCompletadaFiltered = async (
   filters?: IRelevamientosListFilters
 ): Promise<IRelevamientosListResponse> => {
   const params: Record<string, string> = {};
-  if (filters?.desde) params.desde = filters.desde;
-  if (filters?.hasta) params.hasta = filters.hasta;
-  if (filters?.relevador) params.relevador = filters.relevador;
-  if (filters?.calle) params.calle = filters.calle;
-  if (filters?.numero) params.numero = filters.numero;
-  if (filters?.page) params.page = String(filters.page);
-  if (filters?.page_size) params.page_size = String(filters.page_size);
+  appendRelevamientosListParams(params, filters);
 
   const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos/realizados", {
     params,
@@ -109,13 +123,7 @@ export const getRelevamientosOperativosFiltered = async (
   filters?: IRelevamientosListFilters
 ): Promise<IRelevamientosListResponse> => {
   const params: Record<string, string> = {};
-  if (filters?.desde) params.desde = filters.desde;
-  if (filters?.hasta) params.hasta = filters.hasta;
-  if (filters?.relevador) params.relevador = filters.relevador;
-  if (filters?.calle) params.calle = filters.calle;
-  if (filters?.numero) params.numero = filters.numero;
-  if (filters?.page) params.page = String(filters.page);
-  if (filters?.page_size) params.page_size = String(filters.page_size);
+  appendRelevamientosListParams(params, filters);
 
   const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos/gestion-operativa", {
     params,

@@ -81,10 +81,11 @@ describe("REL-ANGULO.1 — angulo_esquina relevamiento ESQUINA", () => {
     expect(row.angulo_esquina).toBe("SO");
   });
 
-  it("TableRelevamientos incluye columna Ángulo", () => {
+  it("TableRelevamientos muestra orientación bajo Rubro sin columna independiente", () => {
     const src = read("Containers/Relevamientos/Components/TableRelevamientos.tsx");
-    expect(src).toContain('accessorKey: "angulo_esquina"');
-    expect(src).toContain('header: "Ángulo"');
-    expect(src).toContain("relevamientoAnguloEsquinaDisplay");
+    expect(src).not.toContain('accessorKey: "angulo_esquina"');
+    expect(src).not.toContain('header: "Orientación"');
+    expect(src).toContain("relevamientoEstablecimientoLines");
+    expect(src).toContain('numeroHeader = "Número / esquina"');
   });
 });

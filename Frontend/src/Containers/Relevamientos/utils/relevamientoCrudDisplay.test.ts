@@ -62,7 +62,7 @@ describe("relevamientoCrudDisplay", () => {
         numero_tipo: "ESQUINA",
         angulo_esquina: "NE",
       })
-    ).toBe("Esquina NE");
+    ).toBe("Orientación: NE");
     expect(
       relevamientoAnguloChipLabel({ ...baseRow, numero_tipo: "NUMERO", angulo_esquina: "NE" })
     ).toBeNull();
@@ -77,7 +77,7 @@ describe("relevamientoCrudDisplay", () => {
     });
     expect(lines.primary).toBe("Panadería");
     expect(lines.secondary).toContain("Nombre fantasía: La Esquina");
-    expect(lines.anguloChip).toBe("Esquina SO");
+    expect(lines.anguloChip).toBe("Orientación: SO");
     expect(relevamientoEstablecimientoDisplay({ ...baseRow })).toBe("Panadería");
   });
 

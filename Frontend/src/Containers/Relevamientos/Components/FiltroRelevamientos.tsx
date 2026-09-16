@@ -4,6 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { fetchRelevadores, type CatalogItem } from "../../../api/gridApi";
+import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../../api/geolocalizacionApi";
 import { getCurrentMonthRange } from "../../../utils/dateRange";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import {
@@ -16,14 +17,18 @@ import {
   filtroButtonSecondaryStyles,
 } from "../../Actuaciones/styles/filtroStyles";
 
+export type RelevamientosFiltrosForm = {
+  desde: string | null;
+  hasta: string | null;
+  relevador: string | null;
+  calle: string | null;
+  numero: string | null;
+  esta_abierto: boolean | null;
+  distrito_id: number | null;
+};
+
 interface FiltroRelevamientosProps {
-  onFiltrar: (filtros: {
-    desde: string | null;
-    hasta: string | null;
-    relevador: string | null;
-    calle: string | null;
-    numero: string | null;
-  }) => void;
+  onFiltrar: (filtros: RelevamientosFiltrosForm) => void;
   onLimpiarLista?: () => void;
 }
 
@@ -33,41 +38,52 @@ const FiltroRelevamientos = ({ onFiltrar, onLimpiarLista }: FiltroRelevamientosP
   const [relevador, setRelevador] = useState<string>("");
   const [calle, setCalle] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
+  const [estaAbierto, setEstaAbierto] = useState<string>("");
+  const [distritoId, setDistritoId] = useState<string>("");
   const [catalogRelevadores, setCatalogRelevadores] = useState<string[]>([]);
+  const [catalogDistritos, setCatalogDistritos] = useState<DistritoCatalogoItem[]>([]);
 
   useEffect(() => {
     const loadCatalogs = async () => {
       try {
-        const resp = await fetchRelevadores();
-        setCatalogRelevadores([...new Set(resp.items.map((i: CatalogItem) => i.nombre))]);
+        const [relevadoresResp, distritosResp] = await Promise.all([
+          fetchRelevadores(),
+          fetchDistritosCatalogo(),
+        ]);
+        setCatalogRelevadores([...new Set(relevadoresResp.items.map((i: CatalogItem) => i.nombre))]);
+        setCatalogDistritos(distritosResp.items);
       } catch (error) {
-        console.error("Error cargando relevadores:", error);
+        console.error("Error cargando catálogos de filtros:", error);
       }
     };
     loadCatalogs();
   }, []);
+
+  const buildPayload = (desdeVal: string | null, hastaVal: string | null): RelevamientosFiltrosForm => {
+    const estaAbiertoParsed =
+      estaAbierto === "true" ? true : estaAbierto === "false" ? false : null;
+    const distritoParsed =
+      distritoId && Number(distritoId) > 0 ? Number(distritoId) : null;
+    return {
+      desde: desdeVal,
+      hasta: hastaVal,
+      relevador: relevador || null,
+      calle: calle || null,
+      numero: numero || null,
+      esta_abierto: estaAbiertoParsed,
+      distrito_id: distritoParsed,
+    };
+  };
 
   const handleFiltrar = () => {
     if (!desde && !hasta) {
       const range = getCurrentMonthRange();
       setDesde(range.desde);
       setHasta(range.hasta);
-      onFiltrar({
-        desde: range.desde,
-        hasta: range.hasta,
-        relevador: relevador || null,
-        calle: calle || null,
-        numero: numero || null,
-      });
+      onFiltrar(buildPayload(range.desde, range.hasta));
       return;
     }
-    onFiltrar({
-      desde: desde || null,
-      hasta: hasta || null,
-      relevador: relevador || null,
-      calle: calle || null,
-      numero: numero || null,
-    });
+    onFiltrar(buildPayload(desde || null, hasta || null));
   };
 
   const handleLimpiar = () => {
@@ -76,6 +92,8 @@ const FiltroRelevamientos = ({ onFiltrar, onLimpiarLista }: FiltroRelevamientosP
     setRelevador("");
     setCalle("");
     setNumero("");
+    setEstaAbierto("");
+    setDistritoId("");
     onLimpiarLista?.();
   };
 
@@ -139,10 +157,41 @@ const FiltroRelevamientos = ({ onFiltrar, onLimpiarLista }: FiltroRelevamientosP
           <AppTextField
             appearance="dense"
             fullWidth
-            label="Numero"
+            label="Número / esquina"
             value={numero}
             onChange={(e) => setNumero(e.target.value)}
             variant="outlined"
+          />
+        </Box>
+
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            fullWidth
+            label="Está abierto"
+            value={estaAbierto}
+            onChange={(e) => setEstaAbierto(e.target.value)}
+            variant="outlined"
+            options={[
+              { value: "", label: "Todos" },
+              { value: "true", label: "Sí" },
+              { value: "false", label: "No" },
+            ]}
+          />
+        </Box>
+
+        <Box sx={filtroItemStyles}>
+          <AppSelect
+            appearance="dense"
+            fullWidth
+            label="Distrito"
+            value={distritoId}
+            onChange={(e) => setDistritoId(e.target.value)}
+            variant="outlined"
+            options={[
+              { value: "", label: "Todos" },
+              ...catalogDistritos.map((d) => ({ value: String(d.id), label: d.nombre })),
+            ]}
           />
         </Box>
       </Box>

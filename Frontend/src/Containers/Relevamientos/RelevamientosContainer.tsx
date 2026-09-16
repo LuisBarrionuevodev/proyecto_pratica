@@ -25,6 +25,8 @@ const RelevamientosContainer = (): JSX.Element => {
       relevador: string | null;
       calle: string | null;
       numero: string | null;
+      esta_abierto: boolean | null;
+      distrito_id: number | null;
     }) => {
       void buscar({
         desde: filtros.desde,
@@ -32,6 +34,8 @@ const RelevamientosContainer = (): JSX.Element => {
         relevador: filtros.relevador,
         calle: filtros.calle,
         numero: filtros.numero,
+        esta_abierto: filtros.esta_abierto,
+        distrito_id: filtros.distrito_id,
         page: 1,
         page_size: 50,
       });
@@ -47,6 +51,8 @@ const RelevamientosContainer = (): JSX.Element => {
       relevador: meta.relevador,
       calle: meta.calle,
       numero: meta.numero,
+      esta_abierto: meta.esta_abierto ?? null,
+      distrito_id: meta.distrito_id ?? null,
       page: meta.page,
       page_size: meta.page_size,
     });
@@ -119,6 +125,16 @@ const RelevamientosContainer = (): JSX.Element => {
           {meta.numero && (
             <Typography sx={metaItemStyles}>
               <strong>Número:</strong> {meta.numero}
+            </Typography>
+          )}
+          {meta.esta_abierto !== null && meta.esta_abierto !== undefined && (
+            <Typography sx={metaItemStyles}>
+              <strong>Está abierto:</strong> {meta.esta_abierto ? "Sí" : "No"}
+            </Typography>
+          )}
+          {meta.distrito_id != null && (
+            <Typography sx={metaItemStyles}>
+              <strong>Distrito:</strong> {meta.distrito_id}
             </Typography>
           )}
         </Box>

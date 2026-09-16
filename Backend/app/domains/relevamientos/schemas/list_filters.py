@@ -16,6 +16,8 @@ class RelevamientosListFilters(BaseModel):
         - relevador: nombre o id (string)
         - calle: texto libre
         - numero: texto libre
+        - esta_abierto: true | false (ausente = sin filtro)
+        - distrito_id: id de distrito (ausente = sin filtro)
         - page: página actual (default 1)
         - page_size: tamaño de página (default 50)
     """
@@ -25,8 +27,31 @@ class RelevamientosListFilters(BaseModel):
     relevador: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    esta_abierto: Optional[bool] = None
+    distrito_id: Optional[int] = None
     page: int = 1
     page_size: int = 50
+
+    @field_validator("esta_abierto", mode="before")
+    @classmethod
+    def parse_esta_abierto(cls, v: object) -> Optional[bool]:
+        if v is None or v == "":
+            return None
+        if isinstance(v, bool):
+            return v
+        s = str(v).strip().lower()
+        if s in {"true", "1", "si", "sí"}:
+            return True
+        if s in {"false", "0", "no"}:
+            return False
+        raise ValueError("esta_abierto debe ser true o false")
+
+    @field_validator("distrito_id", mode="before")
+    @classmethod
+    def parse_distrito_id(cls, v: object) -> Optional[int]:
+        if v is None or v == "":
+            return None
+        return int(v)
 
     @field_validator("page")
     @classmethod
