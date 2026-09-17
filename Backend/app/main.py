@@ -60,6 +60,16 @@ def create_app(config_override: dict | None = None):
     app.config["SMTP_PASS"] = os.getenv("SMTP_PASS")
     app.config["SMTP_FROM"] = os.getenv("SMTP_FROM")
     app.config["PASSWORD_RESET_PEPPER"] = os.getenv("PASSWORD_RESET_PEPPER")
+    _geocoder_raw = (
+        os.getenv("GEOCODER_PROVIDER") or os.getenv("GEO_PROVIDER") or "geoapify"
+    ).lower().strip()
+    if _geocoder_raw == "geopify":
+        _geocoder_raw = "geoapify"
+    app.config["GEOCODER_PROVIDER"] = (
+        _geocoder_raw
+        if _geocoder_raw in {"geoapify", "nominatim", "none"}
+        else "geoapify"
+    )
 
     # EpiCollect5 (API de export; opcional hasta usar import-from-api)
     app.config["EPICOLLECT_BASE_URL"] = os.getenv("EPICOLLECT_BASE_URL") or "https://five.epicollect.net"
@@ -85,8 +95,12 @@ def create_app(config_override: dict | None = None):
     register_dev_post_root_logger(app)
 
     from app.domains.actuaciones.utils.put_actuacion_diag import configure_diag_logging
+    from app.domains.geolocalizacion.geocode.services.geocode_post_commit_worker import (
+        init_geocode_post_commit_worker,
+    )
 
     configure_diag_logging()
+    init_geocode_post_commit_worker(app)
 
     app.url_map.strict_slashes = False
   
@@ -115,6 +129,25 @@ def create_app(config_override: dict | None = None):
                     ensure_dev_admin_seed()
             except Exception:
                 app.logger.exception("No se pudo crear/verificar seed admin de desarrollo")
+
+    @app.cli.command("process-geocode-post-commit-queue")
+    @click.option("--limit", default=50, show_default=True, help="Máximo de jobs por corrida")
+    def process_geocode_post_commit_queue_cli(limit: int) -> None:
+        """
+        Drena la cola durable de geocode post-commit (GEO-PERF.1).
+
+        Camino canónico para Task Scheduler / cron si el worker in-process no corre.
+        """
+        from app.domains.geolocalizacion.geocode.services.geocode_post_commit_queue_service import (
+            process_geocode_post_commit_jobs,
+        )
+
+        try:
+            summary = process_geocode_post_commit_jobs(limit=int(limit))
+        except Exception:
+            app.logger.exception("process-geocode-post-commit-queue CLI falló")
+            raise click.Abort()
+        click.echo(json.dumps(summary, ensure_ascii=True))
 
     @app.cli.command("sync-notificaciones-vencidas")
     def sync_notificaciones_vencidas_cli() -> None:

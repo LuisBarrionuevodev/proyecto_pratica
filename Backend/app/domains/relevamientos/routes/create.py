@@ -10,9 +10,7 @@ from app.domains.relevamientos.presenters.relevamiento_presenter import relevami
 from app.domains.relevamientos.schemas.grid.relevamiento_row_in import RelevamientoGridRowIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
-from app.domains.geolocalizacion.geocode.services.pipeline_service import (
-    pipeline_post_commit,
-)
+from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
 
 from . import relevamiento
 
@@ -30,7 +28,7 @@ def crear_relevamiento():
         rel = crear_relevamiento_desde_payload(payload)
         try:
             if rel.domicilio_id:
-                pipeline_post_commit(int(rel.domicilio_id))
+                schedule_geocode_after_grid_commit([int(rel.domicilio_id)])
         except Exception:
             pass
         return jsonify(relevamiento_to_row(rel)), 201

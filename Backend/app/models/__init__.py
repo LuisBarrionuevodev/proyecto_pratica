@@ -30,6 +30,7 @@ from .catalog_motivo_comprobacion import CatalogMotivoComprobacion
 from .juzgado_catalogo import JuzgadoCatalogo
 from .calle_catalogo import CalleCatalogo
 from .domicilio_geocode import DomicilioGeocode
+from .geocode_post_commit_job import GeocodePostCommitJob
 from .lugar_trabajo import LugarTrabajo
 from .participante import Participante
 from .establecimiento import Establecimiento
@@ -82,6 +83,7 @@ __all__ = [
     "JuzgadoCatalogo",
     "CalleCatalogo",
     "DomicilioGeocode",
+    "GeocodePostCommitJob",
     "LugarTrabajo",
     "Participante",
     "Establecimiento",

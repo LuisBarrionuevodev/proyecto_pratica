@@ -17,8 +17,45 @@ from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
     get_or_create_geocode,
 )
 
+_VALID_GEOCODER_PROVIDERS = frozenset({"geoapify", "nominatim", "none"})
+_DEFAULT_GEOCODER_PROVIDER = "geoapify"
 
-GEO_PROVIDER = os.getenv("GEOCODER_PROVIDER", os.getenv("GEO_PROVIDER", "nominatim")).lower()
+
+def get_geocoder_provider() -> str:
+    """
+    Resuelve el proveedor de geocoding forward en runtime.
+
+    Prioridad:
+    1. ``current_app.config['GEOCODER_PROVIDER']`` si hay app context Flask;
+    2. ``GEOCODER_PROVIDER`` (env);
+    3. ``GEO_PROVIDER`` (env legacy);
+    4. default ``geoapify``.
+
+    Returns:
+        ``geoapify``, ``nominatim`` o ``none``.
+    """
+    raw: Optional[str] = None
+    try:
+        from flask import has_app_context, current_app
+
+        if has_app_context():
+            cfg = current_app.config.get("GEOCODER_PROVIDER")
+            if cfg:
+                raw = str(cfg)
+    except RuntimeError:
+        pass
+
+    if not raw:
+        raw = os.getenv("GEOCODER_PROVIDER") or os.getenv("GEO_PROVIDER")
+    if not raw:
+        return _DEFAULT_GEOCODER_PROVIDER
+
+    provider = str(raw).lower().strip()
+    if provider == "geopify":
+        provider = "geoapify"
+    if provider in _VALID_GEOCODER_PROVIDERS:
+        return provider
+    return _DEFAULT_GEOCODER_PROVIDER
 
 GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/search"
 GEOAPIFY_TIMEOUT_SEC = 25
@@ -204,7 +241,7 @@ def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
         raise ValueError("Domicilio no encontrado.")
 
     geo = get_or_create_geocode(domicilio_id)
-    provider = GEO_PROVIDER if GEO_PROVIDER in {"geoapify", "nominatim", "none"} else "geoapify"
+    provider = get_geocoder_provider()
     geo.provider = provider
     geo.checked_at = datetime.utcnow()
     if not geo.source or geo.source not in {"MANUAL", "REVERSE"}:

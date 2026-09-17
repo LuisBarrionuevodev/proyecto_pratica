@@ -18,9 +18,7 @@ from app.domains.grid.schemas.batch import (
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.grid.services.batch_store import InMemoryBatchStore
 from app.domains.grid.services.validate_service import GridValidateService
-from app.domains.geolocalizacion.geocode.services.pipeline_service import (
-    pipeline_post_commit,
-)
+from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
 from app.domains.catalogos.services.rubros_catalog_service import listar_rubros_catalogo
 from app.domains.relevamientos.catalogs.relevador import listar_relevadores_catalogo
 from app.domains.catalogos.services.item_acta_inspeccion_catalog_service import (
@@ -142,6 +140,7 @@ def commit_batch():
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
     results = []
+    domicilio_ids_for_geocode: list[int] = []
     batch = store.get(req.batch_id)
     from app.domains.grid.services.registry import get_handler
     handler = get_handler(batch.kind)
@@ -154,12 +153,9 @@ def commit_batch():
             else:
                 act = handler.update_fn(int(act_id), normalized)
 
-            try:
-                domicilio_id = getattr(act, "domicilio_id", None)
-                if domicilio_id:
-                    pipeline_post_commit(int(domicilio_id))
-            except Exception:
-                pass
+            domicilio_id = getattr(act, "domicilio_id", None)
+            if domicilio_id:
+                domicilio_ids_for_geocode.append(int(domicilio_id))
 
             results.append(
                 CommitRowResponse(
@@ -181,6 +177,11 @@ def commit_batch():
                     persisted=None,
                 )
             )
+
+    try:
+        schedule_geocode_after_grid_commit(domicilio_ids_for_geocode)
+    except Exception:
+        current_app.logger.exception("No se pudo encolar geocode post-commit del batch %s", req.batch_id)
 
     resp = CommitBatchResponse(batch_id=req.batch_id, results=results)
     return jsonify(resp.model_dump()), 200
@@ -329,12 +330,16 @@ def commit_row():
         else:
             act = handler.update_fn(int(act_id), normalized)
 
-        try:
-            domicilio_id = getattr(act, "domicilio_id", None)
-            if domicilio_id:
-                pipeline_post_commit(int(domicilio_id))
-        except Exception:
-            pass
+        domicilio_id = getattr(act, "domicilio_id", None)
+        if domicilio_id:
+            try:
+                schedule_geocode_after_grid_commit([int(domicilio_id)])
+            except Exception:
+                current_app.logger.exception(
+                    "No se pudo encolar geocode post-commit row batch=%s row=%s",
+                    req.batch_id,
+                    req.row_id,
+                )
 
         resp = CommitRowResponse(
             batch_id=req.batch_id,
