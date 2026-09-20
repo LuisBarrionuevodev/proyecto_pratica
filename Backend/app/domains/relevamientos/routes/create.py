@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 from pydantic import ValidationError
 
 from app.domains.relevamientos.mappers.grid.relevamiento_row_mapper import map_relevamiento_row
@@ -30,7 +30,11 @@ def crear_relevamiento():
             if rel.domicilio_id:
                 schedule_geocode_after_grid_commit([int(rel.domicilio_id)])
         except Exception:
-            pass
+            current_app.logger.exception(
+                "No se pudo encolar geocode post-commit relevamiento_id=%s domicilio_id=%s",
+                rel.id,
+                rel.domicilio_id,
+            )
         return jsonify(relevamiento_to_row(rel)), 201
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422

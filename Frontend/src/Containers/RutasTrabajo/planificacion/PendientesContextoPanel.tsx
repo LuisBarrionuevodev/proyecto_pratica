@@ -35,6 +35,8 @@ export type PendientesContextoPanelProps = {
   /** `embedded`: dentro del sidebar 7C (sin paper ni filtros duplicados). */
   variant?: "standalone" | "embedded";
   distritoActivoId: number | null;
+  contextoActivo?: boolean;
+  scopeOutsideDistricts?: boolean;
   distritoNombre?: string | null;
   rows: IRutaIniciadorPendienteRow[];
   meta: { total: number; page: number; perPage: number };
@@ -53,6 +55,8 @@ export type PendientesContextoPanelProps = {
 export function PendientesContextoPanel({
   variant = "standalone",
   distritoActivoId,
+  contextoActivo = false,
+  scopeOutsideDistricts = false,
   distritoNombre,
   rows,
   meta,
@@ -90,8 +94,8 @@ export function PendientesContextoPanel({
           </Box>
         ) : rows.length === 0 ? (
           <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
-            {distritoActivoId == null
-              ? "Elegí un distrito en el mapa."
+            {!contextoActivo
+              ? "Elegí un distrito en el mapa o Fuera de distritos."
               : "Sin candidatos con los filtros actuales."}
           </Typography>
         ) : (
@@ -155,7 +159,7 @@ export function PendientesContextoPanel({
     );
   }
 
-  if (distritoActivoId == null) {
+  if (!contextoActivo) {
     return (
       <Box
         sx={{
@@ -183,7 +187,7 @@ export function PendientesContextoPanel({
             fontSize: "0.8125rem",
           }}
         >
-          Seleccioná un distrito en el mapa.
+          Seleccioná un distrito en el mapa o Fuera de distritos.
         </Typography>
       </Box>
     );
@@ -203,7 +207,9 @@ export function PendientesContextoPanel({
       <Box sx={{ flexShrink: 0 }}>
         <Typography sx={planificacionPanelTitleSx}>Pendientes del contexto</Typography>
         <Typography sx={{ ...planificacionPanelSubtitleSx, color: GLASS_COLORS.textPrimary, fontWeight: 600 }}>
-          {distritoNombre ?? `Distrito ${distritoActivoId}`}
+          {scopeOutsideDistricts
+            ? "Fuera de distritos"
+            : distritoNombre ?? `Distrito ${distritoActivoId}`}
         </Typography>
       </Box>
 

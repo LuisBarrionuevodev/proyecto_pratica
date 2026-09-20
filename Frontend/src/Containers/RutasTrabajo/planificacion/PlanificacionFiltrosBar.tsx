@@ -24,6 +24,8 @@ const tactic = '"Tactic Sans", sans-serif' as const;
 
 export type PlanificacionFiltrosBarProps = {
   distritoActivoId: number | null;
+  contextoActivo?: boolean;
+  scopeOutsideDistricts?: boolean;
   metricas: IPlanificacionMetricas | null;
   cardActiva: PlanificacionCardKey;
   onCardChange: (card: PlanificacionCardKey) => void;
@@ -45,6 +47,8 @@ export type PlanificacionFiltrosBarProps = {
  */
 export function PlanificacionFiltrosBar({
   distritoActivoId,
+  contextoActivo = false,
+  scopeOutsideDistricts = false,
   metricas,
   cardActiva,
   onCardChange,
@@ -116,9 +120,13 @@ export function PlanificacionFiltrosBar({
 
   return (
     <Stack sx={planificacionFiltrosBarSx} spacing={0.75}>
-      {distritoActivoId == null && isTotalMapa ? (
+      {!contextoActivo && isTotalMapa ? (
         <Typography sx={{ fontFamily: tactic, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
-          Elegí un distrito en el mapa
+          Elegí un distrito en el mapa o Fuera de distritos
+        </Typography>
+      ) : scopeOutsideDistricts && isTotalMapa ? (
+        <Typography sx={{ fontFamily: tactic, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
+          Contexto: Fuera de distritos
         </Typography>
       ) : null}
 
@@ -129,7 +137,7 @@ export function PlanificacionFiltrosBar({
           cardActiva={cardActiva}
           onCardChange={onCardChange}
           loading={metricasLoading}
-          disabled={distritoActivoId == null && metricas == null}
+          disabled={!contextoActivo && metricas == null}
         />
       ) : (
         <PlanificacionTipoFilterChips
@@ -143,7 +151,7 @@ export function PlanificacionFiltrosBar({
       <PlanificacionRubroSelect
         value={isTotalMapa ? rubroId : urgenteRubroId}
         onChange={isTotalMapa ? setRubroId : setUrgenteRubroId}
-        disabled={(isTotalMapa ? candidatosLoading : urgentesLoading) || (isTotalMapa && distritoActivoId == null)}
+        disabled={(isTotalMapa ? candidatosLoading : urgentesLoading) || (isTotalMapa && !contextoActivo)}
       />
 
       <TextField
@@ -158,7 +166,7 @@ export function PlanificacionFiltrosBar({
           if (isTotalMapa) handleFiltrarCandidatos();
           else handleFiltrarUrgentes();
         }}
-        disabled={isTotalMapa ? distritoActivoId == null : urgentesLoading}
+        disabled={isTotalMapa ? !contextoActivo : urgentesLoading}
         sx={planificacionTextFieldSx}
       />
 
@@ -178,7 +186,7 @@ export function PlanificacionFiltrosBar({
           onClick={isTotalMapa ? handleFiltrarCandidatos : handleFiltrarUrgentes}
           disabled={
             isTotalMapa
-              ? candidatosLoading || distritoActivoId == null
+              ? candidatosLoading || !contextoActivo
               : urgentesLoading
           }
           sx={filterCompactPrimaryButtonSx}

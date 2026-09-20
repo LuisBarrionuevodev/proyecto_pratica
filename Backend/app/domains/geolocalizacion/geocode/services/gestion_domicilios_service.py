@@ -37,7 +37,14 @@ from app.domains.geolocalizacion.geocode.services.gestion_domicilios_status impo
     resolve_status_operativo,
     status_operativo_sql_case,
 )
-from app.models import CalleCatalogo, Domicilio, DomicilioGeocode
+from app.models import (
+    CalleCatalogo,
+    Contribuyente,
+    Domicilio,
+    DomicilioGeocode,
+    Relevamiento,
+    Rubro,
+)
 from app.shared.perf_log import PerfTimer, perf_endpoint_log, perf_log_enabled
 
 MAX_PAGE_SIZE = 100
@@ -89,17 +96,75 @@ def _calle_sugerida(dom: Domicilio, catalogo: CalleCatalogo | None) -> str | Non
     return None
 
 
+def _contribuyente_search_exists(term: str):
+    """EXISTS: contribuyente del domicilio coincide con ``term`` (nombre, doc, etc.)."""
+    return (
+        db.session.query(Contribuyente.id)
+        .filter(
+            Contribuyente.id == Domicilio.contribuyente_id,
+            Contribuyente.deleted_at.is_(None),
+            or_(
+                Contribuyente.apellido.ilike(term),
+                Contribuyente.nombre.ilike(term),
+                Contribuyente.razon_social.ilike(term),
+                Contribuyente.documento.ilike(term),
+            ),
+        )
+        .exists()
+    )
+
+
+def _rubro_domicilio_search_exists(term: str):
+    """EXISTS: rubro asociado al domicilio coincide con ``term``."""
+    return (
+        db.session.query(Rubro.id)
+        .filter(
+            Rubro.id == Domicilio.rubro_id,
+            Rubro.nombre.ilike(term),
+        )
+        .exists()
+    )
+
+
+def _relevamiento_search_exists(term: str):
+    """EXISTS: relevamiento del domicilio (nombre fantasía o rubro del relevamiento)."""
+    return (
+        db.session.query(Relevamiento.id)
+        .outerjoin(Rubro, Relevamiento.rubro_id == Rubro.id)
+        .filter(
+            Relevamiento.domicilio_id == Domicilio.id,
+            Relevamiento.deleted_at.is_(None),
+            or_(
+                Relevamiento.nombre_fantasia.ilike(term),
+                Rubro.nombre.ilike(term),
+            ),
+        )
+        .exists()
+    )
+
+
 def _apply_search_filter(query, q_text: str | None):
+    """
+    Filtro textual server-side para Gestión Domicilios.
+
+    Busca en calle/número (incl. esquina en ``numero``), contribuyente, rubro,
+    nombre fantasía (relevamiento) y match exacto por ``domicilio.id`` si ``q`` es numérico.
+    """
     if not q_text or not q_text.strip():
         return query
-    term = f"%{q_text.strip()}%"
-    return query.filter(
-        or_(
-            Domicilio.calle.like(term),
-            Domicilio.calle_normalizada.like(term),
-            Domicilio.numero.like(term),
-        )
-    )
+    raw = q_text.strip()
+    term = f"%{raw}%"
+    conditions = [
+        Domicilio.calle.ilike(term),
+        Domicilio.calle_normalizada.ilike(term),
+        Domicilio.numero.ilike(term),
+        _contribuyente_search_exists(term),
+        _rubro_domicilio_search_exists(term),
+        _relevamiento_search_exists(term),
+    ]
+    if raw.isdigit():
+        conditions.append(Domicilio.id == int(raw))
+    return query.filter(or_(*conditions))
 
 
 def _build_base_query(q_text: str | None):

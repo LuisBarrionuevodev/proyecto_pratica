@@ -734,7 +734,7 @@ describe("submitActuacionRow pipeline", () => {
 
 describe("submitActuacionRow checklist inspección", () => {
   const checklistCatalog = [
-    { id: 1, codigo: "TIENE_BANO", nombre: "Baño", activo: true, orden: 1 },
+    { id: 1, codigo: "TIENE_BANO", nombre: "Baño", orden: 1, tipo_respuesta: "ESTADO" as const },
     { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", activo: true, orden: 3 },
   ];
 

@@ -10,14 +10,17 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, case, or_
 
+from app.domains.geolocalizacion.geocoding.services.geocode_confidence import (
+    GEO_SCORE_DUDOSO,
+    is_google_geolocalizado,
+    is_trusted_auto_geocode,
+)
 from app.models import DomicilioGeocode
 
 if TYPE_CHECKING:
     from app.models import Domicilio
 
 StatusOperativoRow = str
-
-GEO_SCORE_DUDOSO = 0.85
 
 STATUS_LABELS: dict[str, str] = {
     "sin_punto": "Sin punto",
@@ -68,15 +71,24 @@ def resolve_status_operativo(
     if geo_status == "REVIEW":
         return "punto_dudoso"
 
-    score = geo.score
-    quality = (geo.quality or "").strip().lower()
-    if score is not None and float(score) < GEO_SCORE_DUDOSO:
-        return "punto_dudoso"
-    if quality and quality != "building":
-        return "punto_dudoso"
-
-    if geo_status == "OK" and source != "MANUAL":
+    if geo_status == "OK" and source != "MANUAL" and is_trusted_auto_geocode(geo):
         return "geolocalizado"
+
+    if is_google_geolocalizado(geo) and source != "MANUAL":
+        return "geolocalizado"
+
+    score = geo.score
+    if score is not None and str(geo.provider or "").lower() != "google":
+        try:
+            if float(score) < GEO_SCORE_DUDOSO:
+                return "punto_dudoso"
+        except (TypeError, ValueError):
+            pass
+    quality = (geo.quality or "").strip().lower()
+    if quality and str(geo.provider or "").lower() != "google" and quality != "building":
+        return "punto_dudoso"
+    if geo_status == "OK" and source != "MANUAL":
+        return "punto_dudoso"
 
     if geo_status in {"PENDING", "NORM_PENDING", "GEO_PENDING"}:
         return "sin_punto"
@@ -117,29 +129,43 @@ def status_operativo_sql_case():
         DomicilioGeocode.lat.is_(None),
         DomicilioGeocode.lng.is_(None),
     )
-    is_punto_dudoso = and_(
-        has_coords,
-        or_(
-            DomicilioGeocode.geo_status == "REVIEW",
-            and_(DomicilioGeocode.score.isnot(None), DomicilioGeocode.score < GEO_SCORE_DUDOSO),
-            and_(
-                DomicilioGeocode.quality.isnot(None),
-                DomicilioGeocode.quality != "building",
-            ),
-            and_(
-                DomicilioGeocode.geo_status.in_(["PENDING", "NORM_PENDING", "GEO_PENDING"]),
-            ),
-        ),
-    )
-    is_geolocalizado = and_(
-        has_coords,
+    is_google_trusted = and_(
+        DomicilioGeocode.provider == "google",
         DomicilioGeocode.geo_status == "OK",
-        or_(DomicilioGeocode.source.is_(None), DomicilioGeocode.source != "MANUAL"),
+        DomicilioGeocode.lat.isnot(None),
+        DomicilioGeocode.lng.isnot(None),
+    )
+    is_geoapify_trusted = and_(
+        or_(DomicilioGeocode.provider.is_(None), DomicilioGeocode.provider != "google"),
         or_(DomicilioGeocode.score.is_(None), DomicilioGeocode.score >= GEO_SCORE_DUDOSO),
         or_(
             DomicilioGeocode.quality.is_(None),
             DomicilioGeocode.quality == "building",
         ),
+    )
+    is_punto_dudoso = and_(
+        has_coords,
+        or_(
+            DomicilioGeocode.geo_status == "REVIEW",
+            and_(
+                DomicilioGeocode.score.isnot(None),
+                DomicilioGeocode.score < GEO_SCORE_DUDOSO,
+                or_(DomicilioGeocode.provider.is_(None), DomicilioGeocode.provider != "google"),
+            ),
+            and_(
+                DomicilioGeocode.quality.isnot(None),
+                DomicilioGeocode.quality != "building",
+                or_(DomicilioGeocode.provider.is_(None), DomicilioGeocode.provider != "google"),
+            ),
+            DomicilioGeocode.geo_status.in_(["PENDING", "NORM_PENDING", "GEO_PENDING"]),
+        ),
+        ~is_google_trusted,
+    )
+    is_geolocalizado = and_(
+        has_coords,
+        DomicilioGeocode.geo_status == "OK",
+        or_(DomicilioGeocode.source.is_(None), DomicilioGeocode.source != "MANUAL"),
+        or_(is_google_trusted, is_geoapify_trusted),
     )
 
     return case(

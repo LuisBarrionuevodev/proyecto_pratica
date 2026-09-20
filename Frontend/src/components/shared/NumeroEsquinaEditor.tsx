@@ -33,6 +33,8 @@ interface NumeroEsquinaEditorProps {
   error?: boolean;
   helperText?: string;
   allowFreeSolo?: boolean;
+  /** Si false, ESQUINA es texto libre (sin catálogo SMT). Default true. */
+  streetCatalogEnabled?: boolean;
   onModeChange?: (mode: "NUMERO" | "ESQUINA") => void;
   initialMode?: "NUMERO" | "ESQUINA";
 }
@@ -46,6 +48,7 @@ const NumeroEsquinaEditor = ({
   error = false,
   helperText = "",
   allowFreeSolo = false,
+  streetCatalogEnabled = true,
   onModeChange,
   initialMode: initialModeProp,
 }: NumeroEsquinaEditorProps) => {
@@ -113,12 +116,12 @@ const NumeroEsquinaEditor = ({
   }, [mode]);
 
   useEffect(() => {
-    if (mode !== "ESQUINA") return;
+    if (!streetCatalogEnabled || mode !== "ESQUINA") return;
     void runCallesFetch("");
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [mode, runCallesFetch]);
+  }, [mode, runCallesFetch, streetCatalogEnabled]);
 
   const scheduleFetch = useCallback(
     (raw: string) => {
@@ -179,7 +182,7 @@ const NumeroEsquinaEditor = ({
           }}
           sx={{ flex: 1 }}
         />
-      ) : (
+      ) : streetCatalogEnabled ? (
         <Autocomplete
           size="small"
           freeSolo={allowFreeSolo}
@@ -229,6 +232,19 @@ const NumeroEsquinaEditor = ({
               }}
             />
           )}
+          sx={{ flex: 1 }}
+        />
+      ) : (
+        <TextField
+          label={label}
+          size="small"
+          value={value ?? ""}
+          error={error}
+          helperText={helperText}
+          onChange={(event) => {
+            const next = event.target.value;
+            onChange(next.length > 0 ? next : null);
+          }}
           sx={{ flex: 1 }}
         />
       )}

@@ -1,13 +1,13 @@
 import { memo } from "react";
 import { Box, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
 
-import type { ItemInspeccionEstadoUx } from "../utils/inspeccionChecklistSubmit";
+import type { ChecklistUxValue } from "../utils/inspeccionChecklistSubmit";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 
 export type InspeccionChecklistFieldsProps = {
   catalog: IItemActaInspeccionCatalogItem[];
-  estados: Record<number, ItemInspeccionEstadoUx>;
-  onEstadosChange: (estados: Record<number, ItemInspeccionEstadoUx>) => void;
+  estados: Record<number, ChecklistUxValue>;
+  onEstadosChange: (estados: Record<number, ChecklistUxValue>) => void;
   disabled?: boolean;
   /** Vista readonly: controles no editables pero con contraste pleno (sin atenuar). */
   readOnly?: boolean;
@@ -44,7 +44,7 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
   const interactionDisabled = disabled || readOnly;
   const dimmed = disabled && !readOnly;
 
-  const setEstado = (itemId: number, value: ItemInspeccionEstadoUx | null) => {
+  const setEstado = (itemId: number, value: ChecklistUxValue | null) => {
     if (interactionDisabled) return;
     const next = { ...estados, [itemId]: value ?? "NONE" };
     onEstadosChange(next);
@@ -80,6 +80,11 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
     minWidth: 88,
   } as const;
 
+  const siNoToggleSx = {
+    ...toggleSx,
+    minWidth: 44,
+  } as const;
+
   return (
     <Box
       sx={{
@@ -108,6 +113,8 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
         {catalog.map((item) => {
           const current = estados[item.id] ?? "NONE";
+          const isSiNo = item.tipo_respuesta === "SI_NO";
+
           return (
             <Box
               key={item.id}
@@ -132,33 +139,63 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
               >
                 {displayItemNombre(item)}
               </Typography>
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                disabled={interactionDisabled}
-                value={current}
-                onChange={(_, value: ItemInspeccionEstadoUx | null) => {
-                  if (value) setEstado(item.id, value);
-                }}
-                sx={{
-                  flexShrink: 0,
-                  flex: { xs: "1 1 100%", sm: "0 1 auto" },
-                  justifyContent: { xs: "flex-start", sm: "flex-end" },
-                  "& .MuiToggleButtonGroup-grouped": {
-                    height: 32,
-                  },
-                }}
-              >
-                <ToggleButton value="NONE" sx={toggleSx} aria-label="Ninguno">
-                  —
-                </ToggleButton>
-                <ToggleButton value="BIEN" sx={toggleSx} aria-label="Bien">
-                  BIEN
-                </ToggleButton>
-                <ToggleButton value="OBSERVADO" sx={observadoToggleSx} aria-label="Observado">
-                  OBSERVADO
-                </ToggleButton>
-              </ToggleButtonGroup>
+              {isSiNo ? (
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  disabled={interactionDisabled}
+                  value={current}
+                  onChange={(_, value: ChecklistUxValue | null) => {
+                    if (value) setEstado(item.id, value);
+                  }}
+                  sx={{
+                    flexShrink: 0,
+                    flex: { xs: "1 1 100%", sm: "0 1 auto" },
+                    justifyContent: { xs: "flex-start", sm: "flex-end" },
+                    "& .MuiToggleButtonGroup-grouped": {
+                      height: 32,
+                    },
+                  }}
+                >
+                  <ToggleButton value="NONE" sx={toggleSx} aria-label="Ninguno">
+                    —
+                  </ToggleButton>
+                  <ToggleButton value="SI" sx={siNoToggleSx} aria-label="Sí">
+                    SÍ
+                  </ToggleButton>
+                  <ToggleButton value="NO" sx={siNoToggleSx} aria-label="No">
+                    NO
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              ) : (
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  disabled={interactionDisabled}
+                  value={current}
+                  onChange={(_, value: ChecklistUxValue | null) => {
+                    if (value) setEstado(item.id, value);
+                  }}
+                  sx={{
+                    flexShrink: 0,
+                    flex: { xs: "1 1 100%", sm: "0 1 auto" },
+                    justifyContent: { xs: "flex-start", sm: "flex-end" },
+                    "& .MuiToggleButtonGroup-grouped": {
+                      height: 32,
+                    },
+                  }}
+                >
+                  <ToggleButton value="NONE" sx={toggleSx} aria-label="Ninguno">
+                    —
+                  </ToggleButton>
+                  <ToggleButton value="BIEN" sx={toggleSx} aria-label="Bien">
+                    BIEN
+                  </ToggleButton>
+                  <ToggleButton value="OBSERVADO" sx={observadoToggleSx} aria-label="Observado">
+                    OBSERVADO
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              )}
             </Box>
           );
         })}

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.domains.rutas_trabajo.schemas.iniciadores_filters_in import (
     TipoIniciadorLiteral,
@@ -62,16 +62,18 @@ class PlanificacionUrgentesQuery(BaseModel):
 
 PlanificacionOrdenLiteral = Literal["prioridad", "fecha_asc", "fecha_desc", "prioridad_asc"]
 PlanificacionFieldsLiteral = Literal["full", "minimal"]
+PlanificacionScopeLiteral = Literal["outside_districts"]
 
 
 class PlanificacionPendientesContextoQuery(BaseModel):
     """
-    M4: pendientes territoriales — distrito_id obligatorio.
+    M4: pendientes territoriales — ``distrito_id`` o ``scope=outside_districts``.
 
-    Mismos filtros opcionales que iniciadores-pendientes salvo distrito (fijo por param).
+    Mismos filtros opcionales que iniciadores-pendientes salvo territorio (fijo por param).
     """
 
-    distrito_id: int = Field(ge=1)
+    distrito_id: Optional[int] = Field(default=None, ge=1)
+    scope: Optional[PlanificacionScopeLiteral] = Field(default=None)
     tipo: Optional[TipoIniciadorLiteral] = None
     prioridad: Optional[int] = Field(default=None, ge=1, le=32767)
     prioridad_categoria: Optional[PrioridadCategoriaLiteral] = None
@@ -131,3 +133,21 @@ class PlanificacionPendientesContextoQuery(BaseModel):
             return "prioridad"
         s = str(v).strip().lower()
         return s if s in ("prioridad", "fecha_asc", "fecha_desc", "prioridad_asc") else "prioridad"
+
+    @field_validator("scope", mode="before")
+    @classmethod
+    def normalize_scope(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        s = str(v).strip().lower()
+        return s if s == "outside_districts" else s
+
+    @model_validator(mode="after")
+    def validate_territorio(self) -> "PlanificacionPendientesContextoQuery":
+        if self.scope == "outside_districts":
+            if self.distrito_id is not None:
+                raise ValueError("scope=outside_districts no admite distrito_id")
+            return self
+        if self.distrito_id is None:
+            raise ValueError("distrito_id es obligatorio salvo scope=outside_districts")
+        return self

@@ -4,11 +4,10 @@ Seed idempotente de relevadores para QA y operación inicial.
 
 from __future__ import annotations
 
+from app.domains.catalogos.canonical.relevadores import RELEVADORES_CANONICOS
 from app.models import Relevador
 
-RELEVADORES_CANONICO: tuple[str, ...] = (
-    "Fabian Esquivel",
-)
+RELEVADORES_CANONICO: tuple[str, ...] = RELEVADORES_CANONICOS
 
 
 def upsert_relevadores_canonicos(session) -> tuple[int, int, int]:

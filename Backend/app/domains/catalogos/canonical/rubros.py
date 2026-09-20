@@ -1,0 +1,35 @@
+"""29 rubros aprobados — revisión catalogos_digitaliza_revision.xlsx."""
+
+from __future__ import annotations
+
+RUBROS_CANONICOS: tuple[str, ...] = (
+    "Comestibles",
+    "Carnicería",
+    "Drugstore",
+    "Kiosco",
+    "Supermercado",
+    "Pollería",
+    "Pescadería",
+    "Bar",
+    "Cervecería",
+    "Rotisería",
+    "Cafetería",
+    "Verdulería",
+    "Panadería",
+    "Venta de Comidas",
+    "Frutas",
+    "Heladería",
+    "Sanguchería",
+    "Restaurante",
+    "Distribuidora",
+    "Panchería",
+    "Pan",
+    "Pollo",
+    "Fiambrería",
+    "Confitería",
+    "Dietética",
+    "Elaboración de empanadas",
+    "Comedor",
+    "Licorería",
+    "Minimercado",
+)

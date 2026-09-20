@@ -20,7 +20,11 @@ from app.domains.rutas_trabajo.services.iniciadores_pendientes_service import (
 )
 from app.domains.rutas_trabajo.utils.urgentes_filtros import apply_urgentes_filtros
 from app.domains.rutas_trabajo.utils.planificacion_debug import medir_oper_ruta_7d
-from app.domains.rutas_trabajo.utils.planificacion_m4_sql import apply_sql_exclusion_pool_y_ruta_activa
+from app.domains.rutas_trabajo.utils.planificacion_m4_sql import (
+    apply_joins_y_filtro_distrito_efectivo,
+    apply_joins_y_filtro_outside_districts,
+    apply_sql_exclusion_pool_y_ruta_activa,
+)
 
 _MAX_PER_PAGE_URGENTES = 100
 
@@ -93,27 +97,44 @@ def get_planificacion_metricas(ruta_id: int, distrito_id: int | None) -> dict:
     }
 
 
-def get_carga_por_distritos(ruta_id: int) -> list[dict]:
+def get_carga_por_distritos(ruta_id: int) -> dict:
     """
     M2: cantidad de iniciadores planificables por distrito (para coropleta).
 
+    Usa ubicación efectiva alineada con M4: FK explícita o match espacial cuando FK es NULL.
+
     Retorno:
-        lista de { distrito_id, distrito_nombre, cantidad }
+        dict con ``items`` (lista de { distrito_id, distrito_nombre, cantidad })
+        y ``outside_districts_count``.
     """
     assert_ruta_borrador_para_planificacion(ruta_id)
-    rows = (
-        planificable_iniciadores_base_query()
-        .join(Distrito, Distrito.id == Domicilio.distrito_id)
-        .filter(Domicilio.distrito_id.isnot(None))
-        .with_entities(Domicilio.distrito_id, Distrito.nombre, func.count(IniciadorRuta.id))
-        .group_by(Domicilio.distrito_id, Distrito.nombre)
-        .order_by(Distrito.nombre.asc())
-        .all()
+    distritos = Distrito.query.order_by(Distrito.nombre.asc()).all()
+    items: list[dict] = []
+    for dist in distritos:
+        count = (
+            apply_joins_y_filtro_distrito_efectivo(
+                planificable_iniciadores_base_query(),
+                int(dist.id),
+            )
+            .with_entities(func.count(IniciadorRuta.id))
+            .scalar()
+        )
+        cantidad = int(count or 0)
+        if cantidad > 0:
+            items.append(
+                {
+                    "distrito_id": int(dist.id),
+                    "distrito_nombre": dist.nombre or "",
+                    "cantidad": cantidad,
+                }
+            )
+    outside_districts_count = int(
+        apply_joins_y_filtro_outside_districts(planificable_iniciadores_base_query())
+        .with_entities(func.count(IniciadorRuta.id))
+        .scalar()
+        or 0
     )
-    return [
-        {"distrito_id": r[0], "distrito_nombre": r[1] or "", "cantidad": int(r[2])}
-        for r in rows
-    ]
+    return {"items": items, "outside_districts_count": outside_districts_count}
 
 
 def get_planificacion_urgentes(
@@ -205,7 +226,8 @@ def get_planificacion_urgentes(
 def get_planificacion_pendientes_contexto(
     ruta_id: int,
     *,
-    distrito_id: int,
+    distrito_id: int | None,
+    scope_outside_districts: bool = False,
     tipo: str | None,
     prioridad: int | None,
     prioridad_categoria: str | None,
@@ -217,7 +239,9 @@ def get_planificacion_pendientes_contexto(
     orden: str | None = None,
 ) -> tuple[list, int]:
     """
-    M4: mismo universo que iniciadores-pendientes pero distrito obligatorio y orden Planificación.
+    M4: pendientes territoriales por distrito o scope ``outside_districts``.
+
+    ``distrito_id`` y ``scope_outside_districts`` son mutuamente excluyentes.
     """
     return get_iniciadores_pendientes_para_ruta(
         ruta_id=ruta_id,
@@ -225,6 +249,7 @@ def get_planificacion_pendientes_contexto(
         prioridad=prioridad,
         prioridad_categoria=prioridad_categoria,
         distrito=distrito_id,
+        scope_outside_districts=scope_outside_districts,
         q=q,
         turno_sugerido=turno_sugerido,
         calle_catalogo_id=calle_catalogo_id,

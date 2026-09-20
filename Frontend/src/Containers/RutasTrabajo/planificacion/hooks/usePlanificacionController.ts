@@ -31,6 +31,7 @@ import type {
 } from "../types/planificacion.types";
 import {
   M4DistritoCache,
+  type M4DistritoCacheEntry,
   M4_MAP_MAX_PAGES,
   M4_PAGE_MAP_CHUNK,
   buildPoolRowsByIniciadorId,
@@ -53,13 +54,26 @@ const URGENTES_FILTROS_VACIOS: UrgentesFiltrosAplicados = {
 const M4_PAGE_LIST_SIZE = 25;
 
 /**
- * Parámetros M4 para carga del mapa (solo distrito; filtros panel en cliente — STAB-10d).
+ * Parámetros M4 para carga del mapa (distrito o fuera de distritos).
  */
-function buildM4QueryBase(distritoActivoId: number): Omit<IPendientesContextoParams, "page" | "per_page"> {
+function buildM4QueryBase(
+  distritoActivoId: number | null,
+  scopeOutsideDistricts: boolean
+): Omit<IPendientesContextoParams, "page" | "per_page"> {
+  if (scopeOutsideDistricts) {
+    return { scope: "outside_districts", orden: "prioridad" };
+  }
   return {
-    distrito_id: distritoActivoId,
+    distrito_id: distritoActivoId!,
     orden: "prioridad",
   };
+}
+
+function contextoTerritorialActivo(
+  distritoActivoId: number | null,
+  scopeOutsideDistricts: boolean
+): boolean {
+  return distritoActivoId != null || scopeOutsideDistricts;
 }
 
 /** Pool compartido con el contenedor RutasTrabajo (backend `ruta-pool-dia`). */
@@ -87,12 +101,16 @@ export function usePlanificacionController({
   poolControl,
 }: UsePlanificacionControllerParams) {
   const { poolIniciadorIds, poolRowsById, poolBackendItems, agregarAlPool, quitarDelPool } = poolControl;
+  const poolRowsByIdRef = useRef(poolRowsById);
+  poolRowsByIdRef.current = poolRowsById;
 
   /** Evita que un `onError` inline del padre invalide load* y dispare efectos M1–M4 en bucle. */
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
   const [distritoActivoId, setDistritoActivoId] = useState<number | null>(null);
+  const [scopeOutsideDistricts, setScopeOutsideDistricts] = useState(false);
+  const [outsideDistrictsCount, setOutsideDistrictsCount] = useState(0);
   const [cardActiva, setCardActivaState] = useState<PlanificacionCardKey>(null);
   const [filtros, setFiltros] = useState<PlanificacionFiltrosLista>({ ...FILTROS_VACIOS });
   const [urgentesFiltrosAplicados, setUrgentesFiltrosAplicados] = useState<UrgentesFiltrosAplicados>({
@@ -141,8 +159,10 @@ export function usePlanificacionController({
     return ordenarPendientes(filtrarPendientesMapaPorCard(pendientesMapaBase, cardActiva));
   }, [pendientesMapaBase, cardActiva]);
 
+  const contextoActivo = contextoTerritorialActivo(distritoActivoId, scopeOutsideDistricts);
+
   const pendientesMeta = useMemo(() => {
-    if (distritoActivoId == null) {
+    if (!contextoActivo) {
       return { total: 0, page: 1, perPage: M4_PAGE_LIST_SIZE };
     }
     return {
@@ -150,13 +170,13 @@ export function usePlanificacionController({
       page: listaContextoPage,
       perPage: M4_PAGE_LIST_SIZE,
     };
-  }, [distritoActivoId, pendientesFiltradosPorCard.length, listaContextoPage]);
+  }, [contextoActivo, pendientesFiltradosPorCard.length, listaContextoPage]);
 
   const pendientesContextoVisibles = useMemo(() => {
-    if (distritoActivoId == null) return [];
+    if (!contextoActivo) return [];
     const start = (listaContextoPage - 1) * M4_PAGE_LIST_SIZE;
     return pendientesFiltradosPorCard.slice(start, start + M4_PAGE_LIST_SIZE);
-  }, [distritoActivoId, pendientesFiltradosPorCard, listaContextoPage]);
+  }, [contextoActivo, pendientesFiltradosPorCard, listaContextoPage]);
 
   /** Mapa y lista comparten filtro por card sobre el mismo universo de pins. */
   const pendientesParaMapa = pendientesFiltradosPorCard;
@@ -169,11 +189,11 @@ export function usePlanificacionController({
 
   /** KPIs: con distrito, desde pins visibles en mapa; sin distrito, M1 global. */
   const metricasVisibles = useMemo(() => {
-    if (distritoActivoId == null) {
+    if (!contextoActivo) {
       return metricas;
     }
     return computeMetricasCardsDesdeMapa(pendientesMapaBase);
-  }, [distritoActivoId, pendientesMapaBase, metricas]);
+  }, [contextoActivo, pendientesMapaBase, metricas]);
 
   const loadMetricas = useCallback(
     async (distritoId: number | null) => {
@@ -195,11 +215,15 @@ export function usePlanificacionController({
     [rutaId]
   );
 
-  const loadCargaDistritos = useCallback(async () => {
-    setLoading((s) => ({ ...s, cargaDistritos: true }));
+  const loadCargaDistritos = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (!silent) {
+      setLoading((s) => ({ ...s, cargaDistritos: true }));
+    }
     try {
-      const { items } = await getPlanificacionCargaDistritos(rutaId);
+      const { items, outside_districts_count } = await getPlanificacionCargaDistritos(rutaId);
       setCargaPorDistrito(items);
+      setOutsideDistrictsCount(outside_districts_count ?? 0);
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { detail?: string } } };
       onErrorRef.current(
@@ -208,7 +232,9 @@ export function usePlanificacionController({
           : "No se pudo cargar la carga por distrito"
       );
     } finally {
-      setLoading((s) => ({ ...s, cargaDistritos: false }));
+      if (!silent) {
+        setLoading((s) => ({ ...s, cargaDistritos: false }));
+      }
     }
   }, [rutaId]);
 
@@ -316,6 +342,16 @@ export function usePlanificacionController({
     void loadCargaDistritos();
   }, [loadCargaDistritos]);
 
+  const poolM2RefreshSkipRef = useRef(true);
+  /** Mutación pool: refresco M2 en background sin vaciar métricas ni loading bloqueante. */
+  useEffect(() => {
+    if (poolM2RefreshSkipRef.current) {
+      poolM2RefreshSkipRef.current = false;
+      return;
+    }
+    void loadCargaDistritos({ silent: true });
+  }, [poolIniciadorIds, loadCargaDistritos]);
+
   /** Montaje y cambio de ruta: M3 global (no refetch al mutar pool — ocultar con filtrarUrgentesVisibles). */
   useEffect(() => {
     void loadUrgentes(1, 25);
@@ -332,6 +368,7 @@ export function usePlanificacionController({
 
   const pendientesMapaReqSeq = useRef(0);
   const m4DistritoCacheRef = useRef(new M4DistritoCache());
+  const m4OutsideCacheRef = useRef<M4DistritoCacheEntry | null>(null);
   const poolSnapshotRef = useRef({
     iniciadorIds: [] as number[],
     rowsByIniciadorId: {} as Record<number, IRutaPoolDiaRow>,
@@ -339,26 +376,37 @@ export function usePlanificacionController({
 
   const loadPendientesMapa = useCallback(
     async (opts?: { silent?: boolean; forceRefresh?: boolean }) => {
-      if (distritoActivoId == null) {
+      if (!contextoTerritorialActivo(distritoActivoId, scopeOutsideDistricts)) {
         pendientesMapaReqSeq.current += 1;
         setPendientesMapaRaw([]);
         setLoading((s) => ({ ...s, pendientesContexto: false }));
         return;
       }
 
-      const distritoId = distritoActivoId;
       const cache = m4DistritoCacheRef.current;
 
       if (!opts?.forceRefresh) {
-        const cached = cache.get(distritoId);
-        if (cached) {
-          pendientesMapaReqSeq.current += 1;
-          setPendientesMapaRaw(cached.rows);
-          setLoading((s) => ({ ...s, pendientesContexto: false }));
-          return;
+        if (scopeOutsideDistricts) {
+          const cachedOutside = m4OutsideCacheRef.current;
+          if (cachedOutside) {
+            pendientesMapaReqSeq.current += 1;
+            setPendientesMapaRaw(cachedOutside.rows);
+            setLoading((s) => ({ ...s, pendientesContexto: false }));
+            return;
+          }
+        } else if (distritoActivoId != null) {
+          const cached = cache.get(distritoActivoId);
+          if (cached) {
+            pendientesMapaReqSeq.current += 1;
+            setPendientesMapaRaw(cached.rows);
+            setLoading((s) => ({ ...s, pendientesContexto: false }));
+            return;
+          }
         }
-      } else {
-        cache.delete(distritoId);
+      } else if (scopeOutsideDistricts) {
+        m4OutsideCacheRef.current = null;
+      } else if (distritoActivoId != null) {
+        cache.delete(distritoActivoId);
       }
 
       setPendientesMapaRaw([]);
@@ -367,7 +415,7 @@ export function usePlanificacionController({
         setLoading((s) => ({ ...s, pendientesContexto: true }));
       }
       try {
-        const base = buildM4QueryBase(distritoId);
+        const base = buildM4QueryBase(distritoActivoId, scopeOutsideDistricts);
         const merged = new Map<number, IRutaIniciadorPendienteRow>();
         let page = 1;
         let totalReported = 0;
@@ -396,24 +444,34 @@ export function usePlanificacionController({
         }
         const rows = Array.from(merged.values());
         setPendientesMapaRaw(rows);
-        cache.set(distritoId, {
+        const cacheEntry = {
           rows,
           totalReported,
           fetchedAt: Date.now(),
-        });
+        };
+        if (scopeOutsideDistricts) {
+          m4OutsideCacheRef.current = cacheEntry;
+        } else if (distritoActivoId != null) {
+          cache.set(distritoActivoId, cacheEntry);
+        }
       } catch (e: unknown) {
         if (seq !== pendientesMapaReqSeq.current) return;
         const ax = e as { response?: { data?: { detail?: string; errors?: unknown } } };
         const detail =
           typeof ax?.response?.data?.detail === "string" ? ax.response.data.detail : null;
-        onErrorRef.current(detail ?? "No se pudieron cargar los puntos del mapa para este distrito");
+        onErrorRef.current(
+          detail ??
+            (scopeOutsideDistricts
+              ? "No se pudieron cargar los puntos fuera de distritos"
+              : "No se pudieron cargar los puntos del mapa para este distrito")
+        );
       } finally {
         if (seq === pendientesMapaReqSeq.current) {
           setLoading((s) => ({ ...s, pendientesContexto: false }));
         }
       }
     },
-    [distritoActivoId, rutaId]
+    [distritoActivoId, rutaId, scopeOutsideDistricts]
   );
 
   useEffect(() => {
@@ -422,7 +480,11 @@ export function usePlanificacionController({
       m4DistritoCacheRef.current,
       prev.iniciadorIds,
       poolIniciadorIds,
-      prev.rowsByIniciadorId
+      prev.rowsByIniciadorId,
+      {
+        outsideCacheRef: m4OutsideCacheRef,
+        iniciadorRowsById: poolRowsByIdRef.current,
+      }
     );
     poolSnapshotRef.current = {
       iniciadorIds: [...poolIniciadorIds],
@@ -433,7 +495,7 @@ export function usePlanificacionController({
   useEffect(() => {
     setListaContextoPage(1);
     setFiltros({ ...FILTROS_VACIOS });
-  }, [distritoActivoId]);
+  }, [distritoActivoId, scopeOutsideDistricts]);
 
   useEffect(() => {
     setListaContextoPage(1);
@@ -447,7 +509,14 @@ export function usePlanificacionController({
   }, [loadPendientesMapa]);
 
   const seleccionarDistrito = useCallback((id: number | null) => {
+    setScopeOutsideDistricts(false);
     setDistritoActivoId(id);
+    setListaContextoPage(1);
+  }, []);
+
+  const seleccionarFueraDeDistritos = useCallback(() => {
+    setDistritoActivoId(null);
+    setScopeOutsideDistricts(true);
     setListaContextoPage(1);
   }, []);
 
@@ -458,10 +527,10 @@ export function usePlanificacionController({
 
   const loadPendientesContextoPage = useCallback(
     (page: number) => {
-      if (distritoActivoId == null) return;
+      if (!contextoTerritorialActivo(distritoActivoId, scopeOutsideDistricts)) return;
       setListaContextoPage(page);
     },
-    [distritoActivoId]
+    [distritoActivoId, scopeOutsideDistricts]
   );
 
   const poolItemsOrdenados = useMemo(() => {
@@ -470,7 +539,11 @@ export function usePlanificacionController({
 
   return {
     distritoActivoId,
+    scopeOutsideDistricts,
+    outsideDistrictsCount,
+    contextoActivo,
     seleccionarDistrito,
+    seleccionarFueraDeDistritos,
     cardActiva,
     setCardActiva,
     filtros,

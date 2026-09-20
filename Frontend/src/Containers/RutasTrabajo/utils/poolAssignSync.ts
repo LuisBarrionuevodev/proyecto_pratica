@@ -51,3 +51,24 @@ export function filterPoolRowsDisponibles(
   if (assignedIniciadorIds.size === 0) return [...rows];
   return rows.filter((row) => !assignedIniciadorIds.has(row.id));
 }
+
+function sameIdSequence(a: readonly number[], b: readonly number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Mantiene invariante selected ⊆ pool: filtra IDs que ya no están en el pool actual.
+ * Retorna `prev` si no hubo cambios (evita setState redundante).
+ */
+export function reconcileSelectedIniciadorIds(
+  selectedIds: readonly number[],
+  currentPoolIniciadorIds: readonly number[]
+): number[] {
+  const valid = new Set(currentPoolIniciadorIds);
+  const next = selectedIds.filter((id) => valid.has(id));
+  return sameIdSequence(selectedIds, next) ? [...selectedIds] : next;
+}

@@ -372,20 +372,27 @@ type ChecklistItemReadOrWrite = {
   id?: number;
   codigo?: string;
   nombre?: string;
+  tipo_respuesta?: "ESTADO" | "SI_NO";
   estado?: ItemInspeccionEstado | string | null;
+  valor_si_no?: boolean | null;
 };
 
 /**
- * Normaliza un ítem de checklist a write shape V2.
- * Descarta entradas sin estado BIEN/OBSERVADO o sin id resoluble.
+ * Normaliza un ítem de checklist a write shape tipado.
+ * Descarta entradas sin respuesta o sin id resoluble.
  */
 function normalizeChecklistItemForWrite(item: ChecklistItemReadOrWrite): ItemActaInspeccionWrite | null {
-  const estado = item.estado;
-  if (estado !== "BIEN" && estado !== "OBSERVADO") {
-    return null;
-  }
   const rawId = item.item_id ?? item.id;
   if (rawId == null || !Number.isFinite(Number(rawId)) || Number(rawId) < 1) {
+    return null;
+  }
+  const tipo = item.tipo_respuesta ?? "ESTADO";
+  if (tipo === "SI_NO") {
+    if (item.valor_si_no !== true && item.valor_si_no !== false) return null;
+    return { item_id: Number(rawId), valor_si_no: item.valor_si_no };
+  }
+  const estado = item.estado;
+  if (estado !== "BIEN" && estado !== "OBSERVADO") {
     return null;
   }
   return { item_id: Number(rawId), estado };

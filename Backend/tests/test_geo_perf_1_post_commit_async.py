@@ -118,6 +118,7 @@ def test_commit_batch_responde_sin_esperar_provider_lento(app, client, auth_head
         worker_mod._executor = None
         worker_mod._app = None
         worker_mod._drain_scheduled = False
+        worker_mod._drain_rerun_needed = False
 
 
 def test_relevamiento_persistido_antes_del_geocode(app_ctx, monkeypatch):

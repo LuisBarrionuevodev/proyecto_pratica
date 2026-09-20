@@ -41,7 +41,6 @@ from app.domains.geolocalizacion.geocode.services.domicilio_clasificacion_servic
 from app.domains.geolocalizacion.normalizacion_calles.services.nomenclatura_match_display_service import (
     nomenclatura_match_fields,
 )
-
 logger = logging.getLogger(__name__)
 
 
@@ -680,9 +679,30 @@ def list_pendientes(
         DomicilioGeocode.lng.isnot(None),
     )
 
+    google_map_ok = and_(
+        DomicilioGeocode.provider == "google",
+        DomicilioGeocode.geo_status == "OK",
+        DomicilioGeocode.lat.isnot(None),
+        DomicilioGeocode.lng.isnot(None),
+    )
+
+    geoapify_map_ok = and_(
+        or_(DomicilioGeocode.provider.is_(None), DomicilioGeocode.provider != "google"),
+        DomicilioGeocode.geo_status == "OK",
+        DomicilioGeocode.lat.isnot(None),
+        DomicilioGeocode.lng.isnot(None),
+        or_(DomicilioGeocode.score.is_(None), DomicilioGeocode.score >= 0.95),
+        or_(
+            DomicilioGeocode.quality.is_(None),
+            DomicilioGeocode.quality == "building",
+        ),
+    )
+
+    map_resolved = or_(manual_resolved, google_map_ok, geoapify_map_ok)
+
     map_pending = and_(
         ~norm_pending,
-        ~manual_resolved,
+        ~map_resolved,
         or_(
             DomicilioGeocode.domicilio_id.is_(None),
             DomicilioGeocode.geo_status.in_(
@@ -690,8 +710,16 @@ def list_pendientes(
             ),
             DomicilioGeocode.lat.is_(None),
             DomicilioGeocode.lng.is_(None),
-            and_(DomicilioGeocode.score.isnot(None), DomicilioGeocode.score < 0.95),
-            and_(DomicilioGeocode.quality.isnot(None), DomicilioGeocode.quality != "building"),
+            and_(
+                DomicilioGeocode.score.isnot(None),
+                DomicilioGeocode.score < 0.95,
+                or_(DomicilioGeocode.provider.is_(None), DomicilioGeocode.provider != "google"),
+            ),
+            and_(
+                DomicilioGeocode.quality.isnot(None),
+                DomicilioGeocode.quality != "building",
+                or_(DomicilioGeocode.provider.is_(None), DomicilioGeocode.provider != "google"),
+            ),
         ),
     )
 

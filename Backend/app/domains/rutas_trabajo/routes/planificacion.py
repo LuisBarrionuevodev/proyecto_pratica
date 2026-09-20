@@ -44,8 +44,8 @@ def planificacion_metricas(ruta_id: int):
 def planificacion_carga_distritos(ruta_id: int):
     """M2: conteos por distrito para mapa."""
     try:
-        items = get_carga_por_distritos(ruta_id)
-        return jsonify({"items": items}), 200
+        data = get_carga_por_distritos(ruta_id)
+        return jsonify(data), 200
     except LookupError as e:
         return jsonify({"detail": str(e)}), 404
     except RuntimeError as e:
@@ -89,13 +89,14 @@ def planificacion_urgentes(ruta_id: int):
 
 @rutas_trabajo.get("/<int:ruta_id>/planificacion/pendientes-contexto")
 def planificacion_pendientes_contexto(ruta_id: int):
-    """M4: pendientes territoriales — distrito_id obligatorio."""
+    """M4: pendientes territoriales — distrito_id o scope=outside_districts."""
     params = {k: (v if v != "" else None) for k, v in request.args.to_dict().items()}
     try:
         q = PlanificacionPendientesContextoQuery.model_validate(params)
         rows, total = get_planificacion_pendientes_contexto(
             ruta_id,
             distrito_id=q.distrito_id,
+            scope_outside_districts=q.scope == "outside_districts",
             tipo=q.tipo,
             prioridad=q.prioridad,
             prioridad_categoria=q.prioridad_categoria,

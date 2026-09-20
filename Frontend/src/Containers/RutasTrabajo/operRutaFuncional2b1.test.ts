@@ -28,9 +28,9 @@ describe("OPER-RUTA.FUNCIONAL-2B.1 — cache M4 por distrito", () => {
   });
 
   it("caso A — primera visita: cache miss ejecuta M4 y guarda snapshot completo", () => {
-    expect(controllerSrc).toContain("const cached = cache.get(distritoId)");
+    expect(controllerSrc).toContain("const cached = cache.get(distritoActivoId)");
     expect(controllerSrc).toContain("getPlanificacionPendientesContexto");
-    expect(controllerSrc).toMatch(/cache\.set\(distritoId,\s*\{[\s\S]*rows,[\s\S]*totalReported,[\s\S]*fetchedAt/);
+    expect(controllerSrc).toMatch(/cache\.set\(distritoActivoId,\s*cacheEntry\)/);
   });
 
   it("caso B — revisita: cache hit sin request ni loading bloqueante", () => {
@@ -70,16 +70,25 @@ describe("OPER-RUTA.FUNCIONAL-2B.1 — cache M4 por distrito", () => {
     expect(controllerSrc).toContain("invalidateM4CacheOnPoolRemoval");
   });
 
-  it("caso F — quitar pool sin distrito resoluble limpia toda la cache", () => {
+  it("caso F — quitar pool sin distrito resoluble invalida outside sin clear global", () => {
     const cache = new M4DistritoCache();
     cache.set(10, { rows: [{ id: 1 } as never], totalReported: 1, fetchedAt: Date.now() });
-    invalidateM4CacheOnPoolRemoval(cache, [1], [], { 1: { iniciador_id: 1, distrito_id: null } as never });
-    expect(cache.size()).toBe(0);
+    const outsideRef = { current: { rows: [{ id: 2 } as never], totalReported: 1, fetchedAt: Date.now() } };
+    invalidateM4CacheOnPoolRemoval(
+      cache,
+      [1],
+      [],
+      { 1: { iniciador_id: 1, distrito_id: null } as never },
+      { outsideCacheRef: outsideRef }
+    );
+    expect(cache.has(10)).toBe(true);
+    expect(outsideRef.current).toBeNull();
   });
 
-  it("caso G — distrito null vacía raw pero conserva cache LRU", () => {
-    expect(controllerSrc).toMatch(/if \(distritoActivoId == null\) \{[\s\S]*pendientesMapaReqSeq\.current \+= 1[\s\S]*setPendientesMapaRaw\(\[\]\)/);
-    expect(controllerSrc).not.toMatch(/distritoActivoId == null[\s\S]*cache\.clear/);
+  it("caso G — sin contexto territorial vacía raw pero conserva cache LRU", () => {
+    expect(controllerSrc).toMatch(/if \(!contextoTerritorialActivo\(distritoActivoId, scopeOutsideDistricts\)\)/);
+    expect(controllerSrc).toMatch(/setPendientesMapaRaw\(\[\]\)/);
+    expect(controllerSrc).not.toMatch(/cache\.clear\(\)/);
   });
 
   it("caso H — race: cache hit incrementa secuencia antes de aplicar snapshot", () => {
@@ -88,7 +97,7 @@ describe("OPER-RUTA.FUNCIONAL-2B.1 — cache M4 por distrito", () => {
   });
 
   it("caso I — error parcial: cache.set solo tras paginación exitosa", () => {
-    const setIndex = controllerSrc.indexOf("cache.set(distritoId");
+    const setIndex = controllerSrc.indexOf("cache.set(distritoActivoId");
     const catchIndex = controllerSrc.indexOf("} catch (e: unknown) {", setIndex);
     expect(setIndex).toBeGreaterThan(-1);
     expect(catchIndex).toBeGreaterThan(setIndex);
@@ -97,7 +106,7 @@ describe("OPER-RUTA.FUNCIONAL-2B.1 — cache M4 por distrito", () => {
 
   it("caso J — refreshPendientesMapa invalida distrito activo y fuerza fetch", () => {
     expect(controllerSrc).toContain("refreshPendientesMapa: () => loadPendientesMapa({ forceRefresh: true })");
-    expect(controllerSrc).toMatch(/forceRefresh[\s\S]*cache\.delete\(distritoId\)/);
+    expect(controllerSrc).toMatch(/forceRefresh[\s\S]*cache\.delete\(distritoActivoId\)/);
   });
 
   it("cache vive en controller con useRef (no en index.tsx)", () => {

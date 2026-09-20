@@ -120,11 +120,20 @@ describe("invalidateM4CacheOnPoolRemoval", () => {
     expect(cache.has(5)).toBe(true);
   });
 
-  it("quitar pool sin distrito resoluble limpia toda la cache", () => {
+  it("quitar pool sin distrito resoluble no limpia cache distrito (solo outside si aplica)", () => {
     const cache = new M4DistritoCache();
     cache.set(10, entry([row(1)]));
     invalidateM4CacheOnPoolRemoval(cache, [1], [], { 1: poolRow(1, null) });
-    expect(cache.size()).toBe(0);
+    expect(cache.has(10)).toBe(true);
+  });
+
+  it("quitar pool sin distrito resoluble invalida outside cache", () => {
+    const cache = new M4DistritoCache();
+    cache.set(10, entry([row(1)]));
+    const outsideRef = { current: entry([row(99)]) };
+    invalidateM4CacheOnPoolRemoval(cache, [1], [], { 1: poolRow(1, null) }, { outsideCacheRef: outsideRef });
+    expect(cache.has(10)).toBe(true);
+    expect(outsideRef.current).toBeNull();
   });
 
   it("buildPoolRowsByIniciadorId indexa por iniciador", () => {

@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "generated_at": "2026-09-17T12:11:38.044471+00:00",
+    "ticket": "GEO-GOOGLE.1.1",
+    "mode": "manual",
+    "google_only": true
+  },
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "zero_results": 0,
+    "errors": 0,
+    "location_types": {
+      "ROOFTOP": 1
+    },
+    "latency_ms": {
+      "n": 1,
+      "p50": 409.0,
+      "p95": 409.0,
+      "max": 409.0,
+      "mean": 409.0
+    },
+    "google_requests": 1
+  },
+  "records": [
+    {
+      "input": "Ejercito del norte 248, San Miguel de Tucuman, Tucuman, Argentina",
+      "status": "OK",
+      "api_status": "OK",
+      "error_kind": null,
+      "error_message": null,
+      "formatted_address": "Av. Ejército del Nte. 248, T4000 San Miguel de Tucumán, Tucumán, Argentina",
+      "lat": -26.8213241,
+      "lng": -65.2317961,
+      "location_type": "ROOFTOP",
+      "place_id": "ChIJmWPjBlxcIpQRgLDLrEq0j6A",
+      "partial_match": false,
+      "latency_ms": 409.0
+    }
+  ]
+}

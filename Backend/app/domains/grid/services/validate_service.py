@@ -188,7 +188,7 @@ class GridValidateService:
             loc_key = build_relevamiento_location_key(row.calle, row.numero)
             is_esquina = _relevamiento_fila_es_esquina(row)
             rubro_obj = get_rubro_o_falla(row.rubro)
-            rubro_id = rubro_obj.id
+            rubro_id = rubro_obj.id if rubro_obj else None
             mes = row.fecha.month
             anio = row.fecha.year
             establishment_key = build_relevamiento_establishment_key(

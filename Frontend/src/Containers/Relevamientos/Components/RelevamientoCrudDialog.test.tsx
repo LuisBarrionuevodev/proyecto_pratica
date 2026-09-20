@@ -199,4 +199,120 @@ describe("RelevamientoCrudDialog", () => {
     expect(hydrated.calle).toBe("Av. San Martín");
     expect(hydrated.numero).toBe("450");
   });
+
+  it("REL-MAP-CIERRE.2-3: no muestra Fecha editable en el formulario", () => {
+    const html = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={baseRow}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("2026-05-10");
+    expect(html).not.toContain('type="date"');
+    expect(html).not.toContain("Fecha *");
+  });
+
+  it("REL-MAP-CIERRE.2-3: relevador single muestra un solo nombre", () => {
+    const html = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={baseRow}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("García");
+    expect(html).not.toContain("García · López");
+  });
+
+  it("REL-MAP-CIERRE.2-3: legacy multi relevador muestra mensaje de bloqueo", () => {
+    const html = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={{
+          ...baseRow,
+          relevadores: [
+            { id: 1, nombre: "García" },
+            { id: 2, nombre: "López" },
+          ],
+          relevador_ids: [1, 2],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("varios relevadores históricos");
+  });
+
+  it("REL-MAP-CIERRE.2-3.1: Rubro no es required en el formulario", () => {
+    const html = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={{ ...baseRow, rubro: null }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Rubro");
+    expect(html).not.toContain("Rubro *");
+  });
+
+  it("REL-MAP-CIERRE.2-3: esquina sin catálogo (streetCatalogEnabled=false)", () => {
+    const html = render(
+      <RelevamientoCrudDialog
+        open
+        disablePortal
+        mode="edit"
+        draft={{
+          ...baseRow,
+          numero_tipo: "ESQUINA",
+          numero: "Ayacucho",
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        numeroEditorLabel="Número"
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Calle de esquina");
+    expect(html).not.toContain("MuiAutocomplete-loading");
+  });
 });

@@ -9,7 +9,13 @@ import sqlalchemy as sa
 from pydantic import ValidationError
 
 from app.database import db
-from app.domains.actuaciones.attach.inspeccion import aplicar_inspeccion_checklist_desde_payload
+from app.domains.actuaciones.attach.inspeccion import (
+    aplicar_inspeccion_checklist_desde_payload,
+    items_acta_inspeccion_read_dtos,
+)
+from app.domains.catalogos.services.item_acta_inspeccion_catalog_service import (
+    listar_items_acta_inspeccion_catalogo,
+)
 from app.domains.actuaciones.attach.notificacion import aplicar_personas_sin_carnet_desde_payload
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
@@ -49,26 +55,88 @@ def _resolve_motivo_nombre() -> str:
     return str(row.nombre)
 
 
+_CANONICAL_ITEMS = [
+    ("TIENE_BANO", "Baño", 1, "ESTADO"),
+    ("TIENE_SALON", "Salón", 2, "ESTADO"),
+    ("TIENE_DEPOSITO", "Depósito", 3, "ESTADO"),
+    ("TIENE_COCINA_MESA_TRABAJO", "Cocina / mesa de trabajo", 4, "ESTADO"),
+    ("VAJILLA_MANTEL", "Vajilla / mantel", 5, "ESTADO"),
+    ("TIENE_HABILITACION", "Tiene habilitación", 6, "SI_NO"),
+]
+
+
 @pytest.fixture()
 def items_catalogo(app):
     with app.app_context():
         rows = ItemActaInspeccion.query.order_by(ItemActaInspeccion.orden.asc()).all()
         if not rows:
             seeds = [
-                ItemActaInspeccion(codigo="TIENE_BANO", nombre="Baño", activo=True, orden=1),
-                ItemActaInspeccion(codigo="TIENE_SALON", nombre="Salón", activo=True, orden=2),
-                ItemActaInspeccion(codigo="TIENE_DEPOSITO", nombre="Depósito", activo=True, orden=3),
+                ItemActaInspeccion(
+                    codigo="TIENE_BANO",
+                    nombre="Baño",
+                    activo=True,
+                    orden=1,
+                    tipo_respuesta="ESTADO",
+                ),
+                ItemActaInspeccion(
+                    codigo="TIENE_SALON",
+                    nombre="Salón",
+                    activo=True,
+                    orden=2,
+                    tipo_respuesta="ESTADO",
+                ),
+                ItemActaInspeccion(
+                    codigo="TIENE_DEPOSITO",
+                    nombre="Depósito",
+                    activo=True,
+                    orden=3,
+                    tipo_respuesta="ESTADO",
+                ),
                 ItemActaInspeccion(
                     codigo="TIENE_COCINA_MESA_TRABAJO",
                     nombre="Cocina / mesa de trabajo",
                     activo=True,
                     orden=4,
+                    tipo_respuesta="ESTADO",
                 ),
-                ItemActaInspeccion(codigo="VAJILLA_MANTEL", nombre="Vajilla / mantel", activo=True, orden=5),
+                ItemActaInspeccion(
+                    codigo="VAJILLA_MANTEL",
+                    nombre="Vajilla / mantel",
+                    activo=True,
+                    orden=5,
+                    tipo_respuesta="ESTADO",
+                ),
+                ItemActaInspeccion(
+                    codigo="TIENE_HABILITACION",
+                    nombre="Tiene habilitación",
+                    activo=True,
+                    orden=6,
+                    tipo_respuesta="SI_NO",
+                ),
             ]
             db.session.add_all(seeds)
             db.session.commit()
-            rows = ItemActaInspeccion.query.order_by(ItemActaInspeccion.orden.asc()).all()
+        else:
+            for codigo, nombre, orden, tipo in _CANONICAL_ITEMS:
+                row = ItemActaInspeccion.query.filter_by(codigo=codigo).first()
+                if row is None:
+                    db.session.add(
+                        ItemActaInspeccion(
+                            codigo=codigo,
+                            nombre=nombre,
+                            activo=True,
+                            orden=orden,
+                            tipo_respuesta=tipo,
+                        )
+                    )
+                else:
+                    row.nombre = nombre
+                    row.orden = orden
+                    row.activo = True
+                    row.tipo_respuesta = tipo
+                    db.session.add(row)
+            db.session.commit()
+        rows = ItemActaInspeccion.query.order_by(ItemActaInspeccion.orden.asc()).all()
         yield rows
 
 
@@ -137,6 +205,21 @@ def _junction_estados(inspeccion_id: int) -> dict[int, str]:
         .all()
     )
     return {int(r.item_acta_inspeccion_id): str(r.estado) for r in rows}
+
+
+def _junction_respuestas(inspeccion_id: int) -> dict[int, dict]:
+    rows = (
+        db.session.query(ActaInspeccionItem)
+        .filter(ActaInspeccionItem.acta_inspeccion_id == int(inspeccion_id))
+        .all()
+    )
+    return {
+        int(r.item_acta_inspeccion_id): {
+            "estado": r.estado,
+            "valor_si_no": r.valor_si_no,
+        }
+        for r in rows
+    }
 
 
 def test_create_con_estados_bien_observado(app, items_catalogo):
@@ -378,3 +461,146 @@ def test_migration_v2_schema(app):
         bano = ItemActaInspeccion.query.filter_by(codigo="TIENE_BANO").first()
         assert bano is not None
         assert bano.nombre == "Baño"
+
+
+def test_create_si_no_true_y_false(app, items_catalogo):
+    with app.app_context():
+        id_hab = _item_id(items_catalogo, "TIENE_HABILITACION")
+        act = crear_actuacion_desde_payload(
+            _base_create_payload(
+                items_acta_inspeccion=[{"item_id": id_hab, "valor_si_no": True}]
+            )
+        )
+        ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+        resp = _junction_respuestas(int(ins.id))
+        assert resp[id_hab] == {"estado": None, "valor_si_no": True}
+
+        _put_actuacion(act, items_acta_inspeccion=[{"item_id": id_hab, "valor_si_no": False}])
+        ins2 = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+        resp2 = _junction_respuestas(int(ins2.id))
+        assert resp2[id_hab] == {"estado": None, "valor_si_no": False}
+
+
+def test_sparse_sin_habilitacion(app, items_catalogo):
+    with app.app_context():
+        id_bano = _item_id(items_catalogo, "TIENE_BANO")
+        id_hab = _item_id(items_catalogo, "TIENE_HABILITACION")
+        act = crear_actuacion_desde_payload(
+            _base_create_payload(
+                items_acta_inspeccion=[{"item_id": id_bano, "estado": "BIEN"}]
+            )
+        )
+        ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+        resp = _junction_respuestas(int(ins.id))
+        assert id_hab not in resp
+        dtos = items_acta_inspeccion_read_dtos(ins)
+        assert all(d["codigo"] != "TIENE_HABILITACION" for d in dtos)
+
+
+def test_historico_sin_habilitacion_no_inferir_false(app, items_catalogo):
+    with app.app_context():
+        act = crear_actuacion_desde_payload(_base_create_payload())
+        ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+        dtos = items_acta_inspeccion_read_dtos(ins)
+        hab = [d for d in dtos if d.get("codigo") == "TIENE_HABILITACION"]
+        assert hab == []
+        id_hab = _item_id(items_catalogo, "TIENE_HABILITACION")
+        assert id_hab not in _junction_respuestas(int(ins.id))
+
+
+def test_rechaza_si_no_con_estado(app, items_catalogo):
+    with app.app_context():
+        id_hab = _item_id(items_catalogo, "TIENE_HABILITACION")
+        act = crear_actuacion_desde_payload(_base_create_payload())
+        with pytest.raises(ValueError, match="valor_si_no"):
+            aplicar_inspeccion_checklist_desde_payload(
+                act,
+                {
+                    "items_acta_inspeccion": [
+                        {"item_id": id_hab, "estado": "BIEN"},
+                    ]
+                },
+            )
+
+
+def test_rechaza_estado_con_valor_si_no(app, items_catalogo):
+    with app.app_context():
+        id_bano = _item_id(items_catalogo, "TIENE_BANO")
+        act = crear_actuacion_desde_payload(_base_create_payload())
+        with pytest.raises(ValueError, match="valor_si_no"):
+            aplicar_inspeccion_checklist_desde_payload(
+                act,
+                {
+                    "items_acta_inspeccion": [
+                        {"item_id": id_bano, "estado": "BIEN", "valor_si_no": True},
+                    ]
+                },
+            )
+
+
+def test_rechaza_estado_item_con_valor_si_no(app, items_catalogo):
+    with app.app_context():
+        id_bano = _item_id(items_catalogo, "TIENE_BANO")
+        act = crear_actuacion_desde_payload(_base_create_payload())
+        with pytest.raises(ValueError, match="estado BIEN u OBSERVADO"):
+            aplicar_inspeccion_checklist_desde_payload(
+                act,
+                {"items_acta_inspeccion": [{"item_id": id_bano, "valor_si_no": True}]},
+            )
+
+
+def test_rechaza_item_sin_respuesta(app, items_catalogo):
+    with pytest.raises(ValidationError, match="estado"):
+        ActuacionGridRowIn.model_validate(
+            {
+                "orden_trabajo_numero": "000001",
+                "fecha_actuacion": "2026-09-09",
+                "items_acta_inspeccion": [{"item_id": 1}],
+            }
+        )
+
+
+def test_catalogo_incluye_tipo_respuesta(app, items_catalogo):
+    with app.app_context():
+        items = listar_items_acta_inspeccion_catalogo(solo_activos=True)
+        hab = next(i for i in items if i["codigo"] == "TIENE_HABILITACION")
+        assert hab["tipo_respuesta"] == "SI_NO"
+        bano = next(i for i in items if i["codigo"] == "TIENE_BANO")
+        assert bano["tipo_respuesta"] == "ESTADO"
+
+
+def test_read_dto_tipado(app, items_catalogo):
+    with app.app_context():
+        id_bano = _item_id(items_catalogo, "TIENE_BANO")
+        id_hab = _item_id(items_catalogo, "TIENE_HABILITACION")
+        act = crear_actuacion_desde_payload(
+            _base_create_payload(
+                items_acta_inspeccion=[
+                    {"item_id": id_bano, "estado": "OBSERVADO"},
+                    {"item_id": id_hab, "valor_si_no": True},
+                ]
+            )
+        )
+        ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
+        dtos = items_acta_inspeccion_read_dtos(ins)
+        by_codigo = {d["codigo"]: d for d in dtos}
+        assert by_codigo["TIENE_BANO"]["tipo_respuesta"] == "ESTADO"
+        assert by_codigo["TIENE_BANO"]["estado"] == "OBSERVADO"
+        assert by_codigo["TIENE_BANO"]["valor_si_no"] is None
+        assert by_codigo["TIENE_HABILITACION"]["tipo_respuesta"] == "SI_NO"
+        assert by_codigo["TIENE_HABILITACION"]["estado"] is None
+        assert by_codigo["TIENE_HABILITACION"]["valor_si_no"] is True
+
+
+def test_migration_tipo_si_no_schema(app):
+    with app.app_context():
+        bind = db.engine
+        insp = sa.inspect(bind)
+        catalog_cols = {c["name"] for c in insp.get_columns("item_acta_inspeccion")}
+        junction_cols = {c["name"] for c in insp.get_columns("acta_inspeccion_item")}
+        assert "tipo_respuesta" in catalog_cols
+        assert "valor_si_no" in junction_cols
+
+        hab = ItemActaInspeccion.query.filter_by(codigo="TIENE_HABILITACION").first()
+        assert hab is not None
+        assert hab.tipo_respuesta == "SI_NO"

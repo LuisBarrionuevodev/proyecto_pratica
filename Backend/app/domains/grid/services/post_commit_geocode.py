@@ -4,6 +4,7 @@ GEO-PERF.1 — encolar geocode post-commit tras grid commit sin bloquear HTTP.
 
 from __future__ import annotations
 
+import logging
 from typing import Iterable, List
 
 from app.domains.geolocalizacion.geocode.services.geocode_post_commit_queue_service import (
@@ -14,6 +15,8 @@ from app.domains.geolocalizacion.geocode.services.geocode_post_commit_worker imp
     geocode_post_commit_async_enabled,
     schedule_geocode_post_commit_drain,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def schedule_geocode_after_grid_commit(domicilio_ids: Iterable[int]) -> List[int]:
@@ -33,7 +36,24 @@ def schedule_geocode_after_grid_commit(domicilio_ids: Iterable[int]) -> List[int
         return []
 
     if geocode_post_commit_async_enabled():
-        schedule_geocode_post_commit_drain()
+        outcome = schedule_geocode_post_commit_drain()
+        if outcome == "scheduled":
+            logger.info("GEO_DRAIN_SCHEDULED domicilio_ids=%s", enqueued)
+        elif outcome == "coalesced":
+            logger.info(
+                "GEO_DRAIN_COALESCED reason=already_running rerun_needed=true domicilio_ids=%s",
+                enqueued,
+            )
+        elif outcome == "executor_unavailable":
+            logger.warning(
+                "GEO_DRAIN_NOT_SCHEDULED reason=executor_unavailable domicilio_ids=%s",
+                enqueued,
+            )
+        elif outcome == "executor_submit_failed":
+            logger.warning(
+                "GEO_DRAIN_NOT_SCHEDULED reason=executor_submit_failed domicilio_ids=%s",
+                enqueued,
+            )
     else:
         flush_geocode_post_commit_queue_sync()
     return enqueued

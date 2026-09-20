@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "generated_at": "2026-09-17T04:03:26.224565+00:00",
+    "ticket": "GEO-GOOGLE.1.1",
+    "mode": "manual",
+    "google_only": true
+  },
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "zero_results": 0,
+    "errors": 0,
+    "location_types": {
+      "ROOFTOP": 1
+    },
+    "latency_ms": {
+      "n": 1,
+      "p50": 629.1,
+      "p95": 629.1,
+      "max": 629.1,
+      "mean": 629.1
+    },
+    "google_requests": 1
+  },
+  "records": [
+    {
+      "input": "Corrientes 500, San Miguel de Tucuman, Tucuman, Argentina",
+      "status": "OK",
+      "api_status": "OK",
+      "error_kind": null,
+      "error_message": null,
+      "formatted_address": "Pcia de Corrientes 500, T4000EBL San Miguel de Tucumán, Tucumán, Argentina",
+      "lat": -26.8230295,
+      "lng": -65.2029038,
+      "location_type": "ROOFTOP",
+      "place_id": "ChIJJbiMixdcIpQR4jH0dd2dLec",
+      "partial_match": false,
+      "latency_ms": 629.1
+    }
+  ]
+}

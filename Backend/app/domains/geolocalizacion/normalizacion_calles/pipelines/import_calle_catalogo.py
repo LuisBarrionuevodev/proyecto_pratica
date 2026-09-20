@@ -2,21 +2,38 @@ from __future__ import annotations
 
 import argparse
 import csv
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 from app.database import db
-from app.models import CalleCatalogo
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_string import (
-    slug_key,
     normalize_display,
+    slug_key,
     street_base,
 )
+from app.models import CalleCatalogo
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 
-def importar_csv(path: str) -> Tuple[int, int, int]:
+def importar_csv(
+    path: str,
+    *,
+    session: Session | None = None,
+    commit: bool = True,
+) -> Tuple[int, int, int]:
     """
     Importa catálogo de calles desde CSV.
+
+    Parameters:
+        path: ruta al CSV.
+        session: sesión SQLAlchemy opcional.
+        commit: si True, hace commit al finalizar.
+
+    Returns:
+        Tupla (created, updated, skipped).
     """
+    sess = session or db.session
     created = 0
     updated = 0
     skipped = 0
@@ -26,7 +43,6 @@ def importar_csv(path: str) -> Tuple[int, int, int]:
         for row in reader:
             canon_raw = row.get("calles")
             if canon_raw is None:
-                # fallback si el header viene con BOM u otro nombre
                 if len(row) == 1:
                     canon_raw = next(iter(row.values()))
                 else:
@@ -37,17 +53,17 @@ def importar_csv(path: str) -> Tuple[int, int, int]:
                 continue
             key = slug_key(canon)
             base = street_base(canon)
-            existing = CalleCatalogo.query.filter_by(nombre_key=key).first()
+            existing = sess.query(CalleCatalogo).filter_by(nombre_key=key).first()
             if existing:
                 if existing.nombre_canonico != canon:
                     existing.nombre_canonico = canon
                     existing.canon_base = base
-                    db.session.add(existing)
+                    sess.add(existing)
                     updated += 1
                 else:
                     skipped += 1
                 continue
-            db.session.add(
+            sess.add(
                 CalleCatalogo(
                     nombre_canonico=canon,
                     nombre_key=key,
@@ -57,7 +73,8 @@ def importar_csv(path: str) -> Tuple[int, int, int]:
             )
             created += 1
 
-    db.session.commit()
+    if commit:
+        sess.commit()
     return created, updated, skipped
 
 
@@ -71,6 +88,7 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
     from app.main import create_app
+
     app = create_app()
     with app.app_context():
         created, updated, skipped = importar_csv(args.path)

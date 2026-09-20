@@ -37,11 +37,13 @@ export function enrichPlanificacionDistritosGeoJson(
 
       let distrito_id: number | null = null;
       let distrito_nombre: string | null = null;
+      let distrito_codigo: number | null = null;
 
       const cat = byNombreCatalog.get(key);
       if (cat) {
         distrito_id = cat.id;
         distrito_nombre = cat.nombre;
+        distrito_codigo = cat.codigo;
       } else {
         const idFromCarga = idByNombreCarga.get(key);
         if (idFromCarga != null) {
@@ -60,6 +62,7 @@ export function enrichPlanificacionDistritosGeoJson(
           ...props,
           distrito_id,
           distrito_nombre,
+          distrito_codigo,
           cantidad,
         },
       };

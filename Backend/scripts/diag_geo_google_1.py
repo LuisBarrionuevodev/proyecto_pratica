@@ -1,17 +1,23 @@
 """
-GEO-GOOGLE.1 — PoC: benchmark Google Geocoding vs Geoapify (domicilios reales).
+GEO-GOOGLE.1 / 1.1 — PoC: benchmark Google Geocoding vs Geoapify (domicilios reales).
 
 Solo lectura de Digitaliza + requests externos + reporte diagnóstico.
 NO modifica domicilio_geocode ni pipeline productivo.
 
-Uso:
+Uso benchmark DB:
     cd Backend
     python scripts/diag_geo_google_1.py --sample-size 100
-    python scripts/diag_geo_google_1.py --sample-size 50 --output-dir scripts/output
 
-Requiere en .env:
+Smoke test Google (una dirección):
+    python scripts/diag_geo_google_1.py --google-only \\
+      --address "Corrientes 500, San Miguel de Tucumán, Tucumán, Argentina"
+
+Cinco direcciones manuales:
+    python scripts/diag_geo_google_1.py --google-only --address "..." --address "..."
+
+Requiere en Backend/.env:
     GOOGLE_MAPS_API_KEY
-    GEOAPIFY_API_KEY  (comparación)
+    GEOAPIFY_API_KEY  (solo modo benchmark comparativo)
 """
 from __future__ import annotations
 
@@ -23,11 +29,12 @@ import os
 import statistics
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -46,6 +53,11 @@ from app.models import Domicilio, DomicilioGeocode
 SMT_SUFFIX = "San Miguel de Tucumán, Tucumán, Argentina"
 GOOGLE_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 REQUEST_PAUSE_SEC = 0.25
+MAX_MANUAL_ADDRESSES = 10
+
+GOOGLE_API_ERROR_STATUSES = frozenset(
+    {"REQUEST_DENIED", "OVER_QUERY_LIMIT", "INVALID_REQUEST", "UNKNOWN_ERROR"}
+)
 
 STRATUM_TARGETS = {
     "NUMERO": 40,
@@ -58,6 +70,37 @@ STRATUM_TARGETS = {
 LOCATION_TYPE_HIGH = frozenset({"ROOFTOP"})
 LOCATION_TYPE_MEDIUM = frozenset({"RANGE_INTERPOLATED"})
 LOCATION_TYPE_LOW = frozenset({"GEOMETRIC_CENTER", "APPROXIMATE"})
+
+
+def _bootstrap_env() -> None:
+    """Carga Backend/.env usando dotenv (mismo mecanismo que create_app)."""
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env")
+
+
+def _require_google_api_key() -> str:
+    """
+    Valida GOOGLE_MAPS_API_KEY en entorno.
+
+    Returns:
+        API key sin espacios.
+
+    Raises:
+        SystemExit: si falta o está vacía (mensaje sin secretos).
+    """
+    key = (os.getenv("GOOGLE_MAPS_API_KEY") or os.getenv("GOOGLE_GEOCODING_API_KEY") or "").strip()
+    if not key:
+        print("GOOGLE_MAPS_API_KEY no configurada")
+        raise SystemExit(1)
+    return key
+
+
+def _redact_secret(text: str, secret: str) -> str:
+    """Elimina fragmentos de secretos de mensajes de error."""
+    if not secret or not text:
+        return text
+    return text.replace(secret, "***")
 
 
 def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -183,6 +226,24 @@ def _normalize_geoapify_result(resp: dict[str, Any], query: str) -> dict[str, An
     }
 
 
+def _display_status(normalized: dict[str, Any], error_kind: Optional[str] = None) -> str:
+    """
+    Estado legible para consola: OK | ZERO_RESULTS | ERROR.
+
+    Args:
+        normalized: resultado canónico Google.
+        error_kind: categoría de error de red/API si aplica.
+    """
+    if error_kind:
+        return "ERROR"
+    api_status = str(normalized.get("status") or "").upper()
+    if api_status == "OK" and normalized.get("lat") is not None:
+        return "OK"
+    if api_status == "ZERO_RESULTS":
+        return "ZERO_RESULTS"
+    return "ERROR"
+
+
 def _request_google(query: str, api_key: str) -> tuple[dict[str, Any], float]:
     """
     Llama Google Geocoding API (server-side).
@@ -193,6 +254,10 @@ def _request_google(query: str, api_key: str) -> tuple[dict[str, Any], float]:
 
     Returns:
         (respuesta normalizada, latencia_ms).
+
+    Raises:
+        urllib.error.HTTPError: error HTTP (sin incluir key en mensaje al capturar arriba).
+        OSError: error de red.
     """
     params = {
         "address": query,
@@ -207,6 +272,222 @@ def _request_google(query: str, api_key: str) -> tuple[dict[str, Any], float]:
         raw = json.loads(resp.read().decode("utf-8"))
     ms = (time.perf_counter() - t0) * 1000.0
     return _normalize_google_result(raw, query), ms
+
+
+def _geocode_google_address(query: str, api_key: str) -> dict[str, Any]:
+    """
+    Geocodifica una dirección con Google y retorna fila diagnóstica segura.
+
+    Args:
+        query: dirección de entrada.
+        api_key: GOOGLE_MAPS_API_KEY.
+
+    Returns:
+        Dict con campos de salida del PoC manual (sin secretos).
+    """
+    row: dict[str, Any] = {
+        "input": query,
+        "status": "ERROR",
+        "api_status": None,
+        "error_kind": None,
+        "error_message": None,
+        "formatted_address": None,
+        "lat": None,
+        "lng": None,
+        "location_type": None,
+        "place_id": None,
+        "partial_match": None,
+        "latency_ms": None,
+    }
+    try:
+        normalized, ms = _request_google(query, api_key)
+        row["latency_ms"] = round(ms, 1)
+        row["api_status"] = normalized.get("status")
+        row["formatted_address"] = normalized.get("formatted_address")
+        row["lat"] = normalized.get("lat")
+        row["lng"] = normalized.get("lng")
+        row["location_type"] = normalized.get("location_type")
+        row["place_id"] = normalized.get("place_id")
+        row["partial_match"] = normalized.get("partial_match")
+        api_status = str(normalized.get("status") or "").upper()
+        if api_status in GOOGLE_API_ERROR_STATUSES:
+            row["error_kind"] = api_status
+            row["status"] = "ERROR"
+        else:
+            row["status"] = _display_status(normalized)
+            if row["status"] == "ERROR" and api_status not in ("OK", "ZERO_RESULTS"):
+                row["error_kind"] = api_status or "UNKNOWN"
+    except urllib.error.HTTPError as exc:
+        row["error_kind"] = "HTTP_ERROR"
+        row["error_message"] = _redact_secret(f"HTTP {exc.code}", api_key)
+        row["status"] = "ERROR"
+    except urllib.error.URLError as exc:
+        row["error_kind"] = "NETWORK"
+        row["error_message"] = _redact_secret(str(exc.reason), api_key)
+        row["status"] = "ERROR"
+    except Exception as exc:  # noqa: BLE001
+        row["error_kind"] = "NETWORK"
+        row["error_message"] = _redact_secret(str(exc)[:200], api_key)
+        row["status"] = "ERROR"
+    return row
+
+
+def _print_manual_address_result(row: dict[str, Any]) -> None:
+    """Imprime resultado por dirección (formato GEO-GOOGLE.1.1)."""
+    pm = row.get("partial_match")
+    pm_display = "null" if pm is None else str(pm).lower()
+    print("\n---")
+    print(f"INPUT:\n{row.get('input')}")
+    print(f"\nSTATUS:\n{row.get('status')}")
+    if row.get("error_kind"):
+        print(f"\nERROR_KIND:\n{row.get('error_kind')}")
+    if row.get("error_message"):
+        print(f"\nERROR_MESSAGE:\n{row.get('error_message')}")
+    print(f"\nFORMATTED_ADDRESS:\n{row.get('formatted_address') or ''}")
+    print(f"\nLAT:\n{row.get('lat') if row.get('lat') is not None else ''}")
+    print(f"\nLNG:\n{row.get('lng') if row.get('lng') is not None else ''}")
+    print(f"\nLOCATION_TYPE:\n{row.get('location_type') or ''}")
+    print(f"\nPLACE_ID:\n{row.get('place_id') or ''}")
+    print(f"\nPARTIAL_MATCH:\n{pm_display}")
+    print(f"\nLATENCY_MS:\n{row.get('latency_ms') if row.get('latency_ms') is not None else ''}")
+
+
+def _summarize_manual_results(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Arma resumen agregado del modo manual."""
+    total = len(rows)
+    ok = sum(1 for r in rows if r.get("status") == "OK")
+    zero = sum(1 for r in rows if r.get("status") == "ZERO_RESULTS")
+    errors = sum(1 for r in rows if r.get("status") == "ERROR")
+    loc_counts: dict[str, int] = {}
+    latencies = [float(r["latency_ms"]) for r in rows if r.get("latency_ms") is not None]
+    for r in rows:
+        if r.get("status") != "OK":
+            continue
+        lt = str(r.get("location_type") or "NONE")
+        loc_counts[lt] = loc_counts.get(lt, 0) + 1
+    return {
+        "total": total,
+        "ok": ok,
+        "zero_results": zero,
+        "errors": errors,
+        "location_types": loc_counts,
+        "latency_ms": _latency_stats(latencies),
+        "google_requests": total,
+    }
+
+
+def _print_manual_summary(summary: dict[str, Any]) -> None:
+    """Imprime resumen final del modo manual."""
+    lt = summary.get("location_types") or {}
+    lat = summary.get("latency_ms") or {}
+    print("\n=== RESUMEN ===")
+    print(f"Total: {summary.get('total', 0)}")
+    print(f"OK: {summary.get('ok', 0)}")
+    print(f"Sin resultado: {summary.get('zero_results', 0)}")
+    print(f"Errores: {summary.get('errors', 0)}")
+    print(f"\nROOFTOP: {lt.get('ROOFTOP', 0)}")
+    print(f"RANGE_INTERPOLATED: {lt.get('RANGE_INTERPOLATED', 0)}")
+    print(f"GEOMETRIC_CENTER: {lt.get('GEOMETRIC_CENTER', 0)}")
+    print(f"APPROXIMATE: {lt.get('APPROXIMATE', 0)}")
+    print("\nLatencia:")
+    print(f"P50: {lat.get('p50', 0)}")
+    print(f"P95: {lat.get('p95', 0)}")
+    print(f"max: {lat.get('max', 0)}")
+    print(f"\nRequests Google realizados: {summary.get('google_requests', 0)}")
+
+
+def _write_manual_outputs(
+    rows: list[dict[str, Any]],
+    summary: dict[str, Any],
+    output_dir: Path,
+    *,
+    google_only: bool,
+) -> tuple[Path, Path]:
+    """Escribe JSON y CSV diagnóstico para modo manual."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_path = output_dir / f"diag_geo_google_manual_{ts}.json"
+    csv_path = output_dir / f"diag_geo_google_manual_{ts}.csv"
+    payload = {
+        "meta": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "ticket": "GEO-GOOGLE.1.1",
+            "mode": "manual",
+            "google_only": google_only,
+        },
+        "summary": summary,
+        "records": rows,
+    }
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    fieldnames = [
+        "input",
+        "status",
+        "api_status",
+        "error_kind",
+        "formatted_address",
+        "lat",
+        "lng",
+        "location_type",
+        "place_id",
+        "partial_match",
+        "latency_ms",
+    ]
+    with csv_path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    return json_path, csv_path
+
+
+def _validate_manual_address_count(addresses: Sequence[str]) -> None:
+    """
+    Valida límite de direcciones manuales.
+
+    Raises:
+        SystemExit: si excede MAX_MANUAL_ADDRESSES.
+    """
+    if len(addresses) > MAX_MANUAL_ADDRESSES:
+        print(f"Máximo {MAX_MANUAL_ADDRESSES} direcciones en modo manual")
+        raise SystemExit(1)
+
+
+def _run_manual_addresses(
+    addresses: list[str],
+    api_key: str,
+    *,
+    google_only: bool,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """
+    Procesa direcciones manuales (sin dataset DB).
+
+    Args:
+        addresses: direcciones explícitas (máx. MAX_MANUAL_ADDRESSES).
+        api_key: GOOGLE_MAPS_API_KEY.
+        google_only: si True, no llama Geoapify.
+
+    Returns:
+        (filas por dirección, resumen).
+    """
+    rows: list[dict[str, Any]] = []
+    for address in addresses:
+        if rows:
+            time.sleep(REQUEST_PAUSE_SEC)
+        row = _geocode_google_address(address.strip(), api_key)
+        if not google_only:
+            try:
+                geo_row, geo_ms = _request_geoapify_timed(address.strip())
+                row["geoapify_status"] = geo_row.get("status")
+                row["geoapify_lat"] = geo_row.get("lat")
+                row["geoapify_lng"] = geo_row.get("lng")
+                row["geoapify_latency_ms"] = round(geo_ms, 1)
+            except Exception as exc:  # noqa: BLE001
+                row["geoapify_status"] = "ERROR"
+                row["geoapify_error"] = _redact_secret(str(exc)[:200], api_key)
+        rows.append(row)
+        _print_manual_address_result(row)
+    summary = _summarize_manual_results(rows)
+    return rows, summary
 
 
 def _request_geoapify_timed(query: str) -> tuple[dict[str, Any], float]:
@@ -854,17 +1135,69 @@ def main() -> None:
         help="Directorio para JSON/CSV diagnóstico",
     )
     parser.add_argument("--dry-run", action="store_true", help="Solo arma dataset, sin llamar APIs")
+    parser.add_argument(
+        "--address",
+        action="append",
+        default=[],
+        help="Dirección manual (repetible). Si se usa, no se consulta dataset DB.",
+    )
+    parser.add_argument(
+        "--google-only",
+        action="store_true",
+        help="Solo Google (sin Geoapify ni dataset DB en modo manual).",
+    )
     args = parser.parse_args()
 
-    google_key = os.getenv("GOOGLE_MAPS_API_KEY") or os.getenv("GOOGLE_GEOCODING_API_KEY")
-    geoapify_key = os.getenv("GEOAPIFY_API_KEY")
+    _bootstrap_env()
+
+    out_dir = Path(args.output_dir)
+    if not out_dir.is_absolute():
+        out_dir = ROOT / out_dir
+
+    manual_addresses = [a.strip() for a in (args.address or []) if a and a.strip()]
+    if manual_addresses:
+        _validate_manual_address_count(manual_addresses)
+        if args.dry_run:
+            print(
+                json.dumps(
+                    {
+                        "mode": "manual",
+                        "google_only": args.google_only,
+                        "addresses": manual_addresses,
+                        "dry_run": True,
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+            )
+            return
+        google_key = _require_google_api_key()
+        print(f"GEO-GOOGLE.1.1 — modo manual ({len(manual_addresses)} direcciones, google_only={args.google_only})")
+        rows, summary = _run_manual_addresses(
+            manual_addresses,
+            google_key,
+            google_only=args.google_only,
+        )
+        json_path, csv_path = _write_manual_outputs(
+            rows,
+            summary,
+            out_dir,
+            google_only=args.google_only,
+        )
+        _print_manual_summary(summary)
+        print(f"\nJSON: {json_path}")
+        print(f"CSV: {csv_path}")
+        return
+
+    google_key = (os.getenv("GOOGLE_MAPS_API_KEY") or os.getenv("GOOGLE_GEOCODING_API_KEY") or "").strip()
+    geoapify_key = (os.getenv("GEOAPIFY_API_KEY") or "").strip()
 
     if not args.dry_run and not google_key:
-        print("ERROR: GOOGLE_MAPS_API_KEY no configurada en .env")
-        sys.exit(1)
-    if not args.dry_run and not geoapify_key:
-        print("ERROR: GEOAPIFY_API_KEY no configurada (necesaria para comparación)")
-        sys.exit(1)
+        print("GOOGLE_MAPS_API_KEY no configurada")
+        raise SystemExit(1)
+    if not args.dry_run and not args.google_only and not geoapify_key:
+        print("GEOAPIFY_API_KEY no configurada (necesaria para comparación en modo benchmark)")
+        raise SystemExit(1)
 
     app = create_app()
     with app.app_context():

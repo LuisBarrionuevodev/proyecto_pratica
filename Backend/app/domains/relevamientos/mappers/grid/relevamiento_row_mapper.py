@@ -15,15 +15,14 @@ def _clean_str(v: Any) -> Optional[str]:
 def map_relevamiento_row(row: RelevamientoGridRowIn) -> Dict[str, Any]:
     """
     Mapper UI -> Payload limpio para services (sin DB).
-    - fecha debe estar resuelta (validate_service asigna default si falta).
+    - fecha opcional: create asigna hoy; update preserva la existente.
+    - relevador_ids: ids resueltos (relevador_id + relevador_ids).
     """
-    if row.fecha is None:
-        raise ValueError("fecha requerida para mapper")
+    ids = row.relevador_ids_resueltos()
     payload: Dict[str, Any] = {
         "id": row.id,
-        "fecha": row.fecha.isoformat(),
-        "relevador_ids": row.relevador_ids,
-        "relevadores_nombres": row.relevadores_nombres_resueltos(),
+        "relevador_ids": ids or None,
+        "relevadores_nombres": row.relevadores_nombres_resueltos() if not ids else [],
         "domicilio": {
             "calle": _clean_str(row.calle),
             "numero": _clean_str(row.numero),
@@ -35,4 +34,6 @@ def map_relevamiento_row(row: RelevamientoGridRowIn) -> Dict[str, Any]:
         "turno_carga": row.turno,
         "esta_abierto": row.esta_abierto,
     }
+    if row.fecha is not None:
+        payload["fecha"] = row.fecha.isoformat()
     return payload

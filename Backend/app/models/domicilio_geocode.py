@@ -28,6 +28,7 @@ class DomicilioGeocode(db.Model):
         index=True,
     )
     provider = db.Column(db.String(50), nullable=True)
+    provider_place_id = db.Column(db.String(255), nullable=True)
     quality = db.Column(db.String(30), nullable=True)
     score = db.Column(db.Float, nullable=True)
     error_msg = db.Column(db.String(255), nullable=True)

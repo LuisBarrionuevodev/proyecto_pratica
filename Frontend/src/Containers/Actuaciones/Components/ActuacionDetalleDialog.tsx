@@ -58,7 +58,7 @@ import {
   itemsActaInspeccionWriteFromEstados,
   planChecklistHydration,
 } from "../utils/inspeccionChecklistSubmit";
-import type { ItemInspeccionEstadoUx } from "../utils/inspeccionChecklistSubmit";
+import type { ChecklistUxValue } from "../utils/inspeccionChecklistSubmit";
 import {
   PersonasSinCarnetField,
   isValidActaNotificacionNum,
@@ -1105,7 +1105,7 @@ export function ActuacionDetalleDialog({
   const checklistItemsTouchedRef = useRef(false);
   const personasSinCarnetTouchedRef = useRef(false);
   const hydratedChecklistActIdRef = useRef<number | null>(null);
-  const [checklistEstados, setChecklistEstados] = useState<Record<number, ItemInspeccionEstadoUx>>(
+  const [checklistEstados, setChecklistEstados] = useState<Record<number, ChecklistUxValue>>(
     () => estadosMapFromRow(draft, catalogs.itemsActaInspeccion ?? [])
   );
 
@@ -1692,7 +1692,10 @@ export function ActuacionDetalleDialog({
                 checklistItemsTouchedRef.current = true;
                 setChecklistEstados(estados);
                 onDraftChange({
-                  items_acta_inspeccion: itemsActaInspeccionWriteFromEstados(estados),
+                  items_acta_inspeccion: itemsActaInspeccionWriteFromEstados(
+                    estados,
+                    catalogs.itemsActaInspeccion ?? []
+                  ),
                 });
               }}
               disabled={!isValidActaInspeccionNum(draft.acta_inspeccion_num) || saving}

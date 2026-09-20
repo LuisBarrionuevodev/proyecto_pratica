@@ -23,6 +23,8 @@ export type PlanificacionViewProps = {
   rutaId: number;
   grupos: IRutaGrupoMin[];
   itemsActivos: IRutaItemMin[];
+  /** Si false, la vista permanece montada pero oculta (p. ej. step Asignación). */
+  visible?: boolean;
   onError: (msg: string) => void;
   /** Pool del día compartido con Asignación (estado elevado al contenedor del módulo). */
   poolControl: PlanificacionPoolControl;
@@ -46,6 +48,7 @@ export function PlanificacionView({
   rutaId,
   grupos,
   itemsActivos,
+  visible = true,
   onError,
   poolControl,
 }: PlanificacionViewProps) {
@@ -132,7 +135,7 @@ export function PlanificacionView({
       setPendingVerEnMapaRow(null);
       clearPendingMapTimeout();
     }
-  }, [ctrl.distritoActivoId, clearPendingMapTimeout]);
+  }, [ctrl.distritoActivoId, ctrl.scopeOutsideDistricts, clearPendingMapTimeout]);
 
   useEffect(() => {
     if (!pendingVerEnMapaRow) return;
@@ -157,18 +160,24 @@ export function PlanificacionView({
       const targetDistritoId = distritoIdRow(row);
 
       if (targetDistritoId == null) {
-        if (ctrl.distritoActivoId == null) {
-          onError("Elegí un distrito en el mapa para ver puntos.");
+        if (!ctrl.contextoActivo) {
+          preservingPendingOnNextDistritoChangeRef.current = row.id;
+          ctrl.seleccionarFueraDeDistritos();
+          setPendingVerEnMapaRow(row);
+          schedulePendingTimeout(row.id);
           return;
         }
         const inLayer = ctrl.pendientesParaMapa.some((r) => r.id === row.id && parseIniciadorLatLng(r));
         if (inLayer) {
           const fresh = ctrl.pendientesParaMapa.find((r) => r.id === row.id);
           if (fresh) applyMapFocus(fresh);
+        } else if (!ctrl.scopeOutsideDistricts) {
+          preservingPendingOnNextDistritoChangeRef.current = row.id;
+          ctrl.seleccionarFueraDeDistritos();
+          setPendingVerEnMapaRow(row);
+          schedulePendingTimeout(row.id);
         } else {
-          onError(
-            "Este pendiente no aparece en el mapa del distrito activo. Cambiá de distrito o verificá la geocodificación."
-          );
+          onError("Este pendiente no aparece en el mapa del contexto activo.");
         }
         return;
       }
@@ -190,9 +199,12 @@ export function PlanificacionView({
       }
     },
     [
+      ctrl.contextoActivo,
+      ctrl.scopeOutsideDistricts,
       ctrl.distritoActivoId,
       ctrl.pendientesParaMapa,
       ctrl.seleccionarDistrito,
+      ctrl.seleccionarFueraDeDistritos,
       onError,
       applyMapFocus,
       schedulePendingTimeout,
@@ -299,6 +311,8 @@ export function PlanificacionView({
         <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, height: "100%" }}>
           <PlanificacionSidebarPanel
             distritoActivoId={ctrl.distritoActivoId}
+            contextoActivo={ctrl.contextoActivo}
+            scopeOutsideDistricts={ctrl.scopeOutsideDistricts}
             metricas={ctrl.metricasVisibles}
             metricasLoading={metricasLoading}
             cardActiva={ctrl.cardActiva}
@@ -331,8 +345,12 @@ export function PlanificacionView({
             distritoCatalogo={ctrl.distritoCatalogo}
             loadingCatalogo={ctrl.loadingDistritoCatalogo}
             distritoActivoId={ctrl.distritoActivoId}
+            scopeOutsideDistricts={ctrl.scopeOutsideDistricts}
+            outsideDistrictsCount={ctrl.outsideDistrictsCount}
             distritoActivoNombre={distritoNombreActivo}
+            mapLayoutActive={visible}
             onSelectDistrito={ctrl.seleccionarDistrito}
+            onSelectOutsideDistricts={ctrl.seleccionarFueraDeDistritos}
             pendientesParaMapa={ctrl.pendientesParaMapa}
             mapFocusIniciadorId={mapFocusIniciadorId}
             mapPopupRow={mapPopupRow}

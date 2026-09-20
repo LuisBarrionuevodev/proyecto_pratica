@@ -142,11 +142,24 @@ const catalogs = {
 };
 
 const itemsActaInspeccionCatalog = [
-  { id: 1, codigo: "TIENE_BANO", nombre: "Baño", activo: true, orden: 1 },
-  { id: 2, codigo: "TIENE_SALON", nombre: "Salón", activo: true, orden: 2 },
-  { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", activo: true, orden: 3 },
-  { id: 4, codigo: "TIENE_COCINA_MESA_TRABAJO", nombre: "Cocina / mesa de trabajo", activo: true, orden: 4 },
-  { id: 5, codigo: "VAJILLA_MANTEL", nombre: "Vajilla / mantel", activo: true, orden: 5 },
+  { id: 1, codigo: "TIENE_BANO", nombre: "Baño", orden: 1, tipo_respuesta: "ESTADO" as const },
+  { id: 2, codigo: "TIENE_SALON", nombre: "Salón", orden: 2, tipo_respuesta: "ESTADO" as const },
+  { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", orden: 3, tipo_respuesta: "ESTADO" as const },
+  {
+    id: 4,
+    codigo: "TIENE_COCINA_MESA_TRABAJO",
+    nombre: "Cocina / mesa de trabajo",
+    orden: 4,
+    tipo_respuesta: "ESTADO" as const,
+  },
+  { id: 5, codigo: "VAJILLA_MANTEL", nombre: "Vajilla / mantel", orden: 5, tipo_respuesta: "ESTADO" as const },
+  {
+    id: 6,
+    codigo: "TIENE_HABILITACION",
+    nombre: "Tiene habilitación",
+    orden: 6,
+    tipo_respuesta: "SI_NO" as const,
+  },
 ];
 
 const catalogsWithChecklist = {

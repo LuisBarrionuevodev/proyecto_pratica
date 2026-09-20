@@ -45,7 +45,7 @@ import {
 import {
   checklistWriteFromEstados,
 } from "../utils/completarTrabajoVerificarInformarPrefill";
-import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import { NumeroEsquinaFreeEditor } from "../../Actuaciones/Components/NumeroEsquinaFreeEditor";
 import {
   MENSAJE_VALIDACION_LOCAL,
@@ -305,7 +305,7 @@ type OperativoFieldSetters = {
   setTitularModo: (v: TitularModoCompletarTrabajo) => void;
   setNombreLocal: (v: string) => void;
   setActaInspeccion: (v: string) => void;
-  setChecklistEstados: (v: Record<number, ItemInspeccionEstadoUx>) => void;
+  setChecklistEstados: (v: Record<number, ChecklistUxValue>) => void;
   setPersonasSinCarnet: (v: string) => void;
   setChecklistItemsTouched: (v: boolean) => void;
   setPersonasSinCarnetTouched: (v: boolean) => void;
@@ -423,7 +423,7 @@ export function CompletarTrabajoModal({
   const [titularModo, setTitularModo] = useState<TitularModoCompletarTrabajo>("persona");
   const [nombreLocal, setNombreLocal] = useState("");
   const [actaInspeccion, setActaInspeccion] = useState("");
-  const [checklistEstados, setChecklistEstados] = useState<Record<number, ItemInspeccionEstadoUx>>({});
+  const [checklistEstados, setChecklistEstados] = useState<Record<number, ChecklistUxValue>>({});
   const [personasSinCarnet, setPersonasSinCarnet] = useState("0");
   const [checklistItemsTouched, setChecklistItemsTouched] = useState(false);
   const [personasSinCarnetTouched, setPersonasSinCarnetTouched] = useState(false);
@@ -1056,7 +1056,10 @@ export function CompletarTrabajoModal({
           });
         }
         if (checklistItemsTouched) {
-          values.items_acta_inspeccion = checklistWriteFromEstados(checklistEstados);
+          values.items_acta_inspeccion = checklistWriteFromEstados(
+            checklistEstados,
+            catalogs?.itemsActaInspeccion ?? []
+          );
         }
         if (personasSinCarnetTouched && !esReinspeccionNotificacion) {
           const cantidad = parseInt(personasSinCarnet, 10);

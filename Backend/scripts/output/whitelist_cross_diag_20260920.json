@@ -1,0 +1,3490 @@
+{
+  "generated_at": "2026-09-20T01:14:18.986807",
+  "database": "digitaliza_sandbox",
+  "writes_executed": false,
+  "normalization_rules": {
+    "numeric": "strip leading zeros via int(); 004353 -> 4353",
+    "ambiguous": "cells with /, -, *, len>6 OT \u2014 not auto-normalized",
+    "placeholders": [
+      "0000",
+      "000"
+    ]
+  },
+  "db_fields": {
+    "orden_trabajo": [
+      "orden_trabajo",
+      "numero_acta"
+    ],
+    "notificacion": [
+      "notificacion",
+      "numero_acta"
+    ],
+    "inspeccion": [
+      "inspeccion",
+      "numero_acta"
+    ],
+    "comprobacion": [
+      "comprobacion",
+      "numero_acta"
+    ],
+    "oficio": [
+      "oficio",
+      "numero_oficio"
+    ]
+  },
+  "statistics": {
+    "xlsx_rows": 1357,
+    "ot": {
+      "MATCH_NORMALIZED": 842,
+      "NOT_FOUND": 153,
+      "MATCH_EXACT": 361,
+      "SKIPPED": 1
+    },
+    "notificacion": {
+      "NOT_FOUND": 304,
+      "SKIPPED": 755,
+      "MATCH_NORMALIZED": 88,
+      "MATCH_EXACT": 210
+    },
+    "inspeccion": {
+      "NOT_FOUND": 678,
+      "SKIPPED": 503,
+      "MATCH_EXACT": 113,
+      "MATCH_NORMALIZED": 63
+    },
+    "comprobacion": {
+      "SKIPPED": 1217,
+      "NOT_FOUND": 90,
+      "MATCH_EXACT": 33,
+      "MATCH_NORMALIZED": 17
+    },
+    "oficio": {
+      "SKIPPED": 1284,
+      "MATCH_EXACT": 41,
+      "NOT_FOUND": 32
+    }
+  },
+  "AMBIGUOUS_SOURCE_VALUES": [
+    {
+      "source_row": 426,
+      "field": "ot",
+      "kind": "AMBIGUOUS",
+      "raw_value": "0033898",
+      "normalized_value": null,
+      "interpretation_candidates": [
+        {
+          "raw": "0033898",
+          "normalized": "33898"
+        }
+      ]
+    },
+    {
+      "source_row": 494,
+      "field": "notificacion",
+      "kind": "AMBIGUOUS",
+      "raw_value": "002213 / 002319",
+      "normalized_value": null,
+      "interpretation_candidates": [
+        {
+          "raw": "002213",
+          "normalized": "2213"
+        },
+        {
+          "raw": "002319",
+          "normalized": "2319"
+        }
+      ]
+    },
+    {
+      "source_row": 527,
+      "field": "notificacion",
+      "kind": "AMBIGUOUS",
+      "raw_value": "001762-001756",
+      "normalized_value": null,
+      "interpretation_candidates": [
+        {
+          "raw": "001762",
+          "normalized": "1762"
+        },
+        {
+          "raw": "001756",
+          "normalized": "1756"
+        }
+      ]
+    },
+    {
+      "source_row": 550,
+      "field": "notificacion",
+      "kind": "AMBIGUOUS",
+      "raw_value": "002048 / 0000",
+      "normalized_value": null,
+      "interpretation_candidates": [
+        {
+          "raw": "002048",
+          "normalized": "2048"
+        }
+      ]
+    },
+    {
+      "source_row": 550,
+      "field": "inspeccion",
+      "kind": "PLACEHOLDER",
+      "raw_value": "000",
+      "normalized_value": null,
+      "reason": "placeholder_revision"
+    },
+    {
+      "source_row": 731,
+      "field": "oficio",
+      "kind": "PLACEHOLDER",
+      "raw_value": "000",
+      "normalized_value": null,
+      "reason": "placeholder_revision"
+    },
+    {
+      "source_row": 1026,
+      "field": "oficio",
+      "kind": "PLACEHOLDER",
+      "raw_value": "0000",
+      "normalized_value": null,
+      "reason": "placeholder_revision"
+    },
+    {
+      "source_row": 1200,
+      "field": "notificacion",
+      "kind": "AMBIGUOUS",
+      "raw_value": "3148 / 001872",
+      "normalized_value": null,
+      "interpretation_candidates": [
+        {
+          "raw": "3148",
+          "normalized": "3148"
+        },
+        {
+          "raw": "001872",
+          "normalized": "1872"
+        }
+      ]
+    },
+    {
+      "source_row": 1307,
+      "field": "notificacion",
+      "kind": "AMBIGUOUS",
+      "raw_value": "*777",
+      "normalized_value": null,
+      "interpretation_candidates": [
+        {
+          "raw": "777",
+          "normalized": "777"
+        }
+      ]
+    }
+  ],
+  "confirmado_real": {
+    "actuaciones_distinct": 1189,
+    "por_ot": 1179,
+    "por_notificacion": 279,
+    "por_inspeccion": 170,
+    "por_comprobacion": 56,
+    "por_oficio": 39
+  },
+  "test_actuaciones_542": {
+    "total": 542,
+    "TEST_CONFIRMED_NO_REAL_MATCH": 542,
+    "CONFLICT_REAL_WHITELIST": 0,
+    "conflicts": [],
+    "safe_auto_delete_ids_sample": [
+      5758,
+      5760,
+      5761,
+      5763,
+      5765,
+      5856,
+      6061,
+      6597,
+      6599,
+      6603,
+      6605,
+      6608,
+      6611,
+      6648,
+      6649,
+      6650,
+      6699,
+      6702,
+      6703,
+      6704,
+      6708,
+      6710,
+      6711,
+      6745,
+      6746,
+      6749,
+      6750,
+      6751,
+      6753,
+      6756,
+      6758,
+      6797,
+      6804,
+      6805,
+      6809,
+      6832,
+      6835,
+      6836,
+      6849,
+      6851,
+      6854,
+      6863,
+      6876,
+      6877,
+      6878,
+      6884,
+      6885,
+      6887,
+      6888,
+      6891
+    ]
+  },
+  "TEST_WRAPPER_AROUND_REAL_DATA": [
+    {
+      "ruta_item_id": 8048,
+      "ruta_trabajo_id": 6779,
+      "actuacion_id": 11334,
+      "iniciador_ruta_id": 11175,
+      "created_by_user_id": 4925,
+      "ruta_creator_email": "op6i_98A83C@t.local"
+    },
+    {
+      "ruta_item_id": 8043,
+      "ruta_trabajo_id": 6779,
+      "actuacion_id": 11329,
+      "iniciador_ruta_id": 11564,
+      "created_by_user_id": 4925,
+      "ruta_creator_email": "op6i_98A83C@t.local"
+    },
+    {
+      "ruta_item_id": 8044,
+      "ruta_trabajo_id": 6779,
+      "actuacion_id": 11330,
+      "iniciador_ruta_id": 11565,
+      "created_by_user_id": 4925,
+      "ruta_creator_email": "op6i_98A83C@t.local"
+    },
+    {
+      "ruta_item_id": 8045,
+      "ruta_trabajo_id": 6779,
+      "actuacion_id": 11331,
+      "iniciador_ruta_id": 11566,
+      "created_by_user_id": 4925,
+      "ruta_creator_email": "op6i_98A83C@t.local"
+    },
+    {
+      "ruta_item_id": 8046,
+      "ruta_trabajo_id": 6779,
+      "actuacion_id": 11332,
+      "iniciador_ruta_id": 11567,
+      "created_by_user_id": 4925,
+      "ruta_creator_email": "op6i_98A83C@t.local"
+    },
+    {
+      "ruta_item_id": 8047,
+      "ruta_trabajo_id": 6779,
+      "actuacion_id": 11333,
+      "iniciador_ruta_id": 11568,
+      "created_by_user_id": 4925,
+      "ruta_creator_email": "op6i_98A83C@t.local"
+    },
+    {
+      "ruta_item_id": 8069,
+      "ruta_trabajo_id": 6619,
+      "actuacion_id": 11394,
+      "iniciador_ruta_id": 10876,
+      "created_by_user_id": 4769,
+      "ruta_creator_email": "op6i_A4B135@t.local"
+    },
+    {
+      "ruta_item_id": 8070,
+      "ruta_trabajo_id": 6619,
+      "actuacion_id": 11395,
+      "iniciador_ruta_id": 11593,
+      "created_by_user_id": 4769,
+      "ruta_creator_email": "op6i_A4B135@t.local"
+    },
+    {
+      "ruta_item_id": 8071,
+      "ruta_trabajo_id": 6619,
+      "actuacion_id": 11396,
+      "iniciador_ruta_id": 11595,
+      "created_by_user_id": 4769,
+      "ruta_creator_email": "op6i_A4B135@t.local"
+    },
+    {
+      "ruta_item_id": 8072,
+      "ruta_trabajo_id": 6619,
+      "actuacion_id": 11397,
+      "iniciador_ruta_id": 11596,
+      "created_by_user_id": 4769,
+      "ruta_creator_email": "op6i_A4B135@t.local"
+    },
+    {
+      "ruta_item_id": 8074,
+      "ruta_trabajo_id": 6619,
+      "actuacion_id": 11399,
+      "iniciador_ruta_id": 11597,
+      "created_by_user_id": 4769,
+      "ruta_creator_email": "op6i_A4B135@t.local"
+    },
+    {
+      "ruta_item_id": 8073,
+      "ruta_trabajo_id": 6619,
+      "actuacion_id": 11398,
+      "iniciador_ruta_id": 11598,
+      "created_by_user_id": 4769,
+      "ruta_creator_email": "op6i_A4B135@t.local"
+    },
+    {
+      "ruta_item_id": 8050,
+      "ruta_trabajo_id": 6579,
+      "actuacion_id": 11373,
+      "iniciador_ruta_id": 11569,
+      "created_by_user_id": 4737,
+      "ruta_creator_email": "op6i_C3570A@t.local"
+    },
+    {
+      "ruta_item_id": 8049,
+      "ruta_trabajo_id": 6579,
+      "actuacion_id": 11372,
+      "iniciador_ruta_id": 11570,
+      "created_by_user_id": 4737,
+      "ruta_creator_email": "op6i_C3570A@t.local"
+    },
+    {
+      "ruta_item_id": 8051,
+      "ruta_trabajo_id": 6579,
+      "actuacion_id": 11374,
+      "iniciador_ruta_id": 11571,
+      "created_by_user_id": 4737,
+      "ruta_creator_email": "op6i_C3570A@t.local"
+    },
+    {
+      "ruta_item_id": 8052,
+      "ruta_trabajo_id": 6579,
+      "actuacion_id": 11375,
+      "iniciador_ruta_id": 11572,
+      "created_by_user_id": 4737,
+      "ruta_creator_email": "op6i_C3570A@t.local"
+    },
+    {
+      "ruta_item_id": 8053,
+      "ruta_trabajo_id": 6579,
+      "actuacion_id": 11376,
+      "iniciador_ruta_id": 11574,
+      "created_by_user_id": 4737,
+      "ruta_creator_email": "op6i_C3570A@t.local"
+    },
+    {
+      "ruta_item_id": 8054,
+      "ruta_trabajo_id": 6579,
+      "actuacion_id": 11377,
+      "iniciador_ruta_id": 11575,
+      "created_by_user_id": 4737,
+      "ruta_creator_email": "op6i_C3570A@t.local"
+    },
+    {
+      "ruta_item_id": 7351,
+      "ruta_trabajo_id": 6771,
+      "actuacion_id": 10194,
+      "iniciador_ruta_id": 10841,
+      "created_by_user_id": 4920,
+      "ruta_creator_email": "op6j_98A82D@t.local"
+    },
+    {
+      "ruta_item_id": 7354,
+      "ruta_trabajo_id": 6771,
+      "actuacion_id": 10197,
+      "iniciador_ruta_id": 10842,
+      "created_by_user_id": 4920,
+      "ruta_creator_email": "op6j_98A82D@t.local"
+    },
+    {
+      "ruta_item_id": 7355,
+      "ruta_trabajo_id": 6771,
+      "actuacion_id": 10198,
+      "iniciador_ruta_id": 10845,
+      "created_by_user_id": 4920,
+      "ruta_creator_email": "op6j_98A82D@t.local"
+    },
+    {
+      "ruta_item_id": 7352,
+      "ruta_trabajo_id": 6771,
+      "actuacion_id": 10195,
+      "iniciador_ruta_id": 10847,
+      "created_by_user_id": 4920,
+      "ruta_creator_email": "op6j_98A82D@t.local"
+    },
+    {
+      "ruta_item_id": 7353,
+      "ruta_trabajo_id": 6771,
+      "actuacion_id": 10196,
+      "iniciador_ruta_id": 10848,
+      "created_by_user_id": 4920,
+      "ruta_creator_email": "op6j_98A82D@t.local"
+    },
+    {
+      "ruta_item_id": 7347,
+      "ruta_trabajo_id": 6945,
+      "actuacion_id": 10191,
+      "iniciador_ruta_id": 1838,
+      "created_by_user_id": 5093,
+      "ruta_creator_email": "op7b_65D2E0@t.local"
+    },
+    {
+      "ruta_item_id": 7348,
+      "ruta_trabajo_id": 6945,
+      "actuacion_id": 10183,
+      "iniciador_ruta_id": 10827,
+      "created_by_user_id": 5093,
+      "ruta_creator_email": "op7b_65D2E0@t.local"
+    },
+    {
+      "ruta_item_id": 7350,
+      "ruta_trabajo_id": 6945,
+      "actuacion_id": 10193,
+      "iniciador_ruta_id": 10830,
+      "created_by_user_id": 5093,
+      "ruta_creator_email": "op7b_65D2E0@t.local"
+    },
+    {
+      "ruta_item_id": 7349,
+      "ruta_trabajo_id": 6945,
+      "actuacion_id": 10192,
+      "iniciador_ruta_id": 10831,
+      "created_by_user_id": 5093,
+      "ruta_creator_email": "op7b_65D2E0@t.local"
+    },
+    {
+      "ruta_item_id": 7344,
+      "ruta_trabajo_id": 6945,
+      "actuacion_id": 10190,
+      "iniciador_ruta_id": 10835,
+      "created_by_user_id": 5093,
+      "ruta_creator_email": "op7b_65D2E0@t.local"
+    },
+    {
+      "ruta_item_id": 7343,
+      "ruta_trabajo_id": 6945,
+      "actuacion_id": 10189,
+      "iniciador_ruta_id": 10837,
+      "created_by_user_id": 5093,
+      "ruta_creator_email": "op7b_65D2E0@t.local"
+    },
+    {
+      "ruta_item_id": 7720,
+      "ruta_trabajo_id": 6796,
+      "actuacion_id": 10744,
+      "iniciador_ruta_id": 11168,
+      "created_by_user_id": 4938,
+      "ruta_creator_email": "op7b_684D0C@t.local"
+    },
+    {
+      "ruta_item_id": 7721,
+      "ruta_trabajo_id": 6796,
+      "actuacion_id": 10745,
+      "iniciador_ruta_id": 11169,
+      "created_by_user_id": 4938,
+      "ruta_creator_email": "op7b_684D0C@t.local"
+    },
+    {
+      "ruta_item_id": 7719,
+      "ruta_trabajo_id": 6796,
+      "actuacion_id": 10743,
+      "iniciador_ruta_id": 11170,
+      "created_by_user_id": 4938,
+      "ruta_creator_email": "op7b_684D0C@t.local"
+    },
+    {
+      "ruta_item_id": 7718,
+      "ruta_trabajo_id": 6796,
+      "actuacion_id": 10742,
+      "iniciador_ruta_id": 11171,
+      "created_by_user_id": 4938,
+      "ruta_creator_email": "op7b_684D0C@t.local"
+    },
+    {
+      "ruta_item_id": 7716,
+      "ruta_trabajo_id": 6796,
+      "actuacion_id": 10740,
+      "iniciador_ruta_id": 11172,
+      "created_by_user_id": 4938,
+      "ruta_creator_email": "op7b_684D0C@t.local"
+    },
+    {
+      "ruta_item_id": 7717,
+      "ruta_trabajo_id": 6796,
+      "actuacion_id": 10741,
+      "iniciador_ruta_id": 11173,
+      "created_by_user_id": 4938,
+      "ruta_creator_email": "op7b_684D0C@t.local"
+    },
+    {
+      "ruta_item_id": 8040,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11326,
+      "iniciador_ruta_id": 10877,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8039,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11325,
+      "iniciador_ruta_id": 10878,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8041,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11327,
+      "iniciador_ruta_id": 11558,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8042,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11328,
+      "iniciador_ruta_id": 11559,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8037,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11323,
+      "iniciador_ruta_id": 11560,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8038,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11324,
+      "iniciador_ruta_id": 11561,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8035,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11321,
+      "iniciador_ruta_id": 11562,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 8036,
+      "ruta_trabajo_id": 6916,
+      "actuacion_id": 11322,
+      "iniciador_ruta_id": 11563,
+      "created_by_user_id": 5071,
+      "ruta_creator_email": "op7d_65D299@t.local"
+    },
+    {
+      "ruta_item_id": 7326,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10172,
+      "iniciador_ruta_id": 7988,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7323,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10169,
+      "iniciador_ruta_id": 10785,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7324,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10170,
+      "iniciador_ruta_id": 10786,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7325,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10171,
+      "iniciador_ruta_id": 10801,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7322,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10168,
+      "iniciador_ruta_id": 10802,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7327,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10173,
+      "iniciador_ruta_id": 10803,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7328,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10174,
+      "iniciador_ruta_id": 10804,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 7329,
+      "ruta_trabajo_id": 5697,
+      "actuacion_id": 10175,
+      "iniciador_ruta_id": 10805,
+      "created_by_user_id": 3579,
+      "ruta_creator_email": "reenc_5287c5a4@t.local"
+    },
+    {
+      "ruta_item_id": 8025,
+      "ruta_trabajo_id": 7812,
+      "actuacion_id": 11311,
+      "iniciador_ruta_id": 2449,
+      "created_by_user_id": 5577,
+      "ruta_creator_email": "reenc_eda2d0f9@t.local"
+    },
+    {
+      "ruta_item_id": 8026,
+      "ruta_trabajo_id": 7812,
+      "actuacion_id": 11312,
+      "iniciador_ruta_id": 11549,
+      "created_by_user_id": 5577,
+      "ruta_creator_email": "reenc_eda2d0f9@t.local"
+    },
+    {
+      "ruta_item_id": 8027,
+      "ruta_trabajo_id": 7812,
+      "actuacion_id": 11313,
+      "iniciador_ruta_id": 11550,
+      "created_by_user_id": 5577,
+      "ruta_creator_email": "reenc_eda2d0f9@t.local"
+    },
+    {
+      "ruta_item_id": 8028,
+      "ruta_trabajo_id": 7812,
+      "actuacion_id": 11314,
+      "iniciador_ruta_id": 11551,
+      "created_by_user_id": 5577,
+      "ruta_creator_email": "reenc_eda2d0f9@t.local"
+    },
+    {
+      "ruta_item_id": 7749,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10789,
+      "iniciador_ruta_id": 431,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7746,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10786,
+      "iniciador_ruta_id": 11044,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7745,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10785,
+      "iniciador_ruta_id": 11045,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7744,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10784,
+      "iniciador_ruta_id": 11174,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7743,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10783,
+      "iniciador_ruta_id": 11175,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7742,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10782,
+      "iniciador_ruta_id": 11180,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7747,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10787,
+      "iniciador_ruta_id": 11211,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7748,
+      "ruta_trabajo_id": 6101,
+      "actuacion_id": 10788,
+      "iniciador_ruta_id": 11213,
+      "created_by_user_id": 4068,
+      "ruta_creator_email": "reenc_ef9411d2@t.local"
+    },
+    {
+      "ruta_item_id": 7821,
+      "ruta_trabajo_id": 7583,
+      "actuacion_id": 10866,
+      "iniciador_ruta_id": 11285,
+      "created_by_user_id": 5440,
+      "ruta_creator_email": "st4_8a6170b4@t.local"
+    }
+  ],
+  "cleanup_candidates_to_remove_from_auto_delete": {
+    "actuacion_ids": [],
+    "count": 0
+  },
+  "cross_sample": {
+    "orden_trabajo_not_found": [
+      {
+        "source_row": 3,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "002443",
+          "normalized_value": "2443",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 110,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "004242",
+          "normalized_value": "4242",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 113,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "004238",
+          "normalized_value": "4238",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 114,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "004244",
+          "normalized_value": "4244",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 115,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "004243",
+          "normalized_value": "4243",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 116,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "4236",
+          "normalized_value": "4236",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 117,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "4239",
+          "normalized_value": "4239",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 118,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "4240",
+          "normalized_value": "4240",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 119,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "4235",
+          "normalized_value": "4235",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 286,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "004646",
+          "normalized_value": "4646",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 583,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "1328",
+          "normalized_value": "1328",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 612,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3709",
+          "normalized_value": "3709",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 616,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3708",
+          "normalized_value": "3708",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 625,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3716",
+          "normalized_value": "3716",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 626,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3717",
+          "normalized_value": "3717",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 627,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3704",
+          "normalized_value": "3704",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 630,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3711",
+          "normalized_value": "3711",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 631,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3714",
+          "normalized_value": "3714",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 632,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3715",
+          "normalized_value": "3715",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      },
+      {
+        "source_row": 633,
+        "match": {
+          "status": "NOT_FOUND",
+          "raw_value": "3719",
+          "normalized_value": "3719",
+          "matches": []
+        },
+        "actuaciones": [],
+        "ruta_items": []
+      }
+    ],
+    "orden_trabajo_multiple": [],
+    "oficio_matches": [
+      {
+        "source_row": 5,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "357",
+          "normalized_value": "357",
+          "matches": [
+            {
+              "id": 1762,
+              "numero_oficio": "357",
+              "anio": 2026,
+              "fecha_oficio": "2026-09-17",
+              "causa": "19931119",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2500
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1762,
+              "numero_oficio": "357",
+              "anio": 2026,
+              "fecha_oficio": "2026-09-17",
+              "causa": "19931119",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2500
+            },
+            "expedientes": [
+              {
+                "id": 3280,
+                "numero_expediente": "013204",
+                "anio": "2026",
+                "comprobacion_id": 2500,
+                "oficio_id": 1762
+              }
+            ],
+            "comprobacion_id": 2500,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 11377,
+                "tipo": "INSPECCION",
+                "fecha": "2026-09-14",
+                "orden_trabajo_id": 12011
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 12124,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 37,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "345",
+          "normalized_value": "345",
+          "matches": [
+            {
+              "id": 1760,
+              "numero_oficio": "345",
+              "anio": 2026,
+              "fecha_oficio": "2026-09-09",
+              "causa": "1979893",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2497
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1760,
+              "numero_oficio": "345",
+              "anio": 2026,
+              "fecha_oficio": "2026-09-09",
+              "causa": "1979893",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2497
+            },
+            "expedientes": [
+              {
+                "id": 3276,
+                "numero_expediente": "013152",
+                "anio": "2026",
+                "comprobacion_id": 2497,
+                "oficio_id": 1760
+              }
+            ],
+            "comprobacion_id": 2497,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 11385,
+                "tipo": "INSPECCION",
+                "fecha": "2025-09-09",
+                "orden_trabajo_id": 12019
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 11588,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 42,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "348",
+          "normalized_value": "348",
+          "matches": [
+            {
+              "id": 1761,
+              "numero_oficio": "348",
+              "anio": 2026,
+              "fecha_oficio": "2026-09-09",
+              "causa": "1992829",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2498
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1761,
+              "numero_oficio": "348",
+              "anio": 2026,
+              "fecha_oficio": "2026-09-09",
+              "causa": "1992829",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2498
+            },
+            "expedientes": [
+              {
+                "id": 3278,
+                "numero_expediente": "013149",
+                "anio": "2026",
+                "comprobacion_id": 2498,
+                "oficio_id": 1761
+              }
+            ],
+            "comprobacion_id": 2498,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 10594,
+                "tipo": "INSPECCION",
+                "fecha": "2026-09-03",
+                "orden_trabajo_id": 10868
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 11589,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 205,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "339",
+          "normalized_value": "339",
+          "matches": [
+            {
+              "id": 1650,
+              "numero_oficio": "339",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-21",
+              "causa": "1992232",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2273
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1650,
+              "numero_oficio": "339",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-21",
+              "causa": "1992232",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2273
+            },
+            "expedientes": [
+              {
+                "id": 3090,
+                "numero_expediente": "013040",
+                "anio": "2026",
+                "comprobacion_id": 2273,
+                "oficio_id": 1650
+              }
+            ],
+            "comprobacion_id": 2273,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 10014,
+                "tipo": "INSPECCION",
+                "fecha": "2026-08-19",
+                "orden_trabajo_id": 10622
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10828,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 224,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "1185",
+          "normalized_value": "1185",
+          "matches": [
+            {
+              "id": 1646,
+              "numero_oficio": "1185",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-21",
+              "causa": "1960456",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2268
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1646,
+              "numero_oficio": "1185",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-21",
+              "causa": "1960456",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2268
+            },
+            "expedientes": [
+              {
+                "id": 3078,
+                "numero_expediente": "013035",
+                "anio": "2026",
+                "comprobacion_id": 2268,
+                "oficio_id": 1646
+              }
+            ],
+            "comprobacion_id": 2268,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 10141,
+                "tipo": "INSPECCION",
+                "fecha": "2024-09-19",
+                "orden_trabajo_id": 10774
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10772,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 235,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "338",
+          "normalized_value": "338",
+          "matches": [
+            {
+              "id": 1644,
+              "numero_oficio": "338",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-21",
+              "causa": "1991946",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2267
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1644,
+              "numero_oficio": "338",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-21",
+              "causa": "1991946",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2267
+            },
+            "expedientes": [
+              {
+                "id": 3074,
+                "numero_expediente": "013039",
+                "anio": "2026",
+                "comprobacion_id": 2267,
+                "oficio_id": 1644
+              }
+            ],
+            "comprobacion_id": 2267,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 8378,
+                "tipo": "INSPECCION",
+                "fecha": "2026-08-11",
+                "orden_trabajo_id": 8876
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10734,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 262,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "337",
+          "normalized_value": "337",
+          "matches": [
+            {
+              "id": 1640,
+              "numero_oficio": "337",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-20",
+              "causa": "1992046",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2263
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1640,
+              "numero_oficio": "337",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-20",
+              "causa": "1992046",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 2263
+            },
+            "expedientes": [
+              {
+                "id": 3068,
+                "numero_expediente": "013029",
+                "anio": "2026",
+                "comprobacion_id": 2263,
+                "oficio_id": 1640
+              }
+            ],
+            "comprobacion_id": 2263,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 8399,
+                "tipo": "INSPECCION",
+                "fecha": "2026-08-13",
+                "orden_trabajo_id": 8894
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10598,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 310,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "320",
+          "normalized_value": "320",
+          "matches": [
+            {
+              "id": 1378,
+              "numero_oficio": "320",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-05",
+              "causa": "1991384",
+              "deleted_at": null,
+              "juzgado_id": 395,
+              "comprobacion_id": 1850
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1378,
+              "numero_oficio": "320",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-05",
+              "causa": "1991384",
+              "deleted_at": null,
+              "juzgado_id": 395,
+              "comprobacion_id": 1850
+            },
+            "expedientes": [
+              {
+                "id": 2375,
+                "numero_expediente": "012961",
+                "anio": "2026",
+                "comprobacion_id": 1850,
+                "oficio_id": 1378
+              }
+            ],
+            "comprobacion_id": 1850,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 6582,
+                "tipo": "INSPECCION",
+                "fecha": "2026-07-29",
+                "orden_trabajo_id": 3135
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 8300,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 324,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "322",
+          "normalized_value": "322",
+          "matches": [
+            {
+              "id": 1379,
+              "numero_oficio": "322",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-05",
+              "causa": "1991038",
+              "deleted_at": null,
+              "juzgado_id": 395,
+              "comprobacion_id": 1851
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1379,
+              "numero_oficio": "322",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-05",
+              "causa": "1991038",
+              "deleted_at": null,
+              "juzgado_id": 395,
+              "comprobacion_id": 1851
+            },
+            "expedientes": [
+              {
+                "id": 2376,
+                "numero_expediente": "012963",
+                "anio": "2026",
+                "comprobacion_id": 1851,
+                "oficio_id": 1379
+              }
+            ],
+            "comprobacion_id": 1851,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 3996,
+                "tipo": "INSPECCION",
+                "fecha": "2026-07-24",
+                "orden_trabajo_id": 3977
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 8301,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 326,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "334",
+          "normalized_value": "334",
+          "matches": [
+            {
+              "id": 1377,
+              "numero_oficio": "334",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-11",
+              "causa": "1991632",
+              "deleted_at": null,
+              "juzgado_id": 235,
+              "comprobacion_id": 1849
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1377,
+              "numero_oficio": "334",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-11",
+              "causa": "1991632",
+              "deleted_at": null,
+              "juzgado_id": 235,
+              "comprobacion_id": 1849
+            },
+            "expedientes": [
+              {
+                "id": 2372,
+                "numero_expediente": "012985",
+                "anio": "2026",
+                "comprobacion_id": 1849,
+                "oficio_id": 1377
+              }
+            ],
+            "comprobacion_id": 1849,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 8325,
+                "tipo": "INSPECCION",
+                "fecha": "2026-08-05",
+                "orden_trabajo_id": 8822
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 8296,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 347,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "319",
+          "normalized_value": "319",
+          "matches": [
+            {
+              "id": 1376,
+              "numero_oficio": "319",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-05",
+              "causa": "1991470",
+              "deleted_at": null,
+              "juzgado_id": 210,
+              "comprobacion_id": 1848
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1376,
+              "numero_oficio": "319",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-05",
+              "causa": "1991470",
+              "deleted_at": null,
+              "juzgado_id": 210,
+              "comprobacion_id": 1848
+            },
+            "expedientes": [
+              {
+                "id": 2370,
+                "numero_expediente": "012960",
+                "anio": "2026",
+                "comprobacion_id": 1848,
+                "oficio_id": 1376
+              }
+            ],
+            "comprobacion_id": 1848,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 8297,
+                "tipo": "INSPECCION",
+                "fecha": "2026-08-03",
+                "orden_trabajo_id": 3146
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 8273,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 406,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "305",
+          "normalized_value": "305",
+          "matches": [
+            {
+              "id": 1375,
+              "numero_oficio": "305",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-04",
+              "causa": "1988002",
+              "deleted_at": null,
+              "juzgado_id": 395,
+              "comprobacion_id": 210
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1375,
+              "numero_oficio": "305",
+              "anio": 2026,
+              "fecha_oficio": "2026-08-04",
+              "causa": "1988002",
+              "deleted_at": null,
+              "juzgado_id": 395,
+              "comprobacion_id": 210
+            },
+            "expedientes": [
+              {
+                "id": 2368,
+                "numero_expediente": "012943",
+                "anio": "2026",
+                "comprobacion_id": 210,
+                "oficio_id": 1375
+              }
+            ],
+            "comprobacion_id": 210,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 33,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-22",
+                "orden_trabajo_id": 33
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 8189,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 449,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "302",
+          "normalized_value": "302",
+          "matches": [
+            {
+              "id": 1317,
+              "numero_oficio": "302",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-30",
+              "causa": "1991011",
+              "deleted_at": null,
+              "juzgado_id": 164,
+              "comprobacion_id": 1729
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 1317,
+              "numero_oficio": "302",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-30",
+              "causa": "1991011",
+              "deleted_at": null,
+              "juzgado_id": 164,
+              "comprobacion_id": 1729
+            },
+            "expedientes": [
+              {
+                "id": 2195,
+                "numero_expediente": "012916",
+                "anio": "2026",
+                "comprobacion_id": 1729,
+                "oficio_id": 1317
+              }
+            ],
+            "comprobacion_id": 1729,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 2342,
+                "tipo": "INSPECCION",
+                "fecha": "2026-07-13",
+                "orden_trabajo_id": 2367
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 7994,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 532,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "1144",
+          "normalized_value": "1144",
+          "matches": [
+            {
+              "id": 703,
+              "numero_oficio": "1144",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-26",
+              "causa": "19555977",
+              "deleted_at": null,
+              "juzgado_id": 271,
+              "comprobacion_id": 889
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 703,
+              "numero_oficio": "1144",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-26",
+              "causa": "19555977",
+              "deleted_at": null,
+              "juzgado_id": 271,
+              "comprobacion_id": 889
+            },
+            "expedientes": [
+              {
+                "id": 1140,
+                "numero_expediente": "012821",
+                "anio": "2026",
+                "comprobacion_id": 889,
+                "oficio_id": 703
+              }
+            ],
+            "comprobacion_id": 889,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 3204,
+                "tipo": "INSPECCION",
+                "fecha": "2024-07-03",
+                "orden_trabajo_id": 3191
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 3288,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 558,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "295",
+          "normalized_value": "295",
+          "matches": [
+            {
+              "id": 702,
+              "numero_oficio": "295",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-16",
+              "causa": "1990748",
+              "deleted_at": null,
+              "juzgado_id": 341,
+              "comprobacion_id": 888
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 702,
+              "numero_oficio": "295",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-16",
+              "causa": "1990748",
+              "deleted_at": null,
+              "juzgado_id": 341,
+              "comprobacion_id": 888
+            },
+            "expedientes": [
+              {
+                "id": 1138,
+                "numero_expediente": "012849",
+                "anio": "2026",
+                "comprobacion_id": 888,
+                "oficio_id": 702
+              }
+            ],
+            "comprobacion_id": 888,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 2346,
+                "tipo": "INSPECCION",
+                "fecha": "2026-07-13",
+                "orden_trabajo_id": 2372
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 3261,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 559,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "294",
+          "normalized_value": "294",
+          "matches": [
+            {
+              "id": 701,
+              "numero_oficio": "294",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-16",
+              "causa": "1990744",
+              "deleted_at": null,
+              "juzgado_id": 221,
+              "comprobacion_id": 887
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 701,
+              "numero_oficio": "294",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-16",
+              "causa": "1990744",
+              "deleted_at": null,
+              "juzgado_id": 221,
+              "comprobacion_id": 887
+            },
+            "expedientes": [
+              {
+                "id": 1136,
+                "numero_expediente": "012847",
+                "anio": "2026",
+                "comprobacion_id": 887,
+                "oficio_id": 701
+              }
+            ],
+            "comprobacion_id": 887,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 3070,
+                "tipo": "INSPECCION",
+                "fecha": "2026-07-08",
+                "orden_trabajo_id": 3101
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 3259,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "PENDIENTE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 569,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "291",
+          "normalized_value": "291",
+          "matches": [
+            {
+              "id": 555,
+              "numero_oficio": "291",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-15",
+              "causa": "1990694",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 830
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 555,
+              "numero_oficio": "291",
+              "anio": 2026,
+              "fecha_oficio": "2026-07-15",
+              "causa": "1990694",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 830
+            },
+            "expedientes": [
+              {
+                "id": 1057,
+                "numero_expediente": "012834",
+                "anio": "2026",
+                "comprobacion_id": 830,
+                "oficio_id": 555
+              }
+            ],
+            "comprobacion_id": 830,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 2329,
+                "tipo": "INSPECCION",
+                "fecha": "2026-07-06",
+                "orden_trabajo_id": 2355
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 2450,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "PENDIENTE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 648,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "281",
+          "normalized_value": "281",
+          "matches": [
+            {
+              "id": 506,
+              "numero_oficio": "281",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-18",
+              "causa": "1990041",
+              "deleted_at": null,
+              "juzgado_id": 273,
+              "comprobacion_id": 757
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 506,
+              "numero_oficio": "281",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-18",
+              "causa": "1990041",
+              "deleted_at": null,
+              "juzgado_id": 273,
+              "comprobacion_id": 757
+            },
+            "expedientes": [
+              {
+                "id": 950,
+                "numero_expediente": "012693",
+                "anio": "2026",
+                "comprobacion_id": 757,
+                "oficio_id": 506
+              }
+            ],
+            "comprobacion_id": 757,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 1907,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-16",
+                "orden_trabajo_id": 1930
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1758,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 669,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "1120",
+          "normalized_value": "1120",
+          "matches": [
+            {
+              "id": 536,
+              "numero_oficio": "1120",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-26",
+              "causa": "1955596",
+              "deleted_at": null,
+              "juzgado_id": 164,
+              "comprobacion_id": 790
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 536,
+              "numero_oficio": "1120",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-26",
+              "causa": "1955596",
+              "deleted_at": null,
+              "juzgado_id": 164,
+              "comprobacion_id": 790
+            },
+            "expedientes": [
+              {
+                "id": 1043,
+                "numero_expediente": "012733",
+                "anio": "2026",
+                "comprobacion_id": 790,
+                "oficio_id": 536
+              }
+            ],
+            "comprobacion_id": 790,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 2282,
+                "tipo": "INSPECCION",
+                "fecha": "2024-06-12",
+                "orden_trabajo_id": 2308
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 2018,
+                "tipo_iniciador": "VERIFICAR_INFORMAR_OFICIO",
+                "estado_iniciador": "CUMPLIDO"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 706,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "288",
+          "normalized_value": "288",
+          "matches": [
+            {
+              "id": 533,
+              "numero_oficio": "288",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-26",
+              "causa": "1990350",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 765
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 533,
+              "numero_oficio": "288",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-26",
+              "causa": "1990350",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 765
+            },
+            "expedientes": [
+              {
+                "id": 962,
+                "numero_expediente": "012742",
+                "anio": "2026",
+                "comprobacion_id": 765,
+                "oficio_id": 533
+              }
+            ],
+            "comprobacion_id": 765,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 2100,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-25",
+                "orden_trabajo_id": 2126
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1951,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 732,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "283",
+          "normalized_value": "283",
+          "matches": [
+            {
+              "id": 532,
+              "numero_oficio": "283",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-30",
+              "causa": "1990165",
+              "deleted_at": null,
+              "juzgado_id": 195,
+              "comprobacion_id": 764
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 532,
+              "numero_oficio": "283",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-30",
+              "causa": "1990165",
+              "deleted_at": null,
+              "juzgado_id": 195,
+              "comprobacion_id": 764
+            },
+            "expedientes": [
+              {
+                "id": 959,
+                "numero_expediente": "012717",
+                "anio": "2026",
+                "comprobacion_id": 764,
+                "oficio_id": 532
+              }
+            ],
+            "comprobacion_id": 764,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 2130,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-17",
+                "orden_trabajo_id": 2156
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1929,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 736,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "285",
+          "normalized_value": "285",
+          "matches": [
+            {
+              "id": 529,
+              "numero_oficio": "285",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-30",
+              "causa": "1990162",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 762
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 529,
+              "numero_oficio": "285",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-30",
+              "causa": "1990162",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 762
+            },
+            "expedientes": [
+              {
+                "id": 954,
+                "numero_expediente": "012715",
+                "anio": "2026",
+                "comprobacion_id": 762,
+                "oficio_id": 529
+              }
+            ],
+            "comprobacion_id": 762,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 1925,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-17",
+                "orden_trabajo_id": 1951
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1905,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 746,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "284",
+          "normalized_value": "284",
+          "matches": [
+            {
+              "id": 530,
+              "numero_oficio": "284",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-30",
+              "causa": "1990163",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 763
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 530,
+              "numero_oficio": "284",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-30",
+              "causa": "1990163",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 763
+            },
+            "expedientes": [
+              {
+                "id": 956,
+                "numero_expediente": "012716",
+                "anio": "2026",
+                "comprobacion_id": 763,
+                "oficio_id": 530
+              }
+            ],
+            "comprobacion_id": 763,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 1926,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-17",
+                "orden_trabajo_id": 1952
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1906,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 861,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "270",
+          "normalized_value": "270",
+          "matches": [
+            {
+              "id": 253,
+              "numero_oficio": "270",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1981157",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 483
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 253,
+              "numero_oficio": "270",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1981157",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 483
+            },
+            "expedientes": [
+              {
+                "id": 603,
+                "numero_expediente": "012631",
+                "anio": "2026",
+                "comprobacion_id": 483,
+                "oficio_id": 253
+              }
+            ],
+            "comprobacion_id": 483,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 1486,
+                "tipo": "INSPECCION",
+                "fecha": "2025-10-21",
+                "orden_trabajo_id": 1500
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1215,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 869,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "276",
+          "normalized_value": "276",
+          "matches": [
+            {
+              "id": 260,
+              "numero_oficio": "276",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1989546",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 482
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 260,
+              "numero_oficio": "276",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1989546",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 482
+            },
+            "expedientes": [
+              {
+                "id": 613,
+                "numero_expediente": "012637",
+                "anio": "2026",
+                "comprobacion_id": 482,
+                "oficio_id": 260
+              }
+            ],
+            "comprobacion_id": 482,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 735,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-03",
+                "orden_trabajo_id": 749
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1222,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "CUMPLIDO"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 874,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "274",
+          "normalized_value": "274",
+          "matches": [
+            {
+              "id": 254,
+              "numero_oficio": "274",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1989416",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 484
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 254,
+              "numero_oficio": "274",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1989416",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 484
+            },
+            "expedientes": [
+              {
+                "id": 604,
+                "numero_expediente": "012635",
+                "anio": "2026",
+                "comprobacion_id": 484,
+                "oficio_id": 254
+              }
+            ],
+            "comprobacion_id": 484,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 709,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 723
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1216,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 876,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "269",
+          "normalized_value": "269",
+          "matches": [
+            {
+              "id": 258,
+              "numero_oficio": "269",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1985359",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 480
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 258,
+              "numero_oficio": "269",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1985359",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 480
+            },
+            "expedientes": [
+              {
+                "id": 609,
+                "numero_expediente": "012630",
+                "anio": "2026",
+                "comprobacion_id": 480,
+                "oficio_id": 258
+              }
+            ],
+            "comprobacion_id": 480,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 1484,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-13",
+                "orden_trabajo_id": 1498
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1220,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 883,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "271",
+          "normalized_value": "271",
+          "matches": [
+            {
+              "id": 259,
+              "numero_oficio": "271",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1986791",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 481
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 259,
+              "numero_oficio": "271",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1986791",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 481
+            },
+            "expedientes": [
+              {
+                "id": 611,
+                "numero_expediente": "012632",
+                "anio": "2026",
+                "comprobacion_id": 481,
+                "oficio_id": 259
+              }
+            ],
+            "comprobacion_id": 481,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 1485,
+                "tipo": "INSPECCION",
+                "fecha": "2026-03-25",
+                "orden_trabajo_id": 1499
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1221,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 885,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "273",
+          "normalized_value": "273",
+          "matches": [
+            {
+              "id": 257,
+              "numero_oficio": "273",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1989309",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 478
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 257,
+              "numero_oficio": "273",
+              "anio": 2026,
+              "fecha_oficio": "2026-06-09",
+              "causa": "1989309",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 478
+            },
+            "expedientes": [
+              {
+                "id": 607,
+                "numero_expediente": "012634",
+                "anio": "2026",
+                "comprobacion_id": 478,
+                "oficio_id": 257
+              }
+            ],
+            "comprobacion_id": 478,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 704,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 713
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 1219,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 967,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "267",
+          "normalized_value": "267",
+          "matches": [
+            {
+              "id": 146,
+              "numero_oficio": "267",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-29",
+              "causa": "1989013",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 341
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 146,
+              "numero_oficio": "267",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-29",
+              "causa": "1989013",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 341
+            },
+            "expedientes": [
+              {
+                "id": 400,
+                "numero_expediente": "012577",
+                "anio": "2026",
+                "comprobacion_id": 341,
+                "oficio_id": 146
+              }
+            ],
+            "comprobacion_id": 341,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 664,
+                "tipo": "INSPECCION",
+                "fecha": "2026-05-26",
+                "orden_trabajo_id": 676
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 502,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 991,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "264",
+          "normalized_value": "264",
+          "matches": [
+            {
+              "id": 145,
+              "numero_oficio": "264",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-27",
+              "causa": "1988588",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 340
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 145,
+              "numero_oficio": "264",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-27",
+              "causa": "1988588",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 340
+            },
+            "expedientes": [
+              {
+                "id": 398,
+                "numero_expediente": "012568",
+                "anio": "2026",
+                "comprobacion_id": 340,
+                "oficio_id": 145
+              }
+            ],
+            "comprobacion_id": 340,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 554,
+                "tipo": "INSPECCION",
+                "fecha": "2026-05-14",
+                "orden_trabajo_id": 565
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 478,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "CUMPLIDO"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1092,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "250",
+          "normalized_value": "250",
+          "matches": [
+            {
+              "id": 103,
+              "numero_oficio": "250",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-13",
+              "causa": "1988312",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 298
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 103,
+              "numero_oficio": "250",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-13",
+              "causa": "1988312",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 298
+            },
+            "expedientes": [
+              {
+                "id": 316,
+                "numero_expediente": "012489",
+                "anio": "2026",
+                "comprobacion_id": 298,
+                "oficio_id": 103
+              }
+            ],
+            "comprobacion_id": 298,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 532,
+                "tipo": "INSPECCION",
+                "fecha": "2026-05-11",
+                "orden_trabajo_id": 423
+              }
+            ],
+            "iniciadores": []
+          }
+        ]
+      },
+      {
+        "source_row": 1116,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "247",
+          "normalized_value": "247",
+          "matches": [
+            {
+              "id": 54,
+              "numero_oficio": "247",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-07",
+              "causa": "1988002",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 210
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 54,
+              "numero_oficio": "247",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-07",
+              "causa": "1988002",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 210
+            },
+            "expedientes": [
+              {
+                "id": 210,
+                "numero_expediente": "012450",
+                "anio": "2026",
+                "comprobacion_id": 210,
+                "oficio_id": 54
+              }
+            ],
+            "comprobacion_id": 210,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 33,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-22",
+                "orden_trabajo_id": 33
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 304,
+                "tipo_iniciador": "VERIFICAR_INFORMAR_OFICIO",
+                "estado_iniciador": "CUMPLIDO"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1157,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "240",
+          "normalized_value": "240",
+          "matches": [
+            {
+              "id": 52,
+              "numero_oficio": "240",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-05",
+              "causa": "1988066",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 168
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 52,
+              "numero_oficio": "240",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-05",
+              "causa": "1988066",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 168
+            },
+            "expedientes": [
+              {
+                "id": 205,
+                "numero_expediente": "012433",
+                "anio": "2026",
+                "comprobacion_id": 168,
+                "oficio_id": 52
+              }
+            ],
+            "comprobacion_id": 168,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 200,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-29",
+                "orden_trabajo_id": 209
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 226,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1166,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "243",
+          "normalized_value": "243",
+          "matches": [
+            {
+              "id": 50,
+              "numero_oficio": "243",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-06",
+              "causa": "1987736",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 195
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 50,
+              "numero_oficio": "243",
+              "anio": 2026,
+              "fecha_oficio": "2026-05-06",
+              "causa": "1987736",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 195
+            },
+            "expedientes": [
+              {
+                "id": 180,
+                "numero_expediente": "12455",
+                "anio": "2026",
+                "comprobacion_id": 195,
+                "oficio_id": 50
+              }
+            ],
+            "comprobacion_id": 195,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 29,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-22",
+                "orden_trabajo_id": 29
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 197,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1171,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "232",
+          "normalized_value": "232",
+          "matches": [
+            {
+              "id": 49,
+              "numero_oficio": "232",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-29",
+              "causa": "1985798",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 194
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 49,
+              "numero_oficio": "232",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-29",
+              "causa": "1985798",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 194
+            },
+            "expedientes": [
+              {
+                "id": 179,
+                "numero_expediente": "012414",
+                "anio": "2026",
+                "comprobacion_id": 194,
+                "oficio_id": 49
+              }
+            ],
+            "comprobacion_id": 194,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 357,
+                "tipo": "INSPECCION",
+                "fecha": "2026-03-05",
+                "orden_trabajo_id": 367
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 196,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1187,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "204",
+          "normalized_value": "204",
+          "matches": [
+            {
+              "id": 3,
+              "numero_oficio": "204",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987559",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 26
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 3,
+              "numero_oficio": "204",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987559",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 26
+            },
+            "expedientes": [
+              {
+                "id": 32,
+                "numero_expediente": "012367",
+                "anio": "2026",
+                "comprobacion_id": 26,
+                "oficio_id": 3
+              }
+            ],
+            "comprobacion_id": 26,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 3,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-20",
+                "orden_trabajo_id": 3
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 70,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "CUMPLIDO"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1197,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "208",
+          "normalized_value": "208",
+          "matches": [
+            {
+              "id": 18,
+              "numero_oficio": "208",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-22",
+              "causa": "1987117",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 87
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 18,
+              "numero_oficio": "208",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-22",
+              "causa": "1987117",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 87
+            },
+            "expedientes": [
+              {
+                "id": 96,
+                "numero_expediente": "012377",
+                "anio": "2026",
+                "comprobacion_id": 87,
+                "oficio_id": 18
+              }
+            ],
+            "comprobacion_id": 87,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 182,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-06",
+                "orden_trabajo_id": 186
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 113,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1198,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "203",
+          "normalized_value": "203",
+          "matches": [
+            {
+              "id": 16,
+              "numero_oficio": "203",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987550",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 86
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 16,
+              "numero_oficio": "203",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987550",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 86
+            },
+            "expedientes": [
+              {
+                "id": 93,
+                "numero_expediente": "012369",
+                "anio": "2026",
+                "comprobacion_id": 86,
+                "oficio_id": 16
+              }
+            ],
+            "comprobacion_id": 86,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 181,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-17",
+                "orden_trabajo_id": 185
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 111,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1201,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "202",
+          "normalized_value": "202",
+          "matches": [
+            {
+              "id": 19,
+              "numero_oficio": "202",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987549",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 88
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 19,
+              "numero_oficio": "202",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987549",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 88
+            },
+            "expedientes": [
+              {
+                "id": 98,
+                "numero_expediente": "012368",
+                "anio": "2026",
+                "comprobacion_id": 88,
+                "oficio_id": 19
+              }
+            ],
+            "comprobacion_id": 88,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 189,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-17",
+                "orden_trabajo_id": 199
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 116,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "EN_EJECUCION"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "source_row": 1221,
+        "match": {
+          "status": "MATCH_EXACT",
+          "raw_value": "204",
+          "normalized_value": "204",
+          "matches": [
+            {
+              "id": 3,
+              "numero_oficio": "204",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987559",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 26
+            }
+          ],
+          "exact_count": 1,
+          "normalized_only_count": 0
+        },
+        "relations": [
+          {
+            "oficio": {
+              "id": 3,
+              "numero_oficio": "204",
+              "anio": 2026,
+              "fecha_oficio": "2026-04-21",
+              "causa": "1987559",
+              "deleted_at": null,
+              "juzgado_id": 1,
+              "comprobacion_id": 26
+            },
+            "expedientes": [
+              {
+                "id": 32,
+                "numero_expediente": "012367",
+                "anio": "2026",
+                "comprobacion_id": 26,
+                "oficio_id": 3
+              }
+            ],
+            "comprobacion_id": 26,
+            "actuaciones_via_comprobacion": [
+              {
+                "id": 3,
+                "tipo": "INSPECCION",
+                "fecha": "2026-04-20",
+                "orden_trabajo_id": 3
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 70,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "estado_iniciador": "CUMPLIDO"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "classification_precedence": "PROTECTED_REAL > CONFIRMADO_TEST > PROBABLE_TEST > INDETERMINADO"
+}

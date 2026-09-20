@@ -38,20 +38,34 @@ export function centroidLatLngForFeature(f: Feature): [number, number] | null {
 export type DistritoMapLabel = {
   key: string;
   position: [number, number];
-  cantidad: number;
+  label: string;
 };
+
+/** Texto del label dentro del polígono: código de distrito (no carga). */
+export function resolveDistritoPolygonLabel(props: Record<string, unknown>): string {
+  const codigo = props.distrito_codigo;
+  if (codigo != null && Number.isFinite(Number(codigo))) return String(codigo);
+  const rawId = props.distrito_id;
+  const id = typeof rawId === "number" ? rawId : rawId != null ? Number(rawId) : NaN;
+  if (Number.isFinite(id)) return String(id);
+  const nombre = String(props.distrito_nombre ?? props.nombre ?? "");
+  const parsed = nombre.match(/distrito\s*(\d+)/i);
+  if (parsed?.[1]) return parsed[1];
+  return "";
+}
 
 export function buildDistritoMapLabels(geoData: FeatureCollection): DistritoMapLabel[] {
   const out: DistritoMapLabel[] = [];
   for (const f of geoData.features) {
-    const p = f.properties as Record<string, unknown> | undefined;
-    const rawId = p?.distrito_id;
+    const p = (f.properties ?? {}) as Record<string, unknown>;
+    const rawId = p.distrito_id;
     const id = typeof rawId === "number" ? rawId : rawId != null ? Number(rawId) : NaN;
     if (!Number.isFinite(id)) continue;
     const c = centroidLatLngForFeature(f);
     if (!c) continue;
-    const cantidad = Number(p?.cantidad ?? 0);
-    out.push({ key: `distrito-label-${id}`, position: c, cantidad });
+    const label = resolveDistritoPolygonLabel(p);
+    if (!label) continue;
+    out.push({ key: `distrito-label-${id}`, position: c, label });
   }
   return out;
 }

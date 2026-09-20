@@ -15,6 +15,7 @@ from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import
 from app.domains.rutas_trabajo.utils.planificacion_debug import medir_oper_ruta_7a, medir_oper_ruta_7b
 from app.domains.rutas_trabajo.utils.planificacion_m4_sql import (
     apply_joins_y_filtro_distrito_efectivo,
+    apply_joins_y_filtro_outside_districts,
     apply_sql_exclusion_pool_y_ruta_activa,
 )
 from app.models import Domicilio, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem, RutaTrabajo
@@ -151,13 +152,44 @@ def _enriquecer_domicilio_efectivo_pagina(items: list[IniciadorRuta]) -> None:
         resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=True)
 
 
+def _build_m4_optimizado_query(
+    *,
+    tipo: str | None,
+    prioridad: int | None,
+    prioridad_categoria: str | None,
+    q: str | None,
+    turno_sugerido: str | None,
+    calle_catalogo_id: int | None,
+    distrito: int | None,
+    scope_outside_districts: bool,
+) -> Query:
+    """Query M4 con filtros opcionales, exclusiones pool y filtro territorial."""
+    query = planificable_iniciadores_base_query()
+    query = _aplicar_filtros_opcionales(
+        query,
+        tipo=tipo,
+        prioridad=prioridad,
+        prioridad_categoria=prioridad_categoria,
+        q=q,
+        turno_sugerido=turno_sugerido,
+        calle_catalogo_id=calle_catalogo_id,
+    )
+    query = apply_sql_exclusion_pool_y_ruta_activa(query)
+    if scope_outside_districts:
+        return apply_joins_y_filtro_outside_districts(query)
+    if distrito is not None:
+        return apply_joins_y_filtro_distrito_efectivo(query, int(distrito))
+    return query
+
+
 def _get_iniciadores_pendientes_m4_optimizado(
     *,
     ruta_id: int,
     tipo: str | None,
     prioridad: int | None,
     prioridad_categoria: str | None,
-    distrito: int,
+    distrito: int | None,
+    scope_outside_districts: bool,
     q: str | None,
     turno_sugerido: str | None,
     calle_catalogo_id: int | None,
@@ -176,22 +208,20 @@ def _get_iniciadores_pendientes_m4_optimizado(
     with medir_oper_ruta_7b(
         "M4",
         ruta=ruta_id,
-        distrito=distrito,
+        distrito=distrito if distrito is not None else "outside",
         page=page,
         per_page=per_page,
     ) as dbg:
-        query = planificable_iniciadores_base_query()
-        query = _aplicar_filtros_opcionales(
-            query,
+        query = _build_m4_optimizado_query(
             tipo=tipo,
             prioridad=prioridad,
             prioridad_categoria=prioridad_categoria,
             q=q,
             turno_sugerido=turno_sugerido,
             calle_catalogo_id=calle_catalogo_id,
+            distrito=distrito,
+            scope_outside_districts=scope_outside_districts,
         )
-        query = apply_sql_exclusion_pool_y_ruta_activa(query)
-        query = apply_joins_y_filtro_distrito_efectivo(query, int(distrito))
 
         t_count = time.perf_counter()
         total = query.count()
@@ -224,6 +254,7 @@ def get_iniciadores_pendientes_para_ruta(
     prioridad: int | None,
     prioridad_categoria: str | None,
     distrito: int | None,
+    scope_outside_districts: bool = False,
     q: str | None,
     turno_sugerido: str | None,
     calle_catalogo_id: int | None,
@@ -253,13 +284,18 @@ def get_iniciadores_pendientes_para_ruta(
     """
     assert_ruta_borrador_para_planificacion(ruta_id)
 
-    if solo_agregables_ruta and distrito is not None and orden_planificacion:
+    if (
+        solo_agregables_ruta
+        and orden_planificacion
+        and (distrito is not None or scope_outside_districts)
+    ):
         return _get_iniciadores_pendientes_m4_optimizado(
             ruta_id=ruta_id,
             tipo=tipo,
             prioridad=prioridad,
             prioridad_categoria=prioridad_categoria,
-            distrito=int(distrito),
+            distrito=int(distrito) if distrito is not None else None,
+            scope_outside_districts=scope_outside_districts,
             q=q,
             turno_sugerido=turno_sugerido,
             calle_catalogo_id=calle_catalogo_id,

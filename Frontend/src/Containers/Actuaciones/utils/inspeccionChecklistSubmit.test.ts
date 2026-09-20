@@ -10,32 +10,89 @@ import {
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 
 const catalog = [
-  { id: 1, codigo: "TIENE_BANO", nombre: "Baño", activo: true, orden: 1 },
-  { id: 2, codigo: "TIENE_SALON", nombre: "Salón", activo: true, orden: 2 },
-  { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", activo: true, orden: 3 },
+  { id: 1, codigo: "TIENE_BANO", nombre: "Baño", orden: 1, tipo_respuesta: "ESTADO" as const },
+  { id: 2, codigo: "TIENE_SALON", nombre: "Salón", orden: 2, tipo_respuesta: "ESTADO" as const },
+  { id: 6, codigo: "TIENE_HABILITACION", nombre: "Tiene habilitación", orden: 6, tipo_respuesta: "SI_NO" as const },
 ];
 
 const baseRow = {
   id: 1,
-  items_acta_inspeccion: [{ id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" as const }],
+  items_acta_inspeccion: [{ id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" as const, tipo_respuesta: "ESTADO" as const }],
   cantidad_personas_sin_carnet_sanidad: 2,
 } as IActuacionListItem;
 
 describe("inspeccionChecklistSubmit V2", () => {
   it("todos NONE → []", () => {
     const estados = estadosMapFromRow({}, catalog);
-    expect(itemsActaInspeccionWriteFromEstados(estados)).toEqual([]);
+    expect(itemsActaInspeccionWriteFromEstados(estados, catalog)).toEqual([]);
   });
 
   it("BIEN y OBSERVADO en write", () => {
-    const write = itemsActaInspeccionWriteFromEstados({
-      1: "BIEN",
-      3: "OBSERVADO",
-    });
+    const write = itemsActaInspeccionWriteFromEstados(
+      {
+        1: "BIEN",
+        2: "OBSERVADO",
+      },
+      catalog
+    );
     expect(write).toEqual([
       { item_id: 1, estado: "BIEN" },
-      { item_id: 3, estado: "OBSERVADO" },
+      { item_id: 2, estado: "OBSERVADO" },
     ]);
+  });
+
+  it("SI y NO serializan valor_si_no", () => {
+    const write = itemsActaInspeccionWriteFromEstados(
+      {
+        6: "SI",
+        1: "BIEN",
+      },
+      catalog
+    );
+    expect(write).toEqual([
+      { item_id: 1, estado: "BIEN" },
+      { item_id: 6, valor_si_no: true },
+    ]);
+    const writeNo = itemsActaInspeccionWriteFromEstados({ 6: "NO" }, catalog);
+    expect(writeNo).toEqual([{ item_id: 6, valor_si_no: false }]);
+  });
+
+  it("NONE no emite fila para SI_NO", () => {
+    expect(itemsActaInspeccionWriteFromEstados({ 6: "NONE" }, catalog)).toEqual([]);
+  });
+
+  it("hidrata valor_si_no true/false", () => {
+    const map = estadosMapFromRow(
+      {
+        items_acta_inspeccion: [
+          {
+            id: 6,
+            codigo: "TIENE_HABILITACION",
+            nombre: "Tiene habilitación",
+            tipo_respuesta: "SI_NO",
+            estado: null,
+            valor_si_no: true,
+          },
+        ],
+      },
+      catalog
+    );
+    expect(map[6]).toBe("SI");
+    const mapNo = estadosMapFromRow(
+      {
+        items_acta_inspeccion: [
+          {
+            id: 6,
+            codigo: "TIENE_HABILITACION",
+            nombre: "Tiene habilitación",
+            tipo_respuesta: "SI_NO",
+            valor_si_no: false,
+          },
+        ],
+      },
+      catalog
+    );
+    expect(mapNo[6]).toBe("NO");
   });
 
   it("stripUntouched omite checklist si no hubo cambios", () => {

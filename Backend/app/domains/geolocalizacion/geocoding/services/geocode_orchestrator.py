@@ -10,6 +10,10 @@ from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
 )
 from app.domains.geolocalizacion.geocoding.services.geocode_service import (
     geocode_domicilio,
+    get_geocoder_provider,
+)
+from app.domains.geolocalizacion.geocoding.services.google_geocode_adapter import (
+    google_can_attempt,
 )
 
 
@@ -100,7 +104,9 @@ def run_geocode_if_ready(domicilio_id: int) -> Dict[str, object]:
     if not dom or dom.deleted_at is not None:
         raise ValueError("Domicilio no encontrado.")
     geo = ensure_geocode_row(domicilio_id)
-    if not is_ready_for_geocode(dom):
+    provider = get_geocoder_provider()
+    ready = google_can_attempt(dom) if provider == "google" else is_ready_for_geocode(dom)
+    if not ready:
         geo.geo_status = "NORM_PENDING"
         db.session.add(geo)
         db.session.commit()
@@ -128,7 +134,13 @@ def on_domicilio_changed(domicilio_id: int, force: bool = False) -> Dict[str, ob
 
     new_hash = compute_addr_hash(dom)
     geo = ensure_geocode_row(domicilio_id)
-    if not force and geo.addr_hash == new_hash:
+    pending_without_coords = (
+        str(geo.geo_status or "") in {"GEO_PENDING", "PENDING", "NORM_PENDING"}
+        and geo.lat is None
+        and geo.lng is None
+        and str(geo.source or "AUTO") == "AUTO"
+    )
+    if not force and geo.addr_hash == new_hash and not pending_without_coords:
         return {"ok": True, "skipped": True, "reason": "hash_unchanged", "domicilio_id": domicilio_id}
 
     # Legacy safety: preserve manual/reverse rows without hash history unless forced.

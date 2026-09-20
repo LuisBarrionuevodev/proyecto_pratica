@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "generated_at": "2026-09-17T04:11:52.482234+00:00",
+    "ticket": "GEO-GOOGLE.1.1",
+    "mode": "manual",
+    "google_only": true
+  },
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "zero_results": 0,
+    "errors": 0,
+    "location_types": {
+      "GEOMETRIC_CENTER": 1
+    },
+    "latency_ms": {
+      "n": 1,
+      "p50": 687.5,
+      "p95": 687.5,
+      "max": 687.5,
+      "mean": 687.5
+    },
+    "google_requests": 1
+  },
+  "records": [
+    {
+      "input": "9 de julio y lavalle, San Miguel de Tucumán, Tucumán, Argentina",
+      "status": "OK",
+      "api_status": "OK",
+      "error_kind": null,
+      "error_message": null,
+      "formatted_address": "Lavalle & 9 de Julio, T4000 San Miguel de Tucumán, Tucumán, Argentina",
+      "lat": -26.8391225,
+      "lng": -65.2067167,
+      "location_type": "GEOMETRIC_CENTER",
+      "place_id": "EkdMYXZhbGxlICYgOSBkZSBKdWxpbywgVDQwMDAgU2FuIE1pZ3VlbCBkZSBUdWN1bcOhbiwgVHVjdW3DoW4sIEFyZ2VudGluYSJmImQKFAoSCYsEbzoJXCKUEZlLsjyo0Yg3EhQKEgmLBG86CVwilBGZS7I8qNGINxoUChIJle_WA2VcIpQRjOPZSNjf-CIaFAoSCaMKhTOyWyKUEce4AWi_QDNJIgoNx6wA8BWhPiLZ",
+      "partial_match": false,
+      "latency_ms": 687.5
+    }
+  ]
+}

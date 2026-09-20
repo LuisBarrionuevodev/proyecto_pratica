@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+from flask import current_app
+
 from app.database import db
 from app.models import Relevamiento
 from app.utils.fechas import parse_fecha_grid
@@ -17,9 +19,7 @@ from app.domains.relevamientos.services.relevamiento_relevadores_service import 
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
-from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
-    on_domicilio_changed,
-)
+from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_domicilio_if_orphan,
 )
@@ -80,20 +80,45 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     numero = domicilio.get("numero")
     rubro_nombre = payload.get("rubro_nombre")
 
-    if not fecha_raw:
-        raise ValueError("Fecha obligatoria.")
-    if not relevador_ids and not relevadores_nombres:
-        raise ValueError("Relevador obligatorio.")
     if not calle or not numero:
         raise ValueError("Calle y número son obligatorios.")
-    if not rubro_nombre:
-        raise ValueError("Rubro obligatorio.")
 
-    mes, anio, fecha = parse_fecha_grid(fecha_raw)
-    if relevador_ids:
-        relevadores = get_relevadores_o_falla(relevador_ids)
+    if fecha_raw:
+        mes, anio, fecha = parse_fecha_grid(fecha_raw)
     else:
+        mes, anio, fecha = rel.mes, rel.anio, rel.fecha
+
+    existing_relevador_ids = sorted(r.id for r in rel.relevadores)
+    legacy_multi_relevador = len(existing_relevador_ids) > 1
+    sync_relevadores = True
+
+    if relevador_ids:
+        if len(relevador_ids) != 1:
+            raise ValueError("Debe indicar exactamente un relevador.")
+        if legacy_multi_relevador:
+            if sorted(relevador_ids) != existing_relevador_ids:
+                raise ValueError(
+                    "Este relevamiento tiene varios relevadores históricos. "
+                    "No puede cambiar el relevador hasta una limpieza de datos."
+                )
+            sync_relevadores = False
+            relevadores = list(rel.relevadores)
+        else:
+            relevadores = get_relevadores_o_falla(relevador_ids)
+    elif relevadores_nombres:
+        if len(relevadores_nombres) != 1:
+            raise ValueError("Debe indicar exactamente un relevador.")
+        if legacy_multi_relevador:
+            raise ValueError(
+                "Este relevamiento tiene varios relevadores históricos. "
+                "No puede cambiar el relevador hasta una limpieza de datos."
+            )
         relevadores = resolve_relevador_nombres_o_falla(relevadores_nombres)
+    elif legacy_multi_relevador:
+        sync_relevadores = False
+        relevadores = list(rel.relevadores)
+    else:
+        raise ValueError("Relevador obligatorio.")
     rubro = get_rubro_o_falla(rubro_nombre)
     dom_payload = {"calle": calle, "numero": numero, **{k: v for k, v in domicilio.items() if k not in ("calle", "numero")}}
     numero_tipo_override = dom_payload.get("numero_tipo")
@@ -149,7 +174,8 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
     rel.esta_abierto = payload.get("esta_abierto")
 
     db.session.add(rel)
-    sync_relevamiento_relevadores(rel, [r.id for r in relevadores])
+    if sync_relevadores:
+        sync_relevamiento_relevadores(rel, [r.id for r in relevadores])
     if old_domicilio_id != rel.domicilio_id and rel.domicilio_id:
         propagar_domicilio_a_iniciadores_activos(
             "RELEVAMIENTO",
@@ -166,7 +192,11 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         outcome.domicilio_id_cambio or outcome.policy.requiere_geocode_refresh
     ):
         try:
-            on_domicilio_changed(rel.domicilio_id)
+            schedule_geocode_after_grid_commit([int(rel.domicilio_id)])
         except Exception:
-            pass
+            current_app.logger.exception(
+                "No se pudo encolar geocode post-commit relevamiento_id=%s domicilio_id=%s",
+                relevamiento_id,
+                rel.domicilio_id,
+            )
     return rel

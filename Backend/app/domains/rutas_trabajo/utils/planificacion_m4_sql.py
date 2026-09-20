@@ -133,6 +133,39 @@ def _punto_geom_desde_geocode(geo_alias: DomicilioGeocode):
     return func.ST_GeomFromText(point_wkt, 4326)
 
 
+def _geo_ok_clause(geo_alias: DomicilioGeocode):
+    """Geocode planificable: OK con coordenadas."""
+    return and_(
+        geo_alias.domicilio_id.isnot(None),
+        geo_alias.deleted_at.is_(None),
+        geo_alias.geo_status == "OK",
+        geo_alias.lat.isnot(None),
+        geo_alias.lng.isnot(None),
+    )
+
+
+def _punto_en_cualquier_distrito_activo_exists(geo_alias: DomicilioGeocode):
+    """
+    EXISTS: el punto geocode cae dentro de algún polígono de distrito activo.
+
+    Misma convención espacial que ``_distrito_contiene_punto_geocode``.
+    """
+    point_geom = _punto_geom_desde_geocode(geo_alias)
+    swapped = func.ST_SwapXY(Distrito.geom)
+    return exists(
+        select(literal(1))
+        .select_from(Distrito)
+        .where(
+            Distrito.geom.isnot(None),
+            or_(
+                func.ST_Contains(swapped, point_geom),
+                func.ST_Intersects(swapped, point_geom),
+            ),
+        )
+        .correlate(geo_alias)
+    )
+
+
 def _distrito_contiene_punto_geocode(geo_alias: DomicilioGeocode, distrito_id: int):
     """
     EXISTS: el punto geocode cae dentro del polígono del distrito.
@@ -164,13 +197,7 @@ def _filtro_distrito_efectivo_clause(dom_efectivo, geo_efectivo, distrito_id: in
     - si FK es NULL pero hay geocode OK, resuelve por polígono (como backfill + mapa geo).
     """
     fk_match = dom_efectivo.distrito_id == int(distrito_id)
-    geo_ok = and_(
-        geo_efectivo.domicilio_id.isnot(None),
-        geo_efectivo.deleted_at.is_(None),
-        geo_efectivo.geo_status == "OK",
-        geo_efectivo.lat.isnot(None),
-        geo_efectivo.lng.isnot(None),
-    )
+    geo_ok = _geo_ok_clause(geo_efectivo)
     spatial_match = and_(
         dom_efectivo.distrito_id.is_(None),
         geo_ok,
@@ -179,11 +206,24 @@ def _filtro_distrito_efectivo_clause(dom_efectivo, geo_efectivo, distrito_id: in
     return or_(fk_match, spatial_match)
 
 
-def apply_joins_y_filtro_distrito_efectivo(query: Query, distrito_id: int) -> Query:
+def _filtro_outside_districts_clause(dom_efectivo, geo_efectivo):
     """
-    Joins para domicilio efectivo (PR5) y filtro ``distrito_id`` en SQL.
+    Ubicación efectiva fuera de todos los polígonos (sin FK explícita).
 
-    Replica la prioridad de ``resolve_domicilio_efectivo_para_iniciador`` en lectura.
+    Requiere geocode OK; excluye domicilios con ``distrito_id`` persistido.
+    """
+    return and_(
+        dom_efectivo.distrito_id.is_(None),
+        _geo_ok_clause(geo_efectivo),
+        ~_punto_en_cualquier_distrito_activo_exists(geo_efectivo),
+    )
+
+
+def _apply_joins_domicilio_efectivo(query: Query) -> tuple[Query, object, object]:
+    """
+    Joins domicilio efectivo + geocode OK (PR5).
+
+    Retorna ``(query, dom_efectivo, geo_efectivo)`` para aplicar filtros posteriores.
     """
     dom_ini = aliased(Domicilio)
     dom_origen = aliased(Domicilio)
@@ -272,6 +312,27 @@ def apply_joins_y_filtro_distrito_efectivo(query: Query, distrito_id: int) -> Qu
                 geo_efectivo.lng.isnot(None),
             ),
         )
-        .filter(_filtro_distrito_efectivo_clause(dom_efectivo, geo_efectivo, int(distrito_id)))
     )
-    return query
+    return query, dom_efectivo, geo_efectivo
+
+
+def apply_joins_y_filtro_distrito_efectivo(query: Query, distrito_id: int) -> Query:
+    """
+    Joins para domicilio efectivo (PR5) y filtro ``distrito_id`` en SQL.
+
+    Replica la prioridad de ``resolve_domicilio_efectivo_para_iniciador`` en lectura.
+    """
+    query, dom_efectivo, geo_efectivo = _apply_joins_domicilio_efectivo(query)
+    return query.filter(
+        _filtro_distrito_efectivo_clause(dom_efectivo, geo_efectivo, int(distrito_id))
+    )
+
+
+def apply_joins_y_filtro_outside_districts(query: Query) -> Query:
+    """
+    Joins domicilio efectivo y filtra pendientes geolocalizados fuera de todos los distritos.
+
+    Solo domicilios sin ``distrito_id`` FK y sin match espacial en ningún polígono.
+    """
+    query, dom_efectivo, geo_efectivo = _apply_joins_domicilio_efectivo(query)
+    return query.filter(_filtro_outside_districts_clause(dom_efectivo, geo_efectivo))

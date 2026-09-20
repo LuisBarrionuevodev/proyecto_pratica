@@ -73,6 +73,7 @@ export function MapaDomiciliosGeolocalizacionFiltro({
                 appearance="dense"
                 fullWidth
                 label="Buscar domicilio"
+                placeholder="Calle, contribuyente, DNI/CUIT, rubro o ID"
                 value={searchQ}
                 onChange={(e) => onSearchChange(e.target.value)}
                 disabled={loading}
@@ -167,6 +168,7 @@ export function MapaDomiciliosGeolocalizacionFiltro({
         <TextField
           size="small"
           label="Buscar domicilio"
+          placeholder="Calle, contribuyente, DNI/CUIT, rubro o ID"
           value={searchQ}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ minWidth: { md: 260 }, flex: filterVariant === "chips" ? { md: "0 0 280px" } : 1 }}

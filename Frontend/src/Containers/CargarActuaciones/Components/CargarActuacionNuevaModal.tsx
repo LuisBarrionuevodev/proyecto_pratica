@@ -51,7 +51,7 @@ import {
   itemsActaInspeccionWriteFromEstados,
   sortCatalogItems,
 } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
-import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
@@ -133,7 +133,7 @@ export function CargarActuacionNuevaModal() {
   const [catalogItemsActaInspeccion, setCatalogItemsActaInspeccion] = useState<
     IItemActaInspeccionCatalogItem[]
   >([]);
-  const [checklistEstados, setChecklistEstados] = useState<Record<number, ItemInspeccionEstadoUx>>({});
+  const [checklistEstados, setChecklistEstados] = useState<Record<number, ChecklistUxValue>>({});
   const [personasSinCarnet, setPersonasSinCarnet] = useState("0");
   const [checklistItemsTouched, setChecklistItemsTouched] = useState(false);
   const [personasSinCarnetTouched, setPersonasSinCarnetTouched] = useState(false);
@@ -308,7 +308,7 @@ export function CargarActuacionNuevaModal() {
 
     if (checklistItemsTouched) {
       (row as Record<string, unknown>).items_acta_inspeccion =
-        itemsActaInspeccionWriteFromEstados(checklistEstados);
+        itemsActaInspeccionWriteFromEstados(checklistEstados, catalogItemsActaInspeccion);
     }
     if (personasSinCarnetTouched && isValidActaNotificacionNum(texts["Acta notificación"])) {
       const cantidad = parseInt(personasSinCarnet, 10);

@@ -1,4 +1,4 @@
-import { Autocomplete, Box, Chip, TextField } from "@mui/material";
+import { Autocomplete, Box, TextField } from "@mui/material";
 
 import type { CatalogItem } from "../../../api/gridApi";
 import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
@@ -119,9 +119,17 @@ export function RelevamientoCrudDialog({
       .filter(Boolean)
       .join(" · ") || undefined;
 
-  const selectedRelevadores = catalogs.relevadores.filter((r) =>
-    (draft.relevador_ids ?? draft.relevadores?.map((x) => x.id) ?? []).includes(r.id)
-  );
+  const relevadorId =
+    draft.relevador_ids?.[0] ?? draft.relevadores?.[0]?.id ?? null;
+  const selectedRelevador =
+    catalogs.relevadores.find((r) => r.id === relevadorId) ?? null;
+  const legacyMultiRelevador =
+    (draft.relevadores?.length ?? 0) > 1 ||
+    (draft.relevador_ids?.length ?? 0) > 1;
+  const relevadorLegacyHelper =
+    legacyMultiRelevador
+      ? "Este relevamiento tiene varios relevadores históricos. No se puede cambiar el relevador hasta una limpieza de datos."
+      : undefined;
 
   return (
     <CrudGlassDialog
@@ -158,28 +166,6 @@ export function RelevamientoCrudDialog({
       <CrudDialogSection title="Datos del relevamiento" variant="plain">
         <Box sx={fieldGridSx}>
           <CrudFormSlot
-            label="Fecha"
-            mode={mode}
-            value={draft.fecha}
-            required
-            error={!!e("fecha")}
-            helperText={e("fecha")}
-          >
-            <AppTextField
-              appearance="glass"
-              label="Fecha"
-              type="date"
-              value={draft.fecha ?? ""}
-              onChange={(ev) => onDraftChange({ fecha: ev.target.value })}
-              disabled={ro("fecha")}
-              InputLabelProps={{ shrink: true }}
-              error={!!e("fecha")}
-              helperText={e("fecha") || undefined}
-              fullWidth
-              required
-            />
-          </CrudFormSlot>
-          <CrudFormSlot
             label="Turno carga"
             mode={mode}
             value={relevamientoTurnoDisplay(draft.turno)}
@@ -214,30 +200,29 @@ export function RelevamientoCrudDialog({
             sx={{ gridColumn: { sm: "1 / -1" } }}
           >
             <Autocomplete
-              multiple
               options={catalogs.relevadores}
               getOptionLabel={(o) => o.nombre}
-              value={selectedRelevadores}
+              value={selectedRelevador}
               onChange={(_ev, value) => {
                 onDraftChange({
-                  relevador_ids: value.map((v) => v.id),
-                  relevadores: value.map((v) => ({ id: v.id, nombre: v.nombre })),
-                  relevadores_label: value.map((v) => v.nombre).join(" · "),
+                  relevador_ids: value ? [value.id] : [],
+                  relevadores: value ? [{ id: value.id, nombre: value.nombre }] : [],
+                  relevadores_label: value?.nombre ?? "",
                 });
               }}
-              disabled={ro("relevador_ids")}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip {...getTagProps({ index })} key={option.id} label={option.nombre} size="small" />
-                ))
-              }
+              disabled={ro("relevador_ids") || legacyMultiRelevador}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Relevador"
                   required
                   error={!!e("relevador") || !!e("relevador_ids")}
-                  helperText={e("relevador") || e("relevador_ids") || undefined}
+                  helperText={
+                    e("relevador") ||
+                    e("relevador_ids") ||
+                    relevadorLegacyHelper ||
+                    undefined
+                  }
                 />
               )}
             />
@@ -285,6 +270,7 @@ export function RelevamientoCrudDialog({
               error={!!e("numero")}
               helperText={e("numero")}
               allowFreeSolo={numeroAllowFreeSolo}
+              streetCatalogEnabled={false}
               initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </CrudFormSlot>
@@ -327,7 +313,6 @@ export function RelevamientoCrudDialog({
             label="Rubro"
             mode={mode}
             value={draft.rubro}
-            required
             error={!!e("rubro")}
             helperText={e("rubro")}
           >
@@ -335,12 +320,14 @@ export function RelevamientoCrudDialog({
               appearance="glass"
               label="Rubro"
               value={draft.rubro ?? ""}
-              onChange={(ev) => onDraftChange({ rubro: ev.target.value as string })}
+              onChange={(ev) => {
+                const v = ev.target.value as string;
+                onDraftChange({ rubro: v === "" ? null : v });
+              }}
               options={opts(["", ...catalogs.rubros])}
               fullWidth
               error={!!e("rubro")}
               helperText={e("rubro") || undefined}
-              required
             />
           </CrudFormSlot>
           <CrudFormSlot

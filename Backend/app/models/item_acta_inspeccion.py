@@ -11,6 +11,11 @@ class ItemActaInspeccion(db.Model):
     nombre = db.Column(db.String(128), nullable=False)
     activo = db.Column(db.Boolean, nullable=False, server_default=db.text("TRUE"))
     orden = db.Column(db.Integer, nullable=False, index=True)
+    tipo_respuesta = db.Column(
+        db.Enum("ESTADO", "SI_NO", name="item_acta_inspeccion_tipo_respuesta_enum"),
+        nullable=False,
+        server_default="ESTADO",
+    )
 
     inspeccion_junctions = db.relationship(
         "ActaInspeccionItem",
@@ -25,4 +30,5 @@ class ItemActaInspeccion(db.Model):
             "nombre": self.nombre,
             "activo": self.activo,
             "orden": self.orden,
+            "tipo_respuesta": self.tipo_respuesta,
         }

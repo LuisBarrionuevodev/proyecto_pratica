@@ -1,6 +1,11 @@
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 import type { IRutaPoolDiaRow } from "../../../../api/rutaPoolDiaApi";
 
+export type M4PoolInvalidationContext = {
+  distritoIds: Set<number>;
+  invalidateOutside: boolean;
+};
+
 /** Chunk M4 por request (debe coincidir con usePlanificacionController). */
 export const M4_PAGE_MAP_CHUNK = 500;
 
@@ -84,33 +89,86 @@ function poolIniciadorIdFromRow(row: IRutaPoolDiaRow): number | null {
 }
 
 /**
- * Invalida cache M4 al quitar ítems del pool (OPER-RUTA.FUNCIONAL-2B.1).
- * Usa snapshot previo del pool para resolver `distrito_id`.
+ * Resuelve distrito efectivo de un ítem pool (FK, fila iniciador o domicilio anidado).
+ */
+export function resolveEffectiveDistritoIdFromPoolRow(
+  poolRow: IRutaPoolDiaRow,
+  iniciadorRow?: IRutaIniciadorPendienteRow | null
+): number | null {
+  const top = poolRow.distrito_id;
+  if (typeof top === "number" && Number.isFinite(top)) return top;
+  const fromIniciador = iniciadorRow?.distrito_id ?? iniciadorRow?.domicilio?.distrito_id ?? null;
+  if (typeof fromIniciador === "number" && Number.isFinite(fromIniciador)) return fromIniciador;
+  return null;
+}
+
+/**
+ * Calcula qué contextos M4 invalidar al quitar ítems del pool.
+ * Sin distrito resoluble: solo outside (no `cache.clear()` global).
+ */
+export function computeM4InvalidationOnPoolRemoval(
+  prevIniciadorIds: readonly number[],
+  nextIniciadorIds: readonly number[],
+  prevPoolRowsByIniciadorId: Readonly<Record<number, IRutaPoolDiaRow>>,
+  iniciadorRowsById?: Readonly<Record<number, IRutaIniciadorPendienteRow>>
+): M4PoolInvalidationContext {
+  const nextSet = new Set(nextIniciadorIds);
+  const removed = prevIniciadorIds.filter((id) => !nextSet.has(id));
+  const distritoIds = new Set<number>();
+  let invalidateOutside = false;
+
+  for (const iniciadorId of removed) {
+    const poolRow = prevPoolRowsByIniciadorId[iniciadorId];
+    if (!poolRow) {
+      invalidateOutside = true;
+      continue;
+    }
+    const distritoId = resolveEffectiveDistritoIdFromPoolRow(poolRow, iniciadorRowsById?.[iniciadorId]);
+    if (distritoId != null) {
+      distritoIds.add(distritoId);
+    } else {
+      invalidateOutside = true;
+    }
+  }
+
+  return { distritoIds, invalidateOutside };
+}
+
+/** Aplica invalidación parcial sobre cache distrito y/o outside. */
+export function applyM4InvalidationOnPoolRemoval(
+  cache: M4DistritoCache,
+  outsideCacheRef: { current: M4DistritoCacheEntry | null } | null,
+  ctx: M4PoolInvalidationContext
+): void {
+  if (ctx.distritoIds.size === 0 && !ctx.invalidateOutside) return;
+  for (const distritoId of ctx.distritoIds) {
+    cache.delete(distritoId);
+  }
+  if (ctx.invalidateOutside && outsideCacheRef) {
+    outsideCacheRef.current = null;
+  }
+}
+
+/**
+ * Invalida cache M4 al quitar ítems del pool (OPER-RUTA.FUNCIONAL-2B.1 / RUTA-UX-CIERRE.1).
  */
 export function invalidateM4CacheOnPoolRemoval(
   cache: M4DistritoCache,
   prevIniciadorIds: readonly number[],
   nextIniciadorIds: readonly number[],
-  prevPoolRowsByIniciadorId: Readonly<Record<number, IRutaPoolDiaRow>>
+  prevPoolRowsByIniciadorId: Readonly<Record<number, IRutaPoolDiaRow>>,
+  opts?: {
+    outsideCacheRef?: { current: M4DistritoCacheEntry | null };
+    iniciadorRowsById?: Readonly<Record<number, IRutaIniciadorPendienteRow>>;
+  }
 ): void {
-  const nextSet = new Set(nextIniciadorIds);
-  const removed = prevIniciadorIds.filter((id) => !nextSet.has(id));
-  if (removed.length === 0) return;
-
-  let needsFullClear = false;
-  for (const iniciadorId of removed) {
-    const poolRow = prevPoolRowsByIniciadorId[iniciadorId];
-    const distritoId = poolRow?.distrito_id;
-    if (distritoId != null && Number.isFinite(Number(distritoId))) {
-      cache.delete(Number(distritoId));
-    } else {
-      needsFullClear = true;
-      break;
-    }
-  }
-  if (needsFullClear) {
-    cache.clear();
-  }
+  const ctx = computeM4InvalidationOnPoolRemoval(
+    prevIniciadorIds,
+    nextIniciadorIds,
+    prevPoolRowsByIniciadorId,
+    opts?.iniciadorRowsById
+  );
+  applyM4InvalidationOnPoolRemoval(cache, opts?.outsideCacheRef ?? null, ctx);
 }
 
 /** Construye mapa iniciadorId → fila pool para snapshot de invalidación. */

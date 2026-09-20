@@ -1,0 +1,2 @@
+input,status,api_status,error_kind,formatted_address,lat,lng,location_type,place_id,partial_match,latency_ms
+"Corrientes 500, San Miguel de Tucuman, Tucuman, Argentina",OK,OK,,"Pcia de Corrientes 500, T4000EBL San Miguel de Tucumán, Tucumán, Argentina",-26.8230295,-65.2029038,ROOFTOP,ChIJJbiMixdcIpQR4jH0dd2dLec,False,629.1

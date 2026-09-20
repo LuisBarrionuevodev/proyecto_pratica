@@ -67,7 +67,7 @@ describe("CargarActuacionNuevaModal reset V2", () => {
 
     const reset = getCargarActuacionChecklistV2ResetState();
     expect(reset.checklistEstados).toEqual({});
-    expect(itemsActaInspeccionWriteFromEstados(reset.checklistEstados)).toEqual([]);
+    expect(itemsActaInspeccionWriteFromEstados(reset.checklistEstados, [])).toEqual([]);
     expect(reset.personasSinCarnet).toBe("0");
     expect(reset.checklistItemsTouched).toBe(false);
     expect(reset.personasSinCarnetTouched).toBe(false);

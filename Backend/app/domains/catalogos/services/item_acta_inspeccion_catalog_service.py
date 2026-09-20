@@ -15,7 +15,7 @@ def listar_items_acta_inspeccion_catalogo(*, solo_activos: bool = True) -> list[
         solo_activos: si True, filtra ``activo=True`` (uso en dropdowns de alta).
 
     Retorno:
-        Lista de dicts ``{id, codigo, nombre, orden}`` (sin ``activo`` en API pública).
+        Lista de dicts ``{id, codigo, nombre, orden, tipo_respuesta}`` (sin ``activo`` en API pública).
     """
     q = ItemActaInspeccion.query
     if solo_activos:
@@ -27,6 +27,7 @@ def listar_items_acta_inspeccion_catalogo(*, solo_activos: bool = True) -> list[
             "codigo": r.codigo,
             "nombre": r.nombre,
             "orden": int(r.orden),
+            "tipo_respuesta": str(r.tipo_respuesta or "ESTADO"),
         }
         for r in rows
     ]

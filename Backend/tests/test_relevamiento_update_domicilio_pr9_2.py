@@ -148,7 +148,7 @@ def test_pr92_policy_compartido_cow_al_cambiar_geo(app_ctx) -> None:
         db.session.rollback()
 
 
-@patch("app.domains.relevamientos.services.update_service.on_domicilio_changed")
+@patch("app.domains.relevamientos.services.update_service.schedule_geocode_after_grid_commit")
 def test_pr92_edit_solo_owner_recalcula_geocode(mock_geo, app_ctx, require_pr72_migration) -> None:
     rev, rub = _relevador_y_rubro()
     calle = _uniq("Pr92Geo")
@@ -173,7 +173,7 @@ def test_pr92_edit_solo_owner_recalcula_geocode(mock_geo, app_ctx, require_pr72_
         assert dom is not None
         assert dom.calle == nueva_calle
         assert dom.numero == "500"
-        mock_geo.assert_called_once_with(rel.domicilio_id)
+        mock_geo.assert_called_once_with([int(rel.domicilio_id)])
     finally:
         db.session.rollback()
 

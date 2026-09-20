@@ -4,6 +4,7 @@ import type { IRelevamientoListItem } from "../../../api/relevamientosListApi";
 import {
   applyRelevamientoDomicilioSubmitGuard,
   buildRelevamientoGridRow,
+  buildRelevamientoUpdatePayload,
   normalizeRelevamientoRowForApi,
   RELEVAMIENTO_ROW_ERROR_KEY_MAP,
 } from "./submitRelevamientoRow";
@@ -102,6 +103,52 @@ describe("submitRelevamientoRow — payload domicilio", () => {
     const draft = { ...relevamientoRowParaEdicion(baseline), calle: "Mendoza" };
     const payload = applyRelevamientoDomicilioSubmitGuard(draft, baseline);
     expect(payload.calle).toBe("Mendoza");
+  });
+
+  it("REL-MAP-CIERRE.2-3: grid row no incluye Fecha (paridad batch)", () => {
+    const grid = buildRelevamientoGridRow(baseRow);
+    expect(grid).not.toHaveProperty("Fecha");
+    expect(grid.Relevador).toBe("Fabian Esquivel");
+  });
+
+  it("REL-MAP-CIERRE.2-3: PUT payload explícito sin fecha ni relevadores DTO", () => {
+    const payload = buildRelevamientoUpdatePayload({
+      ...baseRow,
+      relevadores: [{ id: 1, nombre: "Fabian Esquivel" }],
+      relevadores_label: "Fabian Esquivel",
+      fecha: "2026-06-02",
+      distrito_mostrar: "Centro",
+    });
+    expect(payload).toEqual({
+      turno: "MANIANA",
+      relevador_ids: [1],
+      calle: "TestRelevamientoDomicilio_abc",
+      numero: "123",
+      numero_tipo: "NUMERO",
+      angulo_esquina: null,
+      rubro: "Panadería",
+      nombre_fantasia: null,
+      esta_abierto: true,
+    });
+    expect(payload).not.toHaveProperty("fecha");
+    expect(payload).not.toHaveProperty("relevadores");
+    expect(payload).not.toHaveProperty("relevadores_label");
+  });
+
+  it("REL-MAP-CIERRE.2-3.1: rubro vacío se normaliza a null en payload", () => {
+    const normalized = normalizeRelevamientoRowForApi({
+      ...baseRow,
+      rubro: "",
+    });
+    expect(normalized.rubro).toBeNull();
+    const payload = buildRelevamientoUpdatePayload(normalized);
+    expect(payload.rubro).toBeNull();
+  });
+
+  it("REL-MAP-CIERRE.2-3: legacy multi omite relevador_ids del PUT", () => {
+    const payload = buildRelevamientoUpdatePayload(baseRow, { omitRelevador: true });
+    expect(payload.relevador_ids).toBeUndefined();
+    expect(payload.calle).toBeTruthy();
   });
 
   it("ESQUINA → NUMERO envía numero_tipo NUMERO", () => {

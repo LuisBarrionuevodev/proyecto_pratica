@@ -23,6 +23,12 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
     compute_addr_hash,
     is_ready_for_geocode,
 )
+from app.domains.geolocalizacion.geocoding.services.geocode_service import (
+    get_geocoder_provider,
+)
+from app.domains.geolocalizacion.geocoding.services.google_geocode_adapter import (
+    google_can_attempt,
+)
 from app.models import Domicilio, DomicilioGeocode, GeocodePostCommitJob
 
 logger = logging.getLogger(__name__)
@@ -90,11 +96,15 @@ def prepare_geocode_state_after_commit(domicilio_id: int) -> None:
         db.session.commit()
         return
 
-    if not is_ready_for_geocode(dom):
+    provider = get_geocoder_provider()
+    if provider == "google" and google_can_attempt(dom):
+        geo.geo_status = "GEO_PENDING"
+    elif not is_ready_for_geocode(dom):
         geo.geo_status = "NORM_PENDING"
     else:
         geo.geo_status = "GEO_PENDING"
-    geo.addr_hash = compute_addr_hash(dom)
+    # No sellar addr_hash aquí: on_domicilio_changed usa el hash para detectar cambios
+    # y decidir si geocodificar. Si lo seteamos antes del worker, salta con hash_unchanged.
     if not geo.source or str(geo.source) not in {"MANUAL", "REVERSE"}:
         geo.source = "AUTO"
     db.session.add(geo)
@@ -323,7 +333,7 @@ def _process_claimed_job(job_id: int, summary: Dict[str, Any]) -> None:
         if not geo_outcome.get("geo_status"):
             geo_outcome = _geo_outcome_snapshot(domicilio_id)
         logger.info(
-            "geocode_post_commit_job finished job_id=%s domicilio_id=%s job_status=%s "
+            "GEO_JOB_FINISHED job_id=%s domicilio_id=%s job_status=%s "
             "geo_status=%s provider=%s attempt=%s duration_ms=%s error=%s",
             job_id,
             domicilio_id,
@@ -372,22 +382,30 @@ def enqueue_geocode_post_commit(domicilio_ids: Iterable[int]) -> List[int]:
     active_ids = {int(row.domicilio_id) for row in active}
 
     enqueued: List[int] = []
+    new_jobs: List[GeocodePostCommitJob] = []
     now = _utcnow()
     for domicilio_id in unique_ids:
         if domicilio_id in active_ids:
             continue
-        db.session.add(
-            GeocodePostCommitJob(
-                domicilio_id=int(domicilio_id),
-                status="pending",
-                attempts=0,
-                created_at=now,
-                updated_at=now,
-            )
+        job = GeocodePostCommitJob(
+            domicilio_id=int(domicilio_id),
+            status="pending",
+            attempts=0,
+            created_at=now,
+            updated_at=now,
         )
+        db.session.add(job)
+        new_jobs.append(job)
         enqueued.append(int(domicilio_id))
 
     if enqueued:
+        db.session.flush()
+        for job in new_jobs:
+            logger.info(
+                "GEO_JOB_ENQUEUED domicilio_id=%s job_id=%s",
+                job.domicilio_id,
+                job.id,
+            )
         db.session.commit()
     return enqueued
 
@@ -436,5 +454,9 @@ def count_recoverable_geocode_post_commit_jobs() -> int:
 
 
 def count_pending_geocode_post_commit_jobs() -> int:
-    """Cuenta jobs pendientes o en procesamiento."""
-    return count_recoverable_geocode_post_commit_jobs()
+    """Cuenta jobs en estado ``pending`` (sin incluir ``processing``)."""
+    return int(
+        GeocodePostCommitJob.query.filter(
+            GeocodePostCommitJob.status == "pending"
+        ).count()
+    )

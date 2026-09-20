@@ -16,6 +16,6 @@ def list_items_acta_inspeccion():
     """
     Catálogo de condiciones de acta de inspección (solo activos).
 
-    Response: {"items": [{"id", "codigo", "nombre", "orden"}]}
+    Response: {"items": [{"id", "codigo", "nombre", "orden", "tipo_respuesta"}]}
     """
     return jsonify({"items": listar_items_acta_inspeccion_catalogo(solo_activos=True)}), 200

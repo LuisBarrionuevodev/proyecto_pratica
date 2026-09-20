@@ -384,8 +384,12 @@ const RutasTrabajo = () => {
     async (grupoId: number, iniciadorIds: number[]): Promise<boolean> => {
       if (!rutaId || iniciadorIds.length === 0) return false;
 
+      const poolDisponibleIds = new Set(poolRowsDisponibles.map((r) => r.id));
+      const iniciadorIdsEnPool = iniciadorIds.filter((id) => poolDisponibleIds.has(id));
+      if (iniciadorIdsEnPool.length === 0) return false;
+
       const { poolIds, missingIniciadorIds } = resolvePoolIdsForIniciadores(
-        iniciadorIds,
+        iniciadorIdsEnPool,
         poolIdByIniciadorId
       );
 
@@ -418,6 +422,7 @@ const RutasTrabajo = () => {
       notifyError,
       rutaId,
       poolIdByIniciadorId,
+      poolRowsDisponibles,
       prunePoolEntriesByIds,
       refreshPool,
       ruta?.fecha,
@@ -544,9 +549,18 @@ const RutasTrabajo = () => {
           />
         )}
 
-        {flowStep === 1 && rutaId != null && ruta != null && (
-          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {rutaId != null && ruta != null && ruta.estado_ruta === "BORRADOR" && (
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              display: flowStep === 1 ? "flex" : "none",
+              flexDirection: "column",
+            }}
+          >
             <PlanificacionView
+              key={rutaId}
+              visible={flowStep === 1}
               ruta={ruta}
               rutaId={rutaId}
               grupos={grupos}
@@ -564,6 +578,7 @@ const RutasTrabajo = () => {
             itemsActivos={itemsActivos}
             itemsCount={itemsActivos.length}
             iniciadoresTabla={iniciadoresTablaAsignacion}
+            poolDisponibleIniciadorIds={poolRowsDisponibles.map((r) => r.id)}
             totalEnPool={poolRowsDisponibles.length}
             assignedIniciadorIds={assignedIniciadorIds}
             filters={asignacionFilters}

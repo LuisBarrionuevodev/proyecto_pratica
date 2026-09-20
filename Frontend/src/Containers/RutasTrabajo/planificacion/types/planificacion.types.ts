@@ -46,3 +46,11 @@ export interface ICargaDistritoRow {
   distrito_nombre: string;
   cantidad: number;
 }
+
+export interface ICargaDistritosResponse {
+  items: ICargaDistritoRow[];
+  outside_districts_count: number;
+}
+
+/** Scope territorial M4 sin polígono de distrito. */
+export type PlanificacionTerritorialScope = "outside_districts";

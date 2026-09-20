@@ -14,6 +14,7 @@ from app.security.deployment_config import (
     enforce_strict_runtime_config,
     parse_cors_origins,
 )
+from app.security.test_database import configure_app_for_testing
 from app.security.phase1_jwt_guard import register_phase1_jwt_guard
 from app.security.dev_post_root_logger import register_dev_post_root_logger
 from app.security.rate_limiter import init_rate_limiter
@@ -67,7 +68,7 @@ def create_app(config_override: dict | None = None):
         _geocoder_raw = "geoapify"
     app.config["GEOCODER_PROVIDER"] = (
         _geocoder_raw
-        if _geocoder_raw in {"geoapify", "nominatim", "none"}
+        if _geocoder_raw in {"geoapify", "google", "nominatim", "none"}
         else "geoapify"
     )
 
@@ -79,9 +80,12 @@ def create_app(config_override: dict | None = None):
     app.config["EPICOLLECT_CLIENT_SECRET"] = os.getenv("EPICOLLECT_CLIENT_SECRET")
     app.config["EPICOLLECT_TIMEOUT_SECONDS"] = os.getenv("EPICOLLECT_TIMEOUT_SECONDS")
 
-    # ✅ override ANTES de init_app
+    # ? override ANTES de init_app
     if config_override:
         app.config.update(config_override)
+
+    if app.config.get("TESTING"):
+        configure_app_for_testing(app, config_override=config_override)
 
     enforce_strict_runtime_config(app)
     _cors_origins = parse_cors_origins(strict=deployment_is_strict())
@@ -131,12 +135,12 @@ def create_app(config_override: dict | None = None):
                 app.logger.exception("No se pudo crear/verificar seed admin de desarrollo")
 
     @app.cli.command("process-geocode-post-commit-queue")
-    @click.option("--limit", default=50, show_default=True, help="Máximo de jobs por corrida")
+    @click.option("--limit", default=50, show_default=True, help="M?ximo de jobs por corrida")
     def process_geocode_post_commit_queue_cli(limit: int) -> None:
         """
         Drena la cola durable de geocode post-commit (GEO-PERF.1).
 
-        Camino canónico para Task Scheduler / cron si el worker in-process no corre.
+        Camino can?nico para Task Scheduler / cron si el worker in-process no corre.
         """
         from app.domains.geolocalizacion.geocode.services.geocode_post_commit_queue_service import (
             process_geocode_post_commit_jobs,
@@ -145,16 +149,74 @@ def create_app(config_override: dict | None = None):
         try:
             summary = process_geocode_post_commit_jobs(limit=int(limit))
         except Exception:
-            app.logger.exception("process-geocode-post-commit-queue CLI falló")
+            app.logger.exception("process-geocode-post-commit-queue CLI fall?")
             raise click.Abort()
         click.echo(json.dumps(summary, ensure_ascii=True))
+
+    @app.cli.command("backfill-google-geocode-review-status")
+    @click.option(
+        "--apply",
+        is_flag=True,
+        default=False,
+        help="Persistir cambios (default: dry-run sin modificar DB)",
+    )
+    @click.option("--limit", default=None, type=int, help="M?ximo de filas a procesar")
+    @click.option("--domicilio-id", default=None, type=int, help="Procesar solo un domicilio")
+    @click.option("--batch-size", default=100, show_default=True, help="Tama?o de lote en --apply")
+    def backfill_google_geocode_review_status_cli(
+        apply: bool,
+        limit: int | None,
+        domicilio_id: int | None,
+        batch_size: int,
+    ) -> None:
+        """
+        GEO-REVIEW.1.1 ? promueve Google GEO_PENDING con coords a OK (sin llamar Google).
+
+        Default dry-run. Usar ``--apply`` para persistir.
+        """
+        from app.domains.geolocalizacion.geocode.services.google_geocode_review_backfill_service import (
+            run_google_geocode_review_status_backfill,
+        )
+
+        try:
+            summary = run_google_geocode_review_status_backfill(
+                apply=bool(apply),
+                limit=limit,
+                domicilio_id=domicilio_id,
+                batch_size=int(batch_size),
+            )
+        except Exception:
+            app.logger.exception("backfill-google-geocode-review-status CLI fall?")
+            raise click.Abort()
+
+        if summary.mode == "dry_run":
+            click.echo(
+                f"Google GEO_PENDING con coords: {summary.candidatos}\n"
+                f"Se convertir?an a OK: {summary.actualizados}"
+            )
+            if summary.sin_distrito:
+                click.echo(
+                    f"De esos, sin distrito_id (solo reporte): {summary.sin_distrito}"
+                )
+        else:
+            click.echo(
+                f"Candidatos: {summary.candidatos}\n"
+                f"Actualizados: {summary.actualizados}\n"
+                f"Omitidos: {summary.omitidos}\n"
+                f"Errores: {summary.errores}"
+            )
+            if summary.sin_distrito:
+                click.echo(
+                    f"Actualizados sin distrito_id (solo reporte): {summary.sin_distrito}"
+                )
+        click.echo(json.dumps(summary.to_dict(), ensure_ascii=True))
 
     @app.cli.command("sync-notificaciones-vencidas")
     def sync_notificaciones_vencidas_cli() -> None:
         """
         Materializa iniciadores REINSPECCION_NOTIFICACION por notificaciones vencidas (Fase C).
 
-        Camino canónico para cron / Task Scheduler: equivalente al módulo
+        Camino can?nico para cron / Task Scheduler: equivalente al m?dulo
         `app.domains.actuaciones.pipelines.sync_notificaciones_vencidas`.
         """
         from app.domains.actuaciones.pipelines.sync_notificaciones_vencidas import (
@@ -164,7 +226,7 @@ def create_app(config_override: dict | None = None):
         try:
             metrics = run_sync_notificaciones_vencidas()
         except Exception:
-            app.logger.exception("sync-notificaciones-vencidas CLI falló")
+            app.logger.exception("sync-notificaciones-vencidas CLI fall?")
             raise click.Abort()
         click.echo(json.dumps(metrics, ensure_ascii=True))
 
@@ -226,7 +288,7 @@ def create_app(config_override: dict | None = None):
                 click.echo(str(e), err=True)
                 raise click.Abort()
             except Exception:
-                app.logger.exception("epicollect-import-from-api CLI falló")
+                app.logger.exception("epicollect-import-from-api CLI fall?")
                 raise click.Abort()
         click.echo(
             json.dumps(
@@ -241,11 +303,11 @@ def create_app(config_override: dict | None = None):
         type=int,
         default=200,
         show_default=True,
-        help="Máximo de ids listados en actuacion_ids_mas_de_3.",
+        help="M?ximo de ids listados en actuacion_ids_mas_de_3.",
     )
     def audit_inspectores_actuaciones_cli(max_ids: int) -> None:
         """
-        Inventario: cuántas actuaciones tienen más de 3 inspectores activos (tabla puente).
+        Inventario: cu?ntas actuaciones tienen m?s de 3 inspectores activos (tabla puente).
 
         Cuenta solo filas con deleted_at IS NULL. Salida JSON para scripts y revisiones previas
         a migrar el contrato de grilla (inspector1/2/3).
@@ -258,7 +320,7 @@ def create_app(config_override: dict | None = None):
             try:
                 report = audit_actuaciones_inspectores_summary(max_detail_ids=max_ids)
             except Exception:
-                app.logger.exception("audit-inspectores-actuaciones falló")
+                app.logger.exception("audit-inspectores-actuaciones fall?")
                 raise click.Abort()
         click.echo(json.dumps(report, ensure_ascii=True, indent=2))
 

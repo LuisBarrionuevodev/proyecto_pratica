@@ -24,7 +24,10 @@ def actualizar_relevamiento_route(relevamiento_id: int):
 
     try:
         data["id"] = relevamiento_id
-        row = RelevamientoGridRowIn.model_validate(data)
+        row = RelevamientoGridRowIn.model_validate(
+            data,
+            context={"allow_missing_relevador": True},
+        )
         payload = map_relevamiento_row(row)
         rel = actualizar_relevamiento(relevamiento_id, payload)
         return jsonify(relevamiento_to_row(rel)), 200

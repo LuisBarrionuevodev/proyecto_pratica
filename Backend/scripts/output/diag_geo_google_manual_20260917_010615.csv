@@ -1,0 +1,2 @@
+input,status,api_status,error_kind,formatted_address,lat,lng,location_type,place_id,partial_match,latency_ms
+"24 de septiembre y maipu, San Miguel de Tucumán, Tucumán, Argentina",OK,OK,,"Maipú & Avenida 24 de Septiembre, T4000 San Miguel de Tucumán, Tucumán, Argentina",-26.8303915,-65.2078255,GEOMETRIC_CENTER,ElRNYWlww7ogJiBBdmVuaWRhIDI0IGRlIFNlcHRpZW1icmUsIFQ0MDAwIFNhbiBNaWd1ZWwgZGUgVHVjdW3DoW4sIFR1Y3Vtw6FuLCBBcmdlbnRpbmEiZiJkChQKEgkPI2ydEVwilBGuMomRRkf4NhIUChIJDyNsnRFcIpQRrjKJkUZH-DYaFAoSCWWMsdo6XCKUEdSMQf1eHVALGhQKEgnrjl2dEVwilBEmrPC7N7g03yIKDdUBAvAVURMi2Q,False,719.6

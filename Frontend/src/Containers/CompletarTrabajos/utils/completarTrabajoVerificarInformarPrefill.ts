@@ -7,7 +7,7 @@ import {
   estadosMapFromRow,
   itemsActaInspeccionWriteFromEstados,
 } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
-import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 
 export type CompletarTrabajoOperativoHydration = {
   calle: string;
@@ -20,7 +20,7 @@ export type CompletarTrabajoOperativoHydration = {
   razonSocial: string;
   nombreLocal: string;
   actaInspeccion: string;
-  checklistEstados: Record<number, ItemInspeccionEstadoUx>;
+  checklistEstados: Record<number, ChecklistUxValue>;
   personasSinCarnet: string;
   actaNotificacion: string;
   notifMotivosSeleccion: string[];
@@ -68,7 +68,8 @@ export function operativoHydrationFromRow(
 }
 
 export function checklistWriteFromEstados(
-  estados: Record<number, ItemInspeccionEstadoUx>
+  estados: Record<number, ChecklistUxValue>,
+  catalog: IItemActaInspeccionCatalogItem[] = []
 ) {
-  return itemsActaInspeccionWriteFromEstados(estados);
+  return itemsActaInspeccionWriteFromEstados(estados, catalog);
 }

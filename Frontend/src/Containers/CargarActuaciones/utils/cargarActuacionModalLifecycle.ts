@@ -1,9 +1,9 @@
-import type { ItemInspeccionEstadoUx } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 
 export const CARGAR_ACTUACION_SUCCESS_MESSAGE = "Actuación guardada correctamente.";
 
 export type CargarActuacionChecklistV2ResetState = {
-  checklistEstados: Record<number, ItemInspeccionEstadoUx>;
+  checklistEstados: Record<number, ChecklistUxValue>;
   personasSinCarnet: string;
   checklistItemsTouched: boolean;
   personasSinCarnetTouched: boolean;

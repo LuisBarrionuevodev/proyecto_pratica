@@ -18,6 +18,8 @@ export type PlanificacionSidebarTab = "total-mapa" | "urgentes";
 
 export type PlanificacionSidebarPanelProps = {
   distritoActivoId: number | null;
+  contextoActivo?: boolean;
+  scopeOutsideDistricts?: boolean;
   metricas: IPlanificacionMetricas | null;
   metricasLoading?: boolean;
   cardActiva: PlanificacionCardKey;
@@ -53,6 +55,8 @@ const TAB_DEFS: { id: PlanificacionSidebarTab; label: string }[] = [
  */
 export function PlanificacionSidebarPanel({
   distritoActivoId,
+  contextoActivo = false,
+  scopeOutsideDistricts = false,
   metricas,
   metricasLoading,
   cardActiva,
@@ -119,6 +123,8 @@ export function PlanificacionSidebarPanel({
       <Box sx={planificacionSidebarTabBodySx}>
         <PlanificacionFiltrosBar
           distritoActivoId={distritoActivoId}
+          contextoActivo={contextoActivo}
+          scopeOutsideDistricts={scopeOutsideDistricts}
           metricas={metricas}
           cardActiva={cardActiva}
           onCardChange={onCardChange}
@@ -139,6 +145,8 @@ export function PlanificacionSidebarPanel({
           <PendientesContextoPanel
             variant="embedded"
             distritoActivoId={distritoActivoId}
+            contextoActivo={contextoActivo}
+            scopeOutsideDistricts={scopeOutsideDistricts}
             rows={candidatosRows}
             meta={candidatosMeta}
             loading={candidatosLoading}

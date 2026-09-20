@@ -2,8 +2,9 @@ import { apiClient } from "../../../../api/apiClient";
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 import type {
   IPlanificacionMetricas,
-  ICargaDistritoRow,
+  ICargaDistritosResponse,
   PlanificacionOrdenM4,
+  PlanificacionTerritorialScope,
   UrgentesFiltrosAplicados,
 } from "../types/planificacion.types";
 import { buildUrgentesQueryParams } from "../utils/buildUrgentesQueryParams";
@@ -27,8 +28,8 @@ export async function getPlanificacionMetricas(
 
 export async function getPlanificacionCargaDistritos(
   rutaId: number
-): Promise<{ items: ICargaDistritoRow[] }> {
-  const { data } = await apiClient.get<{ items: ICargaDistritoRow[] }>(
+): Promise<ICargaDistritosResponse> {
+  const { data } = await apiClient.get<ICargaDistritosResponse>(
     `/rutas-trabajo/${rutaId}/planificacion/carga-distritos`
   );
   return data;
@@ -53,7 +54,8 @@ export async function getPlanificacionUrgentes(
 }
 
 export interface IPendientesContextoParams {
-  distrito_id: number;
+  distrito_id?: number;
+  scope?: PlanificacionTerritorialScope;
   tipo?: string;
   prioridad_categoria?: "BAJA" | "MEDIA" | "ALTA";
   prioridad?: number;

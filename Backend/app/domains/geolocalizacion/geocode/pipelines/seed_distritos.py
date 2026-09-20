@@ -151,12 +151,19 @@ def _load_distritos_from_geojson(path: Path) -> List[Tuple[str, str, int | None]
     return rows
 
 
-def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int]:
+def seed_distritos_from_geojson(
+    path: Path | None = None,
+    *,
+    session=None,
+    commit: bool = True,
+) -> Tuple[int, int, int]:
     """
     Seedea distritos en DB desde GeoJSON de forma idempotente.
 
     Args:
         path: ruta opcional del GeoJSON. Si no se envía, usa el canónico backend.
+        session: sesión SQLAlchemy opcional (default ``db.session``).
+        commit: si True, hace commit al finalizar.
 
     Returns:
         Tupla `(created, updated, skipped)`.
@@ -164,6 +171,7 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
     Raises:
         ValueError: si falta el archivo o si hay datos inválidos en GeoJSON.
     """
+    sess = session or db.session
     geojson_path = (path or _geojson_path()).resolve()
     if not geojson_path.exists():
         raise ValueError(f"No existe GeoJSON de distritos: {geojson_path}")
@@ -176,7 +184,7 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
     updated = 0
     skipped = 0
 
-    existing_rows = db.session.execute(
+    existing_rows = sess.execute(
         sa.text("SELECT id, nombre FROM distrito")
     ).mappings().all()
     existing_by_norm: Dict[str, Tuple[int, str]] = {
@@ -204,7 +212,7 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
 
         existing = existing_by_norm.get(key)
         if existing is None:
-            db.session.execute(
+            sess.execute(
                 upsert_sql,
                 {"nombre": geo_name, "codigo": geo_codigo, "wkt": geo_wkt},
             )
@@ -213,7 +221,7 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
 
         district_id, district_name = existing
         if district_name != geo_name:
-            db.session.execute(
+            sess.execute(
                 sa.text(
                     """
                     UPDATE distrito
@@ -234,7 +242,8 @@ def seed_distritos_from_geojson(path: Path | None = None) -> Tuple[int, int, int
         else:
             skipped += 1
 
-    db.session.commit()
+    if commit:
+        sess.commit()
     return created, updated, skipped
 
 

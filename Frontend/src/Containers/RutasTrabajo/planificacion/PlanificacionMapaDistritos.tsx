@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Box, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
 import { GeoJSON, MapContainer, Pane, TileLayer } from "react-leaflet";
 import type { Feature, FeatureCollection } from "geojson";
 import L from "leaflet";
@@ -10,6 +10,7 @@ import distritosGeoRaw from "../../Mapa/distritos.json";
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { ICargaDistritoRow } from "./types/planificacion.types";
 import { enrichPlanificacionDistritosGeoJson } from "./utils/mergePlanificacionDistritosGeo";
+import { PlanificacionMapInvalidateSize } from "./PlanificacionMapInvalidateSize";
 import { PlanificacionMapaDistritoLabelsLayer } from "./PlanificacionMapaDistritoLabelsLayer";
 import { PlanificacionMapaLegend } from "./PlanificacionMapaLegend";
 import { PlanificacionMapaPendientesLayer } from "./PlanificacionMapaPendientesLayer";
@@ -37,9 +38,14 @@ export type PlanificacionMapaDistritosProps = {
   distritoCatalogo: DistritoCatalogoItem[];
   loadingCatalogo: boolean;
   distritoActivoId: number | null;
+  scopeOutsideDistricts?: boolean;
+  outsideDistrictsCount?: number;
   /** Nombre legible del distrito activo (catálogo / M2). */
   distritoActivoNombre?: string | null;
+  /** Si el contenedor del mapa está visible (para invalidateSize al volver de Asignación). */
+  mapLayoutActive?: boolean;
   onSelectDistrito: (distritoId: number | null) => void;
+  onSelectOutsideDistricts?: () => void;
   /** Pendientes del distrito (coords opcionales) para marcar solo con distrito elegido. */
   pendientesParaMapa?: IRutaIniciadorPendienteRow[];
   mapFocusIniciadorId?: number | null;
@@ -64,8 +70,12 @@ export function PlanificacionMapaDistritos({
   distritoCatalogo,
   loadingCatalogo,
   distritoActivoId,
+  scopeOutsideDistricts = false,
+  outsideDistrictsCount = 0,
   distritoActivoNombre,
+  mapLayoutActive = true,
   onSelectDistrito,
+  onSelectOutsideDistricts,
   pendientesParaMapa = [],
   mapFocusIniciadorId = null,
   mapPopupRow = null,
@@ -175,22 +185,10 @@ export function PlanificacionMapaDistritos({
               background: "rgba(26,29,34,0.92)",
               boxShadow: "none",
             },
-            "& .planif-distrito-num-inner": {
-              fontSize: "42px",
-              fontWeight: 800,
-              opacity: 0.26,
-              color: "#ffffff",
-              fontFamily: tactic,
-              lineHeight: 1,
-              textAlign: "center",
-              textShadow: "0 2px 12px rgba(0,0,0,0.6)",
-              pointerEvents: "none",
-              userSelect: "none",
-              minWidth: "1ch",
-            },
           }}
         >
           <MapContainer center={TUCUMAN_CENTER} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
+            <PlanificacionMapInvalidateSize active={mapLayoutActive} />
             <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
             <GeoJSON
               key={geoJsonKey}
@@ -212,7 +210,7 @@ export function PlanificacionMapaDistritos({
             <Pane name="planif-pendientes-pane" style={{ zIndex: 650 }}>
               <PlanificacionMapaPendientesLayer
                 rows={pendientesParaMapa}
-                visible={distritoActivoId != null}
+                visible={distritoActivoId != null || scopeOutsideDistricts}
                 focusIniciadorId={mapFocusIniciadorId}
                 popupRow={mapPopupRow}
                 flyToRow={mapFlyToRow}
@@ -242,6 +240,26 @@ export function PlanificacionMapaDistritos({
               alignItems: "flex-end",
             }}
           >
+            {onSelectOutsideDistricts ? (
+              <Box sx={{ pointerEvents: "auto" }}>
+                <Chip
+                  label={`Fuera de distritos (${outsideDistrictsCount})`}
+                  onClick={onSelectOutsideDistricts}
+                  color={scopeOutsideDistricts ? "primary" : "default"}
+                  variant={scopeOutsideDistricts ? "filled" : "outlined"}
+                  data-testid="planificacion-fuera-distritos-chip"
+                  sx={{
+                    fontFamily: tactic,
+                    fontWeight: 700,
+                    backgroundColor: scopeOutsideDistricts
+                      ? GLASS_COLORS.primary
+                      : "rgba(26,29,34,0.88)",
+                    color: scopeOutsideDistricts ? "#fff" : GLASS_COLORS.textPrimary,
+                    borderColor: GLASS_COLORS.borderMedium,
+                  }}
+                />
+              </Box>
+            ) : null}
             <Box sx={overlaySx}>
               <Typography
                 sx={{
@@ -255,7 +273,11 @@ export function PlanificacionMapaDistritos({
               >
                 Distrito
               </Typography>
-              {distritoActivoId == null ? (
+              {scopeOutsideDistricts ? (
+                <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
+                  Fuera de distritos
+                </Typography>
+              ) : distritoActivoId == null ? (
                 <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
                   Ninguno
                 </Typography>
@@ -308,7 +330,9 @@ export function PlanificacionMapaDistritos({
               <Typography
                 component="button"
                 type="button"
-                onClick={() => onSelectDistrito(null)}
+                onClick={() => {
+                  onSelectDistrito(null);
+                }}
                 sx={{
                   fontFamily: tactic,
                   fontSize: "0.68rem",

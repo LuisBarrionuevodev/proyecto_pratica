@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -31,6 +31,7 @@ import {
   rutasAsignacionNeutralContainedButtonSx,
   rutasInstitutionalPanelPaperSx,
 } from "../styles/institutionalVisual";
+import { reconcileSelectedIniciadorIds } from "../utils/poolAssignSync";
 
 export type RutasPlanificacionFilters = AsignacionPoolFilters;
 
@@ -102,6 +103,8 @@ export type RutasPlanificacionViewProps = {
   itemsCount: number;
   /** Filas del pool del día (orden fijo), ya filtradas para la tabla. */
   iniciadoresTabla: IRutaIniciadorPendienteRow[];
+  /** IDs de iniciadores disponibles en pool (sin asignar a grupo). */
+  poolDisponibleIniciadorIds: number[];
   totalEnPool: number;
   assignedIniciadorIds: Set<number>;
   filters: RutasPlanificacionFilters;
@@ -288,6 +291,7 @@ function RutasPlanificacionView({
   itemsActivos,
   itemsCount,
   iniciadoresTabla,
+  poolDisponibleIniciadorIds,
   totalEnPool,
   assignedIniciadorIds,
   filters,
@@ -314,6 +318,17 @@ function RutasPlanificacionView({
   const selectedIniciadorIdsRef = useRef<number[]>([]);
   selectedIniciadorIdsRef.current = selectedIniciadorIds;
 
+  useEffect(() => {
+    setSelectedIniciadorIds([]);
+  }, [ruta.id]);
+
+  useEffect(() => {
+    setSelectedIniciadorIds((prev) => {
+      const next = reconcileSelectedIniciadorIds(prev, poolDisponibleIniciadorIds);
+      return next.length === prev.length && next.every((id, i) => id === prev[i]) ? prev : next;
+    });
+  }, [poolDisponibleIniciadorIds]);
+
   const poolVacioSinItems = totalEnPool === 0 && itemsCount === 0;
   const poolVacioConItemsEnRuta = totalEnPool === 0 && itemsCount > 0;
 
@@ -332,13 +347,16 @@ function RutasPlanificacionView({
   /** Ref evita que `onConfirm` del modal cambie en cada tick de selección (memo del modal aprovecha). */
   const handleModalConfirm = useCallback(
     async (grupoId: number) => {
-      const ok = await onAssignIniciadoresToGrupo(grupoId, selectedIniciadorIdsRef.current);
+      const validPool = new Set(poolDisponibleIniciadorIds);
+      const idsParaAsignar = selectedIniciadorIdsRef.current.filter((id) => validPool.has(id));
+      if (idsParaAsignar.length === 0) return;
+      const ok = await onAssignIniciadoresToGrupo(grupoId, idsParaAsignar);
       if (ok) {
         setSelectedIniciadorIds([]);
         setOpenAsignarGrupo(false);
       }
     },
-    [onAssignIniciadoresToGrupo]
+    [onAssignIniciadoresToGrupo, poolDisponibleIniciadorIds]
   );
 
   return (

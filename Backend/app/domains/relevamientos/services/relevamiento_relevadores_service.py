@@ -20,16 +20,19 @@ def sync_relevamiento_relevadores(
 
     Parámetros:
         relevamiento: entidad persistida (con id).
-        relevador_ids: ids únicos (mínimo 1).
+        relevador_ids: exactamente un id único.
         requiere_activos: valida activos para nuevas asignaciones.
 
     Retorno:
-        Lista de relevadores asociados.
+        Lista de relevadores asociados (longitud 1).
 
     Errores:
-        ValueError: validación de catálogo.
+        ValueError: validación de catálogo o cardinalidad distinta de 1.
     """
-    relevadores = get_relevadores_o_falla(list(relevador_ids), requiere_activos=requiere_activos)
+    ids_list = list(relevador_ids)
+    if len(ids_list) != 1:
+        raise ValueError("Debe indicar exactamente un relevador.")
+    relevadores = get_relevadores_o_falla(ids_list, requiere_activos=requiere_activos)
     relevamiento.relevadores = relevadores
     db.session.flush()
     return relevadores

@@ -168,7 +168,16 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
     if "items_acta_inspeccion" in row.model_fields_set:
         items = row.items_acta_inspeccion or []
         payload["items_acta_inspeccion"] = [
-            {"item_id": int(i.item_id), "estado": str(i.estado)} for i in items
+            {
+                "item_id": int(i.item_id),
+                **({"estado": str(i.estado)} if i.estado is not None else {}),
+                **(
+                    {"valor_si_no": bool(i.valor_si_no)}
+                    if i.valor_si_no is not None
+                    else {}
+                ),
+            }
+            for i in items
         ]
     if "cantidad_personas_sin_carnet_sanidad" in row.model_fields_set:
         payload["cantidad_personas_sin_carnet_sanidad"] = row.cantidad_personas_sin_carnet_sanidad

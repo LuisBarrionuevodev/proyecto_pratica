@@ -1,0 +1,853 @@
+﻿{
+  "database": "digitaliza_sandbox",
+  "alembic": "l7m8n9o0p1q2",
+  "counts": {
+    "rubro": 1217,
+    "relevador": 2,
+    "juzgado_catalogo": 831,
+    "calle_catalogo": 744,
+    "inspector": 24,
+    "item_acta_inspeccion": 6,
+    "turno": 2,
+    "motivo": 3,
+    "catalog_motivo_comprobacion": 10,
+    "catalog_contraproducencia": 11,
+    "catalog_tipo_actuacion": 6,
+    "distrito": 20
+  },
+  "rubro_column": {
+    "Field": "nombre",
+    "Type": "varchar(128)",
+    "Collation": "utf8mb4_0900_ai_ci",
+    "Null": "NO",
+    "Key": "UNI",
+    "Default": null,
+    "Extra": "",
+    "Privileges": "select,insert,update,references",
+    "Comment": ""
+  },
+  "rubro_index": [
+    {
+      "Table": "rubro",
+      "Non_unique": 0,
+      "Key_name": "ix_rubro_nombre",
+      "Seq_in_index": 1,
+      "Column_name": "nombre",
+      "Collation": "A",
+      "Cardinality": 1190,
+      "Sub_part": null,
+      "Packed": null,
+      "Null": "",
+      "Index_type": "BTREE",
+      "Comment": "",
+      "Index_comment": "",
+      "Visible": "YES",
+      "Expression": null
+    }
+  ],
+  "heladeria": {
+    "canonical": "HeladerÝa",
+    "canonical_repr": "'HeladerÝa'",
+    "canonical_hex": "48656c61646572c3ad61",
+    "canonical_nfc_hex": "48656c61646572c3ad61",
+    "canonical_nfd_hex": "48656c6164657269cc8161",
+    "normalize_key": "heladerÝa",
+    "candidates": [
+      {
+        "id": 28,
+        "nombre": "Heladeria",
+        "length": 9,
+        "char_length": 9,
+        "hex_nombre": "48656C616465726961"
+      }
+    ]
+  },
+  "rubros_29": [
+    {
+      "canonical_name": "Comestibles",
+      "canonical_key": "comestibles",
+      "canonical_repr": "'Comestibles'",
+      "canonical_hex": "436f6d65737469626c6573",
+      "match_type": "EXACT",
+      "exact_match_id": 1,
+      "db_equivalent_ids": [
+        1
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 1,
+          "nombre": "Comestibles",
+          "repr": "'Comestibles'",
+          "hex": "436f6d65737469626c6573",
+          "length": 11,
+          "char_length": 11
+        }
+      ]
+    },
+    {
+      "canonical_name": "CarnicerÝa",
+      "canonical_key": "carnicerÝa",
+      "canonical_repr": "'CarnicerÝa'",
+      "canonical_hex": "4361726e69636572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 2,
+      "db_equivalent_ids": [
+        2
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 2,
+          "nombre": "CarnicerÝa",
+          "repr": "'CarnicerÝa'",
+          "hex": "4361726e69636572c3ad61",
+          "length": 11,
+          "char_length": 10
+        }
+      ]
+    },
+    {
+      "canonical_name": "Drugstore",
+      "canonical_key": "drugstore",
+      "canonical_repr": "'Drugstore'",
+      "canonical_hex": "4472756773746f7265",
+      "match_type": "EXACT",
+      "exact_match_id": 3,
+      "db_equivalent_ids": [
+        3
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 3,
+          "nombre": "Drugstore",
+          "repr": "'Drugstore'",
+          "hex": "4472756773746f7265",
+          "length": 9,
+          "char_length": 9
+        }
+      ]
+    },
+    {
+      "canonical_name": "Kiosco",
+      "canonical_key": "kiosco",
+      "canonical_repr": "'Kiosco'",
+      "canonical_hex": "4b696f73636f",
+      "match_type": "EXACT",
+      "exact_match_id": 4,
+      "db_equivalent_ids": [
+        4
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 4,
+          "nombre": "Kiosco",
+          "repr": "'Kiosco'",
+          "hex": "4b696f73636f",
+          "length": 6,
+          "char_length": 6
+        }
+      ]
+    },
+    {
+      "canonical_name": "Supermercado",
+      "canonical_key": "supermercado",
+      "canonical_repr": "'Supermercado'",
+      "canonical_hex": "53757065726d65726361646f",
+      "match_type": "EXACT",
+      "exact_match_id": 5,
+      "db_equivalent_ids": [
+        5
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 5,
+          "nombre": "Supermercado",
+          "repr": "'Supermercado'",
+          "hex": "53757065726d65726361646f",
+          "length": 12,
+          "char_length": 12
+        }
+      ]
+    },
+    {
+      "canonical_name": "PollerÝa",
+      "canonical_key": "pollerÝa",
+      "canonical_repr": "'PollerÝa'",
+      "canonical_hex": "506f6c6c6572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 6,
+      "db_equivalent_ids": [
+        6
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 6,
+          "nombre": "PollerÝa",
+          "repr": "'PollerÝa'",
+          "hex": "506f6c6c6572c3ad61",
+          "length": 9,
+          "char_length": 8
+        }
+      ]
+    },
+    {
+      "canonical_name": "PescaderÝa",
+      "canonical_key": "pescaderÝa",
+      "canonical_repr": "'PescaderÝa'",
+      "canonical_hex": "5065736361646572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 7,
+      "db_equivalent_ids": [
+        7
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 7,
+          "nombre": "PescaderÝa",
+          "repr": "'PescaderÝa'",
+          "hex": "5065736361646572c3ad61",
+          "length": 11,
+          "char_length": 10
+        }
+      ]
+    },
+    {
+      "canonical_name": "Bar",
+      "canonical_key": "bar",
+      "canonical_repr": "'Bar'",
+      "canonical_hex": "426172",
+      "match_type": "EXACT",
+      "exact_match_id": 8,
+      "db_equivalent_ids": [
+        8
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 8,
+          "nombre": "Bar",
+          "repr": "'Bar'",
+          "hex": "426172",
+          "length": 3,
+          "char_length": 3
+        }
+      ]
+    },
+    {
+      "canonical_name": "CervecerÝa",
+      "canonical_key": "cervecerÝa",
+      "canonical_repr": "'CervecerÝa'",
+      "canonical_hex": "4365727665636572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 9,
+      "db_equivalent_ids": [
+        9
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 9,
+          "nombre": "CervecerÝa",
+          "repr": "'CervecerÝa'",
+          "hex": "4365727665636572c3ad61",
+          "length": 11,
+          "char_length": 10
+        }
+      ]
+    },
+    {
+      "canonical_name": "RotiserÝa",
+      "canonical_key": "rotiserÝa",
+      "canonical_repr": "'RotiserÝa'",
+      "canonical_hex": "526f7469736572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 10,
+      "db_equivalent_ids": [
+        10
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 10,
+          "nombre": "RotiserÝa",
+          "repr": "'RotiserÝa'",
+          "hex": "526f7469736572c3ad61",
+          "length": 10,
+          "char_length": 9
+        }
+      ]
+    },
+    {
+      "canonical_name": "CafeterÝa",
+      "canonical_key": "cafeterÝa",
+      "canonical_repr": "'CafeterÝa'",
+      "canonical_hex": "43616665746572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 11,
+      "db_equivalent_ids": [
+        11
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 11,
+          "nombre": "CafeterÝa",
+          "repr": "'CafeterÝa'",
+          "hex": "43616665746572c3ad61",
+          "length": 10,
+          "char_length": 9
+        }
+      ]
+    },
+    {
+      "canonical_name": "VerdulerÝa",
+      "canonical_key": "verdulerÝa",
+      "canonical_repr": "'VerdulerÝa'",
+      "canonical_hex": "56657264756c6572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 12,
+      "db_equivalent_ids": [
+        12
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 12,
+          "nombre": "VerdulerÝa",
+          "repr": "'VerdulerÝa'",
+          "hex": "56657264756c6572c3ad61",
+          "length": 11,
+          "char_length": 10
+        }
+      ]
+    },
+    {
+      "canonical_name": "PanaderÝa",
+      "canonical_key": "panaderÝa",
+      "canonical_repr": "'PanaderÝa'",
+      "canonical_hex": "50616e61646572c3ad61",
+      "match_type": "EXACT",
+      "exact_match_id": 13,
+      "db_equivalent_ids": [
+        13
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 13,
+          "nombre": "PanaderÝa",
+          "repr": "'PanaderÝa'",
+          "hex": "50616e61646572c3ad61",
+          "length": 10,
+          "char_length": 9
+        }
+      ]
+    },
+    {
+      "canonical_name": "Venta de Comidas",
+      "canonical_key": "venta de comidas",
+      "canonical_repr": "'Venta de Comidas'",
+      "canonical_hex": "56656e746120646520436f6d69646173",
+      "match_type": "EXACT",
+      "exact_match_id": 25,
+      "db_equivalent_ids": [
+        25
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 25,
+          "nombre": "Venta de Comidas",
+          "repr": "'Venta de Comidas'",
+          "hex": "56656e746120646520436f6d69646173",
+          "length": 16,
+          "char_length": 16
+        }
+      ]
+    },
+    {
+      "canonical_name": "Frutas",
+      "canonical_key": "frutas",
+      "canonical_repr": "'Frutas'",
+      "canonical_hex": "467275746173",
+      "match_type": "EXACT",
+      "exact_match_id": 1688,
+      "db_equivalent_ids": [
+        1688
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 1688,
+          "nombre": "Frutas",
+          "repr": "'Frutas'",
+          "hex": "467275746173",
+          "length": 6,
+          "char_length": 6
+        }
+      ]
+    },
+    {
+      "canonical_name": "HeladerÝa",
+      "canonical_key": "heladerÝa",
+      "canonical_repr": "'HeladerÝa'",
+      "canonical_hex": "48656c61646572c3ad61",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "SangucherÝa",
+      "canonical_key": "sangucherÝa",
+      "canonical_repr": "'SangucherÝa'",
+      "canonical_hex": "53616e677563686572c3ad61",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "Restaurante",
+      "canonical_key": "restaurante",
+      "canonical_repr": "'Restaurante'",
+      "canonical_hex": "52657374617572616e7465",
+      "match_type": "EXACT",
+      "exact_match_id": 224,
+      "db_equivalent_ids": [
+        224
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 224,
+          "nombre": "Restaurante",
+          "repr": "'Restaurante'",
+          "hex": "52657374617572616e7465",
+          "length": 11,
+          "char_length": 11
+        }
+      ]
+    },
+    {
+      "canonical_name": "Distribuidora",
+      "canonical_key": "distribuidora",
+      "canonical_repr": "'Distribuidora'",
+      "canonical_hex": "446973747269627569646f7261",
+      "match_type": "NORMALIZED_EQUIVALENT",
+      "exact_match_id": null,
+      "db_equivalent_ids": [
+        27
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 27,
+          "nombre": "Distribuidora ",
+          "repr": "'Distribuidora '",
+          "hex": "446973747269627569646f726120",
+          "length": 14,
+          "char_length": 14
+        }
+      ]
+    },
+    {
+      "canonical_name": "PancherÝa",
+      "canonical_key": "pancherÝa",
+      "canonical_repr": "'PancherÝa'",
+      "canonical_hex": "50616e63686572c3ad61",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "Pan",
+      "canonical_key": "pan",
+      "canonical_repr": "'Pan'",
+      "canonical_hex": "50616e",
+      "match_type": "EXACT",
+      "exact_match_id": 20,
+      "db_equivalent_ids": [
+        20
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 20,
+          "nombre": "Pan",
+          "repr": "'Pan'",
+          "hex": "50616e",
+          "length": 3,
+          "char_length": 3
+        }
+      ]
+    },
+    {
+      "canonical_name": "Pollo",
+      "canonical_key": "pollo",
+      "canonical_repr": "'Pollo'",
+      "canonical_hex": "506f6c6c6f",
+      "match_type": "EXACT",
+      "exact_match_id": 1790,
+      "db_equivalent_ids": [
+        1790
+      ],
+      "db_equivalent_samples": [
+        {
+          "id": 1790,
+          "nombre": "Pollo",
+          "repr": "'Pollo'",
+          "hex": "506f6c6c6f",
+          "length": 5,
+          "char_length": 5
+        }
+      ]
+    },
+    {
+      "canonical_name": "FiambrerÝa",
+      "canonical_key": "fiambrerÝa",
+      "canonical_repr": "'FiambrerÝa'",
+      "canonical_hex": "4669616d62726572c3ad61",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "ConfiterÝa",
+      "canonical_key": "confiterÝa",
+      "canonical_repr": "'ConfiterÝa'",
+      "canonical_hex": "436f6e6669746572c3ad61",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "DietÚtica",
+      "canonical_key": "dietÚtica",
+      "canonical_repr": "'DietÚtica'",
+      "canonical_hex": "44696574c3a974696361",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "Elaboraci¾n de empanadas",
+      "canonical_key": "elaboraci¾n de empanadas",
+      "canonical_repr": "'Elaboraci¾n de empanadas'",
+      "canonical_hex": "456c61626f72616369c3b36e20646520656d70616e61646173",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "Comedor",
+      "canonical_key": "comedor",
+      "canonical_repr": "'Comedor'",
+      "canonical_hex": "436f6d65646f72",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "LicorerÝa",
+      "canonical_key": "licorerÝa",
+      "canonical_repr": "'LicorerÝa'",
+      "canonical_hex": "4c69636f726572c3ad61",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    },
+    {
+      "canonical_name": "Minimercado",
+      "canonical_key": "minimercado",
+      "canonical_repr": "'Minimercado'",
+      "canonical_hex": "4d696e696d65726361646f",
+      "match_type": "MISSING",
+      "exact_match_id": null,
+      "db_equivalent_ids": [],
+      "db_equivalent_samples": []
+    }
+  ],
+  "rubros_summary": {
+    "EXACT": 18,
+    "NORMALIZED_EQUIVALENT": 1,
+    "MISSING": 10,
+    "AMBIGUOUS_MULTIPLE": 0
+  },
+  "missing_rubros_list": [
+    "HeladerÝa",
+    "SangucherÝa",
+    "PancherÝa",
+    "FiambrerÝa",
+    "ConfiterÝa",
+    "DietÚtica",
+    "Elaboraci¾n de empanadas",
+    "Comedor",
+    "LicorerÝa",
+    "Minimercado"
+  ],
+  "dry_run_would_create_rubros": [
+    "HeladerÝa",
+    "SangucherÝa",
+    "PancherÝa",
+    "FiambrerÝa",
+    "ConfiterÝa",
+    "DietÚtica",
+    "Elaboraci¾n de empanadas",
+    "Comedor",
+    "LicorerÝa",
+    "Minimercado"
+  ],
+  "validate_missing_count": 10,
+  "relevadores_10": [
+    {
+      "canonical": "Fabian Esquivel",
+      "match_type": "EXACT",
+      "ids": [
+        1
+      ],
+      "rows": [
+        {
+          "id": 1,
+          "nombre": "Fabian Esquivel",
+          "activo": 1
+        }
+      ]
+    },
+    {
+      "canonical": "Oscar Medina",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Juan Saravia",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Biscardi Roberto",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Molina Antonio",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Guillermo Gonzalez",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Sergio Castillo",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Cecilia Carrizo",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Gutierrez Alvaro",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    },
+    {
+      "canonical": "Walter Peralta",
+      "match_type": "MISSING",
+      "ids": [],
+      "rows": []
+    }
+  ],
+  "juzgados_15": [
+    {
+      "codigo": "JF1",
+      "nombre_canon": "Juzgado de Faltas N░ I",
+      "match_type": "SAME_ENTITY_NAME_DRIFT",
+      "by_code": [
+        {
+          "id": 1,
+          "codigo": "JF1",
+          "nombre": "Juzgado de Faltas N░ 1"
+        }
+      ],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF2",
+      "nombre_canon": "Juzgado de Faltas N░ II",
+      "match_type": "SAME_ENTITY_NAME_DRIFT",
+      "by_code": [
+        {
+          "id": 2,
+          "codigo": "JF2",
+          "nombre": "Juzgado de Faltas N░ 2"
+        }
+      ],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF3",
+      "nombre_canon": "Juzgado de Faltas N░ III",
+      "match_type": "SAME_ENTITY_NAME_DRIFT",
+      "by_code": [
+        {
+          "id": 3,
+          "codigo": "JF3",
+          "nombre": "Juzgado de Faltas N░ 3"
+        }
+      ],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF4",
+      "nombre_canon": "Juzgado de Faltas N░ IV",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF5",
+      "nombre_canon": "Juzgado de Faltas N░ V",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF6",
+      "nombre_canon": "Juzgado de Faltas N░ VI",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF7",
+      "nombre_canon": "Juzgado de Faltas N░ VII",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF8",
+      "nombre_canon": "Juzgado de Faltas N░ VIII",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF9",
+      "nombre_canon": "Juzgado de Faltas N░ IX",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF10",
+      "nombre_canon": "Juzgado de Faltas N░ X",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF11",
+      "nombre_canon": "Juzgado de Faltas N░ XI",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF12",
+      "nombre_canon": "Juzgado de Faltas N░ XII",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF13",
+      "nombre_canon": "Juzgado de Faltas N░ XIII",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF14",
+      "nombre_canon": "Juzgado de Faltas N░ XIV",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    },
+    {
+      "codigo": "JF15",
+      "nombre_canon": "Juzgado de Faltas N░ XV",
+      "match_type": "MISSING",
+      "by_code": [],
+      "by_name_other_code": []
+    }
+  ],
+  "juzgado_jf_rows": [
+    {
+      "id": 1,
+      "codigo": "JF1",
+      "nombre": "Juzgado de Faltas N░ 1"
+    },
+    {
+      "id": 2,
+      "codigo": "JF2",
+      "nombre": "Juzgado de Faltas N░ 2"
+    },
+    {
+      "id": 3,
+      "codigo": "JF3",
+      "nombre": "Juzgado de Faltas N░ 3"
+    }
+  ],
+  "calles": {
+    "db_total": 744,
+    "csv_canonical_total": 740,
+    "exact_key_match": 732,
+    "missing_by_key": 8,
+    "dry_run_reports_create_all_csv_lines": 740,
+    "missing_samples": [
+      {
+        "canon": "Batalla de Chacabuco",
+        "key": "batalla de chacabuco"
+      },
+      {
+        "canon": "General Jose Maria Paz",
+        "key": "general jose maria paz"
+      },
+      {
+        "canon": "CalleCat Canon 708932",
+        "key": "callecat canon 708932"
+      },
+      {
+        "canon": "Main Canon 444592",
+        "key": "main canon 444592"
+      },
+      {
+        "canon": "Esquina Canon 495353",
+        "key": "esquina canon 495353"
+      }
+    ],
+    "note": "dry-run seed_calles counts CSV lines, not DB diff"
+  },
+  "seed_rubros_pending_inserts": [
+    "HeladerÝa",
+    "SangucherÝa",
+    "PancherÝa",
+    "FiambrerÝa",
+    "ConfiterÝa",
+    "DietÚtica",
+    "Elaboraci¾n de empanadas",
+    "Comedor",
+    "LicorerÝa",
+    "Minimercado"
+  ],
+  "first_pending_insert": "HeladerÝa",
+  "heladeria_position_in_pending": 0
+}

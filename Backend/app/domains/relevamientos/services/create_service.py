@@ -60,14 +60,16 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
         raise ValueError("Relevador obligatorio.")
     if not calle or not numero:
         raise ValueError("Calle y número son obligatorios.")
-    if not rubro_nombre:
-        raise ValueError("Rubro obligatorio.")
 
     mes, anio, fecha = parse_fecha_grid(fecha_raw)
     if relevador_ids:
+        if len(relevador_ids) != 1:
+            raise ValueError("Debe indicar exactamente un relevador.")
         relevadores = get_relevadores_o_falla(relevador_ids)
     else:
         relevadores = resolve_relevador_nombres_o_falla(relevadores_nombres)
+        if len(relevadores) != 1:
+            raise ValueError("Debe indicar exactamente un relevador.")
     rubro = get_rubro_o_falla(rubro_nombre)
     dom_payload = {
         "calle": calle,

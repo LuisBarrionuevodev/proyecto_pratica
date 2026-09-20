@@ -69,18 +69,27 @@ def test_crear_relevamiento_un_relevador(require_rel_migration) -> None:
     assert created.inspector_id is None
 
 
-def test_crear_relevamiento_varios_relevadores(require_rel_migration) -> None:
+def test_crear_relevamiento_varios_relevadores_rechazado(require_rel_migration) -> None:
     r1 = get_or_create_test_relevador()
     r2 = _crear_segundo_relevador()
     rub = get_test_rubro()
+    with pytest.raises(ValidationError):
+        RelevamientoGridRowIn.model_validate(
+            {
+                "relevador": f"{r1.nombre}, {r2.nombre}",
+                "calle": uniq("RelN"),
+                "numero": "201",
+                "rubro": rub.nombre,
+            }
+        )
     payload = relevamiento_create_payload(
-        calle=uniq("RelN"),
-        numero="201",
+        calle=uniq("RelN2"),
+        numero="202",
         rubro=rub.nombre,
         relevadores_nombres=[r1.nombre, r2.nombre],
     )
-    created = crear_relevamiento_desde_payload(payload)
-    assert {r.id for r in created.relevadores} == {r1.id, r2.id}
+    with pytest.raises(ValueError, match="exactamente un relevador"):
+        crear_relevamiento_desde_payload(payload)
 
 
 def test_sin_relevador_422(require_rel_migration) -> None:
@@ -151,9 +160,12 @@ def test_presenter_relevadores_label(require_rel_migration) -> None:
             calle=uniq("Lbl"),
             numero="203",
             rubro=rub.nombre,
-            relevadores_nombres=[r1.nombre, r2.nombre],
+            relevador_nombre=r1.nombre,
         )
     )
+    created.relevadores.append(r2)
+    db.session.add(created)
+    db.session.commit()
     row = relevamiento_to_row(created)
     assert " · " in (row["relevadores_label"] or "")
     assert len(row["relevadores"]) == 2

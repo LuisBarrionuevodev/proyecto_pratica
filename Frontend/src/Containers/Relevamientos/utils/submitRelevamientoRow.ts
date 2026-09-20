@@ -8,6 +8,19 @@ import {
 } from "../../../utils/domicilioCalleUi";
 import { applyEstablecimientoCamposToPayload } from "./relevamientoCamposForm";
 
+/** Campos editables del PUT de gestión (paridad con batch). */
+export type RelevamientoUpdatePayload = {
+  turno?: string | null;
+  relevador_ids?: number[];
+  calle?: string | null;
+  numero?: string | null;
+  numero_tipo?: string | null;
+  angulo_esquina?: string | null;
+  rubro?: string | null;
+  nombre_fantasia?: string | null;
+  esta_abierto?: boolean | null;
+};
+
 /** Campos de solo lectura / display que no deben ir al PUT. */
 const RELEVAMIENTO_PUT_OMIT_KEYS = [
   "calle_normalizada",
@@ -94,7 +107,6 @@ export function normalizeRelevamientoRowErrors(errors?: Record<string, string>):
 export function buildRelevamientoGridRow(row: IRelevamientoListItem) {
   return {
     ID: row.id,
-    Fecha: row.fecha,
     Relevador:
       row.relevadores?.map((r) => r.nombre).join(", ") ??
       row.relevadores_label ??
@@ -111,6 +123,31 @@ export function buildRelevamientoGridRow(row: IRelevamientoListItem) {
 }
 
 /**
+ * Payload explícito para PUT /relevamientos/{id}.
+ * No incluye fecha, DTO de lectura ni campos display-only.
+ */
+export function buildRelevamientoUpdatePayload(
+  row: IRelevamientoListItem,
+  options?: { omitRelevador?: boolean }
+): RelevamientoUpdatePayload {
+  const normalized = applyRelevamientoDomicilioSubmitGuard(normalizeRelevamientoRowForApi(row));
+  const payload: RelevamientoUpdatePayload = {
+    turno: normalized.turno ?? null,
+    calle: normalized.calle ?? null,
+    numero: normalized.numero ?? null,
+    numero_tipo: normalized.numero_tipo ?? null,
+    angulo_esquina: normalized.angulo_esquina ?? null,
+    rubro: normalized.rubro ?? null,
+    nombre_fantasia: normalized.nombre_fantasia ?? null,
+    esta_abierto: normalized.esta_abierto ?? null,
+  };
+  if (!options?.omitRelevador && normalized.relevador_ids?.length === 1) {
+    payload.relevador_ids = [normalized.relevador_ids[0]];
+  }
+  return payload;
+}
+
+/**
  * Normaliza valores de edición (selects MRT) al shape que acepta el API.
  */
 export function normalizeRelevamientoRowForApi(row: IRelevamientoListItem): IRelevamientoListItem {
@@ -123,6 +160,7 @@ export function normalizeRelevamientoRowForApi(row: IRelevamientoListItem): IRel
   else if (ea === "No" || ea === "no") copy.esta_abierto = false;
   else if (ea === "" || ea === undefined) copy.esta_abierto = null;
   if (copy.turno === "") copy.turno = null;
+  if (copy.rubro === "" || copy.rubro === undefined) copy.rubro = null;
   return copy;
 }
 
@@ -202,7 +240,13 @@ export async function submitRelevamientoRow(
     }
 
     if (!skipUpdate) {
-      await updateRelevamiento(id, fullRow as any);
+      const legacyMultiRelevador =
+        (originalRow?.relevadores?.length ?? 0) > 1 ||
+        (originalRow?.relevador_ids?.length ?? 0) > 1;
+      const updatePayload = buildRelevamientoUpdatePayload(fullRow, {
+        omitRelevador: legacyMultiRelevador,
+      });
+      await updateRelevamiento(id, updatePayload as any);
     }
 
     if (onAfterSave) {
