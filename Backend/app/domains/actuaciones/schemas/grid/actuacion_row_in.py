@@ -173,8 +173,11 @@ class ActuacionGridRowIn(BaseModel):
             return int(s)
         raise ValueError("id inválido")
 
+    # Modo histórico: solo acta de comprobación (sin OT/domicilio/contribuyente formal).
+    carga_solo_comprobacion: bool = False
+
     # OT y fecha
-    orden_trabajo_numero: str = Field(..., min_length=1)
+    orden_trabajo_numero: Optional[str] = None
     fecha_actuacion: date
 
     # Catálogos / clasificación
@@ -344,6 +347,20 @@ class ActuacionGridRowIn(BaseModel):
         # Regla: campos numéricos deben contener solo dígitos
         return _only_digits(v)
 
+    @field_validator("carga_solo_comprobacion", mode="before")
+    @classmethod
+    def parse_carga_solo_comprobacion(cls, v: Any) -> bool:
+        if v is None or v == "":
+            return False
+        if isinstance(v, bool):
+            return v
+        s = str(v).strip().lower()
+        if s in ("1", "true", "yes", "si", "sí", "on"):
+            return True
+        if s in ("0", "false", "no", "off"):
+            return False
+        raise ValueError("carga_solo_comprobacion inválido.")
+
     @field_validator("fecha_actuacion", mode="before")
     @classmethod
     def parse_fecha(cls, v: Any) -> date:
@@ -429,6 +446,79 @@ class ActuacionGridRowIn(BaseModel):
             return s
         raise ValueError("numero_tipo inválido.")
 
+    def _es_historica(self, ctx: Dict[str, Any]) -> bool:
+        return bool(self.carga_solo_comprobacion or ctx.get("carga_solo_comprobacion"))
+
+    def _validar_rama_historica(self) -> Dict[str, str]:
+        field_errors: Dict[str, str] = {}
+
+        def _present(v: Any) -> bool:
+            if v is None:
+                return False
+            if isinstance(v, str):
+                return bool(v.strip())
+            if isinstance(v, list):
+                return len(v) > 0
+            if isinstance(v, (int, float)):
+                return True
+            return bool(v)
+
+        forbidden: Dict[str, str] = {
+            "orden_trabajo_numero": "Orden de trabajo",
+            "doc_nro": "DNI",
+            "rubro_nombre": "Rubro",
+            "nombre_local": "Nombre local",
+            "tipo_actuacion": "Tipo actuación",
+            "contraproducencia": "Contraproducencia",
+            "acta_inspeccion_num": "Acta inspección",
+            "acta_notificacion_num": "Acta notificación",
+            "acta_clausura_num": "Acta clausura",
+            "acta_decomiso_num": "Acta decomiso",
+            "notificacion_previa_num": "Acta notificación previa",
+            "comprobacion_previa_num": "Acta comprobación previa",
+        }
+        for key, label in forbidden.items():
+            if _present(getattr(self, key, None)):
+                field_errors[key] = f"{label} no es compatible con carga histórica solo comprobación."
+
+        if _present(self.items_acta_inspeccion):
+            field_errors["items_acta_inspeccion"] = (
+                "Condiciones de inspección no son compatibles con carga histórica solo comprobación."
+            )
+        if _present(self.cantidad_personas_sin_carnet_sanidad):
+            field_errors["cantidad_personas_sin_carnet_sanidad"] = (
+                "Personas sin carnet no es compatible con carga histórica solo comprobación."
+            )
+        if any(_present(x) for x in (self.notificacion_motivo_1, self.notificacion_motivo_2, self.notificacion_motivo_3)):
+            field_errors["notificacion_motivo_1"] = (
+                "Motivos de notificación no son compatibles con carga histórica solo comprobación."
+            )
+        if self.decomiso_kilos_total is not None:
+            field_errors["decomiso_kilos_total"] = (
+                "Kilos decomiso no es compatible con carga histórica solo comprobación."
+            )
+
+        if not self.inspectores_resueltos():
+            field_errors["inspectores"] = "Seleccione al menos un inspector."
+        if not self.acta_comprobacion_num:
+            field_errors["acta_comprobacion_num"] = "Ingrese el número de acta de comprobación."
+        if not self.comprobacion_motivo:
+            field_errors["comprobacion_motivo"] = "Seleccione el motivo del acta de comprobación."
+
+        if not self.calle:
+            field_errors["calle"] = "Ingrese la calle."
+        if not self.numero:
+            field_errors["numero"] = "Ingrese el número."
+
+        has_persona = bool(self.contrib_nombre and self.contrib_apellido)
+        has_razon = bool(self.razon_social)
+        if has_persona and has_razon:
+            field_errors["razon_social"] = "Ingrese nombre y apellido o razón social, no ambos."
+        elif not has_persona and not has_razon:
+            field_errors["contrib_apellido"] = "Ingrese nombre y apellido o razón social."
+
+        return field_errors
+
     # ---------- Reglas de negocio (after, errores por celda) ----------
     @model_validator(mode="after")
     def reglas_negocio_base(self, info: ValidationInfo) -> "ActuacionGridRowIn":
@@ -438,6 +528,21 @@ class ActuacionGridRowIn(BaseModel):
         )
 
         field_errors: Dict[str, str] = {}
+
+        if self._es_historica(ctx):
+            field_errors.update(self._validar_rama_historica())
+            if field_errors:
+                _raise_field_errors(self.__class__.__name__, field_errors)
+            return self
+
+        if self.carga_solo_comprobacion:
+            field_errors["carga_solo_comprobacion"] = (
+                "No se puede convertir una actuación normal en histórica."
+            )
+            _raise_field_errors(self.__class__.__name__, field_errors)
+
+        if not self.orden_trabajo_numero:
+            field_errors["orden_trabajo_numero"] = "Orden de trabajo es obligatoria."
         # Canal actas: prohibido cargar aquí oficio ni expediente administrativo
         if self.expediente_numero or self.expediente_anio is not None:
             field_errors["expediente_numero"] = (

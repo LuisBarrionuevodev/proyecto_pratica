@@ -16,16 +16,6 @@ from app.domains.indicadores.diagnostics.oper_analytics_golden import (
 from tests.oper_analytics_golden_fixtures import periodo_golden, seed_golden_world
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_golden_universo_canonico_y_exclusiones(app_ctx) -> None:
     """Solo intentos FINALIZADOS con ejecución REALIZADO/NO_REALIZADO entran al universo."""
     try:

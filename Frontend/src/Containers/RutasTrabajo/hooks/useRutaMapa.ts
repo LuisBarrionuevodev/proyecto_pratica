@@ -31,7 +31,8 @@ export function grupoColorAccent(grupoId: number): string {
   return `hsl(${(grupoId * 61) % 360} 75% 58%)`;
 }
 
-function ordenTrabajoLabel(item: IRutaItemMin): string | null {
+function ordenTrabajoLabel(item: IRutaItemMin, rutaPublicada: boolean): string | null {
+  if (!rutaPublicada) return null;
   const ot = item.orden_trabajo;
   if (!ot) return null;
   return `O. trabajo ${ot.numero_acta} · ${String(ot.mes).padStart(2, "0")}/${ot.anio}`;
@@ -56,7 +57,8 @@ function inspectoresFilasDesdeGrupo(g: IRutaGrupoMin): RutaMapaInspectorFila[] {
 export function useRutaMapa(
   grupos: IRutaGrupoMin[],
   itemsActivos: IRutaItemMin[],
-  iniciadorById: Record<number, IRutaIniciadorPendienteRow>
+  iniciadorById: Record<number, IRutaIniciadorPendienteRow>,
+  rutaPublicada: boolean = false
 ): UseRutaMapaResult {
   return useMemo(() => {
     const mapCenter: [number, number] = [-26.8241, -65.2226];
@@ -93,7 +95,7 @@ export function useRutaMapa(
           distritoNombre: distritoFull,
           geoStatus: geoRaw,
           geoStatusLabel: humanizarGeoStatus(geoRaw),
-          ordenTrabajoLabel: ordenTrabajoLabel(it),
+          ordenTrabajoLabel: ordenTrabajoLabel(it, rutaPublicada),
           tipoIniciadorLabel,
         };
       });
@@ -209,5 +211,5 @@ export function useRutaMapa(
       avisoCoordenadas,
       resumenTerritorial,
     };
-  }, [grupos, itemsActivos, iniciadorById]);
+  }, [grupos, itemsActivos, iniciadorById, rutaPublicada]);
 }

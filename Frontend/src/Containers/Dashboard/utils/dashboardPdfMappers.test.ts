@@ -34,16 +34,6 @@ const fullPayload: DashboardExportPayload = {
       decomiso: 1,
     },
   },
-  pendientes: {
-    kpis: {
-      relevamientos_pendientes: 1,
-      reinspecciones_oficio_pendientes: 2,
-      reinspecciones_notificacion_pendientes: 3,
-      denuncias_pendientes: 4,
-      pendientes_geolocalizacion: 5,
-    },
-    distritos_con_mas_pendientes: [],
-  },
   actasPorTipo: {
     inspeccion: 2,
     notificacion: 1,
@@ -51,7 +41,6 @@ const fullPayload: DashboardExportPayload = {
     clausura: 0,
     decomiso: 1,
   },
-  pendientesDistritos: [],
   riesgo: {
     top_rubros: [{ rubro: "Panadería", cantidad: 3 }],
     top_motivos_notificacion: [{ motivo: "Habilitación", cantidad: 2 }],
@@ -107,9 +96,7 @@ const emptyPayload: DashboardExportPayload = {
   },
   resumenKpis: [],
   ejecutivo: null,
-  pendientes: null,
   actasPorTipo: null,
-  pendientesDistritos: [],
   riesgo: null,
   mercaderiaDecomisadaKg: null,
   noRealizadas: null,
@@ -118,7 +105,7 @@ const emptyPayload: DashboardExportPayload = {
 };
 
 describe("buildDashboardPdfModel", () => {
-  it("arma secciones con KPIs ejecutivos y pendientes", () => {
+  it("arma secciones con KPIs ejecutivos", () => {
     const model = buildDashboardPdfModel(
       fullPayload,
       "2026-01-01",
@@ -129,7 +116,6 @@ describe("buildDashboardPdfModel", () => {
     expect(model.title).toBe("Informe de Indicadores Operativos");
     expect(model.ejecutivoKpis).toHaveLength(8);
     expect(model.ejecutivoKpis.find((k) => k.label.includes("oficio realizadas"))?.value).toBe("3");
-    expect(model.pendientesKpis).toHaveLength(3);
     expect(model.distritoLabel).toBe("Centro");
     expect(model.inspectorLabel).toBe("García");
   });
@@ -163,7 +149,6 @@ describe("buildDashboardPdfModel", () => {
       "01/01/2026 al 07/01/2026"
     );
     expect(model.ejecutivoKpis).toHaveLength(0);
-    expect(model.pendientesKpis).toHaveLength(0);
     expect(model.actasPorTipo.rows).toHaveLength(0);
     expect(model.riesgoRubros.rows).toHaveLength(0);
     expect(model.noRealizadasTotal).toBeNull();

@@ -111,3 +111,9 @@ def test_login_publico_sin_jwt(client):
 def test_post_guardar_nomenclatura_sin_jwt_401(client):
     resp = client.post("/geolocalizacion/calles/guardar-nomenclatura/1", json={})
     assert resp.status_code == 401
+
+
+def test_post_declarar_sin_expediente_sin_jwt_401(client):
+    resp = client.post("/actuaciones/1/comprobacion/declarar-sin-expediente-envio")
+    assert resp.status_code == 401
+    assert "detail" in (resp.get_json() or {})

@@ -19,6 +19,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_reinspeccion_comprobacion_por_actuacion_id,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
@@ -73,7 +74,8 @@ def get_pendientes_notificacion():
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
 
     if materializacion_notificacion_vencida_on_read_enabled():
-        sync_iniciadores_reinspeccion_notificacion()
+        actor_user_id = get_current_user_id()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=actor_user_id)
 
     query_timer = PerfTimer()
     acts = list_reinspeccion_notificacion_operativas(

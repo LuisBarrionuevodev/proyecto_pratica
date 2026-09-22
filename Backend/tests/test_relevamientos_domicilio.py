@@ -27,16 +27,6 @@ def _uniq(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex[:8]}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _relevador_y_rubro() -> tuple[Relevador, Rubro]:
     return get_or_create_test_relevador(), get_test_rubro()
 
@@ -124,7 +114,7 @@ def test_denuncia_sigue_creando_domicilio(app_ctx) -> None:
 
     calle = _uniq("DenDomHotfix")
     with patch(
-        "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+        "app.domains.denuncias.services.denuncias_service.get_current_user_id",
         return_value=1,
     ):
         den, _ini = crear_denuncia_con_iniciador(

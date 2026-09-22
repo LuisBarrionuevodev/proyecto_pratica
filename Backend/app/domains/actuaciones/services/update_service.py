@@ -37,7 +37,6 @@ from app.domains.domicilios.services.domicilio_edit_policy_service import (
     domicilio_payload_cambia_texto_geografico,
 )
 from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
-from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
 from app.domains.establecimientos.services.vincular_establecimiento_operativo_actuacion_service import (
     try_vincular_establecimiento_operativo_desde_actuacion,
 )
@@ -68,6 +67,7 @@ from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
 )
+from app.domains.rutas_trabajo.services.auth_service import resolve_actor_user_id
 from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
     CorregirCierreOperativoError,
     aplicar_sincronizacion_tras_limpiar_contraproducencia,
@@ -229,6 +229,17 @@ def aplicar_payload_actuacion(
         Modifica `act` y entidades relacionadas en la sesión actual; no hace flush/commit.
     """
     rechazar_oficio_expediente_en_payload_canal_actas(payload)
+
+    from app.domains.actuaciones.services.historical_solo_comprobacion_service import (
+        aplicar_payload_historica_solo_comprobacion,
+    )
+
+    if getattr(act, "carga_solo_comprobacion", False):
+        aplicar_payload_historica_solo_comprobacion(act, payload)
+        return
+
+    if payload.get("carga_solo_comprobacion"):
+        raise ValueError("No se puede convertir una actuación normal en histórica.")
 
     from app.domains.actuaciones.services.oficio_circuito_service import (
         actuacion_es_circuito_reinspeccion_oficio,
@@ -409,7 +420,9 @@ def aplicar_payload_actuacion(
         attach_decomiso(act, payload.get("decomiso"), crear=False)
 
 
-def _resolver_establecimiento_operativo_tras_contraproducencia_put(act: Actuaciones) -> None:
+def _resolver_establecimiento_operativo_tras_contraproducencia_put(
+    act: Actuaciones, *, actor_user_id: int
+) -> None:
     """
     Paridad acotada con Completar trabajo al establecer contraproducencia desde PUT.
 
@@ -438,13 +451,15 @@ def _resolver_establecimiento_operativo_tras_contraproducencia_put(act: Actuacio
         return
     eid = resolve_establecimiento_por_domicilio(
         int(act.domicilio_id),
-        created_by_user_id=get_current_user_id_or_fallback(),
+        created_by_user_id=actor_user_id,
     )
     if eid is not None:
         act.establecimiento_operativo_id = eid
 
 
-def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuaciones:
+def actualizar_actuacion(
+    actuacion_id: int, payload: Dict[str, Any], *, actor_user_id: int | None = None
+) -> Actuaciones:
     """
     Actualiza una `Actuaciones` existente desde el canal **CargarActuacion** (PUT grilla).
 
@@ -481,6 +496,7 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     Raises:
         ValueError: si la actuación no existe o si se violan reglas de negocio/validaciones.
     """
+    uid = resolve_actor_user_id(actor_user_id)
     act = _get_actuacion_or_404(actuacion_id)
     log_stage(actuacion_id, "0_entrada")
     assert_actuacion_editable_sin_intento_posterior(actuacion_id)
@@ -567,6 +583,15 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
     aplicar_payload_actuacion(act, payload, ejecutar_resolver_previas=True)
     log_stage(actuacion_id, "2_aplicar_payload_fin")
 
+    if getattr(act, "carga_solo_comprobacion", False):
+        db.session.add(act)
+        db.session.commit()
+        if old_comprobacion_id is not None and old_comprobacion_id != act.comprobacion_id:
+            soft_delete_comprobacion_if_orphan(old_comprobacion_id)
+            db.session.commit()
+        log_stage(actuacion_id, "7_fin_historica")
+        return act
+
     if limpiar_contra:
         log_stage(actuacion_id, "3_limpiar_contraproducencia_sync")
         aplicar_sincronizacion_tras_limpiar_contraproducencia(
@@ -582,12 +607,14 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
             contra_anterior=contra_anterior,
             contra_nueva=contra_nueva,
         )
-        _resolver_establecimiento_operativo_tras_contraproducencia_put(act)
+        _resolver_establecimiento_operativo_tras_contraproducencia_put(
+            act, actor_user_id=uid
+        )
 
     log_stage(actuacion_id, "4_eo_vincular_inicio")
     try_vincular_establecimiento_operativo_desde_actuacion(
         act,
-        created_by_user_id=get_current_user_id_or_fallback(),
+        created_by_user_id=uid,
     )
     log_stage(actuacion_id, "4_eo_vincular_fin")
 
@@ -596,6 +623,12 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         domicilio_id_anterior=old_domicilio_id,
         limpiar_contra=limpiar_contra,
     )
+
+    from app.domains.actuaciones.services.oficio_materializacion_service import (
+        materializar_iniciadores_oficio_pendientes_para_actuacion,
+    )
+
+    materializar_iniciadores_oficio_pendientes_para_actuacion(act, actor_user_id=uid)
 
     db.session.add(act)
     log_stage(actuacion_id, "5_commit_inicio")
@@ -632,6 +665,8 @@ def actualizar_actuacion(actuacion_id: int, payload: Dict[str, Any]) -> Actuacio
         log_stage(actuacion_id, "6_cleanup_commit")
         db.session.commit()
 
-    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal(
+        actor_user_id=uid,
+    )
     log_stage(actuacion_id, "7_fin")
     return act

@@ -38,11 +38,11 @@ _LAT = -26.8241
 _LNG = -65.2226
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
+def _default_inspector_id() -> int:
+    row = Inspector.query.first()
+    if row is None:
+        pytest.skip("Se requiere al menos un inspector en la BD de test")
+    return int(row.id)
 
 
 def _mk_user() -> User:
@@ -86,9 +86,11 @@ def _mk_relevamiento_geolocalizado(
     *,
     distrito_id_fk: int | None,
     rubro_id: int = 1,
-    inspector_id: int = 1,
+    inspector_id: int | None = None,
     iniciador_domicilio_desalineado: bool = False,
 ) -> tuple[Relevamiento, IniciadorRuta, Domicilio]:
+    if inspector_id is None:
+        inspector_id = _default_inspector_id()
     """Crea relevamiento + geocode OK + iniciador PENDIENTE (patrón producción)."""
     dom_origen = Domicilio(
         calle=f"RelHot_{unique_ot_numero()}",
@@ -125,7 +127,7 @@ def _mk_relevamiento_geolocalizado(
     db.session.add(rel)
     db.session.flush()
 
-    ini = get_or_create_iniciador_from_relevamiento(rel)
+    ini = get_or_create_iniciador_from_relevamiento(rel, actor_user_id=int(user.id))
     db.session.add(ini)
     if iniciador_domicilio_desalineado and dom_ini is not None:
         ini.domicilio_id = dom_ini.id
@@ -137,9 +139,11 @@ def _mk_relevamiento_iniciador_sin_backfill_distrito(
     user: User,
     *,
     rubro_id: int = 1,
-    inspector_id: int = 1,
+    inspector_id: int | None = None,
 ) -> tuple[Relevamiento, IniciadorRuta, Domicilio]:
     """Relevamiento geolocalizado con domicilio.distrito_id NULL (sin backfill al crear)."""
+    if inspector_id is None:
+        inspector_id = _default_inspector_id()
     dom_origen = Domicilio(
         calle=f"RelNull_{unique_ot_numero()}",
         numero="901",
@@ -287,16 +291,20 @@ def test_m4_relevamiento_en_grupo_borrador_no_aparece(app_ctx) -> None:
         pytest.skip("Se requieren 2 inspectores")
     db.session.commit()
 
-    grupo = create_ruta_grupo(ruta_id=int(ruta.id), nombre="GRelHot", estado="ACTIVO")
+    grupo = create_ruta_grupo(
+        ruta_id=int(ruta.id), nombre="GRelHot", estado="ACTIVO", actor_user_id=int(u.id)
+    )
     replace_grupo_inspectores(
         ruta_id=int(ruta.id),
         grupo_id=int(grupo.id),
         inspector_ids=[ins[0].id, ins[1].id],
+        actor_user_id=int(u.id),
     )
     assign_iniciadores_to_grupo(
         ruta_id=int(ruta.id),
         grupo_id=int(grupo.id),
         iniciador_ids=[int(ini.id)],
+        actor_user_id=int(u.id),
     )
     db.session.commit()
 

@@ -1,0 +1,1292 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.3H.3",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8112,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8848,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525
+    }
+  },
+  "manifest": {
+    "generated_at": "2026-09-20T15:52:59.584000",
+    "phase": "2C2B_PRIME",
+    "phase_name": "safe_actuaciones_and_ot_exclusive_test_residual",
+    "mode": "EXECUTION_MANIFEST_FROZEN",
+    "writes_executed": false,
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "source_apply_2c2a_prime_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase2c2a_prime_wrappers_apply_20260920_154757.json",
+    "source_apply_2c2a_prime_sha256": "dd82505c222bc9e055fa182aa164f2473584797948b6dae9008fbe2831f03ac6",
+    "source_diag_3h_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase2c2a_prime_residual_acts_diag_20260920.json",
+    "source_diag_3h_sha256": "59dd11ab7d0f0c85b758df60767ad94bf05f912e24507e2ccaa576ab75f24998",
+    "protected_manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\protected_operational_manifest_20260920.json",
+    "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+    "safe_set_counts": {
+      "actuaciones": 38,
+      "orden_trabajo": 38
+    },
+    "act_family_breakdown": {
+      "SET_ACT_OLD_count": 38,
+      "SET_ACT_STRUCTURED_count": 0,
+      "SET_ACT_OLD_ids": [
+        6832,
+        6835,
+        6836,
+        6945,
+        6947,
+        6999,
+        7025,
+        7375,
+        7376,
+        7377,
+        7458,
+        7493,
+        7507,
+        7577,
+        7619,
+        7682,
+        7683,
+        7697,
+        7932,
+        7964,
+        8015,
+        8250,
+        9211,
+        9496,
+        9612,
+        9663,
+        9698,
+        9830,
+        9833,
+        9853,
+        9863,
+        9864,
+        9865,
+        9908,
+        9942,
+        9992,
+        9996,
+        10465
+      ]
+    },
+    "entities": {
+      "actuaciones": [
+        6832,
+        6835,
+        6836,
+        6945,
+        6947,
+        6999,
+        7025,
+        7375,
+        7376,
+        7377,
+        7458,
+        7493,
+        7507,
+        7577,
+        7619,
+        7682,
+        7683,
+        7697,
+        7932,
+        7964,
+        8015,
+        8250,
+        9211,
+        9496,
+        9612,
+        9663,
+        9698,
+        9830,
+        9833,
+        9853,
+        9863,
+        9864,
+        9865,
+        9908,
+        9942,
+        9992,
+        9996,
+        10465
+      ],
+      "orden_trabajo": [
+        7261,
+        7264,
+        7265,
+        7385,
+        7387,
+        7448,
+        7474,
+        7829,
+        7830,
+        7831,
+        7913,
+        7949,
+        7963,
+        8033,
+        8076,
+        8144,
+        8145,
+        8162,
+        8428,
+        8460,
+        8511,
+        8748,
+        9759,
+        10058,
+        10199,
+        10251,
+        10288,
+        10423,
+        10426,
+        10447,
+        10457,
+        10458,
+        10459,
+        10502,
+        10537,
+        10588,
+        10592,
+        11094
+      ]
+    },
+    "delete_order": [
+      "actuaciones",
+      "orden_trabajo"
+    ],
+    "forbidden_deletes": {
+      "iniciador_ruta": 0,
+      "rubro": 0,
+      "ruta_pool_dia": 0,
+      "inspector": 0,
+      "decomiso": 0,
+      "clausura": 0,
+      "ruta_trabajo": 0,
+      "ruta_grupo_inspector": 0,
+      "oficio": 0,
+      "relevador": 0,
+      "users": 0,
+      "actuaciones_inspector": 0,
+      "relevamiento_relevador": 0,
+      "domicilio": 0,
+      "acta_inspeccion_item": 0,
+      "inspeccion": 0,
+      "relevamiento": 0,
+      "ruta_grupo": 0,
+      "notificacion": 0,
+      "expediente": 0,
+      "comprobacion": 0,
+      "denuncia": 0,
+      "ruta_item": 0
+    },
+    "expected_counts_before": {
+      "actuaciones": 8112,
+      "orden_trabajo": 8848
+    },
+    "expected_counts_after": {
+      "actuaciones": 8074,
+      "orden_trabajo": 8810
+    },
+    "unchanged_counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525
+    },
+    "expected_cascades": {
+      "inspeccion": {
+        "physical_rows": 0,
+        "distinct_actuaciones_id": 0,
+        "inspeccion_ids": [],
+        "rows": [],
+        "baseline": 898,
+        "expected_after": 898,
+        "prior_expected": "17/17",
+        "confirmed": false
+      },
+      "actuaciones_inspector": {
+        "physical_rows": 0,
+        "distinct_actuaciones_id": 0,
+        "all_rows": [],
+        "per_actuacion_grouping": [],
+        "resolution_9_vs_18": {
+          "verdict": "C_other_0",
+          "note": "4189-18=4171 del diag 3G fue error de simulaci\u00f3n postcount; usar physical_rows real",
+          "prior_diag_cascade_distinct": 9,
+          "prior_diag_postcount_subtracted": 18
+        },
+        "baseline": 4180,
+        "expected_after": 4180
+      },
+      "clausura": {
+        "physical_rows": 0,
+        "distinct_actuaciones_id": 0,
+        "baseline": 69,
+        "expected_after": 69
+      },
+      "decomiso": {
+        "physical_rows": 0,
+        "distinct_actuaciones_id": 0,
+        "baseline": 25,
+        "expected_after": 25
+      },
+      "acta_inspeccion_item": {
+        "physical_rows": 0,
+        "distinct_inspeccion_ids": 0,
+        "chain": "actuaciones \u2192 inspeccion \u2192 acta_inspeccion_item",
+        "rows": [],
+        "fk_delete_rule": null,
+        "baseline": 52,
+        "expected_after": 52
+      }
+    },
+    "preserve_parent_documents": {
+      "notificacion_ids": [
+        1603,
+        1606,
+        1607,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1884,
+        1885,
+        1888,
+        2090,
+        2340,
+        2500,
+        2589,
+        2620,
+        2725,
+        2728,
+        2744,
+        2754,
+        2755,
+        2756,
+        2799,
+        2856,
+        2860
+      ],
+      "comprobacion_ids": [
+        2289
+      ],
+      "by_actuacion": [
+        {
+          "actuacion_id": 6832,
+          "notificacion_id": 1603,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 6835,
+          "notificacion_id": 1606,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 6836,
+          "notificacion_id": 1607,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 6945,
+          "notificacion_id": 1663,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 6947,
+          "notificacion_id": 1665,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 6999,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7025,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7375,
+          "notificacion_id": 1785,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7376,
+          "notificacion_id": 1786,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7377,
+          "notificacion_id": 1787,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7458,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7493,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7507,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7577,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7619,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7682,
+          "notificacion_id": 1884,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7683,
+          "notificacion_id": 1885,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7697,
+          "notificacion_id": 1888,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7932,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 7964,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 8015,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 8250,
+          "notificacion_id": 2090,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9211,
+          "notificacion_id": 2340,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9496,
+          "notificacion_id": 2500,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9612,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9663,
+          "notificacion_id": 2589,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9698,
+          "notificacion_id": 2620,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9830,
+          "notificacion_id": 2725,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9833,
+          "notificacion_id": 2728,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9853,
+          "notificacion_id": 2744,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9863,
+          "notificacion_id": 2754,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9864,
+          "notificacion_id": 2755,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9865,
+          "notificacion_id": 2756,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9908,
+          "notificacion_id": 2799,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9942,
+          "notificacion_id": null,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9992,
+          "notificacion_id": 2856,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 9996,
+          "notificacion_id": 2860,
+          "comprobacion_id": null
+        },
+        {
+          "actuacion_id": 10465,
+          "notificacion_id": null,
+          "comprobacion_id": 2289
+        }
+      ],
+      "preserve_policy": "NO_DELETE_NO_UPDATE",
+      "protected_parent_notificaciones": [],
+      "protected_parent_comprobaciones": [],
+      "PRESERVE_PROTECTED_PARENT": false
+    },
+    "preserve_source_documents": {
+      "direct_notificaciones_29": [
+        1603,
+        1606,
+        1607,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1821,
+        1856,
+        1884,
+        1885,
+        1888,
+        2090,
+        2340,
+        2500,
+        2560,
+        2589,
+        2620,
+        2725,
+        2728,
+        2744,
+        2754,
+        2755,
+        2756,
+        2799,
+        2828,
+        2856,
+        2860
+      ],
+      "source_notificaciones_119": [
+        1603,
+        1663,
+        1665,
+        1691,
+        1693,
+        1742,
+        1785,
+        1786,
+        1787,
+        1808,
+        1836,
+        1884,
+        1885,
+        1950,
+        1958,
+        1970,
+        2090,
+        2340,
+        2389,
+        2500,
+        2533,
+        2534,
+        2535,
+        2536,
+        2541,
+        2546,
+        2547,
+        2548,
+        2549,
+        2550,
+        2553,
+        2580,
+        2581,
+        2582,
+        2589,
+        2603,
+        2606,
+        2609,
+        2611,
+        2612,
+        2617,
+        2624,
+        2633,
+        2634,
+        2636,
+        2639,
+        2640,
+        2643,
+        2644,
+        2645,
+        2646,
+        2649,
+        2652,
+        2656,
+        2657,
+        2659,
+        2666,
+        2667,
+        2668,
+        2676,
+        2678,
+        2685,
+        2686,
+        2687,
+        2725,
+        2737,
+        2738,
+        2739,
+        2740,
+        2741,
+        2742,
+        2743,
+        2745,
+        2746,
+        2747,
+        2748,
+        2749,
+        2750,
+        2751,
+        2752,
+        2753,
+        2754,
+        2757,
+        2760,
+        2761,
+        2764,
+        2765,
+        2769,
+        2772,
+        2773,
+        2776,
+        2780,
+        2781,
+        2784,
+        2785,
+        2788,
+        2789,
+        2792,
+        2795,
+        2801,
+        2802,
+        2803,
+        2804,
+        2805,
+        2806,
+        2817,
+        2818,
+        2819,
+        2820,
+        2821,
+        2860,
+        3011,
+        3012,
+        3013,
+        3014,
+        3021,
+        3022,
+        3023,
+        3024
+      ],
+      "oficio_chains": [
+        {
+          "iniciador_id": 7979,
+          "comprobacion_id": null,
+          "oficio_id": 1312,
+          "chain": null,
+          "preserve_policy": "NO_DELETE comprobacion/expediente/oficio"
+        },
+        {
+          "iniciador_id": 8004,
+          "comprobacion_id": null,
+          "oficio_id": 1319,
+          "chain": null,
+          "preserve_policy": "NO_DELETE comprobacion/expediente/oficio"
+        },
+        {
+          "iniciador_id": 10985,
+          "comprobacion_id": 2289,
+          "oficio_id": 1662,
+          "chain": {
+            "comprobacion": [
+              {
+                "id": 2289,
+                "numero_acta": "8430AF",
+                "created_at": "2026-09-02 11:51:22"
+              }
+            ],
+            "expedientes": [
+              {
+                "id": 3103,
+                "oficio_id": null
+              },
+              {
+                "id": 3104,
+                "oficio_id": 1662
+              }
+            ],
+            "oficios": [
+              {
+                "id": 1662,
+                "numero_oficio": "OF8430",
+                "comprobacion_id": 2289
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10985,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "notificacion_id": null,
+                "comprobacion_id": 2289,
+                "oficio_id": 1662,
+                "actuacion_id": 10465
+              }
+            ]
+          },
+          "preserve_policy": "NO_DELETE comprobacion/expediente/oficio"
+        }
+      ],
+      "preserve_policy": "NO_DELETE from 2C.2A' wave"
+    },
+    "future_orphan_documents_after_apply": {
+      "NEW_ORPHAN_NOTIFICACION_AFTER_2C2B_PRIME": [
+        1603,
+        1606,
+        1607,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1884,
+        1885,
+        1888,
+        2090,
+        2340,
+        2500,
+        2589,
+        2620,
+        2725,
+        2728,
+        2744,
+        2754,
+        2755,
+        2756,
+        2799,
+        2856,
+        2860
+      ],
+      "NEW_ORPHAN_COMPROBACION_AFTER_2C2B_PRIME": [
+        2289
+      ],
+      "policy": "reserved for post-2C.2B' audit; NOT 2C.2C yet"
+    },
+    "empty_routes_residual_12": [
+      {
+        "ruta_trabajo_id": 4938,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 4944,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5195,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5199,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5204,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5245,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5261,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5550,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5560,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5574,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 6372,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 6461,
+        "ruta_item_refs": 0
+      }
+    ],
+    "excluded": {
+      "empty_routes_12": [
+        4938,
+        4944,
+        5195,
+        5199,
+        5204,
+        5245,
+        5261,
+        5550,
+        5560,
+        5574,
+        6372,
+        6461
+      ],
+      "orphan_notificaciones_36": [
+        1480,
+        1536,
+        1557,
+        1627,
+        1636,
+        1684,
+        1738,
+        1758,
+        1761,
+        1771,
+        1852,
+        1854,
+        1859,
+        1860,
+        2003,
+        2308,
+        2312,
+        2394,
+        2563,
+        2564,
+        2573,
+        2707,
+        2910,
+        2913,
+        2921,
+        2928,
+        2933,
+        2939,
+        2942,
+        2950,
+        2953,
+        2970,
+        2976,
+        2978,
+        2991,
+        3032
+      ],
+      "orphan_comprobaciones_20": [
+        758,
+        759,
+        760,
+        984,
+        1485,
+        1486,
+        1496,
+        1615,
+        1679,
+        2130,
+        2197,
+        2221,
+        2231,
+        2241,
+        2275,
+        2279,
+        2283,
+        2291,
+        2303,
+        2307
+      ],
+      "future_orphan_notif_candidates": [
+        1603,
+        1606,
+        1607,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1884,
+        1885,
+        1888,
+        2090,
+        2340,
+        2500,
+        2589,
+        2620,
+        2725,
+        2728,
+        2744,
+        2754,
+        2755,
+        2756,
+        2799,
+        2856,
+        2860
+      ],
+      "future_orphan_comp_candidates": [
+        2289
+      ],
+      "source_notificaciones_119": [
+        1603,
+        1663,
+        1665,
+        1691,
+        1693,
+        1742,
+        1785,
+        1786,
+        1787,
+        1808,
+        1836,
+        1884,
+        1885,
+        1950,
+        1958,
+        1970,
+        2090,
+        2340,
+        2389,
+        2500,
+        2533,
+        2534,
+        2535,
+        2536,
+        2541,
+        2546,
+        2547,
+        2548,
+        2549,
+        2550,
+        2553,
+        2580,
+        2581,
+        2582,
+        2589,
+        2603,
+        2606,
+        2609,
+        2611,
+        2612,
+        2617,
+        2624,
+        2633,
+        2634,
+        2636,
+        2639,
+        2640,
+        2643,
+        2644,
+        2645,
+        2646,
+        2649,
+        2652,
+        2656,
+        2657,
+        2659,
+        2666,
+        2667,
+        2668,
+        2676,
+        2678,
+        2685,
+        2686,
+        2687,
+        2725,
+        2737,
+        2738,
+        2739,
+        2740,
+        2741,
+        2742,
+        2743,
+        2745,
+        2746,
+        2747,
+        2748,
+        2749,
+        2750,
+        2751,
+        2752,
+        2753,
+        2754,
+        2757,
+        2760,
+        2761,
+        2764,
+        2765,
+        2769,
+        2772,
+        2773,
+        2776,
+        2780,
+        2781,
+        2784,
+        2785,
+        2788,
+        2789,
+        2792,
+        2795,
+        2801,
+        2802,
+        2803,
+        2804,
+        2805,
+        2806,
+        2817,
+        2818,
+        2819,
+        2820,
+        2821,
+        2860,
+        3011,
+        3012,
+        3013,
+        3014,
+        3021,
+        3022,
+        3023,
+        3024
+      ],
+      "oficio_chains": [
+        {
+          "iniciador_id": 7979,
+          "comprobacion_id": null,
+          "oficio_id": 1312,
+          "chain": null,
+          "preserve_policy": "NO_DELETE comprobacion/expediente/oficio"
+        },
+        {
+          "iniciador_id": 8004,
+          "comprobacion_id": null,
+          "oficio_id": 1319,
+          "chain": null,
+          "preserve_policy": "NO_DELETE comprobacion/expediente/oficio"
+        },
+        {
+          "iniciador_id": 10985,
+          "comprobacion_id": 2289,
+          "oficio_id": 1662,
+          "chain": {
+            "comprobacion": [
+              {
+                "id": 2289,
+                "numero_acta": "8430AF",
+                "created_at": "2026-09-02 11:51:22"
+              }
+            ],
+            "expedientes": [
+              {
+                "id": 3103,
+                "oficio_id": null
+              },
+              {
+                "id": 3104,
+                "oficio_id": 1662
+              }
+            ],
+            "oficios": [
+              {
+                "id": 1662,
+                "numero_oficio": "OF8430",
+                "comprobacion_id": 2289
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10985,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "notificacion_id": null,
+                "comprobacion_id": 2289,
+                "oficio_id": 1662,
+                "actuacion_id": 10465
+              }
+            ]
+          },
+          "preserve_policy": "NO_DELETE comprobacion/expediente/oficio"
+        }
+      ],
+      "users": "NO_DELETE",
+      "catalogos": "NO_DELETE",
+      "domicilios_contribuyentes": "NO_DELETE"
+    },
+    "protected_intersection": 0,
+    "protected_closure_detail": {
+      "by_entity": {
+        "actuaciones": {
+          "planned_explicit_ids": 38,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1189,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "orden_trabajo": {
+          "planned_explicit_ids": 38,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1176,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "inspeccion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 170,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "notificacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 168,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "comprobacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 56,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "oficio": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "expediente": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        }
+      },
+      "conflicts": [],
+      "valid": true
+    },
+    "protected_comprobacion_regression": {
+      "closure_8_ids": [
+        194,
+        480,
+        481,
+        483,
+        790,
+        889,
+        2268,
+        2497
+      ],
+      "exist_in_db": {
+        "480": true,
+        "2497": true,
+        "481": true,
+        "483": true,
+        "194": true,
+        "790": true,
+        "889": true,
+        "2268": true
+      },
+      "in_expanded_protected": {
+        "480": true,
+        "2497": true,
+        "481": true,
+        "483": true,
+        "194": true,
+        "790": true,
+        "889": true,
+        "2268": true
+      },
+      "all_protected": true
+    },
+    "users_unlock_simulation": {
+      "users_test_fk_free_baseline_post_2c2a_prime": 833,
+      "users_test_fk_free_after_2c2b_prime": 833,
+      "users_additionally_unlocked": 0,
+      "users_test_still_blocked": 1956
+    },
+    "validation": {
+      "ids_exist": {
+        "actuaciones": {
+          "expected": 38,
+          "found": 38,
+          "missing": 0
+        },
+        "orden_trabajo": {
+          "expected": 38,
+          "found": 38,
+          "missing": 0
+        }
+      },
+      "act_blockers_zero": true,
+      "ot_exclusive": {
+        "all_exclusive_to_safe_acts": true,
+        "ot_checked": 38
+      },
+      "incoming_fk_actuaciones": [
+        {
+          "child_table": "actuacion_epicollect_detalle",
+          "child_column": "actuacion_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "actuacion_media",
+          "child_column": "actuacion_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "actuaciones_inspector",
+          "child_column": "actuaciones_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "NO ACTION"
+        },
+        {
+          "child_table": "clausura",
+          "child_column": "actuacion_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "decomiso",
+          "child_column": "actuacion_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "iniciador_ruta",
+          "child_column": "actuacion_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "inspeccion",
+          "child_column": "actuacion_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "ruta_item",
+          "child_column": "actuacion_id",
+          "delete_rule": "SET NULL",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "ruta_pool_dia",
+          "child_column": "actuacion_id",
+          "delete_rule": "SET NULL",
+          "update_rule": "CASCADE"
+        }
+      ],
+      "incoming_fk_orden_trabajo": [
+        {
+          "child_table": "actuaciones",
+          "child_column": "orden_trabajo_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "ruta_item",
+          "child_column": "orden_trabajo_id",
+          "delete_rule": "SET NULL",
+          "update_rule": "CASCADE"
+        }
+      ],
+      "delete_order_validated": {
+        "valid": true,
+        "violations": []
+      },
+      "cascade_physical_total": 0
+    },
+    "manifest_sha256": "a78737957310d0fc90899e399a7a16b1b09cc96a181c7e1560b70e02180d6ac6"
+  },
+  "manifest_sha256": "a78737957310d0fc90899e399a7a16b1b09cc96a181c7e1560b70e02180d6ac6"
+}

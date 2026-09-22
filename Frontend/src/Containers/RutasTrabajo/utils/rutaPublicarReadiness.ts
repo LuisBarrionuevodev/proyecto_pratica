@@ -9,8 +9,8 @@ export type RutaPublicarReadiness = {
 };
 
 /**
- * Evalúa en cliente las mismas condiciones principales que `publicar_ruta_trabajo`
- * (inspectores, ítems activos, OT guardada) para anticipar el 409 y mostrar mensajes claros.
+ * Evalúa en cliente las condiciones principales que `publicar_ruta_trabajo` exige
+ * (inspectores, ítems activos). OT-AUTO: la OT se asigna al publicar.
  */
 export function evaluarPublicacionRuta(
   grupos: IRutaGrupoMin[],
@@ -40,10 +40,7 @@ export function evaluarPublicacionRuta(
   }
 
   for (const item of itemsActivos) {
-    if (item.orden_trabajo_id == null) {
-      const dom = (item.domicilio_texto ?? "").trim() || `ítem #${item.id}`;
-      blockers.push(`Falta guardar la OT de ${dom} (Asignación → «Guardar OT»).`);
-    } else if (item.estado_ruta_item != null && item.estado_ruta_item !== "ASIGNADO") {
+    if (item.estado_ruta_item != null && item.estado_ruta_item !== "ASIGNADO") {
       blockers.push(
         `El ítem #${item.id} no está listo para publicar (estado: ${item.estado_ruta_item}).`
       );
@@ -56,7 +53,7 @@ export function evaluarPublicacionRuta(
 /** Texto corto para tooltip del botón Publicar. */
 export function resumenBloqueoPublicacion(blockers: string[]): string {
   if (blockers.length === 0) {
-    return "Publica la ruta. Luego podrás descargar el resumen y las órdenes en PDF.";
+    return "Publica la ruta. Las OT se asignan automáticamente al confirmar.";
   }
   if (blockers.length === 1) return blockers[0];
   return `${blockers[0]} (+${blockers.length - 1} condición${blockers.length > 2 ? "es" : ""} más)`;

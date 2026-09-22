@@ -25,16 +25,6 @@ from app.domains.relevamientos.services.relevamiento_unicidad_service import (
 from app.models import Domicilio, IniciadorRuta, Inspector, Relevamiento, Rubro
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _migration_pr72_aplicada() -> bool:
     from sqlalchemy import inspect
 

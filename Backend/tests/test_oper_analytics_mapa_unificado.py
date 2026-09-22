@@ -28,16 +28,6 @@ from tests.oper_analytics_golden_fixtures import periodo_golden, seed_golden_wor
 from tests.helpers.fixture_isolation import fecha_fixture_aislada, unique_ot_numero
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_mapa_fecha_ruta_no_ejecutado_at(app_ctx) -> None:
     """Ruta en enero con ejecutado_at en febrero: aparece filtrando enero."""
     from app.models import Actuaciones, Contribuyente, Domicilio, DomicilioGeocode, Rubro

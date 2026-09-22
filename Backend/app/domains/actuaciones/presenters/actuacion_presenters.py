@@ -806,10 +806,13 @@ def actuacion_to_grid_row(
     esquina_score: Optional[float] = None
     domicilio_id: Optional[int] = None
 
-    doc_nro: Optional[str] = None
-    contrib_apellido: Optional[str] = None
-    contrib_nombre: Optional[str] = None
-    razon_social: Optional[str] = None
+    from app.domains.actuaciones.utils.titular_actuacion_resolver import resolve_titular_grid_fields
+
+    titular_fields = resolve_titular_grid_fields(act)
+    doc_nro = titular_fields.get("doc_nro")
+    contrib_apellido = titular_fields.get("contrib_apellido")
+    contrib_nombre = titular_fields.get("contrib_nombre")
+    razon_social = titular_fields.get("razon_social")
 
     dom = getattr(act, "domicilio", None)
     if dom:
@@ -834,13 +837,6 @@ def actuacion_to_grid_row(
         rub = getattr(dom, "rubro", None)
         if rub:
             rubro_nombre = getattr(rub, "nombre", None)
-
-        contrib = getattr(dom, "contribuyente", None)
-        if contrib:
-            doc_nro = getattr(contrib, "documento", None) or getattr(contrib, "doc_nro", None)
-            contrib_apellido = getattr(contrib, "apellido", None)
-            contrib_nombre = getattr(contrib, "nombre", None)
-            razon_social = getattr(contrib, "razon_social", None)
 
     # -------------------------
     # Inspectores (max 3)
@@ -992,6 +988,7 @@ def actuacion_to_grid_row(
 
     return {
         "id": act.id,
+        "carga_solo_comprobacion": bool(getattr(act, "carga_solo_comprobacion", False)),
         "orden_trabajo_numero": ot_num,
         "fecha_actuacion": fecha_iso,
 
@@ -1327,8 +1324,14 @@ def actuacion_to_pendiente_oficio_row(
     """
     full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     exp_original = None
+    sin_expediente_envio = False
     if getattr(act, "comprobacion_id", None):
         exp_original = expediente_envio_por_comprobacion(act.comprobacion_id)
+        comp = getattr(act, "comprobacion", None)
+        if comp is None:
+            comp = Comprobacion.query.get(int(act.comprobacion_id))
+        if comp is not None:
+            sin_expediente_envio = bool(comp.sin_expediente_envio)
 
     return {
         "id": full.get("id"),
@@ -1354,5 +1357,11 @@ def actuacion_to_pendiente_oficio_row(
         "expediente_original_anio": getattr(exp_original, "anio", None),
         "expediente_original_fecha": (
             exp_original.fecha_expediente.isoformat() if exp_original and exp_original.fecha_expediente else None
+        ),
+        "sin_expediente_envio": sin_expediente_envio,
+        "expediente_envio_label": (
+            "Sin expediente de envío"
+            if sin_expediente_envio and exp_original is None
+            else None
         ),
     }

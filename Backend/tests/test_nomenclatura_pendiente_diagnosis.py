@@ -31,16 +31,6 @@ def _unique_calle(prefix: str) -> str:
     return f"{prefix}{random.randint(0, 999999)}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_is_synthetic_calle_text() -> None:
     synthetic = [
         "CalleMotor",

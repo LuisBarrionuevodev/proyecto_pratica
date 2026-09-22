@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 
 import pytest
 from flask_jwt_extended import create_access_token
@@ -45,11 +46,57 @@ def client(app):
 
 
 @pytest.fixture()
-def auth_headers(app):
+def service_actor(app):
+    """
+    Usuario activo de test para auditoría explícita (no fallback, no hardcode id=1).
+
+    Retorna el id del usuario creado/activo para el test.
+    """
+    from app.database import db
+    from app.models import User
+
+    with app.app_context():
+        suffix = uuid4().hex[:12]
+        user = User(
+            username=f"pytest_actor_{suffix}",
+            email=f"pytest_actor_{suffix}@t.local",
+            password_hash="x",
+            role="usuario",
+            is_active=True,
+        )
+        db.session.add(user)
+        db.session.commit()
+        yield int(user.id)
+        db.session.rollback()
+
+
+@pytest.fixture()
+def actor_user_id(service_actor):
+    """Alias: id del actor explícito del test."""
+    return service_actor
+
+
+@pytest.fixture()
+def app_ctx(app, actor_user_id):
+    """
+    App context + JWT strict para tests que invocan services sin actor_user_id explícito.
+
+    Opt-in por fixture (no autouse). Los tests negativos de auth deben evitar esta fixture.
+    """
+    from app.database import db
+    from tests.helpers.service_actor import jwt_request_context
+
+    with jwt_request_context(app, actor_user_id):
+        yield app
+        db.session.rollback()
+
+
+@pytest.fixture()
+def auth_headers(app, service_actor):
     """
     Authorization Bearer para rutas protegidas en fase 1 (mutaciones).
-    No valida existencia de usuario en BD; solo firma JWT válida.
+    Usa service_actor (usuario activo de test), no hardcode id=1.
     """
     with app.app_context():
-        token = create_access_token(identity="1")
+        token = create_access_token(identity=str(service_actor))
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}

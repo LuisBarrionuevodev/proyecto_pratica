@@ -27,13 +27,6 @@ from tests.test_perfect_cf1_numero_comprobacion_sql import (
 )
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_oficio_filtra_por_expediente_envio_sin_respuesta(app_ctx) -> None:
     """Solo expediente de envío (`oficio_id` NULL); respuesta de otro circuito no matchea."""
     num_env = _unique()[:6]

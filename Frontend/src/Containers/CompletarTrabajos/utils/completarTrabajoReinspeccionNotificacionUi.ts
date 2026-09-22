@@ -8,6 +8,7 @@ import {
 export type ShowContribDomicilioEditableOpts = {
   tipoActuacionOficio?: string | null;
   realizoNuevaInspeccion?: string;
+  identityMode?: string | null;
 };
 
 /** Muestra formulario editable de acta/motivos de notificación. */
@@ -49,6 +50,16 @@ export function showContribuyenteDomicilioEditableEnCompletarTrabajo(
   opts?: ShowContribDomicilioEditableOpts
 ): boolean {
   if (tipoIniciador === "REINSPECCION_NOTIFICACION") return false;
+  if (opts?.identityMode === "COMPLETE_EXISTING") {
+    if (esVerificarInformarOficio(tipoIniciador)) return false;
+    if (
+      esReinspeccionOficioGenerico(tipoIniciador) &&
+      esFlujoVerificarInformar(tipoIniciador, opts?.tipoActuacionOficio) &&
+      opts?.realizoNuevaInspeccion === "si"
+    ) {
+      return false;
+    }
+  }
   if (esVerificarInformarOficio(tipoIniciador)) return true;
   if (
     esReinspeccionOficioGenerico(tipoIniciador) &&

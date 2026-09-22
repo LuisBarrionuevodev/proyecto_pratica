@@ -27,13 +27,6 @@ from app.models import IniciadorRuta, RutaItem, RutaTrabajo, User
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, unique_ot_numero, uniq_ruta_numero
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     suf = uuid4().hex[:8]
     u = User(
@@ -299,7 +292,7 @@ def test_realizado_cumplido_no_permite_pool(app_ctx) -> None:
 
 
 def test_pr11_ot_no_realizado_no_genera_conflicto_publicacion(app_ctx) -> None:
-    """PR11 intacto: ítem FINALIZADO+NO_REALIZADO no bloquea OT en publicación."""
+    """OT-AUTO: NO_REALIZADO conserva OT → bloquea reutilización al publicar."""
     from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
         buscar_conflicto_orden_trabajo_al_publicar,
     )
@@ -320,4 +313,6 @@ def test_pr11_ot_no_realizado_no_genera_conflicto_publicacion(app_ctx) -> None:
         ruta_item_id=999_999,
         iniciador_ruta_id=ini_id,
     )
-    assert conflicto is None
+    assert conflicto is not None
+    assert conflicto.actuacion_id == int(act_prev.id)
+    assert conflicto.estado_ejecucion == "NO_REALIZADO"

@@ -27,13 +27,6 @@ from app.domains.catalogos.seeds.seed_canonical_service import (
 from app.models import CalleCatalogo, Rubro
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _calle_indexes_from_rows(*rows: CalleCatalogo) -> CalleIndexes:
     from collections import defaultdict
 

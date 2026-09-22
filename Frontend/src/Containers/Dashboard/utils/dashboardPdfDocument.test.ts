@@ -10,9 +10,7 @@ const emptyPayload: DashboardExportPayload = {
   meta: { periodoLabel: "", distritoLabel: "Todos", inspectorLabel: "Todos" },
   resumenKpis: [],
   ejecutivo: null,
-  pendientes: null,
   actasPorTipo: null,
-  pendientesDistritos: [],
   riesgo: null,
   mercaderiaDecomisadaKg: null,
   noRealizadas: null,
@@ -33,7 +31,7 @@ describe("DashboardIndicadoresPdfDocument", () => {
     expect(src).toContain("model.distritoLabel");
     expect(src).toContain("model.inspectorLabel");
     expect(src).toContain("Resumen ejecutivo");
-    expect(src).toContain("Pendientes operativos");
+    expect(src).not.toContain("Pendientes operativos");
     expect(src).toContain("Actas por tipo");
     expect(src).toContain("Riesgo bromatológico");
     expect(src).toContain("No realizadas");

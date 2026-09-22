@@ -288,7 +288,7 @@ const RutasTrabajo = () => {
         notifyError(detail);
       } else if (status === 409) {
         notifyError(
-          "No se cumplen las condiciones para publicar. Revisá inspectores por grupo, ítems activos y OT en cada ítem."
+          "No se cumplen las condiciones para publicar. Revisá inspectores por grupo e ítems activos."
         );
       } else {
         notifyError("No se pudo publicar la ruta. Intentá de nuevo más tarde.");
@@ -320,14 +320,13 @@ const RutasTrabajo = () => {
     void loadInspectores();
   }, []);
 
-  const { moveItem: handleMoveItem, deleteItem: handleQuitarItem, saveOtItem: handleSaveOt, clearOrdenTrabajo: handleClearOt } =
-    useRutaTrabajoBorradorActions({
-      rutaId,
-      setItems,
-      setError: notifyError,
-      loadPendientes,
-      onAfterDeleteItem: syncPoolTrasQuitarItem,
-    });
+  const { moveItem: handleMoveItem, deleteItem: handleQuitarItem } = useRutaTrabajoBorradorActions({
+    rutaId,
+    setItems,
+    setError: notifyError,
+    loadPendientes,
+    onAfterDeleteItem: syncPoolTrasQuitarItem,
+  });
 
   const handleEliminarDelPoolSeleccion = useCallback(
     async (poolIds: number[]) => {
@@ -476,19 +475,6 @@ const RutasTrabajo = () => {
     [poolRowsDisponibles.length, itemsActivos]
   );
 
-  const otSinGuardarAvisoRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (flowStep !== 2) {
-      otSinGuardarAvisoRef.current = null;
-      return;
-    }
-    const n = continuarMapaFinalState.itemsSinOtCount;
-    if (n <= 0) return;
-    if (otSinGuardarAvisoRef.current === n) return;
-    otSinGuardarAvisoRef.current = n;
-    feedback.warning(`${n} ítem${n === 1 ? "" : "s"} sin OT guardada.`);
-  }, [continuarMapaFinalState.itemsSinOtCount, feedback, flowStep]);
-
   return (
     <Box
       sx={{
@@ -593,8 +579,6 @@ const RutasTrabajo = () => {
             onEliminarGrupo={handleDeleteGrupo}
             onMoverItem={handleMoveItem}
             onQuitarItem={handleQuitarItem}
-            onGuardarOtItem={handleSaveOt}
-            onQuitarOtItem={handleClearOt}
             onVolverPlanificacion={handleVolverPlanificacion}
             onAssignIniciadoresToGrupo={assignIniciadoresToGrupo}
             poolIdByIniciadorId={poolIdByIniciadorId}
@@ -626,7 +610,6 @@ const RutasTrabajo = () => {
             onEliminarGrupo={vistaHistoricaReadOnly ? undefined : handleDeleteGrupo}
             onMoverItem={vistaHistoricaReadOnly ? undefined : handleMoveItem}
             onQuitarItem={vistaHistoricaReadOnly ? undefined : handleQuitarItem}
-            onGuardarOtItem={vistaHistoricaReadOnly ? undefined : handleSaveOt}
           />
         )}
 

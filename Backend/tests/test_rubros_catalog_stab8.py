@@ -14,16 +14,6 @@ from app.domains.catalogos.services.rubros_catalog_service import listar_rubros_
 from app.models import Rubro
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_rubro(nombre: str) -> Rubro:
     r = Rubro(nombre=nombre)
     db.session.add(r)

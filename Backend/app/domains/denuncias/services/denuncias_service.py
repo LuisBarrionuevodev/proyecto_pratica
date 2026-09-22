@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import date
 from datetime import datetime
 
-from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func
 
 from app.database import db
-from app.models import Denuncia, Domicilio, IniciadorRuta, User
+from app.models import Denuncia, Domicilio, IniciadorRuta
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.actuaciones.cleanup.garbage_collector import (
     soft_delete_domicilio_if_orphan,
 )
@@ -33,28 +33,6 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     priority_for_tipo,
 )
 from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
-
-
-def _get_current_user_id() -> int:
-    """
-    Resuelve el usuario desde el JWT (subject = id numérico, ver ``login_user``).
-
-    Raises:
-        ValueError: identidad inválida, usuario inexistente o inactivo (mensaje ``Usuario no autorizado``).
-    """
-    identity = get_jwt_identity()
-    if identity is None:
-        raise ValueError("Usuario no autorizado.")
-    user_id = identity.get("user_id") if isinstance(identity, dict) else identity
-    try:
-        parsed_id = int(str(user_id).strip())
-    except (TypeError, ValueError):
-        raise ValueError("Usuario no autorizado.")
-
-    user = User.query.get(parsed_id)
-    if not user or not user.is_active:
-        raise ValueError("Usuario no autorizado.")
-    return parsed_id
 
 
 def _validar_exactamente_un_origen(**origenes: int | None) -> None:
@@ -110,7 +88,7 @@ def crear_denuncia_con_iniciador(
     - Crea iniciador_ruta tipo DENUNCIA con estado PENDIENTE.
     - Enforce exact-one origen lógico para iniciador_ruta.
     """
-    user_id = _get_current_user_id()
+    user_id = get_current_user_id()
 
     resolved_domicilio_id = _resolver_domicilio_id(
         domicilio_id=domicilio_id,
@@ -198,7 +176,7 @@ def eliminar_denuncia_logicamente(denuncia_id: int) -> dict:
         ValueError: denuncia inexistente.
         IniciadorOrigenEnUsoError: uso operativo (ruta publicada, OT, actuación).
     """
-    _get_current_user_id()
+    get_current_user_id()
     denuncia = (
         Denuncia.query.filter(
             Denuncia.id == denuncia_id,
@@ -370,7 +348,7 @@ def actualizar_denuncia_gestion(denuncia_id: int, row: DenunciaGestionRowIn) -> 
     """
     Actualiza denuncia desde grilla de gestión.
     """
-    _get_current_user_id()
+    get_current_user_id()
     denuncia = (
         Denuncia.query.filter(
             Denuncia.id == denuncia_id,

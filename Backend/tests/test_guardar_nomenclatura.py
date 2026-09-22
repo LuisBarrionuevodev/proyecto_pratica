@@ -14,13 +14,6 @@ def _rand() -> int:
     return random.randint(100_000, 999_999)
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_calle_catalogo(prefix: str) -> CalleCatalogo:
     n = _rand()
     canon = f"{prefix} Canon {n}"

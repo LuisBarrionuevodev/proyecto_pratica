@@ -42,6 +42,18 @@ class Oficio(db.Model):
         index=True,
         nullable=True,
     )
+    iniciador_materializacion_estado = db.Column(
+        db.Enum(
+            "MATERIALIZADO",
+            "PENDIENTE_DOMICILIO",
+            "PENDIENTE_MATERIALIZACION",
+            name="iniciador_materializacion_estado_enum",
+        ),
+        nullable=False,
+        default="MATERIALIZADO",
+        server_default="MATERIALIZADO",
+        index=True,
+    )
 
     juzgado = db.relationship("JuzgadoCatalogo", back_populates="oficios")
     comprobacion = db.relationship("Comprobacion", back_populates="oficio")
@@ -63,6 +75,7 @@ class Oficio(db.Model):
             "juzgado_id": self.juzgado_id,
             "comprobacion_id": self.comprobacion_id,
             "deleted_at": self.deleted_at,
+            "iniciador_materializacion_estado": self.iniciador_materializacion_estado,
         }
 
         if include_relations:

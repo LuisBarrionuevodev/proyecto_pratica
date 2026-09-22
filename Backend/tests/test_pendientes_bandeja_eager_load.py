@@ -46,16 +46,6 @@ def _assert_bandeja_relations_loaded(act: Actuaciones) -> None:
         assert rel not in unloaded, f"{rel} debería estar eager-loaded"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _filters(source_type: str) -> ActuacionesPendientesFilters:
     return ActuacionesPendientesFilters.model_validate(
         {

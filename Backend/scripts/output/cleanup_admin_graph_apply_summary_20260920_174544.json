@@ -1,0 +1,215 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.3K.2",
+  "started_at": "2026-09-20T17:45:44.304264",
+  "writes_freeze": {
+    "backend_stopped": true,
+    "method": "backend_development_stopped_during_backup_preflight_transaction_postconditions",
+    "database": "digitaliza_sandbox"
+  },
+  "manifest_hashes": {
+    "admin_a": "28b606c845c73b6db061d9352e9cae4e222d95d98cb6c05c8b90c80190446aa8",
+    "admin_b": "3518deef1e0b06ade1e8ad0eba7a8e93e5978de8d81f2a0875ddd2746c0fdc8a",
+    "source_diag": "2046485eca336dec9b452d58a4246322949334f39a995a5e17f543fcde279e75",
+    "protected": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e"
+  },
+  "combined_counts_before": {
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_trabajo": 2703,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "actuaciones": 8074,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "orden_trabajo": 8810,
+    "notificacion": 2478,
+    "comprobacion": 1530,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525,
+    "expediente": 2940,
+    "oficio": 1448
+  },
+  "admin_a": {
+    "transaction_status": "COMMITTED",
+    "committed": true,
+    "report": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_admin_a_apply_20260920_174544.json",
+    "backup": {
+      "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_admin_a_20260920_174544.sql",
+      "size": 12803596,
+      "sha256": "d25bf0205b2cefe1af5b0c22508a8f032d66f57a6ca6f5aedeee2940bd27ac24",
+      "exit_code": 0,
+      "timestamp": "2026-09-20T17:45:45.065174"
+    },
+    "explicit_deleted": {
+      "expediente": 25,
+      "notificacion": 25
+    }
+  },
+  "admin_b": {
+    "transaction_status": "COMMITTED",
+    "committed": true,
+    "report": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_admin_b_apply_20260920_174544.json",
+    "backup": {
+      "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_admin_b_20260920_174544.sql",
+      "size": 12797818,
+      "sha256": "2539a6c120a6065d7ac643e78fe0d6ad0e2bd5b0a014e4a40047945581e4b282",
+      "exit_code": 0,
+      "timestamp": "2026-09-20T17:45:57.762103"
+    },
+    "explicit_deleted": {
+      "expediente": 2,
+      "oficio": 1,
+      "comprobacion": 1
+    },
+    "juzgado_922_status": {
+      "juzgado_id": 922,
+      "exists": true,
+      "oficio_refs": 0,
+      "fk_free": true,
+      "juzgado_922_fk_free_after_admin_b": true,
+      "status": "READY_FOR_PHASE2E"
+    }
+  },
+  "combined_counts_after": {
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_trabajo": 2703,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "actuaciones": 8074,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "orden_trabajo": 8810,
+    "notificacion": 2453,
+    "comprobacion": 1529,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525,
+    "expediente": 2913,
+    "oficio": 1447
+  },
+  "rebaseline_post_a": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2703,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "notificacion": 2453,
+      "comprobacion": 1530,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525,
+      "expediente": 2915,
+      "oficio": 1448
+    }
+  },
+  "protected_preserved": {
+    "actuaciones": {
+      "expected": 1189,
+      "found": 1189,
+      "min_count": 1189
+    },
+    "orden_trabajo": {
+      "expected": 1176,
+      "found": 1176,
+      "min_count": 1176
+    },
+    "inspeccion": {
+      "expected": 170,
+      "found": 170,
+      "min_count": 170
+    },
+    "notificacion": {
+      "expected": 168,
+      "found": 168,
+      "min_count": 168
+    },
+    "comprobacion": {
+      "expected": 56,
+      "found": 56,
+      "min_count": 56
+    },
+    "oficio": {
+      "expected": 40,
+      "found": 40,
+      "min_count": 40
+    },
+    "expediente": {
+      "expected": 40,
+      "found": 40,
+      "min_count": 40
+    }
+  },
+  "known_test_guards": {
+    "known_test_act_ids_union_count": 816,
+    "known_test_ot_ids_union_count": 832,
+    "known_test_act_ids_remaining": [],
+    "known_test_act_ids_remaining_count": 0,
+    "known_test_ot_ids_remaining": [],
+    "known_test_ot_ids_remaining_count": 0,
+    "guard_ok": true
+  },
+  "users_fk_free": {
+    "users_test_fk_free_baseline": 833,
+    "users_test_fk_free_after_admin_graph": 833,
+    "users_additionally_unlocked": 0,
+    "users_test_still_blocked": 1956
+  },
+  "smoke_qa": {
+    "profile_me": {
+      "status": 200,
+      "ok": true
+    },
+    "actuaciones_search": {
+      "status": 200,
+      "ok": true
+    },
+    "rutas_list": {
+      "status": 200,
+      "ok": true
+    },
+    "denuncias": {
+      "status": 200,
+      "ok": true
+    },
+    "catalogos_rubros": {
+      "status": 200,
+      "ok": true
+    },
+    "relevamientos": {
+      "status": 500,
+      "ok": false,
+      "flag": "RELEVAMIENTOS-500-PREDEPLOY"
+    }
+  },
+  "phase2d_executed": false,
+  "phase2e_executed": false,
+  "writes_executed": true,
+  "finished_at": "2026-09-20T17:46:11.947296"
+}

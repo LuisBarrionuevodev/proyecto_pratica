@@ -8,12 +8,20 @@ export function isOperativeComprobacionTab(tab: string): tab is OperativaComprob
 }
 
 /**
- * Al cambiar entre tabs operativos se deben limpiar todos los filtros visibles
- * para no heredar criterios del tab anterior.
+ * True al cambiar entre bandejas operativas (expediente/oficio/reinspección).
+ * La página intercambia memoria por tab en lugar de resetear filtros.
  */
-export function shouldResetOperativaFiltroOnTabChange(
+export function shouldSwapOperativaTabMemory(
   prev: OperativaComprobacionTabKey | string,
   next: OperativaComprobacionTabKey | string
 ): boolean {
   return isOperativeComprobacionTab(prev) && isOperativeComprobacionTab(next) && prev !== next;
+}
+
+/** @deprecated Usar shouldSwapOperativaTabMemory */
+export function shouldResetOperativaFiltroOnTabChange(
+  prev: OperativaComprobacionTabKey | string,
+  next: OperativaComprobacionTabKey | string
+): boolean {
+  return shouldSwapOperativaTabMemory(prev, next);
 }

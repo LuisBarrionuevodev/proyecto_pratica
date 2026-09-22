@@ -20,9 +20,6 @@ from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
 from app.domains.rutas_trabajo.services.iniciadores_pendientes_service import (
     planificable_iniciadores_base_query,
 )
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import (
     create_ruta_pool_dia_entry,
@@ -47,16 +44,6 @@ from app.models import (
 )
 from tests.helpers.fixture_isolation import fecha_fixture_aislada, fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
 from tests.relevamiento_test_helpers import relevador_y_rubro
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _uniq(prefix: str) -> str:
@@ -123,7 +110,6 @@ def _dos_inspectores() -> tuple[Inspector, Inspector]:
 def _setup_borrador(
     ini: IniciadorRuta,
     *,
-    con_ot: bool = False,
     estado_ruta: str = "BORRADOR",
 ) -> tuple[RutaTrabajo, RutaItem]:
     u = _ensure_user()
@@ -150,12 +136,6 @@ def _setup_borrador(
         iniciador_ids=[ini.id],
     )
     item = items[0]
-    if con_ot:
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=unique_ot_numero(),
-        )
     db.session.commit()
     return ruta, item
 
@@ -164,7 +144,7 @@ def _setup_borrador(
 def mock_user(monkeypatch):
     u = _ensure_user()
     monkeypatch.setattr(
-        "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+        "app.domains.denuncias.services.denuncias_service.get_current_user_id",
         lambda: int(u.id),
     )
     return u
@@ -254,7 +234,7 @@ def test_crud_mapa_1_borrar_denuncia_en_pool_descarta_pool(app_ctx, mock_user) -
 def test_crud_mapa_1_borrar_relevamiento_borrador_sin_ot_limpia_item(app_ctx, mock_user) -> None:
     rel, ini = _crear_relevamiento(mock_user=mock_user)
     db.session.commit()
-    ruta, item = _setup_borrador(ini, con_ot=False)
+    ruta, item = _setup_borrador(ini)
     db.session.expire(ini)
     ini_db = IniciadorRuta.query.get(ini.id)
     assert ini_db is not None
@@ -279,7 +259,7 @@ def test_crud_mapa_1_borrar_relevamiento_borrador_sin_ot_limpia_item(app_ctx, mo
 def test_crud_mapa_1_borrar_denuncia_borrador_sin_ot_limpia_item(app_ctx, mock_user) -> None:
     den, ini = _crear_denuncia(mock_user=mock_user)
     db.session.commit()
-    _ruta, item = _setup_borrador(ini, con_ot=False)
+    _ruta, item = _setup_borrador(ini)
 
     eliminar_denuncia_logicamente(int(den.id))
     db.session.expire_all()
@@ -296,7 +276,7 @@ def test_crud_mapa_1_borrar_denuncia_borrador_sin_ot_limpia_item(app_ctx, mock_u
 def test_crud_mapa_1_borrar_relevamiento_ruta_publicada_bloquea(app_ctx, mock_user) -> None:
     rel, ini = _crear_relevamiento(mock_user=mock_user)
     db.session.commit()
-    ruta, item = _setup_borrador(ini, con_ot=True)
+    ruta, item = _setup_borrador(ini)
     publicar_ruta_trabajo(ruta_id=ruta.id)
     db.session.expire_all()
 
@@ -318,7 +298,7 @@ def test_crud_mapa_1_borrar_relevamiento_ruta_publicada_bloquea(app_ctx, mock_us
 def test_crud_mapa_1_borrar_denuncia_ruta_publicada_bloquea(app_ctx, mock_user) -> None:
     den, ini = _crear_denuncia(mock_user=mock_user)
     db.session.commit()
-    ruta, item = _setup_borrador(ini, con_ot=True)
+    ruta, item = _setup_borrador(ini)
     publicar_ruta_trabajo(ruta_id=ruta.id)
 
     with pytest.raises(IniciadorOrigenEnUsoError, match=_MSG_INICIADOR_EN_USO):

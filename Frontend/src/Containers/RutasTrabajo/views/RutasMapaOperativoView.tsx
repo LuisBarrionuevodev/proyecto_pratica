@@ -5,6 +5,7 @@ import { Box, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { useAppFeedback } from "../../../components/feedback/useAppFeedback";
 import { downloadOrdenesSalidaYTrabajoDepartamentalPdfs, downloadRutaResumenPdf } from "../../../documentos";
 import { MapaFinalResumenLateral } from "../Components/MapaFinalResumenLateral";
+import { MapaOtSecuenciaPreview } from "../Components/MapaOtSecuenciaPreview";
 import { MapaRutaTrabajo } from "../Components/MapaRutaTrabajo";
 import { RutaContextoLine } from "../Components/RutaContextoLine";
 import { useRutaMapa } from "../hooks/useRutaMapa";
@@ -44,7 +45,9 @@ export function RutasMapaOperativoView({
   vistaHistoricaReadOnly = false,
 }: RutasMapaOperativoViewProps) {
   const feedback = useAppFeedback();
-  const mapa = useRutaMapa(grupos, itemsActivos, iniciadorById);
+  const readOnly = Boolean(vistaHistoricaReadOnly);
+  const rutaPublicada = Boolean(readOnly && ruta?.estado_ruta === "PUBLICADA");
+  const mapa = useRutaMapa(grupos, itemsActivos, iniciadorById, rutaPublicada);
   const { resumenTerritorial } = mapa;
   const rt = resumenTerritorial;
   const coordsCompletas = rt.totalItems > 0 && rt.itemsConCoordenadas === rt.totalItems;
@@ -53,7 +56,6 @@ export function RutasMapaOperativoView({
   const distritosDetectados = rt.distritosCubiertos.length > 0;
 
   const puedeEditarEquipos = Boolean(!vistaHistoricaReadOnly && ruta?.estado_ruta === "BORRADOR" && !detailLoading);
-  const readOnly = Boolean(vistaHistoricaReadOnly);
   const [pdfResumenLoading, setPdfResumenLoading] = useState(false);
   const [pdfOrdenesLoading, setPdfOrdenesLoading] = useState(false);
   const puedeDocumentosPdf = Boolean(readOnly && ruta?.estado_ruta === "PUBLICADA");
@@ -68,7 +70,7 @@ export function RutasMapaOperativoView({
     if (blockersKeyRef.current === key) return;
     blockersKeyRef.current = key;
     feedback.warning(
-      `Falta completar antes de publicar: ${publicarBlockers.join(" ")} Guardá la OT en Asignación y usá «Publicar» cuando todo esté listo.`
+      `Falta completar antes de publicar: ${publicarBlockers.join(" ")} Usá «Publicar» cuando todo esté listo.`
     );
   }, [feedback, publicarBlockers, readOnly]);
 
@@ -182,6 +184,8 @@ export function RutasMapaOperativoView({
           </Stack>
           {exportActions}
         </Stack>
+
+        <MapaOtSecuenciaPreview itemsCount={rt.totalItems} readOnly={readOnly} />
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75} flexWrap="wrap" useFlexGap alignItems={{ sm: "flex-start" }}>
           <Box sx={{ minWidth: 88 }}>

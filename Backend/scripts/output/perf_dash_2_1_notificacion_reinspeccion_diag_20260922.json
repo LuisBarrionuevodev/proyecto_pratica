@@ -1,0 +1,336 @@
+{
+  "ticket": "PERF-DASH.2.1-DIAG",
+  "date": "2026-09-22",
+  "writes_executed": false,
+  "periodo_analizado": {
+    "desde": "2026-09-01",
+    "hasta": "2026-09-21"
+  },
+  "reproduction_case": {
+    "ruta_item_id": 7574,
+    "actuacion_reinspeccion_id": 10590,
+    "iniciador_id": 11034,
+    "ruta_fecha": "2026-09-12",
+    "act_tipo": "REINSPECCION",
+    "act_notificacion_id": 2996,
+    "ini_notificacion_id": 2996,
+    "ini_actuacion_origen_id": 10587,
+    "origen_actuacion_notificacion_id": 2996,
+    "vinculo_notificacion_origen_en_acta": true,
+    "tiene_inspeccion_visita": true,
+    "cuenta_en_kpi_notificacion_actual": true,
+    "falso_positivo_kpi": true,
+    "actuacion_inicial_id": 10587,
+    "notificacion_origen_id": 2996
+  },
+  "reinspeccion_notificacion_realizadas_en_periodo": [
+    {
+      "ruta_item_id": 7574,
+      "actuacion_reinspeccion_id": 10590,
+      "iniciador_id": 11034,
+      "ruta_fecha": "2026-09-12",
+      "act_tipo": "REINSPECCION",
+      "act_notificacion_id": 2996,
+      "ini_notificacion_id": 2996,
+      "ini_actuacion_origen_id": 10587,
+      "origen_actuacion_notificacion_id": 2996,
+      "vinculo_notificacion_origen_en_acta": true,
+      "tiene_inspeccion_visita": true,
+      "cuenta_en_kpi_notificacion_actual": true,
+      "falso_positivo_kpi": true,
+      "actuacion_inicial_id": 10587,
+      "notificacion_origen_id": 2996
+    },
+    {
+      "ruta_item_id": 8095,
+      "actuacion_reinspeccion_id": 11420,
+      "iniciador_id": 11948,
+      "ruta_fecha": "2026-09-17",
+      "act_tipo": "REINSPECCION",
+      "act_notificacion_id": 3101,
+      "ini_notificacion_id": 3101,
+      "ini_actuacion_origen_id": 2672,
+      "origen_actuacion_notificacion_id": 3101,
+      "vinculo_notificacion_origen_en_acta": true,
+      "tiene_inspeccion_visita": true,
+      "cuenta_en_kpi_notificacion_actual": true,
+      "falso_positivo_kpi": true
+    }
+  ],
+  "notificacion_kpi_breakdown": [
+    {
+      "actuacion_id": 10217,
+      "notificacion_id": 3097,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-01",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "RELEVAMIENTO",
+      "iniciador_id": 10882,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 11411,
+      "notificacion_id": 3098,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-01",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "RELEVAMIENTO",
+      "iniciador_id": 11939,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 2,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 10595,
+      "notificacion_id": 3104,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-03",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "DENUNCIA",
+      "iniciador_id": 11039,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 10792,
+      "notificacion_id": 3068,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-04",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "RELEVAMIENTO",
+      "iniciador_id": 11221,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 11248,
+      "notificacion_id": 3070,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-08",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "RELEVAMIENTO",
+      "iniciador_id": 11488,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 2,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 11319,
+      "notificacion_id": 3094,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-10",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "RELEVAMIENTO",
+      "iniciador_id": 11554,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 10590,
+      "notificacion_id": 2996,
+      "actuacion_tipo": "REINSPECCION",
+      "actuacion_fecha": "2026-09-12",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "REINSPECCION_NOTIFICACION",
+      "iniciador_id": 11034,
+      "es_reinspeccion_notificacion": true,
+      "notificacion_es_origen_del_iniciador": true,
+      "actuaciones_con_misma_notificacion_id": 3,
+      "clasificacion": "B_reconteo_origen_reinspeccion"
+    },
+    {
+      "actuacion_id": 11468,
+      "notificacion_id": 3105,
+      "actuacion_tipo": "VERIFICAR E INFORMAR",
+      "actuacion_fecha": "2026-09-12",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "VERIFICAR_INFORMAR_OFICIO",
+      "iniciador_id": 12150,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 11420,
+      "notificacion_id": 3101,
+      "actuacion_tipo": "REINSPECCION",
+      "actuacion_fecha": "2026-09-17",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "REINSPECCION_NOTIFICACION",
+      "iniciador_id": 11948,
+      "es_reinspeccion_notificacion": true,
+      "notificacion_es_origen_del_iniciador": true,
+      "actuaciones_con_misma_notificacion_id": 2,
+      "clasificacion": "B_reconteo_origen_reinspeccion"
+    },
+    {
+      "actuacion_id": 10593,
+      "notificacion_id": 2998,
+      "actuacion_tipo": "INSPECCION",
+      "actuacion_fecha": "2026-09-20",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "DENUNCIA",
+      "iniciador_id": 11032,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    },
+    {
+      "actuacion_id": 11470,
+      "notificacion_id": 3107,
+      "actuacion_tipo": "VERIFICAR E INFORMAR",
+      "actuacion_fecha": "2026-09-21",
+      "notificacion_mes_anio": "9/2026",
+      "iniciador_tipo": "VERIFICAR_INFORMAR_OFICIO",
+      "iniciador_id": 12153,
+      "es_reinspeccion_notificacion": false,
+      "notificacion_es_origen_del_iniciador": false,
+      "actuaciones_con_misma_notificacion_id": 1,
+      "clasificacion": "A_acta_labrada_en_esta_actuacion"
+    }
+  ],
+  "current_query_path": {
+    "function": "_count_actas_labradas",
+    "file": "app/domains/indicadores/services/indicadores_resumen_service.py",
+    "notificacion_logic": "Subquery realizadas (ruta_item REALIZADO en período) → COUNT(DISTINCT actuaciones.id) WHERE actuaciones.notificacion_id IS NOT NULL AND EXISTS(notificacion_motivo para ese notificacion_id)",
+    "universo": "actuacion_ids_realizadas_subquery (cierre operativo por RutaTrabajo.fecha)"
+  },
+  "wrong_relation_path": {
+    "description": "Al completar REINSPECCION_NOTIFICACION, _vincular_notificacion_reinspeccion_en_acta copia iniciador.notificacion_id (notificación histórica de origen) a act.notificacion_id de la actuación de reinspección",
+    "workflow_file": "app/domains/actuaciones/services/completar_trabajo_cierre_service.py",
+    "workflow_function": "_vincular_notificacion_reinspeccion_en_acta",
+    "purpose_in_workflow": "Permite list_reinspeccion_notificacion_operativas detectar reinspección vía subq_reinsp",
+    "kpi_side_effect": "La actuación de reinspección entra al subquery realizadas y cumple notificacion_id + motivos de la notificación ORIGEN → +1 falso en KPI notificación",
+    "domain_awareness_exists": {
+      "function": "notificacion_es_origen_reinspeccion_notificacion_en_actuacion",
+      "file": "app/domains/actuaciones/services/oficio_circuito_service.py",
+      "used_in_kpi": false
+    }
+  },
+  "canonical_relation_path": {
+    "invariante": "Contar notificación solo si fue labrada en ESA actuación",
+    "opciones": [
+      "Excluir actuaciones REINSPECCION_NOTIFICACION donde act.notificacion_id == iniciador.notificacion_id (origen referencial)",
+      "Contar por notificacion creada/vinculada en la visita (attach_notificacion) no por FK referencial de circuito",
+      "Usar notificacion_es_origen_reinspeccion_notificacion_en_actuacion en filtro SQL del KPI"
+    ],
+    "reinspeccion_kpi_separado": "reinspecciones_notificacion_realizadas usa visitas_realizadas_por_tipo_iniciador (tipo iniciador REINSPECCION_NOTIFICACION) — correcto y separado"
+  },
+  "root_cause": "Desacople entre semántica operativa (FK referencial para trazabilidad de circuito) y semántica del KPI (acta labrada en la visita). _count_actas_labradas trata cualquier actuaciones.notificacion_id con motivos como acta labrada, sin excluir la notificación de origen copiada en reinspecciones sin nueva notificación.",
+  "affected_kpis": [
+    "ejecutivo.actas_por_tipo.notificacion",
+    "ejecutivo.kpis.actas_labradas (suma total)",
+    "productividad.actas_por_inspector.notificacion",
+    "riesgo.top_motivos_notificacion (si la actuación reinspección arrastra notificacion_id origen)"
+  ],
+  "not_affected_kpis": [
+    "reinspecciones_notificacion_realizadas (tipo iniciador)",
+    "inspeccion/clausura/decomiso actas (tablas hijas por actuacion_id)"
+  ],
+  "baseline_previous": {
+    "actas_labradas_total": 38,
+    "notificacion": 11,
+    "source": "Medición sandbox actual 2026-09-01..2026-09-21"
+  },
+  "perf_dash_2_frozen_baseline": {
+    "notificacion": 10,
+    "actas_labradas_total": 35,
+    "note": "Congelado en PERF-DASH.2; puede diferir por drift de sandbox. Con la misma lógica de reconteo, valor corregido estimado: notificacion=8, total=33.",
+    "corrected_estimate": {
+      "notificacion": 8,
+      "actas_labradas_total": 33
+    }
+  },
+  "baseline_corrected_expected": {
+    "notificacion": 9,
+    "notificacion_reconteos_por_reinspeccion": 2,
+    "notificaciones_origen_distintas_recontadas": 2,
+    "actas_labradas_total": 36,
+    "delta_notificacion": 2,
+    "clasificacion_A_actas_reales": 9,
+    "clasificacion_B_reconteos": 2
+  },
+  "cross_month_false_positives": [
+    {
+      "actuacion_reinspeccion_id": 10590,
+      "notificacion_id": 2996,
+      "reinspeccion_periodo": "9/2026",
+      "notificacion_labrada_periodo": "8/2026"
+    },
+    {
+      "actuacion_reinspeccion_id": 11420,
+      "notificacion_id": 3101,
+      "reinspeccion_periodo": "9/2026",
+      "notificacion_labrada_periodo": "7/2026"
+    }
+  ],
+  "otros_tipos_acta_audit": {
+    "inspeccion": {
+      "count_path": "COUNT(inspeccion.id) JOIN actuacion_id",
+      "riesgo_referencia_origen": "bajo — acta propia en tabla hija"
+    },
+    "comprobacion": {
+      "count_path": "COUNT(actuaciones) WHERE comprobacion_id + motivo != PENDIENTE",
+      "riesgo_referencia_origen": "medio — previas_service asigna comprobacion_id referencial; filtro PENDIENTE mitiga previas documentales"
+    },
+    "clausura": {
+      "count_path": "COUNT(clausura.id) JOIN actuacion_id",
+      "riesgo_referencia_origen": "bajo — acta propia en tabla hija"
+    },
+    "decomiso": {
+      "count_path": "COUNT(decomiso.id) JOIN actuacion_id",
+      "riesgo_referencia_origen": "bajo — acta propia en tabla hija"
+    },
+    "notificacion": {
+      "count_path": "COUNT(actuaciones) WHERE notificacion_id + EXISTS(notificacion_motivo)",
+      "riesgo_referencia_origen": "alto — FK referencial de origen copiada en reinspección (_vincular_notificacion_reinspeccion_en_acta)"
+    }
+  },
+  "test_matrix": {
+    "A": {
+      "descripcion": "Inspección inicial con notificación labrada",
+      "expected": "notificacion +1 en actuación A"
+    },
+    "B": {
+      "descripcion": "Reinspección por notificación sin nueva notificación",
+      "expected": "reinspeccion_notificacion +1; notificacion +0 adicional",
+      "bug_actual": "notificacion +1 adicional si act.notificacion_id = ini.notificacion_id"
+    },
+    "C": {
+      "descripcion": "Reinspección con nueva notificación (attach)",
+      "expected": "reinspeccion +1; notificacion +1 solo por acta nueva"
+    },
+    "D": {
+      "descripcion": "Origen agosto, reinspección septiembre",
+      "expected": "septiembre: reinspeccion +1, notificacion +0",
+      "casos_encontrados": 2
+    },
+    "E": {
+      "descripcion": "Origen y reinspección mismo mes",
+      "expected": "notificacion mensual = 1 (no 2)"
+    }
+  },
+  "recommended_fix": {
+    "scope": "Solo filtro notificación en _count_actas_labradas (y queries paralelas: productividad actas, top motivos si aplica)",
+    "approach": "En SQL: excluir actuaciones realizadas cuyo par (actuacion_id, notificacion_id) sea vínculo referencial REINSPECCION_NOTIFICACION (act.notificacion_id = iniciador.notificacion_id del cierre). Reutilizar semántica de notificacion_es_origen_reinspeccion_notificacion_en_actuacion.",
+    "preserve_performance": "Mantener 1 SELECT agregado; agregar NOT EXISTS / LEFT JOIN anti-pattern sobre iniciador_ruta+ruta_item del mismo cierre, no volver a 5 COUNTs.",
+    "do_not_change": [
+      "workflow completar_trabajo / _vincular_notificacion_reinspeccion_en_acta",
+      "KPI reinspecciones_notificacion_realizadas"
+    ]
+  },
+  "status": "DIAG_COMPLETE"
+}

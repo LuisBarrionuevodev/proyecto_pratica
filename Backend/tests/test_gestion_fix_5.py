@@ -29,32 +29,16 @@ from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
 from app.domains.actuaciones.services.update_service import actualizar_actuacion
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import Actuaciones, CatalogContraproducencia, IniciadorRuta, Inspector, RutaItem, RutaTrabajo
 
+from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero
 from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 from tests.test_completar_trabajo_subtipo_oficio_pr10_2 import (
     _cerrar_segundo_intento_realizado,
     _republicar_iniciador_pendiente,
 )
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
-def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
 
 
 def _ensure_catalog_contraproducencia(nombre: str) -> None:
@@ -273,12 +257,16 @@ def test_oficio_no_cumple_sin_contra_no_resetea_generico(app_ctx) -> None:
 
 def _republicar_iniciador_generico(ini: IniciadorRuta, user_id: int, fecha: date) -> RutaItem:
     """Republica un iniciador PENDIENTE en ruta nueva (helper transversal)."""
+    f = fecha_ruta_aislada_mismo_anio(fecha.year)
+    n = uniq_ruta_numero()
+    while RutaTrabajo.query.filter_by(fecha=f, turno="MANIANA", numero=n).first():
+        n = uniq_ruta_numero()
     ruta = RutaTrabajo(
-        fecha=fecha,
+        fecha=f,
         turno="MANIANA",
         estado_ruta="BORRADOR",
         created_by_user_id=user_id,
-        numero=random.randint(2, 32000),
+        numero=n,
     )
     db.session.add(ruta)
     db.session.flush()
@@ -292,12 +280,6 @@ def _republicar_iniciador_generico(ini: IniciadorRuta, user_id: int, fecha: date
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
-    )
-    item = items[0]
-    set_orden_trabajo_on_item(
-        ruta_id=ruta.id,
-        item_id=item.id,
-        numero_orden_trabajo=_unique_num(),
     )
     db.session.commit()
     ruta_id = int(ruta.id)
@@ -354,12 +336,6 @@ def test_reinspeccion_notificacion_dos_actuaciones_tras_reencolado(app_ctx) -> N
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
-    )
-    item = items[0]
-    set_orden_trabajo_on_item(
-        ruta_id=ruta.id,
-        item_id=item.id,
-        numero_orden_trabajo=_unique_num(),
     )
     db.session.commit()
     ini_id = int(ini.id)

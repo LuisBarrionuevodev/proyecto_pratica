@@ -1,0 +1,603 @@
+{
+  "generated_at": "2026-09-20T17:14:47.608840",
+  "phase": "ROUTE_RESIDUAL",
+  "phase_name": "confirmado_test_route_wrappers_post_2c2a_prime",
+  "mode": "EXECUTION_MANIFEST_FROZEN",
+  "writes_executed": false,
+  "database": "digitaliza_sandbox",
+  "alembic_revision": "l7m8n9o0p1q2",
+  "source_diag_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_route_residual_diag_20260920.json",
+  "source_diag_sha256": "b811a6bb7536c65935cf6a0b3ba9af8e4482bd6f34f508fa8643bcfb3f4c33e8",
+  "protected_manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\protected_operational_manifest_20260920.json",
+  "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+  "safe_set_counts": {
+    "ruta_trabajo": 12,
+    "ruta_grupo": 0,
+    "ruta_grupo_inspector": 0,
+    "ruta_pool_dia": 0
+  },
+  "classification": {
+    "confirmado_test_route": 12
+  },
+  "entities": {
+    "ruta_trabajo": [
+      4938,
+      4944,
+      5195,
+      5199,
+      5204,
+      5245,
+      5261,
+      5550,
+      5560,
+      5574,
+      6372,
+      6461
+    ]
+  },
+  "delete_order": [
+    "ruta_trabajo"
+  ],
+  "forbidden_deletes": {
+    "iniciador_ruta": 0,
+    "oficio": 0,
+    "ruta_grupo": 0,
+    "ruta_item": 0,
+    "ruta_pool_dia": 0,
+    "actuaciones": 0,
+    "users": 0,
+    "relevamiento": 0,
+    "notificacion": 0,
+    "denuncia": 0,
+    "relevador": 0,
+    "ruta_grupo_inspector": 0,
+    "comprobacion": 0,
+    "orden_trabajo": 0,
+    "rubro": 0,
+    "inspector": 0,
+    "expediente": 0,
+    "domicilio": 0
+  },
+  "expected_counts_before": {
+    "ruta_trabajo": 2715
+  },
+  "expected_counts_after": {
+    "ruta_trabajo": 2703
+  },
+  "unchanged_counts": {
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "actuaciones": 8074,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "orden_trabajo": 8810,
+    "notificacion": 2478,
+    "comprobacion": 1530,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525
+  },
+  "provenance": {
+    "route_to_deleted_item": [
+      {
+        "ruta_trabajo_id": 4938,
+        "deleted_ruta_item_id": 5376
+      },
+      {
+        "ruta_trabajo_id": 4944,
+        "deleted_ruta_item_id": 5382
+      },
+      {
+        "ruta_trabajo_id": 5195,
+        "deleted_ruta_item_id": 5637
+      },
+      {
+        "ruta_trabajo_id": 5199,
+        "deleted_ruta_item_id": 5641
+      },
+      {
+        "ruta_trabajo_id": 5204,
+        "deleted_ruta_item_id": 5646
+      },
+      {
+        "ruta_trabajo_id": 5245,
+        "deleted_ruta_item_id": 5686
+      },
+      {
+        "ruta_trabajo_id": 5261,
+        "deleted_ruta_item_id": 5701
+      },
+      {
+        "ruta_trabajo_id": 5550,
+        "deleted_ruta_item_id": 5970
+      },
+      {
+        "ruta_trabajo_id": 5560,
+        "deleted_ruta_item_id": 5980
+      },
+      {
+        "ruta_trabajo_id": 5574,
+        "deleted_ruta_item_id": 6003
+      },
+      {
+        "ruta_trabajo_id": 6372,
+        "deleted_ruta_item_id": 6889
+      },
+      {
+        "ruta_trabajo_id": 6461,
+        "deleted_ruta_item_id": 6972
+      }
+    ],
+    "route_to_deleted_act": [
+      {
+        "ruta_trabajo_id": 4938,
+        "deleted_actuacion_id": 6999
+      },
+      {
+        "ruta_trabajo_id": 4944,
+        "deleted_actuacion_id": 7025
+      },
+      {
+        "ruta_trabajo_id": 5195,
+        "deleted_actuacion_id": 7458
+      },
+      {
+        "ruta_trabajo_id": 5199,
+        "deleted_actuacion_id": 7493
+      },
+      {
+        "ruta_trabajo_id": 5204,
+        "deleted_actuacion_id": 7507
+      },
+      {
+        "ruta_trabajo_id": 5245,
+        "deleted_actuacion_id": 7577
+      },
+      {
+        "ruta_trabajo_id": 5261,
+        "deleted_actuacion_id": 7619
+      },
+      {
+        "ruta_trabajo_id": 5550,
+        "deleted_actuacion_id": 7932
+      },
+      {
+        "ruta_trabajo_id": 5560,
+        "deleted_actuacion_id": 7964
+      },
+      {
+        "ruta_trabajo_id": 5574,
+        "deleted_actuacion_id": 8015
+      },
+      {
+        "ruta_trabajo_id": 6372,
+        "deleted_actuacion_id": 9612
+      },
+      {
+        "ruta_trabajo_id": 6461,
+        "deleted_actuacion_id": 9942
+      }
+    ],
+    "full_links": [
+      {
+        "ruta_trabajo_id": 4938,
+        "deleted_ruta_item_id": 5376,
+        "deleted_actuacion_id": 6999,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 4944,
+        "deleted_ruta_item_id": 5382,
+        "deleted_actuacion_id": 7025,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5195,
+        "deleted_ruta_item_id": 5637,
+        "deleted_actuacion_id": 7458,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5199,
+        "deleted_ruta_item_id": 5641,
+        "deleted_actuacion_id": 7493,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5204,
+        "deleted_ruta_item_id": 5646,
+        "deleted_actuacion_id": 7507,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5245,
+        "deleted_ruta_item_id": 5686,
+        "deleted_actuacion_id": 7577,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5261,
+        "deleted_ruta_item_id": 5701,
+        "deleted_actuacion_id": 7619,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5550,
+        "deleted_ruta_item_id": 5970,
+        "deleted_actuacion_id": 7932,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5560,
+        "deleted_ruta_item_id": 5980,
+        "deleted_actuacion_id": 7964,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 5574,
+        "deleted_ruta_item_id": 6003,
+        "deleted_actuacion_id": 8015,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 6372,
+        "deleted_ruta_item_id": 6889,
+        "deleted_actuacion_id": 9612,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      },
+      {
+        "ruta_trabajo_id": 6461,
+        "deleted_ruta_item_id": 6972,
+        "deleted_actuacion_id": 9942,
+        "classification": "CONFIRMADO_TEST_ROUTE",
+        "note": "created_by_user_id=1 is admin audit field, not evidence of real data"
+      }
+    ],
+    "created_by_admin_note": "created_by_user_id=1 is audit metadata, not real-data evidence"
+  },
+  "operational_emptiness_revalidated": [
+    {
+      "ruta_trabajo_id": 4938,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 4944,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5195,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5199,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5204,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5245,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5261,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5550,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5560,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5574,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 6372,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 6461,
+      "ruta_item_refs": 0,
+      "ruta_grupo_refs": 0,
+      "ruta_grupo_inspector_refs": 0,
+      "ruta_pool_dia_refs": 0
+    }
+  ],
+  "expected_cascades": {
+    "ruta_grupo": {
+      "physical_rows": 0
+    },
+    "ruta_grupo_inspector": {
+      "physical_rows": 0
+    },
+    "ruta_item": {
+      "physical_rows": 0
+    },
+    "ruta_pool_dia": {
+      "set_null_rows": 0
+    },
+    "other": {
+      "physical_rows": 0
+    },
+    "cascade_detail": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "cascade_total": 0,
+      "set_null_total": 0
+    }
+  },
+  "expected_set_null": {
+    "ruta_pool_dia": {
+      "set_null_rows": 0
+    },
+    "set_null_total": 0
+  },
+  "excluded": {
+    "ruta_grupo": "NO_DELETE \u2014 safe set empty",
+    "ruta_grupo_inspector": "NO_DELETE \u2014 safe set empty",
+    "ruta_item": "NO_DELETE \u2014 already removed in 2C.2A'",
+    "ruta_pool_dia": "NO_DELETE \u2014 safe set empty",
+    "iniciador_ruta": "NO_DELETE",
+    "admin_graph": "NO_DELETE",
+    "users": "NO_DELETE",
+    "catalogs": "NO_DELETE",
+    "operational_entities": "NO_DELETE"
+  },
+  "preserve": {
+    "admin_graph_25_notificaciones": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860
+    ],
+    "comprobacion_2289": 2289,
+    "expedientes_27": [
+      1972,
+      1975,
+      1976,
+      1985,
+      1987,
+      2073,
+      2074,
+      2075,
+      2139,
+      2140,
+      2141,
+      2334,
+      2761,
+      2900,
+      2914,
+      2942,
+      2980,
+      2983,
+      2991,
+      3006,
+      3007,
+      3008,
+      3034,
+      3040,
+      3044,
+      3103,
+      3104
+    ],
+    "oficio_1662": 1662,
+    "policy": "IDs in preserve MUST NOT appear in entities DELETE"
+  },
+  "fk_graph": {
+    "ruta_trabajo": [
+      {
+        "child_table": "ruta_grupo",
+        "child_column": "ruta_trabajo_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "ruta_item",
+        "child_column": "ruta_trabajo_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "ruta_pool_dia",
+        "child_column": "ruta_trabajo_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE"
+      }
+    ]
+  },
+  "known_test_guards": {
+    "acts_remaining": 0,
+    "ot_remaining": 0,
+    "guard_ok": true,
+    "detail": {
+      "known_test_act_ids_union_count": 816,
+      "known_test_ot_ids_union_count": 832,
+      "known_test_act_ids_remaining": [],
+      "known_test_act_ids_remaining_count": 0,
+      "known_test_ot_ids_remaining": [],
+      "known_test_ot_ids_remaining_count": 0,
+      "guard_ok": true
+    }
+  },
+  "admin_graph_guard": {
+    "policy": "ADMIN_GRAPH_NOT_IN_SCOPE",
+    "blocked_notificaciones_25_present": 25,
+    "comprobacion_2289_present": true,
+    "future_expedientes_27_present": 27,
+    "oficio_1662_present": true,
+    "touched_by_this_diag": false
+  },
+  "users_simulation": {
+    "users_test_fk_free_baseline_post_3i": 833,
+    "users_test_fk_free_after_route_cleanup": 833,
+    "users_additionally_unlocked": 0,
+    "users_test_still_blocked": 1956,
+    "policy": "NO_DELETE users; admin user_id=1 not deleted"
+  },
+  "protected_intersection": 0,
+  "protected_closure_detail": {
+    "by_entity": {
+      "actuaciones": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1189,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "orden_trabajo": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1176,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "inspeccion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 170,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "notificacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 168,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "comprobacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 56,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "oficio": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "expediente": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      }
+    },
+    "conflicts": [],
+    "valid": true
+  },
+  "validation": {
+    "ids_exist": {
+      "ruta_trabajo": {
+        "expected": 12,
+        "found": 12,
+        "missing": 0
+      }
+    },
+    "operational_empty": true,
+    "child_physical_zero": true,
+    "delete_order_validated": {
+      "valid": true,
+      "violations": []
+    },
+    "no_child_entities_in_manifest": true
+  },
+  "document_cleanup_policy": "DELETE only CONFIRMADO_TEST_ROUTE wrappers with zero operational children. NOT delete based on created_by_user_id=1 alone.",
+  "manifest_sha256": "078b6806096dae16837cf5ff6616aff42a8f9d0723fe61133f13273658dd484b"
+}

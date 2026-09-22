@@ -12,9 +12,6 @@ from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
 from app.domains.rutas_trabajo.services.planificacion_service import (
     get_planificacion_pendientes_contexto,
 )
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_pool_agregar_desde_pool_service import (
     agregar_desde_pool_a_ruta,
 )
@@ -23,13 +20,6 @@ from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ru
 from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 from app.models import Actuaciones, Distrito, Domicilio, Inspector, IniciadorRuta, RutaItem, RutaPoolDia, RutaTrabajo, User
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
-
-
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _mk_user() -> User:
@@ -172,13 +162,7 @@ def test_publicar_descarta_sobrantes_en_pool_y_publica_asignados(app_ctx) -> Non
 
     pools_asignados = _agregar_al_pool(ruta, u, asignados)
     pools_sobrantes = _agregar_al_pool(ruta, u, sobrantes)
-    items = _asignar_desde_pool(ruta, int(grupo.id), pools_asignados)
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=int(ruta.id),
-            item_id=int(item.id),
-            numero_orden_trabajo=unique_ot_numero(),
-        )
+    _asignar_desde_pool(ruta, int(grupo.id), pools_asignados)
     db.session.commit()
 
     actuaciones_antes = {a.id for a in Actuaciones.query.all()}
@@ -259,13 +243,7 @@ def test_publicar_sin_sobrantes_no_descarta_pool_asignado(app_ctx) -> None:
     db.session.commit()
 
     pools = _agregar_al_pool(ruta, u, asignados)
-    items = _asignar_desde_pool(ruta, int(grupo.id), pools)
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=int(ruta.id),
-            item_id=int(item.id),
-            numero_orden_trabajo=unique_ot_numero(),
-        )
+    _asignar_desde_pool(ruta, int(grupo.id), pools)
     db.session.commit()
 
     publicar_ruta_trabajo(ruta_id=int(ruta.id))

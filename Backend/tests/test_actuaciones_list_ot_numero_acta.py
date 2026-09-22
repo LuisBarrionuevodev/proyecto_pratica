@@ -19,16 +19,6 @@ def _unique_ot_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_ot_y_actuacion(numero_acta: str) -> tuple[OrdenTrabajo, Actuaciones]:
     ot = OrdenTrabajo(numero_acta=numero_acta, anio=2026, mes=5)
     db.session.add(ot)

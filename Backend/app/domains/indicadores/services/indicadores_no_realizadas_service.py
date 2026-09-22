@@ -10,6 +10,7 @@ from app.domains.indicadores.schemas.no_realizadas_out import (
     IndicadoresNoRealizadasOut,
 )
 from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
+    fetch_no_realizadas_visita_rows,
     query_contraproducencias_resumen_counts,
     query_distritos_con_mas_no_realizadas,
     query_no_realizadas_por_tipo,
@@ -37,11 +38,14 @@ def build_indicadores_no_realizadas(
     Retorno:
         Desglose por tipo de iniciador, top contraproducencias y distritos con más casos.
     """
+    visita_rows = fetch_no_realizadas_visita_rows(
+        desde, hasta, distrito_id, inspector_id
+    )
     por_tipo = query_no_realizadas_por_tipo(
         desde, hasta, distrito_id, inspector_id
     )
     top_rows = query_top_contraproducencias_no_realizadas(
-        desde, hasta, distrito_id, inspector_id
+        desde, hasta, distrito_id, inspector_id, visita_rows=visita_rows
     )
     top_contraproducencias = [
         ContraproducenciaCantidadItem(contraproducencia=label, cantidad=cnt)
@@ -60,7 +64,7 @@ def build_indicadores_no_realizadas(
         for did, codigo, nombre, cnt in distrito_rows
     ]
     total_resumen, bucket_counts = query_contraproducencias_resumen_counts(
-        desde, hasta, distrito_id, inspector_id
+        desde, hasta, distrito_id, inspector_id, visita_rows=visita_rows
     )
     contraproducencias_resumen = [
         ContraproducenciaResumenItem(

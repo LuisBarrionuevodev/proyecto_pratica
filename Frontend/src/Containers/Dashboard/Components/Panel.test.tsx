@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   IndicadoresEjecutivoResponse,
   IndicadoresNoRealizadasResponse,
-  IndicadoresPendientesResponse,
   IndicadoresProductividadResponse,
   IndicadoresRiesgoResponse,
 } from "../../../api/indicadoresApi";
@@ -48,17 +47,6 @@ const ejecutivoMock: IndicadoresEjecutivoResponse = {
     clausura: 1,
     decomiso: 0,
   },
-};
-
-const pendientesMock: IndicadoresPendientesResponse = {
-  kpis: {
-    relevamientos_pendientes: 1,
-    reinspecciones_oficio_pendientes: 2,
-    reinspecciones_notificacion_pendientes: 3,
-    denuncias_pendientes: 4,
-    pendientes_geolocalizacion: 5,
-  },
-  distritos_con_mas_pendientes: [],
 };
 
 const riesgoMock: IndicadoresRiesgoResponse = {
@@ -113,7 +101,6 @@ type HookState<T> = {
 
 const hookState = {
   ejecutivo: { data: null, loading: true, error: null } as HookState<IndicadoresEjecutivoResponse>,
-  pendientes: { data: null, loading: true, error: null } as HookState<IndicadoresPendientesResponse>,
   riesgo: { data: null, loading: true, error: null } as HookState<IndicadoresRiesgoResponse>,
   noRealizadas: {
     data: null,
@@ -151,10 +138,6 @@ vi.mock("../hooks/useIndicadoresEjecutivo", () => ({
   useIndicadoresEjecutivo: () => hookState.ejecutivo,
 }));
 
-vi.mock("../hooks/useIndicadoresPendientes", () => ({
-  useIndicadoresPendientes: () => hookState.pendientes,
-}));
-
 vi.mock("../hooks/useIndicadoresRiesgo", () => ({
   useIndicadoresRiesgo: () => hookState.riesgo,
 }));
@@ -176,7 +159,6 @@ vi.mock("./DashboardProductividadSectionLazy", async () => {
 
 function setAllLoaded() {
   hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-  hookState.pendientes = { data: pendientesMock, loading: false, error: null };
   hookState.riesgo = { data: riesgoMock, loading: false, error: null };
   hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
   hookState.productividad = { data: productividadMock, loading: false, error: null };
@@ -184,7 +166,6 @@ function setAllLoaded() {
 
 function setAllLoading() {
   hookState.ejecutivo = { data: null, loading: true, error: null };
-  hookState.pendientes = { data: null, loading: true, error: null };
   hookState.riesgo = { data: null, loading: true, error: null };
   hookState.noRealizadas = { data: null, loading: true, error: null };
   hookState.productividad = { data: null, loading: true, error: null };
@@ -206,14 +187,12 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(html).toContain("Cargando indicadores");
     expect(html).not.toContain("Overview operativo");
     expect(html).not.toContain("Cargando overview");
-    expect(html).not.toContain("Cargando pendientes");
     expect(html).not.toContain("Cargando riesgo");
     expect(html).not.toContain("Cargando productividad");
   });
 
   it("renderiza estructura aunque solo Ejecutivo terminó", () => {
     hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: null, loading: true, error: null };
     hookState.riesgo = { data: null, loading: true, error: null };
     hookState.noRealizadas = { data: null, loading: true, error: null };
     hookState.productividad = { data: null, loading: true, error: null };
@@ -222,26 +201,12 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(html).not.toContain("Cargando indicadores");
     expect(html).toContain("Overview operativo");
     expect(html).toContain("Actas labradas por tipo");
-    expect(html).toContain("Cargando pendientes");
     expect(html).toContain("Cargando riesgo");
     expect(html).toContain("Cargando productividad");
   });
 
-  it("muestra loader de sección Pendientes mientras carga", () => {
-    hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: null, loading: true, error: null };
-    hookState.riesgo = { data: riesgoMock, loading: false, error: null };
-    hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
-    hookState.productividad = { data: productividadMock, loading: false, error: null };
-
-    const html = renderPanel();
-    expect(html).toContain("Cargando pendientes");
-    expect(html).not.toContain("Relevamientos pendientes");
-  });
-
   it("muestra loader de sección Riesgo mientras carga", () => {
     hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: pendientesMock, loading: false, error: null };
     hookState.riesgo = { data: null, loading: true, error: null };
     hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
     hookState.productividad = { data: productividadMock, loading: false, error: null };
@@ -253,7 +218,6 @@ describe("IND-QA.1 — Dashboard Panel", () => {
 
   it("muestra loader de sección Productividad mientras carga", () => {
     hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: pendientesMock, loading: false, error: null };
     hookState.riesgo = { data: riesgoMock, loading: false, error: null };
     hookState.noRealizadas = { data: noRealizadasMock, loading: false, error: null };
     hookState.productividad = { data: null, loading: true, error: null };
@@ -265,7 +229,6 @@ describe("IND-QA.1 — Dashboard Panel", () => {
 
   it("no usa loader global cuando ya hay datos parciales", () => {
     hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: null, loading: true, error: null };
     hookState.riesgo = { data: null, loading: true, error: null };
     hookState.noRealizadas = { data: null, loading: true, error: null };
     hookState.productividad = { data: null, loading: true, error: null };
@@ -277,17 +240,15 @@ describe("IND-QA.1 — Dashboard Panel", () => {
 
   it("mantiene layout y overlay suave al refrescar filtros", () => {
     setAllLoaded();
-    hookState.pendientes = { data: pendientesMock, loading: true, error: null };
+    hookState.riesgo = { data: null, loading: true, error: null };
 
     const html = renderPanel();
     expect(html).toContain("Overview operativo");
-    expect(html).toContain("Operativo / Pendientes actuales");
     expect(html).toContain('aria-hidden="true"');
   });
 
   it("deshabilita Exportar PDF durante carga parcial", () => {
     hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: null, loading: true, error: null };
     hookState.riesgo = { data: null, loading: true, error: null };
     hookState.noRealizadas = { data: null, loading: true, error: null };
     hookState.productividad = { data: null, loading: true, error: null };
@@ -305,14 +266,12 @@ describe("IND-QA.1 — Dashboard Panel", () => {
 
   it("no crashea con bloques vacíos tras carga", () => {
     hookState.ejecutivo = { data: ejecutivoMock, loading: false, error: null };
-    hookState.pendientes = { data: null, loading: false, error: null };
     hookState.riesgo = { data: null, loading: false, error: null };
     hookState.noRealizadas = { data: null, loading: false, error: null };
     hookState.productividad = { data: null, loading: false, error: null };
 
     const html = renderPanel();
     expect(html).toContain("Overview operativo");
-    expect(html).not.toContain("Cargando pendientes");
   });
 
   it("renderiza secciones principales cuando los hooks devuelven datos", () => {
@@ -320,7 +279,6 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     const html = renderPanel();
     expect(html).toContain("Overview operativo");
     expect(html).toContain("Actas labradas por tipo");
-    expect(html).toContain("Operativo / Pendientes actuales");
     expect(html).toContain("Riesgo bromatológico");
     expect(html).toContain("No realizadas");
     expect(html).toContain("Productividad");
@@ -372,21 +330,15 @@ describe("IND-QA.1 — Dashboard Panel", () => {
     expect(src).toContain("indicadoresParams");
   });
 
-  it("muestra los 3 KPIs de pendientes cuando hay datos", () => {
+  it("PERF-DASH.2: no renderiza sección Pendientes del dashboard", () => {
     setAllLoaded();
+    const src = readFileSync(panelPath, "utf8");
+    expect(src).not.toContain("useIndicadoresPendientes");
+    expect(src).not.toContain("DashboardPendientesSection");
+    expect(src).not.toContain("/api/indicadores/pendientes");
     const html = renderPanel();
-    expect(html).toContain("Relevamientos pendientes");
-    expect(html).toContain("Operativo / Pendientes actuales");
-    expect(html).not.toContain("Pendientes geolocalización");
-    expect(html).not.toContain("Pendientes actuales al momento de consulta.");
-  });
-
-  it("dashboard cargado no muestra Denuncia ni Tipo principal", () => {
-    setAllLoaded();
-    const html = renderPanel();
-    expect(html).not.toMatch(/Denuncias?\s+pendientes/i);
-    expect(html).not.toContain("Tipo principal");
-    expect(html).not.toMatch(/>\s*Denuncia\s*</i);
+    expect(html).not.toContain("Operativo / Pendientes actuales");
+    expect(html).not.toContain("Relevamientos pendientes");
   });
 
   it("no realizadas no muestra card duplicada de total interno", () => {

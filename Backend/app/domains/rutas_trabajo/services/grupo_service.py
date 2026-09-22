@@ -6,10 +6,16 @@ from app.database import db
 from app.models import RutaGrupo, RutaTrabajo
 from sqlalchemy.exc import IntegrityError
 
-from .auth_service import get_current_user_id_or_fallback
+from .auth_service import resolve_actor_user_id
 
 
-def create_ruta_grupo(*, ruta_id: int, nombre: str | None, estado: str | None) -> RutaGrupo:
+def create_ruta_grupo(
+    *,
+    ruta_id: int,
+    nombre: str | None,
+    estado: str | None,
+    actor_user_id: int | None = None,
+) -> RutaGrupo:
     """
     Crea un grupo dentro de una ruta en estado BORRADOR.
 
@@ -59,7 +65,7 @@ def create_ruta_grupo(*, ruta_id: int, nombre: str | None, estado: str | None) -
         ruta_trabajo_id=ruta_id,
         nombre=nombre_value,
         estado=estado,
-        created_by_user_id=get_current_user_id_or_fallback(),
+        created_by_user_id=resolve_actor_user_id(actor_user_id),
     )
     db.session.add(grupo)
     try:

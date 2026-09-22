@@ -20,9 +20,6 @@ from app.domains.denuncias.services.denuncias_service import crear_denuncia_con_
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
@@ -39,7 +36,8 @@ from app.models import (
     User,
 )
 
-from tests.helpers.fixture_isolation import unique_ot_numero
+from tests.helpers.fixture_isolation import unique_ot_numero, uniq_ruta_numero
+from tests.helpers.ruta_ot_test import asignar_ot_legacy_en_item
 from tests.relevamiento_test_helpers import get_or_create_test_relevador
 from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _dos_inspectores,
@@ -50,16 +48,6 @@ from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
     _publicar_y_cerrar_no_realizado,
     _setup_borrador_con_iniciador,
 )
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _migration_pr72_aplicada() -> bool:
@@ -118,7 +106,7 @@ def _mk_iniciador_relevamiento() -> IniciadorRuta:
 def _mk_iniciador_denuncia() -> IniciadorRuta:
     u = _mk_user()
     with patch(
-        "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+        "app.domains.denuncias.services.denuncias_service.get_current_user_id",
         return_value=u.id,
     ):
         _den, ini = crear_denuncia_con_iniciador(
@@ -190,8 +178,9 @@ def test_pr11_1b_relevamiento_y_denuncia_rechazan_misma_ot(
     )
     hist_contra = act_prev.contraproducencia
 
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
     db.session.expire_all()
@@ -208,8 +197,9 @@ def test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot(app_ctx) -> No
         u.id,
         contra="LOCAL CERRADO",
     )
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
     db.session.expire_all()
     act_db = Actuaciones.query.get(act_prev.id)
@@ -238,8 +228,9 @@ def test_pr11_1b_item_legacy_estado_ruta_no_realizado_rechaza_misma_ot(app_ctx) 
     item_prev.estado_ejecucion = "NO_REALIZADO"
     db.session.commit()
 
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
 
@@ -286,8 +277,9 @@ def test_pr11_1b_item_soft_deleted_publica_con_ot_nueva(app_ctx) -> None:
     item_prev.deleted_at = datetime.utcnow()
     db.session.commit()
 
+    ruta_rechazo, _item_rechazo = _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num)
+        publicar_ruta_trabajo(ruta_id=ruta_rechazo.id)
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
 
     ruta2, item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_nueva)
@@ -309,11 +301,15 @@ def test_pr11_1b_actuacion_base_sin_item_sigue_bloqueando_ot(app_ctx) -> None:
     u = User.query.filter(User.is_active.is_(True)).first()
     assert u is not None
     ins1, ins2 = _dos_inspectores()
+    f = _fecha_ruta_aislada_mismo_anio(2026)
+    n = uniq_ruta_numero()
+    while RutaTrabajo.query.filter_by(fecha=f, turno="MANIANA", numero=n).first():
+        n = uniq_ruta_numero()
     ruta = RutaTrabajo(
-        fecha=_fecha_ruta_aislada_mismo_anio(2026),
+        fecha=f,
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(2, 32000),
+        numero=n,
         created_by_user_id=u.id,
     )
     db.session.add(ruta)
@@ -330,9 +326,10 @@ def test_pr11_1b_actuacion_base_sin_item_sigue_bloqueando_ot(app_ctx) -> None:
         iniciador_ids=[ini.id],
     )
     item = items[0]
-    with pytest.raises(RutaPublicarDebugError, match="actuación"):
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=ot_num,
-        )
+    asignar_ot_legacy_en_item(
+        ruta_id=ruta.id,
+        item_id=item.id,
+        numero_orden_trabajo=ot_num,
+    )
+    with pytest.raises(RuntimeError, match="actuación"):
+        publicar_ruta_trabajo(ruta_id=ruta.id)

@@ -50,16 +50,6 @@ def _fila_correccion(*, act_id: int, ot: str, fecha: str, insp1: str, insp2: str
     }
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_mapper_incluye_limpiar_contraproducencia(app_ctx) -> None:
     ins = Inspector.query.limit(2).all()
     if len(ins) < 2:

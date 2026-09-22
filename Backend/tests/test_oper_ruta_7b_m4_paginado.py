@@ -17,19 +17,9 @@ from app.domains.rutas_trabajo.services.planificacion_service import (
 )
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import create_ruta_pool_dia_entry
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import Domicilio, Inspector, IniciadorRuta, RutaItem, RutaTrabajo, User
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
-
-
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _mk_user() -> User:
@@ -140,25 +130,42 @@ def test_m4_filtro_distrito(app_ctx) -> None:
     ruta = _mk_ruta(u)
     ini_d1 = _mk_iniciador(u, distrito_id=11)
     ini_d2 = _mk_iniciador(u, distrito_id=12)
+    dom1 = db.session.get(Domicilio, ini_d1.domicilio_id)
+    dom2 = db.session.get(Domicilio, ini_d2.domicilio_id)
+    assert dom1 is not None and dom2 is not None
     db.session.commit()
 
-    items, total = get_planificacion_pendientes_contexto(
+    items_d1, total_d1 = get_planificacion_pendientes_contexto(
         int(ruta.id),
         distrito_id=11,
         tipo=None,
         prioridad=None,
         prioridad_categoria=None,
-        q=None,
+        q=dom1.calle,
         turno_sugerido=None,
         calle_catalogo_id=None,
         page=1,
         per_page=50,
         orden="prioridad",
     )
-    ids = {int(i.id) for i in items}
-    assert int(ini_d1.id) in ids
-    assert int(ini_d2.id) not in ids
-    assert total >= 1
+    ids_d1 = {int(i.id) for i in items_d1}
+    assert int(ini_d1.id) in ids_d1
+    assert total_d1 >= 1
+
+    items_d2, _ = get_planificacion_pendientes_contexto(
+        int(ruta.id),
+        distrito_id=11,
+        tipo=None,
+        prioridad=None,
+        prioridad_categoria=None,
+        q=dom2.calle,
+        turno_sugerido=None,
+        calle_catalogo_id=None,
+        page=1,
+        per_page=50,
+        orden="prioridad",
+    )
+    assert int(ini_d2.id) not in {int(i.id) for i in items_d2}
 
 
 def test_m4_excluye_pool_en_pool(app_ctx) -> None:
@@ -285,11 +292,6 @@ def test_m4_excluye_ruta_publicada_activa(app_ctx) -> None:
         .first()
     )
     assert item is not None
-    set_orden_trabajo_on_item(
-        ruta_id=int(ruta_pub.id),
-        item_id=int(item.id),
-        numero_orden_trabajo=unique_ot_numero(),
-    )
     publicar_ruta_trabajo(ruta_id=int(ruta_pub.id))
 
     items, _ = get_planificacion_pendientes_contexto(

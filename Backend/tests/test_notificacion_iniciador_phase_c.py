@@ -20,7 +20,7 @@ def test_run_sync_pipeline_incluye_metricas_fase_c(monkeypatch):
     monkeypatch.setattr(
         pipe,
         "sync_iniciadores_reinspeccion_notificacion",
-        lambda: SyncReinspeccionNotificacionOutcome(
+        lambda **_: SyncReinspeccionNotificacionOutcome(
             created=2,
             eligible_notificaciones=5,
             skipped_already_blocking=1,
@@ -28,7 +28,9 @@ def test_run_sync_pipeline_incluye_metricas_fase_c(monkeypatch):
             revoked=0,
         ),
     )
-    m = pipe.run_sync_notificaciones_vencidas()
+    monkeypatch.setattr(pipe, "validate_actor_user_id", lambda uid: int(uid))
+    m = pipe.run_sync_notificaciones_vencidas(actor_user_id=42)
+    assert m["actor_user_id"] == 42
     assert m["status"] == "ok"
     assert m["created"] == 2
     assert m["eligible_notificaciones"] == 5
@@ -44,7 +46,7 @@ def test_run_sync_pipeline_incluye_metrica_revoked(monkeypatch):
     monkeypatch.setattr(
         pipe,
         "sync_iniciadores_reinspeccion_notificacion",
-        lambda: SyncReinspeccionNotificacionOutcome(
+        lambda **_: SyncReinspeccionNotificacionOutcome(
             created=0,
             eligible_notificaciones=0,
             skipped_already_blocking=0,
@@ -52,7 +54,8 @@ def test_run_sync_pipeline_incluye_metrica_revoked(monkeypatch):
             revoked=2,
         ),
     )
-    m = pipe.run_sync_notificaciones_vencidas()
+    monkeypatch.setattr(pipe, "validate_actor_user_id", lambda uid: int(uid))
+    m = pipe.run_sync_notificaciones_vencidas(actor_user_id=42)
     assert m["revoked"] == 2
 
 
@@ -114,7 +117,7 @@ def test_sync_on_read_env_llama_sync_en_pendientes_notificacion(client, monkeypa
 def test_flask_cli_sync_notificaciones_vencidas(app, monkeypatch):
     monkeypatch.setattr(
         "app.domains.actuaciones.pipelines.sync_notificaciones_vencidas.run_sync_notificaciones_vencidas",
-        lambda: {
+        lambda **_: {
             "status": "ok",
             "created": 0,
             "eligible_notificaciones": 0,
@@ -126,6 +129,12 @@ def test_flask_cli_sync_notificaciones_vencidas(app, monkeypatch):
         },
     )
     runner = app.test_cli_runner()
-    result = runner.invoke(args=["sync-notificaciones-vencidas"])
+    result = runner.invoke(args=["sync-notificaciones-vencidas", "--actor-user-id", "1"])
     assert result.exit_code == 0
     assert "ok" in result.output
+
+
+def test_flask_cli_sync_sin_actor_user_id_falla(app):
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=["sync-notificaciones-vencidas"])
+    assert result.exit_code != 0

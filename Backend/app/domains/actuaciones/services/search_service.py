@@ -27,6 +27,10 @@ from app.models import (
     Rubro,
 )
 from app.utils.actas import acta_6
+from app.domains.actuaciones.utils.titular_actuacion_resolver import (
+    resolve_titular_grid_fields,
+    titular_label_from_grid_fields,
+)
 
 
 def _contrib_label(c: Contribuyente | None) -> str | None:
@@ -137,6 +141,9 @@ def buscar_actuaciones_liviano(q: str, *, limit: int = 20) -> list[dict[str, Any
         Contribuyente.documento.ilike(like),
         Rubro.nombre.ilike(like),
         Actuaciones.nombre_local.ilike(like),
+        Actuaciones.titular_apellido_historico.ilike(like),
+        Actuaciones.titular_nombre_historico.ilike(like),
+        Actuaciones.titular_razon_social_historica.ilike(like),
         Expediente.numero_expediente.ilike(like),
         Oficio.numero_oficio.ilike(like),
     ]
@@ -169,7 +176,10 @@ def buscar_actuaciones_liviano(q: str, *, limit: int = 20) -> list[dict[str, Any
         fecha_iso = act.fecha.isoformat() if act.fecha else None
         ot_num = ot.numero_acta if ot else None
         dom_linea = _domicilio_linea(dom)
-        contrib = _contrib_label(dom.contribuyente if dom else None)
+        titular_fields = resolve_titular_grid_fields(act)
+        contrib = titular_label_from_grid_fields(titular_fields) or _contrib_label(
+            dom.contribuyente if dom else None
+        )
         label = _build_label(
             ot_num=ot_num,
             fecha_iso=fecha_iso,

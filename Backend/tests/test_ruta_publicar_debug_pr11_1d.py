@@ -26,16 +26,6 @@ from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
 )
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_pr11_1d_debug_habilitado_por_defecto() -> None:
     assert publicar_debug_habilitado() is True
 
@@ -72,9 +62,6 @@ def test_pr11_1d_conflicto_ot_incluye_debug(app_ctx) -> None:
         replace_grupo_inspectores,
     )
     from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
-    from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-        set_orden_trabajo_on_item,
-    )
 
     ins1, ins2 = _dos_inspectores()
     grupo = create_ruta_grupo(ruta_id=ruta2.id, nombre="G", estado="ACTIVO")

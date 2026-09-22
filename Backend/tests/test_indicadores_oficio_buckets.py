@@ -47,16 +47,6 @@ def _unique_name(prefix: str) -> str:
     return f"{prefix}_{_unique_ot_num()}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_actuacion(
     fecha: date,
     *,

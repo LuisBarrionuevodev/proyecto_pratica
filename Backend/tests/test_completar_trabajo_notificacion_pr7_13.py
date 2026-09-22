@@ -34,9 +34,6 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from tests.relevamiento_test_helpers import get_or_create_test_relevador
@@ -64,16 +61,6 @@ def _unique_num() -> str:
 
 def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _migration_pr72_aplicada() -> bool:
@@ -104,6 +91,13 @@ def _dos_inspectores() -> tuple[Inspector, Inspector]:
     return rows[0], rows[1]
 
 
+def _active_user_id() -> int:
+    u = User.query.filter(User.is_active.is_(True)).first()
+    if u is None:
+        pytest.skip("Se requiere usuario activo")
+    return int(u.id)
+
+
 def _crear_relevamiento_san_juan_maipu(*, rubro: Rubro, angulo: str, fantasia: str) -> Relevamiento:
     rev = get_or_create_test_relevador()
     return crear_relevamiento_desde_payload(
@@ -114,41 +108,41 @@ def _crear_relevamiento_san_juan_maipu(*, rubro: Rubro, angulo: str, fantasia: s
             "rubro_nombre": rubro.nombre,
             "nombre_fantasia": fantasia,
             "angulo_esquina": angulo,
-        }
+        },
+        actor_user_id=_active_user_id(),
     )
 
 
 def _setup_ruta_publicada(ini: IniciadorRuta) -> RutaItem:
-    u = User.query.filter(User.is_active.is_(True)).first()
-    if u is None:
-        pytest.skip("Se requiere usuario activo")
+    actor_id = _active_user_id()
     ins1, ins2 = _dos_inspectores()
     ruta = RutaTrabajo(
         fecha=date(2026, 7, 15),
         turno="MANIANA",
         estado_ruta="BORRADOR",
         numero=random.randint(2, 32000),
-        created_by_user_id=u.id,
+        created_by_user_id=actor_id,
     )
     db.session.add(ruta)
     db.session.flush()
-    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="Grupo PR713", estado="ACTIVO")
+    grupo = create_ruta_grupo(
+        ruta_id=ruta.id,
+        nombre="Grupo PR713",
+        estado="ACTIVO",
+        actor_user_id=actor_id,
+    )
     replace_grupo_inspectores(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         inspector_ids=[ins1.id, ins2.id],
+        actor_user_id=actor_id,
     )
     items = assign_iniciadores_to_grupo(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
+        actor_user_id=actor_id,
     )
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=_unique_num(),
-        )
     publicar_ruta_trabajo(ruta_id=ruta.id)
     item = (
         RutaItem.query.filter(
@@ -249,7 +243,7 @@ def test_pr713_completar_notificacion_mendoza_500_y_iniciador_derivado(
         db.session.add(noti)
         db.session.commit()
 
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
 
         ini_der = (
             IniciadorRuta.query.filter(

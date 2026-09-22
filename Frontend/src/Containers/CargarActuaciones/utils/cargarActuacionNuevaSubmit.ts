@@ -31,6 +31,7 @@ const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
   inspectores: "Inspectores",
   calle: "Calle",
   numero: "Número",
+  carga_solo_comprobacion: "Cargar solo comprobación",
 };
 
 export const CARGAR_ACTUACION_ERROR_OPTIONS = {

@@ -21,9 +21,6 @@ from app.domains.actuaciones.services.notificacion_iniciador_service import (
 )
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import Actuaciones, CatalogContraproducencia, IniciadorRuta, OrdenTrabajo, RutaItem, RutaTrabajo
@@ -32,20 +29,6 @@ from tests.test_gestion_fix_5 import _republicar_iniciador_generico
 from tests.test_gestion_fix_8 import _cerrar_rn_realizado
 from tests.test_notificacion_oper_ruta_3 import _mk_iniciador_reinspeccion, _mk_notif_act, _mk_user
 from tests.test_oper_ruta_6f_replanificacion import uniq_ruta_numero
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
-def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
 
 
 def _ensure_catalog_contraproducencia(nombre: str) -> None:
@@ -89,12 +72,6 @@ def _publicar_primer_intento_rn(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini_id],
-    )
-    item = items[0]
-    set_orden_trabajo_on_item(
-        ruta_id=ruta.id,
-        item_id=item.id,
-        numero_orden_trabajo=_unique_num(),
     )
     db.session.commit()
     ruta_id = int(ruta.id)
@@ -270,7 +247,7 @@ def test_rn5_no_duplica_iniciador_rn_misma_notificacion(app_ctx) -> None:
     act_base.notificacion_id = noti_id
     db.session.commit()
 
-    outcome = sync_iniciadores_reinspeccion_notificacion()
+    outcome = sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
     assert outcome.created == 0
 
     count = db.session.scalar(

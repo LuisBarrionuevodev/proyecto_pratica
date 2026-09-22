@@ -55,16 +55,6 @@ def _unique_name(prefix: str) -> str:
     return f"{prefix}_{_unique_ot_num()}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     suf = uuid4().hex[:8]
     u = User(
@@ -453,6 +443,26 @@ def test_contraproducencias_resumen_buckets(app_ctx) -> None:
         assert sum(by_bucket.values()) == out.total
     finally:
         db.session.rollback()
+
+
+def test_build_no_realizadas_fetch_visita_rows_once(monkeypatch, app_ctx) -> None:
+    """PERF-DASH.2: una sola carga de filas de visita por request."""
+    from app.domains.indicadores.services import indicadores_no_realizadas_service as svc
+
+    calls = 0
+    real = svc.fetch_no_realizadas_visita_rows
+
+    def tracked(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(svc, "fetch_no_realizadas_visita_rows", tracked)
+    try:
+        build_indicadores_no_realizadas(_DESDE, _HASTA)
+    finally:
+        db.session.rollback()
+    assert calls == 1
 
 
 def test_get_api_no_realizadas_200(client, auth_headers) -> None:

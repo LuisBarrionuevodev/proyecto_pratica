@@ -1,0 +1,218 @@
+{
+  "artifact": "ACT-HIST.8-VERIFICAR-INFORMAR-IDENTITY-DIAG",
+  "generated_at": "2026-09-21T21:00:00+00:00",
+  "status": "DESIGN_ONLY",
+  "writes_executed": false,
+  "scope": "Completar trabajo → Verificar e informar → Nueva inspección — completar identidad operativa",
+  "historical_reproduction": {
+    "fixture": {
+      "actuacion_origen": {
+        "carga_solo_comprobacion": true,
+        "titular_snapshot": "Juan Pérez",
+        "domicilio": "Calle Falsa 123",
+        "domicilio.contribuyente_id": null,
+        "domicilio.rubro_id": null,
+        "orden_trabajo_id": null
+      },
+      "chain": [
+        "crear_actuacion_historica_solo_comprobacion (ACT-HIST.7: domicilio real sin contrib/rubro)",
+        "declarar_sin_expediente_envio",
+        "complete_oficio_from_actuacion → iniciador REINSPECCION_OFICIO MATERIALIZADO",
+        "publicar_ruta_trabajo → nueva Actuaciones tipo=REINSPECCION, domicilio_id=iniciador.domicilio_id",
+        "completar trabajo: subtipo VERIFICAR E INFORMAR, realizo_nueva_inspeccion=si"
+      ],
+      "entities_after_publish": {
+        "ini.actuacion_id": "actuación histórica origen (snapshot intacto)",
+        "ruta_item.actuacion_id": "actuación de trabajo nueva (carga_solo_comprobacion=false)",
+        "shared_domicilio_risk": "publicada y origen pueden compartir mismo domicilio_id (calle/número histórico)"
+      }
+    },
+    "observed_prefill_api": {
+      "contrib_apellido": "vacío en fila publicada (no lee snapshot origen)",
+      "contrib_nombre": "vacío",
+      "doc_nro": "vacío",
+      "rubro_nombre": "vacío",
+      "calle": "Calle Falsa",
+      "numero": "123",
+      "note": "Si el operador ve Juan/Pérez en UI, no proviene del enrich actual; puede ser entrada manual o expectativa de diseño. El enrich formal solo actúa con contribuyente.documento presente."
+    },
+    "observed_submit_payload": {
+      "tipo_actuacion": "VERIFICAR E INFORMAR",
+      "realizo_nueva_inspeccion": "si",
+      "contrib_apellido/contrib_nombre/doc_nro/rubro_nombre": "enviados por frontend si showContribDomicilioEditable=true",
+      "acta_inspeccion_num + checklist": "requeridos por validación normal"
+    },
+    "observed_persistence": {
+      "contribuyente_formal_creado": false,
+      "rubro_persistido": false,
+      "inspeccion_acta": "sí (attach_inspeccion en aplicar_payload_actuacion)",
+      "act.tipo": "VERIFICAR E INFORMAR",
+      "act.realizo_nueva_inspeccion": true
+    }
+  },
+  "normal_reproduction": {
+    "fixture": "tests/test_completar_trabajo_stab4.py::_mk_reinspeccion_oficio_item",
+    "actuacion_origen": {
+      "contribuyente_formal": true,
+      "documento": "presente",
+      "rubro": "presente en domicilio",
+      "orden_trabajo": "presente"
+    },
+    "prefill_api": {
+      "contrib_apellido/contrib_nombre/doc_nro": "desde domicilio.contribuyente de act publicada o enrich desde iniciador",
+      "rubro_nombre": "rubro_nombre_operativo_para_iniciador",
+      "editable_ui": false hasta Verificar+Sí; luego editable por showContribDomicilioEditable (comportamiento actual — ver gap normal)"
+    },
+    "persistence": {
+      "contribuyente": "ya existía en domicilio antes del cierre; cierre oficio no reescribe identidad",
+      "inspeccion": "persiste acta"
+    }
+  },
+  "prefill_source": {
+    "chain": [
+      "GET /actuaciones/completar-trabajo/detalle/{ruta_item_id}",
+      "completar_trabajo_detalle_service.get_completar_trabajo_detalle",
+      "ruta_item_completar_trabajo_to_row",
+      "actuacion_to_grid_row(act publicada, iniciador_desde_ruta=ini)",
+      "resolve_titular_grid_fields(act publicada) — prioridad domicilio.contribuyente, luego snapshot si carga_solo_comprobacion en ESA act",
+      "_enrich_contrib_prefill_oficio — solo contribuyente formal con documento; candidatos: ini.actuacion origen, ini.domicilio, act.domicilio",
+      "Frontend operativoHydrationFromRow → hydrateOperativoFieldsFromRow al elegir realizoNuevaInspeccion=si"
+    ],
+    "key_files": {
+      "backend_presenter": "Backend/app/domains/actuaciones/presenters/completar_trabajo_presenters.py",
+      "titular_resolver": "Backend/app/domains/actuaciones/utils/titular_actuacion_resolver.py",
+      "frontend_hydration": "Frontend/src/Containers/CompletarTrabajos/utils/completarTrabajoVerificarInformarPrefill.ts",
+      "frontend_modal": "Frontend/src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx"
+    },
+    "gap": "_enrich_contrib_prefill_oficio NO consulta titular_*_historico del act origen (ini.actuacion_id). _snapshot_contrib_prefill exige documento; snapshot histórico nunca enriquece nombre/apellido."
+  },
+  "current_persistence_path": {
+    "close_entry": "POST /actuaciones/completar-trabajo/cerrar/{ruta_item_id}",
+    "orchestrator": "completar_trabajo_cierre_service.cerrar_completar_trabajo_por_ruta_item",
+    "verificar_branch": "bucket NONE + tipo VERIFICAR E INFORMAR + realizo_nueva_inspeccion=true",
+    "paths": {
+      "A_apply_domicilio_rubro": "SKIP — es_iniciador_reinspeccion_oficio(ini.tipo_iniciador) retorna False inmediato (línea 308-309)",
+      "B_mapper": "map_completar_trabajo_cierre_to_aplicar_payload incluye contrib/domicilio/rubro si body los trae",
+      "C_aplicar_payload": "aplicar_payload_actuacion SKIP contrib/domicilio/rubro cuando actuacion_es_circuito_reinspeccion_oficio(act_id) (es_oficio_circuito=true)"
+    },
+    "what_persists_today": [
+      "tipo_actuacion → VERIFICAR E INFORMAR",
+      "realizo_nueva_inspeccion",
+      "acta inspección + checklist + otras actas del cierre",
+      "inspectores (grupo)",
+      "contraproducencia",
+      "promoción iniciador → VERIFICAR_INFORMAR_OFICIO CUMPLIDO"
+    ],
+    "what_does_NOT_persist_today": [
+      "contribuyente formal nuevo",
+      "rubro en domicilio de trabajo",
+      "vinculación domicilio.contribuyente_id en act de ruta"
+    ]
+  },
+  "root_cause": "Doble bloqueo de identidad en circuito oficio: (1) _apply_domicilio_rubro no corre para REINSPECCION_OFICIO/VERIFICAR_INFORMAR_OFICIO; (2) aplicar_payload_actuacion ignora contribuyente/domicilio/rubro cuando es_oficio_circuito. El mapper arma el payload correcto pero el service lo descarta. Además, el prefill no propaga snapshot histórico del act origen (ini.actuacion_id), solo contribuyente formal con DNI.",
+  "identity_completion_rule": {
+    "recommended_flag": "identidad_operativa_incompleta",
+    "do_NOT_use_alone": "carga_solo_comprobacion en act publicada (siempre false en act de ruta)",
+    "derive_from": [
+      "ini.actuacion_id origen con resolve_titular_grid_fields → titular_source=snapshot_historico",
+      "OR cadena sin contribuyente formal con documento: act.domicilio.contribuyente_id IS NULL AND enrich no encontró doc",
+      "OR origin.carga_solo_comprobacion=true sin contrib formal en domicilio origen"
+    ],
+    "complete_when": "contribuyente formal con documento válido en cadena origen→trabajo Y rubro resoluble",
+    "safe_for_normal": "origen con domicilio.contribuyente_id NOT NULL y documento presente → identidad_operativa_incompleta=false; no abrir edición"
+  },
+  "historical_ui_contract": {
+    "identityMode": "COMPLETE_HISTORICAL",
+    "when": "identidad_operativa_incompleta=true en contexto Verificar+Nueva inspección",
+    "fields": {
+      "nombre/apellido/razon_social": "EDITABLE, prefill desde snapshot origen (ini.actuacion_id)",
+      "doc_nro": "EDITABLE, vacío",
+      "rubro": "EDITABLE, vacío",
+      "calle/numero": "EDITABLE (ya presentes desde domicilio histórico)"
+    },
+    "ux": "Mensaje informativo: completando identidad faltante; no marcar como error legacy",
+    "validation_on_submit": "reglas NORMALES (doc obligatorio con titular, rubro obligatorio) — la visita ya no es histórica"
+  },
+  "normal_ui_contract": {
+    "identityMode": "COMPLETE_EXISTING",
+    "when": "identidad_operativa_incompleta=false",
+    "fields": {
+      "nombre/apellido/razon_social/doc/rubro": "VISIBLE READ-ONLY (no ocultar)"
+    },
+    "submit": "backend resuelve identidad desde origen; ignorar/rechazar cambios del cliente"
+  },
+  "backend_authority": {
+    "historical_complete": {
+      "accept": "titular+documento+rubro del body (primera materialización formal)",
+      "audit": "ejecutado_por_user_id existente en cierre"
+    },
+    "normal_complete": {
+      "reject_or_override": "si body trae DNI/titular/rubro distintos al origen resuelto → 400 o persistir solo valores autorizados del backend",
+      "prefer": "resolver desde ini.actuacion_id / act.domicilio.contribuyente / rubro_operativo — no confiar en campos disabled del frontend"
+    },
+    "tampering": "test requerido: origen completo + payload alterado → reject determinista"
+  },
+  "domicilio_cow_strategy": {
+    "principle": "NO mutar domicilio compartido con act histórica origen al agregar contribuyente+rubro",
+    "mechanism_existing": "debe_fork_domicilio_operativo + clonar_domicilio_operativo + resolver_domicilio_real_desde_completar_trabajo (PR7.12 COW)",
+    "trigger": "al completar identidad en act de ruta, si domicilio_origen_id compartido con ini.actuacion histórica u otras actuaciones → fork",
+    "exclude_actuacion_id": "act.id de trabajo en fork para no contaminar origen",
+    "geocode": "heredar_geocode_domicilio_desde_origen al clonar",
+    "origin_preserved": "act origen (ini.actuacion_id) mantiene domicilio_id histórico sin contrib/rubro formal"
+  },
+  "contribuyente_strategy": {
+    "historical_first_completion": "resolve_contribuyente({doc_nro, apellido, nombre, razon_social}) en cierre dedicado oficio+verificar+si",
+    "normal": "reutilizar contribuyente existente; prohibir cambio",
+    "no_contribuyente_sin_documento": "mantener regla resolve_contribuyente — documento obligatorio si hay titular"
+  },
+  "rubro_strategy": {
+    "historical": "get_rubro_o_falla(body.rubro_nombre) obligatorio en cierre",
+    "normal": "rubro_nombre_operativo_para_iniciador desde backend; body ignorado"
+  },
+  "inspeccion_semantics": {
+    "current": "Una sola Actuaciones de ruta: tipo final VERIFICAR E INFORMAR + realizo_nueva_inspeccion=true + fila inspeccion",
+    "not": "No se crea segunda Actuaciones con tipo=INSPECCION separada hoy",
+    "ticket_alignment": "«Nueva inspección» = documento inspección + flag; act de trabajo pasa a flujo normal post-identidad, origen histórico intacto en ini.actuacion_id"
+  },
+  "frontend_design": {
+    "component": "CompletarTrabajoModal.tsx + ReinspeccionOficioResultadoFields.tsx",
+    "derived_state": "identityMode: COMPLETE_EXISTING | COMPLETE_HISTORICAL",
+    "source_field_proposed": "row.identidad_operativa_incompleta + row.titular_prefill_source (backend)",
+    "do_not_hardcode": "texto del oficio ni carga_solo_comprobacion de act publicada"
+  },
+  "tests_required": [
+    "e2e_historical_verificar_nueva_inspeccion: snapshot Juan Pérez → prefill → ingresar DNI+rubro → persist contrib formal + rubro + inspección; origen sin cambio semántico",
+    "e2e_normal_verificar_nueva_inspeccion: titular/doc/rubro read-only UI; submit conserva identidad origen",
+    "tampering_normal_origin: payload DNI/titular/rubro alterados → reject o override backend",
+    "cow_historical: domicilio origen histórico sin contrib; act trabajo obtiene fork con contrib+rubro; origen domicilio_id unchanged",
+    "prefill_enrich_snapshot: _enrich o nuevo resolver lee ini.actuacion snapshot sin documento",
+    "regression: verificar sin nueva inspección no exige contrib",
+    "regression: ACT-HIST.5 PENDIENTE_DOMICILIO legacy intacto"
+  ],
+  "recommended_fix": {
+    "summary": "Introducir rama explícita «completar identidad operativa» en cierre Verificar+Nueva inspección para circuito oficio, con prefill desde origen histórico y persistencia vía COW domicilio + resolve_contribuyente + rubro.",
+    "backend_steps": [
+      "1. Nuevo helper identidad_operativa_incompleta(ini, act) en rubro_operativo o titular_actuacion_resolver",
+      "2. Extender ruta_item_completar_trabajo_to_row: titular prefill desde resolve_titular_grid_fields(origin_act) cuando incompleta; flag identidad_operativa_incompleta + titular_prefill_source",
+      "3. En cerrar_completar_trabajo: si verificar+si+incompleta → completar_identidad_operativa_verificar_informar() ANTES de aplicar_payload (resolve_contribuyente + rubro + resolver_domicilio_real_desde_completar_trabajo con COW)",
+      "4. Si verificar+si+completa → resolver identidad desde backend; validar body == origen o ignorar campos identidad del body",
+      "5. NO tocar act origen (ini.actuacion_id) ni su snapshot"
+    ],
+    "frontend_steps": [
+      "1. Leer row.identidad_operativa_incompleta → identityMode",
+      "2. COMPLETE_HISTORICAL: campos identidad editables + hint UX",
+      "3. COMPLETE_EXISTING: campos identidad read-only; submit puede omitirlos (backend autoridad)",
+      "4. Mantener showContribDomicilioEditable acotado a verificar+si"
+    ],
+    "files_touched_estimate": [
+      "completar_trabajo_presenters.py",
+      "completar_trabajo_cierre_service.py (nueva función identidad)",
+      "titular_actuacion_resolver.py o nuevo identity_operativa_service.py",
+      "CompletarTrabajoModal.tsx",
+      "completarTrabajoApi.ts (tipos)",
+      "tests/test_act_hist_8_verificar_informar_identity.py"
+    ],
+    "no_migration": true,
+    "no_backfill": "actuaciones históricas ya creadas sin corrección masiva"
+  }
+}

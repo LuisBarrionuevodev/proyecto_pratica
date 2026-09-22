@@ -247,7 +247,9 @@ export function RecorridoDetalleDocumentalDialog({
         : null,
   };
 
-  const puedeGestionarOficios = actuacionId != null && documental?.expediente_envio != null;
+  const puedeGestionarOficios =
+    actuacionId != null &&
+    (documental?.expediente_envio != null || documental?.sin_expediente_envio === true);
 
   return (
     <CrudGlassDialog

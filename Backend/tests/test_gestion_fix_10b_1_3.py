@@ -25,16 +25,6 @@ from tests.test_gestion_fix_3 import _fila_realizado_a_contra
 from tests.test_hotfix_reencolado_planificacion import _mk_relevamiento_en_ruta_publicada
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _ensure_catalog_contraproducencia(nombre: str) -> None:
     if not CatalogContraproducencia.query.filter_by(nombre=nombre).first():
         db.session.add(CatalogContraproducencia(nombre=nombre))

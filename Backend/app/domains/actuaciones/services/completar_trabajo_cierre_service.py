@@ -64,6 +64,10 @@ from app.domains.actuaciones.services.actuacion_reencolado_service import (
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
 )
+from app.domains.actuaciones.services.completar_identidad_operativa_service import (
+    completar_identidad_operativa_verificar_informar,
+)
+from app.domains.actuaciones.utils.identity_operativa_mode import resolver_modo_identidad_operativa
 
 _MSG_RESULTADO_SOLO_OFICIO = (
     "El resultado de cumplimiento del oficio solo aplica a reinspección/ratificación por oficio."
@@ -502,16 +506,41 @@ def cerrar_completar_trabajo_por_ruta_item(
                 nombres_grupo = list_inspector_nombres_desde_ruta_item_grupo(item)
                 if nombres_grupo:
                     aplicar_payload["inspectores"] = nombres_grupo
+            identity_aplicada = False
+            if (
+                es_flujo_verificar_informar(ini.tipo_iniciador, payload.tipo_actuacion)
+                and payload.realizo_nueva_inspeccion is True
+            ):
+                try:
+                    identity_mode = resolver_modo_identidad_operativa(ini, act)
+                except ValueError:
+                    identity_mode = None
+                if identity_mode is not None:
+                    completar_identidad_operativa_verificar_informar(
+                        act,
+                        ini,
+                        payload,
+                        identity_mode=identity_mode,
+                    )
+                    identity_aplicada = True
+                    domicilio_mutado = True
             # Misma vía que correctivas: persistir domicilio/rubro/titular aquí y no repetir
             # en ``aplicar_payload_actuacion`` (evita desincronía ORM act.domicilio vs act.domicilio_id).
-            dom_vinculado_por_apply, _geo_sellado = _apply_domicilio_rubro(
-                act, payload, bucket=bucket, ini=ini
-            )
-            if dom_vinculado_por_apply:
-                domicilio_mutado = True
+            if identity_aplicada:
+                dom_vinculado_por_apply = True
+                _geo_sellado = False
                 aplicar_payload.pop("domicilio", None)
                 aplicar_payload.pop("contribuyente", None)
                 aplicar_payload.pop("rubro_nombre", None)
+            else:
+                dom_vinculado_por_apply, _geo_sellado = _apply_domicilio_rubro(
+                    act, payload, bucket=bucket, ini=ini
+                )
+                if dom_vinculado_por_apply:
+                    domicilio_mutado = True
+                    aplicar_payload.pop("domicilio", None)
+                    aplicar_payload.pop("contribuyente", None)
+                    aplicar_payload.pop("rubro_nombre", None)
             aplicar_payload_actuacion(
                 act,
                 aplicar_payload,
@@ -649,7 +678,9 @@ def cerrar_completar_trabajo_por_ruta_item(
         db.session.rollback()
         raise
 
-    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal(
+        actor_user_id=ejecutado_por_user_id,
+    )
 
     # Recargar relaciones para presenter
     fresh = (

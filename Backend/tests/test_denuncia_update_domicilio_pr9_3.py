@@ -28,16 +28,6 @@ from app.domains.domicilios.services.domicilio_edit_policy_service import (
 from app.models import Domicilio, IniciadorRuta, RutaItem, RutaTrabajo, User
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
@@ -89,7 +79,7 @@ def _row(
 def mock_user(monkeypatch):
     u = _ensure_active_user()
     monkeypatch.setattr(
-        "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+        "app.domains.denuncias.services.denuncias_service.get_current_user_id",
         lambda: int(u.id),
     )
     return u

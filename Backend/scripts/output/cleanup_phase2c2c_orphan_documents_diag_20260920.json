@@ -1,0 +1,3547 @@
+{
+  "generated_at": "2026-09-20T16:47:42.911444",
+  "ticket": "PREDEPLOY-CLEANUP.3I-DIAG",
+  "mode": "READ_ONLY_DIAG",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525
+    },
+    "baseline_ok": true,
+    "drift": [],
+    "users_test_fk_free_post_3h": 833
+  },
+  "historical_candidate_sets": {
+    "A_existing_36_orphan_notif": [
+      1480,
+      1536,
+      1557,
+      1627,
+      1636,
+      1684,
+      1738,
+      1758,
+      1761,
+      1771,
+      1852,
+      1854,
+      1859,
+      1860,
+      2003,
+      2308,
+      2312,
+      2394,
+      2563,
+      2564,
+      2573,
+      2707,
+      2910,
+      2913,
+      2921,
+      2928,
+      2933,
+      2939,
+      2942,
+      2950,
+      2953,
+      2970,
+      2976,
+      2978,
+      2991,
+      3032
+    ],
+    "B_existing_20_orphan_comp": [
+      758,
+      759,
+      760,
+      984,
+      1485,
+      1486,
+      1496,
+      1615,
+      1679,
+      2130,
+      2197,
+      2221,
+      2231,
+      2241,
+      2275,
+      2279,
+      2283,
+      2291,
+      2303,
+      2307
+    ],
+    "C_new_25_orphan_notif_post_3h4": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860
+    ],
+    "D_new_2289_comp": [
+      2289
+    ],
+    "intersections": {
+      "A_cap_C_notif": [],
+      "B_cap_D_comp": []
+    },
+    "NOTIF_CANDIDATES_RAW": [
+      1480,
+      1536,
+      1557,
+      1603,
+      1606,
+      1607,
+      1627,
+      1636,
+      1663,
+      1665,
+      1684,
+      1738,
+      1758,
+      1761,
+      1771,
+      1785,
+      1786,
+      1787,
+      1852,
+      1854,
+      1859,
+      1860,
+      1884,
+      1885,
+      1888,
+      2003,
+      2090,
+      2308,
+      2312,
+      2340,
+      2394,
+      2500,
+      2563,
+      2564,
+      2573,
+      2589,
+      2620,
+      2707,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860,
+      2910,
+      2913,
+      2921,
+      2928,
+      2933,
+      2939,
+      2942,
+      2950,
+      2953,
+      2970,
+      2976,
+      2978,
+      2991,
+      3032
+    ],
+    "COMP_CANDIDATES_RAW": [
+      758,
+      759,
+      760,
+      984,
+      1485,
+      1486,
+      1496,
+      1615,
+      1679,
+      2130,
+      2197,
+      2221,
+      2231,
+      2241,
+      2275,
+      2279,
+      2283,
+      2289,
+      2291,
+      2303,
+      2307
+    ],
+    "notif_raw_count": 61,
+    "comp_raw_count": 21,
+    "source_notificaciones_119": [
+      1603,
+      1663,
+      1665,
+      1691,
+      1693,
+      1742,
+      1785,
+      1786,
+      1787,
+      1808,
+      1836,
+      1884,
+      1885,
+      1950,
+      1958,
+      1970,
+      2090,
+      2340,
+      2389,
+      2500,
+      2533,
+      2534,
+      2535,
+      2536,
+      2541,
+      2546,
+      2547,
+      2548,
+      2549,
+      2550,
+      2553,
+      2580,
+      2581,
+      2582,
+      2589,
+      2603,
+      2606,
+      2609,
+      2611,
+      2612,
+      2617,
+      2624,
+      2633,
+      2634,
+      2636,
+      2639,
+      2640,
+      2643,
+      2644,
+      2645,
+      2646,
+      2649,
+      2652,
+      2656,
+      2657,
+      2659,
+      2666,
+      2667,
+      2668,
+      2676,
+      2678,
+      2685,
+      2686,
+      2687,
+      2725,
+      2737,
+      2738,
+      2739,
+      2740,
+      2741,
+      2742,
+      2743,
+      2745,
+      2746,
+      2747,
+      2748,
+      2749,
+      2750,
+      2751,
+      2752,
+      2753,
+      2754,
+      2757,
+      2760,
+      2761,
+      2764,
+      2765,
+      2769,
+      2772,
+      2773,
+      2776,
+      2780,
+      2781,
+      2784,
+      2785,
+      2788,
+      2789,
+      2792,
+      2795,
+      2801,
+      2802,
+      2803,
+      2804,
+      2805,
+      2806,
+      2817,
+      2818,
+      2819,
+      2820,
+      2821,
+      2860,
+      3011,
+      3012,
+      3013,
+      3014,
+      3021,
+      3022,
+      3023,
+      3024
+    ]
+  },
+  "set_intersections": {
+    "A_cap_C_notif": [],
+    "B_cap_D_comp": []
+  },
+  "raw_candidate_union": {
+    "notificaciones_count": 61,
+    "comprobaciones_count": 21,
+    "expected_naive_61_21": "not assumed; see actual counts"
+  },
+  "existence": {
+    "notificaciones": {
+      "present": 61,
+      "missing": [],
+      "expected": 61
+    },
+    "comprobaciones": {
+      "present": 21,
+      "missing": [],
+      "expected": 21
+    }
+  },
+  "incoming_fk_schema": {
+    "notificacion": [
+      {
+        "child_table": "actuaciones",
+        "child_column": "notificacion_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "expediente",
+        "child_column": "notificacion_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "iniciador_ruta",
+        "child_column": "notificacion_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "notificacion_motivo",
+        "child_column": "notificacion_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "NO ACTION"
+      }
+    ],
+    "comprobacion": [
+      {
+        "child_table": "actuaciones",
+        "child_column": "comprobacion_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "expediente",
+        "child_column": "comprobacion_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "iniciador_ruta",
+        "child_column": "comprobacion_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "oficio",
+        "child_column": "comprobacion_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE"
+      }
+    ]
+  },
+  "notifications": {
+    "candidates": [
+      {
+        "notificacion_id": 1480,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1536,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1557,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1603,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1606,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1607,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1627,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1636,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1663,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1665,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1684,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1738,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1758,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1761,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1771,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1785,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1786,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1787,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1852,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1854,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1859,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1860,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 1884,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1885,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 1888,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2003,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2090,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2308,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2312,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2340,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2394,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2500,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2563,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2564,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2573,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2589,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2620,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2707,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2725,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2728,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2744,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2754,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2755,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2756,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2799,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2856,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": false,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2860,
+        "origin": {
+          "from_existing_36": false,
+          "from_new_25": true
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": false,
+            "from_new_25": true
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 1,
+            "by_fk": {
+              "expediente.notificacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "in_source_119": true,
+        "classification": "STILL_REFERENCED",
+        "classification_reason": "other_fk_refs=['expediente.notificacion_id']",
+        "preserve_policy": "NO_DELETE_NO_UPDATE"
+      },
+      {
+        "notificacion_id": 2910,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2913,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2921,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2928,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2933,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2939,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2942,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2950,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2953,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2970,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2976,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2978,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 2991,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      },
+      {
+        "notificacion_id": 3032,
+        "origin": {
+          "from_existing_36": true,
+          "from_new_25": false
+        },
+        "provenance": {
+          "origin": {
+            "from_existing_36": true,
+            "from_new_25": false
+          }
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "in_source_119": false,
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "CONFIRMADO_TEST_orphan_no_surviving_refs",
+        "preserve_policy": null
+      }
+    ],
+    "classification_buckets": {
+      "SAFE_ORPHAN_TEST": 36,
+      "STILL_REFERENCED": 25
+    },
+    "safe": {
+      "SAFE_NOTIFICACIONES_2C2C": [
+        1480,
+        1536,
+        1557,
+        1627,
+        1636,
+        1684,
+        1738,
+        1758,
+        1761,
+        1771,
+        1852,
+        1854,
+        1859,
+        1860,
+        2003,
+        2308,
+        2312,
+        2394,
+        2563,
+        2564,
+        2573,
+        2707,
+        2910,
+        2913,
+        2921,
+        2928,
+        2933,
+        2939,
+        2942,
+        2950,
+        2953,
+        2970,
+        2976,
+        2978,
+        2991,
+        3032
+      ],
+      "count": 36,
+      "from_existing_36": [
+        1480,
+        1536,
+        1557,
+        1627,
+        1636,
+        1684,
+        1738,
+        1758,
+        1761,
+        1771,
+        1852,
+        1854,
+        1859,
+        1860,
+        2003,
+        2308,
+        2312,
+        2394,
+        2563,
+        2564,
+        2573,
+        2707,
+        2910,
+        2913,
+        2921,
+        2928,
+        2933,
+        2939,
+        2942,
+        2950,
+        2953,
+        2970,
+        2976,
+        2978,
+        2991,
+        3032
+      ],
+      "from_new_25": [],
+      "from_intersection_AC": []
+    },
+    "blocked": {
+      "BLOCKED_NOTIFICACIONES_2C2C": [
+        {
+          "id": 1603,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1606,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1607,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1663,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1665,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1785,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1786,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1787,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1884,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1885,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 1888,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2090,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2340,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2500,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2589,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2620,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2725,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2728,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2744,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2754,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2755,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2756,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2799,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2856,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2860,
+          "reason": "other_fk_refs=['expediente.notificacion_id']",
+          "classification": "STILL_REFERENCED",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 1,
+              "by_fk": {
+                "expediente.notificacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "count": 25
+    }
+  },
+  "comprobaciones": {
+    "candidates": [
+      {
+        "comprobacion_id": 758,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 759,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 760,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 984,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 1485,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 1486,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 1496,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 1615,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 1679,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2130,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2197,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2221,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2231,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2241,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2275,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2279,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2283,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2289,
+        "origin": {
+          "from_existing_20": false,
+          "from_new_2289": true
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 3,
+            "by_fk": {
+              "expediente.comprobacion_id": {
+                "count": 2,
+                "delete_rule": "RESTRICT"
+              },
+              "oficio.comprobacion_id": {
+                "count": 1,
+                "delete_rule": "RESTRICT"
+              }
+            }
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [
+            {
+              "id": 1662,
+              "numero_oficio": "OF8430",
+              "comprobacion_id": 2289
+            }
+          ],
+          "expedientes": [
+            {
+              "id": 3104,
+              "oficio_id": 1662
+            }
+          ],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "INDETERMINATE",
+        "classification_reason": "expediente_oficio_chain_present",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2291,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2303,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      },
+      {
+        "comprobacion_id": 2307,
+        "origin": {
+          "from_existing_20": true,
+          "from_new_2289": false
+        },
+        "surviving_refs": {
+          "actuaciones": [],
+          "iniciador_ruta": [],
+          "all_fk": {
+            "total_refs": 0,
+            "by_fk": {}
+          }
+        },
+        "expediente_oficio_graph": {
+          "oficios": [],
+          "expedientes": [],
+          "iniciadores_from_comprobacion": [],
+          "iniciadores_from_oficio": []
+        },
+        "graph_classification": "ALL_TEST_ORPHAN",
+        "classification": "SAFE_ORPHAN_TEST",
+        "classification_reason": "ORPHAN_TEST_no_surviving_refs",
+        "in_protected_closure_8": false
+      }
+    ],
+    "classification_buckets": {
+      "SAFE_ORPHAN_TEST": 20,
+      "INDETERMINATE": 1
+    },
+    "safe": {
+      "SAFE_COMPROBACIONES_2C2C": [
+        758,
+        759,
+        760,
+        984,
+        1485,
+        1486,
+        1496,
+        1615,
+        1679,
+        2130,
+        2197,
+        2221,
+        2231,
+        2241,
+        2275,
+        2279,
+        2283,
+        2291,
+        2303,
+        2307
+      ],
+      "count": 20,
+      "from_existing_20": [
+        758,
+        759,
+        760,
+        984,
+        1485,
+        1486,
+        1496,
+        1615,
+        1679,
+        2130,
+        2197,
+        2221,
+        2231,
+        2241,
+        2275,
+        2279,
+        2283,
+        2291,
+        2303,
+        2307
+      ],
+      "from_new_2289": []
+    },
+    "blocked": {
+      "BLOCKED_COMPROBACIONES_2C2C": [
+        {
+          "id": 2289,
+          "reason": "expediente_oficio_chain_present",
+          "classification": "INDETERMINATE",
+          "surviving_refs": {
+            "actuaciones": [],
+            "iniciador_ruta": [],
+            "all_fk": {
+              "total_refs": 3,
+              "by_fk": {
+                "expediente.comprobacion_id": {
+                  "count": 2,
+                  "delete_rule": "RESTRICT"
+                },
+                "oficio.comprobacion_id": {
+                  "count": 1,
+                  "delete_rule": "RESTRICT"
+                }
+              }
+            }
+          },
+          "graph_classification": "ALL_TEST_ORPHAN"
+        }
+      ],
+      "count": 1
+    },
+    "comprobacion_2289_audit": {
+      "comprobacion_id": 2289,
+      "origin": {
+        "from_existing_20": false,
+        "from_new_2289": true
+      },
+      "surviving_refs": {
+        "actuaciones": [],
+        "iniciador_ruta": [],
+        "all_fk": {
+          "total_refs": 3,
+          "by_fk": {
+            "expediente.comprobacion_id": {
+              "count": 2,
+              "delete_rule": "RESTRICT"
+            },
+            "oficio.comprobacion_id": {
+              "count": 1,
+              "delete_rule": "RESTRICT"
+            }
+          }
+        }
+      },
+      "expediente_oficio_graph": {
+        "oficios": [
+          {
+            "id": 1662,
+            "numero_oficio": "OF8430",
+            "comprobacion_id": 2289
+          }
+        ],
+        "expedientes": [
+          {
+            "id": 3104,
+            "oficio_id": 1662
+          }
+        ],
+        "iniciadores_from_comprobacion": [],
+        "iniciadores_from_oficio": []
+      },
+      "graph_classification": "ALL_TEST_ORPHAN",
+      "classification": "INDETERMINATE",
+      "classification_reason": "expediente_oficio_chain_present",
+      "in_protected_closure_8": false
+    }
+  },
+  "source_119_cross": {
+    "candidate_cap_source_119": [
+      1603,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      2090,
+      2340,
+      2500,
+      2589,
+      2725,
+      2754,
+      2860
+    ],
+    "safe_cap_source_119": [],
+    "count": 0
+  },
+  "future_exp_oficio_candidates": {
+    "FUTURE_SAFE_EXPEDIENTE": [
+      {
+        "expediente_id": 3104,
+        "from_comprobacion": 2289
+      }
+    ],
+    "FUTURE_SAFE_OFICIO": [
+      {
+        "oficio_id": 1662,
+        "from_comprobacion": 2289
+      }
+    ],
+    "policy": "NO DELETE in 2C.2C diag"
+  },
+  "known_test_act_guard": {
+    "known_test_act_ids_union_count": 816,
+    "known_test_ot_ids_union_count": 832,
+    "known_test_act_ids_remaining": [],
+    "known_test_act_ids_remaining_count": 0,
+    "known_test_ot_ids_remaining": [],
+    "known_test_ot_ids_remaining_count": 0,
+    "guard_ok": true
+  },
+  "known_test_ot_guard": {
+    "known_test_ot_ids_remaining": [],
+    "count": 0
+  },
+  "empty_routes_residual": {
+    "EMPTY_TEST_ROUTES_POST_PRIME": [
+      {
+        "ruta_trabajo_id": 4938,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 4944,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5195,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5199,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5204,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5245,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5261,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5550,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5560,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 5574,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 6372,
+        "exists": true,
+        "ruta_item_refs": 0
+      },
+      {
+        "ruta_trabajo_id": 6461,
+        "exists": true,
+        "ruta_item_refs": 0
+      }
+    ],
+    "count": 12,
+    "policy": "ROUTE-RESIDUAL-CLEANUP future ticket"
+  },
+  "protected_comprobacion_regression": {
+    "closure_8_ids": [
+      194,
+      480,
+      481,
+      483,
+      790,
+      889,
+      2268,
+      2497
+    ],
+    "all_present": true,
+    "explicit_protected_notif": 168,
+    "explicit_protected_comp": 56,
+    "closure_protected_comp": 56
+  },
+  "protected_closure": {
+    "intersection_total": {
+      "actuaciones": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1189,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "orden_trabajo": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1176,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "inspeccion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 170,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "notificacion": {
+        "planned_explicit_ids": 36,
+        "planned_cascade_ids": 0,
+        "protected_ids": 168,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "comprobacion": {
+        "planned_explicit_ids": 20,
+        "planned_cascade_ids": 0,
+        "protected_ids": 56,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "oficio": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "expediente": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      }
+    },
+    "valid": true,
+    "conflicts": []
+  },
+  "cascade_on_safe_delete": {
+    "notificacion": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "cascade_total": 0,
+      "set_null_total": 0
+    },
+    "comprobacion": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "cascade_total": 0,
+      "set_null_total": 0
+    }
+  },
+  "user_unlock_simulation": {
+    "users_test_fk_free_baseline_post_3h": 833,
+    "users_test_fk_free_after_2c2c_sim": 833,
+    "users_additionally_unlocked": 0,
+    "users_test_still_blocked": 1956
+  },
+  "catalog_effects": {
+    "rubro": {
+      "note": "no direct FK from notif/comp candidates in standard schema"
+    },
+    "juzgado_catalogo": {
+      "note": "no direct FK from notif/comp candidates in standard schema"
+    },
+    "juzgado_via_oficio_2289": 1,
+    "policy": "NO_DELETE catalogos en 2C.2C diag"
+  },
+  "delete_order_proposed": {
+    "proposed_order": [
+      "notificacion",
+      "comprobacion"
+    ],
+    "fk_validation": {
+      "valid": true,
+      "violations": []
+    },
+    "note": "notificacion and comprobacion have no FK between them; order independent if valid"
+  },
+  "post_count_simulation": {
+    "notificacion": {
+      "before": 2514,
+      "explicit_delete": 36,
+      "cascade": {
+        "cascade_physical": {},
+        "set_null_physical": {},
+        "cascade_total": 0,
+        "set_null_total": 0
+      },
+      "after": 2478
+    },
+    "comprobacion": {
+      "before": 1550,
+      "explicit_delete": 20,
+      "cascade": {
+        "cascade_physical": {},
+        "set_null_physical": {},
+        "cascade_total": 0,
+        "set_null_total": 0
+      },
+      "after": 1530
+    }
+  },
+  "document_cleanup_policy": "DELETE only CONFIRMADO_TEST documents with zero operational surviving refs, no protected intersection, no surviving iniciador source, no admin chain to preserve. NOT delete solely for missing XLSX or missing actuacion."
+}

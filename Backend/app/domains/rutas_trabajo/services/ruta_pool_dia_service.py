@@ -23,7 +23,7 @@ from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import
     pool_row_bloquea_planificacion,
     validar_iniciador_elegible_para_pool,
 )
-from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
+from app.domains.rutas_trabajo.services.auth_service import resolve_actor_user_id
 from app.domains.rutas_trabajo.utils.rubro_operativo import (
     rubro_id_operativo_para_iniciador,
     rubro_nombre_operativo_para_iniciador,
@@ -383,7 +383,7 @@ def ensure_pool_en_pool_para_ruta(
     )
     origen = infer_origen_tipo_para_iniciador(iniciador, origen_tipo)
     domicilio_id, distrito_id, rubro_id = _resolve_snapshot_from_iniciador(iniciador)
-    uid = int(usuario_id) if usuario_id is not None else get_current_user_id_or_fallback()
+    uid = resolve_actor_user_id(usuario_id)
 
     row = RutaPoolDia(
         fecha=fecha,

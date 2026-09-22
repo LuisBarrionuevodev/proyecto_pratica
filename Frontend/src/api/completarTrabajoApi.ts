@@ -70,6 +70,8 @@ export interface ICompletarTrabajoPendienteRow {
   decomiso_kilos_total?: number | null;
   /** Resultado explícito reinspección por oficio (Etapa 1 backend). */
   resultado_cumplimiento_oficio?: "CUMPLE" | "NO_CUMPLE" | null;
+  /** Modo de identidad operativa en Verificar e informar → Nueva inspección. */
+  identity_mode?: "COMPLETE_HISTORICAL" | "COMPLETE_EXISTING" | null;
   /** Solo en merge cliente → POST; no viene del listado. */
   inspectores?: string[];
 }

@@ -431,21 +431,16 @@ def query_no_realizadas_por_tipo(
     )
 
 
-def query_top_contraproducencias_no_realizadas(
-    desde: date,
-    hasta: date,
-    distrito_id: Optional[int] = None,
-    inspector_id: Optional[int] = None,
+def top_contraproducencias_from_visita_rows(
+    rows: list[NoRealizadaVisitaRow],
     *,
     limit: int = _TOP_CONTRAPRODUCCIONES_LIMIT,
 ) -> list[tuple[str, int]]:
     """
-    Top contraproducencias entre no realizadas con contraproducencia en rango.
+    Top contraproducencias a partir de filas de visita ya cargadas.
 
     Excluye NO_HUBO; etiquetas normalizadas con ``format_contraproducencia_label``.
-    Cuenta visitas únicas (``ruta_item_id``), no actuaciones.
     """
-    rows = fetch_no_realizadas_visita_rows(desde, hasta, distrito_id, inspector_id)
     merged: dict[str, int] = {}
     for row in rows:
         if is_contraproducencia_excluida_valor(row.contraproducencia):
@@ -458,11 +453,42 @@ def query_top_contraproducencias_no_realizadas(
     return ranked[:limit]
 
 
+def query_top_contraproducencias_no_realizadas(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+    *,
+    limit: int = _TOP_CONTRAPRODUCCIONES_LIMIT,
+    visita_rows: list[NoRealizadaVisitaRow] | None = None,
+) -> list[tuple[str, int]]:
+    """
+    Top contraproducencias entre no realizadas con contraproducencia en rango.
+
+    Excluye NO_HUBO; etiquetas normalizadas con ``format_contraproducencia_label``.
+    Cuenta visitas únicas (``ruta_item_id``), no actuaciones.
+    """
+    rows = visita_rows or fetch_no_realizadas_visita_rows(
+        desde, hasta, distrito_id, inspector_id
+    )
+    return top_contraproducencias_from_visita_rows(rows, limit=limit)
+
+
+def contraproducencias_resumen_from_visita_rows(
+    rows: list[NoRealizadaVisitaRow],
+) -> tuple[int, dict[str, int]]:
+    """Resumen de buckets de contraproducencia desde filas de visita ya cargadas."""
+    buckets = aggregate_contraproducencia_buckets_from_visita_rows(rows)
+    return len(rows), buckets
+
+
 def query_contraproducencias_resumen_counts(
     desde: date,
     hasta: date,
     distrito_id: Optional[int] = None,
     inspector_id: Optional[int] = None,
+    *,
+    visita_rows: list[NoRealizadaVisitaRow] | None = None,
 ) -> tuple[int, dict[str, int]]:
     """
     Cuenta no realizadas agrupadas en buckets fijos de contraproducencia.
@@ -470,10 +496,10 @@ def query_contraproducencias_resumen_counts(
     Retorno:
         (total, mapa bucket → cantidad). Una visita (``ruta_item_id``) por bucket como máximo.
     """
-    rows = fetch_no_realizadas_visita_rows(desde, hasta, distrito_id, inspector_id)
-    buckets = aggregate_contraproducencia_buckets_from_visita_rows(rows)
-    total = len(rows)
-    return total, buckets
+    rows = visita_rows or fetch_no_realizadas_visita_rows(
+        desde, hasta, distrito_id, inspector_id
+    )
+    return contraproducencias_resumen_from_visita_rows(rows)
 
 
 def query_distritos_con_mas_no_realizadas(

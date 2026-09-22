@@ -13,18 +13,8 @@ from app.domains.rutas_trabajo.services.planificacion_service import get_planifi
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import create_ruta_pool_dia_entry
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.models import Domicilio, IniciadorRuta, Inspector, RutaItem, RutaTrabajo, User
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
-
-
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _mk_user() -> User:
@@ -195,11 +185,6 @@ def test_urgente_en_ruta_publicada_no_aparece(app_ctx) -> None:
         .first()
     )
     assert item is not None
-    set_orden_trabajo_on_item(
-        ruta_id=int(ruta_pub.id),
-        item_id=int(item.id),
-        numero_orden_trabajo=unique_ot_numero(),
-    )
     publicar_ruta_trabajo(ruta_id=int(ruta_pub.id))
 
     items, _ = get_planificacion_urgentes(int(ruta_query.id), page=1, per_page=50, q_domicilio=calle)

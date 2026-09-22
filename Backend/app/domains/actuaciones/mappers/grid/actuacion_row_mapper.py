@@ -53,25 +53,33 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
 
     payload: Dict[str, Any] = {
         "id": row.id,
-        "orden_trabajo_numero": _zfill6_if_digit(_clean_str(row.orden_trabajo_numero)),
+        "carga_solo_comprobacion": bool(row.carga_solo_comprobacion),
         "fecha_actuacion": fecha_iso,
-        "tipo_actuacion": _enum_value(row.tipo_actuacion),
-        "rubro_nombre": _clean_str(row.rubro_nombre),
-        "nombre_local": _clean_str(row.nombre_local),
     }
+
+    if row.carga_solo_comprobacion:
+        payload["titular_nombre_historico"] = _clean_str(row.contrib_nombre)
+        payload["titular_apellido_historico"] = _clean_str(row.contrib_apellido)
+        payload["titular_razon_social_historica"] = _clean_str(row.razon_social)
+    else:
+        payload["orden_trabajo_numero"] = _zfill6_if_digit(_clean_str(row.orden_trabajo_numero))
+        payload["tipo_actuacion"] = _enum_value(row.tipo_actuacion)
+        payload["rubro_nombre"] = _clean_str(row.rubro_nombre)
+        payload["nombre_local"] = _clean_str(row.nombre_local)
     if row.inspectores is not None or any(
         _clean_str(x) for x in (row.inspector1, row.inspector2, row.inspector3)
     ):
         payload["inspectores"] = inspectores_payload
-    if row.limpiar_contraproducencia:
-        payload["limpiar_contraproducencia"] = True
-        payload["contraproducencia"] = None
-    else:
-        contra = _enum_value(row.contraproducencia)
-        if contra is not None:
-            payload["contraproducencia"] = contra
+    if not row.carga_solo_comprobacion:
+        if row.limpiar_contraproducencia:
+            payload["limpiar_contraproducencia"] = True
+            payload["contraproducencia"] = None
+        else:
+            contra = _enum_value(row.contraproducencia)
+            if contra is not None:
+                payload["contraproducencia"] = contra
 
-    # Domicilio
+    # Domicilio: histórico exige calle+número sin contribuyente/rubro; normal mantiene reglas actuales.
     if row.calle or row.numero:
         payload["domicilio"] = {
             "calle": _clean_str(row.calle),
@@ -79,16 +87,17 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
             "numero_tipo": _clean_str(row.numero_tipo),
         }
 
-    # Contribuyente: ``limpiar_contribuyente`` → clear explícito; ausente → preserve; datos → update.
-    if row.limpiar_contribuyente:
-        payload["contribuyente"] = None
-    elif row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
-        payload["contribuyente"] = {
-            "doc_nro": _clean_str(row.doc_nro),
-            "apellido": _clean_str(row.contrib_apellido),
-            "nombre": _clean_str(row.contrib_nombre),
-            "razon_social": _clean_str(row.razon_social),
-        }
+    # Contribuyente: omitido en modo histórico (snapshot en actuaciones).
+    if not row.carga_solo_comprobacion:
+        if row.limpiar_contribuyente:
+            payload["contribuyente"] = None
+        elif row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
+            payload["contribuyente"] = {
+                "doc_nro": _clean_str(row.doc_nro),
+                "apellido": _clean_str(row.contrib_apellido),
+                "nombre": _clean_str(row.contrib_nombre),
+                "razon_social": _clean_str(row.razon_social),
+            }
 
     # Actas (CANÓNICO según tus helpers attach_*)
 

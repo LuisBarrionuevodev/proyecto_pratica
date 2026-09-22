@@ -1,4 +1,4 @@
-"""OPER-RUTA.ASIGNACION-1B — Liberar OT en ítem de ruta BORRADOR."""
+"""OPER-RUTA.ASIGNACION-1B — OT-AUTO: endpoints manuales PATCH/DELETE orden-trabajo rechazados."""
 
 from __future__ import annotations
 
@@ -18,15 +18,11 @@ from app.domains.rutas_trabajo.services.ruta_items_service import (
     soft_delete_ruta_item,
 )
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
-from app.models import Domicilio, IniciadorRuta, Inspector, OrdenTrabajo, RutaItem, RutaTrabajo, User
+from app.models import Domicilio, IniciadorRuta, Inspector, RutaItem, RutaTrabajo, User
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
+from tests.helpers.ruta_ot_test import asignar_ot_legacy_en_item
 
-
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
+_OT_AUTO_MSG = "numeración automática al publicar"
 
 
 def _mk_user() -> User:
@@ -62,11 +58,15 @@ def _mk_iniciador(user: User) -> IniciadorRuta:
 
 
 def _mk_ruta(user: User) -> RutaTrabajo:
+    f = fecha_ruta_aislada_mismo_anio(2026)
+    n = uniq_ruta_numero()
+    while RutaTrabajo.query.filter_by(fecha=f, turno="MANIANA", numero=n).first():
+        n = uniq_ruta_numero()
     ruta = RutaTrabajo(
-        fecha=fecha_ruta_aislada_mismo_anio(2026),
+        fecha=f,
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=uniq_ruta_numero(),
+        numero=n,
         created_by_user_id=user.id,
     )
     db.session.add(ruta)
@@ -81,12 +81,12 @@ def _dos_inspectores() -> tuple[Inspector, Inspector]:
     return rows[0], rows[1]
 
 
-def _setup_item_con_ot(
+def _setup_item_borrador(
     ruta: RutaTrabajo,
     ini: IniciadorRuta,
     *,
-    ot_num: str | None = None,
-) -> tuple[int, RutaItem, str, int]:
+    legacy_ot: str | None = None,
+) -> tuple[int, RutaItem]:
     ins1, ins2 = _dos_inspectores()
     grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G1B", estado="ACTIVO")
     replace_grupo_inspectores(
@@ -99,7 +99,6 @@ def _setup_item_con_ot(
         grupo_id=int(grupo.id),
         iniciador_ids=[int(ini.id)],
     )
-    numero = ot_num or unique_ot_numero()
     item = (
         RutaItem.query.filter(
             RutaItem.ruta_trabajo_id == ruta.id,
@@ -109,141 +108,85 @@ def _setup_item_con_ot(
         .first()
     )
     assert item is not None
-    updated = set_orden_trabajo_on_item(
-        ruta_id=int(ruta.id),
-        item_id=int(item.id),
-        numero_orden_trabajo=numero,
-    )
-    assert updated.orden_trabajo_id is not None
-    ot_id = int(updated.orden_trabajo_id)
-    db.session.commit()
-    return int(grupo.id), item, numero, ot_id
-
-
-def test_1b_borrador_item_con_ot_libera_correctamente(app_ctx) -> None:
-    u = _mk_user()
-    ini = _mk_iniciador(u)
-    ruta = _mk_ruta(u)
-    db.session.commit()
-    grupo_id, item, _ot_num, ot_id = _setup_item_con_ot(ruta, ini)
-
-    liberado = liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item.id))
-
-    assert liberado.orden_trabajo_id is None
-    assert liberado.orden_trabajo is None
-    assert liberado.ruta_grupo_id == grupo_id
-    assert liberado.deleted_at is None
-    assert db.session.get(OrdenTrabajo, ot_id) is not None
-
-
-def test_1b_ot_liberada_puede_asignarse_a_otro_item(app_ctx) -> None:
-    u = _mk_user()
-    ini_a = _mk_iniciador(u)
-    ini_b = _mk_iniciador(u)
-    ruta = _mk_ruta(u)
-    db.session.commit()
-    grupo_id, item_a, ot_num, ot_id = _setup_item_con_ot(ruta, ini_a)
-
-    liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item_a.id))
-
-    assign_iniciadores_to_grupo(
-        ruta_id=int(ruta.id),
-        grupo_id=int(grupo_id),
-        iniciador_ids=[int(ini_b.id)],
-    )
-    item_b = (
-        RutaItem.query.filter(
-            RutaItem.ruta_trabajo_id == ruta.id,
-            RutaItem.iniciador_ruta_id == ini_b.id,
-            RutaItem.deleted_at.is_(None),
+    if legacy_ot:
+        asignar_ot_legacy_en_item(
+            ruta_id=int(ruta.id),
+            item_id=int(item.id),
+            numero_orden_trabajo=legacy_ot,
         )
-        .first()
-    )
-    assert item_b is not None
-    updated_b = set_orden_trabajo_on_item(
-        ruta_id=int(ruta.id),
-        item_id=int(item_b.id),
-        numero_orden_trabajo=ot_num,
-    )
-    assert int(updated_b.orden_trabajo_id) == ot_id
+    db.session.commit()
+    return int(grupo.id), item
 
 
-def test_1b_publicada_rechaza_liberacion(app_ctx) -> None:
+def test_1b_patch_manual_rechazado_ot_auto(app_ctx) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     ruta = _mk_ruta(u)
     db.session.commit()
-    _grupo_id, item, _ot_num, _ot_id = _setup_item_con_ot(ruta, ini)
-    publicar_ruta_trabajo(ruta_id=int(ruta.id))
+    _grupo_id, item = _setup_item_borrador(ruta, ini)
 
-    with pytest.raises(RuntimeError, match="BORRADOR"):
+    with pytest.raises(RuntimeError, match=_OT_AUTO_MSG):
+        set_orden_trabajo_on_item(
+            ruta_id=int(ruta.id),
+            item_id=int(item.id),
+            numero_orden_trabajo=unique_ot_numero(),
+        )
+
+
+def test_1b_liberar_manual_rechazado_ot_auto(app_ctx) -> None:
+    u = _mk_user()
+    ini = _mk_iniciador(u)
+    ruta = _mk_ruta(u)
+    db.session.commit()
+    ot_num = unique_ot_numero()
+    _grupo_id, item = _setup_item_borrador(ruta, ini, legacy_ot=ot_num)
+
+    with pytest.raises(RuntimeError, match=_OT_AUTO_MSG):
         liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item.id))
 
 
-def test_1b_item_de_otra_ruta_rechaza(app_ctx) -> None:
+def test_1b_publicada_rechaza_liberacion_manual(app_ctx) -> None:
+    u = _mk_user()
+    ini = _mk_iniciador(u)
+    ruta = _mk_ruta(u)
+    db.session.commit()
+    _grupo_id, item = _setup_item_borrador(ruta, ini)
+    publicar_ruta_trabajo(ruta_id=int(ruta.id))
+
+    with pytest.raises(RuntimeError, match=_OT_AUTO_MSG):
+        liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item.id))
+
+
+def test_1b_item_de_otra_ruta_rechaza_liberacion(app_ctx) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     ruta_a = _mk_ruta(u)
     ruta_b = _mk_ruta(u)
     db.session.commit()
-    _grupo_id, item, _ot_num, _ot_id = _setup_item_con_ot(ruta_a, ini)
+    _grupo_id, item = _setup_item_borrador(ruta_a, ini, legacy_ot=unique_ot_numero())
 
-    with pytest.raises(LookupError, match="Item no encontrado"):
+    with pytest.raises(RuntimeError, match=_OT_AUTO_MSG):
         liberar_orden_trabajo_on_item(ruta_id=int(ruta_b.id), item_id=int(item.id))
 
 
-def test_1b_item_sin_ot_respuesta_controlada(app_ctx) -> None:
+def test_1b_item_sin_ot_liberar_rechazado_ot_auto(app_ctx) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     ruta = _mk_ruta(u)
     db.session.commit()
-    ins1, ins2 = _dos_inspectores()
-    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G1B-sin", estado="ACTIVO")
-    replace_grupo_inspectores(
-        ruta_id=ruta.id,
-        grupo_id=grupo.id,
-        inspector_ids=[ins1.id, ins2.id],
-    )
-    assign_iniciadores_to_grupo(
-        ruta_id=int(ruta.id),
-        grupo_id=int(grupo.id),
-        iniciador_ids=[int(ini.id)],
-    )
-    item = (
-        RutaItem.query.filter(
-            RutaItem.ruta_trabajo_id == ruta.id,
-            RutaItem.iniciador_ruta_id == ini.id,
-        )
-        .first()
-    )
-    assert item is not None
+    _grupo_id, item = _setup_item_borrador(ruta, ini)
     assert item.orden_trabajo_id is None
 
-    with pytest.raises(RuntimeError, match="no tiene una orden de trabajo asignada"):
+    with pytest.raises(RuntimeError, match=_OT_AUTO_MSG):
         liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item.id))
 
 
-def test_1b_item_ejecutado_no_permite_liberacion(app_ctx) -> None:
+def test_1b_quitar_item_con_ot_legacy_sigue_bloqueado(app_ctx) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     ruta = _mk_ruta(u)
     db.session.commit()
-    _grupo_id, item, _ot_num, _ot_id = _setup_item_con_ot(ruta, ini)
-    item_db = db.session.get(RutaItem, item.id)
-    assert item_db is not None
-    item_db.estado_ejecucion = "REALIZADO"
-    db.session.commit()
-
-    with pytest.raises(RuntimeError, match="Orden de Trabajo"):
-        liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item.id))
-
-
-def test_1b_quitar_item_con_ot_sigue_bloqueado(app_ctx) -> None:
-    u = _mk_user()
-    ini = _mk_iniciador(u)
-    ruta = _mk_ruta(u)
-    db.session.commit()
-    _grupo_id, item, _ot_num, _ot_id = _setup_item_con_ot(ruta, ini)
+    _grupo_id, item = _setup_item_borrador(ruta, ini, legacy_ot=unique_ot_numero())
 
     with pytest.raises(RuntimeError, match="Orden de Trabajo"):
         soft_delete_ruta_item(ruta_id=int(ruta.id), item_id=int(item.id))
@@ -251,73 +194,36 @@ def test_1b_quitar_item_con_ot_sigue_bloqueado(app_ctx) -> None:
     assert db.session.get(RutaItem, item.id).deleted_at is None
 
 
-def test_1b_liberar_ot_y_quitar_item_funciona(app_ctx) -> None:
+def test_1b_api_patch_rechazado_ot_auto(app_ctx, client, auth_headers) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     ruta = _mk_ruta(u)
     db.session.commit()
-    _grupo_id, item, _ot_num, _ot_id = _setup_item_con_ot(ruta, ini)
+    _grupo_id, item = _setup_item_borrador(ruta, ini)
 
-    liberar_orden_trabajo_on_item(ruta_id=int(ruta.id), item_id=int(item.id))
-    soft_delete_ruta_item(ruta_id=int(ruta.id), item_id=int(item.id))
-
-    item_db = db.session.get(RutaItem, item.id)
-    assert item_db is not None
-    assert item_db.deleted_at is not None
-    assert item_db.orden_trabajo_id is None
-
-
-def test_1b_api_delete_liberar_ot(app_ctx, client, auth_headers) -> None:
-    u = _mk_user()
-    ini = _mk_iniciador(u)
-    ruta = _mk_ruta(u)
-    db.session.commit()
-    _grupo_id, item, ot_num, _ot_id = _setup_item_con_ot(ruta, ini)
-
-    resp = client.delete(
+    resp = client.patch(
         f"/rutas-trabajo/{ruta.id}/items/{item.id}/orden-trabajo",
+        json={"numero_orden_trabajo": "123456"},
         headers=auth_headers,
     )
-    assert resp.status_code == 200
-    body = resp.get_json()
-    assert body["item"]["orden_trabajo_id"] is None
-    assert body["item"].get("orden_trabajo") is None
-
-    item_db = db.session.get(RutaItem, item.id)
-    assert item_db is not None
-    assert item_db.orden_trabajo_id is None
+    assert resp.status_code == 409
+    assert _OT_AUTO_MSG in resp.get_json()["detail"]
 
 
-def test_1b_api_delete_sin_ot_409(app_ctx, client, auth_headers) -> None:
+def test_1b_api_delete_rechazado_ot_auto(app_ctx, client, auth_headers) -> None:
     u = _mk_user()
     ini = _mk_iniciador(u)
     ruta = _mk_ruta(u)
     db.session.commit()
-    ins1, ins2 = _dos_inspectores()
-    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="G1B-api", estado="ACTIVO")
-    replace_grupo_inspectores(
-        ruta_id=ruta.id,
-        grupo_id=grupo.id,
-        inspector_ids=[ins1.id, ins2.id],
-    )
-    assign_iniciadores_to_grupo(
-        ruta_id=int(ruta.id),
-        grupo_id=int(grupo.id),
-        iniciador_ids=[int(ini.id)],
-    )
-    item = (
-        RutaItem.query.filter(
-            RutaItem.ruta_trabajo_id == ruta.id,
-            RutaItem.iniciador_ruta_id == ini.id,
-        )
-        .first()
-    )
-    assert item is not None
-    db.session.commit()
+    ot_num = unique_ot_numero()
+    _grupo_id, item = _setup_item_borrador(ruta, ini, legacy_ot=ot_num)
 
     resp = client.delete(
         f"/rutas-trabajo/{ruta.id}/items/{item.id}/orden-trabajo",
         headers=auth_headers,
     )
     assert resp.status_code == 409
-    assert "no tiene una orden de trabajo asignada" in resp.get_json()["detail"]
+    assert _OT_AUTO_MSG in resp.get_json()["detail"]
+    item_db = db.session.get(RutaItem, item.id)
+    assert item_db is not None
+    assert item_db.orden_trabajo_id is not None

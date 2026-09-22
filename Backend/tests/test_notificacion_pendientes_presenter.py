@@ -23,16 +23,6 @@ def _unique_num() -> str:
     return unique_ot_numero()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _row(act: Actuaciones) -> dict:
     acts = [act]
     plazos, venc, prorroga_dias = build_notificacion_expediente_bandeja_metrics(acts)

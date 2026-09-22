@@ -14,7 +14,7 @@ const pagePath = resolve(process.cwd(), "src/Containers/ActasComprobacion/ActasC
 const pageSrc = () => readFileSync(pagePath, "utf8");
 
 describe("operativaComprobacionTabChange", () => {
-  it("resetea al cambiar entre tabs operativos", () => {
+  it("detecta intercambio de memoria entre tabs operativos", () => {
     expect(shouldResetOperativaFiltroOnTabChange("expediente", "oficio")).toBe(true);
     expect(shouldResetOperativaFiltroOnTabChange("oficio", "reinspeccion")).toBe(true);
     expect(shouldResetOperativaFiltroOnTabChange("reinspeccion", "expediente")).toBe(true);
@@ -133,14 +133,14 @@ describe("ActasComprobacionPage UX.1 columnas", () => {
   });
 });
 
-describe("ActasComprobacionPage UX.1 reset tab", () => {
-  it("integra shouldResetOperativaFiltroOnTabChange y limpia inputs", () => {
+describe("ActasComprobacionPage UX.1 per-tab memory", () => {
+  it("conserva memoria por tab operativo (MEMORY.2)", () => {
     const s = pageSrc();
-    expect(s).toContain("shouldResetOperativaFiltroOnTabChange");
-    expect(s).toContain("clearOperativaFiltroInputs");
-    expect(s).toContain("setOpNumExpEnvio");
-    expect(s).toContain("setOpNumOficio");
-    expect(s).toContain("setOpNumExpRespuesta");
-    expect(s).toContain("opAppliedRef.current = null");
+    expect(s).toContain("shouldSwapOperativaTabMemory");
+    expect(s).toContain("operativaMemoryByTabRef");
+    expect(s).toContain("saveOperativaTabMemory");
+    expect(s).toContain("restoreOperativaTabMemory");
+    expect(s).toContain("resolveOperativaTabAppliedFilters");
+    expect(s).not.toContain('ensureTabLoaded(tab, { filters: null })');
   });
 });

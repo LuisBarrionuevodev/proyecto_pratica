@@ -16,7 +16,16 @@ from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import referencia_actuacion_from_grid_row
-from app.models import Actuaciones, Expediente, IniciadorRuta, JuzgadoCatalogo, Oficio, RutaItem, RutaTrabajo
+from app.models import (
+    Actuaciones,
+    Comprobacion,
+    Expediente,
+    IniciadorRuta,
+    JuzgadoCatalogo,
+    Oficio,
+    RutaItem,
+    RutaTrabajo,
+)
 from app.utils.actas import acta_6
 from sqlalchemy import or_
 
@@ -288,12 +297,19 @@ def get_comprobacion_documental_for_actuacion(actuacion_id: int) -> Dict[str, An
         "motivo": grid.get("comprobacion_motivo"),
     }
 
+    comp = db.session.get(Comprobacion, cid)
     return {
         "actuacion_id": act.id,
         "comprobacion_id": cid,
         "referencia_actuacion": ref,
         "acta_comprobacion": acta_comp,
         "expediente_envio": _expediente_to_item(ex_env) if ex_env else None,
+        "sin_expediente_envio": bool(comp and comp.sin_expediente_envio),
+        "expediente_envio_label": (
+            "Sin expediente de envío"
+            if comp and comp.sin_expediente_envio and ex_env is None
+            else None
+        ),
         "oficio": _oficio_to_item(ofi) if ofi else None,
         "expediente_respuesta": _expediente_to_item(ex_resp) if ex_resp else None,
         "edicion": evaluar_comprobacion_edicion_documental(act),

@@ -25,16 +25,6 @@ from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 from tests.test_gestion_fix_3 import _ensure_catalog_contraproducencia
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _row_put_minimo_oficio(act: Actuaciones, *, tipo: str, insp_nombre: str) -> dict:
     ot_num = act.orden_trabajo.numero_acta if act.orden_trabajo else "000001"
     fecha = act.fecha.strftime("%d/%m/%Y") if act.fecha else "10/06/2026"

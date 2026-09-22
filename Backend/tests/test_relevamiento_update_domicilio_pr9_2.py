@@ -26,16 +26,6 @@ from app.domains.relevamientos.services.update_service import actualizar_relevam
 from app.models import Domicilio, IniciadorRuta, Relevador, Relevamiento, Rubro
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _migration_pr72_aplicada() -> bool:
     from sqlalchemy import inspect
 
@@ -113,7 +103,7 @@ def _mk_relevamiento_compartido_mismo_domicilio(
     db.session.add(rel)
     db.session.flush()
     sync_relevamiento_relevadores(rel, [rev.id])
-    ini = get_or_create_iniciador_from_relevamiento(rel)
+    ini = get_or_create_iniciador_from_relevamiento(rel, actor_user_id=1)
     db.session.add(ini)
     db.session.commit()
     return rel

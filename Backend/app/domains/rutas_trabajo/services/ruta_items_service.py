@@ -11,7 +11,7 @@ from app.domains.rutas_trabajo.services.ruta_pool_dia_eligibility_service import
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import devolver_iniciador_al_pool_ruta
 from app.models import IniciadorRuta, RutaGrupo, RutaItem, RutaTrabajo
 
-from .auth_service import get_current_user_id_or_fallback
+from .auth_service import resolve_actor_user_id
 
 
 def _get_ruta_borrador_or_fail(ruta_id: int) -> RutaTrabajo:
@@ -51,6 +51,7 @@ def assign_iniciadores_to_grupo(
     grupo_id: int,
     iniciador_ids: list[int],
     commit: bool = True,
+    actor_user_id: int | None = None,
 ) -> list[RutaItem]:
     """
     Asigna iniciadores a grupo creando/reactivando RutaItem en estado ASIGNADO.
@@ -65,7 +66,7 @@ def assign_iniciadores_to_grupo(
     _get_grupo_activo_or_fail(ruta_id=ruta_id, grupo_id=grupo_id)
 
     now = datetime.utcnow()
-    user_id = get_current_user_id_or_fallback()
+    user_id = resolve_actor_user_id(actor_user_id)
 
     initiators = (
         IniciadorRuta.query.filter(IniciadorRuta.id.in_(iniciador_ids))

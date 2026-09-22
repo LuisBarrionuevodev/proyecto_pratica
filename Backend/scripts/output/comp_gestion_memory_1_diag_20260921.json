@@ -1,0 +1,322 @@
+{
+  "ticket": "COMP-GESTION-MEMORY.1-DIAG",
+  "date": "2026-09-21",
+  "writes_executed": false,
+  "scope": "Diagnóstico comparativo frontend — sin implementación",
+  "routes": {
+    "notificaciones": "/gestionNotificacion",
+    "comprobaciones": "/actasComprobacion"
+  },
+  "reproduction_notes": {
+    "method": "Análisis estático de código + tests existentes (gestionNotificacionCache1, gestionComprobacionCache1). No se ejecutó UI manual en esta corrida.",
+    "notificaciones_operativa": {
+      "steps": [
+        "Entrar a Gestión Notificaciones",
+        "Tab operativo (En plazo / Por vencer / Pendiente reinspección)",
+        "Navegar paginación cliente MRT o aplicar filtros operativos",
+        "Cambiar a otro tab operativo o a Historial",
+        "Volver al tab anterior"
+      ],
+      "state_preserved": {
+        "rows_data_base": "Sí — operativaBaseCacheRef por slice; restore-base sin GET",
+        "rows_data_filtered": "No garantizado — tab change llama loadPlazoSliceData(slice, null); filtros operativos se limpian entre tabs operativos",
+        "pagination_operativa": "Sí en práctica — una sola NotificacionBandejaTable permanece montada entre tabs operativos; MRT conserva paginación interna",
+        "pagination_historial": "Sí — historialPagination en estado padre (controlado)",
+        "filters_operativa": "Inputs se resetean al cambiar entre tabs operativos (shouldResetOperativaFiltroOnTabChange)",
+        "filters_historial": "Se resetean al entrar a Historial (total) desde operativa",
+        "expanded_rows": "N/A — no hay filas expandibles; detalle vía modal",
+        "scroll_viewport": "Parcial — tabla operativa no se desmonta; scroll del contenedor MRT suele conservarse",
+        "modal_open": "Sí — modales en raíz de página (open prop), no se desmontan por tab"
+      }
+    },
+    "comprobaciones": {
+      "steps": [
+        "Entrar a Comprobaciones gestión",
+        "Tab operativo (Expediente / Oficio / Reinspección) o Recorrido",
+        "Navegar paginación MRT o aplicar filtros / Filtrar en Recorrido",
+        "Cambiar de tab",
+        "Volver"
+      ],
+      "state_preserved": {
+        "rows_data_base": "Sí en memoria padre (expItems/oficioItems/reinItems/recItems) + operativaBaseCacheRef — restore-base sin GET si cache válido",
+        "rows_data_filtered": "No garantizado — ensureTabLoaded(tab, { filters: null }) fuerza carga base al volver; pierde vista filtrada aunque opAppliedRef conserve filtros",
+        "pagination_operativa": "Débil — cada tab monta/desmonta su MaterialReactTable; paginación MRT no está en estado padre",
+        "pagination_recorrido": "Sí — recPagination en estado padre (controlado)",
+        "filters_operativa": "Se resetean al cambiar entre tabs operativos (misma regla que Notificaciones)",
+        "filters_recorrido": "Inputs persisten al salir/entrar Recorrido; recItems/recFilterApplied persisten hasta Limpiar",
+        "expanded_rows": "N/A — no hay filas expandibles; detalle vía modales",
+        "scroll_viewport": "No — tabla se desmonta al cambiar tab → scroll y posición visual se pierden",
+        "loading_ux": "Posible flash BandejaTableSpinner en primer fetch; en cache-hit no debería haber GET pero sí remount de tabla"
+      }
+    },
+    "observed_difference_summary": "Ambos módulos comparten cache base operativa en ref de sesión, pero Notificaciones mantiene montada una sola tabla operativa compartida mientras Comprobaciones desmonta una tabla MRT por tab. Eso explica la sensación de 'volver a cargar/resetear' en Comprobaciones aunque los datos en memoria padre sigan existiendo."
+  },
+  "slide_tab_semantics": {
+    "ui_control": "MUI Tabs + Tab (variant scrollable) — no carousel ni slide swipe",
+    "notificaciones_tabs": [
+      { "key": "en_plazo", "label": "En plazo" },
+      { "key": "por_vencer", "label": "Por vencer" },
+      { "key": "vencidas_o_hoy", "label": "Pendiente reinspección" },
+      { "key": "total", "label": "Historial de notificaciones" }
+    ],
+    "comprobaciones_tabs": [
+      { "key": "expediente", "label": "Pendientes de expediente" },
+      { "key": "oficio", "label": "Pendientes de oficio" },
+      { "key": "reinspeccion", "label": "Pendientes de reinspección" },
+      { "key": "recorrido", "label": "Recorrido consultivo" }
+    ],
+    "mount_behavior": {
+      "notificaciones": {
+        "operativa_vs_historial": "Mutuamente excluyentes (mostrarTablaOperativa / mostrarHistorial) — unmount al cruzar",
+        "within_operativa": "Un solo NotificacionBandejaTable permanece montado; solo cambian rows/columns",
+        "within_historial": "Tabla historial montada solo en slice total"
+      },
+      "comprobaciones": {
+        "all_tabs": "Cada tab renderiza condicionalmente su bloque ({tab === 'expediente' && ...}) — unmount completo al salir",
+        "operative_filter_panel": "Compartido entre expediente/oficio/reinspeccion; se desmonta al ir a Recorrido",
+        "hooks_vs_dom": "useMaterialReactTable corre siempre en el padre (4 instancias), pero MaterialReactTable DOM se desmonta"
+      }
+    }
+  },
+  "component_tree": {
+    "notificaciones": {
+      "page": "Frontend/src/Containers/GestionNotificacion/GestionNotificacionPage.tsx",
+      "tree": [
+        "GestionNotificacionPage",
+        "  MUI Tabs (plazoSlice)",
+        "  [operativa] Filtros operativos (condicional)",
+        "  [operativa] NotificacionBandejaTable (única, persistente entre slices operativos)",
+        "  [historial] Filtros historial + NotificacionBandejaTable (manualPagination)",
+        "  NotificacionDetalleDocumentalDialog (modal, raíz)",
+        "  ExportDataDialog"
+      ],
+      "shared_table_component": "NotificacionBandejaTable (inline, líneas 252-320)"
+    },
+    "comprobaciones": {
+      "page": "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+      "tree": [
+        "ActasComprobacionPage",
+        "  MUI Tabs (tab)",
+        "  [operativa] Filtros compartidos expediente|oficio|reinspeccion",
+        "  [expediente] MaterialReactTable(tableExpediente) — condicional",
+        "  [oficio] MaterialReactTable(tableOficio) — condicional",
+        "  [reinspeccion] MaterialReactTable(tableRein) — condicional",
+        "  [recorrido] Filtros recorrido + MaterialReactTable(tableRec)",
+        "  ComprobacionExpedienteOperativoDialog",
+        "  ComprobacionOficioOperativoDialog",
+        "  ComprobacionReinspeccionDetalleDialog",
+        "  RecorridoDetalleDocumentalDialog"
+      ]
+    }
+  },
+  "notification_pattern": {
+    "state_location": "Todo en GestionNotificacionPage — useState/useRef; sin React Query/Zustand/Context",
+    "operative_data": {
+      "plazo_slices": "items + operativeBaseTotals (en_plazo/por_vencer); reinspeccionItems (vencidas_o_hoy)",
+      "cache": "operativaBaseCacheRef + operativaNotificacionBaseCache.ts",
+      "tab_change": "useEffect [plazoSlice] → loadPlazoSliceData(slice, null) o loadPendientesReinspeccionNotificacion(null)",
+      "cache_restore": "resolveOperativaNotificacionTabLoadAction → restore-base → setItems desde snapshot"
+    },
+    "historial_data": {
+      "state": "historialRows, historialMeta, historialPagination (controlado), historialApplied",
+      "fetch": "useEffect cuando historialFiltroAplicado + pagination",
+      "enter_historial": "Resetea historial al entrar desde operativa"
+    },
+    "table_ux": {
+      "operative": "Una tabla montada; paginación MRT interna (no controlada en padre)",
+      "historial": "manualPagination + historialPagination en padre"
+    },
+    "mutation_refresh": "refreshNotificacionesPostProrroga + invalidateOperativaNotificacionBaseTabs + reconcileBandejasSilent",
+    "key_files": [
+      "Frontend/src/Containers/GestionNotificacion/GestionNotificacionPage.tsx",
+      "Frontend/src/Containers/GestionNotificacion/utils/operativaNotificacionBaseCache.ts",
+      "Frontend/src/Containers/GestionNotificacion/utils/operativaNotificacionTabChange.ts",
+      "Frontend/src/Containers/GestionNotificacion/utils/refreshNotificacionesPostProrroga.ts",
+      "Frontend/src/Containers/GestionNotificacion/gestionNotificacionCache1.test.ts"
+    ]
+  },
+  "comprobacion_pattern": {
+    "state_location": "Todo en ActasComprobacionPage — useState/useRef; sin React Query",
+    "operative_data": {
+      "per_tab_state": "expItems, oficioItems, reinItems (+ loading/error cada uno)",
+      "cache": "operativaBaseCacheRef + operativaComprobacionBaseCache.ts (misma semántica que Notificaciones)",
+      "tab_change": "useEffect [tab] → clearOperativaFiltroInputs si operative→operative; ensureTabLoaded(tab, { filters: null })",
+      "cache_restore": "resolveOperativaTabLoadAction → restore-base → setExpItems/setOficioItems/setReinItems"
+    },
+    "recorrido_data": {
+      "state": "recItems, recMeta, recPagination (controlado), recFilterApplied, recAppliedPayload",
+      "fetch": "loadRecorridoSearch solo tras Filtrar; no auto-fetch al entrar tab",
+      "persist_on_tab_leave": "recItems/recPagination persisten en padre (no se limpian al cambiar tab salvo Limpiar)"
+    },
+    "table_ux": {
+      "operative": "Cuatro useMaterialReactTable en padre; cada MaterialReactTable se monta/desmonta por tab",
+      "recorrido": "recPagination controlado en padre"
+    },
+    "mutation_refresh": "refreshComprobacionesPostOficio + invalidateOperativaBaseTabs + reconcileComprobacionesSilent",
+    "key_files": [
+      "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+      "Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionBaseCache.ts",
+      "Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionTabChange.ts",
+      "Frontend/src/Containers/ActasComprobacion/utils/refreshComprobacionesPostOficio.ts",
+      "Frontend/src/Containers/ActasComprobacion/gestionComprobacionCache1.test.ts"
+    ]
+  },
+  "root_cause": {
+    "primary": "Comprobaciones desmonta la tabla MRT activa en cada cambio de tab ({tab === '...' && <MaterialReactTable />}), mientras Notificaciones mantiene montada una sola NotificacionBandejaTable para todos los slices operativos. El desmontaje pierde estado de UI de MRT (paginación cliente, orden, scroll del viewport) y produce remount visual aunque los arrays de datos en el padre sigan en memoria.",
+    "secondary": "El efecto de cambio de tab en Comprobaciones invoca ensureTabLoaded(tab, { filters: null }) siempre que el destino no es Recorrido, forzando restauración del dataset BASE y descartando resultados de búsqueda filtrada activa (opAppliedRef puede quedar poblado pero no se usa en ese camino).",
+    "tertiary": "Paginación operativa no está elevada al estado padre en ninguno de los dos módulos; Notificaciones lo enmascara al no desmontar la tabla operativa compartida. Comprobaciones expone el problema al remontar tablas separadas.",
+    "not_primary": "No es un fallo de ausencia de cache — operativaBaseCacheRef existe y los tests CACHE.1 confirman restore-base sin GET. No es React Query ni invalidación global de cache en navegación normal."
+  },
+  "state_lost": {
+    "comprobacion_on_tab_switch": [
+      "Posición de paginación cliente en tabs operativos (MRT interno, tabla desmontada)",
+      "Orden de columnas / sorting MRT si el usuario lo cambió",
+      "Scroll vertical del contenedor de tabla",
+      "Vista filtrada si había opApplied activo y se vuelve desde otro tab (ensureTabLoaded fuerza filters: null)",
+      "Sensación de recarga (remount + posible spinner en primer visit)"
+    ],
+    "comprobacion_preserved_in_parent": [
+      "expItems / oficioItems / reinItems (arrays)",
+      "operativaBaseCacheRef snapshots base",
+      "recItems / recPagination / recFilterApplied al salir de Recorrido",
+      "Estado de modales (open/selected en raíz de página)"
+    ],
+    "notificacion_preserved_extra_vs_comprobacion": [
+      "Tabla operativa MRT montada entre slices",
+      "Paginación/scroll operativa de facto persistentes",
+      "historialPagination en padre para tab Historial"
+    ],
+    "both_reset_on_operative_tab_change": [
+      "Campos de filtro operativo visibles (reset intencional entre tabs operativos del mismo tipo)"
+    ],
+    "expanded_rows": "Ningún módulo implementa filas expandibles; 'desplegar' en producto = paginar/scroll en tabla o abrir modal de detalle/gestión"
+  },
+  "fetch_difference": {
+    "react_query": false,
+    "both_use": "useCallback loaders + useEffect + ref cache de sesión",
+    "notificaciones_on_tab_return_operativa": "loadPlazoSliceData → restore-base si cache válido y sin filtros; sin red",
+    "comprobaciones_on_tab_return_operativa": "ensureTabLoaded → loadExpediente/loadOficio/loadRein → restore-base análogo; sin red en cache hit",
+    "filtered_search": {
+      "notificaciones": "Búsqueda filtrada siempre fetch; no se cachea en base snapshot",
+      "comprobaciones": "Igual — operativaComprobacionTieneFiltro → fetch",
+      "tab_switch_with_active_filter": "Ambos tienden a recargar base (null) al cambiar tab; Comprobaciones además pierde UI de tabla por unmount"
+    },
+    "recorrido_vs_historial": {
+      "comprobacion_recorrido": "Fetch explícito con Filtrar; estado persiste en padre al cambiar tab",
+      "notificacion_historial": "Fetch con filtro aplicado; historialPagination en padre; al ENTRAR a Historial desde operativa se resetea historial (peor que Recorrido para memoria de consulta)"
+    },
+    "endpoints": {
+      "notificaciones_operativa": "getActuacionesPendientesExpediente(..., 'notificacion', { plazoSlice })",
+      "comprobaciones_operativa": "Endpoints separados por tab (expediente / oficio / reinspeccion)",
+      "invalidation_on_mutation": "Ambos invalidan slices afectados vía refresh*Post* helpers — correcto para no mostrar datos obsoletos"
+    }
+  },
+  "mount_difference": {
+    "notificaciones_operative_table": "1 instancia DOM montada para en_plazo | por_vencer | vencidas_o_hoy",
+    "comprobaciones_operative_tables": "3 bloques DOM mutuamente excluyentes (expediente/oficio/reinspeccion)",
+    "consultive_panel": {
+      "notificaciones_historial": "Unmount operativa al entrar; historial montado solo en total",
+      "comprobaciones_recorrido": "Unmount operativa al entrar; recorrido montado solo en recorrido"
+    },
+    "conditional_render_snippet_comprobacion": "ActasComprobacionPage.tsx ~1857-1909: {tab === 'expediente' && <MaterialReactTable table={tableExpediente} />}",
+    "shared_table_snippet_notificacion": "GestionNotificacionPage.tsx ~1578-1591: mostrarTablaOperativa && <NotificacionBandejaTable ... />"
+  },
+  "product_invariant": {
+    "expected": "Dentro de la misma sesión en la pantalla, al cambiar slide/tab y volver, recuperar el mismo estado de exploración (datos ya cargados, página, filtros aplicados donde corresponda, scroll razonable).",
+    "reference": "Comportamiento actual de Notificaciones en bandeja operativa (tabla única persistente + cache base).",
+    "mutations": "Tras crear expediente/oficio/declarar sin expediente/prórroga, invalidar solo slices afectados — no reset global de sesión."
+  },
+  "recommended_fix": {
+    "strategy": "Reutilizar patrón Notificaciones — no crear segunda arquitectura",
+    "options_ranked": [
+      {
+        "id": "A",
+        "title": "Tabla operativa compartida (preferida)",
+        "description": "Un solo MaterialReactTable/NotificacionBandejaTable para expediente|oficio|reinspeccion; cambiar columns/data/getRowId por tab activo; mantener montaje como Notificaciones.",
+        "aligns_with": "GestionNotificacionPage NotificacionBandejaTable"
+      },
+      {
+        "id": "B",
+        "title": "Mantener tablas separadas pero siempre montadas",
+        "description": "Renderizar las 3 tablas operativas con display:none o hidden cuando inactivas para preservar DOM/MRT state.",
+        "risk": "Mayor costo DOM; 3 tablas vivas"
+      },
+      {
+        "id": "C",
+        "title": "Elevar paginación/sort por tab al padre",
+        "description": "Estado expPagination/oficioPagination/reinPagination + onPaginationChange controlado (como recPagination e historialPagination).",
+        "note": "Resuelve página pero no scroll ni sort completo"
+      },
+      {
+        "id": "D",
+        "title": "Corregir ensureTabLoaded en tab change",
+        "description": "Al volver a tab operativo, usar opAppliedRef.current en lugar de { filters: null } cuando hay filtro aplicado; opcional cache de snapshots filtrados separados del base.",
+        "aligns_with": "resolveOperativaTabLoadAction ya distingue base vs filtrado"
+      }
+    ],
+    "preserve_on_tab_switch": [
+      "Datos ya cargados (base cache + arrays padre)",
+      "Paginación cliente operativa",
+      "Orden/sort MRT",
+      "Filtros aplicados (payload + inputs) cuando el usuario no cambió de tab operativo a otro operativo",
+      "recItems/recPagination en Recorrido",
+      "Scroll razonable del viewport de tabla"
+    ],
+    "refresh_on_mutation": [
+      "Invalidar operativaBaseCache tabs afectados (patrón refreshComprobacionesPostOficio existente)",
+      "Refetch silent del slice activo",
+      "No tocar tabs no relacionados ni Recorrido salvo mutación que lo afecte"
+    ],
+    "do_not_preserve": [
+      "Datos de tabs invalidados por mutación en curso",
+      "Historial/Recorrido si el usuario ejecutó Limpiar",
+      "Filtros al cambiar entre tabs operativos distintos (regla productiva actual compartida)"
+    ]
+  },
+  "files_expected": {
+    "primary": [
+      "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx"
+    ],
+    "likely_touch": [
+      "Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionBaseCache.ts",
+      "Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionTabChange.ts"
+    ],
+    "reference_only": [
+      "Frontend/src/Containers/GestionNotificacion/GestionNotificacionPage.tsx",
+      "Frontend/src/Containers/GestionNotificacion/utils/operativaNotificacionBaseCache.ts",
+      "Frontend/src/Containers/GestionNotificacion/utils/operativaNotificacionTabChange.ts"
+    ],
+    "tests_to_extend": [
+      "Frontend/src/Containers/ActasComprobacion/gestionComprobacionCache1.test.ts",
+      "Frontend/src/Containers/ActasComprobacion/gestionComprobacionUx1.test.ts"
+    ]
+  },
+  "test_matrix": {
+    "A_expand_persist": {
+      "description": "Tab operativo con paginación en página 2+ → cambiar tab → volver → misma página visible",
+      "type": "component/integration (vitest + RTL) o e2e",
+      "module": "ActasComprobacion",
+      "baseline": "Notificaciones ya cumple en operativa"
+    },
+    "B_loaded_rows_persist": {
+      "description": "Cargar bandeja base (sin filtros) → cambiar tab → volver → sin nuevo GET (mock fetch count) y mismos row count",
+      "type": "unit (cache) + component",
+      "existing": "gestionComprobacionCache1.test.ts visitTab pattern"
+    },
+    "C_filters_page_persist": {
+      "description": "Aplicar filtro → salir a Recorrido → volver → restaurar vista filtrada (hoy falla por filters: null)",
+      "type": "component",
+      "notificaciones_baseline": "Mismo gap potencial en loadPlazoSliceData(null) al volver"
+    },
+    "D_mutation_refresh": {
+      "description": "Registrar expediente/oficio → slice afectado refresca; tab inactivo invalida cache pero no rompe restore; Recorrido no se stale",
+      "type": "unit refreshComprobacionesPostOficio + integration",
+      "existing": "gestionComprobacionCache1.test.ts caso F"
+    },
+    "E_notificaciones_no_regression": {
+      "description": "Tras cambios solo en Comprobación, gestionNotificacionCache1.test.ts sigue verde",
+      "type": "regression"
+    }
+  },
+  "status": "DIAG_COMPLETE"
+}

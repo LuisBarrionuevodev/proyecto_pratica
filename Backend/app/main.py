@@ -212,7 +212,13 @@ def create_app(config_override: dict | None = None):
         click.echo(json.dumps(summary.to_dict(), ensure_ascii=True))
 
     @app.cli.command("sync-notificaciones-vencidas")
-    def sync_notificaciones_vencidas_cli() -> None:
+    @click.option(
+        "--actor-user-id",
+        type=int,
+        required=True,
+        help="ID de usuario activo que audita la corrida (obligatorio).",
+    )
+    def sync_notificaciones_vencidas_cli(actor_user_id: int) -> None:
         """
         Materializa iniciadores REINSPECCION_NOTIFICACION por notificaciones vencidas (Fase C).
 
@@ -222,9 +228,15 @@ def create_app(config_override: dict | None = None):
         from app.domains.actuaciones.pipelines.sync_notificaciones_vencidas import (
             run_sync_notificaciones_vencidas,
         )
+        from app.domains.rutas_trabajo.services.auth_service import validate_actor_user_id
 
         try:
-            metrics = run_sync_notificaciones_vencidas()
+            validate_actor_user_id(actor_user_id)
+        except ValueError as exc:
+            click.echo(str(exc), err=True)
+            raise click.Abort()
+        try:
+            metrics = run_sync_notificaciones_vencidas(actor_user_id=actor_user_id)
         except Exception:
             app.logger.exception("sync-notificaciones-vencidas CLI fall?")
             raise click.Abort()

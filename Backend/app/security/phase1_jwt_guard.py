@@ -41,6 +41,12 @@ _PHASE1_METHOD_PATH: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("PATCH", re.compile(r"^/actuaciones/\d+$")),
     ("DELETE", re.compile(r"^/actuaciones/\d+$")),
     ("POST", re.compile(r"^/actuaciones/\d+/expediente$")),
+    (
+        "POST",
+        re.compile(
+            r"^/actuaciones/\d+/comprobacion/declarar-sin-expediente-envio$"
+        ),
+    ),
     ("POST", re.compile(r"^/actuaciones/\d+/oficio$")),
     ("POST", re.compile(r"^/actuaciones/completar-trabajo/cerrar/\d+$")),
     ("POST", re.compile(r"^/actuaciones/\d+/epicollect/import$")),

@@ -6,6 +6,7 @@
 export const GESTION_PERSIST_OPS = {
   notifAltaExpediente: "notif-alta-expediente",
   compExpedienteSalida: "comp-expediente-salida",
+  compDeclararSinExpediente: "comp-declarar-sin-expediente",
   compOficioAlta: "comp-oficio-alta",
 } as const;
 

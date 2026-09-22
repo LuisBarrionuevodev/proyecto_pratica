@@ -34,12 +34,15 @@ def publicar_ruta(ruta_id: int):
         fase="request_in",
     )
     try:
-        ruta, items = publicar_ruta_trabajo(ruta_id=ruta_id)
+        ruta, items, meta = publicar_ruta_trabajo(ruta_id=ruta_id)
         return (
             jsonify(
                 {
                     "ruta": ruta_trabajo_to_dict(ruta),
                     "items": [ruta_item_to_min_dict(i) for i in items],
+                    "ordenes_asignadas": meta.get("ordenes_asignadas", []),
+                    "next_value": meta.get("next_value"),
+                    "next_display": meta.get("next_display"),
                 }
             ),
             200,

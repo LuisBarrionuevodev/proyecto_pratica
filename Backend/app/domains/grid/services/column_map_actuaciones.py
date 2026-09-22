@@ -10,6 +10,7 @@ para validar con Pydantic y mapear a payload canon.
 # Glide header -> key interna (snake_case)
 COLUMN_MAP_ACTUACIONES: dict[str, str] = {
     "ID": "id",
+    "Cargar solo comprobación": "carga_solo_comprobacion",
     "Fecha actuación": "fecha_actuacion",
     "Tipo actuación": "tipo_actuacion",
     "Contraproducencia": "contraproducencia",

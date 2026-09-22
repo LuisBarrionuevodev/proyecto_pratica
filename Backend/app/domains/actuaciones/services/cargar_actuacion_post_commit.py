@@ -20,16 +20,22 @@ from app.domains.actuaciones.services.notificacion_iniciador_service import (
 logger = logging.getLogger(__name__)
 
 
-def ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal() -> None:
+def ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal(
+    *,
+    actor_user_id: int,
+) -> None:
     """
     Materializa iniciadores `REINSPECCION_NOTIFICACION` si corresponde (sync global idempotente).
 
-    Qué hace: invoca `sync_iniciadores_reinspeccion_notificacion()`.
+    Qué hace: invoca `sync_iniciadores_reinspeccion_notificacion(actor_user_id=...)`.
+
+    Parámetros:
+        actor_user_id: usuario que ejecutó la operación HTTP previa (propagado explícitamente).
 
     Errores: no relanza; si el sync falla, la transacción principal ya hizo commit — se deja traza en log.
     """
     try:
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=actor_user_id)
     except Exception:
         logger.exception(
             "Falló sync_iniciadores_reinspeccion_notificacion tras persistir actuación "

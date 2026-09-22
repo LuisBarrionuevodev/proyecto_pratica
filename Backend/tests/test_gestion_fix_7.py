@@ -45,25 +45,13 @@ from app.models import (
     User,
 )
 
+from tests.helpers.fixture_isolation import uniq_ruta_numero
 from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 from tests.test_hotfix_reencolado_planificacion import _mk_relevamiento_en_ruta_publicada
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import RutaTrabajo
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _ensure_catalog_contraproducencia(nombre: str) -> None:
@@ -104,7 +92,7 @@ def _republicar_con_inspectores(
         turno="MANIANA",
         estado_ruta="BORRADOR",
         created_by_user_id=user_id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
@@ -118,12 +106,6 @@ def _republicar_con_inspectores(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
-    )
-    item = items[0]
-    set_orden_trabajo_on_item(
-        ruta_id=ruta.id,
-        item_id=item.id,
-        numero_orden_trabajo=f"{random.randint(0, 999999):06d}",
     )
     db.session.commit()
     ruta_id = int(ruta.id)
@@ -225,12 +207,26 @@ def test_oficio_put_identidad_maliciosa_rechazada(app_ctx) -> None:
 
 
 def test_oficio_completar_trabajo_no_aplica_identidad_en_payload(app_ctx) -> None:
-    """O4: cierre Oficio con identidad en payload no muta domicilio/contrib/nombre_local."""
+    """O4: cierre Oficio ignora nombre_local malicioso; rubro contradictorio se rechaza."""
     item, act, _ini, u = _mk_reinspeccion_oficio_item(uuid4().hex[:8])
     act_db = db.session.get(Actuaciones, int(act.id))
     dom = db.session.get(Domicilio, int(act_db.domicilio_id))
     calle_orig = dom.calle
     nombre_orig = act_db.nombre_local
+
+    with pytest.raises(ValueError, match="rubro_nombre"):
+        cerrar_completar_trabajo_por_ruta_item(
+            ruta_item_id=item.id,
+            payload=CompletarTrabajoCierreCompletoIn.model_validate(
+                {
+                    "tipo_actuacion": "VERIFICAR E INFORMAR",
+                    "realizo_nueva_inspeccion": True,
+                    "acta_inspeccion_num": f"{random.randint(1000, 99999)}",
+                    "rubro_nombre": "OTRO RUBRO",
+                }
+            ),
+            ejecutado_por_user_id=int(u.id),
+        )
 
     cerrar_completar_trabajo_por_ruta_item(
         ruta_item_id=item.id,
@@ -239,10 +235,7 @@ def test_oficio_completar_trabajo_no_aplica_identidad_en_payload(app_ctx) -> Non
                 "tipo_actuacion": "VERIFICAR E INFORMAR",
                 "realizo_nueva_inspeccion": True,
                 "acta_inspeccion_num": f"{random.randint(1000, 99999)}",
-                "calle": "CALLE MALICIOSA",
-                "rubro_nombre": "OTRO RUBRO",
                 "nombre_local": "LOCAL MALICIOSO",
-                "doc_nro": "88888888",
             }
         ),
         ejecutado_por_user_id=int(u.id),

@@ -121,11 +121,6 @@ export function DashboardIndicadoresPdfDocument({ model, membreteSrc }: Props) {
         <ReportHeader model={model} membreteSrc={membreteSrc} />
         <Text style={styles.sectionTitle}>Resumen ejecutivo</Text>
         <KpiGrid rows={model.ejecutivoKpis} />
-        <Text style={styles.sectionTitle}>Pendientes operativos</Text>
-        <Text style={[styles.metaLine, { textAlign: "left", marginBottom: 4 }]}>
-          Pendientes actuales al momento de consulta.
-        </Text>
-        <KpiGrid rows={model.pendientesKpis} />
         <PageFooter model={model} pageNum={1} totalPages={totalPages} />
       </Page>
 

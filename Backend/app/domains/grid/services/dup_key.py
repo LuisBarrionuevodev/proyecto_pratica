@@ -12,9 +12,15 @@ def _normalize_ot(numero_ot: Any) -> str:
 
 def build_dup_key(row_validada: ActuacionGridRowIn) -> tuple[str, str]:
     """
-    Regla de duplicado dentro del lote de actuaciones:
-      orden_trabajo_numero + fecha_actuacion (ISO)
+    Regla de duplicado dentro del lote de actuaciones.
+
+    Normal: orden_trabajo_numero + fecha_actuacion (ISO).
+    Histórica solo comprobación: acta_comprobacion_num + anio (alineado a uq_acomp_numero_anio).
     """
+    if row_validada.carga_solo_comprobacion:
+        acta = _normalize_ot(row_validada.acta_comprobacion_num)
+        anio = str(row_validada.fecha_as_date().year)
+        return (acta or "", anio)
     ot = _normalize_ot(row_validada.orden_trabajo_numero)
     fecha_iso = row_validada.fecha_as_date().isoformat()
     return (ot, fecha_iso)

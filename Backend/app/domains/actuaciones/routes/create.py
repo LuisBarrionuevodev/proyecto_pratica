@@ -10,6 +10,7 @@ from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.services.create_service import crear_actuacion_desde_payload
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 
 from . import actuacion
 
@@ -23,7 +24,8 @@ def crear_actuacion():
         row = ActuacionGridRowIn.model_validate(data)
         payload = map_actuacion_row(row)
 
-        act = crear_actuacion_desde_payload(payload)
+        actor_user_id = get_current_user_id()
+        act = crear_actuacion_desde_payload(payload, actor_user_id=actor_user_id)
         return jsonify(actuacion_to_grid_row(act)), 201
 
     except ValidationError as e:

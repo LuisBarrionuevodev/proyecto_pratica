@@ -30,9 +30,12 @@ from app.domains.relevamientos.services.relevamiento_unicidad_service import (
 from app.domains.relevamientos.utils.relevamiento_campos_normalizers import (
     campos_establecimiento_desde_payload,
 )
+from app.domains.rutas_trabajo.services.auth_service import resolve_actor_user_id
 
 
-def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
+def crear_relevamiento_desde_payload(
+    payload: Dict[str, Any], *, actor_user_id: int | None = None
+) -> Relevamiento:
     """
     Crea un Relevamiento desde un payload canon.
 
@@ -150,7 +153,10 @@ def crear_relevamiento_desde_payload(payload: Dict[str, Any]) -> Relevamiento:
     db.session.flush()
     sync_relevamiento_relevadores(rel, [r.id for r in relevadores])
 
-    iniciador = get_or_create_iniciador_from_relevamiento(rel)
+    uid = resolve_actor_user_id(actor_user_id)
+    iniciador = get_or_create_iniciador_from_relevamiento(
+        rel, actor_user_id=uid
+    )
     db.session.add(iniciador)
     db.session.commit()
     return rel

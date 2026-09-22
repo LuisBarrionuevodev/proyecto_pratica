@@ -1,0 +1,417 @@
+{
+  "timestamp": "2026-09-20T22:14:20.251893",
+  "database": "digitaliza_sandbox",
+  "alembic": "l7m8n9o0p1q2",
+  "baseline_before": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 1970,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2703,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "notificacion": 2453,
+      "comprobacion": 1529,
+      "expediente": 2913,
+      "oficio": 1447,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525,
+      "profiles": 7,
+      "password_reset_codes": 1,
+      "relevador": 10,
+      "juzgado_catalogo": 842,
+      "calle_catalogo": 744,
+      "rubro": 1224
+    },
+    "drift": {},
+    "drift_count": 0,
+    "ok": true
+  },
+  "baseline_after": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 1970,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2703,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "notificacion": 2453,
+      "comprobacion": 1529,
+      "expediente": 2913,
+      "oficio": 1447,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525,
+      "profiles": 7,
+      "password_reset_codes": 1,
+      "relevador": 10,
+      "juzgado_catalogo": 842,
+      "calle_catalogo": 744,
+      "rubro": 1224
+    },
+    "drift": {},
+    "drift_count": 0,
+    "ok": true
+  },
+  "cleanup_guards": {
+    "known_test_act_ids_remaining": 0,
+    "known_test_ot_ids_remaining": 0,
+    "route_residual_safe_remaining": 0,
+    "admin_graph_safe_remaining": 0,
+    "safe_users_2d_remaining": 0,
+    "relevador_test_id2_remaining": 0,
+    "juzgado_test_id922_remaining": 0,
+    "ok": true
+  },
+  "stop_preserve_guards": {
+    "preservation_is_intentional": true,
+    "2e_c_qa_calles": {
+      "740": 1,
+      "741": 1,
+      "742": 1,
+      "743": 1,
+      "744": 1,
+      "745": 1
+    },
+    "2e_c_aliases_keep": {
+      "236": 1,
+      "256": 1,
+      "259": 1
+    },
+    "2e_c_indeterminate_368": 1,
+    "2e_u_rubro_physical": 1224,
+    "2e_u_rubro_buckets": {
+      "CANONICAL": 0,
+      "CONFIRMADO_TEST_BLOCKED": 1,
+      "LEGACY_REAL_KEEP": 0,
+      "INDETERMINATE": 1
+    },
+    "ok": true
+  },
+  "protected_graph": {
+    "counts": {
+      "actuaciones": 1189,
+      "orden_trabajo": 1176,
+      "inspeccion": 170,
+      "notificacion": 168,
+      "comprobacion": 48,
+      "oficio": 40,
+      "expediente": 40
+    },
+    "expected": {
+      "actuaciones": 1189,
+      "orden_trabajo": 1176,
+      "inspeccion": 170,
+      "notificacion": 168,
+      "comprobacion": 56,
+      "oficio": 40,
+      "expediente": 40
+    },
+    "counts_ok": false,
+    "protected_missing": {},
+    "protected_missing_count": 0,
+    "protected_deleted": {},
+    "ok": true,
+    "counts_match_ticket_baseline": false,
+    "note": "protected_missing=0 es criterio duro; drift de counts vs ticket se documenta aparte"
+  },
+  "global_fk_orphans": {
+    "fk_edges_scanned": 77,
+    "orphan_edges": [],
+    "orphan_edges_count": 0,
+    "orphan_rows_total": 0,
+    "ok": true
+  },
+  "users_integrity": {
+    "users_count": 1970,
+    "expected_users": 1970,
+    "fk_free_users": {
+      "937": 1,
+      "941": 1,
+      "969": 1,
+      "4231": 1
+    },
+    "admin_id1_present": true,
+    "ok": true
+  },
+  "auth_audit_guards": {
+    "patterns": {
+      "get_current_user_id_or_fallback": 0,
+      "fallback_user": 0,
+      "order_by(User.id.asc()).first()": 1
+    },
+    "duplicate_get_current_user_id_in_audit_services": 0,
+    "seed_first_active_documented": [
+      "domains\\relevamientos\\seeds\\relevamientos_corrientes_chico.py"
+    ],
+    "ok": true
+  },
+  "user1_refs_before": 25092,
+  "user1_refs_after": 25092,
+  "historical_user1_refs_action": "PRESERVE",
+  "relevamientos_regression": {
+    "unit_tests": {
+      "command": "C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m pytest -o addopts= tests/test_relevamientos_list_filters_500_fix.py -q",
+      "exit_code": 0,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "tail": ".............................                                            [100%]\n============================== warnings summary ===============================\napp\\domains\\actuaciones\\schemas\\actuacion_patch_in.py:9\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\actuaciones\\schemas\\actuacion_patch_in.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/\n    class ActuacionPatchIn(BaseModel):\n\ntests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_sin_params_200\ntests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_explicit_range_200\ntests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_empty_range_200\ntests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_invalid_date_422_not_500\ntests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_desde_gt_hasta_422_not_500\ntests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_gestion_operativa_invalid_date_422\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\usuarios\\security\\decorators.py:21: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    return User.query.get(int(user_id))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n29 passed, 7 warnings in 0.63s\n\n"
+    },
+    "api_smoke_subset": {
+      "/relevamientos": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/relevamientos?desde=2026-01-01&hasta=2026-01-31": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/relevamientos?desde=2026-02-01&hasta=2026-12-31": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/relevamientos?desde=2026-02-01&hasta=2026-01-01": {
+        "status": 422,
+        "expected": 422,
+        "ok": true
+      },
+      "/relevamientos?desde=not-a-date&hasta=2026-01-31": {
+        "status": 422,
+        "expected": 422,
+        "ok": true
+      }
+    }
+  },
+  "domain_regression": {
+    "note": "covered by focal pytest suites per ticket \u00a710-31",
+    "focal_suites": [
+      "tests/test_relevamientos_list_filters_500_fix.py",
+      "tests/test_audit_created_by_fallback_fix.py",
+      "tests/test_phase1_jwt_guard.py",
+      "tests/test_notificacion_iniciador_policy.py",
+      "tests/test_notificacion_iniciador_phase_c.py",
+      "tests/test_pendientes_sync_notificaciones_vencidas_route.py",
+      "tests/test_completar_trabajo_notificacion_pr7_13.py",
+      "tests/test_denuncia_update_domicilio_pr9_3.py",
+      "tests/test_relevadores_relevamiento.py",
+      "tests/test_iniciador_domicilio_herencia_pr1.py"
+    ]
+  },
+  "backend": {
+    "focal_tests": {
+      "command": "C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m pytest -o addopts= tests/test_relevamientos_list_filters_500_fix.py tests/test_audit_created_by_fallback_fix.py tests/test_phase1_jwt_guard.py tests/test_notificacion_iniciador_policy.py tests/test_notificacion_iniciador_phase_c.py tests/test_pendientes_sync_notificaciones_vencidas_route.py tests/test_completar_trabajo_notificacion_pr7_13.py tests/test_denuncia_update_domicilio_pr9_3.py tests/test_relevadores_relevamiento.py tests/test_iniciador_domicilio_herencia_pr1.py -q --tb=no",
+      "exit_code": 0,
+      "passed": 120,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "tail": "Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\rutas_trabajo\\services\\ruta_items_service.py:68: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).\n    now = datetime.utcnow()\n\ntests/test_completar_trabajo_notificacion_pr7_13.py::test_pr713_completar_notificacion_mendoza_500_y_iniciador_derivado\ntests/test_completar_trabajo_notificacion_pr7_13.py::test_pr713_comprobacion_sigue_mendoza_500\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\rutas_trabajo\\services\\ruta_item_orden_trabajo_service.py:42: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    ruta = RutaTrabajo.query.get(ruta_id)\n\ntests/test_completar_trabajo_notificacion_pr7_13.py::test_pr713_completar_notificacion_mendoza_500_y_iniciador_derivado\ntests/test_completar_trabajo_notificacion_pr7_13.py::test_pr713_comprobacion_sigue_mendoza_500\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\actuaciones\\services\\completar_trabajo_cierre_service.py:488: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).\n    now = datetime.utcnow()\n\ntests/test_completar_trabajo_notificacion_pr7_13.py::test_pr713_update_actuacion_con_notificacion_sin_uso_permite_cambio_domicilio\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\tests\\test_completar_trabajo_notificacion_pr7_13.py:384: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    dom_db = Domicilio.query.get(act.domicilio_id)\n\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_policy_compartido_cow_al_cambiar_geo\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_policy_compartido_cow_al_cambiar_geo\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_compartido_otra_denuncia_intacta\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_compartido_otra_denuncia_intacta\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_ruta_publicada_bloquea_cambio_domicilio\ntests/test_iniciador_domicilio_herencia_pr1.py::test_denuncia_sigue_creando_iniciador_con_domicilio\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\denuncias\\services\\denuncias_service.py:48: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    dom = Domicilio.query.get(domicilio_id)\n\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_compartido_otra_denuncia_intacta\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_iniciador_no_pendiente_bloquea_edicion\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_esquina_a_numero\ntests/test_denuncia_update_domicilio_pr9_3.py::test_pr93_edit_esquina_a_numero\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\geolocalizacion\\geocoding\\services\\geocode_service.py:452: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).\n    geo.checked_at = datetime.utcnow()\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n120 passed, 89 warnings in 14.73s\n\n"
+    },
+    "full_suite": {
+      "command": "C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m pytest -o addopts= tests/ -q --tb=no",
+      "exit_code": 1,
+      "passed": 1770,
+      "failed": 396,
+      "skipped": 1,
+      "errors": 0,
+      "tail": "ublicar_integrity_reintento_pr11_1e.py::test_pr11_1e_resolver_no_reutiliza_actuacion_historica_con_ot_distinta\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_dos_actuaciones_mismo_iniciador_ot_historica_bloquea\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_republicar_misma_ot_rechaza_local_cerrado\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_ocupada_por_otro_iniciador_409_explicito_no_integrity\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_local_cerrado_bloquea\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_ot_consumida_otro_iniciador_no_realizado_bloquea\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_libre_crea_actuacion_nueva\nFAILED tests/test_ruta_publicar_integrity_reintento_pr11_1f.py::test_pr11_1f_reintento_mismo_iniciador_ot_ocupada_por_otro_bloquea\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reinspeccion_notificacion_publica_con_ot_nueva\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_rechaza_misma_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reencolado_no_realizado_publica_con_ot_distinta\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_ot_en_actuacion_activa_en_proceso_bloquea\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_item_no_realizado_genera_conflicto_ot_historica\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_reintento_ot_consumida_luego_ot_libre\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1.py::test_pr11_1_actuacion_base_inspeccion_bloquea_misma_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_rechazan_misma_ot[_mk_iniciador_relevamiento-INSPECCION]\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_relevamiento_y_denuncia_rechazan_misma_ot[_mk_iniciador_denuncia-INSPECCION]\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_reinspeccion_notificacion_local_cerrado_misma_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_legacy_estado_ruta_no_realizado_rechaza_misma_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_ot_en_proceso_sigue_bloqueando\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_item_soft_deleted_publica_con_ot_nueva\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1b.py::test_pr11_1b_actuacion_base_sin_item_sigue_bloqueando_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_relevamiento_mismo_dia_ot_distinta_local_cerrado\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_denuncia_mismo_dia_ot_distinta_local_cerrado\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_reinspeccion_notificacion_mismo_dia_ot_distinta_local_cerrado\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_mismo_dia_misma_ot_rechaza_reintento\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_item_en_proceso_sigue_bloqueando_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_realizada_previa_no_permite_reasignar\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_legacy_estado_ruta_no_realizado_mismo_dia_nueva_ot\nFAILED tests/test_ruta_publicar_orden_trabajo_pr11_1c.py::test_pr11_1c_fallback_estado_ejecucion_no_realizado_sin_finalizar_item\nFAILED tests/test_ruta_publicar_pool_sobrantes.py::test_publicar_descarta_sobrantes_en_pool_y_publica_asignados\nFAILED tests/test_ruta_publicar_pool_sobrantes.py::test_publicar_sin_sobrantes_no_descarta_pool_asignado\nFAILED tests/test_vincular_establecimiento_operativo_actuacion.py::test_sin_rubro_no_vincula\n396 failed, 1770 passed, 1 skipped, 1964 warnings in 1886.08s (0:31:26)\n\n"
+    },
+    "classification_of_failures": {
+      "NEW_REGRESSION": 396,
+      "note": "failures require manual triage against baseline; none auto-fixed"
+    }
+  },
+  "frontend": {
+    "typecheck_via_build": {
+      "command": "cmd /c npm run build",
+      "exit_code": 2,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "tail": "leObject<Theme>)'.\nsrc/ui/AppDialog.tsx(138,5): error TS2322: Type 'SxProps<Theme> | undefined' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.\n  Type 'undefined' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.\nsrc/ui/AppDialog.tsx(151,9): error TS2322: Type '{ sx: (SxProps<Theme> | undefined)[]; }' is not assignable to type 'SlotProps<ElementType<BackdropProps, keyof IntrinsicElements>, DialogBackdropSlotPropsOverrides, DialogOwnerState> | undefined'.\n  Type '{ sx: (SxProps<Theme> | undefined)[]; }' is not assignable to type 'Partial<Omit<BackdropOwnProps & CommonProps & Omit<DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>, \"timeout\" | ... 302 more ... | \"invisible\"> & { ...; }, \"ref\"> & RefAttributes<...>> & SlotCommonProps & DialogBackdropSlotPropsOverrides'.\n    Types of property 'sx' are incompatible.\n      Type '(SxProps<Theme> | undefined)[]' is not assignable to type 'SxProps<Theme> | undefined'.\n        Type '(SxProps<Theme> | undefined)[]' is not assignable to type 'CSSSelectorObjectOrCssVariables<Theme>'.\n          Index signature for type 'string' is missing in type '(SxProps<Theme> | undefined)[]'.\nsrc/ui/ConfirmDialog.tsx(88,7): error TS2322: Type '{ children: number | bigint | boolean | Iterable<ReactNode> | Promise<AwaitedReactNode> | Element | null; open: boolean; ... 11 more ...; actions: Element; }' is not assignable to type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\n  Property 'disableBackdropClick' does not exist on type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\nsrc/ui/ExportDataDialog.tsx(237,7): error TS2322: Type '{ children: Element; open: boolean; onClose: (event: {}, reason: \"backdropClick\" | \"escapeKeyDown\") => void; onCloseButtonClick: () => void; title: string; maxWidth: false | Breakpoint; ... 6 more ...; actions: Element; }' is not assignable to type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\n  Property 'disableBackdropClick' does not exist on type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\nsrc/utils/cierreQa.test.ts(16,5): error TS2783: 'id' is specified more than once, so this usage will be overwritten.\nsrc/utils/domicilioCalleUi.test.ts(8,3): error TS6133: 'domicilioNumeroValorEdicion' is declared but its value is never read.\nsrc/utils/oficioFormErrors.ts(3,3): error TS6133: 'applyFormErrorsFromApi' is declared but its value is never read.\nsrc/utils/stab9b.test.ts(2,1): error TS6133: 'readFileSync' is declared but its value is never read.\nsrc/utils/stab9b.test.ts(3,1): error TS6133: 'resolve' is declared but its value is never read.\nsrc/utils/validations.ts(87,20): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.\n  Type 'null' is not assignable to type 'string'.\nsrc/utils/validations.ts(90,24): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.\n  Type 'null' is not assignable to type 'string'.\nsrc/utils/validations.ts(93,21): error TS2339: Property 'inspector' does not exist on type 'IRelevamiento'.\nsrc/utils/validations.ts(96,21): error TS2339: Property 'direccion' does not exist on type 'IRelevamiento'.\n\n"
+    },
+    "tests": {
+      "command": "cmd /c npm run test",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "tail": "\n"
+    },
+    "build": {
+      "command": "cmd /c npm run build",
+      "exit_code": 2,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "tail": "leObject<Theme>)'.\nsrc/ui/AppDialog.tsx(138,5): error TS2322: Type 'SxProps<Theme> | undefined' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.\n  Type 'undefined' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.\nsrc/ui/AppDialog.tsx(151,9): error TS2322: Type '{ sx: (SxProps<Theme> | undefined)[]; }' is not assignable to type 'SlotProps<ElementType<BackdropProps, keyof IntrinsicElements>, DialogBackdropSlotPropsOverrides, DialogOwnerState> | undefined'.\n  Type '{ sx: (SxProps<Theme> | undefined)[]; }' is not assignable to type 'Partial<Omit<BackdropOwnProps & CommonProps & Omit<DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>, \"timeout\" | ... 302 more ... | \"invisible\"> & { ...; }, \"ref\"> & RefAttributes<...>> & SlotCommonProps & DialogBackdropSlotPropsOverrides'.\n    Types of property 'sx' are incompatible.\n      Type '(SxProps<Theme> | undefined)[]' is not assignable to type 'SxProps<Theme> | undefined'.\n        Type '(SxProps<Theme> | undefined)[]' is not assignable to type 'CSSSelectorObjectOrCssVariables<Theme>'.\n          Index signature for type 'string' is missing in type '(SxProps<Theme> | undefined)[]'.\nsrc/ui/ConfirmDialog.tsx(88,7): error TS2322: Type '{ children: number | bigint | boolean | Iterable<ReactNode> | Promise<AwaitedReactNode> | Element | null; open: boolean; ... 11 more ...; actions: Element; }' is not assignable to type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\n  Property 'disableBackdropClick' does not exist on type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\nsrc/ui/ExportDataDialog.tsx(237,7): error TS2322: Type '{ children: Element; open: boolean; onClose: (event: {}, reason: \"backdropClick\" | \"escapeKeyDown\") => void; onCloseButtonClick: () => void; title: string; maxWidth: false | Breakpoint; ... 6 more ...; actions: Element; }' is not assignable to type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\n  Property 'disableBackdropClick' does not exist on type 'IntrinsicAttributes & Omit<DialogProps, \"title\"> & { title?: ReactNode; actions?: ReactNode; showCloseButton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\nsrc/utils/cierreQa.test.ts(16,5): error TS2783: 'id' is specified more than once, so this usage will be overwritten.\nsrc/utils/domicilioCalleUi.test.ts(8,3): error TS6133: 'domicilioNumeroValorEdicion' is declared but its value is never read.\nsrc/utils/oficioFormErrors.ts(3,3): error TS6133: 'applyFormErrorsFromApi' is declared but its value is never read.\nsrc/utils/stab9b.test.ts(2,1): error TS6133: 'readFileSync' is declared but its value is never read.\nsrc/utils/stab9b.test.ts(3,1): error TS6133: 'resolve' is declared but its value is never read.\nsrc/utils/validations.ts(87,20): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.\n  Type 'null' is not assignable to type 'string'.\nsrc/utils/validations.ts(90,24): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.\n  Type 'null' is not assignable to type 'string'.\nsrc/utils/validations.ts(93,21): error TS2339: Property 'inspector' does not exist on type 'IRelevamiento'.\nsrc/utils/validations.ts(96,21): error TS2339: Property 'direccion' does not exist on type 'IRelevamiento'.\n\n"
+    }
+  },
+  "api_smoke": {
+    "matrix": {
+      "/relevamientos": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/relevamientos?desde=2026-01-01&hasta=2026-01-31": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/relevamientos?desde=2026-02-01&hasta=2026-12-31": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/relevamientos?desde=2026-02-01&hasta=2026-01-01": {
+        "status": 422,
+        "expected": 422,
+        "ok": true
+      },
+      "/relevamientos?desde=not-a-date&hasta=2026-01-31": {
+        "status": 422,
+        "expected": 422,
+        "ok": true
+      },
+      "/api/profile/me": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/actuaciones/search?q=20&limit=5": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/rutas-trabajo": {
+        "status": 401,
+        "expected": 401,
+        "ok": true
+      },
+      "/api/denuncias": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/catalogos/rubros": {
+        "status": 200,
+        "expected": 200,
+        "ok": true
+      },
+      "/grid/catalogs/relevadores": {
+        "status": 200,
+        "expected": 200,
+        "ok": true,
+        "count": 10,
+        "has_id2": false
+      },
+      "/grid/catalogs/juzgados": {
+        "status": 200,
+        "expected": 200,
+        "ok": true,
+        "has_jf1_jf15": true,
+        "has_id922": false
+      }
+    },
+    "ok": true
+  },
+  "error_contract_smoke": {
+    "/relevamientos?desde=2026-02-01&hasta=2026-01-01": {
+      "status": 422,
+      "expected": 422,
+      "ok": true
+    },
+    "/relevamientos?desde=not-a-date&hasta=2026-01-31": {
+      "status": 422,
+      "expected": 422,
+      "ok": true
+    },
+    "/rutas-trabajo": {
+      "status": 401,
+      "expected": 401,
+      "ok": true
+    }
+  },
+  "static_analysis": {
+    "findings": [],
+    "count": 0
+  },
+  "environment_guards": {
+    "test_db_separation": "PREDEPLOY-CLEANUP.1 guard in app/security/test_database.py",
+    "sandbox_read_only_policy": true
+  },
+  "known_technical_debt": [
+    {
+      "id": "TECH-DEBT-PENDIENTES-SYNC-ON-READ",
+      "description": "GET pendientes puede disparar sync si SYNC_NOTIFICACIONES_VENCIDAS_ON_READ=1"
+    }
+  ],
+  "out_of_scope": [
+    "ACT-HIST carga hist\u00f3rica actuaciones sin OT",
+    "FASE 2E-C / 2E-U cleanup execution",
+    "eliminaci\u00f3n pendiente expediente"
+  ],
+  "findings": {
+    "p0": [],
+    "p1": [
+      "full_suite_failed=396 passed=1770 (majority NEW_REGRESSION: ValueError Usuario no autorizado in rutas/relevamiento service tests post FIX.2)",
+      "frontend_build_failed (TypeScript errors in validations.ts and test files)",
+      "frontend_tests_failed=0"
+    ],
+    "p2": [
+      "protected_manifest_comprobacion_count=48 ticket_expected=56 protected_missing=0"
+    ],
+    "tech_debt": [
+      "TECH-DEBT-PENDIENTES-SYNC-ON-READ"
+    ],
+    "expected_preserve": [
+      "2E-C QA calles 740-745",
+      "2E-C aliases 236,256,259",
+      "2E-C indeterminate calle 368",
+      "2E-U rubro physical 1224"
+    ]
+  },
+  "failure_classification": {
+    "full_suite": {
+      "NEW_REGRESSION": "393 failures \u2014 dominant pattern ValueError Usuario no autorizado in direct service calls (create_ruta_grupo, crear_relevamiento_desde_payload) after PREDEPLOY-FIX.2",
+      "PREEXISTING_CONFIRMED": "frontend TS/build issues in validations.ts (unrelated to recent backend fixes)",
+      "ENVIRONMENT": "test_ruta_pool_dia isolation (assert count drift)",
+      "EXPECTED_CONTRACT": "protected comprobacion manifest count 48 vs ticket baseline 56; all IDs present"
+    },
+    "focal_suites_recent_fixes": "PASS (120 passed excluding flaky pool isolation tests)"
+  },
+  "sandbox_writes_detected": false,
+  "final_status": "PREDEPLOY_BLOCKED"
+}

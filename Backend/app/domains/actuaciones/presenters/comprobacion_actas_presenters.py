@@ -77,15 +77,30 @@ def estado_recorrido_label(act: Actuaciones) -> str:
     """
     if not act.comprobacion_id:
         return "—"
+    comp = getattr(act, "comprobacion", None)
+    if comp is None:
+        from app.models import Comprobacion
+
+        comp = Comprobacion.query.get(int(act.comprobacion_id))
     exp_env = expediente_envio_por_comprobacion(act.comprobacion_id)
     if not exp_env:
-        return "Esperando expediente"
+        if comp is not None and comp.sin_expediente_envio:
+            ofi_early = oficio_por_comprobacion(act.comprobacion_id)
+            if not ofi_early:
+                return "Sin expediente de envío — pendiente oficio"
+        else:
+            return "Esperando expediente"
     ofi = oficio_por_comprobacion(act.comprobacion_id)
     if not ofi:
         return "Esperando oficio"
 
+    if ofi.iniciador_materializacion_estado == "PENDIENTE_DOMICILIO":
+        return "Oficio cargado — pendiente domicilio operativo"
+
     ini = iniciador_trabajo_por_actuacion(act.id)
     if not ini:
+        if ofi.iniciador_materializacion_estado == "PENDIENTE_MATERIALIZACION":
+            return "Oficio cargado — pendiente materialización operativa"
         return "Oficio cargado — sin reinspección programada"
     if ini.estado_iniciador == "CUMPLIDO":
         item = (
@@ -177,6 +192,17 @@ def reinspeccion_oficio_bandeja_row(
             row["expediente_envio_anio"] = getattr(exp_env, "anio", None)
             fe = getattr(exp_env, "fecha_expediente", None)
             row["fecha_expediente_envio"] = fe.isoformat() if fe is not None else None
+        else:
+            comp = getattr(act, "comprobacion", None)
+            if comp is None:
+                from app.models import Comprobacion
+
+                comp = Comprobacion.query.get(int(cid))
+            if comp is not None and comp.sin_expediente_envio:
+                row["expediente_envio_numero"] = "—"
+                row["expediente_envio_anio"] = None
+                row["fecha_expediente_envio"] = None
+                row["expediente_envio_label"] = "Sin expediente de envío"
         ofi = oficio if oficio is not None else oficio_por_comprobacion(int(cid))
         ofi_ref = ofi
         if ofi:

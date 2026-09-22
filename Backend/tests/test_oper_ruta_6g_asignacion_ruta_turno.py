@@ -16,13 +16,6 @@ from app.models import Domicilio, IniciadorRuta, RutaItem, RutaTrabajo, User
 from tests.helpers.fixture_isolation import uniq_ruta_numero, unique_ot_numero
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     suf = unique_ot_numero()
     u = User(

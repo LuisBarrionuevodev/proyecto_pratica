@@ -6,13 +6,13 @@ from datetime import date, datetime
 import logging
 import os
 
-from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, OrdenTrabajo, RutaItem, User
+from app.domains.rutas_trabajo.services.auth_service import validate_actor_user_id
+from app.models import Actuaciones, Domicilio, IniciadorRuta, Notificacion, OrdenTrabajo, RutaItem
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_operativo_para_iniciador,
 )
@@ -123,35 +123,6 @@ def _agrupar_eligible_por_notificacion_id(
         nid: elegir_actuacion_base_inspeccion_para_notificacion(acts)
         for nid, acts in by_nid.items()
     }
-
-
-def _get_current_user_id() -> int:
-    """
-    Resuelve user_id autenticado para auditoría.
-
-    Compatibilidad:
-    - Si no hay contexto JWT (ruta legacy), usa un usuario activo como fallback.
-    """
-    try:
-        identity = get_jwt_identity()
-    except Exception:
-        identity = None
-
-    user_id = identity.get("user_id") if isinstance(identity, dict) else identity
-    if user_id is not None:
-        try:
-            parsed_id = int(user_id)
-        except (TypeError, ValueError):
-            parsed_id = None
-        if parsed_id is not None:
-            user = User.query.get(parsed_id)
-            if user and getattr(user, "is_active", True):
-                return parsed_id
-
-    fallback_user = User.query.filter(User.is_active.is_(True)).order_by(User.id.asc()).first()
-    if fallback_user:
-        return int(fallback_user.id)
-    raise ValueError("No hay usuario activo para registrar created_by_user_id")
 
 
 def _subq_reinsp_misma_notificacion():
@@ -401,7 +372,10 @@ def revoke_reinspeccion_notificacion_iniciadores_obsoletos(
     return _revoke_obsolete_reinspeccion_notificacion_iniciadores(today or date.today())
 
 
-def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacionOutcome:
+def sync_iniciadores_reinspeccion_notificacion(
+    *,
+    actor_user_id: int,
+) -> SyncReinspeccionNotificacionOutcome:
     """
     Materializa iniciadores derivados para notificaciones vencidas y reconcilia obsoletos.
 
@@ -423,9 +397,16 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
     **Caso mixto** (notificación + comprobación en la misma actuación): no se suprime la creación;
     convive con otros ``tipo_iniciador`` que usen otras claves (p. ej. comprobación/oficio).
 
+    Parámetros:
+        actor_user_id: usuario que audita la materialización (obligatorio; sin fallback).
+
     Returns:
         Métricas de la corrida (`SyncReinspeccionNotificacionOutcome`).
+
+    Errores:
+        ValueError: actor_user_id inválido o usuario inactivo/inexistente.
     """
+    user_id = validate_actor_user_id(actor_user_id)
     eligible = _eligible_inspecciones_vencidas()
     actuacion_por_noti = _agrupar_eligible_por_notificacion_id(eligible)
 
@@ -442,7 +423,6 @@ def sync_iniciadores_reinspeccion_notificacion() -> SyncReinspeccionNotificacion
     skipped_already_blocking = 0
     collisions_idempotent = 0
     processed_notificacion_ids: set[int] = set()
-    user_id = _get_current_user_id()
 
     for notificacion_id in sorted(actuacion_por_noti.keys()):
         act = actuacion_por_noti[notificacion_id]

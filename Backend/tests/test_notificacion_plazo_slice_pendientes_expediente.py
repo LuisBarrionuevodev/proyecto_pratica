@@ -33,16 +33,6 @@ def _unique_num() -> str:
     return unique_ot_numero()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _fecha_con_dias_habiles_restantes(n: int) -> date:
     """Primera fecha de vencimiento con ``contar_dias_habiles_inclusive(hoy, fecha) == n``."""
     hoy = date.today()

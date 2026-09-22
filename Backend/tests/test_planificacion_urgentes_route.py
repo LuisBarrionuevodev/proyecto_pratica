@@ -16,13 +16,6 @@ def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     u = User(
         username=f"uhf_{_unique_num()}",

@@ -58,16 +58,6 @@ def _ensure_active_user() -> User:
     return u
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_notificacion_vencida_con_actuacion(*, distrito_id: int | None = None) -> tuple[Actuaciones, Notificacion, Domicilio]:
     dom = Domicilio(calle=f"PR1Calle{_unique_num()}", numero="50", distrito_id=distrito_id)
     db.session.add(dom)
@@ -156,7 +146,7 @@ def test_notificacion_hereda_domicilio_id_de_actuacion_origen(app_ctx) -> None:
         act, noti, dom = _mk_notificacion_vencida_con_actuacion()
         dom_id = dom.id
 
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
 
         ini = (
             IniciadorRuta.query.filter_by(
@@ -181,7 +171,7 @@ def test_domicilio_origen_con_distrito_iniciador_queda_con_mismo_domicilio(app_c
             pytest.skip("No hay distritos en BD para validar herencia de distrito")
 
         act, noti, dom = _mk_notificacion_vencida_con_actuacion(distrito_id=dist.id)
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
 
         ini = IniciadorRuta.query.filter_by(notificacion_id=noti.id).first()
         assert ini is not None
@@ -271,6 +261,7 @@ def test_oficio_hereda_domicilio_id_de_actuacion_origen(app_ctx) -> None:
             actuacion=act,
             oficio=ofi,
             expediente_respuesta=ex_resp,
+            actor_user_id=1,
         )
         db.session.add(ini)
         db.session.flush()
@@ -296,6 +287,7 @@ def test_actuacion_sin_domicilio_oficio_no_crea_iniciador_con_domicilio_falso(ap
                 actuacion=act,
                 oficio=ofi,
                 expediente_respuesta=ex_resp,
+                actor_user_id=1,
             )
     finally:
         db.session.rollback()
@@ -307,7 +299,7 @@ def test_no_se_duplica_domicilio_al_crear_iniciador_derivado(app_ctx) -> None:
         act, noti, dom = _mk_notificacion_vencida_con_actuacion()
         dom_id = act.domicilio_id
 
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
 
         ini = IniciadorRuta.query.filter_by(notificacion_id=noti.id).first()
         assert ini is not None
@@ -379,6 +371,7 @@ def test_iniciador_pendiente_actualiza_domicilio_snapshot_viejo(app_ctx) -> None
             actuacion=act,
             oficio=ofi,
             expediente_respuesta=ex_resp,
+            actor_user_id=int(u.id),
         )
         assert recovered.id == ini.id
         assert recovered.domicilio_id == dom_origen.id
@@ -390,7 +383,7 @@ def test_denuncia_sigue_creando_iniciador_con_domicilio(app_ctx, monkeypatch) ->
     try:
         u = _ensure_active_user()
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
         dom = Domicilio(calle=f"DenPR1{_unique_num()}", numero="99")

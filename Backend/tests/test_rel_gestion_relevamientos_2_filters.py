@@ -21,13 +21,6 @@ from app.models import Domicilio, DomicilioGeocode, Distrito, Relevamiento
 from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_test_rubro, uniq
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _distritos_test(min_count: int = 1) -> list[Distrito]:
     rows = Distrito.query.order_by(Distrito.id.asc()).limit(min_count).all()
     if len(rows) < min_count:
@@ -79,7 +72,7 @@ def _mk_operativo(
     if distrito is not None:
         dom.distrito_id = distrito.id
     _set_geocode(dom.id, geo_status=geo_status, lat=lat, lng=lng)
-    ini = get_or_create_iniciador_from_relevamiento(rel)
+    ini = get_or_create_iniciador_from_relevamiento(rel, actor_user_id=1)
     ini.estado_iniciador = "PENDIENTE"
     db.session.add_all([rel, dom, ini])
     db.session.commit()

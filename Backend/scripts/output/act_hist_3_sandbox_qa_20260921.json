@@ -1,0 +1,169 @@
+{
+  "artifact": "ACT-HIST.3-SANDBOX-MIGRATION-QA",
+  "generated_at": "2026-09-21",
+  "status": "PASS",
+  "database": "digitaliza_sandbox",
+  "database_confirmed_by": "SELECT DATABASE()",
+  "not_test_db": true,
+  "not_production": true,
+  "alembic_before": "l7m8n9o0p1q2",
+  "alembic_after": "m8n9o0p1q2r3",
+  "migration_revision": "m8n9o0p1q2r3",
+  "migration_command": "flask db upgrade",
+  "migration_tool_note": "NO migrate_test_db.py — flujo normal sandbox vía SQLALCHEMY_DATABASE_URI en .env",
+  "migration_result": "OK — Running upgrade l7m8n9o0p1q2 -> m8n9o0p1q2r3",
+  "backup": {
+    "mechanism": "mysqldump --single-transaction (TESTING.md / procedimiento cleanup)",
+    "path": "backups/digitaliza_sandbox_pre_act_hist_3_20260921_103714.sql",
+    "bytes": 25444808,
+    "rollback": "mysql digitaliza_sandbox < backup.sql"
+  },
+  "counts_before": {
+    "actuaciones": 8080,
+    "orden_trabajo": 8816,
+    "comprobacion": 1530,
+    "inspeccion": 899,
+    "domicilio": 11721,
+    "contribuyente": 2374,
+    "iniciador_ruta": 8006,
+    "ruta_item": 3691
+  },
+  "counts_after_migration": {
+    "actuaciones": 8080,
+    "orden_trabajo": 8816,
+    "comprobacion": 1530,
+    "inspeccion": 899,
+    "domicilio": 11721,
+    "contribuyente": 2374,
+    "iniciador_ruta": 8006,
+    "ruta_item": 3691,
+    "drift": 0
+  },
+  "historical_existing_before": 0,
+  "historical_existing_after_migration": 0,
+  "schema_postcheck": {
+    "columns_added": [
+      "actuaciones.carga_solo_comprobacion NOT NULL DEFAULT FALSE",
+      "actuaciones.titular_nombre_historico VARCHAR(128) NULL",
+      "actuaciones.titular_apellido_historico VARCHAR(128) NULL",
+      "actuaciones.titular_razon_social_historica VARCHAR(255) NULL"
+    ],
+    "orden_trabajo_id_nullable": true,
+    "check_ck_act_hist_titular": true,
+    "check_ck_act_hist_ot_mode": false,
+    "check_ot_mode_note": "MySQL FK restriction — enforced in application layer"
+  },
+  "data_integrity": {
+    "all_existing_carga_solo_comprobacion_false": true,
+    "orden_trabajo_id_null_on_existing": 0,
+    "operational_drift_after_migration": 0
+  },
+  "backend_startup": {
+    "command": "python run.py",
+    "url": "http://127.0.0.1:5000",
+    "smoke_tests": {
+      "GET /actuaciones/pendientes-notificacion": "401 (auth required, no 500)",
+      "GET /actuaciones/comprobacion-actas": "401 (auth required, no 500)"
+    },
+    "note": "Sin endpoint /health; smoke vía rutas actuaciones sin 500"
+  },
+  "ui_toggle": {
+    "component": "Frontend/src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx",
+    "label": "Cargar solo acta de comprobación como actuación",
+    "default": false,
+    "code_verified": true,
+    "manual_visual_qa": "Pendiente confirmación operador en navegador (toggle OFF/ON, campos visibles)"
+  },
+  "stale_state": {
+    "on_clear_incompatible": "clearCamposIncompatiblesHistorica()",
+    "off_reset": "resetForm()",
+    "code_verified": true,
+    "manual_visual_qa": "Pendiente confirmación operador"
+  },
+  "qa_actuacion_id": 11460,
+  "qa_comprobacion_id": 2503,
+  "qa_acta_numero": "991234",
+  "qa_titular": "QA-ACT-HIST-3 / Sandbox",
+  "qa_method": "Service-layer create (crear_actuacion_desde_payload) — equivalente a payload modal histórico",
+  "db_assertions": {
+    "carga_solo_comprobacion": true,
+    "orden_trabajo_id": null,
+    "tipo": null,
+    "domicilio_id": null,
+    "titular_apellido_historico": "QA-ACT-HIST-3",
+    "titular_nombre_historico": "Sandbox",
+    "comprobacion_id": 2503,
+    "inspectores_count": 1,
+    "no_new_ot": true,
+    "no_new_contribuyente": true,
+    "no_new_domicilio": true,
+    "no_new_iniciador": true,
+    "no_new_ruta_item": true,
+    "no_inspeccion_row": true
+  },
+  "presenter_grid": {
+    "contrib_apellido": "QA-ACT-HIST-3",
+    "contrib_nombre": "Sandbox",
+    "doc_nro": null,
+    "orden_trabajo_numero": null,
+    "acta_comprobacion_num": "991234"
+  },
+  "comprobacion_gestion": {
+    "in_pendientes_expediente": true,
+    "ot_dni_required": false
+  },
+  "expediente_flow": {
+    "expediente_numero_qa": "991235",
+    "source_type": "COMPROBACION",
+    "ok": true,
+    "ot_dni_blocked": false
+  },
+  "dashboard_semantics": {
+    "comprobacion": 1,
+    "inspeccion": 0,
+    "note": "Sobre subquery de la actuación QA — comprobación +1, inspección +0"
+  },
+  "cleanup": {
+    "mechanism": "eliminar_actuacion (normal delete service)",
+    "deleted_actuacion_id": 11460,
+    "counts_match_pre_qa_operational": true,
+    "actuaciones_after": 8080,
+    "historicas_after": 0,
+    "no_ot_delete_attempt": true,
+    "qa_soft_deleted_comprobaciones": [
+      {"id": 2502, "numero_acta": "888777", "note": "intento previo, soft-deleted por garbage collector"},
+      {"id": 2503, "numero_acta": "991234", "note": "QA final, soft-deleted tras eliminar actuación"}
+    ],
+    "comprobacion_total_drift": "+2 filas soft-deleted (artefacto QA; activas sin cambio operativo relevante)"
+  },
+  "counts_after_cleanup": {
+    "actuaciones": 8080,
+    "orden_trabajo": 8816,
+    "comprobacion_total": 1532,
+    "comprobacion_active": 1518,
+    "inspeccion": 899,
+    "domicilio": 11721,
+    "contribuyente": 2374,
+    "iniciador_ruta": 8006,
+    "ruta_item": 3691
+  },
+  "regression_visual": {
+    "backend_running": true,
+    "code_unchanged": true,
+    "manual_check_recommended": [
+      "Cargar actuación modal OFF (formulario normal)",
+      "Gestión Comprobaciones lista sin 500",
+      "Actuaciones grid sin crash por NULL OT/DNI"
+    ]
+  },
+  "pytest_against_sandbox": false,
+  "sandbox_data_writes": {
+    "real_historical_load": false,
+    "qa_controlled_record": true,
+    "qa_cleaned_up": true
+  },
+  "tests": {
+    "pytest": "not executed (per ticket)",
+    "service_qa": "create → gestión → expediente → delete OK"
+  }
+}

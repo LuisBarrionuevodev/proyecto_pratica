@@ -30,16 +30,6 @@ from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 from tests.test_hotfix_reinspeccion_notificacion import _mk_reinspeccion_notificacion_item
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 

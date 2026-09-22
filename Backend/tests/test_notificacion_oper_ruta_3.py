@@ -30,13 +30,6 @@ def _unique() -> str:
     return uuid4().hex[:6].upper()
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     u = User(
         username=f"op_ruta3_{_unique()}",

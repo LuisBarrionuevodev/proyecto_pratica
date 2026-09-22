@@ -4,6 +4,7 @@ from flask import jsonify, request
 from pydantic import ValidationError
 
 from app.domains.relevamientos.schemas.list_filters import RelevamientosListFilters
+from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.relevamientos.services.list_service import listar_relevamientos_con_filtros
 from app.domains.relevamientos.presenters.relevamiento_presenter import relevamiento_to_row
 
@@ -28,7 +29,7 @@ def listar_relevamientos():
         items_dto = [relevamiento_to_row(rel) for rel in result["items"]]
         return jsonify({"items": items_dto, "meta": result["meta"]}), 200
     except ValidationError as e:
-        return jsonify({"detail": "Validation error", "errors": e.errors()}), 422
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
     except Exception as e:

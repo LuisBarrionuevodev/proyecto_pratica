@@ -42,16 +42,6 @@ from tests.test_gestion_fix_5 import _republicar_iniciador_generico
 from tests.test_hotfix_reinspeccion_notificacion import _mk_reinspeccion_notificacion_item
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _ensure_catalog_contraproducencia(nombre: str) -> None:
     if not CatalogContraproducencia.query.filter_by(nombre=nombre).first():
         db.session.add(CatalogContraproducencia(nombre=nombre))

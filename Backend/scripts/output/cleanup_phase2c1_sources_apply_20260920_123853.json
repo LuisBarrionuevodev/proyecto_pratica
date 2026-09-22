@@ -1,0 +1,201 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.3E.2",
+  "applied_at": "2026-09-20T12:38:53",
+  "database": "digitaliza_sandbox",
+  "alembic_revision": "l7m8n9o0p1q2",
+  "freeze_method": "backend_development_stopped_during_backup_preflight_transaction",
+  "execution_manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_execution_manifest_phase2c1_sources_20260920.json",
+  "execution_manifest_sha256": "1a0ed7f03bbc84a6920476e47fd5684d4f1b4f3ecdf4207a87569a1100887cda",
+  "source_diag_sha256": "096a26594c755cad08abc24f438c611d127b35394503976361827c116bcdc885",
+  "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_phase2c1_20260920_123853.sql",
+    "size": 12988637,
+    "sha256": "9a90899ad26d4b9e405ec4f0a509b290fcc924fed206017c3fc990f69920118b",
+    "exit_code": 0,
+    "restore_verified": true
+  },
+  "counts_before": {
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_trabajo": 2715,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3697,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8194,
+    "actuaciones": 8487,
+    "denuncia": 492,
+    "relevamiento": 4592,
+    "orden_trabajo": 9223,
+    "inspeccion": 1132,
+    "actuaciones_inspector": 4427,
+    "clausura": 73,
+    "decomiso": 29,
+    "acta_inspeccion_item": 52
+  },
+  "explicit_deleted": {
+    "actuaciones": 265,
+    "denuncia": 75,
+    "orden_trabajo": 265
+  },
+  "cascade_deleted": {
+    "inspeccion": 217,
+    "actuaciones_inspector": 238,
+    "clausura": 4,
+    "decomiso": 4
+  },
+  "cascade_expected_physical": {
+    "inspeccion": 217,
+    "actuaciones_inspector": 238,
+    "clausura": 4,
+    "decomiso": 4,
+    "acta_inspeccion_item": 0
+  },
+  "cascade_manifest_distinct_actuaciones_inspector": 119,
+  "cascade_note": "manifest counted 119 distinct actuaciones_id; physical CASCADE deleted 238 association rows",
+  "preserved_document_refs": {
+    "notificacion": {
+      "expected": 199,
+      "found": 199
+    },
+    "comprobacion": {
+      "expected": 20,
+      "found": 20
+    }
+  },
+  "excluded_preserved": {
+    "blocked_acts_148": {
+      "expected": 148,
+      "found": 148
+    },
+    "relevamientos_26": {
+      "expected": 26,
+      "found": 26
+    }
+  },
+  "counts_after": {
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_trabajo": 2715,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3697,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8194,
+    "actuaciones": 8222,
+    "denuncia": 417,
+    "relevamiento": 4592,
+    "orden_trabajo": 8958,
+    "inspeccion": 915,
+    "actuaciones_inspector": 4189,
+    "clausura": 69,
+    "decomiso": 25,
+    "acta_inspeccion_item": 52
+  },
+  "manifest_ids_remaining": {
+    "actuaciones": 0,
+    "denuncia": 0,
+    "orden_trabajo": 0
+  },
+  "protected_preserved": {
+    "actuaciones": {
+      "expected": 1189,
+      "found": 1189
+    },
+    "orden_trabajo": {
+      "expected": 1176,
+      "found": 1176
+    },
+    "inspeccion": {
+      "expected": 170,
+      "found": 170
+    },
+    "notificacion": {
+      "expected": 168,
+      "found": 168
+    },
+    "comprobacion": {
+      "expected": 56,
+      "found": 56
+    },
+    "oficio": {
+      "expected": 40,
+      "found": 40
+    },
+    "expediente": {
+      "expected": 40,
+      "found": 40
+    }
+  },
+  "orphan_checks": [],
+  "users_unlock": {
+    "users_test_fk_free_after_2c1": 802,
+    "users_test_still_blocked": 1987,
+    "unlocked_sample": [
+      864,
+      1162,
+      1177,
+      1178,
+      1179,
+      1199,
+      1200,
+      1201,
+      1221,
+      1243,
+      1276,
+      1292,
+      1299,
+      1323,
+      1348,
+      1372,
+      1417,
+      1584,
+      1644,
+      1687,
+      1697,
+      1707,
+      1717,
+      1729,
+      1732,
+      1736,
+      1758,
+      1760,
+      1769,
+      1772,
+      1781,
+      1784,
+      1794,
+      1797,
+      1801,
+      1823,
+      1832,
+      1835,
+      1844,
+      1847
+    ]
+  },
+  "domicilios_denuncias_preserved": {
+    "expected": 0,
+    "found": 0
+  },
+  "preflight_summary": {
+    "status": "PREFLIGHT_OK"
+  },
+  "transaction_status": "COMMITTED",
+  "committed": true,
+  "writes_executed": true,
+  "phase2c2_executed": false,
+  "qa_smoke": {
+    "profile_me": 200,
+    "actuaciones_search": 200,
+    "ordenes_search": 200,
+    "rutas_list": 200,
+    "denuncias": 200,
+    "catalogos_rubros": 200,
+    "relevamientos": {
+      "status": 500,
+      "flag": "RELEVAMIENTOS-500-PREDEPLOY"
+    }
+  }
+}

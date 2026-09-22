@@ -70,16 +70,6 @@ def _filters_comprobacion() -> ActuacionesPendientesFilters:
     )
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _motivo() -> Motivo:
     m = Motivo.query.first()
     if m is None:
@@ -149,7 +139,7 @@ def test_v1_verificar_si_notificacion_vencida_sync_crea_reinspeccion_notificacio
     eligible = _eligible_inspecciones_vencidas()
     assert any(a.id == act_db.id for a in eligible)
 
-    outcome = sync_iniciadores_reinspeccion_notificacion()
+    outcome = sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
     # Puede ser 0 si el post-commit del cierre ya materializó el iniciador.
     assert outcome.created >= 0
 
@@ -179,8 +169,8 @@ def test_v1b_sync_idempotente_un_solo_iniciador(app_ctx) -> None:
     db.session.add(noti)
     db.session.commit()
 
-    sync_iniciadores_reinspeccion_notificacion()
-    o2 = sync_iniciadores_reinspeccion_notificacion()
+    sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
+    o2 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
     assert o2.created == 0
     assert o2.skipped_already_blocking >= 1 or o2.collisions_idempotent >= 0
 
@@ -241,7 +231,7 @@ def test_v4_mixta_ambos_canales_y_sync_notificacion(app_ctx) -> None:
     db.session.add(noti)
     db.session.commit()
 
-    sync_iniciadores_reinspeccion_notificacion()
+    sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
     ini_notif = (
         IniciadorRuta.query.filter(
             IniciadorRuta.notificacion_id == noti.id,

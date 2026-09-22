@@ -46,16 +46,6 @@ def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _payload_relevamiento(*, calle: str, numero: str, rev: Relevador, rub: Rubro, fecha: str = "2026-06-10"):
     return {
         "fecha": fecha,

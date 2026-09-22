@@ -17,13 +17,6 @@ def _unique_calle() -> str:
     return f"TestCalle{random.randint(0, 999999)}"
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     n = random.randint(0, 999999)
     u = User(

@@ -33,16 +33,6 @@ from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
 from tests.test_ruta_publicar_orden_trabajo_pr11_1b import _mk_iniciador_relevamiento
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _cerrar_local_cerrado(item_id: int, user_id: int) -> None:
     with patch(
         "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
@@ -159,8 +149,9 @@ def test_pr11_1e_republicar_misma_ot_rechaza_caso_qa(app_ctx) -> None:
 
     from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     from tests.test_ruta_publicar_orden_trabajo_pr11_1 import _liberar_iniciador_tras_fallo_asignacion_ot
 
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
@@ -234,8 +225,9 @@ def test_pr11_1e_resolver_no_reutiliza_actuacion_historica_con_ot_distinta(app_c
 
     from app.domains.rutas_trabajo.utils.ruta_publicar_debug import RutaPublicarDebugError
 
+    ruta3, _item3 = _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
+        publicar_ruta_trabajo(ruta_id=ruta3.id)
     from tests.test_ruta_publicar_orden_trabajo_pr11_1 import _liberar_iniciador_tras_fallo_asignacion_ot
 
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)

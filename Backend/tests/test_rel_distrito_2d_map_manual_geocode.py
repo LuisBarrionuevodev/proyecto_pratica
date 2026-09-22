@@ -20,13 +20,6 @@ _LAT = -26.8166506
 _LNG = -65.233452
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _distrito_test() -> Distrito:
     dist = Distrito.query.order_by(Distrito.id.asc()).first()
     if dist is None:
@@ -79,7 +72,7 @@ def _mk_relevamiento_operativo(domicilio_id: int) -> Relevamiento:
     dom = db.session.get(Domicilio, domicilio_id)
     assert dom is not None
     dom.distrito_id = None
-    ini = get_or_create_iniciador_from_relevamiento(rel)
+    ini = get_or_create_iniciador_from_relevamiento(rel, actor_user_id=1)
     ini.estado_iniciador = "PENDIENTE"
     db.session.add_all([rel, dom, ini])
     db.session.commit()

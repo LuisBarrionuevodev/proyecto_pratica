@@ -11,6 +11,7 @@ from flask import jsonify
 from app.domains.actuaciones.pipelines.sync_notificaciones_vencidas import (
     run_sync_notificaciones_vencidas,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.security.rate_limiter import limit_sync_notificaciones_vencidas, limiter
 
 from . import actuacion
@@ -38,7 +39,8 @@ def post_pendientes_sync_notificaciones_vencidas():
         500 si falla la corrida (sin stacktrace al cliente).
     """
     try:
-        metrics = run_sync_notificaciones_vencidas()
+        actor_user_id = get_current_user_id()
+        metrics = run_sync_notificaciones_vencidas(actor_user_id=actor_user_id)
         return jsonify(metrics), 200
     except Exception:
         logger.exception("post_pendientes_sync_notificaciones_vencidas")

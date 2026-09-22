@@ -39,16 +39,6 @@ def _unique_name(prefix: str) -> str:
     return f"{prefix}_{_unique_ot_num()}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 _FECHA = date(2026, 3, 15)
 _PERIODO_DESDE = date(2026, 3, 1)
 _PERIODO_HASTA = date(2026, 3, 31)

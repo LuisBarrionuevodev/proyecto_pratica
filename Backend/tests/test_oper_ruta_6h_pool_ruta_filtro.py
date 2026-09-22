@@ -25,13 +25,6 @@ _MSG_OTRA_RUTA = (
 )
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     suf = unique_ot_numero()
     u = User(

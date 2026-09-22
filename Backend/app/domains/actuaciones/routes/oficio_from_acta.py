@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.oficio_in import OficioCreateIn
 from app.domains.actuaciones.services.oficio_completion_service import complete_oficio_from_actuacion
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.shared.errors import pydantic_errors_to_cell_map
 
 from . import actuacion
@@ -21,9 +22,11 @@ def crear_oficio_desde_acta(actuacion_id: int):
     data: Dict[str, Any] = request.get_json(silent=True) or {}
     try:
         payload = OficioCreateIn.model_validate(data)
+        actor_user_id = get_current_user_id()
         result = complete_oficio_from_actuacion(
             actuacion_id=actuacion_id,
             data=payload.model_dump(),
+            actor_user_id=actor_user_id,
         )
         exp_original = result["expediente_original"]
         exp_resp = result["expediente_respuesta_oficio"]
@@ -34,9 +37,13 @@ def crear_oficio_desde_acta(actuacion_id: int):
                 "meta": {
                     "actuacion_id": actuacion_id,
                     "oficio_id": result["oficio"].id,
-                    "expediente_original_id": exp_original.id,
+                    "expediente_original_id": exp_original.id if exp_original else None,
                     "expediente_respuesta_oficio_id": exp_resp.id,
                     "iniciador_ruta_id": iniciador.id if iniciador else None,
+                    "iniciador_materializacion_estado": result.get(
+                        "iniciador_materializacion_estado",
+                        result["oficio"].iniciador_materializacion_estado,
+                    ),
                 },
             }
         ), 201

@@ -39,16 +39,6 @@ from tests.test_rubro_operativo_actuaciones_hotfix import _setup_ruta_y_publicar
 
 
 @pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
-@pytest.fixture
 def mock_user_denuncia(monkeypatch):
     from app.models import User
 
@@ -56,7 +46,7 @@ def mock_user_denuncia(monkeypatch):
     if u is None:
         pytest.skip("Se requiere usuario activo")
     monkeypatch.setattr(
-        "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+        "app.domains.denuncias.services.denuncias_service.get_current_user_id",
         lambda: int(u.id),
     )
     return u

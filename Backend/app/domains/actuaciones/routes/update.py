@@ -17,6 +17,7 @@ from app.domains.actuaciones.utils.circuito_operativo import (
     build_actuacion_grid_validation_context,
 )
 from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
     CorregirCierreOperativoError,
 )
@@ -45,7 +46,10 @@ def actualizar_actuacion_route(actuacion_id: int):
         payload = map_actuacion_row(row)
         log_put_request(actuacion_id, data, payload)
 
-        act = actualizar_actuacion_service(actuacion_id, payload)
+        actor_user_id = get_current_user_id()
+        act = actualizar_actuacion_service(
+            actuacion_id, payload, actor_user_id=actor_user_id
+        )
         act_reload = reload_actuaciones_inspeccion_checklist_eager([act])[0]
         return jsonify(actuacion_to_grid_row(act_reload)), 200
 

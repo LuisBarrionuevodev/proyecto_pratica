@@ -1,0 +1,74 @@
+{
+  "artifact": "ACT-HIST.7-DOMICILIO-AUTH-FIX",
+  "generated_at": "2026-09-21T15:50:00+00:00",
+  "status": "PASS",
+  "schema_migration_required": false,
+  "schema_note": "domicilio.contribuyente_id y rubro_id ya nullable; Actuacion.domicilio_id existente",
+  "historical_contract": {
+    "required": [
+      "fecha_actuacion",
+      "inspectores (>=1)",
+      "titular (nombre+apellido OR razon_social)",
+      "calle",
+      "numero",
+      "acta_comprobacion_num",
+      "comprobacion_motivo"
+    ],
+    "forbidden": [
+      "orden_trabajo",
+      "doc_nro",
+      "rubro",
+      "contribuyente formal",
+      "otras actas",
+      "contraproducencia",
+      "datos operativos incompatibles"
+    ],
+    "titular_strategy": "OPTION_B snapshot (titular_*_historico)",
+    "contribuyente_created": false
+  },
+  "domicilio_strategy": "get_or_create_domicilio(allow_missing_catalogs=True) con contribuyente_id=NULL y rubro_id=NULL",
+  "domicilio_created": true,
+  "contribuyente_created": false,
+  "rubro_required": false,
+  "auth_root_cause": "POST /actuaciones/{id}/comprobacion/declarar-sin-expediente-envio no estaba en phase1_jwt_guard._PHASE1_METHOD_PATH; verify_jwt_in_request() no corría y get_current_user_id() fallaba con RuntimeError → 400 'Usuario no autorizado.'",
+  "auth_fix": "Agregada ruta al JWT guard phase1 (mismo patrón que POST .../expediente). Frontend apiClient ya enviaba Bearer token.",
+  "actor_audit": "declarado_by_user_id = usuario JWT autenticado (sin fallback user 1)",
+  "files_changed": {
+    "backend": [
+      "app/domains/actuaciones/schemas/grid/actuacion_row_in.py",
+      "app/domains/actuaciones/mappers/grid/actuacion_row_mapper.py",
+      "app/domains/actuaciones/services/historical_solo_comprobacion_service.py",
+      "app/security/phase1_jwt_guard.py"
+    ],
+    "frontend": [
+      "src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx"
+    ],
+    "tests": [
+      "tests/test_act_hist_1_carga_solo_comprobacion.py",
+      "tests/test_act_hist_5_legacy_doc.py",
+      "tests/test_act_hist_7_domicilio_auth_fix.py",
+      "tests/test_phase1_jwt_guard.py"
+    ]
+  },
+  "e2e": {
+    "historical_create": "PASS — domicilio_id NOT NULL, contribuyente/rubro NULL, OT NULL",
+    "declarar_sin_expediente": "PASS — actor auditado vía JWT HTTP",
+    "oficio": "PASS — histórica con domicilio crea oficio",
+    "iniciador": "PASS — MATERIALIZADO con iniciador REINSPECCION_OFICIO",
+    "pendiente_reinspeccion": "PASS — aparece en list_pendientes_reinspeccion_oficio_filas"
+  },
+  "legacy_regression": {
+    "pendiente_domicilio_sin_domicilio": "PASS — _historical_act_legacy_sin_domicilio() simula pre-ACT-HIST.7",
+    "act_hist_5_flows": "PASS — 17 tests legacy_doc intactos"
+  },
+  "tests": {
+    "command": "pytest tests/test_act_hist_1_carga_solo_comprobacion.py tests/test_act_hist_5_legacy_doc.py tests/test_act_hist_7_domicilio_auth_fix.py tests/test_phase1_jwt_guard.py -q",
+    "total": 69,
+    "passed": 69,
+    "failed": 0
+  },
+  "sandbox_qa": {
+    "status": "not_run",
+    "note": "QA manual browser pendiente: toggle ON con calle/número, declarar sin expediente autenticado, crear oficio MATERIALIZADO"
+  }
+}

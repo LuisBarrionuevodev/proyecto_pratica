@@ -30,13 +30,6 @@ def _fecha_aislada() -> date:
     return date(2099, 1, 1) + timedelta(days=random.randint(0, 300))
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     u = User(
         username=f"pool_{_unique()}",

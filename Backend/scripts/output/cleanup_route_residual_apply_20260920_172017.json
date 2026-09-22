@@ -1,0 +1,324 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.3J.2",
+  "applied_at": "2026-09-20T17:20:32.315167",
+  "database": "digitaliza_sandbox",
+  "alembic_revision": "l7m8n9o0p1q2",
+  "freeze_method": "backend_development_stopped_during_backup_preflight_transaction_postconditions",
+  "manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_execution_manifest_route_residual_20260920.json",
+  "manifest_sha256": "078b6806096dae16837cf5ff6616aff42a8f9d0723fe61133f13273658dd484b",
+  "source_diag_sha256": "b811a6bb7536c65935cf6a0b3ba9af8e4482bd6f34f508fa8643bcfb3f4c33e8",
+  "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_route_residual_20260920_172017.sql",
+    "size": 12804775,
+    "sha256": "0148887fbf7574b6ef2d280886c39246566892a3492fb4fd46169f96188e5b5f",
+    "exit_code": 0,
+    "timestamp": "2026-09-20T17:20:18.036729"
+  },
+  "restore_verify": {
+    "verified": true,
+    "verify_db": "digitaliza_sandbox_backup_verify_route_residual"
+  },
+  "counts_before": {
+    "ruta_trabajo": 2715,
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "actuaciones": 8074,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "orden_trabajo": 8810,
+    "notificacion": 2478,
+    "comprobacion": 1530,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525
+  },
+  "explicit_deleted": {
+    "ruta_trabajo": 12
+  },
+  "cascade_deleted": {
+    "ruta_grupo": 0,
+    "ruta_grupo_inspector": 0,
+    "ruta_item": 0,
+    "total": 0
+  },
+  "set_null_affected": {
+    "ruta_pool_dia": 0,
+    "total": 0
+  },
+  "counts_after": {
+    "ruta_trabajo": 2703,
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "actuaciones": 8074,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "orden_trabajo": 8810,
+    "notificacion": 2478,
+    "comprobacion": 1530,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525
+  },
+  "manifest_ids_remaining": {
+    "ruta_trabajo": 0
+  },
+  "admin_graph_preserved": {
+    "policy": "ADMIN_GRAPH_NOT_IN_SCOPE",
+    "blocked_notificaciones_25_present": 25,
+    "comprobacion_2289_present": true,
+    "future_expedientes_27_present": 27,
+    "oficio_1662_present": true,
+    "touched_by_this_diag": false
+  },
+  "known_test_guards": {
+    "known_test_act_ids_union_count": 816,
+    "known_test_ot_ids_union_count": 832,
+    "known_test_act_ids_remaining": [],
+    "known_test_act_ids_remaining_count": 0,
+    "known_test_ot_ids_remaining": [],
+    "known_test_ot_ids_remaining_count": 0,
+    "guard_ok": true
+  },
+  "protected_preserved": {
+    "actuaciones": {
+      "expected": 1189,
+      "found": 1189
+    },
+    "orden_trabajo": {
+      "expected": 1176,
+      "found": 1176
+    },
+    "inspeccion": {
+      "expected": 170,
+      "found": 170
+    },
+    "notificacion": {
+      "expected": 168,
+      "found": 168
+    },
+    "comprobacion": {
+      "expected": 56,
+      "found": 56
+    },
+    "oficio": {
+      "expected": 40,
+      "found": 40
+    },
+    "expediente": {
+      "expected": 40,
+      "found": 40
+    }
+  },
+  "orphan_checks": [],
+  "users_unlock": {
+    "users_test_fk_free_baseline_post_3i": 833,
+    "users_test_fk_free_after_route_cleanup": 833,
+    "users_additionally_unlocked": 0,
+    "users_test_still_blocked": 1956
+  },
+  "provenance_frozen": [
+    {
+      "ruta_trabajo_id": 4938,
+      "deleted_ruta_item_id": 5376,
+      "deleted_actuacion_id": 6999
+    },
+    {
+      "ruta_trabajo_id": 4944,
+      "deleted_ruta_item_id": 5382,
+      "deleted_actuacion_id": 7025
+    },
+    {
+      "ruta_trabajo_id": 5195,
+      "deleted_ruta_item_id": 5637,
+      "deleted_actuacion_id": 7458
+    },
+    {
+      "ruta_trabajo_id": 5199,
+      "deleted_ruta_item_id": 5641,
+      "deleted_actuacion_id": 7493
+    },
+    {
+      "ruta_trabajo_id": 5204,
+      "deleted_ruta_item_id": 5646,
+      "deleted_actuacion_id": 7507
+    },
+    {
+      "ruta_trabajo_id": 5245,
+      "deleted_ruta_item_id": 5686,
+      "deleted_actuacion_id": 7577
+    },
+    {
+      "ruta_trabajo_id": 5261,
+      "deleted_ruta_item_id": 5701,
+      "deleted_actuacion_id": 7619
+    },
+    {
+      "ruta_trabajo_id": 5550,
+      "deleted_ruta_item_id": 5970,
+      "deleted_actuacion_id": 7932
+    },
+    {
+      "ruta_trabajo_id": 5560,
+      "deleted_ruta_item_id": 5980,
+      "deleted_actuacion_id": 7964
+    },
+    {
+      "ruta_trabajo_id": 5574,
+      "deleted_ruta_item_id": 6003,
+      "deleted_actuacion_id": 8015
+    },
+    {
+      "ruta_trabajo_id": 6372,
+      "deleted_ruta_item_id": 6889,
+      "deleted_actuacion_id": 9612
+    },
+    {
+      "ruta_trabajo_id": 6461,
+      "deleted_ruta_item_id": 6972,
+      "deleted_actuacion_id": 9942
+    }
+  ],
+  "preflight": {
+    "status": "PREFLIGHT_OK",
+    "baseline": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 2803,
+        "establecimiento_operativo": 1657,
+        "ruta_trabajo": 2715,
+        "ruta_grupo": 2884,
+        "ruta_grupo_inspector": 5931,
+        "ruta_item": 3685,
+        "ruta_pool_dia": 361,
+        "iniciador_ruta": 8001,
+        "actuaciones": 8074,
+        "denuncia": 417,
+        "relevamiento": 4566,
+        "orden_trabajo": 8810,
+        "notificacion": 2478,
+        "comprobacion": 1530,
+        "inspeccion": 898,
+        "actuaciones_inspector": 4180,
+        "acta_inspeccion_item": 52,
+        "clausura": 69,
+        "decomiso": 25,
+        "relevamiento_relevador": 525
+      },
+      "baseline_ok": true,
+      "drift": []
+    },
+    "protected_closure": {
+      "by_entity": {
+        "actuaciones": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1189,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "orden_trabajo": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1176,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "inspeccion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 170,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "notificacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 168,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "comprobacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 56,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "oficio": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "expediente": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        }
+      },
+      "conflicts": [],
+      "valid": true
+    },
+    "known_test_guards": {
+      "known_test_act_ids_union_count": 816,
+      "known_test_ot_ids_union_count": 832,
+      "known_test_act_ids_remaining": [],
+      "known_test_act_ids_remaining_count": 0,
+      "known_test_ot_ids_remaining": [],
+      "known_test_ot_ids_remaining_count": 0,
+      "guard_ok": true
+    },
+    "admin_graph_guard": {
+      "policy": "ADMIN_GRAPH_NOT_IN_SCOPE",
+      "blocked_notificaciones_25_present": 25,
+      "comprobacion_2289_present": true,
+      "future_expedientes_27_present": 27,
+      "oficio_1662_present": true,
+      "touched_by_this_diag": false
+    }
+  },
+  "transaction_status": "COMMITTED",
+  "committed": true,
+  "writes_executed": true,
+  "admin_graph_cleanup_executed": false,
+  "phase2d_executed": false,
+  "phase2e_executed": false,
+  "preflight_summary": {
+    "status": "PREFLIGHT_OK"
+  }
+}

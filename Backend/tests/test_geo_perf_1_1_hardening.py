@@ -30,16 +30,13 @@ from tests.relevamiento_test_helpers import get_or_create_test_relevador, get_te
 
 
 @pytest.fixture
-def app_ctx(app, monkeypatch):
+def app_ctx(app, actor_user_id, monkeypatch):
+    from tests.helpers.service_actor import geocode_job_app_ctx
+
     monkeypatch.setenv("GEO_POST_COMMIT_ASYNC", "false")
     monkeypatch.setenv("GEO_POST_COMMIT_PROCESSING_LEASE_SEC", "1")
-    with app.app_context():
-        if not inspect(db.engine).has_table("geocode_post_commit_job"):
-            GeocodePostCommitJob.__table__.create(bind=db.engine, checkfirst=True)
-        GeocodePostCommitJob.query.delete()
-        db.session.commit()
-        yield app
-        db.session.rollback()
+    with geocode_job_app_ctx(app, actor_user_id) as ctx_app:
+        yield ctx_app
 
 
 def _mk_payload(calle: str | None = None, numero: str = "1500") -> dict:

@@ -16,9 +16,9 @@ from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
 )
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
+from tests.helpers.ruta_ot_test import asignar_ot_legacy_en_item
+
+# set_orden_trabajo_on_item deprecado (OT-AUTO); legacy vía asignar_ot_legacy_en_item
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_ot_conflicto_service import (
     buscar_conflicto_orden_trabajo_al_publicar,
@@ -45,16 +45,6 @@ def _unique_num() -> str:
 def _fecha_ruta_aislada_mismo_anio(anio: int = 2026) -> date:
     """Día único dentro del año de la OT (mantiene resolución anio) evitando uq fecha+turno+numero."""
     return date(anio, 1, 1) + timedelta(days=random.randint(0, 364))
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _mk_user() -> User:
@@ -128,11 +118,12 @@ def _mk_iniciador_reinspeccion_notificacion() -> tuple[IniciadorRuta, Actuacione
 def _setup_borrador_con_iniciador(
     ini: IniciadorRuta,
     *,
+    actor_user_id: int | None = None,
     numero_ot: str | None = None,
     fecha_ruta: date | None = None,
 ) -> tuple[RutaTrabajo, RutaItem]:
-    u = User.query.filter(User.is_active.is_(True)).first()
-    assert u is not None
+    uid = int(actor_user_id or ini.created_by_user_id or 0)
+    assert uid > 0, "actor_user_id requerido (explícito o ini.created_by_user_id)"
     ins1, ins2 = _dos_inspectores()
     f = fecha_ruta or _fecha_ruta_aislada_mismo_anio(2026)
     ruta = RutaTrabajo(
@@ -140,28 +131,33 @@ def _setup_borrador_con_iniciador(
         turno="MANIANA",
         estado_ruta="BORRADOR",
         numero=random.randint(2, 32000),
-        created_by_user_id=u.id,
+        created_by_user_id=uid,
     )
     db.session.add(ruta)
     db.session.flush()
-    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="Grupo PR11.1", estado="ACTIVO")
+    grupo = create_ruta_grupo(
+        ruta_id=ruta.id, nombre="Grupo PR11.1", estado="ACTIVO", actor_user_id=uid
+    )
     replace_grupo_inspectores(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         inspector_ids=[ins1.id, ins2.id],
+        actor_user_id=uid,
     )
     items = assign_iniciadores_to_grupo(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
+        actor_user_id=uid,
     )
-    ot_num = numero_ot or _unique_num()
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=ot_num,
-        )
+    if numero_ot:
+        ot_num = numero_ot
+        for item in items:
+            asignar_ot_legacy_en_item(
+                ruta_id=ruta.id,
+                item_id=item.id,
+                numero_orden_trabajo=ot_num,
+            )
     item = (
         RutaItem.query.filter(
             RutaItem.ruta_trabajo_id == ruta.id,
@@ -241,7 +237,8 @@ def test_pr11_1_reinspeccion_notificacion_publica_con_ot_nueva(app_ctx) -> None:
     assert act.notificacion_id == ini.notificacion_id
 
 
-def test_pr11_1_reencolado_no_realizado_rechaza_misma_ot(app_ctx) -> None:
+def test_pr11_1_reencolado_no_realizado_ot_auto_nueva_al_publicar(app_ctx) -> None:
+    """OT-AUTO: reintento sin OT manual recibe secuencia nueva al publicar (no reutiliza histórica)."""
     ini, _act_base, _noti, u = _mk_iniciador_reinspeccion_notificacion()
     fecha = _fecha_ruta_aislada_mismo_anio(2026)
     ot_num = _unique_num()
@@ -250,15 +247,18 @@ def test_pr11_1_reencolado_no_realizado_rechaza_misma_ot(app_ctx) -> None:
     hist_contra = act_prev.contraproducencia
     hist_ot_id = act_prev.orden_trabajo_id
 
-    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
-    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
+    ruta2, item2 = _setup_borrador_con_iniciador(ini, fecha_ruta=fecha)
+    publicar_ruta_trabajo(ruta_id=ruta2.id)
 
     db.session.expire_all()
     act_prev_db = Actuaciones.query.get(act_prev.id)
-    assert act_prev_db is not None
+    item2_db = RutaItem.query.get(item2.id)
+    act2_db = Actuaciones.query.get(item2_db.actuacion_id) if item2_db else None
+    assert act_prev_db is not None and item2_db is not None and act2_db is not None
     assert act_prev_db.contraproducencia == hist_contra
     assert act_prev_db.orden_trabajo_id == hist_ot_id
+    assert act2_db.orden_trabajo_id != hist_ot_id
+    assert act2_db.id != act_prev_db.id
 
 
 def test_pr11_1_reencolado_no_realizado_publica_con_ot_distinta(app_ctx) -> None:
@@ -338,10 +338,6 @@ def test_pr11_1_reintento_ot_consumida_luego_ot_libre(app_ctx) -> None:
     act1 = _publicar_y_cerrar_no_realizado(ruta1, item1, u.id)
     hist_contra = act1.contraproducencia
 
-    with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot1, fecha_ruta=fecha)
-    _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
-
     db.session.expire_all()
     act1_db = Actuaciones.query.get(act1.id)
     assert act1_db is not None
@@ -364,33 +360,38 @@ def test_pr11_1_actuacion_base_inspeccion_bloquea_misma_ot(app_ctx) -> None:
     ot_num = act_base.orden_trabajo.numero_acta
     assert ot_num is not None
 
-    u = User.query.filter(User.is_active.is_(True)).first()
-    assert u is not None
+    uid = int(ini.created_by_user_id or 0)
+    assert uid > 0
     ins1, ins2 = _dos_inspectores()
     ruta = RutaTrabajo(
         fecha=_fecha_ruta_aislada_mismo_anio(2026),
         turno="MANIANA",
         estado_ruta="BORRADOR",
         numero=random.randint(2, 32000),
-        created_by_user_id=u.id,
+        created_by_user_id=uid,
     )
     db.session.add(ruta)
     db.session.flush()
-    grupo = create_ruta_grupo(ruta_id=ruta.id, nombre="Grupo PR11.1", estado="ACTIVO")
+    grupo = create_ruta_grupo(
+        ruta_id=ruta.id, nombre="Grupo PR11.1", estado="ACTIVO", actor_user_id=uid
+    )
     replace_grupo_inspectores(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         inspector_ids=[ins1.id, ins2.id],
+        actor_user_id=uid,
     )
     items = assign_iniciadores_to_grupo(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
+        actor_user_id=uid,
     )
     item = items[0]
-    with pytest.raises(RutaPublicarDebugError, match="actuación"):
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=ot_num,
-        )
+    asignar_ot_legacy_en_item(
+        ruta_id=ruta.id,
+        item_id=item.id,
+        numero_orden_trabajo=ot_num,
+    )
+    with pytest.raises(RuntimeError, match="actuación"):
+        publicar_ruta_trabajo(ruta_id=ruta.id)

@@ -422,3 +422,46 @@ export const publicarRutaTrabajo = async (rutaId: number): Promise<IPublicarRuta
   );
   return data;
 };
+
+export interface IOrdenTrabajoSecuenciaPreview {
+  next_value: number;
+  next_display: string;
+  count: number;
+  first_display: string | null;
+  last_display: string | null;
+  skipped_count: number;
+  estimated_displays: string[];
+}
+
+export const getOrdenTrabajoSecuenciaPreview = async (
+  count: number = 1
+): Promise<IOrdenTrabajoSecuenciaPreview> => {
+  const { data } = await apiClient.get<IOrdenTrabajoSecuenciaPreview>(
+    `/rutas-trabajo/secuencia-ot`,
+    { params: { count } }
+  );
+  return data;
+};
+
+export interface IPatchOrdenTrabajoSecuenciaRequest {
+  new_value: number;
+  reason: string;
+}
+
+export interface IPatchOrdenTrabajoSecuenciaResponse {
+  old_value: number;
+  requested_new_value: number;
+  effective_new_value: number;
+  effective_display: string;
+  no_op: boolean;
+}
+
+export const patchOrdenTrabajoSecuencia = async (
+  payload: IPatchOrdenTrabajoSecuenciaRequest
+): Promise<IPatchOrdenTrabajoSecuenciaResponse> => {
+  const { data } = await apiClient.patch<IPatchOrdenTrabajoSecuenciaResponse>(
+    `/rutas-trabajo/secuencia-ot`,
+    payload
+  );
+  return data;
+};

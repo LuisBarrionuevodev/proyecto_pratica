@@ -106,13 +106,6 @@ def _circuito_con_envio(numero_acta: str) -> tuple:
     return act, jz
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_expediente_sin_filtro_ids_estables(app_ctx) -> None:
     a1 = _mk_comp_sin_expediente(fecha=date(2026, 9, 2))
     a2 = _mk_comp_sin_expediente(fecha=date(2026, 9, 3))

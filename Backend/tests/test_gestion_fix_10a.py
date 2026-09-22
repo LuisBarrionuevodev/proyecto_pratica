@@ -31,16 +31,6 @@ from app.models import (
 from app.models.actuaciones_inspector import actuaciones_inspector
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _ot_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 

@@ -22,13 +22,6 @@ _LAT_OUTSIDE = 10.0
 _LNG_OUTSIDE = 10.0
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user() -> User:
     u = User(
         username=f"outd_{unique_ot_numero()}",

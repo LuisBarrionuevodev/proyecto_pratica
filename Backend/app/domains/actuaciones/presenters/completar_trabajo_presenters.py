@@ -12,6 +12,9 @@ from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     tipo_actuacion_esperado_para_iniciador,
 )
+from app.domains.actuaciones.utils.identity_operativa_mode import (
+    prefill_identidad_verificar_informar,
+)
 
 # Campos de `actuacion_to_grid_row` necesarios para edición inline de cierre (sin previas en UI).
 _COMPLETAR_GRID_EXTRA_KEYS: tuple[str, ...] = (
@@ -107,6 +110,42 @@ def _enrich_contrib_prefill_oficio(row: Dict[str, Any], item: RutaItem) -> Dict[
             merged.update({k: v for k, v in snap.items() if v is not None})
             return merged
     return row
+
+
+def _enrich_identity_verificar_informar(row: Dict[str, Any], item: RutaItem) -> Dict[str, Any]:
+    """
+    Prefill de identidad para Verificar e informar (modo histórico o existente).
+
+    Usa ``ini.actuacion_id`` como autoridad de origen; no depende de ``carga_solo_comprobacion``
+    de la actuación publicada en ruta.
+    """
+    ini = item.iniciador_ruta
+    act = item.actuacion
+    if ini is None or act is None:
+        return row
+    tipo = (ini.tipo_iniciador or "").strip()
+    if tipo not in (
+        "REINSPECCION_OFICIO",
+        "VERIFICAR_INFORMAR_OFICIO",
+        "RATIFICACION_CLAUSURA_OFICIO",
+        "RATIFICACION_DECOMISO_OFICIO",
+    ):
+        return row
+    if not ini.actuacion_id:
+        return row
+    try:
+        prefill = prefill_identidad_verificar_informar(ini, act)
+    except ValueError:
+        return row
+    merged = dict(row)
+    for key, val in prefill.items():
+        if key == "identity_mode":
+            merged[key] = val
+        elif val is not None:
+            merged[key] = val
+        elif key in ("doc_nro", "rubro_nombre") and prefill.get("identity_mode") == "COMPLETE_HISTORICAL":
+            merged[key] = None
+    return merged
 
 
 def _enrich_notificacion_origen_reinspeccion(row: Dict[str, Any], item: RutaItem) -> Dict[str, Any]:
@@ -252,7 +291,8 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     for k in _COMPLETAR_GRID_EXTRA_KEYS:
         out[k] = base.get(k)
     out = _enrich_notificacion_origen_reinspeccion(out, item)
-    return _enrich_contrib_prefill_oficio(out, item)
+    out = _enrich_contrib_prefill_oficio(out, item)
+    return _enrich_identity_verificar_informar(out, item)
 
 
 def ruta_item_completar_trabajo_detalle(

@@ -37,16 +37,6 @@ def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_dom(*, calle_status: str, geo_status: str | None = None) -> Domicilio:
     dom = Domicilio(
         calle=f"PerfBench{_unique_num()}",

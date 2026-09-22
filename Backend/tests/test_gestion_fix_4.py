@@ -26,16 +26,6 @@ from tests.test_gestion_fix_3 import _ensure_catalog_contraproducencia
 from tests.test_hotfix_reencolado_planificacion import _mk_relevamiento_en_ruta_publicada
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_relevamiento_no_permite_inspeccion_presenter_muestra_contrib(app_ctx) -> None:
     """NO PERMITE INSPECCIÓN + contrib informado → presenter devuelve titular."""
     _ensure_catalog_contraproducencia("NO PERMITE INSPECCION")

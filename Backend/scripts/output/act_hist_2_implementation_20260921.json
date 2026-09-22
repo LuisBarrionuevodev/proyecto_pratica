@@ -1,0 +1,129 @@
+{
+  "artifact": "ACT-HIST.2-IMPLEMENTATION",
+  "generated_at": "2026-09-21",
+  "status": "PASS",
+  "recommended_option": "OPTION_B",
+  "migration": {
+    "revision": "m8n9o0p1q2r3",
+    "file": "Backend/migrations/versions/m8n9o0p1q2r3_act_hist_1_carga_solo_comprobacion.py",
+    "down_revision": "l7m8n9o0p1q2",
+    "applied_test_db": true,
+    "applied_sandbox": false,
+    "notes": [
+      "MySQL: no se recrea índice UNIQUE de orden_trabajo_id (FK lo usa); nullable permite múltiples NULL.",
+      "CHECK ck_act_hist_ot_mode omitido: MySQL no permite CHECK en columna FK referencial.",
+      "Regla OT normal/histórica enforced en Pydantic + create/update services.",
+      "CHECK ck_act_hist_titular aplicado para snapshot histórico."
+    ]
+  },
+  "schema_changes": {
+    "actuaciones": {
+      "added": [
+        "carga_solo_comprobacion BOOLEAN NOT NULL DEFAULT FALSE",
+        "titular_nombre_historico VARCHAR(128) NULL",
+        "titular_apellido_historico VARCHAR(128) NULL",
+        "titular_razon_social_historica VARCHAR(255) NULL"
+      ],
+      "modified": ["orden_trabajo_id → NULLABLE"],
+      "indexes": ["ix_actuaciones_carga_solo_comprobacion"],
+      "checks": ["ck_act_hist_titular"]
+    },
+    "contribuyente": "sin cambios (documento NOT NULL)"
+  },
+  "files_changed": {
+    "migration": [
+      "Backend/migrations/versions/m8n9o0p1q2r3_act_hist_1_carga_solo_comprobacion.py"
+    ],
+    "backend": [
+      "Backend/app/models/actuaciones.py",
+      "Backend/app/domains/actuaciones/schemas/grid/actuacion_row_in.py",
+      "Backend/app/domains/actuaciones/mappers/grid/actuacion_row_mapper.py",
+      "Backend/app/domains/grid/services/column_map_actuaciones.py",
+      "Backend/app/domains/grid/services/dup_key.py",
+      "Backend/app/domains/actuaciones/services/create_service.py",
+      "Backend/app/domains/actuaciones/services/update_service.py",
+      "Backend/app/domains/actuaciones/services/historical_solo_comprobacion_service.py",
+      "Backend/app/domains/actuaciones/utils/titular_actuacion_resolver.py",
+      "Backend/app/domains/actuaciones/utils/circuito_operativo.py",
+      "Backend/app/domains/actuaciones/presenters/actuacion_presenters.py",
+      "Backend/app/domains/actuaciones/services/search_service.py"
+    ],
+    "frontend": [
+      "Frontend/src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx",
+      "Frontend/src/Containers/CargarActuaciones/utils/cargarActuacionNuevaSubmit.ts",
+      "Frontend/src/api/gridApi.ts"
+    ],
+    "tests": [
+      "Backend/tests/test_act_hist_1_carga_solo_comprobacion.py"
+    ]
+  },
+  "backend_branch": {
+    "if_payload_carga_solo_comprobacion": "crear_actuacion_historica_solo_comprobacion()",
+    "else": "flujo normal crear_actuacion_desde_payload sin cambios",
+    "tipo": "NULL en histórica (_resolve_tipo_actuacion guard)",
+    "post_commit": "skip sync reinspeccion en rama histórica",
+    "update": "aplicar_payload_historica_solo_comprobacion + early return sin EO/geocode/sync"
+  },
+  "frontend_toggle": {
+    "label": "Cargar solo acta de comprobación como actuación",
+    "default": false,
+    "on_fields": ["fecha", "inspectores", "titular", "acta comprobación", "motivo"],
+    "stale_clear": true,
+    "payload_key": "Cargar solo comprobación → carga_solo_comprobacion"
+  },
+  "validation_matrix": {
+    "historical_requires": ["fecha", "inspectores>=1", "titular", "acta_comprobacion_num", "comprobacion_motivo"],
+    "historical_forbids": ["OT", "DNI", "domicilio", "rubro", "otras actas", "contraproducencia"],
+    "normal_requires_ot": true
+  },
+  "titular_resolver": {
+    "file": "Backend/app/domains/actuaciones/utils/titular_actuacion_resolver.py",
+    "priority": ["domicilio.contribuyente", "snapshot histórico", "vacío"]
+  },
+  "comprobacion_gestion": {
+    "bandeja": "OK sin OT/DNI",
+    "expediente": "complete_expediente_from_actuacion OK",
+    "presenter": "titular desde resolver"
+  },
+  "notificacion_gestion": {
+    "auto_create": false,
+    "nullable_safe": true,
+    "display": "OT/DNI → —"
+  },
+  "expediente_oficio": {
+    "lifecycle": "comprobación → pendiente expediente → expediente → oficio",
+    "ot_dni_required": false
+  },
+  "dashboard_semantics": {
+    "actuacion": "+1",
+    "comprobacion": "+1",
+    "inspeccion": "+0",
+    "ot": "+0"
+  },
+  "exports": {
+    "actuaciones": "OT/DNI/domicilio/rubro → null/—; titular snapshot presente",
+    "comprobaciones": "nullable OT/DNI compatible"
+  },
+  "tests": {
+    "backend": {
+      "file": "Backend/tests/test_act_hist_1_carga_solo_comprobacion.py",
+      "count": 24,
+      "result": "24 passed"
+    },
+    "regression": {
+      "files": [
+        "tests/test_grid_validate_row.py",
+        "tests/test_pendientes_expediente_bandeja_notificacion.py",
+        "tests/test_routes_actuacion_create.py"
+      ],
+      "result": "17 passed"
+    },
+    "frontend": "not added (manual QA del toggle)",
+    "migration": "upgrade head OK on digitaliza_test"
+  },
+  "sandbox_migration": {
+    "applied": false,
+    "reason": "Per ticket: aplicar a sandbox solo tras validación; no cargar histórica real en sandbox"
+  },
+  "sandbox_data_writes": false
+}

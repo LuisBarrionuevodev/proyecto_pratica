@@ -51,16 +51,6 @@ def _uniq_ruta_numero() -> int:
     return int(uuid4().hex[:4], 16) % 31_999 + 2
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_user(suf: str) -> User:
     u = User(
         username=f"u_reenc_{suf}",

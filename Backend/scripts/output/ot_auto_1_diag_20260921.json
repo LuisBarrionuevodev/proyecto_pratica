@@ -1,0 +1,421 @@
+{
+  "ticket": "OT-AUTO.1-DIAG",
+  "date": "2026-09-21",
+  "status": "DESIGN_ONLY",
+  "writes_executed": false,
+  "schema_migration_required": true,
+  "product_contract": {
+    "new_flow": "PLANIFICACIÓN → ASIGNACIÓN → MAPA FINAL → PUBLICAR → asignación automática OT → ruta PUBLICADA",
+    "assignment_no_longer": [
+      "escribir OT",
+      "guardar OT",
+      "modificar OT",
+      "exigir OT para continuar"
+    ],
+    "publish_authority": "backend asigna OT bajo lock transaccional; frontend no envía números"
+  },
+  "current_ot_schema": {
+    "table": "orden_trabajo",
+    "model": "Backend/app/models/orden_de_trabajo.py",
+    "fields": {
+      "id": "INTEGER PK",
+      "numero_acta": "VARCHAR(6) NOT NULL — normalizado con acta_6() (zero-padding presentación)",
+      "anio": "INTEGER NOT NULL — scope actual de unicidad",
+      "mes": "INTEGER NOT NULL — derivado de fecha al crear",
+      "created_at": "DATETIME",
+      "updated_at": "DATETIME",
+      "deleted_at": "DATETIME nullable — soft-delete"
+    },
+    "display_width": 6,
+    "normalization": "Backend/app/utils/actas.py::acta_6 — zfill(6) si numérico",
+    "related_fks": {
+      "ruta_item.orden_trabajo_id": "nullable; reserva pre-publicación hoy",
+      "actuaciones.orden_trabajo_id": "nullable (ACT-HIST.1); UNIQUE ix_actuaciones_orden_trabajo_id → 1 actuación por OT"
+    }
+  },
+  "current_constraints": {
+    "orden_trabajo": [
+      "PRIMARY KEY (id)",
+      "UNIQUE uq_ot_numero_anio (numero_acta, anio)",
+      "INDEX ix_orden_trabajo_numero_acta",
+      "INDEX ix_orden_trabajo_anio",
+      "INDEX ix_orden_trabajo_mes"
+    ],
+    "actuaciones": [
+      "UNIQUE ix_actuaciones_orden_trabajo_id (orden_trabajo_id) — consumo definitivo de OT"
+    ],
+    "ruta_item": [
+      "UNIQUE uq_ruta_item_ruta_iniciador (ruta_trabajo_id, iniciador_ruta_id)"
+    ],
+    "global_uniqueness_gap": "El mismo numero_acta puede repetirse en distintos anio (3 casos activos en sandbox). No hay UNIQUE global sobre numero_acta.",
+    "future_constraint_recommendation": "Además del contador global, agregar UNIQUE(numero_acta) o migrar identidad OT a entero global sin reutilización cross-year. Hoy uq_ot_numero_anio permite 000562@2024 y 000562@2026."
+  },
+  "current_generation_points": {
+    "create_only_helper": {
+      "file": "Backend/app/domains/actuaciones/attach/orden_trabajo.py",
+      "function": "get_or_create_orden_trabajo(numero_ot, fecha_str)",
+      "behavior": "Lookup (numero_acta, anio); create si falta; restore soft-deleted; flush sin commit",
+      "not_auto_increment": true
+    },
+    "callers": [
+      {
+        "channel": "A — Asignación ruta (BORRADOR)",
+        "file": "Backend/app/domains/rutas_trabajo/services/ruta_item_orden_trabajo_service.py",
+        "function": "set_orden_trabajo_on_item",
+        "route": "PATCH /rutas-trabajo/<ruta_id>/items/<item_id>/orden-trabajo",
+        "fecha_source": "ruta.fecha",
+        "links": "RutaItem.orden_trabajo_id; estado ASIGNADO"
+      },
+      {
+        "channel": "B — Publicar",
+        "file": "Backend/app/domains/rutas_trabajo/services/ruta_publicar_service.py",
+        "function": "publicar_ruta_trabajo",
+        "note": "NO crea OT; exige item.orden_trabajo_id ya seteado; propaga a Actuaciones"
+      },
+      {
+        "channel": "C — Grid Cargar actuación",
+        "file": "Backend/app/domains/actuaciones/services/create_service.py",
+        "function": "crear_actuacion_desde_payload",
+        "note": "OT manual desde grid; fuera del flujo de rutas — conservar o rediseñar aparte"
+      },
+      {
+        "channel": "D — Grid update actuación",
+        "file": "Backend/app/domains/actuaciones/services/update_service.py",
+        "function": "aplicar_payload_actuacion",
+        "note": "Cambia OT si payload trae orden_trabajo_numero"
+      },
+      {
+        "channel": "E — ACT-HIST administrativo",
+        "file": "Backend/app/domains/actuaciones/services/historical_solo_comprobacion_service.py",
+        "function": "crear_actuacion_historica_solo_comprobacion",
+        "note": "orden_trabajo_id=NULL; NO consume contador"
+      }
+    ],
+    "update_ot_row": "No hay UPDATE de numero_acta/anio/mes post-creación",
+    "soft_delete": "Backend/app/domains/actuaciones/cleanup/garbage_collector.py::soft_delete_orden_id_orphan"
+  },
+  "assignment_ui_current": {
+    "primary_component": "Frontend/src/Containers/RutasTrabajo/Components/PanelGruposRuta.tsx",
+    "host_view": "Frontend/src/Containers/RutasTrabajo/views/RutasPlanificacionView.tsx (step Asignación)",
+    "orchestrator": "Frontend/src/Containers/RutasTrabajo/index.tsx",
+    "elements_to_remove": [
+      "TextField label OT por ítem",
+      "Botón Guardar OT",
+      "Botón QUITAR OT",
+      "Chips: OT guardada / OT pendiente de guardar / OT no guardada",
+      "Helper: Solo números. Requiere guardar para continuar.",
+      "Alert global: N ítem(s) sin OT guardada",
+      "Estado local otDraftByItem"
+    ],
+    "dead_code_candidate": "Frontend/src/Containers/RutasTrabajos/Components/ModalEditarOrdenTrabajoItem.tsx — no importado",
+    "api_mutations_to_deprecate": [
+      "patchRutaItemOrdenTrabajo (PATCH orden-trabajo)",
+      "clearRutaItemOrdenTrabajo (DELETE orden-trabajo)"
+    ],
+    "hooks": "Frontend/src/Containers/RutasTrabajos/hooks/useRutaTrabajoBorradorActions.ts — saveOtItem, clearOrdenTrabajo",
+    "preserve": [
+      "mover ítems entre grupos",
+      "quitar ítem",
+      "asignar inspectores",
+      "crear/editar grupos",
+      "pool → grupo"
+    ],
+    "blockers_to_remove": {
+      "continuar_mapa_final": {
+        "file": "Frontend/src/Containers/RutasTrabajo/utils/asignacionContinuarMapaFinal.ts",
+        "current": "itemsSinOt.length === 0 requerido",
+        "new": "solo hayTrabajoParaMapa + reglas grupo/inspectores"
+      },
+      "toast": "index.tsx — toast N ítem(s) sin OT guardada",
+      "stepper_gap": "RutasTrabajoFlowStepper no revalida OT al volver a mapa — irrelevante tras eliminar OT de asignación"
+    }
+  },
+  "map_final_current": {
+    "ot_per_item_label": {
+      "builder": "Frontend/src/Containers/RutasTrabajos/hooks/useRutaMapa.ts::ordenTrabajoLabel",
+      "format": "O. trabajo {numero_acta} · MM/YYYY",
+      "consumers": [
+        "MapaFinalResumenLateral.tsx — tarjetas dirección",
+        "MapaRutaTrabajo.tsx — popup Leaflet",
+        "exportMapaFinalGruposPrint.ts — columna impresión"
+      ]
+    },
+    "design_remove_before_publish": "No mostrar OT por ítem en borrador/mapa final pre-publicación",
+    "design_add_header": {
+      "primary": "Próxima OT: 089970 (display con acta_6)",
+      "optional_range": "Se asignarán N OT: 089970 → 089972",
+      "source": "GET secuencia — informativo, sin reserva"
+    },
+    "unused_prop": "RutasMapaOperativoView recibe onGuardarOtItem pero no lo usa"
+  },
+  "publish_call_graph": {
+    "frontend": [
+      "Frontend/src/Containers/RutasTrabajo/index.tsx → publicarRutaTrabajo(rutaId)",
+      "Frontend/src/api/rutasTrabajoApi.ts → POST /rutas-trabajo/:id/publicar (sin body OT)"
+    ],
+    "endpoint": "Backend/app/domains/rutas_trabajo/routes/publicar_ruta.py::publicar_ruta",
+    "service": "Backend/app/domains/rutas_trabajo/services/ruta_publicar_service.py::publicar_ruta_trabajo",
+    "transaction": "single commit al final; ruta locked with_for_update al inicio",
+    "pre_publish_entities": {
+      "exist": [
+        "RutaTrabajo (BORRADOR)",
+        "RutaGrupo + RutaGrupoInspector",
+        "RutaItem (PENDIENTE_ASIGNACION → ASIGNADO hoy al guardar OT)",
+        "IniciadorRuta (PLANIFICADO)",
+        "OrdenTrabajo (hoy: creada en asignación manual)"
+      ],
+      "not_exist": [
+        "Actuaciones por ítem (actuacion_id null)",
+        "estado_ruta PUBLICADA",
+        "estado_ruta_item EN_PROCESO"
+      ]
+    },
+    "during_publish_creates": {
+      "OrdenTrabajo": "hoy NO; propuesto SÍ — N filas bajo lock contador",
+      "Actuaciones": "1 por ítem (o reutiliza en retry según evaluar_actuacion_para_publicar_item)",
+      "links": "item.actuacion_id, item.estado EN_PROCESO, ini EN_EJECUCION, act.orden_trabajo_id"
+    },
+    "validation_today_requires_ot": "item.orden_trabajo_id IS NOT NULL (validator publicar_ruta_trabajo.item_sin_ot)",
+    "conflict_module": "Backend/app/domains/rutas_trabajo/services/ruta_publicar_ot_conflicto_service.py",
+    "pool_cleanup": "descartar_sobrantes_en_pool_de_ruta_trabajo"
+  },
+  "sandbox_ot_analysis": {
+    "database": "digitaliza_sandbox",
+    "read_only": true,
+    "as_of": "2026-09-21",
+    "counts": {
+      "total": 8829,
+      "active": 8828,
+      "soft_deleted": 1,
+      "non_numeric_numero_acta": 740,
+      "test_pattern_999xxx": 14,
+      "future_anio_ge_2090": 205
+    },
+    "length_distribution_active": {
+      "4_digits": 3,
+      "6_digits": 8825
+    },
+    "duplicates": {
+      "dup_numero_anio": 0,
+      "dup_numero_cross_anio": 3,
+      "samples_cross_anio": [
+        {"numero_acta": "944179", "anios": "2026,2098"},
+        {"numero_acta": "267807", "anios": "2026,2095"},
+        {"numero_acta": "000562", "anios": "2024,2026"}
+      ]
+    },
+    "max_values": {
+      "raw_max_numeric": 999999,
+      "operational_max_2024_2026_lt_900000": 899969,
+      "top_operational_sample": {"id": 4881, "numero_acta": "899969", "anio": 2026, "mes": 7},
+      "protected_whitelist_xlsx_max": 4367,
+      "recent_low_range_tail_2026": "004375–004886 (secuencia admin import)"
+    },
+    "interpretation": {
+      "do_not_use_raw_max": "999999 y años 2090+ son QA/test; no usar MAX global sin filtros",
+      "recommended_counter_floor": "max(operational_max_2024_2026, protected_whitelist_max, última OT real operativa) + 1 → inicial sugerido 899970 (display 089970)",
+      "gaps": "Numeración histórica no secuencial; gaps abundantes — contador no debe backfill",
+      "non_numeric": "740 OT activas con numero_acta no puramente numérico — secuencia nueva solo numérica"
+    }
+  },
+  "sequence_design": {
+    "reject": "SELECT MAX(numero_acta)+1 — race en publicaciones concurrentes",
+    "proposed_table": {
+      "name": "orden_trabajo_sequence",
+      "columns": [
+        "id TINYINT PK (=1 singleton)",
+        "next_value BIGINT NOT NULL",
+        "updated_at DATETIME",
+        "updated_by_user_id FK users nullable"
+      ],
+      "lock": "SELECT ... FOR UPDATE en fila singleton dentro de transacción publicar"
+    },
+    "existing_reusable_infra": "Patrón similar en geocode_post_commit_job (FOR UPDATE SKIP LOCKED) — no hay secuencia OT previa",
+    "allocation_api": {
+      "internal": "allocar_rango_orden_trabajo(cantidad) → (start, end) bajo lock",
+      "display": "acta_6(str(n)) para UI/PDF"
+    },
+    "semantics": {
+      "global": true,
+      "incremental": true,
+      "no_reset_by_year": true,
+      "no_reset_by_month": true,
+      "presentation_only_padding": "6 dígitos"
+    }
+  },
+  "sequence_initial_value_strategy": {
+    "steps": [
+      "1. Calcular max_operacional = MAX(CAST(numero_acta AS UNSIGNED)) WHERE deleted_at IS NULL AND anio BETWEEN 2024 AND 2026 AND numero_acta REGEXP '^[0-9]+$' AND valor < 900000",
+      "2. Calcular max_whitelist desde protected_operational_manifest (OT reales admin)",
+      "3. Excluir patrones test (999*, años >= 2090, numero no numérico)",
+      "4. next_value = max(max_operacional, max_whitelist, última OT confirmada en prod) + 1",
+      "5. Documentar en manifest de deploy; no auto-ejecutar en diag"
+    ],
+    "sandbox_evidence": {
+      "operational_max": 899969,
+      "suggested_initial_next_value": 899970,
+      "suggested_display": "089970"
+    },
+    "import_historico": "Importaciones futuras de OT históricas NO deben tocar orden_trabajo_sequence; solo insertan filas orden_trabajo con números ya usados"
+  },
+  "atomic_publish_design": {
+    "pseudocode": [
+      "BEGIN",
+      "  SELECT ruta FOR UPDATE",
+      "  validar grupos/inspectores/items (sin OT manual)",
+      "  items_ordenados = orden_determinista(items_activos)",
+      "  n = len(items_ordenados)",
+      "  (start, end) = lock_sequence_and_alloc(n)",
+      "  FOR i, item IN enumerate(items_ordenados):",
+      "    numero = start + i",
+      "    ot = INSERT orden_trabajo(numero_acta=acta_6(numero), anio=ruta.fecha.year, mes=ruta.fecha.month)",
+      "    item.orden_trabajo_id = ot.id",
+      "    crear/reutilizar actuación con ot.id",
+      "  ruta.estado = PUBLICADA",
+      "COMMIT"
+    ],
+    "rollback": "Cualquier fallo → ROLLBACK completo; contador no avanza",
+    "no_partial_consume": "No reservar números en preview ni en intentos fallidos"
+  },
+  "concurrency_strategy": {
+    "mechanism": "Transacción + FOR UPDATE en fila contador + commit único por publicación",
+    "test_design": "Dos POST /publicar simultáneos con rutas distintas → rangos disjuntos; nunca mismo numero_acta global",
+    "mysql_note": "InnoDB row lock en singleton sequence; publicar_ruta ya usa with_for_update en ruta_trabajo"
+  },
+  "deterministic_order": {
+    "current_implicit": "RutaGrupo.id ASC; RutaItem.id ASC dentro de grupo; useRutaMapa ordena por item.id",
+    "no_explicit_orden_field": "RutaItem no tiene posicion/orden; RutaGrupo no tiene sort_order",
+    "proposed_rule": [
+      "1. ORDER BY ruta_grupo.id ASC",
+      "2. ORDER BY ruta_item.id ASC dentro de cada grupo",
+      "3. Documentar como contrato estable; opcional futuro: campo orden explícito si producto requiere drag-order"
+    ],
+    "allocation_mapping": "OT start..start+N-1 sigue ese orden total (flatten grupos en orden)"
+  },
+  "counter_preview": {
+    "type": "INFORMATIVO",
+    "endpoint_proposed": "GET /rutas-trabajo/ordenes-trabajo/secuencia o /ordenes-trabajo/secuencia",
+    "response": {"next_value": 899970, "display": "089970"},
+    "no_reservation": true,
+    "ux_concurrent_publish": "Si otro usuario publica antes, el número mostrado puede quedar desactualizado; al publicar el backend asigna el rango real y la respuesta 200 devuelve OT definitivas por ítem"
+  },
+  "counter_edit_policy": {
+    "action": "PATCH secuencia — solo ADMIN",
+    "forward_only": "nuevo >= actual; igual → no-op; menor → 409 REJECT",
+    "audit_required": true
+  },
+  "permissions": {
+    "publish_today": "JWT + role admin|usuario (phase1_jwt_guard mutaciones /rutas-trabajo/*); sin rol extra",
+    "edit_counter_proposed": "@require_role('admin') en PATCH secuencia",
+    "enforcement": "Backend obligatorio; no ocultar solo en UI"
+  },
+  "audit_strategy": {
+    "proposed_table": "orden_trabajo_sequence_audit",
+    "fields": ["id", "previous_value", "new_value", "actor_user_id", "created_at", "reason optional"],
+    "trigger": "Cada PATCH forward-only del contador"
+  },
+  "legacy_endpoints_to_remove_or_guard": {
+    "remove_from_product_flow": [
+      "PATCH /rutas-trabajo/<ruta_id>/items/<item_id>/orden-trabajo",
+      "DELETE /rutas-trabajo/<ruta_id>/items/<item_id>/orden-trabajo"
+    ],
+    "guard_after_publish": "Ítems PUBLICADOS: OT inmutable; rechazar cualquier mutación OT",
+    "keep_separate_workflows": [
+      "POST /actuaciones/ con orden_trabajo_numero (carga grid normal) — fuera OT-AUTO ruta",
+      "ACT-HIST carga_solo_comprobacion — sin OT"
+    ],
+    "hidden_overwrite_risk": "update_service aplicar_payload_actuacion puede cambiar OT en actuaciones existentes — no afecta ruta publicada si UI no expone, pero auditar"
+  },
+  "act_hist_interaction": {
+    "admin_historical_load": "carga_solo_comprobacion=true → orden_trabajo_id NULL → NO consume contador",
+    "historical_to_route": "histórica → sin expediente → oficio → iniciador → ruta → PUBLICAR → SÍ crea OT nueva para intento operativo (ACT-HIST.8/9 validado manualmente)",
+    "invariant": "Actuación histórica nunca recibe OT retrospectiva; solo el RutaItem/Actuación de publicación"
+  },
+  "retry_interaction": {
+    "no_realizado": "Visita publicada NO_REALIZADA ya consumió su OT (PR11.1f/g)",
+    "retry": "Nuevo RutaItem + nueva publicación → nueva OT del contador; nunca reutilizar OT del intento fallido",
+    "reuse_actuacion": "evaluar_actuacion_para_publicar_item puede reutilizar fila actuación del mismo iniciador en casos acotados; OT sigue siendo nueva en diseño OT-AUTO"
+  },
+  "new_invariant": {
+    "before_publish": "RutaItem sin OT definitiva (orden_trabajo_id NULL)",
+    "after_publish": "Cada ítem publicado → exactamente una OT; inmutable",
+    "publication": "Único punto de creación OT en flujo ruta"
+  },
+  "migration_required": {
+    "required": true,
+    "scope": [
+      "Tabla orden_trabajo_sequence (+ audit opcional)",
+      "Posible UNIQUE global numero_acta o deprecar anio del identity key",
+      "Seed inicial contador con evidencia sandbox",
+      "No backfill OT en ítems borrador existentes — al publicar se asignan"
+    ],
+    "data_migration": "Ítems borrador con OT manual previa: política de limpieza orden_trabajo_id al deploy o ignorar OT pre-asignadas y sobrescribir en primer publicar post-deploy"
+  },
+  "test_matrix": {
+    "A": "asignación sin OT puede avanzar a mapa final",
+    "B": "mapa final sin OT por ítem; header Próxima OT",
+    "C": "GET preview contador — informativo",
+    "D": "publicar 1 ítem asigna next",
+    "E": "publicar N ítems asigna rango contiguo",
+    "F": "secuencia avanza N tras commit",
+    "G": "orden determinista grupo.id + item.id",
+    "H": "publicación fallida — rollback sin consumir contador",
+    "I": "concurrencia dos publicaciones — rangos distintos",
+    "J": "no duplicados global numero_acta",
+    "K": "admin PATCH contador forward OK",
+    "L": "admin PATCH backward REJECT",
+    "M": "non-admin PATCH contador 403",
+    "N": "OT publicada inmutable — PATCH item OT rechazado",
+    "O": "NO_REALIZADO conserva OT del intento",
+    "P": "retry publicación obtiene OT nueva",
+    "Q": "ACT-HIST admin no consume contador",
+    "R": "ACT-HIST→oficio→ruta publicar sí consume",
+    "S": "regression workflow normal relevamiento/denuncia/oficio",
+    "T": "no endpoint legacy permite overwrite OT publicada"
+  },
+  "recommended_implementation_plan": {
+    "phase_1_backend_foundation": [
+      "Migración orden_trabajo_sequence + audit",
+      "Servicio allocar_rango bajo lock",
+      "Inicialización contador desde sandbox_evidence (899970)",
+      "GET secuencia + PATCH admin forward-only"
+    ],
+    "phase_2_publish_integration": [
+      "Mover creación OT a publicar_ruta_trabajo",
+      "Eliminar requisito orden_trabajo_id pre-publicación",
+      "Orden determinista + N OT en misma transacción",
+      "Respuesta publicar incluye OT asignadas por ítem"
+    ],
+    "phase_3_frontend": [
+      "Remover UI OT PanelGruposRuta",
+      "Relajar asignacionContinuarMapaFinal y rutaPublicarReadiness",
+      "Mapa final: quitar label por ítem; agregar header Próxima OT / rango",
+      "Admin UI editar contador (opcional fase 3b)"
+    ],
+    "phase_4_deprecation": [
+      "Deprecar PATCH/DELETE orden-trabajo en ítems (410 o 403 si ruta no BORRADOR)",
+      "Eliminar ModalEditarOrdenTrabajoItem muerto",
+      "Tests matrix A–T",
+      "QA sandbox: publicar ruta 1 y N ítems; concurrencia; ACT-HIST"
+    ],
+    "out_of_scope_initial": [
+      "Auto-OT en grid Cargar actuación (canal C) — decisión producto separada",
+      "Migración masiva OT históricas importadas",
+      "Campo orden drag-and-drop en mapa"
+    ]
+  },
+  "api_proposed": {
+    "GET /ordenes-trabajo/secuencia": {
+      "auth": "JWT usuario",
+      "returns": {"next_value": "int", "display": "string 6-digit"}
+    },
+    "PATCH /ordenes-trabajo/secuencia": {
+      "auth": "JWT admin",
+      "body": {"next_value": "int"},
+      "rules": "forward-only + audit"
+    },
+    "POST /rutas-trabajo/:id/publicar": {
+      "change": "asigna OT internamente; body sin OT; response items[].orden_trabajo"
+    }
+  }
+}

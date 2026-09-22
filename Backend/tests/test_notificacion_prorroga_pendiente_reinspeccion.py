@@ -28,16 +28,6 @@ def _unique_num() -> str:
     return unique_ot_numero()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _filters_notificacion() -> ActuacionesPendientesFilters:
     return ActuacionesPendientesFilters.model_validate(
         {"source_type": "notificacion", "desde": "2020-01-01", "hasta": "2099-12-31"}
@@ -223,7 +213,7 @@ def test_prorroga_no_duplica_iniciador_pendiente(app_ctx) -> None:
             estado_iniciador="PENDIENTE",
             deleted_at=None,
         ).count()
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
         after_sync = IniciadorRuta.query.filter_by(
             notificacion_id=noti.id,
             tipo_iniciador="REINSPECCION_NOTIFICACION",

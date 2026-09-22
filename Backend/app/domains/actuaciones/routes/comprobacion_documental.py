@@ -21,8 +21,40 @@ from app.domains.actuaciones.services.comprobacion_documental_service import (
     update_comprobacion_expediente_envio,
     update_comprobacion_oficio_bloque,
 )
+from app.domains.actuaciones.services.declarar_sin_expediente_envio_service import (
+    declarar_sin_expediente_envio,
+)
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 
 from . import actuacion
+
+
+@actuacion.post("/<int:actuacion_id>/comprobacion/declarar-sin-expediente-envio")
+def post_declarar_sin_expediente_envio(actuacion_id: int):
+    """
+    Declara que no se dispone del expediente de envío documental (pasa a pendiente de oficio).
+
+    Errores:
+        404: actuación inexistente.
+        400: ya hay expediente de envío o sin comprobación.
+    """
+    try:
+        actor_user_id = get_current_user_id()
+        result = declarar_sin_expediente_envio(actuacion_id, actor_user_id=actor_user_id)
+        comp = result["comprobacion"]
+        return jsonify(
+            {
+                "ok": True,
+                "idempotent": result.get("idempotent", False),
+                "actuacion_id": actuacion_id,
+                "comprobacion_id": comp.id,
+                "sin_expediente_envio": True,
+            }
+        ), 200
+    except LookupError as e:
+        return jsonify({"detail": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
 
 
 @actuacion.get("/<int:actuacion_id>/comprobacion/documental")

@@ -28,16 +28,6 @@ def _unique_num() -> str:
     return token_hex(3)
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_minimal_comp_act(*, numero_acta: str | None = None) -> Actuaciones:
     """Actuación con comprobación mínima (sin domicilio)."""
     n = numero_acta or _unique_num()

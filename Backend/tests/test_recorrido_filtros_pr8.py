@@ -31,16 +31,6 @@ def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_notificacion_act(mes: int, anio: int, fecha_act: date) -> Actuaciones:
     ot = OrdenTrabajo(numero_acta=_unique_num(), mes=mes, anio=anio)
     db.session.add(ot)

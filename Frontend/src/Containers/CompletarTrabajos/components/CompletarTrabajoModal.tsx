@@ -66,6 +66,10 @@ import { operativoHydrationFromRow } from "../utils/completarTrabajoVerificarInf
 import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
 import { formatNotificacionOrigenReadonly, showContribuyenteDomicilioEditableEnCompletarTrabajo } from "../utils/completarTrabajoReinspeccionNotificacionUi";
 import {
+  identityFieldsEditableEnCompletarTrabajo,
+  showIdentityVerificarInformarEnCompletarTrabajo,
+} from "../utils/completarTrabajoIdentityModeUi";
+import {
   OFICIO_CUMPLE_OPTS,
   TIPO_ACTUACION_REINSPECCION_OFICIO,
   tipoActuacionInicialReinspeccionOficio,
@@ -700,17 +704,32 @@ export function CompletarTrabajoModal({
     !esReinspeccionOficioPendienteSubtipoUi &&
     !esFlujoCumplimientoRatificacionUi &&
     (!esFlujoVerificarInformarUi || verificarMuestraInspeccionNormal);
+  const identityMode = displayRow?.identity_mode ?? null;
+  const showIdentityVerificarInformar = showIdentityVerificarInformarEnCompletarTrabajo(
+    displayRow?.tipo_iniciador,
+    {
+      tipoActuacionOficio: tipoActuacionOficioEfectivo,
+      realizoNuevaInspeccion,
+      identityMode,
+    }
+  );
+  const identityFieldsEditable = identityFieldsEditableEnCompletarTrabajo(identityMode);
   const showContribDomicilioEditable = showContribuyenteDomicilioEditableEnCompletarTrabajo(
     displayRow?.tipo_iniciador,
     {
       tipoActuacionOficio: tipoActuacionOficioEfectivo,
       realizoNuevaInspeccion,
+      identityMode,
     }
   );
+  const showDomicilioCalleNumeroEditable =
+    showContribDomicilioEditable ||
+    (showIdentityVerificarInformar && identityMode === "COMPLETE_EXISTING");
   const omitContribDomEnValidacion =
     esReinspeccionNotificacion ||
     esFlujoCumplimientoRatificacionUi ||
-    (esFlujoVerificarInformarUi && realizoNuevaInspeccion !== "si");
+    (esFlujoVerificarInformarUi && realizoNuevaInspeccion !== "si") ||
+    (showIdentityVerificarInformar && !identityFieldsEditable);
   const oficioNoCumple = esFlujoCumplimientoRatificacionUi && resultadoCumplimientoOficio === "NO_CUMPLE";
   const tipoIniciadorLabel = completarTrabajoHeaderTitulo(displayRow?.tipo_iniciador);
   const headerSubtitulo = completarTrabajoHeaderSubtitulo(displayRow?.fecha_actuacion);
@@ -1025,15 +1044,26 @@ export function CompletarTrabajoModal({
           TIPO_ACTUACION_VERIFICAR_INFORMAR;
         values.realizo_nueva_inspeccion = "si";
       }
-      if (showContribDomicilioEditable) {
+      if (showDomicilioCalleNumeroEditable) {
         Object.assign(values, {
-          rubro_nombre: rubroNombre,
           calle,
           numero,
           numero_tipo: numeroTipo,
+          nombre_local: nombreLocal,
+        });
+      }
+      if (showIdentityVerificarInformar && identityFieldsEditable) {
+        Object.assign(values, {
+          rubro_nombre: rubroNombre,
           doc_nro: docNro,
           ...titularPayload,
-          nombre_local: nombreLocal,
+        });
+      }
+      if (showContribDomicilioEditable && !showIdentityVerificarInformar) {
+        Object.assign(values, {
+          rubro_nombre: rubroNombre,
+          doc_nro: docNro,
+          ...titularPayload,
         });
       }
 
@@ -1474,17 +1504,24 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
 
-        {visitaRealizada && showContribDomicilioEditable && (
+        {visitaRealizada &&
+          (showDomicilioCalleNumeroEditable || (showIdentityVerificarInformar && identityFieldsEditable)) && (
           <Alert severity="info" sx={{ borderRadius: 2 }}>
             <Typography variant="body2">
-              Con visita realizada, revisá calle, rubro y titular: datos correctos ayudan a vincular la actuación con la{" "}
-              <strong>ficha operativa</strong> al guardar.
+              {showIdentityVerificarInformar && identityFieldsEditable
+                ? "Completá documento y rubro para materializar la identidad operativa del comercio."
+                : "Con visita realizada, revisá calle, rubro y titular: datos correctos ayudan a vincular la actuación con la "}
+              {!showIdentityVerificarInformar || !identityFieldsEditable ? (
+                <strong>ficha operativa</strong>
+              ) : null}
+              {!showIdentityVerificarInformar || !identityFieldsEditable ? " al guardar." : null}
             </Typography>
           </Alert>
         )}
 
-        {muestraFlujoInspeccionNormal && showContribDomicilioEditable && (
+        {muestraFlujoInspeccionNormal && (showDomicilioCalleNumeroEditable || showIdentityVerificarInformar) && (
         <>
+        {showDomicilioCalleNumeroEditable && (
         <CompletarBloque title="Domicilio y establecimiento">
         <Box sx={{ ...col, width: "100%" }}>
         <Box sx={edicionGrid2ColSx}>
@@ -1514,6 +1551,7 @@ export function CompletarTrabajoModal({
           />
         </Box>
 
+        {showContribDomicilioEditable && !showIdentityVerificarInformar && (
         <AppSelect
           appearance="glass"
           label="Rubro"
@@ -1528,11 +1566,35 @@ export function CompletarTrabajoModal({
           error={Boolean(fe("rubro_nombre"))}
           helperText={fe("rubro_nombre") || undefined}
         />
+        )}
         </Box>
         </CompletarBloque>
+        )}
 
+        {(showContribDomicilioEditable || showIdentityVerificarInformar) && (
         <CompletarBloque title="Contribuyente / titular">
         <Box sx={{ ...col, width: "100%" }}>
+        {showIdentityVerificarInformar && !identityFieldsEditable && (
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)", mb: 1 }}>
+            Identidad del origen (solo lectura).
+          </Typography>
+        )}
+        {showIdentityVerificarInformar && (
+        <AppSelect
+          appearance="glass"
+          label="Rubro"
+          value={rubroNombre}
+          onChange={(e) => {
+            setRubroNombre(e.target.value as string);
+            clearFe("rubro_nombre");
+          }}
+          fullWidth
+          disabled={!catalogsReady || !identityFieldsEditable}
+          options={rubroSelectOptions}
+          error={Boolean(fe("rubro_nombre"))}
+          helperText={fe("rubro_nombre") || undefined}
+        />
+        )}
         <Typography variant="caption" sx={labelMuted}>
           Titular
         </Typography>
@@ -1542,6 +1604,7 @@ export function CompletarTrabajoModal({
           onChange={handleTitularModoChange}
           size="small"
           fullWidth
+          disabled={showIdentityVerificarInformar && !identityFieldsEditable}
           sx={{
             "& .MuiToggleButton-root": {
               flex: 1,
@@ -1572,6 +1635,7 @@ export function CompletarTrabajoModal({
                 clearFe("contrib_apellido");
               }}
               fullWidth
+              disabled={showIdentityVerificarInformar && !identityFieldsEditable}
               error={Boolean(fe("contrib_apellido"))}
               helperText={fe("contrib_apellido") || undefined}
             />
@@ -1584,6 +1648,7 @@ export function CompletarTrabajoModal({
                 clearFe("contrib_nombre");
               }}
               fullWidth
+              disabled={showIdentityVerificarInformar && !identityFieldsEditable}
               error={Boolean(fe("contrib_nombre"))}
               helperText={fe("contrib_nombre") || undefined}
             />
@@ -1598,6 +1663,7 @@ export function CompletarTrabajoModal({
               clearFe("razon_social");
             }}
             fullWidth
+            disabled={showIdentityVerificarInformar && !identityFieldsEditable}
             error={Boolean(fe("razon_social"))}
             helperText={fe("razon_social") || undefined}
           />
@@ -1612,9 +1678,11 @@ export function CompletarTrabajoModal({
             clearFe("doc_nro");
           }}
           fullWidth
+          disabled={showIdentityVerificarInformar && !identityFieldsEditable}
           error={Boolean(fe("doc_nro"))}
           helperText={fe("doc_nro") || undefined}
         />
+        {showDomicilioCalleNumeroEditable && (
         <AppTextField
           appearance="glass"
           label="Nombre del local"
@@ -1628,8 +1696,10 @@ export function CompletarTrabajoModal({
           error={Boolean(fe("nombre_local"))}
           helperText={fe("nombre_local") || undefined}
         />
+        )}
         </Box>
         </CompletarBloque>
+        )}
         </>
         )}
       </Box>

@@ -32,6 +32,17 @@ def _unique_num() -> str:
     return unique_ot_numero()
 
 
+def _persist_for_http_client() -> None:
+    """Commit de fixtures creados en el contexto actual."""
+    db.session.commit()
+
+
+def _release_db_connections() -> None:
+    """Libera pool/conexiones para que el test_client vea commits previos (MySQL RR)."""
+    db.session.remove()
+    db.engine.dispose()
+
+
 @pytest.fixture
 def app_ctx():
     from app import create_app
@@ -190,11 +201,9 @@ def _mk_actuacion_solo_expediente_envio() -> tuple[int, int]:
 def test_alta_oficio_endpoint_completa_circuito_y_crea_iniciador_reinspeccion_oficio(app, client, auth_headers) -> None:
     """Tras POST /oficio se materializa iniciador REINSPECCION_OFICIO (idempotente vía servicio dedicado)."""
     with app.app_context():
-        try:
             aid, jz_id = _mk_actuacion_solo_expediente_envio()
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
 
     resp_post = client.post(
         f"/actuaciones/{aid}/oficio",
@@ -234,11 +243,9 @@ def test_alta_oficio_endpoint_completa_circuito_y_crea_iniciador_reinspeccion_of
 
 def test_pendiente_reinspeccion_aparece_sin_iniciador(app, client, auth_headers) -> None:
     with app.app_context():
-        try:
             aid, nof, _ = _mk_circuito_completo()
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,
@@ -255,7 +262,6 @@ def test_pendiente_reinspeccion_aparece_sin_iniciador(app, client, auth_headers)
 def test_pendiente_reinspeccion_incluye_expediente_respuesta_tipo_null_legado(app, client, auth_headers) -> None:
     """Circuito completo con expediente de respuesta sin enum (NULL) debe listarse igual."""
     with app.app_context():
-        try:
             aid, nof, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -267,9 +273,8 @@ def test_pendiente_reinspeccion_incluye_expediente_respuesta_tipo_null_legado(ap
             assert ex_r is not None
             ex_r.tipo_expediente = None
             db.session.add(ex_r)
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
 
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
@@ -286,7 +291,6 @@ def test_pendiente_reinspeccion_incluye_con_iniciador_sin_item_en_ruta(app, clie
     aid: int | None = None
     iniciador_id: int | None = None
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -305,9 +309,8 @@ def test_pendiente_reinspeccion_incluye_con_iniciador_sin_item_en_ruta(app, clie
             db.session.add(ini)
             db.session.flush()
             iniciador_id = ini.id
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     assert aid is not None and iniciador_id is not None
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
@@ -324,7 +327,6 @@ def test_pendiente_reinspeccion_incluye_con_ruta_borrador(app, client, auth_head
     """STAB-3: ruta BORRADOR no oculta la fila (oficio sigue accionable)."""
     aid: int | None = None
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -343,9 +345,8 @@ def test_pendiente_reinspeccion_incluye_con_ruta_borrador(app, client, auth_head
             db.session.add(ini)
             db.session.flush()
             _mk_ruta_item_reinspeccion_oficio(act, ini, u, estado_ruta="BORRADOR")
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     assert aid is not None
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
@@ -360,7 +361,6 @@ def test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_operativa(app, cli
     for estado in ("PUBLICADA", "EN_CURSO"):
         aid: int | None = None
         with app.app_context():
-            try:
                 aid, _, _ = _mk_circuito_completo()
                 act = Actuaciones.query.get(aid)
                 assert act is not None
@@ -379,9 +379,8 @@ def test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_operativa(app, cli
                 db.session.add(ini)
                 db.session.flush()
                 _mk_ruta_item_reinspeccion_oficio(act, ini, u, estado_ruta=estado)
-                db.session.commit()
-            finally:
-                db.session.rollback()
+                _persist_for_http_client()
+        _release_db_connections()
         assert aid is not None
         resp = client.get(
             "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
@@ -394,7 +393,6 @@ def test_pendiente_reinspeccion_excluye_con_iniciador_en_ruta_operativa(app, cli
 
 def test_pendiente_reinspeccion_incluye_ruta_cancelada(app, client, auth_headers) -> None:
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -413,9 +411,8 @@ def test_pendiente_reinspeccion_incluye_ruta_cancelada(app, client, auth_headers
             db.session.add(ini)
             db.session.flush()
             _mk_ruta_item_reinspeccion_oficio(act, ini, u, estado_ruta="CANCELADA")
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,
@@ -426,7 +423,6 @@ def test_pendiente_reinspeccion_incluye_ruta_cancelada(app, client, auth_headers
 
 def test_pendiente_reinspeccion_incluye_ruta_cerrada(app, client, auth_headers) -> None:
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -445,9 +441,8 @@ def test_pendiente_reinspeccion_incluye_ruta_cerrada(app, client, auth_headers) 
             db.session.add(ini)
             db.session.flush()
             _mk_ruta_item_reinspeccion_oficio(act, ini, u, estado_ruta="CERRADA")
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,
@@ -458,7 +453,6 @@ def test_pendiente_reinspeccion_incluye_ruta_cerrada(app, client, auth_headers) 
 
 def test_pendiente_reinspeccion_incluye_item_ruta_soft_deleted(app, client, auth_headers) -> None:
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -478,9 +472,8 @@ def test_pendiente_reinspeccion_incluye_item_ruta_soft_deleted(app, client, auth
             db.session.flush()
             item = _mk_ruta_item_reinspeccion_oficio(act, ini, u, estado_ruta="PUBLICADA")
             item.deleted_at = datetime.now(timezone.utc)
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,
@@ -491,16 +484,14 @@ def test_pendiente_reinspeccion_incluye_item_ruta_soft_deleted(app, client, auth
 
 def test_pendiente_reinspeccion_excluye_soft_delete_oficio(app, client, auth_headers) -> None:
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
             ofi = Oficio.query.filter_by(comprobacion_id=act.comprobacion_id, deleted_at=None).first()
             assert ofi is not None
             ofi.deleted_at = datetime.now(timezone.utc)
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,
@@ -512,7 +503,6 @@ def test_pendiente_reinspeccion_excluye_soft_delete_oficio(app, client, auth_hea
 
 def test_pendiente_reinspeccion_excluye_sin_expediente_respuesta(app, client, auth_headers) -> None:
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -523,9 +513,8 @@ def test_pendiente_reinspeccion_excluye_sin_expediente_respuesta(app, client, au
             )
             assert ex_r is not None
             db.session.delete(ex_r)
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,
@@ -581,7 +570,6 @@ def test_reinspeccion_oficio_bandeja_row_incluye_iniciador_cuando_se_pasa(app_ct
 def test_pendiente_reinspeccion_iniciador_soft_deleted_vuelve_a_aparecer(app, client, auth_headers) -> None:
     """Si el único iniciador REINSPECCION_OFICIO está soft-deleted, la bandeja vuelve a listar la actuación."""
     with app.app_context():
-        try:
             aid, _, _ = _mk_circuito_completo()
             act = Actuaciones.query.get(aid)
             assert act is not None
@@ -600,9 +588,8 @@ def test_pendiente_reinspeccion_iniciador_soft_deleted_vuelve_a_aparecer(app, cl
             db.session.add(ini)
             db.session.flush()
             ini.deleted_at = datetime.now(timezone.utc)
-            db.session.commit()
-        finally:
-            db.session.rollback()
+            _persist_for_http_client()
+    _release_db_connections()
     resp = client.get(
         "/actuaciones/comprobacion/pendientes-reinspeccion-oficio?omitir_rango_fecha=true",
         headers=auth_headers,

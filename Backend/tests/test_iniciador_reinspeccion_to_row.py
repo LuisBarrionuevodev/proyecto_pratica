@@ -15,16 +15,6 @@ from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
 from app.models import Actuaciones, Comprobacion, Domicilio, IniciadorRuta, OrdenTrabajo, User
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 

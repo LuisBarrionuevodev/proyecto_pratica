@@ -8,10 +8,16 @@ from sqlalchemy.exc import IntegrityError
 from app.database import db
 from app.models import RutaTrabajo
 
-from .auth_service import get_current_user_id_or_fallback
+from .auth_service import resolve_actor_user_id
 
 
-def create_ruta_trabajo(*, fecha: date, turno: str, observaciones: str | None) -> RutaTrabajo:
+def create_ruta_trabajo(
+    *,
+    fecha: date,
+    turno: str,
+    observaciones: str | None,
+    actor_user_id: int | None = None,
+) -> RutaTrabajo:
     """
     Crea una RutaTrabajo en estado BORRADOR.
 
@@ -42,7 +48,7 @@ def create_ruta_trabajo(*, fecha: date, turno: str, observaciones: str | None) -
         estado_ruta="BORRADOR",
         numero=next_numero,
         observaciones=observaciones,
-        created_by_user_id=get_current_user_id_or_fallback(),
+        created_by_user_id=resolve_actor_user_id(actor_user_id),
     )
     db.session.add(ruta)
     try:

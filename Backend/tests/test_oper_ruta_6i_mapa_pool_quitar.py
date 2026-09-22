@@ -29,23 +29,14 @@ from app.domains.rutas_trabajo.services.ruta_pool_dia_service import (
     list_ruta_pool_dia,
 )
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.models import Domicilio, IniciadorRuta, Inspector, RutaItem, RutaPoolDia, RutaTrabajo, User
 from tests.helpers.fixture_isolation import fecha_ruta_aislada_mismo_anio, uniq_ruta_numero, unique_ot_numero
+from tests.helpers.ruta_ot_test import asignar_ot_legacy_en_item
 
 _MSG_OTRA_RUTA = (
     "El pendiente ya está asociado a otra ruta activa. "
     "Sacalo de esa ruta antes de asignarlo a una nueva."
 )
-
-
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _mk_user() -> User:
@@ -295,7 +286,7 @@ def test_eliminar_grupo_con_item_ot_bloquea(app_ctx) -> None:
     ruta = _mk_ruta(u)
     db.session.commit()
     grupo_id, item = _setup_grupo_con_iniciador(ruta, ini, via_pool=False)
-    set_orden_trabajo_on_item(
+    asignar_ot_legacy_en_item(
         ruta_id=int(ruta.id),
         item_id=int(item.id),
         numero_orden_trabajo=unique_ot_numero(),
@@ -364,12 +355,7 @@ def test_candidatos_excluyen_iniciador_en_ruta_publicada(app_ctx) -> None:
     ini = _mk_iniciador(u, distrito_id=4)
     ruta = _mk_ruta(u)
     db.session.commit()
-    _grupo_id, item = _setup_grupo_con_iniciador(ruta, ini, via_pool=False)
-    set_orden_trabajo_on_item(
-        ruta_id=int(ruta.id),
-        item_id=int(item.id),
-        numero_orden_trabajo=unique_ot_numero(),
-    )
+    _setup_grupo_con_iniciador(ruta, ini, via_pool=False)
     publicar_ruta_trabajo(ruta_id=int(ruta.id))
 
     assert es_iniciador_agregable_a_ruta(int(ini.id), int(ruta.id)) is False

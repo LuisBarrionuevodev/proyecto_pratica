@@ -18,9 +18,6 @@ from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
 )
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import (
@@ -32,18 +29,9 @@ from app.models import (
     RutaTrabajo,
 )
 
+from tests.helpers.fixture_isolation import uniq_ruta_numero
 from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 from tests.test_hotfix_reinspeccion_notificacion import _mk_reinspeccion_notificacion_item
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _unique_num() -> str:
@@ -82,7 +70,7 @@ def _republicar_iniciador_pendiente(
         turno="MANIANA",
         estado_ruta="BORRADOR",
         created_by_user_id=user_id,
-        numero=random.randint(2, 32000),
+        numero=uniq_ruta_numero(),
     )
     db.session.add(ruta)
     db.session.flush()
@@ -97,12 +85,6 @@ def _republicar_iniciador_pendiente(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
-    )
-    item = items[0]
-    set_orden_trabajo_on_item(
-        ruta_id=ruta.id,
-        item_id=item.id,
-        numero_orden_trabajo=_unique_num(),
     )
     db.session.commit()
 

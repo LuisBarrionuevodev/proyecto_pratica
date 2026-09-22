@@ -51,16 +51,6 @@ def _count_actuaciones_iniciador(ini_id: int) -> int:
     )
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _cerrar_local_cerrado(item_id: int, user_id: int) -> None:
     with patch(
         "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
@@ -172,8 +162,9 @@ def test_pr11_1f_dos_actuaciones_mismo_iniciador_ot_historica_bloquea(app_ctx) -
     assert resolved is None
 
     count_ini_antes = _count_actuaciones_iniciador(ini.id)
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
     with pytest.raises(RutaPublicarDebugError) as exc_info:
-        _setup_borrador_con_iniciador(ini, numero_ot=ot2, fecha_ruta=hoy)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     _assert_ot_consumida_por_otro_flujo(exc_info.value, ot_num=ot2)
     assert _count_actuaciones_iniciador(ini.id) == count_ini_antes
     assert Actuaciones.query.filter(Actuaciones.orden_trabajo_id == ot2_id).count() == 1
@@ -201,8 +192,9 @@ def test_pr11_1f_republicar_misma_ot_rechaza_local_cerrado(app_ctx) -> None:
     assert act_db.contraproducencia == "LOCAL CERRADO"
 
     count_ini_antes = _count_actuaciones_iniciador(ini.id)
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
     with pytest.raises(RutaPublicarDebugError) as exc_info:
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=hoy)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     _assert_ot_consumida_por_otro_flujo(exc_info.value, ot_num=ot_num)
 
     db.session.expire_all()

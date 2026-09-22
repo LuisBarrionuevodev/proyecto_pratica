@@ -34,9 +34,6 @@ from app.domains.denuncias.services.denuncias_service import crear_denuncia_con_
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import (
@@ -67,16 +64,6 @@ def _uniq(prefix: str) -> str:
 def _fecha_fixture_aislada() -> date:
     """Día aislado para evitar colisiones en BD compartida."""
     return fecha_fixture_aislada()
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _migration_pr72_aplicada() -> bool:
@@ -143,12 +130,6 @@ def _setup_ruta_y_publicar(ini_ids: list[int], *, fecha_ruta: date | None = None
         grupo_id=grupo.id,
         iniciador_ids=ini_ids,
     )
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=unique_ot_numero(),
-        )
     db.session.commit()
     publicar_ruta_trabajo(ruta_id=ruta.id)
     return (
@@ -256,7 +237,7 @@ def test_cargar_actuacion_no_contamina_denuncia(app_ctx, require_pr72_migration,
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 
@@ -383,7 +364,7 @@ def test_historial_dni_agrupa_sin_prefill_operativo(app_ctx, require_pr72_migrat
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 
@@ -433,7 +414,7 @@ def test_denuncia_fork_preserva_domicilio_historico(app_ctx, require_pr72_migrat
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 
@@ -520,7 +501,7 @@ def test_denuncia_numero_no_hereda_titular(app_ctx, require_pr72_migration, monk
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 
@@ -572,7 +553,7 @@ def test_cambio_titular_denuncia_t0_t1_t2(app_ctx, require_pr72_migration, monke
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 
@@ -657,7 +638,7 @@ def test_denuncia_mismo_titular_explicito_valido(app_ctx, require_pr72_migration
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 
@@ -736,7 +717,7 @@ def test_historial_no_agrupa_denuncia_pendiente_sin_titular(
         if u is None:
             pytest.skip("Se requiere usuario activo")
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
 

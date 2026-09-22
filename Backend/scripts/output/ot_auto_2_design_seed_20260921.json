@@ -1,0 +1,404 @@
+{
+  "ticket": "OT-AUTO.2",
+  "date": "2026-09-21",
+  "status": "DESIGN_CLOSED",
+  "writes_executed": false,
+  "database": "digitaliza_sandbox",
+  "storage_format": {
+    "column": "orden_trabajo.numero_acta",
+    "db_type": "VARCHAR(6) NOT NULL",
+    "stores_literal_string": true,
+    "both_formats_coexist": true,
+    "examples": [
+      {"stored": "089861", "numeric_value": 89861, "note": "QA manual 2026-09-21 con leading zero"},
+      {"stored": "004377", "numeric_value": 4377, "note": "admin import stream"},
+      {"stored": "899969", "numeric_value": 899969, "note": "test fixture, 6 dígitos sin cero inicial"},
+      {"stored": "092544", "numeric_value": 92544, "note": "manual QA publicada mismo día"}
+    ],
+    "normalization_on_input": "acta_6() → zfill(6) si isdigit(); aplica al crear, no al leer DB",
+    "ui_display_today": "mayoría muestra numero_acta crudo; mapa usa raw sin re-pad"
+  },
+  "display_format": {
+    "function": "format_ot_display(sequence_value: int) → str",
+    "rule": "zero-padding MÍNIMO 6 dígitos; sin truncar por encima de 6",
+    "examples": [
+      {"sequence": 89861, "display": "089861"},
+      {"sequence": 89862, "display": "089862"},
+      {"sequence": 999999, "display": "999999"},
+      {"sequence": 1000000, "display": "1000000"}
+    ],
+    "schema_blocker": "VARCHAR(6) impide almacenar 1000000+ sin migración a VARCHAR(10)",
+    "migration_required_for_million": true,
+    "diag_ot_auto_1_error": {
+      "incorrect": "max=899969 → next=899970 → display=089970",
+      "why_wrong": "089970 es el display de valor 89970, NO de 899970. 899970 ya tiene 6 dígitos y se muestra 899970.",
+      "corrected_understanding": "sequence integer y display string son conceptos distintos; acta_6 aplica min-width 6, no recorta"
+    }
+  },
+  "recent_real_ot_analysis": {
+    "methodology": "Read-only sandbox; clasificación por calle/anio/actuación/ruta/patrón",
+    "last_100_by_id_summary": {
+      "highest_id": 12106,
+      "top_rows": [
+        {"id": 12106, "numero_acta": "089861", "num_val": 89861, "anio": 2026, "actuacion_id": null, "ruta_item_id": 8140, "estado_ruta": "BORRADOR", "classification": "REAL_QA_MANUAL"},
+        {"id": 12105, "numero_acta": "092544", "num_val": 92544, "actuacion_id": 11478, "ruta_item_id": 8139, "estado_ruta": "PUBLICADA", "classification": "REAL_QA_MANUAL_RANDOM"},
+        {"id": 12104, "numero_acta": "092545", "num_val": 92545, "classification": "REAL_QA_MANUAL_RANDOM"},
+        {"id": 12103, "numero_acta": "092546", "num_val": 92546, "classification": "REAL_QA_MANUAL_RANDOM"},
+        {"id": 12095, "numero_acta": "004377", "num_val": 4377, "classification": "REAL_ADMIN_IMPORT_STREAM"}
+      ],
+      "pattern": "No hay una única secuencia global hoy; conviven stream admin 004xxx, QA manual disperso y fixtures test"
+    },
+    "last_100_by_date_summary": {
+      "note": "Coincide con by_id para registros recientes; años futuros 2090+ son test"
+    },
+    "last_100_by_numeric_summary": {
+      "top_numeric": [
+        {"id": 2309, "numero_acta": "999999", "classification": "TEST_CONFIRMADA"},
+        {"id": 4881, "numero_acta": "899969", "classification": "TEST_CONFIRMADA"},
+        {"id": 12106, "numero_acta": "089861", "num_val": 89861, "rank_among_089xxx": "highest real in 089xxx band"}
+      ],
+      "conclusion": "MAX(numérico) NO representa secuencia operativa real"
+    },
+    "last_published_route_ots_top": [
+      {"id": 12105, "display": "092544", "fecha_ruta": "2026-09-23"},
+      {"id": 12104, "display": "092545"},
+      {"id": 12103, "display": "092546"},
+      {"id": 12098, "display": "095237", "fecha_ruta": "2026-09-21"},
+      {"id": 12095, "display": "004377", "fecha_ruta": "2026-09-21", "stream": "admin_import"}
+    ],
+    "operational_streams_identified": [
+      {"name": "admin_import_xlsx", "range": "004353–004377", "sequential": true, "protected_manifest": true},
+      {"name": "qa_manual_disperso", "examples": ["089861", "092544–092546", "095237"], "sequential": false},
+      {"name": "test_fixtures", "examples": ["899969", "999999", "Pr111_* calles"], "exclude_from_seed": true}
+    ]
+  },
+  "high_range_analysis": {
+    "zone_089700_090100": {
+      "records_in_band": 2,
+      "rows": [
+        {
+          "id": 12106,
+          "numero_acta": "089861",
+          "num_val": 89861,
+          "anio": 2026,
+          "created_at": "2026-09-21T19:45:56",
+          "actuacion_id": null,
+          "ruta_item_id": 8140,
+          "estado_ruta": "BORRADOR",
+          "classification": "REAL_QA_MANUAL",
+          "note": "OT observada en QA ACT-HIST; asignada manual en borrador, sin publicar aún"
+        },
+        {
+          "id": 7401,
+          "numero_acta": "089929",
+          "num_val": 89929,
+          "anio": 2096,
+          "actuacion_id": 6960,
+          "classification": "TEST_CONFIRMADA",
+          "note": "año imposible operativo"
+        }
+      ],
+      "last_real_in_band": {"id": 12106, "display": "089861", "sequence_value": 89861},
+      "continuity": "No hay secuencia continua 0897xx–0901xx; solo QA puntual + test"
+    },
+    "zone_899000_899999": {
+      "count": 3,
+      "rows": [
+        {
+          "id": 4881,
+          "numero_acta": "899969",
+          "anio": 2026,
+          "calle": "Pr111_759574",
+          "actuacion_id": 4701,
+          "ruta_item_id": null,
+          "classification": "TEST_CONFIRMADA",
+          "verdict": "NO usar como seed"
+        },
+        {
+          "id": 4650,
+          "numero_acta": "899860",
+          "calle": "Pr111_759574",
+          "classification": "TEST_CONFIRMADA"
+        },
+        {
+          "id": 6864,
+          "numero_acta": "899460",
+          "calle": "HotfixNot747827",
+          "classification": "TEST_CONFIRMADA"
+        }
+      ],
+      "verdict": "Rango 899xxx en sandbox es QA/backend tests, no producción"
+    },
+    "qa_patterns": {
+      "999_star_count": 14,
+      "8999xx_count": 3,
+      "future_anio_ge_2090": 205,
+      "non_numeric_count": 740,
+      "non_numeric_pattern": "hex-like 6 chars (random test generators), no afectan secuencia"
+    }
+  },
+  "cross_year_duplicates": [
+    {
+      "numero_acta": "000562",
+      "occurrences": [
+        {"id": 10775, "anio": 2024, "actuacion_id": 10142, "classification": "REAL_LEGACY"},
+        {"id": 628, "anio": 2026, "actuacion_id": 617, "ruta_item_id": 221, "classification": "REAL_LEGACY"}
+      ],
+      "verdict": "Preservar ambas; datos reales en distintos años"
+    },
+    {
+      "numero_acta": "267807",
+      "occurrences": [
+        {"id": 5434, "anio": 2026, "ruta_item_id": 3858, "classification": "INDETERMINADA"},
+        {"id": 8170, "anio": 2095, "classification": "TEST_CONFIRMADA"}
+      ]
+    },
+    {
+      "numero_acta": "944179",
+      "occurrences": [
+        {"id": 4604, "anio": 2026, "actuacion_id": 4496, "classification": "REAL_LEGACY"},
+        {"id": 8415, "anio": 2098, "actuacion_id": 7921, "classification": "TEST_CONFIRMADA"}
+      ]
+    }
+  ],
+  "legacy_uniqueness_strategy": {
+    "options_evaluated": {
+      "OPTION_A": {
+        "description": "Limpiar duplicados + UNIQUE(numero_acta)",
+        "risk": "ALTO — renumerar documentos históricos reales",
+        "rejected": true
+      },
+      "OPTION_B": {
+        "description": "Mantener UNIQUE(numero_acta,anio); contador garantiza globalidad en servicio",
+        "risk": "MEDIO — mismo display podría existir en otro año legacy; confusión humana",
+        "acceptable": true
+      },
+      "OPTION_C": {
+        "description": "numero_secuencia_global BIGINT NULL UNIQUE; legacy NULL; nuevas OT con secuencia",
+        "risk": "BAJO — separa identidad nueva de legado",
+        "recommended": true
+      }
+    },
+    "recommended_option": "OPTION_C",
+    "rationale": [
+      "3 duplicados cross-año incluyen datos REAL_LEGACY que no deben renumerarse",
+      "Secuencia nueva necesita identidad matemática BIGINT, no derivada de MAX(numero_acta)",
+      "numero_acta pasa a ser representación formateada de numero_secuencia_global para OT automáticas",
+      "Legacy conserva numero_acta histórico con numero_secuencia_global=NULL"
+    ],
+    "legacy_preservation": "NO renumerar documentos históricos; globalidad aplica desde cutover OT-AUTO"
+  },
+  "recommended_seed": {
+    "sequence_integer_next_value": 89862,
+    "display_next": "089862",
+    "NOT_using": [899970, 899969, 92547, 481284],
+    "seed_evidence": {
+      "last_real_reference_ot": {
+        "id": 12106,
+        "numero_acta": "089861",
+        "sequence_value": 89861,
+        "date": "2026-09-21",
+        "context": "QA manual ACT-HIST en borrador; alineado con ejemplo producto 89861→89862",
+        "classification": "REAL_QA_MANUAL"
+      },
+      "admin_import_ceiling": {
+        "max_in_protected_stream": 4377,
+        "display": "004377",
+        "note": "Stream separado; no compite con secuencia 089xxx si contador inicia en 89862"
+      },
+      "excluded_from_seed": {
+        "899969": "TEST fixture Pr111_*",
+        "092544_092546": "manual QA random mismo día, no secuencia institucional",
+        "481284": "outlier sin actuación, probable error test"
+      },
+      "product_spec_alignment": "Ejemplo 89861→89862→89863 coincide con QA 089861 observado"
+    },
+    "proposed_next_value": 89862,
+    "proposed_display": "089862",
+    "initialisation_sql_concept": "INSERT orden_trabajo_contador (id=1, next_value=89862) — ejecutar solo en implementación con manifest firmado"
+  },
+  "sequence_schema": {
+    "table": "orden_trabajo_contador",
+    "columns": [
+      {"name": "id", "type": "TINYINT", "constraint": "PK, singleton=1"},
+      {"name": "next_value", "type": "BIGINT NOT NULL"},
+      {"name": "updated_at", "type": "DATETIME"},
+      {"name": "updated_by_user_id", "type": "INT FK users NULL"}
+    ],
+    "lock": "SELECT ... FOR UPDATE en publicar y PATCH admin"
+  },
+  "audit_schema": {
+    "table": "orden_trabajo_contador_audit",
+    "columns": [
+      "id PK",
+      "old_value BIGINT NOT NULL",
+      "new_value BIGINT NOT NULL",
+      "reason VARCHAR(255) NOT NULL",
+      "actor_user_id INT FK users NOT NULL",
+      "created_at DATETIME NOT NULL"
+    ],
+    "policy": "Append-only; nunca borrar historial"
+  },
+  "orden_trabajo_model_extension": {
+    "new_column": "numero_secuencia_global BIGINT NULL UNIQUE",
+    "legacy_rows": "NULL",
+    "auto_rows": "NOT NULL = valor asignado del contador",
+    "numero_acta": "format(numero_secuencia_global) para automáticas; legacy sin cambio",
+    "numero_acta_column_migration": "VARCHAR(6) → VARCHAR(10) para soportar ≥1000000"
+  },
+  "publish_transaction": {
+    "endpoint": "POST /rutas-trabajo/<ruta_id>/publicar",
+    "body": "sin números OT",
+    "steps": [
+      "BEGIN",
+      "SELECT ruta_trabajo FOR UPDATE",
+      "SELECT orden_trabajo_contador FOR UPDATE",
+      "revalidar PUBLICABLE (grupos, inspectores≥2, items, iniciadores PLANIFICADO; SIN orden_trabajo_id)",
+      "items = ORDER BY ruta_grupo.id, ruta_item.id",
+      "n = COUNT(items)",
+      "start = contador.next_value",
+      "FOR EACH item: seq = start+i; ot = INSERT orden_trabajo(numero_secuencia_global=seq, numero_acta=format(seq), anio/mes=ruta.fecha); item.orden_trabajo_id=ot.id",
+      "FOR EACH item: crear/reutilizar Actuaciones con orden_trabajo_id; item.actuacion_id; estados EN_PROCESO/EN_EJECUCION",
+      "contador.next_value = start + n",
+      "ruta.estado_ruta = PUBLICADA",
+      "COMMIT"
+    ],
+    "rollback": "cualquier error → ROLLBACK total; contador no avanza",
+    "actuacion_timing": "Actuación NO existe antes de publicar; se crea o reutiliza DENTRO de la misma transacción al asignar OT",
+    "response": "items[].orden_trabajo con números definitivos asignados"
+  },
+  "counter_patch_transaction": {
+    "endpoint": "PATCH /ordenes-trabajo/contador",
+    "auth": "admin only (@require_role)",
+    "body": {"next_value": "int", "reason": "string required"},
+    "rules": {
+      "forward": "new > current → OK + audit",
+      "no_op": "new == current → 200 sin audit",
+      "backward": "new < current → 422/409"
+    },
+    "concurrency": "FOR UPDATE misma fila singleton que publicar; serializable"
+  },
+  "assignment_changes": {
+    "remove_ui": [
+      "input OT", "Guardar OT", "QUITAR OT",
+      "chips OT guardada/pendiente/no guardada",
+      "alert ítems sin OT", "otDraftByItem"
+    ],
+    "remove_blockers": [
+      "computeAsignacionContinuarMapaFinal itemsSinOt",
+      "evaluarPublicacionRuta orden_trabajo_id null check",
+      "toast sin OT guardada"
+    ],
+    "preserve": ["mover", "quitar", "grupos", "inspectores", "pool"]
+  },
+  "continuar_mapa_final_blockers": {
+    "ot_participates": false,
+    "remaining_conditions": [
+      "hayTrabajoParaMapa: totalEnPool > 0 OR itemsActivos.length > 0",
+      "opcional futuro: grupos con inspectores mínimos (hoy validado solo al publicar)"
+    ],
+    "removed": "itemsSinOt.length === 0"
+  },
+  "map_final_changes": {
+    "remove_per_item": "O. trabajo NNNNNN · MM/YYYY en tarjetas/popup/print pre-publicación",
+    "add_header": {
+      "primary": "Próxima OT: 089862",
+      "secondary": "Ítems a publicar: N",
+      "tertiary": "Rango estimado: 089862–089865",
+      "wording": "estimado — sin reserva hasta PUBLICAR"
+    },
+    "admin_edit": "Próxima OT: 089862 [Editar] — solo contador, no OT individual",
+    "refresh": "GET contador al entrar mapa; re-fetch tras error; sin lock"
+  },
+  "legacy_endpoint_policy": {
+    "PATCH_orden_trabajo": {
+      "path": "/rutas-trabajo/<ruta_id>/items/<item_id>/orden-trabajo",
+      "current": "set_orden_trabajo_on_item + get_or_create",
+      "future": "DEPRECATE — 410 Gone tras cutover frontend, o 403 si ruta != BORRADOR",
+      "never": "mutar OT de ruta PUBLICADA o ítem con actuacion_id"
+    },
+    "DELETE_orden_trabajo": {
+      "path": "/rutas-trabajo/<ruta_id>/items/<item_id>/orden-trabajo",
+      "future": "DEPRECATE junto con PATCH"
+    },
+    "grid_cargar_actuacion": {
+      "path": "POST /actuaciones/",
+      "policy": "CONSERVAR — workflow fuera de rutas; OT manual; no consume contador automático"
+    },
+    "act_hist": {
+      "policy": "carga_solo_comprobacion → sin OT; oficio→ruta→publicar → consume contador"
+    }
+  },
+  "immutability": {
+    "after_publish": [
+      "orden_trabajo_id inmutable en RutaItem",
+      "numero_acta / numero_secuencia_global inmutables",
+      "rechazar PATCH/DELETE orden-trabajo",
+      "update_service no debe cambiar OT de actuación publicada en ruta"
+    ],
+    "no_realizado": "OT consumida permanece; contador NO decrementa",
+    "retry": "nuevo RutaItem + nueva publicación → nueva OT del contador"
+  },
+  "import_historico": {
+    "policy": "Import de OT históricas NO consume contador",
+    "if_imported_number_gte_next": "requiere acción admin consciente (PATCH contador + reason) o rechazo",
+    "numero_secuencia_global": "NULL en imports legacy"
+  },
+  "migration_plan": {
+    "required": true,
+    "steps": [
+      "1. CREATE orden_trabajo_contador + audit",
+      "2. ALTER orden_trabajo ADD numero_secuencia_global BIGINT NULL UNIQUE",
+      "3. ALTER orden_trabajo MODIFY numero_acta VARCHAR(10) NOT NULL",
+      "4. SEED contador next_value=89862 con manifest/evidencia",
+      "5. NO backfill numero_secuencia_global en legacy"
+    ],
+    "not_required": "limpiar duplicados cross-año; renumerar históricos"
+  },
+  "rollout_plan": {
+    "order": [
+      "1. backend + migration + contador seed",
+      "2. publicar automático (feature flag opcional)",
+      "3. tests A–Z",
+      "4. frontend sin OT en asignación + preview mapa",
+      "5. deprecar endpoints PATCH/DELETE OT",
+      "6. QA test → sandbox → QA manual"
+    ],
+    "critical": "NO desplegar frontend sin backend que ya no exija OT manual en publicar",
+    "borrador_transition": "Ítems borrador con OT manual previa: ignorar OT pre-asignada; asignar nueva al primer publicar post-cutover"
+  },
+  "test_matrix": {
+    "A": "asignación sin OT avanza a mapa",
+    "B": "mapa sin OT por ítem; header estimado",
+    "C": "GET preview contador",
+    "D": "publicar 1 ítem → next",
+    "E": "publicar N ítems → rango",
+    "F": "contador avanza N",
+    "G": "orden grupo.id + item.id",
+    "H": "fallo publicar → rollback contador",
+    "I": "concurrencia dos publicaciones",
+    "J": "sin duplicados numero_secuencia_global",
+    "K": "admin PATCH forward",
+    "L": "admin PATCH backward reject",
+    "M": "non-admin PATCH reject",
+    "N": "OT publicada inmutable",
+    "O": "NO_REALIZADO conserva OT",
+    "P": "retry nueva OT",
+    "Q": "ACT-HIST admin no consume",
+    "R": "ACT-HIST→ruta publicar sí consume",
+    "S": "regression workflow normal",
+    "T": "legacy endpoint no muta publicada",
+    "U": "seed ignora 899969/999999",
+    "V": "preview display 089862 para sequence 89862",
+    "W": "dos publishes concurrentes rangos distintos",
+    "X": "publish vs PATCH contador concurrente serializado",
+    "Y": "cross-year legacy 000562 preservado",
+    "Z": "PATCH item OT en publicada → 403/410"
+  },
+  "recommended_option": "OPTION_C",
+  "corrige_ot_auto_1": {
+    "wrong_seed": {"next": 899970, "display": "089970"},
+    "correct_seed": {"next": 89862, "display": "089862"},
+    "reason": "Secuencia operativa de producto/QA está en banda 89xxx; 899969 es test; 089970≠899970"
+  }
+}

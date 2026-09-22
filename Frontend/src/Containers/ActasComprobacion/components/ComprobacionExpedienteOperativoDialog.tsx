@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { Stack } from "@mui/material";
+
+import { AppButton, ConfirmDialog } from "../../../ui";
 
 import type { IActuacionesPendientesItem } from "../../../api/actuacionesPendientesApi";
 import {
@@ -37,6 +40,8 @@ export type ComprobacionExpedienteOperativoDialogProps = {
   modalApiError: string | null;
   saving: boolean;
   onGuardar: () => void | Promise<void>;
+  declaringSinExpediente?: boolean;
+  onDeclararSinExpediente?: () => void | Promise<void>;
 };
 
 /**
@@ -54,11 +59,16 @@ export function ComprobacionExpedienteOperativoDialog({
   modalApiError,
   saving,
   onGuardar,
+  declaringSinExpediente = false,
+  onDeclararSinExpediente,
 }: ComprobacionExpedienteOperativoDialogProps) {
   useNotifyModalApiError(modalApiError, open);
+  const [confirmSinExpOpen, setConfirmSinExpOpen] = useState(false);
+
+  const busy = saving || declaringSinExpediente;
 
   const handleClose = () => {
-    if (saving) return;
+    if (busy) return;
     onClose();
   };
 
@@ -116,8 +126,31 @@ export function ComprobacionExpedienteOperativoDialog({
               />
             </CrudFormSlot>
           </DocumentalCrudSection>
+          {onDeclararSinExpediente ? (
+            <AppButton
+              dsVariant="secondary"
+              dsSize="sm"
+              disabled={busy}
+              onClick={() => setConfirmSinExpOpen(true)}
+            >
+              No tenemos expediente de envío
+            </AppButton>
+          ) : null}
         </Stack>
       )}
+      <ConfirmDialog
+        open={confirmSinExpOpen}
+        title="Sin expediente de envío"
+        message="Esta comprobación pasará directamente a Pendiente de oficio y quedará registrada sin expediente de envío."
+        confirmLabel="Confirmar"
+        cancelLabel="Cancelar"
+        loading={declaringSinExpediente}
+        onCancel={() => setConfirmSinExpOpen(false)}
+        onConfirm={() => {
+          setConfirmSinExpOpen(false);
+          void onDeclararSinExpediente?.();
+        }}
+      />
     </CrudGlassDialog>
   );
 }

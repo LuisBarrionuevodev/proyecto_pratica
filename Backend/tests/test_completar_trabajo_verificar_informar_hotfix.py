@@ -34,16 +34,6 @@ from app.models import (
 from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _unique_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
@@ -239,17 +229,29 @@ def _mk_oficio_sin_contrib_en_act_ni_ini(suf: str) -> tuple[RutaItem, Actuacione
 
 
 def test_verificar_nueva_inspeccion_con_contrib_manual_cierra_ok(app_ctx) -> None:
+    from tests.test_act_hist_8_identity_completion import (
+        _mk_historical_origin_act,
+        _mk_verificar_item_from_origin,
+    )
+
     suf = uuid4().hex[:8]
-    item, act, _ini, u = _mk_oficio_sin_contrib_en_act_ni_ini(suf)
+    origin = _mk_historical_origin_act(suf)
+    item, act, _ini, u = _mk_verificar_item_from_origin(origin, suf)
     doc = str(random.randint(10_000_000, 40_000_000))
+    rubro = Rubro.query.first()
+    if rubro is None:
+        pytest.skip("Se requiere rubro en catálogo")
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
         {
             "tipo_actuacion": "VERIFICAR E INFORMAR",
             "realizo_nueva_inspeccion": True,
             "acta_inspeccion_num": _unique_num(),
             "doc_nro": doc,
-            "contrib_apellido": "Manual",
-            "contrib_nombre": "Carga",
+            "contrib_apellido": "Pérez",
+            "contrib_nombre": "Juan",
+            "rubro_nombre": rubro.nombre,
+            "calle": origin.domicilio.calle,
+            "numero": origin.domicilio.numero,
         }
     )
     cerrar_completar_trabajo_por_ruta_item(

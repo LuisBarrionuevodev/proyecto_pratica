@@ -1,5 +1,4 @@
 import type { IRutaGrupoMin, IRutaIniciadorPendienteRow, IRutaItemMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
-import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
 
 /** Punto en el mapa (cuando existan coordenadas en datos). */
 export type RutaMapaMarker = {
@@ -118,7 +117,6 @@ export type RutasMapaOperativoViewProps = {
   onEliminarGrupo?: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem?: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem?: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem?: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
   /**
    * Preview histórica: ruta no BORRADOR (p. ej. PUBLICADA). Solo lectura para edición/publicación;
    * documentación PDF oficial desde `documentos/` (resumen + órdenes de salida).

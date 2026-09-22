@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from app.domains.rutas_trabajo.routes.ruta_pool_dia import ruta_pool_dia
 from app.domains.rutas_trabajo.schemas.ruta_pool_dia_in import RutaPoolDiaCreateIn
-from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import (
     create_ruta_pool_dia_entry,
     ruta_pool_dia_row_dict,
@@ -29,7 +29,7 @@ def create_pool():
         row = create_ruta_pool_dia_entry(
             fecha=payload.fecha,
             turno_id=payload.turno_id,
-            usuario_id=get_current_user_id_or_fallback(),
+            usuario_id=get_current_user_id(),
             iniciador_ruta_id=int(payload.iniciador_ruta_id),
             origen_tipo=payload.origen_tipo,
             actuacion_id=payload.actuacion_id,

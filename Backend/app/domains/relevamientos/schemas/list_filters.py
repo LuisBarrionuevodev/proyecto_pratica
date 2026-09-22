@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from pydantic import BaseModel, field_validator, model_validator
@@ -84,7 +84,7 @@ class RelevamientosListFilters(BaseModel):
                 self.hasta = date(today.year, 12, 31)
             else:
                 next_month = date(today.year, today.month + 1, 1)
-                self.hasta = date(next_month.year, next_month.month, next_month.day - 1)
+                self.hasta = next_month - timedelta(days=1)
         elif self.desde is not None and self.hasta is None:
             self.hasta = date.today()
         elif self.desde is None and self.hasta is not None:

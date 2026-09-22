@@ -9,6 +9,7 @@ from .domicilio import Domicilio
 from .notificacion import Notificacion
 from .motivo import Motivo
 from .orden_de_trabajo import OrdenTrabajo
+from .orden_trabajo_contador import OrdenTrabajoContador, OrdenTrabajoContadorAudit
 from .comprobacion import Comprobacion
 from .oficio import Oficio
 from .expediente import Expediente
@@ -60,6 +61,8 @@ __all__ = [
     "Notificacion",
     "Motivo",
     "OrdenTrabajo",
+    "OrdenTrabajoContador",
+    "OrdenTrabajoContadorAudit",
     "Comprobacion",
     "Oficio",
     "Expediente",

@@ -33,7 +33,7 @@ from app.domains.indicadores.services.indicadores_operativos_queries import (
 )
 from app.domains.indicadores.services.indicadores_resumen_service import (
     _comprobacion_labarda_filter,
-    _notificacion_labarda_exists,
+    _notificacion_labrada_kpi_filter,
     _realizados_inspector_coincide,
 )
 from app.domains.indicadores.utils.contraproducencia_indicador_buckets import (
@@ -420,6 +420,10 @@ def query_inspectores_no_realizadas(
             continue
         seen_pairs.add(pair_key)
 
+        if is_contraproducencia_excluida_valor(contra):
+            if not motivo or is_contraproducencia_excluida_valor(motivo):
+                continue
+
         if iid not in per_inspector:
             per_inspector[iid] = {
                 "nombre": nombre,
@@ -502,10 +506,7 @@ def query_actas_por_inspector(
 
     notif = _actas_count_por_inspector(
         sq,
-        and_(
-            Actuaciones.notificacion_id.isnot(None),
-            _notificacion_labarda_exists(),
-        ),
+        _notificacion_labrada_kpi_filter(),
         inspector_id,
     )
     comp = _actas_count_por_inspector(sq, _comprobacion_labarda_filter(), inspector_id)

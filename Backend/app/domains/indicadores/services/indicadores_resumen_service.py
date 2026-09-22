@@ -21,6 +21,9 @@ from app.domains.indicadores.services.indicadores_operativos_queries import (
     query_top_rubros_cierres_realizados,
     visitas_realizadas_por_tipo_iniciador as _visitas_realizadas_por_tipo_iniciador,
 )
+from app.domains.indicadores.utils.notificacion_labrada_kpi_filters import (
+    notificacion_origen_reinspeccion_referencial_exists,
+)
 from app.domains.indicadores.schemas.resumen_out import (
     ActasLabradasMesItem,
     ActasPorTipo,
@@ -136,9 +139,27 @@ def _notificacion_labarda_exists():
 
     Excluye previas documentales (notificación sin filas en `notificacion_motivo`).
     """
-    return exists().where(
-        notificacion_motivo.c.notificacion_id == Actuaciones.notificacion_id,
-        notificacion_motivo.c.deleted_at.is_(None),
+    return (
+        exists()
+        .where(
+            notificacion_motivo.c.notificacion_id == Actuaciones.notificacion_id,
+            notificacion_motivo.c.deleted_at.is_(None),
+        )
+        .correlate(Actuaciones)
+    )
+
+
+def _notificacion_labrada_kpi_filter():
+    """
+    Notificación que cuenta como acta labrada en KPI (no FK referencial de origen).
+
+    Excluye ``act.notificacion_id == iniciador.notificacion_id`` en cierres
+    ``REINSPECCION_NOTIFICACION`` (misma regla que ``notificacion_es_origen_...``).
+    """
+    return and_(
+        Actuaciones.notificacion_id.isnot(None),
+        _notificacion_labarda_exists(),
+        ~notificacion_origen_reinspeccion_referencial_exists(),
     )
 
 
@@ -161,48 +182,47 @@ def _comprobacion_labarda_filter():
 
 
 def _count_actas_labradas(sq) -> ActasPorTipo:
-    """Cuenta actas labradas (no referencias) en el conjunto filtrado."""
-    n_insp = (
+    """Cuenta actas labradas (no referencias) en el conjunto filtrado (una sola ronda SQL)."""
+    inspeccion_sq = (
         db.session.query(func.count(Inspeccion.id))
         .join(sq, sq.c.id == Inspeccion.actuacion_id)
-        .scalar()
-        or 0
+        .scalar_subquery()
     )
-    n_notif = (
+    notificacion_sq = (
         db.session.query(func.count(func.distinct(Actuaciones.id)))
         .join(sq, sq.c.id == Actuaciones.id)
-        .filter(
-            Actuaciones.notificacion_id.isnot(None),
-            _notificacion_labarda_exists(),
-        )
-        .scalar()
-        or 0
+        .filter(_notificacion_labrada_kpi_filter())
+        .scalar_subquery()
     )
-    n_comp = (
+    comprobacion_sq = (
         db.session.query(func.count(func.distinct(Actuaciones.id)))
         .join(sq, sq.c.id == Actuaciones.id)
         .filter(_comprobacion_labarda_filter())
-        .scalar()
-        or 0
+        .scalar_subquery()
     )
-    n_clau = (
+    clausura_sq = (
         db.session.query(func.count(Clausura.id))
         .join(sq, sq.c.id == Clausura.actuacion_id)
-        .scalar()
-        or 0
+        .scalar_subquery()
     )
-    n_deco = (
+    decomiso_sq = (
         db.session.query(func.count(Decomiso.id))
         .join(sq, sq.c.id == Decomiso.actuacion_id)
-        .scalar()
-        or 0
+        .scalar_subquery()
     )
+    row = db.session.query(
+        inspeccion_sq,
+        notificacion_sq,
+        comprobacion_sq,
+        clausura_sq,
+        decomiso_sq,
+    ).one()
     return ActasPorTipo(
-        inspeccion=int(n_insp),
-        notificacion=int(n_notif),
-        comprobacion=int(n_comp),
-        clausura=int(n_clau),
-        decomiso=int(n_deco),
+        inspeccion=int(row[0] or 0),
+        notificacion=int(row[1] or 0),
+        comprobacion=int(row[2] or 0),
+        clausura=int(row[3] or 0),
+        decomiso=int(row[4] or 0),
     )
 
 
@@ -242,10 +262,7 @@ def _monthly_acta_counts(sq, acta_kind: str) -> dict[tuple[int, int], int]:
         q = (
             db.session.query(*ym, func.count(func.distinct(Actuaciones.id)))
             .join(sq, sq.c.id == Actuaciones.id)
-            .filter(
-                Actuaciones.notificacion_id.isnot(None),
-                _notificacion_labarda_exists(),
-            )
+            .filter(_notificacion_labrada_kpi_filter())
         )
     elif acta_kind == "comprobacion":
         q = (
@@ -443,6 +460,7 @@ def query_top_motivos_notificacion(
     inspector_id: Optional[int] = None,
     *,
     limit: int = _TOP_MOTIVOS_LIMIT,
+    realizadas_sq=None,
 ) -> list[tuple[str, int]]:
     """
     Top motivos de notificaciones labradas (cada fila de ``notificacion_motivo`` cuenta).
@@ -453,7 +471,10 @@ def query_top_motivos_notificacion(
     Retorno:
         Lista de (nombre catálogo, ocurrencias) ordenada por frecuencia.
     """
-    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    if realizadas_sq is None:
+        sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    else:
+        sq = realizadas_sq
     rows = (
         db.session.query(Motivo.nombre, func.count(notificacion_motivo.c.motivo))
         .select_from(notificacion_motivo)
@@ -463,6 +484,8 @@ def query_top_motivos_notificacion(
         .filter(
             notificacion_motivo.c.deleted_at.is_(None),
             Actuaciones.notificacion_id.isnot(None),
+            _notificacion_labarda_exists(),
+            ~notificacion_origen_reinspeccion_referencial_exists(),
             Motivo.nombre.isnot(None),
             func.trim(Motivo.nombre) != "",
         )
@@ -481,13 +504,17 @@ def query_top_motivos_comprobacion(
     inspector_id: Optional[int] = None,
     *,
     limit: int = _TOP_MOTIVOS_LIMIT,
+    realizadas_sq=None,
 ) -> list[tuple[str, int]]:
     """
     Top motivos de comprobaciones labradas (excluye ``PENDIENTE`` y vacíos).
 
     Agrupa por etiqueta normalizada para unificar variantes de texto.
     """
-    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    if realizadas_sq is None:
+        sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    else:
+        sq = realizadas_sq
     rows = (
         db.session.query(Comprobacion.motivo, func.count(Comprobacion.id))
         .join(Actuaciones, Actuaciones.comprobacion_id == Comprobacion.id)
@@ -517,6 +544,8 @@ def query_decomiso_kg_por_rubro(
     hasta: date,
     distrito_id: Optional[int] = None,
     inspector_id: Optional[int] = None,
+    *,
+    realizadas_sq=None,
 ) -> list[tuple[str, float]]:
     """
     Suma ``decomiso.cantidad`` (kg) por rubro del domicilio efectivo de la visita.
@@ -524,7 +553,10 @@ def query_decomiso_kg_por_rubro(
     Domicilio efectivo: ``coalesce(Actuaciones.domicilio_id, IniciadorRuta.domicilio_id)``.
     Actuaciones sin rubro se agrupan en ``Sin rubro``.
     """
-    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    if realizadas_sq is None:
+        sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    else:
+        sq = realizadas_sq
     rubro_label = func.coalesce(Rubro.nombre, _SIN_RUBRO_LABEL)
     rows = (
         db.session.query(rubro_label, func.sum(Decomiso.cantidad))

@@ -7,16 +7,6 @@ import pytest
 from app.database import db
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_segundo_oficio_no_duplica_comprobacion(app_ctx, client, auth_headers) -> None:
     """POST /oficio sobre actuación con oficio previo crea otro Oficio, misma comprobación."""
     from tests.test_comprobacion_pendientes_reinspeccion_bandeja import (

@@ -16,6 +16,7 @@ export interface GridRow {
 
   // Data columns (with spaces, as backend expects)
   "ID"?: number | null;
+  "Cargar solo comprobación"?: boolean | null;
   "Fecha actuación"?: string | null;
   "Fecha"?: string | null;
   "Tipo actuación"?: string | null;

@@ -128,31 +128,6 @@ export interface IndicadoresEjecutivoResponse {
   actas_por_tipo: IndicadoresActasPorTipo;
 }
 
-export interface IndicadoresPendientesKpis {
-  relevamientos_pendientes: number;
-  reinspecciones_oficio_pendientes: number;
-  reinspecciones_notificacion_pendientes: number;
-  denuncias_pendientes: number;
-  pendientes_geolocalizacion: number;
-}
-
-export interface IndicadoresDistritoPendientesItem {
-  distrito_id: number;
-  distrito_codigo: string;
-  distrito_nombre: string;
-  relevamientos: number;
-  denuncias: number;
-  reinspecciones_oficio: number;
-  reinspecciones_notificacion: number;
-  sin_geolocalizacion: number;
-  total: number;
-}
-
-export interface IndicadoresPendientesResponse {
-  kpis: IndicadoresPendientesKpis;
-  distritos_con_mas_pendientes: IndicadoresDistritoPendientesItem[];
-}
-
 export interface IndicadoresRubroCantidadItem {
   rubro: string;
   cantidad: number;
@@ -284,21 +259,6 @@ export const fetchIndicadoresEjecutivo = async (
   params: IndicadoresFiltrosParams
 ): Promise<IndicadoresEjecutivoResponse> => {
   const { data } = await apiClient.get<IndicadoresEjecutivoResponse>("/api/indicadores/ejecutivo", {
-    params: buildIndicadoresQuery(params),
-  });
-  return data;
-};
-
-/**
- * Bloque operativo / pendientes (cola planificable por tipo de iniciador).
- *
- * Parámetros: rango sobre fecha_origen del iniciador; filtros opcionales.
- * Retorno: KPIs por tipo y tabla por distrito (puede venir vacía).
- */
-export const fetchIndicadoresPendientes = async (
-  params: IndicadoresFiltrosParams
-): Promise<IndicadoresPendientesResponse> => {
-  const { data } = await apiClient.get<IndicadoresPendientesResponse>("/api/indicadores/pendientes", {
     params: buildIndicadoresQuery(params),
   });
   return data;

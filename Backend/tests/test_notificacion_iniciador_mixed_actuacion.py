@@ -37,16 +37,6 @@ def _ensure_active_user() -> None:
     db.session.flush()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_inspeccion_mixta_vencida_es_elegible_y_sync_materializa_idempotente(app_ctx) -> None:
     try:
         _ensure_active_user()
@@ -94,7 +84,7 @@ def test_inspeccion_mixta_vencida_es_elegible_y_sync_materializa_idempotente(app
         eligible = _eligible_inspecciones_vencidas()
         assert any(a.id == act.id for a in eligible), "actuación mixta debe ser elegible"
 
-        o1 = sync_iniciadores_reinspeccion_notificacion()
+        o1 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
         assert o1.created >= 1
 
         ini = (
@@ -110,7 +100,7 @@ def test_inspeccion_mixta_vencida_es_elegible_y_sync_materializa_idempotente(app
         assert ini.actuacion_id == act.id
         assert "paralelo" in (ini.observaciones or "").lower()
 
-        o2 = sync_iniciadores_reinspeccion_notificacion()
+        o2 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
         assert o2.created == 0
         assert o2.skipped_already_blocking >= 1
     finally:

@@ -7,11 +7,11 @@ from app.domains.actuaciones.services.notificacion_iniciador_service import (
 )
 
 
-def test_cargar_actuacion_canal_post_hook_invoca_sync(monkeypatch):
+def test_cargar_actuacion_canal_post_hook_invoca_sync(monkeypatch, actor_user_id):
     calls: list[int] = []
 
-    def _spy() -> SyncReinspeccionNotificacionOutcome:
-        calls.append(1)
+    def _spy(*, actor_user_id: int) -> SyncReinspeccionNotificacionOutcome:
+        calls.append(int(actor_user_id))
         return SyncReinspeccionNotificacionOutcome(
             created=0,
             eligible_notificaciones=0,
@@ -28,5 +28,7 @@ def test_cargar_actuacion_canal_post_hook_invoca_sync(monkeypatch):
         ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
     )
 
-    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
-    assert calls == [1]
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal(
+        actor_user_id=actor_user_id
+    )
+    assert calls == [actor_user_id]

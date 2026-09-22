@@ -43,16 +43,6 @@ from tests.test_ruta_publicar_orden_trabajo_pr11_1 import (
 )
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _unique_ot() -> str:
     return uuid4().hex[:6].upper()
 

@@ -66,16 +66,6 @@ def _ensure_active_user() -> User:
     return u
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _payload_relevamiento(*, calle: str, numero: str, rev: Relevador, rub: Rubro, fecha: str = "2026-06-10"):
     return {
         "fecha": fecha,
@@ -326,7 +316,7 @@ def test_denuncia_sigue_funcionando(app_ctx, monkeypatch) -> None:
     try:
         u = _ensure_active_user()
         monkeypatch.setattr(
-            "app.domains.denuncias.services.denuncias_service._get_current_user_id",
+            "app.domains.denuncias.services.denuncias_service.get_current_user_id",
             lambda: int(u.id),
         )
         dom = Domicilio(calle=_uniq("DenPR2"), numero="99")
@@ -461,7 +451,7 @@ def test_pr1_creacion_iniciador_sigue_heredando(app_ctx) -> None:
         db.session.add(act)
         db.session.flush()
 
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
         ini = IniciadorRuta.query.filter_by(notificacion_id=noti.id).first()
         assert ini is not None
         assert ini.domicilio_id == dom.id

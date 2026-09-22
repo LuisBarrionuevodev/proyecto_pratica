@@ -1,0 +1,4603 @@
+{
+  "generated_at": "2026-09-20T17:32:35.213690",
+  "ticket": "PREDEPLOY-CLEANUP.3K-DIAG",
+  "mode": "READ_ONLY_DIAG",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2703,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "notificacion": 2478,
+      "comprobacion": 1530,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525
+    },
+    "baseline_ok": true,
+    "drift": [],
+    "users_test_fk_free_post_3j2": 833
+  },
+  "candidate_universe": {
+    "notificaciones_blocked_25": {
+      "ids": [
+        1603,
+        1606,
+        1607,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1884,
+        1885,
+        1888,
+        2090,
+        2340,
+        2500,
+        2589,
+        2620,
+        2725,
+        2728,
+        2744,
+        2754,
+        2755,
+        2756,
+        2799,
+        2856,
+        2860
+      ],
+      "exist_count": 25,
+      "expected": 25,
+      "ok": true
+    },
+    "comprobacion_2289": {
+      "id": 2289,
+      "exists": true
+    },
+    "expedientes_27": {
+      "ids": [
+        1972,
+        1975,
+        1976,
+        1985,
+        1987,
+        2073,
+        2074,
+        2075,
+        2139,
+        2140,
+        2141,
+        2334,
+        2761,
+        2900,
+        2914,
+        2942,
+        2980,
+        2983,
+        2991,
+        3006,
+        3007,
+        3008,
+        3034,
+        3040,
+        3044,
+        3103,
+        3104
+      ],
+      "exist_count": 27,
+      "expected": 27,
+      "ok": true,
+      "duplicate_check": true
+    },
+    "oficio_1662": {
+      "id": 1662,
+      "exists": true,
+      "expected_numero": "OF8430"
+    }
+  },
+  "fk_graph": {
+    "notificacion": {
+      "incoming": [
+        {
+          "child_table": "actuaciones",
+          "child_column": "notificacion_id",
+          "delete_rule": "SET NULL",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "expediente",
+          "child_column": "notificacion_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "iniciador_ruta",
+          "child_column": "notificacion_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "notificacion_motivo",
+          "child_column": "notificacion_id",
+          "delete_rule": "CASCADE",
+          "update_rule": "NO ACTION"
+        }
+      ],
+      "outgoing": []
+    },
+    "comprobacion": {
+      "incoming": [
+        {
+          "child_table": "actuaciones",
+          "child_column": "comprobacion_id",
+          "delete_rule": "SET NULL",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "expediente",
+          "child_column": "comprobacion_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "iniciador_ruta",
+          "child_column": "comprobacion_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "oficio",
+          "child_column": "comprobacion_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        }
+      ],
+      "outgoing": []
+    },
+    "expediente": {
+      "incoming": [],
+      "outgoing": [
+        {
+          "parent_table": "comprobacion",
+          "child_column": "comprobacion_id",
+          "parent_column": "id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "parent_table": "notificacion",
+          "child_column": "notificacion_id",
+          "parent_column": "id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "parent_table": "oficio",
+          "child_column": "oficio_id",
+          "parent_column": "id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        }
+      ]
+    },
+    "oficio": {
+      "incoming": [
+        {
+          "child_table": "expediente",
+          "child_column": "oficio_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "child_table": "iniciador_ruta",
+          "child_column": "oficio_id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        }
+      ],
+      "outgoing": [
+        {
+          "parent_table": "comprobacion",
+          "child_column": "comprobacion_id",
+          "parent_column": "id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        },
+        {
+          "parent_table": "juzgado_catalogo",
+          "child_column": "juzgado_id",
+          "parent_column": "id",
+          "delete_rule": "RESTRICT",
+          "update_rule": "CASCADE"
+        }
+      ]
+    }
+  },
+  "graph_edges": [
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1603
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 1972
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1606
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 1975
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1607
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 1976
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1663
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 1985
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1665
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 1987
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1785
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2073
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1786
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2074
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1787
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2075
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1884
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2139
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1885
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2140
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 1888
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2141
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2090
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2334
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2340
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2761
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2500
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2900
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2589
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2914
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2620
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2942
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2725
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2980
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2728
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2983
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2744
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 2991
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2754
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3006
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2755
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3007
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2756
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3008
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2799
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3034
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2856
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3040
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "notificacion",
+        "id": 2860
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3044
+      },
+      "fk": "expediente.notificacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "comprobacion",
+        "id": 2289
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3103
+      },
+      "fk": "expediente.comprobacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "comprobacion",
+        "id": 2289
+      },
+      "to": {
+        "entity": "expediente",
+        "id": 3104
+      },
+      "fk": "expediente.comprobacion_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "expediente",
+        "id": 3104
+      },
+      "to": {
+        "entity": "oficio",
+        "id": 1662
+      },
+      "fk": "expediente.oficio_id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "from": {
+        "entity": "oficio",
+        "id": 1662
+      },
+      "to": {
+        "entity": "comprobacion",
+        "id": 2289
+      },
+      "fk": "oficio.comprobacion_id",
+      "delete_rule": "RESTRICT"
+    }
+  ],
+  "connected_components": {
+    "count": 26,
+    "components": [
+      {
+        "component_id": "ADMIN-COMP-01",
+        "notificacion_ids": [
+          1603
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          1972
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-02",
+        "notificacion_ids": [
+          1606
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          1975
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-03",
+        "notificacion_ids": [
+          1607
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          1976
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-04",
+        "notificacion_ids": [
+          1663
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          1985
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-05",
+        "notificacion_ids": [
+          1665
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          1987
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-06",
+        "notificacion_ids": [
+          1785
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2073
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-07",
+        "notificacion_ids": [
+          1786
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2074
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-08",
+        "notificacion_ids": [
+          1787
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2075
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-09",
+        "notificacion_ids": [
+          1884
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2139
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-10",
+        "notificacion_ids": [
+          1885
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2140
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-11",
+        "notificacion_ids": [
+          1888
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2141
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-12",
+        "notificacion_ids": [
+          2090
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2334
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-13",
+        "notificacion_ids": [],
+        "comprobacion_ids": [
+          2289
+        ],
+        "expediente_ids": [
+          3103,
+          3104
+        ],
+        "oficio_ids": [
+          1662
+        ],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-14",
+        "notificacion_ids": [
+          2340
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2761
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-15",
+        "notificacion_ids": [
+          2500
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2900
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-16",
+        "notificacion_ids": [
+          2589
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2914
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-17",
+        "notificacion_ids": [
+          2620
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2942
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-18",
+        "notificacion_ids": [
+          2725
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2980
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-19",
+        "notificacion_ids": [
+          2728
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2983
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-20",
+        "notificacion_ids": [
+          2744
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          2991
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-21",
+        "notificacion_ids": [
+          2754
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          3006
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-22",
+        "notificacion_ids": [
+          2755
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          3007
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-23",
+        "notificacion_ids": [
+          2756
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          3008
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-24",
+        "notificacion_ids": [
+          2799
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          3034
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-25",
+        "notificacion_ids": [
+          2856
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          3040
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      },
+      {
+        "component_id": "ADMIN-COMP-26",
+        "notificacion_ids": [
+          2860
+        ],
+        "comprobacion_ids": [],
+        "expediente_ids": [
+          3044
+        ],
+        "oficio_ids": [],
+        "other_entities": []
+      }
+    ],
+    "simple_notif_exp_count": 25,
+    "comp_2289_component_count": 1
+  },
+  "notification_exp_mapping": [
+    {
+      "notificacion_id": 1603,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1603,
+        "numero_acta": "90CB0A",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-09",
+        "created_at": "2026-07-29 12:48:52",
+        "updated_at": "2026-07-29 12:48:52"
+      },
+      "expedientes": [
+        {
+          "id": 1972,
+          "numero_expediente": "32478D",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-29",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1603,
+          "oficio_id": null,
+          "created_at": "2026-07-29 12:48:52",
+          "updated_at": "2026-07-29 12:48:52"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1606,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1606,
+        "numero_acta": "E70430",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-09",
+        "created_at": "2026-07-29 12:49:03",
+        "updated_at": "2026-07-29 12:49:03"
+      },
+      "expedientes": [
+        {
+          "id": 1975,
+          "numero_expediente": "13A6E2",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-29",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1606,
+          "oficio_id": null,
+          "created_at": "2026-07-29 12:49:03",
+          "updated_at": "2026-07-29 12:49:03"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1607,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1607,
+        "numero_acta": "7E5371",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-09",
+        "created_at": "2026-07-29 12:49:03",
+        "updated_at": "2026-07-29 12:49:03"
+      },
+      "expedientes": [
+        {
+          "id": 1976,
+          "numero_expediente": "EC7766",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-29",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1607,
+          "oficio_id": null,
+          "created_at": "2026-07-29 12:49:03",
+          "updated_at": "2026-07-29 12:49:03"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1663,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1663,
+        "numero_acta": "9304BD",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-09",
+        "created_at": "2026-07-29 12:51:27",
+        "updated_at": "2026-07-29 12:51:27"
+      },
+      "expedientes": [
+        {
+          "id": 1985,
+          "numero_expediente": "EB8D29",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-29",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1663,
+          "oficio_id": null,
+          "created_at": "2026-07-29 12:51:27",
+          "updated_at": "2026-07-29 12:51:27"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1665,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1665,
+        "numero_acta": "CB8939",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-09",
+        "created_at": "2026-07-29 12:51:28",
+        "updated_at": "2026-07-29 12:51:28"
+      },
+      "expedientes": [
+        {
+          "id": 1987,
+          "numero_expediente": "8CB8CF",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-29",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1665,
+          "oficio_id": null,
+          "created_at": "2026-07-29 12:51:28",
+          "updated_at": "2026-07-29 12:51:28"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1785,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1785,
+        "numero_acta": "692BAE",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-10",
+        "created_at": "2026-07-30 10:22:13",
+        "updated_at": "2026-07-30 10:22:13"
+      },
+      "expedientes": [
+        {
+          "id": 2073,
+          "numero_expediente": "54AA47",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-30",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1785,
+          "oficio_id": null,
+          "created_at": "2026-07-30 10:22:13",
+          "updated_at": "2026-07-30 10:22:13"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1786,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1786,
+        "numero_acta": "B2ABC7",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-10",
+        "created_at": "2026-07-30 10:22:13",
+        "updated_at": "2026-07-30 10:22:13"
+      },
+      "expedientes": [
+        {
+          "id": 2074,
+          "numero_expediente": "9651F9",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-30",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1786,
+          "oficio_id": null,
+          "created_at": "2026-07-30 10:22:13",
+          "updated_at": "2026-07-30 10:22:13"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1787,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1787,
+        "numero_acta": "98B295",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-10",
+        "created_at": "2026-07-30 10:22:13",
+        "updated_at": "2026-07-30 10:22:13"
+      },
+      "expedientes": [
+        {
+          "id": 2075,
+          "numero_expediente": "BEB661",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-30",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1787,
+          "oficio_id": null,
+          "created_at": "2026-07-30 10:22:13",
+          "updated_at": "2026-07-30 10:22:13"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1884,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1884,
+        "numero_acta": "A4789B",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-10",
+        "created_at": "2026-07-30 11:00:02",
+        "updated_at": "2026-07-30 11:00:02"
+      },
+      "expedientes": [
+        {
+          "id": 2139,
+          "numero_expediente": "2276CD",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-30",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1884,
+          "oficio_id": null,
+          "created_at": "2026-07-30 11:00:02",
+          "updated_at": "2026-07-30 11:00:02"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1885,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1885,
+        "numero_acta": "AA361F",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-10",
+        "created_at": "2026-07-30 11:00:02",
+        "updated_at": "2026-07-30 11:00:02"
+      },
+      "expedientes": [
+        {
+          "id": 2140,
+          "numero_expediente": "89BB81",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-30",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1885,
+          "oficio_id": null,
+          "created_at": "2026-07-30 11:00:02",
+          "updated_at": "2026-07-30 11:00:02"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 1888,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 1888,
+        "numero_acta": "EC49C2",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-10",
+        "created_at": "2026-07-30 11:00:10",
+        "updated_at": "2026-07-30 11:00:10"
+      },
+      "expedientes": [
+        {
+          "id": 2141,
+          "numero_expediente": "3BFD21",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-30",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 1888,
+          "oficio_id": null,
+          "created_at": "2026-07-30 11:00:10",
+          "updated_at": "2026-07-30 11:00:10"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2090,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2090,
+        "numero_acta": "D9305E",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-11",
+        "created_at": "2026-07-31 11:06:52",
+        "updated_at": "2026-07-31 11:06:52"
+      },
+      "expedientes": [
+        {
+          "id": 2334,
+          "numero_expediente": "6A63A4",
+          "anio": "2026",
+          "fecha_expediente": "2026-07-31",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2090,
+          "oficio_id": null,
+          "created_at": "2026-07-31 11:06:52",
+          "updated_at": "2026-07-31 11:06:52"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2340,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2340,
+        "numero_acta": "9B27D0",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-29",
+        "created_at": "2026-08-18 10:32:13",
+        "updated_at": "2026-08-18 10:32:13"
+      },
+      "expedientes": [
+        {
+          "id": 2761,
+          "numero_expediente": "4F0D6E",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2340,
+          "oficio_id": null,
+          "created_at": "2026-08-18 10:32:13",
+          "updated_at": "2026-08-18 10:32:13"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2500,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2500,
+        "numero_acta": "9778BD",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-29",
+        "created_at": "2026-08-18 10:38:49",
+        "updated_at": "2026-08-18 10:38:49"
+      },
+      "expedientes": [
+        {
+          "id": 2900,
+          "numero_expediente": "50B03D",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2500,
+          "oficio_id": null,
+          "created_at": "2026-08-18 10:38:49",
+          "updated_at": "2026-08-18 10:38:49"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2589,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2589,
+        "numero_acta": "26A60D",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-29",
+        "created_at": "2026-08-18 10:53:34",
+        "updated_at": "2026-08-18 10:53:35"
+      },
+      "expedientes": [
+        {
+          "id": 2914,
+          "numero_expediente": "056ADA",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2589,
+          "oficio_id": null,
+          "created_at": "2026-08-18 10:53:35",
+          "updated_at": "2026-08-18 10:53:35"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2620,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2620,
+        "numero_acta": "F754C5",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 10:55:36",
+        "updated_at": "2026-08-18 10:55:36"
+      },
+      "expedientes": [
+        {
+          "id": 2942,
+          "numero_expediente": "F54D0C",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2620,
+          "oficio_id": null,
+          "created_at": "2026-08-18 10:55:36",
+          "updated_at": "2026-08-18 10:55:36"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2725,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2725,
+        "numero_acta": "ACCBA6",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-29",
+        "created_at": "2026-08-18 10:58:26",
+        "updated_at": "2026-08-18 10:58:26"
+      },
+      "expedientes": [
+        {
+          "id": 2980,
+          "numero_expediente": "55E4BA",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2725,
+          "oficio_id": null,
+          "created_at": "2026-08-18 10:58:26",
+          "updated_at": "2026-08-18 10:58:26"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2728,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2728,
+        "numero_acta": "5440D4",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-29",
+        "created_at": "2026-08-18 10:58:38",
+        "updated_at": "2026-08-18 10:58:38"
+      },
+      "expedientes": [
+        {
+          "id": 2983,
+          "numero_expediente": "DD2CE6",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2728,
+          "oficio_id": null,
+          "created_at": "2026-08-18 10:58:38",
+          "updated_at": "2026-08-18 10:58:38"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2744,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2744,
+        "numero_acta": "CF82AD",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 11:01:03",
+        "updated_at": "2026-08-18 11:01:03"
+      },
+      "expedientes": [
+        {
+          "id": 2991,
+          "numero_expediente": "CF82BD",
+          "anio": "2026",
+          "fecha_expediente": "2026-06-28",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2744,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:01:03",
+          "updated_at": "2026-08-18 11:01:03"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2754,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2754,
+        "numero_acta": "CF857C",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 11:01:04",
+        "updated_at": "2026-08-18 11:01:05"
+      },
+      "expedientes": [
+        {
+          "id": 3006,
+          "numero_expediente": "CF858D",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2754,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:01:05",
+          "updated_at": "2026-08-18 11:01:05"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2755,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2755,
+        "numero_acta": "CF85BD",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 11:01:05",
+        "updated_at": "2026-08-18 11:01:05"
+      },
+      "expedientes": [
+        {
+          "id": 3007,
+          "numero_expediente": "CF85CD",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2755,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:01:05",
+          "updated_at": "2026-08-18 11:01:05"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2756,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2756,
+        "numero_acta": "CF85FD",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 11:01:05",
+        "updated_at": "2026-08-18 11:01:05"
+      },
+      "expedientes": [
+        {
+          "id": 3008,
+          "numero_expediente": "CF860E",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2756,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:01:05",
+          "updated_at": "2026-08-18 11:01:05"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2799,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2799,
+        "numero_acta": "24905D",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 11:03:03",
+        "updated_at": "2026-08-18 11:03:03"
+      },
+      "expedientes": [
+        {
+          "id": 3034,
+          "numero_expediente": "24905E",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2799,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:03:03",
+          "updated_at": "2026-08-18 11:03:03"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2856,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2856,
+        "numero_acta": "C664CE",
+        "anio": 2026,
+        "mes": 6,
+        "fecha_notificacion": "2026-06-01",
+        "created_at": "2026-08-18 11:04:15",
+        "updated_at": "2026-08-18 11:04:15"
+      },
+      "expedientes": [
+        {
+          "id": 3040,
+          "numero_expediente": "C664CF",
+          "anio": "2026",
+          "fecha_expediente": "2026-06-28",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2856,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:04:15",
+          "updated_at": "2026-08-18 11:04:15"
+        }
+      ],
+      "expediente_count": 1
+    },
+    {
+      "notificacion_id": 2860,
+      "notificacion_exists": true,
+      "notificacion": {
+        "id": 2860,
+        "numero_acta": "C664DE",
+        "anio": 2026,
+        "mes": 3,
+        "fecha_notificacion": "2026-07-29",
+        "created_at": "2026-08-18 11:04:16",
+        "updated_at": "2026-08-18 11:04:16"
+      },
+      "expedientes": [
+        {
+          "id": 3044,
+          "numero_expediente": "C664DF",
+          "anio": "2026",
+          "fecha_expediente": "2026-08-18",
+          "tipo_expediente": "PRORROGA_NOTIFICACION",
+          "comprobacion_id": null,
+          "notificacion_id": 2860,
+          "oficio_id": null,
+          "created_at": "2026-08-18 11:04:16",
+          "updated_at": "2026-08-18 11:04:16"
+        }
+      ],
+      "expediente_count": 1
+    }
+  ],
+  "comp2289_graph": {
+    "comprobacion": {
+      "id": 2289,
+      "numero_acta": "8430AF",
+      "anio": 2026,
+      "mes": 4,
+      "created_at": "2026-09-02 11:51:22"
+    },
+    "expedientes": [
+      {
+        "id": 3103,
+        "numero_expediente": "8430B0",
+        "anio": "2026",
+        "fecha_expediente": "2026-04-06",
+        "tipo_expediente": "ENVIO_ACTA",
+        "comprobacion_id": 2289,
+        "notificacion_id": null,
+        "oficio_id": null,
+        "created_at": "2026-09-02 11:51:22"
+      },
+      {
+        "id": 3104,
+        "numero_expediente": "8430B2",
+        "anio": "2026",
+        "fecha_expediente": "2026-06-15",
+        "tipo_expediente": "RESPUESTA_OFICIO",
+        "comprobacion_id": 2289,
+        "notificacion_id": null,
+        "oficio_id": 1662,
+        "created_at": "2026-09-02 11:51:22"
+      }
+    ],
+    "oficio_1662": {
+      "id": 1662,
+      "numero_oficio": "OF8430",
+      "anio": 2026,
+      "fecha_oficio": "2026-06-15",
+      "causa": null,
+      "juzgado_id": 922,
+      "comprobacion_id": 2289
+    },
+    "oficios_by_comprobacion": [
+      {
+        "id": 1662,
+        "numero_oficio": "OF8430",
+        "comprobacion_id": 2289
+      }
+    ],
+    "expedientes_by_oficio": [
+      {
+        "id": 3104,
+        "numero_expediente": "8430B2",
+        "oficio_id": 1662,
+        "comprobacion_id": 2289
+      }
+    ],
+    "surviving_refs": {
+      "actuaciones_to_comprobacion": [],
+      "iniciador_ruta_to_comprobacion": [],
+      "iniciador_ruta_to_oficio": []
+    },
+    "relationships": {
+      "exp_3103_refs_comprobacion": true,
+      "exp_3103_refs_oficio": false,
+      "exp_3104_refs_comprobacion": true,
+      "exp_3104_refs_oficio": true,
+      "oficio_refs_comprobacion": true,
+      "expediente_refs_oficio_direct": [
+        3104
+      ],
+      "both_expedientes_share_comprobacion": true
+    },
+    "logical_diagram": [
+      "comprobacion 2289",
+      "  | expediente.comprobacion_id (RESTRICT)",
+      "  +-> expediente 3103 (ENVIO_ACTA) numero=8430B0",
+      "  +-> expediente 3104 (RESPUESTA_OFICIO) numero=8430B2",
+      "        | expediente.oficio_id (RESTRICT)",
+      "        +-> oficio 1662 (OF8430)",
+      "              | oficio.comprobacion_id (RESTRICT) -> comprobacion 2289",
+      "              | oficio.juzgado_id -> juzgado 922"
+    ]
+  },
+  "oficio1662": {
+    "exists": true,
+    "id": 1662,
+    "numero_oficio": "OF8430",
+    "anio": 2026,
+    "fecha_oficio": "2026-06-15",
+    "causa": null,
+    "juzgado_id": 922,
+    "comprobacion_id": 2289,
+    "deleted_at": null,
+    "juzgado": {
+      "id": 922,
+      "codigo": "JZSO8430AB",
+      "nombre": "Jz Solo Env 8430AC"
+    },
+    "expediente_refs": [
+      {
+        "id": 3104,
+        "numero_expediente": "8430B2",
+        "tipo_expediente": "RESPUESTA_OFICIO"
+      }
+    ],
+    "incoming_fk": {
+      "total_refs": 1,
+      "by_fk": {
+        "expediente.oficio_id": {
+          "count": 1,
+          "delete_rule": "RESTRICT"
+        }
+      }
+    }
+  },
+  "juzgado_analysis": {
+    "juzgado_id": 922,
+    "nombre": "Jz Solo Env 8430AC",
+    "codigo": "JZSO8430AB",
+    "classification": "CONFIRMADO_TEST",
+    "is_canonical": false,
+    "matches_test_pattern": true,
+    "policy": "NO_DELETE juzgado en esta fase"
+  },
+  "xlsx_cross": {
+    "notificacion": [
+      {
+        "id": 1603,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1606,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1607,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1663,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1665,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1785,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1786,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1787,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1884,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1885,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1888,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2090,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2340,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2500,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2589,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2620,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2725,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2728,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2744,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2754,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2755,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2756,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2799,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2856,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2860,
+        "status": "NO_MATCH_XLSX"
+      }
+    ],
+    "comprobacion": [
+      {
+        "id": 2289,
+        "status": "NO_MATCH_XLSX"
+      }
+    ],
+    "expediente": [
+      {
+        "id": 1972,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1975,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1976,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1985,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 1987,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2073,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2074,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2075,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2139,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2140,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2141,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2334,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2761,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2900,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2914,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2942,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2980,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2983,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 2991,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3006,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3007,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3008,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3034,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3040,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3044,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3103,
+        "status": "NO_MATCH_XLSX"
+      },
+      {
+        "id": 3104,
+        "status": "NO_MATCH_XLSX"
+      }
+    ],
+    "oficio": [
+      {
+        "id": 1662,
+        "status": "NO_MATCH_XLSX"
+      }
+    ]
+  },
+  "protected_cross": {
+    "notificacion": {
+      "universe_count": 25,
+      "protected_intersection": [],
+      "protected_intersection_count": 0,
+      "xlsx_direct_intersection": [],
+      "xlsx_direct_count": 0
+    },
+    "comprobacion": {
+      "universe_count": 1,
+      "protected_intersection": [],
+      "protected_intersection_count": 0,
+      "xlsx_direct_intersection": [],
+      "xlsx_direct_count": 0
+    },
+    "expediente": {
+      "universe_count": 27,
+      "protected_intersection": [],
+      "protected_intersection_count": 0,
+      "xlsx_direct_intersection": [],
+      "xlsx_direct_count": 0
+    },
+    "oficio": {
+      "universe_count": 1,
+      "protected_intersection": [],
+      "protected_intersection_count": 0,
+      "xlsx_direct_intersection": [],
+      "xlsx_direct_count": 0
+    }
+  },
+  "test_provenance": {
+    "source_119": {
+      "expected_15_of_25": 15,
+      "actual_count": 15,
+      "members": [
+        1603,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1884,
+        1885,
+        2090,
+        2340,
+        2500,
+        2589,
+        2725,
+        2754,
+        2860
+      ],
+      "per_notificacion": [
+        {
+          "notificacion_id": 1603,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            1972
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[1972]"
+          ]
+        },
+        {
+          "notificacion_id": 1606,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            1975
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[1975]"
+          ]
+        },
+        {
+          "notificacion_id": 1607,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            1976
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[1976]"
+          ]
+        },
+        {
+          "notificacion_id": 1663,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            1985
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[1985]"
+          ]
+        },
+        {
+          "notificacion_id": 1665,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            1987
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[1987]"
+          ]
+        },
+        {
+          "notificacion_id": 1785,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2073
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2073]"
+          ]
+        },
+        {
+          "notificacion_id": 1786,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2074
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2074]"
+          ]
+        },
+        {
+          "notificacion_id": 1787,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2075
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2075]"
+          ]
+        },
+        {
+          "notificacion_id": 1884,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2139
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2139]"
+          ]
+        },
+        {
+          "notificacion_id": 1885,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2140
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2140]"
+          ]
+        },
+        {
+          "notificacion_id": 1888,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2141
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2141]"
+          ]
+        },
+        {
+          "notificacion_id": 2090,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2334
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2334]"
+          ]
+        },
+        {
+          "notificacion_id": 2340,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2761
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2761]"
+          ]
+        },
+        {
+          "notificacion_id": 2500,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2900
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2900]"
+          ]
+        },
+        {
+          "notificacion_id": 2589,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2914
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2914]"
+          ]
+        },
+        {
+          "notificacion_id": 2620,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2942
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2942]"
+          ]
+        },
+        {
+          "notificacion_id": 2725,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2980
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2980]"
+          ]
+        },
+        {
+          "notificacion_id": 2728,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2983
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2983]"
+          ]
+        },
+        {
+          "notificacion_id": 2744,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            2991
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[2991]"
+          ]
+        },
+        {
+          "notificacion_id": 2754,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            3006
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[3006]"
+          ]
+        },
+        {
+          "notificacion_id": 2755,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            3007
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[3007]"
+          ]
+        },
+        {
+          "notificacion_id": 2756,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            3008
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[3008]"
+          ]
+        },
+        {
+          "notificacion_id": 2799,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            3034
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[3034]"
+          ]
+        },
+        {
+          "notificacion_id": 2856,
+          "in_source_119": false,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            3040
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[3040]"
+          ]
+        },
+        {
+          "notificacion_id": 2860,
+          "in_source_119": true,
+          "actuaciones_refs": [],
+          "iniciador_ruta_refs": [],
+          "expediente_refs": [
+            3044
+          ],
+          "only_blocker_is_expediente": true,
+          "surviving_blockers": [
+            "expediente:[3044]"
+          ]
+        }
+      ]
+    },
+    "oficio_test_scan": {
+      "test_file_hits": [
+        {
+          "file": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py",
+          "pattern": "Jz Solo Env"
+        }
+      ],
+      "oficio_8430_in_tests": false
+    },
+    "expediente_patterns_8430": [
+      {
+        "expediente_id": 3103,
+        "id": 3103,
+        "numero_expediente": "8430B0",
+        "anio": "2026",
+        "fecha_expediente": "2026-04-06",
+        "tipo_expediente": "ENVIO_ACTA",
+        "comprobacion_id": 2289,
+        "notificacion_id": null,
+        "oficio_id": null,
+        "created_at": "2026-09-02 11:51:22",
+        "xlsx_cross": "NO_MATCH_XLSX",
+        "incoming_refs": {
+          "total_refs": 0,
+          "by_fk": {}
+        },
+        "external_blockers": [],
+        "linked_notificacion_id": null,
+        "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+        "classification_reasons": [
+          "comp_2289_chain_8430_pattern"
+        ]
+      },
+      {
+        "expediente_id": 3104,
+        "id": 3104,
+        "numero_expediente": "8430B2",
+        "anio": "2026",
+        "fecha_expediente": "2026-06-15",
+        "tipo_expediente": "RESPUESTA_OFICIO",
+        "comprobacion_id": 2289,
+        "notificacion_id": null,
+        "oficio_id": 1662,
+        "created_at": "2026-09-02 11:51:22",
+        "xlsx_cross": "NO_MATCH_XLSX",
+        "incoming_refs": {
+          "total_refs": 0,
+          "by_fk": {}
+        },
+        "external_blockers": [],
+        "linked_notificacion_id": null,
+        "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+        "classification_reasons": [
+          "comp_2289_chain_8430_pattern"
+        ]
+      }
+    ]
+  },
+  "timestamp_analysis": {
+    "notif_exp_pairs": [
+      {
+        "notificacion_id": 1603,
+        "expediente_id": 1972,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1606,
+        "expediente_id": 1975,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1607,
+        "expediente_id": 1976,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1663,
+        "expediente_id": 1985,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1665,
+        "expediente_id": 1987,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1785,
+        "expediente_id": 2073,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1786,
+        "expediente_id": 2074,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1787,
+        "expediente_id": 2075,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1884,
+        "expediente_id": 2139,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1885,
+        "expediente_id": 2140,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 1888,
+        "expediente_id": 2141,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2090,
+        "expediente_id": 2334,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2340,
+        "expediente_id": 2761,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2500,
+        "expediente_id": 2900,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2589,
+        "expediente_id": 2914,
+        "delta_seconds": 1.0,
+        "window": "<=2_sec"
+      },
+      {
+        "notificacion_id": 2620,
+        "expediente_id": 2942,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2725,
+        "expediente_id": 2980,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2728,
+        "expediente_id": 2983,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2744,
+        "expediente_id": 2991,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2754,
+        "expediente_id": 3006,
+        "delta_seconds": 1.0,
+        "window": "<=2_sec"
+      },
+      {
+        "notificacion_id": 2755,
+        "expediente_id": 3007,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2756,
+        "expediente_id": 3008,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2799,
+        "expediente_id": 3034,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2856,
+        "expediente_id": 3040,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      },
+      {
+        "notificacion_id": 2860,
+        "expediente_id": 3044,
+        "delta_seconds": 0.0,
+        "window": "same_second"
+      }
+    ],
+    "window_counts": {
+      "same_second": 23,
+      "<=2_sec": 2
+    },
+    "comp_exp_pairs": [
+      {
+        "expediente_id": 3103,
+        "delta_seconds": 0.0
+      },
+      {
+        "expediente_id": 3104,
+        "delta_seconds": 0.0
+      }
+    ],
+    "note": "timestamps secondary evidence only"
+  },
+  "expediente_classification": [
+    {
+      "expediente_id": 1972,
+      "id": 1972,
+      "numero_expediente": "32478D",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-29",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1603,
+      "oficio_id": null,
+      "created_at": "2026-07-29 12:48:52",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1603,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 1975,
+      "id": 1975,
+      "numero_expediente": "13A6E2",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-29",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1606,
+      "oficio_id": null,
+      "created_at": "2026-07-29 12:49:03",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1606,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 1976,
+      "id": 1976,
+      "numero_expediente": "EC7766",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-29",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1607,
+      "oficio_id": null,
+      "created_at": "2026-07-29 12:49:03",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1607,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 1985,
+      "id": 1985,
+      "numero_expediente": "EB8D29",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-29",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1663,
+      "oficio_id": null,
+      "created_at": "2026-07-29 12:51:27",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1663,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 1987,
+      "id": 1987,
+      "numero_expediente": "8CB8CF",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-29",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1665,
+      "oficio_id": null,
+      "created_at": "2026-07-29 12:51:28",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1665,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2073,
+      "id": 2073,
+      "numero_expediente": "54AA47",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-30",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1785,
+      "oficio_id": null,
+      "created_at": "2026-07-30 10:22:13",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1785,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2074,
+      "id": 2074,
+      "numero_expediente": "9651F9",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-30",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1786,
+      "oficio_id": null,
+      "created_at": "2026-07-30 10:22:13",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1786,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2075,
+      "id": 2075,
+      "numero_expediente": "BEB661",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-30",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1787,
+      "oficio_id": null,
+      "created_at": "2026-07-30 10:22:13",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1787,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2139,
+      "id": 2139,
+      "numero_expediente": "2276CD",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-30",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1884,
+      "oficio_id": null,
+      "created_at": "2026-07-30 11:00:02",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1884,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2140,
+      "id": 2140,
+      "numero_expediente": "89BB81",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-30",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1885,
+      "oficio_id": null,
+      "created_at": "2026-07-30 11:00:02",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1885,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2141,
+      "id": 2141,
+      "numero_expediente": "3BFD21",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-30",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 1888,
+      "oficio_id": null,
+      "created_at": "2026-07-30 11:00:10",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 1888,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 2334,
+      "id": 2334,
+      "numero_expediente": "6A63A4",
+      "anio": "2026",
+      "fecha_expediente": "2026-07-31",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2090,
+      "oficio_id": null,
+      "created_at": "2026-07-31 11:06:52",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2090,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2761,
+      "id": 2761,
+      "numero_expediente": "4F0D6E",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2340,
+      "oficio_id": null,
+      "created_at": "2026-08-18 10:32:13",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2340,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2900,
+      "id": 2900,
+      "numero_expediente": "50B03D",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2500,
+      "oficio_id": null,
+      "created_at": "2026-08-18 10:38:49",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2500,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2914,
+      "id": 2914,
+      "numero_expediente": "056ADA",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2589,
+      "oficio_id": null,
+      "created_at": "2026-08-18 10:53:35",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2589,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2942,
+      "id": 2942,
+      "numero_expediente": "F54D0C",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2620,
+      "oficio_id": null,
+      "created_at": "2026-08-18 10:55:36",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2620,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 2980,
+      "id": 2980,
+      "numero_expediente": "55E4BA",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2725,
+      "oficio_id": null,
+      "created_at": "2026-08-18 10:58:26",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2725,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 2983,
+      "id": 2983,
+      "numero_expediente": "DD2CE6",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2728,
+      "oficio_id": null,
+      "created_at": "2026-08-18 10:58:38",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2728,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 2991,
+      "id": 2991,
+      "numero_expediente": "CF82BD",
+      "anio": "2026",
+      "fecha_expediente": "2026-06-28",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2744,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:01:03",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2744,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 3006,
+      "id": 3006,
+      "numero_expediente": "CF858D",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2754,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:01:05",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2754,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 3007,
+      "id": 3007,
+      "numero_expediente": "CF85CD",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2755,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:01:05",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2755,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 3008,
+      "id": 3008,
+      "numero_expediente": "CF860E",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2756,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:01:05",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2756,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 3034,
+      "id": 3034,
+      "numero_expediente": "24905E",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2799,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:03:03",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2799,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 3040,
+      "id": 3040,
+      "numero_expediente": "C664CF",
+      "anio": "2026",
+      "fecha_expediente": "2026-06-28",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2856,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:04:15",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2856,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_orphan_test_notif_no_actuacion"
+      ]
+    },
+    {
+      "expediente_id": 3044,
+      "id": 3044,
+      "numero_expediente": "C664DF",
+      "anio": "2026",
+      "fecha_expediente": "2026-08-18",
+      "tipo_expediente": "PRORROGA_NOTIFICACION",
+      "comprobacion_id": null,
+      "notificacion_id": 2860,
+      "oficio_id": null,
+      "created_at": "2026-08-18 11:04:16",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": 2860,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "linked_source_119_orphan_notif"
+      ]
+    },
+    {
+      "expediente_id": 3103,
+      "id": 3103,
+      "numero_expediente": "8430B0",
+      "anio": "2026",
+      "fecha_expediente": "2026-04-06",
+      "tipo_expediente": "ENVIO_ACTA",
+      "comprobacion_id": 2289,
+      "notificacion_id": null,
+      "oficio_id": null,
+      "created_at": "2026-09-02 11:51:22",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": null,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "comp_2289_chain_8430_pattern"
+      ]
+    },
+    {
+      "expediente_id": 3104,
+      "id": 3104,
+      "numero_expediente": "8430B2",
+      "anio": "2026",
+      "fecha_expediente": "2026-06-15",
+      "tipo_expediente": "RESPUESTA_OFICIO",
+      "comprobacion_id": 2289,
+      "notificacion_id": null,
+      "oficio_id": 1662,
+      "created_at": "2026-09-02 11:51:22",
+      "xlsx_cross": "NO_MATCH_XLSX",
+      "incoming_refs": {
+        "total_refs": 0,
+        "by_fk": {}
+      },
+      "external_blockers": [],
+      "linked_notificacion_id": null,
+      "classification": "CONFIRMADO_TEST_EXPEDIENTE",
+      "classification_reasons": [
+        "comp_2289_chain_8430_pattern"
+      ]
+    }
+  ],
+  "oficio_classification": {
+    "oficio_id": 1662,
+    "xlsx_cross": "NO_MATCH_XLSX",
+    "classification": "CONFIRMADO_TEST_OFICIO",
+    "classification_reasons": [
+      "OF8430_comp2289_chain"
+    ]
+  },
+  "component_classification": {
+    "simple_components": [
+      {
+        "component_id": "ADMIN-COMP-01",
+        "notificacion_ids": [
+          1603
+        ],
+        "expediente_ids": [
+          1972
+        ],
+        "in_source_119": [
+          1603
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-02",
+        "notificacion_ids": [
+          1606
+        ],
+        "expediente_ids": [
+          1975
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-03",
+        "notificacion_ids": [
+          1607
+        ],
+        "expediente_ids": [
+          1976
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-04",
+        "notificacion_ids": [
+          1663
+        ],
+        "expediente_ids": [
+          1985
+        ],
+        "in_source_119": [
+          1663
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-05",
+        "notificacion_ids": [
+          1665
+        ],
+        "expediente_ids": [
+          1987
+        ],
+        "in_source_119": [
+          1665
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-06",
+        "notificacion_ids": [
+          1785
+        ],
+        "expediente_ids": [
+          2073
+        ],
+        "in_source_119": [
+          1785
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-07",
+        "notificacion_ids": [
+          1786
+        ],
+        "expediente_ids": [
+          2074
+        ],
+        "in_source_119": [
+          1786
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-08",
+        "notificacion_ids": [
+          1787
+        ],
+        "expediente_ids": [
+          2075
+        ],
+        "in_source_119": [
+          1787
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-09",
+        "notificacion_ids": [
+          1884
+        ],
+        "expediente_ids": [
+          2139
+        ],
+        "in_source_119": [
+          1884
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-10",
+        "notificacion_ids": [
+          1885
+        ],
+        "expediente_ids": [
+          2140
+        ],
+        "in_source_119": [
+          1885
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-11",
+        "notificacion_ids": [
+          1888
+        ],
+        "expediente_ids": [
+          2141
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-12",
+        "notificacion_ids": [
+          2090
+        ],
+        "expediente_ids": [
+          2334
+        ],
+        "in_source_119": [
+          2090
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-14",
+        "notificacion_ids": [
+          2340
+        ],
+        "expediente_ids": [
+          2761
+        ],
+        "in_source_119": [
+          2340
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-15",
+        "notificacion_ids": [
+          2500
+        ],
+        "expediente_ids": [
+          2900
+        ],
+        "in_source_119": [
+          2500
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-16",
+        "notificacion_ids": [
+          2589
+        ],
+        "expediente_ids": [
+          2914
+        ],
+        "in_source_119": [
+          2589
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-17",
+        "notificacion_ids": [
+          2620
+        ],
+        "expediente_ids": [
+          2942
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-18",
+        "notificacion_ids": [
+          2725
+        ],
+        "expediente_ids": [
+          2980
+        ],
+        "in_source_119": [
+          2725
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-19",
+        "notificacion_ids": [
+          2728
+        ],
+        "expediente_ids": [
+          2983
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-20",
+        "notificacion_ids": [
+          2744
+        ],
+        "expediente_ids": [
+          2991
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-21",
+        "notificacion_ids": [
+          2754
+        ],
+        "expediente_ids": [
+          3006
+        ],
+        "in_source_119": [
+          2754
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-22",
+        "notificacion_ids": [
+          2755
+        ],
+        "expediente_ids": [
+          3007
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-23",
+        "notificacion_ids": [
+          2756
+        ],
+        "expediente_ids": [
+          3008
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-24",
+        "notificacion_ids": [
+          2799
+        ],
+        "expediente_ids": [
+          3034
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-25",
+        "notificacion_ids": [
+          2856
+        ],
+        "expediente_ids": [
+          3040
+        ],
+        "in_source_119": [],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      },
+      {
+        "component_id": "ADMIN-COMP-26",
+        "notificacion_ids": [
+          2860
+        ],
+        "expediente_ids": [
+          3044
+        ],
+        "in_source_119": [
+          2860
+        ],
+        "status": "SAFE_SIMPLE_COMPONENT",
+        "reason": "orphan_test_notif_plus_test_expediente"
+      }
+    ],
+    "safe_simple_count": 25,
+    "blocked_simple_count": 0,
+    "component_2289": {
+      "status": "ALL_CONFIRMED_TEST_SAFE",
+      "expedientes_classification": {
+        "3103": "CONFIRMADO_TEST_EXPEDIENTE",
+        "3104": "CONFIRMADO_TEST_EXPEDIENTE"
+      },
+      "oficio_classification": "CONFIRMADO_TEST_OFICIO",
+      "surviving_non_admin_refs": {
+        "actuaciones": [],
+        "iniciador_comprobacion": [],
+        "iniciador_oficio": []
+      }
+    }
+  },
+  "safe_sets": {
+    "SAFE_ADMIN_NOTIFICACION": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860
+    ],
+    "SAFE_ADMIN_EXPEDIENTE": [
+      1972,
+      1975,
+      1976,
+      1985,
+      1987,
+      2073,
+      2074,
+      2075,
+      2139,
+      2140,
+      2141,
+      2334,
+      2761,
+      2900,
+      2914,
+      2942,
+      2980,
+      2983,
+      2991,
+      3006,
+      3007,
+      3008,
+      3034,
+      3040,
+      3044,
+      3103,
+      3104
+    ],
+    "SAFE_ADMIN_OFICIO": [
+      1662
+    ],
+    "SAFE_ADMIN_COMPROBACION": [
+      2289
+    ]
+  },
+  "blocked_sets": {
+    "KEEP_ADMIN_NOTIFICACION": [],
+    "KEEP_ADMIN_EXPEDIENTE": [],
+    "KEEP_ADMIN_OFICIO": [],
+    "KEEP_ADMIN_COMPROBACION": [],
+    "blocked_simple_reasons": [],
+    "component_2289_reason": "ALL_CONFIRMED_TEST_SAFE"
+  },
+  "delete_topology": {
+    "simple_components": {
+      "order": [
+        "expediente",
+        "notificacion"
+      ],
+      "per_component": [
+        {
+          "component_id": "ADMIN-COMP-01",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              1972
+            ],
+            "notificacion": [
+              1603
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-02",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              1975
+            ],
+            "notificacion": [
+              1606
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-03",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              1976
+            ],
+            "notificacion": [
+              1607
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-04",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              1985
+            ],
+            "notificacion": [
+              1663
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-05",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              1987
+            ],
+            "notificacion": [
+              1665
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-06",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2073
+            ],
+            "notificacion": [
+              1785
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-07",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2074
+            ],
+            "notificacion": [
+              1786
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-08",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2075
+            ],
+            "notificacion": [
+              1787
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-09",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2139
+            ],
+            "notificacion": [
+              1884
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-10",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2140
+            ],
+            "notificacion": [
+              1885
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-11",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2141
+            ],
+            "notificacion": [
+              1888
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-12",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2334
+            ],
+            "notificacion": [
+              2090
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-14",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2761
+            ],
+            "notificacion": [
+              2340
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-15",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2900
+            ],
+            "notificacion": [
+              2500
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-16",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2914
+            ],
+            "notificacion": [
+              2589
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-17",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2942
+            ],
+            "notificacion": [
+              2620
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-18",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2980
+            ],
+            "notificacion": [
+              2725
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-19",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2983
+            ],
+            "notificacion": [
+              2728
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-20",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              2991
+            ],
+            "notificacion": [
+              2744
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-21",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              3006
+            ],
+            "notificacion": [
+              2754
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-22",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              3007
+            ],
+            "notificacion": [
+              2755
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-23",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              3008
+            ],
+            "notificacion": [
+              2756
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-24",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              3034
+            ],
+            "notificacion": [
+              2799
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-25",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              3040
+            ],
+            "notificacion": [
+              2856
+            ]
+          }
+        },
+        {
+          "component_id": "ADMIN-COMP-26",
+          "delete_order": [
+            "expediente",
+            "notificacion"
+          ],
+          "entities": {
+            "expediente": [
+              3044
+            ],
+            "notificacion": [
+              2860
+            ]
+          }
+        }
+      ]
+    },
+    "component_2289": {
+      "order": [
+        "expediente",
+        "oficio",
+        "comprobacion"
+      ],
+      "expediente_ids": [
+        3103,
+        3104
+      ],
+      "oficio_ids": [
+        1662
+      ],
+      "comprobacion_ids": [
+        2289
+      ],
+      "note": "expediente 3104 before 3103 optional; both before oficio; oficio before comprobacion"
+    },
+    "fk_rationale": [
+      [
+        "expediente",
+        "notificacion",
+        "expediente.notificacion_id RESTRICT -> delete expediente first"
+      ],
+      [
+        "expediente",
+        "comprobacion",
+        "expediente.comprobacion_id RESTRICT -> delete expediente first"
+      ],
+      [
+        "expediente",
+        "oficio",
+        "expediente.oficio_id RESTRICT -> delete expediente before oficio"
+      ],
+      [
+        "oficio",
+        "comprobacion",
+        "oficio.comprobacion_id RESTRICT -> delete oficio before comprobacion"
+      ]
+    ]
+  },
+  "cascade_simulation": {
+    "notificacion": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "restrict_physical": {
+        "notificacion->expediente.notificacion_id": 25
+      },
+      "cascade_total": 0,
+      "set_null_total": 0,
+      "restrict_total": 25
+    },
+    "expediente": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "restrict_physical": {},
+      "cascade_total": 0,
+      "set_null_total": 0,
+      "restrict_total": 0
+    },
+    "oficio": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "restrict_physical": {
+        "oficio->expediente.oficio_id": 1
+      },
+      "cascade_total": 0,
+      "set_null_total": 0,
+      "restrict_total": 1
+    },
+    "comprobacion": {
+      "cascade_physical": {},
+      "set_null_physical": {},
+      "restrict_physical": {
+        "comprobacion->expediente.comprobacion_id": 2,
+        "comprobacion->oficio.comprobacion_id": 1
+      },
+      "cascade_total": 0,
+      "set_null_total": 0,
+      "restrict_total": 3
+    }
+  },
+  "protected_closure": {
+    "intersection_total": {
+      "actuaciones": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1189,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "orden_trabajo": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1176,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "inspeccion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 170,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "notificacion": {
+        "planned_explicit_ids": 25,
+        "planned_cascade_ids": 0,
+        "protected_ids": 168,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "comprobacion": {
+        "planned_explicit_ids": 1,
+        "planned_cascade_ids": 0,
+        "protected_ids": 56,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "oficio": {
+        "planned_explicit_ids": 1,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "expediente": {
+        "planned_explicit_ids": 27,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      }
+    },
+    "valid": true,
+    "conflicts": []
+  },
+  "users_simulation": {
+    "after_admin_a_simple": {
+      "simulation": "ADMIN-A",
+      "users_test_fk_free_baseline": 833,
+      "users_test_fk_free_after": 833,
+      "users_additionally_unlocked": 0,
+      "policy": "NO_DELETE users"
+    },
+    "after_admin_b_comp2289": {
+      "simulation": "ADMIN-A+B",
+      "users_test_fk_free_baseline": 833,
+      "users_test_fk_free_after": 833,
+      "users_additionally_unlocked": 0,
+      "policy": "NO_DELETE users"
+    }
+  },
+  "catalog_effects": {
+    "juzgado_oficio_1662": {
+      "juzgado_id": 922,
+      "classification": "CONFIRMADO_TEST",
+      "oficio_refs_to_juzgado": 1,
+      "fk_free_if_oficio_deleted": true,
+      "policy": "NO_DELETE juzgado"
+    },
+    "note": "catalog impact metadata for phase 2E only"
+  },
+  "known_test_guards": {
+    "known_test_act_ids_union_count": 816,
+    "known_test_ot_ids_union_count": 832,
+    "known_test_act_ids_remaining": [],
+    "known_test_act_ids_remaining_count": 0,
+    "known_test_ot_ids_remaining": [],
+    "known_test_ot_ids_remaining_count": 0,
+    "guard_ok": true
+  },
+  "proposed_waves": {
+    "ADMIN-A": {
+      "description": "simple notificacion+expediente components",
+      "delete_order": [
+        "expediente",
+        "notificacion"
+      ],
+      "entities": {
+        "expediente": [
+          1972,
+          1975,
+          1976,
+          1985,
+          1987,
+          2073,
+          2074,
+          2075,
+          2139,
+          2140,
+          2141,
+          2334,
+          2761,
+          2900,
+          2914,
+          2942,
+          2980,
+          2983,
+          2991,
+          3006,
+          3007,
+          3008,
+          3034,
+          3040,
+          3044
+        ],
+        "notificacion": [
+          1603,
+          1606,
+          1607,
+          1663,
+          1665,
+          1785,
+          1786,
+          1787,
+          1884,
+          1885,
+          1888,
+          2090,
+          2340,
+          2500,
+          2589,
+          2620,
+          2725,
+          2728,
+          2744,
+          2754,
+          2755,
+          2756,
+          2799,
+          2856,
+          2860
+        ]
+      },
+      "enabled": true
+    },
+    "ADMIN-B": {
+      "description": "comprobacion 2289 + expedientes 3103/3104 + oficio 1662",
+      "delete_order": [
+        "expediente",
+        "oficio",
+        "comprobacion"
+      ],
+      "entities": {
+        "expediente": [
+          3103,
+          3104
+        ],
+        "oficio": [
+          1662
+        ],
+        "comprobacion": [
+          2289
+        ]
+      },
+      "enabled": true
+    },
+    "ADMIN-C": {
+      "description": "released orphan docs after admin cleanup",
+      "entities": {
+        "notificacion": [],
+        "comprobacion": [
+          2289
+        ]
+      },
+      "enabled": false,
+      "note": "requires ADMIN-A and ADMIN-B complete; docs already orphan"
+    }
+  },
+  "postcount_simulation": {
+    "ADMIN-A": {
+      "wave": "ADMIN-A",
+      "tables": {
+        "expediente": {
+          "before": 2940,
+          "explicit_delete": 25,
+          "cascade": {
+            "cascade_physical": {},
+            "set_null_physical": {},
+            "restrict_physical": {},
+            "cascade_total": 0,
+            "set_null_total": 0,
+            "restrict_total": 0
+          },
+          "after": 2915
+        },
+        "notificacion": {
+          "before": 2478,
+          "explicit_delete": 25,
+          "cascade": {
+            "cascade_physical": {},
+            "set_null_physical": {},
+            "restrict_physical": {
+              "notificacion->expediente.notificacion_id": 25
+            },
+            "cascade_total": 0,
+            "set_null_total": 0,
+            "restrict_total": 25
+          },
+          "after": 2453
+        }
+      }
+    },
+    "ADMIN-B": {
+      "wave": "ADMIN-B",
+      "tables": {
+        "expediente": {
+          "before": 2940,
+          "explicit_delete": 2,
+          "cascade": {
+            "cascade_physical": {},
+            "set_null_physical": {},
+            "restrict_physical": {},
+            "cascade_total": 0,
+            "set_null_total": 0,
+            "restrict_total": 0
+          },
+          "after": 2938
+        },
+        "oficio": {
+          "before": 1448,
+          "explicit_delete": 1,
+          "cascade": {
+            "cascade_physical": {},
+            "set_null_physical": {},
+            "restrict_physical": {
+              "oficio->expediente.oficio_id": 1
+            },
+            "cascade_total": 0,
+            "set_null_total": 0,
+            "restrict_total": 1
+          },
+          "after": 1447
+        },
+        "comprobacion": {
+          "before": 1530,
+          "explicit_delete": 1,
+          "cascade": {
+            "cascade_physical": {},
+            "set_null_physical": {},
+            "restrict_physical": {
+              "comprobacion->expediente.comprobacion_id": 2,
+              "comprobacion->oficio.comprobacion_id": 1
+            },
+            "cascade_total": 0,
+            "set_null_total": 0,
+            "restrict_total": 3
+          },
+          "after": 1529
+        }
+      }
+    }
+  },
+  "expediente_other_refs": [
+    {
+      "expediente_id": 1972,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 1975,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 1976,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 1985,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 1987,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2073,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2074,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2075,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2139,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2140,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2141,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2334,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2761,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2900,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2914,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2942,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2980,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2983,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 2991,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3006,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3007,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3008,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3034,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3040,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3044,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3103,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    },
+    {
+      "expediente_id": 3104,
+      "incoming": {
+        "total_refs": 0,
+        "by_fk": {}
+      }
+    }
+  ],
+  "oficio_other_refs": {
+    "oficio_id": 1662,
+    "incoming": {
+      "total_refs": 1,
+      "by_fk": {
+        "expediente.oficio_id": {
+          "count": 1,
+          "delete_rule": "RESTRICT"
+        }
+      }
+    },
+    "iniciador_ruta": []
+  },
+  "effect_on_orphan_documents": {
+    "notificaciones_released_after_admin_a": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860
+    ],
+    "notificaciones_still_blocked": [],
+    "comprobacion_2289_released_after_admin_b": 2289,
+    "topology": "expediente first, then notificacion/oficio/comprobacion per FK RESTRICT"
+  },
+  "protected_manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\protected_operational_manifest_20260920.json",
+  "source_119_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase2c2b_sources_apply_20260920_142126.json"
+}

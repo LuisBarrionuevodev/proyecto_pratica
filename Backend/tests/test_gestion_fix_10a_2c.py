@@ -28,16 +28,6 @@ from app.models import Actuaciones, Domicilio, IniciadorRuta, Relevamiento, Rubr
 from tests.test_gestion_fix_8 import _ensure_catalog_contraproducencia
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
 

@@ -1,10 +1,9 @@
-"""Contratos GET /api/indicadores/{ejecutivo,pendientes,riesgo,no-realizadas,productividad}."""
+"""Contratos GET /api/indicadores/{ejecutivo,riesgo,no-realizadas,productividad}."""
 
 import pytest
 
 _DASHBOARD_PATHS = (
     "/api/indicadores/ejecutivo",
-    "/api/indicadores/pendientes",
     "/api/indicadores/riesgo",
     "/api/indicadores/no-realizadas",
     "/api/indicadores/productividad",
@@ -71,25 +70,10 @@ def test_get_indicadores_ejecutivo_ok_shape(client, auth_headers):
     assert kpis["actas_labradas"] == sum(actas.values())
 
 
-def test_get_indicadores_pendientes_ok_shape(client, auth_headers):
-    resp = client.get(
-        f"/api/indicadores/pendientes?{_QUERY_OK}",
-        headers=auth_headers,
-    )
-    assert resp.status_code == 200
-    data = resp.get_json()
-    assert data is not None
-    kpis = data["kpis"]
-    for key in (
-        "relevamientos_pendientes",
-        "reinspecciones_oficio_pendientes",
-        "reinspecciones_notificacion_pendientes",
-        "denuncias_pendientes",
-        "pendientes_geolocalizacion",
-    ):
-        assert key in kpis
-        assert kpis[key] >= 0
-    assert isinstance(data["distritos_con_mas_pendientes"], list)
+def test_indicadores_pendientes_endpoint_removed(client, auth_headers):
+    """PERF-DASH.2: el bloque Dashboard Pendientes ya no expone endpoint."""
+    resp = client.get(f"/api/indicadores/pendientes?{_QUERY_OK}", headers=auth_headers)
+    assert resp.status_code == 404
 
 
 def test_get_indicadores_riesgo_ok_shape(client, auth_headers):

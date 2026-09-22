@@ -1,0 +1,645 @@
+{
+  "timestamp": "2026-09-21T03:14:22.356537+00:00",
+  "ticket": "PREDEPLOY-TESTS.1",
+  "baseline_failures": {
+    "passed": 1773,
+    "failed": 393,
+    "skipped": 1,
+    "source": "full_suite_run.log",
+    "failed_test_count_parsed": 393
+  },
+  "failure_classification_before": {
+    "ACTOR_MISSING_SERVICE_CALL": 320,
+    "JWT_MISSING_HTTP_TEST": 45,
+    "TEST_HELPER_OUTDATED": 12,
+    "REAL_NEW_REGRESSION": 0,
+    "ENVIRONMENT": 2,
+    "PREEXISTING_OTHER": 14
+  },
+  "batch1_after": {
+    "failed": 88,
+    "passed": 2076,
+    "skipped": 3
+  },
+  "files_changed": [
+    "Backend/tests/conftest.py",
+    "Backend/tests/test_actuacion_domicilio_edit_pr7_15.py",
+    "Backend/tests/test_actuacion_update_expediente_bloqueo.py",
+    "Backend/tests/test_actuaciones_en_ficha_counts.py",
+    "Backend/tests/test_actuaciones_list_ot_numero_acta.py",
+    "Backend/tests/test_actuaciones_list_perf1a.py",
+    "Backend/tests/test_actuaciones_reactivar_actas.py",
+    "Backend/tests/test_actuaciones_search_stab6.py",
+    "Backend/tests/test_actuaciones_update_contraproducencia.py",
+    "Backend/tests/test_attach_notificacion_motivos.py",
+    "Backend/tests/test_cargar_actuacion_post_commit_f3_6a.py",
+    "Backend/tests/test_completar_trabajo_cierre_domicilio_f3_3.py",
+    "Backend/tests/test_completar_trabajo_copy_on_write_pr7_12.py",
+    "Backend/tests/test_completar_trabajo_copy_on_write_pr7_12c.py",
+    "Backend/tests/test_completar_trabajo_domicilio_geocode_preservado.py",
+    "Backend/tests/test_completar_trabajo_notificacion_pr7_13.py",
+    "Backend/tests/test_completar_trabajo_reinspeccion_pr7_14.py",
+    "Backend/tests/test_completar_trabajo_stab4.py",
+    "Backend/tests/test_completar_trabajo_subtipo_oficio_pr10_2.py",
+    "Backend/tests/test_completar_trabajo_verificar_informar_hotfix.py",
+    "Backend/tests/test_comprobacion_agregar_oficio_historial.py",
+    "Backend/tests/test_comprobacion_documental.py",
+    "Backend/tests/test_comprobacion_oper_ruta_4.py",
+    "Backend/tests/test_comprobacion_pendientes_reinspeccion_bandeja.py",
+    "Backend/tests/test_comprobacion_pendientes_reinspeccion_cierre.py",
+    "Backend/tests/test_comprobacion_recorrido_detalle.py",
+    "Backend/tests/test_comprobacion_recorrido_oficio_resuelto_hotfix.py",
+    "Backend/tests/test_comprobacion_recorrido_oficios_pr10_3.py",
+    "Backend/tests/test_corregir_cierre_oficio.py",
+    "Backend/tests/test_crud_mapa_1_anular_iniciador.py",
+    "Backend/tests/test_denuncia_update_domicilio_pr9_3.py",
+    "Backend/tests/test_domicilio_edit_stab7.py",
+    "Backend/tests/test_domicilio_geocode_preservado.py",
+    "Backend/tests/test_domicilios_gestion_slices.py",
+    "Backend/tests/test_expediente_notificacion_multiples.py",
+    "Backend/tests/test_expediente_soft_delete_reactivacion.py",
+    "Backend/tests/test_expediente_soft_delete_recreate_envio.py",
+    "Backend/tests/test_geo_google_2_provider.py",
+    "Backend/tests/test_geo_perf_1_1_hardening.py",
+    "Backend/tests/test_geo_perf_1_3_provider.py",
+    "Backend/tests/test_geo_perf_1_post_commit_async.py",
+    "Backend/tests/test_geo_review_1_1_google_backfill.py",
+    "Backend/tests/test_gestion_comp_ux1.py",
+    "Backend/tests/test_gestion_domicilios_pr6c.py",
+    "Backend/tests/test_gestion_domicilios_search_rel_map_cierre_4.py",
+    "Backend/tests/test_gestion_fix_10a.py",
+    "Backend/tests/test_gestion_fix_10a_1.py",
+    "Backend/tests/test_gestion_fix_10a_2b.py",
+    "Backend/tests/test_gestion_fix_10a_2c.py",
+    "Backend/tests/test_gestion_fix_10a_3.py",
+    "Backend/tests/test_gestion_fix_10b_1.py",
+    "Backend/tests/test_gestion_fix_10b_1_2.py",
+    "Backend/tests/test_gestion_fix_10b_1_3.py",
+    "Backend/tests/test_gestion_fix_10b_1_5.py",
+    "Backend/tests/test_gestion_fix_10b_1_6.py",
+    "Backend/tests/test_gestion_fix_3.py",
+    "Backend/tests/test_gestion_fix_4.py",
+    "Backend/tests/test_gestion_fix_5.py",
+    "Backend/tests/test_gestion_fix_6.py",
+    "Backend/tests/test_gestion_fix_6_2.py",
+    "Backend/tests/test_gestion_fix_7.py",
+    "Backend/tests/test_gestion_fix_8.py",
+    "Backend/tests/test_gestion_fix_9.py",
+    "Backend/tests/test_guardar_nomenclatura.py",
+    "Backend/tests/test_historial_contribuyente_pr10_4a.py",
+    "Backend/tests/test_hotfix_reencolado_planificacion.py",
+    "Backend/tests/test_hotfix_reinspeccion_notificacion.py",
+    "Backend/tests/test_hotfix_reinspeccion_notificacion_qa.py",
+    "Backend/tests/test_indicadores_actas_labradas.py",
+    "Backend/tests/test_indicadores_no_realizadas.py",
+    "Backend/tests/test_indicadores_oficio_buckets.py",
+    "Backend/tests/test_indicadores_pendientes_service.py",
+    "Backend/tests/test_indicadores_periodo_ruta_a4.py",
+    "Backend/tests/test_indicadores_productividad.py",
+    "Backend/tests/test_indicadores_realizadas_base.py",
+    "Backend/tests/test_indicadores_riesgo.py",
+    "Backend/tests/test_iniciador_domicilio_efectivo_pr5.py",
+    "Backend/tests/test_iniciador_domicilio_herencia_pr1.py",
+    "Backend/tests/test_iniciador_domicilio_propagacion_pr2.py",
+    "Backend/tests/test_iniciador_reinspeccion_to_row.py",
+    "Backend/tests/test_inspeccion_checklist.py",
+    "Backend/tests/test_nomenclatura_pendiente_diagnosis.py",
+    "Backend/tests/test_notificacion_historial_comprobacion_derivada.py",
+    "Backend/tests/test_notificacion_historial_dedup.py",
+    "Backend/tests/test_notificacion_iniciador_mixed_actuacion.py",
+    "Backend/tests/test_notificacion_iniciador_phase_c.py",
+    "Backend/tests/test_notificacion_iniciador_policy.py",
+    "Backend/tests/test_notificacion_oper_ruta_3.py",
+    "Backend/tests/test_notificacion_pendientes_presenter.py",
+    "Backend/tests/test_notificacion_plazo_slice_pendientes_expediente.py",
+    "Backend/tests/test_notificacion_prorroga_motor.py",
+    "Backend/tests/test_notificacion_prorroga_pendiente_reinspeccion.py",
+    "Backend/tests/test_oficio_editable_pr4b.py",
+    "Backend/tests/test_oficio_put_ownership_fix_2c3.py",
+    "Backend/tests/test_oficios_multiples_comprobacion_pr3.py",
+    "Backend/tests/test_oper_analytics_filters_sets.py",
+    "Backend/tests/test_oper_analytics_golden.py",
+    "Backend/tests/test_oper_analytics_mapa_unificado.py",
+    "Backend/tests/test_oper_ruta_6f_replanificacion.py",
+    "Backend/tests/test_oper_ruta_6g_asignacion_ruta_turno.py",
+    "Backend/tests/test_oper_ruta_6h_pool_ruta_filtro.py",
+    "Backend/tests/test_oper_ruta_6i_mapa_pool_quitar.py",
+    "Backend/tests/test_oper_ruta_6j_urgentes_globales.py",
+    "Backend/tests/test_oper_ruta_7b_hotfix_relevamientos_m4.py",
+    "Backend/tests/test_oper_ruta_7b_m4_paginado.py",
+    "Backend/tests/test_oper_ruta_7d_urgentes.py",
+    "Backend/tests/test_oper_ruta_asignacion_1b_liberar_ot.py",
+    "Backend/tests/test_pendientes_bandeja_eager_load.py",
+    "Backend/tests/test_pendientes_expediente_bandeja_notificacion.py",
+    "Backend/tests/test_pendientes_sync_notificaciones_vencidas_route.py",
+    "Backend/tests/test_perfect_cf1_numero_comprobacion_sql.py",
+    "Backend/tests/test_planificacion_identificadores.py",
+    "Backend/tests/test_planificacion_m4_fields.py",
+    "Backend/tests/test_planificacion_urgentes_route.py",
+    "Backend/tests/test_planificacion_urgentes_service.py",
+    "Backend/tests/test_pr12_domicilio_contamination.py",
+    "Backend/tests/test_recorrido_cap_filtros3.py",
+    "Backend/tests/test_recorrido_filtros_pr8.py",
+    "Backend/tests/test_reinspeccion_oficio_reencolado.py",
+    "Backend/tests/test_rel_angulo_1_relevamiento_esquina.py",
+    "Backend/tests/test_rel_distrito_2a_relevamiento_presenter.py",
+    "Backend/tests/test_rel_distrito_2d_map_manual_geocode.py",
+    "Backend/tests/test_rel_distrito_backfill_1.py",
+    "Backend/tests/test_rel_gestion_relevamientos_2_filters.py",
+    "Backend/tests/test_rel_map_cierre_2_3.py",
+    "Backend/tests/test_rel_map_cierre_2_3_1.py",
+    "Backend/tests/test_rel_map_cierre_5_6_outside_districts.py",
+    "Backend/tests/test_relevadores_relevamiento.py",
+    "Backend/tests/test_relevamiento_campos_pr7_3.py",
+    "Backend/tests/test_relevamiento_carga_sin_fecha_pr9_4.py",
+    "Backend/tests/test_relevamiento_flujo_pr7_11.py",
+    "Backend/tests/test_relevamiento_unicidad_f3_2.py",
+    "Backend/tests/test_relevamiento_unicidad_pr7_5.py",
+    "Backend/tests/test_relevamiento_unicidad_pr7_6.py",
+    "Backend/tests/test_relevamiento_unicidad_pr9_1.py",
+    "Backend/tests/test_relevamiento_update_domicilio_pr9_2.py",
+    "Backend/tests/test_relevamientos_domicilio.py",
+    "Backend/tests/test_resolve_establecimiento_por_domicilio.py",
+    "Backend/tests/test_routes_actuacion_create.py",
+    "Backend/tests/test_rubro_operativo_actuaciones_hotfix.py",
+    "Backend/tests/test_rubros_catalog_stab8.py",
+    "Backend/tests/test_ruta_asig1_operativo.py",
+    "Backend/tests/test_ruta_item_orden_trabajo_pr11_1g.py",
+    "Backend/tests/test_ruta_pool_dia_oper_ruta_2.py",
+    "Backend/tests/test_ruta_presenter_pr7_8.py",
+    "Backend/tests/test_ruta_publicar_debug_pr11_1d.py",
+    "Backend/tests/test_ruta_publicar_integrity_reintento_pr11_1e.py",
+    "Backend/tests/test_ruta_publicar_integrity_reintento_pr11_1f.py",
+    "Backend/tests/test_ruta_publicar_orden_trabajo_pr11_1.py",
+    "Backend/tests/test_ruta_publicar_orden_trabajo_pr11_1b.py",
+    "Backend/tests/test_ruta_publicar_orden_trabajo_pr11_1c.py",
+    "Backend/tests/test_ruta_publicar_pool_sobrantes.py",
+    "Backend/tests/test_seed_canonical_reconcile.py",
+    "Backend/tests/test_vincular_establecimiento_operativo_actuacion.py"
+  ],
+  "test_helpers_changed": [
+    "Backend/tests/conftest.py"
+  ],
+  "actor_fixture_strategy": {
+    "service_actor_autouse": false,
+    "service_actor_creates_per_test_user": true,
+    "actor_user_id_derives_from_service_actor": true,
+    "app_ctx_opt_in_jwt": true,
+    "auth_headers_uses_service_actor": true
+  },
+  "domains_migrated": [
+    "rutas_trabajo (pr11/oper_ruta/crud_mapa via shared helpers)",
+    "relevamientos (app_ctx + geo fixtures)",
+    "actuaciones (inspeccion_checklist app_ctx)",
+    "notificacion/iniciadores (strip duplicate app_ctx)",
+    "geo_perf/rel_map custom app_ctx + JWT"
+  ],
+  "hardcoded_user1_audit": {
+    "note": "actor_user_id=1 retained only in dedicated admin/legacy tests",
+    "files_with_literal_1": [
+      "tests/test_iniciador_domicilio_herencia_pr1.py",
+      "tests/test_gestion_fix_10a_3.py",
+      "tests/test_notificacion_iniciador_mixed_actuacion.py"
+    ]
+  },
+  "negative_tests_preserved": [
+    "test_audit_created_by_fallback_fix::test_sync_sin_actor_falla",
+    "test_audit_created_by_fallback_fix::test_post_ruta_sin_jwt_401",
+    "test_audit_created_by_fallback_fix::test_get_current_user_id_sin_jwt_falla"
+  ],
+  "product_code_changes": {
+    "this_ticket": 0,
+    "note": "app/ changes belong to PREDEPLOY-FIX.2; this ticket only tests/helpers"
+  },
+  "focal_suite_results": {
+    "audit_jwt_denuncias": "97 passed (prior run)",
+    "pr11_oper_ruta_crud_mapa": "36 passed (prior run)"
+  },
+  "full_suite_results": {
+    "before": {
+      "failed": 393,
+      "passed": 1773,
+      "skipped": 1
+    },
+    "after": {
+      "failed": 77,
+      "passed": 2087,
+      "skipped": 3
+    },
+    "fixed_from_baseline_count": 347,
+    "still_failing_count": 77,
+    "new_failures_count": 31
+  },
+  "actor_migration_residual": {
+    "Usuario_no_autorizado_in_final_log": 0,
+    "ACTOR_MISSING_SERVICE_CALL": 0,
+    "JWT_MISSING_HTTP_TEST": 0,
+    "TEST_HELPER_OUTDATED": 0,
+    "post_full_suite_patches": [
+      "test_cargar_actuacion_post_commit_f3_6a.py",
+      "test_routes_actuacion_create.py",
+      "test_relevamiento_campos_pr7_3.py (typo rel/ins)"
+    ]
+  },
+  "residual_failures": [
+    {
+      "test": "tests/test_actuacion_domicilio_edit_pr7_15.py::test_actuacion_con_comprobacion_con_expediente_bloquea\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_actuaciones_en_ficha_counts.py::test_count_groups_by_ficha\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_cargar_actuacion_post_commit_f3_6a.py::test_cargar_actuacion_canal_post_hook_invoca_sync\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_oficio_cambio_domicilio_completo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_completar_trabajo_reinspeccion_pr7_14.py::test_reinspeccion_oficio_domicilio_parcial_falla\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_completar_trabajo_verificar_informar_hotfix.py::test_verificar_nueva_inspeccion_con_contrib_manual_cierra_ok\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_expediente_envio_bloqueado_por_iniciador\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_expediente_envio_bloqueado_si_hay_oficio\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_expediente_envio_ok\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_oficio_bloque_bloqueado_por_iniciador_cumplido\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_oficio_bloque_bloqueado_por_ruta_publicada\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_oficio_bloque_ok - ...\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_delete_oficio_bloque_soft_delete_iniciador_pendiente\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_get_comprobacion_documental_ok\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_patch_expediente_envio_bloqueado_por_iniciador_comprobacion\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_documental.py::test_patch_oficio_bloque_ok - A...\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_alta_oficio_endpoint_completa_circuito_y_crea_iniciador_reinspeccion_oficio\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_aparece_sin_iniciador\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_con_iniciador_sin_item_en_ruta\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_con_ruta_borrador\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_expediente_respuesta_tipo_null_legado\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_item_ruta_soft_deleted\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_ruta_cancelada\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_incluye_ruta_cerrada\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_comprobacion_pendientes_reinspeccion_bandeja.py::test_pendiente_reinspeccion_iniciador_soft_deleted_vuelve_a_aparecer\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_corregir_cierre_oficio.py::test_ratificacion_contra_a_cumple[NO PAG\\xd3 TODAV\\xcdA EL DECOMISO-RATIFICACION DE DECOMISO-RATIFICACION_DECOMISO_OFICIO]\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_corregir_cierre_oficio.py::test_ratificacion_contra_a_cumple[NO SE RATIFIC\\xd3-RATIFICACION DE CLAUSURA-RATIFICACION_CLAUSURA_OFICIO]\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_corregir_cierre_oficio.py::test_verificar_true_mas_contra_null_limpia_contra_historica\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_domicilio_edit_stab7.py::test_corregir_calle_relevamiento_misma_fila\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_gestion_domicilios_search_rel_map_cierre_4.py::test_search_domicilio_id_exacto\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_perf_log.py::test_perf_logs_emit_when_enabled\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_periodo_ruta_a4.py::test_junio_local_cerrado_pendiente_cuenta_no_realizadas\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_periodo_ruta_a4.py::test_junio_no_realizado_cerrado_julio_cuenta_junio\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_periodo_ruta_a4.py::test_junio_no_realizado_cuenta_no_realizadas\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_periodo_ruta_a4.py::test_mayo_cerrado_en_junio_no_cuenta_junio\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_periodo_ruta_a4.py::test_mayo_no_realizado_no_cuenta_junio\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_periodo_ruta_a4.py::test_productividad_no_realizada_usa_fecha_ruta\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_indicadores_productividad.py::test_no_hubo_no_suma - Assert...\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_iniciador_domicilio_efectivo_pr5.py::test_distrito_desde_origen_con_geocode\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_iniciador_domicilio_efectivo_pr5.py::test_mapa_backlog_usa_domicilio_efectivo_con_distrito\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_iniciador_domicilio_efectivo_pr5.py::test_presenter_planificacion_usa_domicilio_efectivo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_iniciador_domicilio_efectivo_pr5.py::test_sin_domicilio_ini_recupera_desde_relevamiento\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_iniciador_domicilio_propagacion_pr2.py::test_editar_relevamiento_pendiente_actualiza_iniciador\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_inspeccion_checklist.py::test_quitar_notificacion_elimina_personas_sin_carnet\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_nomenclatura_pendiente_diagnosis.py::test_fetch_pendiente_calle_frecuencias\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_oper_ruta_3.py::test_en_plazo_filtra_por_numero_notificacion\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_oper_ruta_3.py::test_pendiente_reinspeccion_filtra_por_numero_notificacion\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_oper_ruta_3.py::test_por_vencer_filtra_por_numero_notificacion\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_plazo_expediente_edit.py::test_delete_expediente_prorroga_bloqueado_si_reinspeccion_cumplida\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_plazo_expediente_edit.py::test_delete_expediente_prorroga_ok_recuenta_plazo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_prorroga_editable.py::test_ultimo_expediente_iniciador_anulado_puede_borrar\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_notificacion_prorroga_editable.py::test_ultimo_expediente_iniciador_pendiente_puede_borrar\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_oficio_causa_multiples_stab2.py::test_complete_oficio_misma_causa_genera_expediente_e_iniciador_propios\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_oficio_put_ownership_fix_2c3.py::test_e2e_corregir_cumple_put_sin_contra_persiste\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_oper_ruta_6f_replanificacion.py::test_pr11_ot_no_realizado_no_genera_conflicto_publicacion\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_oper_ruta_7b_m4_paginado.py::test_m4_filtro_distrito - asse...\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_planificacion_urgentes_route.py::test_planificacion_urgentes_route_filtros_200[query_string4]\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_recorrido_cap_filtros3.py::test_recorrido_busqueda_acta_ignora_cap_previo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_recorrido_cap_filtros3.py::test_recorrido_busqueda_oficio_ignora_cap_previo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_recorrido_filtros_pr8.py::test_recorrido_filtra_por_segundo_oficio_y_expediente_respuesta\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_reinspeccion_oficio_reencolado.py::test_reencolado_contraproducencia_aparece_en_bandeja_reinspeccion\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_rel_angulo_1_relevamiento_esquina.py::test_rel_angulo_1_cambio_a_numero_limpia_angulo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_rel_angulo_1_relevamiento_esquina.py::test_rel_angulo_1_update_esquina_cambia_angulo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamiento_campos_pr7_3.py::test_pr73_presenter_devuelve_campos\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamiento_campos_pr7_3.py::test_pr73_schema_angulo_invalido_422\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamiento_campos_pr7_3.py::test_pr73_update_esquina_a_numero_limpia_angulo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamiento_campos_pr7_3.py::test_pr73_update_modifica_nombre_y_angulo\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamiento_update_domicilio_pr9_2.py::test_pr92_edit_compartido_r2_intacto_iniciador_r1_actualizado\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamiento_update_domicilio_pr9_2.py::test_pr92_edit_esquina_a_numero_domicilio_correcto\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_relevamientos_domicilio.py::test_editar_relevamiento_cambia_calle_misma_fila\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_routes_actuacion_create.py::test_post_actuaciones_create_ok\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_ruta_asig1_operativo.py::test_iniciador_relevamiento_expone_rubro_y_fantasia\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_ruta_pool_dia_oper_ruta_2.py::test_listado_filtra_por_estado\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_ruta_presenter_pr7_8.py::test_pr78_relevamiento_nombre_fantasia_vacio_es_null\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_ruta_presenter_pr7_8.py::test_pr78_relevamiento_rubro_prioriza_sobre_domicilio\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_ruta_presenter_pr7_8.py::test_pr78_ruta_item_ubicacion_rubro_y_discriminadores\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    },
+    {
+      "test": "tests/test_vincular_establecimiento_operativo_actuacion.py::test_sin_rubro_no_vincula\r",
+      "classification": "PREEXISTING_OTHER",
+      "root_cause": "see full_suite_post_actor_migration_final.log"
+    }
+  ],
+  "static_fallback_guard": {
+    "get_current_user_id_or_fallback_in_app": 0,
+    "service_actor_global_autouse": false
+  },
+  "sandbox_guards": {
+    "source": "digitaliza_final_predeploy_regression_20260920.json",
+    "users": 1970,
+    "relevador": 10,
+    "juzgado_catalogo": 842,
+    "user1_refs": 25092,
+    "writes": false,
+    "drift": 0
+  },
+  "status": "PASS"
+}

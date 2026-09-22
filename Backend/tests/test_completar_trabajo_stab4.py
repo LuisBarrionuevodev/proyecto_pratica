@@ -66,16 +66,6 @@ def test_contraproducencia_por_tipo_reinspeccion_sin_rubro_correctivo() -> None:
     assert not contraproducencia_permitida_en_completar_trabajo("REINSPECCION_OFICIO", "NO_HUBO")
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _ot_num() -> str:
     return f"{random.randint(0, 999999):06d}"
 
@@ -133,6 +123,7 @@ def _mk_reinspeccion_oficio_item(suf: str) -> tuple[RutaItem, Actuaciones, Inici
         mes=6,
         domicilio_id=dom.id,
         oficio_id=ofi.id,
+        actuacion_id=act.id,
         created_by_user_id=u.id,
     )
     db.session.add(ini)

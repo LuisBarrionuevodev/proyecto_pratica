@@ -30,9 +30,6 @@ from app.domains.rutas_trabajo.presenters.ruta_presenters import (
 )
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import (
@@ -48,22 +45,8 @@ from app.models import (
 )
 
 
-def _unique_num() -> str:
-    return f"{random.randint(0, 999999):06d}"
-
-
 def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _migration_pr72_aplicada() -> bool:
@@ -173,7 +156,7 @@ def _setup_ruta_borrador_con_iniciadores(
     *,
     fecha: date | None = None,
 ) -> tuple[RutaTrabajo, int, list[RutaItem]]:
-    """Crea ruta BORRADOR, grupo con 2 inspectores, asigna iniciadores y OT por ítem."""
+    """Crea ruta BORRADOR, grupo con 2 inspectores y asigna iniciadores."""
     u = User.query.filter(User.is_active.is_(True)).first()
     if u is None:
         pytest.skip("Se requiere usuario activo")
@@ -200,12 +183,6 @@ def _setup_ruta_borrador_con_iniciadores(
         grupo_id=grupo.id,
         iniciador_ids=ini_ids,
     )
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=_unique_num(),
-        )
     db.session.expire_all()
     items_refreshed = (
         RutaItem.query.filter(

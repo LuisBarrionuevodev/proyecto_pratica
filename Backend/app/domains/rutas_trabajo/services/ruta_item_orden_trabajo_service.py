@@ -19,6 +19,10 @@ from app.domains.rutas_trabajo.utils.ruta_publicar_debug import (
 )
 from app.models import IniciadorRuta, RutaItem, RutaTrabajo
 
+_OT_AUTO_MANUAL_DISABLED_MSG = (
+    "La asignación manual de OT en rutas fue reemplazada por numeración automática al publicar (OT-AUTO)."
+)
+
 
 def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabajo: str) -> RutaItem:
     """
@@ -37,8 +41,10 @@ def set_orden_trabajo_on_item(*, ruta_id: int, item_id: int, numero_orden_trabaj
 
     Raises:
     - LookupError: ruta/item no encontrados.
-    - RuntimeError: estado inválido o conflicto OT ya usada por otro item activo.
+    - RuntimeError: OT-AUTO deshabilitó asignación manual; estado inválido o conflicto OT.
     """
+    raise RuntimeError(_OT_AUTO_MANUAL_DISABLED_MSG)
+
     ruta = RutaTrabajo.query.get(ruta_id)
     if not ruta:
         raise LookupError("Ruta de trabajo no encontrada")
@@ -161,8 +167,10 @@ def liberar_orden_trabajo_on_item(*, ruta_id: int, item_id: int) -> RutaItem:
 
     Errores:
         LookupError: ruta o ítem inexistente / de otra ruta.
-        RuntimeError: ruta no BORRADOR, ítem sin OT, actuación o ejecución REALIZADO.
+        RuntimeError: OT-AUTO deshabilitó liberación manual; ruta no BORRADOR, etc.
     """
+    raise RuntimeError(_OT_AUTO_MANUAL_DISABLED_MSG)
+
     ruta = RutaTrabajo.query.get(ruta_id)
     if not ruta:
         raise LookupError("Ruta de trabajo no encontrada")

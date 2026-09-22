@@ -39,16 +39,6 @@ def _mk_user() -> User:
     return u
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_reinspeccion_oficio_en_ruta_publicada() -> tuple[RutaItem, Actuaciones, IniciadorRuta, User, Oficio]:
     """Circuito documental completo + iniciador en ruta PUBLICADA (listo para cerrar)."""
     from tests.test_comprobacion_pendientes_reinspeccion_bandeja import _mk_circuito_completo

@@ -40,16 +40,6 @@ def _unique_num() -> str:
     return uuid4().hex[:6].upper()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _filters_notificacion() -> ActuacionesPendientesFilters:
     return ActuacionesPendientesFilters.model_validate(
         {

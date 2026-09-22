@@ -38,16 +38,6 @@ def _unique_suffix() -> str:
     return _unique_ot_num()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_turno() -> Turno:
     turno = Turno.query.first()
     if turno is None:

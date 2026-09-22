@@ -32,16 +32,6 @@ def _unique_num() -> str:
     return unique_ot_numero()
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_notificacion_actuacion(
     *,
     fecha_notificacion: date | None = None,
@@ -486,7 +476,7 @@ def test_no_duplica_iniciador_tras_prorroga(app_ctx) -> None:
             estado_iniciador="PENDIENTE",
             deleted_at=None,
         ).count()
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
         after = IniciadorRuta.query.filter_by(
             notificacion_id=noti.id,
             tipo_iniciador="REINSPECCION_NOTIFICACION",

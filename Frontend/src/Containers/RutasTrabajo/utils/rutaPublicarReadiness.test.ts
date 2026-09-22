@@ -25,13 +25,13 @@ function item(partial: Partial<IRutaItemMin> & Pick<IRutaItemMin, "id" | "ruta_g
 describe("evaluarPublicacionRuta", () => {
   it("bloquea si un grupo tiene menos de 2 inspectores", () => {
     const grupos = [grupo({ id: 1, nombre: "Grupo 1", inspectores: [{ id: 1, inspector_id: 10 }] })];
-    const items = [item({ id: 100, ruta_grupo_id: 1, orden_trabajo_id: 5 })];
+    const items = [item({ id: 100, ruta_grupo_id: 1 })];
     const r = evaluarPublicacionRuta(grupos, items);
     expect(r.puedePublicar).toBe(false);
     expect(r.blockers.some((b) => b.includes("2 inspectores"))).toBe(true);
   });
 
-  it("bloquea si falta OT guardada", () => {
+  it("permite publicar sin OT preasignada (OT-AUTO)", () => {
     const grupos = [
       grupo({
         id: 1,
@@ -44,11 +44,11 @@ describe("evaluarPublicacionRuta", () => {
     ];
     const items = [item({ id: 100, ruta_grupo_id: 1, orden_trabajo_id: null, domicilio_texto: "Calle 1" })];
     const r = evaluarPublicacionRuta(grupos, items);
-    expect(r.puedePublicar).toBe(false);
-    expect(r.blockers.some((b) => b.includes("Falta guardar la OT"))).toBe(true);
+    expect(r.puedePublicar).toBe(true);
+    expect(r.blockers).toEqual([]);
   });
 
-  it("permite publicar cuando hay 2 inspectores y OT en cada ítem", () => {
+  it("permite publicar cuando hay 2 inspectores e ítems asignados", () => {
     const grupos = [
       grupo({
         id: 1,

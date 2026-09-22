@@ -25,16 +25,6 @@ from app.models import Actuaciones, CatalogContraproducencia, IniciadorRuta, Ins
 from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _ensure_catalog_contraproducencia(nombre: str) -> None:
     if not CatalogContraproducencia.query.filter_by(nombre=nombre).first():
         db.session.add(CatalogContraproducencia(nombre=nombre))

@@ -1,0 +1,76 @@
+{
+  "ticket": "COMP-GESTION-MEMORY.2",
+  "date": "2026-09-21",
+  "backend_changes": false,
+  "status": "PASS",
+  "architecture_before": {
+    "operative_tables": "Tres instancias condicionales MaterialReactTable (expediente / oficio / reinspección) con unmount al cambiar tab",
+    "pagination_sort": "Estado interno efímero de MRT; se pierde al desmontar",
+    "filters_on_tab_change": "shouldResetOperativaFiltroOnTabChange limpiaba inputs; ensureTabLoaded(tab, { filters: null }) reemplazaba dataset filtrado por base",
+    "cache": "operativaBaseCacheRef válido para cargas base; datos en expItems/oficioItems/reinItems persistían en padre"
+  },
+  "architecture_after": {
+    "operative_tables": "Una ComprobacionOperativaBandejaTable compartida montada mientras mostrarTablaOperativa; data/columns/toolbar dinámicos por tab",
+    "recorrido": "Tab Recorrido conserva su propia tabla y filtros (sin cambio funcional)",
+    "state_elevation": "opPagination, opSorting y operativaMemoryByTabRef por bandeja operativa",
+    "filters_on_tab_change": "Memoria por tab (inputs + applied); resolveOperativaTabAppliedFilters en ensureTabLoaded; operativaLoadedFiltersRef evita GET si firma ya cargada"
+  },
+  "shared_table": {
+    "component": "ComprobacionOperativaBandejaTable",
+    "file": "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+    "stable_identity": true,
+    "key_on_tab": false,
+    "dynamic_props": ["columns", "data", "toolbar", "getRowId", "pagination", "sorting"]
+  },
+  "state_by_tab": {
+    "pagination": "operativaMemoryByTabRef[tab].table.pagination + opPagination controlado",
+    "sorting": "operativaMemoryByTabRef[tab].table.sorting + opSorting controlado",
+    "filters": "operativaMemoryByTabRef[tab].filtro (inputs + applied); save/restore en cambio de tab y vuelta desde Recorrido",
+    "optional_column_state": "No configurable por usuario; columnas derivadas por tab sin estado de visibilidad persistente"
+  },
+  "cache_behavior": {
+    "base": "operativaBaseCacheRef sin cambios; restore-base sin GET",
+    "filtered": "operativaLoadedFiltersRef + firma operativaFiltersSignature; skip ensureTabLoaded si dataset ya cargado en sesión",
+    "second_layer_added": false
+  },
+  "refetch_behavior": {
+    "tab_switch_base": "Sin GET adicional si cache base válida y firma coincide",
+    "tab_switch_filtered": "Sin GET si firma de filtros aplicados ya cargada (items en estado padre)",
+    "tab_change_bug_fixed": "Ya no se llama ensureTabLoaded(tab, { filters: null }) al volver"
+  },
+  "mutation_invalidation": {
+    "unchanged": "refreshComprobacionesPostOficio + MUTATION_INVALIDATE_*; invalida snapshots base y recarga bandejas afectadas",
+    "unrelated_tab_state": "Paginación/sort/filtros de tabs no invalidados se conservan en operativaMemoryByTabRef"
+  },
+  "recorrido_return_behavior": {
+    "save_on_leave": "saveOperativaTabMemory al salir de bandeja operativa hacia Recorrido",
+    "restore_on_return": "restoreOperativaTabMemory al volver; ensureTabLoaded usa filtros memorizados, no null"
+  },
+  "scroll": {
+    "strategy": "Conservación natural al mantener tabla montada entre tabs operativos; sin scrollByTab adicional",
+    "recorrido_note": "Tabla operativa se desmonta al entrar Recorrido; scroll MRT se restaura vía paginación/sort controlados"
+  },
+  "performance_notes": {
+    "remounts_reduced": "De 3 tablas condicionales a 1 tabla compartida entre expediente/oficio/reinspección",
+    "gets_reduced": "operativaLoadedFiltersRef evita refetch al volver con mismos filtros"
+  },
+  "files_changed": [
+    "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+    "Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionTabMemory.ts",
+    "Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionTabChange.ts",
+    "Frontend/src/Containers/ActasComprobacion/gestionComprobacionMemory2.test.ts",
+    "Frontend/src/Containers/ActasComprobacion/gestionComprobacionUx1.test.ts"
+  ],
+  "tests": {
+    "pagination": { "status": "PASS", "file": "gestionComprobacionMemory2.test.ts", "case": "A" },
+    "no_refetch": { "status": "PASS", "file": "gestionComprobacionMemory2.test.ts", "case": "B" },
+    "filters": { "status": "PASS", "file": "gestionComprobacionMemory2.test.ts", "case": "C" },
+    "mutation": { "status": "PASS", "file": "gestionComprobacionMemory2.test.ts", "case": "D" },
+    "recorrido": { "status": "PASS", "file": "gestionComprobacionMemory2.test.ts", "case": "E" },
+    "sorting": { "status": "PASS", "file": "gestionComprobacionMemory2.test.ts", "case": "F" },
+    "notification_regression": { "status": "PASS", "file": "gestionNotificacionCache1.test.ts", "case": "G", "tests_passed": 10 },
+    "cache1_regression": { "status": "PASS", "file": "gestionComprobacionCache1.test.ts", "tests_passed": 5 },
+    "ux1_updated": { "status": "PASS", "file": "gestionComprobacionUx1.test.ts", "tests_passed": 11 },
+    "vitest_summary": "4 files, 33 tests passed"
+  }
+}

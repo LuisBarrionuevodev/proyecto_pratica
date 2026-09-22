@@ -46,16 +46,6 @@ from tests.test_ruta_publicar_orden_trabajo_pr11_1b import (
 )
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _fecha_mismo_dia() -> date:
     return date.today()
 
@@ -151,8 +141,9 @@ def test_pr11_1c_mismo_dia_misma_ot_rechaza_reintento(app_ctx) -> None:
     act_prev = _publicar_cerrar_reencolar(
         ini, ot_num=ot_num, user_id=u.id, fecha_ruta=fecha
     )
+    ruta2, _item2 = _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
     with pytest.raises(RutaPublicarDebugError, match="ya fue utilizada"):
-        _setup_borrador_con_iniciador(ini, numero_ot=ot_num, fecha_ruta=fecha)
+        publicar_ruta_trabajo(ruta_id=ruta2.id)
     _liberar_iniciador_tras_fallo_asignacion_ot(ini.id)
     db.session.expire_all()
     act_db = Actuaciones.query.get(act_prev.id)

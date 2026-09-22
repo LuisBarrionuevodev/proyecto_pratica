@@ -20,5 +20,6 @@ from . import delete_item_orden_trabajo  # noqa: E402,F401
 from . import publicar_ruta  # noqa: E402,F401
 from . import planificacion  # noqa: E402,F401
 from . import agregar_desde_pool  # noqa: E402,F401
+from . import secuencia_ot  # noqa: E402,F401
 
 __all__ = ["rutas_trabajo"]

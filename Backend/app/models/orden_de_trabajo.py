@@ -10,8 +10,14 @@ class OrdenTrabajo(db.Model):
         primary_key=True,
     )
     numero_acta = db.Column(
-        db.String(6),
+        db.String(10),
         nullable=False,
+        index=True,
+    )
+    numero_secuencia_global = db.Column(
+        db.BigInteger,
+        nullable=True,
+        unique=True,
         index=True,
     )
     anio = db.Column(
@@ -48,6 +54,7 @@ class OrdenTrabajo(db.Model):
         data = {
             "id": self.id,
             "numero_acta": self.numero_acta,
+            "numero_secuencia_global": self.numero_secuencia_global,
             "anio": self.anio,
             "mes": self.mes,
             "created_at": self.created_at,

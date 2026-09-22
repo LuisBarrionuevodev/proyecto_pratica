@@ -1,9 +1,7 @@
 import type {
   IndicadoresActasPorTipo,
-  IndicadoresDistritoPendientesItem,
   IndicadoresEjecutivoResponse,
   IndicadoresNoRealizadasResponse,
-  IndicadoresPendientesResponse,
   IndicadoresProductividadResponse,
   IndicadoresRiesgoResponse,
 } from "../../../api/indicadoresApi";
@@ -20,9 +18,7 @@ export type DashboardExportPayload = {
   meta: DashboardExportMeta;
   resumenKpis: DashboardExportKpi[];
   ejecutivo: IndicadoresEjecutivoResponse | null;
-  pendientes: IndicadoresPendientesResponse | null;
   actasPorTipo: IndicadoresActasPorTipo | null;
-  pendientesDistritos: IndicadoresDistritoPendientesItem[];
   riesgo: IndicadoresRiesgoResponse | null;
   mercaderiaDecomisadaKg: number | null;
   noRealizadas: IndicadoresNoRealizadasResponse | null;
@@ -35,7 +31,6 @@ type BuildArgs = {
   distritoLabel: string;
   inspectorLabel: string;
   ejecutivo: IndicadoresEjecutivoResponse | null;
-  pendientes: IndicadoresPendientesResponse | null;
   riesgo: IndicadoresRiesgoResponse | null;
   noRealizadas: IndicadoresNoRealizadasResponse | null;
   noRealizadasTotal: number | null;
@@ -79,18 +74,6 @@ function pushEjecutivoKpis(
   );
 }
 
-function pushPendientesKpis(cards: DashboardExportKpi[], pendientes: IndicadoresPendientesResponse): void {
-  const p = pendientes.kpis;
-  cards.push(
-    { title: "Relevamientos pendientes", value: p.relevamientos_pendientes },
-    { title: "Reinspecciones oficio pendientes", value: p.reinspecciones_oficio_pendientes },
-    {
-      title: "Reinspecciones notificación pendientes",
-      value: p.reinspecciones_notificacion_pendientes,
-    }
-  );
-}
-
 function pushNoRealizadasKpis(
   cards: DashboardExportKpi[],
   _noRealizadas: IndicadoresNoRealizadasResponse,
@@ -113,9 +96,6 @@ export function buildDashboardExportPayload(args: BuildArgs): DashboardExportPay
   }
   if (args.noRealizadas) {
     pushNoRealizadasKpis(resumenKpis, args.noRealizadas, args.noRealizadasTotal);
-  }
-  if (args.pendientes) {
-    pushPendientesKpis(resumenKpis, args.pendientes);
   }
   if (args.riesgo) {
     const r = args.riesgo.top_rubros[0];
@@ -173,9 +153,7 @@ export function buildDashboardExportPayload(args: BuildArgs): DashboardExportPay
     },
     resumenKpis,
     ejecutivo: args.ejecutivo,
-    pendientes: args.pendientes,
     actasPorTipo: args.ejecutivo?.actas_por_tipo ?? null,
-    pendientesDistritos: args.pendientes?.distritos_con_mas_pendientes ?? [],
     riesgo: args.riesgo,
     mercaderiaDecomisadaKg: args.ejecutivo?.kpis.mercaderia_decomisada_kg ?? null,
     noRealizadas: args.noRealizadas,

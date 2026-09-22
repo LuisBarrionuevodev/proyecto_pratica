@@ -33,7 +33,6 @@ export type DashboardPdfModel = {
   desde: string;
   hasta: string;
   ejecutivoKpis: DashboardPdfKpiRow[];
-  pendientesKpis: DashboardPdfKpiRow[];
   actasPorTipo: DashboardPdfTableSection;
   riesgoRubros: DashboardPdfTableSection;
   riesgoMotivosNotificacion: DashboardPdfTableSection;
@@ -108,18 +107,6 @@ export function buildDashboardPdfModel(
           value: fmtNum(k.verificar_informar_realizadas),
         },
         { label: "Mercadería decomisada (kg)", value: fmtKg(k.mercaderia_decomisada_kg) },
-      ]
-    : [];
-
-  const p = payload.pendientes?.kpis;
-  const pendientesKpis: DashboardPdfKpiRow[] = p
-    ? [
-        { label: "Relevamientos pendientes", value: fmtNum(p.relevamientos_pendientes) },
-        { label: "Reins. oficio pendientes", value: fmtNum(p.reinspecciones_oficio_pendientes) },
-        {
-          label: "Reins. notificación pendientes",
-          value: fmtNum(p.reinspecciones_notificacion_pendientes),
-        },
       ]
     : [];
 
@@ -250,7 +237,6 @@ export function buildDashboardPdfModel(
     desde,
     hasta,
     ejecutivoKpis,
-    pendientesKpis,
     actasPorTipo: buildTableSection("Actas por tipo", ["Tipo", "Cantidad"], actasRows),
     riesgoRubros,
     riesgoMotivosNotificacion,

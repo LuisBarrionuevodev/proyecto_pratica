@@ -4,10 +4,16 @@ from app.database import db
 from app.models import Inspector, RutaGrupo, RutaGrupoInspector, RutaTrabajo
 from sqlalchemy.exc import IntegrityError
 
-from .auth_service import get_current_user_id_or_fallback
+from .auth_service import resolve_actor_user_id
 
 
-def replace_grupo_inspectores(*, ruta_id: int, grupo_id: int, inspector_ids: list[int]) -> list[RutaGrupoInspector]:
+def replace_grupo_inspectores(
+    *,
+    ruta_id: int,
+    grupo_id: int,
+    inspector_ids: list[int],
+    actor_user_id: int | None = None,
+) -> list[RutaGrupoInspector]:
     """
     Reemplaza totalmente los inspectores de un grupo.
 
@@ -62,7 +68,7 @@ def replace_grupo_inspectores(*, ruta_id: int, grupo_id: int, inspector_ids: lis
         RutaGrupoInspector.ruta_grupo_id == grupo_id
     ).delete(synchronize_session=False)
 
-    user_id = get_current_user_id_or_fallback()
+    user_id = resolve_actor_user_id(actor_user_id)
     for inspector_id in inspector_ids:
         db.session.add(
             RutaGrupoInspector(

@@ -26,16 +26,6 @@ from app.domains.grid.services.relevamiento_dup_key import build_relevamiento_es
 from app.models import Domicilio, Inspector, Relevamiento, Rubro
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _migration_pr72_aplicada() -> bool:
     from sqlalchemy import inspect
 
@@ -140,7 +130,7 @@ def test_pr73_schema_angulo_invalido_422(app_ctx) -> None:
         RelevamientoGridRowIn.model_validate(
             {
                 "fecha": "2026-05-10",
-                "relevador": ins.nombre,
+                "relevador": rel.nombre,
                 "calle": "Test",
                 "numero": "100",
                 "rubro": rub.nombre,

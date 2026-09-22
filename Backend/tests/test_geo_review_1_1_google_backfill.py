@@ -17,13 +17,6 @@ from app.models import Domicilio, DomicilioGeocode
 from tests.relevamiento_test_helpers import uniq
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _mk_dom() -> Domicilio:
     dom = Domicilio(calle=uniq("GeoReviewBackfill"), numero="200")
     db.session.add(dom)

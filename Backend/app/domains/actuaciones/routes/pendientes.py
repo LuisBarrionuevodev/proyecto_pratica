@@ -8,6 +8,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     get_pendientes_summary,
     get_pendientes_list,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
@@ -28,7 +29,10 @@ def pendientes_summary():
     try:
         params = {k: (v if v else None) for k, v in request.args.to_dict().items()}
         filters = ActuacionesPendientesFilters.model_validate(params)
-        return jsonify(get_pendientes_summary(filters)), 200
+        actor_user_id = get_current_user_id()
+        return jsonify(
+            get_pendientes_summary(filters, actor_user_id=actor_user_id)
+        ), 200
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except ValueError as e:
@@ -47,7 +51,8 @@ def pendientes_list():
         filters = ActuacionesPendientesFilters.model_validate(params)
         if not filters.tipo:
             return jsonify({"detail": "tipo es obligatorio."}), 400
-        acts = get_pendientes_list(filters)
+        actor_user_id = get_current_user_id()
+        acts = get_pendientes_list(filters, actor_user_id=actor_user_id)
         if filters.tipo == "domicilios":
             return jsonify([actuacion_to_pendiente_domicilio_row(a) for a in acts]), 200
         counts_by_eo = build_counts_by_eo_from_actuaciones(acts)

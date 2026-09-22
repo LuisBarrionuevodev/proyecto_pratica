@@ -33,12 +33,23 @@ class Actuaciones(db.Model):
     # Verificar e informar: True/False si realizó nueva inspección; NULL en ratificaciones y casos ambiguos.
     realizo_nueva_inspeccion = db.Column(db.Boolean, nullable=True)
 
+    # Carga histórica administrativa: solo acta de comprobación (sin OT/domicilio/contribuyente formal).
+    carga_solo_comprobacion = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false(),
+        index=True,
+    )
+    titular_nombre_historico = db.Column(db.String(128), nullable=True)
+    titular_apellido_historico = db.Column(db.String(128), nullable=True)
+    titular_razon_social_historica = db.Column(db.String(255), nullable=True)
+
     # --- FKs (tal cual tu modelo) ---
     orden_trabajo_id = db.Column(
         db.Integer,
         db.ForeignKey("orden_trabajo.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False,
-        unique=True,
+        nullable=True,
         index=True,
     )
 
@@ -159,6 +170,10 @@ class Actuaciones(db.Model):
             "contraproducencia": self.contraproducencia.value if self.contraproducencia else None,
             "resultado_cumplimiento_oficio": rc_out,
             "realizo_nueva_inspeccion": getattr(self, "realizo_nueva_inspeccion", None),
+            "carga_solo_comprobacion": bool(getattr(self, "carga_solo_comprobacion", False)),
+            "titular_nombre_historico": getattr(self, "titular_nombre_historico", None),
+            "titular_apellido_historico": getattr(self, "titular_apellido_historico", None),
+            "titular_razon_social_historica": getattr(self, "titular_razon_social_historica", None),
             "orden_trabajo_id": self.orden_trabajo_id,
             "notificacion_id": self.notificacion_id,
             "comprobacion_id": self.comprobacion_id,

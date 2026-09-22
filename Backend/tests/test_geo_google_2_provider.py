@@ -38,8 +38,10 @@ from app.models import Domicilio, DomicilioGeocode
 
 
 @pytest.fixture
-def app_ctx(app):
-    with app.app_context():
+def app_ctx(app, actor_user_id):
+    from tests.helpers.service_actor import jwt_request_context
+
+    with jwt_request_context(app, actor_user_id):
         yield app
 
 

@@ -20,16 +20,6 @@ from tests.test_comprobacion_pendientes_reinspeccion_bandeja import (
 )
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_oficio_cumplido_no_aparece_en_pendientes(app_ctx) -> None:
     act_id, _nof, _jz = _mk_circuito_completo()
     act = db.session.get(Actuaciones, act_id)

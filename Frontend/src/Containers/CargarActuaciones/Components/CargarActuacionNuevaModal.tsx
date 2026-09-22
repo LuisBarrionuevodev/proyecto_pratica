@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactN
 import {
   Autocomplete,
   Box,
+  Checkbox,
   Chip,
   CircularProgress,
+  FormControlLabel,
   LinearProgress,
   Stack,
   TextField,
@@ -123,6 +125,7 @@ export function CargarActuacionNuevaModal() {
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
   const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
   const [titularModo, setTitularModo] = useState<TitularModo>("persona");
+  const [cargaSoloComprobacion, setCargaSoloComprobacion] = useState(false);
 
   const [batchId, setBatchId] = useState<string | null>(null);
   const [startingBatch, setStartingBatch] = useState(false);
@@ -236,6 +239,7 @@ export function CargarActuacionNuevaModal() {
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
     setTitularModo("persona");
+    setCargaSoloComprobacion(false);
     setChecklistEstados(checklistV2Reset.checklistEstados);
     setPersonasSinCarnet(checklistV2Reset.personasSinCarnet);
     setChecklistItemsTouched(checklistV2Reset.checklistItemsTouched);
@@ -269,7 +273,66 @@ export function CargarActuacionNuevaModal() {
     [titularModo, clearFe]
   );
 
+  const clearCamposIncompatiblesHistorica = useCallback(() => {
+    setTexts((prev) => ({
+      ...prev,
+      "Orden de trabajo": "",
+      Rubro: "",
+      DNI: "",
+      "Acta inspección": "",
+      "Acta notificación": "",
+      "Acta clausura": "",
+      "Acta decomiso": "",
+      "Kilos decomiso": "",
+    }));
+    setNotifMotivosSel([]);
+    setNotifMotivosAddInput("");
+    const checklistV2Reset = getCargarActuacionChecklistV2ResetState();
+    setChecklistEstados(checklistV2Reset.checklistEstados);
+    setPersonasSinCarnet(checklistV2Reset.personasSinCarnet);
+    setChecklistItemsTouched(false);
+    setPersonasSinCarnetTouched(false);
+  }, []);
+
+  const handleCargaSoloComprobacionChange = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setCargaSoloComprobacion(true);
+        clearCamposIncompatiblesHistorica();
+        setFieldErrors({});
+        return;
+      }
+      resetForm();
+    },
+    [clearCamposIncompatiblesHistorica, resetForm]
+  );
+
   const buildGridRow = useCallback((): GridRow => {
+    if (cargaSoloComprobacion) {
+      const row: GridRow = {
+        _rowId: rowId,
+        _state: "PENDIENTE",
+        _cellErrors: {},
+        "Cargar solo comprobación": true,
+        "Fecha actuación": texts["Fecha actuación"].trim() || null,
+        Inspectores: dedupeInspectoresPreserveOrder(inspectoresList),
+        "Acta comprobación": texts["Acta comprobación"].trim() || null,
+        "Motivo comprobación": texts["Motivo comprobación"].trim() || null,
+        Calle: texts["Calle"].trim() || null,
+        Número: texts["Número"].trim() || null,
+      };
+      if (titularModo === "persona") {
+        row["Apellido"] = texts["Apellido"].trim() || null;
+        row["Nombre"] = texts["Nombre"].trim() || null;
+        row["Razón social"] = null;
+      } else {
+        row["Razón social"] = texts["Razón social"].trim() || null;
+        row["Apellido"] = null;
+        row["Nombre"] = null;
+      }
+      return row;
+    }
+
     const kilosRaw = texts["Kilos decomiso"].trim();
     let kilos: number | null = null;
     if (kilosRaw !== "") {
@@ -281,6 +344,7 @@ export function CargarActuacionNuevaModal() {
       _rowId: rowId,
       _state: "PENDIENTE",
       _cellErrors: {},
+      "Cargar solo comprobación": false,
       Inspectores: dedupeInspectoresPreserveOrder(inspectoresList),
     };
 
@@ -328,6 +392,7 @@ export function CargarActuacionNuevaModal() {
     texts,
     titularModo,
     notifMotivosSel,
+    cargaSoloComprobacion,
   ]);
 
   const toSelectOptions = (columnId: string): AppSelectOption[] =>
@@ -491,6 +556,24 @@ export function CargarActuacionNuevaModal() {
           <>
         {open && startingBatch && !batchId ? <LinearProgress sx={{ borderRadius: 1 }} /> : null}
 
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={cargaSoloComprobacion}
+              onChange={(e) => handleCargaSoloComprobacionChange(e.target.checked)}
+              disabled={loading || catalogsBootstrapping}
+              sx={{ color: "rgba(255,255,255,0.7)", "&.Mui-checked": { color: "rgba(255,255,255,0.92)" } }}
+            />
+          }
+          label="Cargar solo acta de comprobación como actuación"
+          sx={{
+            alignItems: "flex-start",
+            mx: 0,
+            color: "rgba(255,255,255,0.88)",
+            "& .MuiFormControlLabel-label": { fontFamily: tactic, fontSize: "0.875rem", lineHeight: 1.45 },
+          }}
+        />
+
         <CargarActuacionBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>
           <Box sx={edicionGrid2ColSx}>
@@ -509,20 +592,22 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Fecha actuación"))}
             helperText={errorFor("Fecha actuación") || undefined}
           />
-          <AppTextField
-            appearance="glass"
-            fullWidth
-            required
-            label="Orden de trabajo"
-            value={texts["Orden de trabajo"]}
-            onChange={(e) => {
-              setText("Orden de trabajo", e.target.value);
-              clearFe("Orden de trabajo");
-            }}
-            disabled={catalogsBootstrapping}
-            error={Boolean(errorFor("Orden de trabajo"))}
-            helperText={errorFor("Orden de trabajo") || undefined}
-          />
+          {!cargaSoloComprobacion ? (
+            <AppTextField
+              appearance="glass"
+              fullWidth
+              required
+              label="Orden de trabajo"
+              value={texts["Orden de trabajo"]}
+              onChange={(e) => {
+                setText("Orden de trabajo", e.target.value);
+                clearFe("Orden de trabajo");
+              }}
+              disabled={catalogsBootstrapping}
+              error={Boolean(errorFor("Orden de trabajo"))}
+              helperText={errorFor("Orden de trabajo") || undefined}
+            />
+          ) : null}
           </Box>
 
           <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
@@ -579,12 +664,15 @@ export function CargarActuacionNuevaModal() {
         </Box>
         </CargarActuacionBloque>
 
-        <CargarActuacionBloque title="Domicilio y establecimiento">
+        <CargarActuacionBloque
+          title={cargaSoloComprobacion ? "Ubicación" : "Domicilio y establecimiento"}
+        >
         <Box sx={{ ...col, width: "100%" }}>
           <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
             label="Calle"
+            required={cargaSoloComprobacion}
             value={texts["Calle"]}
             onChange={(e) => {
               setText("Calle", e.target.value);
@@ -597,6 +685,7 @@ export function CargarActuacionNuevaModal() {
           <AppTextField
             appearance="glass"
             label="Número"
+            required={cargaSoloComprobacion}
             value={texts["Número"]}
             onChange={(e) => {
               setText("Número", e.target.value);
@@ -607,6 +696,7 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Número") || undefined}
           />
           </Box>
+          {!cargaSoloComprobacion ? (
           <Autocomplete
             size="small"
             fullWidth
@@ -628,10 +718,11 @@ export function CargarActuacionNuevaModal() {
               />
             )}
           />
+          ) : null}
         </Box>
         </CargarActuacionBloque>
 
-        <CargarActuacionBloque title="Contribuyente / titular">
+        <CargarActuacionBloque title={cargaSoloComprobacion ? "Titular" : "Contribuyente / titular"}>
         <Box sx={{ ...col, width: "100%" }}>
           <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
             Titular
@@ -703,23 +794,26 @@ export function CargarActuacionNuevaModal() {
             />
           )}
 
-          <AppTextField
-            appearance="glass"
-            label="CUIT / DNI"
-            value={texts["DNI"]}
-            onChange={(e) => {
-              setText("DNI", e.target.value);
-              clearFe("DNI");
-            }}
-            fullWidth
-            error={Boolean(errorFor("DNI"))}
-            helperText={errorFor("DNI") || undefined}
-          />
+          {!cargaSoloComprobacion ? (
+            <AppTextField
+              appearance="glass"
+              label="CUIT / DNI"
+              value={texts["DNI"]}
+              onChange={(e) => {
+                setText("DNI", e.target.value);
+                clearFe("DNI");
+              }}
+              fullWidth
+              error={Boolean(errorFor("DNI"))}
+              helperText={errorFor("DNI") || undefined}
+            />
+          ) : null}
         </Box>
         </CargarActuacionBloque>
 
-        <CargarActuacionBloque title="Actas labradas">
+        <CargarActuacionBloque title={cargaSoloComprobacion ? "Acta de comprobación" : "Actas labradas"}>
         <Box sx={{ ...col, width: "100%" }}>
+          {!cargaSoloComprobacion ? (
           <AppTextField
             appearance="glass"
             label="N° acta de inspección"
@@ -732,6 +826,8 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta inspección"))}
             helperText={errorFor("Acta inspección") || undefined}
           />
+          ) : null}
+          {!cargaSoloComprobacion ? (
           <InspeccionChecklistFields
             appearance="glass"
             catalog={catalogItemsActaInspeccion}
@@ -746,6 +842,9 @@ export function CargarActuacionNuevaModal() {
               items: errorFor("items_acta_inspeccion"),
             }}
           />
+          ) : null}
+          {!cargaSoloComprobacion ? (
+          <>
           <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
@@ -838,6 +937,8 @@ export function CargarActuacionNuevaModal() {
             disabled={!isValidActaNotificacionNum(texts["Acta notificación"])}
             error={errorFor("cantidad_personas_sin_carnet_sanidad")}
           />
+          </>
+          ) : null}
           <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
@@ -866,6 +967,8 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Motivo comprobación") || undefined}
           />
           </Box>
+          {!cargaSoloComprobacion ? (
+          <>
           <Box sx={edicionGrid2ColSx}>
           <AppTextField
             appearance="glass"
@@ -905,6 +1008,8 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Kilos decomiso"))}
             helperText={errorFor("Kilos decomiso") || undefined}
           />
+          </>
+          ) : null}
         </Box>
         </CargarActuacionBloque>
           </>

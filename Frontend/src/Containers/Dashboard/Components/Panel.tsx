@@ -25,7 +25,6 @@ import { fetchDistritosCatalogo } from "../../../api/geolocalizacionApi";
 import { fetchInspectores } from "../../../api/gridApi";
 import type { Periodo } from "../../../types/periodos";
 import { useIndicadoresEjecutivo } from "../hooks/useIndicadoresEjecutivo";
-import { useIndicadoresPendientes } from "../hooks/useIndicadoresPendientes";
 import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas";
 import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
@@ -37,7 +36,6 @@ import { DashboardIndicadoresPageLoader } from "./DashboardIndicadoresPageLoader
 import { DashboardIndicadoresRefreshingOverlay } from "./DashboardIndicadoresRefreshingOverlay";
 import { DashboardActasPorTipoSection } from "./DashboardActasPorTipoSection";
 import { DashboardEjecutivoSection } from "./DashboardEjecutivoSection";
-import { DashboardPendientesSection } from "./DashboardPendientesSection";
 import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
 import { DashboardProductividadSectionLazy } from "./DashboardProductividadSectionLazy";
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
@@ -110,22 +108,11 @@ const Panel = () => {
     return p;
   }, [desde, hasta, distritoId, inspectorId]);
 
-  const pendientesParams = useMemo(() => {
-    if (distritoId === "") return {};
-    return { distrito_id: Number(distritoId) };
-  }, [distritoId]);
-
   const {
     data: ejecutivoData,
     loading: ejecutivoLoading,
     error: ejecutivoError,
   } = useIndicadoresEjecutivo(indicadoresParams);
-
-  const {
-    data: pendientesData,
-    loading: pendientesLoading,
-    error: pendientesError,
-  } = useIndicadoresPendientes(pendientesParams);
 
   const {
     data: riesgoData,
@@ -169,7 +156,6 @@ const Panel = () => {
         distritoLabel,
         inspectorLabel,
         ejecutivo: ejecutivoData ?? null,
-        pendientes: pendientesData ?? null,
         riesgo: riesgoData ?? null,
         noRealizadas: noRealizadasData ?? null,
         noRealizadasTotal,
@@ -182,7 +168,6 @@ const Panel = () => {
       distritoLabel,
       inspectorLabel,
       ejecutivoData,
-      pendientesData,
       riesgoData,
       noRealizadasData,
       noRealizadasTotal,
@@ -195,14 +180,12 @@ const Panel = () => {
   const periodoTabIndex = PERIODOS.indexOf(periodo);
 
   const ejecutivoReady = isDashboardSectionReady(ejecutivoData, ejecutivoError);
-  const pendientesReady = isDashboardSectionReady(pendientesData, pendientesError);
   const riesgoReady = isDashboardSectionReady(riesgoData, riesgoError);
   const noRealizadasReady = isDashboardSectionReady(noRealizadasData, noRealizadasError);
   const productividadReady = isDashboardSectionReady(productividadData, productividadError);
 
   const anySectionReady =
     ejecutivoReady ||
-    pendientesReady ||
     riesgoReady ||
     noRealizadasReady ||
     productividadReady;
@@ -212,7 +195,6 @@ const Panel = () => {
 
   const isAnyLoading =
     ejecutivoLoading ||
-    pendientesLoading ||
     riesgoLoading ||
     noRealizadasLoading ||
     productividadLoading;
@@ -392,19 +374,6 @@ const Panel = () => {
                 actas={ejecutivoData?.actas_por_tipo}
                 loading={ejecutivoLoading}
                 error={ejecutivoError}
-              />
-            </DashboardSectionGate>
-
-            <DashboardSectionGate
-              title="Operativo / Pendientes actuales"
-              loading={pendientesLoading}
-              ready={pendientesReady}
-              loadingMessage="Cargando pendientes..."
-            >
-              <DashboardPendientesSection
-                data={pendientesData}
-                loading={pendientesLoading}
-                error={pendientesError}
               />
             </DashboardSectionGate>
 

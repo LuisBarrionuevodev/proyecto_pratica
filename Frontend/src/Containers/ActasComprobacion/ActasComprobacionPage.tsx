@@ -34,10 +34,19 @@ import {
   BANDEJA_MRT_BODY_CELL_PROPS,
   splitMiddleDot,
 } from "../Actuaciones/Components/bandejaTableCells";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_PaginationState } from "material-react-table";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_PaginationState,
+  type MRT_SortingState,
+  type MRT_TableOptions,
+  type MRT_Updater,
+} from "material-react-table";
 
 import {
   createExpedienteDesdeActuacion,
+  declararSinExpedienteEnvio,
   createOficioDesdeActuacion,
   fetchComprobacionDocumental,
   fetchOficiosByComprobacion,
@@ -123,9 +132,21 @@ import {
   operativaComprobacionExpedienteApiOpts,
   operativaComprobacionOficioApiOpts,
   operativaComprobacionReinspeccionApiOpts,
+  type OperativaComprobacionFiltroInputs,
   type OperativaComprobacionFiltroPayload,
 } from "./utils/buildOperativaComprobacionFiltroPayload";
-import { shouldResetOperativaFiltroOnTabChange } from "./utils/operativaComprobacionTabChange";
+import {
+  isOperativeComprobacionTab,
+  shouldSwapOperativaTabMemory,
+} from "./utils/operativaComprobacionTabChange";
+import {
+  createOperativaMemoryByTab,
+  operativaFiltersSignature,
+  resolveOperativaTabAppliedFilters,
+  snapshotOperativaFiltroMemory,
+  type OperativaMemoryByTab,
+  type OperativaTabFiltroMemory,
+} from "./utils/operativaComprobacionTabMemory";
 import {
   createOperativaBaseCacheState,
   invalidateOperativaBaseTabs as invalidateOperativaBaseTabsInState,
@@ -299,6 +320,49 @@ function trimToNull(s: string): string | null {
   return t || null;
 }
 
+type ComprobacionOperativaBandejaTableProps = {
+  columns: MRT_ColumnDef<Record<string, unknown>>[];
+  data: Record<string, unknown>[];
+  toolbar?: () => React.ReactNode;
+  getRowId?: (row: Record<string, unknown>) => string;
+  pagination: MRT_PaginationState;
+  onPaginationChange: (updater: MRT_Updater<MRT_PaginationState>) => void;
+  sorting: MRT_SortingState;
+  onSortingChange: (updater: MRT_Updater<MRT_SortingState>) => void;
+};
+
+/** Tabla MRT única para expediente / oficio / reinspección (permanece montada entre tabs). */
+function ComprobacionOperativaBandejaTable({
+  columns,
+  data,
+  toolbar,
+  getRowId,
+  pagination,
+  onPaginationChange,
+  sorting,
+  onSortingChange,
+}: ComprobacionOperativaBandejaTableProps) {
+  const table = useMaterialReactTable({
+    ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
+    columns,
+    data,
+    density: "compact",
+    enableEditing: false,
+    enableRowSelection: false,
+    ...(getRowId ? { getRowId: (row) => getRowId(row) } : {}),
+    renderTopToolbarCustomActions: toolbar,
+    state: {
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
+      pagination,
+      sorting,
+    },
+    onPaginationChange,
+    onSortingChange,
+  } as MRT_TableOptions<Record<string, unknown>>);
+  return <MaterialReactTable table={table} />;
+}
+
 function buildEstadoOperativoColumn<T extends Parameters<typeof formatEstadoOperativoPoolLabel>[0]>(): MRT_ColumnDef<T> {
   return {
     id: "estado_operativo",
@@ -343,6 +407,18 @@ const ActasComprobacionPage = () => {
   const [opNumExpRespuesta, setOpNumExpRespuesta] = useState("");
   const [opApplied, setOpApplied] = useState<OperativaComprobacionFiltroPayload | null>(null);
   const opAppliedRef = useRef<OperativaComprobacionFiltroPayload | null>(null);
+  const operativaMemoryByTabRef = useRef<OperativaMemoryByTab>(createOperativaMemoryByTab());
+  const operativaLoadedFiltersRef = useRef<Record<OperativaPendientesTab, string | null>>({
+    expediente: null,
+    oficio: null,
+    reinspeccion: null,
+  });
+  const [opPagination, setOpPagination] = useState<MRT_PaginationState>(() =>
+    createOperativaMemoryByTab().expediente.table.pagination
+  );
+  const [opSorting, setOpSorting] = useState<MRT_SortingState>(() =>
+    createOperativaMemoryByTab().expediente.table.sorting
+  );
   const prevOperativeTabRef = useRef<TabKey>(tab);
   /** Solo para el slice Recorrido (selector de distrito). */
   const [distritosRecorrido, setDistritosRecorrido] = useState<DistritoCatalogoItem[]>([]);
@@ -365,6 +441,83 @@ const ActasComprobacionPage = () => {
   useEffect(() => {
     opAppliedRef.current = opApplied;
   }, [opApplied]);
+
+  const readOperativaFiltroInputs = useCallback(
+    (): OperativaComprobacionFiltroInputs => ({
+      desde: opDesde,
+      hasta: opHasta,
+      numeroComprobacion: opNumComp,
+      expedienteEnvioNumero: opNumExpEnvio,
+      numeroOficio: opNumOficio,
+      expedienteRespuestaNumero: opNumExpRespuesta,
+    }),
+    [opDesde, opHasta, opNumComp, opNumExpEnvio, opNumOficio, opNumExpRespuesta]
+  );
+
+  const applyOperativaFiltroMemory = useCallback((mem: OperativaTabFiltroMemory) => {
+    setOpDesde(mem.inputs.desde);
+    setOpHasta(mem.inputs.hasta);
+    setOpNumComp(mem.inputs.numeroComprobacion);
+    setOpNumExpEnvio(mem.inputs.expedienteEnvioNumero);
+    setOpNumOficio(mem.inputs.numeroOficio);
+    setOpNumExpRespuesta(mem.inputs.expedienteRespuestaNumero);
+    setOpApplied(mem.applied);
+    opAppliedRef.current = mem.applied;
+  }, []);
+
+  const saveOperativaTabMemory = useCallback(
+    (tabKey: OperativaPendientesTab) => {
+      operativaMemoryByTabRef.current[tabKey] = {
+        filtro: snapshotOperativaFiltroMemory(readOperativaFiltroInputs(), opAppliedRef.current),
+        table: { pagination: opPagination, sorting: opSorting },
+      };
+    },
+    [readOperativaFiltroInputs, opPagination, opSorting]
+  );
+
+  const restoreOperativaTabMemory = useCallback(
+    (tabKey: OperativaPendientesTab) => {
+      const mem = operativaMemoryByTabRef.current[tabKey];
+      applyOperativaFiltroMemory(mem.filtro);
+      setOpPagination(mem.table.pagination);
+      setOpSorting(mem.table.sorting);
+    },
+    [applyOperativaFiltroMemory]
+  );
+
+  const syncCurrentOperativaFiltroMemory = useCallback(() => {
+    if (!isOperativeComprobacionTab(tab)) return;
+    operativaMemoryByTabRef.current[tab].filtro = snapshotOperativaFiltroMemory(
+      readOperativaFiltroInputs(),
+      opAppliedRef.current
+    );
+  }, [tab, readOperativaFiltroInputs]);
+
+  const handleOpPaginationChange = useCallback(
+    (updater: MRT_Updater<MRT_PaginationState>) => {
+      setOpPagination((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (isOperativeComprobacionTab(tab)) {
+          operativaMemoryByTabRef.current[tab].table.pagination = next;
+        }
+        return next;
+      });
+    },
+    [tab]
+  );
+
+  const handleOpSortingChange = useCallback(
+    (updater: MRT_Updater<MRT_SortingState>) => {
+      setOpSorting((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (isOperativeComprobacionTab(tab)) {
+          operativaMemoryByTabRef.current[tab].table.sorting = next;
+        }
+        return next;
+      });
+    },
+    [tab]
+  );
 
   const distritoSelectOptionsRecorrido = useMemo(
     () => [
@@ -418,6 +571,7 @@ const ActasComprobacionPage = () => {
     ) {
       perfLog("comprobacion.tab.baseCacheHit", { tab: "expediente" });
       restoreExpedienteFromBase();
+      operativaLoadedFiltersRef.current.expediente = operativaFiltersSignature(filters);
       return;
     }
     if (!opts?.silent) setExpLoading(true);
@@ -434,6 +588,7 @@ const ActasComprobacionPage = () => {
       );
       setExpItems(resp.items);
       setExpTotalPendientes(resp.meta.total);
+      operativaLoadedFiltersRef.current.expediente = operativaFiltersSignature(filters);
       if (isBase) {
         operativaBaseCacheRef.current.expediente = {
           valid: true,
@@ -474,9 +629,14 @@ const ActasComprobacionPage = () => {
     selectedExp?.id,
     GESTION_PERSIST_OPS.compExpedienteSalida
   );
+  const modalDeclararSinExpPersisting = isPersistingForRow(
+    persistKey,
+    selectedExp?.id,
+    GESTION_PERSIST_OPS.compDeclararSinExpediente
+  );
 
   const closeModalExp = () => {
-    if (modalExpPersisting) return;
+    if (modalExpPersisting || modalDeclararSinExpPersisting) return;
     dismissModalExp();
   };
 
@@ -561,17 +721,6 @@ const ActasComprobacionPage = () => {
     [expLoading, loadExpediente]
   );
 
-  const tableExpediente = useMaterialReactTable({
-    ...DARK_TABLE_CONFIG,
-    ...bandejaComprobacionMrtLayout,
-    columns: columnsExpediente,
-    data: expItems,
-    enableEditing: false,
-    enableRowSelection: false,
-    renderTopToolbarCustomActions: renderExpedienteToolbarRefresh,
-    state: { ...BANDEJA_MRT_SPINNER_LOADING_STATE },
-  });
-
   // —— Pendientes de oficio (siempre mes corriente; sin filtro previo a la tabla)
   const [oficioApiTotal, setOficioApiTotal] = useState(0);
   const [oficioItems, setOficioItems] = useState<IPendientesOficioItem[]>([]);
@@ -643,6 +792,7 @@ const ActasComprobacionPage = () => {
     ) {
       perfLog("comprobacion.tab.baseCacheHit", { tab: "oficio" });
       restoreOficioFromBase();
+      operativaLoadedFiltersRef.current.oficio = operativaFiltersSignature(filters);
       return;
     }
     if (!opts?.silent) setOficioLoading(true);
@@ -659,6 +809,7 @@ const ActasComprobacionPage = () => {
       );
       setOficioApiTotal(resp.meta.total);
       setOficioItems(resp.items);
+      operativaLoadedFiltersRef.current.oficio = operativaFiltersSignature(filters);
       if (isBase) {
         operativaBaseCacheRef.current.oficio = {
           valid: true,
@@ -850,6 +1001,26 @@ const ActasComprobacionPage = () => {
         },
       },
       {
+        id: "expediente_envio",
+        header: "Expediente envío",
+        size: 160,
+        accessorFn: (r) =>
+          r.sin_expediente_envio
+            ? "Sin expediente de envío"
+            : [r.expediente_original_numero, r.expediente_original_anio].filter(Boolean).join("/"),
+        Cell: ({ row }) => {
+          if (row.original.sin_expediente_envio) {
+            return <Typography variant="body2">Sin expediente de envío</Typography>;
+          }
+          const num = (row.original.expediente_original_numero ?? "").trim();
+          const anio = (row.original.expediente_original_anio ?? "").toString().trim();
+          const fecha = (row.original.expediente_original_fecha ?? "").trim();
+          const label = num ? `${num}${anio ? `/${anio}` : ""}` : "—";
+          const parts = [label, fecha ? `(${fecha})` : ""].filter(Boolean);
+          return <Typography variant="body2">{parts.join(" ") || "—"}</Typography>;
+        },
+      },
+      {
         id: "acciones",
         header: "Acción",
         size: 128,
@@ -891,17 +1062,6 @@ const ActasComprobacionPage = () => {
     ),
     [oficioLoading, loadOficio]
   );
-
-  const tableOficio = useMaterialReactTable({
-    ...DARK_TABLE_CONFIG,
-    ...bandejaComprobacionMrtLayout,
-    columns: columnsOficio,
-    data: oficioItems,
-    enableEditing: false,
-    enableRowSelection: false,
-    renderTopToolbarCustomActions: renderOficioToolbarRefresh,
-    state: { ...BANDEJA_MRT_SPINNER_LOADING_STATE },
-  });
 
   // —— Reinspección (sin filtro por mes: `omitir_rango_fecha` en API; refresco en toolbar)
   const [reinApiTotal, setReinApiTotal] = useState(0);
@@ -945,6 +1105,7 @@ const ActasComprobacionPage = () => {
     ) {
       perfLog("comprobacion.tab.baseCacheHit", { tab: "reinspeccion" });
       restoreReinFromBase();
+      operativaLoadedFiltersRef.current.reinspeccion = operativaFiltersSignature(filters);
       return;
     }
     if (!opts?.silent) setReinLoading(true);
@@ -961,6 +1122,7 @@ const ActasComprobacionPage = () => {
       );
       setReinApiTotal(resp.meta.total);
       setReinItems(resp.items);
+      operativaLoadedFiltersRef.current.reinspeccion = operativaFiltersSignature(filters);
       if (isBase) {
         operativaBaseCacheRef.current.reinspeccion = {
           valid: true,
@@ -1000,6 +1162,7 @@ const ActasComprobacionPage = () => {
     });
     setOpApplied(payload);
     opAppliedRef.current = payload;
+    syncCurrentOperativaFiltroMemory();
     if (tab === "expediente") void loadExpediente(payload);
     else if (tab === "oficio") void loadOficio(payload);
     else if (tab === "reinspeccion") void loadRein(payload);
@@ -1014,14 +1177,16 @@ const ActasComprobacionPage = () => {
     loadExpediente,
     loadOficio,
     loadRein,
+    syncCurrentOperativaFiltroMemory,
   ]);
 
   const handleClearOperativaFiltro = useCallback(() => {
     clearOperativaFiltroInputs();
+    syncCurrentOperativaFiltroMemory();
     if (tab === "expediente") void loadExpediente(null);
     else if (tab === "oficio") void loadOficio(null);
     else if (tab === "reinspeccion") void loadRein(null);
-  }, [tab, loadExpediente, loadOficio, loadRein, clearOperativaFiltroInputs]);
+  }, [tab, loadExpediente, loadOficio, loadRein, clearOperativaFiltroInputs, syncCurrentOperativaFiltroMemory]);
 
   /** Lazy-load por tab; restaura snapshot base sin GET cuando está disponible. */
   const ensureTabLoaded = useCallback(
@@ -1179,6 +1344,38 @@ const ActasComprobacionPage = () => {
       }
     }
   }, [selectedExp, expNumeroForm, expFechaForm, dismissModalExp, reconcileComprobacionesSilent]);
+
+  const handleDeclararSinExpediente = useCallback(async () => {
+    if (!selectedExp) return;
+    const actuacionId = selectedExp.id;
+    const seq = nextMutationSeq(mutationSeqRef);
+    setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.compDeclararSinExpediente });
+    setModalExpError(null);
+    try {
+      await declararSinExpedienteEnvio(actuacionId);
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+
+      setPersistKey((prev) =>
+        clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compDeclararSinExpediente)
+      );
+
+      feedback.success("Comprobación registrada sin expediente de envío.");
+      if (selectedExpRef.current?.id === actuacionId && isMutationSeqCurrent(mutationSeqRef, seq)) {
+        dismissModalExp();
+      }
+      reconcileComprobacionesSilent();
+    } catch (err: unknown) {
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setModalExpError(detail || "No se pudo registrar la declaración");
+    } finally {
+      if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+        setPersistKey((prev) =>
+          clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compDeclararSinExpediente)
+        );
+      }
+    }
+  }, [selectedExp, dismissModalExp, feedback, reconcileComprobacionesSilent]);
 
   const onReinBandejasActualizadas = useCallback(async () => {
     await refreshComprobacionesSlices();
@@ -1345,17 +1542,42 @@ const ActasComprobacionPage = () => {
     [reinLoading, loadRein]
   );
 
-  const tableRein = useMaterialReactTable({
-    ...DARK_TABLE_CONFIG,
-    ...bandejaComprobacionMrtLayout,
-    columns: columnsRein,
-    data: reinItems,
-    getRowId: (row) => reinBandejaRowKey(row),
-    enableEditing: false,
-    enableRowSelection: false,
-    renderTopToolbarCustomActions: renderReinToolbarRefresh,
-    state: { ...BANDEJA_MRT_SPINNER_LOADING_STATE },
-  });
+  const mostrarTablaOperativa = tab === "expediente" || tab === "oficio" || tab === "reinspeccion";
+
+  const currentOperationalData = useMemo(() => {
+    if (tab === "expediente") return expItems;
+    if (tab === "oficio") return oficioItems;
+    if (tab === "reinspeccion") return reinItems;
+    return [];
+  }, [tab, expItems, oficioItems, reinItems]);
+
+  const currentOperationalColumns = useMemo((): MRT_ColumnDef<Record<string, unknown>>[] => {
+    if (tab === "expediente") return columnsExpediente as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "oficio") return columnsOficio as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "reinspeccion") return columnsRein as MRT_ColumnDef<Record<string, unknown>>[];
+    return [];
+  }, [tab, columnsExpediente, columnsOficio, columnsRein]);
+
+  const currentOperationalLoading =
+    tab === "expediente" ? expLoading : tab === "oficio" ? oficioLoading : tab === "reinspeccion" ? reinLoading : false;
+
+  const currentOperationalError =
+    tab === "expediente" ? expError : tab === "oficio" ? oficioError : tab === "reinspeccion" ? reinError : null;
+
+  const currentOperationalToolbar = useMemo(() => {
+    if (tab === "expediente") return renderExpedienteToolbarRefresh;
+    if (tab === "oficio") return renderOficioToolbarRefresh;
+    if (tab === "reinspeccion") return renderReinToolbarRefresh;
+    return undefined;
+  }, [tab, renderExpedienteToolbarRefresh, renderOficioToolbarRefresh, renderReinToolbarRefresh]);
+
+  const currentOperationalGetRowId = useMemo(() => {
+    if (tab === "reinspeccion") {
+      return (row: Record<string, unknown>) =>
+        reinBandejaRowKey(row as IReinspeccionOficioPendienteRow);
+    }
+    return undefined;
+  }, [tab]);
 
   // —— Recorrido (período acotado vs buscador de texto)
   const [recPeriodMode, setRecPeriodMode] = useState<RecPeriodMode>("month");
@@ -1468,16 +1690,26 @@ const ActasComprobacionPage = () => {
     const tabChanged = tab !== prev;
 
     if (tabChanged) {
-      if (shouldResetOperativaFiltroOnTabChange(prev, tab)) {
-        clearOperativaFiltroInputs();
+      if (isOperativeComprobacionTab(prev)) {
+        saveOperativaTabMemory(prev);
+      }
+      if (shouldSwapOperativaTabMemory(prev, tab)) {
+        restoreOperativaTabMemory(tab);
+      } else if (isOperativeComprobacionTab(tab) && prev === "recorrido") {
+        restoreOperativaTabMemory(tab);
       }
       prevOperativeTabRef.current = tab;
     }
 
     if (tab === "recorrido") return;
 
-    void ensureTabLoaded(tab, { filters: null });
-  }, [tab, ensureTabLoaded, clearOperativaFiltroInputs]);
+    const operativeTab = tab as OperativaPendientesTab;
+    const filters = resolveOperativaTabAppliedFilters(tab, operativaMemoryByTabRef.current);
+    const sig = operativaFiltersSignature(filters);
+    if (operativaLoadedFiltersRef.current[operativeTab] === sig) return;
+
+    void ensureTabLoaded(tab, { filters });
+  }, [tab, ensureTabLoaded, saveOperativaTabMemory, restoreOperativaTabMemory]);
 
   const openDetalle = useCallback(
     async (row: IComprobacionRecorridoRow) => {
@@ -1796,56 +2028,37 @@ const ActasComprobacionPage = () => {
             </Box>
           )}
 
-          {tab === "expediente" && (
+          {mostrarTablaOperativa && (
             <>
-              {expError && (
-                <Alert severity="error" sx={alertBaseStyles}>
-                  {expError}
+              {tab === "oficio" && (
+                <Alert severity="info" sx={{ ...alertBaseStyles, mb: 1.5 }}>
+                  Esta bandeja lista actas <strong>sin ningún oficio</strong>. Si ya cargaste un oficio y necesitás
+                  agregar otro, usá <strong>Pendiente de reinspección</strong> → «Gestionar oficio» → «Agregar otro
+                  oficio».
                 </Alert>
               )}
-              {expLoading ? (
-                <BandejaTableSpinner />
-              ) : (
-                <MaterialReactTable table={tableExpediente} />
-              )}
-            </>
-          )}
-
-          {tab === "oficio" && (
-            <>
-              <Alert severity="info" sx={{ ...alertBaseStyles, mb: 1.5 }}>
-                Esta bandeja lista actas <strong>sin ningún oficio</strong>. Si ya cargaste un oficio y necesitás
-                agregar otro, usá <strong>Pendiente de reinspección</strong> → «Gestionar oficio» → «Agregar otro
-                oficio».
-              </Alert>
-              {oficioError && (
+              {currentOperationalError && (
                 <Alert severity="error" sx={alertBaseStyles}>
-                  {oficioError}
+                  {currentOperationalError}
                 </Alert>
               )}
-              {oficioLoading ? (
+              {currentOperationalLoading ? (
                 <BandejaTableSpinner />
-              ) : (
-                <MaterialReactTable table={tableOficio} />
-              )}
-            </>
-          )}
-
-          {tab === "reinspeccion" && (
-            <>
-              {reinError && (
-                <Alert severity="error" sx={alertBaseStyles}>
-                  {reinError}
-                </Alert>
-              )}
-              {reinLoading ? (
-                <BandejaTableSpinner />
-              ) : !reinError && reinItems.length === 0 ? (
+              ) : tab === "reinspeccion" && !currentOperationalError && reinItems.length === 0 ? (
                 <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 2 }}>
                   No hay comprobaciones pendientes de reinspección.
                 </Typography>
               ) : (
-                <MaterialReactTable table={tableRein} />
+                <ComprobacionOperativaBandejaTable
+                  columns={currentOperationalColumns}
+                  data={currentOperationalData as Record<string, unknown>[]}
+                  toolbar={currentOperationalToolbar}
+                  getRowId={currentOperationalGetRowId}
+                  pagination={opPagination}
+                  onPaginationChange={handleOpPaginationChange}
+                  sorting={opSorting}
+                  onSortingChange={handleOpSortingChange}
+                />
               )}
             </>
           )}
@@ -2164,6 +2377,8 @@ const ActasComprobacionPage = () => {
         modalApiError={modalExpError}
         saving={modalExpPersisting}
         onGuardar={handleSaveExpediente}
+        declaringSinExpediente={modalDeclararSinExpPersisting}
+        onDeclararSinExpediente={handleDeclararSinExpediente}
       />
 
       <ComprobacionOficioOperativoDialog

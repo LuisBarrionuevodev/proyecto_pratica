@@ -10,6 +10,7 @@ from app.domains.relevamientos.presenters.relevamiento_presenter import relevami
 from app.domains.relevamientos.schemas.grid.relevamiento_row_in import RelevamientoGridRowIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
 
 from . import relevamiento
@@ -25,7 +26,8 @@ def crear_relevamiento():
     try:
         row = RelevamientoGridRowIn.model_validate(data)
         payload = map_relevamiento_row(row)
-        rel = crear_relevamiento_desde_payload(payload)
+        actor_user_id = get_current_user_id()
+        rel = crear_relevamiento_desde_payload(payload, actor_user_id=actor_user_id)
         try:
             if rel.domicilio_id:
                 schedule_geocode_after_grid_commit([int(rel.domicilio_id)])

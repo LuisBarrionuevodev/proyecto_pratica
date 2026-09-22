@@ -7,6 +7,10 @@ from app.database import db
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_efectivo_para_iniciador,
 )
+from app.domains.orden_trabajo.services.orden_trabajo_secuencia_service import (
+    allocar_rango_orden_trabajo,
+    leer_contador_readonly,
+)
 from app.domains.rutas_trabajo.services.ruta_pool_dia_service import (
     descartar_sobrantes_en_pool_de_ruta_trabajo,
 )
@@ -108,7 +112,25 @@ def _asignar_orden_trabajo_segura(
     )
 
 
-def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]:
+def _items_activos_orden_publicacion(grupos: list[RutaGrupo]) -> list[RutaItem]:
+    """
+    Orden determinista para asignación OT: ``ruta_grupo.id`` ASC → ``ruta_item.id`` ASC.
+
+    Parámetros:
+        grupos: grupos activos ya cargados con ítems.
+
+    Retorno:
+        Lista plana de ítems activos en orden de publicación.
+    """
+    ordenados: list[RutaItem] = []
+    for grupo in grupos:
+        grupo_items = [it for it in (grupo.items or []) if it.deleted_at is None]
+        grupo_items.sort(key=lambda it: it.id)
+        ordenados.extend(grupo_items)
+    return ordenados
+
+
+def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem], dict]:
     """
     Publica una ruta en BORRADOR: valida grupos/ítems/OT, crea una actuación mínima por ítem
     activo, actualiza estados y persiste en una única transacción.
@@ -117,7 +139,8 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
         ruta_id: identificador de `ruta_trabajo`.
 
     Retorno:
-        Tupla `(ruta, items_activos_actualizados)` tras el commit.
+        Tupla `(ruta, items_activos_actualizados, meta_publicacion)` tras el commit.
+        ``meta_publicacion`` incluye OT asignadas y ``next_value`` posterior.
 
     Errores:
         LookupError: ruta inexistente.
@@ -179,18 +202,7 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                 debug={"ruta_id": ruta.id, "grupo_id": grupo.id},
             )
 
-    items_activos = (
-        RutaItem.query.filter(
-            RutaItem.ruta_trabajo_id == ruta.id,
-            RutaItem.deleted_at.is_(None),
-        )
-        .options(
-            joinedload(RutaItem.iniciador_ruta),
-            joinedload(RutaItem.orden_trabajo),
-        )
-        .order_by(RutaItem.id.asc())
-        .all()
-    )
+    items_activos = _items_activos_orden_publicacion(grupos)
 
     if not items_activos:
         raise_publicar_debug(
@@ -206,12 +218,6 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
             raise_publicar_debug(
                 f"El ítem {item.id} no está asignado a un grupo",
                 validator="publicar_ruta_trabajo.item_sin_grupo",
-                debug=ctx,
-            )
-        if item.orden_trabajo_id is None:
-            raise_publicar_debug(
-                f"El ítem {item.id} no tiene Orden de Trabajo cargada",
-                validator="publicar_ruta_trabajo.item_sin_ot",
                 debug=ctx,
             )
         if item.estado_ruta_item != "ASIGNADO":
@@ -245,31 +251,75 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
                 debug=ctx,
             )
 
-        log_publicar_debug(
-            conflicto_detectado_por="publicar_ruta_trabajo.pre_validar_ot",
-            mensaje_conflicto=None,
-            **ctx,
-        )
-        validar_orden_trabajo_disponible_para_publicar(
-            orden_trabajo_id=int(item.orden_trabajo_id),
-            ruta_item_id=item.id,
-            iniciador=ini,
-            ruta=ruta,
-            item=item,
-        )
+        if item.orden_trabajo_id is not None:
+            log_publicar_debug(
+                conflicto_detectado_por="publicar_ruta_trabajo.pre_validar_ot_legacy",
+                mensaje_conflicto=None,
+                **ctx,
+            )
+            validar_orden_trabajo_disponible_para_publicar(
+                orden_trabajo_id=int(item.orden_trabajo_id),
+                ruta_item_id=item.id,
+                iniciador=ini,
+                ruta=ruta,
+                item=item,
+            )
 
     fecha = ruta.fecha
     mes = int(fecha.month)
     anio = int(fecha.year)
 
+    ot_asignadas_meta: list[dict] = []
+    meta_publicacion: dict = {}
     try:
         descartar_sobrantes_en_pool_de_ruta_trabajo(ruta.id)
+
+        items_sin_ot = [it for it in items_activos if it.orden_trabajo_id is None]
+        asignaciones_auto = allocar_rango_orden_trabajo(
+            count=len(items_sin_ot),
+            mes=mes,
+            anio=anio,
+        )
+        alloc_por_item: dict[int, int] = {}
+        for item, asig in zip(items_sin_ot, asignaciones_auto, strict=True):
+            item.orden_trabajo_id = asig.orden_trabajo_id
+            db.session.add(item)
+            alloc_por_item[item.id] = asig.orden_trabajo_id
+            ot_asignadas_meta.append(
+                {
+                    "item_id": item.id,
+                    "orden_trabajo_id": asig.orden_trabajo_id,
+                    "numero_acta": asig.display,
+                    "numero_secuencia_global": asig.sequence_value,
+                    "modo": "automatica",
+                }
+            )
+        db.session.flush()
 
         items_debug: list[dict] = []
         for item in items_activos:
             ini = item.iniciador_ruta
             assert ini is not None
             ctx = snapshot_item_publicar_context(ruta=ruta, item=item, iniciador=ini)
+            if item.orden_trabajo_id is None:
+                raise_publicar_debug(
+                    f"El ítem {item.id} quedó sin OT tras asignación automática",
+                    validator="publicar_ruta_trabajo.item_sin_ot_post_alloc",
+                    debug=ctx,
+                )
+            if item.id not in alloc_por_item and item.orden_trabajo_id is not None:
+                ot_legacy = item.orden_trabajo
+                ot_asignadas_meta.append(
+                    {
+                        "item_id": item.id,
+                        "orden_trabajo_id": int(item.orden_trabajo_id),
+                        "numero_acta": ot_legacy.numero_acta if ot_legacy else None,
+                        "numero_secuencia_global": (
+                            ot_legacy.numero_secuencia_global if ot_legacy else None
+                        ),
+                        "modo": "legacy_preasignada",
+                    }
+                )
             item_actuacion_id_antes = item.actuacion_id
             act_previa = buscar_actuacion_reintento_reutilizable(ini.id)
             try:
@@ -424,6 +474,13 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
 
         log_before_commit_publicar_ruta(ruta_id=ruta.id, items_debug=items_debug)
         ruta.estado_ruta = "PUBLICADA"
+        next_value_post, next_display_post = leer_contador_readonly()
+        meta_publicacion = {
+            "ordenes_asignadas": ot_asignadas_meta,
+            "next_value": next_value_post,
+            "next_display": next_display_post,
+            "orden_asignacion": "ruta_grupo.id ASC, ruta_item.id ASC",
+        }
         db.session.commit()
     except IntegrityError as exc:
         db.session.rollback()
@@ -448,4 +505,4 @@ def publicar_ruta_trabajo(*, ruta_id: int) -> tuple[RutaTrabajo, list[RutaItem]]
         db.session.rollback()
         raise
 
-    return ruta, items_activos
+    return ruta, items_activos, meta_publicacion

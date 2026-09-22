@@ -41,6 +41,18 @@ describe("completarTrabajoReinspeccionNotificacionUi", () => {
       })
     ).toBe(false);
     expect(showContribuyenteDomicilioEditableEnCompletarTrabajo("VERIFICAR_INFORMAR_OFICIO")).toBe(true);
+    expect(
+      showContribuyenteDomicilioEditableEnCompletarTrabajo("VERIFICAR_INFORMAR_OFICIO", {
+        identityMode: "COMPLETE_EXISTING",
+        realizoNuevaInspeccion: "si",
+      })
+    ).toBe(false);
+    expect(
+      showContribuyenteDomicilioEditableEnCompletarTrabajo("VERIFICAR_INFORMAR_OFICIO", {
+        identityMode: "COMPLETE_HISTORICAL",
+        realizoNuevaInspeccion: "si",
+      })
+    ).toBe(true);
   });
 
   it("no expone enum crudo en label humano", () => {

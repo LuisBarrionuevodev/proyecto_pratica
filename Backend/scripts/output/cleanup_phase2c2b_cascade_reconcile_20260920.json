@@ -1,0 +1,783 @@
+{
+  "generated_at": "2026-09-20T13:53:38.648427",
+  "ticket": "PREDEPLOY-CLEANUP.3G.0.1-DIAG",
+  "mode": "READ_ONLY_CASCADE_RECONCILE",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "actuaciones": 8222,
+      "relevamiento": 4592,
+      "orden_trabajo": 8958,
+      "inspeccion": 915,
+      "actuaciones_inspector": 4189,
+      "clausura": 69,
+      "decomiso": 25,
+      "acta_inspeccion_item": 52,
+      "relevamiento_relevador": 535
+    },
+    "drift": [],
+    "baseline_ok": true
+  },
+  "safe_set_ids": {
+    "SAFE_ACTUACIONES_2C2B": [
+      7009,
+      7022,
+      7282,
+      7468,
+      7562,
+      7942,
+      7984,
+      8032,
+      9145,
+      9350,
+      9580,
+      9581,
+      9582,
+      9583,
+      9588,
+      9593,
+      9594,
+      9595,
+      9596,
+      9597,
+      9600,
+      9601,
+      9653,
+      9654,
+      9655,
+      9681,
+      9684,
+      9687,
+      9689,
+      9690,
+      9695,
+      9702,
+      9711,
+      9712,
+      9714,
+      9717,
+      9718,
+      9721,
+      9722,
+      9723,
+      9724,
+      9727,
+      9730,
+      9734,
+      9735,
+      9737,
+      9744,
+      9745,
+      9746,
+      9754,
+      9756,
+      9763,
+      9764,
+      9765,
+      9846,
+      9847,
+      9848,
+      9849,
+      9850,
+      9851,
+      9852,
+      9854,
+      9855,
+      9856,
+      9857,
+      9858,
+      9859,
+      9860,
+      9861,
+      9862,
+      9866,
+      9869,
+      9870,
+      9873,
+      9874,
+      9878,
+      9881,
+      9882,
+      9885,
+      9888,
+      9889,
+      9890,
+      9893,
+      9894,
+      9897,
+      9898,
+      9901,
+      9904,
+      9910,
+      9911,
+      9912,
+      9913,
+      9914,
+      9915,
+      9926,
+      9927,
+      9928,
+      9929,
+      9930,
+      9931,
+      10000,
+      10095,
+      10748,
+      10749,
+      10750,
+      10752,
+      10761,
+      10762,
+      10763,
+      10765
+    ],
+    "SAFE_RELEVAMIENTOS_2C2B": [
+      4066,
+      4071,
+      4073,
+      4074,
+      4075,
+      4076,
+      4078,
+      4080,
+      4081,
+      4082,
+      4083,
+      4085,
+      4087,
+      4088,
+      4089,
+      4090,
+      4811,
+      4812,
+      4816,
+      4860,
+      4861,
+      4880,
+      4882,
+      4883,
+      4884,
+      4885
+    ],
+    "SAFE_OT_2C2B": [
+      7458,
+      7471,
+      7733,
+      7923,
+      8018,
+      8438,
+      8480,
+      8528,
+      9689,
+      9908,
+      10166,
+      10167,
+      10168,
+      10169,
+      10174,
+      10179,
+      10180,
+      10181,
+      10182,
+      10183,
+      10186,
+      10187,
+      10241,
+      10242,
+      10243,
+      10271,
+      10274,
+      10277,
+      10279,
+      10280,
+      10285,
+      10292,
+      10301,
+      10302,
+      10304,
+      10307,
+      10308,
+      10311,
+      10312,
+      10313,
+      10314,
+      10317,
+      10320,
+      10324,
+      10325,
+      10327,
+      10334,
+      10335,
+      10336,
+      10344,
+      10346,
+      10353,
+      10354,
+      10355,
+      10440,
+      10441,
+      10442,
+      10443,
+      10444,
+      10445,
+      10446,
+      10448,
+      10449,
+      10450,
+      10451,
+      10452,
+      10453,
+      10454,
+      10455,
+      10456,
+      10460,
+      10463,
+      10464,
+      10467,
+      10468,
+      10472,
+      10475,
+      10476,
+      10479,
+      10482,
+      10483,
+      10484,
+      10487,
+      10488,
+      10491,
+      10492,
+      10495,
+      10498,
+      10504,
+      10505,
+      10506,
+      10507,
+      10508,
+      10509,
+      10520,
+      10521,
+      10522,
+      10523,
+      10524,
+      10525,
+      10596,
+      10717,
+      11375,
+      11376,
+      11377,
+      11379,
+      11388,
+      11389,
+      11390,
+      11392
+    ],
+    "source_diag_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase2c2b_sources_diag_20260920.json"
+  },
+  "actuaciones_inspector_rows": {
+    "physical_rows": 9,
+    "distinct_actuaciones_id": 9,
+    "all_rows": [
+      {
+        "actuaciones_id": 7009,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 7022,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 7282,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 7468,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 7562,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 7942,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 7984,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 8032,
+        "inspector_id": 1
+      },
+      {
+        "actuaciones_id": 9350,
+        "inspector_id": 1
+      }
+    ],
+    "per_actuacion_grouping": [
+      {
+        "actuaciones_id": 7009,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 7022,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 7282,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 7468,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 7562,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 7942,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 7984,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 8032,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      },
+      {
+        "actuaciones_id": 9350,
+        "inspector_count": 1,
+        "inspector_ids": [
+          1
+        ]
+      }
+    ],
+    "resolution_9_vs_18": {
+      "verdict": "A_physical_9",
+      "note": "4189-18=4171 del diag 3G fue error de simulaci\u00f3n postcount; usar physical_rows real",
+      "prior_diag_cascade_distinct": 9,
+      "prior_diag_postcount_subtracted": 18
+    },
+    "baseline": 4189,
+    "expected_after": 4180
+  },
+  "inspection_rows": {
+    "physical_rows": 17,
+    "distinct_actuaciones_id": 17,
+    "inspeccion_ids": [
+      640,
+      641,
+      699,
+      727,
+      731,
+      770,
+      777,
+      785,
+      860,
+      1070,
+      1071,
+      1072,
+      1074,
+      1075,
+      1076,
+      1077,
+      1079
+    ],
+    "rows": [
+      {
+        "id": 640,
+        "actuacion_id": 7009
+      },
+      {
+        "id": 641,
+        "actuacion_id": 7022
+      },
+      {
+        "id": 699,
+        "actuacion_id": 7282
+      },
+      {
+        "id": 727,
+        "actuacion_id": 7468
+      },
+      {
+        "id": 731,
+        "actuacion_id": 7562
+      },
+      {
+        "id": 770,
+        "actuacion_id": 7942
+      },
+      {
+        "id": 777,
+        "actuacion_id": 7984
+      },
+      {
+        "id": 785,
+        "actuacion_id": 8032
+      },
+      {
+        "id": 860,
+        "actuacion_id": 9350
+      },
+      {
+        "id": 1070,
+        "actuacion_id": 10748
+      },
+      {
+        "id": 1071,
+        "actuacion_id": 10749
+      },
+      {
+        "id": 1072,
+        "actuacion_id": 10750
+      },
+      {
+        "id": 1074,
+        "actuacion_id": 10752
+      },
+      {
+        "id": 1075,
+        "actuacion_id": 10761
+      },
+      {
+        "id": 1076,
+        "actuacion_id": 10762
+      },
+      {
+        "id": 1077,
+        "actuacion_id": 10763
+      },
+      {
+        "id": 1079,
+        "actuacion_id": 10765
+      }
+    ],
+    "baseline": 915,
+    "expected_after": 898,
+    "prior_expected": "17/17",
+    "confirmed": true
+  },
+  "acta_inspeccion_item_rows": {
+    "physical_rows": 0,
+    "distinct_inspeccion_ids": 0,
+    "inspection_ids_with_items": [],
+    "chain": "actuaciones \u2192 inspeccion.id \u2192 acta_inspeccion_item.acta_inspeccion_id",
+    "fk_delete_rule": "CASCADE",
+    "rows": [],
+    "baseline": 52,
+    "expected_after": 52,
+    "prior_zero_revalidated": true
+  },
+  "relevamiento_relevador_rows": {
+    "physical_rows": 10,
+    "distinct_relevamiento_id": 5,
+    "all_rows": [
+      {
+        "relevamiento_id": 4811,
+        "relevador_id": 1
+      },
+      {
+        "relevamiento_id": 4811,
+        "relevador_id": 2
+      },
+      {
+        "relevamiento_id": 4812,
+        "relevador_id": 1
+      },
+      {
+        "relevamiento_id": 4812,
+        "relevador_id": 2
+      },
+      {
+        "relevamiento_id": 4816,
+        "relevador_id": 1
+      },
+      {
+        "relevamiento_id": 4816,
+        "relevador_id": 2
+      },
+      {
+        "relevamiento_id": 4860,
+        "relevador_id": 1
+      },
+      {
+        "relevamiento_id": 4860,
+        "relevador_id": 2
+      },
+      {
+        "relevamiento_id": 4861,
+        "relevador_id": 1
+      },
+      {
+        "relevamiento_id": 4861,
+        "relevador_id": 2
+      }
+    ],
+    "fk_delete_rule": "CASCADE",
+    "baseline": 535,
+    "expected_after": 525,
+    "prior_expected": "physical=10 distinct_relevamiento=5",
+    "confirmed": true
+  },
+  "clausura_rows": {
+    "physical_rows": 0,
+    "distinct_actuaciones_id": 0,
+    "baseline": 69,
+    "expected_after": 69
+  },
+  "decomiso_rows": {
+    "physical_rows": 0,
+    "distinct_actuaciones_id": 0,
+    "baseline": 25,
+    "expected_after": 25
+  },
+  "other_children": {
+    "actuaciones": [
+      {
+        "child_table": "actuacion_epicollect_detalle",
+        "child_column": "actuacion_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 0,
+        "expected_after_if_cascade_delete": 0
+      },
+      {
+        "child_table": "actuacion_media",
+        "child_column": "actuacion_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 0,
+        "expected_after_if_cascade_delete": 0
+      },
+      {
+        "child_table": "actuaciones_inspector",
+        "child_column": "actuaciones_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "NO ACTION",
+        "physical_rows_for_safe_set": 9,
+        "distinct_parent_ids": 9,
+        "table_baseline": 4189,
+        "expected_after_if_cascade_delete": 4180
+      },
+      {
+        "child_table": "clausura",
+        "child_column": "actuacion_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 69,
+        "expected_after_if_cascade_delete": 69
+      },
+      {
+        "child_table": "decomiso",
+        "child_column": "actuacion_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 25,
+        "expected_after_if_cascade_delete": 25
+      },
+      {
+        "child_table": "iniciador_ruta",
+        "child_column": "actuacion_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 8039,
+        "expected_after_if_cascade_delete": 8039
+      },
+      {
+        "child_table": "inspeccion",
+        "child_column": "actuacion_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 17,
+        "distinct_parent_ids": 17,
+        "table_baseline": 915,
+        "expected_after_if_cascade_delete": 898
+      },
+      {
+        "child_table": "ruta_item",
+        "child_column": "actuacion_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 3697,
+        "expected_after_if_cascade_delete": 3697
+      },
+      {
+        "child_table": "ruta_pool_dia",
+        "child_column": "actuacion_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 361,
+        "expected_after_if_cascade_delete": 361
+      }
+    ],
+    "relevamiento": [
+      {
+        "child_table": "iniciador_ruta",
+        "child_column": "relevamiento_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE",
+        "physical_rows_for_safe_set": 0,
+        "distinct_parent_ids": 0,
+        "table_baseline": 8039,
+        "expected_after_if_cascade_delete": 8039
+      },
+      {
+        "child_table": "relevamiento_relevador",
+        "child_column": "relevamiento_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "NO ACTION",
+        "physical_rows_for_safe_set": 10,
+        "distinct_parent_ids": 5,
+        "table_baseline": 535,
+        "expected_after_if_cascade_delete": 525
+      }
+    ]
+  },
+  "parent_docs_preserved": {
+    "actuacion_9145": {
+      "id": 9145,
+      "comprobacion_id": 2129,
+      "notificacion_id": null,
+      "orden_trabajo_id": 9689
+    },
+    "comprobacion_2129_exists": true,
+    "oficio_1575_exists": true,
+    "actuaciones_fk_to_comprobacion": [
+      {
+        "child": "actuaciones",
+        "column": "comprobacion_id",
+        "delete_rule": "SET NULL"
+      }
+    ],
+    "policy": "DELETE actuacion must NOT cascade delete comprobacion/oficio parent",
+    "parent_docs_preserved": {
+      "notificaciones_count": 109,
+      "comprobaciones_count": 3,
+      "unchanged_from_3G_diag": true
+    }
+  },
+  "corrected_postcounts": {
+    "table": [
+      {
+        "tabla": "inspeccion",
+        "physical_rows_delete": 17,
+        "distinct_parent_ids": 17,
+        "baseline": 915,
+        "expected_after": 898
+      },
+      {
+        "tabla": "actuaciones_inspector",
+        "physical_rows_delete": 9,
+        "distinct_parent_ids": 9,
+        "baseline": 4189,
+        "expected_after": 4180
+      },
+      {
+        "tabla": "acta_inspeccion_item",
+        "physical_rows_delete": 0,
+        "distinct_parent_ids": 0,
+        "baseline": 52,
+        "expected_after": 52
+      },
+      {
+        "tabla": "clausura",
+        "physical_rows_delete": 0,
+        "distinct_parent_ids": 0,
+        "baseline": 69,
+        "expected_after": 69
+      },
+      {
+        "tabla": "decomiso",
+        "physical_rows_delete": 0,
+        "distinct_parent_ids": 0,
+        "baseline": 25,
+        "expected_after": 25
+      },
+      {
+        "tabla": "relevamiento_relevador",
+        "physical_rows_delete": 10,
+        "distinct_parent_ids": 5,
+        "baseline": 535,
+        "expected_after": 525
+      }
+    ],
+    "actuaciones": {
+      "baseline": 8222,
+      "delete": 110,
+      "expected_after": 8112
+    },
+    "relevamiento": {
+      "baseline": 4592,
+      "delete": 26,
+      "expected_after": 4566
+    },
+    "orden_trabajo": {
+      "baseline": 8958,
+      "delete": 110,
+      "expected_after": 8848
+    }
+  },
+  "protected_intersection": {
+    "intersection_total": 0,
+    "valid": true
+  },
+  "safe_sets_unchanged": {
+    "SAFE_ACTUACIONES_2C2B": 110,
+    "SAFE_RELEVAMIENTOS_2C2B": 26,
+    "SAFE_OT_2C2B": 110,
+    "confirmed": true
+  },
+  "prior_3g_diag_errors_corrected": {
+    "actuaciones_inspector_postcount_was_4171_should_be": 4180,
+    "explanation": {
+      "verdict": "A_physical_9",
+      "note": "4189-18=4171 del diag 3G fue error de simulaci\u00f3n postcount; usar physical_rows real",
+      "prior_diag_cascade_distinct": 9,
+      "prior_diag_postcount_subtracted": 18
+    }
+  }
+}

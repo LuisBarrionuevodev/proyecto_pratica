@@ -35,11 +35,11 @@ describe("OPER-RUTA.7C.3 — pool strip + header derecha + altura real", () => {
     expect(asignacion).toContain("RutaContextoLine");
   });
 
-  it("index avisa OT sin guardar vía toast global en asignación", () => {
+  it("index OT-AUTO — sin blocker de OT guardada en asignación", () => {
     const index = read("src/Containers/RutasTrabajo/index.tsx");
-    expect(index).toContain("sin OT guardada");
-    expect(index).toContain("feedback.warning");
+    expect(index).not.toContain("sin OT guardada");
     expect(index).not.toContain("itemsSinOtHint");
+    expect(index).not.toContain("saveOtItem");
   });
 
   it("layout main area usa calc viewport y listado flexible", () => {

@@ -27,9 +27,6 @@ from app.domains.indicadores.services.indicadores_ejecutivo_service import (
 from app.domains.indicadores.services.indicadores_no_realizadas_service import (
     build_indicadores_no_realizadas,
 )
-from app.domains.indicadores.services.indicadores_pendientes_service import (
-    build_indicadores_pendientes,
-)
 from app.domains.indicadores.services.indicadores_productividad_service import (
     build_indicadores_productividad,
 )
@@ -40,7 +37,6 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 BUILDERS: dict[str, Any] = {
     "ejecutivo": build_indicadores_ejecutivo,
-    "pendientes": build_indicadores_pendientes,
     "riesgo": build_indicadores_riesgo,
     "no-realizadas": build_indicadores_no_realizadas,
     "productividad": build_indicadores_productividad,

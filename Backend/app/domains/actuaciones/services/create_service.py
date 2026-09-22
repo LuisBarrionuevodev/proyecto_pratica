@@ -27,7 +27,6 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
-from app.domains.rutas_trabajo.services.auth_service import get_current_user_id_or_fallback
 from app.domains.establecimientos.services.vincular_establecimiento_operativo_actuacion_service import (
     try_vincular_establecimiento_operativo_desde_actuacion,
 )
@@ -36,6 +35,10 @@ from app.domains.actuaciones.services.actas_canal_payload_guard import (
 )
 from app.domains.actuaciones.services.cargar_actuacion_post_commit import (
     ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal,
+)
+from app.domains.rutas_trabajo.services.auth_service import resolve_actor_user_id
+from app.domains.actuaciones.services.historical_solo_comprobacion_service import (
+    crear_actuacion_historica_solo_comprobacion,
 )
 
 
@@ -49,6 +52,9 @@ def _resolve_tipo_actuacion(payload: Dict[str, Any]) -> str | None:
       fuerza `INSPECCION` para mantener consistencia del circuito.
     - Si no hay evidencia, mantiene `None` (flujo contraproducencia/registro mínimo).
     """
+    if payload.get("carga_solo_comprobacion"):
+        return None
+
     tipo = payload.get("tipo_actuacion")
     if tipo:
         return tipo
@@ -73,7 +79,9 @@ def _resolve_tipo_actuacion(payload: Dict[str, Any]) -> str | None:
     return None
 
 
-def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
+def crear_actuacion_desde_payload(
+    payload: Dict[str, Any], *, actor_user_id: int | None = None
+) -> Actuaciones:
     """
     Crea una `Actuaciones` y adjunta entidades relacionadas según el payload canon.
 
@@ -99,6 +107,9 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     Raises:
         ValueError: si se violan reglas de negocio (p.ej. OT duplicada, catálogos inexistentes, validaciones de actas).
     """
+    if payload.get("carga_solo_comprobacion"):
+        return crear_actuacion_historica_solo_comprobacion(payload, actor_user_id=actor_user_id)
+
     rechazar_oficio_expediente_en_payload_canal_actas(payload)
 
     fecha_str = payload.get("fecha_actuacion")
@@ -157,9 +168,10 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     attach_clausura(act, payload.get("clausura"), crear=True)
     attach_decomiso(act, payload.get("decomiso"), crear=True)
 
+    uid = resolve_actor_user_id(actor_user_id)
     try_vincular_establecimiento_operativo_desde_actuacion(
         act,
-        created_by_user_id=get_current_user_id_or_fallback(),
+        created_by_user_id=uid,
     )
 
     db.session.add(act)
@@ -172,5 +184,7 @@ def crear_actuacion_desde_payload(payload: Dict[str, Any]) -> Actuaciones:
     except Exception:
         pass
 
-    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal()
+    ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal(
+        actor_user_id=uid,
+    )
     return act

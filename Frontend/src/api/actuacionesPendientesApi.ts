@@ -115,6 +115,8 @@ export interface IPendientesOficioItem {
   expediente_original_anio: string | null;
   /** Fecha del expediente de envío (ISO día) cuando existe en BD. */
   expediente_original_fecha?: string | null;
+  sin_expediente_envio?: boolean;
+  expediente_envio_label?: string | null;
   /** OPER-RUTA.4: estado read-only pool/ruta. */
   estado_operativo_pool?:
     | "pendiente"
@@ -337,6 +339,15 @@ export const createExpedienteDesdeActuacion = async (
   return data;
 };
 
+export const declararSinExpedienteEnvio = async (
+  actuacionId: number
+): Promise<{ ok: boolean; idempotent?: boolean; comprobacion_id: number }> => {
+  const { data } = await apiClient.post<{ ok: boolean; idempotent?: boolean; comprobacion_id: number }>(
+    `/actuaciones/${actuacionId}/comprobacion/declarar-sin-expediente-envio`
+  );
+  return data;
+};
+
 export type IActuacionesPendientesOficioOpts = {
   omitirRangoFecha?: boolean;
 };
@@ -444,6 +455,8 @@ export interface IComprobacionDocumentalResponse {
   /** Fuente canónica operativa: mismo presenter que recorrido/listado. */
   referencia_actuacion?: IComprobacionDocumentalReferenciaActuacion | null;
   acta_comprobacion?: IComprobacionDocumentalActaComprobacion | null;
+  sin_expediente_envio?: boolean;
+  expediente_envio_label?: string | null;
   expediente_envio: IComprobacionDocumentalExpedienteItem | null;
   oficio: IComprobacionDocumentalOficioItem | null;
   expediente_respuesta: IComprobacionDocumentalExpedienteItem | null;

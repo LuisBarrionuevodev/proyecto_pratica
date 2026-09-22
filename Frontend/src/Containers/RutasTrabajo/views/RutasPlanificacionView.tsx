@@ -17,7 +17,6 @@ import type {
   IRutaItemMin,
   IRutaTrabajo,
 } from "../../../api/rutasTrabajoApi";
-import type { GuardarOtItemResult } from "../hooks/useRutaTrabajoBorradorActions";
 import ModalAsignarSeleccionAGrupo from "../Components/ModalAsignarSeleccionAGrupo";
 import { AsignacionGruposResumenChips } from "../Components/AsignacionGruposResumenChips";
 import { RutaContextoLine } from "../Components/RutaContextoLine";
@@ -120,8 +119,6 @@ export type RutasPlanificacionViewProps = {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
-  onQuitarOtItem?: (item: IRutaItemMin) => Promise<boolean>;
   onVolverPlanificacion: () => void;
   onAssignIniciadoresToGrupo: (grupoId: number, iniciadorIds: number[]) => Promise<boolean>;
   poolIdByIniciadorId: Record<number, number>;
@@ -225,8 +222,6 @@ type AsignacionGruposColumnProps = {
   onEliminarGrupo: (grupo: IRutaGrupoMin) => void | Promise<void>;
   onMoverItem: (item: IRutaItemMin, targetGrupoId: number) => void | Promise<void>;
   onQuitarItem: (item: IRutaItemMin) => void | Promise<void>;
-  onGuardarOtItem: (item: IRutaItemMin, numeroOt: string) => GuardarOtItemResult | Promise<GuardarOtItemResult>;
-  onQuitarOtItem?: (item: IRutaItemMin) => Promise<boolean>;
 };
 
 const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
@@ -242,8 +237,6 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
   onEliminarGrupo,
   onMoverItem,
   onQuitarItem,
-  onGuardarOtItem,
-  onQuitarOtItem,
 }: AsignacionGruposColumnProps) {
   return (
     <Grid size={{ xs: 12, md: 5 }}>
@@ -272,8 +265,6 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
             onEliminarGrupo={onEliminarGrupo}
             onMoverItem={onMoverItem}
             onQuitarItem={onQuitarItem}
-            onGuardarOtItem={onGuardarOtItem}
-            onQuitarOtItem={onQuitarOtItem}
           />
         )}
       </Paper>
@@ -306,8 +297,6 @@ function RutasPlanificacionView({
   onEliminarGrupo,
   onMoverItem,
   onQuitarItem,
-  onGuardarOtItem,
-  onQuitarOtItem,
   onVolverPlanificacion,
   onAssignIniciadoresToGrupo,
   poolIdByIniciadorId,
@@ -394,8 +383,6 @@ function RutasPlanificacionView({
           onEliminarGrupo={onEliminarGrupo}
           onMoverItem={onMoverItem}
           onQuitarItem={onQuitarItem}
-          onGuardarOtItem={onGuardarOtItem}
-          onQuitarOtItem={onQuitarOtItem}
         />
       </Grid>
 

@@ -26,13 +26,6 @@ from tests.relevamiento_test_helpers import (
 
 
 @pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
-@pytest.fixture
 def require_rel_migration(app_ctx):
     require_relevadores_migration()
 

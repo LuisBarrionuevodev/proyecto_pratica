@@ -1,0 +1,96 @@
+{
+  "generated_at": "2026-09-20T20:31:43.029366",
+  "ticket": "PREDEPLOY-FIX.2",
+  "files_changed": [
+    "app/domains/rutas_trabajo/services/auth_service.py",
+    "app/domains/actuaciones/services/notificacion_iniciador_service.py",
+    "app/domains/relevamientos/services/relevamiento_iniciador_service.py",
+    "app/domains/actuaciones/services/oficio_iniciador_service.py",
+    "app/domains/actuaciones/services/cargar_actuacion_post_commit.py",
+    "app/domains/actuaciones/pipelines/sync_notificaciones_vencidas.py",
+    "app/domains/actuaciones/services/create_service.py",
+    "app/domains/actuaciones/services/update_service.py",
+    "app/domains/actuaciones/services/completar_trabajo_cierre_service.py",
+    "app/domains/actuaciones/services/oficio_completion_service.py",
+    "app/domains/relevamientos/services/create_service.py",
+    "app/domains/denuncias/services/denuncias_service.py",
+    "app/main.py",
+    "tests/test_audit_created_by_fallback_fix.py",
+    "tests/conftest.py"
+  ],
+  "helpers_removed": [
+    "get_current_user_id_or_fallback",
+    "_get_current_user_id (notificacion_iniciador_service)",
+    "_get_current_user_id (relevamiento_iniciador_service)",
+    "_get_current_user_id (oficio_iniciador_service)",
+    "_get_current_user_id (denuncias_service)"
+  ],
+  "helpers_added_or_changed": [
+    "get_current_user_id (strict JWT)",
+    "validate_actor_user_id (explicit actor)",
+    "resolve_actor_user_id (explicit or strict JWT)"
+  ],
+  "fallback_patterns_before": {
+    "get_current_user_id_or_fallback": 1,
+    "duplicate__get_current_user_id": 3,
+    "first_active_user_query": "User.is_active + order_by id asc + first"
+  },
+  "fallback_patterns_after": {
+    "get_current_user_id_or_fallback": 0,
+    "fallback_user": 0,
+    "order_by(User.id.asc()).first()": 1
+  },
+  "actor_propagation": {
+    "rutas": "get_current_user_id() strict en services HTTP",
+    "actuaciones_postcommit": "actor_user_id propagado desde route/service",
+    "completar_trabajo": "ejecutado_por_user_id \u2192 post_commit sync",
+    "notificacion_sync": "actor_user_id obligatorio",
+    "relevamiento": "actor_user_id expl\u00edcito en iniciador",
+    "oficio": "actor_user_id expl\u00edcito en iniciador",
+    "cli": "--actor-user-id obligatorio"
+  },
+  "auth_behavior": {
+    "jwt_user": "get_current_user_id() retorna identity",
+    "jwt_admin1": "leg\u00edtimo cuando JWT identity=1",
+    "missing_jwt": "ValueError / HTTP 401",
+    "invalid_identity": "ValueError, no fallback",
+    "inactive_user": "ValueError, no fallback"
+  },
+  "tests": {
+    "commands": [
+      "C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m pytest -o addopts= tests/test_audit_created_by_fallback_fix.py tests/test_notificacion_iniciador_policy.py tests/test_notificacion_iniciador_phase_c.py tests/test_pendientes_sync_notificaciones_vencidas_route.py tests/test_phase1_jwt_guard.py -q --tb=no"
+    ],
+    "exit_code": 0,
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0
+  },
+  "historical_policy": {
+    "user1_refs_preserved": true
+  },
+  "sandbox_guards": {
+    "user1_refs_before": 25092,
+    "user1_refs_after": 25092,
+    "counts_before": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 1970,
+        "relevador": 10,
+        "juzgado_catalogo": 842
+      }
+    },
+    "counts_after": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 1970,
+        "relevador": 10,
+        "juzgado_catalogo": 842
+      }
+    },
+    "unchanged": true
+  },
+  "db_writes_executed_on_sandbox": false,
+  "status": "PASS"
+}

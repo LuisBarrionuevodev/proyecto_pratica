@@ -35,9 +35,6 @@ from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import 
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
 from app.domains.rutas_trabajo.services.grupo_inspectores_service import replace_grupo_inspectores
 from app.domains.rutas_trabajo.services.grupo_service import create_ruta_grupo
-from app.domains.rutas_trabajo.services.ruta_item_orden_trabajo_service import (
-    set_orden_trabajo_on_item,
-)
 from app.domains.rutas_trabajo.services.ruta_items_service import assign_iniciadores_to_grupo
 from app.domains.rutas_trabajo.services.ruta_publicar_service import publicar_ruta_trabajo
 from app.models import (
@@ -62,16 +59,6 @@ def _unique_num() -> str:
 
 def _uniq(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}"
-
-
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
 
 
 def _migration_pr72_aplicada() -> bool:
@@ -157,17 +144,11 @@ def _setup_ruta_publicada(ini: IniciadorRuta) -> RutaItem:
         grupo_id=grupo.id,
         inspector_ids=[ins1.id, ins2.id],
     )
-    items = assign_iniciadores_to_grupo(
+    assign_iniciadores_to_grupo(
         ruta_id=ruta.id,
         grupo_id=grupo.id,
         iniciador_ids=[ini.id],
     )
-    for item in items:
-        set_orden_trabajo_on_item(
-            ruta_id=ruta.id,
-            item_id=item.id,
-            numero_orden_trabajo=_unique_num(),
-        )
     publicar_ruta_trabajo(ruta_id=ruta.id)
     item = (
         RutaItem.query.filter(
@@ -427,7 +408,7 @@ def test_pr712c_notificacion_derivada_usa_domicilio_actuacion(
         db.session.add(noti)
         db.session.commit()
 
-        sync_iniciadores_reinspeccion_notificacion()
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=1)
 
         ini_der = (
             IniciadorRuta.query.filter(

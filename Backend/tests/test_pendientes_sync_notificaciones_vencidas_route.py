@@ -10,7 +10,7 @@ def test_post_sync_notificaciones_vencidas_sin_jwt_401(client):
 def test_post_sync_notificaciones_vencidas_ok_metricas(client, auth_headers, monkeypatch):
     monkeypatch.setattr(
         "app.domains.actuaciones.routes.pendientes_sync_notificaciones_vencidas.run_sync_notificaciones_vencidas",
-        lambda: {
+        lambda **_: {
             "status": "ok",
             "created": 1,
             "eligible_notificaciones": 3,

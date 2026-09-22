@@ -48,6 +48,7 @@ class DummyActuacion:
         self.clausura = None
         self.decomiso = None
         self.notificacion = None
+        self.notificacion_id = None
         self.comprobacion = None
         self.comprobacion_id = None
 
@@ -69,7 +70,7 @@ def test_post_actuaciones_create_ok(client, monkeypatch, auth_headers):
         },
     )
 
-    def fake_create(payload):
+    def fake_create(payload, *, actor_user_id=None):
         return DummyActuacion(payload)
 
     _patch_create_function(monkeypatch, fake_create)

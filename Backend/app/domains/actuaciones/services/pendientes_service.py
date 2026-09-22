@@ -219,16 +219,24 @@ def _sin_expediente_query(filters: ActuacionesPendientesFilters):
     No basta con «ningún expediente»: el de respuesta de oficio lleva ``oficio_id`` y no debe
     bloquear el alta de envío ni ocultar la fila de esta bandeja por error.
     """
-    subq = exists().where(
+    subq_exp_envio = exists().where(
         and_(
             Expediente.comprobacion_id == Actuaciones.comprobacion_id,
             Expediente.oficio_id.is_(None),
             Expediente.deleted_at.is_(None),
         )
     )
+    subq_sin_declarado = exists().where(
+        and_(
+            Comprobacion.id == Actuaciones.comprobacion_id,
+            Comprobacion.sin_expediente_envio.is_(True),
+            Comprobacion.deleted_at.is_(None),
+        )
+    )
     query = (
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
-        .filter(~subq)
+        .filter(~subq_exp_envio)
+        .filter(~subq_sin_declarado)
     )
     return _apply_fecha(query, filters.desde, filters.hasta)
 
@@ -657,7 +665,9 @@ def build_posterior_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Di
     return out
 
 
-def _notificaciones_pendientes_query(filters: ActuacionesPendientesFilters):
+def _notificaciones_pendientes_query(
+    filters: ActuacionesPendientesFilters, *, actor_user_id: int | None = None
+):
     """
     Retorna query operativa para notificaciones vencidas con iniciador materializado.
 
@@ -667,7 +677,11 @@ def _notificaciones_pendientes_query(filters: ActuacionesPendientesFilters):
     Luego filtramos por rango de fecha de actuación para mantener contrato del endpoint.
     """
     if materializacion_notificacion_vencida_on_read_enabled():
-        sync_iniciadores_reinspeccion_notificacion()
+        if actor_user_id is None:
+            raise ValueError(
+                "actor_user_id es obligatorio para materializar notificaciones vencidas en lectura."
+            )
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=actor_user_id)
     act_ids = [a.id for a in list_reinspeccion_notificacion_operativas()]
     if not act_ids:
         return Actuaciones.query.filter(False)
@@ -675,13 +689,17 @@ def _notificaciones_pendientes_query(filters: ActuacionesPendientesFilters):
     return _apply_fecha(query, filters.desde, filters.hasta)
 
 
-def get_pendientes_summary(filters: ActuacionesPendientesFilters) -> Dict[str, int]:
+def get_pendientes_summary(
+    filters: ActuacionesPendientesFilters, *, actor_user_id: int | None = None
+) -> Dict[str, int]:
     """
     Obtiene conteos de pendientes de Actuaciones (domicilios, sin expediente, notificaciones).
     """
     domicilios = _domicilios_pendientes_query(filters).count()
     sin_expediente = _sin_expediente_query(filters).count()
-    notificaciones = _notificaciones_pendientes_query(filters).count()
+    notificaciones = _notificaciones_pendientes_query(
+        filters, actor_user_id=actor_user_id
+    ).count()
     total = domicilios + sin_expediente + notificaciones
 
     return {
@@ -692,7 +710,9 @@ def get_pendientes_summary(filters: ActuacionesPendientesFilters) -> Dict[str, i
     }
 
 
-def get_pendientes_list(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
+def get_pendientes_list(
+    filters: ActuacionesPendientesFilters, *, actor_user_id: int | None = None
+) -> List[Actuaciones]:
     """
     Lista actuaciones pendientes según tipo:
       - domicilios
@@ -704,7 +724,7 @@ def get_pendientes_list(filters: ActuacionesPendientesFilters) -> List[Actuacion
     elif filters.tipo == "sin_expediente":
         query = _sin_expediente_query(filters)
     elif filters.tipo == "notificaciones":
-        query = _notificaciones_pendientes_query(filters)
+        query = _notificaciones_pendientes_query(filters, actor_user_id=actor_user_id)
     else:
         return []
 
@@ -891,6 +911,13 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
             Expediente.deleted_at.is_(None),
         )
     )
+    has_sin_expediente_declarado = exists().where(
+        and_(
+            Comprobacion.id == Actuaciones.comprobacion_id,
+            Comprobacion.sin_expediente_envio.is_(True),
+            Comprobacion.deleted_at.is_(None),
+        )
+    )
     has_respuesta_oficio = exists().where(
         and_(
             Expediente.comprobacion_id == Actuaciones.comprobacion_id,
@@ -905,7 +932,7 @@ def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaci
 
     query = apply_bandeja_grid_eager(
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
-        .filter(has_expediente_original)
+        .filter(or_(has_expediente_original, has_sin_expediente_declarado))
         .filter(~has_respuesta_oficio)
     )
     query = _apply_fecha(query, filters.desde, filters.hasta)

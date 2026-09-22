@@ -41,16 +41,6 @@ from tests.indicadores_cierre_fixtures import vincular_cierre_realizado
 from tests.oper_analytics_golden_fixtures import periodo_golden, seed_golden_world
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _iso_pair(desde, hasta) -> tuple[str, str]:
     return desde.isoformat(), hasta.isoformat()
 

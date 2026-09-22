@@ -44,16 +44,6 @@ from app.models import (
 from tests.test_hotfix_reencolado_planificacion import _mk_relevamiento_en_ruta_publicada
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 @pytest.fixture(autouse=True)
 def _caplog_diag(caplog):
     caplog.set_level(logging.WARNING, logger="put_actuacion_diag")

@@ -1,0 +1,2390 @@
+{
+  "generated_at": "2026-09-20T17:10:08.590004",
+  "ticket": "PREDEPLOY-CLEANUP.3J-DIAG",
+  "mode": "READ_ONLY_DIAG",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "notificacion": 2478,
+      "comprobacion": 1530
+    },
+    "baseline_ok": true,
+    "drift": []
+  },
+  "routes_12": {
+    "ids": [
+      4938,
+      4944,
+      5195,
+      5199,
+      5204,
+      5245,
+      5261,
+      5550,
+      5560,
+      5574,
+      6372,
+      6461
+    ],
+    "exists_count": 12,
+    "duplicate_check": true,
+    "deleted_ruta_item_ids": [
+      5376,
+      5382,
+      5637,
+      5641,
+      5646,
+      5686,
+      5701,
+      5970,
+      5980,
+      6003,
+      6889,
+      6972
+    ],
+    "ruta_trabajo_to_deleted_item": [
+      {
+        "ruta_trabajo_id": 4938,
+        "deleted_ruta_item_id": 5376,
+        "actuacion_id": 6999
+      },
+      {
+        "ruta_trabajo_id": 4944,
+        "deleted_ruta_item_id": 5382,
+        "actuacion_id": 7025
+      },
+      {
+        "ruta_trabajo_id": 5195,
+        "deleted_ruta_item_id": 5637,
+        "actuacion_id": 7458
+      },
+      {
+        "ruta_trabajo_id": 5199,
+        "deleted_ruta_item_id": 5641,
+        "actuacion_id": 7493
+      },
+      {
+        "ruta_trabajo_id": 5204,
+        "deleted_ruta_item_id": 5646,
+        "actuacion_id": 7507
+      },
+      {
+        "ruta_trabajo_id": 5245,
+        "deleted_ruta_item_id": 5686,
+        "actuacion_id": 7577
+      },
+      {
+        "ruta_trabajo_id": 5261,
+        "deleted_ruta_item_id": 5701,
+        "actuacion_id": 7619
+      },
+      {
+        "ruta_trabajo_id": 5550,
+        "deleted_ruta_item_id": 5970,
+        "actuacion_id": 7932
+      },
+      {
+        "ruta_trabajo_id": 5560,
+        "deleted_ruta_item_id": 5980,
+        "actuacion_id": 7964
+      },
+      {
+        "ruta_trabajo_id": 5574,
+        "deleted_ruta_item_id": 6003,
+        "actuacion_id": 8015
+      },
+      {
+        "ruta_trabajo_id": 6372,
+        "deleted_ruta_item_id": 6889,
+        "actuacion_id": 9612
+      },
+      {
+        "ruta_trabajo_id": 6461,
+        "deleted_ruta_item_id": 6972,
+        "actuacion_id": 9942
+      }
+    ]
+  },
+  "provenance": {
+    "4938": {
+      "ruta_trabajo_id": 4938,
+      "exists": true,
+      "provenance": {
+        "id": 4938,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 12577,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-29T13:12:31",
+        "updated_at": "2026-07-29T13:12:31",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5376,
+        "iniciador_ruta_id": 7178,
+        "actuacion_id": 6999,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "4944": {
+      "ruta_trabajo_id": 4944,
+      "exists": true,
+      "provenance": {
+        "id": 4944,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 4493,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-29T13:14:20",
+        "updated_at": "2026-07-29T13:14:20",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5382,
+        "iniciador_ruta_id": 7184,
+        "actuacion_id": 7025,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5195": {
+      "ruta_trabajo_id": 5195,
+      "exists": true,
+      "provenance": {
+        "id": 5195,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 23921,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:30:47",
+        "updated_at": "2026-07-30T10:30:47",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5637,
+        "iniciador_ruta_id": 7520,
+        "actuacion_id": 7458,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5199": {
+      "ruta_trabajo_id": 5199,
+      "exists": true,
+      "provenance": {
+        "id": 5199,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 19474,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:58:51",
+        "updated_at": "2026-07-30T10:58:51",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5641,
+        "iniciador_ruta_id": 7531,
+        "actuacion_id": 7493,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5204": {
+      "ruta_trabajo_id": 5204,
+      "exists": true,
+      "provenance": {
+        "id": 5204,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 17381,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:58:54",
+        "updated_at": "2026-07-30T10:58:54",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5646,
+        "iniciador_ruta_id": 7536,
+        "actuacion_id": 7507,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5245": {
+      "ruta_trabajo_id": 5245,
+      "exists": true,
+      "provenance": {
+        "id": 5245,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 3913,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:59:35",
+        "updated_at": "2026-07-30T10:59:35",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5686,
+        "iniciador_ruta_id": 7605,
+        "actuacion_id": 7577,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5261": {
+      "ruta_trabajo_id": 5261,
+      "exists": true,
+      "provenance": {
+        "id": 5261,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 27117,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:59:50",
+        "updated_at": "2026-07-30T10:59:50",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5701,
+        "iniciador_ruta_id": 7635,
+        "actuacion_id": 7619,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5550": {
+      "ruta_trabajo_id": 5550,
+      "exists": true,
+      "provenance": {
+        "id": 5550,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 5974,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T12:03:55",
+        "updated_at": "2026-07-30T12:03:55",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5970,
+        "iniciador_ruta_id": 7969,
+        "actuacion_id": 7932,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5560": {
+      "ruta_trabajo_id": 5560,
+      "exists": true,
+      "provenance": {
+        "id": 5560,
+        "fecha": "2026-08-18",
+        "turno": "TARDE",
+        "estado_ruta": "PUBLICADA",
+        "numero": 14587,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T12:16:58",
+        "updated_at": "2026-07-30T12:16:58",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5980,
+        "iniciador_ruta_id": 7979,
+        "actuacion_id": 7964,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "5574": {
+      "ruta_trabajo_id": 5574,
+      "exists": true,
+      "provenance": {
+        "id": 5574,
+        "fecha": "2026-08-18",
+        "turno": "TARDE",
+        "estado_ruta": "PUBLICADA",
+        "numero": 27302,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-31T10:44:32",
+        "updated_at": "2026-07-31T10:44:32",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 6003,
+        "iniciador_ruta_id": 8004,
+        "actuacion_id": 8015,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "6372": {
+      "ruta_trabajo_id": 6372,
+      "exists": true,
+      "provenance": {
+        "id": 6372,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 24487,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-08-18T10:53:10",
+        "updated_at": "2026-08-18T10:53:10",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 6889,
+        "iniciador_ruta_id": 9479,
+        "actuacion_id": 9612,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    "6461": {
+      "ruta_trabajo_id": 6461,
+      "exists": true,
+      "provenance": {
+        "id": 6461,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 873,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-08-18T11:03:57",
+        "updated_at": "2026-08-18T11:03:57",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 6972,
+        "iniciador_ruta_id": 9781,
+        "actuacion_id": 9942,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    }
+  },
+  "routes_detail": [
+    {
+      "ruta_trabajo_id": 4938,
+      "exists": true,
+      "provenance": {
+        "id": 4938,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 12577,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-29T13:12:31",
+        "updated_at": "2026-07-29T13:12:31",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5376,
+        "iniciador_ruta_id": 7178,
+        "actuacion_id": 6999,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 4944,
+      "exists": true,
+      "provenance": {
+        "id": 4944,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 4493,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-29T13:14:20",
+        "updated_at": "2026-07-29T13:14:20",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5382,
+        "iniciador_ruta_id": 7184,
+        "actuacion_id": 7025,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5195,
+      "exists": true,
+      "provenance": {
+        "id": 5195,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 23921,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:30:47",
+        "updated_at": "2026-07-30T10:30:47",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5637,
+        "iniciador_ruta_id": 7520,
+        "actuacion_id": 7458,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5199,
+      "exists": true,
+      "provenance": {
+        "id": 5199,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 19474,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:58:51",
+        "updated_at": "2026-07-30T10:58:51",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5641,
+        "iniciador_ruta_id": 7531,
+        "actuacion_id": 7493,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5204,
+      "exists": true,
+      "provenance": {
+        "id": 5204,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 17381,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:58:54",
+        "updated_at": "2026-07-30T10:58:54",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5646,
+        "iniciador_ruta_id": 7536,
+        "actuacion_id": 7507,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5245,
+      "exists": true,
+      "provenance": {
+        "id": 5245,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 3913,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:59:35",
+        "updated_at": "2026-07-30T10:59:35",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5686,
+        "iniciador_ruta_id": 7605,
+        "actuacion_id": 7577,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5261,
+      "exists": true,
+      "provenance": {
+        "id": 5261,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 27117,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T10:59:50",
+        "updated_at": "2026-07-30T10:59:50",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5701,
+        "iniciador_ruta_id": 7635,
+        "actuacion_id": 7619,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5550,
+      "exists": true,
+      "provenance": {
+        "id": 5550,
+        "fecha": "2026-08-11",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 5974,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T12:03:55",
+        "updated_at": "2026-07-30T12:03:55",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5970,
+        "iniciador_ruta_id": 7969,
+        "actuacion_id": 7932,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "NO_REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5560,
+      "exists": true,
+      "provenance": {
+        "id": 5560,
+        "fecha": "2026-08-18",
+        "turno": "TARDE",
+        "estado_ruta": "PUBLICADA",
+        "numero": 14587,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-30T12:16:58",
+        "updated_at": "2026-07-30T12:16:58",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 5980,
+        "iniciador_ruta_id": 7979,
+        "actuacion_id": 7964,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 5574,
+      "exists": true,
+      "provenance": {
+        "id": 5574,
+        "fecha": "2026-08-18",
+        "turno": "TARDE",
+        "estado_ruta": "PUBLICADA",
+        "numero": 27302,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-07-31T10:44:32",
+        "updated_at": "2026-07-31T10:44:32",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 6003,
+        "iniciador_ruta_id": 8004,
+        "actuacion_id": 8015,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 6372,
+      "exists": true,
+      "provenance": {
+        "id": 6372,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 24487,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-08-18T10:53:10",
+        "updated_at": "2026-08-18T10:53:10",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 6889,
+        "iniciador_ruta_id": 9479,
+        "actuacion_id": 9612,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    },
+    {
+      "ruta_trabajo_id": 6461,
+      "exists": true,
+      "provenance": {
+        "id": 6461,
+        "fecha": "2026-08-19",
+        "turno": "MANIANA",
+        "estado_ruta": "PUBLICADA",
+        "numero": 873,
+        "observaciones": null,
+        "created_by_user_id": 1,
+        "created_at": "2026-08-18T11:03:57",
+        "updated_at": "2026-08-18T11:03:57",
+        "created_by_is_test_user": false
+      },
+      "deleted_item_2c2a_prime": {
+        "deleted_ruta_item_id": 6972,
+        "iniciador_ruta_id": 9781,
+        "actuacion_id": 9942,
+        "estado_ruta_item": "FINALIZADO",
+        "estado_ejecucion": "REALIZADO",
+        "created_by_user_id": 1,
+        "ruta_grupo_id": null,
+        "wave": "2C.2A_PRIME",
+        "manifest_classification": "SAFE_TEST_WRAPPER_ITEM"
+      },
+      "emptiness": {
+        "ruta_item_refs": [],
+        "ruta_item_count": 0,
+        "ruta_pool_dia_direct": [],
+        "ruta_pool_dia_via_deleted_item": [],
+        "ruta_pool_dia_total": 0,
+        "ruta_grupo_count": 0,
+        "ruta_grupo_inspector_physical_rows": 0,
+        "ruta_grupo_inspector_distinct_grupos": 0,
+        "truly_empty_operational": true
+      },
+      "grupos": [],
+      "group_inspectors": {
+        "physical_row_count": 0,
+        "distinct_grupo_ids": 0,
+        "distinct_inspector_ids": [],
+        "rows": [],
+        "policy": "NO_DELETE_INSPECTOR"
+      },
+      "pool": {
+        "direct_refs": [],
+        "via_item_refs": [],
+        "classification": "NONE"
+      },
+      "surviving_fk_incoming": {
+        "total_refs": 0,
+        "by_fk": {},
+        "edges": [
+          {
+            "child_table": "ruta_grupo",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_item",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "CASCADE",
+            "update_rule": "CASCADE"
+          },
+          {
+            "child_table": "ruta_pool_dia",
+            "child_column": "ruta_trabajo_id",
+            "delete_rule": "SET NULL",
+            "update_rule": "CASCADE"
+          }
+        ]
+      },
+      "protected_intersection": {
+        "ruta_trabajo": false,
+        "ruta_grupo_ids": []
+      },
+      "classification": "CONFIRMADO_TEST_ROUTE",
+      "classification_reasons": [
+        "deleted_test_item_2c2a_prime",
+        "actuacion_source_deleted_2c2b_prime"
+      ]
+    }
+  ],
+  "classification_buckets": {
+    "CONFIRMADO_TEST_ROUTE": 12
+  },
+  "groups": [],
+  "group_inspectors_summary": {
+    "total_physical_rows": 0,
+    "total_distinct_grupos": 0
+  },
+  "pool_summary": {
+    "routes_with_pool_refs": []
+  },
+  "fk_graph": {
+    "ruta_trabajo": [
+      {
+        "child_table": "ruta_grupo",
+        "child_column": "ruta_trabajo_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "ruta_item",
+        "child_column": "ruta_trabajo_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "ruta_pool_dia",
+        "child_column": "ruta_trabajo_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE"
+      }
+    ],
+    "ruta_grupo": [
+      {
+        "child_table": "ruta_grupo_inspector",
+        "child_column": "ruta_grupo_id",
+        "delete_rule": "CASCADE",
+        "update_rule": "CASCADE"
+      },
+      {
+        "child_table": "ruta_item",
+        "child_column": "ruta_grupo_id",
+        "delete_rule": "SET NULL",
+        "update_rule": "CASCADE"
+      }
+    ],
+    "ruta_grupo_inspector": []
+  },
+  "delete_order_proposed": {
+    "order": [
+      "ruta_grupo_inspector",
+      "ruta_grupo",
+      "ruta_trabajo"
+    ],
+    "validation": {
+      "valid": true,
+      "violations": []
+    },
+    "note": "ruta_trabajo CASCADE deletes ruta_grupo and ruta_item; ruta_grupo CASCADE deletes ruta_grupo_inspector; ruta_pool_dia SET NULL on ruta_trabajo"
+  },
+  "classification": {
+    "CONFIRMADO_TEST_ROUTE_definition": "Had sole test ruta_item deleted in 2C.2A'; actuacion deleted in 2C.2B'; no operational refs; no protected intersection; empty of items/pool",
+    "per_route": {
+      "4938": "CONFIRMADO_TEST_ROUTE",
+      "4944": "CONFIRMADO_TEST_ROUTE",
+      "5195": "CONFIRMADO_TEST_ROUTE",
+      "5199": "CONFIRMADO_TEST_ROUTE",
+      "5204": "CONFIRMADO_TEST_ROUTE",
+      "5245": "CONFIRMADO_TEST_ROUTE",
+      "5261": "CONFIRMADO_TEST_ROUTE",
+      "5550": "CONFIRMADO_TEST_ROUTE",
+      "5560": "CONFIRMADO_TEST_ROUTE",
+      "5574": "CONFIRMADO_TEST_ROUTE",
+      "6372": "CONFIRMADO_TEST_ROUTE",
+      "6461": "CONFIRMADO_TEST_ROUTE"
+    }
+  },
+  "safe_sets": {
+    "SAFE_RUTA_TRABAJO_RESIDUAL": [
+      4938,
+      4944,
+      5195,
+      5199,
+      5204,
+      5245,
+      5261,
+      5550,
+      5560,
+      5574,
+      6372,
+      6461
+    ],
+    "SAFE_RUTA_GRUPO_RESIDUAL": [],
+    "SAFE_RUTA_GRUPO_INSPECTOR_RESIDUAL": [],
+    "SAFE_RUTA_POOL_RESIDUAL": [],
+    "BLOCKED_ROUTES": []
+  },
+  "blocked_sets": [],
+  "protected_closure": {
+    "intersection_total": {
+      "actuaciones": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1189,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "orden_trabajo": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1176,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "inspeccion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 170,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "notificacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 168,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "comprobacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 56,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "oficio": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "expediente": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      }
+    },
+    "valid": true,
+    "conflicts": []
+  },
+  "user_unlock_simulation": {
+    "users_test_fk_free_baseline_post_3i": 833,
+    "users_test_fk_free_after_route_residual_sim": 833,
+    "users_additionally_unlocked": 0,
+    "users_test_still_blocked": 1956,
+    "referenced_user_ids": {
+      "ruta_trabajo_created_by": [
+        1
+      ],
+      "ruta_grupo_created_by": [],
+      "ruta_grupo_inspector_created_by": []
+    },
+    "policy": "NO_DELETE users"
+  },
+  "post_count_simulation": {
+    "before": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3685,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8001,
+      "actuaciones": 8074,
+      "relevamiento": 4566,
+      "orden_trabajo": 8810,
+      "notificacion": 2478,
+      "comprobacion": 1530
+    },
+    "explicit_delete": {
+      "ruta_trabajo": 12,
+      "ruta_grupo": 0,
+      "ruta_grupo_inspector": 0
+    },
+    "cascade_by_entity": {
+      "ruta_trabajo": {
+        "cascade_physical": {},
+        "set_null_physical": {},
+        "cascade_total": 0,
+        "set_null_total": 0
+      },
+      "ruta_grupo": {
+        "cascade_physical": {},
+        "set_null_physical": {},
+        "cascade_total": 0,
+        "set_null_total": 0
+      },
+      "ruta_grupo_inspector": {
+        "cascade_physical": {},
+        "set_null_physical": {},
+        "cascade_total": 0,
+        "set_null_total": 0
+      }
+    },
+    "cascade_total": 0,
+    "set_null_total": 0,
+    "after_simulated": {
+      "ruta_trabajo": 2703,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "note": "if delete ruta_trabajo only, grupo/rgi cascade from FK; explicit counts additive"
+    }
+  },
+  "admin_graph_guard": {
+    "policy": "ADMIN_GRAPH_NOT_IN_SCOPE",
+    "blocked_notificaciones_25_present": 25,
+    "comprobacion_2289_present": true,
+    "future_expedientes_27_present": 27,
+    "oficio_1662_present": true,
+    "touched_by_this_diag": false
+  },
+  "known_test_guards": {
+    "known_test_act_ids_union_count": 816,
+    "known_test_ot_ids_union_count": 832,
+    "known_test_act_ids_remaining": [],
+    "known_test_act_ids_remaining_count": 0,
+    "known_test_ot_ids_remaining": [],
+    "known_test_ot_ids_remaining_count": 0,
+    "guard_ok": true
+  },
+  "source_prime_manifest": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_execution_manifest_phase2c2a_prime_wrappers_20260920.json"
+}

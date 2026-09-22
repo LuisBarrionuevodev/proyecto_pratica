@@ -17,16 +17,6 @@ from app.domains.rutas_trabajo.schemas.planificacion_in import PlanificacionPend
 from app.models import Domicilio, IniciadorRuta, User
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 _HEAVY_ROW_KEYS = frozenset(
     {
         "turno_sugerido",

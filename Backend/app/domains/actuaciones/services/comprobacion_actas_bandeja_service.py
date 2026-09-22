@@ -239,12 +239,19 @@ def _apply_recorrido_busqueda_sql(
     return query
 
 def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilters):
-    """Actuaciones con envío + oficio + respuesta (sin filtrar por ruta a nivel actuación)."""
+    """Actuaciones con envío (o declaración sin envío) + oficio + respuesta."""
     has_envio = exists().where(
         and_(
             Expediente.comprobacion_id == Actuaciones.comprobacion_id,
             Expediente.oficio_id.is_(None),
             Expediente.deleted_at.is_(None),
+        )
+    )
+    has_sin_expediente_declarado = exists().where(
+        and_(
+            Comprobacion.id == Actuaciones.comprobacion_id,
+            Comprobacion.sin_expediente_envio.is_(True),
+            Comprobacion.deleted_at.is_(None),
         )
     )
     has_oficio = exists().where(
@@ -273,7 +280,7 @@ def _query_actuaciones_circuito_reinspeccion(filters: ActuacionesPendientesFilte
     )
     q = (
         Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
-        .filter(has_envio, has_oficio, has_respuesta)
+        .filter(or_(has_envio, has_sin_expediente_declarado), has_oficio, has_respuesta)
         .options(
             joinedload(Actuaciones.orden_trabajo),
             joinedload(Actuaciones.domicilio).joinedload(Domicilio.contribuyente),
@@ -360,6 +367,8 @@ def list_pendientes_reinspeccion_oficio_filas(
         if act.comprobacion_id is None:
             continue
         for ofi in list_oficios_by_comprobacion(int(act.comprobacion_id)):
+            if (ofi.iniciador_materializacion_estado or "").strip() == "PENDIENTE_DOMICILIO":
+                continue
             exp_resp = _expediente_respuesta_por_oficio(ofi.id)
             if exp_resp is None:
                 continue

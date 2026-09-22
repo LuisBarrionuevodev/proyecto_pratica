@@ -26,16 +26,6 @@ from app.domains.relevamientos.services.update_service import actualizar_relevam
 from app.models import Domicilio, Inspector, Relevamiento, Rubro
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def _migration_pr72_aplicada() -> bool:
     from sqlalchemy import inspect
 

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from flask_jwt_extended import get_jwt_identity
-
-from app.models import IniciadorRuta, Relevamiento, User
+from app.domains.rutas_trabajo.services.auth_service import validate_actor_user_id
+from app.models import IniciadorRuta, Relevamiento
 from app.domains.rutas_trabajo.services.iniciador_domicilio_service import (
     resolve_domicilio_operativo_para_iniciador,
 )
@@ -12,36 +11,11 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
 )
 
 
-def _get_current_user_id() -> int:
-    """
-    Resuelve user_id autenticado para auditoría.
-
-    Compatibilidad:
-    - Si no hay contexto JWT (ruta legacy), usa un usuario activo como fallback.
-    """
-    try:
-        identity = get_jwt_identity()
-    except Exception:
-        identity = None
-
-    user_id = identity.get("user_id") if isinstance(identity, dict) else identity
-    if user_id is not None:
-        try:
-            parsed_id = int(user_id)
-        except (TypeError, ValueError):
-            parsed_id = None
-        if parsed_id is not None:
-            user = User.query.get(parsed_id)
-            if user and getattr(user, "is_active", True):
-                return parsed_id
-
-    fallback_user = User.query.filter(User.is_active.is_(True)).order_by(User.id.asc()).first()
-    if fallback_user:
-        return int(fallback_user.id)
-    raise ValueError("No hay usuario activo para registrar created_by_user_id")
-
-
-def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> IniciadorRuta:
+def get_or_create_iniciador_from_relevamiento(
+    relevamiento: Relevamiento,
+    *,
+    actor_user_id: int,
+) -> IniciadorRuta:
     """
     Crea (o recupera) iniciador operativo para un relevamiento.
 
@@ -49,6 +23,13 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
     - tipo_iniciador = RELEVAMIENTO
     - estado_iniciador = PENDIENTE
     - idempotente para evitar duplicados activos.
+
+    Parámetros:
+        relevamiento: fila relevamiento origen.
+        actor_user_id: usuario que audita la creación (obligatorio).
+
+    Errores:
+        ValueError: relevamiento incompleto o actor inválido.
     """
     existente = (
         IniciadorRuta.query.filter(
@@ -70,7 +51,7 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
 
     fecha_origen = relevamiento.fecha
     domicilio_operativo_id = resolve_domicilio_operativo_para_iniciador(int(relevamiento.domicilio_id))
-    created_by_user_id = _get_current_user_id()
+    created_by_user_id = validate_actor_user_id(actor_user_id)
     return IniciadorRuta(
         tipo_iniciador="RELEVAMIENTO",
         estado_iniciador="PENDIENTE",
@@ -83,4 +64,3 @@ def get_or_create_iniciador_from_relevamiento(relevamiento: Relevamiento) -> Ini
         created_by_user_id=created_by_user_id,
         observaciones=f"Derivado automático desde relevamiento {relevamiento.id}",
     )
-

@@ -146,12 +146,17 @@ def build_actuacion_grid_validation_context(actuacion_id: int) -> dict[str, Any]
     Retorno:
         Dict con ``circuito_operativo``, ``omite_identidad_operativa`` y compat FIX.6.
     """
+    from app.models import Actuaciones
+
     circuito = circuito_desde_actuacion_id(int(actuacion_id))
     omite = omite_identidad_operativa(circuito)
+    act = Actuaciones.query.get(int(actuacion_id))
+    carga_solo = bool(act and getattr(act, "carga_solo_comprobacion", False))
     return {
         "circuito_operativo": circuito,
         "omite_identidad_operativa": omite,
         "es_reinspeccion_oficio": circuito == CIRCUITO_REINSPECCION_OFICIO,
+        "carga_solo_comprobacion": carga_solo,
     }
 
 

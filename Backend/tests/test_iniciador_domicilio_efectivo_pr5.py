@@ -58,16 +58,6 @@ def _ensure_user() -> User:
     return u
 
 
-@pytest.fixture
-def app_ctx():
-    from app import create_app
-
-    app = create_app()
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_iniciador_con_domicilio_valido_usa_iniciador(app_ctx) -> None:
     try:
         dom = Domicilio(calle=f"IniOK{_unique_num()}", numero="1")

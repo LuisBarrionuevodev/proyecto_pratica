@@ -19,13 +19,6 @@ def _unique_ot() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
-@pytest.fixture
-def app_ctx(app):
-    with app.app_context():
-        yield app
-        db.session.rollback()
-
-
 def test_count_empty_ids(app_ctx) -> None:
     assert count_actuaciones_por_establecimiento_operativo_ids([]) == {}
 
