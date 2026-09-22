@@ -1,0 +1,122 @@
+{
+  "ticket": "DEPLOY-PILOT.1B",
+  "date": "2026-09-22",
+  "generated_at": "2026-09-22T13:18:19.934179+00:00",
+  "status": "PASS",
+  "before_error_count": 292,
+  "tsconfig": {
+    "tests_excluded": true,
+    "exclude_patterns": [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx"
+    ],
+    "vitest_still_discovers_tests": true,
+    "note": "tsconfig.app = productivo; vitest include=src/**/*.test.* independiente"
+  },
+  "fixes": {
+    "casing": {
+      "canonical": "src/types/local.d.ts",
+      "imports_updated": [
+        "src/api/localesApi.ts",
+        "src/data/locales-test.ts",
+        "src/utils/filtersMap.ts"
+      ]
+    },
+    "api_types": {
+      "crudFormErrors": "applyCrudFormErrorsToState sin setFieldErrors en options",
+      "dashboard_charts": "legend hidden → sx display none",
+      "glide_grid_demo": "removed stale allowAdd on ImageCell"
+    },
+    "esquina": {
+      "files": [
+        "src/api/actuacionesPendientesApi.ts",
+        "src/api/relevamientosPendientesApi.ts"
+      ],
+      "fix": "removed duplicate esquina_catalogo_id field"
+    },
+    "dashboard_export": {
+      "file": "src/utils/exportExcelDashboard.ts",
+      "fix": "removed Pendientes por distrito sheet (PERF-DASH.2)",
+      "tests_updated": "src/utils/exportExcelDashboard.test.ts"
+    },
+    "imports_exports": {
+      "operativaComprobacionBaseCache": "OperativaComprobacionTabKey from operativaComprobacionTabChange",
+      "cargarActuaciones_config": "removed stale DROPDOWN_ENUMS/COMPROBACION_MOTIVOS exports"
+    },
+    "app_dialog": {
+      "mergeSx_helper": "src/utils/muiSx.ts",
+      "files": [
+        "src/ui/AppDialog.tsx",
+        "src/ui/ConfirmDialog.tsx",
+        "src/ui/ExportDataDialog.tsx"
+      ],
+      "fix": "mergeSx for slotProps; removed disableBackdropClick (MUI v7)"
+    }
+  },
+  "after": {
+    "total_errors": 149,
+    "errors_removed": 143,
+    "errors_by_code": {
+      "TS6133": 35,
+      "TS2322": 30,
+      "TS2345": 24,
+      "TS2769": 19,
+      "TS2352": 14,
+      "TS2740": 8,
+      "TS2339": 6,
+      "TS2551": 3,
+      "TS2367": 2,
+      "TS2561": 1,
+      "TS7006": 1,
+      "TS18047": 1,
+      "TS2304": 1,
+      "TS2741": 1,
+      "TS2783": 1,
+      "TS2552": 1,
+      "TS18048": 1
+    },
+    "errors_by_file_top20": {
+      "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx": 11,
+      "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx": 10,
+      "src/Containers/Actuaciones/utils/inspeccionChecklistSubmit.ts": 9,
+      "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx": 8,
+      "src/data/actuacionesData.ts": 8,
+      "src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx": 6,
+      "src/Containers/Actuaciones/utils/submitActuacionRow.ts": 5,
+      "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.ts": 5,
+      "src/data/relevamientoData.ts": 5,
+      "src/components/feedback/GlobalFeedbackProvider.tsx": 4,
+      "src/Containers/RutasTrabajo/views/RutasPlanificacionView.tsx": 4,
+      "src/utils/validations.ts": 4,
+      "src/components/crudDialog/CrudGlassDialog.tsx": 3,
+      "src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx": 3,
+      "src/Containers/ActasComprobacion/utils/comprobacionesExportMappers.ts": 3,
+      "src/Containers/CargarRelevamientos/Components/TablaCargarRelevamientosGlideStyled.tsx": 3,
+      "src/Containers/Dashboard/Components/DashboardDecomisoKgPorRubroDonut.tsx": 3,
+      "src/Containers/GestionNotificacion/components/NotificacionDetalleDocumentalDialog.tsx": 3,
+      "src/documentos/utils/detalleOperativoResumenRutaExport.ts": 3,
+      "src/components/crudDialog/CrudFormSlot.tsx": 2
+    },
+    "root_causes_remaining": {
+      "B_PROPS_STALE": "CrudDialog, MUI sx overloads",
+      "F_NULLABILITY": "GlobalFeedbackProvider, validations",
+      "I_ROUTE_WORKFLOW_REFACTOR": "ActasComprobacion MRT casts, completar trabajo",
+      "J_STRICTNESS": "TS6133 unused imports (~43)",
+      "G_ENUM_DRIFT": "auth/roles.ts",
+      "A_API_TYPES_STALE": "inspeccionChecklist, comprobacionesExportMappers",
+      "L_OTHER": "misc"
+    }
+  },
+  "vite_build": "PASS",
+  "npm_run_build": "FAIL (expected until phase 1C)",
+  "tests": {
+    "exportExcelDashboard": "5/5 PASS",
+    "vitest_discovery": "include src/**/*.test.ts(x) unchanged"
+  },
+  "new_ts_escapes_added": 0,
+  "backend_changes": false,
+  "recommended_phase2": "DEPLOY-PILOT.1C: B_PROPS_STALE, F_NULLABILITY, I_ROUTE_WORKFLOW, G_ENUM_DRIFT, J_STRICTNESS",
+  "writes_executed": true
+}

@@ -1,0 +1,650 @@
+{
+  "ticket": "DEPLOY-PILOT.1A",
+  "date": "2026-09-22",
+  "generated_at": "2026-09-22T13:09:24.852689+00:00",
+  "status": "DIAG_COMPLETE",
+  "writes_executed": false,
+  "build_command": "tsc -b && vite build",
+  "vite_build_isolated": "PASS (documented DEPLOY-PILOT.1)",
+  "tsc_build": "FAIL",
+  "total_errors": 292,
+  "errors_by_code": {
+    "TS2322": 58,
+    "TS2345": 44,
+    "TS6133": 43,
+    "TS2352": 24,
+    "TS2769": 20,
+    "TS2339": 17,
+    "TS2353": 16,
+    "TS2741": 15,
+    "TS2739": 10,
+    "TS2740": 9,
+    "TS2300": 4,
+    "TS7053": 4,
+    "TS2783": 4,
+    "TS2551": 3,
+    "TS2307": 3,
+    "TS2367": 2,
+    "TS2556": 2,
+    "TS2493": 2,
+    "TS7006": 2,
+    "TS2305": 2,
+    "TS1261": 1,
+    "TS2724": 1,
+    "TS2561": 1,
+    "TS18047": 1,
+    "TS2304": 1,
+    "TS2820": 1,
+    "TS2552": 1,
+    "TS18048": 1
+  },
+  "errors_by_file_top30": {
+    "src/Containers/Actuaciones/validations/actuacionFormValidation.test.ts": 18,
+    "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.test.tsx": 15,
+    "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx": 11,
+    "src/ui/AppDialog.tsx": 11,
+    "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx": 10,
+    "src/Containers/Actuaciones/utils/inspeccionChecklistSubmit.ts": 9,
+    "src/Containers/Actuaciones/utils/submitActuacionRow.test.ts": 9,
+    "src/data/actuacionesData.ts": 8,
+    "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx": 7,
+    "src/Containers/CargarRelevamientos/utils/relevamientoDraftSessionStorage.test.ts": 7,
+    "src/Containers/RutasTrabajo/utils/rutaPublicarReadiness.test.ts": 7,
+    "src/Containers/Actuaciones/utils/actuacionOficioSubmitPipeline.test.ts": 6,
+    "src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx": 6,
+    "src/Containers/ActasComprobacion/utils/operativaComprobacionBaseCache.ts": 5,
+    "src/Containers/Actuaciones/utils/submitActuacionRow.ts": 5,
+    "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.ts": 5,
+    "src/Containers/RutasTrabajo/rutaAsig2.test.ts": 5,
+    "src/data/relevamientoData.ts": 5,
+    "src/components/feedback/GlobalFeedbackProvider.tsx": 4,
+    "src/Containers/Actuaciones/utils/actuacionesExportDataset.test.ts": 4,
+    "src/Containers/CargarRelevamientos/Components/TablaCargarRelevamientosGlideStyled.tsx": 4,
+    "src/Containers/RutasTrabajo/views/RutasPlanificacionView.tsx": 4,
+    "src/utils/validations.ts": 4,
+    "src/components/crudDialog/CrudGlassDialog.tsx": 3,
+    "src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx": 3,
+    "src/Containers/ActasComprobacion/utils/comprobacionesExportMappers.ts": 3,
+    "src/Containers/ActasComprobacion/utils/exportComprobacionesDataset.filtros1.test.ts": 3,
+    "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.test.ts": 3,
+    "src/Containers/Dashboard/Components/DashboardDecomisoKgPorRubroDonut.tsx": 3,
+    "src/Containers/GestionNotificacion/components/NotificacionDetalleDocumentalDialog.tsx": 3
+  },
+  "errors_by_bucket": {
+    "tests_in_src": 111,
+    "components": 110,
+    "other": 23,
+    "containers/Actuaciones": 16,
+    "containers/ActasComprobacion": 8,
+    "utils": 7,
+    "api": 5,
+    "containers/CompletarTrabajos": 5,
+    "containers/CargarActuaciones": 3,
+    "containers/RutasTrabajo": 2,
+    "containers/CargarRelevamientos": 1,
+    "containers/Relevamientos": 1
+  },
+  "file_concentration": {
+    "files_for_50pct": 18,
+    "files_for_80pct": 53,
+    "files_for_90pct": 82,
+    "distinct_files": 111,
+    "note": "18 archivos concentran 50% de errores; 82 archivos el 90%"
+  },
+  "cascade_hubs": [
+    {
+      "hub": "src/ui/AppDialog.tsx + ConfirmDialog + ExportDataDialog",
+      "error_count_direct": 25,
+      "estimated_cascade": 35,
+      "root": "B_PROPS_STALE — props MUI Dialog obsoletas (disableBackdropClick, slotProps.sx arrays)",
+      "severity": "P0",
+      "fix_once": "Actualizar wrapper AppDialog/ConfirmDialog a API MUI v7; propagar a consumers"
+    },
+    {
+      "hub": "tsconfig.app.json include=src sin exclude tests",
+      "error_count_direct": 111,
+      "estimated_cascade": 111,
+      "root": "D_TEST_BUILD_SCOPE — 227 archivos *.test.* en scope de build",
+      "severity": "P3",
+      "fix_once": "exclude: [\"**/*.test.ts\", \"**/*.test.tsx\"] en tsconfig.app.json"
+    },
+    {
+      "hub": "src/api/actuacionesPendientesApi.ts + relevamientosPendientesApi.ts",
+      "error_count_direct": 4,
+      "estimated_cascade": 4,
+      "root": "A_API_TYPES_STALE — esquina_catalogo_id duplicado en interface",
+      "severity": "P0",
+      "fix_once": "Eliminar campo duplicado en type definition"
+    },
+    {
+      "hub": "src/types/Local.d.ts vs local.d.ts",
+      "error_count_direct": 1,
+      "estimated_cascade": 4,
+      "root": "K_CONFIG — casing Windows; puede cascadear imports",
+      "severity": "P0",
+      "fix_once": "Unificar nombre de archivo y imports a un solo casing"
+    },
+    {
+      "hub": "src/utils/exportExcelDashboard.ts",
+      "error_count_direct": 6,
+      "estimated_cascade": 9,
+      "root": "A_API_TYPES_STALE — PERF-DASH.2 eliminó pendientes del payload",
+      "severity": "P0",
+      "fix_once": "Actualizar DashboardExportPayload y mapper post-PERF-DASH.2"
+    },
+    {
+      "hub": "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+      "error_count_direct": 11,
+      "estimated_cascade": 15,
+      "root": "F_NULLABILITY + I_ROUTE_WORKFLOW + checklist types",
+      "severity": "P1",
+      "fix_once": "Sincronizar ActuacionSaveOptions / inspeccionChecklist con backend"
+    },
+    {
+      "hub": "DataTableMrtShell + MRT_ColumnDef casts",
+      "error_count_direct": 20,
+      "estimated_cascade": 25,
+      "root": "H_GENERIC_MRT + I_ROUTE_WORKFLOW — column defs genéricos",
+      "severity": "P1",
+      "fix_once": "Tipar shell MRT con genérico TData o helper de columnas"
+    }
+  ],
+  "tsconfig_scope": {
+    "root": {
+      "references": [
+        "./tsconfig.app.json",
+        "./tsconfig.node.json"
+      ]
+    },
+    "app": {
+      "include": [
+        "src"
+      ],
+      "exclude": null,
+      "strict": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true
+    },
+    "node": {
+      "include": [
+        "vite.config.ts"
+      ]
+    },
+    "production_typechecks": [
+      "src/** (all under src, no exclude)"
+    ],
+    "test_files_under_src_count": 227,
+    "errors_in_test_files": 111,
+    "errors_in_product_code": 181,
+    "test_scope_finding": "111 errores (38.0%) provienen de 38 archivos *.test.* incluidos por tsconfig.app.json include=[\"src\"]. Vitest corre aparte; excluir tests del build productivo es corrección de config válida (no aplicada en este ticket)."
+  },
+  "root_causes": [
+    {
+      "id": "D_TEST_BUILD_SCOPE",
+      "category": "Archivos *.test.* incluidos en tsconfig.app include=src",
+      "files": [
+        "src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.test.tsx",
+        "src/Containers/ActasComprobacion/utils/exportComprobacionesDataset.filtros1.test.ts",
+        "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.domicilio.test.tsx",
+        "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.test.tsx",
+        "src/Containers/Actuaciones/utils/actuacionEditRules.test.ts",
+        "src/Containers/Actuaciones/utils/actuacionOficioSubmitPipeline.test.ts",
+        "src/Containers/Actuaciones/utils/actuacionesExportDataset.test.ts",
+        "src/Containers/Actuaciones/utils/actuacionesExportPdfResumen.test.ts",
+        "src/Containers/Actuaciones/utils/submitActuacionRow.test.ts",
+        "src/Containers/Actuaciones/validations/actuacionFormNormalize.test.ts",
+        "src/Containers/Actuaciones/validations/actuacionFormValidation.test.ts",
+        "src/Containers/CargarRelevamientos/relevamientoGridCamposPr74.test.ts",
+        "src/Containers/CargarRelevamientos/utils/relevamientoDraftSessionStorage.test.ts",
+        "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.test.tsx",
+        "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.test.ts",
+        "src/Containers/Dashboard/utils/dashboardPdfMappers.test.ts",
+        "src/Containers/GestionNotificacion/gestionNotificacionOperRuta6d.test.tsx",
+        "src/Containers/GestionNotificacion/utils/exportNotificacionesDataset.filtros2.test.ts",
+        "src/Containers/GestionNotificacion/utils/notificacionesExportOrigen.test.ts",
+        "src/Containers/GestionNotificacion/utils/notificacionesExportPdfResumen.test.ts",
+        "src/Containers/Relevamientos/relAngulo2.test.ts",
+        "src/Containers/Relevamientos/utils/relevamientoCamposForm.test.ts",
+        "src/Containers/Relevamientos/utils/relevamientoCrudDisplay.test.ts",
+        "src/Containers/Relevamientos/utils/submitRelevamientoRow.test.ts",
+        "src/Containers/RutasTrabajo/planificacion/selectors/planificacionSelectors.test.ts"
+      ],
+      "file_count": 38,
+      "error_count": 111,
+      "estimated_cascade": 111,
+      "severity": "P3",
+      "regression": "CONFIGURATION_NOISE",
+      "sample_messages": [
+        "Object literal may only specify known properties, and 'motivoQ' does not exist in type 'HistorialNotificacionFiltroPayload'.",
+        "'CrudFormErrorSummary' is declared but its value is never read.",
+        "Type '{ id: number; acta_comprobacion_num: string; fecha_actuacion: string; }' is not assignable to type 'OficioOperativoRow'.",
+        "A spread argument must either have a tuple type or be passed to a rest parameter.",
+        "Conversion of type 'undefined' to type '{ recorridoApiParams?: { omitirRangoFecha?: boolean | undefined; desde?: string | undefined; } | undefined; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+      ],
+      "recommended_fix": "Excluir **/*.test.* de tsconfig.app.json; mantener vitest con tsconfig separado."
+    },
+    {
+      "id": "B_PROPS_STALE",
+      "category": "Props MUI/componentes refactorizados (sx, Dialog, overloads)",
+      "files": [
+        "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+        "src/Containers/ActasComprobacion/components/ComprobacionExpedienteOperativoDialog.tsx",
+        "src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx",
+        "src/Containers/Actuaciones/Containers/PendientesVinculacionActa/Components/TablaPendientesVinculacionActa.tsx",
+        "src/Containers/CargarRelevamientos/Components/TablaCargarRelevamientosGlideStyled.tsx",
+        "src/Containers/CargarRelevamientos/Components/ValidationErrorsRail.tsx",
+        "src/Containers/Dashboard/Components/DashboardDecomisoKgPorRubroDonut.tsx",
+        "src/Containers/Dashboard/Components/DashboardMercaderiaDecomisadaCard.tsx",
+        "src/Containers/Dashboard/Components/Panel.tsx",
+        "src/Containers/Establecimientos/EstablecimientoDetallePage.tsx",
+        "src/Containers/Inicio/index.tsx",
+        "src/Containers/Mapa/views/MapaDomiciliosGeolocalizacion/MapaDomiciliosGeolocalizacionView.tsx",
+        "src/Containers/RutasTrabajo/Components/ModalAsignarSeleccionAGrupo.tsx",
+        "src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx",
+        "src/Containers/RutasTrabajo/planificacion/PendientesContextoPanel.tsx",
+        "src/Containers/RutasTrabajo/planificacion/PlanificacionView.tsx",
+        "src/Containers/RutasTrabajo/planificacion/PoolDelDiaPanel.tsx",
+        "src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx",
+        "src/Containers/RutasTrabajo/views/RutasPlanificacionView.tsx",
+        "src/animations/components.tsx",
+        "src/components/crudDialog/CrudDialogSection.tsx",
+        "src/components/crudDialog/CrudFormSlot.tsx",
+        "src/components/crudDialog/CrudGlassDialog.tsx",
+        "src/components/dataTable/DataTableMrtShell.tsx",
+        "src/data/relevamientoData.ts"
+      ],
+      "file_count": 25,
+      "error_count": 43,
+      "estimated_cascade": 43,
+      "severity": "P1",
+      "regression": "PREEXISTING_DEBT",
+      "sample_messages": [
+        "No overload matches this call.",
+        "Type 'SxProps<Theme>' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.",
+        "Type '{ open: boolean; title: string; message: string; confirmLabel: string; cancelLabel: string; loading: boolean; onCancel: () => void; onConfirm: () => void; }' is not assignable to type 'IntrinsicAttributes & ConfirmDialogProps'.",
+        "Type '(e: SelectChangeEvent<string>) => void' is not assignable to type 'ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>'.",
+        "Type 'string' is not assignable to type 'number'."
+      ],
+      "recommended_fix": "Alinear props MUI v7/Dialog wrapper (ConfirmDialog, sx arrays); framer-motion children typing."
+    },
+    {
+      "id": "F_NULLABILITY",
+      "category": "string|null|undefined tras refactors",
+      "files": [
+        "src/Containers/ActasComprobacion/components/ComprobacionOficiosTribunalSection.tsx",
+        "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+        "src/Containers/Actuaciones/utils/inspeccionChecklistSubmit.ts",
+        "src/Containers/CargarRelevamientos/Components/TablaCargarRelevamientosGlideStyled.tsx",
+        "src/Containers/Dashboard/Components/DashboardDecomisoKgPorRubroDonut.tsx",
+        "src/Containers/RutasTrabajo/planificacion/planificacionMyMapsLayout.ts",
+        "src/components/crudDialog/CrudGlassDialog.tsx",
+        "src/components/feedback/GlobalFeedbackProvider.tsx",
+        "src/customRenderers/BadgeCell.ts",
+        "src/ui/AppDialog.tsx",
+        "src/ui/ConfirmDialog.tsx",
+        "src/ui/ExportDataDialog.tsx",
+        "src/utils/validations.ts"
+      ],
+      "file_count": 13,
+      "error_count": 38,
+      "estimated_cascade": 38,
+      "severity": "P1",
+      "regression": "PREEXISTING_DEBT",
+      "sample_messages": [
+        "Type 'SxProps<Theme> | undefined' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.",
+        "Type 'string | number | readonly (Width<string | number> | readonly NonNullable<Width<string | number> | undefined>[] | null | undefined)[] | { [key: string]: Width<string | number> | readonly NonNullable<...>[] | null | undefined; } | ((theme: Theme) => ResponsiveStyleValue<...>) | null' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.",
+        "Type 'string | number | readonly (MinWidth<string | number> | readonly NonNullable<MinWidth<string | number> | undefined>[] | null | undefined)[] | { [key: string]: MinWidth<string | number> | readonly NonNullable<...>[] | null | undefined; } | ((theme: Theme) => ResponsiveStyleValue<...>) | { ...; } | null' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.",
+        "Type 'string | number | readonly (MaxWidth<string | number> | readonly NonNullable<MaxWidth<string | number> | undefined>[] | null | undefined)[] | { [key: string]: MaxWidth<string | number> | readonly NonNullable<...>[] | null | undefined; } | ((theme: Theme) => ResponsiveStyleValue<...>) | null' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'.",
+        "Type 'number | (string & {}) | \"inherit\" | \"-moz-initial\" | \"initial\" | \"revert\" | \"revert-layer\" | \"unset\" | \"none\" | readonly (number | BoxShadow | null | undefined)[] | { [key: string]: number | BoxShadow | null | undefined; } | ((theme: Theme) => ResponsiveStyleValue<...>) | \"0 8px 32px rgba(0, 0, 0, 0.45)\" | null' is not assignable to type 'SystemStyleObject<Theme> | CssVariableType | ((theme: Theme) => string | number | SystemStyleObject<Theme>)'."
+      ],
+      "recommended_fix": "Normalizar null guards o tipos opcionales en validations/utils."
+    },
+    {
+      "id": "J_STRICTNESS",
+      "category": "noUnusedLocals / duplicados en objetos test",
+      "files": [
+        "src/Componets/TopBar.tsx",
+        "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+        "src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx",
+        "src/Containers/ActasComprobacion/components/comprobacionOperativoBlocks.tsx",
+        "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+        "src/Containers/Actuaciones/Containers/PendientesVinculacionOficio/Components/TablaPendientesVinculacionOficio.tsx",
+        "src/Containers/Actuaciones/utils/submitActuacionRow.ts",
+        "src/Containers/CargarActuaciones/styles/cargarActuacionesStyles.ts",
+        "src/Containers/CargarRelevamientos/Components/TablaCargarRelevamientosGlideStyled.tsx",
+        "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx",
+        "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.ts",
+        "src/Containers/Dashboard/Components/DashboardNoRealizadasSection.tsx",
+        "src/Containers/Dashboard/Components/DashboardRiesgoSection.tsx",
+        "src/Containers/GestionNotificacion/GestionNotificacionPage.tsx",
+        "src/Containers/GestionNotificacion/components/NotificacionDetalleDocumentalDialog.tsx",
+        "src/Containers/Mapa/Components/PanelResumenOperativo.tsx",
+        "src/Containers/RutasTrabajo/index.tsx",
+        "src/Containers/RutasTrabajo/planificacion/PlanificacionPoolCardsStrip.tsx",
+        "src/Containers/RutasTrabajo/utils/asignacionTableDisplay.ts",
+        "src/Containers/RutasTrabajo/views/RutasPlanificacionView.tsx",
+        "src/auth/userDisplay.ts",
+        "src/customRenderers/BadgeCell.ts",
+        "src/shared/reinspeccionOficio/useReinspeccionOficioFormState.ts",
+        "src/utils/oficioFormErrors.ts"
+      ],
+      "file_count": 24,
+      "error_count": 36,
+      "estimated_cascade": 36,
+      "severity": "P3",
+      "regression": "CONFIGURATION_NOISE",
+      "sample_messages": [
+        "'AppRole' is declared but its value is never read.",
+        "'useEffect' is declared but its value is never read.",
+        "'COLORS' is declared but its value is never read.",
+        "'modalApiError' is declared but its value is never read.",
+        "'Box' is declared but its value is never read."
+      ],
+      "recommended_fix": "Quitar unused imports/vars o relajar noUnusedLocals solo si se decide."
+    },
+    {
+      "id": "I_ROUTE_WORKFLOW_REFACTOR",
+      "category": "OT, rutas, comprobaciones, workflow",
+      "files": [
+        "src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+        "src/Containers/ActasComprobacion/utils/comprobacionesExportMappers.ts",
+        "src/Containers/ActasComprobacion/utils/operativaComprobacionBaseCache.ts",
+        "src/Containers/CargarRelevamientos/utils/relevamientoDraftSessionStorage.ts",
+        "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx",
+        "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.ts",
+        "src/Containers/RutasTrabajo/index.tsx",
+        "src/documentos/utils/detalleOperativoResumenRutaExport.ts"
+      ],
+      "file_count": 8,
+      "error_count": 25,
+      "estimated_cascade": 25,
+      "severity": "P1",
+      "regression": "RECENT_REGRESSION",
+      "sample_messages": [
+        "Conversion of type 'MRT_ColumnDef<IActuacionesPendientesItem, unknown>[]' to type 'MRT_ColumnDef<Record<string, unknown>, unknown>[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+        "Conversion of type 'MRT_ColumnDef<IPendientesOficioItem, unknown>[]' to type 'MRT_ColumnDef<Record<string, unknown>, unknown>[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+        "Conversion of type 'MRT_ColumnDef<IReinspeccionOficioPendienteRow, unknown>[]' to type 'MRT_ColumnDef<Record<string, unknown>, unknown>[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+        "Conversion of type 'Record<string, unknown>' to type 'IReinspeccionOficioPendienteRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+        "Conversion of type 'IActuacionesPendientesItem[] | IPendientesOficioItem[] | IReinspeccionOficioPendienteRow[]' to type 'Record<string, unknown>[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+      ],
+      "recommended_fix": "Sincronizar tipos de rutas/OT/comprobaciones post-refactor."
+    },
+    {
+      "id": "L_OTHER",
+      "category": "Otros",
+      "files": [
+        "src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+        "src/Containers/Actuaciones/utils/inspeccionChecklistSubmit.ts",
+        "src/Containers/Actuaciones/utils/mergeActuacionAfterOficioCorrection.ts",
+        "src/Containers/Actuaciones/utils/submitActuacionRow.ts",
+        "src/Containers/Capacitaciones/GestionCapacitacionesPage.tsx",
+        "src/Containers/GestionNotificacion/components/NotificacionDetalleDocumentalDialog.tsx",
+        "src/Containers/Relevamientos/utils/submitRelevamientoRow.ts",
+        "src/data/actuacionesData.ts",
+        "src/documentos/renderers/DashboardIndicadoresPdfDocument.tsx",
+        "src/documentos/rutas/osmStaticMapImage.ts",
+        "src/utils/exportExcelDashboard.ts"
+      ],
+      "file_count": 11,
+      "error_count": 22,
+      "estimated_cascade": 22,
+      "severity": "P2",
+      "regression": "PREEXISTING_DEBT",
+      "sample_messages": [
+        "Object literal may only specify known properties, but 'inspeccionChecklistCatalog' does not exist in type 'ActuacionSaveOptions'. Did you mean to write 'inspeccionChecklistTouched'?",
+        "Conversion of type 'Record<string, unknown>' to type 'IActuacionListItem' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+        "Conversion of type 'IActuacionListItem' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+        "Parameter 'p' implicitly has an 'any' type.",
+        "Cannot find name 'NotificacionDetalleModalVariant'."
+      ],
+      "recommended_fix": "Revisar caso a caso."
+    },
+    {
+      "id": "A_API_TYPES_STALE",
+      "category": "Tipos/DTO frontend desactualizados vs contrato actual",
+      "files": [
+        "src/Containers/Dashboard/Components/DashboardDonutLegendCard.tsx",
+        "src/Containers/Dashboard/Components/DashboardMercaderiaDecomisadaCard.tsx",
+        "src/api/actuacionesPendientesApi.ts",
+        "src/api/relevamientosPendientesApi.ts",
+        "src/components/crudDialog/crudFormErrors.ts",
+        "src/examples/GlideGridDemo.tsx",
+        "src/utils/exportExcelDashboard.ts",
+        "src/utils/validations.ts"
+      ],
+      "file_count": 8,
+      "error_count": 11,
+      "estimated_cascade": 11,
+      "severity": "P0",
+      "regression": "RECENT_REGRESSION",
+      "sample_messages": [
+        "Duplicate identifier 'esquina_catalogo_id'.",
+        "Object literal may only specify known properties, and 'setFieldErrors' does not exist in type 'ApplyFormErrorsOptions'.",
+        "Object literal may only specify known properties, and 'hidden' does not exist in type 'Partial<ChartsLegendProps | ContinuousColorLegendProps | PiecewiseColorLegendProps> & ChartsLegendPosition'.",
+        "Object literal may only specify known properties, and 'allowAdd' does not exist in type 'ImageCell'.",
+        "Property 'pendientesDistritos' does not exist on type 'DashboardExportPayload'."
+      ],
+      "recommended_fix": "Actualizar interfaces en src/api y types al contrato backend vigente; eliminar campos duplicados en tipos."
+    },
+    {
+      "id": "E_IMPORT_EXPORT",
+      "category": "Imports/exports/duplicados/casing",
+      "files": [
+        "src/Containers/ActasComprobacion/utils/operativaComprobacionBaseCache.ts",
+        "src/Containers/CargarActuaciones/config/index.ts"
+      ],
+      "file_count": 2,
+      "error_count": 3,
+      "estimated_cascade": 3,
+      "severity": "P0",
+      "regression": "PREEXISTING_DEBT",
+      "sample_messages": [
+        "'\"./buildOperativaComprobacionFiltroPayload\"' has no exported member named 'OperativaComprobacionTabKey'. Did you mean 'OperativaComprobacionFiltroBase'?",
+        "Module '\"./dropdownOptions\"' has no exported member 'DROPDOWN_ENUMS'.",
+        "Module '\"./dropdownOptions\"' has no exported member 'COMPROBACION_MOTIVOS'."
+      ],
+      "recommended_fix": "Unificar imports Local.d.ts casing; resolver duplicate identifier en API types."
+    },
+    {
+      "id": "G_ENUM_DRIFT",
+      "category": "Comparaciones de roles/enums imposibles",
+      "files": [
+        "src/Containers/Actuaciones/validations/actuacionFormValidation.ts",
+        "src/auth/roles.ts"
+      ],
+      "file_count": 2,
+      "error_count": 2,
+      "estimated_cascade": 2,
+      "severity": "P1",
+      "regression": "PREEXISTING_DEBT",
+      "sample_messages": [
+        "This comparison appears to be unintentional because the types '\"usuario\" | \"relevador\"' and '\"admin\"' have no overlap.",
+        "This comparison appears to be unintentional because the types 'number' and 'string' have no overlap."
+      ],
+      "recommended_fix": "Corregir narrowing de AppRole en auth/roles.ts."
+    },
+    {
+      "id": "K_CONFIG",
+      "category": "tsconfig / casing archivos",
+      "files": [
+        "src/api/localesApi.ts"
+      ],
+      "file_count": 1,
+      "error_count": 1,
+      "estimated_cascade": 1,
+      "severity": "P0",
+      "regression": "CONFIGURATION_NOISE",
+      "sample_messages": [
+        "Already included file name 'C:/Users/pablo/OneDrive/Escritorio/proyecto_pratica/Frontend/src/types/Local.d.ts' differs from file name 'C:/Users/pablo/OneDrive/Escritorio/proyecto_pratica/Frontend/src/types/local.d.ts' only in casing."
+      ],
+      "recommended_fix": "Renombrar local.d.ts vs Local.d.ts; forceConsistentCasingInFileNames."
+    }
+  ],
+  "recent_vs_preexisting": {
+    "RECENT_REGRESSION": 32,
+    "PREEXISTING_DEBT": 112,
+    "CONFIGURATION_NOISE": 148,
+    "known_recent_areas": {
+      "OT-AUTO": [
+        "secuencia",
+        "orden_trabajo",
+        "otSecuencia",
+        "MapaOtSecuencia",
+        "rutaPublicar"
+      ],
+      "PERF-DASH": [
+        "pendientes",
+        "DashboardExport",
+        "exportExcelDashboard",
+        "indicadores"
+      ],
+      "ACT-HIST": [
+        "act_hist",
+        "actHist",
+        "documentacion",
+        "materializacion"
+      ],
+      "COMPROBACIONES": [
+        "comprobacion",
+        "Comprobacion",
+        "actasComprobacion"
+      ],
+      "RUTAS": [
+        "RutasTrabajo",
+        "rutaPublicar",
+        "operRuta",
+        "planificacion"
+      ],
+      "REINSPECCION": [
+        "reinspeccion",
+        "Reinspeccion",
+        "notificacion"
+      ]
+    }
+  },
+  "dead_code_candidates": [
+    {
+      "symbol_or_area": "exportExcelDashboard",
+      "error_files": [
+        "src/utils/exportExcelDashboard.test.ts",
+        "src/utils/exportExcelDashboard.ts"
+      ]
+    }
+  ],
+  "test_scope_findings": {
+    "tests_in_build_scope": true,
+    "test_error_count": 111,
+    "top_test_files": {
+      "src/Containers/Actuaciones/validations/actuacionFormValidation.test.ts": 18,
+      "src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.test.tsx": 15,
+      "src/Containers/Actuaciones/utils/submitActuacionRow.test.ts": 9,
+      "src/Containers/CargarRelevamientos/utils/relevamientoDraftSessionStorage.test.ts": 7,
+      "src/Containers/RutasTrabajo/utils/rutaPublicarReadiness.test.ts": 7,
+      "src/Containers/Actuaciones/utils/actuacionOficioSubmitPipeline.test.ts": 6,
+      "src/Containers/RutasTrabajo/rutaAsig2.test.ts": 5,
+      "src/Containers/Actuaciones/utils/actuacionesExportDataset.test.ts": 4,
+      "src/Containers/ActasComprobacion/utils/exportComprobacionesDataset.filtros1.test.ts": 3,
+      "src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.test.ts": 3,
+      "src/Containers/GestionNotificacion/utils/exportNotificacionesDataset.filtros2.test.ts": 3,
+      "src/utils/exportExcelDashboard.test.ts": 3,
+      "src/Containers/Actuaciones/validations/actuacionFormNormalize.test.ts": 2,
+      "src/utils/stab9b.test.ts": 2,
+      "src/api/notificacionesExportApi.test.ts": 1
+    }
+  },
+  "api_contract_findings": [
+    {
+      "area": "esquina_catalogo_id duplicate",
+      "files": [
+        "src/api/actuacionesPendientesApi.ts",
+        "src/api/relevamientosPendientesApi.ts"
+      ],
+      "codes": [
+        "TS2300"
+      ]
+    },
+    {
+      "area": "DashboardExportPayload.pendientes removed (PERF-DASH.2)",
+      "files": [
+        "src/utils/exportExcelDashboard.ts",
+        "src/utils/exportExcelDashboard.test.ts"
+      ],
+      "codes": [
+        "TS2339",
+        "TS2353"
+      ]
+    },
+    {
+      "area": "IRelevamiento fields inspector/direccion",
+      "files": [
+        "src/utils/validations.ts"
+      ],
+      "codes": [
+        "TS2339",
+        "TS2345"
+      ]
+    },
+    {
+      "area": "HistorialNotificacionFiltroPayload.motivoQ",
+      "files": [
+        "src/api/notificacionesExportApi.test.ts"
+      ],
+      "codes": [
+        "TS2353"
+      ]
+    }
+  ],
+  "escape_hatches_existing": {
+    "ts_ignore": 0,
+    "ts_expect_error": 0,
+    "as_any": 88,
+    "explicit_any": 41
+  },
+  "escape_hatches_added": 0,
+  "recommended_fix_order": [
+    {
+      "phase": "TS-FIX.1",
+      "focus": "P0 root causes",
+      "targets": [
+        "A_API_TYPES_STALE",
+        "E_IMPORT_EXPORT",
+        "K_CONFIG"
+      ],
+      "estimated_errors_removed": 15,
+      "estimated_errors_remaining_after": 277
+    },
+    {
+      "phase": "TS-FIX.2",
+      "focus": "API/types/product code P1",
+      "targets": [
+        "B_PROPS_STALE",
+        "F_NULLABILITY",
+        "I_ROUTE_WORKFLOW_REFACTOR",
+        "G_ENUM_DRIFT"
+      ],
+      "estimated_errors_removed": 108,
+      "estimated_errors_remaining_after": 169
+    },
+    {
+      "phase": "TS-FIX.3",
+      "focus": "dead code / test scope / strictness P3",
+      "targets": [
+        "D_TEST_BUILD_SCOPE",
+        "J_STRICTNESS",
+        "C_DEAD_CODE"
+      ],
+      "estimated_errors_removed": 147,
+      "estimated_errors_remaining_after": 22
+    },
+    {
+      "phase": "TS-FIX.4",
+      "focus": "build verification",
+      "targets": [
+        "npm run build exit 0"
+      ],
+      "estimated_errors_removed": 0,
+      "estimated_errors_remaining_after": 0
+    }
+  ],
+  "log_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\deploy_pilot_1a_tsc_build_full.log"
+}

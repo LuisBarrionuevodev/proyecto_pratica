@@ -1,0 +1,174 @@
+{
+  "ticket": "DEPLOY-PILOT.2",
+  "title": "First Cloud Deploy — Digitaliza Pilot",
+  "generated_at": "2026-09-22T13:46:37.879162+00:00",
+  "git_commit": "d27407c8db707ca4ef70d968929a00e8fa8df1fe",
+  "git": {
+    "dirty": true,
+    "changed_files": 107,
+    "sample": [
+      "M Backend/.env",
+      " M Backend/.env.example",
+      " M Backend/app/domains/orden_trabajo/schemas/secuencia_ot_schemas.py",
+      " M Backend/app/domains/orden_trabajo/services/orden_trabajo_secuencia_service.py",
+      " M Backend/app/domains/rutas_trabajo/routes/secuencia_ot.py",
+      " M Backend/app/main.py",
+      " M Backend/app/security/deployment_config.py",
+      " M Backend/requirements.txt",
+      " M Backend/tests/test_ot_auto_3_secuencia.py",
+      " M Frontend/src/Componets/TopBar.tsx",
+      " M Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+      " M Frontend/src/Containers/ActasComprobacion/components/ComprobacionExpedienteOperativoDialog.tsx",
+      " M Frontend/src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx",
+      " M Frontend/src/Containers/ActasComprobacion/components/ComprobacionOficiosTribunalSection.tsx",
+      " M Frontend/src/Containers/ActasComprobacion/components/comprobacionOperativoBlocks.tsx",
+      " M Frontend/src/Containers/ActasComprobacion/utils/operativaComprobacionBaseCache.ts",
+      " M Frontend/src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+      " M Frontend/src/Containers/Actuaciones/Containers/PendientesVinculacionActa/Components/TablaPendientesVinculacionActa.tsx",
+      " M Frontend/src/Containers/Actuaciones/Containers/PendientesVinculacionOficio/Components/TablaPendientesVinculacionOficio.tsx",
+      " M Frontend/src/Containers/Actuaciones/utils/inspeccionChecklistSubmit.ts"
+    ]
+  },
+  "preflight_local": {
+    "npm_run_build": {
+      "pass": true,
+      "exit_code": 0
+    },
+    "deploy_pilot_health": {
+      "pass": true,
+      "exit_code": 0
+    },
+    "migration_from_zero": {
+      "pass": true,
+      "exit_code": 0,
+      "alembic_head": "o0p1q2r3s4t5",
+      "ot_counter_migration_seed": 96916192
+    },
+    "all_pass": true
+  },
+  "cli_auth": {
+    "railway": {
+      "authenticated": false,
+      "detail": "Unauthorized. Please login with `railway login`"
+    },
+    "vercel": {
+      "authenticated": false,
+      "detail": "Vercel CLI 59.25.0 (Node.js 22.16.0)\n> Logged out.\n> Run `vercel deploy --temporary` to create a temporary deployment you can claim later, or `vercel login` to log in."
+    }
+  },
+  "railway": {
+    "backend_url": null,
+    "health": null,
+    "deploy_status": "not_started",
+    "config_files": [
+      "Backend/Procfile",
+      "Backend/railway.toml"
+    ],
+    "start_command": "gunicorn \"run:app\" --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
+    "healthcheck": "GET /health → 200 {\"status\":\"ok\"}"
+  },
+  "mysql": {
+    "database": "digitaliza_pilot",
+    "version": null,
+    "alembic_head_expected": "o0p1q2r3s4t5",
+    "alembic_head": null,
+    "catalogs": null,
+    "streets": null,
+    "districts": null,
+    "calles_csv": "Backend\\app\\domains\\catalogos\\canonical\\data\\calles_canonicas.csv"
+  },
+  "admin_bootstrap": {
+    "script": "scripts/bootstrap_pilot_admin.py",
+    "env_vars": [
+      "PILOT_ADMIN_USERNAME",
+      "PILOT_ADMIN_EMAIL",
+      "PILOT_ADMIN_PASSWORD"
+    ],
+    "completed": false
+  },
+  "ot_counter": {
+    "migration_seed": 96916192,
+    "requested_pilot_start": 4000,
+    "effective_pilot_start": null,
+    "reposition_endpoint": "PATCH /rutas-trabajo/secuencia-ot",
+    "reposition_motivo": "Inicialización de rango OT para piloto limpio",
+    "note": "NO publicar rutas antes del reposition ADMIN."
+  },
+  "vercel": {
+    "frontend_url": null,
+    "build_status": "local_pass",
+    "root": "Frontend",
+    "build": "npm run build",
+    "output": "dist",
+    "env": {
+      "VITE_API_BASE_URL": "<Railway backend HTTPS>"
+    }
+  },
+  "cors": {
+    "configured": false,
+    "origins": null
+  },
+  "auth": {
+    "admin_login": null,
+    "jwt": null
+  },
+  "empty_db_ui": null,
+  "smoke": {
+    "user": "pending",
+    "relevamiento": "pending",
+    "denuncia": "pending",
+    "act_normal": "pending",
+    "act_hist": "pending",
+    "route": "pending",
+    "ot_publish": "pending",
+    "completar": "pending",
+    "dashboard": "pending",
+    "exports": "pending"
+  },
+  "security_checks": {
+    "password_recovery_disabled": true,
+    "no_secrets_in_report": true,
+    "production_db_guard": "digitaliza_test/sandbox forbidden"
+  },
+  "logs": null,
+  "backup": {
+    "status": "pending_before_real_users"
+  },
+  "sandbox_untouched": true,
+  "historical_migration_deferred": true,
+  "manual_runbook": {
+    "git": [
+      "Commit + push todos los archivos de deploy (Procfile, railway.toml, vercel.json, TS fixes, etc.).",
+      "NO commitear .env ni secretos."
+    ],
+    "railway": [
+      "npx @railway/cli login",
+      "Crear proyecto 'Digitaliza Pilot' con servicios Backend + MySQL.",
+      "Crear DB digitaliza_pilot (MySQL 8, utf8mb4).",
+      "Variables backend: ENVIRONMENT=production, DATABASE_URL, JWT_SECRET_KEY (>=32, nuevo), CORS_ORIGINS (tras Vercel).",
+      "Deploy backend (root=Backend). Healthcheck GET /health.",
+      "flask db upgrade (HEAD o0p1q2r3s4t5).",
+      "python scripts/seed_catalogos_canonicos.py",
+      "python run.py seed --csv C:/Users/pablo/OneDrive/Escritorio/proyecto_pratica/Backend/app/domains/catalogos/canonical/data/calles_canonicas.csv",
+      "PILOT_ADMIN_* → python scripts/bootstrap_pilot_admin.py",
+      "PATCH /rutas-trabajo/secuencia-ot requested=4000 (ADMIN, antes de publicar rutas)."
+    ],
+    "vercel": [
+      "npx vercel login",
+      "Proyecto root=Frontend, build=npm run build, output=dist.",
+      "VITE_API_BASE_URL=https://<railway-backend>",
+      "Actualizar CORS_ORIGINS en Railway con URL production Vercel."
+    ],
+    "smoke": [
+      "Login ADMIN, empty DB UI, catálogos, crear USUARIO piloto.",
+      "QA: relevamiento, denuncia, actuación, ACT-HIST, ruta + publicar OT 004xxx, completar trabajo.",
+      "Dashboard sin Pendientes, export Excel/PDF, backup MySQL antes de usuarios reales."
+    ]
+  },
+  "blockers": [
+    "GIT_UNCOMMITTED_CHANGES",
+    "RAILWAY_CLI_NOT_AUTHENTICATED",
+    "VERCEL_CLI_NOT_AUTHENTICATED"
+  ],
+  "status": "BLOCKED"
+}
