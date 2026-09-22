@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Box } from "@mui/material";
 import type { CatalogItem } from "../../api/gridApi";
 import { useAppFeedback } from "../../components/feedback/useAppFeedback";
@@ -610,6 +610,7 @@ const RutasTrabajo = () => {
             onEliminarGrupo={vistaHistoricaReadOnly ? undefined : handleDeleteGrupo}
             onMoverItem={vistaHistoricaReadOnly ? undefined : handleMoveItem}
             onQuitarItem={vistaHistoricaReadOnly ? undefined : handleQuitarItem}
+            onVolverAsignacion={() => setFlowStep(2)}
           />
         )}
 

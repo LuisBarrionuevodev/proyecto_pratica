@@ -83,18 +83,25 @@ export const validateActuacion = (a: Partial<IActuacion>) => {
 
 export const validateRelevamiento = (r: IRelevamiento) => {
   const errors: Record<string, string | undefined> = {};
+  const fecha = r.fecha ?? "";
 
-  if (!isValidDate(r.fecha))
+  if (!isValidDate(fecha))
     errors.fecha = "Formato de fecha incorrecto (YYYY-MM-DD)";
 
-  if (!isValidRealDate(r.fecha))
+  if (!isValidRealDate(fecha))
     errors.fecha = "Fecha inválida";
 
-  if (!isRequired(r.inspector))
-    errors.inspector = "Ingresa un inspector";
+  const relevadoresLabel =
+    r.relevadores_label ??
+    (r.relevadores?.length ? r.relevadores.map((rel) => rel.nombre).join(", ") : "");
+  if (!isRequired(relevadoresLabel))
+    errors.relevadores = "Ingresa un relevador";
 
-  if (!isRequired(r.direccion))
-    errors.direccion = "Dirección requerida";
+  if (!isRequired(r.calle))
+    errors.calle = "Calle requerida";
+
+  if (!isRequired(r.numero))
+    errors.numero = "Número requerido";
 
   if (!isRequired(r.rubro))
     errors.rubro = "Rubro requerido";

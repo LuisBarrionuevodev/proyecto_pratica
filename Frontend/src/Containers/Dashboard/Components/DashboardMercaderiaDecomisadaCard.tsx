@@ -210,7 +210,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
                         cornerRadius: 3,
 
-                        valueFormatter: (v) => `${formatKgLegend(v ?? 0)} kg`,
+                        valueFormatter: (item) => `${formatKgLegend(item.value ?? 0)} kg`,
 
                       },
 
@@ -220,7 +220,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
                     margin={{ top: 4, bottom: 4, left: 4, right: 4 }}
 
-                    slotProps={{ legend: { hidden: true } }}
+                    slotProps={{ legend: { sx: { display: "none" } } }}
 
                     sx={ChartStyle}
 

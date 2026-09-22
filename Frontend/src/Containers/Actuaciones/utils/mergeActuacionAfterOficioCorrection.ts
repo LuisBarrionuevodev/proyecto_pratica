@@ -32,7 +32,7 @@ export function mergeActuacionAfterOficioCorrection(
 
   for (const key of OFICIO_OPERATIONAL_FROM_POST) {
     if (key in correctedRow) {
-      (merged as Record<string, unknown>)[key] = correctedRow[key] ?? null;
+      (merged as unknown as Record<string, unknown>)[key] = correctedRow[key] ?? null;
     }
   }
 

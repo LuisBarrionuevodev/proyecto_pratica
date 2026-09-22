@@ -21,6 +21,7 @@ import {
   mapGeoPanelPaperSx,
 } from "./mapaGeolocalizacionLayout";
 import type { MapaDomiciliosGeolocalizacionViewProps } from "./types";
+import { mergeSx } from "../../../../utils/muiSx";
 
 const DEFAULT_TITLE = "Gestión de Domicilios";
 const DEFAULT_SUBTITLE = "Cola operativa de geolocalización";
@@ -199,16 +200,18 @@ export function MapaDomiciliosGeolocalizacionView({
       >
         <Paper
           elevation={0}
-          sx={{
-            ...(isMapaLayout ? { ...moduleContentPanelPaperSx, ...mapGeoPanelPaperSx } : {}),
-            flex: { xs: "1 1 auto", lg: "0 0 65%" },
-            maxWidth: { lg: "65%" },
-            minWidth: 0,
-            p: isMapaLayout ? 0 : 1,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
+          sx={mergeSx(
+            isMapaLayout ? mergeSx(moduleContentPanelPaperSx, mapGeoPanelPaperSx) : undefined,
+            {
+              flex: { xs: "1 1 auto", lg: "0 0 65%" },
+              maxWidth: { lg: "65%" },
+              minWidth: 0,
+              p: isMapaLayout ? 0 : 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }
+          )}
         >
           <MapaDomiciliosGeolocalizacionMapPanel
             mapPoints={mapPoints}
@@ -224,16 +227,18 @@ export function MapaDomiciliosGeolocalizacionView({
 
         <Paper
           elevation={0}
-          sx={{
-            ...(isMapaLayout ? { ...moduleContentPanelPaperSx, ...mapGeoPanelPaperSx } : {}),
-            flex: { xs: "1 1 auto", lg: "0 0 35%" },
-            maxWidth: { lg: "35%" },
-            minWidth: 0,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: isMapaLayout ? MAP_GEO_PANEL_HEIGHT : 360,
-            overflow: "hidden",
-          }}
+          sx={mergeSx(
+            isMapaLayout ? mergeSx(moduleContentPanelPaperSx, mapGeoPanelPaperSx) : undefined,
+            {
+              flex: { xs: "1 1 auto", lg: "0 0 35%" },
+              maxWidth: { lg: "35%" },
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: isMapaLayout ? MAP_GEO_PANEL_HEIGHT : 360,
+              overflow: "hidden",
+            }
+          )}
         >
           {isMapaLayout ? (
             <Box sx={mapGeoListaScrollContainerSx}>

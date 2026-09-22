@@ -25,6 +25,36 @@ export type InspeccionChecklistItemRead = {
   valor_si_no?: boolean | null;
 };
 
+type ChecklistItemRaw = {
+  id?: number;
+  item_id?: number;
+  codigo?: string;
+  nombre?: string;
+  tipo_respuesta?: ItemActaInspeccionTipoRespuesta;
+  estado?: ItemInspeccionEstado | null;
+  valor_si_no?: boolean | null;
+};
+
+/** Normaliza ítems de checklist (API puede enviar `id` o `item_id`). */
+export function normalizeChecklistItems(
+  items?: ChecklistItemRaw[] | null
+): InspeccionChecklistItemRead[] {
+  return (items ?? []).flatMap((item) => {
+    const id = item.id ?? item.item_id;
+    if (id == null) return [];
+    return [
+      {
+        id,
+        codigo: item.codigo,
+        nombre: item.nombre,
+        tipo_respuesta: item.tipo_respuesta,
+        estado: item.estado,
+        valor_si_no: item.valor_si_no,
+      },
+    ];
+  });
+}
+
 function catalogTipoForItem(
   item: IItemActaInspeccionCatalogItem | undefined,
   read?: InspeccionChecklistItemRead
@@ -33,7 +63,7 @@ function catalogTipoForItem(
 }
 
 export function estadosMapFromRow(
-  row: { items_acta_inspeccion?: InspeccionChecklistItemRead[] | null },
+  row: { items_acta_inspeccion?: ChecklistItemRaw[] | null },
   catalog: IItemActaInspeccionCatalogItem[]
 ): Record<number, ChecklistUxValue> {
   const map: Record<number, ChecklistUxValue> = {};
@@ -43,7 +73,7 @@ export function estadosMapFromRow(
     map[item.id] = "NONE";
   }
 
-  for (const read of row.items_acta_inspeccion ?? []) {
+  for (const read of normalizeChecklistItems(row.items_acta_inspeccion)) {
     const cat = byId.get(read.id);
     const tipo = catalogTipoForItem(cat, read);
     if (tipo === "SI_NO") {
@@ -128,12 +158,10 @@ export function stripUntouchedInspeccionChecklistFromPut(
     cat.length ? cat : inferCatalogFromRow(baseline)
   );
 
-  const nextWrite =
-    row.items_acta_inspeccion ??
-    itemsActaInspeccionWriteFromEstados(
-      estadosMapFromRow(row, cat.length ? cat : inferCatalogFromRow(row)),
-      cat.length ? cat : inferCatalogFromRow(row)
-    );
+  const nextWrite = itemsActaInspeccionWriteFromEstados(
+    estadosMapFromRow(row, cat.length ? cat : inferCatalogFromRow(row)),
+    cat.length ? cat : inferCatalogFromRow(row)
+  );
 
   const itemsChanged = touched?.items ?? !writeArraysEqual(origWrite, nextWrite);
 
@@ -143,7 +171,7 @@ export function stripUntouchedInspeccionChecklistFromPut(
     copy.items_acta_inspeccion = nextWrite;
   }
 
-  return copy as IActuacionListItem;
+  return copy as unknown as IActuacionListItem;
 }
 
 /**
@@ -165,13 +193,13 @@ export function stripUntouchedPersonasSinCarnetFromPut(
     delete copy.cantidad_personas_sin_carnet_sanidad;
   }
 
-  return copy as IActuacionListItem;
+  return copy as unknown as IActuacionListItem;
 }
 
 function inferCatalogFromRow(row: {
-  items_acta_inspeccion?: InspeccionChecklistItemRead[] | null;
+  items_acta_inspeccion?: ChecklistItemRaw[] | null;
 }): IItemActaInspeccionCatalogItem[] {
-  return (row.items_acta_inspeccion ?? []).map((i, idx) => ({
+  return normalizeChecklistItems(row.items_acta_inspeccion).map((i, idx) => ({
     id: i.id,
     codigo: i.codigo ?? "",
     nombre: i.nombre ?? "",

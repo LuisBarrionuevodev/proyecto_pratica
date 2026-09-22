@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient"; // tu axios preconfigurado
-import type { ILocal } from "../types/Local";
+import type { ILocal } from "../types/local";
 
 export const getLocales = async (): Promise<ILocal[]> => {
   const { data } = await apiClient.get<ILocal[]>("/locales");

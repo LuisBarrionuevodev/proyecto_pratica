@@ -55,7 +55,7 @@ export function MapaOtSecuenciaPreview({ itemsCount, readOnly = false, onRefresh
 
   const handleSaveCounter = async () => {
     const parsed = Number(newValue.trim());
-    if (!Number.isFinite(parsed) || parsed < 0) return;
+    if (!Number.isFinite(parsed) || parsed < 1) return;
     const r = reason.trim();
     if (!r) return;
     setSaving(true);
@@ -117,21 +117,22 @@ export function MapaOtSecuenciaPreview({ itemsCount, readOnly = false, onRefresh
         open={editOpen}
         onClose={() => !saving && setEditOpen(false)}
         onConfirm={() => void handleSaveCounter()}
-        title="Adelantar secuencia OT"
+        title="Reposicionar inicio de secuencia OT"
         confirmLabel="Guardar"
         loading={saving}
       >
         <Stack spacing={1.5} sx={{ pt: 0.5 }}>
           <Typography variant="body2" color="text.secondary">
-            Próxima OT actual: <strong>{preview?.next_display ?? "—"}</strong>
+            Cursor actual: <strong>{preview?.next_display ?? "—"}</strong>
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Solo puede adelantarse. Las OT ya emitidas no se modifican.
+            La próxima OT se buscará desde este número. Los números ya utilizados se omitirán
+            automáticamente.
           </Typography>
           <input
             type="number"
-            min={0}
-            placeholder="Nueva secuencia"
+            min={1}
+            placeholder="Nuevo inicio de búsqueda"
             value={newValue}
             onChange={(e) => setNewValue(e.target.value)}
             style={{ padding: 8, borderRadius: 6, border: "1px solid #ccc" }}

@@ -68,7 +68,6 @@ import {
 import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
   alertBaseStyles,
-  COLORS,
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
   filtroButtonsStyles,
@@ -876,23 +875,6 @@ const GestionNotificacionPage = () => {
   const notificacionRows = useMemo(
     () => items.filter((r) => r.source_type === "NOTIFICACION"),
     [items]
-  );
-
-  const sliceCounts = useMemo(
-    () => ({
-      en_plazo: operativeBaseTotals.en_plazo,
-      por_vencer: operativeBaseTotals.por_vencer,
-      vencidas_o_hoy: operativeBaseTotals.reinspeccion,
-      total: historialMeta?.total ?? (historialFiltroAplicado ? historialRows.length : 0),
-    }),
-    [
-      operativeBaseTotals.en_plazo,
-      operativeBaseTotals.por_vencer,
-      operativeBaseTotals.reinspeccion,
-      historialMeta?.total,
-      historialFiltroAplicado,
-      historialRows.length,
-    ]
   );
 
   const esTabReinspeccionOperativa = plazoSlice === "vencidas_o_hoy";

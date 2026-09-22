@@ -59,12 +59,15 @@ def get_secuencia_ot():
 @require_role("admin")
 def patch_secuencia_ot():
     """
-    Adelanta el contador OT (solo admin, forward-only, con auditoría).
+    Reposiciona el inicio de búsqueda OT (solo admin, con auditoría).
+
+    ``new_value`` puede ser menor o mayor al cursor actual; se normaliza al
+    primer entero libre >= solicitado bajo lock ``FOR UPDATE``.
 
     Errores:
         401/403: auth.
         422: validación.
-        409: retroceso no permitido.
+        503: contador no inicializado.
     """
     data: dict[str, Any] = request.get_json(silent=True) or {}
     try:
@@ -82,7 +85,7 @@ def patch_secuencia_ot():
         db.session.commit()
     except RuntimeError as e:
         db.session.rollback()
-        return jsonify({"detail": str(e)}), 409
+        return jsonify({"detail": str(e)}), 503
     except ValueError as e:
         db.session.rollback()
         return jsonify({"detail": str(e)}), 422

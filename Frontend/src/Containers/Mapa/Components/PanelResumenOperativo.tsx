@@ -144,7 +144,7 @@ type MapLegendShape = "pin";
 
 
 
-function MapLegendSample({ shape, color, label }: { shape: MapLegendShape; color: string; label: string }) {
+function MapLegendSample({ color, label }: { shape: MapLegendShape; color: string; label: string }) {
 
   const inner: ReactNode = (
 

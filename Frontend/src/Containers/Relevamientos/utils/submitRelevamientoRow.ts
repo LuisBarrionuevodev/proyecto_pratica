@@ -69,7 +69,7 @@ export function applyRelevamientoDomicilioSubmitGuard(
   }
 
   return {
-    ...(copy as IRelevamientoListItem),
+    ...(copy as unknown as IRelevamientoListItem),
     calle: calle || null,
     numero: numero || null,
     numero_tipo,

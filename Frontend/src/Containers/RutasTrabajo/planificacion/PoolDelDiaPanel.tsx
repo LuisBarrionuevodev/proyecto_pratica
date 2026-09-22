@@ -12,6 +12,7 @@ import {
   rutasInstitutionalScrollSx,
 } from "../styles/institutionalVisual";
 import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
+import { mergeSx } from "../../../utils/muiSx";
 import { poolDiaOrigenLabel } from "../utils/poolDiaDisplay";
 import { puedeSacarDelPoolPanel } from "../../../utils/operRutaPoolAcciones";
 
@@ -48,8 +49,8 @@ export function PoolDelDiaPanel({
 }: PoolDelDiaPanelProps) {
   const embedded = variant === "embedded";
   const listViewportSx = embedded
-    ? { ...planificacionSidebarListViewportSx, ...rutasInstitutionalScrollSx }
-    : { ...planificacionPoolListViewportSx, ...rutasInstitutionalScrollSx };
+    ? mergeSx(planificacionSidebarListViewportSx, rutasInstitutionalScrollSx)
+    : mergeSx(planificacionPoolListViewportSx, rutasInstitutionalScrollSx);
 
   const content = (
     <>
@@ -200,20 +201,14 @@ export function PoolDelDiaPanel({
 
   if (embedded) {
     return (
-      <Stack sx={{ ...planificacionPanelColumnSx, flex: 1, minHeight: 0, gap: 0.75 }}>
+      <Stack sx={mergeSx(planificacionPanelColumnSx, { flex: 1, minHeight: 0, gap: 0.75 })}>
         {content}
       </Stack>
     );
   }
 
   return (
-    <Stack
-      sx={{
-        ...rutasInstitutionalPanelPaperSx,
-        ...planificacionPanelColumnSx,
-        gap: 1,
-      }}
-    >
+    <Stack sx={mergeSx(rutasInstitutionalPanelPaperSx, planificacionPanelColumnSx, { gap: 1 })}>
       {content}
     </Stack>
   );

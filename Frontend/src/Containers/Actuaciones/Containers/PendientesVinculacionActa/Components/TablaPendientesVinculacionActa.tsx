@@ -58,7 +58,7 @@ const TablaPendientesVinculacionActa = () => {
       const payload: IActuacion = {
         ...selected,
         expediente_numero: expNumero.trim(),
-        expediente_anio: expAnio.trim(),
+        expediente_anio: expAnio.trim() ? Number(expAnio.trim()) : null,
       };
       await updateActuacion(selected.id, payload);
       setData((prev) => prev.map((r) => (r.id === selected.id ? payload : r)));

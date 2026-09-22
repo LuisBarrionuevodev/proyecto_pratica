@@ -5,6 +5,7 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { translateRelevamientoGlobalMessage } from "../utils/relevamientoGridUxMessages";
 import { rutasInstitutionalScrollSx } from "../../RutasTrabajo/styles/institutionalVisual";
 import { validationRailRootSx } from "../styles/cargarRelevamientosStyles";
+import { mergeSx } from "../../../utils/muiSx";
 
 const TACTIC = '"Tactic Sans", sans-serif' as const;
 
@@ -39,7 +40,7 @@ export function ValidationErrorsRail({
   const showEmpty = showEmptyHint && !globalError && !hasRowErrors;
 
   return (
-    <Box sx={{ ...validationRailRootSx, ...rutasInstitutionalScrollSx, ...sx }}>
+    <Box sx={mergeSx(validationRailRootSx, rutasInstitutionalScrollSx, sx)}>
       <Typography
         sx={{
           fontFamily: TACTIC,

@@ -34,6 +34,7 @@ import { perfTimed } from "../../../utils/perfLog";
 import {
   notificacionModalSubtitulo,
   notificacionModalTitulo,
+  type NotificacionDetalleModalVariant,
 } from "../utils/notificacionModalDisplay";
 import {
   DocumentalBloque,
@@ -503,7 +504,6 @@ export function NotificacionDetalleDocumentalDialog({
   onGuardar,
   onExpedienteMutacionExitosa,
 }: NotificacionDetalleDocumentalDialogProps) {
-  const feedback = useAppFeedback();
   const isSoloExpediente = variant === "soloExpediente";
   useNotifyModalApiError(modalApiError, open);
 
@@ -515,7 +515,7 @@ export function NotificacionDetalleDocumentalDialog({
   const [prorrogaDetalle, setProrrogaDetalle] = useState<INotificacionProrrogaExpedientesResponse | null>(null);
   const [prorrogaLoading, setProrrogaLoading] = useState(false);
   const [prorrogaError, setProrrogaError] = useState<string | null>(null);
-  const [prorrogaDetalleRefresh, setProrrogaDetalleRefresh] = useState(0);
+  const [prorrogaDetalleRefresh] = useState(0);
 
   useEffect(() => {
     if (!open || !row) {

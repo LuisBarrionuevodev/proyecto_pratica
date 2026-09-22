@@ -19,6 +19,7 @@ import {
   glassDialogPaperSx,
   glassDialogTitleSx,
 } from "../styles/GlassStyles";
+import { mergeSx } from "../utils/muiSx";
 
 export type AppDialogTone = "default" | "danger";
 
@@ -86,31 +87,26 @@ export function AppDialog({
   const glassPaperSx = appearance === "glass" ? glassDialogPaperSx : undefined;
   const mergedPaperSlotProps: PaperProps = {
     ...userPaper,
-    sx: [
-      glassPaperSx,
-      paperSx,
-      ...(Array.isArray(userPaper?.sx) ? userPaper.sx : userPaper?.sx ? [userPaper.sx] : []),
-    ],
+    sx: mergeSx(glassPaperSx, paperSx, userPaper?.sx),
   };
 
   const mergedBackdrop = {
     ...userBackdrop,
-    sx: [
-      appearance === "glass" ? glassDialogBackdropSx : undefined,
-      userBackdrop?.sx,
-    ],
+    sx: mergeSx(appearance === "glass" ? glassDialogBackdropSx : undefined, userBackdrop?.sx),
   };
 
-  const titleSx: SxProps<Theme> = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 1,
-    pr: showHeaderClose ? 1 : 2,
-    ...(appearance === "glass" ? glassDialogTitleSx : {}),
-    ...(tone === "danger" ? { color: theme.palette.error.main } : {}),
-    ...titleSxProp,
-  };
+  const titleSx: SxProps<Theme> = mergeSx(
+    {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 1,
+      pr: showHeaderClose ? 1 : 2,
+    },
+    appearance === "glass" ? glassDialogTitleSx : undefined,
+    tone === "danger" ? { color: theme.palette.error.main } : undefined,
+    titleSxProp
+  );
 
   const dialogContentLayoutSx: SxProps<Theme> = {
     minWidth: 0,
@@ -126,17 +122,17 @@ export function AppDialog({
         }
       : undefined;
 
-  const mergedContentSx: SxProps<Theme> = [
+  const mergedContentSx: SxProps<Theme> = mergeSx(
     appearance === "glass" ? glassDialogContentSx : undefined,
     glassDialogContentDividersSx,
     dialogContentLayoutSx,
-    contentSx,
-  ];
+    contentSx
+  );
 
-  const mergedActionsSx: SxProps<Theme> = [
+  const mergedActionsSx: SxProps<Theme> = mergeSx(
     appearance === "glass" ? glassDialogActionsSx : undefined,
-    actionsSxProp,
-  ];
+    actionsSxProp
+  );
 
   return (
     <Dialog

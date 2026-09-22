@@ -260,7 +260,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
               appearance="glass"
               label="Juzgado"
               value={juzId === "" ? "" : String(juzId)}
-              onChange={handleJuzChange}
+              onChange={(e) => handleJuzChange(e as unknown as SelectChangeEvent<string>)}
               fullWidth
               variant="outlined"
               error={Boolean(fe("juzgado_id"))}
@@ -408,7 +408,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
   open,
   defaultFechaAlta,
   juzgados,
-  modalApiError,
+  modalApiError: _modalApiError,
   fieldErrors = {},
   saving,
   onGuardarAlta,
@@ -528,7 +528,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
           appearance="glass"
           label="Juzgado"
           value={altaJuzId === "" ? "" : String(altaJuzId)}
-          onChange={handleAltaJuzChange}
+          onChange={(e) => handleAltaJuzChange(e as unknown as SelectChangeEvent<string>)}
           fullWidth
           required
           variant="outlined"

@@ -392,14 +392,14 @@ const TablaCargarRelevamientosGlideStyled = ({
       const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
       // Future: hook global de notificaciones cuando exista el sistema unificado (éxito parcial/total).
       setData((prev) => {
-        const next = prev.map((row) => {
+        const next: GridRow[] = prev.map((row) => {
           const result = commitResp.results.find((r) => r.row_id === row._rowId);
           if (!result) return row;
           if (result.ok && result.persisted?.id) {
             return {
               ...row,
               ID: result.persisted.id,
-              _state: "OK",
+              _state: "OK" as const,
               _cellErrors: {},
               _rowError: null,
               _touched: false,
@@ -408,7 +408,7 @@ const TablaCargarRelevamientosGlideStyled = ({
           }
           return {
             ...row,
-            _state: "ERROR",
+            _state: "ERROR" as const,
             _cellErrors: result.errors || {},
             _rowError: buildRowErrorSummary(result.errors) || "Error en commit",
           };
@@ -431,7 +431,6 @@ const TablaCargarRelevamientosGlideStyled = ({
 
       const columnDef = COLUMN_DEFINITIONS[col];
       const columnId = columnDef.id;
-      const cellType = (columnDef as { cellType?: string }).cellType || "text";
       const rowData = data[row];
 
       let value: any;

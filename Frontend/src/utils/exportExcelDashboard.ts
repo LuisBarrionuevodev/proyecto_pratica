@@ -57,19 +57,6 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
       : []
   );
 
-  appendSheet(
-    wb,
-    "Pendientes por distrito",
-    data.pendientesDistritos.map((row) => ({
-      Distrito: row.distrito_nombre,
-      Código: row.distrito_codigo,
-      Total: row.total,
-      Relevamientos: row.relevamientos,
-      "Reins. oficio": row.reinspecciones_oficio,
-      "Reins. notificación": row.reinspecciones_notificacion,
-    }))
-  );
-
   const riesgoAoa: (string | number)[][] = [];
   const pushBlock = (title: string, headers: string[], rows: (string | number)[][]) => {
     if (riesgoAoa.length > 0) riesgoAoa.push([]);

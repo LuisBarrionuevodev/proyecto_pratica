@@ -40,7 +40,7 @@ export function prioridadDisplayOperativo(row: IRutaIniciadorPendienteRow): Prio
       return { ...chipFromCategoria(cat), label: labelDirecto };
     }
     const inferred = chipFromNumero(row.prioridad ?? NaN);
-    return inferred ? { ...inferred, label: labelDirecto } : { label: labelDirecto, ...PRIORIDAD_CHIP.media };
+    return inferred ? { ...inferred, label: labelDirecto } : { ...PRIORIDAD_CHIP.media, label: labelDirecto };
   }
 
   const cat = row.prioridad_categoria;

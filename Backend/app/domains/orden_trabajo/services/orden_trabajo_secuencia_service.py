@@ -233,12 +233,16 @@ def patch_contador_admin(
     new_value: int,
     reason: str,
     actor_user_id: int,
-) -> tuple[int, str, int, str]:
+) -> tuple[int, int, str, int]:
     """
-    Adelanta el contador (solo forward) normalizando al primer libre >= new_value.
+    Reposiciona el inicio de búsqueda OT normalizando al primer libre >= new_value.
+
+    ``next_value`` indica desde qué entero comienza el allocator; puede moverse
+    hacia adelante o hacia atrás. La no reutilización se garantiza por
+    ``numero_acta`` existente, no por monotonicidad del contador.
 
     Parámetros:
-        new_value: valor solicitado por admin.
+        new_value: valor solicitado por admin (>= 1).
         reason: motivo obligatorio (trim, no vacío).
         actor_user_id: usuario admin que ejecuta el cambio.
 
@@ -247,26 +251,21 @@ def patch_contador_admin(
 
     Errores:
         ValueError: reason vacío o new_value inválido.
-        RuntimeError: retroceso (new < actual) o contador ausente.
+        RuntimeError: contador ausente.
     """
     reason_clean = (reason or "").strip()
     if not reason_clean:
         raise ValueError("reason es obligatorio")
     if len(reason_clean) > 500:
         raise ValueError("reason demasiado largo (máx 500)")
-    if new_value < 0:
-        raise ValueError("new_value debe ser >= 0")
+    if new_value < 1:
+        raise ValueError("new_value debe ser >= 1")
 
     contador = _lock_contador()
     old_value = int(contador.next_value)
     requested = int(new_value)
 
-    if requested < old_value:
-        raise RuntimeError(
-            f"No se puede retroceder el contador (actual={old_value}, solicitado={requested})"
-        )
-
-    effective = _primer_asignable_desde(requested) if requested > old_value else old_value
+    effective = _primer_asignable_desde(requested)
     if effective == old_value:
         return old_value, old_value, format_ot_display(old_value), requested
 

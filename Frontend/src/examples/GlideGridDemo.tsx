@@ -200,7 +200,6 @@ const GlideGridDemo = () => {
                     data: [rowData.photo],
                     displayData: [rowData.photo],
                     allowOverlay: false,
-                    allowAdd: false,
                 };
 
             case "optIn":

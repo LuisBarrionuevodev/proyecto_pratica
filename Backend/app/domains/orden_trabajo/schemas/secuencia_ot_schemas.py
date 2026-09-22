@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class OrdenTrabajoSecuenciaPatchIn(BaseModel):
-    """Payload para adelantar contador OT (solo admin)."""
+    """Payload para reposicionar el inicio de búsqueda OT (solo admin)."""
 
-    new_value: int = Field(..., ge=0)
+    new_value: int = Field(..., ge=1)
     reason: str
 
     @field_validator("reason", mode="before")

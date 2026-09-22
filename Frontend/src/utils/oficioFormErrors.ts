@@ -1,6 +1,5 @@
 import {
   DEFAULT_FIELD_ERROR_SUMMARY,
-  applyFormErrorsFromApi,
   mapApiErrorsToFormState,
   type FormErrorsFromApi,
 } from "./parseApiError";

@@ -246,7 +246,7 @@ export function DashboardDonutLegendCard({
 
                 margin={{ top: 4, bottom: 4, left: 4, right: 4 }}
 
-                slotProps={{ legend: { hidden: true } }}
+                slotProps={{ legend: { sx: { display: "none" } } }}
 
                 sx={ChartStyle}
 

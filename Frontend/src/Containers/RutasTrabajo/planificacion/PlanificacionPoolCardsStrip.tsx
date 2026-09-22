@@ -36,7 +36,7 @@ export function PlanificacionPoolCardsStrip({
   ruta,
   items,
   enPool,
-  enGrupo,
+  enGrupo: _enGrupo,
   loading = false,
   onQuitarDelPool,
 }: PlanificacionPoolCardsStripProps) {

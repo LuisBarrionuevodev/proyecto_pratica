@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -262,9 +262,9 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
             items={itemsActivos}
             iniciadorById={iniciadorById}
             onEditarInspectores={onEditarInspectores}
-            onEliminarGrupo={onEliminarGrupo}
-            onMoverItem={onMoverItem}
-            onQuitarItem={onQuitarItem}
+            onEliminarGrupo={(grupo) => Promise.resolve(onEliminarGrupo(grupo))}
+            onMoverItem={(item, targetGrupoId) => Promise.resolve(onMoverItem(item, targetGrupoId))}
+            onQuitarItem={(item) => Promise.resolve(onQuitarItem(item))}
           />
         )}
       </Paper>

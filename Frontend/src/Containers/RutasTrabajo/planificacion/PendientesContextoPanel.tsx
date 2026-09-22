@@ -22,6 +22,7 @@ import {
 } from "../styles/institutionalVisual";
 import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
 import type { PlanificacionFiltrosLista } from "./types/planificacion.types";
+import { mergeSx } from "../../../utils/muiSx";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -77,15 +78,14 @@ export function PendientesContextoPanel({
         data-testid="planificacion-sidebar-flex-list"
         sx={
           embedded
-            ? { ...planificacionSidebarListViewportSx, ...rutasInstitutionalScrollSx }
-            : {
+            ? mergeSx(planificacionSidebarListViewportSx, rutasInstitutionalScrollSx)
+            : mergeSx(rutasInstitutionalScrollSx, {
                 maxHeight: PENDIENTES_LISTA_VIEWPORT_MAX,
                 minHeight: 0,
                 overflow: "auto",
                 flexShrink: 0,
                 pr: 0.5,
-                ...rutasInstitutionalScrollSx,
-              }
+              })
         }
       >
         {loading ? (

@@ -4,16 +4,8 @@ import {
   clearRutaItemOrdenTrabajo,
   deleteRutaItem,
   moveRutaItem,
-  patchRutaItemOrdenTrabajo,
   type IRutaItemMin,
 } from "../../../api/rutasTrabajoApi";
-import { mensajeErrorGuardarOtPatch } from "../utils/rutaOtAsignacionMessages";
-
-/** Resultado de guardar OT: conflicto de negocio (p. ej. 409) vs error global ya volcado a `setError`. */
-export type GuardarOtItemResult =
-  | { ok: true }
-  | { ok: false; scope: "inline"; message: string; otConsumida?: boolean }
-  | { ok: false; scope: "global" };
 
 export type UseRutaTrabajoBorradorActionsParams = {
   rutaId: number | null;
@@ -65,37 +57,6 @@ export function useRutaTrabajoBorradorActions({
     [rutaId, setItems, loadPendientes, onAfterDeleteItem, setError]
   );
 
-  const saveOtItem = useCallback(
-    async (item: IRutaItemMin, numeroOt: string): Promise<GuardarOtItemResult> => {
-      if (!rutaId) return { ok: false, scope: "global" };
-      try {
-        const resp = await patchRutaItemOrdenTrabajo(rutaId, item.id, {
-          numero_orden_trabajo: numeroOt,
-        });
-        setItems((prev) => prev.map((it) => (it.id === resp.item.id ? resp.item : it)));
-        return { ok: true };
-      } catch (err: unknown) {
-        const ax = err as {
-          response?: { status?: number; data?: { detail?: unknown; debug?: { validator?: string } } };
-        };
-        const status = ax?.response?.status;
-        const data = ax?.response?.data;
-        const parsed = mensajeErrorGuardarOtPatch(data?.detail, data?.debug ?? null);
-        if (status === 409) {
-          return {
-            ok: false,
-            scope: "inline",
-            message: parsed.message,
-            otConsumida: parsed.otConsumida,
-          };
-        }
-        setError(parsed.message);
-        return { ok: false, scope: "global" };
-      }
-    },
-    [rutaId, setItems, setError]
-  );
-
   const clearOrdenTrabajo = useCallback(
     async (item: IRutaItemMin): Promise<boolean> => {
       if (!rutaId) return false;
@@ -112,5 +73,5 @@ export function useRutaTrabajoBorradorActions({
     [rutaId, setItems, setError]
   );
 
-  return { moveItem, deleteItem, saveOtItem, clearOrdenTrabajo };
+  return { moveItem, deleteItem, clearOrdenTrabajo };
 }

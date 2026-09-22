@@ -8,6 +8,7 @@ import {
   crudDialogSectionSoftSx,
   crudDialogSectionTitleSx,
 } from "../../styles/crudDialogTokens";
+import { mergeSx } from "../../utils/muiSx";
 
 export type CrudDialogSectionVariant = "plain" | "soft";
 
@@ -32,7 +33,7 @@ export function CrudDialogSection({
   return (
     <Box component="section" sx={sectionSx}>
       {title ? (
-        <Typography component="h3" sx={[crudDialogSectionTitleSx, ...(titleSx ? [titleSx] : [])]}>
+        <Typography component="h3" sx={mergeSx(crudDialogSectionTitleSx, titleSx)}>
           {title}
         </Typography>
       ) : null}

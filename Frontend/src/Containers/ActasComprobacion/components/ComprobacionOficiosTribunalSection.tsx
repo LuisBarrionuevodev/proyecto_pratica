@@ -69,7 +69,13 @@ function OficioComprobacionDetalleLectura({ item }: { item: OficioComprobacionIt
     <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, width: "100%", mt: 1 }}>
       {expNum !== "—" ? <DocumentalFila etiqueta="Expediente de respuesta" valor={expNum} /> : null}
       {expFecha !== "—" ? <DocumentalFila etiqueta="Fecha expediente" valor={expFecha} /> : null}
-      <DocumentalFila etiqueta="N.º y año de oficio" valor={parNumAnio(item.numero_oficio ?? null, item.anio ?? null)} />
+      <DocumentalFila
+        etiqueta="N.º y año de oficio"
+        valor={parNumAnio(
+          item.numero_oficio != null ? String(item.numero_oficio) : null,
+          item.anio ?? null
+        )}
+      />
       <DocumentalFila etiqueta="Fecha de oficio" valor={textoValor(item.fecha_oficio)} />
       <DocumentalFila etiqueta="Causa" valor={textoValor(item.causa)} />
       <DocumentalFila etiqueta="Juzgado" valor={textoValor(item.tribunal)} />

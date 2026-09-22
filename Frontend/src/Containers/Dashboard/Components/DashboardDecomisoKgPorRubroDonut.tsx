@@ -63,21 +63,23 @@ export function DashboardDecomisoKgPorRubroDonut({ items, loading }: Props) {
           outerRadius: 72,
           paddingAngle: singleSlice ? 0 : 1,
           cornerRadius: singleSlice ? 0 : 3,
-          valueFormatter: (value) => formatKg(value ?? 0),
+          valueFormatter: (item) => formatKg(item.value ?? 0),
         },
       ]}
       height={200}
       margin={{ top: 8, bottom: 8, left: 8, right: singleSlice ? 24 : 8 }}
       slotProps={{
         legend: {
-          direction: singleSlice ? "row" : "column",
+          direction: singleSlice ? "horizontal" : "vertical",
           position: singleSlice
-            ? { vertical: "bottom", horizontal: "middle" }
+            ? { vertical: "bottom", horizontal: "center" }
             : { vertical: "middle", horizontal: "end" },
-          labelStyle: {
-            fontFamily: '"Tactic Sans", sans-serif',
-            fontSize: 11,
-            fill: GLASS_COLORS.textSecondary,
+          sx: {
+            "& .MuiChartsLegend-label": {
+              fontFamily: '"Tactic Sans", sans-serif',
+              fontSize: 11,
+              fill: GLASS_COLORS.textSecondary,
+            },
           },
         },
         tooltip: {

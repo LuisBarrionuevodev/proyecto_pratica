@@ -1,4 +1,12 @@
 import type { IDetalleOperativoItem, IIniciadorOperativoCampos } from "../../api/rutasTrabajoApi";
+
+type IniciadorConIdentificadores = IIniciadorOperativoCampos & {
+  identificadores?: {
+    prorroga_texto?: string | null;
+    numero_notificacion?: string | number | null;
+    anio_notificacion?: string | number | null;
+  };
+};
 import { formatoNumeroConAnio } from "../../Containers/RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import { buildDetalleOperativoPdfSegments } from "./detalleOperativoPdfSegments";
 
@@ -32,19 +40,27 @@ function expedienteProrrogaDesdeItems(items: IDetalleOperativoItem[] | undefined
   return expedienteProrrogaDesdeValorProrroga(prorroga.value);
 }
 
-function expedienteProrrogaDesdeRow(row: IIniciadorOperativoCampos): string | null {
+function expedienteProrrogaDesdeRow(row: IniciadorConIdentificadores): string | null {
   const texto = row.prorroga_texto?.trim() ?? row.identificadores?.prorroga_texto?.trim();
   if (texto) return expedienteProrrogaDesdeValorProrroga(texto);
   return null;
 }
 
-function numeroNotificacionExport(row: IIniciadorOperativoCampos): string | null {
+function numeroNotificacionExport(row: IniciadorConIdentificadores): string | null {
   const items = row.detalle_operativo_items;
   const notiItem = items?.find((i) => /^notif\.?$/i.test((i.label ?? "").trim()));
   if (notiItem?.value?.trim()) return notiItem.value.trim();
+  const numero = row.identificadores?.numero_notificacion;
+  const anioRaw = row.identificadores?.anio_notificacion;
+  const anioParsed =
+    typeof anioRaw === "number"
+      ? anioRaw
+      : anioRaw != null && String(anioRaw).trim()
+        ? Number(String(anioRaw).trim())
+        : null;
   return formatoNumeroConAnio(
-    row.identificadores?.numero_notificacion,
-    row.identificadores?.anio_notificacion
+    numero != null ? String(numero) : null,
+    anioParsed != null && !Number.isNaN(anioParsed) ? anioParsed : null
   );
 }
 

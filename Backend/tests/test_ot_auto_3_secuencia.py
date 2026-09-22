@@ -233,13 +233,13 @@ def test_patch_contador_admin_forward(app_ctx) -> None:
     assert requested == base + 5
 
 
-def test_patch_contador_reject_backward(app_ctx) -> None:
+def test_patch_contador_reject_below_minimum(app_ctx) -> None:
     admin = _mk_user(role="admin")
-    base = _set_counter(974000)
-    with pytest.raises(RuntimeError, match="retroceder"):
+    _set_counter(974000)
+    with pytest.raises(ValueError, match=">= 1"):
         patch_contador_admin(
-            new_value=base - 1,
-            reason="intento retroceso",
+            new_value=0,
+            reason="intento valor inválido",
             actor_user_id=admin.id,
         )
 

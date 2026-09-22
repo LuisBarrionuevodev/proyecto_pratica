@@ -3,7 +3,6 @@
  * Paleta de colores y constantes de diseño
  */
 
-import { m } from "framer-motion";
 import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 

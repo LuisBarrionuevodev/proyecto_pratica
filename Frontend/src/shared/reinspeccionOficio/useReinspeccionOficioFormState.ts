@@ -48,7 +48,7 @@ export type UseReinspeccionOficioFormStateParams = {
 export function useReinspeccionOficioFormState(
   params: UseReinspeccionOficioFormStateParams
 ): ReinspeccionOficioFormState {
-  const { mode, initialRow, tipoIniciador } = params;
+  const { mode, initialRow } = params;
 
   const [subtipo, setSubtipoRaw] = useState(() =>
     tipoActuacionInicialReinspeccionOficio(initialRow.tipo_actuacion) ||

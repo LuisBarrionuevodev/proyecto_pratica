@@ -351,7 +351,7 @@ export default function GestionCapacitacionesPage() {
                 </Box>
               </Box>
               <Box component="tbody">
-                {row.original.participantes.map((p) => (
+                {row.original.participantes.map((p: ParticipanteCapacitacion) => (
                   <Box
                     component="tr"
                     key={p.id}

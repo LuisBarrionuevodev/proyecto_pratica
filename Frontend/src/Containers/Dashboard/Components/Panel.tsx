@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
-import type { SxProps, Theme } from "@mui/material/styles";
+import { mergeSx } from "../../../utils/muiSx";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { downloadDashboardPdf } from "../../../documentos/dashboard/downloadDashboardPdf";
@@ -43,10 +43,10 @@ import { DashboardSectionGate } from "./DashboardSectionGate";
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
 
-const dashFiltroFormSx: SxProps<Theme> = [
-  filtroItemStyles,
-  { minWidth: { xs: "100%", sm: 168 }, flex: { sm: "0 1 168px" } },
-];
+const dashFiltroFormSx = mergeSx(filtroItemStyles, {
+  minWidth: { xs: "100%", sm: 168 },
+  flex: { sm: "0 1 168px" },
+});
 
 /**
  * Pendiente D1d.12 — Tribunal de falta (no implementar en este PR):

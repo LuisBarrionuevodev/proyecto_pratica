@@ -22,7 +22,6 @@ export interface IRelevamientosPendientesItem extends IRelevamientoListItem {
   calle_sugerida?: string | null;
   calle_mostrar?: string | null;
   calle_catalogo_id?: number | null;
-  esquina_catalogo_id?: number | null;
 }
 
 export interface IRelevamientosPendientesFilters {

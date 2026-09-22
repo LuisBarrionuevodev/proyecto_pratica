@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { memo } from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 
 import type { IActuacionesPendientesItem, IPendientesOficioItem } from "../../../api/actuacionesPendientesApi";
 import type { IReinspeccionOficioPendienteRow } from "../../../api/actuacionesComprobacionActasApi";

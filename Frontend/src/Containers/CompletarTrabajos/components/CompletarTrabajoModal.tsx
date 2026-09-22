@@ -29,7 +29,6 @@ import {
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   DOC_MODAL_TEXT,
-  documentalGlassWarningAlertSx,
 } from "../../../styles/documentalModalTokens";
 import { AppSelect, AppTextField } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
@@ -56,6 +55,7 @@ import { commitActaNumInputValue } from "../../Actuaciones/validations/actuacion
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
 import { emitGestionNotificacionReinspeccionRefresh } from "../../GestionNotificacion/gestionNotificacionReinspeccionRefresh";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
+import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 import {
   completarTrabajoHeaderSubtitulo,
   completarTrabajoHeaderTitulo,
@@ -88,7 +88,6 @@ import {
   esRatificacionOficio,
   esReinspeccionOficioGenerico,
   esReinspeccionOficioPendienteSubtipo,
-  esTipoActuacionVerificarInformar,
   esVerificarInformarOficio,
   TIPO_ACTUACION_VERIFICAR_INFORMAR,
   tipoActuacionEfectivoOficio,
@@ -102,7 +101,6 @@ import {
 import {
   MOTIVOS_NOTIFICACION_MAX,
   mergeMotivosNotifCatalogStrings,
-  motivosNotificacionFromSlots,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
 import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
@@ -280,13 +278,6 @@ function initialInspectoresList(
   ].filter(Boolean));
 }
 
-function sameInspectoresListOrder(a: string[], b: string[]): boolean {
-  const na = a.map((x) => x.trim()).filter(Boolean);
-  const nb = b.map((x) => x.trim()).filter(Boolean);
-  if (na.length !== nb.length) return false;
-  return na.every((v, i) => v === nb[i]);
-}
-
 /** Titular del domicilio: persona física (apellido + nombre) o razón social (PJ). */
 type TitularModoCompletarTrabajo = "persona" | "razon_social";
 
@@ -325,7 +316,7 @@ type OperativoFieldSetters = {
 function hydrateOperativoFieldsFromRow(
   row: ICompletarTrabajoPendienteRow,
   set: OperativoFieldSetters,
-  catalog: { id: number; codigo: string; nombre: string; activo: boolean; orden: number }[]
+  catalog: IItemActaInspeccionCatalogItem[]
 ): void {
   const h = operativoHydrationFromRow(row, catalog);
   set.setCalle(h.calle);
@@ -1290,7 +1281,7 @@ export function CompletarTrabajoModal({
               setTipoActuacionOficio(next);
               setResultadoCumplimientoOficio("");
               setRealizoNuevaInspeccion("");
-              if (contraproducencia.trim()) {
+              if (contraproducencia.trim() && resolvedRow) {
                 const validas = filtrarContraproducenciasPorTipoIniciador(
                   cat.contraproducencias ?? [],
                   resolvedRow.tipo_iniciador,

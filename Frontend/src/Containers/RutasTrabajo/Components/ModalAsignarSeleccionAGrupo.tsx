@@ -98,7 +98,7 @@ function ModalAsignarSeleccionAGrupoInner({ open, onClose, grupos, selectedCount
             appearance="glass"
             label="Grupo destino"
             value={grupoId}
-            onChange={handleSelectChange}
+            onChange={(e) => handleSelectChange(e as unknown as SelectChangeEvent<string | number>)}
             fullWidth
             variant="outlined"
             options={selectOptions}

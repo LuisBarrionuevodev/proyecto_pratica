@@ -8,6 +8,7 @@ import {
   documentalGlassSuccessAlertSx,
   documentalGlassWarningAlertSx,
 } from "../../styles/documentalModalTokens";
+import { mergeSx } from "../../utils/muiSx";
 import { layoutShell } from "../../theme/tokens";
 
 export type FeedbackSeverity = "success" | "error" | "warning" | "info";
@@ -86,16 +87,18 @@ export function GlobalFeedbackProvider({ children }: { children: ReactNode }) {
           <Alert
             severity={toast.severity}
             onClose={dismiss}
-            sx={{
-              width: "100%",
-              minWidth: { xs: 280, sm: 360 },
-              maxWidth: 560,
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.45)",
-              ...documentalGlassAlertSx,
-              ...(toast.severity === "success" ? documentalGlassSuccessAlertSx : {}),
-              ...(toast.severity === "error" ? documentalGlassErrorAlertSx : {}),
-              ...(toast.severity === "warning" ? documentalGlassWarningAlertSx : {}),
-            }}
+            sx={mergeSx(
+              {
+                width: "100%",
+                minWidth: { xs: 280, sm: 360 },
+                maxWidth: 560,
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.45)",
+              },
+              documentalGlassAlertSx,
+              toast.severity === "success" ? documentalGlassSuccessAlertSx : undefined,
+              toast.severity === "error" ? documentalGlassErrorAlertSx : undefined,
+              toast.severity === "warning" ? documentalGlassWarningAlertSx : undefined
+            )}
           >
             {toast.message}
           </Alert>

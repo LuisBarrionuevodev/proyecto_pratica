@@ -13,6 +13,8 @@ from typing import Any
 
 from flask import Flask
 
+from app.security.production_database import assert_production_database_allowed
+
 # Deben coincidir con los defaults en app.main.create_app (detección de "olvidé configurar prod").
 DEFAULT_INSECURE_JWT_SECRET = "dev-change-this-secret"
 DEFAULT_INSECURE_SQLALCHEMY_URI = "mysql+pymysql://root:1234@localhost/mi_db"
@@ -49,6 +51,23 @@ def parse_cors_origins(*, strict: bool) -> list[str]:
     return [o.strip() for o in raw.split(",") if o.strip()]
 
 
+def resolve_sqlalchemy_database_uri() -> str:
+    """
+    Resuelve la URI de base desde ``DATABASE_URL`` (Railway) o ``SQLALCHEMY_DATABASE_URI``.
+
+    ``DATABASE_URL`` con esquema ``mysql://`` se normaliza a ``mysql+pymysql://``.
+
+    Retorno:
+        URI SQLAlchemy para PyMySQL.
+    """
+    database_url = (os.getenv("DATABASE_URL") or "").strip()
+    if database_url:
+        if database_url.startswith("mysql://"):
+            return database_url.replace("mysql://", "mysql+pymysql://", 1)
+        return database_url
+    return (os.getenv("SQLALCHEMY_DATABASE_URI") or DEFAULT_INSECURE_SQLALCHEMY_URI).strip()
+
+
 def enforce_strict_runtime_config(app: Flask) -> None:
     """
     Falla al arrancar en staging/production si JWT o DB siguen en valores de desarrollo.
@@ -79,6 +98,11 @@ def enforce_strict_runtime_config(app: Flask) -> None:
             "SQLALCHEMY_DATABASE_URI no puede ser el default inseguro de desarrollo "
             "en staging/production."
         )
+
+    assert_production_database_allowed(uri.strip())
+
+    app.config["DEBUG"] = False
+    app.config["TESTING"] = False
 
 
 def apply_cors(app: Flask, cors_origins: list[str]) -> Any:

@@ -141,16 +141,17 @@ export function ComprobacionExpedienteOperativoDialog({
       <ConfirmDialog
         open={confirmSinExpOpen}
         title="Sin expediente de envío"
-        message="Esta comprobación pasará directamente a Pendiente de oficio y quedará registrada sin expediente de envío."
+        onClose={() => setConfirmSinExpOpen(false)}
         confirmLabel="Confirmar"
         cancelLabel="Cancelar"
         loading={declaringSinExpediente}
-        onCancel={() => setConfirmSinExpOpen(false)}
         onConfirm={() => {
           setConfirmSinExpOpen(false);
           void onDeclararSinExpediente?.();
         }}
-      />
+      >
+        Esta comprobación pasará directamente a Pendiente de oficio y quedará registrada sin expediente de envío.
+      </ConfirmDialog>
     </CrudGlassDialog>
   );
 }

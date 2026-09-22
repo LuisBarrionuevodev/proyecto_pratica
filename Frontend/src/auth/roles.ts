@@ -52,7 +52,7 @@ export function isMenuPathVisibleForRole(role: AppRole, path: string): boolean {
     return true;
   }
   if (path === "/gestionDeUsuarios") {
-    return role === "admin";
+    return false;
   }
   if (role === "relevador") {
     return RELEVADOR_ALLOWED_PATHS.includes(path);

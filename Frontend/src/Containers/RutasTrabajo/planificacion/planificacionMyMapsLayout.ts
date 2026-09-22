@@ -1,6 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { mergeSx } from "../../../utils/muiSx";
 import {
   planificacionPanelColumnSx,
   rutasInstitutionalPanelPaperSx,
@@ -28,16 +29,18 @@ export const planificacionMainAreaSx: SxProps<Theme> = {
 export const PLANIFICACION_MY_MAPS_HEIGHT = "100%";
 
 /** Shell lateral único: filtros + tabs + lista + acciones. */
-export const planificacionSidebarShellSx: SxProps<Theme> = {
-  ...rutasInstitutionalPanelPaperSx,
-  ...planificacionPanelColumnSx,
-  p: 1.5,
-  gap: 1,
-  height: "100%",
-  minHeight: 0,
-  display: "flex",
-  flexDirection: "column",
-};
+export const planificacionSidebarShellSx: SxProps<Theme> = mergeSx(
+  rutasInstitutionalPanelPaperSx,
+  planificacionPanelColumnSx,
+  {
+    p: 1.5,
+    gap: 1,
+    height: "100%",
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+  }
+);
 
 /** Área scrolleable del contenido del tab activo. */
 export const planificacionSidebarTabBodySx: SxProps<Theme> = {
@@ -49,16 +52,18 @@ export const planificacionSidebarTabBodySx: SxProps<Theme> = {
 };
 
 /** Lista interna dentro de un tab (scroll + safe area). */
-export const planificacionSidebarListViewportSx: SxProps<Theme> = {
-  flex: "1 1 0",
-  minHeight: 0,
-  overflowY: "auto",
-  overflowX: "hidden",
-  paddingBottom: 1.5,
-  scrollPaddingBottom: "16px",
-  boxSizing: "border-box",
-  ...rutasInstitutionalScrollSx,
-};
+export const planificacionSidebarListViewportSx: SxProps<Theme> = mergeSx(
+  rutasInstitutionalScrollSx,
+  {
+    flex: "1 1 0",
+    minHeight: 0,
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingBottom: 1.5,
+    scrollPaddingBottom: "16px",
+    boxSizing: "border-box",
+  }
+);
 
 /** Barra de filtros compacta bajo el header del sidebar. */
 export const planificacionFiltrosBarSx: SxProps<Theme> = {

@@ -37,9 +37,8 @@ export function applyCrudFormErrorsToState(
   handlers: CrudFormErrorHandlers,
   options?: ApplyFormErrorsOptions
 ): ApplyCrudFormErrorsResult {
-  return applyFormErrorsFromApi(err, {
-    ...options,
-    setFieldErrors: handlers.setFieldErrors,
-    setGlobalError: handlers.setGlobalError,
-  });
+  const result = applyFormErrorsFromApi(err, options);
+  handlers.setFieldErrors(result.fieldErrors);
+  handlers.setGlobalError(result.globalMessage);
+  return result;
 }

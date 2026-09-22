@@ -1,4 +1,4 @@
-import { Alert, Box, Grid } from "@mui/material";
+import { Alert, Grid } from "@mui/material";
 import { memo, useMemo } from "react";
 
 import type { IndicadoresNoRealizadasResponse } from "../../../api/indicadoresApi";

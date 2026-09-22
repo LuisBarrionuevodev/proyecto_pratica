@@ -57,6 +57,8 @@ export interface GridRow {
   "Oficio año"?: number | null;
   "Oficio número"?: string | null;
   "Oficio causa"?: number | null;
+  "Relevador"?: string | null;
+  _relevadorIds?: number[];
 }
 
 export interface StartBatchResponse {

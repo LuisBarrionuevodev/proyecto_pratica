@@ -17,6 +17,7 @@ import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIni
 import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
 import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
+import { mergeSx } from "../../../utils/muiSx";
 
 const tactic = '"Tactic Sans", sans-serif' as const;
 
@@ -61,8 +62,8 @@ export function UrgentesPanel({
         : "Sin ítems en esta página.";
 
   const listViewportSx = embedded
-    ? { ...planificacionSidebarListViewportSx, ...rutasInstitutionalScrollSx }
-    : { ...planificacionUrgentesListViewportSx, ...rutasInstitutionalScrollSx };
+    ? mergeSx(planificacionSidebarListViewportSx, rutasInstitutionalScrollSx)
+    : mergeSx(planificacionUrgentesListViewportSx, rutasInstitutionalScrollSx);
 
   const content = (
     <>
@@ -164,20 +165,14 @@ export function UrgentesPanel({
 
   if (embedded) {
     return (
-      <Stack sx={{ ...planificacionPanelColumnSx, flex: 1, minHeight: 0, gap: 0.75 }}>
+      <Stack sx={mergeSx(planificacionPanelColumnSx, { flex: 1, minHeight: 0, gap: 0.75 })}>
         {content}
       </Stack>
     );
   }
 
   return (
-    <Stack
-      sx={{
-        ...rutasInstitutionalPanelPaperSx,
-        ...planificacionPanelColumnSx,
-        gap: 0.75,
-      }}
-    >
+    <Stack sx={mergeSx(rutasInstitutionalPanelPaperSx, planificacionPanelColumnSx, { gap: 0.75 })}>
       {content}
     </Stack>
   );

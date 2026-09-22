@@ -3,7 +3,7 @@ import json
 import os
 from dotenv import load_dotenv
 import click
-from flask import Flask
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 from sqlalchemy import inspect
 
@@ -13,7 +13,9 @@ from app.security.deployment_config import (
     deployment_is_strict,
     enforce_strict_runtime_config,
     parse_cors_origins,
+    resolve_sqlalchemy_database_uri,
 )
+from app.shared.http_errors import register_json_error_handlers
 from app.security.test_database import configure_app_for_testing
 from app.security.phase1_jwt_guard import register_phase1_jwt_guard
 from app.security.dev_post_root_logger import register_dev_post_root_logger
@@ -46,11 +48,8 @@ def create_app(config_override: dict | None = None):
 
     app = Flask(__name__)
 
-    # defaults
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "SQLALCHEMY_DATABASE_URI",
-        "mysql+pymysql://root:1234@localhost/mi_db",
-    )
+    # defaults (DATABASE_URL Railway → SQLALCHEMY_DATABASE_URI)
+    app.config["SQLALCHEMY_DATABASE_URI"] = resolve_sqlalchemy_database_uri()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = (
         os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False").lower() == "true"
     )
@@ -90,6 +89,16 @@ def create_app(config_override: dict | None = None):
     enforce_strict_runtime_config(app)
     _cors_origins = parse_cors_origins(strict=deployment_is_strict())
     apply_cors(app, _cors_origins)
+    register_json_error_handlers(app)
+
+    @app.get("/health")
+    def health():
+        """
+        Healthcheck liviano para Railway / balanceadores.
+
+        No consulta base de datos ni expone datos sensibles.
+        """
+        return jsonify({"status": "ok"}), 200
 
     db.init_app(app)
     migrate.init_app(app, db)

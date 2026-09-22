@@ -72,7 +72,6 @@ import { getCurrentMonthRange } from "../../utils/dateRange";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
   alertBaseStyles,
-  COLORS,
   filtroButtonPrimaryStyles,
   filtroButtonSecondaryStyles,
   filtroButtonsStyles,
@@ -86,6 +85,7 @@ import {
 import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
 import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
+import { mergeSx } from "../../utils/muiSx";
 import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
 import { useAppFeedback } from "../../components/feedback";
 import { OperRutaPoolAccionesCell } from "../../components/operRuta/OperRutaPoolAccionesCell";
@@ -1552,9 +1552,9 @@ const ActasComprobacionPage = () => {
   }, [tab, expItems, oficioItems, reinItems]);
 
   const currentOperationalColumns = useMemo((): MRT_ColumnDef<Record<string, unknown>>[] => {
-    if (tab === "expediente") return columnsExpediente as MRT_ColumnDef<Record<string, unknown>>[];
-    if (tab === "oficio") return columnsOficio as MRT_ColumnDef<Record<string, unknown>>[];
-    if (tab === "reinspeccion") return columnsRein as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "expediente") return columnsExpediente as unknown as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "oficio") return columnsOficio as unknown as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "reinspeccion") return columnsRein as unknown as MRT_ColumnDef<Record<string, unknown>>[];
     return [];
   }, [tab, columnsExpediente, columnsOficio, columnsRein]);
 
@@ -1574,7 +1574,7 @@ const ActasComprobacionPage = () => {
   const currentOperationalGetRowId = useMemo(() => {
     if (tab === "reinspeccion") {
       return (row: Record<string, unknown>) =>
-        reinBandejaRowKey(row as IReinspeccionOficioPendienteRow);
+        reinBandejaRowKey(row as unknown as IReinspeccionOficioPendienteRow);
     }
     return undefined;
   }, [tab]);
@@ -1694,7 +1694,9 @@ const ActasComprobacionPage = () => {
         saveOperativaTabMemory(prev);
       }
       if (shouldSwapOperativaTabMemory(prev, tab)) {
-        restoreOperativaTabMemory(tab);
+        if (isOperativeComprobacionTab(tab)) {
+          restoreOperativaTabMemory(tab);
+        }
       } else if (isOperativeComprobacionTab(tab) && prev === "recorrido") {
         restoreOperativaTabMemory(tab);
       }
@@ -1871,7 +1873,7 @@ const ActasComprobacionPage = () => {
 
   return (
     <Box sx={containerStyles}>
-      <Box sx={{ ...functionalPageShellSx, ...actasContentColumnSx }}>
+      <Box sx={mergeSx(functionalPageShellSx, actasContentColumnSx)}>
           <Paper
             elevation={0}
             sx={{
@@ -2051,7 +2053,7 @@ const ActasComprobacionPage = () => {
               ) : (
                 <ComprobacionOperativaBandejaTable
                   columns={currentOperationalColumns}
-                  data={currentOperationalData as Record<string, unknown>[]}
+                  data={currentOperationalData as unknown as Record<string, unknown>[]}
                   toolbar={currentOperationalToolbar}
                   getRowId={currentOperationalGetRowId}
                   pagination={opPagination}

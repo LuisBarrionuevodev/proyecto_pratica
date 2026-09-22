@@ -21,6 +21,7 @@ import {
   tipoLabelOperativo,
 } from "../utils/asignacionTableDisplay";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { mergeSx } from "../../../utils/muiSx";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton, AppSelect } from "../../../ui";
@@ -400,7 +401,7 @@ function TablaIniciadoresPendientesInner({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ columnGap: 1, rowGap: 1, alignItems: "flex-end" }}>
-        <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "1 1 140px", minWidth: 132 }}>
+        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "1 1 140px", minWidth: 132 })}>
           <AppSelect
             appearance="dense"
             label="Tipo"
@@ -410,7 +411,7 @@ function TablaIniciadoresPendientesInner({
             options={[...TIPO_INICIADOR_OPTIONS]}
           />
         </Box>
-        <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "0 1 172px", minWidth: 160 }}>
+        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "0 1 172px", minWidth: 160 })}>
           <AppSelect
             appearance="dense"
             label="Prioridad"
@@ -426,7 +427,7 @@ function TablaIniciadoresPendientesInner({
           />
         </Box>
         {mostrarFiltroDistrito ? (
-          <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "1 1 140px", minWidth: 128 }}>
+          <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "1 1 140px", minWidth: 128 })}>
             <AppSelect
               appearance="dense"
               label="Distrito"
@@ -437,7 +438,7 @@ function TablaIniciadoresPendientesInner({
             />
           </Box>
         ) : null}
-        <Box sx={{ ...compactFiltroSx, ...asignacionFiltroInputSlotSx, flex: "2 1 200px", minWidth: 160, maxWidth: 360 }}>
+        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "2 1 200px", minWidth: 160, maxWidth: 360 })}>
           <TextField
             hiddenLabel
             size="small"
@@ -446,7 +447,7 @@ function TablaIniciadoresPendientesInner({
             value={filters.q}
             onChange={(e) => onChangeFilters({ ...filters, q: e.target.value })}
             inputProps={{ "aria-label": "Buscar en el listado del pool" }}
-            sx={[planificacionTextFieldSx, asignacionFiltroInputSlotSx]}
+            sx={mergeSx(planificacionTextFieldSx, asignacionFiltroInputSlotSx)}
           />
         </Box>
       </Stack>

@@ -3,8 +3,10 @@
  */
 
 import { motion, type HTMLMotionProps } from 'framer-motion';
+import type { ReactNode } from 'react';
 import { Box } from '@mui/material';
 import { dataTableMrtTypographyScopeSx } from '../styles/mrtGlassDataTablePreset';
+import { mergeSx } from '../utils/muiSx';
 import { fadeInUp, fadeIn, tableRefresh } from './variants';
 
 /**
@@ -30,14 +32,14 @@ export const AnimatedTable = ({
   children, 
   isRefreshing,
   ...props 
-}: HTMLMotionProps<'div'> & { isRefreshing?: boolean }) => (
+}: HTMLMotionProps<'div'> & { isRefreshing?: boolean; children?: ReactNode }) => (
   <motion.div
     variants={tableRefresh}
     initial={false}
     animate={isRefreshing ? "initial" : "animate"}
     {...props}
   >
-    <Box sx={{ width: "100%", ...dataTableMrtTypographyScopeSx }}>{children}</Box>
+    <Box sx={mergeSx({ width: "100%" }, dataTableMrtTypographyScopeSx)}>{children}</Box>
   </motion.div>
 );
 

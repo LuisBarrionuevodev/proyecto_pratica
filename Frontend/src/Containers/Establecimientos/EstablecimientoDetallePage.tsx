@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import StorefrontIcon from "@mui/icons-material/Storefront";
@@ -241,8 +241,7 @@ export default function EstablecimientoDetallePage() {
         <AppButton
           dsVariant="secondary"
           startIcon={<ArrowBackIcon />}
-          component={RouterLink}
-          to="/establecimientos"
+          onClick={() => navigate("/establecimientos")}
         >
           Volver al listado
         </AppButton>
@@ -275,8 +274,7 @@ export default function EstablecimientoDetallePage() {
         <AppButton
           dsVariant="secondary"
           startIcon={<ArrowBackIcon />}
-          component={RouterLink}
-          to="/establecimientos"
+          onClick={() => navigate("/establecimientos")}
         >
           Volver al listado
         </AppButton>

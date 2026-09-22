@@ -1,4 +1,4 @@
-import { ROLE_LABELS, normalizeAppRole, type AppRole } from "./roles";
+import { ROLE_LABELS, normalizeAppRole } from "./roles";
 
 const PLACEHOLDER_USERNAMES = new Set(["usuario", "user", ""]);
 

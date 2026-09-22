@@ -12,7 +12,6 @@ const fullPayload: DashboardExportPayload = {
   },
   resumenKpis: [{ title: "Actuaciones realizadas", value: 10 }],
   ejecutivo: null,
-  pendientes: null,
   actasPorTipo: {
     inspeccion: 2,
     notificacion: 1,
@@ -20,19 +19,6 @@ const fullPayload: DashboardExportPayload = {
     clausura: 0,
     decomiso: 0,
   },
-  pendientesDistritos: [
-    {
-      distrito_id: 1,
-      distrito_codigo: "C",
-      distrito_nombre: "Centro",
-      relevamientos: 1,
-      denuncias: 2,
-      reinspecciones_oficio: 0,
-      reinspecciones_notificacion: 1,
-      sin_geolocalizacion: 3,
-      total: 7,
-    },
-  ],
   riesgo: {
     top_rubros: [{ rubro: "Panadería", cantidad: 3 }],
     top_motivos_notificacion: [{ motivo: "Habilitación", cantidad: 2 }],
@@ -86,9 +72,7 @@ const emptyBlocksPayload: DashboardExportPayload = {
   },
   resumenKpis: [],
   ejecutivo: null,
-  pendientes: null,
   actasPorTipo: null,
-  pendientesDistritos: [],
   riesgo: null,
   mercaderiaDecomisadaKg: null,
   noRealizadas: null,
@@ -97,12 +81,11 @@ const emptyBlocksPayload: DashboardExportPayload = {
 };
 
 describe("exportExcelDashboard", () => {
-  it("crea las 6 hojas esperadas", () => {
+  it("crea las 5 hojas vigentes (sin Pendientes)", () => {
     const names = listDashboardWorkbookSheetNames(fullPayload);
     expect(names).toEqual([
       "Resumen KPIs",
       "Actas por tipo",
-      "Pendientes por distrito",
       "Riesgo",
       "No realizadas",
       "Productividad",
@@ -121,7 +104,6 @@ describe("exportExcelDashboard", () => {
       distritoLabel: fullPayload.meta.distritoLabel,
       inspectorLabel: fullPayload.meta.inspectorLabel,
       ejecutivo: null,
-      pendientes: null,
       riesgo: null,
       noRealizadas: null,
       noRealizadasTotal: null,
@@ -135,7 +117,7 @@ describe("exportExcelDashboard", () => {
   it("no crashea con bloques vacíos", () => {
     expect(() => listDashboardWorkbookSheetNames(emptyBlocksPayload)).not.toThrow();
     const names = listDashboardWorkbookSheetNames(emptyBlocksPayload);
-    expect(names).toHaveLength(6);
+    expect(names).toHaveLength(5);
     expect(() => exportDashboardToExcel(emptyBlocksPayload)).not.toThrow();
   });
 

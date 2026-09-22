@@ -127,13 +127,9 @@ export const badgeRenderer: CustomRenderer<BadgeCell> = {
         ctx.restore();
     },
     provideEditor: () => ({
-        editor: (props) => {
-            // Editor simple de texto
-            return {
-                disablePadding: false,
-                disableStyling: false,
-            };
-        },
+        editor: () => null,
+        disablePadding: false,
+        disableStyling: false,
     }),
 };
 

@@ -9,7 +9,6 @@ import {
   domicilioCalleParaPayload,
   domicilioEsquinaEsClaveTecnica,
   domicilioEsquinaParaPayload,
-  domicilioNumeroEditable,
   domicilioNumeroEfectivo,
   domicilioNumeroParaPayload,
   domicilioRowParaHidratacionCompletarTrabajo,
@@ -18,11 +17,7 @@ import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContra
 import {
   esReinspeccionOficioPendienteSubtipo,
 } from "./completarTrabajoTipoIniciadorUi";
-import {
-  cantidadPersonasSinCarnetFromRow,
-  itemsActaInspeccionWriteFromEstados,
-  estadosMapFromRow,
-} from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import { cantidadPersonasSinCarnetFromRow } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import type {
   ItemActaInspeccionWrite,
   ItemInspeccionEstado,
@@ -288,7 +283,11 @@ export function buildCompletarTrabajoCierreBody(
     }
     if (s(f.acta_inspeccion_num)) body.acta_inspeccion_num = s(f.acta_inspeccion_num);
     if (fieldExplicit("items_acta_inspeccion", options)) {
-      body.items_acta_inspeccion = f.items_acta_inspeccion ?? [];
+      body.items_acta_inspeccion = (f.items_acta_inspeccion ?? []).flatMap((item) =>
+        item.estado === "BIEN" || item.estado === "OBSERVADO"
+          ? [{ item_id: item.item_id, estado: item.estado }]
+          : []
+      );
     }
     if (fieldExplicit("cantidad_personas_sin_carnet_sanidad", options)) {
       const cantidad = parseCantidadPersonasSinCarnet(f.cantidad_personas_sin_carnet_sanidad);
@@ -359,7 +358,7 @@ function mergeRow(
   for (const [k, v] of Object.entries(values)) {
     if (v !== undefined) out[k] = v;
   }
-  return out as ICompletarTrabajoPendienteRow;
+  return out as unknown as ICompletarTrabajoPendienteRow;
 }
 
 function trimStr(v: string | null | undefined): string {

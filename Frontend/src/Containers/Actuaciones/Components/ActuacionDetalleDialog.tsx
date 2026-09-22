@@ -24,7 +24,7 @@ import {
 } from "../../../utils/motivosNotificacionSlots";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
-import { domicilioCalleCargadaEditable, domicilioCalleValorEdicion, domicilioNumeroEditable, domicilioNumeroValorEdicion, domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
+import { domicilioCalleValorEdicion, domicilioNumeroValorEdicion, domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { useAppFeedback } from "../../../components/feedback";
 import {
   CrudDialogActions,
@@ -39,7 +39,6 @@ import {
   DOC_MODAL_TEXT,
   docModalBlockResumenSx,
   docModalChipSx,
-  docModalIntroParagraphSx,
   docModalSubheadingInCardSx,
 } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -147,6 +146,7 @@ export type ActuacionSaveOptions = {
   /** Estado destino del formulario Oficio para validación CRUD contextualizada. */
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
+  inspeccionChecklistCatalog?: IItemActaInspeccionCatalogItem[];
 };
 
 export type ActuacionDetalleDialogProps = {
@@ -237,14 +237,6 @@ const actaSubtituloMenorSx = {
   mb: 1.25,
 } as const;
 
-/** Título principal de la sección «Actas labradas» (mayor jerarquía que cada acta). */
-const actasLabradasSectionTitleSx = {
-  fontSize: "0.875rem",
-  fontWeight: 700,
-  letterSpacing: "0.06em",
-  mb: 1.75,
-} as const;
-
 /** Aire entre el overline/resumen del bloque documental y el primer control (p. ej. Lugar y titular, formulario). */
 const edicionGapBloqueAPrimerControlSx = { mt: 2 } as const;
 
@@ -264,12 +256,6 @@ function establecimientoVinculacionTexto(row: IActuacionListItem): string {
   }
   return "Vinculado a ficha de establecimiento";
 }
-
-const actaGrupoWrapperSx = {
-  pb: 1.75,
-  borderBottom: "1px solid rgba(255,255,255,0.07)",
-  "&:last-of-type": { borderBottom: "none", pb: 0 },
-};
 
 function motivosNotificacionNoVacios(draft: IActuacionListItem): string[] {
   return [draft.notificacion_motivo_1, draft.notificacion_motivo_2, draft.notificacion_motivo_3]
@@ -940,11 +926,6 @@ export function ActuacionDetalleDialog({
     },
     [saving, onClose]
   );
-
-  const handleBackToDetail = useCallback(() => {
-    if (saving) return;
-    setIsEditing(false);
-  }, [saving]);
 
   const handlePrint = useCallback(() => {
     if (saving) return;

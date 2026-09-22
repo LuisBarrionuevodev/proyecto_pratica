@@ -159,7 +159,7 @@ export async function fetchStaticMapAsDataUrl(
 
   const proxy = options?.proxyAbsoluteUrl?.trim();
   if (proxy) {
-    const viaProxy = await tryOnce(proxy, options.proxyFetchInit);
+    const viaProxy = await tryOnce(proxy, options?.proxyFetchInit);
     if (viaProxy) return viaProxy;
   }
 

@@ -5,8 +5,8 @@ import type { IReinspeccionOficioPendienteRow } from "../../../api/actuacionesCo
 import {
   operativaComprobacionTieneFiltro,
   type OperativaComprobacionFiltroPayload,
-  type OperativaComprobacionTabKey,
 } from "./buildOperativaComprobacionFiltroPayload";
+import type { OperativaComprobacionTabKey } from "./operativaComprobacionTabChange";
 
 export type OperativaPendientesTab = OperativaComprobacionTabKey;
 

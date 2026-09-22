@@ -22,7 +22,6 @@ type Props = {
 export const DashboardRiesgoSection = memo(function DashboardRiesgoSection({
   data,
   mercaderiaDecomisadaKg,
-  loading,
   error,
 }: Props) {
   const topRubros = useMemo<DashboardRankingBarItem[]>(

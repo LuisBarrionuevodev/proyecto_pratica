@@ -13,6 +13,7 @@ import {
   crudDialogScrollbarSx,
 } from "../../styles/crudDialogTokens";
 import { AppDialog } from "../../ui/AppDialog";
+import { mergeSx } from "../../utils/muiSx";
 
 type CrudDialogScrollContextValue = {
   contentRef: RefObject<HTMLDivElement | null>;
@@ -78,7 +79,7 @@ export function CrudGlassDialog({
         fullWidth={fullWidth}
         scroll="paper"
         contentDividers={false}
-        contentSx={[
+        contentSx={mergeSx(
           crudDialogContentSx,
           {
             display: "flex",
@@ -88,13 +89,13 @@ export function CrudGlassDialog({
             backgroundColor: "transparent",
             borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
           },
-          contentSx,
-        ]}
+          contentSx
+        )}
         {...rest}
       >
         <Box
           ref={contentRef}
-          sx={[
+          sx={mergeSx(
             crudDialogFormFieldsSx,
             crudDialogScrollbarSx,
             {
@@ -109,8 +110,8 @@ export function CrudGlassDialog({
               width: "100%",
               boxSizing: "border-box",
               color: "#FFFFFF",
-            },
-          ]}
+            }
+          )}
         >
           {children}
         </Box>

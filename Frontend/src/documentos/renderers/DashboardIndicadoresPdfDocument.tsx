@@ -4,6 +4,7 @@ import { INSTITUTIONAL_DIRECTION_LINE } from "../core/institutionalCopy";
 import type {
   DashboardPdfKpiRow,
   DashboardPdfModel,
+  DashboardPdfTableRow,
   DashboardPdfTableSection,
 } from "../../Containers/Dashboard/utils/dashboardPdfMappers";
 import { DASHBOARD_PDF_EMPTY_MESSAGE } from "../../Containers/Dashboard/utils/dashboardPdfMappers";

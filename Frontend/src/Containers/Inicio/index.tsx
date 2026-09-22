@@ -3,6 +3,7 @@ import InicioOperacionesGrid from "./Components/InicioOperacionesGrid";
 import TopBar from "../../Componets/TopBar";
 import { Box, Grid, Skeleton, Typography } from "@mui/material";
 import { GLASS_COLORS, glassContent } from "../../styles/GlassStyles";
+import { mergeSx } from "../../utils/muiSx";
 import { useAppSession } from "../../auth/AppSessionProvider";
 
 function formatFechaHoy(): string {
@@ -47,27 +48,24 @@ const Inicio = (): JSX.Element => {
       </Box>
 
       <Box
-        sx={[
-          glassContent,
-          {
-            flex: 1,
-            minHeight: 0,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            borderBottom: "none",
-            overflow: "auto",
-            backdropFilter: "none",
-            WebkitBackdropFilter: "none",
-            backgroundColor: GLASS_COLORS.contentBg,
-            "&::-webkit-scrollbar": {
-              width: "6px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "rgba(255, 255, 255, 0.1)",
-              borderRadius: "3px",
-            },
+        sx={mergeSx(glassContent, {
+          flex: 1,
+          minHeight: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+          borderBottom: "none",
+          overflow: "auto",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+          backgroundColor: GLASS_COLORS.contentBg,
+          "&::-webkit-scrollbar": {
+            width: "6px",
           },
-        ]}
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(255, 255, 255, 0.1)",
+            borderRadius: "3px",
+          },
+        })}
       >
         <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             <Box

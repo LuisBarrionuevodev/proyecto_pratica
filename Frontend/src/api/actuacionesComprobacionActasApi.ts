@@ -61,6 +61,8 @@ export interface IReinspeccionOficioPendienteRow {
   expediente_numero?: string | null;
   expediente_anio?: number | null;
   expediente_envio_numero?: string | null;
+  /** Etiqueta compuesta de expediente de envío (presenter / export). */
+  expediente_envio_label?: string | null;
   expediente_envio_anio?: string | number | null;
   fecha_expediente_envio?: string | null;
   expediente_respuesta_numero?: string | null;

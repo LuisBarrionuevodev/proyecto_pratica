@@ -345,7 +345,6 @@ export function validateActuacionFormForSubmit(
   const decomisoKilos = form.decomiso_kilos_total;
   if (
     decomisoKilos != null &&
-    decomisoKilos !== "" &&
     (typeof decomisoKilos !== "number" || Number.isNaN(decomisoKilos))
   ) {
     fieldErrors.decomiso_kilos_total = ACTUACION_VALIDATION_MESSAGES.kilosNumericos;

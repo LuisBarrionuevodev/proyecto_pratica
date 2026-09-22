@@ -85,7 +85,6 @@ export function ConfirmDialog({
       contentSx={formDialogShortContentSx}
       showCloseButton
       disableEscapeKeyDown={blockClose}
-      disableBackdropClick={blockClose}
       actions={
         <Box sx={dialogFormActionsRowSx}>
           <AppButton dsVariant="ghost" onClick={handleCloseButton} disabled={loading}>

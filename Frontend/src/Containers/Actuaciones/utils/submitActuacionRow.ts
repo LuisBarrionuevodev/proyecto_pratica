@@ -120,7 +120,7 @@ export function sanitizeActuacionRowForCanalActasPut(
   }
 
   return {
-    ...(copy as IActuacionListItem),
+    ...(copy as unknown as IActuacionListItem),
     expediente_numero: null,
     expediente_anio: null,
     oficio_numero: null,
@@ -160,7 +160,7 @@ function applyDomicilioCalleSubmitGuard(
     delete copy.calle;
     delete copy.numero;
     delete copy.numero_tipo;
-    return copy as IActuacionListItem;
+    return copy as unknown as IActuacionListItem;
   }
 
   // PR7.15d: domicilio bloqueado — no validar ni enviar calle/número (aunque estén en el draft).
@@ -168,7 +168,7 @@ function applyDomicilioCalleSubmitGuard(
   delete blockedCopy.calle;
   delete blockedCopy.numero;
   delete blockedCopy.numero_tipo;
-  return blockedCopy as IActuacionListItem;
+  return blockedCopy as unknown as IActuacionListItem;
 }
 
 /** FIX.9 — Circuito RN/Oficio: el PUT residual no es dueño de identidad operativa. */
@@ -201,7 +201,7 @@ function applyCircuitoResidualOperationalStrip(
   delete copy.razon_social;
   delete copy.doc_nro;
   delete copy.nombre_local;
-  return copy as IActuacionListItem;
+  return copy as unknown as IActuacionListItem;
 }
 
 /** @deprecated Usar applyCircuitoResidualOperationalStrip */
@@ -296,7 +296,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     id,
     fullRow,
     originalRow,
-    oficioCorrectionApplied = false,
+    oficioCorrectionApplied: _oficioCorrectionApplied = false,
     actasClearedByOficioCorrection = [],
     oficioValidationContext,
     inspeccionChecklistTouched,
