@@ -1,0 +1,650 @@
+{
+  "artifact": "ACT-HIST.1-DESIGN",
+  "generated_at": "2026-09-21",
+  "writes_executed": false,
+  "summary": "Diseño definitivo para cargar actuación histórica mínima (solo comprobación) desde el mismo modal de Cargar actuación, usando snapshot de titular en actuaciones (Opción B) y OT nullable solo en ese modo.",
+
+  "current_constraints": {
+    "frontend": {
+      "entry_point": "Frontend/src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx",
+      "submit_pipeline": "validate-row → commit-batch via cargarActuacionNuevaSubmit.ts",
+      "html_required_fields": ["fecha_actuacion", "orden_trabajo_numero"],
+      "client_prevalidation": "none (delegated to backend grid validate)",
+      "flag_exists_today": false
+    },
+    "pydantic": {
+      "schema": "Backend/app/domains/actuaciones/schemas/grid/actuacion_row_in.py",
+      "always_required": ["orden_trabajo_numero", "fecha_actuacion"],
+      "conditional_rules": [
+        "OT+fecha only → contraproducencia",
+        "NO_HUBO → calle+numero",
+        "titular names → doc_nro",
+        "tipo_actuacion → inspectores, calle, numero, rubro, doc",
+        "contraproducencia sin tipo → calle+numero",
+        "acta_notificacion → motivos"
+      ],
+      "comprobacion_motivo": "not validated in Pydantic; enforced in attach_comprobacion"
+    },
+    "database": {
+      "engine": "PostgreSQL (geoalchemy2)",
+      "actuaciones": {
+        "orden_trabajo_id": "NOT NULL + UNIQUE index ix_actuaciones_orden_trabajo_id",
+        "domicilio_id": "nullable",
+        "comprobacion_id": "nullable",
+        "tipo": "nullable",
+        "unique_other": "uq_act_anio_tipo_comprobacion (anio, tipo, comprobacion_id)"
+      },
+      "contribuyente": {
+        "documento": "NOT NULL"
+      },
+      "domicilio": {
+        "calle": "NOT NULL",
+        "numero": "NOT NULL"
+      },
+      "comprobacion": {
+        "unique": "uq_acomp_numero_anio (numero_acta, anio)"
+      }
+    },
+    "create_service_invariants": [
+      "always get_or_create_orden_trabajo",
+      "1 actuacion per OT",
+      "_resolve_tipo_actuacion infers INSPECCION when comprobacion acta present",
+      "titular only via domicilio.contribuyente",
+      "post-commit sync reinspeccion notificacion (global, no-op without domicilio+notificacion vencida)"
+    ],
+    "dup_key_batch": "orden_trabajo_numero + fecha_actuacion (ISO)"
+  },
+
+  "functional_contract": {
+    "same_modal": true,
+    "same_button": "Cargar actuación",
+    "toggle_label": "Cargar solo acta de comprobación como actuación",
+    "toggle_default": false,
+    "mode_off": "flujo actual EXACTAMENTE igual (sin relajar reglas globales)",
+    "mode_on_required": [
+      "fecha_actuacion",
+      "inspectores (>=1)",
+      "titular: (contrib_nombre AND contrib_apellido) OR razon_social",
+      "acta_comprobacion_num",
+      "comprobacion_motivo (cualquier valor del catálogo CatalogMotivoComprobacion)"
+    ],
+    "mode_on_forbidden_create": [
+      "orden_trabajo",
+      "doc_nro",
+      "domicilio",
+      "rubro",
+      "acta_inspeccion",
+      "notificacion",
+      "clausura",
+      "decomiso",
+      "contraproducencia",
+      "checklist",
+      "establecimiento_operativo",
+      "iniciador_ruta",
+      "ruta_item"
+    ],
+    "mode_on_forbidden_payload": "reject explicit values for OT, DNI, domicilio, rubro, otras actas, contraproducencia even if UI disabled",
+    "titular_rule": "(nombre AND apellido) OR razon_social; no DNI; snapshot persisted on actuacion",
+    "tipo_rule": "tipo = NULL; never infer INSPECCION",
+    "immutable_after_create": "carga_solo_comprobacion flag cannot change; historical cannot become normal nor vice versa",
+    "edit_scope_historical": [
+      "fecha_actuacion",
+      "inspectores",
+      "titular snapshot fields",
+      "acta_comprobacion_num",
+      "comprobacion_motivo"
+    ]
+  },
+
+  "option_a": {
+    "name": "Contribuyente formal sin documento",
+    "schema_changes": [
+      "actuaciones.orden_trabajo_id → nullable",
+      "actuaciones.contribuyente_id → new nullable FK",
+      "contribuyente.documento → nullable"
+    ],
+    "pros": [
+      "Reutiliza entidad contribuyente relacional",
+      "Un solo modelo de titular en presenters (con extensión FK directa)"
+    ],
+    "cons": [
+      "Rompe invariante global documento NOT NULL",
+      "Contribuyentes sin documento en historial/contribuyente modules",
+      "Deduplicación imposible sin documento",
+      "Riesgo de mezclar históricos con contribuyentes operativos en búsquedas",
+      "Mayor superficie de cambio en delete/GC/historial contribuyente"
+    ],
+    "verdict": "No recomendada salvo requisito explícito de tratar titulares históricos como contribuyentes formales"
+  },
+
+  "option_b": {
+    "name": "Snapshot histórico en actuación (RECOMENDADA)",
+    "schema_changes": [
+      "actuaciones.carga_solo_comprobacion BOOLEAN NOT NULL DEFAULT FALSE",
+      "actuaciones.orden_trabajo_id → nullable",
+      "actuaciones.titular_nombre_historico VARCHAR(128) NULL",
+      "actuaciones.titular_apellido_historico VARCHAR(128) NULL",
+      "actuaciones.titular_razon_social_historica VARCHAR(255) NULL"
+    ],
+    "unchanged": [
+      "contribuyente.documento NOT NULL",
+      "domicilio model",
+      "comprobacion attach flow"
+    ],
+    "pros": [
+      "Excepción completamente aislada al flag persistido",
+      "No crea contribuyentes incompletos ni inventa DNI",
+      "Conserva texto exacto del documento histórico",
+      "Sin deduplicación dudosa",
+      "Menor riesgo en módulos de contribuyente/EO/rutas"
+    ],
+    "cons": [
+      "Dos fuentes de titular (domicilio.contribuyente vs snapshot)",
+      "Presenters/search requieren resolver común",
+      "Titular histórico no entra al historial formal de contribuyente (aceptable para carga administrativa)"
+    ],
+    "coverage_assessment": {
+      "listado_actuaciones": "OK con resolver titular + OT nullable-safe existente",
+      "gestion_comprobaciones": "OK; OT/DNI ya nullable-safe en UI; agregar titular snapshot en presenter",
+      "gestion_notificaciones": "OK para actuaciones solo-comprobación (sin notificación); OT/DNI muestran —",
+      "expediente_oficio": "OK; complete_expediente_from_actuacion solo exige comprobacion_id + payload expediente",
+      "exports": "OK con fallbacks — y titular desde snapshot",
+      "dashboard": "OK; comprobación cuenta por comprobacion_id+motivo; inspección no (tipo NULL, sin fila inspeccion)"
+    },
+    "verdict": "Cubre completamente el alcance sin necesidad de contribuyente formal"
+  },
+
+  "comparison": [
+    {
+      "criterio": "Impacto schema",
+      "opcion_a": "3 tablas tocadas; documento nullable global",
+      "opcion_b": "Solo actuaciones (+ índice parcial OT)"
+    },
+    {
+      "criterio": "Riesgo regresión",
+      "opcion_a": "Alto (contribuyente global)",
+      "opcion_b": "Bajo (flag aislado)"
+    },
+    {
+      "criterio": "Compatibilidad datos existentes",
+      "opcion_a": "Requiere política para contribuyentes sin doc",
+      "opcion_b": "Default false; cero backfill"
+    },
+    {
+      "criterio": "Deduplicación titular",
+      "opcion_a": "Problemática sin documento",
+      "opcion_b": "No aplica (snapshot por actuación)"
+    },
+    {
+      "criterio": "Presenters",
+      "opcion_a": "Menos campos nuevos; FK contribuyente",
+      "opcion_b": "Resolver dual centralizado"
+    },
+    {
+      "criterio": "Gestión Comprobaciones",
+      "opcion_a": "Funciona con FK",
+      "opcion_b": "Funciona con snapshot (cambio presenter)"
+    },
+    {
+      "criterio": "Gestión Notificaciones",
+      "opcion_a": "Mezcla contribuyentes",
+      "opcion_b": "Sin impacto en contribuyente formal"
+    },
+    {
+      "criterio": "Historial contribuyente",
+      "opcion_a": "Incluiría históricos (riesgo)",
+      "opcion_b": "Excluido por diseño"
+    },
+    {
+      "criterio": "Mantenimiento futuro",
+      "opcion_a": "Deuda permanente en contribuyente",
+      "opcion_b": "Deuda acotada al flag + resolver"
+    }
+  ],
+
+  "recommended_option": "OPTION_B",
+
+  "recommendation_rationale": [
+    "El alcance es carga administrativa de historia documental, no alta operativa de contribuyente.",
+    "Gestión Comprobaciones, expediente/oficio y dashboard funcionan con comprobacion_id sin OT/DNI.",
+    "No hay requisito demostrado de integrar titulares históricos al módulo formal de contribuyente.",
+    "Opción B minimiza migración, riesgo y superficie de regresión manteniendo el flujo normal intacto."
+  ],
+
+  "schema_changes": {
+    "migration_revision": "act_hist_1_carga_solo_comprobacion",
+    "target_table": "actuaciones",
+    "operations": [
+      {
+        "op": "add_column",
+        "column": "carga_solo_comprobacion",
+        "type": "BOOLEAN",
+        "nullable": false,
+        "server_default": "false"
+      },
+      {
+        "op": "add_column",
+        "column": "titular_nombre_historico",
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      {
+        "op": "add_column",
+        "column": "titular_apellido_historico",
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      {
+        "op": "add_column",
+        "column": "titular_razon_social_historica",
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      {
+        "op": "alter_column",
+        "column": "orden_trabajo_id",
+        "nullable": true,
+        "note": "FK RESTRICT unchanged"
+      },
+      {
+        "op": "drop_index",
+        "name": "ix_actuaciones_orden_trabajo_id",
+        "note": "current UNIQUE index"
+      },
+      {
+        "op": "create_index",
+        "name": "uq_actuaciones_orden_trabajo_id_not_null",
+        "unique": true,
+        "columns": ["orden_trabajo_id"],
+        "postgresql_where": "orden_trabajo_id IS NOT NULL",
+        "note": "PostgreSQL allows multiple NULLs in partial unique index"
+      },
+      {
+        "op": "create_index",
+        "name": "ix_actuaciones_carga_solo_comprobacion",
+        "columns": ["carga_solo_comprobacion"],
+        "unique": false
+      }
+    ],
+    "check_constraints_recommended": [
+      {
+        "name": "ck_act_hist_titular_persona",
+        "when": "carga_solo_comprobacion = true",
+        "rule": "(titular_nombre_historico IS NOT NULL AND trim(titular_nombre_historico) <> '' AND titular_apellido_historico IS NOT NULL AND trim(titular_apellido_historico) <> '') OR (titular_razon_social_historica IS NOT NULL AND trim(titular_razon_social_historica) <> '')"
+      },
+      {
+        "name": "ck_act_hist_no_ot",
+        "when": "carga_solo_comprobacion = true",
+        "rule": "orden_trabajo_id IS NULL"
+      },
+      {
+        "name": "ck_act_normal_requires_ot",
+        "when": "carga_solo_comprobacion = false",
+        "rule": "orden_trabajo_id IS NOT NULL"
+      }
+    ],
+    "backward_compatibility": {
+      "existing_rows": "carga_solo_comprobacion=false; orden_trabajo_id unchanged",
+      "no_backfill": true,
+      "no_semantic_change": true
+    }
+  },
+
+  "backend_changes": {
+    "pydantic": {
+      "file": "Backend/app/domains/actuaciones/schemas/grid/actuacion_row_in.py",
+      "add_fields": {
+        "carga_solo_comprobacion": "bool = False",
+        "orden_trabajo_numero": "Optional[str] = None (required iff flag=false)",
+        "titular_nombre_historico": "Optional[str] = None",
+        "titular_apellido_historico": "Optional[str] = None",
+        "titular_razon_social_historica": "Optional[str] = None"
+      },
+      "validator_branch_true": {
+        "require": ["fecha_actuacion", "inspectores>=1", "titular valido", "acta_comprobacion_num", "comprobacion_motivo"],
+        "forbid_nonempty": ["orden_trabajo_numero", "doc_nro", "calle", "numero", "rubro_nombre", "tipo_actuacion", "contraproducencia", "acta_inspeccion_num", "acta_notificacion_num", "acta_clausura_num", "acta_decomiso_num", "notificacion_previa_num", "comprobacion_previa_num", "items_acta_inspeccion", "cantidad_personas_sin_carnet_sanidad"],
+        "messages": {
+          "inspectores": "Seleccione al menos un inspector",
+          "titular": "Ingrese nombre y apellido o razón social",
+          "acta_comprobacion_num": "Ingrese el número de acta de comprobación",
+          "comprobacion_motivo": "Seleccione el motivo del acta de comprobación"
+        }
+      },
+      "validator_branch_false": {
+        "orden_trabajo_numero": "required as today",
+        "all_other_rules": "unchanged"
+      }
+    },
+    "mapper": {
+      "file": "Backend/app/domains/actuaciones/mappers/grid/actuacion_row_mapper.py",
+      "changes": [
+        "pass carga_solo_comprobacion and titular snapshot keys to canonical payload",
+        "do not emit contribuyente/domicilio blocks when flag=true",
+        "do not emit orden_trabajo_numero when flag=true"
+      ]
+    },
+    "column_map": {
+      "file": "Backend/app/domains/grid/services/column_map_actuaciones.py",
+      "add": {
+        "Cargar solo comprobación": "carga_solo_comprobacion",
+        "Titular nombre histórico": "titular_nombre_historico",
+        "Titular apellido histórico": "titular_apellido_historico",
+        "Titular razón social histórica": "titular_razon_social_historica"
+      },
+      "note": "Frontend puede enviar flag como key interna snake_case en payload JSON sin header Glide visible"
+    },
+    "create_service": {
+      "file": "Backend/app/domains/actuaciones/services/create_service.py",
+      "branch": "if payload.get('carga_solo_comprobacion'):",
+      "historical_path": [
+        "skip get_or_create_orden_trabajo",
+        "Actuaciones(..., carga_solo_comprobacion=True, orden_trabajo_id=None, tipo=None)",
+        "persist titular snapshot columns from payload",
+        "skip resolve_contribuyente",
+        "skip get_or_create_domicilio",
+        "skip rubro",
+        "attach inspectores if nombres",
+        "attach_comprobacion only",
+        "skip attach_inspeccion/notificacion/clausura/decomiso/previas",
+        "skip try_vincular_establecimiento_operativo",
+        "skip on_domicilio_changed",
+        "skip ejecutar_sync_reinspeccion (or guard: only when not carga_solo_comprobacion)"
+      ],
+      "normal_path": "unchanged",
+      "_resolve_tipo_actuacion": "add guard: if carga_solo_comprobacion return None before inferring INSPECCION"
+    },
+    "update_service": {
+      "file": "Backend/app/domains/actuaciones/services/update_service.py",
+      "rules": [
+        "if act.carga_solo_comprobacion: only allow historical editable fields",
+        "reject attempts to set orden_trabajo_numero, domicilio, doc, otras actas",
+        "reject toggling carga_solo_comprobacion",
+        "if not act.carga_solo_comprobacion: reject setting historical-only fields"
+      ]
+    },
+    "attach_comprobacion": {
+      "file": "Backend/app/domains/actuaciones/attach/comprobacion.py",
+      "change": "reuse as-is; uniqueness (numero_acta, anio) from actuacion.fecha"
+    },
+    "dup_key": {
+      "file": "Backend/app/domains/grid/services/dup_key.py",
+      "strategy": "if row.carga_solo_comprobacion: (acta_comprobacion_num, str(anio from fecha)) else existing OT+fecha",
+      "rationale": "align batch duplicate detection with uq_acomp_numero_anio; do not invent third rule"
+    },
+    "delete_service": {
+      "file": "Backend/app/domains/actuaciones/services/delete_service.py",
+      "change": "soft_delete_orden_id_orphan only if old_orden_trabajo_id is not None; no contribuyente GC from snapshot path"
+    },
+    "search_service": {
+      "file": "Backend/app/domains/actuaciones/services/search_service.py",
+      "changes": [
+        "add ILIKE conditions on titular_*_historico columns",
+        "label builder: use historical titular when domicilio absent",
+        "OT search not required for historical rows"
+      ]
+    },
+    "post_commit": {
+      "file": "Backend/app/domains/actuaciones/services/cargar_actuacion_post_commit.py",
+      "expected": "no-op for historical (no domicilio, no notificacion vencida)",
+      "recommendation": "explicit guard in create_service caller: skip hook when carga_solo_comprobacion=true"
+    }
+  },
+
+  "frontend_changes": {
+    "modal": {
+      "file": "Frontend/src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx",
+      "toggle_position": "top of modal, before 'Datos generales', full-width FormControlLabel + Switch/Checkbox",
+      "toggle_label": "Cargar solo acta de comprobación como actuación",
+      "initial_state": false,
+      "on_enable": [
+        "clear all non-allowed fields from texts state",
+        "clear notif motivos, checklist, personas sin carnet, inspectores optional reset",
+        "remove HTML required from OT field",
+        "hide/disable blocks: domicilio, otras actas, contraproducencia if visible"
+      ],
+      "on_disable": [
+        "resetForm() full clean state",
+        "restore normal required on OT"
+      ],
+      "enabled_fields_when_on": [
+        "Fecha actuación",
+        "Inspectores",
+        "Nombre",
+        "Apellido",
+        "Razón social",
+        "Acta comprobación",
+        "Motivo comprobación"
+      ],
+      "buildGridRow": [
+        "set carga_solo_comprobacion: true in payload",
+        "map titular to titular_*_historico keys (or internal snake via column map)",
+        "omit disabled fields entirely (null), never stale OT/DNI/domicilio"
+      ]
+    },
+    "submit_errors": {
+      "file": "Frontend/src/Containers/CargarActuaciones/utils/cargarActuacionNuevaSubmit.ts",
+      "add_error_aliases": {
+        "titular_nombre_historico": "Nombre",
+        "titular_apellido_historico": "Apellido",
+        "titular_razon_social_historica": "Razón social",
+        "carga_solo_comprobacion": "Modo histórico"
+      }
+    },
+    "crud_edit": {
+      "note": "Actuaciones CRUD must detect row.carga_solo_comprobacion from API and lock fields accordingly (follow-up in implementation)"
+    }
+  },
+
+  "presenter_strategy": {
+    "central_helper_new_file": "Backend/app/domains/actuaciones/utils/titular_actuacion_resolver.py",
+    "functions": {
+      "resolve_titular_grid_fields(act)": {
+        "priority": [
+          "if domicilio.contribuyente: map contrib_apellido, contrib_nombre, razon_social, doc_nro",
+          "elif act.carga_solo_comprobacion: map from titular_*_historico columns; doc_nro=null",
+          "else: all null"
+        ],
+        "returns": ["contrib_apellido", "contrib_nombre", "razon_social", "doc_nro", "titular_source"]
+      },
+      "resolve_orden_trabajo_numero(act)": "existing logic; null-safe"
+    },
+    "consumers_to_update": [
+      "Backend/app/domains/actuaciones/presenters/actuacion_presenters.py (actuacion_to_grid_row, pendiente rows)",
+      "Backend/app/domains/actuaciones/presenters/comprobacion_actas_presenters.py (referencia_actuacion_from_grid_row)",
+      "Backend/app/domains/actuaciones/presenters/list_item.py",
+      "Backend/app/domains/actuaciones/services/search_service.py",
+      "Backend/app/domains/establecimientos/presenters/historial_contribuyente_presenters.py (exclude carga_solo_comprobacion from historial joins)"
+    ],
+    "principle": "single resolver; presenters call helper; no copy-paste in 8 files"
+  },
+
+  "duplication_strategy": {
+    "batch_in_lote": "(acta_comprobacion_num_normalized, anio_from_fecha)",
+    "database": "uq_acomp_numero_anio on comprobacion table",
+    "relationship": "batch key mirrors DB identity; second row in same batch with same acta+year rejected before commit",
+    "ot_batch": "not used when carga_solo_comprobacion=true"
+  },
+
+  "comprobacion_gestion_impact": {
+    "backend": {
+      "bandeja_service": "Backend/app/domains/actuaciones/services/comprobacion_actas_bandeja_service.py — no OT/DNI required in SQL filters",
+      "pendientes_expediente": "solo comprobacion_id needed; tests _mk_actuacion_solo_comprobacion already pass without domicilio",
+      "presenter": "inject titular via resolve_titular_grid_fields"
+    },
+    "frontend": {
+      "ActasComprobacionPage": "OT/DNI already render empty/— when null",
+      "comprobacionOperativoBlocks": "textoValor handles null doc/ot",
+      "export_mappers": "cellStr empty → blank; acceptable"
+    },
+    "required_display": {
+      "acta_comprobacion": "present",
+      "fecha": "present",
+      "titular": "from snapshot",
+      "motivo": "present",
+      "ot": "—",
+      "dni": "—"
+    },
+    "blockers_found": "none for lifecycle comprobacion → expediente → oficio"
+  },
+
+  "notificacion_gestion_impact": {
+    "scope_note": "Actuación histórica solo-comprobación no tiene notificación; no entra a Gestión Notificaciones salvo edición futura prohibida",
+    "if_ot_null_display": "Frontend GestionNotificacionPage already uses || '—' for OT",
+    "if_doc_null_display": "NotificacionDetalleDocumentalDialog uses textoValor(row.doc_nro)",
+    "backend": "no structural requirement for OT/DNI in notificacion bandejas",
+    "blockers_found": "none for display; historical mode cannot add notificacion"
+  },
+
+  "expediente_oficio_impact": {
+    "service": "Backend/app/domains/actuaciones/services/expediente_completion_service.py",
+    "requirements": ["comprobacion_id on actuacion", "expediente_numero", "fecha_expediente"],
+    "ot_dni_required": false,
+    "lifecycle_preserved": [
+      "comprobacion",
+      "pendiente expediente (source_type=COMPROBACION)",
+      "expediente ENVIO_ACTA",
+      "pendiente oficio",
+      "oficio"
+    ],
+    "blockers_found": "none",
+    "note": "complete_expediente_from_actuacion does not validate OT/DNI/domicilio"
+  },
+
+  "dashboard_semantics": {
+    "rule": {
+      "cuenta_como_actuacion": true,
+      "cuenta_como_comprobacion": true,
+      "cuenta_como_inspeccion": false,
+      "cuenta_como_ot": false
+    },
+    "implementation_note": "_comprobacion_labarda_filter counts by comprobacion_id with motivo real; historical fits. Inspeccion count requires Inspeccion row (not created). tipo=NULL prevents INSPECCION inference side effects.",
+    "indicadores_files": [
+      "Backend/app/domains/indicadores/services/indicadores_resumen_service.py",
+      "Backend/app/domains/indicadores/services/indicadores_productividad_queries.py"
+    ],
+    "optional_filter": "document whether actuaciones.carga_solo_comprobacion should appear in productividad por inspector (recommend YES — inspectores reales cargados)"
+  },
+
+  "rutas_iniciadores": {
+    "must_not_create": ["RutaItem", "IniciadorRuta", "OrdenTrabajo", "planificacion", "retry"],
+    "post_commit_sync": "sync_iniciadores_reinspeccion_notificacion requires domicilio_id + notificacion vencida — safe no-op",
+    "guard": "skip ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal when carga_solo_comprobacion=true"
+  },
+
+  "migration_plan": {
+    "steps": [
+      "1. Create Alembic revision act_hist_1_carga_solo_comprobacion",
+      "2. Add columns carga_solo_comprobacion + titular_* with server_default false on flag",
+      "3. Drop unique index ix_actuaciones_orden_trabajo_id",
+      "4. Alter orden_trabajo_id DROP NOT NULL",
+      "5. Create partial unique index uq_actuaciones_orden_trabajo_id_not_null",
+      "6. Add CHECK constraints (optional but recommended)",
+      "7. Update SQLAlchemy model Actuaciones",
+      "8. Deploy backend before frontend toggle (backward compatible)"
+    ],
+    "postgresql_unique_null": "Multiple NULL orden_trabajo_id allowed under partial unique index",
+    "rollback": "Drop new columns/constraints; restore NOT NULL only if no historical rows exist"
+  },
+
+  "test_matrix": {
+    "A_modal_normal_intacto": "grid validate + create full inspeccion row unchanged",
+    "B_flag_historico_minimo_valido": "validate ok + commit ok",
+    "C_historico_sin_ot": "orden_trabajo_id IS NULL; no orden_trabajo row",
+    "D_historico_sin_dni": "doc_nro null in presenter",
+    "E_historico_sin_domicilio": "domicilio_id IS NULL",
+    "F_historico_persona": "nombre+apellido snapshot persisted",
+    "G_historico_razon_social": "razon social snapshot only",
+    "H_sin_titular_reject": "422 titular error",
+    "I_sin_inspector_reject": "422 inspectores error",
+    "J_sin_comprobacion_reject": "422 acta_comprobacion_num",
+    "K_sin_motivo_reject": "422 comprobacion_motivo / attach error",
+    "L_con_otra_acta_reject": "422 forbidden field acta_inspeccion_num",
+    "M_no_inferir_inspeccion": "act.tipo IS NULL after create",
+    "N_no_crear_ot": "count orden_trabajo unchanged",
+    "O_no_crear_domicilio": "domicilio_id null",
+    "P_no_crear_contribuyente": "no new contribuyente row",
+    "Q_no_crear_eo": "establecimiento_operativo_id null",
+    "R_no_iniciador_ruta": "no IniciadorRuta/RutaItem",
+    "S_gestion_comprobaciones": "bandeja row shows titular, OT —, DNI —",
+    "T_gestion_notificaciones_null_safe": "display — for null OT/DNI",
+    "U_expediente_oficio": "complete_expediente_from_actuacion on historical act",
+    "V_presenter_titular": "actuacion_to_grid_row uses snapshot",
+    "W_grid_search": "search by acta comprobacion and titular historico",
+    "X_export_actuaciones": "PDF/Excel OT/DNI —",
+    "Y_export_comprobaciones": "mappers with null OT/DNI",
+    "Z_dashboard": "comprobacion +1, inspeccion +0"
+  },
+
+  "risks": [
+    {
+      "id": "R1",
+      "risk": "Partial unique index migration on production large table",
+      "mitigation": "Online migration; test on staging copy"
+    },
+    {
+      "id": "R2",
+      "risk": "Presenter drift if resolver not used everywhere",
+      "mitigation": "Single titular_actuacion_resolver + grep audit in PR"
+    },
+    {
+      "id": "R3",
+      "risk": "User toggles flag with partial form state",
+      "mitigation": "clear forbidden fields on toggle; backend rejects stale payload"
+    },
+    {
+      "id": "R4",
+      "risk": "Edit CRUD allows converting historical to normal",
+      "mitigation": "immutable carga_solo_comprobacion + update_service guards"
+    },
+    {
+      "id": "R5",
+      "risk": "Duplicate comprobacion numero/anio across historical loads",
+      "mitigation": "attach_comprobacion existing conflict + batch dup_key"
+    },
+    {
+      "id": "R6",
+      "risk": "CHECK constraint ck_act_normal_requires_ot breaks if bad data exists",
+      "mitigation": "verify all existing rows have OT before adding CHECK"
+    }
+  ],
+
+  "planned_files": {
+    "migration": [
+      "Backend/migrations/versions/<rev>_act_hist_1_carga_solo_comprobacion.py"
+    ],
+    "backend": [
+      "Backend/app/models/actuaciones.py",
+      "Backend/app/domains/actuaciones/schemas/grid/actuacion_row_in.py",
+      "Backend/app/domains/actuaciones/mappers/grid/actuacion_row_mapper.py",
+      "Backend/app/domains/grid/services/column_map_actuaciones.py",
+      "Backend/app/domains/grid/services/dup_key.py",
+      "Backend/app/domains/actuaciones/services/create_service.py",
+      "Backend/app/domains/actuaciones/services/update_service.py",
+      "Backend/app/domains/actuaciones/utils/titular_actuacion_resolver.py",
+      "Backend/app/domains/actuaciones/presenters/actuacion_presenters.py",
+      "Backend/app/domains/actuaciones/presenters/comprobacion_actas_presenters.py",
+      "Backend/app/domains/actuaciones/services/search_service.py",
+      "Backend/app/domains/actuaciones/services/delete_service.py"
+    ],
+    "frontend": [
+      "Frontend/src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx",
+      "Frontend/src/Containers/CargarActuaciones/utils/cargarActuacionNuevaSubmit.ts",
+      "Frontend/src/types/actuaciones.d.ts",
+      "Frontend/src/Containers/Actuaciones/utils/actuacionEditRules.ts"
+    ],
+    "tests": [
+      "Backend/tests/test_act_hist_1_carga_solo_comprobacion_validate.py",
+      "Backend/tests/test_act_hist_1_carga_solo_comprobacion_create.py",
+      "Backend/tests/test_act_hist_1_presenter_titular.py",
+      "Backend/tests/test_act_hist_1_expediente_lifecycle.py",
+      "Backend/tests/test_act_hist_1_dup_key_batch.py",
+      "Backend/tests/test_act_hist_1_update_guard.py",
+      "Backend/tests/test_act_hist_1_search.py",
+      "Frontend/src/Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.test.tsx"
+    ]
+  },
+
+  "create_service_if_sketch": {
+    "pseudocode": "if payload.get('carga_solo_comprobacion'):\n    # historical minimal branch\n    act = Actuaciones(fecha=..., mes=..., anio=..., tipo=None, carga_solo_comprobacion=True, orden_trabajo_id=None, titular_*=...)\n    attach inspectores; attach_comprobacion; commit; return act\nelse:\n    # existing crear_actuacion_desde_payload unchanged"
+  }
+}

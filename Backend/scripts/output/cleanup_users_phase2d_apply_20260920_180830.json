@@ -1,0 +1,11 @@
+{
+  "transaction_status": "ROLLED_BACK",
+  "committed": false,
+  "writes_executed": false,
+  "error": "fk post reconciliation: {'fk_free_count': 4, 'fk_blocked_count': 1966, 'expected_fk_free': 4, 'expected_fk_blocked': 1966, 'fk_free_real_whitelist_ids': [937, 941, 969, 4231], 'residual_test_fk_free_count': 0, 'residual_test_fk_free_ids': [], 'valid': False}",
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_users_phase2d_20260920_180830.sql",
+    "sha256": "d0de7942a085857252219c4da0b53826f678df8d2c326932edb4df0a5f082b1d",
+    "size": 12797432
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "ticket": "ACT-HIST.5 / LEGACY-DOC.2",
+  "generated_at": "2026-09-21T15:06:00+00:00",
+  "status": "PASS",
+  "migration": {
+    "revision": "n9o0p1q2r3s4",
+    "revises": "m8n9o0p1q2r3",
+    "file": "Backend/migrations/versions/n9o0p1q2r3s4_act_hist_5_legacy_doc_materializacion.py",
+    "applied_digitaliza_test": true,
+    "applied_digitaliza_sandbox": false
+  },
+  "backfill_strategy": {
+    "comprobacion": "sin_expediente_envio=false for all existing rows; no expediente creation",
+    "oficio": "MATERIALIZADO if active iniciador_ruta linked; else PENDIENTE_DOMICILIO if actuacion sin domicilio; else PENDIENTE_MATERIALIZACION; no iniciador creation during migration"
+  },
+  "backfill_counts_test": {
+    "oficios": {
+      "MATERIALIZADO": 1009,
+      "PENDIENTE_DOMICILIO": 39,
+      "PENDIENTE_MATERIALIZACION": 133
+    },
+    "comprobaciones_sin_expediente_declarado_post_migration": 0,
+    "comprobaciones_sin_expediente_envio_legacy_unmigrated": 54
+  },
+  "backfill_counts_sandbox_dry_run": {
+    "oficios": {
+      "MATERIALIZADO": 654,
+      "PENDIENTE_DOMICILIO": 397,
+      "PENDIENTE_MATERIALIZACION": 332
+    },
+    "comprobaciones_sin_expediente_envio": 351,
+    "note": "Read-only dry-run before sandbox migration"
+  },
+  "sin_expediente_endpoint": {
+    "route": "POST /actuaciones/{id}/comprobacion/declarar-sin-expediente-envio",
+    "service": "declarar_sin_expediente_envio_service.py",
+    "idempotent": true,
+    "reversion": "deferred"
+  },
+  "audit": {
+    "fields": [
+      "sin_expediente_envio",
+      "sin_expediente_envio_declarado_at",
+      "sin_expediente_envio_declarado_by_user_id"
+    ]
+  },
+  "pendiente_expediente": "excludes comprobacion.sin_expediente_envio=true",
+  "pendiente_oficio": "includes expediente envio OR sin_expediente_envio; presenter shows expediente_envio_label",
+  "oficio_completion": {
+    "allows_sin_expediente_when_flag": true,
+    "requires_expediente_respuesta": true,
+    "materialization": "deferred when domicilio_id IS NULL"
+  },
+  "materialization_state": {
+    "enum": [
+      "MATERIALIZADO",
+      "PENDIENTE_DOMICILIO",
+      "PENDIENTE_MATERIALIZACION"
+    ],
+    "service": "oficio_materializacion_service.py",
+    "post_domicilio_hook": "update_service.materializar_iniciadores_oficio_pendientes_para_actuacion"
+  },
+  "files_changed": [
+    "Backend/migrations/versions/n9o0p1q2r3s4_act_hist_5_legacy_doc_materializacion.py",
+    "Backend/app/models/comprobacion.py",
+    "Backend/app/models/oficio.py",
+    "Backend/app/domains/actuaciones/services/declarar_sin_expediente_envio_service.py",
+    "Backend/app/domains/actuaciones/services/oficio_materializacion_service.py",
+    "Backend/app/domains/actuaciones/services/oficio_completion_service.py",
+    "Backend/app/domains/actuaciones/services/pendientes_service.py",
+    "Backend/app/domains/actuaciones/services/comprobacion_actas_bandeja_service.py",
+    "Backend/app/domains/actuaciones/services/comprobacion_documental_service.py",
+    "Backend/app/domains/actuaciones/services/update_service.py",
+    "Backend/app/domains/actuaciones/routes/comprobacion_documental.py",
+    "Backend/app/domains/actuaciones/routes/oficio_from_acta.py",
+    "Backend/app/domains/actuaciones/presenters/actuacion_presenters.py",
+    "Backend/app/domains/actuaciones/presenters/comprobacion_actas_presenters.py",
+    "Backend/app/domains/actuaciones/utils/iniciador_materializacion_estado.py",
+    "Backend/tests/test_act_hist_5_legacy_doc.py",
+    "Backend/tests/test_comprobacion_pendientes_reinspeccion_bandeja.py",
+    "Frontend/src/api/actuacionesPendientesApi.ts",
+    "Frontend/src/utils/gestionMutationLifecycle.ts",
+    "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+    "Frontend/src/Containers/ActasComprobacion/components/ComprobacionExpedienteOperativoDialog.tsx",
+    "Frontend/src/Containers/ActasComprobacion/components/RecorridoDetalleDocumentalDialog.tsx",
+    "Frontend/src/Containers/ActasComprobacion/utils/comprobacionesExportMappers.ts"
+  ],
+  "e2e_results": {
+    "camino_1_historica_sin_expediente_oficio_pendiente_domicilio": "PASS",
+    "camino_2_normal_con_domicilio_materializado": "PASS"
+  },
+  "focal_tests": {
+    "test_act_hist_5_legacy_doc.py": "17/17 PASS",
+    "test_act_hist_1_carga_solo_comprobacion.py": "PASS",
+    "test_comprobacion_pendientes_reinspeccion_bandeja.py": "PASS",
+    "test_oficio_editable_pr4b.py": "PASS",
+    "test_comprobacion_recorrido_detalle.py": "PASS"
+  },
+  "sandbox_migration": {
+    "status": "PENDING",
+    "reason": "Awaiting manual QA after test DB PASS"
+  },
+  "manual_qa": {
+    "status": "PENDING",
+    "scenarios": [
+      "No tenemos expediente de envío",
+      "Pendiente oficio diferenciado",
+      "Oficio sobre actuación sin domicilio",
+      "Pendiente domicilio operativo label",
+      "Exclusión de rutas/mapa"
+    ]
+  }
+}

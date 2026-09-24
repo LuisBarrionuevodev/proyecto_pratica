@@ -1,0 +1,293 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.2C",
+  "started_at": "2026-09-20T02:22:00.801969",
+  "writes_freeze": {
+    "backend_stopped": true,
+    "note": "run.py no activo; frontend puede seguir sin escribir en sandbox"
+  },
+  "manifest_hashes": {
+    "execution": "27937c65ba75748b8324964185118b091a83c15bb3c988eee958f2a15d3537f8",
+    "protected": "c3db321750eb962ad4d2eea66b0ce59b8b84426445b64f62f6348f41bd08f518",
+    "xlsx": "e0345f6b9452812ddc3abd20b02145152e83ff738455a0540ca3e22790f38668"
+  },
+  "precheck": {
+    "database": "digitaliza_sandbox",
+    "alembic": "l7m8n9o0p1q2",
+    "baseline": {
+      "actuaciones": 8890,
+      "ruta_trabajo": 6614,
+      "ruta_item": 6821,
+      "iniciador_ruta": 10282,
+      "denuncia": 518,
+      "relevamiento": 4618,
+      "orden_trabajo": 9642,
+      "users": 4149
+    }
+  },
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_phase1_20260920_022200.sql",
+    "size": 14781857,
+    "sha256": "5d68dffe5c4c3b0820b1c53827433eefebc95d9109a4259666b648044f858ffc",
+    "exit_code": 0,
+    "timestamp": "2026-09-20T02:22:01.740555"
+  },
+  "backup_restore_verified": true,
+  "verify_db_dropped": true,
+  "preflight": {
+    "status": "PREFLIGHT_OK",
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "engine_audit": {
+      "engines": {
+        "acta_inspeccion_item": "InnoDB",
+        "actuaciones": "InnoDB",
+        "actuaciones_inspector": "InnoDB",
+        "clausura": "InnoDB",
+        "decomiso": "InnoDB",
+        "denuncia": "InnoDB",
+        "iniciador_ruta": "InnoDB",
+        "inspeccion": "InnoDB",
+        "juzgado_catalogo": "InnoDB",
+        "orden_trabajo": "InnoDB",
+        "relevador": "InnoDB",
+        "relevamiento": "InnoDB",
+        "relevamiento_relevador": "InnoDB",
+        "rubro": "InnoDB",
+        "ruta_grupo": "InnoDB",
+        "ruta_grupo_inspector": "InnoDB",
+        "ruta_item": "InnoDB",
+        "ruta_pool_dia": "InnoDB",
+        "ruta_trabajo": "InnoDB",
+        "users": "InnoDB"
+      },
+      "non_transactional": {},
+      "apply_enabled": true
+    },
+    "execution_counts": {
+      "ruta_grupo_inspector": 578,
+      "ruta_item": 2270,
+      "ruta_pool_dia": 276,
+      "ruta_grupo": 427,
+      "ruta_trabajo": 3048,
+      "iniciador_ruta": 1719,
+      "actuaciones": 403,
+      "denuncia": 26,
+      "relevamiento": 26,
+      "orden_trabajo": 419,
+      "juzgado_catalogo": 11,
+      "rubro": 5,
+      "relevador": 1,
+      "users": 1346
+    },
+    "fk_validation_status": "EXECUTION_PLAN_VALID"
+  },
+  "transaction_started": "2026-09-20T02:22:13.475972",
+  "apply_report_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase1_apply_20260920_022200.json",
+  "apply": {
+    "database": "digitaliza_sandbox",
+    "backup_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_phase1_20260920_022200.sql",
+    "backup_size": 14781857,
+    "backup_hash": "5d68dffe5c4c3b0820b1c53827433eefebc95d9109a4259666b648044f858ffc",
+    "backup_timestamp": "2026-09-20T02:22:13.475972",
+    "execution_manifest_hash": "27937c65ba75748b8324964185118b091a83c15bb3c988eee958f2a15d3537f8",
+    "source_protected_manifest_hash": "c3db321750eb962ad4d2eea66b0ce59b8b84426445b64f62f6348f41bd08f518",
+    "started_at": "2026-09-20T02:22:13.475972",
+    "finished_at": "2026-09-20T02:22:16.834799",
+    "counts_before": {
+      "actuaciones": 8890,
+      "inspeccion": 1178,
+      "acta_inspeccion_item": 54,
+      "clausura": 84,
+      "decomiso": 34,
+      "actuaciones_inspector": 4428,
+      "ruta_trabajo": 6614,
+      "ruta_grupo": 4164,
+      "ruta_grupo_inspector": 8215,
+      "ruta_item": 6821,
+      "ruta_pool_dia": 990,
+      "iniciador_ruta": 10282,
+      "denuncia": 518,
+      "relevamiento": 4618,
+      "relevamiento_relevador": 535,
+      "orden_trabajo": 9642,
+      "users": 4149,
+      "rubro": 1222,
+      "juzgado_catalogo": 842,
+      "relevador": 3
+    },
+    "explicit_deleted": {
+      "ruta_grupo_inspector": 578,
+      "ruta_item": 2270,
+      "ruta_pool_dia": 276,
+      "ruta_grupo": 427,
+      "ruta_trabajo": 3048,
+      "iniciador_ruta": 1719,
+      "actuaciones": 403,
+      "denuncia": 26,
+      "relevamiento": 26,
+      "orden_trabajo": 419,
+      "juzgado_catalogo": 11,
+      "rubro": 5,
+      "relevador": 1,
+      "users": 1346
+    },
+    "cascade_observed": {
+      "inspeccion": 46,
+      "acta_inspeccion_item": 2,
+      "clausura": 11,
+      "decomiso": 5,
+      "actuaciones_inspector": 1
+    },
+    "protected_preserved": {
+      "actuaciones": {
+        "expected": 1189,
+        "found": 1189
+      },
+      "orden_trabajo": {
+        "expected": 1176,
+        "found": 1176
+      },
+      "inspeccion": {
+        "expected": 170,
+        "found": 170
+      },
+      "notificacion": {
+        "expected": 168,
+        "found": 168
+      },
+      "comprobacion": {
+        "expected": 48,
+        "found": 48
+      },
+      "oficio": {
+        "expected": 40,
+        "found": 40
+      },
+      "expediente": {
+        "expected": 40,
+        "found": 40
+      }
+    },
+    "protected_deleted": 0,
+    "expected_post_counts": {
+      "actuaciones": 8487,
+      "ruta_trabajo": 3566,
+      "ruta_item": 4551,
+      "iniciador_ruta": 8563,
+      "denuncia": 492,
+      "relevamiento": 4592,
+      "orden_trabajo": 9223,
+      "users": 2803,
+      "rubro": 1217,
+      "juzgado_catalogo": 831,
+      "relevador": 2
+    },
+    "blocked_preserved": {
+      "actuaciones": 139,
+      "iniciador_ruta": 1923,
+      "relevamiento": 26,
+      "denuncia": 75,
+      "orden_trabajo": 139,
+      "users": 2789,
+      "protected_iniciadores": 27,
+      "wrapper_protected_count": 27
+    },
+    "counts_after": {
+      "actuaciones": 8487,
+      "inspeccion": 1132,
+      "acta_inspeccion_item": 52,
+      "clausura": 73,
+      "decomiso": 29,
+      "actuaciones_inspector": 4427,
+      "ruta_trabajo": 3566,
+      "ruta_grupo": 3737,
+      "ruta_grupo_inspector": 7637,
+      "ruta_item": 4551,
+      "ruta_pool_dia": 714,
+      "iniciador_ruta": 8563,
+      "denuncia": 492,
+      "relevamiento": 4592,
+      "relevamiento_relevador": 535,
+      "orden_trabajo": 9223,
+      "users": 2803,
+      "rubro": 1217,
+      "juzgado_catalogo": 831,
+      "relevador": 2
+    },
+    "qa_counts_after": {
+      "actuaciones": 8487,
+      "ruta_trabajo": 3566,
+      "ruta_item": 4551,
+      "iniciador_ruta": 8563,
+      "denuncia": 492,
+      "relevamiento": 4592,
+      "orden_trabajo": 9223,
+      "users": 2803,
+      "rubro": 1217,
+      "juzgado_catalogo": 831,
+      "relevador": 2
+    },
+    "orphan_checks": [],
+    "transaction_status": "COMMITTED",
+    "committed": true,
+    "writes_executed": true,
+    "inspectors_count": 24,
+    "backup": {
+      "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_phase1_20260920_022200.sql",
+      "size": 14781857,
+      "sha256": "5d68dffe5c4c3b0820b1c53827433eefebc95d9109a4259666b648044f858ffc",
+      "exit_code": 0,
+      "timestamp": "2026-09-20T02:22:01.740555"
+    },
+    "preflight": {
+      "status": "PREFLIGHT_OK",
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "engine_audit": {
+        "engines": {
+          "acta_inspeccion_item": "InnoDB",
+          "actuaciones": "InnoDB",
+          "actuaciones_inspector": "InnoDB",
+          "clausura": "InnoDB",
+          "decomiso": "InnoDB",
+          "denuncia": "InnoDB",
+          "iniciador_ruta": "InnoDB",
+          "inspeccion": "InnoDB",
+          "juzgado_catalogo": "InnoDB",
+          "orden_trabajo": "InnoDB",
+          "relevador": "InnoDB",
+          "relevamiento": "InnoDB",
+          "relevamiento_relevador": "InnoDB",
+          "rubro": "InnoDB",
+          "ruta_grupo": "InnoDB",
+          "ruta_grupo_inspector": "InnoDB",
+          "ruta_item": "InnoDB",
+          "ruta_pool_dia": "InnoDB",
+          "ruta_trabajo": "InnoDB",
+          "users": "InnoDB"
+        },
+        "non_transactional": {},
+        "apply_enabled": true
+      },
+      "execution_counts": {
+        "ruta_grupo_inspector": 578,
+        "ruta_item": 2270,
+        "ruta_pool_dia": 276,
+        "ruta_grupo": 427,
+        "ruta_trabajo": 3048,
+        "iniciador_ruta": 1719,
+        "actuaciones": 403,
+        "denuncia": 26,
+        "relevamiento": 26,
+        "orden_trabajo": 419,
+        "juzgado_catalogo": 11,
+        "rubro": 5,
+        "relevador": 1,
+        "users": 1346
+      },
+      "fk_validation_status": "EXECUTION_PLAN_VALID"
+    },
+    "backup_restore_verified": true
+  },
+  "finished_at": "2026-09-20T02:22:17.407933"
+}

@@ -1,0 +1,158 @@
+{
+  "mode": "DRY_RUN_EXECUTION_MANIFEST",
+  "writes_executed": false,
+  "preflight": {
+    "status": "PREFLIGHT_OK",
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "engine_audit": {
+      "engines": {
+        "acta_inspeccion_item": "InnoDB",
+        "actuaciones": "InnoDB",
+        "actuaciones_inspector": "InnoDB",
+        "clausura": "InnoDB",
+        "decomiso": "InnoDB",
+        "denuncia": "InnoDB",
+        "iniciador_ruta": "InnoDB",
+        "inspeccion": "InnoDB",
+        "juzgado_catalogo": "InnoDB",
+        "orden_trabajo": "InnoDB",
+        "relevador": "InnoDB",
+        "relevamiento": "InnoDB",
+        "relevamiento_relevador": "InnoDB",
+        "rubro": "InnoDB",
+        "ruta_grupo": "InnoDB",
+        "ruta_grupo_inspector": "InnoDB",
+        "ruta_item": "InnoDB",
+        "ruta_pool_dia": "InnoDB",
+        "ruta_trabajo": "InnoDB",
+        "users": "InnoDB"
+      },
+      "non_transactional": {},
+      "apply_enabled": true
+    },
+    "execution_counts": {
+      "ruta_grupo_inspector": 578,
+      "ruta_item": 2270,
+      "ruta_pool_dia": 276,
+      "ruta_grupo": 427,
+      "ruta_trabajo": 3048,
+      "iniciador_ruta": 1719,
+      "actuaciones": 403,
+      "denuncia": 26,
+      "relevamiento": 26,
+      "orden_trabajo": 419,
+      "juzgado_catalogo": 11,
+      "rubro": 5,
+      "relevador": 1,
+      "users": 1346
+    },
+    "fk_validation_status": "EXECUTION_PLAN_VALID"
+  },
+  "count_checks": [
+    {
+      "entity": "ruta_grupo_inspector",
+      "manifest_count": 578,
+      "parsed_ids": 578,
+      "match": true
+    },
+    {
+      "entity": "ruta_item",
+      "manifest_count": 2270,
+      "parsed_ids": 2270,
+      "match": true
+    },
+    {
+      "entity": "ruta_pool_dia",
+      "manifest_count": 276,
+      "parsed_ids": 276,
+      "match": true
+    },
+    {
+      "entity": "ruta_grupo",
+      "manifest_count": 427,
+      "parsed_ids": 427,
+      "match": true
+    },
+    {
+      "entity": "ruta_trabajo",
+      "manifest_count": 3048,
+      "parsed_ids": 3048,
+      "match": true
+    },
+    {
+      "entity": "iniciador_ruta",
+      "manifest_count": 1719,
+      "parsed_ids": 1719,
+      "match": true
+    },
+    {
+      "entity": "actuaciones",
+      "manifest_count": 403,
+      "parsed_ids": 403,
+      "match": true
+    },
+    {
+      "entity": "denuncia",
+      "manifest_count": 26,
+      "parsed_ids": 26,
+      "match": true
+    },
+    {
+      "entity": "relevamiento",
+      "manifest_count": 26,
+      "parsed_ids": 26,
+      "match": true
+    },
+    {
+      "entity": "orden_trabajo",
+      "manifest_count": 419,
+      "parsed_ids": 419,
+      "match": true
+    },
+    {
+      "entity": "juzgado_catalogo",
+      "manifest_count": 11,
+      "parsed_ids": 11,
+      "match": true
+    },
+    {
+      "entity": "rubro",
+      "manifest_count": 5,
+      "parsed_ids": 5,
+      "match": true
+    },
+    {
+      "entity": "relevador",
+      "manifest_count": 1,
+      "parsed_ids": 1,
+      "match": true
+    },
+    {
+      "entity": "users",
+      "manifest_count": 1346,
+      "parsed_ids": 1346,
+      "match": true
+    }
+  ],
+  "all_counts_match": true,
+  "frozen_counts": {
+    "ruta_grupo_inspector": 578,
+    "ruta_item": 2270,
+    "ruta_pool_dia": 276,
+    "ruta_grupo": 427,
+    "ruta_trabajo": 3048,
+    "iniciador_ruta": 1719,
+    "actuaciones": 403,
+    "denuncia": 26,
+    "relevamiento": 26,
+    "orden_trabajo": 419,
+    "juzgado_catalogo": 11,
+    "rubro": 5,
+    "relevador": 1,
+    "users": 1346
+  },
+  "execution_manifest_path": "scripts\\output\\cleanup_execution_manifest_phase1_20260920.json",
+  "execution_manifest_hash": "27937c65ba75748b8324964185118b091a83c15bb3c988eee958f2a15d3537f8",
+  "protected_manifest_path": "scripts\\output\\protected_operational_manifest_20260920.json"
+}

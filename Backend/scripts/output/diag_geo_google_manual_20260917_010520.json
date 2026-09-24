@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "generated_at": "2026-09-17T04:05:20.271233+00:00",
+    "ticket": "GEO-GOOGLE.1.1",
+    "mode": "manual",
+    "google_only": true
+  },
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "zero_results": 0,
+    "errors": 0,
+    "location_types": {
+      "GEOMETRIC_CENTER": 1
+    },
+    "latency_ms": {
+      "n": 1,
+      "p50": 610.6,
+      "p95": 610.6,
+      "max": 610.6,
+      "mean": 610.6
+    },
+    "google_requests": 1
+  },
+  "records": [
+    {
+      "input": "ejercito del norte y don bosco, San Miguel de Tucumán, Tucumán, Argentina",
+      "status": "OK",
+      "api_status": "OK",
+      "error_kind": null,
+      "error_message": null,
+      "formatted_address": "Av. Ejército del Nte. & Don Bosco, T4000 San Miguel de Tucumán, Tucumán, Argentina",
+      "lat": -26.8205853,
+      "lng": -65.2312663,
+      "location_type": "GEOMETRIC_CENTER",
+      "place_id": "ElVBdi4gRWrDqXJjaXRvIGRlbCBOdGUuICYgRG9uIEJvc2NvLCBUNDAwMCBTYW4gTWlndWVsIGRlIFR1Y3Vtw6FuLCBUdWN1bcOhbiwgQXJnZW50aW5hImYiZAoUChIJhVkd8VtcIpQRdRaG4cqXsSESFAoSCYVZHfFbXCKUEXUWhuHKl7EhGhQKEgl9V2iFUlwilBE-8bmt61MsIBoUChIJaxCPyvdcIpQR-RwpCc6phxoiCg3jgAPwFal_Htk",
+      "partial_match": false,
+      "latency_ms": 610.6
+    }
+  ]
+}

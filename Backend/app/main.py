@@ -1,14 +1,44 @@
 # app/main.py
+import json
 import os
 from dotenv import load_dotenv
-from flask import Flask
+import click
+from flask import Flask, jsonify
 from flask_migrate import Migrate
-from flask_cors import CORS
+from sqlalchemy import inspect
 
 from app.database import db
-from app.routes import usuario as usuario_bp
-from app.routes.actuaciones import actuacion as actuacion_bp
-from app.routes.grid_batch import bp as grid_bp
+from app.security.deployment_config import (
+    apply_cors,
+    deployment_is_strict,
+    enforce_strict_runtime_config,
+    parse_cors_origins,
+    resolve_sqlalchemy_database_uri,
+)
+from app.shared.http_errors import register_json_error_handlers
+from app.security.test_database import configure_app_for_testing
+from app.security.phase1_jwt_guard import register_phase1_jwt_guard
+from app.security.dev_post_root_logger import register_dev_post_root_logger
+from app.security.rate_limiter import init_rate_limiter
+from app.domains.actuaciones.routes import actuacion as actuacion_bp
+from app.domains.grid.routes import grid as grid_bp
+from app.domains.relevamientos.routes import relevamiento as relevamiento_bp
+from app.domains.geolocalizacion.normalizacion_calles.routes import geolocalizacion_calles as geoloc_calles_bp
+from app.domains.geolocalizacion.geocoding.routes import geolocalizacion_geocode as geoloc_geocode_bp
+from app.domains.geolocalizacion.geocode.routes import geolocalizacion_map as geoloc_map_bp
+from app.domains.usuarios.routes import usuarios_api as usuarios_api_bp
+from app.domains.mapa_detalle.routes import mapa_detalle_api as mapa_detalle_api_bp
+from app.domains.denuncias.routes import denuncias_api as denuncias_api_bp
+from app.domains.establecimientos.routes.establecimientos import establecimientos_bp
+from app.domains.establecimientos.routes.establecimientos_operativos import (
+    establecimientos_operativos_bp,
+)
+from app.domains.rutas_trabajo.routes import rutas_trabajo as rutas_trabajo_bp
+from app.domains.rutas_trabajo.routes.ruta_pool_dia import ruta_pool_dia as ruta_pool_dia_bp
+from app.domains.indicadores.routes import indicadores_api as indicadores_api_bp
+from app.domains.catalogos.routes import catalogos as catalogos_bp
+from app.domains.usuarios.security.jwt import init_jwt
+from app.domains.usuarios.services.users_service import ensure_dev_admin_seed
 
 migrate = Migrate()
 
@@ -18,29 +48,301 @@ def create_app(config_override: dict | None = None):
 
     app = Flask(__name__)
 
-    # defaults
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "SQLALCHEMY_DATABASE_URI",
-        "mysql+pymysql://root:1234@localhost/mi_db",
-    )
+    # defaults (DATABASE_URL Railway → SQLALCHEMY_DATABASE_URI)
+    app.config["SQLALCHEMY_DATABASE_URI"] = resolve_sqlalchemy_database_uri()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = (
         os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False").lower() == "true"
     )
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-change-this-secret")
+    app.config["SMTP_HOST"] = os.getenv("SMTP_HOST")
+    app.config["SMTP_PORT"] = os.getenv("SMTP_PORT", "587")
+    app.config["SMTP_USER"] = os.getenv("SMTP_USER")
+    app.config["SMTP_PASS"] = os.getenv("SMTP_PASS")
+    app.config["SMTP_FROM"] = os.getenv("SMTP_FROM")
+    app.config["PASSWORD_RESET_PEPPER"] = os.getenv("PASSWORD_RESET_PEPPER")
+    _geocoder_raw = (
+        os.getenv("GEOCODER_PROVIDER") or os.getenv("GEO_PROVIDER") or "geoapify"
+    ).lower().strip()
+    if _geocoder_raw == "geopify":
+        _geocoder_raw = "geoapify"
+    app.config["GEOCODER_PROVIDER"] = (
+        _geocoder_raw
+        if _geocoder_raw in {"geoapify", "google", "nominatim", "none"}
+        else "geoapify"
+    )
 
-    # ✅ override ANTES de init_app
+    # EpiCollect5 (API de export; opcional hasta usar import-from-api)
+    app.config["EPICOLLECT_BASE_URL"] = os.getenv("EPICOLLECT_BASE_URL") or "https://five.epicollect.net"
+    app.config["EPICOLLECT_PROJECT_SLUG"] = os.getenv("EPICOLLECT_PROJECT_SLUG")
+    app.config["EPICOLLECT_FORM_REF"] = os.getenv("EPICOLLECT_FORM_REF")
+    app.config["EPICOLLECT_CLIENT_ID"] = os.getenv("EPICOLLECT_CLIENT_ID")
+    app.config["EPICOLLECT_CLIENT_SECRET"] = os.getenv("EPICOLLECT_CLIENT_SECRET")
+    app.config["EPICOLLECT_TIMEOUT_SECONDS"] = os.getenv("EPICOLLECT_TIMEOUT_SECONDS")
+
+    # ? override ANTES de init_app
     if config_override:
         app.config.update(config_override)
 
-    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+    if app.config.get("TESTING"):
+        configure_app_for_testing(app, config_override=config_override)
+
+    enforce_strict_runtime_config(app)
+    _cors_origins = parse_cors_origins(strict=deployment_is_strict())
+    apply_cors(app, _cors_origins)
+    register_json_error_handlers(app)
+
+    @app.get("/health")
+    def health():
+        """
+        Healthcheck liviano para Railway / balanceadores.
+
+        No consulta base de datos ni expone datos sensibles.
+        """
+        return jsonify({"status": "ok"}), 200
 
     db.init_app(app)
     migrate.init_app(app, db)
+    init_jwt(app)
+    init_rate_limiter(app)
+    register_phase1_jwt_guard(app)
+    register_dev_post_root_logger(app)
+
+    from app.domains.actuaciones.utils.put_actuacion_diag import configure_diag_logging
+    from app.domains.geolocalizacion.geocode.services.geocode_post_commit_worker import (
+        init_geocode_post_commit_worker,
+    )
+
+    configure_diag_logging()
+    init_geocode_post_commit_worker(app)
 
     app.url_map.strict_slashes = False
-    app.register_blueprint(usuario_bp, url_prefix="/usuarios")
+  
     app.register_blueprint(actuacion_bp, url_prefix="/actuaciones")
+    app.register_blueprint(relevamiento_bp, url_prefix="/relevamientos")
     
     app.register_blueprint(grid_bp)
-    print(app.url_map)
+    app.register_blueprint(geoloc_calles_bp)
+    app.register_blueprint(geoloc_geocode_bp)
+    app.register_blueprint(geoloc_map_bp)
+    app.register_blueprint(mapa_detalle_api_bp)
+    app.register_blueprint(usuarios_api_bp)
+    app.register_blueprint(denuncias_api_bp)
+    app.register_blueprint(establecimientos_bp, url_prefix="/establecimientos")
+    app.register_blueprint(establecimientos_operativos_bp, url_prefix="/establecimientos-operativos")
+    app.register_blueprint(rutas_trabajo_bp, url_prefix="/rutas-trabajo")
+    app.register_blueprint(ruta_pool_dia_bp, url_prefix="/ruta-pool-dia")
+    app.register_blueprint(indicadores_api_bp, url_prefix="/api/indicadores")
+    app.register_blueprint(catalogos_bp, url_prefix="/catalogos")
+
+    # Seed opcional de admin solo en desarrollo.
+    if os.getenv("FLASK_ENV", "development").lower() == "development":
+        with app.app_context():
+            try:
+                if inspect(db.engine).has_table("users"):
+                    ensure_dev_admin_seed()
+            except Exception:
+                app.logger.exception("No se pudo crear/verificar seed admin de desarrollo")
+
+    @app.cli.command("process-geocode-post-commit-queue")
+    @click.option("--limit", default=50, show_default=True, help="M?ximo de jobs por corrida")
+    def process_geocode_post_commit_queue_cli(limit: int) -> None:
+        """
+        Drena la cola durable de geocode post-commit (GEO-PERF.1).
+
+        Camino can?nico para Task Scheduler / cron si el worker in-process no corre.
+        """
+        from app.domains.geolocalizacion.geocode.services.geocode_post_commit_queue_service import (
+            process_geocode_post_commit_jobs,
+        )
+
+        try:
+            summary = process_geocode_post_commit_jobs(limit=int(limit))
+        except Exception:
+            app.logger.exception("process-geocode-post-commit-queue CLI fall?")
+            raise click.Abort()
+        click.echo(json.dumps(summary, ensure_ascii=True))
+
+    @app.cli.command("backfill-google-geocode-review-status")
+    @click.option(
+        "--apply",
+        is_flag=True,
+        default=False,
+        help="Persistir cambios (default: dry-run sin modificar DB)",
+    )
+    @click.option("--limit", default=None, type=int, help="M?ximo de filas a procesar")
+    @click.option("--domicilio-id", default=None, type=int, help="Procesar solo un domicilio")
+    @click.option("--batch-size", default=100, show_default=True, help="Tama?o de lote en --apply")
+    def backfill_google_geocode_review_status_cli(
+        apply: bool,
+        limit: int | None,
+        domicilio_id: int | None,
+        batch_size: int,
+    ) -> None:
+        """
+        GEO-REVIEW.1.1 ? promueve Google GEO_PENDING con coords a OK (sin llamar Google).
+
+        Default dry-run. Usar ``--apply`` para persistir.
+        """
+        from app.domains.geolocalizacion.geocode.services.google_geocode_review_backfill_service import (
+            run_google_geocode_review_status_backfill,
+        )
+
+        try:
+            summary = run_google_geocode_review_status_backfill(
+                apply=bool(apply),
+                limit=limit,
+                domicilio_id=domicilio_id,
+                batch_size=int(batch_size),
+            )
+        except Exception:
+            app.logger.exception("backfill-google-geocode-review-status CLI fall?")
+            raise click.Abort()
+
+        if summary.mode == "dry_run":
+            click.echo(
+                f"Google GEO_PENDING con coords: {summary.candidatos}\n"
+                f"Se convertir?an a OK: {summary.actualizados}"
+            )
+            if summary.sin_distrito:
+                click.echo(
+                    f"De esos, sin distrito_id (solo reporte): {summary.sin_distrito}"
+                )
+        else:
+            click.echo(
+                f"Candidatos: {summary.candidatos}\n"
+                f"Actualizados: {summary.actualizados}\n"
+                f"Omitidos: {summary.omitidos}\n"
+                f"Errores: {summary.errores}"
+            )
+            if summary.sin_distrito:
+                click.echo(
+                    f"Actualizados sin distrito_id (solo reporte): {summary.sin_distrito}"
+                )
+        click.echo(json.dumps(summary.to_dict(), ensure_ascii=True))
+
+    @app.cli.command("sync-notificaciones-vencidas")
+    @click.option(
+        "--actor-user-id",
+        type=int,
+        required=True,
+        help="ID de usuario activo que audita la corrida (obligatorio).",
+    )
+    def sync_notificaciones_vencidas_cli(actor_user_id: int) -> None:
+        """
+        Materializa iniciadores REINSPECCION_NOTIFICACION por notificaciones vencidas (Fase C).
+
+        Camino can?nico para cron / Task Scheduler: equivalente al m?dulo
+        `app.domains.actuaciones.pipelines.sync_notificaciones_vencidas`.
+        """
+        from app.domains.actuaciones.pipelines.sync_notificaciones_vencidas import (
+            run_sync_notificaciones_vencidas,
+        )
+        from app.domains.rutas_trabajo.services.auth_service import validate_actor_user_id
+
+        try:
+            validate_actor_user_id(actor_user_id)
+        except ValueError as exc:
+            click.echo(str(exc), err=True)
+            raise click.Abort()
+        try:
+            metrics = run_sync_notificaciones_vencidas(actor_user_id=actor_user_id)
+        except Exception:
+            app.logger.exception("sync-notificaciones-vencidas CLI fall?")
+            raise click.Abort()
+        click.echo(json.dumps(metrics, ensure_ascii=True))
+
+    @app.cli.command("epicollect-import-from-api")
+    @click.argument("actuacion_id", type=int)
+    @click.argument("ec5_uuid")
+    def epicollect_import_from_api_cli(actuacion_id: int, ec5_uuid: str) -> None:
+        """
+        Descarga un entry desde la API EpiCollect y ejecuta el import sobre ACTUACION_ID.
+
+        Requiere EPICOLLECT_PROJECT_SLUG (y credenciales OAuth si el proyecto es privado).
+        """
+        from flask import current_app
+
+        from app.domains.actuaciones.services.epicollect_import_service import (
+            EpicollectImportConflictError,
+        )
+        from app.domains.actuaciones.services.epicollect_remote_import_service import (
+            fetch_and_import_epicollect_entry,
+        )
+        from app.integrations.epicollect.errors import (
+            EpicollectAuthError,
+            EpicollectClientError,
+            EpicollectConfigError,
+            EpicollectEntryNotFoundError,
+            EpicollectHttpError,
+            EpicollectNetworkError,
+        )
+
+        with app.app_context():
+            try:
+                act, media_n = fetch_and_import_epicollect_entry(
+                    actuacion_id,
+                    ec5_uuid,
+                    app_config=dict(current_app.config),
+                )
+            except EpicollectConfigError as e:
+                click.echo(f"Config: {e}", err=True)
+                raise click.Abort()
+            except EpicollectEntryNotFoundError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectAuthError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectHttpError as e:
+                click.echo(f"HTTP {e.status_code}: {e}", err=True)
+                raise click.Abort()
+            except EpicollectNetworkError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectImportConflictError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except EpicollectClientError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except ValueError as e:
+                click.echo(str(e), err=True)
+                raise click.Abort()
+            except Exception:
+                app.logger.exception("epicollect-import-from-api CLI fall?")
+                raise click.Abort()
+        click.echo(
+            json.dumps(
+                {"actuacion_id": act.id, "ec5_uuid": act.ec5_uuid, "media_count": media_n},
+                ensure_ascii=True,
+            )
+        )
+
+    @app.cli.command("audit-inspectores-actuaciones")
+    @click.option(
+        "--max-ids",
+        type=int,
+        default=200,
+        show_default=True,
+        help="M?ximo de ids listados en actuacion_ids_mas_de_3.",
+    )
+    def audit_inspectores_actuaciones_cli(max_ids: int) -> None:
+        """
+        Inventario: cu?ntas actuaciones tienen m?s de 3 inspectores activos (tabla puente).
+
+        Cuenta solo filas con deleted_at IS NULL. Salida JSON para scripts y revisiones previas
+        a migrar el contrato de grilla (inspector1/2/3).
+        """
+        from app.domains.actuaciones.audit.inspectores_actuaciones_audit import (
+            audit_actuaciones_inspectores_summary,
+        )
+
+        with app.app_context():
+            try:
+                report = audit_actuaciones_inspectores_summary(max_detail_ids=max_ids)
+            except Exception:
+                app.logger.exception("audit-inspectores-actuaciones fall?")
+                raise click.Abort()
+        click.echo(json.dumps(report, ensure_ascii=True, indent=2))
 
     return app

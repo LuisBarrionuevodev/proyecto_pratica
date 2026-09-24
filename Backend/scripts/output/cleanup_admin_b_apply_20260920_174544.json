@@ -1,0 +1,276 @@
+{
+  "phase": "ADMIN_B",
+  "applied_at": "2026-09-20T17:46:08.351399",
+  "database": "digitaliza_sandbox",
+  "freeze_method": "backend_development_stopped_during_backup_preflight_transaction_postconditions",
+  "manifest_sha256": "3518deef1e0b06ade1e8ad0eba7a8e93e5978de8d81f2a0875ddd2746c0fdc8a",
+  "source_diag_sha256": "2046485eca336dec9b452d58a4246322949334f39a995a5e17f543fcde279e75",
+  "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+  "precondition_admin_a": {
+    "committed": true
+  },
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_admin_b_20260920_174544.sql",
+    "size": 12797818,
+    "sha256": "2539a6c120a6065d7ac643e78fe0d6ad0e2bd5b0a014e4a40047945581e4b282",
+    "exit_code": 0,
+    "timestamp": "2026-09-20T17:45:57.762103"
+  },
+  "preflight": {
+    "status": "ADMIN_B_PREFLIGHT_OK",
+    "post_admin_a_baseline": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 2803,
+        "establecimiento_operativo": 1657,
+        "ruta_trabajo": 2703,
+        "ruta_grupo": 2884,
+        "ruta_grupo_inspector": 5931,
+        "ruta_item": 3685,
+        "ruta_pool_dia": 361,
+        "iniciador_ruta": 8001,
+        "actuaciones": 8074,
+        "denuncia": 417,
+        "relevamiento": 4566,
+        "orden_trabajo": 8810,
+        "notificacion": 2453,
+        "comprobacion": 1530,
+        "inspeccion": 898,
+        "actuaciones_inspector": 4180,
+        "acta_inspeccion_item": 52,
+        "clausura": 69,
+        "decomiso": 25,
+        "relevamiento_relevador": 525,
+        "expediente": 2915,
+        "oficio": 1448
+      }
+    },
+    "graph": {
+      "comprobacion_id": 2289,
+      "expedientes": [
+        {
+          "id": 3103,
+          "numero_expediente": "8430B0",
+          "tipo_expediente": "ENVIO_ACTA",
+          "comprobacion_id": 2289,
+          "oficio_id": null
+        },
+        {
+          "id": 3104,
+          "numero_expediente": "8430B2",
+          "tipo_expediente": "RESPUESTA_OFICIO",
+          "comprobacion_id": 2289,
+          "oficio_id": 1662
+        }
+      ],
+      "oficio": {
+        "id": 1662,
+        "numero_oficio": "OF8430",
+        "comprobacion_id": 2289,
+        "juzgado_id": 922
+      },
+      "juzgado": {
+        "id": 922,
+        "codigo": "JZSO8430AB",
+        "nombre": "Jz Solo Env 8430AC"
+      },
+      "comprobacion_refs_before_delete": {
+        "total_refs": 3,
+        "by_fk": {
+          "expediente.comprobacion_id": {
+            "count": 2,
+            "delete_rule": "RESTRICT"
+          },
+          "oficio.comprobacion_id": {
+            "count": 1,
+            "delete_rule": "RESTRICT"
+          }
+        }
+      },
+      "oficio_incoming": {
+        "total_refs": 1,
+        "by_fk": {
+          "expediente.oficio_id": {
+            "count": 1,
+            "delete_rule": "RESTRICT"
+          }
+        }
+      }
+    },
+    "protected_closure": {
+      "valid": true,
+      "intersection": 0,
+      "detail": {
+        "by_entity": {
+          "actuaciones": {
+            "planned_explicit_ids": 0,
+            "planned_cascade_ids": 0,
+            "protected_ids": 1189,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          },
+          "orden_trabajo": {
+            "planned_explicit_ids": 0,
+            "planned_cascade_ids": 0,
+            "protected_ids": 1176,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          },
+          "inspeccion": {
+            "planned_explicit_ids": 0,
+            "planned_cascade_ids": 0,
+            "protected_ids": 170,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          },
+          "notificacion": {
+            "planned_explicit_ids": 0,
+            "planned_cascade_ids": 0,
+            "protected_ids": 168,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          },
+          "comprobacion": {
+            "planned_explicit_ids": 1,
+            "planned_cascade_ids": 0,
+            "protected_ids": 56,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          },
+          "oficio": {
+            "planned_explicit_ids": 1,
+            "planned_cascade_ids": 0,
+            "protected_ids": 40,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          },
+          "expediente": {
+            "planned_explicit_ids": 2,
+            "planned_cascade_ids": 0,
+            "protected_ids": 40,
+            "intersection_explicit": 0,
+            "intersection_cascade": 0,
+            "intersection_total": 0,
+            "sample_intersection": []
+          }
+        },
+        "conflicts": [],
+        "valid": true
+      }
+    },
+    "known_test_guards": {
+      "known_test_act_ids_union_count": 816,
+      "known_test_ot_ids_union_count": 832,
+      "known_test_act_ids_remaining": [],
+      "known_test_act_ids_remaining_count": 0,
+      "known_test_ot_ids_remaining": [],
+      "known_test_ot_ids_remaining_count": 0,
+      "guard_ok": true
+    },
+    "juzgado_922_before": {
+      "juzgado_id": 922,
+      "exists": true,
+      "oficio_refs": 1,
+      "fk_free": false,
+      "juzgado_922_fk_free_after_admin_b": false,
+      "status": "STILL_REFERENCED"
+    }
+  },
+  "counts_before": {
+    "expediente": 2915,
+    "notificacion": 2453,
+    "comprobacion": 1530,
+    "oficio": 1448
+  },
+  "explicit_deleted": {
+    "expediente": 2,
+    "oficio": 1,
+    "comprobacion": 1
+  },
+  "cascade_deleted": {
+    "total": 0
+  },
+  "set_null_affected": {
+    "total": 0
+  },
+  "counts_after": {
+    "expediente": 2913,
+    "notificacion": 2453,
+    "comprobacion": 1529,
+    "oficio": 1447
+  },
+  "manifest_ids_remaining": {
+    "expediente_3103": 0,
+    "expediente_3104": 0,
+    "oficio_1662": 0,
+    "comprobacion_2289": 0
+  },
+  "juzgado_922_status": {
+    "juzgado_id": 922,
+    "exists": true,
+    "oficio_refs": 0,
+    "fk_free": true,
+    "juzgado_922_fk_free_after_admin_b": true,
+    "status": "READY_FOR_PHASE2E"
+  },
+  "protected_preserved": {
+    "actuaciones": {
+      "expected": 1189,
+      "found": 1189,
+      "min_count": 1189
+    },
+    "orden_trabajo": {
+      "expected": 1176,
+      "found": 1176,
+      "min_count": 1176
+    },
+    "inspeccion": {
+      "expected": 170,
+      "found": 170,
+      "min_count": 170
+    },
+    "notificacion": {
+      "expected": 168,
+      "found": 168,
+      "min_count": 168
+    },
+    "comprobacion": {
+      "expected": 56,
+      "found": 56,
+      "min_count": 56
+    },
+    "oficio": {
+      "expected": 40,
+      "found": 40,
+      "min_count": 40
+    },
+    "expediente": {
+      "expected": 40,
+      "found": 40,
+      "min_count": 40
+    }
+  },
+  "orphan_checks": [],
+  "transaction_status": "COMMITTED",
+  "committed": true,
+  "writes_executed": true,
+  "phase2d_executed": false,
+  "phase2e_executed": false,
+  "restore_verify": {
+    "verified": true,
+    "verify_db": "digitaliza_sandbox_backup_verify_admin_b"
+  }
+}

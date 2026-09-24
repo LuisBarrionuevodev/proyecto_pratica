@@ -1,0 +1,71 @@
+{
+  "ticket": "PERF-DASH.2.2",
+  "date": "2026-09-22",
+  "writes_executed": false,
+  "migration_required": false,
+  "implementation_strategy": "NOT EXISTS sobre ruta_item+iniciador_ruta REINSPECCION_NOTIFICACION cuando act.notificacion_id == iniciador.notificacion_id; integrado en _notificacion_labrada_kpi_filter dentro del SELECT agregado único.",
+  "canonical_origin_rule": "notificacion_es_origen_reinspeccion_notificacion_en_actuacion (oficio_circuito_service.py) — expresión SQL en notificacion_labrada_kpi_filters.py",
+  "query_before": "COUNT actuaciones realizadas WHERE notificacion_id IS NOT NULL AND EXISTS(notificacion_motivo)",
+  "query_after": "COUNT actuaciones realizadas WHERE notificacion_id IS NOT NULL AND EXISTS(notificacion_motivo) AND NOT EXISTS(reinspeccion origen referencial)",
+  "sandbox_cases": {
+    "actuacion_10590": {
+      "actuacion_id": 10590,
+      "found": true,
+      "notificacion_id": 2996,
+      "iniciador_id": 11034,
+      "iniciador_notificacion_id": 2996,
+      "es_vinculo_origen": true
+    },
+    "actuacion_11420": {
+      "actuacion_id": 11420,
+      "found": true,
+      "notificacion_id": 3101,
+      "iniciador_id": 11948,
+      "iniciador_notificacion_id": 3101,
+      "es_vinculo_origen": true
+    }
+  },
+  "before": {
+    "notificacion": 11,
+    "total_actas": 38,
+    "source": "PERF-DASH.2.1 diag pre-fix"
+  },
+  "after": {
+    "notificacion": 9,
+    "total_actas": 36,
+    "actas_por_tipo": {
+      "inspeccion": 15,
+      "notificacion": 9,
+      "comprobacion": 8,
+      "clausura": 2,
+      "decomiso": 2
+    }
+  },
+  "reinspecciones_notificacion_before": 1,
+  "reinspecciones_notificacion_after": 2,
+  "other_kpis_equal": {
+    "actuaciones_realizadas": 20,
+    "inspecciones_realizadas": 10,
+    "reinspecciones_oficio_realizadas": 5,
+    "mercaderia_decomisada_kg": 16316.0
+  },
+  "productividad_audit": "query_actas_por_inspector usa _notificacion_labrada_kpi_filter",
+  "riesgo_audit": "query_top_motivos_notificacion excluye origen referencial",
+  "pdf_export_audit": "Panel/PDF consumen ejecutivo API — sin recálculo separado",
+  "performance": {
+    "endpoint_ms_after": 17.9,
+    "query_count_ejecutivo_after": 14,
+    "query_count_actas_subquery_after": 9,
+    "note": "Mantiene SELECT agregado único; sin regresión a 5 COUNTs"
+  },
+  "tests": {
+    "initial": "test_a_inicial_labra_notificacion_cuenta",
+    "rein_without_new_notification": "test_b_reinspeccion_sin_nueva_notificacion_no_recuenta",
+    "rein_with_new_notification": "test_c_reinspeccion_con_nueva_notificacion_cuenta_solo_nueva",
+    "cross_month": "test_d_cross_month_reinspeccion_no_arrastra_notif",
+    "same_month": "test_e_mismo_mes_notificacion_cuenta_una_sola_vez",
+    "normal_notification": "test_f_actuacion_normal_con_notificacion_sigue_contando",
+    "retry": "test_g_dos_reinspecciones_misma_notificacion_origen_no_recuentan"
+  },
+  "status": "PASS"
+}

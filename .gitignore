@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+node_modules
+dist
+dist-ssr
+*.local
+backups/
+Backend/scripts/output/*.log
+
+# Editor directories and files
+venv/
+.vscode/*
+.env
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*git
+*.njsproj
+*.sln
+*.sw?

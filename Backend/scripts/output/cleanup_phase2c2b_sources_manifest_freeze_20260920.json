@@ -1,0 +1,6733 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.3G.1",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3697,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8039,
+      "actuaciones": 8222,
+      "denuncia": 417,
+      "relevamiento": 4592,
+      "orden_trabajo": 8958,
+      "inspeccion": 915,
+      "actuaciones_inspector": 4189,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 535
+    }
+  },
+  "manifest": {
+    "generated_at": "2026-09-20T14:04:08.437571",
+    "phase": "2C2B",
+    "phase_name": "safe_actuaciones_relevamientos_ot",
+    "mode": "EXECUTION_MANIFEST_FROZEN",
+    "writes_executed": false,
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "source_diag_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase2c2b_sources_diag_20260920.json",
+    "source_diag_sha256": "3295b6229ca458b51ddbe789c215aefff6da1beecd2d0d1a4dc6988a210bb622",
+    "cascade_reconcile_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_phase2c2b_cascade_reconcile_20260920.json",
+    "cascade_reconcile_sha256": "9e46a0f20faedba5cd79610b6c3fffc258f41b580cdabb1d095ea1e5e898f1b5",
+    "protected_manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\protected_operational_manifest_20260920.json",
+    "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+    "safe_set_counts": {
+      "actuaciones": 110,
+      "relevamiento": 26,
+      "orden_trabajo": 110
+    },
+    "act_family_breakdown": {
+      "SET_ACT_OLD_count": 101,
+      "SET_ACT_STRUCTURED_count": 9,
+      "BOTH_count": 0,
+      "SET_ACT_OLD_ids": [
+        7009,
+        7022,
+        7282,
+        7468,
+        7562,
+        7942,
+        7984,
+        8032,
+        9350,
+        9580,
+        9581,
+        9582,
+        9583,
+        9588,
+        9593,
+        9594,
+        9595,
+        9596,
+        9597,
+        9600,
+        9601,
+        9653,
+        9654,
+        9655,
+        9681,
+        9684,
+        9687,
+        9689,
+        9690,
+        9695,
+        9702,
+        9711,
+        9712,
+        9714,
+        9717,
+        9718,
+        9721,
+        9722,
+        9723,
+        9724,
+        9727,
+        9730,
+        9734,
+        9735,
+        9737,
+        9744,
+        9745,
+        9746,
+        9754,
+        9756,
+        9763,
+        9764,
+        9765,
+        9846,
+        9847,
+        9848,
+        9849,
+        9850,
+        9851,
+        9852,
+        9854,
+        9855,
+        9856,
+        9857,
+        9858,
+        9859,
+        9860,
+        9861,
+        9862,
+        9866,
+        9869,
+        9870,
+        9873,
+        9874,
+        9878,
+        9881,
+        9882,
+        9885,
+        9888,
+        9889,
+        9890,
+        9893,
+        9894,
+        9897,
+        9898,
+        9901,
+        9904,
+        9910,
+        9911,
+        9912,
+        9913,
+        9914,
+        9915,
+        9926,
+        9927,
+        9928,
+        9929,
+        9930,
+        9931,
+        10000,
+        10095
+      ],
+      "SET_ACT_STRUCTURED_ids": [
+        9145,
+        10748,
+        10749,
+        10750,
+        10752,
+        10761,
+        10762,
+        10763,
+        10765
+      ]
+    },
+    "entities": {
+      "actuaciones": [
+        {
+          "id": 7009
+        },
+        {
+          "id": 7022
+        },
+        {
+          "id": 7282
+        },
+        {
+          "id": 7468
+        },
+        {
+          "id": 7562
+        },
+        {
+          "id": 7942
+        },
+        {
+          "id": 7984
+        },
+        {
+          "id": 8032
+        },
+        {
+          "id": 9145
+        },
+        {
+          "id": 9350
+        },
+        {
+          "id": 9580
+        },
+        {
+          "id": 9581
+        },
+        {
+          "id": 9582
+        },
+        {
+          "id": 9583
+        },
+        {
+          "id": 9588
+        },
+        {
+          "id": 9593
+        },
+        {
+          "id": 9594
+        },
+        {
+          "id": 9595
+        },
+        {
+          "id": 9596
+        },
+        {
+          "id": 9597
+        },
+        {
+          "id": 9600
+        },
+        {
+          "id": 9601
+        },
+        {
+          "id": 9653
+        },
+        {
+          "id": 9654
+        },
+        {
+          "id": 9655
+        },
+        {
+          "id": 9681
+        },
+        {
+          "id": 9684
+        },
+        {
+          "id": 9687
+        },
+        {
+          "id": 9689
+        },
+        {
+          "id": 9690
+        },
+        {
+          "id": 9695
+        },
+        {
+          "id": 9702
+        },
+        {
+          "id": 9711
+        },
+        {
+          "id": 9712
+        },
+        {
+          "id": 9714
+        },
+        {
+          "id": 9717
+        },
+        {
+          "id": 9718
+        },
+        {
+          "id": 9721
+        },
+        {
+          "id": 9722
+        },
+        {
+          "id": 9723
+        },
+        {
+          "id": 9724
+        },
+        {
+          "id": 9727
+        },
+        {
+          "id": 9730
+        },
+        {
+          "id": 9734
+        },
+        {
+          "id": 9735
+        },
+        {
+          "id": 9737
+        },
+        {
+          "id": 9744
+        },
+        {
+          "id": 9745
+        },
+        {
+          "id": 9746
+        },
+        {
+          "id": 9754
+        },
+        {
+          "id": 9756
+        },
+        {
+          "id": 9763
+        },
+        {
+          "id": 9764
+        },
+        {
+          "id": 9765
+        },
+        {
+          "id": 9846
+        },
+        {
+          "id": 9847
+        },
+        {
+          "id": 9848
+        },
+        {
+          "id": 9849
+        },
+        {
+          "id": 9850
+        },
+        {
+          "id": 9851
+        },
+        {
+          "id": 9852
+        },
+        {
+          "id": 9854
+        },
+        {
+          "id": 9855
+        },
+        {
+          "id": 9856
+        },
+        {
+          "id": 9857
+        },
+        {
+          "id": 9858
+        },
+        {
+          "id": 9859
+        },
+        {
+          "id": 9860
+        },
+        {
+          "id": 9861
+        },
+        {
+          "id": 9862
+        },
+        {
+          "id": 9866
+        },
+        {
+          "id": 9869
+        },
+        {
+          "id": 9870
+        },
+        {
+          "id": 9873
+        },
+        {
+          "id": 9874
+        },
+        {
+          "id": 9878
+        },
+        {
+          "id": 9881
+        },
+        {
+          "id": 9882
+        },
+        {
+          "id": 9885
+        },
+        {
+          "id": 9888
+        },
+        {
+          "id": 9889
+        },
+        {
+          "id": 9890
+        },
+        {
+          "id": 9893
+        },
+        {
+          "id": 9894
+        },
+        {
+          "id": 9897
+        },
+        {
+          "id": 9898
+        },
+        {
+          "id": 9901
+        },
+        {
+          "id": 9904
+        },
+        {
+          "id": 9910
+        },
+        {
+          "id": 9911
+        },
+        {
+          "id": 9912
+        },
+        {
+          "id": 9913
+        },
+        {
+          "id": 9914
+        },
+        {
+          "id": 9915
+        },
+        {
+          "id": 9926
+        },
+        {
+          "id": 9927
+        },
+        {
+          "id": 9928
+        },
+        {
+          "id": 9929
+        },
+        {
+          "id": 9930
+        },
+        {
+          "id": 9931
+        },
+        {
+          "id": 10000
+        },
+        {
+          "id": 10095
+        },
+        {
+          "id": 10748
+        },
+        {
+          "id": 10749
+        },
+        {
+          "id": 10750
+        },
+        {
+          "id": 10752
+        },
+        {
+          "id": 10761
+        },
+        {
+          "id": 10762
+        },
+        {
+          "id": 10763
+        },
+        {
+          "id": 10765
+        }
+      ],
+      "relevamiento": [
+        {
+          "id": 4066
+        },
+        {
+          "id": 4071
+        },
+        {
+          "id": 4073
+        },
+        {
+          "id": 4074
+        },
+        {
+          "id": 4075
+        },
+        {
+          "id": 4076
+        },
+        {
+          "id": 4078
+        },
+        {
+          "id": 4080
+        },
+        {
+          "id": 4081
+        },
+        {
+          "id": 4082
+        },
+        {
+          "id": 4083
+        },
+        {
+          "id": 4085
+        },
+        {
+          "id": 4087
+        },
+        {
+          "id": 4088
+        },
+        {
+          "id": 4089
+        },
+        {
+          "id": 4090
+        },
+        {
+          "id": 4811
+        },
+        {
+          "id": 4812
+        },
+        {
+          "id": 4816
+        },
+        {
+          "id": 4860
+        },
+        {
+          "id": 4861
+        },
+        {
+          "id": 4880
+        },
+        {
+          "id": 4882
+        },
+        {
+          "id": 4883
+        },
+        {
+          "id": 4884
+        },
+        {
+          "id": 4885
+        }
+      ],
+      "orden_trabajo": [
+        {
+          "id": 7458
+        },
+        {
+          "id": 7471
+        },
+        {
+          "id": 7733
+        },
+        {
+          "id": 7923
+        },
+        {
+          "id": 8018
+        },
+        {
+          "id": 8438
+        },
+        {
+          "id": 8480
+        },
+        {
+          "id": 8528
+        },
+        {
+          "id": 9689
+        },
+        {
+          "id": 9908
+        },
+        {
+          "id": 10166
+        },
+        {
+          "id": 10167
+        },
+        {
+          "id": 10168
+        },
+        {
+          "id": 10169
+        },
+        {
+          "id": 10174
+        },
+        {
+          "id": 10179
+        },
+        {
+          "id": 10180
+        },
+        {
+          "id": 10181
+        },
+        {
+          "id": 10182
+        },
+        {
+          "id": 10183
+        },
+        {
+          "id": 10186
+        },
+        {
+          "id": 10187
+        },
+        {
+          "id": 10241
+        },
+        {
+          "id": 10242
+        },
+        {
+          "id": 10243
+        },
+        {
+          "id": 10271
+        },
+        {
+          "id": 10274
+        },
+        {
+          "id": 10277
+        },
+        {
+          "id": 10279
+        },
+        {
+          "id": 10280
+        },
+        {
+          "id": 10285
+        },
+        {
+          "id": 10292
+        },
+        {
+          "id": 10301
+        },
+        {
+          "id": 10302
+        },
+        {
+          "id": 10304
+        },
+        {
+          "id": 10307
+        },
+        {
+          "id": 10308
+        },
+        {
+          "id": 10311
+        },
+        {
+          "id": 10312
+        },
+        {
+          "id": 10313
+        },
+        {
+          "id": 10314
+        },
+        {
+          "id": 10317
+        },
+        {
+          "id": 10320
+        },
+        {
+          "id": 10324
+        },
+        {
+          "id": 10325
+        },
+        {
+          "id": 10327
+        },
+        {
+          "id": 10334
+        },
+        {
+          "id": 10335
+        },
+        {
+          "id": 10336
+        },
+        {
+          "id": 10344
+        },
+        {
+          "id": 10346
+        },
+        {
+          "id": 10353
+        },
+        {
+          "id": 10354
+        },
+        {
+          "id": 10355
+        },
+        {
+          "id": 10440
+        },
+        {
+          "id": 10441
+        },
+        {
+          "id": 10442
+        },
+        {
+          "id": 10443
+        },
+        {
+          "id": 10444
+        },
+        {
+          "id": 10445
+        },
+        {
+          "id": 10446
+        },
+        {
+          "id": 10448
+        },
+        {
+          "id": 10449
+        },
+        {
+          "id": 10450
+        },
+        {
+          "id": 10451
+        },
+        {
+          "id": 10452
+        },
+        {
+          "id": 10453
+        },
+        {
+          "id": 10454
+        },
+        {
+          "id": 10455
+        },
+        {
+          "id": 10456
+        },
+        {
+          "id": 10460
+        },
+        {
+          "id": 10463
+        },
+        {
+          "id": 10464
+        },
+        {
+          "id": 10467
+        },
+        {
+          "id": 10468
+        },
+        {
+          "id": 10472
+        },
+        {
+          "id": 10475
+        },
+        {
+          "id": 10476
+        },
+        {
+          "id": 10479
+        },
+        {
+          "id": 10482
+        },
+        {
+          "id": 10483
+        },
+        {
+          "id": 10484
+        },
+        {
+          "id": 10487
+        },
+        {
+          "id": 10488
+        },
+        {
+          "id": 10491
+        },
+        {
+          "id": 10492
+        },
+        {
+          "id": 10495
+        },
+        {
+          "id": 10498
+        },
+        {
+          "id": 10504
+        },
+        {
+          "id": 10505
+        },
+        {
+          "id": 10506
+        },
+        {
+          "id": 10507
+        },
+        {
+          "id": 10508
+        },
+        {
+          "id": 10509
+        },
+        {
+          "id": 10520
+        },
+        {
+          "id": 10521
+        },
+        {
+          "id": 10522
+        },
+        {
+          "id": 10523
+        },
+        {
+          "id": 10524
+        },
+        {
+          "id": 10525
+        },
+        {
+          "id": 10596
+        },
+        {
+          "id": 10717
+        },
+        {
+          "id": 11375
+        },
+        {
+          "id": 11376
+        },
+        {
+          "id": 11377
+        },
+        {
+          "id": 11379
+        },
+        {
+          "id": 11388
+        },
+        {
+          "id": 11389
+        },
+        {
+          "id": 11390
+        },
+        {
+          "id": 11392
+        }
+      ]
+    },
+    "expected_cascades": {
+      "inspeccion": {
+        "physical_rows": 17,
+        "distinct_parent_ids": 17,
+        "baseline": 915,
+        "expected_after": 898,
+        "ids": [
+          640,
+          641,
+          699,
+          727,
+          731,
+          770,
+          777,
+          785,
+          860,
+          1070,
+          1071,
+          1072,
+          1074,
+          1075,
+          1076,
+          1077,
+          1079
+        ],
+        "delete_rule": "CASCADE",
+        "explicit_delete_in_manifest": false
+      },
+      "actuaciones_inspector": {
+        "physical_rows": 9,
+        "distinct_parent_ids": 9,
+        "baseline": 4189,
+        "expected_after": 4180,
+        "ids": [
+          {
+            "actuaciones_id": 7009,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 7022,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 7282,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 7468,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 7562,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 7942,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 7984,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 8032,
+            "inspector_id": 1
+          },
+          {
+            "actuaciones_id": 9350,
+            "inspector_id": 1
+          }
+        ],
+        "delete_rule": "CASCADE",
+        "explicit_delete_in_manifest": false
+      },
+      "acta_inspeccion_item": {
+        "physical_rows": 0,
+        "distinct_parent_ids": 0,
+        "baseline": 52,
+        "expected_after": 52,
+        "ids": [],
+        "delete_rule": "CASCADE",
+        "explicit_delete_in_manifest": false
+      },
+      "clausura": {
+        "physical_rows": 0,
+        "distinct_parent_ids": 0,
+        "baseline": 69,
+        "expected_after": 69,
+        "ids": [],
+        "delete_rule": "CASCADE",
+        "explicit_delete_in_manifest": false
+      },
+      "decomiso": {
+        "physical_rows": 0,
+        "distinct_parent_ids": 0,
+        "baseline": 25,
+        "expected_after": 25,
+        "ids": [],
+        "delete_rule": "CASCADE",
+        "explicit_delete_in_manifest": false
+      },
+      "relevamiento_relevador": {
+        "physical_rows": 10,
+        "distinct_parent_ids": 5,
+        "baseline": 535,
+        "expected_after": 525,
+        "ids": [
+          {
+            "relevamiento_id": 4811,
+            "relevador_id": 1
+          },
+          {
+            "relevamiento_id": 4811,
+            "relevador_id": 2
+          },
+          {
+            "relevamiento_id": 4812,
+            "relevador_id": 1
+          },
+          {
+            "relevamiento_id": 4812,
+            "relevador_id": 2
+          },
+          {
+            "relevamiento_id": 4816,
+            "relevador_id": 1
+          },
+          {
+            "relevamiento_id": 4816,
+            "relevador_id": 2
+          },
+          {
+            "relevamiento_id": 4860,
+            "relevador_id": 1
+          },
+          {
+            "relevamiento_id": 4860,
+            "relevador_id": 2
+          },
+          {
+            "relevamiento_id": 4861,
+            "relevador_id": 1
+          },
+          {
+            "relevamiento_id": 4861,
+            "relevador_id": 2
+          }
+        ],
+        "delete_rule": "CASCADE",
+        "explicit_delete_in_manifest": false
+      }
+    },
+    "preserve": {
+      "notificaciones_109": [
+        1691,
+        1693,
+        1742,
+        1808,
+        1836,
+        1950,
+        1958,
+        1970,
+        2389,
+        2533,
+        2534,
+        2535,
+        2536,
+        2541,
+        2546,
+        2547,
+        2548,
+        2549,
+        2550,
+        2553,
+        2554,
+        2580,
+        2581,
+        2582,
+        2603,
+        2606,
+        2609,
+        2611,
+        2612,
+        2617,
+        2624,
+        2633,
+        2634,
+        2636,
+        2639,
+        2640,
+        2643,
+        2644,
+        2645,
+        2646,
+        2649,
+        2652,
+        2656,
+        2657,
+        2659,
+        2666,
+        2667,
+        2668,
+        2676,
+        2678,
+        2685,
+        2686,
+        2687,
+        2737,
+        2738,
+        2739,
+        2740,
+        2741,
+        2742,
+        2743,
+        2745,
+        2746,
+        2747,
+        2748,
+        2749,
+        2750,
+        2751,
+        2752,
+        2753,
+        2757,
+        2760,
+        2761,
+        2764,
+        2765,
+        2769,
+        2772,
+        2773,
+        2776,
+        2779,
+        2780,
+        2781,
+        2784,
+        2785,
+        2788,
+        2789,
+        2792,
+        2795,
+        2801,
+        2802,
+        2803,
+        2804,
+        2805,
+        2806,
+        2817,
+        2818,
+        2819,
+        2820,
+        2821,
+        2822,
+        2864,
+        2883,
+        3011,
+        3012,
+        3013,
+        3014,
+        3021,
+        3022,
+        3023,
+        3024
+      ],
+      "comprobaciones_3": [
+        2129,
+        2304,
+        2308
+      ],
+      "comprobacion_2129": {
+        "id": 2129,
+        "exists": true,
+        "preserve": true
+      },
+      "oficio_1575": {
+        "id": 1575,
+        "exists": true,
+        "preserve": true
+      },
+      "source_notificaciones_119": [
+        1603,
+        1663,
+        1665,
+        1691,
+        1693,
+        1742,
+        1785,
+        1786,
+        1787,
+        1808,
+        1836,
+        1884,
+        1885,
+        1950,
+        1958,
+        1970,
+        2090,
+        2340,
+        2389,
+        2500,
+        2533,
+        2534,
+        2535,
+        2536,
+        2541,
+        2546,
+        2547,
+        2548,
+        2549,
+        2550,
+        2553,
+        2580,
+        2581,
+        2582,
+        2589,
+        2603,
+        2606,
+        2609,
+        2611,
+        2612,
+        2617,
+        2624,
+        2633,
+        2634,
+        2636,
+        2639,
+        2640,
+        2643,
+        2644,
+        2645,
+        2646,
+        2649,
+        2652,
+        2656,
+        2657,
+        2659,
+        2666,
+        2667,
+        2668,
+        2676,
+        2678,
+        2685,
+        2686,
+        2687,
+        2725,
+        2737,
+        2738,
+        2739,
+        2740,
+        2741,
+        2742,
+        2743,
+        2745,
+        2746,
+        2747,
+        2748,
+        2749,
+        2750,
+        2751,
+        2752,
+        2753,
+        2754,
+        2757,
+        2760,
+        2761,
+        2764,
+        2765,
+        2769,
+        2772,
+        2773,
+        2776,
+        2780,
+        2781,
+        2784,
+        2785,
+        2788,
+        2789,
+        2792,
+        2795,
+        2801,
+        2802,
+        2803,
+        2804,
+        2805,
+        2806,
+        2817,
+        2818,
+        2819,
+        2820,
+        2821,
+        2860,
+        3011,
+        3012,
+        3013,
+        3014,
+        3021,
+        3022,
+        3023,
+        3024
+      ],
+      "legacy_inspector_id_on_relevamientos": [
+        {
+          "relevamiento_id": 4066,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4071,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4073,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4074,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4075,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4076,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4078,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4080,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4081,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4082,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4083,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4085,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4087,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4088,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4089,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4090,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4880,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4882,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4883,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4884,
+          "inspector_id": 1
+        },
+        {
+          "relevamiento_id": 4885,
+          "inspector_id": 1
+        }
+      ]
+    },
+    "excluded": {
+      "blocked_acts_38": [
+        6832,
+        6835,
+        6836,
+        6945,
+        6947,
+        6999,
+        7025,
+        7375,
+        7376,
+        7377,
+        7458,
+        7493,
+        7507,
+        7577,
+        7619,
+        7682,
+        7683,
+        7697,
+        7932,
+        7964,
+        8015,
+        8250,
+        9211,
+        9496,
+        9612,
+        9663,
+        9698,
+        9830,
+        9833,
+        9853,
+        9863,
+        9864,
+        9865,
+        9908,
+        9942,
+        9992,
+        9996,
+        10465
+      ],
+      "orphan_notificaciones_36": 36,
+      "orphan_comprobaciones_20": 20,
+      "relevador_qa_id_2": {
+        "id": 2,
+        "nombre": "Otro Relevador QA",
+        "current_refs": [
+          4811,
+          4812,
+          4816,
+          4860,
+          4861
+        ],
+        "expected_refs_after_2c2b": 0,
+        "status": "READY_FOR_PHASE2E"
+      }
+    },
+    "delete_order": [
+      "actuaciones",
+      "relevamiento",
+      "orden_trabajo"
+    ],
+    "forbidden_deletes": {
+      "users": 0,
+      "comprobacion": 0,
+      "inspector": 0,
+      "ruta_pool_dia": 0,
+      "domicilio": 0,
+      "rubro": 0,
+      "relevador": 0,
+      "expediente": 0,
+      "ruta_item": 0,
+      "decomiso": 0,
+      "relevamiento_relevador": 0,
+      "denuncia": 0,
+      "acta_inspeccion_item": 0,
+      "clausura": 0,
+      "oficio": 0,
+      "actuaciones_inspector": 0,
+      "inspeccion": 0,
+      "notificacion": 0,
+      "iniciador_ruta": 0
+    },
+    "expected_counts_before": {
+      "actuaciones": 8222,
+      "relevamiento": 4592,
+      "orden_trabajo": 8958,
+      "inspeccion": 915,
+      "actuaciones_inspector": 4189,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 535
+    },
+    "expected_counts_after": {
+      "actuaciones": 8112,
+      "relevamiento": 4566,
+      "orden_trabajo": 8848,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525
+    },
+    "unchanged_counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "denuncia": 417,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3697,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8039
+    },
+    "users_unlock_simulation": {
+      "users_test_fk_free_baseline_post_2c2a": 812,
+      "users_test_fk_free_after_2c2b_sim": 833,
+      "users_additionally_unlocked_by_2c2b_sim": 21,
+      "users_test_still_blocked_sim": 1956,
+      "additionally_unlocked_sample": [
+        5099,
+        5104,
+        5106,
+        5107,
+        5108,
+        5109,
+        5111,
+        5113,
+        5114,
+        5115,
+        5116,
+        5147,
+        5149,
+        5150,
+        5151,
+        5152,
+        5659,
+        5661,
+        5662,
+        5663,
+        5664
+      ]
+    },
+    "catalog_effects_metadata": {
+      "otro_relevador_qa": {
+        "found": true,
+        "relevador_id": 2,
+        "nombre": "Otro Relevador QA",
+        "activo": 1,
+        "relevamientos_sobrevivientes": 5,
+        "relevamiento_ids": [
+          4811,
+          4812,
+          4816,
+          4860,
+          4861
+        ],
+        "todos_confirmado_test": true,
+        "eliminable_fase2_si_relevamientos_borrados": true,
+        "conservar_si_una_ref_real": false
+      },
+      "rubros_test": {
+        "confirmado_test_total": 669,
+        "bucket_counts": {
+          "A_cero_refs": 0,
+          "B_refs_solo_test": 669,
+          "C_refs_real_indeterminado": 0
+        },
+        "buckets": {
+          "A_cero_refs": [],
+          "B_refs_solo_test": [
+            {
+              "id": 21,
+              "nombre": "RubroEO_601037",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 23,
+              "nombre": "RubroEO_45657",
+              "domicilios": 2,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 217,
+              "nombre": "RubroEO_671302",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 218,
+              "nombre": "RubroEO_662258",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 220,
+              "nombre": "RubroEO_627286",
+              "domicilios": 2,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 222,
+              "nombre": "RubStab10d776556",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 223,
+              "nombre": "RubStab10d822342",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 227,
+              "nombre": "rubro-763680",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 231,
+              "nombre": "rubro-512731",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 235,
+              "nombre": "rubro-947909",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 237,
+              "nombre": "Pr715Rub-6319c0bf",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 238,
+              "nombre": "Pr715Rub-b629a067",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 239,
+              "nombre": "Pr715Rub-9608d81b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 240,
+              "nombre": "Pr715Rub-d958e25e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 241,
+              "nombre": "Pr715Rub-cce991e2",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 242,
+              "nombre": "Pr715Rub-b6800782",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 243,
+              "nombre": "Pr715Rub-c2940a9d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 244,
+              "nombre": "Pr715Rub-783c9788",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 245,
+              "nombre": "Pr715Rub-2479e201",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 246,
+              "nombre": "Pr715Rub-0fc999d3",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 247,
+              "nombre": "Pr715Rub-1a67a9fe",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 248,
+              "nombre": "PanPr712-a932a018",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 249,
+              "nombre": "CarnPr712-118518e6",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 250,
+              "nombre": "VerdPr712-ffc1b216",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 251,
+              "nombre": "CafePr712-630878da",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 252,
+              "nombre": "RotiPr712-1985aa2e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 253,
+              "nombre": "Carn712c-ceb404a0",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 255,
+              "nombre": "Carn712cB-8852b6f1",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 257,
+              "nombre": "Notif712c-b84cbc0f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 258,
+              "nombre": "Comp712c-2e22d90f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 259,
+              "nombre": "Notif713-c34a53a2",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 260,
+              "nombre": "Comp713-813ecda7",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 261,
+              "nombre": "CarnPr711-239a4bfd",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 262,
+              "nombre": "VerdPr711-8f792387",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 263,
+              "nombre": "CarnPr711-5b11f355",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 264,
+              "nombre": "VerdPr711-f370a589",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 265,
+              "nombre": "CarnPr711-dea31e18",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 266,
+              "nombre": "VerdPr711-28e2d8f9",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 267,
+              "nombre": "CarnPr711-cb3a0c2e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 268,
+              "nombre": "VerdPr711-a9b9fb4a",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 270,
+              "nombre": "PollNum711-784e723d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 279,
+              "nombre": "Pr715Rub-7a218c0f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 280,
+              "nombre": "Pr715Rub-15633ccb",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 281,
+              "nombre": "Pr715Rub-d21d8ff8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 282,
+              "nombre": "Pr715Rub-25d7c413",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 283,
+              "nombre": "Pr715Rub-32611316",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 284,
+              "nombre": "Pr715Rub-c530d4a1",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 285,
+              "nombre": "Pr715Rub-0bed3872",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 286,
+              "nombre": "Pr715Rub-b74ff1ce",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 287,
+              "nombre": "Pr715Rub-88980e33",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 288,
+              "nombre": "Pr715Rub-6c6bc6fd",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 289,
+              "nombre": "Pr715Rub-61af3c9a",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 290,
+              "nombre": "PanPr712-8401b988",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 291,
+              "nombre": "CarnPr712-6846ff88",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 292,
+              "nombre": "VerdPr712-ce248925",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 293,
+              "nombre": "CafePr712-f9bfd99b",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 294,
+              "nombre": "RotiPr712-c6c73b54",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 295,
+              "nombre": "Carn712c-b84f61dc",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 297,
+              "nombre": "Carn712cB-7aa6a53d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 299,
+              "nombre": "Notif712c-40854cbc",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 300,
+              "nombre": "Comp712c-eac5bb4d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 301,
+              "nombre": "Notif713-8eed7fb4",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 302,
+              "nombre": "Comp713-33f3596b",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 303,
+              "nombre": "CarnPr711-ea3f0acd",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 304,
+              "nombre": "VerdPr711-22c73126",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 305,
+              "nombre": "CarnPr711-3e2e9ac2",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 306,
+              "nombre": "VerdPr711-b0660674",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 307,
+              "nombre": "CarnPr711-715bcaf2",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 308,
+              "nombre": "VerdPr711-8e75dc14",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 309,
+              "nombre": "CarnPr711-42da94d0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 310,
+              "nombre": "VerdPr711-16077964",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 312,
+              "nombre": "PollNum711-dffb1835",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 321,
+              "nombre": "Pr715Rub-6b7d5ecd",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 322,
+              "nombre": "Pr715Rub-2b27d598",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 323,
+              "nombre": "Pr715Rub-e668dfc1",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 324,
+              "nombre": "RotiPr712-78c1e67e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 325,
+              "nombre": "CarnPr711-56d3db5a",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 326,
+              "nombre": "VerdPr711-7c19112c",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 327,
+              "nombre": "CarnPr711-e99c33ff",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 328,
+              "nombre": "VerdPr711-ba863744",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 329,
+              "nombre": "CarnPr711-21211a06",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 330,
+              "nombre": "VerdPr711-4287e29e",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 334,
+              "nombre": "Pr715Rub-ea91d2e7",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 335,
+              "nombre": "Pr715Rub-e0e9faa9",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 336,
+              "nombre": "Pr715Rub-2e473721",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 337,
+              "nombre": "RotiPr712-b6d5f863",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 338,
+              "nombre": "CarnPr711-1bbaca23",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 339,
+              "nombre": "VerdPr711-dc0679cd",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 340,
+              "nombre": "CarnPr711-c72a744d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 341,
+              "nombre": "VerdPr711-5df4e5dc",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 342,
+              "nombre": "CarnPr711-2e4c3820",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 343,
+              "nombre": "VerdPr711-e9647527",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 347,
+              "nombre": "Pr715Rub-ccd72fe8",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 348,
+              "nombre": "Pr715Rub-e3595975",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 349,
+              "nombre": "Pr715Rub-bf9ec33e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 350,
+              "nombre": "Pr715Rub-3c2e584e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 351,
+              "nombre": "Pr715Rub-f2541efc",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 352,
+              "nombre": "Pr715Rub-c900615a",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 353,
+              "nombre": "Pr715Rub-1e1f35ef",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 354,
+              "nombre": "Pr715Rub-0672b257",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 355,
+              "nombre": "Pr715Rub-704125da",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 356,
+              "nombre": "Pr715Rub-a5f7a7ec",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 357,
+              "nombre": "Pr715Rub-7c770437",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 359,
+              "nombre": "CarnPr712-8bb3653d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 360,
+              "nombre": "VerdPr712-c1488695",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 361,
+              "nombre": "CafePr712-90cd1b04",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 362,
+              "nombre": "RotiPr712-3f9ce2f4",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 363,
+              "nombre": "Carn712cB-94636820",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 365,
+              "nombre": "Notif712c-6758778e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 366,
+              "nombre": "Comp712c-a7149945",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 367,
+              "nombre": "Notif713-8cfdc82e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 373,
+              "nombre": "CarnPr711-18a33294",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 374,
+              "nombre": "VerdPr711-6876e0a9",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 375,
+              "nombre": "CarnPr711-31434ace",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 376,
+              "nombre": "VerdPr711-7dd1248a",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 377,
+              "nombre": "CarnPr711-713ccdba",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 378,
+              "nombre": "VerdPr711-4ff6bbeb",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 385,
+              "nombre": "PanPr712-e40e8c5a",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 386,
+              "nombre": "CarnPr712-12aa6e4b",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 387,
+              "nombre": "VerdPr712-51d3c4a6",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 388,
+              "nombre": "CafePr712-b6925929",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 389,
+              "nombre": "RotiPr712-12dbe7c6",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 390,
+              "nombre": "Carn712c-8111a8a4",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 392,
+              "nombre": "Carn712cB-a445936a",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 394,
+              "nombre": "Notif712c-605a644c",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 395,
+              "nombre": "Comp712c-1a413a60",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 396,
+              "nombre": "Notif713-4b8f0345",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 397,
+              "nombre": "Comp713-e2f0c88e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 406,
+              "nombre": "CarnPr711-28118243",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 407,
+              "nombre": "VerdPr711-4b4a5499",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 408,
+              "nombre": "PanPr712-3104e2c4",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 409,
+              "nombre": "CarnPr712-ca8520ad",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 410,
+              "nombre": "VerdPr712-86e4d74e",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 411,
+              "nombre": "CafePr712-6b80ebbd",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 412,
+              "nombre": "RotiPr712-f22a5416",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 413,
+              "nombre": "Carn712c-1808576c",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 415,
+              "nombre": "Carn712cB-f8b6f592",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 417,
+              "nombre": "Notif712c-4ea0177e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 418,
+              "nombre": "Comp712c-a7cf84a4",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 419,
+              "nombre": "Notif713-7e7e1e73",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 420,
+              "nombre": "Comp713-74735728",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 429,
+              "nombre": "CarnPr711-a3832a42",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 430,
+              "nombre": "VerdPr711-17171431",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 431,
+              "nombre": "PanPr712-482bea01",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 432,
+              "nombre": "CarnPr712-dfe664b3",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 433,
+              "nombre": "VerdPr712-315a98ef",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 434,
+              "nombre": "CafePr712-778340cb",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 435,
+              "nombre": "RotiPr712-f3d88cb7",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 436,
+              "nombre": "Carn712c-53734082",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 438,
+              "nombre": "Carn712cB-05348700",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 440,
+              "nombre": "Notif712c-9ee24a0e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 441,
+              "nombre": "Comp712c-27f74d34",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 442,
+              "nombre": "Notif713-40b0e441",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 443,
+              "nombre": "Comp713-687d23a3",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 452,
+              "nombre": "CarnPr711-bf491238",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 453,
+              "nombre": "VerdPr711-d9e84e2a",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 454,
+              "nombre": "PanPr712-8bffb95b",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 455,
+              "nombre": "CarnPr712-3e92baba",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 456,
+              "nombre": "VerdPr712-74e5172a",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 457,
+              "nombre": "CafePr712-b51e57f3",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 458,
+              "nombre": "RotiPr712-c0d321a6",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 459,
+              "nombre": "Carn712c-590929dc",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 461,
+              "nombre": "Carn712cB-9f7c7527",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 463,
+              "nombre": "Notif712c-162b1b7c",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 464,
+              "nombre": "Comp712c-f913e50f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 465,
+              "nombre": "Notif713-4f83805f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 466,
+              "nombre": "Comp713-a6a1a8c1",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 475,
+              "nombre": "CarnPr711-4478e776",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 476,
+              "nombre": "VerdPr711-a31597e3",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 477,
+              "nombre": "PanPr712-92d17865",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 478,
+              "nombre": "CarnPr712-f42aea06",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 479,
+              "nombre": "VerdPr712-a80c1cee",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 480,
+              "nombre": "CafePr712-e6343d76",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 481,
+              "nombre": "RotiPr712-3dd24d66",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 482,
+              "nombre": "Carn712c-c96ceec5",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 484,
+              "nombre": "Carn712cB-b9d18ef7",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 486,
+              "nombre": "Notif712c-64b1d409",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 487,
+              "nombre": "Comp712c-73fa48b8",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 488,
+              "nombre": "Notif713-73490d96",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 489,
+              "nombre": "Comp713-94a97486",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 498,
+              "nombre": "CarnPr711-88aff1eb",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 499,
+              "nombre": "VerdPr711-4bcb4afb",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 500,
+              "nombre": "Pr715Rub-dc78b73e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 501,
+              "nombre": "Pr715Rub-a94b7b12",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 502,
+              "nombre": "Pr715Rub-0ae0a2a4",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 503,
+              "nombre": "Pr715Rub-b926afd0",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 504,
+              "nombre": "Pr715Rub-f6eefd9f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 505,
+              "nombre": "CarnPr712-d137b4b0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 506,
+              "nombre": "VerdPr712-6acfb38c",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 507,
+              "nombre": "Carn712cB-369342b6",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 509,
+              "nombre": "Comp712c-53c585b1",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 510,
+              "nombre": "Notif713-9883fd42",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 511,
+              "nombre": "Comp713-87e1cbe3",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 526,
+              "nombre": "rubro-908294",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 527,
+              "nombre": "CarnPr711-37298c38",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 528,
+              "nombre": "VerdPr711-14a31a0b",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 561,
+              "nombre": "CarnPr711-01594c4e",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 562,
+              "nombre": "VerdPr711-e55f5b48",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 564,
+              "nombre": "PollNum711-4d684dfa",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 668,
+              "nombre": "Pr715Rub-0314ef01",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 669,
+              "nombre": "Pr715Rub-bea40fea",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 670,
+              "nombre": "Pr715Rub-88d3404e",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 671,
+              "nombre": "Pr715Rub-1b510981",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 672,
+              "nombre": "Pr715Rub-d00abd78",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 673,
+              "nombre": "Pr715Rub-26c235ff",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 674,
+              "nombre": "Pr715Rub-0b8722b2",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 675,
+              "nombre": "Pr715Rub-3a749f5c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 676,
+              "nombre": "Pr715Rub-c9dbc83a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 677,
+              "nombre": "Pr715Rub-20eb620c",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 678,
+              "nombre": "Pr715Rub-8b649ed3",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 680,
+              "nombre": "PanPr712-2decb48b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 681,
+              "nombre": "CarnPr712-4f9e2011",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 682,
+              "nombre": "VerdPr712-9d77a50a",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 683,
+              "nombre": "CafePr712-fad6f7b2",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 684,
+              "nombre": "RotiPr712-8d526acd",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 685,
+              "nombre": "Carn712c-0dcf4ece",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 687,
+              "nombre": "Carn712cB-437a8232",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 689,
+              "nombre": "Notif712c-2aad8b46",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 690,
+              "nombre": "Comp712c-1c36df85",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 691,
+              "nombre": "Notif713-8509426e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 692,
+              "nombre": "Comp713-6a6e0c83",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 743,
+              "nombre": "RubStab10d951520",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 752,
+              "nombre": "CarnPr711-ee089796",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 753,
+              "nombre": "VerdPr711-6939154d",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 754,
+              "nombre": "CarnPr711-ad5b27bc",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 755,
+              "nombre": "VerdPr711-fb3eb7e0",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 756,
+              "nombre": "CarnPr711-3682d8c1",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 757,
+              "nombre": "VerdPr711-87075785",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 759,
+              "nombre": "PollNum711-43e46941",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 811,
+              "nombre": "CafePr712-e107cc8f",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 813,
+              "nombre": "Pr715Rub-3e4a69c4",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 814,
+              "nombre": "CafePr712-b62e3825",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 816,
+              "nombre": "Pr715Rub-6a280b5f",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 817,
+              "nombre": "Pr715Rub-c3ffa05f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 818,
+              "nombre": "Pr715Rub-c7fe3527",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 819,
+              "nombre": "Pr715Rub-1b8c61f6",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 820,
+              "nombre": "Pr715Rub-87755a34",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 821,
+              "nombre": "Pr715Rub-d5a51ae4",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 822,
+              "nombre": "Pr715Rub-16c3e509",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 823,
+              "nombre": "Pr715Rub-1e9a7c91",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 824,
+              "nombre": "Pr715Rub-9f4c7212",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 825,
+              "nombre": "Pr715Rub-c1f84432",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 826,
+              "nombre": "Pr715Rub-1a4158b3",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 827,
+              "nombre": "Pr715Rub-f3af9530",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 844,
+              "nombre": "Pr715Rub-86a4b919",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 845,
+              "nombre": "Pr715Rub-ad7eb71e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 846,
+              "nombre": "Pr715Rub-2520b551",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 847,
+              "nombre": "Pr715Rub-25720663",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 848,
+              "nombre": "Pr715Rub-8d42dd24",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 849,
+              "nombre": "Pr715Rub-5f7f38c5",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 850,
+              "nombre": "Pr715Rub-e5649a11",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 851,
+              "nombre": "Pr715Rub-7e6d3c25",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 852,
+              "nombre": "Pr715Rub-4b5eda5c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 853,
+              "nombre": "Pr715Rub-d3e71aff",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 854,
+              "nombre": "Pr715Rub-39ca3a60",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 856,
+              "nombre": "CafePr712-735ae19a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 857,
+              "nombre": "RotiPr712-fcb2f2fd",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 859,
+              "nombre": "Carn712cB-11b5931e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 861,
+              "nombre": "Notif712c-c748b508",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 862,
+              "nombre": "Comp712c-1197f4b8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 863,
+              "nombre": "Pr715Rub-565dfdb7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 864,
+              "nombre": "Pr715Rub-83836e3a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 865,
+              "nombre": "Pr715Rub-b9c5d44a",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 866,
+              "nombre": "Pr715Rub-5b24a776",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 867,
+              "nombre": "Pr715Rub-ffe530d1",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 868,
+              "nombre": "Pr715Rub-d355d04e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 869,
+              "nombre": "Pr715Rub-4347b4cc",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 870,
+              "nombre": "Pr715Rub-d6fd6aa7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 871,
+              "nombre": "Pr715Rub-62210b03",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 872,
+              "nombre": "Pr715Rub-e0b38c37",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 873,
+              "nombre": "Pr715Rub-1ab84512",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 875,
+              "nombre": "CafePr712-9e56b51c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 876,
+              "nombre": "RotiPr712-61523ea0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 878,
+              "nombre": "Carn712cB-028f581f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 880,
+              "nombre": "Notif712c-a9d244d0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 881,
+              "nombre": "Comp712c-326a43e8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 909,
+              "nombre": "CarnPr711-432bb155",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 910,
+              "nombre": "VerdPr711-e388c81f",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 911,
+              "nombre": "CarnPr711-928baeb0",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 912,
+              "nombre": "VerdPr711-cee2d180",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 913,
+              "nombre": "CarnPr711-ddbaaade",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 914,
+              "nombre": "VerdPr711-627ab006",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 954,
+              "nombre": "CarnPr711-09bf6469",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 955,
+              "nombre": "VerdPr711-676244e0",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 956,
+              "nombre": "CarnPr711-9872ecb3",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 957,
+              "nombre": "VerdPr711-9166dc06",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 958,
+              "nombre": "CarnPr711-4db322e4",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 959,
+              "nombre": "VerdPr711-e4b6f1ba",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 972,
+              "nombre": "Pr715Rub-00ab18b3",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 973,
+              "nombre": "Pr715Rub-cfd72928",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 974,
+              "nombre": "Pr715Rub-b20c1920",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 975,
+              "nombre": "Pr715Rub-5979f969",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 976,
+              "nombre": "Pr715Rub-a5aab71c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 977,
+              "nombre": "Pr715Rub-005e814f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 978,
+              "nombre": "Pr715Rub-11e3684c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 979,
+              "nombre": "Pr715Rub-5bdc2b77",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 980,
+              "nombre": "Pr715Rub-0327599e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 981,
+              "nombre": "Pr715Rub-951da583",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 982,
+              "nombre": "Pr715Rub-e6427d5b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 984,
+              "nombre": "CafePr712-1f0cb85b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 985,
+              "nombre": "RotiPr712-3c8f5e74",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 987,
+              "nombre": "Carn712cB-e3165f8b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 989,
+              "nombre": "Notif712c-bfc2bfbc",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 990,
+              "nombre": "Comp712c-ce1f0c4f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1018,
+              "nombre": "CarnPr711-47c91cd9",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1019,
+              "nombre": "VerdPr711-ed8d5268",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1020,
+              "nombre": "CarnPr711-004e2581",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1021,
+              "nombre": "VerdPr711-420f0ad2",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1022,
+              "nombre": "CarnPr711-58316dda",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1023,
+              "nombre": "VerdPr711-ce9c7ebd",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1036,
+              "nombre": "Pr715Rub-9242a382",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1037,
+              "nombre": "Pr715Rub-ab762843",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1038,
+              "nombre": "Pr715Rub-5d560733",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1039,
+              "nombre": "Pr715Rub-8b042d52",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1040,
+              "nombre": "Pr715Rub-996450ba",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1041,
+              "nombre": "Pr715Rub-c0896166",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1042,
+              "nombre": "Pr715Rub-94cec899",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1043,
+              "nombre": "Pr715Rub-0010985d",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1044,
+              "nombre": "Pr715Rub-7eb590e3",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1045,
+              "nombre": "Pr715Rub-c01d32f3",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1046,
+              "nombre": "Pr715Rub-39f64642",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1047,
+              "nombre": "Pr715Rub-f2975aa5",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1048,
+              "nombre": "Pr715Rub-fa7e888b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1049,
+              "nombre": "Pr715Rub-5d645176",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1050,
+              "nombre": "Pr715Rub-9c5b1614",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1051,
+              "nombre": "Pr715Rub-4b51183c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1053,
+              "nombre": "CafePr712-0dc7294a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1054,
+              "nombre": "RotiPr712-97e681e9",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1056,
+              "nombre": "Carn712cB-544f0904",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1058,
+              "nombre": "Notif712c-633024f7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1059,
+              "nombre": "Comp712c-eb70917a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1087,
+              "nombre": "CarnPr711-74f3c78b",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1088,
+              "nombre": "VerdPr711-682f3725",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1089,
+              "nombre": "CarnPr711-076da8c8",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1090,
+              "nombre": "VerdPr711-0d202df5",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1091,
+              "nombre": "CarnPr711-dafcec89",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1092,
+              "nombre": "VerdPr711-350bec01",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1105,
+              "nombre": "Pr715Rub-a4d81791",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1106,
+              "nombre": "Pr715Rub-27b37d03",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1107,
+              "nombre": "Pr715Rub-6d27d8bf",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1108,
+              "nombre": "Pr715Rub-7d153378",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1109,
+              "nombre": "Pr715Rub-9d31a51f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1110,
+              "nombre": "Pr715Rub-38ce0c15",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1111,
+              "nombre": "Pr715Rub-d7569ac6",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1112,
+              "nombre": "Pr715Rub-8c648d60",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1113,
+              "nombre": "Pr715Rub-4f28192c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1114,
+              "nombre": "Pr715Rub-64999494",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1115,
+              "nombre": "Pr715Rub-7c869c6f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1117,
+              "nombre": "CafePr712-b2f0f8a6",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1118,
+              "nombre": "RotiPr712-f20701eb",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1120,
+              "nombre": "Carn712cB-027b2335",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1122,
+              "nombre": "Notif712c-1a81349b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1123,
+              "nombre": "Comp712c-c22b9810",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1151,
+              "nombre": "CarnPr711-7107a9e7",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1152,
+              "nombre": "VerdPr711-2a738859",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1153,
+              "nombre": "CarnPr711-78bca7b1",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1154,
+              "nombre": "VerdPr711-1a3e2eba",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1155,
+              "nombre": "CarnPr711-e2aa8680",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1156,
+              "nombre": "VerdPr711-2b521381",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1169,
+              "nombre": "Pr715Rub-5dd463ba",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1170,
+              "nombre": "Pr715Rub-368b1b49",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1171,
+              "nombre": "Pr715Rub-ec83359b",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1172,
+              "nombre": "Pr715Rub-03c3462d",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1173,
+              "nombre": "Pr715Rub-75648df9",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1174,
+              "nombre": "Pr715Rub-0ca5d1f8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1175,
+              "nombre": "Pr715Rub-509250c6",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1176,
+              "nombre": "Pr715Rub-0b258248",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1177,
+              "nombre": "Pr715Rub-053f17c6",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1178,
+              "nombre": "Pr715Rub-8f737ded",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1179,
+              "nombre": "Pr715Rub-54154492",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1181,
+              "nombre": "CafePr712-d419301d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1182,
+              "nombre": "RotiPr712-61e27cb9",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1184,
+              "nombre": "Carn712cB-a34742ec",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1186,
+              "nombre": "Notif712c-edb9d181",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1187,
+              "nombre": "Comp712c-2640aa84",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1215,
+              "nombre": "CarnPr711-46dfbc95",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1216,
+              "nombre": "VerdPr711-c4572810",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1217,
+              "nombre": "CarnPr711-aee740ee",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1218,
+              "nombre": "VerdPr711-80b303e8",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1219,
+              "nombre": "CarnPr711-1678e2f9",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1220,
+              "nombre": "VerdPr711-ff179ab8",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1233,
+              "nombre": "Pr715Rub-91b63c41",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1234,
+              "nombre": "Pr715Rub-007ed64a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1235,
+              "nombre": "Pr715Rub-cbef3560",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1236,
+              "nombre": "Pr715Rub-c897165c",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1237,
+              "nombre": "Pr715Rub-c5e533e8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1238,
+              "nombre": "Pr715Rub-a2464725",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1239,
+              "nombre": "Pr715Rub-46168e37",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1240,
+              "nombre": "Pr715Rub-573ea356",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1241,
+              "nombre": "Pr715Rub-b1e078d2",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1242,
+              "nombre": "Pr715Rub-1ade0488",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1243,
+              "nombre": "Pr715Rub-135ab0b7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1245,
+              "nombre": "CafePr712-0fd5f0d0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1246,
+              "nombre": "RotiPr712-e4445da0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1248,
+              "nombre": "Carn712cB-21da0fbe",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1250,
+              "nombre": "Notif712c-3d2ef2f2",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1251,
+              "nombre": "Comp712c-923ac4d5",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1279,
+              "nombre": "CarnPr711-7cb59d89",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1280,
+              "nombre": "VerdPr711-c4737d5b",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1281,
+              "nombre": "CarnPr711-a80bf07d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1282,
+              "nombre": "VerdPr711-bf0d56f4",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1283,
+              "nombre": "CarnPr711-9c3794c9",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1284,
+              "nombre": "VerdPr711-f67ddf27",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1297,
+              "nombre": "Pr715Rub-f1dcc9fb",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1298,
+              "nombre": "Pr715Rub-892fdf0c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1299,
+              "nombre": "Pr715Rub-6467423a",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1300,
+              "nombre": "Pr715Rub-cf916b74",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1301,
+              "nombre": "Pr715Rub-8a47a134",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1302,
+              "nombre": "Pr715Rub-e33fe872",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1303,
+              "nombre": "Pr715Rub-0776c0b8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1304,
+              "nombre": "Pr715Rub-e4d3281a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1305,
+              "nombre": "Pr715Rub-3432016e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1306,
+              "nombre": "Pr715Rub-72d7f6a4",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1307,
+              "nombre": "Pr715Rub-de8fc953",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1309,
+              "nombre": "CafePr712-620e0606",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1310,
+              "nombre": "RotiPr712-c0d026a3",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1312,
+              "nombre": "Carn712cB-945f92bc",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1314,
+              "nombre": "Notif712c-ea8069ab",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1315,
+              "nombre": "Comp712c-6a344099",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1316,
+              "nombre": "Pr715Rub-8746fb2d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1317,
+              "nombre": "Pr715Rub-805e8908",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1318,
+              "nombre": "Pr715Rub-ae05a7ac",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1319,
+              "nombre": "Pr715Rub-c8bd40b8",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1320,
+              "nombre": "Pr715Rub-6c5a01f1",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1321,
+              "nombre": "Pr715Rub-4dd2e020",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1322,
+              "nombre": "Pr715Rub-3b4f0787",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1323,
+              "nombre": "Pr715Rub-49dd2d4e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1324,
+              "nombre": "Pr715Rub-7d9dcb88",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1325,
+              "nombre": "Pr715Rub-e5b06f77",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1326,
+              "nombre": "Pr715Rub-f2cbe2d7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1328,
+              "nombre": "CafePr712-9189970f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1329,
+              "nombre": "RotiPr712-2e27ada6",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1331,
+              "nombre": "Carn712cB-baa5ea90",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1333,
+              "nombre": "Notif712c-e60dd5e4",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1334,
+              "nombre": "Comp712c-76d6cf59",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1362,
+              "nombre": "CarnPr711-abcc5c3d",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1363,
+              "nombre": "VerdPr711-f6d1ae14",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1364,
+              "nombre": "CarnPr711-50cb46fb",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1365,
+              "nombre": "VerdPr711-ff6b0547",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1366,
+              "nombre": "CarnPr711-da7141d8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1367,
+              "nombre": "VerdPr711-0f99cc46",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1407,
+              "nombre": "CarnPr711-5550cc16",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1408,
+              "nombre": "VerdPr711-3b471108",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1409,
+              "nombre": "CarnPr711-3e8101cd",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1410,
+              "nombre": "VerdPr711-0d3c3bb2",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1411,
+              "nombre": "CarnPr711-52a6752c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1412,
+              "nombre": "VerdPr711-139411f8",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1438,
+              "nombre": "RubroEO_812730",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1439,
+              "nombre": "RubroEO_584947",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1441,
+              "nombre": "RubroEO_217285",
+              "domicilios": 2,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1443,
+              "nombre": "Pr715Rub-3a62905a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1444,
+              "nombre": "Pr715Rub-8410ce61",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1445,
+              "nombre": "Pr715Rub-b57b84e1",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1446,
+              "nombre": "Pr715Rub-eafc4588",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1447,
+              "nombre": "Pr715Rub-f54c3445",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1448,
+              "nombre": "Pr715Rub-8bbb39e2",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1449,
+              "nombre": "Pr715Rub-115ef56c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1450,
+              "nombre": "Pr715Rub-2259ec1e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1451,
+              "nombre": "Pr715Rub-200a7188",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1452,
+              "nombre": "Pr715Rub-a9600263",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1453,
+              "nombre": "Pr715Rub-7e7d0999",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1455,
+              "nombre": "CafePr712-f7cab030",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1456,
+              "nombre": "RotiPr712-18ad4916",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1458,
+              "nombre": "Carn712cB-39118bcc",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1460,
+              "nombre": "Notif712c-6341a09b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1461,
+              "nombre": "Comp712c-bf2b9491",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1462,
+              "nombre": "Pr715Rub-f539d5da",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1463,
+              "nombre": "Pr715Rub-c5f3607a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1464,
+              "nombre": "Pr715Rub-c8e6e039",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1465,
+              "nombre": "Pr715Rub-090ad89e",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1466,
+              "nombre": "Pr715Rub-6d968388",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1467,
+              "nombre": "Pr715Rub-a341481d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1468,
+              "nombre": "Pr715Rub-d85086fd",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1469,
+              "nombre": "Pr715Rub-6de7a250",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1470,
+              "nombre": "Pr715Rub-2a626100",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1471,
+              "nombre": "Pr715Rub-ac5d0547",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1472,
+              "nombre": "Pr715Rub-a01d738c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1474,
+              "nombre": "CafePr712-c11c37be",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1475,
+              "nombre": "RotiPr712-53bfe369",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1477,
+              "nombre": "Carn712cB-e05a9af6",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1479,
+              "nombre": "Notif712c-1ab7f0ce",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1480,
+              "nombre": "Comp712c-197b8827",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1481,
+              "nombre": "Pr715Rub-46494c8b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1482,
+              "nombre": "Pr715Rub-1240e1ee",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1483,
+              "nombre": "Pr715Rub-fc6f5686",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1484,
+              "nombre": "Pr715Rub-072d1d8c",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1485,
+              "nombre": "Pr715Rub-e1a5815e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1486,
+              "nombre": "Pr715Rub-48d3f4bb",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1487,
+              "nombre": "Pr715Rub-f3071987",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1488,
+              "nombre": "Pr715Rub-a40ebddd",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1489,
+              "nombre": "Pr715Rub-7cfcadf7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1490,
+              "nombre": "Pr715Rub-ec25590a",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1491,
+              "nombre": "Pr715Rub-f7836a27",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1493,
+              "nombre": "CafePr712-d16ed4bf",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1494,
+              "nombre": "RotiPr712-b8807f1e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1496,
+              "nombre": "Carn712cB-8edd0e50",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1498,
+              "nombre": "Notif712c-0e0f5fcb",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1499,
+              "nombre": "Comp712c-ad4ef324",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1503,
+              "nombre": "RubroEO_535288",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1504,
+              "nombre": "RubroEO_917457",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1506,
+              "nombre": "RubroEO_973621",
+              "domicilios": 2,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1511,
+              "nombre": "Pr715Rub-793a1f4b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1512,
+              "nombre": "Pr715Rub-fb8c765d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1513,
+              "nombre": "Pr715Rub-8c19d782",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1514,
+              "nombre": "Pr715Rub-3a97a6e9",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1515,
+              "nombre": "Pr715Rub-5d557387",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1516,
+              "nombre": "Pr715Rub-5a42db49",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1517,
+              "nombre": "Pr715Rub-0a02463f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1518,
+              "nombre": "Pr715Rub-cf21a634",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1519,
+              "nombre": "Pr715Rub-35d9fd37",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1520,
+              "nombre": "Pr715Rub-b03e0845",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1521,
+              "nombre": "Pr715Rub-93877889",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1523,
+              "nombre": "CafePr712-eab51380",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1524,
+              "nombre": "RotiPr712-a13fc3a4",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1526,
+              "nombre": "Carn712cB-97518618",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1528,
+              "nombre": "Notif712c-48dfad25",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1529,
+              "nombre": "Comp712c-844a954d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1533,
+              "nombre": "RubroEO_576377",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1534,
+              "nombre": "RubroEO_183259",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1536,
+              "nombre": "RubroEO_451531",
+              "domicilios": 2,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1565,
+              "nombre": "RubroEO_189357",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1566,
+              "nombre": "RubroEO_568764",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1568,
+              "nombre": "RubroEO_558296",
+              "domicilios": 2,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1578,
+              "nombre": "CarnPr711-b37944f8",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1579,
+              "nombre": "VerdPr711-48b06988",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1580,
+              "nombre": "CarnPr711-e8d28877",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1581,
+              "nombre": "VerdPr711-617a6911",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1582,
+              "nombre": "CarnPr711-8a640976",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1583,
+              "nombre": "VerdPr711-9cae88b1",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1597,
+              "nombre": "Pr715Rub-516070ef",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1598,
+              "nombre": "Pr715Rub-7342e691",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1599,
+              "nombre": "Pr715Rub-c908448d",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1600,
+              "nombre": "Pr715Rub-b28e09e6",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1601,
+              "nombre": "Pr715Rub-66fc609b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1602,
+              "nombre": "Pr715Rub-3ccebe37",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1603,
+              "nombre": "Pr715Rub-92ea7282",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1604,
+              "nombre": "Pr715Rub-cc35b80b",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1605,
+              "nombre": "Pr715Rub-3b34dc5e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1606,
+              "nombre": "Pr715Rub-0c701993",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1607,
+              "nombre": "Pr715Rub-4a6a9b95",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1609,
+              "nombre": "CafePr712-dd125a3a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1610,
+              "nombre": "RotiPr712-50cb0677",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1612,
+              "nombre": "Carn712cB-d720656f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1614,
+              "nombre": "Notif712c-aa351040",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1615,
+              "nombre": "Comp712c-a93b2811",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1645,
+              "nombre": "CarnPr711-b8093088",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1646,
+              "nombre": "VerdPr711-e523aa02",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1647,
+              "nombre": "CarnPr711-74277150",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1648,
+              "nombre": "VerdPr711-3133f7f3",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1649,
+              "nombre": "CarnPr711-5d9885db",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1650,
+              "nombre": "VerdPr711-7becdd42",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1671,
+              "nombre": "Pr715Rub-275132ef",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1674,
+              "nombre": "Pr715Rub-96a2e17e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1675,
+              "nombre": "Pr715Rub-16f026c7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1676,
+              "nombre": "Pr715Rub-b0166c74",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1677,
+              "nombre": "Pr715Rub-4dac25ab",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1678,
+              "nombre": "Pr715Rub-53440237",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1679,
+              "nombre": "Pr715Rub-7cfc6932",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1680,
+              "nombre": "Notif712c-c1aed25e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1681,
+              "nombre": "Comp712c-9d8c2803",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1682,
+              "nombre": "Notif713-b3ef450d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1683,
+              "nombre": "Comp713-c1a971a0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1689,
+              "nombre": "RubPool969562",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1690,
+              "nombre": "RubPool193219",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1691,
+              "nombre": "Pr715Rub-f8983da0",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1692,
+              "nombre": "Pr715Rub-f43d3c33",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1693,
+              "nombre": "Pr715Rub-da9deaa1",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1694,
+              "nombre": "Pr715Rub-ad82c057",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1695,
+              "nombre": "Pr715Rub-e4277398",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1696,
+              "nombre": "Pr715Rub-6c95418a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1697,
+              "nombre": "Pr715Rub-8ae3250a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1698,
+              "nombre": "Pr715Rub-0a7e42f8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1699,
+              "nombre": "Pr715Rub-32239f8e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1700,
+              "nombre": "Pr715Rub-7c1b9a63",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1701,
+              "nombre": "Pr715Rub-9376f282",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1703,
+              "nombre": "CarnPr712-922cab43",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1704,
+              "nombre": "VerdPr712-7d2e5911",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1705,
+              "nombre": "CafePr712-e09a97f9",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1706,
+              "nombre": "RotiPr712-a99b7d64",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1708,
+              "nombre": "Carn712cB-2e5a98de",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1710,
+              "nombre": "Notif712c-10dee95c",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1711,
+              "nombre": "Comp712c-0615dbef",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1712,
+              "nombre": "Notif713-d7ce9035",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1713,
+              "nombre": "Pr715Rub-4e677756",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1714,
+              "nombre": "Pr715Rub-8de795ff",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1715,
+              "nombre": "Pr715Rub-2c1f6c41",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1716,
+              "nombre": "CarnPr712-c980a47d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1717,
+              "nombre": "VerdPr712-8a025993",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1718,
+              "nombre": "Carn712cB-d8bac988",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1720,
+              "nombre": "Notif713-bfa4a320",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1727,
+              "nombre": "CarnPr711-f00975d1",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1728,
+              "nombre": "VerdPr711-84bf50ad",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1729,
+              "nombre": "Pr715Rub-12c0da64",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1730,
+              "nombre": "CafePr712-baf02ac7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1764,
+              "nombre": "CarnPr711-bed0a2ab",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1765,
+              "nombre": "VerdPr711-ddc708de",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1766,
+              "nombre": "CarnPr711-5a5ddc5c",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1767,
+              "nombre": "VerdPr711-fa6bf1c2",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1768,
+              "nombre": "CarnPr711-64f5dbe3",
+              "domicilios": 1,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1769,
+              "nombre": "VerdPr711-ca0b379f",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1770,
+              "nombre": "CarnPr711-961da8da",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1771,
+              "nombre": "VerdPr711-d69bbf38",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1775,
+              "nombre": "RubPool651950",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1785,
+              "nombre": "RubPool691001",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1789,
+              "nombre": "RubPool650982",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1792,
+              "nombre": "RubPool340626",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1794,
+              "nombre": "RubPool828061",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1796,
+              "nombre": "RubPool111688",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1801,
+              "nombre": "Pr715Rub-28232b59",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1802,
+              "nombre": "Pr715Rub-f06bdec4",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1803,
+              "nombre": "Pr715Rub-383d2727",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1804,
+              "nombre": "Pr715Rub-27bb58ec",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1806,
+              "nombre": "CarnPr712-05cb3520",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1807,
+              "nombre": "VerdPr712-61cd8ae6",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1808,
+              "nombre": "Notif712c-5f1dddcb",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1809,
+              "nombre": "Notif713-adba312d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1810,
+              "nombre": "Comp713-32d84422",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1829,
+              "nombre": "RubPool230864",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1832,
+              "nombre": "RubPool807425",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1833,
+              "nombre": "RubPool976275",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1834,
+              "nombre": "RubPool057586",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1835,
+              "nombre": "RubPool408901",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1836,
+              "nombre": "RubPool088247",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1837,
+              "nombre": "RubStab10d290417",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1838,
+              "nombre": "RubPool292268",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1841,
+              "nombre": "RubPool934439",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1842,
+              "nombre": "RubPool909934",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1846,
+              "nombre": "RubA_eaf03b",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1847,
+              "nombre": "RubB_3dad27",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1852,
+              "nombre": "RubA_ef2261",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1853,
+              "nombre": "RubB_155509",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1857,
+              "nombre": "RubA_9cb9fe",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1858,
+              "nombre": "RubB_3664a3",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1862,
+              "nombre": "RubA_158ac4",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1863,
+              "nombre": "RubB_d020be",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1891,
+              "nombre": "Pr715Rub-19d23c50",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1892,
+              "nombre": "Pr715Rub-5909bbd8",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1893,
+              "nombre": "Pr715Rub-18d97491",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1894,
+              "nombre": "Pr715Rub-d052f6bb",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1895,
+              "nombre": "Pr715Rub-fb1b9e10",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1896,
+              "nombre": "Pr715Rub-c3e87fc3",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1897,
+              "nombre": "Pr715Rub-17c5c054",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1898,
+              "nombre": "Pr715Rub-6b12fb3a",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1899,
+              "nombre": "Pr715Rub-77f462e7",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1900,
+              "nombre": "Pr715Rub-29eb2e66",
+              "domicilios": 3,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1901,
+              "nombre": "Pr715Rub-d63e7e1d",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1902,
+              "nombre": "Pr715Rub-e3dd642f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1973,
+              "nombre": "Notif713-3c318d04",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1974,
+              "nombre": "Comp713-7cf690b2",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1975,
+              "nombre": "Notif713-0466f50e",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1976,
+              "nombre": "Comp713-6ff9d38f",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1977,
+              "nombre": "Rub10B1_5b182dd1",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1978,
+              "nombre": "RubA_08c5c3",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1979,
+              "nombre": "RubB_302249",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1980,
+              "nombre": "Rub10B1_646abdaf",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1981,
+              "nombre": "Rub10B1_b100c56f",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1982,
+              "nombre": "Rub10B1_d403e750",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1983,
+              "nombre": "Rub10B1_434fda50",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1984,
+              "nombre": "RubA_78a9fc",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1985,
+              "nombre": "RubB_f737f2",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1989,
+              "nombre": "PanPr712-74c2ceae",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1990,
+              "nombre": "CarnPr712-7f4b62d5",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1991,
+              "nombre": "VerdPr712-2f1b9d1b",
+              "domicilios": 0,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1992,
+              "nombre": "CafePr712-b85e46fa",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1993,
+              "nombre": "RotiPr712-730dca03",
+              "domicilios": 2,
+              "relevamientos": 1,
+              "pool": 0
+            },
+            {
+              "id": 1994,
+              "nombre": "Rub10B1_7af45486",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1995,
+              "nombre": "RubA_cb2756",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 1996,
+              "nombre": "RubB_013445",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            },
+            {
+              "id": 2000,
+              "nombre": "Rub10B1_b990bf93",
+              "domicilios": 1,
+              "relevamientos": 0,
+              "pool": 0
+            }
+          ],
+          "C_refs_real_indeterminado": []
+        },
+        "nota": "clasificaci\u00f3n B/C refinada requiere cruce actuaci\u00f3n protegida por domicilio"
+      },
+      "rubro_refs_after_2c2b_sim_sample": [
+        {
+          "rubro_id": 21,
+          "nombre": "RubroEO_601037",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 23,
+          "nombre": "RubroEO_45657",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 217,
+          "nombre": "RubroEO_671302",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 218,
+          "nombre": "RubroEO_662258",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 220,
+          "nombre": "RubroEO_627286",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 222,
+          "nombre": "RubStab10d776556",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 223,
+          "nombre": "RubStab10d822342",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 227,
+          "nombre": "rubro-763680",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 231,
+          "nombre": "rubro-512731",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 235,
+          "nombre": "rubro-947909",
+          "relevamiento_refs_before": 0,
+          "relevamiento_refs_after_2c2b_sim": 0,
+          "future_zero_refs_candidate": true
+        },
+        {
+          "rubro_id": 237,
+          "nombre": "Pr715Rub-6319c0bf",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 238,
+          "nombre": "Pr715Rub-b629a067",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 239,
+          "nombre": "Pr715Rub-9608d81b",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 240,
+          "nombre": "Pr715Rub-d958e25e",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 241,
+          "nombre": "Pr715Rub-cce991e2",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 242,
+          "nombre": "Pr715Rub-b6800782",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 243,
+          "nombre": "Pr715Rub-c2940a9d",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 244,
+          "nombre": "Pr715Rub-783c9788",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 245,
+          "nombre": "Pr715Rub-2479e201",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 246,
+          "nombre": "Pr715Rub-0fc999d3",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 247,
+          "nombre": "Pr715Rub-1a67a9fe",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 248,
+          "nombre": "PanPr712-a932a018",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 249,
+          "nombre": "CarnPr712-118518e6",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 250,
+          "nombre": "VerdPr712-ffc1b216",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 251,
+          "nombre": "CafePr712-630878da",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 252,
+          "nombre": "RotiPr712-1985aa2e",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 253,
+          "nombre": "Carn712c-ceb404a0",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 255,
+          "nombre": "Carn712cB-8852b6f1",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 257,
+          "nombre": "Notif712c-b84cbc0f",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        },
+        {
+          "rubro_id": 258,
+          "nombre": "Comp712c-2e22d90f",
+          "relevamiento_refs_before": 1,
+          "relevamiento_refs_after_2c2b_sim": 1,
+          "future_zero_refs_candidate": false
+        }
+      ],
+      "test_streets_fixture": {
+        "calles_fixture": [
+          {
+            "calle": "CalleCat Canon 708932",
+            "calle_catalogo_matches": [
+              {
+                "id": 740,
+                "nombre_canonico": "CalleCat Canon 708932",
+                "nombre_key": "callecat-key-708932"
+              }
+            ],
+            "domicilios": [
+              {
+                "domicilio_id": 116,
+                "establecimientos": [],
+                "actuaciones": [],
+                "iniciadores": [],
+                "relevamientos": [],
+                "denuncias": [],
+                "ruta_items": []
+              }
+            ],
+            "grafo_confirmado_test": true,
+            "fase2_subgrupo_potencial": "CONFIRMADO_TEST"
+          },
+          {
+            "calle": "Main Canon 444592",
+            "calle_catalogo_matches": [
+              {
+                "id": 741,
+                "nombre_canonico": "Main Canon 444592",
+                "nombre_key": "main-key-444592"
+              }
+            ],
+            "domicilios": [
+              {
+                "domicilio_id": 118,
+                "establecimientos": [],
+                "actuaciones": [],
+                "iniciadores": [],
+                "relevamientos": [],
+                "denuncias": [],
+                "ruta_items": []
+              }
+            ],
+            "grafo_confirmado_test": true,
+            "fase2_subgrupo_potencial": "CONFIRMADO_TEST"
+          },
+          {
+            "calle": "Esquina Canon 495353",
+            "calle_catalogo_matches": [
+              {
+                "id": 742,
+                "nombre_canonico": "Esquina Canon 495353",
+                "nombre_key": "esquina-key-495353"
+              }
+            ],
+            "domicilios": [],
+            "grafo_confirmado_test": false,
+            "fase2_subgrupo_potencial": "SIN_DOMS_ENCONTRADOS"
+          },
+          {
+            "calle": "CalleCat Canon 197731",
+            "calle_catalogo_matches": [
+              {
+                "id": 743,
+                "nombre_canonico": "CalleCat Canon 197731",
+                "nombre_key": "callecat-key-197731"
+              }
+            ],
+            "domicilios": [
+              {
+                "domicilio_id": 1499,
+                "establecimientos": [],
+                "actuaciones": [],
+                "iniciadores": [],
+                "relevamientos": [],
+                "denuncias": [],
+                "ruta_items": []
+              }
+            ],
+            "grafo_confirmado_test": true,
+            "fase2_subgrupo_potencial": "CONFIRMADO_TEST"
+          },
+          {
+            "calle": "Main Canon 662005",
+            "calle_catalogo_matches": [
+              {
+                "id": 744,
+                "nombre_canonico": "Main Canon 662005",
+                "nombre_key": "main-key-662005"
+              }
+            ],
+            "domicilios": [
+              {
+                "domicilio_id": 1501,
+                "establecimientos": [],
+                "actuaciones": [],
+                "iniciadores": [],
+                "relevamientos": [],
+                "denuncias": [],
+                "ruta_items": []
+              }
+            ],
+            "grafo_confirmado_test": true,
+            "fase2_subgrupo_potencial": "CONFIRMADO_TEST"
+          },
+          {
+            "calle": "Esquina Canon 993558",
+            "calle_catalogo_matches": [
+              {
+                "id": 745,
+                "nombre_canonico": "Esquina Canon 993558",
+                "nombre_key": "esquina-key-993558"
+              }
+            ],
+            "domicilios": [],
+            "grafo_confirmado_test": false,
+            "fase2_subgrupo_potencial": "SIN_DOMS_ENCONTRADOS"
+          }
+        ],
+        "nota": "NO DELETE en este ticket"
+      },
+      "policy": "NO_DELETE catalogos en 2C.2B"
+    },
+    "protected_intersection": 0,
+    "protected_closure_detail": {
+      "by_entity": {
+        "actuaciones": {
+          "planned_explicit_ids": 110,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1189,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "orden_trabajo": {
+          "planned_explicit_ids": 110,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1176,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "inspeccion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 17,
+          "protected_ids": 170,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "notificacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 168,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "comprobacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 56,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "oficio": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "expediente": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        }
+      },
+      "conflicts": [],
+      "valid": true
+    },
+    "protected_comprobacion_regression": {
+      "closure_8_ids": [
+        194,
+        480,
+        481,
+        483,
+        790,
+        889,
+        2268,
+        2497
+      ],
+      "exist_in_db": {
+        "480": true,
+        "2497": true,
+        "481": true,
+        "483": true,
+        "194": true,
+        "790": true,
+        "889": true,
+        "2268": true
+      },
+      "in_expanded_protected": {
+        "480": true,
+        "2497": true,
+        "481": true,
+        "483": true,
+        "194": true,
+        "790": true,
+        "889": true,
+        "2268": true
+      },
+      "all_protected": true
+    },
+    "validation": {
+      "ids_exist": {
+        "actuaciones": {
+          "expected": 110,
+          "found": 110,
+          "missing": 0
+        },
+        "relevamiento": {
+          "expected": 26,
+          "found": 26,
+          "missing": 0
+        },
+        "orden_trabajo": {
+          "expected": 110,
+          "found": 110,
+          "missing": 0
+        }
+      },
+      "act_blockers_zero": true,
+      "relevamiento_blockers_zero": true,
+      "ot_exclusive": {
+        "all_exclusive_to_safe_acts": true,
+        "ot_checked": 110
+      },
+      "delete_order_validated": {
+        "valid": true,
+        "violations": []
+      },
+      "excluded_intersection": 0
+    },
+    "manifest_sha256": "da12bff4604d140d795055e2e152940f4a5ffd74622d80c032455417089b52d9"
+  },
+  "manifest_sha256": "da12bff4604d140d795055e2e152940f4a5ffd74622d80c032455417089b52d9"
+}

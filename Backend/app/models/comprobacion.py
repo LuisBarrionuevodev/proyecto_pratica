@@ -27,6 +27,21 @@ class Comprobacion(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    sin_expediente_envio = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false(),
+        index=True,
+    )
+    sin_expediente_envio_declarado_at = db.Column(db.DateTime, nullable=True)
+    sin_expediente_envio_declarado_by_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="SET NULL", onupdate="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     actuaciones = db.relationship("Actuaciones", back_populates="comprobacion")
     oficio = db.relationship("Oficio", back_populates="comprobacion")
     expediente = db.relationship("Expediente", back_populates="comprobacion")
@@ -43,6 +58,10 @@ class Comprobacion(db.Model):
             "motivo": self.motivo,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "deleted_at": self.deleted_at,
+            "sin_expediente_envio": self.sin_expediente_envio,
+            "sin_expediente_envio_declarado_at": self.sin_expediente_envio_declarado_at,
+            "sin_expediente_envio_declarado_by_user_id": self.sin_expediente_envio_declarado_by_user_id,
         }
 
         if include_relations:

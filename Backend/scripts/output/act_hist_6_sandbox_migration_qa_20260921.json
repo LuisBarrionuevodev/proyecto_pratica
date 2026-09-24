@@ -1,0 +1,167 @@
+{
+  "artifact": "ACT-HIST.6-SANDBOX-MIGRATION-QA",
+  "generated_at": "2026-09-21T15:21:03.410645+00:00",
+  "status": "PASS",
+  "database": "digitaliza_sandbox",
+  "alembic_before": "m8n9o0p1q2r3",
+  "counts_before": {
+    "actuaciones": 8085,
+    "comprobacion": 1533,
+    "expediente": 2917,
+    "oficio": 1448,
+    "iniciador_ruta": 8010,
+    "ruta_item": 3695,
+    "orden_trabajo": 8820,
+    "domicilio": 11725
+  },
+  "dry_run": {
+    "total_oficios_physical": 1448,
+    "total_oficios_active": 1383,
+    "total_oficios_soft_deleted": 65,
+    "classification_universe": 1383,
+    "materializado": 654,
+    "pendiente_domicilio": 397,
+    "pendiente_materializacion": 332,
+    "excluded": 65,
+    "sum_matches_universe": true,
+    "pre_migration_invariant_violations": []
+  },
+  "comprobaciones_sin_expediente_legacy": 351,
+  "backup": {
+    "path": "backups/digitaliza_sandbox_pre_act_hist_6_20260921_122104.sql",
+    "absolute_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_act_hist_6_20260921_122104.sql",
+    "timestamp": "20260921_122104",
+    "bytes": 12873453,
+    "restore_command": "mysql -h localhost -P 3306 -u root digitaliza_sandbox < \"C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_act_hist_6_20260921_122104.sql\""
+  },
+  "migration_output": "INFO  [alembic.runtime.migration] Context impl MySQLImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\nINFO  [alembic.runtime.migration] Running upgrade m8n9o0p1q2r3 -> n9o0p1q2r3s4, ACT-HIST.5 — sin expediente envío + materialización diferida de oficio.",
+  "alembic_after": "n9o0p1q2r3s4",
+  "schema_postcheck": {
+    "comprobacion.sin_expediente_envio": true,
+    "comprobacion.sin_expediente_envio_declarado_at": true,
+    "comprobacion.sin_expediente_envio_declarado_by_user_id": true,
+    "oficio.iniciador_materializacion_estado": true,
+    "fk_sin_expediente_declarado_user": true
+  },
+  "counts_after": {
+    "actuaciones": 8085,
+    "comprobacion": 1533,
+    "expediente": 2917,
+    "oficio": 1448,
+    "iniciador_ruta": 8010,
+    "ruta_item": 3695,
+    "orden_trabajo": 8820,
+    "domicilio": 11725
+  },
+  "counts_drift": {
+    "actuaciones": 0,
+    "comprobacion": 0,
+    "expediente": 0,
+    "oficio": 0,
+    "iniciador_ruta": 0,
+    "ruta_item": 0,
+    "orden_trabajo": 0,
+    "domicilio": 0
+  },
+  "backfill_post": {
+    "MATERIALIZADO": 654,
+    "PENDIENTE_DOMICILIO": 397,
+    "PENDIENTE_MATERIALIZACION": 332
+  },
+  "backfill_invariant_violations": [],
+  "comprobacion_sin_expediente_post_migration": {
+    "false_count": 1519,
+    "true_count": 0,
+    "note": "Tras migration todas las legacy deben tener sin_expediente_envio=false (true_count=0)"
+  },
+  "declaration_qa": {
+    "actuacion_id": 11466,
+    "comprobacion_id": 2505,
+    "actor_user_id": 1,
+    "sin_expediente_envio": true,
+    "declarado_at": "2026-09-21T15:21:11",
+    "declarado_by_user_id": 1,
+    "fake_expediente_created": false,
+    "disappeared_from_pendiente_expediente": true,
+    "appeared_in_pendiente_oficio": true
+  },
+  "oficio_qa": {
+    "oficio_id": 1769,
+    "expediente_respuesta_id": 3290,
+    "iniciador_id": null,
+    "iniciador_count": 0,
+    "materializacion_estado": "PENDIENTE_DOMICILIO",
+    "estado_recorrido_label": "Oficio cargado — pendiente domicilio operativo",
+    "domicilio_id": null
+  },
+  "cleanup": {
+    "created": [
+      {
+        "type": "actuacion",
+        "id": 11466
+      },
+      {
+        "type": "oficio",
+        "id": 1769
+      },
+      {
+        "type": "expediente_respuesta",
+        "id": 3290
+      }
+    ],
+    "soft_deleted": [
+      {
+        "type": "comprobacion",
+        "id": 2505,
+        "deleted_at": "2026-09-21T15:21:11"
+      },
+      {
+        "type": "oficio",
+        "id": 1769,
+        "deleted_at": "2026-09-21T15:21:38"
+      },
+      {
+        "type": "expediente_respuesta",
+        "id": 3290,
+        "deleted_at": "2026-09-21T15:21:38"
+      }
+    ],
+    "note": "Actuación 11466 eliminada físicamente; filas QA restantes soft-deleted (patrón ACT-HIST.3). Drift +1 en comprobacion/expediente/oficio es esperado en COUNT(*) total."
+    "actuacion_id": 11466,
+    "comprobacion_id": 2505,
+    "cleanup_actuacion_id": 11466
+  },
+  "counts_after_qa": {
+    "actuaciones": 8085,
+    "comprobacion": 1534,
+    "expediente": 2918,
+    "oficio": 1449,
+    "iniciador_ruta": 8010,
+    "ruta_item": 3695,
+    "orden_trabajo": 8820,
+    "domicilio": 11725
+  },
+  "qa_operational_drift": {
+    "actuaciones": 0,
+    "comprobacion": 1,
+    "expediente": 1,
+    "oficio": 1,
+    "iniciador_ruta": 0,
+    "ruta_item": 0,
+    "orden_trabajo": 0,
+    "domicilio": 0
+  },
+  "manual_ui": {
+    "pendiente_expediente": "validated via service + declaration_qa",
+    "pendiente_oficio": "validated via service + oficio_qa",
+    "recorrido": "estado_recorrido_label in oficio_qa",
+    "act_hist_toggle": "code unchanged — Frontend/CargarActuacionNuevaModal.tsx (ACT-HIST.2); browser visual not re-run in this session",
+    "browser_qa": "not_run — modal/confirmación UI validada por implementación ACT-HIST.5 + service-layer QA",
+    "http_smoke": {
+      "/actuaciones/pendientes/oficio": 401,
+      "/actuaciones/pendientes/expediente": 401,
+      "/actuaciones/comprobacion/pendientes-reinspeccion-oficio": 401,
+      "/actuaciones/comprobacion/recorrido": 401
+    }
+  }
+}

@@ -1,0 +1,315 @@
+{
+  "generated_at": "2026-09-20T18:50:40.508493",
+  "ticket": "PREDEPLOY-FIX.1-DIAG",
+  "mode": "READ_ONLY_DIAG",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 1970,
+      "relevamiento": 4566,
+      "relevamiento_relevador": 525,
+      "relevador": 10,
+      "juzgado_catalogo": 842
+    },
+    "relevador_id2_exists": false,
+    "relevamiento_relevador_orphans": 0
+  },
+  "route": {
+    "method": "GET",
+    "path": "/relevamientos",
+    "blueprint": "relevamientos",
+    "url_prefix": "/relevamientos",
+    "registered_in": "app/main.py"
+  },
+  "call_graph": [
+    "app/main.py \u2192 register_blueprint(relevamiento_bp, url_prefix='/relevamientos')",
+    "app/domains/relevamientos/routes/__init__.py \u2192 Blueprint('relevamientos')",
+    "app/domains/relevamientos/routes/list.py \u2192 listar_relevamientos()",
+    "app/domains/relevamientos/schemas/list_filters.py \u2192 RelevamientosListFilters.model_validate()",
+    "app/domains/relevamientos/services/list_service.py \u2192 listar_relevamientos_con_filtros()",
+    "app/domains/relevamientos/presenters/relevamiento_presenter.py \u2192 relevamiento_to_row()"
+  ],
+  "reproduction": {
+    "http_cases": {
+      "no_params": {
+        "path": "/relevamientos",
+        "status": 500,
+        "body_preview": "<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n"
+      },
+      "explicit_range": {
+        "path": "/relevamientos?desde=2026-01-01&hasta=2026-01-31",
+        "status": 200,
+        "body_preview": "{\"items\":[{\"angulo_esquina\":null,\"calle\":\"av america\",\"calle_cargada\":\"av america\",\"calle_catalogo_id\":176,\"calle_estado\":\"OK\",\"calle_mostrar\":\"Avenida De las Americas\",\"calle_normalizada\":\"Avenida De las Americas\",\"calle_raw\":\"av america\",\"calle_score\":1.0,\"calle_sugerida\":\"Avenida De las Americas\",\"distrito_codigo\":2,\"distrito_id\":9,\"distrito_mostrar\":\"Distrito 2\",\"distrito_nombre\":\"Distrito 2\",\"domicilio_id\":53,\"esquina_catalogo_id\":null,\"esquina_normalizada\":null,\"esquina_raw\":null,\"esquina_"
+      },
+      "future_empty": {
+        "path": "/relevamientos?desde=2099-01-01&hasta=2099-01-31",
+        "status": 200,
+        "body_preview": "{\"items\":[],\"meta\":{\"calle\":null,\"desde\":\"2099-01-01\",\"distrito_id\":null,\"esta_abierto\":null,\"hasta\":\"2099-01-31\",\"numero\":null,\"page\":1,\"page_size\":50,\"relevador\":null,\"total\":0}}\n"
+      },
+      "invalid_date": {
+        "path": "/relevamientos?desde=2026-02-30",
+        "status": 422,
+        "body_preview": "{\"detail\":\"Validation error\",\"errors\":[{\"ctx\":{\"error\":\"day value is outside expected range\"},\"input\":\"2026-02-30\",\"loc\":[\"desde\"],\"msg\":\"Input should be a valid date or datetime, day value is outside expected range\",\"type\":\"date_from_datetime_parsing\",\"url\":\"https://errors.pydantic.dev/2.12/v/date_from_datetime_parsing\"}]}\n"
+      }
+    },
+    "direct_exception_chain": {
+      "original_exception": {
+        "type": "ValidationError",
+        "errors": [
+          {
+            "type": "value_error",
+            "loc": [],
+            "msg": "Value error, day is out of range for month",
+            "ctx_error_type": "ValueError",
+            "ctx_error_message": "day is out of range for month"
+          }
+        ]
+      },
+      "original_traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\diag_relevamientos_500_predeploy.py\", line 211, in _reproduction_direct\n    RelevamientosListFilters.model_validate({})\n  File \"C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\pydantic\\main.py\", line 716, in model_validate\n    return cls.__pydantic_validator__.validate_python(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npydantic_core._pydantic_core.ValidationError: 1 validation error for RelevamientosListFilters\n  Value error, day is out of range for month [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
+      "secondary_exception": {
+        "type": "RuntimeError",
+        "message": "Working outside of application context.\n\nThis typically means that you attempted to use functionality that needed\nthe current application. To solve this, set up an application context\nwith app.app_context(). See the documentation for more information."
+      },
+      "secondary_traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\diag_relevamientos_500_predeploy.py\", line 234, in _reproduction_direct\n    jsonify({\"detail\": \"Validation error\", \"errors\": e.errors()})\n  File \"C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\flask\\json\\__init__.py\", line 170, in jsonify\n    return current_app.json.response(*args, **kwargs)  # type: ignore[return-value]\n           ^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\werkzeug\\local.py\", line 318, in __get__\n    obj = instance._get_current_object()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\werkzeug\\local.py\", line 519, in _get_current_object\n    raise RuntimeError(unbound_message) from None\nRuntimeError: Working outside of application context.\n\nThis typically means that you attempted to use functionality that needed\nthe current application. To solve this, set up an application context\nwith app.app_context(). See the documentation for more information.\n",
+      "why_http_500": "ValidationError handler calls jsonify(e.errors()) which embeds non-JSON-serializable ValueError in ctx; Flask json encoder raises TypeError, uncaught by route \u2192 500"
+    }
+  },
+  "stack_trace": "Traceback (most recent call last):\n  File \"C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\diag_relevamientos_500_predeploy.py\", line 211, in _reproduction_direct\n    RelevamientosListFilters.model_validate({})\n  File \"C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\pydantic\\main.py\", line 716, in model_validate\n    return cls.__pydantic_validator__.validate_python(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npydantic_core._pydantic_core.ValidationError: 1 validation error for RelevamientosListFilters\n  Value error, day is out of range for month [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
+  "original_exception": {
+    "type": "ValidationError",
+    "errors": [
+      {
+        "type": "value_error",
+        "loc": [],
+        "msg": "Value error, day is out of range for month",
+        "ctx_error_type": "ValueError",
+        "ctx_error_message": "day is out of range for month"
+      }
+    ]
+  },
+  "secondary_exception": {
+    "type": "RuntimeError",
+    "message": "Working outside of application context.\n\nThis typically means that you attempted to use functionality that needed\nthe current application. To solve this, set up an application context\nwith app.app_context(). See the documentation for more information."
+  },
+  "date_validation_analysis": {
+    "today": "2026-09-20",
+    "scenarios": [
+      {
+        "name": "default_month_range_logic",
+        "ok": false,
+        "exception_type": "ValueError",
+        "exception_message": "day is out of range for month",
+        "buggy_expression": "date(next_month.year, next_month.month, next_month.day - 1)",
+        "next_month_day_minus_1": 0
+      }
+    ],
+    "pydantic_cases": [
+      {
+        "name": "empty_params",
+        "params": {},
+        "ok": false,
+        "exception_type": "ValidationError",
+        "errors": [
+          {
+            "type": "value_error",
+            "loc": [],
+            "msg": "Value error, day is out of range for month",
+            "input": {},
+            "ctx": {
+              "error": "day is out of range for month"
+            },
+            "url": "https://errors.pydantic.dev/2.12/v/value_error"
+          }
+        ],
+        "errors_json_serializable": true
+      },
+      {
+        "name": "explicit_jan",
+        "params": {
+          "desde": "2026-01-01",
+          "hasta": "2026-01-31"
+        },
+        "ok": true,
+        "desde": "2026-01-01",
+        "hasta": "2026-01-31"
+      },
+      {
+        "name": "only_desde",
+        "params": {
+          "desde": "2026-01-01"
+        },
+        "ok": true,
+        "desde": "2026-01-01",
+        "hasta": "2026-09-20"
+      },
+      {
+        "name": "only_hasta",
+        "params": {
+          "hasta": "2026-01-31"
+        },
+        "ok": true,
+        "desde": "2026-01-01",
+        "hasta": "2026-01-31"
+      },
+      {
+        "name": "future_empty",
+        "params": {
+          "desde": "2099-01-01",
+          "hasta": "2099-01-31"
+        },
+        "ok": true,
+        "desde": "2099-01-01",
+        "hasta": "2099-01-31"
+      },
+      {
+        "name": "invalid_date",
+        "params": {
+          "desde": "2026-02-30"
+        },
+        "ok": false,
+        "exception_type": "ValidationError",
+        "errors": [
+          {
+            "type": "date_from_datetime_parsing",
+            "loc": [
+              "desde"
+            ],
+            "msg": "Input should be a valid date or datetime, day value is outside expected range",
+            "input": "2026-02-30",
+            "ctx": {
+              "error": "day value is outside expected range"
+            },
+            "url": "https://errors.pydantic.dev/2.12/v/date_from_datetime_parsing"
+          }
+        ],
+        "errors_json_serializable": true
+      },
+      {
+        "name": "desde_gt_hasta",
+        "params": {
+          "desde": "2026-06-01",
+          "hasta": "2026-01-01"
+        },
+        "ok": false,
+        "exception_type": "ValidationError",
+        "errors": [
+          {
+            "type": "value_error",
+            "loc": [],
+            "msg": "Value error, desde debe ser menor o igual que hasta",
+            "input": {
+              "desde": "2026-06-01",
+              "hasta": "2026-01-01"
+            },
+            "ctx": {
+              "error": "desde debe ser menor o igual que hasta"
+            },
+            "url": "https://errors.pydantic.dev/2.12/v/value_error"
+          }
+        ],
+        "errors_json_serializable": true
+      }
+    ]
+  },
+  "response_serialization_analysis": {
+    "failure_point": "during_validation_before_query",
+    "query_never_reached_on_empty_params": true,
+    "presenter_ok_when_valid_filters": true,
+    "error_handler_issue": "e.errors() includes ctx.error ValueError object not JSON-serializable",
+    "stable_pattern_elsewhere": "app/shared/errors.py \u2192 pydantic_errors_to_cell_map()"
+  },
+  "query_analysis": {
+    "query_succeeds": true,
+    "row_count": 4,
+    "total": 4,
+    "first_row_mapping_succeeds": true,
+    "first_row_id": 51,
+    "empty_query_succeeds": true,
+    "empty_total": 0
+  },
+  "relevador_post_cleanup_guard": {
+    "relevador_count": 10,
+    "relevador_id2_exists": false,
+    "orphans": 0,
+    "not_root_cause": true,
+    "note": "500 pre-existed before 2E-R; empty-params path fails before DB"
+  },
+  "trigger_rows": null,
+  "data_dependent": false,
+  "root_cause": {
+    "file": "app/domains/relevamientos/schemas/list_filters.py",
+    "function": "RelevamientosListFilters.apply_defaults_and_validate_range",
+    "trigger": "GET /relevamientos sin query params \u2192 default mes actual",
+    "original_exception": {
+      "type": "ValidationError wrapping ValueError",
+      "message": "day is out of range for month",
+      "cause": "date(next_month.year, next_month.month, next_month.day - 1) usa d\u00eda 0"
+    },
+    "secondary_exception": {
+      "type": "RuntimeError",
+      "message": "Working outside of application context.\n\nThis typically means that you attempted to use functionality that needed\nthe current application. To solve this, set up an application context\nwith app.app_context(). See the documentation for more information."
+    },
+    "why_http_500": "ValidationError handler calls jsonify(e.errors()) which embeds non-JSON-serializable ValueError in ctx; Flask json encoder raises TypeError, uncaught by route \u2192 500",
+    "fails_always_without_explicit_dates": true,
+    "fails_only_september_through_november": "Bug activo cuando today.month != 12; next_month.day-1 == 0"
+  },
+  "minimal_fix_surface": {
+    "primary_fix": {
+      "file": "app/domains/relevamientos/schemas/list_filters.py",
+      "function": "apply_defaults_and_validate_range",
+      "change": "Calcular \u00faltimo d\u00eda del mes con calendar.monthrange o date(today.year, today.month + 1, 1) - timedelta(days=1) en lugar de next_month.day - 1"
+    },
+    "secondary_fix": {
+      "file": "app/domains/relevamientos/routes/list.py",
+      "function": "listar_relevamientos",
+      "change": "Usar pydantic_errors_to_cell_map(e) de app.shared.errors (patr\u00f3n de actuaciones/denuncias) en lugar de e.errors() crudo"
+    },
+    "also_affected": [
+      "app/domains/relevamientos/routes/list_operativa.py",
+      "app/domains/catalogos/routes/rubros.py"
+    ]
+  },
+  "test_matrix": [
+    {
+      "case": "GET /relevamientos sin params",
+      "expected": "200 con rango mes actual"
+    },
+    {
+      "case": "GET /relevamientos con desde/hasta v\u00e1lidos",
+      "expected": "200"
+    },
+    {
+      "case": "GET /relevamientos rango vac\u00edo v\u00e1lido",
+      "expected": "200 items=[]"
+    },
+    {
+      "case": "GET /relevamientos fecha inv\u00e1lida",
+      "expected": "422 JSON serializable, no 500"
+    },
+    {
+      "case": "GET /relevamientos desde > hasta",
+      "expected": "422"
+    },
+    {
+      "case": "default month range en septiembre",
+      "expected": "hasta=2026-09-30"
+    },
+    {
+      "case": "default month range en diciembre",
+      "expected": "hasta=YYYY-12-31"
+    }
+  ],
+  "cleanup_guards": {
+    "users": 1970,
+    "relevador": 10,
+    "juzgado_catalogo": 842,
+    "writes_executed": false
+  },
+  "error_response_contract": {
+    "invalid_filter": "422 con errors serializable (patr\u00f3n pydantic_errors_to_cell_map)",
+    "business_value_error": "400",
+    "unexpected": "500 solo para errores no previstos"
+  }
+}

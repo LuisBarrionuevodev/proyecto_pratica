@@ -1,10 +1,9 @@
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { useEffect, useState } from "react";
 import type { IActuacion } from "../../../../../types/actuaciones";
-import { BASE_TABLE_CONFIG } from "../../../../../constants/tableConfig";
-import { TablaExportButtons } from "../../../Components/TableButtons";
+import { DARK_TABLE_CONFIG, MRT_READ_ONLY_BANDEJA } from "../../../styles/actuacionesTableStyles";
 import { Box, Typography } from "@mui/material";
-import { TableGeneralStyles, TableLoadingStyles, TableTitleStyles } from "../../../../../styles/TablasStyle";
+import { TableGeneralStyles, TableLoadingStyles } from "../../../../../styles/TablasStyle";
 import CardsExpedientes from "../../../Components/CardsExpedientes";
 import { usePendientes } from "../../../../../hooks/usePendientes";
 
@@ -77,9 +76,18 @@ const TablaPendientes = () => {
     {
       accessorKey: "decomiso_kilos_total",header: "Kilos Decomisados",},
     {
-      accessorKey: "expediente_numero",header: "Expediente",},
-    {
-      accessorKey: "expediente_anio",header: "Año de Expediente",},
+      id: "expediente_identidad",
+      header: "Expediente (n.º / año)",
+      accessorFn: (row) => {
+        const n = String(row.expediente_numero ?? "").trim();
+        const a =
+          row.expediente_anio != null && String(row.expediente_anio).trim() !== ""
+            ? String(row.expediente_anio)
+            : "";
+        if (!n && !a) return "—";
+        return a ? `${n} / ${a}` : `${n} / —`;
+      },
+    },
     {
       accessorKey: "oficio_numero",header: "Oficio",},
     {
@@ -93,10 +101,10 @@ const TablaPendientes = () => {
   ]
 
     const table = useMaterialReactTable({
-    ...BASE_TABLE_CONFIG,
+    ...DARK_TABLE_CONFIG,
+    ...MRT_READ_ONLY_BANDEJA,
     columns,
     data,
-    enableEditing: false,
     initialState: {
       columnVisibility: { 
         id: false, rubro_nombre: false, 
@@ -109,15 +117,13 @@ const TablaPendientes = () => {
         notificacion_motivo_3: false, acta_comprobacion_num: false, 
         comprobacion_motivo: false, acta_clausura_num: false, 
         clausura_motivo: false, acta_decomiso_num: false,
-        decomiso_kilos_total: false, expediente_numero: false, 
-        expediente_anio: false, oficio_numero: false, 
+        decomiso_kilos_total: false,
+        expediente_identidad: false,
+        oficio_numero: false, 
         oficio_anio: false, oficio_causa: false, 
         notificacion_previa_num: false, comprobacion_previa_num: false
        },
     },
-    renderTopToolbarCustomActions: ({ table }) => (
-      <TablaExportButtons data={data} table={table} />
-    ),
   });
 
   if (loading) return <Typography sx={TableLoadingStyles}>Cargando Pendientes...</Typography>;
@@ -134,7 +140,6 @@ const TablaPendientes = () => {
           },
         }}
       >
-        <Typography sx={TableTitleStyles}>Gestión de Pendientes</Typography>
         <CardsExpedientes/>
         <MaterialReactTable table={table} />
       </Box>

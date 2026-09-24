@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "generated_at": "2026-09-17T04:04:40.396490+00:00",
+    "ticket": "GEO-GOOGLE.1.1",
+    "mode": "manual",
+    "google_only": true
+  },
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "zero_results": 0,
+    "errors": 0,
+    "location_types": {
+      "ROOFTOP": 1
+    },
+    "latency_ms": {
+      "n": 1,
+      "p50": 513.4,
+      "p95": 513.4,
+      "max": 513.4,
+      "mean": 513.4
+    },
+    "google_requests": 1
+  },
+  "records": [
+    {
+      "input": "Mendoza 2829, San Miguel de Tucumán, Tucumán, Argentina",
+      "status": "OK",
+      "api_status": "OK",
+      "error_kind": null,
+      "error_message": null,
+      "formatted_address": "Pcia de Mendoza 2829, T4000 San Miguel de Tucumán, Tucumán, Argentina",
+      "lat": -26.8202289,
+      "lng": -65.23945549999999,
+      "location_type": "ROOFTOP",
+      "place_id": "ChIJ68fBNvZcIpQRXelCyetw970",
+      "partial_match": false,
+      "latency_ms": 513.4
+    }
+  ]
+}

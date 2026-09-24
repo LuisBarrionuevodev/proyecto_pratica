@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "generated_at": "2026-09-17T04:11:31.056822+00:00",
+    "ticket": "GEO-GOOGLE.1.1",
+    "mode": "manual",
+    "google_only": true
+  },
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "zero_results": 0,
+    "errors": 0,
+    "location_types": {
+      "GEOMETRIC_CENTER": 1
+    },
+    "latency_ms": {
+      "n": 1,
+      "p50": 629.4,
+      "p95": 629.4,
+      "max": 629.4,
+      "mean": 629.4
+    },
+    "google_requests": 1
+  },
+  "records": [
+    {
+      "input": "alem y lamadrid, San Miguel de Tucumán, Tucumán, Argentina",
+      "status": "OK",
+      "api_status": "OK",
+      "error_kind": null,
+      "error_message": null,
+      "formatted_address": "Av. Alem & Lamadrid, T4000 San Miguel de Tucumán, Tucumán, Argentina",
+      "lat": -26.8345085,
+      "lng": -65.2200594,
+      "location_type": "GEOMETRIC_CENTER",
+      "place_id": "EkZBdi4gQWxlbSAmIExhbWFkcmlkLCBUNDAwMCBTYW4gTWlndWVsIGRlIFR1Y3Vtw6FuLCBUdWN1bcOhbiwgQXJnZW50aW5hImYiZAoUChIJ8cz0421cIpQRU4mAc0sllggSFAoSCfHM9ONtXCKUEVOJgHNLJZYIGhQKEglpd-K_dlwilBGIkwGm7H8tDBoUChIJpVfIMWRcIpQRdSVXfZ_LcZgiCg0DYQHwFW41INk",
+      "partial_match": false,
+      "latency_ms": 629.4
+    }
+  ]
+}

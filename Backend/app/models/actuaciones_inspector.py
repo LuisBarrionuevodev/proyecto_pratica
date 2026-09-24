@@ -14,4 +14,18 @@ actuaciones_inspector = db.Table(
         db.ForeignKey("inspector.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+    db.Column(
+        "created_at",
+        db.DateTime,
+        nullable=False,
+        server_default=db.func.current_timestamp(),
+    ),
+    db.Column(
+        "updated_at",
+        db.DateTime,
+        nullable=False,
+        server_default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    ),
+    db.Column("deleted_at", db.DateTime, nullable=True),
 )

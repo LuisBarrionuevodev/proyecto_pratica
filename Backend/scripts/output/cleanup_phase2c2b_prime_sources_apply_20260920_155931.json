@@ -1,0 +1,474 @@
+{
+  "ticket": "PREDEPLOY-CLEANUP.3H.4",
+  "applied_at": "2026-09-20T15:59:48.584614",
+  "database": "digitaliza_sandbox",
+  "alembic_revision": "l7m8n9o0p1q2",
+  "freeze_method": "backend_development_stopped_during_backup_preflight_transaction_postconditions",
+  "manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_execution_manifest_phase2c2b_prime_sources_20260920.json",
+  "manifest_sha256": "a78737957310d0fc90899e399a7a16b1b09cc96a181c7e1560b70e02180d6ac6",
+  "source_apply_2c2a_prime_sha256": "dd82505c222bc9e055fa182aa164f2473584797948b6dae9008fbe2831f03ac6",
+  "source_diag_3h_sha256": "59dd11ab7d0f0c85b758df60767ad94bf05f912e24507e2ccaa576ab75f24998",
+  "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_pre_cleanup_phase2c2b_prime_20260920_155931.sql",
+    "size": 12818027,
+    "sha256": "5019cb0279f45e02d71629318ce523126670467282455ae9e2493448917707da",
+    "exit_code": 0,
+    "timestamp": "2026-09-20T15:59:32.127055"
+  },
+  "restore_verify": {
+    "verified": true,
+    "verify_db": "digitaliza_sandbox_backup_verify_phase2c2b_prime"
+  },
+  "counts_before": {
+    "actuaciones": 8112,
+    "orden_trabajo": 8848,
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_trabajo": 2715,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525
+  },
+  "explicit_deleted": {
+    "actuaciones": 38,
+    "orden_trabajo": 38
+  },
+  "cascade_deleted": {
+    "inspeccion": 0,
+    "actuaciones_inspector": 0,
+    "acta_inspeccion_item": 0,
+    "clausura": 0,
+    "decomiso": 0,
+    "total": 0
+  },
+  "counts_after": {
+    "actuaciones": 8074,
+    "orden_trabajo": 8810,
+    "users": 2803,
+    "establecimiento_operativo": 1657,
+    "ruta_trabajo": 2715,
+    "ruta_grupo": 2884,
+    "ruta_grupo_inspector": 5931,
+    "ruta_item": 3685,
+    "ruta_pool_dia": 361,
+    "iniciador_ruta": 8001,
+    "denuncia": 417,
+    "relevamiento": 4566,
+    "inspeccion": 898,
+    "actuaciones_inspector": 4180,
+    "acta_inspeccion_item": 52,
+    "clausura": 69,
+    "decomiso": 25,
+    "relevamiento_relevador": 525
+  },
+  "manifest_ids_remaining": {
+    "actuaciones": 0,
+    "orden_trabajo": 0
+  },
+  "preserved_parent_docs": {
+    "notificaciones_25": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860
+    ],
+    "comprobacion_2289": 2289
+  },
+  "preserved_source_docs": {
+    "direct_notificaciones_29": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1821,
+      1856,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2560,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2828,
+      2856,
+      2860
+    ],
+    "source_notificaciones_119_count": 119,
+    "oficio_chains_count": 3
+  },
+  "existing_orphans_preserved": {
+    "orphan_notificaciones_36": [
+      1480,
+      1536,
+      1557,
+      1627,
+      1636,
+      1684,
+      1738,
+      1758,
+      1761,
+      1771,
+      1852,
+      1854,
+      1859,
+      1860,
+      2003,
+      2308,
+      2312,
+      2394,
+      2563,
+      2564,
+      2573,
+      2707,
+      2910,
+      2913,
+      2921,
+      2928,
+      2933,
+      2939,
+      2942,
+      2950,
+      2953,
+      2970,
+      2976,
+      2978,
+      2991,
+      3032
+    ],
+    "orphan_comprobaciones_20": [
+      758,
+      759,
+      760,
+      984,
+      1485,
+      1486,
+      1496,
+      1615,
+      1679,
+      2130,
+      2197,
+      2221,
+      2231,
+      2241,
+      2275,
+      2279,
+      2283,
+      2291,
+      2303,
+      2307
+    ]
+  },
+  "new_orphans_post_apply": {
+    "notificaciones": [
+      1603,
+      1606,
+      1607,
+      1663,
+      1665,
+      1785,
+      1786,
+      1787,
+      1884,
+      1885,
+      1888,
+      2090,
+      2340,
+      2500,
+      2589,
+      2620,
+      2725,
+      2728,
+      2744,
+      2754,
+      2755,
+      2756,
+      2799,
+      2856,
+      2860
+    ],
+    "comprobaciones": [
+      2289
+    ]
+  },
+  "empty_routes_residual": [
+    {
+      "ruta_trabajo_id": 4938,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 4944,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5195,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5199,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5204,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5245,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5261,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5550,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5560,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 5574,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 6372,
+      "ruta_item_refs": 0
+    },
+    {
+      "ruta_trabajo_id": 6461,
+      "ruta_item_refs": 0
+    }
+  ],
+  "protected_preserved": {
+    "actuaciones": {
+      "expected": 1189,
+      "found": 1189
+    },
+    "orden_trabajo": {
+      "expected": 1176,
+      "found": 1176
+    },
+    "inspeccion": {
+      "expected": 170,
+      "found": 170
+    },
+    "notificacion": {
+      "expected": 168,
+      "found": 168
+    },
+    "comprobacion": {
+      "expected": 56,
+      "found": 56
+    },
+    "oficio": {
+      "expected": 40,
+      "found": 40
+    },
+    "expediente": {
+      "expected": 40,
+      "found": 40
+    }
+  },
+  "orphan_checks": [],
+  "users_unlock": {
+    "users_test_fk_free_baseline_post_2c2a_prime": 833,
+    "users_test_fk_free_after_2c2b_prime": 833,
+    "users_additionally_unlocked": 0,
+    "users_test_still_blocked": 1956
+  },
+  "preflight": {
+    "status": "PREFLIGHT_OK",
+    "baseline": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 2803,
+        "establecimiento_operativo": 1657,
+        "ruta_trabajo": 2715,
+        "ruta_grupo": 2884,
+        "ruta_grupo_inspector": 5931,
+        "ruta_item": 3685,
+        "ruta_pool_dia": 361,
+        "iniciador_ruta": 8001,
+        "actuaciones": 8112,
+        "denuncia": 417,
+        "relevamiento": 4566,
+        "orden_trabajo": 8848,
+        "inspeccion": 898,
+        "actuaciones_inspector": 4180,
+        "acta_inspeccion_item": 52,
+        "clausura": 69,
+        "decomiso": 25,
+        "relevamiento_relevador": 525
+      }
+    },
+    "cascade_physical": {
+      "inspeccion": 0,
+      "actuaciones_inspector": 0,
+      "clausura": 0,
+      "decomiso": 0,
+      "acta_inspeccion_item": 0
+    },
+    "ot_exclusive": {
+      "all_exclusive_to_safe_acts": true,
+      "ot_checked": 38
+    },
+    "protected_closure": {
+      "by_entity": {
+        "actuaciones": {
+          "planned_explicit_ids": 38,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1189,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "orden_trabajo": {
+          "planned_explicit_ids": 38,
+          "planned_cascade_ids": 0,
+          "protected_ids": 1176,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "inspeccion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 170,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "notificacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 168,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "comprobacion": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 56,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "oficio": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        },
+        "expediente": {
+          "planned_explicit_ids": 0,
+          "planned_cascade_ids": 0,
+          "protected_ids": 40,
+          "intersection_explicit": 0,
+          "intersection_cascade": 0,
+          "intersection_total": 0,
+          "sample_intersection": []
+        }
+      },
+      "conflicts": [],
+      "valid": true
+    },
+    "protected_comprobacion_regression": {
+      "closure_8_ids": [
+        194,
+        480,
+        481,
+        483,
+        790,
+        889,
+        2268,
+        2497
+      ],
+      "exist_in_db": {
+        "480": true,
+        "2497": true,
+        "481": true,
+        "483": true,
+        "194": true,
+        "790": true,
+        "889": true,
+        "2268": true
+      },
+      "in_expanded_protected": {
+        "480": true,
+        "2497": true,
+        "481": true,
+        "483": true,
+        "194": true,
+        "790": true,
+        "889": true,
+        "2268": true
+      },
+      "all_protected": true
+    }
+  },
+  "transaction_status": "COMMITTED",
+  "committed": true,
+  "writes_executed": true,
+  "phase2c2c_executed": false,
+  "phase2d_executed": false,
+  "phase2e_executed": false,
+  "preflight_summary": {
+    "status": "PREFLIGHT_OK"
+  }
+}

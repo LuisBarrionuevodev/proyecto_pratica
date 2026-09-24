@@ -1,0 +1,114 @@
+"""
+OPER-RUTA.7A — Mediciones temporales de planificación (M3/M4).
+
+Activar con ``PLANIFICACION_DEBUG=1``. No altera reglas de negocio.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import time
+from contextlib import contextmanager
+from typing import Iterator
+
+logger = logging.getLogger(__name__)
+
+
+def planificacion_debug_habilitado() -> bool:
+    """True si deben emitirse logs OPER-RUTA.7A."""
+    return os.environ.get("PLANIFICACION_DEBUG", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+def log_oper_ruta_7a(tag: str, **campos) -> None:
+    """
+    Emite una línea estructurada ``[OPER_RUTA_7A_*]`` si debug está habilitado.
+
+    Parámetros:
+        tag: sufijo del tag (M4, URGENTES, etc.).
+        **campos: pares clave=valor en el log.
+    """
+    if not planificacion_debug_habilitado():
+        return
+    parts = " ".join(f"{k}={v}" for k, v in campos.items())
+    logger.warning("[OPER_RUTA_7A_%s] %s", tag, parts)
+
+
+def log_oper_ruta_7b(tag: str, **campos) -> None:
+    """
+    Emite ``[OPER_RUTA_7B_*]`` si debug está habilitado (OPER-RUTA.7B M4 optimizado).
+    """
+    if not planificacion_debug_habilitado():
+        return
+    parts = " ".join(f"{k}={v}" for k, v in campos.items())
+    logger.warning("[OPER_RUTA_7B_%s] %s", tag, parts)
+
+
+@contextmanager
+def medir_oper_ruta_7a(tag: str, **campos_base) -> Iterator[dict]:
+    """
+    Context manager que mide elapsed_ms y emite log al salir.
+
+    Yields:
+        dict mutable para agregar contadores antes del log final.
+    """
+    stats: dict = dict(campos_base)
+    t0 = time.perf_counter()
+    try:
+        yield stats
+    finally:
+        stats["total_ms"] = int((time.perf_counter() - t0) * 1000)
+        log_oper_ruta_7a(tag, **stats)
+
+
+@contextmanager
+def medir_oper_ruta_7b(tag: str, **campos_base) -> Iterator[dict]:
+    """
+    Context manager OPER-RUTA.7B con log ``[OPER_RUTA_7B_*]``.
+    """
+    stats: dict = dict(campos_base)
+    t0 = time.perf_counter()
+    try:
+        yield stats
+    finally:
+        stats["total_ms"] = int((time.perf_counter() - t0) * 1000)
+        log_oper_ruta_7b(tag, **stats)
+
+
+def log_oper_ruta_7d(tag: str, **campos) -> None:
+    """
+    Emite ``[OPER_RUTA_7D_*]`` si debug está habilitado (OPER-RUTA.7D M3 urgentes optimizado).
+    """
+    if not planificacion_debug_habilitado():
+        return
+    parts = " ".join(f"{k}={v}" for k, v in campos.items())
+    logger.warning("[OPER_RUTA_7D_%s] %s", tag, parts)
+
+
+@contextmanager
+def medir_oper_ruta_7d(tag: str, **campos_base) -> Iterator[dict]:
+    """
+    Context manager OPER-RUTA.7D con log ``[OPER_RUTA_7D_*]``.
+    """
+    stats: dict = dict(campos_base)
+    t0 = time.perf_counter()
+    try:
+        yield stats
+    finally:
+        stats["total_ms"] = int((time.perf_counter() - t0) * 1000)
+        log_oper_ruta_7d(tag, **stats)
+
+
+def log_oper_ruta_m4_relev_debug(**campos) -> None:
+    """
+    Emite ``[OPER_RUTA_M4_RELEV_DEBUG]`` si debug está habilitado (7B hotfix relevamientos).
+    """
+    if not planificacion_debug_habilitado():
+        return
+    parts = " ".join(f"{k}={v}" for k, v in campos.items())
+    logger.warning("[OPER_RUTA_M4_RELEV_DEBUG] %s", parts)

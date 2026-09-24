@@ -1,0 +1,1109 @@
+{
+  "generated_at": "2026-09-20T19:10:37.696090",
+  "ticket": "PREDEPLOY-FIX.2-DIAG",
+  "mode": "READ_ONLY_DIAG",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 1970,
+      "relevador": 10,
+      "juzgado_catalogo": 842
+    },
+    "user1": {
+      "id": 1,
+      "username": "admin",
+      "email": "admin@local",
+      "role": "admin",
+      "is_active": 1
+    }
+  },
+  "identity_helpers": [
+    {
+      "file": "app/domains/rutas_trabajo/services/auth_service.py",
+      "function": "get_current_user_id_or_fallback",
+      "semantics": "JWT identity \u2192 int user_id; si ausente/inv\u00e1lido \u2192 primer User activo ORDER BY id ASC",
+      "fallback": "first active user (typically id=1 admin)",
+      "raises_without_fallback": "ValueError si no hay usuario activo",
+      "jwt_format": "str(user.id) o dict con user_id (compat)",
+      "kind": "central_shared"
+    },
+    {
+      "file": "app/domains/denuncias/services/denuncias_service.py",
+      "function": "_get_current_user_id",
+      "semantics": "JWT obligatorio; valida existencia y is_active",
+      "fallback": null,
+      "raises_without_fallback": "ValueError('Usuario no autorizado.')",
+      "jwt_format": "str(user.id) o dict con user_id",
+      "kind": "strict_no_fallback"
+    },
+    {
+      "file": "app/domains/actuaciones/services/notificacion_iniciador_service.py",
+      "function": "_get_current_user_id",
+      "semantics": "Duplicado de get_current_user_id_or_fallback",
+      "fallback": "first active user ORDER BY id ASC",
+      "raises_without_fallback": "ValueError",
+      "kind": "duplicate_fallback"
+    },
+    {
+      "file": "app/domains/relevamientos/services/relevamiento_iniciador_service.py",
+      "function": "_get_current_user_id",
+      "semantics": "Duplicado de get_current_user_id_or_fallback",
+      "fallback": "first active user ORDER BY id ASC",
+      "kind": "duplicate_fallback"
+    },
+    {
+      "file": "app/domains/actuaciones/services/oficio_iniciador_service.py",
+      "function": "_get_current_user_id",
+      "semantics": "Duplicado de get_current_user_id_or_fallback",
+      "fallback": "first active user ORDER BY id ASC",
+      "kind": "duplicate_fallback"
+    },
+    {
+      "file": "app/domains/usuarios/services/profile_service.py",
+      "function": "_get_current_user",
+      "semantics": "JWT obligatorio para perfil",
+      "fallback": null,
+      "raises_without_fallback": "ValueError('Usuario no autorizado.')",
+      "kind": "strict_no_fallback"
+    },
+    {
+      "file": "app/domains/usuarios/security/decorators.py",
+      "function": "resolve_user_from_identity",
+      "semantics": "Resuelve User desde JWT; retorna None si ausente",
+      "fallback": null,
+      "kind": "resolver_only"
+    },
+    {
+      "file": "app/domains/usuarios/services/auth_service.py",
+      "function": "login_user \u2192 create_access_token(identity=str(user.id))",
+      "semantics": "Emite JWT con subject string del id num\u00e9rico",
+      "fallback": null,
+      "kind": "token_issuer"
+    }
+  ],
+  "fallback_implementation": {
+    "central": {
+      "file": "app/domains/rutas_trabajo/services/auth_service.py",
+      "function": "get_current_user_id_or_fallback",
+      "lines": "8-42",
+      "condition": "identity is None OR parse fails OR user missing/inactive",
+      "query": "User.query.filter(User.is_active.is_(True)).order_by(User.id.asc()).first()",
+      "returns": "int(fallback_user.id) \u2014 typically 1"
+    },
+    "duplicates_identical_logic": [
+      "notificacion_iniciador_service._get_current_user_id",
+      "relevamiento_iniciador_service._get_current_user_id",
+      "oficio_iniciador_service._get_current_user_id"
+    ],
+    "strict_no_fallback": [
+      "denuncias_service._get_current_user_id",
+      "profile_service._get_current_user"
+    ]
+  },
+  "all_call_sites": [
+    {
+      "domain": "rutas_trabajo",
+      "file": "services/ruta_create_service.py",
+      "function": "crear_ruta_trabajo",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "ruta_trabajo.created_by_user_id",
+      "context": "HTTP POST /rutas-trabajo (phase1 JWT guard)",
+      "jwt_required": true,
+      "fallback_reachable": "solo si JWT presente pero identity inv\u00e1lida/inactiva"
+    },
+    {
+      "domain": "rutas_trabajo",
+      "file": "services/grupo_service.py",
+      "function": "crear_grupo",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "ruta_grupo.created_by_user_id",
+      "context": "HTTP POST grupo",
+      "jwt_required": true,
+      "fallback_reachable": "identity inv\u00e1lida"
+    },
+    {
+      "domain": "rutas_trabajo",
+      "file": "services/grupo_inspectores_service.py",
+      "function": "reemplazar_inspectores_grupo",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "ruta_grupo_inspector.created_by_user_id",
+      "context": "HTTP PUT inspectores",
+      "jwt_required": true,
+      "fallback_reachable": "identity inv\u00e1lida"
+    },
+    {
+      "domain": "rutas_trabajo",
+      "file": "services/ruta_items_service.py",
+      "function": "asignar_iniciadores_a_grupo",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "ruta_item.created_by_user_id",
+      "context": "HTTP POST assign items",
+      "jwt_required": true,
+      "fallback_reachable": "identity inv\u00e1lida"
+    },
+    {
+      "domain": "rutas_trabajo",
+      "file": "services/ruta_pool_dia_service.py",
+      "function": "agregar_iniciador_a_pool (usuario_id param opcional)",
+      "helper": "get_current_user_id_or_fallback si usuario_id is None",
+      "field": "ruta_pool_dia.usuario_id",
+      "context": "HTTP POST pool",
+      "jwt_required": true,
+      "fallback_reachable": "si caller no pasa usuario_id expl\u00edcito"
+    },
+    {
+      "domain": "rutas_trabajo",
+      "file": "routes/ruta_pool_dia/create_pool.py",
+      "function": "create_pool route",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "ruta_pool_dia.usuario_id",
+      "context": "HTTP",
+      "jwt_required": true,
+      "fallback_reachable": true
+    },
+    {
+      "domain": "actuaciones",
+      "file": "services/create_service.py",
+      "function": "crear_actuacion_desde_payload",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "establecimiento_operativo.created_by_user_id (v\u00eda EO link)",
+      "context": "HTTP POST /actuaciones + post-commit sync",
+      "jwt_required": true,
+      "fallback_reachable": "identity inv\u00e1lida; sync post-commit sin actor propagado"
+    },
+    {
+      "domain": "actuaciones",
+      "file": "services/update_service.py",
+      "function": "try_vincular_establecimiento_operativo_desde_actuacion / actualizar_actuacion",
+      "helper": "get_current_user_id_or_fallback",
+      "field": "establecimiento_operativo.created_by_user_id",
+      "context": "HTTP PUT /actuaciones + post-commit sync",
+      "jwt_required": true,
+      "fallback_reachable": true
+    },
+    {
+      "domain": "actuaciones",
+      "file": "routes/completar_trabajo_cerrar.py",
+      "function": "cerrar_completar_trabajo",
+      "helper": "get_current_user_id_or_fallback \u2192 ejecutado_por_user_id",
+      "field": "ruta_item.ejecutado_por_user_id, iniciador.created_by (relevamiento derivado)",
+      "context": "HTTP POST completar-trabajo",
+      "jwt_required": true,
+      "fallback_reachable": "identity inv\u00e1lida"
+    },
+    {
+      "domain": "actuaciones",
+      "file": "services/notificacion_iniciador_service.py",
+      "function": "sync_iniciadores_reinspeccion_notificacion",
+      "helper": "_get_current_user_id (duplicate fallback)",
+      "field": "iniciador_ruta.created_by_user_id",
+      "context": "HTTP GET pendientes, POST sync, CLI pipeline, post-commit cargar actuaci\u00f3n, completar trabajo",
+      "jwt_required": "variable: CLI/background NO; HTTP endpoints s\u00ed pero sync no propaga JWT al helper",
+      "fallback_reachable": true
+    },
+    {
+      "domain": "relevamientos",
+      "file": "services/relevamiento_iniciador_service.py",
+      "function": "get_or_create_iniciador_from_relevamiento",
+      "helper": "_get_current_user_id (duplicate fallback)",
+      "field": "iniciador_ruta.created_by_user_id",
+      "context": "HTTP POST /relevamientos (create_service)",
+      "jwt_required": true,
+      "fallback_reachable": "identity inv\u00e1lida"
+    },
+    {
+      "domain": "actuaciones",
+      "file": "services/oficio_iniciador_service.py",
+      "function": "get_or_create_iniciador_from_oficio",
+      "helper": "_get_current_user_id (duplicate fallback)",
+      "field": "iniciador_ruta.created_by_user_id",
+      "context": "oficio_completion_service (HTTP oficio flow)",
+      "jwt_required": true,
+      "fallback_reachable": true
+    },
+    {
+      "domain": "denuncias",
+      "file": "services/denuncias_service.py",
+      "function": "crear_denuncia_con_iniciador / eliminar / update",
+      "helper": "_get_current_user_id (strict)",
+      "field": "denuncia.created_by_user_id, iniciador_ruta.created_by_user_id",
+      "context": "HTTP /api/denuncias",
+      "jwt_required": true,
+      "fallback_reachable": false
+    }
+  ],
+  "sync_reinspeccion_analysis": {
+    "function": "sync_iniciadores_reinspeccion_notificacion",
+    "file": "app/domains/actuaciones/services/notificacion_iniciador_service.py",
+    "calls_user_helper_at": "line ~445: user_id = _get_current_user_id()",
+    "creates": "IniciadorRuta REINSPECCION_NOTIFICACION with created_by_user_id=user_id",
+    "callers": [
+      "pipelines/sync_notificaciones_vencidas.py (CLI, no JWT)",
+      "cargar_actuacion_post_commit.ejecutar_sync_* (post HTTP commit, no actor propagation)",
+      "create_service.crear_actuacion_desde_payload (post-commit)",
+      "update_service.actualizar_actuacion (post-commit)",
+      "completar_trabajo_cierre_service (post-commit)",
+      "pendientes_service (GET bandeja)",
+      "routes/pendientes_notificacion.py (GET)"
+    ],
+    "jwt_at_call_time": "HTTP callers have JWT in request, but sync does NOT read/propagate it \u2014 falls back to user1 if identity unavailable in nested context",
+    "cli_without_jwt": "always falls back to first active user (user1)",
+    "propagates_original_actor": false
+  },
+  "http_auth_matrix": {
+    "mechanism": "app/security/phase1_jwt_guard.py before_request verify_jwt_in_request",
+    "jwt_subject_format": "str(user.id) from login_user",
+    "note": "Endpoints protegidos exigen Bearer, pero helpers de auditor\u00eda pueden ejecutarse fuera del request o sin propagar identity",
+    "smoke": {
+      "relevamientos": {
+        "path": "/relevamientos",
+        "status": 200
+      },
+      "profile": {
+        "path": "/api/profile/me",
+        "status": 200
+      },
+      "actuaciones_search": {
+        "path": "/actuaciones/search?q=20&limit=5",
+        "status": 200
+      },
+      "rutas_trabajo": {
+        "path": "/rutas-trabajo",
+        "status": 200
+      },
+      "denuncias": {
+        "path": "/api/denuncias",
+        "status": 200
+      },
+      "rubros": {
+        "path": "/catalogos/rubros",
+        "status": 200
+      }
+    }
+  },
+  "request_context_vs_identity": {
+    "distinction": "has_request_context() != authenticated JWT; fallback triggers on missing/invalid identity even inside request",
+    "reproduction": {
+      "user1": {
+        "id": 1,
+        "username": "admin",
+        "is_active": true
+      },
+      "sample_non_admin": {
+        "id": 7,
+        "username": "edn_167741"
+      },
+      "no_request_context": {
+        "helper": "get_current_user_id_or_fallback",
+        "result": 1,
+        "is_user1": true
+      },
+      "no_request_context_sync_helper": {
+        "helper": "notificacion_iniciador._get_current_user_id",
+        "result": 1,
+        "is_user1": true
+      },
+      "request_without_jwt": {
+        "result": 1,
+        "is_user1": true
+      },
+      "denuncia_strict_without_jwt": {
+        "raised": true,
+        "exception_type": "RuntimeError",
+        "message": "You must call `@jwt_required()` or `verify_jwt_in_request()` before using this method"
+      },
+      "jwt_valid_non_admin": {
+        "expected": 7,
+        "result": 7,
+        "match": true
+      },
+      "jwt_valid_admin_id1": {
+        "result": 1,
+        "is_legitimate_admin": true
+      },
+      "jwt_invalid_user_id": {
+        "identity": "999999999",
+        "result": 1,
+        "fell_back_to_user1": true
+      }
+    }
+  },
+  "background_internal_callers": [
+    {
+      "caller": "python -m app.domains.actuaciones.pipelines.sync_notificaciones_vencidas",
+      "jwt": false,
+      "current": "user1 fallback"
+    },
+    {
+      "caller": "ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal",
+      "jwt": "parent HTTP had JWT but not propagated",
+      "current": "user1 fallback likely"
+    },
+    {
+      "caller": "pytest app.app_context() direct service calls",
+      "jwt": false,
+      "current": "user1 fallback"
+    }
+  ],
+  "audit_fields_schema": [
+    {
+      "table": "denuncia",
+      "column": "created_by_user_id",
+      "semantics": "usuario que registra denuncia",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "relevamiento",
+      "column": "created_by_user_id",
+      "semantics": "usuario que registra relevamiento (nullable, no siempre seteado)",
+      "nullable": true,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "iniciador_ruta",
+      "column": "created_by_user_id",
+      "semantics": "usuario que materializa/crea iniciador",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "ruta_trabajo",
+      "column": "created_by_user_id",
+      "semantics": "usuario que crea ruta",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "ruta_grupo",
+      "column": "created_by_user_id",
+      "semantics": "usuario que crea grupo",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "ruta_grupo_inspector",
+      "column": "created_by_user_id",
+      "semantics": "usuario que asigna inspector a grupo",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "ruta_item",
+      "column": "created_by_user_id",
+      "semantics": "usuario que asigna item a ruta",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "ruta_item",
+      "column": "ejecutado_por_user_id",
+      "semantics": "usuario que ejecuta/cierra item",
+      "nullable": true,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "ruta_pool_dia",
+      "column": "usuario_id",
+      "semantics": "usuario due\u00f1o del pool diario",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    },
+    {
+      "table": "establecimiento_operativo",
+      "column": "created_by_user_id",
+      "semantics": "usuario que crea EO",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null
+    }
+  ],
+  "audit_fields_matrix": [
+    {
+      "table": "denuncia",
+      "column": "created_by_user_id",
+      "semantics": "usuario que registra denuncia",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": false
+    },
+    {
+      "table": "relevamiento",
+      "column": "created_by_user_id",
+      "semantics": "usuario que registra relevamiento (nullable, no siempre seteado)",
+      "nullable": true,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "iniciador_ruta",
+      "column": "created_by_user_id",
+      "semantics": "usuario que materializa/crea iniciador",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "ruta_trabajo",
+      "column": "created_by_user_id",
+      "semantics": "usuario que crea ruta",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "ruta_grupo",
+      "column": "created_by_user_id",
+      "semantics": "usuario que crea grupo",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "ruta_grupo_inspector",
+      "column": "created_by_user_id",
+      "semantics": "usuario que asigna inspector a grupo",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "ruta_item",
+      "column": "created_by_user_id",
+      "semantics": "usuario que asigna item a ruta",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "ruta_item",
+      "column": "ejecutado_por_user_id",
+      "semantics": "usuario que ejecuta/cierra item",
+      "nullable": true,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "ruta_pool_dia",
+      "column": "usuario_id",
+      "semantics": "usuario due\u00f1o del pool diario",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    },
+    {
+      "table": "establecimiento_operativo",
+      "column": "created_by_user_id",
+      "semantics": "usuario que crea EO",
+      "nullable": false,
+      "fk": "users.id",
+      "ondelete": "RESTRICT",
+      "server_default": null,
+      "python_default": null,
+      "actual_source": "get_current_user_id_or_fallback or duplicate _get_current_user_id",
+      "fallback_reachable": true
+    }
+  ],
+  "user1_refs_by_table_column": [
+    {
+      "table": "denuncia",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 417
+    },
+    {
+      "table": "establecimiento_operativo",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 1196
+    },
+    {
+      "table": "iniciador_ruta",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 6478
+    },
+    {
+      "table": "password_reset_codes",
+      "column": "user_id",
+      "nullable": "NO",
+      "refs_to_user1": 0
+    },
+    {
+      "table": "profiles",
+      "column": "user_id",
+      "nullable": "NO",
+      "refs_to_user1": 1
+    },
+    {
+      "table": "relevamiento",
+      "column": "created_by_user_id",
+      "nullable": "YES",
+      "refs_to_user1": 23
+    },
+    {
+      "table": "ruta_grupo",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 2884
+    },
+    {
+      "table": "ruta_grupo_inspector",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 5931
+    },
+    {
+      "table": "ruta_item",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 3681
+    },
+    {
+      "table": "ruta_item",
+      "column": "ejecutado_por_user_id",
+      "nullable": "YES",
+      "refs_to_user1": 1421
+    },
+    {
+      "table": "ruta_pool_dia",
+      "column": "usuario_id",
+      "nullable": "NO",
+      "refs_to_user1": 361
+    },
+    {
+      "table": "ruta_trabajo",
+      "column": "created_by_user_id",
+      "nullable": "NO",
+      "refs_to_user1": 2699
+    }
+  ],
+  "user1_total_refs": 25092,
+  "temporal_analysis": {
+    "iniciador_ruta.created_by_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 116
+      },
+      {
+        "year": 2026,
+        "month": 5,
+        "count": 276
+      },
+      {
+        "year": 2026,
+        "month": 6,
+        "count": 563
+      },
+      {
+        "year": 2026,
+        "month": 7,
+        "count": 3653
+      },
+      {
+        "year": 2026,
+        "month": 8,
+        "count": 1069
+      },
+      {
+        "year": 2026,
+        "month": 9,
+        "count": 801
+      }
+    ],
+    "denuncia.created_by_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 1
+      },
+      {
+        "year": 2026,
+        "month": 5,
+        "count": 25
+      },
+      {
+        "year": 2026,
+        "month": 6,
+        "count": 31
+      },
+      {
+        "year": 2026,
+        "month": 7,
+        "count": 285
+      },
+      {
+        "year": 2026,
+        "month": 8,
+        "count": 63
+      },
+      {
+        "year": 2026,
+        "month": 9,
+        "count": 12
+      }
+    ],
+    "relevamiento.created_by_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 23
+      }
+    ],
+    "ruta_trabajo.created_by_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 21
+      },
+      {
+        "year": 2026,
+        "month": 5,
+        "count": 41
+      },
+      {
+        "year": 2026,
+        "month": 6,
+        "count": 53
+      },
+      {
+        "year": 2026,
+        "month": 7,
+        "count": 2014
+      },
+      {
+        "year": 2026,
+        "month": 8,
+        "count": 323
+      },
+      {
+        "year": 2026,
+        "month": 9,
+        "count": 247
+      }
+    ],
+    "ruta_item.created_by_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 83
+      },
+      {
+        "year": 2026,
+        "month": 5,
+        "count": 197
+      },
+      {
+        "year": 2026,
+        "month": 6,
+        "count": 296
+      },
+      {
+        "year": 2026,
+        "month": 7,
+        "count": 2275
+      },
+      {
+        "year": 2026,
+        "month": 8,
+        "count": 550
+      },
+      {
+        "year": 2026,
+        "month": 9,
+        "count": 280
+      }
+    ],
+    "ruta_item.ejecutado_por_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 9
+      },
+      {
+        "year": 2026,
+        "month": 5,
+        "count": 26
+      },
+      {
+        "year": 2026,
+        "month": 6,
+        "count": 62
+      },
+      {
+        "year": 2026,
+        "month": 7,
+        "count": 1001
+      },
+      {
+        "year": 2026,
+        "month": 8,
+        "count": 160
+      },
+      {
+        "year": 2026,
+        "month": 9,
+        "count": 163
+      }
+    ],
+    "establecimiento_operativo.created_by_user_id": [
+      {
+        "year": 2026,
+        "month": 4,
+        "count": 6
+      },
+      {
+        "year": 2026,
+        "month": 5,
+        "count": 35
+      },
+      {
+        "year": 2026,
+        "month": 6,
+        "count": 57
+      },
+      {
+        "year": 2026,
+        "month": 7,
+        "count": 771
+      },
+      {
+        "year": 2026,
+        "month": 8,
+        "count": 99
+      },
+      {
+        "year": 2026,
+        "month": 9,
+        "count": 228
+      }
+    ]
+  },
+  "reproduction": {
+    "user1": {
+      "id": 1,
+      "username": "admin",
+      "is_active": true
+    },
+    "sample_non_admin": {
+      "id": 7,
+      "username": "edn_167741"
+    },
+    "no_request_context": {
+      "helper": "get_current_user_id_or_fallback",
+      "result": 1,
+      "is_user1": true
+    },
+    "no_request_context_sync_helper": {
+      "helper": "notificacion_iniciador._get_current_user_id",
+      "result": 1,
+      "is_user1": true
+    },
+    "request_without_jwt": {
+      "result": 1,
+      "is_user1": true
+    },
+    "denuncia_strict_without_jwt": {
+      "raised": true,
+      "exception_type": "RuntimeError",
+      "message": "You must call `@jwt_required()` or `verify_jwt_in_request()` before using this method"
+    },
+    "jwt_valid_non_admin": {
+      "expected": 7,
+      "result": 7,
+      "match": true
+    },
+    "jwt_valid_admin_id1": {
+      "result": 1,
+      "is_legitimate_admin": true
+    },
+    "jwt_invalid_user_id": {
+      "identity": "999999999",
+      "result": 1,
+      "fell_back_to_user1": true
+    }
+  },
+  "explicit_actor_patterns": {
+    "existing": [
+      "cerrar_completar_trabajo_por_ruta_item(..., ejecutado_por_user_id=int)",
+      "resolve_establecimiento_por_domicilio(..., created_by_user_id=int)",
+      "try_vincular_establecimiento_operativo_desde_actuacion(..., created_by_user_id=int)",
+      "ruta_pool_dia_service.agregar_iniciador_a_pool(..., usuario_id=optional)"
+    ],
+    "preferred_pattern": "caller HTTP obtiene user_id strict y lo pasa a services internos/sync"
+  },
+  "system_actor_analysis": {
+    "exists": false,
+    "SYSTEM_USER_IDS_in_cleanup": [
+      1
+    ],
+    "note": "Solo metadata de cleanup preserva user1; no hay service account operativo"
+  },
+  "tests_existing": {
+    "codify_fallback_as_expected": [
+      "tests/test_notificacion_iniciador_policy.py \u2014 monkeypatch _get_current_user_id \u2192 lambda: 1"
+    ],
+    "inject_explicit_actor": [
+      "tests/test_denuncia_update_domicilio_pr9_3.py",
+      "tests/test_gestion_fix_6.py",
+      "tests/test_ruta_publicar_orden_trabajo_pr11_1b.py",
+      "tests/test_iniciador_domicilio_propagacion_pr2.py",
+      "tests/test_crud_mapa_1_anular_iniciador.py",
+      "tests/test_pr12_domicilio_contamination.py",
+      "tests/test_relevamientos_domicilio.py",
+      "tests/test_iniciador_domicilio_herencia_pr1.py"
+    ],
+    "sync_without_actor_mock": [
+      "tests/test_notificacion_iniciador_mixed_actuacion.py \u2014 comenta requiere User activo",
+      "tests/test_gestion_fix_10a_3.py \u2014 llama sync directo en app_context",
+      "tests/test_iniciador_domicilio_herencia_pr1.py"
+    ],
+    "jwt_guard_tests": [
+      "tests/test_phase1_jwt_guard.py"
+    ],
+    "should_change_on_fix": [
+      "Eliminar monkeypatch lambda:1 como contrato; inyectar actor expl\u00edcito",
+      "Sync tests deben pasar actor_user_id o mockear helper para no depender de user1"
+    ]
+  },
+  "root_cause": {
+    "primary": "app/domains/rutas_trabajo/services/auth_service.py::get_current_user_id_or_fallback",
+    "duplicates": [
+      "app/domains/actuaciones/services/notificacion_iniciador_service.py::_get_current_user_id",
+      "app/domains/relevamientos/services/relevamiento_iniciador_service.py::_get_current_user_id",
+      "app/domains/actuaciones/services/oficio_iniciador_service.py::_get_current_user_id"
+    ],
+    "current_behavior": "Si get_jwt_identity() falla, es None, o apunta a usuario inexistente/inactivo, consulta User.query.filter(is_active=True).order_by(User.id.asc()).first() \u2192 t\u00edpicamente id=1 admin.",
+    "why_dangerous": "Atribuye silenciosamente acciones humanas/automatizadas al admin sin trazabilidad; contamina auditor\u00eda y mezcla acciones reales de admin con fallbacks.",
+    "reachable_from": [
+      "CLI sync_notificaciones_vencidas (sin JWT)",
+      "post-commit sync tras cargar actuaci\u00f3n / completar trabajo (JWT presente en request pero helper no recibe actor)",
+      "cualquier service que llame helper con JWT inv\u00e1lido",
+      "app_context tests/scripts sin request"
+    ],
+    "affected_audit_fields": [
+      "iniciador_ruta.created_by_user_id",
+      "ruta_trabajo.created_by_user_id",
+      "ruta_grupo.created_by_user_id",
+      "ruta_grupo_inspector.created_by_user_id",
+      "ruta_item.created_by_user_id",
+      "ruta_item.ejecutado_por_user_id",
+      "ruta_pool_dia.usuario_id",
+      "establecimiento_operativo.created_by_user_id"
+    ],
+    "reproduction_evidence": {
+      "user1": {
+        "id": 1,
+        "username": "admin",
+        "is_active": true
+      },
+      "sample_non_admin": {
+        "id": 7,
+        "username": "edn_167741"
+      },
+      "no_request_context": {
+        "helper": "get_current_user_id_or_fallback",
+        "result": 1,
+        "is_user1": true
+      },
+      "no_request_context_sync_helper": {
+        "helper": "notificacion_iniciador._get_current_user_id",
+        "result": 1,
+        "is_user1": true
+      },
+      "request_without_jwt": {
+        "result": 1,
+        "is_user1": true
+      },
+      "denuncia_strict_without_jwt": {
+        "raised": true,
+        "exception_type": "RuntimeError",
+        "message": "You must call `@jwt_required()` or `verify_jwt_in_request()` before using this method"
+      },
+      "jwt_valid_non_admin": {
+        "expected": 7,
+        "result": 7,
+        "match": true
+      },
+      "jwt_valid_admin_id1": {
+        "result": 1,
+        "is_legitimate_admin": true
+      },
+      "jwt_invalid_user_id": {
+        "identity": "999999999",
+        "result": 1,
+        "fell_back_to_user1": true
+      }
+    }
+  },
+  "impact_analysis": [
+    {
+      "function": "sync_iniciadores_reinspeccion_notificacion",
+      "current": "user1 fallback en CLI/background",
+      "proposed": "actor_user_id param obligatorio o skip audit con pol\u00edtica expl\u00edcita",
+      "risk": "high \u2014 principal fuente de contaminaci\u00f3n masiva"
+    },
+    {
+      "function": "ejecutar_sync_reinspeccion_notificacion_post_cargar_actuacion_canal",
+      "current": "no propaga JWT user al sync",
+      "proposed": "pasar actor desde request caller",
+      "risk": "high"
+    },
+    {
+      "function": "get_or_create_iniciador_from_relevamiento",
+      "current": "fallback en iniciador al crear relevamiento",
+      "proposed": "propagar actor desde route (JWT strict)",
+      "risk": "medium"
+    },
+    {
+      "function": "get_current_user_id_or_fallback en rutas CUD",
+      "current": "fallback si identity inv\u00e1lida",
+      "proposed": "get_current_user_id strict \u2192 401",
+      "risk": "low-medium"
+    }
+  ],
+  "minimal_fix_surface": {
+    "strategy": "Eliminar fallback silencioso; propagar actor_user_id expl\u00edcito en callers internos",
+    "option_A_central_helper_only": false,
+    "recommended": "B/C: central helper + call sites cr\u00edticos (sync, iniciadores, rutas)",
+    "files_to_modify": [
+      "app/domains/rutas_trabajo/services/auth_service.py",
+      "app/domains/actuaciones/services/notificacion_iniciador_service.py",
+      "app/domains/relevamientos/services/relevamiento_iniciador_service.py",
+      "app/domains/actuaciones/services/oficio_iniciador_service.py",
+      "app/domains/actuaciones/services/cargar_actuacion_post_commit.py",
+      "app/domains/actuaciones/pipelines/sync_notificaciones_vencidas.py",
+      "app/domains/actuaciones/services/create_service.py",
+      "app/domains/actuaciones/services/update_service.py",
+      "app/domains/actuaciones/services/completar_trabajo_cierre_service.py",
+      "app/domains/actuaciones/routes/completar_trabajo_cerrar.py",
+      "app/domains/rutas_trabajo/services/*.py (callers)"
+    ],
+    "do_not_modify": [
+      "datos hist\u00f3ricos created_by_user_id=1",
+      "users.id=1",
+      "schema DB"
+    ]
+  },
+  "proposed_behavior_matrix": {
+    "http_human_command": "require JWT (phase1 guard) + helper strict \u2192 401/ValueError, nunca user1",
+    "http_with_valid_jwt": "created_by = identity user id (incluye admin id=1 leg\u00edtimo)",
+    "internal_service_with_actor": "caller pasa actor_user_id expl\u00edcito",
+    "internal_service_without_actor": "raise expl\u00edcito o NULL solo si columna nullable y contrato lo permite",
+    "background_sync_cli": "requiere pol\u00edtica expl\u00edcita: actor param, env var, o NULL en columnas nullable \u2014 NO first-admin",
+    "system_actor": "no existe hoy; no reutilizar user1 como system sin decisi\u00f3n producto"
+  },
+  "regression_test_matrix": [
+    "authenticated user X \u2192 created_by = X",
+    "authenticated admin id=1 \u2192 created_by = 1 (leg\u00edtimo)",
+    "HTTP command sin JWT \u2192 401, no insert con user1",
+    "service interno con actor expl\u00edcito X \u2192 created_by = X",
+    "service interno sin actor \u2192 error expl\u00edcito, nunca first-admin",
+    "sync reinspecci\u00f3n con actor propagado desde POST cargar actuaci\u00f3n",
+    "CLI sync requiere --actor-user-id o falla",
+    "JWT usuario inactivo \u2192 401 (auth layer), no fallback",
+    "no regression denuncia (ya strict), rutas, EO, relevamiento"
+  ],
+  "historical_data_policy": {
+    "preserve_existing_user1_refs": true,
+    "action": "PRESERVE",
+    "rationale": "~refs mezclan admin real, datos pre-auth, QA y fallback; no se puede distinguir concluyentemente sin matriz de provenance dedicada.",
+    "no_retroactive_update": true
+  },
+  "cleanup_guards": {
+    "baseline_post": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 1970,
+        "relevador": 10,
+        "juzgado_catalogo": 842
+      },
+      "user1": {
+        "id": 1,
+        "username": "admin",
+        "email": "admin@local",
+        "role": "admin",
+        "is_active": 1
+      }
+    },
+    "unchanged": true,
+    "expected": {
+      "users": 1970,
+      "relevador": 10,
+      "juzgado_catalogo": 842,
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2"
+    },
+    "http_relevamientos_200": true
+  },
+  "status": "PASS"
+}

@@ -1,19 +1,18 @@
-import { ThemeProvider } from "@emotion/react";
-import NavLeft from "../../Componets/NavLeft";
-import TablaCargarActuaciones from "./Components/TablaCargarActuaciones";
-import { darkTheme } from "../../configs/theme";
+import { Box } from "@mui/material";
 
+import { CargarActuacionNuevaModal } from "./Components/CargarActuacionNuevaModal";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
+
+/**
+ * Vista dedicada a la **carga inicial** de actas.
+ * Card principal con mismo vidrio que barras F3.8c (sin tabs en página).
+ */
 const CargarActuaciones = () => {
-    return(
-        <>
-
-        <NavLeft/>
-
-        <ThemeProvider theme={darkTheme}>
-        <TablaCargarActuaciones/>
-        </ThemeProvider>
-        </>
-    )
-}
+  return (
+    <Box sx={functionalPageShellSx}>
+      <CargarActuacionNuevaModal />
+    </Box>
+  );
+};
 
 export default CargarActuaciones;

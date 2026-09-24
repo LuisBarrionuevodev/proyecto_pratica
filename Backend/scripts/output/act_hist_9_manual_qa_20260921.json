@@ -1,0 +1,74 @@
+{
+  "ticket": "ACT-HIST.9",
+  "date": "2026-09-21",
+  "database": "digitaliza_sandbox",
+  "status": "PASS",
+  "scope": "Manual QA closeout — ACT-HIST.8 identity completion (no code changes, no re-run, no new data, no migrations)",
+  "act_hist_8_implementation": "PASS",
+  "act_hist_9_manual_qa": "PASS",
+  "act_hist_legacy_doc_identity_completion": "CLOSED",
+  "caso_a_historico": {
+    "identity_mode": "COMPLETE_HISTORICAL",
+    "flujo": [
+      "Cargar actuación con carga solo comprobación",
+      "Pendiente expediente",
+      "No tenemos expediente de envío",
+      "Pendiente oficio",
+      "Creación de oficio",
+      "Creación de iniciador",
+      "Pendiente reinspección",
+      "Asignación a ruta",
+      "Publicación",
+      "Completar trabajo",
+      "Verificar e informar",
+      "Realizó nueva inspección = Sí"
+    ],
+    "carga_inicial": {
+      "fecha": true,
+      "inspectores": true,
+      "titular_snapshot": true,
+      "calle": true,
+      "numero": true,
+      "comprobacion": true,
+      "motivo": true,
+      "sin_ot": true,
+      "sin_dni": true,
+      "sin_rubro": true
+    },
+    "nueva_inspeccion_ui": {
+      "titular_editable": true,
+      "dni_cuit_editable": true,
+      "rubro_editable": true,
+      "datos_faltantes_completados": true
+    },
+    "resultado": {
+      "identidad_formal_persistida": true,
+      "comportamientos_anomalos": false
+    },
+    "status": "PASS"
+  },
+  "caso_b_normal": {
+    "identity_mode": "COMPLETE_EXISTING",
+    "flujo": "Mismo recorrido completo desde actuación cargada normalmente",
+    "nueva_inspeccion_ui": {
+      "titular_visible": true,
+      "dni_cuit_visible": true,
+      "rubro_visible": true,
+      "identidad_no_editable": true,
+      "guardado_correcto": true,
+      "datos_preservados_post_cierre": true
+    },
+    "resultado": {
+      "perdida_identidad": false
+    },
+    "status": "PASS"
+  },
+  "resultado_funcional": {
+    "COMPLETE_HISTORICAL": "Completar identidad operativa — validado",
+    "COMPLETE_EXISTING": "Preservar identidad operativa existente — validado",
+    "workflow_completo": "comprobación → expediente/sin expediente → oficio → iniciador → ruta → Verificar e informar → Nueva inspección — correcto en ambos escenarios",
+    "status": "PASS"
+  },
+  "schema_migration_required": false,
+  "notes": "QA manual realizado por el usuario sobre digitaliza_sandbox. Sin re-ejecución de recorrido ni creación de datos adicionales en este closeout."
+}

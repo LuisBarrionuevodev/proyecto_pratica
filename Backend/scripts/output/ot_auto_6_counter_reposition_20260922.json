@@ -1,0 +1,70 @@
+{
+  "ticket": "OT-AUTO.6",
+  "date": "2026-09-22",
+  "generated_at": "2026-09-22T12:46:27.900539+00:00",
+  "old_semantics": {
+    "next_value": "secuencia irreversible solo forward",
+    "patch_rule": "new_value > current_value",
+    "reject_backward": true
+  },
+  "new_semantics": {
+    "next_value": "primer entero desde donde el allocator busca OT disponible",
+    "patch_rule": "new_value >= 1, normalizado al primer libre >= solicitado",
+    "reject_backward": false,
+    "no_reuse": "numero_acta existente (cualquier año, soft-deleted, legacy)"
+  },
+  "patch_behavior": {
+    "endpoint": "PATCH /rutas-trabajo/secuencia-ot",
+    "auth": "admin + JWT",
+    "reason_required": true,
+    "lock": "orden_trabajo_contador FOR UPDATE",
+    "returns": [
+      "old_value",
+      "requested_new_value",
+      "effective_new_value",
+      "effective_display"
+    ],
+    "normalization": "_primer_asignable_desde(requested)"
+  },
+  "sandbox": {
+    "available": true,
+    "current_before": 94388,
+    "requested": 4000,
+    "occupied_at_requested": true,
+    "effective": null,
+    "current_after": null,
+    "note": "Lectura read-only. Para aplicar PATCH en sandbox usar modal ADMIN con motivo explícito (ticket §28)."
+  },
+  "tests": {
+    "pytest_command": "tests/test_ot_auto_6_counter_reposition.py tests/test_ot_auto_3_secuencia.py tests/test_ot_auto_4_collision.py",
+    "pytest_output_tail": ".utcnow()\n\ntests/test_ot_auto_3_secuencia.py::test_publicar_1_item_asigna_ot\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\tests\\test_ot_auto_3_secuencia.py:150: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    item = RutaItem.query.get(items[0].id)\n\ntests/test_ot_auto_3_secuencia.py::test_publicar_1_item_asigna_ot\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\tests\\test_ot_auto_3_secuencia.py:152: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    ot = OrdenTrabajo.query.get(item.orden_trabajo_id)\n\ntests/test_ot_auto_3_secuencia.py::test_legacy_preasignada_preservada\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\tests\\helpers\\ruta_ot_test.py:33: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    ruta = RutaTrabajo.query.get(ruta_id)\n\ntests/test_ot_auto_4_collision.py::test_rollback_with_skips\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\tests\\test_ot_auto_4_collision.py:184: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    ruta_db = RutaTrabajo.query.get(ruta.id)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+    "backward_free": true,
+    "backward_occupied": true,
+    "forward": true,
+    "same_value": true,
+    "publish_after_backward": true,
+    "skip_old_qa_range": true,
+    "soft_deleted": true,
+    "cross_year": true,
+    "concurrency": true
+  },
+  "audit": {
+    "table": "orden_trabajo_contador_audit",
+    "fields_used": [
+      "old_value",
+      "new_value",
+      "requested_new_value",
+      "reason",
+      "user_id",
+      "created_at"
+    ],
+    "migration_required": false
+  },
+  "migration_required": false,
+  "frontend": {
+    "component": "MapaOtSecuenciaPreview",
+    "modal_title": "Reposicionar inicio de secuencia OT",
+    "help_text": "La próxima OT se buscará desde este número. Los números ya utilizados se omitirán automáticamente."
+  },
+  "status": "PASS"
+}

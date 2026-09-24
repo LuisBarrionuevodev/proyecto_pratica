@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from flask import jsonify, request
+from pydantic import ValidationError
+
+from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
+from app.shared.errors import pydantic_errors_to_cell_map
+from app.domains.actuaciones.services.create_service import crear_actuacion_desde_payload
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
+
+from . import actuacion
+
+
+@actuacion.post("/")
+def crear_actuacion():
+    """Crea una actuación desde el canal **CargarActuacion** (fila de grilla validada)."""
+    data: Dict[str, Any] = request.get_json(silent=True) or {}
+
+    try:
+        row = ActuacionGridRowIn.model_validate(data)
+        payload = map_actuacion_row(row)
+
+        actor_user_id = get_current_user_id()
+        act = crear_actuacion_desde_payload(payload, actor_user_id=actor_user_id)
+        return jsonify(actuacion_to_grid_row(act)), 201
+
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
+
+    except Exception as e:
+        return jsonify({"detail": "Error interno", "error": str(e)}), 500
+

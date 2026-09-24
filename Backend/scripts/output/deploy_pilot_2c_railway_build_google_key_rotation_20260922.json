@@ -1,0 +1,85 @@
+{
+  "ticket": "DEPLOY-PILOT.2C",
+  "title": "Railway Build Fix + Google Key Rotation",
+  "date": "2026-09-22",
+  "mysql_dependency_audit": {
+    "mysqlclient_runtime_consumers": [],
+    "classification": {
+      "MySQLdb": "DEAD_CODE",
+      "mysqlclient": "REQUIREMENTS_ONLY",
+      "mysql==0.0.3": "REQUIREMENTS_ONLY",
+      "mysql+pymysql": "RUNTIME"
+    },
+    "pymysql_runtime": true,
+    "sqlalchemy_driver": "mysql+pymysql via PyMySQL (deployment_config.resolve_sqlalchemy_database_uri normalizes Railway mysql://)"
+  },
+  "requirements": {
+    "mysql_0_0_3_removed": true,
+    "pymysql_kept": "PyMySQL==1.1.2",
+    "duplicate_pymysql_entry_removed": true,
+    "mysqlclient_not_in_requirements": true
+  },
+  "local_validation": {
+    "pip_install": "PASS — no mysqlclient collection",
+    "pymysql_import": "PASS (1.4.6 local; requirements pins 1.1.2)",
+    "app_boot": "PASS import path — create_app loads without MySQLdb; DB connect requires real credentials",
+    "health_tests": "PASS 6/6",
+    "migration_from_zero": "PASS — HEAD o0p1q2r3s4t5, OT_COUNTER_INITIAL 89862"
+  },
+  "google_key": {
+    "exposed_key_rotated": false,
+    "old_key_revoked": false,
+    "railway_updated": false,
+    "local_env_updated": false,
+    "restrictions_configured": false,
+    "old_key_in_git_history": true,
+    "exposure_commits": ["54e755dc (added to Backend/.env)", "54a7751 (removed from tracked .env)"],
+    "variable_name": "GOOGLE_MAPS_API_KEY",
+    "user_actions_required": [
+      "Google Cloud Console → APIs & Services → Credentials → create new key",
+      "Restrict to Geocoding API / Maps APIs actually used by backend",
+      "Use IP restriction or none for server-side Railway (not browser referrer)",
+      "Update Railway variable GOOGLE_MAPS_API_KEY",
+      "Update local Backend/.env (untracked)",
+      "Revoke/disable old exposed key"
+    ],
+    "apis_used_by_backend": [
+      "Geocoding API (google_geocode_adapter.py)",
+      "Optional fallback: GEOAPIFY_API_KEY when GEOCODER_PROVIDER=geoapify"
+    ]
+  },
+  "secret_scan": {
+    "tracked_at_head": "PASS — Backend/.env removed from git index",
+    "active_secrets_in_tracked_files": 0,
+    "test_fixture_aiza_prefix_only": true,
+    "note": "Historical secrets remain in git history; rotate and revoke keys regardless"
+  },
+  "git": {
+    "previous_sha": "dfa436d",
+    "commit_sha": "876429b",
+    "push_ok": true,
+    "branch": "integrate/correcciones",
+    "changes": [
+      "Backend/requirements.txt — removed mysql==0.0.3",
+      "Backend/.env — untracked (git rm --cached)"
+    ]
+  },
+  "railway": {
+    "project": "Digitaliza Pilot",
+    "service": "poetic-education",
+    "build": "PASS",
+    "build_evidence": "Successfully installed PyMySQL-1.1.2; no mysqlclient/pkg-config errors in build logs",
+    "mysqlclient_not_installed": true,
+    "gunicorn_started": true,
+    "gunicorn_runtime": "Worker boot failed — JWT_SECRET_KEY still default/missing in Railway variables (separate config step)",
+    "healthcheck": "FAIL — service unavailable until JWT_SECRET_KEY (>=32 chars) configured in Railway",
+    "deployment_id": "5d40eccd-4504-4e1e-862b-be089f36efb5"
+  },
+  "blockers_next": [
+    "Set JWT_SECRET_KEY in Railway (>=32 chars, not dev default)",
+    "Set CORS_ORIGINS when Vercel URL known",
+    "Rotate and revoke exposed GOOGLE_MAPS_API_KEY",
+    "Do NOT run migrations/seeds until health returns 200"
+  ],
+  "status": "PASS"
+}

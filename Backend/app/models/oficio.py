@@ -19,10 +19,22 @@ class Oficio(db.Model):
         nullable=False,
         index=True,
     )
-    causa = db.Column(
-        db.String(10),
+    fecha_oficio = db.Column(
+        db.Date,
         nullable=True,
         index=True,
+    )
+    causa = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True,
+    )
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    juzgado_id = db.Column(
+        db.Integer,
+        db.ForeignKey("juzgado_catalogo.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        index=True,
+        nullable=True,
     )
     comprobacion_id = db.Column(
         db.Integer,
@@ -30,23 +42,44 @@ class Oficio(db.Model):
         index=True,
         nullable=True,
     )
-
-    comprobacion = db.relationship("Comprobacion", back_populates="oficio")
-    expediente = db.relationship("Expediente", back_populates="oficio")
-    __table_args__ = (
-        db.UniqueConstraint("numero_oficio", "anio", name="uq_of_numero_anio"),
+    iniciador_materializacion_estado = db.Column(
+        db.Enum(
+            "MATERIALIZADO",
+            "PENDIENTE_DOMICILIO",
+            "PENDIENTE_MATERIALIZACION",
+            name="iniciador_materializacion_estado_enum",
+        ),
+        nullable=False,
+        default="MATERIALIZADO",
+        server_default="MATERIALIZADO",
+        index=True,
     )
+
+    juzgado = db.relationship("JuzgadoCatalogo", back_populates="oficios")
+    comprobacion = db.relationship("Comprobacion", back_populates="oficio")
+    expediente = db.relationship(
+        "Expediente",
+        back_populates="oficio",
+        foreign_keys="Expediente.oficio_id",
+    )
+    # Unicidad (numero_oficio, anio) solo para filas activas (soft delete).
+    # La causa no es única: varios oficios pueden compartir la misma causa en un año (STAB-2).
 
     def to_dict(self, include_relations=False):
         data = {
             "id": self.id,
             "numero_oficio": self.numero_oficio,
             "anio": self.anio,
+            "fecha_oficio": self.fecha_oficio.isoformat() if self.fecha_oficio else None,
             "causa": self.causa,
+            "juzgado_id": self.juzgado_id,
             "comprobacion_id": self.comprobacion_id,
+            "deleted_at": self.deleted_at,
+            "iniciador_materializacion_estado": self.iniciador_materializacion_estado,
         }
 
         if include_relations:
+            data["juzgado"] = self.juzgado.to_dict() if self.juzgado else None
             data["comprobacion"] = (
                 self.comprobacion.to_dict() if self.comprobacion else None
             )

@@ -1,4 +1,4 @@
-import type { ILocal } from "../types/Local";
+import type { ILocal } from "../types/local";
 
 export const localesTest: ILocal[] = [
   {

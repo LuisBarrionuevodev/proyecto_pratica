@@ -1,0 +1,75 @@
+{
+  "ticket": "DEPLOY-PILOT.2A",
+  "title": "Safe Commit + Cloud Auth Prep",
+  "date": "2026-09-22",
+  "git": {
+    "previous_sha": "d27407c8db707ca4ef70d968929a00e8fa8df1fe",
+    "new_sha": "dfa436d",
+    "branch": "integrate/correcciones",
+    "push_ok": true,
+    "remote": "origin/integrate/correcciones",
+    "working_tree_clean": false,
+    "working_tree_note": "Only Backend/.env (local secrets) and untracked Backend/scripts/output/*.json reports remain unstaged by design."
+  },
+  "file_classification": {
+    "PRODUCT_CODE": 78,
+    "TESTS": 4,
+    "MIGRATIONS": 0,
+    "DEPLOY_CONFIG": 6,
+    "DOCS": 0,
+    "GENERATED_REPORT": 6,
+    "LOG": 0,
+    "BACKUP": 0,
+    "SECRET_ENV": 1
+  },
+  "committed_artifacts": [
+    "Backend/Procfile",
+    "Backend/railway.toml",
+    "Frontend/vercel.json",
+    "Backend/app/security/production_database.py",
+    "Backend/app/shared/http_errors.py",
+    "Backend/scripts/bootstrap_pilot_admin.py",
+    "Backend/scripts/ot_counter_empty_db_check.py",
+    "Frontend/src/utils/muiSx.ts",
+    "OT-AUTO.6 backend + tests",
+    "DEPLOY-PILOT.1C TypeScript fixes (103 files)"
+  ],
+  "excluded_from_commit": [
+    "Backend/.env",
+    "Backend/scripts/output/*.json"
+  ],
+  "safety": {
+    "env_excluded": true,
+    "secrets_scan": "PASS — staged diff contains only placeholders (USER:PASS, test JWT strings); no real credentials committed",
+    "backups_excluded": true,
+    "logs_excluded": true,
+    "gitignore_updated": [
+      "backups/",
+      "Backend/scripts/output/*.log"
+    ]
+  },
+  "clean_db_counter": {
+    "expected": 89862,
+    "actual": 89862,
+    "deterministic": true,
+    "method": "DROP all tables on TEST_DATABASE_URL + flask db upgrade from scratch",
+    "script": "Backend/scripts/ot_counter_empty_db_check.py",
+    "note": "96916192 on non-empty digitaliza_test is polluted test state; migration seed on empty schema is 89862 per o0p1q2r3s4t5"
+  },
+  "gates": {
+    "frontend_build": "PASS",
+    "backend_health_tests": "PASS",
+    "migration_from_zero": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "railway_auth": {
+    "authenticated": false,
+    "action_required": "npx @railway/cli login && npx @railway/cli whoami"
+  },
+  "vercel_auth": {
+    "authenticated": false,
+    "action_required": "npx vercel login && npx vercel whoami"
+  },
+  "cloud_resources_created": false,
+  "status": "READY_FOR_CLOUD"
+}

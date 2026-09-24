@@ -1,0 +1,330 @@
+{
+  "artifact": "ACT-HIST.4-LEGACY-DOC.1-DIAG-DESIGN",
+  "generated_at": "2026-09-21",
+  "status": "DESIGN_ONLY",
+  "writes_executed": false,
+  "recommended_design": "OPTION_A_DEFERRED_INICIADOR + EXPLICIT_SIN_EXPEDIENTE_ENVIO_ON_COMPROBACION",
+  "current_state_machine": {
+    "normal_comprobacion_flow": [
+      "Comprobación creada",
+      "Pendiente expediente (sin fila expediente ENVIO_ACTA con oficio_id NULL)",
+      "Expediente de envío cargado (complete_expediente_from_actuacion)",
+      "Pendiente oficio (get_pendientes_oficio: tiene expediente envío, sin respuesta oficio)",
+      "Oficio + expediente respuesta (complete_oficio_from_actuacion)",
+      "Iniciador REINSPECCION_OFICIO materializado (get_or_create_iniciador_from_oficio)",
+      "Pendiente reinspección / planificación ruta",
+      "Completar trabajo → subtipo VERIFICAR E INFORMAR | RATIFICACIÓN CLAUSURA | RATIFICACIÓN DECOMISO"
+    ],
+    "derivation_rules": {
+      "pendiente_expediente": "_sin_expediente_query: comprobacion_id NOT NULL AND NOT EXISTS expediente envío activo (oficio_id NULL, deleted_at NULL)",
+      "pendiente_oficio": "get_pendientes_oficio: comprobacion_id NOT NULL AND EXISTS expediente envío AND NOT EXISTS expediente respuesta oficio activo",
+      "pendiente_reinspeccion": "_query_actuaciones_circuito_reinspeccion: requiere envío + oficio + respuesta; iniciador opcional en fila",
+      "estado_recorrido_label": "expediente_envio_por_comprobacion → oficio_por_comprobacion → iniciador_trabajo_por_actuacion"
+    },
+    "key_files": {
+      "pendiente_expediente": "Backend/app/domains/actuaciones/services/pendientes_service.py::_sin_expediente_query",
+      "pendiente_oficio": "Backend/app/domains/actuaciones/services/pendientes_service.py::get_pendientes_oficio",
+      "alta_expediente": "Backend/app/domains/actuaciones/services/expediente_completion_service.py::complete_expediente_from_actuacion",
+      "alta_oficio": "Backend/app/domains/actuaciones/services/oficio_completion_service.py::complete_oficio_from_actuacion",
+      "iniciador_oficio": "Backend/app/domains/actuaciones/services/oficio_iniciador_service.py::get_or_create_iniciador_from_oficio",
+      "endpoint_oficio": "Backend/app/domains/actuaciones/routes/oficio_from_acta.py::crear_oficio_desde_acta",
+      "ui_expediente_modal": "Frontend/src/Containers/ActasComprobacion/components/ComprobacionExpedienteOperativoDialog.tsx",
+      "ui_oficio_modal": "Frontend/src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx"
+    }
+  },
+  "caso_a_sin_expediente_envio": {
+    "problem": "Comprobaciones históricas en Pendiente expediente sin documento de envío disponible; hoy solo pueden avanzar fabricando expediente ficticio.",
+    "proposed_action": "Botón secundario con confirmación: «No tenemos expediente de envío»",
+    "semantic": "Declaración documental explícita: el envío no está disponible en archivo; NO implica inexistencia histórica; NO crea número/fecha/fila expediente placeholder.",
+    "not_tied_to_act_hist_only": true,
+    "rationale": "Flag en comprobacion (no en actuaciones.carga_solo_comprobacion) porque el circuito documental es por comprobación y aplica a legados precargados sin flag histórico."
+  },
+  "sin_expediente_model": {
+    "recommended_location": "tabla comprobacion",
+    "recommended_fields": {
+      "sin_expediente_envio": "BOOLEAN NOT NULL DEFAULT FALSE",
+      "sin_expediente_envio_declarado_at": "DATETIME NULL",
+      "sin_expediente_envio_declarado_by_user_id": "INT NULL FK usuario (auditoría)"
+    },
+    "derived_states": {
+      "PENDIENTE_EXPEDIENTE": "sin_expediente_envio=false AND no existe expediente ENVIO_ACTA activo",
+      "CON_EXPEDIENTE": "existe expediente ENVIO_ACTA activo (oficio_id NULL)",
+      "SIN_EXPEDIENTE_ENVIO": "sin_expediente_envio=true AND no existe expediente ENVIO_ACTA activo",
+      "note": "SIN_EXPEDIENTE_ENVIO es explícito y auditable; distinto de expediente=NULL sin explicación."
+    },
+    "rejected_alternatives": {
+      "expediente_placeholder": "Prohibido por spec — número/fecha ficticios",
+      "only_actuaciones_flag": "No cubre comprobaciones legadas sin carga_solo_comprobacion",
+      "infer_from_missing_row": "Ambiguo vs pendiente real vs error de carga"
+    }
+  },
+  "audit_strategy": {
+    "persist": [
+      "sin_expediente_envio=true",
+      "sin_expediente_envio_declarado_at",
+      "sin_expediente_envio_declarado_by_user_id"
+    ],
+    "distinguishable_from": {
+      "expediente_cargado": "fila expediente ENVIO_ACTA activa",
+      "expediente_pendiente": "sin_expediente_envio=false y sin fila",
+      "expediente_borrado": "expediente.deleted_at NOT NULL (soft delete existente)",
+      "expediente_desconocido_error": "sin flag y sin fila — sigue en pendiente expediente"
+    },
+    "api": "POST /actuaciones/{actuacion_id}/comprobacion/declarar-sin-expediente-envio (nuevo)"
+  },
+  "reversibility": {
+    "preference": "corrección auditada si aparece el documento",
+    "rules": {
+      "revertir_declaracion": "Permitido si sin_expediente_envio=true, NO hay oficio activo, NO hay expediente envío activo → vuelve a PENDIENTE_EXPEDIENTE",
+      "cargar_expediente_posterior": "Si sin_expediente_envio=true y aparece documento: admin puede cargar expediente real vía flujo normal; al crear ENVIO_ACTA se limpia sin_expediente_envio con registro de corrección (no borrado silencioso)",
+      "con_oficio_ya_creado": "No revertir declaración sin eliminar bloque oficio (política documental existente)"
+    },
+    "api": "POST /actuaciones/{actuacion_id}/comprobacion/revertir-sin-expediente-envio (nuevo, restringido)"
+  },
+  "pendiente_expediente_flow": {
+    "current": "_sin_expediente_query excluye si existe expediente envío",
+    "after_design": "Excluir también si sin_expediente_envio=true",
+    "ui": "ComprobacionExpedienteOperativoDialog: mantener «Guardar expediente» + botón secundario «No tenemos expediente de envío» con ConfirmDialog"
+  },
+  "pendiente_oficio_flow": {
+    "current_blocker": "get_pendientes_oficio exige EXISTS expediente envío (oficio_id NULL)",
+    "after_design": "Incluir comprobaciones con sin_expediente_envio=true aunque no haya expediente envío",
+    "presenter": "actuacion_to_pendiente_oficio_row: expediente_original_* null → mostrar expediente_estado='SIN_EXPEDIENTE_ENVIO' / label «No disponible»"
+  },
+  "oficio_call_chain": {
+    "endpoint": "POST /actuaciones/<actuacion_id>/oficio",
+    "route": "oficio_from_acta.py::crear_oficio_desde_acta",
+    "service": "oficio_completion_service.py::complete_oficio_from_actuacion",
+    "steps": [
+      "resolve_actor_user_id",
+      "validar comprobacion_id",
+      "expediente_envio_por_comprobacion → LookupError si ausente (líneas 67-69)",
+      "attach_oficio",
+      "crear/reactivar expediente RESPUESTA_OFICIO",
+      "db.session.flush()",
+      "get_or_create_iniciador_from_oficio → falla si act.domicilio_id IS NULL",
+      "db.session.commit()"
+    ],
+    "expediente_envio_requirement_today": "Hard en complete_oficio_from_actuacion línea 67-69",
+    "after_design_sin_expediente": "Permitir si sin_expediente_envio=true en comprobación asociada"
+  },
+  "oficio_error_caso_b": {
+    "exact_message": "La actuación asociada al oficio no tiene domicilio para crear iniciador",
+    "file": "Backend/app/domains/actuaciones/services/oficio_iniciador_service.py",
+    "function": "get_or_create_iniciador_from_oficio",
+    "line": 62,
+    "condition": "actuacion.domicilio_id IS NULL",
+    "triggered_from": "oficio_completion_service.py líneas 156-161, dentro de complete_oficio_from_actuacion, antes de commit"
+  },
+  "oficio_transaction": {
+    "current_behavior": "Una sola transacción SQLAlchemy; commit solo al final (línea 165). Si iniciador falla con ValueError, NO hay commit → oficio y expediente respuesta NO persisten.",
+    "atomicity_today": "PASS — error de domicilio no deja oficio parcial persistido",
+    "ux_problem": "El usuario no puede registrar el oficio documental si falta domicilio; todo el alta falla con 400",
+    "invariant_after_design": "Documental (oficio + expediente respuesta) debe persistir; materialización operativa (iniciador) diferida o omitida sin rollback del documento"
+  },
+  "domicilio_requirement": {
+    "iniciador_ruta_schema": "domicilio_id NOT NULL (FK domicilio, ondelete RESTRICT)",
+    "downstream_requires_domicilio": [
+      "ruta_pool_dia_service: RuntimeError si iniciador sin domicilio resoluble",
+      "ruta_publicar_service: error al publicar ruta sin domicilio efectivo",
+      "indicadores pendientes: geocode/mapa requiere punto desde domicilio",
+      "completar_trabajo: requiere ruta_item con ubicación operativa"
+    ],
+    "historical_actuacion": "domicilio_id=NULL, titular vía snapshot (ACT-HIST); no crear domicilio ficticio"
+  },
+  "iniciador_requirement": {
+    "all_oficio_types_start_as": "REINSPECCION_OFICIO genérico al crear oficio",
+    "promoted_at_completar_trabajo": [
+      "VERIFICAR E INFORMAR → VERIFICAR_INFORMAR_OFICIO",
+      "RATIFICACION DE CLAUSURA → RATIFICACION_CLAUSURA_OFICIO",
+      "RATIFICACION DE DECOMISO → RATIFICACION_DECOMISO_OFICIO"
+    ],
+    "requires_field_work": "Sí — todos los subtipos de oficio implican visita de campo eventual",
+    "requires_domicilio_for_materialization": "Sí — iniciador_ruta.domicilio_id NOT NULL + guards de publicación/pool",
+    "can_exist_documentally_without_iniciador": "Sí (recomendado) — oficio + expediente respuesta son documentales; iniciador es materialización operativa posterior"
+  },
+  "oficio_types_matrix": {
+    "REINSPECCION_OFICIO": {
+      "crea_trabajo_campo": true,
+      "requiere_domicilio_para_iniciador": true,
+      "puede_existir_sin_iniciador": true,
+      "cuando_sin_domicilio": "oficio documental OK; iniciador diferido"
+    },
+    "VERIFICAR_INFORMAR_OFICIO": {
+      "crea_trabajo_campo": true,
+      "requiere_domicilio": true,
+      "nota": "Promovido al completar trabajo, no al crear oficio"
+    },
+    "RATIFICACION_CLAUSURA_OFICIO": {
+      "crea_trabajo_campo": true,
+      "requiere_domicilio": true
+    },
+    "RATIFICACION_DECOMISO_OFICIO": {
+      "crea_trabajo_campo": true,
+      "requiere_domicilio": true
+    }
+  },
+  "options": {
+    "OPTION_A": {
+      "name": "Oficio documental persistido; iniciador diferido sin domicilio",
+      "summary": "Separar commit documental de materialización operativa. Si domicilio_id NULL: persistir oficio+expediente respuesta, marcar materialización pendiente, NO crear iniciador.",
+      "pros": [
+        "Respeta iniciador_ruta.domicilio_id NOT NULL",
+        "No inventa domicilio",
+        "Alineado con preferencia conceptual del ticket",
+        "list_pendientes_reinspeccion ya tolera iniciador NULL en fila"
+      ],
+      "cons": [
+        "Requiere estado explícito de materialización pendiente",
+        "Hook para materializar al agregar domicilio posterior"
+      ],
+      "score": "RECOMMENDED"
+    },
+    "OPTION_B": {
+      "name": "IniciadorRuta con domicilio_id nullable",
+      "summary": "Migración para permitir iniciador sin domicilio.",
+      "pros": ["Un solo paso al crear oficio"],
+      "cons": [
+        "Rompe pool, mapa, publicar ruta, indicadores",
+        "Iniciador inválido en cola operativa",
+        "Alto riesgo de regresión"
+      ],
+      "score": "REJECTED"
+    },
+    "OPTION_C": {
+      "name": "Pedir domicilio operativo al crear oficio",
+      "summary": "Modal oficio exige domicilio si actuación no lo tiene.",
+      "pros": ["Iniciador inmediato"],
+      "cons": [
+        "Contradice ACT-HIST (no inventar domicilio)",
+        "Mala UX para históricos",
+        "Mezcla documental con operativo"
+      ],
+      "score": "REJECTED"
+    },
+    "OPTION_D": {
+      "name": "Iniciador sin ubicación en bandeja documental separada",
+      "summary": "Nueva bandeja «Oficios sin materializar».",
+      "pros": ["Visibilidad explícita"],
+      "cons": ["Más superficie UI; duplica pendiente reinspección"],
+      "score": "OPTIONAL_ADDON_TO_A"
+    }
+  },
+  "recommended_design": {
+    "caso_a": {
+      "model": "comprobacion.sin_expediente_envio + auditoría",
+      "service": "declarar_sin_expediente_envio(actuacion_id, actor_user_id)",
+      "bandeja_transition": "sale de pendiente expediente → entra en pendiente oficio",
+      "no_expediente_row": true
+    },
+    "caso_b": {
+      "model": "oficio.iniciador_materializacion_estado ENUM('MATERIALIZADO','PENDIENTE_DOMICILIO') DEFAULT 'MATERIALIZADO' para retrocompat",
+      "service_change": "complete_oficio_from_actuacion: commit documental; try materialize iniciador; si domicilio_id NULL → PENDIENTE_DOMICILIO sin raise",
+      "later_materialization": "al PATCH actuación agregando domicilio O botón «Materializar en ruta» si domicilio disponible",
+      "presenter": "estado_recorrido_label: «Oficio cargado — pendiente domicilio operativo»"
+    },
+    "two_absences_separate": {
+      "sin_expediente_envio": "en comprobacion",
+      "sin_domicilio_operativo": "en oficio.iniciador_materializacion_estado o equivalente",
+      "can_combine": true
+    }
+  },
+  "schema_changes_if_any": {
+    "comprobacion": [
+      "sin_expediente_envio BOOLEAN NOT NULL DEFAULT FALSE",
+      "sin_expediente_envio_declarado_at DATETIME NULL",
+      "sin_expediente_envio_declarado_by_user_id INT NULL"
+    ],
+    "oficio": [
+      "iniciador_materializacion_estado ENUM('MATERIALIZADO','PENDIENTE_DOMICILIO') NOT NULL DEFAULT 'MATERIALIZADO'",
+      "iniciador_materializacion_pendiente_at DATETIME NULL (opcional auditoría)"
+    ],
+    "expediente": "sin cambios",
+    "actuaciones": "sin cambios (carga_solo_comprobacion independiente)",
+    "iniciador_ruta": "sin cambios (domicilio_id sigue NOT NULL)"
+  },
+  "backend_changes": {
+    "new_services": [
+      "declarar_sin_expediente_envio_service.py",
+      "revertir_sin_expediente_envio_service.py (admin)",
+      "materializar_iniciador_desde_oficio_service.py (idempotente)"
+    ],
+    "modify": [
+      "pendientes_service._sin_expediente_query",
+      "pendientes_service.get_pendientes_oficio",
+      "oficio_completion_service.complete_oficio_from_actuacion",
+      "oficio_iniciador_service.get_or_create_iniciador_from_oficio (o wrapper que no raise en defer)",
+      "comprobacion_actas_bandeja_service._query_actuaciones_circuito_reinspeccion (OR sin_expediente_envio)",
+      "comprobacion_documental_service.get_comprobacion_documental_for_actuacion",
+      "actuacion_presenters.actuacion_to_pendiente_oficio_row",
+      "comprobacion_actas_presenters.estado_recorrido_label"
+    ],
+    "new_routes": [
+      "POST .../comprobacion/declarar-sin-expediente-envio",
+      "POST .../comprobacion/revertir-sin-expediente-envio"
+    ]
+  },
+  "frontend_changes": {
+    "ComprobacionExpedienteOperativoDialog": "botón secundario + ConfirmDialog texto spec",
+    "ActasComprobacionPage": "handler declarar sin expediente; refresh bandejas",
+    "pendiente_oficio_columns": "expediente «No disponible» cuando sin_expediente_envio",
+    "ComprobacionOficioOperativoDialog": "permitir alta sin expediente_original; manejar respuesta iniciador_pendiente_domicilio",
+    "comprobacionOperativoBlocks": "label expediente según estado documental",
+    "comprobacionesExportMappers": "N.º expediente «—»; columna estado «Sin expediente de envío»",
+    "RecorridoDetalleDocumentalDialog": "puedeGestionarOficios: true si expediente_envio OR sin_expediente_envio"
+  },
+  "permissions": {
+    "current": "phase1_jwt_guard — mutaciones requieren JWT; sin rol ADMIN específico en rutas actuaciones/comprobación",
+    "recommended": "Mismo rol que gestiona comprobaciones hoy (usuario autenticado con acceso a Gestión Comprobaciones); revertir declaración: admin o mismo rol con confirmación fuerte"
+  },
+  "dashboard_exports": {
+    "actuaciones_comprobaciones_inspecciones_counts": "sin cambio",
+    "pendientes_kpi": "oficios PENDIENTE_DOMICILIO no cuentan como REINSPECCION_OFICIO en mapa hasta materializar",
+    "exports": "expedienteEnvioNumero='—'; estadoRecorrido o campo nuevo documenta «Sin expediente de envío»"
+  },
+  "existing_cases_sandbox": {
+    "database": "digitaliza_sandbox",
+    "read_only": true,
+    "counts": {
+      "comprobaciones_sin_expediente_envio_con_actuacion": 317,
+      "stuck_pendiente_expediente_sin_oficio": 290,
+      "oficios_sin_expediente_envio_activo": 378,
+      "oficios_sin_iniciador_reinspeccion": 729,
+      "oficios_actuacion_sin_domicilio": 30,
+      "actuaciones_carga_solo_comprobacion": 1,
+      "hist_sin_domicilio_sin_exp_envio_pendiente": 0
+    },
+    "interpretation": "Legado masivo ya tiene oficios sin expediente envío (378) — datos pre-regla actual; diseño debe tolerar legado sin reescribir filas en diag."
+  },
+  "test_gap_act_hist_3": {
+    "what_was_tested": "complete_expediente_from_actuacion en actuación histórica (crea expediente ENVIO_ACTA ficticio de QA)",
+    "what_was_not_tested": "POST /actuaciones/{id}/oficio → complete_oficio_from_actuacion → get_or_create_iniciador_from_oficio",
+    "why_gap_missed_error": "El flujo QA y test_expediente_historical_sin_ot_dni pararon en expediente; el error de domicilio ocurre una etapa después, en materialización de iniciador dentro de complete_oficio_from_actuacion",
+    "required_e2e_test": "histórica → comprobación → (sin expediente declarado O expediente QA) → crear oficio → assert oficio persistido, iniciador_materializacion_estado=PENDIENTE_DOMICILIO, sin iniciador inválido"
+  },
+  "test_matrix": {
+    "A": "Comprobación normal → expediente → pendiente oficio",
+    "B": "Comprobación → declarar sin expediente → pendiente oficio",
+    "C": "No se crea fila expediente fake",
+    "D": "Flag + auditoría persistidos",
+    "E": "No en pendiente expediente tras declaración",
+    "F": "Sí en pendiente oficio tras declaración",
+    "G": "Crear oficio sin expediente envío disponible (sin_expediente_envio=true)",
+    "H": "Actuación con domicilio → oficio → iniciador normal",
+    "I": "Actuación sin domicilio → oficio → 201 documental, sin 500, iniciador diferido",
+    "J": "Sin domicilio no crea iniciador",
+    "K": "No domicilio fake",
+    "L": "Transacción: oficio persiste aunque iniciador diferido",
+    "M": "Regresión flujo normal intacto",
+    "N": "ACT-HIST → sin expediente → pendiente oficio → oficio",
+    "O": "Expediente real + actuación sin domicilio → oficio documental",
+    "P": "Revertir declaración / cargar expediente posterior auditado"
+  },
+  "risks": [
+    "378 oficios legados sin expediente envío — alinear queries sin romper recorrido",
+    "Confundir «No disponible» con «Pendiente» en UI",
+    "Materialización diferida olvidada — oficio invisible en mapa/pool",
+    "Revertir declaración con oficio ya creado — definir política estricta",
+    "Reinspección bandeja hoy exige has_envio — debe aceptar sin_expediente_envio"
+  ]
+}

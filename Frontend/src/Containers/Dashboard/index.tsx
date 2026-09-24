@@ -1,17 +1,7 @@
-
-import NavLeft from "../../Componets/NavLeft";
 import Panel from "./Components/Panel";
 
 const Dashboard = () => {
+    return <Panel />;
+};
 
-    return (
-        <>
-            <NavLeft />
-
-            <Panel />
-        </>
-
-    );
-}
-
-export default Dashboard; 
+export default Dashboard;

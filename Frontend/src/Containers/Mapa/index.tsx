@@ -1,14 +1,7 @@
-import NavLeft from "../../Componets/NavLeft";
-import MapView from "./Components/MapView";
+import MapPage from "./MapPage";
 
 const Mapa = () => {
-    return(
-        <>
-        <NavLeft/>
-
-        <MapView/>
-        </>
-    )
+    return <MapPage />;
 };
 
 export default Mapa;

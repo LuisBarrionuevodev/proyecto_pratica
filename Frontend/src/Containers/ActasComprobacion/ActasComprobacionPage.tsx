@@ -1,0 +1,2443 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import ClearIcon from "@mui/icons-material/Clear";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  Paper,
+  Stack,
+  Switch,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import {
+  BandejaTableSpinner,
+  BANDEJA_MRT_SPINNER_LOADING_STATE,
+} from "../../components/dataTable/bandejaTableLoading";
+import {
+  BandejaActaChipCell,
+  BandejaDomicilioYRubroCell,
+  BandejaEllipsisCell,
+  BandejaEstablecimientoCell,
+  BandejaFechaYChipOtCell,
+  BandejaSegmentChipsCell,
+  BANDEJA_MRT_BODY_CELL_PROPS,
+  splitMiddleDot,
+} from "../Actuaciones/Components/bandejaTableCells";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_PaginationState,
+  type MRT_SortingState,
+  type MRT_TableOptions,
+  type MRT_Updater,
+} from "material-react-table";
+
+import {
+  createExpedienteDesdeActuacion,
+  declararSinExpedienteEnvio,
+  createOficioDesdeActuacion,
+  fetchComprobacionDocumental,
+  fetchOficiosByComprobacion,
+  getActuacionesPendientesExpediente,
+  getJuzgadosCatalogoCached,
+  type IActuacionesPendientesItem,
+  type IComprobacionDocumentalResponse,
+  type ICreateExpedienteRequest,
+  type IJuzgadoCatalogItem,
+  type IPendientesOficioItem,
+  type OficioComprobacionItem,
+} from "../../api/actuacionesPendientesApi";
+import {
+  fetchComprobacionPendientesOficio,
+  fetchComprobacionRecorridoDetalle,
+  fetchPendientesReinspeccionOficio,
+  type IComprobacionRecorridoDetalle,
+  type IComprobacionRecorridoRow,
+  type IReinspeccionOficioPendienteRow,
+} from "../../api/actuacionesComprobacionActasApi";
+import { containerStyles } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { getCurrentMonthRange } from "../../utils/dateRange";
+import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
+import {
+  alertBaseStyles,
+  filtroButtonPrimaryStyles,
+  filtroButtonSecondaryStyles,
+  filtroButtonsStyles,
+  filtroContainerStyles,
+  filtroGridStyles,
+  filtroItemStyles,
+  filtroSectionTitleStyles,
+  filtroTitleStyles,
+  moduleContentColumnSx,
+} from "../Actuaciones/styles/filtroStyles";
+import { AppButton, AppSelect, AppTextField, ExportDataDialog } from "../../ui";
+import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../styles/GlassStyles";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
+import { mergeSx } from "../../utils/muiSx";
+import { fetchDistritosCatalogo, type DistritoCatalogoItem } from "../../api/geolocalizacionApi";
+import { useAppFeedback } from "../../components/feedback";
+import { OperRutaPoolAccionesCell } from "../../components/operRuta/OperRutaPoolAccionesCell";
+import {
+  estaBloqueadoParaGestionDocumental,
+  MENSAJE_BLOQUEO_GESTION_POOL_RUTA,
+} from "../../utils/operRutaPoolAcciones";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
+import { applyFormErrorsFromApi, parseApiError } from "../../utils/parseApiError";
+import {
+  applyOficioAltaErrorsFromApi,
+  validateOficioAltaPayloadClient,
+} from "../../utils/oficioFormErrors";
+import { contribuyenteBandejaLabel } from "../../utils/contribuyenteBandejaText";
+import {
+  formatActuacionListDomicilioLinea,
+  type ActuacionListDomicilioLineaInput,
+} from "../../utils/formatDomicilioLineaVisible";
+import { ComprobacionExpedienteOperativoDialog } from "./components/ComprobacionExpedienteOperativoDialog";
+import {
+  ComprobacionOficioOperativoDialog,
+  type ComprobacionOficioAltaPayload,
+  type OficioOperativoRow,
+} from "./components/ComprobacionOficioOperativoDialog";
+import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
+import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionOperativoBlocks";
+import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
+import { exportComprobacionesDataset } from "./utils/exportComprobacionesDataset";
+import {
+  buildRecorridoComprobacionFiltroPayload,
+  fetchRecorridoComprobacionConPayload,
+  recorridoComprobacionHasSpecificSearch,
+  type RecorridoComprobacionFiltroPayload,
+} from "./utils/buildRecorridoComprobacionFiltroPayload";
+import {
+  recCompOficioExpMotivoChips,
+  recCompOficioExpMotivoSortKey,
+  recorridoColumnChips,
+  recorridoColumnSortKey,
+} from "./utils/recorridoOficioExpLabels";
+import {
+  buildOperativaComprobacionFiltroPayloadForTab,
+  EMPTY_OPERATIVA_FILTRO_INPUTS,
+  operativaComprobacionExpedienteApiOpts,
+  operativaComprobacionOficioApiOpts,
+  operativaComprobacionReinspeccionApiOpts,
+  type OperativaComprobacionFiltroInputs,
+  type OperativaComprobacionFiltroPayload,
+} from "./utils/buildOperativaComprobacionFiltroPayload";
+import {
+  isOperativeComprobacionTab,
+  shouldSwapOperativaTabMemory,
+} from "./utils/operativaComprobacionTabChange";
+import {
+  createOperativaMemoryByTab,
+  operativaFiltersSignature,
+  resolveOperativaTabAppliedFilters,
+  snapshotOperativaFiltroMemory,
+  type OperativaMemoryByTab,
+  type OperativaTabFiltroMemory,
+} from "./utils/operativaComprobacionTabMemory";
+import {
+  createOperativaBaseCacheState,
+  invalidateOperativaBaseTabs as invalidateOperativaBaseTabsInState,
+  isOperativaBaseLoad,
+  resolveOperativaTabLoadAction,
+  type OperativaPendientesTab,
+} from "./utils/operativaComprobacionBaseCache";
+import {
+  MUTATION_INVALIDATE_EXPEDIENTE,
+  MUTATION_INVALIDATE_OFICIO,
+  MUTATION_INVALIDATE_REINSPECCION,
+  refreshComprobacionesPostOficio,
+} from "./utils/refreshComprobacionesPostOficio";
+import {
+  clearPersistKeyIfMatch,
+  GESTION_PERSIST_OPS,
+  GESTION_RECONCILE_REFRESH_MSG,
+  invalidatePendingMutationCallbacks,
+  isMutationSeqCurrent,
+  isPersistingForRow,
+  nextMutationSeq,
+  runGestionReconcile,
+  type GestionPersistKey,
+} from "../../utils/gestionMutationLifecycle";
+import {
+  notificacionEstadoOperativoChipColor,
+} from "../GestionNotificacion/utils/notificacionEstadoOperativo";
+import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
+import { perfLog, perfTimed } from "../../utils/perfLog";
+import {
+  buildClientPaginationSummary,
+  DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
+  resetClientPaginationPageIndex,
+} from "../../utils/buildClientPaginationSummary";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
+
+type TabKey = "expediente" | "oficio" | "reinspeccion" | "recorrido";
+
+const actasContentColumnSx = {
+  ...moduleContentColumnSx,
+  width: "100%",
+  maxWidth: "100%",
+  minWidth: 0,
+};
+
+type RecPeriodMode = "month" | "range";
+
+function domicilioTextFromRow(r: ActuacionListDomicilioLineaInput): string {
+  const t = formatActuacionListDomicilioLinea(r).trim();
+  return t || "—";
+}
+
+function fechaOtLabel(fecha?: string | null, ot?: string | null): string {
+  const f = (fecha ?? "").toString().trim() || "—";
+  const o = (ot ?? "").toString().trim() || "—";
+  return `${f} · ${o}`;
+}
+
+function contribBandejaFromRow(r: {
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
+  razon_social?: string | null;
+}): string {
+  return contribuyenteBandejaLabel(r.contrib_apellido, r.contrib_nombre, r.razon_social);
+}
+
+function contribDocRecorrido(r: IComprobacionRecorridoRow): string {
+  const c = contribBandejaFromRow(r);
+  const d = (r.doc_nro ?? "").toString().trim();
+  if (d) return `${c} · ${d}`;
+  return c;
+}
+
+function contribDocRecorridoSegments(r: IComprobacionRecorridoRow): string[] {
+  const full = contribDocRecorrido(r);
+  const parts = splitMiddleDot(full);
+  if (parts.length > 0) return parts;
+  return full && full !== "—" ? [full] : [];
+}
+
+function reinOficioNumCompact(r: IReinspeccionOficioPendienteRow): string {
+  const n = (r.oficio_numero ?? "").trim();
+  const a = r.oficio_anio != null ? String(r.oficio_anio) : "";
+  if (!n && !a) return "—";
+  return [n, a].filter(Boolean).join("/");
+}
+
+function reinExpedienteRespuestaCompact(r: IReinspeccionOficioPendienteRow): string {
+  const n = (r.expediente_respuesta_numero ?? "").toString().trim();
+  const a = r.expediente_respuesta_anio != null ? String(r.expediente_respuesta_anio) : "";
+  if (!n && !a) return "—";
+  return [n, a].filter(Boolean).join("/");
+}
+
+/** Líneas de la columna Oficio (comprobación + oficio + expediente respuesta de la fila). */
+function reinOficioFilaChips(r: IReinspeccionOficioPendienteRow): string[] {
+  const n = (r.acta_comprobacion_num ?? "").toString().trim();
+  const comp = n ? `Comp. ${n}` : "Comp. —";
+  const on = reinOficioNumCompact(r);
+  const ofi = on !== "—" ? `Oficio ${on}` : "Oficio —";
+  const en = reinExpedienteRespuestaCompact(r);
+  const exp = en !== "—" ? `Exp. ${en}` : "Exp. —";
+  return [comp, ofi, exp];
+}
+
+function reinOficioFilaSortKey(r: IReinspeccionOficioPendienteRow): string {
+  return reinOficioFilaChips(r).join(" | ");
+}
+
+function establecimientoSortKey(r: {
+  contrib_apellido?: string | null;
+  contrib_nombre?: string | null;
+  razon_social?: string | null;
+  calle?: string | null;
+  numero?: string | null;
+  rubro_nombre?: string | null;
+}): string {
+  return `${contribBandejaFromRow(r)} ${domicilioTextFromRow(r)} ${(r.rubro_nombre ?? "").trim()}`.trim();
+}
+
+function reinBandejaRowKey(r: IReinspeccionOficioPendienteRow): string {
+  return r.bandeja_row_key ?? `${r.id}-${r.oficio_id ?? 0}-${r.iniciador_id ?? 0}`;
+}
+
+/** Layout MRT compartido: menos altura de fila y ancho útil sin overflow horizontal del layout. */
+const bandejaComprobacionMrtLayout = {
+  density: "compact" as const,
+  ...BANDEJA_MRT_BODY_CELL_PROPS,
+  muiTablePaperProps: {
+    sx: {
+      ...((DARK_TABLE_CONFIG.muiTablePaperProps as { sx?: Record<string, unknown> })?.sx ?? {}),
+      width: "100%",
+      maxWidth: "100%",
+      minWidth: 0,
+    },
+  },
+  muiTableContainerProps: {
+    sx: {
+      ...((DARK_TABLE_CONFIG.muiTableContainerProps as { sx?: Record<string, unknown> })?.sx ?? {}),
+      minWidth: 0,
+      maxWidth: "100%",
+      maxHeight: { xs: "min(45vh, 360px)", sm: "min(52vh, 440px)", md: "min(58vh, 520px)" },
+    },
+  },
+};
+
+const TIPO_FINAL_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Todos" },
+  { value: "CUMPLE", label: "Cumple" },
+  { value: "NO_CUMPLE", label: "No cumple" },
+];
+
+const MESES_OPTS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1),
+  label: String(i + 1),
+}));
+
+const MESES_OPTS_WITH_EMPTY = [{ value: "", label: "—" }, ...MESES_OPTS];
+
+function yearOptions(center: number): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [{ value: "", label: "—" }];
+  for (let y = center - 5; y <= center + 2; y++) out.push({ value: String(y), label: String(y) });
+  return out;
+}
+
+function trimToNull(s: string): string | null {
+  const t = s.trim();
+  return t || null;
+}
+
+type ComprobacionOperativaBandejaTableProps = {
+  columns: MRT_ColumnDef<Record<string, unknown>>[];
+  data: Record<string, unknown>[];
+  toolbar?: () => React.ReactNode;
+  getRowId?: (row: Record<string, unknown>) => string;
+  pagination: MRT_PaginationState;
+  onPaginationChange: (updater: MRT_Updater<MRT_PaginationState>) => void;
+  sorting: MRT_SortingState;
+  onSortingChange: (updater: MRT_Updater<MRT_SortingState>) => void;
+};
+
+/** Tabla MRT única para expediente / oficio / reinspección (permanece montada entre tabs). */
+function ComprobacionOperativaBandejaTable({
+  columns,
+  data,
+  toolbar,
+  getRowId,
+  pagination,
+  onPaginationChange,
+  sorting,
+  onSortingChange,
+}: ComprobacionOperativaBandejaTableProps) {
+  const table = useMaterialReactTable({
+    ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
+    columns,
+    data,
+    density: "compact",
+    enableEditing: false,
+    enableRowSelection: false,
+    ...(getRowId ? { getRowId: (row) => getRowId(row) } : {}),
+    renderTopToolbarCustomActions: toolbar,
+    state: {
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
+      pagination,
+      sorting,
+    },
+    onPaginationChange,
+    onSortingChange,
+  } as MRT_TableOptions<Record<string, unknown>>);
+  return <MaterialReactTable table={table} />;
+}
+
+function buildEstadoOperativoColumn<T extends Parameters<typeof formatEstadoOperativoPoolLabel>[0]>(): MRT_ColumnDef<T> {
+  return {
+    id: "estado_operativo",
+    header: "Estado operativo",
+    size: 132,
+    accessorFn: (row) => formatEstadoOperativoPoolLabel(row),
+    Cell: ({ row }) => {
+      const label = formatEstadoOperativoPoolLabel(row.original);
+      if (label === "—") return <BandejaEllipsisCell value="—" />;
+      return (
+        <Chip
+          size="small"
+          label={label}
+          color={notificacionEstadoOperativoChipColor(row.original.estado_operativo_pool)}
+          variant="outlined"
+          sx={{ maxWidth: "100%" }}
+        />
+      );
+    },
+  };
+}
+
+/**
+ * Actas de comprobación: cuatro slices (expediente → oficio → reinspección → recorrido consultivo).
+ */
+const ActasComprobacionPage = () => {
+  const feedback = useAppFeedback();
+  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
+  const defaultMonthYear = useMemo(() => {
+    const d = new Date(`${defaultRange.desde}T12:00:00`);
+    return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+  }, [defaultRange.desde]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState<TabKey>("expediente");
+  const deepLinkActuacionKeyDone = useRef<string | null>(null);
+  const operativaBaseCacheRef = useRef(createOperativaBaseCacheState());
+  const [opDesde, setOpDesde] = useState<string | null>(null);
+  const [opHasta, setOpHasta] = useState<string | null>(null);
+  const [opNumComp, setOpNumComp] = useState("");
+  const [opNumExpEnvio, setOpNumExpEnvio] = useState("");
+  const [opNumOficio, setOpNumOficio] = useState("");
+  const [opNumExpRespuesta, setOpNumExpRespuesta] = useState("");
+  const [opApplied, setOpApplied] = useState<OperativaComprobacionFiltroPayload | null>(null);
+  const opAppliedRef = useRef<OperativaComprobacionFiltroPayload | null>(null);
+  const operativaMemoryByTabRef = useRef<OperativaMemoryByTab>(createOperativaMemoryByTab());
+  const operativaLoadedFiltersRef = useRef<Record<OperativaPendientesTab, string | null>>({
+    expediente: null,
+    oficio: null,
+    reinspeccion: null,
+  });
+  const [opPagination, setOpPagination] = useState<MRT_PaginationState>(() =>
+    createOperativaMemoryByTab().expediente.table.pagination
+  );
+  const [opSorting, setOpSorting] = useState<MRT_SortingState>(() =>
+    createOperativaMemoryByTab().expediente.table.sorting
+  );
+  const prevOperativeTabRef = useRef<TabKey>(tab);
+  /** Solo para el slice Recorrido (selector de distrito). */
+  const [distritosRecorrido, setDistritosRecorrido] = useState<DistritoCatalogoItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetchDistritosCatalogo();
+        if (!cancelled) setDistritosRecorrido(r.items ?? []);
+      } catch {
+        if (!cancelled) setDistritosRecorrido([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    opAppliedRef.current = opApplied;
+  }, [opApplied]);
+
+  const readOperativaFiltroInputs = useCallback(
+    (): OperativaComprobacionFiltroInputs => ({
+      desde: opDesde,
+      hasta: opHasta,
+      numeroComprobacion: opNumComp,
+      expedienteEnvioNumero: opNumExpEnvio,
+      numeroOficio: opNumOficio,
+      expedienteRespuestaNumero: opNumExpRespuesta,
+    }),
+    [opDesde, opHasta, opNumComp, opNumExpEnvio, opNumOficio, opNumExpRespuesta]
+  );
+
+  const applyOperativaFiltroMemory = useCallback((mem: OperativaTabFiltroMemory) => {
+    setOpDesde(mem.inputs.desde);
+    setOpHasta(mem.inputs.hasta);
+    setOpNumComp(mem.inputs.numeroComprobacion);
+    setOpNumExpEnvio(mem.inputs.expedienteEnvioNumero);
+    setOpNumOficio(mem.inputs.numeroOficio);
+    setOpNumExpRespuesta(mem.inputs.expedienteRespuestaNumero);
+    setOpApplied(mem.applied);
+    opAppliedRef.current = mem.applied;
+  }, []);
+
+  const saveOperativaTabMemory = useCallback(
+    (tabKey: OperativaPendientesTab) => {
+      operativaMemoryByTabRef.current[tabKey] = {
+        filtro: snapshotOperativaFiltroMemory(readOperativaFiltroInputs(), opAppliedRef.current),
+        table: { pagination: opPagination, sorting: opSorting },
+      };
+    },
+    [readOperativaFiltroInputs, opPagination, opSorting]
+  );
+
+  const restoreOperativaTabMemory = useCallback(
+    (tabKey: OperativaPendientesTab) => {
+      const mem = operativaMemoryByTabRef.current[tabKey];
+      applyOperativaFiltroMemory(mem.filtro);
+      setOpPagination(mem.table.pagination);
+      setOpSorting(mem.table.sorting);
+    },
+    [applyOperativaFiltroMemory]
+  );
+
+  const syncCurrentOperativaFiltroMemory = useCallback(() => {
+    if (!isOperativeComprobacionTab(tab)) return;
+    operativaMemoryByTabRef.current[tab].filtro = snapshotOperativaFiltroMemory(
+      readOperativaFiltroInputs(),
+      opAppliedRef.current
+    );
+  }, [tab, readOperativaFiltroInputs]);
+
+  const handleOpPaginationChange = useCallback(
+    (updater: MRT_Updater<MRT_PaginationState>) => {
+      setOpPagination((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (isOperativeComprobacionTab(tab)) {
+          operativaMemoryByTabRef.current[tab].table.pagination = next;
+        }
+        return next;
+      });
+    },
+    [tab]
+  );
+
+  const handleOpSortingChange = useCallback(
+    (updater: MRT_Updater<MRT_SortingState>) => {
+      setOpSorting((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (isOperativeComprobacionTab(tab)) {
+          operativaMemoryByTabRef.current[tab].table.sorting = next;
+        }
+        return next;
+      });
+    },
+    [tab]
+  );
+
+  const distritoSelectOptionsRecorrido = useMemo(
+    () => [
+      { value: "", label: "Todos los distritos" },
+      ...distritosRecorrido.map((d) => ({ value: String(d.id), label: d.nombre })),
+    ],
+    [distritosRecorrido]
+  );
+
+  // —— Pendientes de expediente (comprobación sin expediente de envío)
+  const [expItems, setExpItems] = useState<IActuacionesPendientesItem[]>([]);
+  const [expTotalPendientes, setExpTotalPendientes] = useState(0);
+  const [expLoading, setExpLoading] = useState(false);
+  const [expError, setExpError] = useState<string | null>(null);
+  const [selectedExp, setSelectedExp] = useState<IActuacionesPendientesItem | null>(null);
+  const [modalExpOpen, setModalExpOpen] = useState(false);
+  const [modalExpError, setModalExpError] = useState<string | null>(null);
+  const [expNumeroForm, setExpNumeroForm] = useState("");
+  const [expFechaForm, setExpFechaForm] = useState(defaultRange.hasta);
+  const [persistKey, setPersistKey] = useState<GestionPersistKey | null>(null);
+  const mutationSeqRef = useRef(0);
+  const selectedExpRef = useRef<IActuacionesPendientesItem | null>(null);
+  const selectedOficioRef = useRef<OficioOperativoRow | null>(null);
+  const tabRef = useRef<TabKey>(tab);
+
+  const invalidateOperativaBaseTabs = useCallback((tabs: OperativaPendientesTab[]) => {
+    invalidateOperativaBaseTabsInState(operativaBaseCacheRef.current, tabs);
+  }, []);
+
+  const restoreExpedienteFromBase = useCallback(() => {
+    const snap = operativaBaseCacheRef.current.expediente.snapshot;
+    if (!snap) return false;
+    setExpItems(snap.items);
+    setExpTotalPendientes(snap.total);
+    setExpError(null);
+    return true;
+  }, []);
+
+  const loadExpediente = useCallback(async (
+    filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
+    opts?: { silent?: boolean; forceBaseRefresh?: boolean }
+  ) => {
+    const isBase = isOperativaBaseLoad("expediente", filters);
+    if (opts?.forceBaseRefresh && isBase) {
+      operativaBaseCacheRef.current.expediente.valid = false;
+      operativaBaseCacheRef.current.expediente.snapshot = null;
+    }
+    if (
+      !opts?.forceBaseRefresh &&
+      resolveOperativaTabLoadAction("expediente", filters, operativaBaseCacheRef.current) === "restore-base"
+    ) {
+      perfLog("comprobacion.tab.baseCacheHit", { tab: "expediente" });
+      restoreExpedienteFromBase();
+      operativaLoadedFiltersRef.current.expediente = operativaFiltersSignature(filters);
+      return;
+    }
+    if (!opts?.silent) setExpLoading(true);
+    setExpError(null);
+    const hasDateRange = Boolean(filters?.desde || filters?.hasta);
+    try {
+      const resp = await perfTimed(
+        "comprobacion.loadExpediente",
+        () =>
+          getActuacionesPendientesExpediente(filters?.desde ?? null, filters?.hasta ?? null, "comprobacion", null, {
+            ...operativaComprobacionExpedienteApiOpts(filters, hasDateRange),
+          }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
+      setExpItems(resp.items);
+      setExpTotalPendientes(resp.meta.total);
+      operativaLoadedFiltersRef.current.expediente = operativaFiltersSignature(filters);
+      if (isBase) {
+        operativaBaseCacheRef.current.expediente = {
+          valid: true,
+          snapshot: { items: resp.items, total: resp.meta.total },
+        };
+      }
+    } catch (err: unknown) {
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setExpError(detail || "Error al cargar pendientes de expediente");
+      setExpItems([]);
+      setExpTotalPendientes(0);
+    } finally {
+      if (!opts?.silent) setExpLoading(false);
+    }
+  }, [restoreExpedienteFromBase]);
+
+  const openModalExp = useCallback(
+    (row: IActuacionesPendientesItem) => {
+      invalidatePendingMutationCallbacks(mutationSeqRef);
+      setPersistKey(null);
+      setSelectedExp(row);
+      setExpNumeroForm("");
+      setExpFechaForm(defaultRange.hasta);
+      setModalExpError(null);
+      setModalExpOpen(true);
+    },
+    [defaultRange.hasta]
+  );
+
+  const dismissModalExp = useCallback(() => {
+    setModalExpOpen(false);
+    setSelectedExp(null);
+    setModalExpError(null);
+  }, []);
+
+  const modalExpPersisting = isPersistingForRow(
+    persistKey,
+    selectedExp?.id,
+    GESTION_PERSIST_OPS.compExpedienteSalida
+  );
+  const modalDeclararSinExpPersisting = isPersistingForRow(
+    persistKey,
+    selectedExp?.id,
+    GESTION_PERSIST_OPS.compDeclararSinExpediente
+  );
+
+  const closeModalExp = () => {
+    if (modalExpPersisting || modalDeclararSinExpPersisting) return;
+    dismissModalExp();
+  };
+
+  const columnsExpediente = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
+    () => [
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
+      {
+        id: "establecimiento",
+        header: "Establecimiento",
+        size: 200,
+        accessorFn: (r) => establecimientoSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaEstablecimientoCell
+            contribuyente={contribBandejaFromRow(row.original)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
+      },
+      {
+        accessorKey: "acta_comprobacion_num",
+        header: "Nº Comprobación",
+        size: 110,
+        Cell: ({ row }) => {
+          const n = (row.original.acta_comprobacion_num ?? "").trim();
+          return <BandejaActaChipCell label={n ? `Comp. ${n}` : "—"} />;
+        },
+      },
+      {
+        id: "acciones",
+        header: "Acción",
+        size: 152,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
+        Cell: ({ row }) => (
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => openModalExp(row.original)}>
+            Registrar expediente
+          </AppButton>
+        ),
+      },
+    ],
+    [openModalExp]
+  );
+
+  const renderExpedienteToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Actualizar listados">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Actualizar listados"
+            disabled={expLoading}
+            onClick={() => {
+              const f = opAppliedRef.current;
+              void loadExpediente(f, { forceBaseRefresh: isOperativaBaseLoad("expediente", f) });
+            }}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [expLoading, loadExpediente]
+  );
+
+  // —— Pendientes de oficio (siempre mes corriente; sin filtro previo a la tabla)
+  const [oficioApiTotal, setOficioApiTotal] = useState(0);
+  const [oficioItems, setOficioItems] = useState<IPendientesOficioItem[]>([]);
+  const [oficioLoading, setOficioLoading] = useState(false);
+  const [oficioError, setOficioError] = useState<string | null>(null);
+  const [juzgados, setJuzgados] = useState<IJuzgadoCatalogItem[]>([]);
+  const [selectedOficio, setSelectedOficio] = useState<OficioOperativoRow | null>(null);
+  const [modalOficioOpen, setModalOficioOpen] = useState(false);
+  const [modalOficioError, setModalOficioError] = useState<string | null>(null);
+  const [modalOficioFieldErrors, setModalOficioFieldErrors] = useState<Record<string, string>>({});
+  const [modalDocReconciling, setModalDocReconciling] = useState(false);
+  const [modalDoc, setModalDoc] = useState<IComprobacionDocumentalResponse | null>(null);
+  const [modalDocLoading, setModalDocLoading] = useState(false);
+  const [modalDocError, setModalDocError] = useState<string | null>(null);
+  const [modalOficios, setModalOficios] = useState<OficioComprobacionItem[]>([]);
+  const [modalOficiosLoading, setModalOficiosLoading] = useState(false);
+  const [modalOficiosError, setModalOficiosError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getJuzgadosCatalogoCached()
+      .then((jz) => {
+        if (!cancelled) setJuzgados(jz);
+      })
+      .catch(() => {
+        if (!cancelled) setJuzgados([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const restoreOficioFromBase = useCallback(() => {
+    const snap = operativaBaseCacheRef.current.oficio.snapshot;
+    if (!snap) return false;
+    setOficioItems(snap.items);
+    setOficioApiTotal(snap.total);
+    setOficioError(null);
+    return true;
+  }, []);
+
+  const loadOficiosForComprobacion = useCallback(async (comprobacionId: number) => {
+    setModalOficiosLoading(true);
+    setModalOficiosError(null);
+    try {
+      const resp = await fetchOficiosByComprobacion(comprobacionId);
+      setModalOficios(resp.oficios ?? []);
+    } catch (err: unknown) {
+      setModalOficios([]);
+      const parsed = parseApiError(err, "No se pudo cargar el historial de oficios");
+      setModalOficiosError(parsed.message);
+    } finally {
+      setModalOficiosLoading(false);
+    }
+  }, []);
+
+  const loadOficio = useCallback(async (
+    filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
+    opts?: { silent?: boolean; forceBaseRefresh?: boolean }
+  ) => {
+    const isBase = isOperativaBaseLoad("oficio", filters);
+    if (opts?.forceBaseRefresh && isBase) {
+      operativaBaseCacheRef.current.oficio.valid = false;
+      operativaBaseCacheRef.current.oficio.snapshot = null;
+    }
+    if (
+      !opts?.forceBaseRefresh &&
+      resolveOperativaTabLoadAction("oficio", filters, operativaBaseCacheRef.current) === "restore-base"
+    ) {
+      perfLog("comprobacion.tab.baseCacheHit", { tab: "oficio" });
+      restoreOficioFromBase();
+      operativaLoadedFiltersRef.current.oficio = operativaFiltersSignature(filters);
+      return;
+    }
+    if (!opts?.silent) setOficioLoading(true);
+    setOficioError(null);
+    const hasDateRange = Boolean(filters?.desde || filters?.hasta);
+    try {
+      const resp = await perfTimed(
+        "comprobacion.loadOficio",
+        () =>
+          fetchComprobacionPendientesOficio(filters?.desde ?? null, filters?.hasta ?? null, null, {
+            ...operativaComprobacionOficioApiOpts(filters, hasDateRange),
+          }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
+      setOficioApiTotal(resp.meta.total);
+      setOficioItems(resp.items);
+      operativaLoadedFiltersRef.current.oficio = operativaFiltersSignature(filters);
+      if (isBase) {
+        operativaBaseCacheRef.current.oficio = {
+          valid: true,
+          snapshot: { items: resp.items, total: resp.meta.total },
+        };
+      }
+    } catch (err: unknown) {
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setOficioError(detail || "Error al cargar pendientes de oficio");
+      setOficioItems([]);
+      setOficioApiTotal(0);
+    } finally {
+      if (!opts?.silent) setOficioLoading(false);
+    }
+  }, [restoreOficioFromBase]);
+
+  const openModalOficio = useCallback(
+    async (row: OficioOperativoRow) => {
+      invalidatePendingMutationCallbacks(mutationSeqRef);
+      setPersistKey(null);
+      setSelectedOficio(row);
+      setModalOficioError(null);
+      setModalDoc(null);
+      setModalDocError(null);
+      setModalOficios([]);
+      setModalOficiosError(null);
+      setModalOficioOpen(true);
+      setModalDocLoading(true);
+      setModalOficiosLoading(false);
+      perfLog("comprobacion.modal.oficio.open", { actuacionId: row.id });
+      try {
+        const doc = await perfTimed(
+          "comprobacion.modal.oficio.documental",
+          () => fetchComprobacionDocumental(row.id),
+          () => ({ actuacionId: row.id })
+        );
+        setModalDoc(doc);
+        setModalDocError(null);
+        void loadOficiosForComprobacion(doc.comprobacion_id);
+      } catch (err: unknown) {
+        setModalDoc(null);
+        const parsed = parseApiError(
+          err,
+          "No se pudo cargar la ficha documental (no se mostrará edición ni el bloqueo por trámite en ruta hasta reintentar)."
+        );
+        setModalDocError(parsed.message);
+      } finally {
+        setModalDocLoading(false);
+      }
+    },
+    [loadOficiosForComprobacion]
+  );
+
+  useEffect(() => {
+    selectedExpRef.current = selectedExp;
+  }, [selectedExp]);
+
+  useEffect(() => {
+    selectedOficioRef.current = selectedOficio;
+  }, [selectedOficio]);
+
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
+
+  const modalOficioPersisting = isPersistingForRow(
+    persistKey,
+    selectedOficio?.id,
+    GESTION_PERSIST_OPS.compOficioAlta
+  );
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "expediente" || t === "oficio" || t === "reinspeccion" || t === "recorrido") {
+      setTab(t);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const raw = searchParams.get("actuacionId");
+    if (!raw) {
+      deepLinkActuacionKeyDone.current = null;
+      return;
+    }
+    const urlTab = searchParams.get("tab");
+    const effectiveTab: TabKey =
+      urlTab === "expediente" || urlTab === "oficio" || urlTab === "reinspeccion" || urlTab === "recorrido"
+        ? urlTab
+        : tab;
+    const key = `${effectiveTab}:${raw}`;
+    if (deepLinkActuacionKeyDone.current === key) return;
+
+    const aid = Number.parseInt(raw, 10);
+    if (!Number.isFinite(aid)) return;
+
+    const markDoneAndClear = () => {
+      deepLinkActuacionKeyDone.current = key;
+      const next = new URLSearchParams(searchParams);
+      next.delete("actuacionId");
+      setSearchParams(next, { replace: true });
+    };
+
+    if (effectiveTab === "expediente" && !expLoading) {
+      const row = expItems.find((r) => r.id === aid);
+      if (row) openModalExp(row);
+      markDoneAndClear();
+      return;
+    }
+    if (effectiveTab === "oficio" && !oficioLoading) {
+      const row = oficioItems.find((r) => r.id === aid);
+      if (row) void openModalOficio(row);
+      markDoneAndClear();
+      return;
+    }
+    if (effectiveTab === "recorrido") {
+      markDoneAndClear();
+      return;
+    }
+    if (effectiveTab === "reinspeccion") {
+      markDoneAndClear();
+    }
+  }, [
+    tab,
+    searchParams,
+    setSearchParams,
+    expLoading,
+    oficioLoading,
+    expItems,
+    oficioItems,
+    openModalExp,
+    openModalOficio,
+  ]);
+
+  const closeModalOficio = () => {
+    if (modalOficioPersisting) return;
+    dismissModalOficio();
+  };
+
+  const dismissModalOficio = useCallback(() => {
+    setModalOficioOpen(false);
+    setSelectedOficio(null);
+    setModalDoc(null);
+    setModalDocError(null);
+    setModalDocLoading(false);
+    setModalDocReconciling(false);
+    setModalOficios([]);
+    setModalOficiosError(null);
+    setModalOficiosLoading(false);
+    setModalOficioError(null);
+    setModalOficioFieldErrors({});
+  }, []);
+
+  const columnsOficio = useMemo<MRT_ColumnDef<IPendientesOficioItem>[]>(
+    () => [
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
+      {
+        id: "establecimiento",
+        header: "Establecimiento",
+        size: 200,
+        accessorFn: (r) => establecimientoSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaEstablecimientoCell
+            contribuyente={contribBandejaFromRow(row.original)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
+      },
+      {
+        accessorKey: "acta_comprobacion_num",
+        header: "Nº Comprobación",
+        size: 110,
+        Cell: ({ row }) => {
+          const n = (row.original.acta_comprobacion_num ?? "").trim();
+          return <BandejaActaChipCell label={n ? `Comp. ${n}` : "—"} />;
+        },
+      },
+      {
+        id: "expediente_envio",
+        header: "Expediente envío",
+        size: 160,
+        accessorFn: (r) =>
+          r.sin_expediente_envio
+            ? "Sin expediente de envío"
+            : [r.expediente_original_numero, r.expediente_original_anio].filter(Boolean).join("/"),
+        Cell: ({ row }) => {
+          if (row.original.sin_expediente_envio) {
+            return <Typography variant="body2">Sin expediente de envío</Typography>;
+          }
+          const num = (row.original.expediente_original_numero ?? "").trim();
+          const anio = (row.original.expediente_original_anio ?? "").toString().trim();
+          const fecha = (row.original.expediente_original_fecha ?? "").trim();
+          const label = num ? `${num}${anio ? `/${anio}` : ""}` : "—";
+          const parts = [label, fecha ? `(${fecha})` : ""].filter(Boolean);
+          return <Typography variant="body2">{parts.join(" ") || "—"}</Typography>;
+        },
+      },
+      {
+        id: "acciones",
+        header: "Acción",
+        size: 128,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
+        Cell: ({ row }) => (
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => void openModalOficio(row.original)}>
+            Registrar oficio
+          </AppButton>
+        ),
+      },
+    ],
+    [openModalOficio]
+  );
+
+  const renderOficioToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Actualizar listados">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Actualizar listados"
+            disabled={oficioLoading}
+            onClick={() => {
+              const f = opAppliedRef.current;
+              void loadOficio(f, { forceBaseRefresh: isOperativaBaseLoad("oficio", f) });
+            }}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [oficioLoading, loadOficio]
+  );
+
+  // —— Reinspección (sin filtro por mes: `omitir_rango_fecha` en API; refresco en toolbar)
+  const [reinApiTotal, setReinApiTotal] = useState(0);
+  const [reinItems, setReinItems] = useState<IReinspeccionOficioPendienteRow[]>([]);
+  const [reinLoading, setReinLoading] = useState(false);
+  const [reinError, setReinError] = useState<string | null>(null);
+  const [modalReinOpen, setModalReinOpen] = useState(false);
+  const [selectedRein, setSelectedRein] = useState<ReinspeccionOperativoDetalleRow | null>(null);
+
+  const restoreReinFromBase = useCallback(() => {
+    const snap = operativaBaseCacheRef.current.reinspeccion.snapshot;
+    if (!snap) return false;
+    setReinItems(snap.items);
+    setReinApiTotal(snap.total);
+    setReinError(null);
+    return true;
+  }, []);
+
+  const openModalRein = useCallback((r: IReinspeccionOficioPendienteRow) => {
+    setSelectedRein(r as ReinspeccionOperativoDetalleRow);
+    setModalReinOpen(true);
+  }, []);
+
+  const closeModalRein = useCallback(() => {
+    setModalReinOpen(false);
+    setSelectedRein(null);
+  }, []);
+
+  const loadRein = useCallback(async (
+    filters: OperativaComprobacionFiltroPayload | null = opAppliedRef.current,
+    opts?: { silent?: boolean; forceBaseRefresh?: boolean }
+  ) => {
+    const isBase = isOperativaBaseLoad("reinspeccion", filters);
+    if (opts?.forceBaseRefresh && isBase) {
+      operativaBaseCacheRef.current.reinspeccion.valid = false;
+      operativaBaseCacheRef.current.reinspeccion.snapshot = null;
+    }
+    if (
+      !opts?.forceBaseRefresh &&
+      resolveOperativaTabLoadAction("reinspeccion", filters, operativaBaseCacheRef.current) === "restore-base"
+    ) {
+      perfLog("comprobacion.tab.baseCacheHit", { tab: "reinspeccion" });
+      restoreReinFromBase();
+      operativaLoadedFiltersRef.current.reinspeccion = operativaFiltersSignature(filters);
+      return;
+    }
+    if (!opts?.silent) setReinLoading(true);
+    setReinError(null);
+    const hasDateRange = Boolean(filters?.desde || filters?.hasta);
+    try {
+      const resp = await perfTimed(
+        "comprobacion.loadReinspeccion",
+        () =>
+          fetchPendientesReinspeccionOficio(filters?.desde ?? null, filters?.hasta ?? null, null, {
+            ...operativaComprobacionReinspeccionApiOpts(filters, hasDateRange),
+          }),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
+      setReinApiTotal(resp.meta.total);
+      setReinItems(resp.items);
+      operativaLoadedFiltersRef.current.reinspeccion = operativaFiltersSignature(filters);
+      if (isBase) {
+        operativaBaseCacheRef.current.reinspeccion = {
+          valid: true,
+          snapshot: { items: resp.items, total: resp.meta.total },
+        };
+      }
+    } catch (err: unknown) {
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setReinError(detail || "Error al cargar pendientes de reinspección");
+      setReinItems([]);
+      setReinApiTotal(0);
+    } finally {
+      if (!opts?.silent) setReinLoading(false);
+    }
+  }, [restoreReinFromBase]);
+
+  const clearOperativaFiltroInputs = useCallback(() => {
+    setOpDesde(EMPTY_OPERATIVA_FILTRO_INPUTS.desde);
+    setOpHasta(EMPTY_OPERATIVA_FILTRO_INPUTS.hasta);
+    setOpNumComp(EMPTY_OPERATIVA_FILTRO_INPUTS.numeroComprobacion);
+    setOpNumExpEnvio(EMPTY_OPERATIVA_FILTRO_INPUTS.expedienteEnvioNumero);
+    setOpNumOficio(EMPTY_OPERATIVA_FILTRO_INPUTS.numeroOficio);
+    setOpNumExpRespuesta(EMPTY_OPERATIVA_FILTRO_INPUTS.expedienteRespuestaNumero);
+    setOpApplied(null);
+    opAppliedRef.current = null;
+  }, []);
+
+  const handleApplyOperativaFiltro = useCallback(() => {
+    if (tab !== "expediente" && tab !== "oficio" && tab !== "reinspeccion") return;
+    const payload = buildOperativaComprobacionFiltroPayloadForTab(tab, {
+      desde: opDesde,
+      hasta: opHasta,
+      numeroComprobacion: opNumComp,
+      expedienteEnvioNumero: opNumExpEnvio,
+      numeroOficio: opNumOficio,
+      expedienteRespuestaNumero: opNumExpRespuesta,
+    });
+    setOpApplied(payload);
+    opAppliedRef.current = payload;
+    syncCurrentOperativaFiltroMemory();
+    if (tab === "expediente") void loadExpediente(payload);
+    else if (tab === "oficio") void loadOficio(payload);
+    else if (tab === "reinspeccion") void loadRein(payload);
+  }, [
+    opDesde,
+    opHasta,
+    opNumComp,
+    opNumExpEnvio,
+    opNumOficio,
+    opNumExpRespuesta,
+    tab,
+    loadExpediente,
+    loadOficio,
+    loadRein,
+    syncCurrentOperativaFiltroMemory,
+  ]);
+
+  const handleClearOperativaFiltro = useCallback(() => {
+    clearOperativaFiltroInputs();
+    syncCurrentOperativaFiltroMemory();
+    if (tab === "expediente") void loadExpediente(null);
+    else if (tab === "oficio") void loadOficio(null);
+    else if (tab === "reinspeccion") void loadRein(null);
+  }, [tab, loadExpediente, loadOficio, loadRein, clearOperativaFiltroInputs, syncCurrentOperativaFiltroMemory]);
+
+  /** Lazy-load por tab; restaura snapshot base sin GET cuando está disponible. */
+  const ensureTabLoaded = useCallback(
+    async (key: TabKey, options?: { filters?: OperativaComprobacionFiltroPayload | null }) => {
+      if (key === "recorrido") return;
+      const filters = options?.filters !== undefined ? options.filters : opAppliedRef.current;
+      if (key === "expediente") await loadExpediente(filters);
+      else if (key === "oficio") await loadOficio(filters);
+      else if (key === "reinspeccion") await loadRein(filters);
+    },
+    [loadExpediente, loadOficio, loadRein]
+  );
+
+  /** Refresca solo la bandeja del slice activo (sin catálogos ni otras pestañas). */
+  const refreshComprobacionesSlices = useCallback(async () => {
+    await refreshComprobacionesPostOficio(
+      {
+        filters: opAppliedRef.current,
+        activeTab: tab,
+        invalidateOperativaBaseTabs,
+        loadExpediente,
+        loadOficio,
+        loadRein,
+      },
+      MUTATION_INVALIDATE_REINSPECCION
+    );
+  }, [tab, invalidateOperativaBaseTabs, loadExpediente, loadOficio, loadRein]);
+
+  /** Refetch puntual del modal de oficio (documental + lista de oficios de la comprobación). */
+  const refreshModalOficioData = useCallback(async () => {
+    if (!selectedOficio) return;
+    try {
+      const doc = await fetchComprobacionDocumental(selectedOficio.id);
+      setModalDoc(doc);
+      setModalDocError(null);
+      await loadOficiosForComprobacion(doc.comprobacion_id);
+    } catch (err: unknown) {
+      setModalDoc(null);
+      const parsed = parseApiError(err, "No se pudo recargar la ficha documental (edición no disponible hasta reintentar).");
+      setModalDocError(parsed.message);
+    }
+  }, [selectedOficio, loadOficiosForComprobacion]);
+
+  const reloadOficioModalDocumental = useCallback(async () => {
+    await refreshModalOficioData();
+    await refreshComprobacionesSlices();
+  }, [refreshModalOficioData, refreshComprobacionesSlices]);
+
+  /** Reconciliación de bandejas en background (todas silent). */
+  const reconcileComprobacionesSilent = useCallback(() => {
+    runGestionReconcile(
+      async () => {
+        if (tabRef.current === "recorrido") return;
+        await refreshComprobacionesPostOficio(
+          {
+            filters: opAppliedRef.current,
+            activeTab: tabRef.current,
+            invalidateOperativaBaseTabs,
+            loadExpediente: (filters, opts) => loadExpediente(filters, opts),
+            loadOficio: (filters, opts) => loadOficio(filters, opts),
+            loadRein: (filters, opts) => loadRein(filters, opts),
+          },
+          MUTATION_INVALIDATE_EXPEDIENTE
+        );
+      },
+      () => {
+        feedback.error(GESTION_RECONCILE_REFRESH_MSG);
+      }
+    );
+  }, [feedback, invalidateOperativaBaseTabs, loadExpediente, loadOficio, loadRein]);
+
+  /** Tras alta de oficio: actualiza documental en modal sin bloquear persistencia. */
+  const reconcileOficioPostAlta = useCallback(
+    (actuacionId: number, seq: number) => {
+      setModalDocReconciling(true);
+      runGestionReconcile(
+        async () => {
+          try {
+            if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+            if (selectedOficioRef.current?.id !== actuacionId) return;
+            const doc = await fetchComprobacionDocumental(actuacionId);
+            if (!isMutationSeqCurrent(mutationSeqRef, seq) || selectedOficioRef.current?.id !== actuacionId) {
+              return;
+            }
+            setModalDoc(doc);
+            setModalDocError(null);
+            await loadOficiosForComprobacion(doc.comprobacion_id);
+            if (tabRef.current !== "recorrido") {
+              await refreshComprobacionesPostOficio(
+                {
+                  filters: opAppliedRef.current,
+                  activeTab: tabRef.current,
+                  invalidateOperativaBaseTabs,
+                  loadExpediente: (filters, opts) => loadExpediente(filters, opts),
+                  loadOficio: (filters, opts) => loadOficio(filters, opts),
+                  loadRein: (filters, opts) => loadRein(filters, opts),
+                },
+                MUTATION_INVALIDATE_OFICIO
+              );
+            }
+          } finally {
+            if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+              setModalDocReconciling(false);
+            }
+          }
+        },
+        () => {
+          if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+            setModalDocReconciling(false);
+          }
+          feedback.error(GESTION_RECONCILE_REFRESH_MSG);
+        }
+      );
+    },
+    [feedback, invalidateOperativaBaseTabs, loadExpediente, loadOficio, loadRein, loadOficiosForComprobacion]
+  );
+
+  const handleSaveExpediente = useCallback(async () => {
+    if (!selectedExp) return;
+    if (!expNumeroForm.trim() || !expFechaForm) {
+      setModalExpError("Completá número y fecha del expediente de comprobación");
+      return;
+    }
+    const actuacionId = selectedExp.id;
+    const seq = nextMutationSeq(mutationSeqRef);
+    setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.compExpedienteSalida });
+    setModalExpError(null);
+    try {
+      const payload: ICreateExpedienteRequest = {
+        expediente_numero: expNumeroForm.trim(),
+        fecha_expediente: expFechaForm,
+        source_type: "COMPROBACION",
+      };
+      await createExpedienteDesdeActuacion(actuacionId, payload);
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+
+      setPersistKey((prev) =>
+        clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compExpedienteSalida)
+      );
+
+      if (selectedExpRef.current?.id === actuacionId && isMutationSeqCurrent(mutationSeqRef, seq)) {
+        dismissModalExp();
+      }
+
+      reconcileComprobacionesSilent();
+    } catch (err: unknown) {
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setModalExpError(detail || "No se pudo añadir el expediente");
+    } finally {
+      if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+        setPersistKey((prev) =>
+          clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compExpedienteSalida)
+        );
+      }
+    }
+  }, [selectedExp, expNumeroForm, expFechaForm, dismissModalExp, reconcileComprobacionesSilent]);
+
+  const handleDeclararSinExpediente = useCallback(async () => {
+    if (!selectedExp) return;
+    const actuacionId = selectedExp.id;
+    const seq = nextMutationSeq(mutationSeqRef);
+    setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.compDeclararSinExpediente });
+    setModalExpError(null);
+    try {
+      await declararSinExpedienteEnvio(actuacionId);
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+
+      setPersistKey((prev) =>
+        clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compDeclararSinExpediente)
+      );
+
+      feedback.success("Comprobación registrada sin expediente de envío.");
+      if (selectedExpRef.current?.id === actuacionId && isMutationSeqCurrent(mutationSeqRef, seq)) {
+        dismissModalExp();
+      }
+      reconcileComprobacionesSilent();
+    } catch (err: unknown) {
+      if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setModalExpError(detail || "No se pudo registrar la declaración");
+    } finally {
+      if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+        setPersistKey((prev) =>
+          clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compDeclararSinExpediente)
+        );
+      }
+    }
+  }, [selectedExp, dismissModalExp, feedback, reconcileComprobacionesSilent]);
+
+  const onReinBandejasActualizadas = useCallback(async () => {
+    await refreshComprobacionesSlices();
+  }, [refreshComprobacionesSlices]);
+
+  const selectedReinKey = selectedRein != null ? reinBandejaRowKey(selectedRein) : null;
+  useEffect(() => {
+    if (!modalReinOpen || selectedReinKey == null) return;
+    const found = reinItems.find((r) => reinBandejaRowKey(r) === selectedReinKey);
+    if (found) setSelectedRein(found as ReinspeccionOperativoDetalleRow);
+  }, [reinItems, modalReinOpen, selectedReinKey]);
+
+  const handleSaveOficio = useCallback(
+    async (payload: ComprobacionOficioAltaPayload) => {
+      if (!selectedOficio) return;
+      const clientFe = validateOficioAltaPayloadClient(payload);
+      setModalOficioFieldErrors(clientFe);
+      if (Object.keys(clientFe).length > 0) {
+        setModalOficioError(null);
+        return;
+      }
+      const actuacionId = selectedOficio.id;
+      const seq = nextMutationSeq(mutationSeqRef);
+      setPersistKey({ actuacionId, op: GESTION_PERSIST_OPS.compOficioAlta });
+      setModalOficioError(null);
+      setModalOficioFieldErrors({});
+      try {
+        await createOficioDesdeActuacion(actuacionId, {
+          numero_oficio: payload.numero_oficio.trim(),
+          fecha_oficio: payload.fecha_oficio,
+          juzgado_id: Number(payload.juzgado_id),
+          causa: payload.causa,
+          numero_expediente_oficio: payload.numero_expediente_oficio.trim(),
+          fecha_expediente_oficio: payload.fecha_expediente_oficio,
+        });
+        if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+
+        setPersistKey((prev) => clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compOficioAlta));
+
+        feedback.success("Oficio registrado correctamente.");
+        setModalOficioError(null);
+        setModalOficioFieldErrors({});
+
+        reconcileOficioPostAlta(actuacionId, seq);
+      } catch (err: unknown) {
+        if (!isMutationSeqCurrent(mutationSeqRef, seq)) return;
+        const parsed = applyOficioAltaErrorsFromApi(err);
+        setModalOficioFieldErrors(parsed.fieldErrors);
+        setModalOficioError(parsed.globalMessage);
+      } finally {
+        if (isMutationSeqCurrent(mutationSeqRef, seq)) {
+          setPersistKey((prev) => clearPersistKeyIfMatch(prev, actuacionId, GESTION_PERSIST_OPS.compOficioAlta));
+        }
+      }
+    },
+    [selectedOficio, feedback, reconcileOficioPostAlta]
+  );
+
+  const columnsRein = useMemo<MRT_ColumnDef<IReinspeccionOficioPendienteRow>[]>(
+    () => [
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
+      {
+        id: "titular",
+        header: "Titular",
+        size: 200,
+        accessorFn: (r) => establecimientoSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaEstablecimientoCell
+            contribuyente={contribBandejaFromRow(row.original)}
+            domicilioLinea={domicilioTextFromRow(row.original)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
+      },
+      {
+        id: "oficio_fila",
+        header: "Oficio",
+        size: 280,
+        accessorFn: (r) => reinOficioFilaSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={reinOficioFilaChips(row.original)} />,
+      },
+      buildEstadoOperativoColumn<IReinspeccionOficioPendienteRow>(),
+      {
+        id: "accion_rein",
+        header: "Acción",
+        size: 280,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
+        Cell: ({ row }) => {
+          const bloqueado = estaBloqueadoParaGestionDocumental(row.original);
+          const gestionarBtn = (
+            <AppButton
+              dsVariant="primary"
+              dsSize="sm"
+              disabled={bloqueado}
+              onClick={() => openModalRein(row.original)}
+            >
+              Gestionar oficio
+            </AppButton>
+          );
+          return (
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
+            <OperRutaPoolAccionesCell
+              row={row.original}
+              onRefresh={async (opts) => {
+                await loadRein(opAppliedRef.current, opts);
+              }}
+              onSuccess={(msg) => feedback.success(msg)}
+              onError={(msg) => feedback.error(msg)}
+            />
+            {bloqueado ? (
+              <Tooltip title={MENSAJE_BLOQUEO_GESTION_POOL_RUTA}>
+                <span>{gestionarBtn}</span>
+              </Tooltip>
+            ) : (
+              gestionarBtn
+            )}
+          </Stack>
+          );
+        },
+      },
+    ],
+    [openModalRein, loadRein, feedback]
+  );
+
+  const renderReinToolbarRefresh = useCallback(
+    () => (
+      <Tooltip title="Actualizar listados">
+        <span>
+          <IconButton
+            type="button"
+            size="small"
+            aria-label="Actualizar listados"
+            disabled={reinLoading}
+            onClick={() => {
+              const f = opAppliedRef.current;
+              void loadRein(f, { forceBaseRefresh: isOperativaBaseLoad("reinspeccion", f) });
+            }}
+            sx={{
+              color: GLASS_COLORS.textSecondary,
+              "&:hover": { color: GLASS_COLORS.textPrimary, backgroundColor: GLASS_COLORS.hoverBg },
+            }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    ),
+    [reinLoading, loadRein]
+  );
+
+  const mostrarTablaOperativa = tab === "expediente" || tab === "oficio" || tab === "reinspeccion";
+
+  const currentOperationalData = useMemo(() => {
+    if (tab === "expediente") return expItems;
+    if (tab === "oficio") return oficioItems;
+    if (tab === "reinspeccion") return reinItems;
+    return [];
+  }, [tab, expItems, oficioItems, reinItems]);
+
+  const currentOperationalColumns = useMemo((): MRT_ColumnDef<Record<string, unknown>>[] => {
+    if (tab === "expediente") return columnsExpediente as unknown as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "oficio") return columnsOficio as unknown as MRT_ColumnDef<Record<string, unknown>>[];
+    if (tab === "reinspeccion") return columnsRein as unknown as MRT_ColumnDef<Record<string, unknown>>[];
+    return [];
+  }, [tab, columnsExpediente, columnsOficio, columnsRein]);
+
+  const currentOperationalLoading =
+    tab === "expediente" ? expLoading : tab === "oficio" ? oficioLoading : tab === "reinspeccion" ? reinLoading : false;
+
+  const currentOperationalError =
+    tab === "expediente" ? expError : tab === "oficio" ? oficioError : tab === "reinspeccion" ? reinError : null;
+
+  const currentOperationalToolbar = useMemo(() => {
+    if (tab === "expediente") return renderExpedienteToolbarRefresh;
+    if (tab === "oficio") return renderOficioToolbarRefresh;
+    if (tab === "reinspeccion") return renderReinToolbarRefresh;
+    return undefined;
+  }, [tab, renderExpedienteToolbarRefresh, renderOficioToolbarRefresh, renderReinToolbarRefresh]);
+
+  const currentOperationalGetRowId = useMemo(() => {
+    if (tab === "reinspeccion") {
+      return (row: Record<string, unknown>) =>
+        reinBandejaRowKey(row as unknown as IReinspeccionOficioPendienteRow);
+    }
+    return undefined;
+  }, [tab]);
+
+  // —— Recorrido (período acotado vs buscador de texto)
+  const [recPeriodMode, setRecPeriodMode] = useState<RecPeriodMode>("month");
+  const [recMes, setRecMes] = useState<number | "">("");
+  const [recAnio, setRecAnio] = useState<number | "">("");
+  const [recDesde, setRecDesde] = useState<string | null>(null);
+  const [recHasta, setRecHasta] = useState<string | null>(null);
+  const [recCombinarConPeriodo, setRecCombinarConPeriodo] = useState(false);
+  const [recDistritoId, setRecDistritoId] = useState<number | "">("");
+  const [recContrib, setRecContrib] = useState("");
+  const [recCalle, setRecCalle] = useState("");
+  const [recActa, setRecActa] = useState("");
+  const [recOfi, setRecOfi] = useState("");
+  const [recExpediente, setRecExpediente] = useState("");
+  const [recTipoFinal, setRecTipoFinal] = useState("");
+  const [recItems, setRecItems] = useState<IComprobacionRecorridoRow[]>([]);
+  const [recPagination, setRecPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
+  });
+  const [recFilterApplied, setRecFilterApplied] = useState(false);
+  const [recAppliedPayload, setRecAppliedPayload] = useState<RecorridoComprobacionFiltroPayload | null>(null);
+  const [recMeta, setRecMeta] = useState<{ total: number; desde: string | null; hasta: string | null } | null>(null);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState<string | null>(null);
+  const [detalleOpen, setDetalleOpen] = useState(false);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+  const [detalle, setDetalle] = useState<IComprobacionRecorridoDetalle | null>(null);
+  const [detalleActuacionId, setDetalleActuacionId] = useState<number | null>(null);
+  /** Fila del listado Recorrido al abrir detalle (enriquece domicilio / inspectores sin otro endpoint). */
+  const [detalleListRow, setDetalleListRow] = useState<IComprobacionRecorridoRow | null>(null);
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const reloadRecorridoDetalle = useCallback(async (actuacionId: number) => {
+    const d = await fetchComprobacionRecorridoDetalle(actuacionId);
+    setDetalle(d);
+  }, []);
+
+  const loadRecorridoSearch = useCallback(async (payload: RecorridoComprobacionFiltroPayload) => {
+    setRecLoading(true);
+    setRecError(null);
+    try {
+      const resp = await perfTimed(
+        "comprobacion.loadRecorrido",
+        () => fetchRecorridoComprobacionConPayload(payload),
+        (r) => ({ rows: r.items.length, total: r.meta.total })
+      );
+      setRecItems(resp.items as IComprobacionRecorridoRow[]);
+      setRecMeta({
+        total: resp.meta.total,
+        desde: resp.meta.desde,
+        hasta: resp.meta.hasta,
+      });
+      setRecAppliedPayload(payload);
+    } catch (err: unknown) {
+      const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+      setRecError(detail || "Error al cargar recorrido");
+      setRecItems([]);
+      setRecMeta(null);
+    } finally {
+      setRecLoading(false);
+    }
+  }, []);
+
+  const aplicarFiltroRecorrido = useCallback(() => {
+    const built = buildRecorridoComprobacionFiltroPayload({
+      periodMode: recPeriodMode,
+      mes: recMes,
+      anio: recAnio,
+      desde: recDesde,
+      hasta: recHasta,
+      distritoId: recDistritoId,
+      actaComprobacion: recActa,
+      calleQ: recCalle,
+      contribuyenteQ: recContrib,
+      oficioNumero: recOfi,
+      expedienteNumero: recExpediente,
+      tipoFinal: recTipoFinal,
+      combinarConPeriodo: recCombinarConPeriodo,
+    });
+    if (!built.ok) {
+      setRecError(built.error);
+      return;
+    }
+    setRecPagination((prev) => resetClientPaginationPageIndex(prev));
+    setRecFilterApplied(true);
+    void loadRecorridoSearch(built.payload);
+  }, [
+    loadRecorridoSearch,
+    recPeriodMode,
+    recMes,
+    recAnio,
+    recDesde,
+    recHasta,
+    recDistritoId,
+    recContrib,
+    recCalle,
+    recActa,
+    recOfi,
+    recExpediente,
+    recTipoFinal,
+    recCombinarConPeriodo,
+  ]);
+
+  useEffect(() => {
+    const prev = prevOperativeTabRef.current;
+    const tabChanged = tab !== prev;
+
+    if (tabChanged) {
+      if (isOperativeComprobacionTab(prev)) {
+        saveOperativaTabMemory(prev);
+      }
+      if (shouldSwapOperativaTabMemory(prev, tab)) {
+        if (isOperativeComprobacionTab(tab)) {
+          restoreOperativaTabMemory(tab);
+        }
+      } else if (isOperativeComprobacionTab(tab) && prev === "recorrido") {
+        restoreOperativaTabMemory(tab);
+      }
+      prevOperativeTabRef.current = tab;
+    }
+
+    if (tab === "recorrido") return;
+
+    const operativeTab = tab as OperativaPendientesTab;
+    const filters = resolveOperativaTabAppliedFilters(tab, operativaMemoryByTabRef.current);
+    const sig = operativaFiltersSignature(filters);
+    if (operativaLoadedFiltersRef.current[operativeTab] === sig) return;
+
+    void ensureTabLoaded(tab, { filters });
+  }, [tab, ensureTabLoaded, saveOperativaTabMemory, restoreOperativaTabMemory]);
+
+  const openDetalle = useCallback(
+    async (row: IComprobacionRecorridoRow) => {
+      const actuacionId = row.id;
+      setDetalleListRow(row);
+      setDetalleActuacionId(actuacionId);
+      setDetalleOpen(true);
+      setDetalleLoading(true);
+      setDetalle(null);
+      try {
+        await reloadRecorridoDetalle(actuacionId);
+      } catch (err: unknown) {
+        const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
+        setRecError(detail || "No se pudo cargar el detalle");
+        setDetalleOpen(false);
+        setDetalleListRow(null);
+      } finally {
+        setDetalleLoading(false);
+      }
+    },
+    [reloadRecorridoDetalle]
+  );
+
+  const columnsRec = useMemo<MRT_ColumnDef<IComprobacionRecorridoRow>[]>(
+    () => [
+      {
+        id: "fecha_ot",
+        header: "Fecha · OT",
+        size: 118,
+        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaFechaYChipOtCell
+            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
+            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
+          />
+        ),
+      },
+      {
+        id: "contrib_doc",
+        header: "Titular · doc.",
+        size: 168,
+        accessorFn: (r) => contribDocRecorrido(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => {
+          const segs = contribDocRecorridoSegments(row.original);
+          return segs.length > 1 ? (
+            <BandejaSegmentChipsCell segments={segs} />
+          ) : (
+            <BandejaEllipsisCell value={contribDocRecorrido(row.original)} />
+          );
+        },
+      },
+      {
+        id: "domicilio_rubro",
+        header: "Domicilio · rubro",
+        size: 176,
+        accessorFn: (r) => `${domicilioTextFromRow(r)} ${(r.rubro_nombre ?? "").trim()}`.trim(),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaDomicilioYRubroCell
+            domicilioLinea={domicilioTextFromRow(row.original)}
+            rubro={row.original.rubro_nombre}
+          />
+        ),
+      },
+      {
+        id: "comp_oficio_exp",
+        header: "Nº comp. · oficio · exp. · motivo",
+        size: 320,
+        accessorFn: (r) => recCompOficioExpMotivoSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={recCompOficioExpMotivoChips(row.original)} />,
+      },
+      {
+        id: "recorrido_visitas",
+        header: "Recorrido",
+        size: 280,
+        accessorFn: (r) => recorridoColumnSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={recorridoColumnChips(row.original)} />,
+      },
+      {
+        id: "ver",
+        header: "Acción",
+        size: 108,
+        grow: false,
+        enableResizing: false,
+        enableSorting: false,
+        Cell: ({ row }) => (
+          <AppButton dsVariant="primary" dsSize="sm" onClick={() => void openDetalle(row.original)}>
+            Ver detalle
+          </AppButton>
+        ),
+      },
+    ],
+    [openDetalle]
+  );
+
+  const recPaginationSummary = useMemo(
+    () =>
+      buildClientPaginationSummary({
+        pageIndex: recPagination.pageIndex,
+        pageSize: recPagination.pageSize,
+        totalRows: recItems.length,
+      }),
+    [recPagination.pageIndex, recPagination.pageSize, recItems.length]
+  );
+
+  const tableRec = useMaterialReactTable({
+    ...DARK_TABLE_CONFIG,
+    ...bandejaComprobacionMrtLayout,
+    columns: columnsRec,
+    data: recItems,
+    enableEditing: false,
+    enableRowSelection: false,
+    state: {
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
+      pagination: recPagination,
+    },
+    onPaginationChange: setRecPagination,
+  });
+
+  const tabIndex =
+    tab === "expediente" ? 0 : tab === "oficio" ? 1 : tab === "reinspeccion" ? 2 : 3;
+
+  const handleExportComprobaciones = useCallback(
+    async (options: {
+      format: "excel" | "pdf";
+      periodMode: "workweek" | "month" | "custom";
+      desde: string;
+      hasta: string;
+    }) => {
+      setExportLoading(true);
+      setExportError(null);
+      try {
+        const useAppliedRecorrido = tab === "recorrido" && recFilterApplied && recAppliedPayload != null;
+
+        await exportComprobacionesDataset({
+          format: options.format,
+          desde: options.desde,
+          hasta: options.hasta,
+          slice: tab,
+          recorridoAppliedPayload: useAppliedRecorrido ? recAppliedPayload : null,
+        });
+        feedback.success("Exportación generada");
+        setExportOpen(false);
+      } catch (err: unknown) {
+        const parsed = applyFormErrorsFromApi(err, {
+          fallbackMessage: "No se pudo completar la exportación.",
+        });
+        setExportError(parsed.globalMessage ?? parsed.fieldErrors._global ?? "No se pudo completar la exportación.");
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [feedback, tab, recFilterApplied, recAppliedPayload]
+  );
+
+  return (
+    <Box sx={containerStyles}>
+      <Box sx={mergeSx(functionalPageShellSx, actasContentColumnSx)}>
+          <Paper
+            elevation={0}
+            sx={{
+              ...moduleSlicesPanelPaperSx,
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "center" },
+              gap: { xs: 1.25, sm: 1 },
+            }}
+          >
+            <Tabs
+              value={tabIndex}
+              onChange={(_, v) => {
+                setTab(
+                  v === 0 ? "expediente" : v === 1 ? "oficio" : v === 2 ? "reinspeccion" : "recorrido"
+                );
+              }}
+              variant="scrollable"
+              allowScrollButtonsMobile
+              sx={{ ...moduleSlicesTabsSx, flex: 1, minWidth: 0 }}
+            >
+              <Tab
+                label={`Pendientes de expediente · ${
+                  tab === "expediente" && expLoading ? "…" : expTotalPendientes
+                }`}
+              />
+              <Tab
+                label={`Pendientes de oficio · ${
+                  tab === "oficio" && oficioLoading ? "…" : oficioApiTotal
+                }`}
+              />
+              <Tab
+                label={`Pendientes de reinspección · ${
+                  tab === "reinspeccion" && reinLoading ? "…" : reinApiTotal
+                }`}
+              />
+              <Tab label="Recorrido" />
+            </Tabs>
+            {tab === "recorrido" && (
+              <Box sx={{ ...TableExportBoxStyles, p: 0, flexDirection: "row", flexShrink: 0 }}>
+                <Button
+                  onClick={() => {
+                    setExportError(null);
+                    setExportOpen(true);
+                  }}
+                  startIcon={<FileDownloadOutlinedIcon />}
+                  sx={TableExportButtonStyles}
+                  disabled={exportLoading}
+                >
+                  Exportar datos
+                </Button>
+              </Box>
+            )}
+          </Paper>
+
+          {(tab === "expediente" || tab === "oficio" || tab === "reinspeccion") && (
+            <Box sx={filtroContainerStyles}>
+              <Typography sx={filtroTitleStyles}>Filtros operativos</Typography>
+              <Box sx={filtroGridStyles}>
+                <Box sx={filtroItemStyles}>
+                  <AppTextField
+                    appearance="dense"
+                    fullWidth
+                    label="Desde"
+                    type="date"
+                    InputLabelProps={{ shrink: true }}
+                    value={opDesde ?? ""}
+                    onChange={(e) => setOpDesde(trimToNull(e.target.value))}
+                    variant="outlined"
+                  />
+                </Box>
+                <Box sx={filtroItemStyles}>
+                  <AppTextField
+                    appearance="dense"
+                    fullWidth
+                    label="Hasta"
+                    type="date"
+                    InputLabelProps={{ shrink: true }}
+                    value={opHasta ?? ""}
+                    onChange={(e) => setOpHasta(trimToNull(e.target.value))}
+                    variant="outlined"
+                  />
+                </Box>
+                <Box sx={filtroItemStyles}>
+                  <AppTextField
+                    appearance="dense"
+                    fullWidth
+                    label="Nº comprobación"
+                    placeholder="Fragmento del acta"
+                    value={opNumComp}
+                    onChange={(e) => setOpNumComp(e.target.value)}
+                    variant="outlined"
+                  />
+                </Box>
+                {tab === "oficio" && (
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº expediente de envío"
+                      placeholder="Fragmento del expediente"
+                      value={opNumExpEnvio}
+                      onChange={(e) => setOpNumExpEnvio(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                )}
+                {tab === "reinspeccion" && (
+                  <>
+                    <Box sx={filtroItemStyles}>
+                      <AppTextField
+                        appearance="dense"
+                        fullWidth
+                        label="Nº oficio"
+                        placeholder="Fragmento del oficio"
+                        value={opNumOficio}
+                        onChange={(e) => setOpNumOficio(e.target.value)}
+                        variant="outlined"
+                      />
+                    </Box>
+                    <Box sx={filtroItemStyles}>
+                      <AppTextField
+                        appearance="dense"
+                        fullWidth
+                        label="Nº expediente del oficio"
+                        placeholder="Expediente respuesta"
+                        value={opNumExpRespuesta}
+                        onChange={(e) => setOpNumExpRespuesta(e.target.value)}
+                        variant="outlined"
+                      />
+                    </Box>
+                  </>
+                )}
+              </Box>
+              <Box sx={filtroButtonsStyles}>
+                <Button
+                  type="button"
+                  variant="contained"
+                  startIcon={<SearchIcon />}
+                  onClick={() => handleApplyOperativaFiltro()}
+                  sx={filtroButtonPrimaryStyles}
+                >
+                  Buscar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  startIcon={<ClearIcon />}
+                  onClick={() => handleClearOperativaFiltro()}
+                  sx={filtroButtonSecondaryStyles}
+                >
+                  Limpiar
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {mostrarTablaOperativa && (
+            <>
+              {tab === "oficio" && (
+                <Alert severity="info" sx={{ ...alertBaseStyles, mb: 1.5 }}>
+                  Esta bandeja lista actas <strong>sin ningún oficio</strong>. Si ya cargaste un oficio y necesitás
+                  agregar otro, usá <strong>Pendiente de reinspección</strong> → «Gestionar oficio» → «Agregar otro
+                  oficio».
+                </Alert>
+              )}
+              {currentOperationalError && (
+                <Alert severity="error" sx={alertBaseStyles}>
+                  {currentOperationalError}
+                </Alert>
+              )}
+              {currentOperationalLoading ? (
+                <BandejaTableSpinner />
+              ) : tab === "reinspeccion" && !currentOperationalError && reinItems.length === 0 ? (
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 2 }}>
+                  No hay comprobaciones pendientes de reinspección.
+                </Typography>
+              ) : (
+                <ComprobacionOperativaBandejaTable
+                  columns={currentOperationalColumns}
+                  data={currentOperationalData as unknown as Record<string, unknown>[]}
+                  toolbar={currentOperationalToolbar}
+                  getRowId={currentOperationalGetRowId}
+                  pagination={opPagination}
+                  onPaginationChange={handleOpPaginationChange}
+                  sorting={opSorting}
+                  onSortingChange={handleOpSortingChange}
+                />
+              )}
+            </>
+          )}
+
+          {tab === "recorrido" && (
+            <>
+              <Box sx={filtroContainerStyles}>
+                <Typography sx={filtroTitleStyles}>Recorrido del acta de comprobación</Typography>
+
+                <Typography sx={filtroSectionTitleStyles}>Búsqueda específica</Typography>
+                <Box sx={filtroGridStyles}>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº acta comprobación"
+                      value={recActa}
+                      onChange={(e) => setRecActa(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Calle"
+                      value={recCalle}
+                      onChange={(e) => setRecCalle(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Contribuyente"
+                      value={recContrib}
+                      onChange={(e) => setRecContrib(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº oficio (texto)"
+                      value={recOfi}
+                      onChange={(e) => setRecOfi(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppTextField
+                      appearance="dense"
+                      fullWidth
+                      label="Nº expediente"
+                      value={recExpediente}
+                      onChange={(e) => setRecExpediente(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Tipo final"
+                      value={recTipoFinal}
+                      onChange={(e) => setRecTipoFinal(String(e.target.value))}
+                      variant="outlined"
+                      options={TIPO_FINAL_OPTIONS}
+                    />
+                  </Box>
+                </Box>
+
+                {recorridoComprobacionHasSpecificSearch({
+                  periodMode: recPeriodMode,
+                  mes: recMes,
+                  anio: recAnio,
+                  desde: recDesde,
+                  hasta: recHasta,
+                  distritoId: recDistritoId,
+                  actaComprobacion: recActa,
+                  calleQ: recCalle,
+                  contribuyenteQ: recContrib,
+                  oficioNumero: recOfi,
+                  expedienteNumero: recExpediente,
+                  tipoFinal: recTipoFinal,
+                  combinarConPeriodo: recCombinarConPeriodo,
+                }) && (
+                  <FormControlLabel
+                    sx={{
+                      mb: 1.5,
+                      ml: 0,
+                      "& .MuiFormControlLabel-label": {
+                        color: "rgba(255,255,255,0.85)",
+                        fontFamily: '"Tactic Sans", sans-serif',
+                        fontSize: "0.85rem",
+                      },
+                    }}
+                    control={
+                      <Switch
+                        size="small"
+                        checked={recCombinarConPeriodo}
+                        onChange={(e) => setRecCombinarConPeriodo(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Combinar también con período y filtros"
+                  />
+                )}
+
+                <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
+
+                <Typography sx={filtroSectionTitleStyles}>Rango / período</Typography>
+                <Box sx={filtroGridStyles}>
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Vista de período"
+                      value={recPeriodMode}
+                      onChange={(e) => setRecPeriodMode(e.target.value as RecPeriodMode)}
+                      variant="outlined"
+                      options={[
+                        { value: "month", label: "Mes y año" },
+                        { value: "range", label: "Fecha desde / hasta" },
+                      ]}
+                    />
+                  </Box>
+                  {recPeriodMode === "month" ? (
+                    <>
+                      <Box sx={filtroItemStyles}>
+                        <AppSelect
+                          appearance="dense"
+                          fullWidth
+                          label="Mes"
+                          value={recMes === "" ? "" : String(recMes)}
+                          onChange={(e) => setRecMes(e.target.value === "" ? "" : Number(e.target.value))}
+                          variant="outlined"
+                          options={MESES_OPTS_WITH_EMPTY}
+                        />
+                      </Box>
+                      <Box sx={filtroItemStyles}>
+                        <AppSelect
+                          appearance="dense"
+                          fullWidth
+                          label="Año"
+                          value={recAnio === "" ? "" : String(recAnio)}
+                          onChange={(e) => setRecAnio(e.target.value === "" ? "" : Number(e.target.value))}
+                          variant="outlined"
+                          options={yearOptions(defaultMonthYear.anio)}
+                        />
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Box sx={filtroItemStyles}>
+                        <AppTextField
+                          appearance="dense"
+                          fullWidth
+                          label="Desde"
+                          type="date"
+                          value={recDesde ?? ""}
+                          onChange={(e) => setRecDesde(e.target.value || null)}
+                          InputLabelProps={{ shrink: true }}
+                          variant="outlined"
+                        />
+                      </Box>
+                      <Box sx={filtroItemStyles}>
+                        <AppTextField
+                          appearance="dense"
+                          fullWidth
+                          label="Hasta"
+                          type="date"
+                          value={recHasta ?? ""}
+                          onChange={(e) => setRecHasta(e.target.value || null)}
+                          InputLabelProps={{ shrink: true }}
+                          variant="outlined"
+                        />
+                      </Box>
+                    </>
+                  )}
+                  <Box sx={filtroItemStyles}>
+                    <AppSelect
+                      appearance="dense"
+                      fullWidth
+                      label="Distrito"
+                      value={recDistritoId === "" ? "" : String(recDistritoId)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setRecDistritoId(v === "" ? "" : Number(v));
+                      }}
+                      variant="outlined"
+                      options={distritoSelectOptionsRecorrido}
+                    />
+                  </Box>
+                </Box>
+                <Box sx={filtroButtonsStyles}>
+                  <AppButton
+                    dsVariant="ghost"
+                    dsSize="sm"
+                    onClick={() => {
+                      setRecPeriodMode("month");
+                      setRecMes("");
+                      setRecAnio("");
+                      setRecDesde(null);
+                      setRecHasta(null);
+                      setRecCombinarConPeriodo(false);
+                      setRecDistritoId("");
+                      setRecContrib("");
+                      setRecCalle("");
+                      setRecActa("");
+                      setRecOfi("");
+                      setRecExpediente("");
+                      setRecTipoFinal("");
+                      setRecFilterApplied(false);
+                      setRecAppliedPayload(null);
+                      setRecMeta(null);
+                      setRecItems([]);
+                      setRecError(null);
+                      setRecPagination((prev) => resetClientPaginationPageIndex(prev));
+                    }}
+                    startIcon={<ClearIcon />}
+                    sx={filtroButtonSecondaryStyles}
+                  >
+                    Limpiar
+                  </AppButton>
+                  <AppButton
+                    dsVariant="primary"
+                    dsSize="sm"
+                    onClick={() => void aplicarFiltroRecorrido()}
+                    startIcon={<SearchIcon />}
+                    sx={filtroButtonPrimaryStyles}
+                  >
+                    Filtrar
+                  </AppButton>
+                </Box>
+              </Box>
+              {recError && (
+                <Alert severity="error" sx={alertBaseStyles}>
+                  {recError}
+                </Alert>
+              )}
+              {!recFilterApplied ? (
+                <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, py: 1 }}>
+                  Usá búsqueda específica o elegí un período y tocá <strong>Filtrar</strong> para cargar el listado.
+                </Typography>
+              ) : recLoading ? (
+                <BandejaTableSpinner />
+              ) : (
+                <>
+                  {recMeta && (
+                    <BandejaTableSummary>
+                      <BandejaTableSummaryItem label="Total" value={recMeta.total} />
+                      <BandejaTableSummaryItem
+                        label="Mostrando"
+                        value={`${recPaginationSummary.visibleRows} de ${recPaginationSummary.totalRows}`}
+                      />
+                      <BandejaTableSummaryItem
+                        label="Página"
+                        value={`${recPaginationSummary.currentPage} de ${recPaginationSummary.totalPages}`}
+                      />
+                      {recAppliedPayload?.period.kind === "global" ? (
+                        <BandejaTableSummaryItem
+                          label="Período"
+                          value="búsqueda global (sin rango)"
+                        />
+                      ) : (
+                        recMeta.desde &&
+                        recMeta.hasta && (
+                          <BandejaTableSummaryItem
+                            label="Rango"
+                            value={`${recMeta.desde} — ${recMeta.hasta}`}
+                          />
+                        )
+                      )}
+                    </BandejaTableSummary>
+                  )}
+                  <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
+                    <MaterialReactTable table={tableRec} />
+                  </Box>
+                </>
+              )}
+            </>
+          )}
+        </Box>
+
+      <ExportDataDialog
+        open={exportOpen}
+        onClose={() => {
+          if (exportLoading) return;
+          setExportOpen(false);
+        }}
+        title="Exportar datos"
+        subtitle="Actas de comprobación"
+        loading={exportLoading}
+        error={exportError}
+        onClearError={() => setExportError(null)}
+        showPeriod={!(tab === "recorrido" && recFilterApplied && recAppliedPayload)}
+        scopeHint={
+          tab === "recorrido" && recFilterApplied && recAppliedPayload
+            ? "Se exportará el mismo universo que el listado Recorrido con los filtros aplicados (Filtrar)."
+            : undefined
+        }
+        onExport={handleExportComprobaciones}
+      />
+
+      <ComprobacionExpedienteOperativoDialog
+        open={modalExpOpen}
+        onClose={closeModalExp}
+        row={selectedExp}
+        expNumero={expNumeroForm}
+        onExpNumeroChange={setExpNumeroForm}
+        expFecha={expFechaForm}
+        onExpFechaChange={setExpFechaForm}
+        modalApiError={modalExpError}
+        saving={modalExpPersisting}
+        onGuardar={handleSaveExpediente}
+        declaringSinExpediente={modalDeclararSinExpPersisting}
+        onDeclararSinExpediente={handleDeclararSinExpediente}
+      />
+
+      <ComprobacionOficioOperativoDialog
+        open={modalOficioOpen}
+        onClose={closeModalOficio}
+        row={selectedOficio}
+        juzgados={juzgados}
+        documental={modalDoc}
+        documentalLoading={modalDocLoading}
+        documentalReconciling={modalDocReconciling}
+        documentalError={modalDocError}
+        oficios={modalOficios}
+        oficiosLoading={modalOficiosLoading}
+        oficiosError={modalOficiosError}
+        onDocumentalUpdated={reloadOficioModalDocumental}
+        defaultFechaAlta={defaultRange.hasta}
+        modalApiError={modalOficioError}
+        modalFieldErrors={modalOficioFieldErrors}
+        saving={modalOficioPersisting}
+        onGuardarAlta={handleSaveOficio}
+      />
+
+      <ComprobacionReinspeccionDetalleDialog
+        open={modalReinOpen}
+        onClose={closeModalRein}
+        row={selectedRein}
+        juzgados={juzgados}
+        defaultFechaAlta={defaultRange.hasta}
+        onBandejasActualizadas={onReinBandejasActualizadas}
+      />
+
+      <RecorridoDetalleDocumentalDialog
+        open={detalleOpen}
+        onClose={() => {
+          setDetalleOpen(false);
+          setDetalle(null);
+          setDetalleActuacionId(null);
+          setDetalleListRow(null);
+        }}
+        actuacionId={detalleActuacionId}
+        listRow={detalleListRow}
+        detalle={detalle}
+        loading={detalleLoading}
+        juzgados={juzgados}
+        defaultFechaAlta={defaultRange.hasta}
+        onBandejasActualizadas={async () => {
+          await onReinBandejasActualizadas();
+          if (detalleActuacionId != null) {
+            await reloadRecorridoDetalle(detalleActuacionId);
+          }
+          if (recFilterApplied && recAppliedPayload) {
+            await loadRecorridoSearch(recAppliedPayload);
+          }
+        }}
+      />
+    </Box>
+  );
+};
+
+export default ActasComprobacionPage;

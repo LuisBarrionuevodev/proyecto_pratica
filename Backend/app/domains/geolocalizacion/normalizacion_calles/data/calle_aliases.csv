@@ -1,0 +1,12 @@
+alias,nombre_canonico,notas
+monteagudo,Dr Bernardo Monteagudo,apellido frecuente SMT
+b monteagudo,Dr Bernardo Monteagudo,abreviatura barrio
+dr monteagudo,Dr Bernardo Monteagudo,titulo abreviado
+bernardo monteagudo,Dr Bernardo Monteagudo,nombre parcial
+av mate de luna,Avenida Fernando Mate de Luna,tipo via abreviado
+mate de luna,Avenida Fernando Mate de Luna,sin titular
+mate luna,Avenida Fernando Mate de Luna,forma coloquial
+sgo del estero,Santiago del Estero,provincia como esquina
+santiago estero,Santiago del Estero,forma abreviada
+san martin,San Martin,acento omitido en carga
+av avellaneda,Dr M de Avellaneda,PR5 auto freq=2 score=0.98

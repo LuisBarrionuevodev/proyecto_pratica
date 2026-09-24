@@ -1,0 +1,942 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from datetime import date
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import exists, func, or_, and_
+from sqlalchemy.orm import joinedload
+
+from app.database import db
+from app.models import (
+    Actuaciones,
+    Comprobacion,
+    Contribuyente,
+    Domicilio,
+    Expediente,
+    IniciadorRuta,
+    Motivo,
+    Notificacion,
+    OrdenTrabajo,
+    RutaItem,
+)
+from app.models.notificacion_motivo import notificacion_motivo
+from app.utils.actas import acta_6
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
+    build_counts_by_eo_from_actuaciones,
+)
+from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
+from app.domains.actuaciones.services.notificacion_iniciador_service import (
+    list_reinspeccion_notificacion_operativas,
+    materializacion_notificacion_vencida_on_read_enabled,
+    sync_iniciadores_reinspeccion_notificacion,
+)
+from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
+    apply_bandeja_grid_eager,
+    reload_actuaciones_bandeja_eager,
+)
+from app.domains.actuaciones.utils.notificacion_plazo_slice import (
+    filter_actuaciones_notificacion_por_plazo_slice,
+)
+
+
+def _apply_fecha(query, desde, hasta):
+    if desde:
+        query = query.filter(Actuaciones.fecha >= desde)
+    if hasta:
+        query = query.filter(Actuaciones.fecha <= hasta)
+    return query
+
+
+def _filters_use_mes_anio_acta(filters: ActuacionesPendientesFilters) -> bool:
+    """True si el cliente envió mes y año explícitos (modo «Mes y año»)."""
+    return filters.mes is not None and filters.anio is not None
+
+
+def _apply_fecha_notificacion_acta(query, filters: ActuacionesPendientesFilters):
+    """
+    Filtro temporal para bandejas/historial de notificación.
+
+    Con ``mes``+``anio`` explícitos filtra ``Notificacion.mes/anio`` (acta).
+    Con rango ``desde``/``hasta`` filtra ``Actuaciones.fecha``.
+    Con ``omitir_rango_fecha`` y sin fechas no restringe por tiempo.
+    """
+    if _filters_use_mes_anio_acta(filters):
+        return (
+            query.join(Notificacion, Actuaciones.notificacion_id == Notificacion.id)
+            .filter(Notificacion.mes == int(filters.mes))
+            .filter(Notificacion.anio == int(filters.anio))
+        )
+    if filters.omitir_rango_fecha and filters.desde is None and filters.hasta is None:
+        return query
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def _apply_fecha_comprobacion_acta(query, filters: ActuacionesPendientesFilters):
+    """
+    Filtro temporal para recorrido / bandejas de comprobación.
+
+    Con ``mes``+``anio`` explícitos filtra ``Comprobacion.mes/anio`` (acta).
+    Con rango ``desde``/``hasta`` filtra ``Actuaciones.fecha``.
+    """
+    if _filters_use_mes_anio_acta(filters):
+        return (
+            query.join(Comprobacion, Actuaciones.comprobacion_id == Comprobacion.id)
+            .filter(Comprobacion.mes == int(filters.mes))
+            .filter(Comprobacion.anio == int(filters.anio))
+        )
+    if filters.omitir_rango_fecha and filters.desde is None and filters.hasta is None:
+        return query
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def _apply_distrito_optional(query, distrito_id: Optional[int]):
+    """Restringe por ``domicilio.distrito_id`` (join único)."""
+    if distrito_id is None:
+        return query
+    return query.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id).filter(
+        Domicilio.distrito_id == int(distrito_id)
+    )
+
+
+def _numero_comprobacion_normalizado_sql(column):
+    """``lower(replace(coalesce(column,''), ' ', ''))`` — alineado al filtro Python legacy."""
+    return func.lower(func.replace(func.coalesce(column, ""), " ", ""))
+
+
+def apply_numero_comprobacion_sql(query, numero_comprobacion: Optional[str]):
+    """
+    Filtra actuaciones cuya comprobación vinculada coincide por subcadena en ``numero_acta``.
+
+    Semántica: case-insensitive, espacios ignorados, parcial (``q in numero``).
+    Usa ``EXISTS`` para no multiplicar filas del query principal.
+
+    Parámetros:
+        query: consulta de ``Actuaciones``.
+        numero_comprobacion: término opcional del filtro UI.
+
+    Retorno:
+        Query sin cambios si el término es vacío; si no, query restringida.
+
+    Errores:
+        Ninguno.
+    """
+    if not numero_comprobacion or not str(numero_comprobacion).strip():
+        return query
+    q_norm = str(numero_comprobacion).replace(" ", "").lower()
+    if not q_norm:
+        return query
+    num_norm = _numero_comprobacion_normalizado_sql(Comprobacion.numero_acta)
+    return query.filter(
+        exists().where(
+            and_(
+                Comprobacion.id == Actuaciones.comprobacion_id,
+                Comprobacion.deleted_at.is_(None),
+                num_norm.contains(q_norm),
+            )
+        )
+    )
+
+
+def apply_expediente_envio_numero_sql(query, expediente_envio_numero: Optional[str]):
+    """
+    Filtra actuaciones cuyo expediente de **envío** (``oficio_id`` NULL) coincide por subcadena.
+
+    Semántica alineada a Recorrido ``expediente_numero``: parcial, número/año, dígitos.
+    No incluye expedientes de respuesta de oficio.
+
+    Parámetros:
+        query: consulta de ``Actuaciones``.
+        expediente_envio_numero: término opcional del filtro UI.
+
+    Retorno:
+        Query sin cambios si el término es vacío; si no, query restringida.
+
+    Errores:
+        Ninguno.
+    """
+    if not expediente_envio_numero or not str(expediente_envio_numero).strip():
+        return query
+    term = str(expediente_envio_numero).strip()
+    term_lower = term.lower()
+    term_flat = term_lower.replace("/", "")
+    exp_blob = func.lower(
+        func.concat(
+            func.coalesce(Expediente.numero_expediente, ""),
+            "/",
+            func.coalesce(Expediente.anio, ""),
+        )
+    )
+    exp_digits = func.replace(
+        func.replace(func.lower(func.coalesce(Expediente.numero_expediente, "")), "/", ""),
+        " ",
+        "",
+    )
+    term_digits = "".join(c for c in term_flat if c.isdigit()) or term_flat
+    return query.filter(
+        exists().where(
+            and_(
+                Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+                Expediente.oficio_id.is_(None),
+                Expediente.deleted_at.is_(None),
+                or_(
+                    func.lower(Expediente.numero_expediente).contains(term_lower),
+                    exp_blob.contains(term_lower),
+                    func.replace(exp_blob, "/", "").contains(term_flat),
+                    exp_digits.contains(term_digits),
+                ),
+            )
+        )
+    )
+
+
+def _domicilios_pendientes_query(filters: ActuacionesPendientesFilters):
+    query = (
+        Actuaciones.query.join(Domicilio, Actuaciones.domicilio_id == Domicilio.id)
+        .filter(Domicilio.deleted_at.is_(None))
+        .filter(
+            or_(
+                Domicilio.calle_norm_status.is_(None),
+                Domicilio.calle_norm_status != "OK",
+                and_(
+                    Domicilio.numero_tipo == "ESQUINA",
+                    or_(
+                        Domicilio.esquina_norm_status.is_(None),
+                        Domicilio.esquina_norm_status != "OK",
+                    ),
+                ),
+            )
+        )
+    )
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def _sin_expediente_query(filters: ActuacionesPendientesFilters):
+    """
+    Comprobación sin **expediente de envío** aún: mismo criterio que ``pendientes-vinc-acta``
+    (expediente ligado a la comprobación con ``oficio_id`` NULL y no borrado).
+    No basta con «ningún expediente»: el de respuesta de oficio lleva ``oficio_id`` y no debe
+    bloquear el alta de envío ni ocultar la fila de esta bandeja por error.
+    """
+    subq_exp_envio = exists().where(
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
+    )
+    subq_sin_declarado = exists().where(
+        and_(
+            Comprobacion.id == Actuaciones.comprobacion_id,
+            Comprobacion.sin_expediente_envio.is_(True),
+            Comprobacion.deleted_at.is_(None),
+        )
+    )
+    query = (
+        Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
+        .filter(~subq_exp_envio)
+        .filter(~subq_sin_declarado)
+    )
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def _sin_expediente_notificacion_query(filters: ActuacionesPendientesFilters):
+    """
+    Bandeja de gestión de expedientes de plazo por rama NOTIFICACION.
+
+    Regla para este slice:
+    - actuación con notificación (puede coexistir comprobación en la misma actuación; la gestión
+      de plazo por notificación sigue siendo un canal paralelo a la de comprobación).
+
+    Nota: puede haber 0..N expedientes `PRORROGA_NOTIFICACION` por notificación; la fila sigue
+    apareciendo (gestión continua). Métricas `dias_restantes` / `plazos_otorgados` en presenter.
+    """
+    query = Actuaciones.query.filter(Actuaciones.notificacion_id.isnot(None))
+    query = _apply_fecha_notificacion_acta(query, filters)
+    if _plazo_slice_operativo_activo(filters) and filters.numero_notificacion:
+        query = _apply_numero_notificacion_sql_exacto(query, filters.numero_notificacion)
+    return query
+
+
+def _apply_numero_notificacion_sql_exacto(query, numero_raw: str):
+    """
+    Filtro operativo por Nº notificación exacto normalizado (``acta_6``) en SQL.
+
+    Seguro antes del dedupe: todas las actuaciones con el mismo ``notificacion_id`` comparten
+    el mismo ``Notificacion.numero_acta`` vía FK.
+
+    Parámetros:
+        query: consulta sobre ``Actuaciones``.
+        numero_raw: valor ingresado por el usuario.
+
+    Retorno:
+        Query restringida con ``EXISTS`` sobre ``notificacion``.
+    """
+    num = acta_6(numero_raw)
+    return query.filter(
+        exists().where(
+            and_(
+                Notificacion.id == Actuaciones.notificacion_id,
+                Notificacion.numero_acta == num,
+                Notificacion.deleted_at.is_(None),
+            )
+        )
+    )
+
+
+def _plazo_slice_operativo_activo(filters: ActuacionesPendientesFilters) -> bool:
+    """True si el cliente pidió slice operativo En plazo / Por vencer."""
+    ps = (filters.plazo_slice or "").strip().lower()
+    return ps in ("en_plazo", "por_vencer")
+
+
+def build_notificacion_expediente_bandeja_metrics(
+    acts: List[Actuaciones],
+) -> tuple[dict[int, int], dict[int, date | None], dict[int, int]]:
+    """
+    Para actuaciones con notificación en la bandeja: cuenta expedientes de plazo por
+    `notificacion_id`, carga `fecha_vencimiento` y suma de días de prórroga desde `Notificacion`.
+
+    Incluye actuaciones que también tienen comprobación en la misma fila (canal paralelo).
+    """
+    noti_ids = list(
+        {
+            int(a.notificacion_id)
+            for a in acts
+            if a.notificacion_id is not None
+        }
+    )
+    if not noti_ids:
+        return {}, {}, {}
+
+    rows = (
+        db.session.query(Expediente.notificacion_id, func.count(Expediente.id))
+        .filter(Expediente.notificacion_id.in_(noti_ids))
+        .filter(Expediente.tipo_expediente == "PRORROGA_NOTIFICACION")
+        .filter(Expediente.deleted_at.is_(None))
+        .group_by(Expediente.notificacion_id)
+        .all()
+    )
+    plazos_map: dict[int, int] = {int(nid): int(c) for nid, c in rows}
+
+    notis = Notificacion.query.filter(Notificacion.id.in_(noti_ids)).all()
+    venc_map: dict[int, date | None] = {int(n.id): n.fecha_vencimiento for n in notis}
+    prorroga_dias_map: dict[int, int] = {int(n.id): int(n.prorroga_dias or 0) for n in notis}
+
+    return plazos_map, venc_map, prorroga_dias_map
+
+
+def dedupe_actuaciones_canonicas_por_notificacion(acts: List[Actuaciones]) -> List[Actuaciones]:
+    """
+    Una fila por ``notificacion_id`` en historial/gestión: evita duplicar INSPECCION origen + REINSPECCION.
+
+    Criterio: preferir actuación ``INSPECCION`` de mayor ``id``; si no hay, la de mayor ``id`` del grupo.
+    """
+    by_noti: Dict[int, List[Actuaciones]] = defaultdict(list)
+    sin_noti: List[Actuaciones] = []
+    for act in acts:
+        if act.notificacion_id is None:
+            sin_noti.append(act)
+            continue
+        by_noti[int(act.notificacion_id)].append(act)
+
+    out: List[Actuaciones] = list(sin_noti)
+    for group in by_noti.values():
+        inspecciones = [a for a in group if getattr(a, "tipo", None) == "INSPECCION"]
+        if inspecciones:
+            out.append(max(inspecciones, key=lambda a: int(a.id)))
+        else:
+            out.append(max(group, key=lambda a: int(a.id)))
+    out.sort(key=lambda a: int(a.id), reverse=True)
+    return out
+
+
+def _contains_ci(column, term: str):
+    """Subcadena case-insensitive (Historial SQL)."""
+    t = term.strip().lower()
+    return func.lower(column).contains(t)
+
+
+def pick_canonical_actuacion_ids_from_tuples(
+    rows: list[tuple[int, int | None, Any]],
+) -> list[int]:
+    """
+    Misma regla de canonicalidad que ``dedupe_actuaciones_canonicas_por_notificacion``, solo IDs.
+
+    Parámetros:
+        rows: tuplas ``(actuacion_id, notificacion_id, tipo)``.
+
+    Retorno:
+        IDs canónicos ordenados por ``id`` descendente.
+    """
+    by_noti: Dict[int, list[tuple[int, Any]]] = defaultdict(list)
+    sin_noti: list[int] = []
+    for act_id, noti_id, tipo in rows:
+        if noti_id is None:
+            sin_noti.append(int(act_id))
+            continue
+        by_noti[int(noti_id)].append((int(act_id), tipo))
+
+    out: list[int] = list(sin_noti)
+    for group in by_noti.values():
+        inspecciones = [aid for aid, t in group if t == "INSPECCION"]
+        if inspecciones:
+            out.append(max(inspecciones))
+        else:
+            out.append(max(aid for aid, _ in group))
+    out.sort(reverse=True)
+    return out
+
+
+def _historial_paginacion_solicitada(filters: ActuacionesPendientesFilters) -> bool:
+    """True si el cliente pidió paginación server-side de Historial notificación."""
+    return (
+        filters.page is not None
+        and filters.page_size is not None
+        and not _plazo_slice_operativo_activo(filters)
+    )
+
+
+def _apply_historial_documental_sql(query, filters: ActuacionesPendientesFilters):
+    """
+    Filtros documentales de Historial en SQL sobre la actuación canónica.
+
+    Aplica sobre ``Actuaciones`` ya restringidas a IDs canónicos (post-dedupe conceptual).
+    Semántica alineada al filtro Python legacy vía ``actuacion_to_grid_row``.
+    """
+    if filters.calle_q:
+        term = filters.calle_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    _contains_ci(Domicilio.calle, term),
+                )
+            )
+        )
+
+    if filters.contribuyente_q:
+        term = filters.contribuyente_q.strip()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Domicilio.id == Actuaciones.domicilio_id,
+                    Domicilio.deleted_at.is_(None),
+                    Contribuyente.id == Domicilio.contribuyente_id,
+                    Contribuyente.deleted_at.is_(None),
+                    or_(
+                        _contains_ci(Contribuyente.apellido, term),
+                        _contains_ci(Contribuyente.nombre, term),
+                        _contains_ci(Contribuyente.razon_social, term),
+                    ),
+                )
+            )
+        )
+
+    if filters.numero_notificacion:
+        q = filters.numero_notificacion.replace(" ", "").lower()
+        query = query.filter(
+            exists().where(
+                and_(
+                    Notificacion.id == Actuaciones.notificacion_id,
+                    Notificacion.deleted_at.is_(None),
+                    func.lower(func.replace(Notificacion.numero_acta, " ", "")).contains(q),
+                )
+            )
+        )
+
+    if filters.motivo_id:
+        mid = int(filters.motivo_id)
+        query = query.filter(
+            exists().where(
+                and_(
+                    Notificacion.id == Actuaciones.notificacion_id,
+                    notificacion_motivo.c.notificacion_id == Notificacion.id,
+                    notificacion_motivo.c.motivo == mid,
+                )
+            )
+        )
+
+    return query
+
+
+def get_historial_notificacion_expediente_paginado(
+    filters: ActuacionesPendientesFilters,
+) -> tuple[list[Actuaciones], int]:
+    """
+    Historial notificación: canonicalidad + filtros SQL + count + paginación + eager página actual.
+
+    Pipeline:
+        base (período/distrito)
+        → pick canónico por notificacion_id
+        → filtros documentales SQL sobre actuación canónica
+        → total
+        → LIMIT/OFFSET ids
+        → eager + presenter (en route) solo página actual
+
+    Parámetros:
+        filters: debe incluir ``page`` y ``page_size``.
+
+    Retorno:
+        Tupla ``(actuaciones_página, total_canónicas_filtradas)``.
+    """
+    distrito_id = getattr(filters, "distrito_id", None)
+    base = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+    rows = base.with_entities(
+        Actuaciones.id,
+        Actuaciones.notificacion_id,
+        Actuaciones.tipo,
+    ).all()
+    canonical_ids = pick_canonical_actuacion_ids_from_tuples(rows)
+    if not canonical_ids:
+        return [], 0
+
+    q = Actuaciones.query.filter(Actuaciones.id.in_(canonical_ids))
+    q = _apply_historial_documental_sql(q, filters)
+    total = q.with_entities(Actuaciones.id).distinct().count()
+
+    page = max(1, int(filters.page or 1))
+    page_size = max(1, min(100, int(filters.page_size or 10)))
+    offset = (page - 1) * page_size
+    page_ids = [
+        int(r[0])
+        for r in q.with_entities(Actuaciones.id)
+        .order_by(Actuaciones.id.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    ]
+    if not page_ids:
+        return [], total
+
+    order_index = {aid: idx for idx, aid in enumerate(page_ids)}
+    acts = apply_bandeja_grid_eager(
+        Actuaciones.query.filter(Actuaciones.id.in_(page_ids))
+    ).all()
+    acts.sort(key=lambda a: order_index.get(int(a.id), 0))
+    return acts, total
+
+
+def get_historial_notificacion_legacy_ids(filters: ActuacionesPendientesFilters) -> list[int]:
+    """
+    Pipeline legacy Historial (materialización completa + filtro Python) para tests de regresión.
+
+    No usar en producción cuando ``page``/``page_size`` están presentes.
+    """
+    distrito_id = getattr(filters, "distrito_id", None)
+    query = apply_bandeja_grid_eager(
+        _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+    )
+    acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
+    if _notificacion_documental_filters_active(filters):
+        acts = _filter_actuaciones_documental_notificacion(acts, filters)
+    return [int(a.id) for a in acts]
+
+
+def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
+    """
+    Comprobación de seguimiento en historial de notificación: la realizada en la actuación
+    ``REINSPECCION`` vinculada a la misma ``notificacion_id`` (reinspección por notificación vencida).
+
+    No usa comprobación de la actuación origen ni búsqueda genérica por domicilio.
+
+    Args:
+        acts: actuaciones devueltas por bandeja / historial de notificaciones.
+
+    Returns:
+        Mapa ``actuacion_id`` origen -> actuación REINSPECCION con comprobación, o ``None``.
+    """
+    out: Dict[int, Optional[Actuaciones]] = {int(a.id): None for a in acts}
+    refs = [a for a in acts if getattr(a, "notificacion_id", None)]
+    if not refs:
+        return out
+
+    noti_ids = {int(a.notificacion_id) for a in refs}
+
+    rein_direct = (
+        Actuaciones.query.filter(Actuaciones.notificacion_id.in_(noti_ids))
+        .filter(Actuaciones.tipo == "REINSPECCION")
+        .filter(Actuaciones.comprobacion_id.isnot(None))
+        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .all()
+    )
+    by_noti: Dict[int, List[Actuaciones]] = defaultdict(list)
+    for c in rein_direct:
+        by_noti[int(c.notificacion_id)].append(c)
+
+    rein_via_item: Dict[int, Actuaciones] = {}
+    item_rows = (
+        db.session.query(IniciadorRuta.notificacion_id, Actuaciones)
+        .join(RutaItem, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(Actuaciones, Actuaciones.id == RutaItem.actuacion_id)
+        .filter(IniciadorRuta.notificacion_id.in_(noti_ids))
+        .filter(IniciadorRuta.tipo_iniciador == "REINSPECCION_NOTIFICACION")
+        .filter(IniciadorRuta.deleted_at.is_(None))
+        .filter(RutaItem.deleted_at.is_(None))
+        .filter(Actuaciones.tipo == "REINSPECCION")
+        .filter(Actuaciones.comprobacion_id.isnot(None))
+        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .all()
+    )
+    for noti_id, act_rein in item_rows:
+        if noti_id is None:
+            continue
+        nid = int(noti_id)
+        prev = rein_via_item.get(nid)
+        key_new = (act_rein.fecha or date.min, int(act_rein.id))
+        if prev is None or key_new > (prev.fecha or date.min, int(prev.id)):
+            rein_via_item[nid] = act_rein
+
+    for ref in refs:
+        rid = int(ref.id)
+        nid = int(ref.notificacion_id)  # type: ignore[arg-type]
+        candidates: List[Actuaciones] = [c for c in by_noti.get(nid, []) if int(c.id) != rid]
+        via = rein_via_item.get(nid)
+        if via is not None and int(via.id) != rid:
+            candidates.append(via)
+        if not candidates:
+            continue
+        candidates.sort(key=lambda x: ((x.fecha or date.min), int(x.id)))
+        out[rid] = candidates[-1]
+
+    return out
+
+
+def build_posterior_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
+    """
+    Por cada actuación NOTIFICACION-only con domicilio, busca la primera visita **posterior**
+    (fecha, id) del mismo domicilio que ya tenga acta de comprobación.
+
+    Sirve para enriquecer la bandeja de expediente de plazo: la fila es la actuación de
+    notificación; la comprobación suele registrarse en otra actuación del mismo local.
+
+    Args:
+        acts: actuaciones devueltas por ``get_pendientes_expediente`` (u origen equivalente).
+
+    Returns:
+        Mapa ``actuacion_id`` -> actuación posterior o ``None``. Incluye entrada por cada
+        ``acts[].id``; solo las referencias NOTIFICACION-only pueden apuntar a una posterior no nula.
+    """
+    out: Dict[int, Optional[Actuaciones]] = {int(a.id): None for a in acts}
+    refs = [
+        a
+        for a in acts
+        if getattr(a, "notificacion_id", None)
+        and not getattr(a, "comprobacion_id", None)
+        and getattr(a, "domicilio_id", None)
+    ]
+    if not refs:
+        return out
+
+    dom_ids = {int(a.domicilio_id) for a in refs if a.domicilio_id is not None}
+    if not dom_ids:
+        return out
+
+    candidates = (
+        Actuaciones.query.filter(Actuaciones.domicilio_id.in_(dom_ids))
+        .filter(Actuaciones.comprobacion_id.isnot(None))
+        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .all()
+    )
+
+    by_dom: Dict[int, List[Actuaciones]] = defaultdict(list)
+    for c in candidates:
+        by_dom[int(c.domicilio_id)].append(c)
+
+    for lst in by_dom.values():
+        lst.sort(key=lambda x: ((x.fecha or date.min), int(x.id)))
+
+    for ref in refs:
+        rid = int(ref.id)
+        dom = int(ref.domicilio_id)  # type: ignore[arg-type]
+        ref_key = (ref.fecha or date.min, rid)
+        chosen: Optional[Actuaciones] = None
+        for c in by_dom.get(dom, []):
+            ck = (c.fecha or date.min, int(c.id))
+            if ck <= ref_key:
+                continue
+            chosen = c
+            break
+        out[rid] = chosen
+
+    return out
+
+
+def _notificaciones_pendientes_query(
+    filters: ActuacionesPendientesFilters, *, actor_user_id: int | None = None
+):
+    """
+    Retorna query operativa para notificaciones vencidas con iniciador materializado.
+
+    Fase C: la materialización corre por CLI / `flask sync-notificaciones-vencidas` / scheduler, no por este
+    GET. Solo si `SYNC_NOTIFICACIONES_VENCIDAS_ON_READ=1` se invoca sync aquí (compatibilidad transitoria).
+
+    Luego filtramos por rango de fecha de actuación para mantener contrato del endpoint.
+    """
+    if materializacion_notificacion_vencida_on_read_enabled():
+        if actor_user_id is None:
+            raise ValueError(
+                "actor_user_id es obligatorio para materializar notificaciones vencidas en lectura."
+            )
+        sync_iniciadores_reinspeccion_notificacion(actor_user_id=actor_user_id)
+    act_ids = [a.id for a in list_reinspeccion_notificacion_operativas()]
+    if not act_ids:
+        return Actuaciones.query.filter(False)
+    query = Actuaciones.query.filter(Actuaciones.id.in_(act_ids))
+    return _apply_fecha(query, filters.desde, filters.hasta)
+
+
+def get_pendientes_summary(
+    filters: ActuacionesPendientesFilters, *, actor_user_id: int | None = None
+) -> Dict[str, int]:
+    """
+    Obtiene conteos de pendientes de Actuaciones (domicilios, sin expediente, notificaciones).
+    """
+    domicilios = _domicilios_pendientes_query(filters).count()
+    sin_expediente = _sin_expediente_query(filters).count()
+    notificaciones = _notificaciones_pendientes_query(
+        filters, actor_user_id=actor_user_id
+    ).count()
+    total = domicilios + sin_expediente + notificaciones
+
+    return {
+        "total": total,
+        "domicilios": domicilios,
+        "sin_expediente": sin_expediente,
+        "notificaciones": notificaciones,
+    }
+
+
+def get_pendientes_list(
+    filters: ActuacionesPendientesFilters, *, actor_user_id: int | None = None
+) -> List[Actuaciones]:
+    """
+    Lista actuaciones pendientes según tipo:
+      - domicilios
+      - sin_expediente
+      - notificaciones
+    """
+    if filters.tipo == "domicilios":
+        query = _domicilios_pendientes_query(filters)
+    elif filters.tipo == "sin_expediente":
+        query = _sin_expediente_query(filters)
+    elif filters.tipo == "notificaciones":
+        query = _notificaciones_pendientes_query(filters, actor_user_id=actor_user_id)
+    else:
+        return []
+
+    return query.order_by(Actuaciones.id.desc()).all()
+
+
+def get_pendientes_expediente(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
+    """
+    Lista actuaciones pendientes de expediente.
+
+    Reutiliza y unifica la lógica administrativa para dos ramas:
+    - COMPROBACION: actuación con comprobación sin expediente en su comprobación.
+    - NOTIFICACION: actuación con notificación (puede incluir la misma actuación que ya tiene
+      comprobación; el presenter marca el canal según ``source_type`` del filtro).
+
+    source_type (filtro):
+    - all
+    - notificacion
+    - comprobacion
+    """
+    source_type = (filters.source_type or "all").lower()
+    distrito_id = getattr(filters, "distrito_id", None)
+
+    if source_type == "comprobacion":
+        query = apply_bandeja_grid_eager(
+            _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
+        )
+        query = apply_numero_comprobacion_sql(query, filters.numero_comprobacion)
+    elif source_type == "notificacion":
+        query = apply_bandeja_grid_eager(
+            _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+        )
+    else:
+        query_comp = _apply_distrito_optional(_sin_expediente_query(filters), distrito_id)
+        query_noti = _apply_distrito_optional(_sin_expediente_notificacion_query(filters), distrito_id)
+        query = query_comp.union(query_noti)
+
+    if source_type in ("comprobacion", "notificacion"):
+        acts: List[Actuaciones] = query.order_by(Actuaciones.id.desc()).all()
+    else:
+        acts = reload_actuaciones_bandeja_eager(query.order_by(Actuaciones.id.desc()).all())
+    if source_type == "notificacion":
+        acts = dedupe_actuaciones_canonicas_por_notificacion(acts)
+    if (
+        source_type == "notificacion"
+        and _notificacion_documental_filters_active(filters)
+        and not _historial_paginacion_solicitada(filters)
+    ):
+        acts = _filter_actuaciones_documental_notificacion(acts, filters)
+    if source_type == "notificacion" and getattr(filters, "plazo_slice", None):
+        acts = filter_actuaciones_notificacion_por_plazo_slice(acts, filters.plazo_slice)
+    if (
+        source_type == "notificacion"
+        and _plazo_slice_operativo_activo(filters)
+        and (filters.calle_q or filters.orden_trabajo)
+    ):
+        acts = _filter_actuaciones_operativos_calle_ot(acts, filters)
+    return acts
+
+
+def _notificacion_documental_filters_active(filters: ActuacionesPendientesFilters) -> bool:
+    """True si llegó algún filtro documental opcional (solo rama notificación / historial)."""
+    operativo = _plazo_slice_operativo_activo(filters)
+    calle_en_documental = filters.calle_q if not operativo else None
+    numero_en_documental = filters.numero_notificacion if not operativo else None
+    return bool(
+        filters.contribuyente_q
+        or calle_en_documental
+        or numero_en_documental
+        or filters.motivo_q
+        or filters.motivo_id
+    )
+
+
+def _filter_actuaciones_operativos_calle_ot(
+    acts: List[Actuaciones],
+    filters: ActuacionesPendientesFilters,
+) -> List[Actuaciones]:
+    """
+    Filtra actuaciones NOTIFICACION por calle (contains CI) y/o OT exacta normalizada.
+
+    Se aplica tras dedupe y ``plazo_slice`` en bandeja operativa para preservar población base.
+    Usa relaciones eager (domicilio, orden_trabajo) sin alterar elegibilidad previa.
+
+    Parámetros:
+        acts: actuaciones ya filtradas por reglas de bandeja.
+        filters: ``calle_q`` y/o ``orden_trabajo``.
+
+    Retorno:
+        Subconjunto que cumple los filtros operativos activos.
+    """
+    if not acts:
+        return []
+    ot_id: int | None = None
+    if filters.orden_trabajo:
+        ot_norm = acta_6(filters.orden_trabajo)
+        ot = (
+            OrdenTrabajo.query.filter(
+                OrdenTrabajo.numero_acta == ot_norm,
+                OrdenTrabajo.deleted_at.is_(None),
+            )
+            .order_by(OrdenTrabajo.id.desc())
+            .first()
+        )
+        if not ot:
+            return []
+        ot_id = int(ot.id)
+
+    calle_term = (filters.calle_q or "").strip().lower()
+    out: List[Actuaciones] = []
+    for act in acts:
+        if calle_term:
+            dom = getattr(act, "domicilio", None)
+            calle_val = (getattr(dom, "calle", None) or "").lower()
+            if calle_term not in calle_val:
+                continue
+        if ot_id is not None and int(act.orden_trabajo_id or 0) != ot_id:
+            continue
+        out.append(act)
+    return out
+
+
+def _filter_actuaciones_documental_notificacion(
+    acts: List[Actuaciones],
+    filters: ActuacionesPendientesFilters,
+) -> List[Actuaciones]:
+    """
+    Filtra en memoria actuaciones NOTIFICACION-only usando el mismo snapshot que la grilla
+    (``actuacion_to_grid_row``), criterio subcadena case-insensitive como recorrido documental.
+    """
+    if not acts:
+        return []
+    counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
+    out: List[Actuaciones] = []
+    for act in acts:
+        row = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
+        if filters.contribuyente_q:
+            blob = (
+                f"{row.get('contrib_apellido') or ''} {row.get('contrib_nombre') or ''} "
+                f"{row.get('razon_social') or ''}"
+            ).lower()
+            if filters.contribuyente_q.lower() not in blob:
+                continue
+        if filters.calle_q and not _plazo_slice_operativo_activo(filters):
+            calle = (row.get("calle") or "").lower()
+            if filters.calle_q.lower() not in calle:
+                continue
+        if filters.numero_notificacion and not _plazo_slice_operativo_activo(filters):
+            num = (row.get("acta_notificacion_num") or "").replace(" ", "").lower()
+            q = filters.numero_notificacion.replace(" ", "").lower()
+            if q not in num:
+                continue
+        if filters.motivo_id:
+            noti = getattr(act, "notificacion", None)
+            motivo_ids = {int(m.id) for m in (noti.motivos if noti else [])}
+            if int(filters.motivo_id) not in motivo_ids:
+                continue
+        elif filters.motivo_q:
+            parts = [
+                row.get("notificacion_motivo_1"),
+                row.get("notificacion_motivo_2"),
+                row.get("notificacion_motivo_3"),
+            ]
+            blob = " ".join([str(p) for p in parts if p]).lower()
+            if filters.motivo_q.lower() not in blob:
+                continue
+        out.append(act)
+    return out
+
+
+def get_pendientes_oficio(filters: ActuacionesPendientesFilters) -> List[Actuaciones]:
+    """
+    Lista actuaciones en estado "esperando oficio".
+
+    Reglas:
+    - Debe pertenecer a rama COMPROBACION (`comprobacion_id` no nulo).
+    - Debe existir expediente original de comprobación (ENVIO_ACTA u otro sin oficio).
+    - No debe existir expediente de respuesta de oficio para esa comprobación.
+    """
+    has_expediente_original = exists().where(
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.is_(None),
+            Expediente.deleted_at.is_(None),
+        )
+    )
+    has_sin_expediente_declarado = exists().where(
+        and_(
+            Comprobacion.id == Actuaciones.comprobacion_id,
+            Comprobacion.sin_expediente_envio.is_(True),
+            Comprobacion.deleted_at.is_(None),
+        )
+    )
+    has_respuesta_oficio = exists().where(
+        and_(
+            Expediente.comprobacion_id == Actuaciones.comprobacion_id,
+            Expediente.oficio_id.isnot(None),
+            or_(
+                Expediente.tipo_expediente == "RESPUESTA_OFICIO",
+                Expediente.tipo_expediente.is_(None),
+            ),
+            Expediente.deleted_at.is_(None),
+        )
+    )
+
+    query = apply_bandeja_grid_eager(
+        Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
+        .filter(or_(has_expediente_original, has_sin_expediente_declarado))
+        .filter(~has_respuesta_oficio)
+    )
+    query = _apply_fecha(query, filters.desde, filters.hasta)
+    query = _apply_distrito_optional(query, getattr(filters, "distrito_id", None))
+    query = apply_numero_comprobacion_sql(query, filters.numero_comprobacion)
+    query = apply_expediente_envio_numero_sql(query, filters.expediente_envio_numero)
+    return query.order_by(Actuaciones.id.desc()).all()

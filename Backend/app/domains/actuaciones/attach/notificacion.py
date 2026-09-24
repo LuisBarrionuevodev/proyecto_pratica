@@ -1,0 +1,200 @@
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+from app.database import db
+from app.models import Actuaciones, Notificacion
+from app.utils.actas import acta_6
+from app.domains.actuaciones.catalogs.motivo import get_motivo_o_falla
+from app.domains.actuaciones.services.notificacion_timing_service import inicializar_timing_notificacion
+from app.domains.actuaciones.attach.acta_reactivation_helpers import (
+    otra_actuacion_usa_notificacion,
+)
+
+_MSG_NOTIF_MOTIVO = "La notificación requiere al menos un motivo."
+
+
+def _notificacion_exige_al_menos_un_motivo(noti: Notificacion) -> None:
+    rel = getattr(noti, "motivos", None) or []
+    if len(rel) < 1:
+        raise ValueError(_MSG_NOTIF_MOTIVO)
+
+
+def attach_notificacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
+    """
+    Adjunta el acta de Notificación a una Actuación.
+
+    Reglas:
+    - Unicidad lógica del acta: `(numero_acta, anio)`.
+    - No se reutiliza una fila `Notificacion` ya existente para enganchar otra actuación:
+      si el par ya existe en BD y esta actuación aún no tenía la suya, es conflicto.
+    - Si `actuacion.notificacion_id` ya apunta a una fila, solo se actualiza esa misma fila
+      (misma actuación editando su acta), sin tomar prestada otra fila por número/año.
+
+    Con acta de notificación persistida, debe haber **al menos un motivo** en catálogo.
+
+    Args:
+        actuacion: Actuación destino (debe tener `id`, `anio`, `mes` y opcionalmente `tipo`).
+        data: dict opcional con `acta_num` y opcionalmente `motivos`.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: conflicto de acta ya existente / ya vinculada a otra actuación.
+        ValueError: si algún motivo no existe en catálogo (propaga `get_motivo_o_falla`).
+        ValueError: si hay acta y cero motivos.
+    """
+    if not data:
+        return
+
+    acta_num = acta_6(data.get("acta_num"))
+    if not acta_num:
+        return
+
+    anio = actuacion.anio
+    mes = actuacion.mes
+
+    # 1) Ya tiene notificación asociada: solo actualizar esa fila (no reutilizar otra por número/año).
+    if actuacion.notificacion_id:
+        noti = db.session.get(Notificacion, actuacion.notificacion_id)
+        if noti:
+            otra_misma_clave = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
+            if otra_misma_clave and otra_misma_clave.id != noti.id:
+                raise ValueError(
+                    f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+                )
+
+            if noti.deleted_at is not None:
+                noti.deleted_at = None
+            noti.numero_acta = acta_num
+            noti.anio = anio
+            noti.mes = mes
+            inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
+
+            if "motivos" in data:
+                motivos = data.get("motivos") or []
+                noti.motivos = [get_motivo_o_falla(m) for m in motivos]
+            _notificacion_exige_al_menos_un_motivo(noti)
+
+            db.session.add(noti)
+            actuacion.notificacion_id = noti.id
+            return
+
+    # 2) Primera asociación: reutilizar fila inactiva/huérfana o crear nueva.
+    existente = db.session.query(Notificacion).filter_by(numero_acta=acta_num, anio=anio).first()
+    if existente:
+        if otra_actuacion_usa_notificacion(int(existente.id), int(actuacion.id)):
+            raise ValueError(
+                f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+            )
+        if existente.deleted_at is not None:
+            existente.deleted_at = None
+        existente.numero_acta = acta_num
+        existente.anio = anio
+        existente.mes = mes
+        inicializar_timing_notificacion(existente, fecha_notificacion=actuacion.fecha)
+        if "motivos" in data:
+            motivos = data.get("motivos") or []
+            existente.motivos = [get_motivo_o_falla(m) for m in motivos]
+        _notificacion_exige_al_menos_un_motivo(existente)
+        db.session.add(existente)
+        actuacion.notificacion_id = existente.id
+        return
+
+    noti = Notificacion(numero_acta=acta_num, anio=anio, mes=mes)
+    inicializar_timing_notificacion(noti, fecha_notificacion=actuacion.fecha)
+    db.session.add(noti)
+    db.session.flush()
+
+    actuacion.notificacion_id = noti.id
+
+    if "motivos" not in data:
+        raise ValueError(_MSG_NOTIF_MOTIVO)
+    motivos = data.get("motivos") or []
+    noti.motivos = [get_motivo_o_falla(m) for m in motivos]
+    db.session.flush()
+    _notificacion_exige_al_menos_un_motivo(noti)
+
+    if actuacion.tipo is not None:
+        existe_mismo_tipo = (
+            Actuaciones.query.filter(
+                Actuaciones.id != actuacion.id,
+                Actuaciones.anio == anio,
+                Actuaciones.tipo == actuacion.tipo,
+                Actuaciones.notificacion_id == noti.id,
+            ).first()
+        )
+        if existe_mismo_tipo:
+            raise ValueError(
+                f"La Notificación {acta_num}/{anio} ya existe y está asociada a otra actuación."
+            )
+
+
+def _normalizar_cantidad_personas_sin_carnet(raw: Any) -> int:
+    """Valida cantidad_personas_sin_carnet_sanidad (entero >= 0, no decimal)."""
+    if raw is None:
+        raise ValueError("cantidad_personas_sin_carnet_sanidad no puede ser nula.")
+    if isinstance(raw, float) and not raw.is_integer():
+        raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.")
+    try:
+        cantidad = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser un entero >= 0.") from None
+    if cantidad < 0:
+        raise ValueError("cantidad_personas_sin_carnet_sanidad debe ser >= 0.")
+    return cantidad
+
+
+def _tiene_notificacion_resoluble(actuacion: Actuaciones, payload: dict[str, Any]) -> bool:
+    """True si la actuación ya tiene o está creando Notificación en este payload."""
+    if actuacion.notificacion_id:
+        noti = db.session.get(Notificacion, int(actuacion.notificacion_id))
+        if noti and noti.deleted_at is None:
+            return True
+    notif_data = payload.get("notificacion")
+    if isinstance(notif_data, dict) and acta_6(notif_data.get("acta_num")):
+        return True
+    if acta_6(payload.get("acta_notificacion_num")):
+        return True
+    return False
+
+
+def aplicar_personas_sin_carnet_desde_payload(
+    actuacion: Actuaciones,
+    payload: dict[str, Any],
+) -> None:
+    """
+    Aplica ``cantidad_personas_sin_carnet_sanidad`` si viene explícito (misma transacción attach).
+
+    Reglas:
+    - Ausencia de clave → no modifica.
+    - Requiere Notificación existente o en creación en el mismo payload si valor > 0.
+    - El campo pertenece a ``Notificacion``, no a ``Inspeccion``.
+
+    Errores:
+        ValueError: validación o ausencia de acta de notificación.
+    """
+    if "cantidad_personas_sin_carnet_sanidad" not in payload:
+        return
+
+    cantidad = _normalizar_cantidad_personas_sin_carnet(
+        payload.get("cantidad_personas_sin_carnet_sanidad")
+    )
+
+    if not _tiene_notificacion_resoluble(actuacion, payload):
+        if cantidad > 0:
+            raise ValueError(
+                "Para registrar personas sin carnet de sanidad debe cargar un acta de notificación."
+            )
+        return
+
+    noti = None
+    if actuacion.notificacion_id:
+        noti = db.session.get(Notificacion, int(actuacion.notificacion_id))
+
+    if noti is None:
+        return
+
+    noti.cantidad_personas_sin_carnet_sanidad = cantidad
+    db.session.add(noti)

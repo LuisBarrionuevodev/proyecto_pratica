@@ -1,4 +1,4 @@
-import type { ILocal } from "../types/Local";
+import type { ILocal } from "../types/local";
 
 export function filterLocales(
   locales: ILocal[],

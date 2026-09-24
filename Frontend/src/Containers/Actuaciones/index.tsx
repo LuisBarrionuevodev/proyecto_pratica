@@ -1,24 +1,7 @@
-import type { JSX } from "react"
-import NavLeft from "../../Componets/NavLeft";
-import TablaActuaciones from "./Components/TableActuaciones";
-import { ThemeProvider } from "@mui/material";
-import { darkTheme } from "../../configs/theme";
+import ActuacionesContainer from "./ActuacionesContainer";
 
-const Actuaciones = (): JSX.Element => {
-
-    return (
-        <>
-
-            <NavLeft />
-
-            <ThemeProvider theme={darkTheme}>
-                <TablaActuaciones />
-            </ThemeProvider>
-
-
-        </>
-    )
-
-}
+const Actuaciones = () => {
+  return <ActuacionesContainer />;
+};
 
 export default Actuaciones;

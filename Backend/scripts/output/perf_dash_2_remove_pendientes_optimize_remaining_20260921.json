@@ -1,0 +1,825 @@
+{
+  "ticket": "PERF-DASH.2",
+  "date": "2026-09-21",
+  "writes_executed": false,
+  "migration_required": false,
+  "pendientes": {
+    "frontend_removed": true,
+    "backend_endpoint_removed": true,
+    "exclusive_code_removed": true,
+    "other_workflows_untouched": true,
+    "consumer_audit": "DASHBOARD_ONLY (Panel + tests + benchmark + diag runner)"
+  },
+  "remaining_kpis_baseline": {
+    "periodo": {
+      "desde": "2026-09-01",
+      "hasta": "2026-09-21"
+    },
+    "ejecutivo": {
+      "actuaciones_realizadas": 17,
+      "actas_labradas": 35,
+      "inspecciones_realizadas": 9,
+      "reinspecciones_notificacion_realizadas": 1,
+      "reinspecciones_oficio_realizadas": 4,
+      "ratificaciones_clausura_realizadas": 0,
+      "ratificaciones_decomiso_realizadas": 1,
+      "verificar_informar_realizadas": 3,
+      "mercaderia_decomisada_kg": 16316.0,
+      "actas_por_tipo": {
+        "inspeccion": 13,
+        "notificacion": 10,
+        "comprobacion": 8,
+        "clausura": 2,
+        "decomiso": 2
+      }
+    }
+  },
+  "remaining_kpis_after": {
+    "ejecutivo": {
+      "kpis": {
+        "actuaciones_realizadas": 17,
+        "actas_labradas": 35,
+        "inspecciones_realizadas": 9,
+        "reinspecciones_notificacion_realizadas": 1,
+        "reinspecciones_oficio_realizadas": 4,
+        "ratificaciones_clausura_realizadas": 0,
+        "ratificaciones_decomiso_realizadas": 1,
+        "verificar_informar_realizadas": 3,
+        "mercaderia_decomisada_kg": 16316.0
+      },
+      "actas_por_tipo": {
+        "inspeccion": 13,
+        "notificacion": 10,
+        "comprobacion": 8,
+        "clausura": 2,
+        "decomiso": 2
+      }
+    },
+    "riesgo": {
+      "top_rubros": [
+        {
+          "rubro": "Cafetería",
+          "cantidad": 3
+        },
+        {
+          "rubro": "Comestibles",
+          "cantidad": 2
+        },
+        {
+          "rubro": "Drugstore",
+          "cantidad": 2
+        },
+        {
+          "rubro": "Carnicería",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Bar",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Heladeria",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Pr715Rub-b57b84e1",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Pr715Rub-2a626100",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Pr715Rub-072d1d8c",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Verd712c-56882707",
+          "cantidad": 1
+        }
+      ],
+      "top_motivos_notificacion": [
+        {
+          "motivo": "Carnet de Sanidad",
+          "cantidad": 10
+        },
+        {
+          "motivo": "Desinfeccion",
+          "cantidad": 3
+        },
+        {
+          "motivo": "Refacciones",
+          "cantidad": 1
+        }
+      ],
+      "top_motivos_comprobacion": [
+        {
+          "motivo": "Falta de Higiene",
+          "cantidad": 3
+        },
+        {
+          "motivo": "Mercadería Vencida",
+          "cantidad": 2
+        },
+        {
+          "motivo": "No Permite la Inspección",
+          "cantidad": 1
+        },
+        {
+          "motivo": "Control",
+          "cantidad": 1
+        },
+        {
+          "motivo": "Incumplimiento de Notificación",
+          "cantidad": 1
+        }
+      ],
+      "decomiso_kg_por_rubro": [
+        {
+          "rubro": "Drugstore",
+          "kg": 16300.0
+        },
+        {
+          "rubro": "Comestibles",
+          "kg": 16.0
+        }
+      ]
+    },
+    "no_realizadas": {
+      "por_tipo": {
+        "inspeccion": 7,
+        "reinspeccion_oficio": 0,
+        "reinspeccion_notificacion": 6,
+        "denuncia": 3
+      },
+      "top_contraproducencias": [
+        {
+          "contraproducencia": "Local cerrado",
+          "cantidad": 10
+        },
+        {
+          "contraproducencia": "Direccion incorrecta",
+          "cantidad": 5
+        }
+      ],
+      "distritos_con_mas_no_realizadas": [
+        {
+          "distrito_id": 15,
+          "distrito_codigo": "10",
+          "distrito_nombre": "Distrito 10",
+          "cantidad": 9
+        },
+        {
+          "distrito_id": 0,
+          "distrito_codigo": "SIN_DISTRITO",
+          "distrito_nombre": "Sin distrito",
+          "cantidad": 4
+        },
+        {
+          "distrito_id": 9,
+          "distrito_codigo": "2",
+          "distrito_nombre": "Distrito 2",
+          "cantidad": 2
+        },
+        {
+          "distrito_id": 4,
+          "distrito_codigo": "9",
+          "distrito_nombre": "Distrito 9",
+          "cantidad": 1
+        }
+      ],
+      "total": 16,
+      "contraproducencias_resumen": [
+        {
+          "bucket": "local_cerrado",
+          "label": "Local cerrado",
+          "cantidad": 11
+        },
+        {
+          "bucket": "no_existe",
+          "label": "No existe",
+          "cantidad": 0
+        },
+        {
+          "bucket": "no_se_ratifico",
+          "label": "No se ratificó",
+          "cantidad": 0
+        },
+        {
+          "bucket": "clima",
+          "label": "Clima",
+          "cantidad": 0
+        },
+        {
+          "bucket": "otras",
+          "label": "Otras",
+          "cantidad": 5
+        }
+      ]
+    },
+    "productividad": {
+      "inspectores_realizadas": [
+        {
+          "inspector_id": 2,
+          "inspector": "Alamo Alfredo",
+          "total_realizadas": 9,
+          "inspecciones": 3,
+          "reinspecciones_oficio": 4,
+          "reinspecciones_notificacion": 1,
+          "denuncias": 1,
+          "otras": 1,
+          "tipo_principal": "Reinspección oficio"
+        },
+        {
+          "inspector_id": 1,
+          "inspector": "Accardi José",
+          "total_realizadas": 8,
+          "inspecciones": 3,
+          "reinspecciones_oficio": 2,
+          "reinspecciones_notificacion": 1,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 3,
+          "inspector": "Avila Karina",
+          "total_realizadas": 3,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 2,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 1,
+          "otras": 1,
+          "tipo_principal": "Reinspección oficio"
+        },
+        {
+          "inspector_id": 4,
+          "inspector": "Cabezas Cecilia",
+          "total_realizadas": 2,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Denuncia"
+        },
+        {
+          "inspector_id": 20,
+          "inspector": "Soria Dante",
+          "total_realizadas": 2,
+          "inspecciones": 2,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 23,
+          "inspector": "Villafañe Ángel Antonio",
+          "total_realizadas": 2,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Denuncia"
+        },
+        {
+          "inspector_id": 24,
+          "inspector": "Zacame Ariel",
+          "total_realizadas": 2,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Denuncia"
+        },
+        {
+          "inspector_id": 7,
+          "inspector": "Diaz Walter Omar",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 12,
+          "inspector": "Martinez Aldo",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 15,
+          "inspector": "Pentucci Cecilia",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 16,
+          "inspector": "Rivas Francisco",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 19,
+          "inspector": "Segovia Pablo",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 21,
+          "inspector": "Veliz María Elvira",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 22,
+          "inspector": "Vier Alberto",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        }
+      ],
+      "inspectores_no_realizadas": [
+        {
+          "inspector_id": 1,
+          "inspector": "Accardi José",
+          "total_no_realizadas": 8,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 4,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 4,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 2,
+          "inspector": "Alamo Alfredo",
+          "total_no_realizadas": 5,
+          "contraproducencia_principal": "Otro",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 3,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 12,
+          "inspector": "Martinez Aldo",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 23,
+          "inspector": "Villafañe Ángel Antonio",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 7,
+          "inspector": "Diaz Walter Omar",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 11,
+          "inspector": "Jerez Clara Carolina",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 13,
+          "inspector": "Nieva Facundo R",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 22,
+          "inspector": "Vier Alberto",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 24,
+          "inspector": "Zacame Ariel",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Otro",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 1,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 9,
+          "inspector": "Flores Gustavo",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 10,
+          "inspector": "Ibáñez Fabián",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 16,
+          "inspector": "Rivas Francisco",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 21,
+          "inspector": "Veliz María Elvira",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 4,
+          "inspector": "Cabezas Cecilia",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 19,
+          "inspector": "Segovia Pablo",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        }
+      ],
+      "actas_por_inspector": [
+        {
+          "inspector_id": 1,
+          "inspector": "Accardi José",
+          "notificacion": 5,
+          "comprobacion": 6,
+          "clausura": 2,
+          "decomiso": 1,
+          "total_actas": 14
+        },
+        {
+          "inspector_id": 2,
+          "inspector": "Alamo Alfredo",
+          "notificacion": 5,
+          "comprobacion": 5,
+          "clausura": 1,
+          "decomiso": 0,
+          "total_actas": 11
+        },
+        {
+          "inspector_id": 4,
+          "inspector": "Cabezas Cecilia",
+          "notificacion": 1,
+          "comprobacion": 2,
+          "clausura": 1,
+          "decomiso": 1,
+          "total_actas": 5
+        },
+        {
+          "inspector_id": 23,
+          "inspector": "Villafañe Ángel Antonio",
+          "notificacion": 1,
+          "comprobacion": 2,
+          "clausura": 1,
+          "decomiso": 1,
+          "total_actas": 5
+        },
+        {
+          "inspector_id": 24,
+          "inspector": "Zacame Ariel",
+          "notificacion": 1,
+          "comprobacion": 2,
+          "clausura": 1,
+          "decomiso": 1,
+          "total_actas": 5
+        },
+        {
+          "inspector_id": 20,
+          "inspector": "Soria Dante",
+          "notificacion": 2,
+          "comprobacion": 1,
+          "clausura": 0,
+          "decomiso": 1,
+          "total_actas": 4
+        },
+        {
+          "inspector_id": 15,
+          "inspector": "Pentucci Cecilia",
+          "notificacion": 1,
+          "comprobacion": 1,
+          "clausura": 0,
+          "decomiso": 1,
+          "total_actas": 3
+        },
+        {
+          "inspector_id": 3,
+          "inspector": "Avila Karina",
+          "notificacion": 1,
+          "comprobacion": 1,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 2
+        },
+        {
+          "inspector_id": 7,
+          "inspector": "Diaz Walter Omar",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 12,
+          "inspector": "Martinez Aldo",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 16,
+          "inspector": "Rivas Francisco",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 19,
+          "inspector": "Segovia Pablo",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 21,
+          "inspector": "Veliz María Elvira",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 22,
+          "inspector": "Vier Alberto",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        }
+      ]
+    }
+  },
+  "correctness_equal": true,
+  "no_realizadas_optimization": {
+    "fetch_no_realizadas_visita_rows_calls_per_request": 1,
+    "target_calls": 1,
+    "before_duplicate_fetch_evidence": "PERF-DASH.1: visita_rows SQL duplicated 2x in no-realizadas",
+    "after_query_count": 3,
+    "before_query_count": 4
+  },
+  "actas_optimization": {
+    "description": "_count_actas_labradas consolidated to single SELECT with scalar subqueries",
+    "after_ejecutivo_query_count": 5,
+    "before_ejecutivo_query_count": 9
+  },
+  "riesgo_optimization": {
+    "description": "actuacion_ids_realizadas_subquery materialized once and passed to motivo/decomiso queries",
+    "after_query_count": 4,
+    "before_query_count": 4
+  },
+  "productividad_changes": {
+    "description": "No aggressive refactor; preserved groupings",
+    "after_query_count": 7,
+    "before_query_count": 7
+  },
+  "frontend_requests_before": {
+    "count": 7,
+    "breakdown": "2 catalogs + 5 indicadores (incl. pendientes)"
+  },
+  "frontend_requests_after": {
+    "count": 6,
+    "breakdown": "2 catalogs + 4 indicadores (ejecutivo, riesgo, no-realizadas, productividad)"
+  },
+  "backend_query_count_before": {
+    "dashboard_indicadores_total": 12412,
+    "pendientes_only": 12388,
+    "note": "From PERF-DASH.1 mensual_sin_filtros"
+  },
+  "backend_query_count_after": {
+    "dashboard_indicadores_total": 19,
+    "by_endpoint": {
+      "ejecutivo": {
+        "total_ms": 18.4,
+        "query_count": 5
+      },
+      "riesgo": {
+        "total_ms": 12.0,
+        "query_count": 4
+      },
+      "no-realizadas": {
+        "total_ms": 10.9,
+        "query_count": 3
+      },
+      "productividad": {
+        "total_ms": 18.1,
+        "query_count": 7
+      }
+    }
+  },
+  "dashboard_timeline_before": {
+    "blocking_endpoint": "pendientes",
+    "parallel_max_ms": 8889.6,
+    "pendientes_ms": 8889.6
+  },
+  "dashboard_timeline_after": {
+    "parallel_max_ms": 18.4,
+    "serial_sum_ms": 59.4,
+    "note": "4 endpoints; no pendientes blocking"
+  },
+  "resumen_legacy_status": {
+    "endpoint": "GET /api/indicadores/resumen",
+    "dashboard_consumer": "DashboardTendenciasSection (not Panel mount); Panel main blocks use split endpoints",
+    "measured_query_count": 2500,
+    "measured_ms": 2034.6,
+    "action": "NOT_OPTIMIZED — report for future cleanup if no runtime consumers"
+  },
+  "tests_backend": {
+    "focal_suite": "pytest tests/test_indicadores_dashboard_blocks.py tests/test_indicadores_no_realizadas.py tests/test_indicadores_actas_labradas.py tests/test_indicadores_riesgo.py tests/test_indicadores_productividad.py",
+    "pendientes_route_absent": "test_indicadores_pendientes_endpoint_removed expects 404"
+  },
+  "tests_frontend": {
+    "focal_suite": "vitest Panel.test.tsx dashboardPdfMappers.test.ts dashboardPdfDocument.test.ts",
+    "pendientes_section_absent": "PERF-DASH.2 static test in Panel.test.tsx"
+  },
+  "manual_qa": {
+    "sandbox": "Open Dashboard; verify 4 KPI blocks; no Pendientes tab; period/distrito/inspector filters",
+    "writes": false
+  },
+  "deferred": {
+    "dashboard_pendientes_until_clean_db": true,
+    "note": "Do not reintroduce N+1 pendientes endpoint; design set-based when DB clean"
+  },
+  "status": "PASS"
+}

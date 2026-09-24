@@ -9,10 +9,29 @@ class Expediente(db.Model):
         nullable=False,
         index=True,
     )
+    fecha_expediente = db.Column(db.Date, nullable=True, index=True)
     anio = db.Column(db.String(4), nullable=False, index=True)
+    tipo_expediente = db.Column(
+        db.Enum(
+            "ENVIO_ACTA",
+            "RESPUESTA_OFICIO",
+            "PRORROGA_NOTIFICACION",
+            "OTRO",
+            name="tipo_expediente_enum",
+        ),
+        nullable=True,
+        index=True,
+    )
     comprobacion_id = db.Column(
         db.Integer,
         db.ForeignKey("comprobacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
+    notificacion_id = db.Column(
+        db.Integer,
+        db.ForeignKey("notificacion.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=True,
         unique=False,
         index=True,
@@ -32,26 +51,41 @@ class Expediente(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    # Días de prórroga otorgados en esta fila (rama PRORROGA_NOTIFICACION); la suma alinea `Notificacion.prorroga_dias`.
+    prorroga_dias_otorgados = db.Column(db.Integer, nullable=True)
     comprobacion = db.relationship("Comprobacion", back_populates="expediente")
-    oficio = db.relationship("Oficio", back_populates="expediente")
-    __table_args__ = (
-        db.UniqueConstraint("numero_expediente", "anio", name="uq_ex_numero_anio"),
+    notificacion = db.relationship("Notificacion", back_populates="expedientes")
+    oficio = db.relationship(
+        "Oficio",
+        back_populates="expediente",
+        foreign_keys=[oficio_id],
     )
+    # Unicidad global (numero_expediente, anio) solo para filas activas (deleted_at IS NULL):
+    # migración ``d4e5f6a7b8c1`` — índice único en columna generada ``uq_num_anio_activo``.
 
     def to_dict(self, include_relations=False):
         data = {
             "id": self.id,
             "numero_expediente": self.numero_expediente,
+            "fecha_expediente": self.fecha_expediente.isoformat() if self.fecha_expediente else None,
             "anio": self.anio,
+            "tipo_expediente": self.tipo_expediente,
             "comprobacion_id": self.comprobacion_id,
+            "notificacion_id": self.notificacion_id,
             "oficio_id": self.oficio_id,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "deleted_at": self.deleted_at,
+            "prorroga_dias_otorgados": self.prorroga_dias_otorgados,
         }
 
         if include_relations:
             data["comprobacion"] = (
                 self.comprobacion.to_dict() if self.comprobacion else None
+            )
+            data["notificacion"] = (
+                self.notificacion.to_dict() if self.notificacion else None
             )
             data["oficio"] = self.oficio.to_dict() if self.oficio else None
 

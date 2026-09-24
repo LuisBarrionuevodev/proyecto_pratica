@@ -1,0 +1,378 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import { Alert, Box, Stack, Typography } from "@mui/material";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_PaginationState,
+  type MRT_Updater,
+} from "material-react-table";
+
+import { AppButton, AppSelect, AppTextField } from "../../ui";
+import { fetchDistritosCatalogo } from "../../api/geolocalizacionApi";
+import { fetchRubrosCatalogoCached } from "../../utils/rubrosCatalogCache";
+import {
+  filtroButtonPrimaryStyles,
+  filtroButtonSecondaryStyles,
+  filtroButtonsStyles,
+  filtroContainerStyles,
+  filtroGridStyles,
+  filtroItemStyles,
+  filtroTitleStyles,
+} from "../Actuaciones/styles/filtroStyles";
+import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
+import {
+  BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
+} from "../Actuaciones/Components/bandejaTableCells";
+import {
+  BANDEJA_MRT_SPINNER_LOADING_STATE,
+  BandejaTableSpinner,
+} from "../../components/dataTable/bandejaTableLoading";
+import {
+  getEstablecimientosOperativos,
+  type IEstablecimientoOperativoListItem,
+} from "../../api/establecimientosOperativosApi";
+import { RubroChip } from "./components/RubroChip";
+import {
+  EstablecimientoContribuyenteCell,
+  EstablecimientoListDomicilioCell,
+} from "./components/EstablecimientoListCells";
+import { establecimientoDomicilioLineaVisible } from "./utils/establecimientoDomicilioVisible";
+import { establecimientoContribuyenteTitulo } from "./utils/establecimientoContribuyenteVisible";
+import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
+import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalPageShell";
+
+const DEFAULT_PAGE_SIZE = 20;
+
+function parseOptionalInt(s: string): number | undefined {
+  const t = s.trim();
+  if (!t) return undefined;
+  const n = Number.parseInt(t, 10);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+type EstablecimientosListResultsProps = {
+  rows: IEstablecimientoOperativoListItem[];
+  total: number;
+  loading: boolean;
+  pagination: MRT_PaginationState;
+  onPaginationChange: (updater: MRT_Updater<MRT_PaginationState>) => void;
+};
+
+/**
+ * Tabla de resultados: se monta solo cuando el usuario ya aplicó un filtro (evita hook condicional en el padre).
+ */
+function EstablecimientosListResults({
+  rows,
+  total,
+  loading,
+  pagination,
+  onPaginationChange,
+}: EstablecimientosListResultsProps) {
+  const navigate = useNavigate();
+
+  const columns = useMemo<MRT_ColumnDef<IEstablecimientoOperativoListItem>[]>(
+    () => [
+      {
+        id: "domicilio",
+        header: "DOMICILIO",
+        size: 240,
+        accessorFn: (row) =>
+          `${establecimientoDomicilioLineaVisible(row)} ${(row.distrito_nombre ?? "").trim()}`.trim(),
+        Cell: ({ row }) => <EstablecimientoListDomicilioCell row={row.original} />,
+      },
+      {
+        accessorKey: "rubro_nombre",
+        header: "RUBRO",
+        size: 180,
+        enableSorting: false,
+        Cell: ({ row }) => (
+          <RubroChip rubro={row.original.rubro_nombre?.trim() || "—"} />
+        ),
+      },
+      {
+        id: "contribuyente",
+        header: "CONTRIBUYENTE / RAZÓN SOCIAL",
+        size: 220,
+        accessorFn: (row) =>
+          `${establecimientoContribuyenteTitulo(row)} ${(row.documento ?? "").trim()}`.trim(),
+        Cell: ({ row }) => <EstablecimientoContribuyenteCell row={row.original} />,
+      },
+    ],
+    []
+  );
+
+  const table = useMaterialReactTable({
+    ...DARK_TABLE_CONFIG,
+    ...BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
+    columns,
+    data: rows,
+    getRowId: (row) => String(row.id),
+    enableEditing: false,
+    enableRowSelection: false,
+    enableColumnFilters: false,
+    enableGlobalFilter: false,
+    manualPagination: true,
+    rowCount: total,
+    state: {
+      pagination,
+      ...BANDEJA_MRT_SPINNER_LOADING_STATE,
+    },
+    onPaginationChange,
+    muiTableBodyRowProps: () => ({
+      sx: { cursor: "default" },
+    }),
+    displayColumnDefOptions: {
+      "mrt-row-actions": { header: "ACCIONES", size: 140 },
+    },
+    enableRowActions: true,
+    positionActionsColumn: "last",
+    renderRowActions: ({ row }) => (
+      <AppButton
+        dsVariant="primary"
+        dsSize="sm"
+        onClick={() => navigate(`/establecimientos/${row.original.id}`)}
+      >
+        Ver ficha
+      </AppButton>
+    ),
+  });
+
+  if (loading) {
+    return <BandejaTableSpinner />;
+  }
+
+  return (
+    <DataTableMrtShell loadingMode="none">
+      <MaterialReactTable table={table} />
+    </DataTableMrtShell>
+  );
+}
+
+/**
+ * Listado de fichas operativas (`establecimiento_operativo`) desde API.
+ * La tabla se muestra solo después de aplicar filtros (misma familia visual que Pendientes / Oficio).
+ */
+export default function EstablecimientosListPage() {
+  const [filtroAplicado, setFiltroAplicado] = useState(false);
+
+  const [rows, setRows] = useState<IEstablecimientoOperativoListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [contrib, setContrib] = useState("");
+  const [calle, setCalle] = useState("");
+  const [distritoId, setDistritoId] = useState("");
+  const [rubroId, setRubroId] = useState("");
+  const [distritosCatalogo, setDistritosCatalogo] = useState<{ id: number; nombre: string }[]>([]);
+  const [rubrosCatalogo, setRubrosCatalogo] = useState<{ id: number; nombre: string }[]>([]);
+
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const [distritosRes, rubrosItems] = await Promise.all([
+          fetchDistritosCatalogo(),
+          fetchRubrosCatalogoCached(),
+        ]);
+        setDistritosCatalogo(distritosRes.items ?? []);
+        setRubrosCatalogo(
+          rubrosItems.map((r) => ({ id: r.id, nombre: r.nombre })).filter((r) => r.nombre.trim())
+        );
+      } catch {
+        setDistritosCatalogo([]);
+        setRubrosCatalogo([]);
+      }
+    };
+    void loadCatalogs();
+  }, []);
+
+  const distritoOptions = useMemo(
+    () => [
+      { value: "", label: "Todos los distritos" },
+      ...distritosCatalogo.map((d) => ({ value: String(d.id), label: d.nombre })),
+    ],
+    [distritosCatalogo]
+  );
+
+  const rubroOptions = useMemo(
+    () => [
+      { value: "", label: "Todos los rubros" },
+      ...rubrosCatalogo.map((r) => ({ value: String(r.id), label: r.nombre })),
+    ],
+    [rubrosCatalogo]
+  );
+
+  const [applied, setApplied] = useState({
+    contrib: "",
+    calle: "",
+    distrito_id: "" as string,
+    rubro_id: "" as string,
+  });
+
+  const [pagination, setPagination] = useState<MRT_PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+
+  const load = useCallback(async () => {
+    if (!filtroAplicado) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getEstablecimientosOperativos({
+        page: pagination.pageIndex + 1,
+        page_size: pagination.pageSize,
+        calle: applied.calle.trim() || undefined,
+        contrib: applied.contrib.trim() || undefined,
+        distrito_id: parseOptionalInt(applied.distrito_id),
+        rubro_id: parseOptionalInt(applied.rubro_id),
+      });
+      setRows(res.items);
+      setTotal(res.meta.total);
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "response" in e
+          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      setError(msg ?? "No se pudo cargar el listado de establecimientos.");
+      setRows([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [filtroAplicado, applied, pagination.pageIndex, pagination.pageSize]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onFiltrar = useCallback(() => {
+    setFiltroAplicado(true);
+    setApplied({
+      contrib,
+      calle,
+      distrito_id: distritoId,
+      rubro_id: rubroId,
+    });
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  }, [contrib, calle, distritoId, rubroId]);
+
+  const onLimpiar = useCallback(() => {
+    setContrib("");
+    setCalle("");
+    setDistritoId("");
+    setRubroId("");
+    setFiltroAplicado(false);
+    setRows([]);
+    setTotal(0);
+    setError(null);
+    setPagination({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
+  }, []);
+
+  return (
+    <Stack spacing={FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING} sx={{ width: "100%", maxWidth: "100%" }}>
+      {error ? (
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      ) : null}
+
+      <Box sx={filtroContainerStyles}>
+        <Typography sx={filtroTitleStyles}>Filtros</Typography>
+        <Box sx={filtroGridStyles}>
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="dense"
+              fullWidth
+              label="Contribuyente / razón social"
+              placeholder="Coincide con API (contrib)"
+              value={contrib}
+              onChange={(e) => setContrib(e.target.value)}
+              variant="outlined"
+            />
+          </Box>
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="dense"
+              fullWidth
+              label="Calle"
+              value={calle}
+              onChange={(e) => setCalle(e.target.value)}
+              variant="outlined"
+            />
+          </Box>
+          <Box sx={filtroItemStyles}>
+            <AppSelect
+              appearance="dense"
+              fullWidth
+              label="Distrito"
+              value={distritoId}
+              onChange={(e) => setDistritoId(e.target.value)}
+              variant="outlined"
+              options={distritoOptions}
+            />
+          </Box>
+          <Box sx={filtroItemStyles}>
+            <AppSelect
+              appearance="dense"
+              fullWidth
+              label="Rubro"
+              value={rubroId}
+              onChange={(e) => setRubroId(e.target.value)}
+              variant="outlined"
+              options={rubroOptions}
+            />
+          </Box>
+        </Box>
+        <Box sx={filtroButtonsStyles}>
+          <AppButton
+            dsVariant="ghost"
+            dsSize="sm"
+            startIcon={<ClearIcon sx={{ fontSize: 18 }} />}
+            onClick={onLimpiar}
+            sx={filtroButtonSecondaryStyles}
+          >
+            Limpiar
+          </AppButton>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            startIcon={<SearchIcon sx={{ fontSize: 18 }} />}
+            onClick={onFiltrar}
+            sx={filtroButtonPrimaryStyles}
+          >
+            Filtrar
+          </AppButton>
+        </Box>
+      </Box>
+
+      {!filtroAplicado ? null : (
+        <>
+          <BandejaTableSummary>
+            <BandejaTableSummaryItem label="Total" value={total} />
+            <BandejaTableSummaryItem
+              label="Mostrando"
+              value={loading ? "…" : `${rows.length} de ${total}`}
+            />
+            <BandejaTableSummaryItem label="Página" value={pagination.pageIndex + 1} />
+          </BandejaTableSummary>
+          <EstablecimientosListResults
+            rows={rows}
+            total={total}
+            loading={loading}
+            pagination={pagination}
+            onPaginationChange={setPagination}
+          />
+        </>
+      )}
+    </Stack>
+  );
+}

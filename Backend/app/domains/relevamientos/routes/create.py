@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from flask import current_app, jsonify, request
+from pydantic import ValidationError
+
+from app.domains.relevamientos.mappers.grid.relevamiento_row_mapper import map_relevamiento_row
+from app.domains.relevamientos.presenters.relevamiento_presenter import relevamiento_to_row
+from app.domains.relevamientos.schemas.grid.relevamiento_row_in import RelevamientoGridRowIn
+from app.shared.errors import pydantic_errors_to_cell_map
+from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
+from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
+
+from . import relevamiento
+
+
+@relevamiento.post("/")
+def crear_relevamiento():
+    """
+    Crea un relevamiento desde una fila del grid.
+    """
+    data: Dict[str, Any] = request.get_json(silent=True) or {}
+
+    try:
+        row = RelevamientoGridRowIn.model_validate(data)
+        payload = map_relevamiento_row(row)
+        actor_user_id = get_current_user_id()
+        rel = crear_relevamiento_desde_payload(payload, actor_user_id=actor_user_id)
+        try:
+            if rel.domicilio_id:
+                schedule_geocode_after_grid_commit([int(rel.domicilio_id)])
+        except Exception:
+            current_app.logger.exception(
+                "No se pudo encolar geocode post-commit relevamiento_id=%s domicilio_id=%s",
+                rel.id,
+                rel.domicilio_id,
+            )
+        return jsonify(relevamiento_to_row(rel)), 201
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
+    except Exception as e:
+        return jsonify({"detail": "Error interno", "error": str(e)}), 500

@@ -1,0 +1,283 @@
+"""HOTFIX-CIERRE-DIA: reinspección notificación sale de pendientes al completar."""
+
+from __future__ import annotations
+
+from datetime import date, timedelta
+
+import pytest
+
+from tests.helpers.fixture_isolation import (
+    fecha_ruta_aislada_mismo_anio,
+    fecha_vencimiento_vencida_aislada,
+    unique_ot_numero,
+    uniq_ruta_numero,
+)
+
+from app.database import db
+from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
+    CompletarTrabajoCierreCompletoIn,
+)
+from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
+    cerrar_completar_trabajo_por_ruta_item,
+)
+from app.domains.actuaciones.services.notificacion_iniciador_service import (
+    list_reinspeccion_notificacion_operativas,
+)
+from app.domains.rutas_trabajo.services.iniciadores_pendientes_service import (
+    planificable_iniciadores_base_query,
+)
+from app.models import (
+    Actuaciones,
+    Domicilio,
+    IniciadorRuta,
+    Notificacion,
+    OrdenTrabajo,
+    RutaItem,
+    RutaTrabajo,
+    User,
+)
+
+
+def _unique_num() -> str:
+    return unique_ot_numero()
+
+
+def _fecha_ruta_aislada(anio: int = 2026) -> date:
+    return fecha_ruta_aislada_mismo_anio(anio)
+
+
+def _uniq_ruta_numero() -> int:
+    return uniq_ruta_numero()
+
+
+def _mk_user() -> User:
+    u = User(
+        username=f"u_hotfix_{_unique_num()}",
+        email=f"hotfix_{_unique_num()}@t.local",
+        password_hash="x",
+        role="usuario",
+        is_active=True,
+    )
+    db.session.add(u)
+    db.session.flush()
+    return u
+
+
+def _mk_reinspeccion_notificacion_item() -> tuple[RutaItem, Actuaciones, IniciadorRuta, User, Notificacion]:
+    u = _mk_user()
+    dom = Domicilio(calle=f"HotfixNot{_unique_num()}", numero="1")
+    db.session.add(dom)
+    db.session.flush()
+
+    vencida = fecha_vencimiento_vencida_aislada()
+    noti = Notificacion(numero_acta=_unique_num(), anio=2026, mes=6, fecha_vencimiento=vencida)
+    db.session.add(noti)
+    db.session.flush()
+
+    ot_base = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=6)
+    db.session.add(ot_base)
+    db.session.flush()
+
+    act_base = Actuaciones(
+        fecha=date(2026, 5, 1),
+        mes=5,
+        anio=2026,
+        tipo="INSPECCION",
+        notificacion_id=noti.id,
+        domicilio_id=dom.id,
+        orden_trabajo_id=ot_base.id,
+    )
+    db.session.add(act_base)
+    db.session.flush()
+
+    ini = IniciadorRuta(
+        tipo_iniciador="REINSPECCION_NOTIFICACION",
+        estado_iniciador="EN_EJECUCION",
+        fecha_origen=date(2026, 6, 1),
+        anio=2026,
+        mes=6,
+        domicilio_id=dom.id,
+        notificacion_id=noti.id,
+        actuacion_id=act_base.id,
+        created_by_user_id=u.id,
+    )
+    db.session.add(ini)
+    db.session.flush()
+
+    ot_work = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=6)
+    db.session.add(ot_work)
+    db.session.flush()
+
+    fecha_ruta = _fecha_ruta_aislada(2026)
+    act_work = Actuaciones(
+        fecha=fecha_ruta,
+        mes=fecha_ruta.month,
+        anio=fecha_ruta.year,
+        tipo="REINSPECCION",
+        orden_trabajo_id=ot_work.id,
+        domicilio_id=dom.id,
+    )
+    db.session.add(act_work)
+    db.session.flush()
+
+    ruta = RutaTrabajo(
+        fecha=fecha_ruta,
+        turno="MANIANA",
+        estado_ruta="PUBLICADA",
+        created_by_user_id=u.id,
+        numero=_uniq_ruta_numero(),
+    )
+    db.session.add(ruta)
+    db.session.flush()
+
+    item = RutaItem(
+        ruta_trabajo_id=ruta.id,
+        iniciador_ruta_id=ini.id,
+        orden_trabajo_id=ot_work.id,
+        estado_ruta_item="EN_PROCESO",
+        actuacion_id=act_work.id,
+        created_by_user_id=u.id,
+    )
+    db.session.add(item)
+    db.session.flush()
+    db.session.commit()
+    return item, act_work, ini, u, noti
+
+
+def test_pendiente_reinspeccion_aparece_si_estado_pendiente_sin_ruta_reinspeccion(app_ctx) -> None:
+    """PENDIENTE sin ítem de ruta con actuación REINSPECCION sí entra en cola operativa."""
+    try:
+        item, act_work, ini, _u, noti = _mk_reinspeccion_notificacion_item()
+        act_base_id = ini.actuacion_id
+        ini_id = ini.id
+        ini_db = IniciadorRuta.query.get(ini_id)
+        assert ini_db is not None
+        ini_db.estado_iniciador = "PENDIENTE"
+        db.session.delete(item)
+        if act_work:
+            db.session.delete(act_work)
+        db.session.commit()
+
+        pendientes = list_reinspeccion_notificacion_operativas()
+        act_ids = {a.id for a in pendientes if a.notificacion_id == noti.id}
+        assert act_base_id in act_ids
+    finally:
+        db.session.rollback()
+
+
+def test_cierre_realizada_saca_de_pendientes_y_vincula_notificacion(app_ctx) -> None:
+    item, act, ini, u, noti = _mk_reinspeccion_notificacion_item()
+
+    payload = CompletarTrabajoCierreCompletoIn.model_validate(
+        {
+            "tipo_actuacion": "REINSPECCION",
+            "acta_inspeccion_num": _unique_num(),
+        }
+    )
+    cerrar_completar_trabajo_por_ruta_item(
+        ruta_item_id=item.id,
+        payload=payload,
+        ejecutado_por_user_id=u.id,
+    )
+
+    db.session.expunge_all()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    act_db = Actuaciones.query.get(act.id)
+    item_db = RutaItem.query.get(item.id)
+
+    assert ini_db is not None
+    assert ini_db.estado_iniciador == "CUMPLIDO"
+    assert act_db is not None
+    assert act_db.notificacion_id == noti.id
+    assert act_db.tipo == "REINSPECCION"
+    assert item_db is not None
+    assert item_db.estado_ruta_item == "FINALIZADO"
+    assert item_db.estado_ejecucion == "REALIZADO"
+
+    pendientes = list_reinspeccion_notificacion_operativas()
+    act_ids = {a.id for a in pendientes}
+    assert ini.actuacion_id not in act_ids
+
+    planif_ids = {row.id for row in planificable_iniciadores_base_query().all()}
+    assert ini.id not in planif_ids
+
+
+def test_reinspeccion_notificacion_cierre_con_comprobacion_sin_nueva_notificacion(app_ctx) -> None:
+    """Visita realizada: permite otras actas; no crea notificación nueva; vincula origen."""
+    item, act, ini, u, noti = _mk_reinspeccion_notificacion_item()
+    comp_num = _unique_num()
+    payload = CompletarTrabajoCierreCompletoIn.model_validate(
+        {
+            "tipo_actuacion": "REINSPECCION",
+            "acta_inspeccion_num": _unique_num(),
+            "acta_comprobacion_num": comp_num,
+            "comprobacion_motivo": "Motivo prueba hotfix",
+        }
+    )
+    cerrar_completar_trabajo_por_ruta_item(
+        ruta_item_id=item.id,
+        payload=payload,
+        ejecutado_por_user_id=u.id,
+    )
+    db.session.expunge_all()
+    act_db = Actuaciones.query.get(act.id)
+    assert act_db is not None
+    assert act_db.notificacion_id == noti.id
+    assert act_db.comprobacion_id is not None
+    assert act_db.comprobacion is not None
+    assert str(act_db.comprobacion.numero_acta) == comp_num
+    pendientes = list_reinspeccion_notificacion_operativas()
+    assert ini.actuacion_id not in {a.id for a in pendientes}
+
+
+def test_iniciador_cumplido_no_aparece_en_planificable(app_ctx) -> None:
+    item, act, ini, u, _noti = _mk_reinspeccion_notificacion_item()
+    payload = CompletarTrabajoCierreCompletoIn.model_validate(
+        {"tipo_actuacion": "REINSPECCION", "acta_inspeccion_num": _unique_num()}
+    )
+    cerrar_completar_trabajo_por_ruta_item(
+        ruta_item_id=item.id,
+        payload=payload,
+        ejecutado_por_user_id=u.id,
+    )
+    db.session.expunge_all()
+    assert IniciadorRuta.query.get(ini.id).estado_iniciador == "CUMPLIDO"
+    q = planificable_iniciadores_base_query().filter(IniciadorRuta.id == ini.id).all()
+    assert q == []
+
+
+def test_pendiente_no_aparece_si_reinspeccion_via_ruta_item_sin_notificacion_id(app_ctx) -> None:
+    """
+    Caso 107/1034: REINSPECCION en RutaItem con notificacion_id NULL no debe dejar
+    la actuación base en la cola operativa.
+    """
+    item, act_work, ini, _u, noti = _mk_reinspeccion_notificacion_item()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    assert ini_db is not None
+    ini_db.estado_iniciador = "PENDIENTE"
+    act_work.notificacion_id = None
+    db.session.commit()
+
+    pendientes = list_reinspeccion_notificacion_operativas()
+    act_ids = {a.id for a in pendientes}
+    assert ini.actuacion_id not in act_ids
+    assert not any(a.notificacion_id == noti.id for a in pendientes)
+
+
+def test_pendiente_legitimo_sin_ruta_item_sigue_apareciendo(app_ctx) -> None:
+    """Backlog real: PENDIENTE sin ítem de ruta con REINSPECCION sigue en cola."""
+    _item, _act, ini, _u, _noti = _mk_reinspeccion_notificacion_item()
+    ini_db = IniciadorRuta.query.get(ini.id)
+    assert ini_db is not None
+    ini_db.estado_iniciador = "PENDIENTE"
+    item_db = RutaItem.query.filter(RutaItem.iniciador_ruta_id == ini.id).first()
+    assert item_db is not None
+    db.session.delete(item_db)
+    act_work = Actuaciones.query.get(_item.actuacion_id)
+    if act_work:
+        db.session.delete(act_work)
+    db.session.commit()
+
+    pendientes = list_reinspeccion_notificacion_operativas()
+    act_ids = {a.id for a in pendientes}
+    assert ini.actuacion_id in act_ids

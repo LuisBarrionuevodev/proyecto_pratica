@@ -1,0 +1,157 @@
+from __future__ import annotations
+
+import hashlib
+from typing import Dict, Optional
+
+from app.database import db
+from app.models import Domicilio
+from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
+    ensure_geocode_row,
+)
+from app.domains.geolocalizacion.geocoding.services.geocode_service import (
+    geocode_domicilio,
+    get_geocoder_provider,
+)
+from app.domains.geolocalizacion.geocoding.services.google_geocode_adapter import (
+    google_can_attempt,
+)
+
+
+def compute_addr_hash(dom: Domicilio) -> str:
+    """
+    Calcula hash SHA1 del address canonical.
+
+    Args:
+        dom: Domicilio a evaluar.
+
+    Returns:
+        Hash SHA1 en hex.
+    """
+    raw = "|".join(
+        [
+            (dom.calle_normalizada or "").strip(),
+            (dom.numero or "").strip(),
+            (dom.esquina_normalizada or "").strip(),
+            (dom.ciudad or "").strip(),
+            (dom.provincia or "").strip(),
+            (dom.pais or "").strip(),
+        ]
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+
+def is_ready_for_geocode(dom: Domicilio) -> bool:
+    """
+    Determina si el domicilio está listo para geocodificar.
+
+    Args:
+        dom: Domicilio a evaluar.
+
+    Returns:
+        True si está listo, False si falta normalización/datos.
+
+    Esquina: acepta catálogo (``esquina_catalogo_id``) o texto manual
+    (``esquina_normalizada`` / ``esquina_raw`` / ``numero``) con ``esquina_norm_status == OK``.
+    """
+    if dom.calle_norm_status != "OK":
+        return False
+    if dom.numero_tipo == "ESQUINA":
+        if dom.esquina_norm_status != "OK":
+            return False
+        if dom.esquina_catalogo_id is not None:
+            return True
+        return bool(
+            (dom.esquina_normalizada or dom.esquina_raw or dom.numero or "").strip()
+        )
+    return bool((dom.numero or "").strip())
+
+
+def mark_geocode_pending(domicilio_id: int, addr_hash: str) -> None:
+    """
+    Marca el geocode como PENDING limpiando resultados previos.
+
+    Args:
+        domicilio_id: id del domicilio.
+        addr_hash: hash del address canonical.
+    """
+    geo = ensure_geocode_row(domicilio_id)
+    geo.geo_status = "PENDING"
+    geo.lat = None
+    geo.lng = None
+    geo.score = None
+    geo.error_msg = None
+    geo.raw_json = None
+    geo.checked_at = None
+    geo.addr_hash = addr_hash
+    geo.source = "AUTO"
+    db.session.add(geo)
+
+
+def run_geocode_if_ready(domicilio_id: int) -> Dict[str, object]:
+    """
+    Ejecuta geocode si el domicilio está listo, si no deja REVIEW.
+
+    Args:
+        domicilio_id: id del domicilio.
+
+    Returns:
+        Resultado del geocode o status REVIEW.
+
+    Raises:
+        ValueError: si el domicilio no existe.
+    """
+    dom = db.session.get(Domicilio, domicilio_id)
+    if not dom or dom.deleted_at is not None:
+        raise ValueError("Domicilio no encontrado.")
+    geo = ensure_geocode_row(domicilio_id)
+    provider = get_geocoder_provider()
+    ready = google_can_attempt(dom) if provider == "google" else is_ready_for_geocode(dom)
+    if not ready:
+        geo.geo_status = "NORM_PENDING"
+        db.session.add(geo)
+        db.session.commit()
+        return {"ok": False, "geo_status": "NORM_PENDING", "domicilio_id": domicilio_id}
+    return geocode_domicilio(domicilio_id)
+
+
+def on_domicilio_changed(domicilio_id: int, force: bool = False) -> Dict[str, object]:
+    """
+    Orquestador principal: detecta cambios y re-geocodifica si corresponde.
+
+    Args:
+        domicilio_id: id del domicilio.
+        force: si True, recalcula aunque el hash no cambie.
+
+    Returns:
+        Resultado del geocode o skip reason.
+
+    Raises:
+        ValueError: si el domicilio no existe.
+    """
+    dom = db.session.get(Domicilio, domicilio_id)
+    if not dom or dom.deleted_at is not None:
+        raise ValueError("Domicilio no encontrado.")
+
+    new_hash = compute_addr_hash(dom)
+    geo = ensure_geocode_row(domicilio_id)
+    pending_without_coords = (
+        str(geo.geo_status or "") in {"GEO_PENDING", "PENDING", "NORM_PENDING"}
+        and geo.lat is None
+        and geo.lng is None
+        and str(geo.source or "AUTO") == "AUTO"
+    )
+    if not force and geo.addr_hash == new_hash and not pending_without_coords:
+        return {"ok": True, "skipped": True, "reason": "hash_unchanged", "domicilio_id": domicilio_id}
+
+    # Legacy safety: preserve manual/reverse rows without hash history unless forced.
+    if not force and geo.source in {"MANUAL", "REVERSE"} and not geo.addr_hash:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "manual_or_reverse_without_hash",
+            "domicilio_id": domicilio_id,
+        }
+
+    mark_geocode_pending(domicilio_id, new_hash)
+    db.session.commit()
+    return run_geocode_if_ready(domicilio_id)

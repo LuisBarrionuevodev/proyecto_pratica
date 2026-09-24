@@ -1,0 +1,2911 @@
+{
+  "ticket": "PERF-DASH.1-DIAG",
+  "date": "2026-09-21",
+  "writes_executed": false,
+  "environment": {
+    "db": "localhost:3306/digitaliza_sandbox?charset=utf8mb4",
+    "measurement_method": "Python runner + SQLAlchemy query counter + EXPLAIN (read-only)",
+    "benchmark_script": "app/scripts/benchmark_indicadores_perf.py (5 block endpoints)",
+    "frontend_route": "/dashboard",
+    "backend_prefix": "/api/indicadores"
+  },
+  "dataset_sizes": {
+    "actuaciones": 8098,
+    "ruta_item": 3703,
+    "iniciador_ruta": 8020,
+    "ruta_trabajo": 2711,
+    "orden_trabajo": 8831,
+    "domicilio": 11733,
+    "inspector": 24,
+    "actuaciones_inspector": 4208,
+    "decomiso": 27,
+    "notificacion": 2460,
+    "comprobacion": 1543,
+    "inspeccion": 906,
+    "clausura": 72
+  },
+  "baseline_values": {
+    "ejecutivo": {
+      "periodo": {
+        "desde": "2026-09-01",
+        "hasta": "2026-09-21"
+      },
+      "kpis": {
+        "actuaciones_realizadas": 17,
+        "actas_labradas": 35,
+        "inspecciones_realizadas": 9,
+        "reinspecciones_notificacion_realizadas": 1,
+        "reinspecciones_oficio_realizadas": 4,
+        "ratificaciones_clausura_realizadas": 0,
+        "ratificaciones_decomiso_realizadas": 1,
+        "verificar_informar_realizadas": 3,
+        "mercaderia_decomisada_kg": 16316.0
+      },
+      "actas_por_tipo": {
+        "inspeccion": 13,
+        "notificacion": 10,
+        "comprobacion": 8,
+        "clausura": 2,
+        "decomiso": 2
+      }
+    },
+    "pendientes": {
+      "kpis": {
+        "relevamientos_pendientes": 256,
+        "reinspecciones_oficio_pendientes": 251,
+        "reinspecciones_notificacion_pendientes": 50,
+        "denuncias_pendientes": 15,
+        "pendientes_geolocalizacion": 0
+      },
+      "distritos_con_mas_pendientes": [
+        {
+          "distrito_id": 0,
+          "distrito_codigo": "SIN_DISTRITO",
+          "distrito_nombre": "Sin distrito",
+          "relevamientos": 4,
+          "denuncias": 0,
+          "reinspecciones_oficio": 221,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 225
+        },
+        {
+          "distrito_id": 15,
+          "distrito_codigo": "10",
+          "distrito_nombre": "Distrito 10",
+          "relevamientos": 131,
+          "denuncias": 0,
+          "reinspecciones_oficio": 29,
+          "reinspecciones_notificacion": 32,
+          "sin_geolocalizacion": 0,
+          "total": 192
+        },
+        {
+          "distrito_id": 1,
+          "distrito_codigo": "19",
+          "distrito_nombre": "Distrito 19",
+          "relevamientos": 57,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 57
+        },
+        {
+          "distrito_id": 4,
+          "distrito_codigo": "9",
+          "distrito_nombre": "Distrito 9",
+          "relevamientos": 17,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 14,
+          "sin_geolocalizacion": 0,
+          "total": 31
+        },
+        {
+          "distrito_id": 11,
+          "distrito_codigo": "4",
+          "distrito_nombre": "Distrito 4",
+          "relevamientos": 19,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 19
+        },
+        {
+          "distrito_id": 2,
+          "distrito_codigo": "15",
+          "distrito_nombre": "Distrito 15",
+          "relevamientos": 13,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 1,
+          "sin_geolocalizacion": 0,
+          "total": 14
+        },
+        {
+          "distrito_id": 12,
+          "distrito_codigo": "5",
+          "distrito_nombre": "Distrito 5",
+          "relevamientos": 5,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 5
+        },
+        {
+          "distrito_id": 9,
+          "distrito_codigo": "2",
+          "distrito_nombre": "Distrito 2",
+          "relevamientos": 3,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 1,
+          "sin_geolocalizacion": 0,
+          "total": 4
+        },
+        {
+          "distrito_id": 6,
+          "distrito_codigo": "8",
+          "distrito_nombre": "Distrito 8",
+          "relevamientos": 1,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 1,
+          "sin_geolocalizacion": 0,
+          "total": 2
+        },
+        {
+          "distrito_id": 10,
+          "distrito_codigo": "3",
+          "distrito_nombre": "Distrito 3",
+          "relevamientos": 1,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 1,
+          "sin_geolocalizacion": 0,
+          "total": 2
+        },
+        {
+          "distrito_id": 13,
+          "distrito_codigo": "6",
+          "distrito_nombre": "Distrito 6",
+          "relevamientos": 2,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 2
+        },
+        {
+          "distrito_id": 5,
+          "distrito_codigo": "11",
+          "distrito_nombre": "Distrito 11",
+          "relevamientos": 0,
+          "denuncias": 0,
+          "reinspecciones_oficio": 1,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 1
+        },
+        {
+          "distrito_id": 8,
+          "distrito_codigo": "1",
+          "distrito_nombre": "Distrito 1",
+          "relevamientos": 1,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 1
+        },
+        {
+          "distrito_id": 14,
+          "distrito_codigo": "12",
+          "distrito_nombre": "Distrito 12",
+          "relevamientos": 1,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 1
+        },
+        {
+          "distrito_id": 16,
+          "distrito_codigo": "13",
+          "distrito_nombre": "Distrito 13",
+          "relevamientos": 1,
+          "denuncias": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "sin_geolocalizacion": 0,
+          "total": 1
+        }
+      ]
+    },
+    "riesgo": {
+      "top_rubros": [
+        {
+          "rubro": "Cafetería",
+          "cantidad": 3
+        },
+        {
+          "rubro": "Comestibles",
+          "cantidad": 2
+        },
+        {
+          "rubro": "Drugstore",
+          "cantidad": 2
+        },
+        {
+          "rubro": "Carnicería",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Bar",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Heladeria",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Pr715Rub-b57b84e1",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Pr715Rub-2a626100",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Pr715Rub-072d1d8c",
+          "cantidad": 1
+        },
+        {
+          "rubro": "Verd712c-56882707",
+          "cantidad": 1
+        }
+      ],
+      "top_motivos_notificacion": [
+        {
+          "motivo": "Carnet de Sanidad",
+          "cantidad": 10
+        },
+        {
+          "motivo": "Desinfeccion",
+          "cantidad": 3
+        },
+        {
+          "motivo": "Refacciones",
+          "cantidad": 1
+        }
+      ],
+      "top_motivos_comprobacion": [
+        {
+          "motivo": "Falta de Higiene",
+          "cantidad": 3
+        },
+        {
+          "motivo": "Mercadería Vencida",
+          "cantidad": 2
+        },
+        {
+          "motivo": "No Permite la Inspección",
+          "cantidad": 1
+        },
+        {
+          "motivo": "Control",
+          "cantidad": 1
+        },
+        {
+          "motivo": "Incumplimiento de Notificación",
+          "cantidad": 1
+        }
+      ],
+      "decomiso_kg_por_rubro": [
+        {
+          "rubro": "Drugstore",
+          "kg": 16300.0
+        },
+        {
+          "rubro": "Comestibles",
+          "kg": 16.0
+        }
+      ]
+    },
+    "no-realizadas": {
+      "por_tipo": {
+        "inspeccion": 7,
+        "reinspeccion_oficio": 0,
+        "reinspeccion_notificacion": 6,
+        "denuncia": 3
+      },
+      "top_contraproducencias": [
+        {
+          "contraproducencia": "Local cerrado",
+          "cantidad": 10
+        },
+        {
+          "contraproducencia": "Direccion incorrecta",
+          "cantidad": 5
+        }
+      ],
+      "distritos_con_mas_no_realizadas": [
+        {
+          "distrito_id": 15,
+          "distrito_codigo": "10",
+          "distrito_nombre": "Distrito 10",
+          "cantidad": 9
+        },
+        {
+          "distrito_id": 0,
+          "distrito_codigo": "SIN_DISTRITO",
+          "distrito_nombre": "Sin distrito",
+          "cantidad": 4
+        },
+        {
+          "distrito_id": 9,
+          "distrito_codigo": "2",
+          "distrito_nombre": "Distrito 2",
+          "cantidad": 2
+        },
+        {
+          "distrito_id": 4,
+          "distrito_codigo": "9",
+          "distrito_nombre": "Distrito 9",
+          "cantidad": 1
+        }
+      ],
+      "total": 16,
+      "contraproducencias_resumen": [
+        {
+          "bucket": "local_cerrado",
+          "label": "Local cerrado",
+          "cantidad": 11
+        },
+        {
+          "bucket": "no_existe",
+          "label": "No existe",
+          "cantidad": 0
+        },
+        {
+          "bucket": "no_se_ratifico",
+          "label": "No se ratificó",
+          "cantidad": 0
+        },
+        {
+          "bucket": "clima",
+          "label": "Clima",
+          "cantidad": 0
+        },
+        {
+          "bucket": "otras",
+          "label": "Otras",
+          "cantidad": 5
+        }
+      ]
+    },
+    "productividad": {
+      "inspectores_realizadas": [
+        {
+          "inspector_id": 2,
+          "inspector": "Alamo Alfredo",
+          "total_realizadas": 9,
+          "inspecciones": 3,
+          "reinspecciones_oficio": 4,
+          "reinspecciones_notificacion": 1,
+          "denuncias": 1,
+          "otras": 1,
+          "tipo_principal": "Reinspección oficio"
+        },
+        {
+          "inspector_id": 1,
+          "inspector": "Accardi José",
+          "total_realizadas": 8,
+          "inspecciones": 3,
+          "reinspecciones_oficio": 2,
+          "reinspecciones_notificacion": 1,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 3,
+          "inspector": "Avila Karina",
+          "total_realizadas": 3,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 2,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 1,
+          "otras": 1,
+          "tipo_principal": "Reinspección oficio"
+        },
+        {
+          "inspector_id": 4,
+          "inspector": "Cabezas Cecilia",
+          "total_realizadas": 2,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Denuncia"
+        },
+        {
+          "inspector_id": 20,
+          "inspector": "Soria Dante",
+          "total_realizadas": 2,
+          "inspecciones": 2,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 23,
+          "inspector": "Villafañe Ángel Antonio",
+          "total_realizadas": 2,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Denuncia"
+        },
+        {
+          "inspector_id": 24,
+          "inspector": "Zacame Ariel",
+          "total_realizadas": 2,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 2,
+          "otras": 2,
+          "tipo_principal": "Denuncia"
+        },
+        {
+          "inspector_id": 7,
+          "inspector": "Diaz Walter Omar",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 12,
+          "inspector": "Martinez Aldo",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 15,
+          "inspector": "Pentucci Cecilia",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 16,
+          "inspector": "Rivas Francisco",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 19,
+          "inspector": "Segovia Pablo",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 21,
+          "inspector": "Veliz María Elvira",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        },
+        {
+          "inspector_id": 22,
+          "inspector": "Vier Alberto",
+          "total_realizadas": 1,
+          "inspecciones": 1,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0,
+          "otras": 0,
+          "tipo_principal": "Inspección"
+        }
+      ],
+      "inspectores_no_realizadas": [
+        {
+          "inspector_id": 1,
+          "inspector": "Accardi José",
+          "total_no_realizadas": 8,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 4,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 4,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 2,
+          "inspector": "Alamo Alfredo",
+          "total_no_realizadas": 5,
+          "contraproducencia_principal": "Otro",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 3,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 12,
+          "inspector": "Martinez Aldo",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 23,
+          "inspector": "Villafañe Ángel Antonio",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 7,
+          "inspector": "Diaz Walter Omar",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 11,
+          "inspector": "Jerez Clara Carolina",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 13,
+          "inspector": "Nieva Facundo R",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 22,
+          "inspector": "Vier Alberto",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 2,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 24,
+          "inspector": "Zacame Ariel",
+          "total_no_realizadas": 2,
+          "contraproducencia_principal": "Otro",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 1,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 9,
+          "inspector": "Flores Gustavo",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 10,
+          "inspector": "Ibáñez Fabián",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 16,
+          "inspector": "Rivas Francisco",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 21,
+          "inspector": "Veliz María Elvira",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 4,
+          "inspector": "Cabezas Cecilia",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        },
+        {
+          "inspector_id": 19,
+          "inspector": "Segovia Pablo",
+          "total_no_realizadas": 1,
+          "contraproducencia_principal": "Local cerrado",
+          "local_cerrado": 1,
+          "no_existe": 0,
+          "no_se_ratifico": 0,
+          "clima": 0,
+          "otras": 0,
+          "inspecciones": 0,
+          "reinspecciones_oficio": 0,
+          "reinspecciones_notificacion": 0,
+          "denuncias": 0
+        }
+      ],
+      "actas_por_inspector": [
+        {
+          "inspector_id": 1,
+          "inspector": "Accardi José",
+          "notificacion": 5,
+          "comprobacion": 6,
+          "clausura": 2,
+          "decomiso": 1,
+          "total_actas": 14
+        },
+        {
+          "inspector_id": 2,
+          "inspector": "Alamo Alfredo",
+          "notificacion": 5,
+          "comprobacion": 5,
+          "clausura": 1,
+          "decomiso": 0,
+          "total_actas": 11
+        },
+        {
+          "inspector_id": 4,
+          "inspector": "Cabezas Cecilia",
+          "notificacion": 1,
+          "comprobacion": 2,
+          "clausura": 1,
+          "decomiso": 1,
+          "total_actas": 5
+        },
+        {
+          "inspector_id": 23,
+          "inspector": "Villafañe Ángel Antonio",
+          "notificacion": 1,
+          "comprobacion": 2,
+          "clausura": 1,
+          "decomiso": 1,
+          "total_actas": 5
+        },
+        {
+          "inspector_id": 24,
+          "inspector": "Zacame Ariel",
+          "notificacion": 1,
+          "comprobacion": 2,
+          "clausura": 1,
+          "decomiso": 1,
+          "total_actas": 5
+        },
+        {
+          "inspector_id": 20,
+          "inspector": "Soria Dante",
+          "notificacion": 2,
+          "comprobacion": 1,
+          "clausura": 0,
+          "decomiso": 1,
+          "total_actas": 4
+        },
+        {
+          "inspector_id": 15,
+          "inspector": "Pentucci Cecilia",
+          "notificacion": 1,
+          "comprobacion": 1,
+          "clausura": 0,
+          "decomiso": 1,
+          "total_actas": 3
+        },
+        {
+          "inspector_id": 3,
+          "inspector": "Avila Karina",
+          "notificacion": 1,
+          "comprobacion": 1,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 2
+        },
+        {
+          "inspector_id": 7,
+          "inspector": "Diaz Walter Omar",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 12,
+          "inspector": "Martinez Aldo",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 16,
+          "inspector": "Rivas Francisco",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 19,
+          "inspector": "Segovia Pablo",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 21,
+          "inspector": "Veliz María Elvira",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        },
+        {
+          "inspector_id": 22,
+          "inspector": "Vier Alberto",
+          "notificacion": 1,
+          "comprobacion": 0,
+          "clausura": 0,
+          "decomiso": 0,
+          "total_actas": 1
+        }
+      ]
+    }
+  },
+  "frontend": {
+    "architecture": {
+      "orchestrator": "Frontend/src/Containers/Dashboard/Components/Panel.tsx",
+      "hooks": [
+        "useIndicadoresEjecutivo",
+        "useIndicadoresPendientes",
+        "useIndicadoresRiesgo",
+        "useIndicadoresNoRealizadas",
+        "useIndicadoresProductividad"
+      ],
+      "shared_table": false,
+      "react_query": false,
+      "period_tabs_lazy": true,
+      "sections_data_eager": true
+    },
+    "load_timeline_estimated_ms": {
+      "note": "Estimado: backend paralelo (5 hooks) + render progresivo; sin medición browser en esta corrida",
+      "A_first_render_visible": 50,
+      "B_first_kpi_available": 11701.5,
+      "C_all_sections_stable_parallel": 11701.5,
+      "C_all_sections_stable_if_serial": 11701.5,
+      "D_screen_stable_including_catalogs": 11851.5
+    },
+    "request_inventory_on_mount": {
+      "count": 7,
+      "requests": [
+        {
+          "endpoint": "GET /geolocalizacion/distritos/catalogo",
+          "trigger": "mount",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /grid/catalogs/inspectores",
+          "trigger": "mount",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/indicadores/ejecutivo",
+          "trigger": "mount+filters",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/indicadores/pendientes",
+          "trigger": "mount+distrito",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/indicadores/riesgo",
+          "trigger": "mount+filters",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/indicadores/no-realizadas",
+          "trigger": "mount+filters",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/indicadores/productividad",
+          "trigger": "mount+filters",
+          "count": 1
+        }
+      ],
+      "inactive_period_prefetch": false,
+      "strict_mode_double_fetch_dev": true
+    },
+    "duplicate_requests": [
+      {
+        "pattern": "5 indicadores blocks fire on every mount regardless of scroll/visibility",
+        "severity": "P1"
+      },
+      {
+        "pattern": "Productividad JS lazy-loaded but API data fetched eagerly on mount",
+        "severity": "P2"
+      },
+      {
+        "pattern": "No request deduplication/cache; rapid filter changes cancel but still hit network",
+        "severity": "P2"
+      }
+    ],
+    "effects_findings": [
+      "Panel.tsx: 5 independent useIndicadores* hooks each with useEffect([params,tick]) — parallel on mount",
+      "Period change updates indicadoresParams → 4 hooks refetch (pendientes ignores period)",
+      "Distrito change → 5 hooks refetch; Inspector change → 4 hooks (pendientes excluded)",
+      "initialLoadDone gate: global loader until anySectionReady, then progressive section gates",
+      "indicadoresParams memoized on primitives — stable deps (no inline object churn)"
+    ],
+    "render_findings": [
+      "Sections are pure presentation; no heavy reduce/filter on large arrays",
+      "Productividad: 3 MRT tables — moderate render cost after data arrives",
+      "Dashboard unmounts operative table N/A — all sections stack vertically after first load"
+    ],
+    "filter_change_requests": {
+      "period_tab_change": 4,
+      "distrito_change": 5,
+      "inspector_change": 4,
+      "return_to_visited_period": 4
+    },
+    "parallelism": {
+      "current": "5 hooks useIndicadores* disparan fetch en paralelo al montar (browser HTTP paralelo)",
+      "blocking_waterfall_ms_mensual": 8889.6,
+      "non_blocking_if_pendientes_fixed_ms": "~180 (max ejecutivo+productividad+riesgo+no-realizadas)",
+      "opportunity": "Paralelismo ya existe; el cuello es un solo endpoint (pendientes). Priorizar optimizar pendientes > más paralelismo."
+    },
+    "serialization": {
+      "all_endpoints": "JSON pre-agregado (Pydantic); sin filas crudas masivas al frontend",
+      "response_size": "liviano (<50KB por endpoint); el costo no es payload sino tiempo backend/SQL"
+    },
+    "scenarios_measured": {
+      "A_first_entry_mensual_backend_parallel_ms": 8889.6,
+      "B_period_mensual_to_trimestral_sequential_backend_ms": 20748.4,
+      "C_distrito_filter_pendientes_ms": 12451.0,
+      "D_inspector_filter_pendientes_ms": 15236.2,
+      "E_return_visited_period": "sin cache frontend — refetch completo (4-5 requests)"
+    }
+  },
+  "backend": {
+    "endpoint_timings": {
+      "mensual_sin_filtros": {
+        "ejecutivo": {
+          "total_ms": 17.7,
+          "query_count": 9
+        },
+        "pendientes": {
+          "total_ms": 8889.6,
+          "query_count": 12388
+        },
+        "riesgo": {
+          "total_ms": 26.5,
+          "query_count": 4
+        },
+        "no-realizadas": {
+          "total_ms": 53.3,
+          "query_count": 4
+        },
+        "productividad": {
+          "total_ms": 57.9,
+          "query_count": 7
+        },
+        "resumen": {
+          "total_ms": 2656.5,
+          "query_count": 2456
+        }
+      },
+      "mensual_distrito": {
+        "ejecutivo": {
+          "total_ms": 34.3,
+          "query_count": 9
+        },
+        "pendientes": {
+          "total_ms": 12451.0,
+          "query_count": 12327
+        },
+        "riesgo": {
+          "total_ms": 49.0,
+          "query_count": 4
+        },
+        "no-realizadas": {
+          "total_ms": 15.0,
+          "query_count": 4
+        },
+        "productividad": {
+          "total_ms": 101.6,
+          "query_count": 6
+        }
+      },
+      "mensual_inspector": {
+        "ejecutivo": {
+          "total_ms": 72.3,
+          "query_count": 9
+        },
+        "pendientes": {
+          "total_ms": 15236.2,
+          "query_count": 12340
+        },
+        "riesgo": {
+          "total_ms": 30.0,
+          "query_count": 4
+        },
+        "no-realizadas": {
+          "total_ms": 28.2,
+          "query_count": 4
+        },
+        "productividad": {
+          "total_ms": 50.1,
+          "query_count": 7
+        }
+      },
+      "anual_sin_filtros": {
+        "ejecutivo": {
+          "total_ms": 231.9,
+          "query_count": 9
+        },
+        "pendientes": {
+          "total_ms": 17629.9,
+          "query_count": 12340
+        },
+        "riesgo": {
+          "total_ms": 87.7,
+          "query_count": 4
+        },
+        "no-realizadas": {
+          "total_ms": 89.7,
+          "query_count": 4
+        },
+        "productividad": {
+          "total_ms": 117.0,
+          "query_count": 7
+        }
+      }
+    },
+    "period_switch_total_ms_sequential": {
+      "mensual": 19671.4,
+      "trimestral": 20748.4,
+      "anual": 18582.2
+    },
+    "query_counts": {
+      "mensual_sin_filtros:ejecutivo": 9,
+      "mensual_sin_filtros:pendientes": 12388,
+      "mensual_sin_filtros:riesgo": 4,
+      "mensual_sin_filtros:no-realizadas": 4,
+      "mensual_sin_filtros:productividad": 7,
+      "mensual_sin_filtros:resumen": 2456,
+      "mensual_distrito:ejecutivo": 9,
+      "mensual_distrito:pendientes": 12327,
+      "mensual_distrito:riesgo": 4,
+      "mensual_distrito:no-realizadas": 4,
+      "mensual_distrito:productividad": 6,
+      "mensual_inspector:ejecutivo": 9,
+      "mensual_inspector:pendientes": 12340,
+      "mensual_inspector:riesgo": 4,
+      "mensual_inspector:no-realizadas": 4,
+      "mensual_inspector:productividad": 7,
+      "anual_sin_filtros:ejecutivo": 9,
+      "anual_sin_filtros:pendientes": 12340,
+      "anual_sin_filtros:riesgo": 4,
+      "anual_sin_filtros:no-realizadas": 4,
+      "anual_sin_filtros:productividad": 7
+    },
+    "duplicate_queries": {
+      "mensual_sin_filtros:ejecutivo": [
+        {
+          "sql_norm": "select count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.iniciador_ruta_id = iniciador_ruta.id inner join ruta_trabajo on ruta_",
+          "count": 2,
+          "accumulated_ms": 1.7
+        }
+      ],
+      "mensual_sin_filtros:pendientes": [
+        {
+          "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+          "count": 11817,
+          "accumulated_ms": 4187.9
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 246.3
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 242,
+          "accumulated_ms": 204.6
+        },
+        {
+          "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+          "count": 68,
+          "accumulated_ms": 33.0
+        },
+        {
+          "sql_norm": "update domicilio set distrito_id=%(distrito_id)s, updated_at=current_timestamp where domicilio.id = %(domicilio_id)s",
+          "count": 16,
+          "accumulated_ms": 9.5
+        },
+        {
+          "sql_norm": "select distrito.id as distrito_id, distrito.codigo as distrito_codigo, distrito.nombre as distrito_nombre, st_asbinary(distrito.geom) as distrito_geom from distrito where distrito.id = %(id_1)s limit %(param_1)s",
+          "count": 14,
+          "accumulated_ms": 4.8
+        },
+        {
+          "sql_norm": "select actuacion_media.actuacion_id as actuacion_media_actuacion_id, actuacion_media.id as actuacion_media_id, actuacion_media.categoria as actuacion_media_categoria, actuacion_media.url as actuacion_media_url, actuacion_media.mime_type as ",
+          "count": 4,
+          "accumulated_ms": 4.2
+        }
+      ],
+      "mensual_sin_filtros:riesgo": [],
+      "mensual_sin_filtros:no-realizadas": [
+        {
+          "sql_norm": "select ruta_item.id as ruta_item_id, ruta_item.actuacion_id as ruta_item_actuacion_id, actuaciones.contraproducencia as actuaciones_contraproducencia, ruta_item.motivo_no_realizado as ruta_item_motivo_no_realizado, domicilio_1.distrito_id a",
+          "count": 2,
+          "accumulated_ms": 8.7
+        }
+      ],
+      "mensual_sin_filtros:productividad": [
+        {
+          "sql_norm": "select inspector.id as inspector_id, inspector.nombre as inspector_nombre, count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.in",
+          "count": 4,
+          "accumulated_ms": 10.4
+        }
+      ],
+      "mensual_sin_filtros:resumen": [
+        {
+          "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+          "count": 1678,
+          "accumulated_ms": 980.5
+        },
+        {
+          "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+          "count": 558,
+          "accumulated_ms": 404.5
+        },
+        {
+          "sql_norm": "select relevamiento.id as relevamiento_id, relevamiento.fecha as relevamiento_fecha, relevamiento.anio as relevamiento_anio, relevamiento.mes as relevamiento_mes, relevamiento.turno_carga as relevamiento_turno_carga, relevamiento.esta_abier",
+          "count": 104,
+          "accumulated_ms": 53.8
+        },
+        {
+          "sql_norm": "select iniciador_ruta.id as iniciador_ruta_id, iniciador_ruta.tipo_iniciador as iniciador_ruta_tipo_iniciador, iniciador_ruta.estado_iniciador as iniciador_ruta_estado_iniciador, iniciador_ruta.fecha_origen as iniciador_ruta_fecha_origen, i",
+          "count": 2,
+          "accumulated_ms": 32.8
+        },
+        {
+          "sql_norm": "select actuaciones.id as actuaciones_id, actuaciones.fecha as actuaciones_fecha, actuaciones.mes as actuaciones_mes, actuaciones.anio as actuaciones_anio, actuaciones.tipo as actuaciones_tipo, actuaciones.contraproducencia as actuaciones_co",
+          "count": 30,
+          "accumulated_ms": 17.4
+        },
+        {
+          "sql_norm": "select actuaciones.contraproducencia as actuaciones_contraproducencia, count(actuaciones.id) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from actuaciones where actuaciones.fecha >= %(fecha_1)s and actuacione",
+          "count": 2,
+          "accumulated_ms": 16.0
+        },
+        {
+          "sql_norm": "select actuacion_media.actuacion_id as actuacion_media_actuacion_id, actuacion_media.id as actuacion_media_id, actuacion_media.categoria as actuacion_media_categoria, actuacion_media.url as actuacion_media_url, actuacion_media.mime_type as ",
+          "count": 31,
+          "accumulated_ms": 11.4
+        },
+        {
+          "sql_norm": "select extract(year from actuaciones.fecha) as anio, extract(month from actuaciones.fecha) as mes, count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from actuaciones where actuacion",
+          "count": 2,
+          "accumulated_ms": 11.3
+        }
+      ],
+      "mensual_distrito:ejecutivo": [
+        {
+          "sql_norm": "select count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.iniciador_ruta_id = iniciador_ruta.id inner join ruta_trabajo on ruta_",
+          "count": 2,
+          "accumulated_ms": 3.0
+        }
+      ],
+      "mensual_distrito:pendientes": [
+        {
+          "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+          "count": 11801,
+          "accumulated_ms": 7133.6
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 284.1
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 216.4
+        },
+        {
+          "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+          "count": 68,
+          "accumulated_ms": 63.2
+        },
+        {
+          "sql_norm": "select actuacion_media.actuacion_id as actuacion_media_actuacion_id, actuacion_media.id as actuacion_media_id, actuacion_media.categoria as actuacion_media_categoria, actuacion_media.url as actuacion_media_url, actuacion_media.mime_type as ",
+          "count": 4,
+          "accumulated_ms": 23.2
+        }
+      ],
+      "mensual_distrito:riesgo": [],
+      "mensual_distrito:no-realizadas": [
+        {
+          "sql_norm": "select ruta_item.id as ruta_item_id, ruta_item.actuacion_id as ruta_item_actuacion_id, actuaciones.contraproducencia as actuaciones_contraproducencia, ruta_item.motivo_no_realizado as ruta_item_motivo_no_realizado, domicilio_1.distrito_id a",
+          "count": 2,
+          "accumulated_ms": 2.5
+        }
+      ],
+      "mensual_distrito:productividad": [
+        {
+          "sql_norm": "select inspector.id as inspector_id, inspector.nombre as inspector_nombre, count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.in",
+          "count": 4,
+          "accumulated_ms": 9.3
+        }
+      ],
+      "mensual_inspector:ejecutivo": [
+        {
+          "sql_norm": "select count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.iniciador_ruta_id = iniciador_ruta.id inner join ruta_trabajo on ruta_",
+          "count": 2,
+          "accumulated_ms": 8.9
+        }
+      ],
+      "mensual_inspector:pendientes": [
+        {
+          "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+          "count": 11801,
+          "accumulated_ms": 9566.5
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 292.7
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 236.0
+        },
+        {
+          "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+          "count": 68,
+          "accumulated_ms": 75.7
+        },
+        {
+          "sql_norm": "select actuacion_media.actuacion_id as actuacion_media_actuacion_id, actuacion_media.id as actuacion_media_id, actuacion_media.categoria as actuacion_media_categoria, actuacion_media.url as actuacion_media_url, actuacion_media.mime_type as ",
+          "count": 4,
+          "accumulated_ms": 25.9
+        },
+        {
+          "sql_norm": "select distrito.id as distrito_id, distrito.codigo as distrito_codigo, distrito.nombre as distrito_nombre, st_asbinary(distrito.geom) as distrito_geom from distrito where distrito.id = %(id_1)s limit %(param_1)s",
+          "count": 14,
+          "accumulated_ms": 7.5
+        }
+      ],
+      "mensual_inspector:riesgo": [],
+      "mensual_inspector:no-realizadas": [
+        {
+          "sql_norm": "select ruta_item.id as ruta_item_id, ruta_item.actuacion_id as ruta_item_actuacion_id, actuaciones.contraproducencia as actuaciones_contraproducencia, ruta_item.motivo_no_realizado as ruta_item_motivo_no_realizado, domicilio_1.distrito_id a",
+          "count": 2,
+          "accumulated_ms": 6.7
+        }
+      ],
+      "mensual_inspector:productividad": [
+        {
+          "sql_norm": "select inspector.id as inspector_id, inspector.nombre as inspector_nombre, count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.in",
+          "count": 4,
+          "accumulated_ms": 20.4
+        }
+      ],
+      "anual_sin_filtros:ejecutivo": [
+        {
+          "sql_norm": "select count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.iniciador_ruta_id = iniciador_ruta.id inner join ruta_trabajo on ruta_",
+          "count": 2,
+          "accumulated_ms": 60.0
+        }
+      ],
+      "anual_sin_filtros:pendientes": [
+        {
+          "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+          "count": 11801,
+          "accumulated_ms": 11823.3
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 355.1
+        },
+        {
+          "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+          "count": 226,
+          "accumulated_ms": 261.4
+        },
+        {
+          "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+          "count": 68,
+          "accumulated_ms": 96.3
+        },
+        {
+          "sql_norm": "select actuacion_media.actuacion_id as actuacion_media_actuacion_id, actuacion_media.id as actuacion_media_id, actuacion_media.categoria as actuacion_media_categoria, actuacion_media.url as actuacion_media_url, actuacion_media.mime_type as ",
+          "count": 4,
+          "accumulated_ms": 26.7
+        },
+        {
+          "sql_norm": "select distrito.id as distrito_id, distrito.codigo as distrito_codigo, distrito.nombre as distrito_nombre, st_asbinary(distrito.geom) as distrito_geom from distrito where distrito.id = %(id_1)s limit %(param_1)s",
+          "count": 14,
+          "accumulated_ms": 8.6
+        }
+      ],
+      "anual_sin_filtros:riesgo": [],
+      "anual_sin_filtros:no-realizadas": [
+        {
+          "sql_norm": "select ruta_item.id as ruta_item_id, ruta_item.actuacion_id as ruta_item_actuacion_id, actuaciones.contraproducencia as actuaciones_contraproducencia, ruta_item.motivo_no_realizado as ruta_item_motivo_no_realizado, domicilio_1.distrito_id a",
+          "count": 2,
+          "accumulated_ms": 29.4
+        }
+      ],
+      "anual_sin_filtros:productividad": [
+        {
+          "sql_norm": "select inspector.id as inspector_id, inspector.nombre as inspector_nombre, count(distinct(actuaciones.id)) as count_1 from actuaciones inner join (select distinct actuaciones.id as id from ruta_item inner join iniciador_ruta on ruta_item.in",
+          "count": 4,
+          "accumulated_ms": 72.1
+        }
+      ]
+    },
+    "slow_queries": [
+      {
+        "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+        "count": 11801,
+        "accumulated_ms": 11823.3,
+        "context": "anual_sin_filtros:pendientes"
+      },
+      {
+        "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+        "count": 11801,
+        "accumulated_ms": 9566.5,
+        "context": "mensual_inspector:pendientes"
+      },
+      {
+        "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+        "count": 11801,
+        "accumulated_ms": 7133.6,
+        "context": "mensual_distrito:pendientes"
+      },
+      {
+        "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+        "count": 11817,
+        "accumulated_ms": 4187.9,
+        "context": "mensual_sin_filtros:pendientes"
+      },
+      {
+        "sql_norm": "select domicilio_geocode.domicilio_id as domicilio_geocode_domicilio_id, domicilio_geocode.lat as domicilio_geocode_lat, domicilio_geocode.lng as domicilio_geocode_lng, domicilio_geocode.geo_status as domicilio_geocode_geo_status, domicilio",
+        "count": 1678,
+        "accumulated_ms": 980.5,
+        "context": "mensual_sin_filtros:resumen"
+      },
+      {
+        "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+        "count": 558,
+        "accumulated_ms": 404.5,
+        "context": "mensual_sin_filtros:resumen"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 355.1,
+        "context": "anual_sin_filtros:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 292.7,
+        "context": "mensual_inspector:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 284.1,
+        "context": "mensual_distrito:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 261.4,
+        "context": "anual_sin_filtros:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_intersects(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 246.3,
+        "context": "mensual_sin_filtros:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 236.0,
+        "context": "mensual_inspector:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 226,
+        "accumulated_ms": 216.4,
+        "context": "mensual_distrito:pendientes"
+      },
+      {
+        "sql_norm": "select d.id from distrito d where d.geom is not null and st_contains(st_swapxy(d.geom), st_geomfromtext(%(point_wkt)s, ?)) limit ?",
+        "count": 242,
+        "accumulated_ms": 204.6,
+        "context": "mensual_sin_filtros:pendientes"
+      },
+      {
+        "sql_norm": "select domicilio.id as domicilio_id, domicilio.calle as domicilio_calle, domicilio.numero as domicilio_numero, domicilio.numero_tipo as domicilio_numero_tipo, domicilio.cp as domicilio_cp, domicilio.ciudad as domicilio_ciudad, domicilio.pro",
+        "count": 68,
+        "accumulated_ms": 96.3,
+        "context": "anual_sin_filtros:pendientes"
+      }
+    ]
+  },
+  "database": {
+    "explain_results": {
+      "pendientes_stock_iniciadores": [
+        {
+          "id": 0,
+          "row": [
+            1,
+            "SIMPLE",
+            "iniciador_ruta",
+            null,
+            "ref",
+            "ix_iniciador_ruta_deleted_at,ix_iniciador_ruta_estado_iniciador,ix_iniciador_ruta_tipo_iniciador",
+            "ix_iniciador_ruta_estado_iniciador",
+            "1",
+            "const",
+            4097,
+            89.65,
+            "Using index condition; Using where"
+          ]
+        },
+        {
+          "id": 1,
+          "row": [
+            1,
+            "SIMPLE",
+            "<subquery2>",
+            null,
+            "eq_ref",
+            "<auto_distinct_key>",
+            "<auto_distinct_key>",
+            "5",
+            "digitaliza_sandbox.iniciador_ruta.id",
+            1,
+            100.0,
+            "Using where; Not exists"
+          ]
+        },
+        {
+          "id": 2,
+          "row": [
+            2,
+            "MATERIALIZED",
+            "ruta_trabajo",
+            null,
+            "ref",
+            "PRIMARY,ix_ruta_trabajo_estado_ruta",
+            "ix_ruta_trabajo_estado_ruta",
+            "1",
+            "const",
+            486,
+            100.0,
+            "Using where; Using index"
+          ]
+        },
+        {
+          "id": 3,
+          "row": [
+            2,
+            "MATERIALIZED",
+            "ruta_item",
+            null,
+            "ref",
+            "uq_ruta_item_ruta_iniciador,ix_ruta_item_deleted_at,ix_ruta_item_iniciador_ruta_id,ix_ruta_item_ruta_trabajo_id",
+            "uq_ruta_item_ruta_iniciador",
+            "4",
+            "digitaliza_sandbox.ruta_trabajo.id",
+            1,
+            100.0,
+            "Using where"
+          ]
+        }
+      ],
+      "realizadas_count_mensual": [
+        {
+          "id": 0,
+          "row": [
+            1,
+            "SIMPLE",
+            "ruta_trabajo",
+            null,
+            "range",
+            "PRIMARY,uq_ruta_trabajo_fecha_turno_numero,ix_ruta_trabajo_estado_ruta,ix_ruta_trabajo_fecha,ix_ruta_trabajo_fecha_turno_estado",
+            "ix_ruta_trabajo_fecha_turno_estado",
+            "3",
+            null,
+            61,
+            81.86,
+            "Using where; Using index"
+          ]
+        },
+        {
+          "id": 1,
+          "row": [
+            1,
+            "SIMPLE",
+            "ruta_item",
+            null,
+            "ref",
+            "uq_ruta_item_ruta_iniciador,ix_ruta_item_actuacion_id,ix_ruta_item_deleted_at,ix_ruta_item_estado_ejecucion,ix_ruta_item_estado_ruta_item,ix_ruta_item_iniciador_ruta_id,ix_ruta_item_ruta_trabajo_id",
+            "uq_ruta_item_ruta_iniciador",
+            "4",
+            "digitaliza_sandbox.ruta_trabajo.id",
+            1,
+            6.76,
+            "Using where"
+          ]
+        },
+        {
+          "id": 2,
+          "row": [
+            1,
+            "SIMPLE",
+            "iniciador_ruta",
+            null,
+            "eq_ref",
+            "PRIMARY,ix_iniciador_ruta_deleted_at",
+            "PRIMARY",
+            "4",
+            "digitaliza_sandbox.ruta_item.iniciador_ruta_id",
+            1,
+            94.57,
+            "Using where"
+          ]
+        },
+        {
+          "id": 3,
+          "row": [
+            1,
+            "SIMPLE",
+            "actuaciones",
+            null,
+            "eq_ref",
+            "PRIMARY",
+            "PRIMARY",
+            "4",
+            "digitaliza_sandbox.ruta_item.actuacion_id",
+            1,
+            100.0,
+            "Using index"
+          ]
+        }
+      ]
+    },
+    "index_inventory": [
+      {
+        "table": "actuaciones",
+        "index": "idx_tipo_mes_anio",
+        "columns": "tipo,mes,anio",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_act_anio_tipo_notificacion",
+        "columns": "anio,tipo,notificacion_id",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_anio",
+        "columns": "anio",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_carga_solo_comprobacion",
+        "columns": "carga_solo_comprobacion",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_comprobacion_id",
+        "columns": "comprobacion_id",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_contraproducencia",
+        "columns": "contraproducencia",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_domicilio_id",
+        "columns": "domicilio_id",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_ec5_uuid",
+        "columns": "ec5_uuid",
+        "non_unique": 0
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_establecimiento_operativo_id",
+        "columns": "establecimiento_operativo_id",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_mes",
+        "columns": "mes",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_nombre_local",
+        "columns": "nombre_local",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_notificacion_id",
+        "columns": "notificacion_id",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_orden_trabajo_id",
+        "columns": "orden_trabajo_id",
+        "non_unique": 0
+      },
+      {
+        "table": "actuaciones",
+        "index": "ix_actuaciones_tipo",
+        "columns": "tipo",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones",
+        "index": "PRIMARY",
+        "columns": "id",
+        "non_unique": 0
+      },
+      {
+        "table": "actuaciones",
+        "index": "uq_act_anio_tipo_comprobacion",
+        "columns": "anio,tipo,comprobacion_id",
+        "non_unique": 0
+      },
+      {
+        "table": "actuaciones_inspector",
+        "index": "inspector_id",
+        "columns": "inspector_id",
+        "non_unique": 1
+      },
+      {
+        "table": "actuaciones_inspector",
+        "index": "PRIMARY",
+        "columns": "actuaciones_id,inspector_id",
+        "non_unique": 0
+      },
+      {
+        "table": "decomiso",
+        "index": "ix_decomiso_actuacion_id",
+        "columns": "actuacion_id",
+        "non_unique": 0
+      },
+      {
+        "table": "decomiso",
+        "index": "ix_decomiso_anio",
+        "columns": "anio",
+        "non_unique": 1
+      },
+      {
+        "table": "decomiso",
+        "index": "ix_decomiso_mes",
+        "columns": "mes",
+        "non_unique": 1
+      },
+      {
+        "table": "decomiso",
+        "index": "ix_decomiso_numero_acta",
+        "columns": "numero_acta",
+        "non_unique": 1
+      },
+      {
+        "table": "decomiso",
+        "index": "PRIMARY",
+        "columns": "id",
+        "non_unique": 0
+      },
+      {
+        "table": "decomiso",
+        "index": "uq_ad_numero_anio",
+        "columns": "numero_acta,anio",
+        "non_unique": 0
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_barrio_id",
+        "columns": "barrio_id",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_calle",
+        "columns": "calle",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_calle_catalogo_id",
+        "columns": "calle_catalogo_id",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_calle_key",
+        "columns": "calle_key",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_calle_norm_status",
+        "columns": "calle_norm_status",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_contribuyente_id",
+        "columns": "contribuyente_id",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_distrito_id",
+        "columns": "distrito_id",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_esquina_catalogo_id",
+        "columns": "esquina_catalogo_id",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_esquina_norm_status",
+        "columns": "esquina_norm_status",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_numero",
+        "columns": "numero",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_numero_tipo",
+        "columns": "numero_tipo",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "ix_domicilio_rubro_id",
+        "columns": "rubro_id",
+        "non_unique": 1
+      },
+      {
+        "table": "domicilio",
+        "index": "PRIMARY",
+        "columns": "id",
+        "non_unique": 0
+      },
+      {
+        "table": "iniciador_ruta",
+        "index": "ix_iniciador_ruta_actuacion_id",
+        "columns": "actuacion_id",
+        "non_unique": 1
+      },
+      {
+        "table": "iniciador_ruta",
+        "index": "ix_iniciador_ruta_anio",
+        "columns": "anio",
+        "non_unique": 1
+      },
+      {
+        "table": "iniciador_ruta",
+        "index": "ix_iniciador_ruta_anio_mes_estado",
+        "columns": "anio,mes,estado_iniciador",
+        "non_unique": 1
+      }
+    ],
+    "missing_or_suboptimal_indexes": [
+      {
+        "table": "iniciador_ruta",
+        "note": "EXPLAIN pendientes stock usa ix_iniciador_ruta_estado_iniciador; escanea ~4097 rows — aceptable para stock query inicial",
+        "priority": "P2"
+      },
+      {
+        "table": "domicilio_geocode",
+        "note": "N+1 per-row lookup es el problema, no falta de índice en PK domicilio_id; batch join resolvería",
+        "priority": "P0"
+      },
+      {
+        "table": "ruta_trabajo",
+        "note": "realizadas count usa ix_ruta_trabajo_estado_ruta + fecha; EXPLAIN aceptable para ~2.7k rows",
+        "priority": "P3"
+      }
+    ]
+  },
+  "kpis": {
+    "realizadas": {
+      "value_baseline_mensual": 17,
+      "service": "count_cierres_realizados",
+      "file": "indicadores_operativos_queries.py",
+      "queries_per_ejecutivo_request": 9
+    },
+    "actas": {
+      "value_baseline_mensual": 35,
+      "breakdown": {
+        "inspeccion": 13,
+        "notificacion": 10,
+        "comprobacion": 8,
+        "clausura": 2,
+        "decomiso": 2
+      },
+      "service": "_count_actas_labradas (5 separate COUNT queries)",
+      "file": "indicadores_resumen_service.py"
+    },
+    "reinspecciones": {
+      "notificacion": 1,
+      "oficio": 4
+    },
+    "verificar_informar": 3,
+    "ratificaciones": {
+      "clausura": 0,
+      "decomiso": 1
+    },
+    "kg_decomisados": 16316.0,
+    "pendientes": {
+      "baseline": {
+        "kpis": {
+          "relevamientos_pendientes": 256,
+          "reinspecciones_oficio_pendientes": 251,
+          "reinspecciones_notificacion_pendientes": 50,
+          "denuncias_pendientes": 15,
+          "pendientes_geolocalizacion": 0
+        },
+        "distritos_con_mas_pendientes": [
+          {
+            "distrito_id": 0,
+            "distrito_codigo": "SIN_DISTRITO",
+            "distrito_nombre": "Sin distrito",
+            "relevamientos": 4,
+            "denuncias": 0,
+            "reinspecciones_oficio": 221,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 225
+          },
+          {
+            "distrito_id": 15,
+            "distrito_codigo": "10",
+            "distrito_nombre": "Distrito 10",
+            "relevamientos": 131,
+            "denuncias": 0,
+            "reinspecciones_oficio": 29,
+            "reinspecciones_notificacion": 32,
+            "sin_geolocalizacion": 0,
+            "total": 192
+          },
+          {
+            "distrito_id": 1,
+            "distrito_codigo": "19",
+            "distrito_nombre": "Distrito 19",
+            "relevamientos": 57,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 57
+          },
+          {
+            "distrito_id": 4,
+            "distrito_codigo": "9",
+            "distrito_nombre": "Distrito 9",
+            "relevamientos": 17,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 14,
+            "sin_geolocalizacion": 0,
+            "total": 31
+          },
+          {
+            "distrito_id": 11,
+            "distrito_codigo": "4",
+            "distrito_nombre": "Distrito 4",
+            "relevamientos": 19,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 19
+          },
+          {
+            "distrito_id": 2,
+            "distrito_codigo": "15",
+            "distrito_nombre": "Distrito 15",
+            "relevamientos": 13,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 1,
+            "sin_geolocalizacion": 0,
+            "total": 14
+          },
+          {
+            "distrito_id": 12,
+            "distrito_codigo": "5",
+            "distrito_nombre": "Distrito 5",
+            "relevamientos": 5,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 5
+          },
+          {
+            "distrito_id": 9,
+            "distrito_codigo": "2",
+            "distrito_nombre": "Distrito 2",
+            "relevamientos": 3,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 1,
+            "sin_geolocalizacion": 0,
+            "total": 4
+          },
+          {
+            "distrito_id": 6,
+            "distrito_codigo": "8",
+            "distrito_nombre": "Distrito 8",
+            "relevamientos": 1,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 1,
+            "sin_geolocalizacion": 0,
+            "total": 2
+          },
+          {
+            "distrito_id": 10,
+            "distrito_codigo": "3",
+            "distrito_nombre": "Distrito 3",
+            "relevamientos": 1,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 1,
+            "sin_geolocalizacion": 0,
+            "total": 2
+          },
+          {
+            "distrito_id": 13,
+            "distrito_codigo": "6",
+            "distrito_nombre": "Distrito 6",
+            "relevamientos": 2,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 2
+          },
+          {
+            "distrito_id": 5,
+            "distrito_codigo": "11",
+            "distrito_nombre": "Distrito 11",
+            "relevamientos": 0,
+            "denuncias": 0,
+            "reinspecciones_oficio": 1,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 1
+          },
+          {
+            "distrito_id": 8,
+            "distrito_codigo": "1",
+            "distrito_nombre": "Distrito 1",
+            "relevamientos": 1,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 1
+          },
+          {
+            "distrito_id": 14,
+            "distrito_codigo": "12",
+            "distrito_nombre": "Distrito 12",
+            "relevamientos": 1,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 1
+          },
+          {
+            "distrito_id": 16,
+            "distrito_codigo": "13",
+            "distrito_nombre": "Distrito 13",
+            "relevamientos": 1,
+            "denuncias": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "sin_geolocalizacion": 0,
+            "total": 1
+          }
+        ]
+      },
+      "timing_ms": {
+        "total_ms": 8889.6,
+        "query_count": 12388
+      },
+      "bottleneck": "Python geocode loop over full iniciador stock"
+    },
+    "riesgo": {
+      "baseline": {
+        "top_rubros": [
+          {
+            "rubro": "Cafetería",
+            "cantidad": 3
+          },
+          {
+            "rubro": "Comestibles",
+            "cantidad": 2
+          },
+          {
+            "rubro": "Drugstore",
+            "cantidad": 2
+          },
+          {
+            "rubro": "Carnicería",
+            "cantidad": 1
+          },
+          {
+            "rubro": "Bar",
+            "cantidad": 1
+          },
+          {
+            "rubro": "Heladeria",
+            "cantidad": 1
+          },
+          {
+            "rubro": "Pr715Rub-b57b84e1",
+            "cantidad": 1
+          },
+          {
+            "rubro": "Pr715Rub-2a626100",
+            "cantidad": 1
+          },
+          {
+            "rubro": "Pr715Rub-072d1d8c",
+            "cantidad": 1
+          },
+          {
+            "rubro": "Verd712c-56882707",
+            "cantidad": 1
+          }
+        ],
+        "top_motivos_notificacion": [
+          {
+            "motivo": "Carnet de Sanidad",
+            "cantidad": 10
+          },
+          {
+            "motivo": "Desinfeccion",
+            "cantidad": 3
+          },
+          {
+            "motivo": "Refacciones",
+            "cantidad": 1
+          }
+        ],
+        "top_motivos_comprobacion": [
+          {
+            "motivo": "Falta de Higiene",
+            "cantidad": 3
+          },
+          {
+            "motivo": "Mercadería Vencida",
+            "cantidad": 2
+          },
+          {
+            "motivo": "No Permite la Inspección",
+            "cantidad": 1
+          },
+          {
+            "motivo": "Control",
+            "cantidad": 1
+          },
+          {
+            "motivo": "Incumplimiento de Notificación",
+            "cantidad": 1
+          }
+        ],
+        "decomiso_kg_por_rubro": [
+          {
+            "rubro": "Drugstore",
+            "kg": 16300.0
+          },
+          {
+            "rubro": "Comestibles",
+            "kg": 16.0
+          }
+        ]
+      },
+      "subquery_rebuilds": 4
+    },
+    "no_realizadas": {
+      "baseline": {
+        "por_tipo": {
+          "inspeccion": 7,
+          "reinspeccion_oficio": 0,
+          "reinspeccion_notificacion": 6,
+          "denuncia": 3
+        },
+        "top_contraproducencias": [
+          {
+            "contraproducencia": "Local cerrado",
+            "cantidad": 10
+          },
+          {
+            "contraproducencia": "Direccion incorrecta",
+            "cantidad": 5
+          }
+        ],
+        "distritos_con_mas_no_realizadas": [
+          {
+            "distrito_id": 15,
+            "distrito_codigo": "10",
+            "distrito_nombre": "Distrito 10",
+            "cantidad": 9
+          },
+          {
+            "distrito_id": 0,
+            "distrito_codigo": "SIN_DISTRITO",
+            "distrito_nombre": "Sin distrito",
+            "cantidad": 4
+          },
+          {
+            "distrito_id": 9,
+            "distrito_codigo": "2",
+            "distrito_nombre": "Distrito 2",
+            "cantidad": 2
+          },
+          {
+            "distrito_id": 4,
+            "distrito_codigo": "9",
+            "distrito_nombre": "Distrito 9",
+            "cantidad": 1
+          }
+        ],
+        "total": 16,
+        "contraproducencias_resumen": [
+          {
+            "bucket": "local_cerrado",
+            "label": "Local cerrado",
+            "cantidad": 11
+          },
+          {
+            "bucket": "no_existe",
+            "label": "No existe",
+            "cantidad": 0
+          },
+          {
+            "bucket": "no_se_ratifico",
+            "label": "No se ratificó",
+            "cantidad": 0
+          },
+          {
+            "bucket": "clima",
+            "label": "Clima",
+            "cantidad": 0
+          },
+          {
+            "bucket": "otras",
+            "label": "Otras",
+            "cantidad": 5
+          }
+        ]
+      },
+      "triple_fetch": "fetch_no_realizadas_visita_rows called 3x per request"
+    },
+    "productividad": {
+      "baseline": {
+        "inspectores_realizadas": [
+          {
+            "inspector_id": 2,
+            "inspector": "Alamo Alfredo",
+            "total_realizadas": 9,
+            "inspecciones": 3,
+            "reinspecciones_oficio": 4,
+            "reinspecciones_notificacion": 1,
+            "denuncias": 1,
+            "otras": 1,
+            "tipo_principal": "Reinspección oficio"
+          },
+          {
+            "inspector_id": 1,
+            "inspector": "Accardi José",
+            "total_realizadas": 8,
+            "inspecciones": 3,
+            "reinspecciones_oficio": 2,
+            "reinspecciones_notificacion": 1,
+            "denuncias": 2,
+            "otras": 2,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 3,
+            "inspector": "Avila Karina",
+            "total_realizadas": 3,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 2,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 1,
+            "otras": 1,
+            "tipo_principal": "Reinspección oficio"
+          },
+          {
+            "inspector_id": 4,
+            "inspector": "Cabezas Cecilia",
+            "total_realizadas": 2,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 2,
+            "otras": 2,
+            "tipo_principal": "Denuncia"
+          },
+          {
+            "inspector_id": 20,
+            "inspector": "Soria Dante",
+            "total_realizadas": 2,
+            "inspecciones": 2,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 23,
+            "inspector": "Villafañe Ángel Antonio",
+            "total_realizadas": 2,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 2,
+            "otras": 2,
+            "tipo_principal": "Denuncia"
+          },
+          {
+            "inspector_id": 24,
+            "inspector": "Zacame Ariel",
+            "total_realizadas": 2,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 2,
+            "otras": 2,
+            "tipo_principal": "Denuncia"
+          },
+          {
+            "inspector_id": 7,
+            "inspector": "Diaz Walter Omar",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 12,
+            "inspector": "Martinez Aldo",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 15,
+            "inspector": "Pentucci Cecilia",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 16,
+            "inspector": "Rivas Francisco",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 19,
+            "inspector": "Segovia Pablo",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 21,
+            "inspector": "Veliz María Elvira",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          },
+          {
+            "inspector_id": 22,
+            "inspector": "Vier Alberto",
+            "total_realizadas": 1,
+            "inspecciones": 1,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0,
+            "otras": 0,
+            "tipo_principal": "Inspección"
+          }
+        ],
+        "inspectores_no_realizadas": [
+          {
+            "inspector_id": 1,
+            "inspector": "Accardi José",
+            "total_no_realizadas": 8,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 4,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 4,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 2,
+            "inspector": "Alamo Alfredo",
+            "total_no_realizadas": 5,
+            "contraproducencia_principal": "Otro",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 3,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 12,
+            "inspector": "Martinez Aldo",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 23,
+            "inspector": "Villafañe Ángel Antonio",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 7,
+            "inspector": "Diaz Walter Omar",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 11,
+            "inspector": "Jerez Clara Carolina",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 13,
+            "inspector": "Nieva Facundo R",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 22,
+            "inspector": "Vier Alberto",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 2,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 24,
+            "inspector": "Zacame Ariel",
+            "total_no_realizadas": 2,
+            "contraproducencia_principal": "Otro",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 1,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 9,
+            "inspector": "Flores Gustavo",
+            "total_no_realizadas": 1,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 10,
+            "inspector": "Ibáñez Fabián",
+            "total_no_realizadas": 1,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 16,
+            "inspector": "Rivas Francisco",
+            "total_no_realizadas": 1,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 21,
+            "inspector": "Veliz María Elvira",
+            "total_no_realizadas": 1,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 4,
+            "inspector": "Cabezas Cecilia",
+            "total_no_realizadas": 1,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          },
+          {
+            "inspector_id": 19,
+            "inspector": "Segovia Pablo",
+            "total_no_realizadas": 1,
+            "contraproducencia_principal": "Local cerrado",
+            "local_cerrado": 1,
+            "no_existe": 0,
+            "no_se_ratifico": 0,
+            "clima": 0,
+            "otras": 0,
+            "inspecciones": 0,
+            "reinspecciones_oficio": 0,
+            "reinspecciones_notificacion": 0,
+            "denuncias": 0
+          }
+        ],
+        "actas_por_inspector": [
+          {
+            "inspector_id": 1,
+            "inspector": "Accardi José",
+            "notificacion": 5,
+            "comprobacion": 6,
+            "clausura": 2,
+            "decomiso": 1,
+            "total_actas": 14
+          },
+          {
+            "inspector_id": 2,
+            "inspector": "Alamo Alfredo",
+            "notificacion": 5,
+            "comprobacion": 5,
+            "clausura": 1,
+            "decomiso": 0,
+            "total_actas": 11
+          },
+          {
+            "inspector_id": 4,
+            "inspector": "Cabezas Cecilia",
+            "notificacion": 1,
+            "comprobacion": 2,
+            "clausura": 1,
+            "decomiso": 1,
+            "total_actas": 5
+          },
+          {
+            "inspector_id": 23,
+            "inspector": "Villafañe Ángel Antonio",
+            "notificacion": 1,
+            "comprobacion": 2,
+            "clausura": 1,
+            "decomiso": 1,
+            "total_actas": 5
+          },
+          {
+            "inspector_id": 24,
+            "inspector": "Zacame Ariel",
+            "notificacion": 1,
+            "comprobacion": 2,
+            "clausura": 1,
+            "decomiso": 1,
+            "total_actas": 5
+          },
+          {
+            "inspector_id": 20,
+            "inspector": "Soria Dante",
+            "notificacion": 2,
+            "comprobacion": 1,
+            "clausura": 0,
+            "decomiso": 1,
+            "total_actas": 4
+          },
+          {
+            "inspector_id": 15,
+            "inspector": "Pentucci Cecilia",
+            "notificacion": 1,
+            "comprobacion": 1,
+            "clausura": 0,
+            "decomiso": 1,
+            "total_actas": 3
+          },
+          {
+            "inspector_id": 3,
+            "inspector": "Avila Karina",
+            "notificacion": 1,
+            "comprobacion": 1,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 2
+          },
+          {
+            "inspector_id": 7,
+            "inspector": "Diaz Walter Omar",
+            "notificacion": 1,
+            "comprobacion": 0,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 1
+          },
+          {
+            "inspector_id": 12,
+            "inspector": "Martinez Aldo",
+            "notificacion": 1,
+            "comprobacion": 0,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 1
+          },
+          {
+            "inspector_id": 16,
+            "inspector": "Rivas Francisco",
+            "notificacion": 1,
+            "comprobacion": 0,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 1
+          },
+          {
+            "inspector_id": 19,
+            "inspector": "Segovia Pablo",
+            "notificacion": 1,
+            "comprobacion": 0,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 1
+          },
+          {
+            "inspector_id": 21,
+            "inspector": "Veliz María Elvira",
+            "notificacion": 1,
+            "comprobacion": 0,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 1
+          },
+          {
+            "inspector_id": 22,
+            "inspector": "Vier Alberto",
+            "notificacion": 1,
+            "comprobacion": 0,
+            "clausura": 0,
+            "decomiso": 0,
+            "total_actas": 1
+          }
+        ]
+      }
+    }
+  },
+  "root_causes": {
+    "P0": [
+      {
+        "id": "P0-pendientes-n-plus-1-geocode",
+        "cause": "/api/indicadores/pendientes: loop Python sobre ~4k iniciadores con N+1 masivo a domicilio_geocode (~11.8k queries) + ST_Intersects distrito por punto",
+        "evidence": "mensual_sin_filtros pendientes=8889.6ms, query_count=12388; domicilio_geocode SELECT ×11817 (~4188ms acum); distrito ST_Intersects/Contains ×468; scanned≈4068 mapped≈572 (PERF_LOG)",
+        "fix_proposed": "Batch-load geocode+domicilio en 1-2 queries; usar domicilio.distrito_id persistido; eliminar resolve_domicilio per-row; SQL aggregate stock pendiente",
+        "risk": "medio — debe preservar semántica stock actual",
+        "expected_gain": "70-95% del tiempo de pendientes"
+      }
+    ],
+    "P1": [
+      {
+        "id": "P1-eager-5-endpoints",
+        "cause": "Frontend dispara 5 endpoints indicadores al montar sin lazy por sección",
+        "evidence": "Panel.tsx monta 5 hooks; waterfall percibido = max(pendientes, otros)",
+        "fix_proposed": "Lazy-load por sección visible o priorizar ejecutivo+pendientes primero",
+        "risk": "bajo UX si hay skeleton progresivo",
+        "expected_gain": "perceived TTI -30-50% si pendientes se difiere o optimiza"
+      },
+      {
+        "id": "P1-actas-5-counts",
+        "cause": "_count_actas_labradas ejecuta 5 COUNT separados por tipo",
+        "evidence": "ejecutivo query_count=9",
+        "fix_proposed": "Consolidar en 1 query con CASE/SUM pivot",
+        "risk": "bajo",
+        "expected_gain": "20-40% en ejecutivo"
+      },
+      {
+        "id": "P1-no-realizadas-triple-fetch",
+        "cause": "fetch_no_realizadas_visita_rows invocado 3 veces por request",
+        "evidence": "indicadores_no_realizadas_service.py + productividad_queries.py",
+        "fix_proposed": "Materializar filas una vez por request y reusar",
+        "risk": "bajo",
+        "expected_gain": "30-50% en no-realizadas y productividad.no_realizadas"
+      },
+      {
+        "id": "P1-riesgo-subquery-4x",
+        "cause": "actuacion_ids_realizadas_subquery reconstruida 4 veces en /riesgo",
+        "evidence": "indicadores_riesgo_service.py 4 sub-queries independientes",
+        "fix_proposed": "CTE/materializar subquery una vez",
+        "risk": "bajo",
+        "expected_gain": "15-25% en riesgo"
+      }
+    ],
+    "P2": [
+      {
+        "id": "P2-resumen-legacy-heavy",
+        "cause": "/resumen monolítico ~25+ queries (no usado por Panel actual)",
+        "evidence": "resumen query_count=2456",
+        "fix_proposed": "Deprecar o no invocar desde UI; consolidar si aún se usa en export",
+        "risk": "bajo si UI no lo llama",
+        "expected_gain": "N/A si no se invoca"
+      },
+      {
+        "id": "P2-productividad-4-acta-queries",
+        "cause": "query_actas_por_inspector: 4 COUNT por tipo inspector",
+        "evidence": "indicadores_productividad_queries.py",
+        "fix_proposed": "Pivot SQL único",
+        "risk": "bajo",
+        "expected_gain": "10-20% productividad"
+      },
+      {
+        "id": "P2-pendientes-distrito-n-plus-1",
+        "cause": "_distrito_meta hace Distrito.query por cada distrito en ranking",
+        "evidence": "indicadores_pendientes_queries.py",
+        "fix_proposed": "Batch load distritos o join en agregación",
+        "risk": "bajo",
+        "expected_gain": "menor vs geocode loop"
+      }
+    ],
+    "P3": [
+      {
+        "id": "P3-strict-mode-dev-double-fetch",
+        "cause": "React StrictMode duplica effects en desarrollo",
+        "evidence": "main.tsx StrictMode",
+        "fix_proposed": "Ninguno en prod; opcional dedup en hooks",
+        "risk": "n/a",
+        "expected_gain": "solo dev"
+      }
+    ]
+  },
+  "recommended_fix_plan": [
+    {
+      "priority": 1,
+      "item": "Optimizar pendientes stock aggregate (P0)",
+      "ticket_suggested": "PERF-DASH.2-pendientes"
+    },
+    {
+      "priority": 2,
+      "item": "Eliminar triple-fetch no-realizadas (P1)",
+      "ticket_suggested": "PERF-DASH.2-no-realizadas"
+    },
+    {
+      "priority": 3,
+      "item": "Consolidar actas COUNTs ejecutivo/productividad (P1)",
+      "ticket_suggested": "PERF-DASH.2-actas"
+    },
+    {
+      "priority": 4,
+      "item": "Lazy-load secciones dashboard frontend (P1)",
+      "ticket_suggested": "PERF-DASH.2-fe-lazy"
+    },
+    {
+      "priority": 5,
+      "item": "Materializar subquery realizadas en riesgo (P1)",
+      "ticket_suggested": "PERF-DASH.2-riesgo"
+    }
+  ],
+  "future_test_plan": {
+    "A": "KPI equality before/after optimization (golden baseline_values)",
+    "B": "query count per endpoint reduced",
+    "C": "endpoint timing budget",
+    "D": "no duplicate SQL signatures per request",
+    "E": "lazy load sections/tabs if implemented",
+    "F": "filter correctness con distrito/inspector"
+  }
+}

@@ -1,0 +1,347 @@
+"""
+Congela la Fase A: actuación base (max id) y estados bloqueantes para REINSPECCION_NOTIFICACION.
+Fase B: idempotencia ante IntegrityError (único en BD) y mocks de sesión para sync sin app context.
+"""
+
+from __future__ import annotations
+
+import contextlib
+from datetime import date
+from types import SimpleNamespace
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+
+import app.domains.actuaciones.services.notificacion_iniciador_service as notificacion_iniciador_service
+from app.domains.actuaciones.services.notificacion_iniciador_service import (
+    _agrupar_eligible_por_notificacion_id,
+    elegir_actuacion_base_inspeccion_para_notificacion,
+    estado_bloquea_nueva_materializacion_reinspeccion_notificacion,
+    sync_iniciadores_reinspeccion_notificacion,
+)
+from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
+
+
+def test_elegir_actuacion_base_toma_mayor_id():
+    a = SimpleNamespace(id=1, notificacion_id=10, tipo="INSPECCION")
+    b = SimpleNamespace(id=3, notificacion_id=10, tipo="INSPECCION")
+    c = SimpleNamespace(id=2, notificacion_id=10, tipo="INSPECCION")
+    elegido = elegir_actuacion_base_inspeccion_para_notificacion([a, b, c])
+    assert elegido.id == 3
+
+
+def test_elegir_actuacion_base_vacio():
+    assert elegir_actuacion_base_inspeccion_para_notificacion([]) is None
+
+
+def test_agrupar_por_notificacion_elige_max_id_por_grupo():
+    acts = [
+        SimpleNamespace(id=10, notificacion_id=5, tipo="INSPECCION"),
+        SimpleNamespace(id=20, notificacion_id=5, tipo="INSPECCION"),
+        SimpleNamespace(id=15, notificacion_id=7, tipo="INSPECCION"),
+    ]
+    m = _agrupar_eligible_por_notificacion_id(acts)
+    assert m[5].id == 20
+    assert m[7].id == 15
+    assert len(m) == 2
+
+
+@pytest.mark.parametrize(
+    "estado,espera_bloquea",
+    [
+        ("PENDIENTE", True),
+        ("PLANIFICADO", True),
+        ("EN_EJECUCION", True),
+        ("CUMPLIDO", True),
+        ("NO_REALIZADO_REPROGRAMAR", True),
+        ("ANULADO", False),
+        ("CERRADO", False),
+        ("CERRADO_NO_EXISTE_LOCAL", False),
+        (None, False),
+    ],
+)
+def test_matriz_estado_bloquea_nueva_materializacion(estado, espera_bloquea):
+    assert (
+        estado_bloquea_nueva_materializacion_reinspeccion_notificacion(estado) == espera_bloquea
+    )
+
+
+def test_estados_no_bloqueantes_coinciden_con_inactive_estados():
+    for s in inactive_estados():
+        assert estado_bloquea_nueva_materializacion_reinspeccion_notificacion(s) is False
+
+
+def _patch_session_sync_unit(monkeypatch):
+    """Sync sin contexto Flask ni DB: savepoint simulado + flush no-op + sin reconciliación DB."""
+    monkeypatch.setattr(
+        notificacion_iniciador_service.db.session,
+        "begin_nested",
+        lambda: contextlib.nullcontext(),
+    )
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "flush", lambda: None)
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_revoke_obsolete_reinspeccion_notificacion_iniciadores",
+        lambda _today: 0,
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "resolve_domicilio_operativo_para_iniciador",
+        lambda dom_id: int(dom_id),
+    )
+
+
+def test_sync_segunda_corrida_no_agrega_cuando_existe_bloqueo(monkeypatch):
+    """
+    Primera corrida: sin bloqueo → 1 alta. Segunda: existe bloqueo → 0 altas (idempotencia lógica).
+    """
+    today = date.today()
+    noti = SimpleNamespace(
+        id=99,
+        fecha_vencimiento=today,
+        deleted_at=None,
+        numero_acta="000001",
+        anio=2026,
+    )
+    act = SimpleNamespace(
+        id=42, notificacion_id=99, domicilio_id=1, notificacion=noti, tipo="INSPECCION"
+    )
+
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_eligible_inspecciones_vencidas",
+        lambda: [act],
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "validate_actor_user_id",
+        lambda uid: int(uid),
+    )
+
+    calls = {"n": 0}
+
+    def exists_side_effect(nid: int) -> bool:
+        calls["n"] += 1
+        return calls["n"] > 1
+
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacion",
+        exists_side_effect,
+    )
+
+    _patch_session_sync_unit(monkeypatch)
+
+    adds: list = []
+
+    def capture_add(obj):
+        adds.append(obj)
+
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "add", capture_add)
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "commit", lambda: None)
+
+    o1 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    assert o1.created == 1
+    assert len(adds) == 1
+    assert adds[0].created_by_user_id == 42
+
+    o2 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    assert o2.created == 0
+    assert o2.skipped_already_blocking >= 1
+    assert len(adds) == 1
+
+
+def test_sync_cero_altas_si_bloqueo_desde_el_inicio(monkeypatch):
+    today = date.today()
+    noti = SimpleNamespace(
+        id=88,
+        fecha_vencimiento=today,
+        deleted_at=None,
+        numero_acta="000002",
+        anio=2026,
+    )
+    act = SimpleNamespace(
+        id=50, notificacion_id=88, domicilio_id=1, notificacion=noti, tipo="INSPECCION"
+    )
+
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_eligible_inspecciones_vencidas",
+        lambda: [act],
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "validate_actor_user_id",
+        lambda uid: int(uid),
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacion",
+        lambda nid: True,
+    )
+
+    _patch_session_sync_unit(monkeypatch)
+
+    adds: list = []
+
+    def capture_add(obj):
+        adds.append(obj)
+
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "add", capture_add)
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "commit", lambda: None)
+
+    z1 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    z2 = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    assert z1.created == 0 and z2.created == 0
+    assert z1.skipped_already_blocking == 1
+    assert adds == []
+
+
+def test_sync_integrity_error_es_idempotente_sin_commit(monkeypatch):
+    """
+    Fase B: colisión única en flush (carrera / doble sync) → 0 creados, sin propagar error.
+    """
+    today = date.today()
+    noti = SimpleNamespace(
+        id=77,
+        fecha_vencimiento=today,
+        deleted_at=None,
+        numero_acta="000003",
+        anio=2026,
+    )
+    act = SimpleNamespace(
+        id=60, notificacion_id=77, domicilio_id=1, notificacion=noti, tipo="INSPECCION"
+    )
+
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_eligible_inspecciones_vencidas",
+        lambda: [act],
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "validate_actor_user_id",
+        lambda uid: int(uid),
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacion",
+        lambda nid: False,
+    )
+
+    _patch_session_sync_unit(monkeypatch)
+
+    commits: list = []
+
+    def flush_raises():
+        raise IntegrityError("mock", {}, None)
+
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "flush", flush_raises)
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "add", lambda o: None)
+    monkeypatch.setattr(
+        notificacion_iniciador_service.db.session,
+        "commit",
+        lambda: commits.append(1),
+    )
+
+    o = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    assert o.created == 0
+    assert o.collisions_idempotent == 1
+    assert commits == []
+
+
+def test_sync_doble_corrida_integrity_luego_exito(monkeypatch):
+    """
+    Primera corrida: IntegrityError (otro proceso insertó). Segunda: sin colisión → 1 alta.
+    """
+    today = date.today()
+    noti = SimpleNamespace(
+        id=66,
+        fecha_vencimiento=today,
+        deleted_at=None,
+        numero_acta="000004",
+        anio=2026,
+    )
+    act = SimpleNamespace(
+        id=61, notificacion_id=66, domicilio_id=1, notificacion=noti, tipo="INSPECCION"
+    )
+
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_eligible_inspecciones_vencidas",
+        lambda: [act],
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "validate_actor_user_id",
+        lambda uid: int(uid),
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_exists_iniciador_reinspeccion_notificacion_que_bloquea_nueva_materializacion",
+        lambda nid: False,
+    )
+
+    _patch_session_sync_unit(monkeypatch)
+
+    flush_n = {"n": 0}
+
+    def flush_maybe_raise():
+        flush_n["n"] += 1
+        if flush_n["n"] == 1:
+            raise IntegrityError("mock", {}, None)
+
+    monkeypatch.setattr(
+        notificacion_iniciador_service.db.session,
+        "flush",
+        flush_maybe_raise,
+    )
+
+    adds: list = []
+
+    def capture_add(obj):
+        adds.append(obj)
+
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "add", capture_add)
+    monkeypatch.setattr(notificacion_iniciador_service.db.session, "commit", lambda: None)
+
+    a = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    b = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    assert a.created == 0 and a.collisions_idempotent == 1
+    assert b.created == 1 and b.collisions_idempotent == 0
+    assert len(adds) == 2
+
+
+def test_sync_commit_cuando_solo_revoked(monkeypatch):
+    """Si solo hay reconciliación (revoked > 0), debe hacer commit igual que si hubo altas."""
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_eligible_inspecciones_vencidas",
+        lambda: [],
+    )
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "validate_actor_user_id",
+        lambda uid: int(uid),
+    )
+    _patch_session_sync_unit(monkeypatch)
+    monkeypatch.setattr(
+        notificacion_iniciador_service,
+        "_revoke_obsolete_reinspeccion_notificacion_iniciadores",
+        lambda _today: 1,
+    )
+    commits: list = []
+    monkeypatch.setattr(
+        notificacion_iniciador_service.db.session,
+        "commit",
+        lambda: commits.append(1),
+    )
+    o = sync_iniciadores_reinspeccion_notificacion(actor_user_id=42)
+    assert o.created == 0
+    assert o.revoked == 1
+    assert commits == [1]
+
+
+def test_sync_sin_actor_user_id_falla():
+    with pytest.raises(TypeError):
+        sync_iniciadores_reinspeccion_notificacion()

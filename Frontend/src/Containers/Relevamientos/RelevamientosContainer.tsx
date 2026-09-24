@@ -1,0 +1,158 @@
+import type { JSX } from "react";
+import { useCallback, useState } from "react";
+import { Alert, Box, Paper, Tab, Tabs, Typography } from "@mui/material";
+import TablaRelevamientos from "./Components/TableRelevamientos";
+import FiltroRelevamientos from "./Components/FiltroRelevamientos";
+import { useRelevamientosBandeja } from "./hooks/useRelevamientosBandeja";
+import type { RelevamientosBandejaSlice } from "./hooks/useRelevamientosBandeja";
+import {
+  moduleContentColumnSx,
+  metaInfoStyles,
+  metaItemStyles,
+  errorAlertStyles,
+} from "../Actuaciones/styles/filtroStyles";
+import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+
+const RelevamientosContainer = (): JSX.Element => {
+  const [slice, setSlice] = useState<RelevamientosBandejaSlice>("pendientes");
+  const { relevamientos, meta, loading, error, hasSearched, buscar, limpiarLista } =
+    useRelevamientosBandeja(slice);
+
+  const handleFiltrar = useCallback(
+    (filtros: {
+      desde: string | null;
+      hasta: string | null;
+      relevador: string | null;
+      calle: string | null;
+      numero: string | null;
+      esta_abierto: boolean | null;
+      distrito_id: number | null;
+    }) => {
+      void buscar({
+        desde: filtros.desde,
+        hasta: filtros.hasta,
+        relevador: filtros.relevador,
+        calle: filtros.calle,
+        numero: filtros.numero,
+        esta_abierto: filtros.esta_abierto,
+        distrito_id: filtros.distrito_id,
+        page: 1,
+        page_size: 50,
+      });
+    },
+    [buscar]
+  );
+
+  const handleRefresh = useCallback(() => {
+    if (!meta?.desde || !meta?.hasta) return;
+    void buscar({
+      desde: meta.desde,
+      hasta: meta.hasta,
+      relevador: meta.relevador,
+      calle: meta.calle,
+      numero: meta.numero,
+      esta_abierto: meta.esta_abierto ?? null,
+      distrito_id: meta.distrito_id ?? null,
+      page: meta.page,
+      page_size: meta.page_size,
+    });
+  }, [buscar, meta]);
+
+  return (
+    <Box sx={moduleContentColumnSx}>
+      <FiltroRelevamientos onFiltrar={handleFiltrar} onLimpiarLista={limpiarLista} />
+
+      <Paper elevation={0} sx={{ ...glassTabsSecondaryPanelBarSx, width: "100%" }}>
+        <Tabs
+          value={slice}
+          onChange={(_, v: RelevamientosBandejaSlice) => setSlice(v)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={glassSecondaryTabsSx}
+        >
+          <Tab label="Pendientes" value="pendientes" />
+          <Tab label="Realizados" value="realizados" />
+        </Tabs>
+      </Paper>
+
+      <Typography
+        variant="body2"
+        sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
+      >
+        {slice === "pendientes"
+          ? "Solo relevamientos con iniciador pendiente (editables)."
+          : "Relevamientos con actuación completada en ruta (CUMPLIDO); solo lectura en esta vista."}
+      </Typography>
+
+      {error && hasSearched && (
+        <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
+          <strong>Error:</strong> {error}
+        </Alert>
+      )}
+
+      {!hasSearched && !loading && (
+        <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+          Definí el rango de fechas (y opcionalmente relevador/calle/número) y pulsá <strong>Filtrar</strong>.
+        </Typography>
+      )}
+
+      {hasSearched && meta && (
+        <Box sx={metaInfoStyles}>
+          <Typography sx={metaItemStyles}>
+            <strong>Total:</strong> {meta.total}
+          </Typography>
+          <Typography sx={metaItemStyles}>
+            <strong>Mostrando:</strong> {relevamientos.length} de {meta.total}
+          </Typography>
+          <Typography sx={metaItemStyles}>
+            <strong>Página:</strong> {meta.page}
+          </Typography>
+          {meta.desde && meta.hasta && (
+            <Typography sx={metaItemStyles}>
+              <strong>Rango:</strong> {meta.desde} - {meta.hasta}
+            </Typography>
+          )}
+          {meta.relevador && (
+            <Typography sx={metaItemStyles}>
+              <strong>Relevador:</strong> {meta.relevador}
+            </Typography>
+          )}
+          {meta.calle && (
+            <Typography sx={metaItemStyles}>
+              <strong>Calle:</strong> {meta.calle}
+            </Typography>
+          )}
+          {meta.numero && (
+            <Typography sx={metaItemStyles}>
+              <strong>Número:</strong> {meta.numero}
+            </Typography>
+          )}
+          {meta.esta_abierto !== null && meta.esta_abierto !== undefined && (
+            <Typography sx={metaItemStyles}>
+              <strong>Está abierto:</strong> {meta.esta_abierto ? "Sí" : "No"}
+            </Typography>
+          )}
+          {meta.distrito_id != null && (
+            <Typography sx={metaItemStyles}>
+              <strong>Distrito:</strong> {meta.distrito_id}
+            </Typography>
+          )}
+        </Box>
+      )}
+
+      {hasSearched && (
+        <TablaRelevamientos
+          data={relevamientos}
+          loading={loading}
+          onRefresh={handleRefresh}
+          numeroAllowFreeSolo
+          enableEditing={slice === "pendientes"}
+          hideRowActions={slice === "realizados"}
+          hideDeleteAction={slice === "realizados"}
+        />
+      )}
+    </Box>
+  );
+};
+
+export default RelevamientosContainer;

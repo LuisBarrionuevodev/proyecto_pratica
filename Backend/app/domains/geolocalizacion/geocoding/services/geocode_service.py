@@ -1,0 +1,559 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Dict, Optional
+import json
+import os
+import urllib.parse
+import urllib.request
+
+from app.database import db
+from app.domains.geolocalizacion.geocode.services.domicilio_district_consistency import (
+    log_barrio_distrito_consistency,
+)
+from app.domains.geolocalizacion.geocode.services.district_events import log_district_event
+from app.models import Domicilio
+from app.domains.geolocalizacion.geocoding.repos.domicilio_geocode_repo import (
+    get_or_create_geocode,
+)
+
+_VALID_GEOCODER_PROVIDERS = frozenset({"geoapify", "google", "nominatim", "none"})
+_DEFAULT_GEOCODER_PROVIDER = "geoapify"
+
+
+def get_geocoder_provider() -> str:
+    """
+    Resuelve el proveedor de geocoding forward en runtime.
+
+    Prioridad:
+    1. ``current_app.config['GEOCODER_PROVIDER']`` si hay app context Flask;
+    2. ``GEOCODER_PROVIDER`` (env);
+    3. ``GEO_PROVIDER`` (env legacy);
+    4. default ``geoapify``.
+
+    Returns:
+        ``geoapify``, ``google``, ``nominatim`` o ``none``.
+    """
+    raw: Optional[str] = None
+    try:
+        from flask import has_app_context, current_app
+
+        if has_app_context():
+            cfg = current_app.config.get("GEOCODER_PROVIDER")
+            if cfg:
+                raw = str(cfg)
+    except RuntimeError:
+        pass
+
+    if not raw:
+        raw = os.getenv("GEOCODER_PROVIDER") or os.getenv("GEO_PROVIDER")
+    if not raw:
+        return _DEFAULT_GEOCODER_PROVIDER
+
+    provider = str(raw).lower().strip()
+    if provider == "geopify":
+        provider = "geoapify"
+    if provider in _VALID_GEOCODER_PROVIDERS:
+        return provider
+    return _DEFAULT_GEOCODER_PROVIDER
+
+
+def get_geocoder_fallback_provider() -> Optional[str]:
+    """
+    Proveedor de fallback opcional tras fallo recuperable del primario.
+
+    Env: ``GEOCODER_FALLBACK_PROVIDER`` (p.ej. ``geoapify``).
+
+    Returns:
+        Provider válido distinto de ``none``, o None si no está configurado.
+    """
+    raw = os.getenv("GEOCODER_FALLBACK_PROVIDER")
+    if not raw:
+        return None
+    provider = str(raw).lower().strip()
+    if provider == "geopify":
+        provider = "geoapify"
+    if provider in _VALID_GEOCODER_PROVIDERS and provider != "none":
+        return provider
+    return None
+
+
+def is_google_shadow_enabled() -> bool:
+    """True si ``GEOCODER_GOOGLE_SHADOW=true`` (métricas sin persistir Google)."""
+    return str(os.getenv("GEOCODER_GOOGLE_SHADOW", "")).lower().strip() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/search"
+GEOAPIFY_TIMEOUT_SEC = 25
+GEOAPIFY_USER_AGENT = "proyecto_pratica_geocode/1.0 (local)"
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_TIMEOUT_SEC = 25
+NOMINATIM_USER_AGENT = "proyecto_pratica_geocode/1.0 (local)"
+
+
+def _can_geocode(dom: Domicilio) -> tuple[bool, Optional[str]]:
+    """
+    Verifica si el domicilio está normalizado para geocodificar (Geoapify/Nominatim).
+
+    Reglas:
+    - calle_norm_status debe ser OK
+    - si numero_tipo == ESQUINA, esquina_norm_status debe ser OK
+    """
+    if dom.calle_norm_status != "OK":
+        return False, "not normalized"
+    if dom.numero_tipo == "ESQUINA" and dom.esquina_norm_status != "OK":
+        return False, "not normalized"
+    return True, None
+
+
+def _can_geocode_for_provider(dom: Domicilio, provider: str) -> tuple[bool, Optional[str]]:
+    """
+    Gate de geocodificación según proveedor.
+
+    Google permite query RAW si el catálogo SMT falló; Geoapify/Nominatim exigen normalización.
+    """
+    if provider == "google":
+        from app.domains.geolocalizacion.geocoding.services.google_geocode_adapter import (
+            google_can_attempt,
+        )
+
+        if google_can_attempt(dom):
+            return True, None
+        return False, "insufficient address"
+    return _can_geocode(dom)
+
+
+def _build_query(dom: Domicilio) -> str:
+    """
+    Construye el query de geocoding para Nominatim.
+    """
+    calle = dom.calle_normalizada or dom.calle
+    esquina_raw = getattr(dom, "esquina_raw", None)
+    if dom.numero_tipo == "ESQUINA" and (esquina_raw or dom.esquina_normalizada):
+        esquina = esquina_raw or dom.esquina_normalizada
+        q = f"{calle} y {esquina}, San Miguel de Tucumán, Tucumán, Argentina"
+    else:
+        q = f"{calle} {dom.numero}, San Miguel de Tucumán, Tucumán, Argentina"
+    return q
+
+
+def _build_query_no_number(dom: Domicilio) -> str:
+    """
+    Fallback: query solo con calle (sin número).
+    """
+    calle = dom.calle_normalizada or dom.calle
+    return f"{calle}, San Miguel de Tucumán, Tucumán, Argentina"
+
+
+def _request_geoapify(query: str) -> dict:
+    """
+    Ejecuta la búsqueda en Geoapify con timeout corto y 1 retry.
+    """
+    api_key = os.getenv("GEOAPIFY_API_KEY")
+    if not api_key:
+        raise ValueError("GEOAPIFY_API_KEY no configurada.")
+    params = {
+        "text": query,
+        "apiKey": api_key,
+        "format": "geojson",
+        "limit": 1,
+    }
+    url = f"{GEOAPIFY_URL}?{urllib.parse.urlencode(params)}"
+    headers = {"User-Agent": GEOAPIFY_USER_AGENT}
+    last_error: Exception | None = None
+    for _ in range(2):
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=GEOAPIFY_TIMEOUT_SEC) as resp:
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw) or {}
+        except Exception as exc:  # noqa: BLE001 - se reporta como ERROR
+            last_error = exc
+    if last_error:
+        raise last_error
+    return {}
+
+
+def _request_nominatim(query: str) -> list[dict]:
+    """
+    Ejecuta la búsqueda en Nominatim con timeout corto y 1 retry.
+    """
+    params = {
+        "q": query,
+        "format": "json",
+        "addressdetails": 1,
+        "limit": 1,
+    }
+    url = f"{NOMINATIM_URL}?{urllib.parse.urlencode(params)}"
+    headers = {"User-Agent": NOMINATIM_USER_AGENT}
+    last_error: Exception | None = None
+    for _ in range(2):
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=NOMINATIM_TIMEOUT_SEC) as resp:
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw) or []
+        except Exception as exc:  # noqa: BLE001 - se reporta como ERROR
+            last_error = exc
+    if last_error:
+        raise last_error
+    return []
+
+
+def _evaluate_geoapify(feature: dict) -> Dict[str, object]:
+    """
+    Evalúa un resultado de Geoapify y define status/quality/score.
+    """
+    props = feature.get("properties") or {}
+    geom = feature.get("geometry") or {}
+    coords = geom.get("coordinates") or []
+    lng = float(coords[0]) if len(coords) > 1 else None
+    lat = float(coords[1]) if len(coords) > 1 else None
+    result_type = str(props.get("result_type") or "")
+    housenumber = props.get("housenumber") or props.get("house_number")
+    confidence = props.get("rank", {}).get("confidence")
+    is_building = bool(housenumber) or result_type in {"building", "house", "address"}
+    quality = "building" if is_building else (result_type[:30] if result_type else None)
+    score = float(confidence) if confidence is not None else None
+
+    return {
+        "lat": lat,
+        "lng": lng,
+        "quality": quality,
+        "score": score,
+    }
+
+
+def _is_accepted(quality: Optional[str], score: Optional[float]) -> bool:
+    try:
+        return quality == "building" and score is not None and float(score) >= 0.95
+    except Exception:
+        return False
+
+
+def _apply_google_geocode_result(geo, result) -> None:
+    """Persiste resultado Google en fila ``domicilio_geocode``."""
+    import logging
+
+    geo.lat = result.lat
+    geo.lng = result.lng
+    geo.quality = result.precision
+    geo.score = result.confidence
+    logger = logging.getLogger(__name__)
+    logger.info(
+        "google_geocode domicilio_id=%s geo_status=%s precision=%s display_score=%s place_id=%s",
+        getattr(geo, "domicilio_id", None),
+        result.geo_status,
+        result.precision,
+        result.confidence,
+        result.provider_place_id,
+    )
+    geo.error_msg = result.error_msg
+    geo.raw_json = result.raw_payload
+    geo.geo_status = result.geo_status
+    geo.provider = "google"
+    geo.provider_place_id = result.provider_place_id
+
+
+def _run_geoapify_geocode(dom: Domicilio, geo) -> tuple[str, Optional[str], bool]:
+    """
+    Ejecuta geocodificación Geoapify sobre ``geo`` (sin commit).
+
+    Returns:
+        (query, fallback_query, used_fallback)
+    """
+    query = _build_query(dom)
+    used_fallback = False
+    fallback_query = None
+    response = _request_geoapify(query)
+    features = response.get("features") or []
+    if not features:
+        fallback_query = _build_query_no_number(dom)
+        used_fallback = True
+        response = _request_geoapify(fallback_query)
+        features = response.get("features") or []
+    if not features:
+        geo.geo_status = "NO_MATCH"
+        geo.lat = None
+        geo.lng = None
+        geo.quality = None
+        geo.score = None
+        geo.error_msg = "no match"
+        geo.raw_json = None
+    else:
+        feature = features[0]
+        evaluated = _evaluate_geoapify(feature)
+        geo.lat = evaluated["lat"]
+        geo.lng = evaluated["lng"]
+        geo.quality = evaluated["quality"]
+        geo.score = evaluated["score"]
+        geo.error_msg = None
+        geo.raw_json = feature
+        if geo.lat is not None and geo.lng is not None:
+            if used_fallback:
+                geo.geo_status = "GEO_PENDING"
+            else:
+                geo.geo_status = "OK" if _is_accepted(geo.quality, geo.score) else "GEO_PENDING"
+        else:
+            geo.geo_status = "GEO_PENDING"
+    geo.provider = "geoapify"
+    return query, fallback_query, used_fallback
+
+
+def _run_nominatim_geocode(dom: Domicilio, geo) -> tuple[str, Optional[str], bool]:
+    """Ejecuta geocodificación Nominatim sobre ``geo`` (sin commit)."""
+    query = _build_query(dom)
+    used_fallback = False
+    fallback_query = None
+    results = _request_nominatim(query)
+    if not results:
+        fallback_query = _build_query_no_number(dom)
+        used_fallback = True
+        results = _request_nominatim(fallback_query)
+    if not results:
+        geo.geo_status = "NO_MATCH"
+        geo.lat = None
+        geo.lng = None
+        geo.quality = None
+        geo.score = None
+        geo.error_msg = "no match"
+        geo.raw_json = None
+    else:
+        item = results[0]
+        evaluated = _evaluate_nominatim(item)
+        geo.lat = evaluated["lat"]
+        geo.lng = evaluated["lng"]
+        geo.quality = evaluated["quality"]
+        geo.score = evaluated["score"]
+        geo.error_msg = None
+        geo.raw_json = item
+        if geo.lat is not None and geo.lng is not None:
+            if used_fallback:
+                geo.geo_status = "GEO_PENDING"
+            else:
+                geo.geo_status = "OK" if _is_accepted(geo.quality, geo.score) else "GEO_PENDING"
+        else:
+            geo.geo_status = "GEO_PENDING"
+    geo.provider = "nominatim"
+    return query, fallback_query, used_fallback
+
+
+def _assign_distrito_if_ok(dom: Domicilio, geo, domicilio_id: int) -> None:
+    """Resuelve distrito PostGIS cuando geo_status es OK."""
+    if geo.geo_status != "OK" or geo.lat is None or geo.lng is None:
+        return
+    try:
+        from app.domains.geolocalizacion.geocode.services.distritos_service import (
+            resolve_distrito_id,
+        )
+
+        resolved_distrito_id = resolve_distrito_id(float(geo.lat), float(geo.lng))
+        dom.distrito_id = resolved_distrito_id
+        db.session.add(dom)
+        log_barrio_distrito_consistency(
+            domicilio=dom,
+            source="AUTO",
+            lat=float(geo.lat),
+            lng=float(geo.lng),
+        )
+        if resolved_distrito_id is None:
+            log_district_event(
+                event="district_no_match",
+                domicilio_id=domicilio_id,
+                lat=float(geo.lat),
+                lng=float(geo.lng),
+                source="AUTO",
+                geo_status=geo.geo_status,
+                distrito_id=None,
+            )
+        else:
+            log_district_event(
+                event="district_assigned",
+                domicilio_id=domicilio_id,
+                lat=float(geo.lat),
+                lng=float(geo.lng),
+                source="AUTO",
+                geo_status=geo.geo_status,
+                distrito_id=int(resolved_distrito_id),
+            )
+    except Exception as exc:  # noqa: BLE001
+        log_district_event(
+            event="district_error",
+            domicilio_id=domicilio_id,
+            lat=float(geo.lat),
+            lng=float(geo.lng),
+            source="AUTO",
+            geo_status=geo.geo_status,
+            distrito_id=None,
+            error=str(exc),
+        )
+
+
+def _evaluate_nominatim(item: dict) -> Dict[str, object]:
+    """
+    Evalúa un resultado de Nominatim y define status/quality/score.
+    """
+    lat = float(item.get("lat")) if item.get("lat") else None
+    lng = float(item.get("lon")) if item.get("lon") else None
+    klass = str(item.get("class") or "")
+    tipo = str(item.get("type") or "")
+
+    review_classes = {"place", "boundary"}
+    review_types = {
+        "city",
+        "town",
+        "village",
+        "state",
+        "country",
+        "county",
+        "region",
+        "neighbourhood",
+        "suburb",
+    }
+    status = "REVIEW" if klass in review_classes or tipo in review_types else "OK"
+    quality = f"{klass}:{tipo}"[:30] if klass or tipo else None
+    score = item.get("importance")
+
+    return {
+        "status": status,
+        "lat": lat,
+        "lng": lng,
+        "quality": quality,
+        "score": score,
+    }
+
+
+def geocode_domicilio(domicilio_id: int) -> Dict[str, object]:
+    """
+    Geocodifica un domicilio y persiste el resultado en `domicilio_geocode`.
+
+    Args:
+        domicilio_id: id del domicilio.
+
+    Returns:
+        Dict con estado, coordenadas y metadata del proveedor.
+
+    Raises:
+        ValueError: si el domicilio no existe.
+    """
+    dom = db.session.get(Domicilio, domicilio_id)
+    if not dom or dom.deleted_at is not None:
+        raise ValueError("Domicilio no encontrado.")
+
+    geo = get_or_create_geocode(domicilio_id)
+    provider = get_geocoder_provider()
+    geo.provider = provider
+    geo.checked_at = datetime.utcnow()
+    if not geo.source or geo.source not in {"MANUAL", "REVERSE"}:
+        geo.source = "AUTO"
+    if geo.geo_status == "OK" and geo.lat is not None and geo.lng is not None:
+        return {
+            "ok": True,
+            "domicilio_id": domicilio_id,
+            "geo_status": geo.geo_status,
+            "lat": float(geo.lat),
+            "lng": float(geo.lng),
+            "provider": geo.provider,
+            "checked_at": geo.checked_at.isoformat() if geo.checked_at else None,
+            "error_msg": geo.error_msg,
+            "cached": True,
+        }
+
+    can_geocode, reason = _can_geocode_for_provider(dom, provider)
+    if not can_geocode:
+        return {
+            "ok": False,
+            "status": "SKIP",
+            "reason": reason,
+            "domicilio_id": domicilio_id,
+        }
+
+    query: Optional[str] = None
+    fallback_query: Optional[str] = None
+    used_fallback = False
+
+    if provider == "none":
+        geo.geo_status = "PENDING"
+        geo.error_msg = None
+        db.session.add(geo)
+        db.session.commit()
+        return {
+            "ok": False,
+            "domicilio_id": domicilio_id,
+            "geo_status": geo.geo_status,
+            "lat": None,
+            "lng": None,
+            "provider": geo.provider,
+            "checked_at": geo.checked_at.isoformat() if geo.checked_at else None,
+            "error_msg": geo.error_msg,
+        }
+
+    try:
+        if provider == "google":
+            from app.domains.geolocalizacion.geocoding.services.google_geocode_adapter import (
+                geocode_google_for_domicilio,
+                is_google_recoverable_failure,
+            )
+
+            google_result = geocode_google_for_domicilio(dom)
+            query = google_result.query_used
+            _apply_google_geocode_result(geo, google_result)
+
+            fallback = get_geocoder_fallback_provider()
+            if fallback and is_google_recoverable_failure(google_result):
+                fb_can, _ = _can_geocode_for_provider(dom, fallback)
+                if fb_can:
+                    if fallback == "nominatim":
+                        query, fallback_query, used_fallback = _run_nominatim_geocode(dom, geo)
+                    else:
+                        query, fallback_query, used_fallback = _run_geoapify_geocode(dom, geo)
+        elif provider == "nominatim":
+            query, fallback_query, used_fallback = _run_nominatim_geocode(dom, geo)
+        else:
+            query, fallback_query, used_fallback = _run_geoapify_geocode(dom, geo)
+            if is_google_shadow_enabled():
+                from app.domains.geolocalizacion.geocoding.services.google_geocode_adapter import (
+                    geocode_google_for_domicilio,
+                    get_google_maps_api_key,
+                    log_google_shadow_metrics,
+                )
+
+                if get_google_maps_api_key():
+                    try:
+                        shadow = geocode_google_for_domicilio(dom)
+                        log_google_shadow_metrics(domicilio_id, shadow)
+                    except Exception:  # noqa: BLE001 — shadow no debe romper flujo
+                        pass
+    except Exception as exc:  # noqa: BLE001 - se reporta como ERROR
+        geo.geo_status = "ERROR"
+        geo.lat = None
+        geo.lng = None
+        geo.quality = None
+        geo.score = None
+        geo.error_msg = str(exc)[:255]
+        geo.raw_json = None
+
+    _assign_distrito_if_ok(dom, geo, domicilio_id)
+
+    db.session.add(geo)
+    db.session.commit()
+
+    return {
+        "ok": geo.geo_status == "OK",
+        "domicilio_id": domicilio_id,
+        "geo_status": geo.geo_status,
+        "lat": float(geo.lat) if geo.lat is not None else None,
+        "lng": float(geo.lng) if geo.lng is not None else None,
+        "provider": geo.provider,
+        "checked_at": geo.checked_at.isoformat() if geo.checked_at else None,
+        "error_msg": geo.error_msg,
+        "query": query,
+        "fallback_query": fallback_query,
+        "used_fallback": used_fallback,
+    }

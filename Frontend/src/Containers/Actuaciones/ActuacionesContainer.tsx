@@ -1,0 +1,467 @@
+import type { JSX } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  CircularProgress,
+  Typography,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import TablaActuaciones from "./Components/TableActuaciones";
+import FiltroFechas from "./Components/FiltroFechas";
+import FiltroPendientes from "./Components/FiltroPendientes";
+import { useActuacionesFiltradas } from "./hooks/useActuacionesFiltradas";
+import {
+  getActuacionesPendientes,
+  getActuacionesPendientesSummary,
+  type ActuacionesPendientesTipo,
+  type IActuacionesPendientesItem,
+  type IActuacionesPendientesSummary,
+} from "../../api/actuacionesPendientesApi";
+import { getCurrentMonthRange } from "../../utils/dateRange";
+import type { MRT_ColumnDef } from "material-react-table";
+import type { IActuacionListItem, IActuacionesListFilters } from "../../api/actuacionesListApi";
+import { ACTUACIONES_COMPOSITE_COLUMN_IDS } from "./Components/actuacionesCompositeColumns";
+import { useAppFeedback } from "../../components/feedback";
+import { ExportDataDialog } from "../../ui";
+import { applyFormErrorsFromApi } from "../../utils/parseApiError";
+import { buildActuacionesExportFiltersFromMeta, actuacionesMetaHasAnchorFilters, actuacionesMetaToListFilters } from "./utils/buildActuacionesFiltroPayload";
+import { exportActuacionesDataset } from "./utils/exportActuacionesDataset";
+import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
+
+import {
+  titleStyles,
+  errorAlertStyles,
+} from "./styles/filtroStyles";
+import {
+  BandejaTableSummary,
+  BandejaTableSummaryItem,
+} from "../../components/dataTable/BandejaTableSummary";
+import { functionalPageShellSx } from "../../styles/functionalPageShell";
+
+const ActuacionesContainer = (): JSX.Element => {
+  const navigate = useNavigate();
+  const feedback = useAppFeedback();
+  const [tab] = useState<"todos" | "pendientes">("todos");
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const {
+    actuaciones,
+    meta,
+    loading,
+    error,
+    hasSearched,
+    buscar,
+    refrescarUltimaBusqueda,
+    limpiarLista,
+    fusionarActuacionEnLista,
+  } = useActuacionesFiltradas();
+
+  const defaultRange = useMemo(() => getCurrentMonthRange(), []);
+  const [pendientesDesde, setPendientesDesde] = useState<string>(defaultRange.desde);
+  const [pendientesHasta, setPendientesHasta] = useState<string>(defaultRange.hasta);
+  const [pendingType, setPendingType] = useState<ActuacionesPendientesTipo>("domicilios");
+  const [pendingSummary, setPendingSummary] = useState<IActuacionesPendientesSummary | null>(null);
+  const [pendingItems, setPendingItems] = useState<IActuacionesPendientesItem[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+
+  const handleFiltrarTodos = useCallback(
+    (filtros: IActuacionesListFilters) => {
+      void buscar(filtros);
+    },
+    [buscar]
+  );
+
+  const handleRefreshListaActuaciones = useCallback(() => {
+    void refrescarUltimaBusqueda();
+  }, [refrescarUltimaBusqueda]);
+
+  const handleListaPageChange = useCallback(
+    (page: number, pageSize: number) => {
+      if (!meta) return;
+      void buscar(actuacionesMetaToListFilters(meta, { page, page_size: pageSize }));
+    },
+    [buscar, meta]
+  );
+
+  useEffect(() => {
+    getActuacionesPendientesSummary(pendientesDesde, pendientesHasta)
+      .then(setPendingSummary)
+      .catch(() => undefined);
+  }, [pendientesDesde, pendientesHasta]);
+
+  const fusionarPendienteEnLista = useCallback((row: IActuacionListItem) => {
+    const rid = Number(row.id);
+    setPendingItems((prev) =>
+      prev.map((item) => (Number(item.id) === rid ? { ...item, ...row } : item))
+    );
+  }, []);
+
+  const refreshPendientes = useCallback(async (desde: string, hasta: string, tipo: ActuacionesPendientesTipo) => {
+    setPendingLoading(true);
+    setPendingError(null);
+    try {
+      const [summary, items] = await Promise.all([
+        getActuacionesPendientesSummary(desde, hasta),
+        getActuacionesPendientes({ tipo, desde, hasta }),
+      ]);
+      setPendingSummary(summary);
+      setPendingItems(items);
+    } catch (err: any) {
+      setPendingError(err?.response?.data?.detail || "Error al cargar pendientes");
+      setPendingItems([]);
+    } finally {
+      setPendingLoading(false);
+    }
+  }, []);
+
+  const handleFiltrarPendientes = useCallback(async () => {
+    await refreshPendientes(pendientesDesde, pendientesHasta, pendingType);
+  }, [refreshPendientes, pendientesDesde, pendientesHasta, pendingType]);
+
+  const handleLimpiarPendientes = () => {
+    const range = getCurrentMonthRange();
+    setPendientesDesde(range.desde);
+    setPendientesHasta(range.hasta);
+    refreshPendientes(range.desde, range.hasta, pendingType);
+  };
+
+  useEffect(() => {
+    if (tab === "pendientes") {
+      handleFiltrarPendientes();
+    }
+  }, [tab, handleFiltrarPendientes]);
+
+  const handleCardClick = (tipo: ActuacionesPendientesTipo) => {
+    setPendingType(tipo);
+    refreshPendientes(pendientesDesde, pendientesHasta, tipo);
+  };
+
+  const pendingExtraColumns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => [], []);
+
+  const pendingColumnVisibility = useMemo(() => {
+    if (pendingType !== "domicilios") return {};
+    const hideComposites = Object.fromEntries(
+      ACTUACIONES_COMPOSITE_COLUMN_IDS.map((id) => [id, false])
+    );
+    return {
+      ...hideComposites,
+      orden_trabajo_numero: true,
+      fecha_actuacion: true,
+      calle: true,
+      calle_catalogo_id: false,
+      numero: true,
+      tipo_actuacion: false,
+      contraproducencia: false,
+      rubro_nombre: false,
+      inspector1: false,
+      inspector2: false,
+      inspector3: false,
+      notificacion_motivo_1: false,
+      notificacion_motivo_2: false,
+      notificacion_motivo_3: false,
+      acta_inspeccion_num: false,
+      acta_notificacion_num: false,
+      acta_comprobacion_num: false,
+      acta_clausura_num: false,
+      acta_decomiso_num: false,
+      decomiso_kilos_total: false,
+      expediente_numero: false,
+      expediente_anio: false,
+      oficio_numero: false,
+      oficio_anio: false,
+      oficio_causa: false,
+    };
+  }, [pendingType]);
+
+  const handleBeforeSavePendiente = useCallback(async (_fullRow: IActuacionListItem) => {}, []);
+
+  const actuacionesExportToolbar = useMemo(
+    () => (
+      <Box sx={TableExportBoxStyles}>
+        <Button
+          onClick={() => {
+            setExportError(null);
+            setExportOpen(true);
+          }}
+          startIcon={<FileDownloadOutlinedIcon />}
+          sx={TableExportButtonStyles}
+          disabled={!meta || exportLoading}
+        >
+          Exportar datos
+        </Button>
+      </Box>
+    ),
+    [exportLoading, meta]
+  );
+
+  const handleExportActuaciones = useCallback(
+    async (options: {
+      format: "excel" | "pdf";
+      periodMode: "workweek" | "month" | "custom";
+      desde: string;
+      hasta: string;
+    }) => {
+      if (!meta) return;
+      setExportLoading(true);
+      setExportError(null);
+      try {
+        await exportActuacionesDataset({
+          format: options.format,
+          filters: buildActuacionesExportFiltersFromMeta(meta, {
+            desde: options.desde,
+            hasta: options.hasta,
+          }),
+        });
+        feedback.success("Exportación generada");
+        setExportOpen(false);
+      } catch (err: unknown) {
+        const parsed = applyFormErrorsFromApi(err, {
+          fallbackMessage: "No se pudo completar la exportación.",
+        });
+        setExportError(parsed.globalMessage ?? parsed.fieldErrors._global ?? "No se pudo completar la exportación.");
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [feedback, meta]
+  );
+
+  return (
+    <Box sx={functionalPageShellSx}>
+        <Typography sx={titleStyles}>Actuaciones</Typography>
+
+        <>
+            <FiltroFechas
+              onFiltrar={handleFiltrarTodos}
+              onLimpiarLista={limpiarLista}
+            />
+
+            {error && hasSearched && (
+              <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
+                <strong>Error:</strong> {error}
+              </Alert>
+            )}
+
+            {loading && hasSearched && meta === null && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: 320,
+                  width: "100%",
+                }}
+              >
+                <CircularProgress sx={{ color: "#0166FF" }} />
+              </Box>
+            )}
+
+
+            {hasSearched && meta && (
+              <BandejaTableSummary>
+                <BandejaTableSummaryItem label="Total" value={meta.total} />
+                <BandejaTableSummaryItem
+                  label="Mostrando"
+                  value={loading ? "…" : `${actuaciones.length} de ${meta.total}`}
+                />
+                <BandejaTableSummaryItem
+                  label="Página"
+                  value={`${meta.page} / ${Math.max(1, Math.ceil(meta.total / meta.page_size))}`}
+                />
+                {meta.orden_trabajo ? (
+                  <BandejaTableSummaryItem label="OT" value={meta.orden_trabajo} />
+                ) : null}
+                {meta.documento_q ? (
+                  <BandejaTableSummaryItem label="DNI/CUIT" value={meta.documento_q} />
+                ) : null}
+                {meta.calle_q ? (
+                  <BandejaTableSummaryItem label="Domicilio" value={meta.calle_q} />
+                ) : null}
+                {meta.contribuyente_q ? (
+                  <BandejaTableSummaryItem label="Contribuyente" value={meta.contribuyente_q} />
+                ) : null}
+                {meta.acta_comprobacion ? (
+                  <BandejaTableSummaryItem
+                    label="Acta comprobación"
+                    value={meta.acta_comprobacion}
+                  />
+                ) : null}
+                {meta.desde && meta.hasta ? (
+                  <BandejaTableSummaryItem
+                    label="Rango"
+                    value={`${meta.desde} - ${meta.hasta}`}
+                  />
+                ) : !actuacionesMetaHasAnchorFilters(meta) ? (
+                  <BandejaTableSummaryItem label="Rango" value="todas las fechas" />
+                ) : null}
+                {meta.tipo ? (
+                  <BandejaTableSummaryItem label="Tipo" value={meta.tipo} />
+                ) : null}
+                {meta.contraproducencia ? (
+                  <BandejaTableSummaryItem
+                    label="Contraproducencia"
+                    value={meta.contraproducencia}
+                  />
+                ) : null}
+              </BandejaTableSummary>
+            )}
+
+            {hasSearched && meta && (
+              <TablaActuaciones
+                data={actuaciones}
+                loading={loading}
+                onRefresh={handleRefreshListaActuaciones}
+                onActuacionListPatch={fusionarActuacionEnLista}
+                listadoServidor={{
+                  totalRowCount: meta.total,
+                  page: meta.page,
+                  pageSize: meta.page_size,
+                  onPageChange: handleListaPageChange,
+                }}
+                exportToolbar={actuacionesExportToolbar}
+              />
+            )}
+
+            <ExportDataDialog
+              open={exportOpen}
+              onClose={() => {
+                if (exportLoading) return;
+                setExportOpen(false);
+              }}
+              title="Exportar datos"
+              subtitle="Actuaciones"
+              loading={exportLoading}
+              error={exportError}
+              onClearError={() => setExportError(null)}
+              showPeriod={!actuacionesMetaHasAnchorFilters(meta ?? { total: 0, page: 1, page_size: 50, desde: null, hasta: null, tipo: null, contraproducencia: null, orden_trabajo: null })}
+              scopeHint={
+                meta?.q
+                  ? `Se exportará el universo de la búsqueda «${meta.q}»${
+                      meta.desde && meta.hasta ? ` (${meta.desde} – ${meta.hasta})` : " (sin rango de fechas)"
+                    }.`
+                  : undefined
+              }
+              onExport={handleExportActuaciones}
+            />
+        </>
+
+        {tab === "pendientes" && (
+          <>
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 2 }}>
+              <Card sx={{ minWidth: 220 }}>
+                <CardActionArea onClick={() => handleCardClick("domicilios")}>
+                  <CardContent>
+                    <Typography variant="subtitle2">Domicilios pendientes</Typography>
+                    <Typography variant="h5">{pendingSummary?.domicilios ?? 0}</Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+              <Card sx={{ minWidth: 220 }}>
+                <CardActionArea onClick={() => handleCardClick("sin_expediente")}>
+                  <CardContent>
+                    <Typography variant="subtitle2">Actas sin expediente</Typography>
+                    <Typography variant="h5">{pendingSummary?.sin_expediente ?? 0}</Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+              <Card sx={{ minWidth: 220 }}>
+                <CardActionArea onClick={() => handleCardClick("notificaciones")}>
+                  <CardContent>
+                    <Typography variant="subtitle2">Notificaciones pendientes</Typography>
+                    <Typography variant="h5">{pendingSummary?.notificaciones ?? 0}</Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Box>
+
+            <FiltroPendientes
+              desde={pendientesDesde}
+              hasta={pendientesHasta}
+              onChangeDesde={setPendientesDesde}
+              onChangeHasta={setPendientesHasta}
+              onFiltrar={handleFiltrarPendientes}
+              onLimpiar={handleLimpiarPendientes}
+              title="Filtros de Pendientes"
+            />
+
+            {pendingError && (
+              <Alert severity="error" sx={errorAlertStyles} onClose={() => {}}>
+                <strong>Error:</strong> {pendingError}
+              </Alert>
+            )}
+
+            {pendingLoading && (
+              <Box sx={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+                <CircularProgress sx={{ color: "#0166FF" }} />
+              </Box>
+            )}
+
+            {!pendingLoading && (
+              <>
+                <BandejaTableSummary>
+                  <BandejaTableSummaryItem
+                    label="Mostrando"
+                    value={
+                      <>
+                        {pendingType === "domicilios"
+                          ? "Domicilios pendientes"
+                          : pendingType === "sin_expediente"
+                          ? "Actas sin expediente"
+                          : "Notificaciones pendientes"}{" "}
+                        ({pendingItems.length})
+                      </>
+                    }
+                  />
+                </BandejaTableSummary>
+                {pendingType === "domicilios" && (
+                  <Alert
+                    severity="info"
+                    sx={{ marginBottom: 2, display: "flex", alignItems: "center", gap: 2 }}
+                  >
+                    La resolución de domicilios pendientes se gestiona ahora en el módulo central.
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => navigate("/mapa")}
+                      sx={{ marginLeft: 1 }}
+                    >
+                      Ir a Mapa
+                    </Button>
+                  </Alert>
+                )}
+                <TablaActuaciones
+                  data={pendingItems}
+                  loading={pendingLoading}
+                  onRefresh={handleFiltrarPendientes}
+                  onActuacionListPatch={fusionarPendienteEnLista}
+                  initialColumnVisibility={pendingColumnVisibility}
+                  extraColumns={pendingExtraColumns}
+                  enableEditing={pendingType !== "notificaciones" && pendingType !== "domicilios"}
+                  hideRowActions={false}
+                  hideDeleteAction
+                  skipValidation
+                  skipUpdate
+                  numeroHeader="Número/Esquina"
+                  numeroEditorLabel="Número/Esquina"
+                  onBeforeSave={handleBeforeSavePendiente}
+                  readOnlyColumns={pendingType === "domicilios" ? ["orden_trabajo_numero", "fecha_actuacion"] : []}
+                />
+              </>
+            )}
+          </>
+        )}
+    </Box>
+  );
+};
+
+export default ActuacionesContainer;

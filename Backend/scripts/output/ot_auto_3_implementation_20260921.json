@@ -1,0 +1,95 @@
+{
+  "ticket": "OT-AUTO.3",
+  "date": "2026-09-21",
+  "status": "PASS",
+  "migration": {
+    "revision": "o0p1q2r3s4t5",
+    "down_revision": "n9o0p1q2r3s4",
+    "changes": [
+      "orden_trabajo.numero_acta VARCHAR(6) -> VARCHAR(10)",
+      "orden_trabajo.numero_secuencia_global BIGINT NULL UNIQUE",
+      "orden_trabajo_contador singleton",
+      "orden_trabajo_contador_audit append-only"
+    ],
+    "digitaliza_test": "migrated",
+    "digitaliza_sandbox": "migrated_via_flask_db_upgrade"
+  },
+  "seed_precheck": {
+    "proposed_next_value": 89862,
+    "proposed_display": "089862",
+    "migration_aborts_if_display_occupied": true
+  },
+  "seed_applied": {
+    "next_value": 89862,
+    "display": "089862",
+    "environments": ["digitaliza_test", "default_dev_sandbox"]
+  },
+  "sequence_schema": {
+    "table": "orden_trabajo_contador",
+    "fields": ["id", "next_value", "updated_at", "updated_by_user_id"]
+  },
+  "audit_schema": {
+    "table": "orden_trabajo_contador_audit",
+    "fields": ["id", "old_value", "new_value", "requested_new_value", "reason", "user_id", "created_at"]
+  },
+  "allocator_strategy": {
+    "lock": "SELECT orden_trabajo_contador FOR UPDATE",
+    "format": "format_ot_display(sequence) = acta_6 semantics, min-width 6, no truncate",
+    "legacy_column": "numero_secuencia_global set on auto OT only",
+    "anio_mes": "from ruta.fecha at publish time"
+  },
+  "skip_existing_strategy": {
+    "rule": "while numero_acta display exists globally (any year, incl soft-deleted): candidate++",
+    "preview": "same logic, reports skipped_count"
+  },
+  "publish_transaction": {
+    "order": "ruta_grupo.id ASC, ruta_item.id ASC",
+    "steps": [
+      "lock ruta FOR UPDATE",
+      "validate publicable",
+      "lock contador FOR UPDATE",
+      "allocar_rango for items sin OT",
+      "preserve legacy preassigned OT",
+      "create/link actuaciones",
+      "PUBLICADA",
+      "COMMIT"
+    ],
+    "response_fields": ["ordenes_asignadas", "next_value", "next_display"]
+  },
+  "deterministic_order": "ruta_grupo.id ASC -> ruta_item.id ASC",
+  "legacy_draft_policy": "item.orden_trabajo_id preasignada se preserva; sin numero_secuencia_global retrospectivo",
+  "legacy_endpoint_policy": {
+    "PATCH/DELETE items/orden-trabajo": "service raises RuntimeError OT-AUTO",
+    "grid POST actuaciones manual OT": "unchanged"
+  },
+  "frontend_assignment": {
+    "removed": ["input OT", "Guardar OT", "chips OT", "alert sin OT", "blocker continuar por OT"],
+    "kept": ["grupos", "inspectores", "mover", "quitar"]
+  },
+  "frontend_map_preview": {
+    "component": "MapaOtSecuenciaPreview",
+    "shows": ["Próxima OT (estimado)", "Ítems a publicar", "Rango estimado", "skipped hint"],
+    "admin_edit": "PATCH /rutas-trabajo/secuencia-ot",
+    "pre_publish_ot_on_cards": false
+  },
+  "counter_admin_edit": {
+    "endpoint": "PATCH /rutas-trabajo/secuencia-ot",
+    "auth": "admin only",
+    "forward_only": true,
+    "reason_required": true,
+    "normalizes_to_first_free": true
+  },
+  "tests": {
+    "migration": "PASS digitaliza_test",
+    "backend": "PASS test_ot_auto_3_secuencia.py + pr11_1 focal",
+    "frontend": "PASS rutaPublicarReadiness.test.ts",
+    "concurrency": "PASS test_concurrent_publish_disjoint_ranges",
+    "regression": "pr11_1 updated for OT-AUTO semantics"
+  },
+  "sandbox": {
+    "migrated": true,
+    "seed_revalidated": "089862 free at migration time",
+    "manual_qa": "PENDING_USER"
+  },
+  "recommended_option": "OPTION_C implemented"
+}

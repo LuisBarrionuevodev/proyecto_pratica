@@ -1,0 +1,287 @@
+{
+  "ticket": "DEPLOY-PILOT.1",
+  "date": "2026-09-22",
+  "generated_at": "2026-09-22T13:04:22.263323+00:00",
+  "status": "BLOCKED",
+  "frontend_build": {
+    "package_json": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Frontend\\package.json",
+    "build_command": "tsc -b && vite build",
+    "tsc_command": "tsc -b",
+    "vite_command": "vite build",
+    "npm_run_build_passes": false,
+    "tsc_passes": false,
+    "tsc_error_count": 292,
+    "vite_build_without_tsc_passes": true,
+    "verdict": "BLOCKER_A",
+    "classification": "A_blocker_real_vercel_build",
+    "note": "npm run build = tsc -b && vite build. 292 errores TS bloquean Vercel. vite build solo: PASS.",
+    "build_output_tail": "tton?: boolean | undefined; ... 8 more ...; onCloseButtonClick?: ((event: MouseEvent<...>) => void) | undefined; }'.\nsrc/utils/cierreQa.test.ts(16,5): error TS2783: 'id' is specified more than once, so this usage will be overwritten.\nsrc/utils/domicilioCalleUi.test.ts(8,3): error TS6133: 'domicilioNumeroValorEdicion' is declared but its value is never read.\nsrc/utils/exportExcelDashboard.test.ts(15,3): error TS2353: Object literal may only specify known properties, and 'pendientes' does not exist in type 'DashboardExportPayload'.\nsrc/utils/exportExcelDashboard.test.ts(89,3): error TS2353: Object literal may only specify known properties, and 'pendientes' does not exist in type 'DashboardExportPayload'.\nsrc/utils/exportExcelDashboard.test.ts(124,7): error TS2353: Object literal may only specify known properties, and 'pendientes' does not exist in type 'BuildArgs'.\nsrc/utils/exportExcelDashboard.ts(63,10): error TS2339: Property 'pendientesDistritos' does not exist on type 'DashboardExportPayload'.\nsrc/utils/exportExcelDashboard.ts(63,35): error TS7006: Parameter 'row' implicitly has an 'any' type.\nsrc/utils/oficioFormErrors.ts(3,3): error TS6133: 'applyFormErrorsFromApi' is declared but its value is never read.\nsrc/utils/stab9b.test.ts(2,1): error TS6133: 'readFileSync' is declared but its value is never read.\nsrc/utils/stab9b.test.ts(3,1): error TS6133: 'resolve' is declared but its value is never read.\nsrc/utils/validations.ts(87,20): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.\n  Type 'null' is not assignable to type 'string'.\nsrc/utils/validations.ts(90,24): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.\n  Type 'null' is not assignable to type 'string'.\nsrc/utils/validations.ts(93,21): error TS2339: Property 'inspector' does not exist on type 'IRelevamiento'.\nsrc/utils/validations.ts(96,21): error TS2339: Property 'direccion' does not exist on type 'IRelevamiento'.",
+    "output_directory": "dist",
+    "env_vars": {
+      "required_production": [
+        "VITE_API_BASE_URL"
+      ],
+      "optional": [
+        "VITE_PERF_LOG",
+        "VITE_GEOCODE_SEARCH_PROVIDER"
+      ]
+    },
+    "vercel_json": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Frontend\\vercel.json"
+  },
+  "backend_start": {
+    "entrypoint_module": "run.py",
+    "wsgi_app": "run:app",
+    "factory": "app.create_app (no invocar factory en gunicorn)",
+    "dev_server": "python run.py (debug=True, solo local)",
+    "production_start": "gunicorn \"run:app\" --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
+    "procfile": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\Procfile",
+    "railway_toml": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\railway.toml",
+    "gunicorn_in_requirements": "gunicorn==23.0.0",
+    "healthcheck_path": "/health"
+  },
+  "production_config": {
+    "pattern": "env-driven (no ProductionConfig class)",
+    "strict_environments": [
+      "production",
+      "prod",
+      "staging"
+    ],
+    "ENVIRONMENT_var": "ENVIRONMENT or FLASK_ENV",
+    "DEBUG": "forced False in strict mode",
+    "TESTING": "forced False in strict mode",
+    "JWT_SECRET_KEY": "required >= 32 chars in strict",
+    "database_uri_sources": [
+      "DATABASE_URL (Railway)",
+      "SQLALCHEMY_DATABASE_URI"
+    ],
+    "CORS_ORIGINS": "required comma-separated in strict",
+    "dotenv": "load_dotenv() at create_app — cloud debe usar env del host, no .env del repo",
+    "skip_escape_hatch": "SKIP_STRICT_CONFIG=1 (solo emergencias CI)"
+  },
+  "db_guard": {
+    "module": "app/security/production_database.py",
+    "forbidden_database_names": [
+      "digitaliza",
+      "digitaliza_sandbox",
+      "digitaliza_test",
+      "mi_db",
+      "produccion",
+      "production"
+    ],
+    "pilot_database_name_frozen": "digitaliza_pilot",
+    "enforced_in": "enforce_strict_runtime_config (staging/production)"
+  },
+  "clean_db": {
+    "engine": "MySQL (Railway)",
+    "pilot_database_name": "digitaliza_pilot",
+    "version": "8.0.44",
+    "charset": "utf8mb4",
+    "collation": "utf8mb4_unicode_ci",
+    "timezone": "UTC recomendado en Railway; app usa date local Argentina en reglas de negocio",
+    "migration_from_zero": {
+      "script": "scripts/migration_from_zero_test.py",
+      "status": "PASS",
+      "alembic_head": "o0p1q2r3s4t5",
+      "alembic_current_reported": null,
+      "ot_counter_on_test_db": "96916192",
+      "note": "Prueba local usa digitaliza_test (puede no estar vacía). En Railway: DB vacía + flask db upgrade sin stamp.",
+      "output_tail": "DATABASE: mysql+pymysql://root:Perralola123@localhost:3306/digitaliza_test\nALEMBIC_CURRENT: o0p1q2r3s4t5\nALEMBIC_HEAD: o0p1q2r3s4t5\nTABLE_COUNT: 52\nOT_COUNTER_INITIAL: 96916192\nPASS: migration from zero / upgrade to HEAD.\nADVERTENCIA: la base de tests no est� vac�a; se ejecutar� upgrade idempotente.\nINFO  [alembic.runtime.migration] Context impl MySQLImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL."
+    },
+    "alembic_head": "o0p1q2r3s4t5",
+    "schema_validation": {
+      "status": "PASS",
+      "alembic_version": "o0p1q2r3s4t5",
+      "table_count": 52,
+      "core_tables_present": [
+        "users",
+        "distrito",
+        "orden_trabajo",
+        "orden_trabajo_contador",
+        "actuaciones",
+        "ruta_trabajo",
+        "ruta_item",
+        "iniciador_ruta"
+      ],
+      "mysql_version": "8.0.44",
+      "charset": "utf8mb4",
+      "collation": "utf8mb4_unicode_ci",
+      "distrito_has_geom": true
+    },
+    "seeds": {
+      "canonical_catalogs": "scripts/seed_catalogos_canonicos.py",
+      "run_py_seed": "python run.py seed --csv <calles.csv> [--distritos-path]",
+      "distritos_geojson": "app/domains/geolocalizacion/geocode/data/distritos.geojson",
+      "distritos_srid": 4326,
+      "distritos_spatial_index": "migration / seed_distritos (geom POINT/POLYGON SRID 4326)",
+      "inspectores": "app/domains/grid/seeds/inspectores_canonicos.py",
+      "relevadores": "app/domains/relevamientos/seeds/relevadores_canonicos.py",
+      "pilot_recommendation": [
+        "flask db upgrade",
+        "python scripts/seed_catalogos_canonicos.py",
+        "python run.py seed --csv <calles_canonicas.csv>",
+        "python scripts/bootstrap_pilot_admin.py (una vez)"
+      ],
+      "exclude_from_pilot": [
+        "relevamientos_corrientes_chico demo seed",
+        "sandbox legacy data",
+        "full dump restore"
+      ]
+    }
+  },
+  "users_bootstrap": {
+    "script": "scripts/bootstrap_pilot_admin.py",
+    "env_vars": [
+      "PILOT_ADMIN_USERNAME",
+      "PILOT_ADMIN_EMAIL",
+      "PILOT_ADMIN_PASSWORD"
+    ],
+    "password_policy": "hash pbkdf2:sha256; nunca plaintext en repo/logs",
+    "ids_created": "ejecutar en Railway post-migrate; registrar id en ops, no en repo"
+  },
+  "ot_counter_initial": {
+    "migration_seed_requested": 89862,
+    "migration_seed_display": "089862",
+    "effective_on_empty_db": 89862,
+    "note": "En DB limpia la migración o0p1q2r3s4t5 inserta next_value=89862 si display libre. Admin puede reposicionar con PATCH /rutas-trabajo/secuencia-ot (OT-AUTO.6).",
+    "do_not_copy_sandbox_cursor": true
+  },
+  "vercel": {
+    "status": "NOT_DEPLOYED_BY_SCRIPT",
+    "root_directory": "Frontend",
+    "build_command": "npm run build",
+    "output_directory": "dist",
+    "env": {
+      "VITE_API_BASE_URL": "https://<railway-backend>.up.railway.app/"
+    },
+    "vercel_json_spa_rewrites": true,
+    "url": null
+  },
+  "railway_backend": {
+    "status": "NOT_DEPLOYED_BY_SCRIPT",
+    "root_directory": "Backend",
+    "start_command": "gunicorn \"run:app\" --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
+    "healthcheck": "/health",
+    "required_env": [
+      "ENVIRONMENT=production",
+      "JWT_SECRET_KEY",
+      "DATABASE_URL or SQLALCHEMY_DATABASE_URI",
+      "CORS_ORIGINS"
+    ],
+    "url": null
+  },
+  "railway_mysql": {
+    "status": "NOT_CREATED_BY_SCRIPT",
+    "database_name": "digitaliza_pilot",
+    "private_networking": "recomendado Railway service ↔ MySQL",
+    "public_exposure": "evitar salvo admin temporal"
+  },
+  "cors": {
+    "implementation": "flask-cors con CORS_ORIGINS explícito",
+    "wildcard_allowed": false,
+    "example": "CORS_ORIGINS=https://digitaliza.vercel.app"
+  },
+  "jwt": {
+    "library": "Flask-JWT-Extended",
+    "https_required": true,
+    "login": "POST /api/auth/login",
+    "bearer": "Authorization: Bearer <token>",
+    "refresh": "no refresh token dedicado detectado; access JWT configurable",
+    "model_change_required": false
+  },
+  "password_recovery": {
+    "endpoints": [
+      "POST /api/auth/password-reset/request",
+      "POST /api/auth/password-reset/confirm"
+    ],
+    "smtp_required": true,
+    "pilot_decision": "B — deshabilitar UX recuperación en piloto; administración manual de passwords",
+    "reason": "SMTP_PASS vacío en .env.example; sin proveedor production verificado",
+    "pepper_env": "PASSWORD_RESET_PEPPER"
+  },
+  "filesystem_audit": {
+    "runtime_writes": [
+      {
+        "path": "nomenclatura_pendiente_diagnosis_service.append_suggested_aliases_to_csv",
+        "classification": "PERSISTENCE_REQUIRED",
+        "pilot_impact": "bajo — solo flujo admin nomenclatura"
+      }
+    ],
+    "in_memory_only": [
+      "osm_static_map_proxy_service PNG BytesIO",
+      "export Excel/PDF en frontend (browser)"
+    ],
+    "epicollect_photos": "no migrar a Railway; integración remota",
+    "uploads_directory": null
+  },
+  "logging": {
+    "production": "stdout/stderr (gunicorn + Flask logger)",
+    "no_local_log_files": true,
+    "sensitive_data": "no loggear passwords, JWT, reset codes"
+  },
+  "backups": {
+    "strategy": "daily mysqldump Railway MySQL",
+    "retention": "7-14 días mínimo piloto",
+    "restore": "documentar procedimiento antes de datos reales",
+    "status": "PENDING_OPS_SETUP"
+  },
+  "smoke_tests": {
+    "status": "PENDING_POST_DEPLOY",
+    "checklist": [
+      "GET /health → 200",
+      "POST login ADMIN",
+      "GET perfil",
+      "crear usuario piloto",
+      "login usuario piloto"
+    ]
+  },
+  "empty_db_tests": {
+    "status": "PENDING_POST_DEPLOY",
+    "checklist": [
+      "Dashboard con 0 datos sin 500/NaN",
+      "listas vacías toleradas",
+      "indicadores tras QA"
+    ]
+  },
+  "workflow_smoke": {
+    "status": "PENDING_POST_DEPLOY",
+    "flows": [
+      "relevamiento",
+      "denuncia",
+      "ruta publicar OT auto",
+      "completar trabajo"
+    ]
+  },
+  "estimated_cost": {
+    "vercel_hobby": "USD 0 (hobby) / Pro si equipo",
+    "railway_backend": "USD ~5/mes (usage-based)",
+    "railway_mysql": "USD ~5-10/mes",
+    "total_pilot_estimate_usd_month": "10-20",
+    "avoid": [
+      "Redis",
+      "K8s",
+      "S3",
+      "LB dedicado"
+    ]
+  },
+  "historical_migration_deferred": true,
+  "historical_migration_principle": "SANDBOX → selección → validación → transform → insert CLEAN (no full dump)",
+  "sandbox_policy": "digitaliza_sandbox intacta; no es production",
+  "rollback": {
+    "frontend": "redeploy Vercel deployment anterior",
+    "backend": "redeploy Railway release anterior",
+    "database": "restore mysqldump pre-migrate"
+  },
+  "blockers": [
+    "Frontend npm run build falla (292 errores TypeScript; tsc es parte del build real de Vercel)."
+  ],
+  "implemented_in_repo": [
+    "GET /health",
+    "gunicorn + Procfile + railway.toml",
+    "production DB guard (forbidden names)",
+    "DATABASE_URL support",
+    "JSON 404/405/500 handlers",
+    "bootstrap_pilot_admin.py",
+    "migration_from_zero_test.py",
+    "Frontend vercel.json SPA rewrites"
+  ]
+}

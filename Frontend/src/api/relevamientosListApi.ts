@@ -1,0 +1,132 @@
+import { apiClient } from "./apiClient";
+
+export interface IRelevadorRef {
+  id: number;
+  nombre: string;
+}
+
+export interface IRelevamientoListItem {
+  id: number;
+  fecha: string | null;
+  relevadores?: IRelevadorRef[];
+  relevadores_label?: string | null;
+  relevador_ids?: number[];
+  calle: string | null;
+  calle_raw?: string | null;
+  calle_cargada?: string | null;
+  numero: string | null;
+  numero_esquina?: string | null;
+  numero_tipo?: string | null;
+  calle_ingresada?: string | null;
+  rubro: string | null;
+  domicilio_id?: number | null;
+  calle_normalizada?: string | null;
+  esquina_normalizada?: string | null;
+  esquina_catalogo_id?: number | null;
+  esquina_status?: string | null;
+  esquina_score?: number | null;
+  calle_estado?: string | null;
+  calle_score?: number | null;
+  calle_sugerida?: string | null;
+  calle_mostrar?: string | null;
+  calle_catalogo_id?: number | null;
+  iniciador_ruta_id?: number | null;
+  iniciador_estado?: string | null;
+  editable?: boolean;
+  /** Mapea `turno_carga` en backend (MANIANA | TARDE). */
+  turno?: string | null;
+  esta_abierto?: boolean | null;
+  nombre_fantasia?: string | null;
+  angulo_esquina?: "NE" | "NO" | "SE" | "SO" | null;
+  distrito_id?: number | null;
+  distrito_codigo?: number | null;
+  distrito_nombre?: string | null;
+  distrito_mostrar?: string | null;
+}
+
+export interface IRelevamientosListMeta {
+  total: number;
+  page: number;
+  page_size: number;
+  desde: string | null;
+  hasta: string | null;
+  relevador: string | null;
+  calle: string | null;
+  numero: string | null;
+  esta_abierto?: boolean | null;
+  distrito_id?: number | null;
+}
+
+export interface IRelevamientosListResponse {
+  items: IRelevamientoListItem[];
+  meta: IRelevamientosListMeta;
+}
+
+export interface IRelevamientosListFilters {
+  desde?: string | null;
+  hasta?: string | null;
+  relevador?: string | null;
+  calle?: string | null;
+  numero?: string | null;
+  esta_abierto?: boolean | null;
+  distrito_id?: number | null;
+  page?: number;
+  page_size?: number;
+}
+
+function appendRelevamientosListParams(
+  params: Record<string, string>,
+  filters?: IRelevamientosListFilters
+): void {
+  if (filters?.desde) params.desde = filters.desde;
+  if (filters?.hasta) params.hasta = filters.hasta;
+  if (filters?.relevador) params.relevador = filters.relevador;
+  if (filters?.calle) params.calle = filters.calle;
+  if (filters?.numero) params.numero = filters.numero;
+  if (filters?.esta_abierto === true) params.esta_abierto = "true";
+  if (filters?.esta_abierto === false) params.esta_abierto = "false";
+  if (filters?.distrito_id != null && filters.distrito_id > 0) {
+    params.distrito_id = String(filters.distrito_id);
+  }
+  if (filters?.page) params.page = String(filters.page);
+  if (filters?.page_size) params.page_size = String(filters.page_size);
+}
+
+/** Listado completo sin filtro de actuación completada (p. ej. otros consumidores de API). */
+export const getRelevamientosFiltered = async (
+  filters?: IRelevamientosListFilters
+): Promise<IRelevamientosListResponse> => {
+  const params: Record<string, string> = {};
+  appendRelevamientosListParams(params, filters);
+
+  const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos", { params });
+  return data;
+};
+
+/**
+ * Bandeja "Realizados": relevamientos con iniciador RELEVAMIENTO en CUMPLIDO y actuación vinculada
+ * (cierre exitoso vía Completar trabajo).
+ */
+export const getRelevamientosRealizadosActuacionCompletadaFiltered = async (
+  filters?: IRelevamientosListFilters
+): Promise<IRelevamientosListResponse> => {
+  const params: Record<string, string> = {};
+  appendRelevamientosListParams(params, filters);
+
+  const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos/realizados", {
+    params,
+  });
+  return data;
+};
+
+export const getRelevamientosOperativosFiltered = async (
+  filters?: IRelevamientosListFilters
+): Promise<IRelevamientosListResponse> => {
+  const params: Record<string, string> = {};
+  appendRelevamientosListParams(params, filters);
+
+  const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos/gestion-operativa", {
+    params,
+  });
+  return data;
+};

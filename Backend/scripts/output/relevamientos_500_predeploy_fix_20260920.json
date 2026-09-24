@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-09-20T19:00:23.833096",
+  "ticket": "PREDEPLOY-FIX.1",
+  "mode": "FIX_REPORT",
+  "files_changed": [
+    "app/domains/relevamientos/schemas/list_filters.py",
+    "app/domains/relevamientos/routes/list.py",
+    "app/domains/relevamientos/routes/list_operativa.py",
+    "tests/test_relevamientos_list_filters_500_fix.py"
+  ],
+  "functions_changed": [
+    "RelevamientosListFilters.apply_defaults_and_validate_range",
+    "listar_relevamientos",
+    "listar_relevamientos_gestion_operativa"
+  ],
+  "root_cause_reference": "scripts/output/relevamientos_500_predeploy_diag_20260920.json",
+  "date_fix": {
+    "before": "date(next_month.year, next_month.month, next_month.day - 1)",
+    "after": "next_month - timedelta(days=1)",
+    "file": "app/domains/relevamientos/schemas/list_filters.py"
+  },
+  "validation_error_fix": {
+    "before": "jsonify({..., 'errors': e.errors()})",
+    "after": "jsonify({..., 'errors': pydantic_errors_to_cell_map(e)})",
+    "helper": "app.shared.errors.pydantic_errors_to_cell_map",
+    "pattern_source": [
+      "/actuaciones/search",
+      "/api/denuncias"
+    ]
+  },
+  "list_operativa_changed": true,
+  "tests": {
+    "commands": [
+      "C:\\Users\\pablo\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -m pytest -o addopts= tests/test_relevamientos_list_filters_500_fix.py tests/test_rel_gestion_relevamientos_2_filters.py tests/test_phase1_jwt_guard.py -q --tb=no"
+    ],
+    "exit_code": 0,
+    "passed": 55,
+    "failed": 0,
+    "skipped": 0,
+    "stdout_tail": ".......................................................                  [100%]\n============================== warnings summary ===============================\napp\\domains\\actuaciones\\schemas\\actuacion_patch_in.py:9\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\actuaciones\\schemas\\actuacion_patch_in.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/\n    class ActuacionPatchIn(BaseModel):\n\ntests/test_relevamientos_list_filters_500_fix.py: 6 warnings\ntests/test_phase1_jwt_guard.py: 4 warnings\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\usuarios\\security\\decorators.py:21: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)\n    return User.query.get(int(user_id))\n\ntests/test_rel_gestion_relevamientos_2_filters.py: 14 warnings\n  C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\app\\domains\\geolocalizacion\\normalizacion_calles\\services\\normalize_domicilio_service.py:29: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).\n    dom.calle_norm_updated_at = datetime.utcnow()\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n55 passed, 25 warnings in 7.11s\n\n"
+  },
+  "smoke_qa": {
+    "relevamientos_no_params": {
+      "path": "/relevamientos",
+      "status": 200,
+      "json_serializable": true,
+      "has_items": true,
+      "has_meta": true
+    },
+    "relevamientos_explicit_range": {
+      "path": "/relevamientos?desde=2026-01-01&hasta=2026-01-31",
+      "status": 200,
+      "json_serializable": true
+    },
+    "relevamientos_future_empty": {
+      "path": "/relevamientos?desde=2099-01-01&hasta=2099-01-31",
+      "status": 200,
+      "json_serializable": true,
+      "items_empty": true
+    },
+    "relevamientos_invalid_date": {
+      "path": "/relevamientos?desde=2026-02-30",
+      "status": 422,
+      "json_serializable": true
+    },
+    "relevamientos_desde_gt_hasta": {
+      "path": "/relevamientos?desde=2026-05-10&hasta=2026-05-01",
+      "status": 422,
+      "json_serializable": true
+    },
+    "profile_me": {
+      "path": "/api/profile/me",
+      "status": 200,
+      "json_serializable": true
+    },
+    "actuaciones_search": {
+      "path": "/actuaciones/search?q=20&limit=5",
+      "status": 200,
+      "json_serializable": true
+    },
+    "rutas_trabajo": {
+      "path": "/rutas-trabajo",
+      "status": 200,
+      "json_serializable": true
+    },
+    "denuncias": {
+      "path": "/api/denuncias",
+      "status": 200,
+      "json_serializable": true
+    },
+    "rubros": {
+      "path": "/catalogos/rubros",
+      "status": 200,
+      "json_serializable": true
+    }
+  },
+  "cleanup_guards": {
+    "baseline_pre": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 1970,
+        "relevador": 10,
+        "juzgado_catalogo": 842
+      }
+    },
+    "baseline_post": {
+      "database": "digitaliza_sandbox",
+      "alembic_revision": "l7m8n9o0p1q2",
+      "counts": {
+        "users": 1970,
+        "relevador": 10,
+        "juzgado_catalogo": 842
+      }
+    },
+    "unchanged": true,
+    "expected": {
+      "users": 1970,
+      "relevador": 10,
+      "juzgado_catalogo": 842,
+      "alembic_revision": "l7m8n9o0p1q2",
+      "database": "digitaliza_sandbox"
+    }
+  },
+  "db_writes_executed": false,
+  "status": "PASS"
+}

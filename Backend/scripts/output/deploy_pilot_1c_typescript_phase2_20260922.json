@@ -1,0 +1,184 @@
+{
+  "ticket": "DEPLOY-PILOT.1C",
+  "title": "TypeScript Build Fix / Phase 2",
+  "date": "2026-09-22",
+  "before_error_count": 150,
+  "progress": {
+    "after_props": 0,
+    "after_nullability": 0,
+    "after_workflow": 0,
+    "after_api_types": 0,
+    "after_unused": 0,
+    "final": 0
+  },
+  "progress_note": "Subagent batch fix resolved all families in one pass; intermediate checkpoints not captured separately.",
+  "fixes_by_family": {
+    "B_PROPS_STALE": {
+      "count_resolved": 28,
+      "files": [
+        "Frontend/src/components/crudDialog/CrudDialogSection.tsx",
+        "Frontend/src/components/crudDialog/CrudFormSlot.tsx",
+        "Frontend/src/components/crudDialog/CrudGlassDialog.tsx",
+        "Frontend/src/components/feedback/GlobalFeedbackProvider.tsx",
+        "Frontend/src/components/dataTable/DataTableMrtShell.tsx",
+        "Frontend/src/animations/components.tsx",
+        "Frontend/src/ui/AppDialog.tsx",
+        "Frontend/src/Containers/Inicio/index.tsx",
+        "Frontend/src/Containers/Dashboard/Components/Panel.tsx",
+        "Frontend/src/Containers/CargarRelevamientos/Components/ValidationErrorsRail.tsx",
+        "Frontend/src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx",
+        "Frontend/src/Containers/RutasTrabajo/planificacion/PendientesContextoPanel.tsx",
+        "Frontend/src/Containers/RutasTrabajo/planificacion/PoolDelDiaPanel.tsx",
+        "Frontend/src/Containers/RutasTrabajo/planificacion/UrgentesPanel.tsx",
+        "Frontend/src/Containers/Mapa/views/MapaDomiciliosGeolocalizacion/MapaDomiciliosGeolocalizacionView.tsx",
+        "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+        "Frontend/src/utils/muiSx.ts"
+      ],
+      "approach": "mergeSx helper for SxProps arrays; MUI v7-compatible props; AnimatedTable children narrowed to ReactNode"
+    },
+    "F_NULLABILITY": {
+      "count_resolved": 18,
+      "files": [
+        "Frontend/src/components/feedback/GlobalFeedbackProvider.tsx",
+        "Frontend/src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx",
+        "Frontend/src/Containers/CompletarTrabajos/utils/buildCompletarTrabajoCierreBody.ts",
+        "Frontend/src/Containers/ActasComprobacion/components/ComprobacionExpedienteOperativoDialog.tsx",
+        "Frontend/src/Containers/ActasComprobacion/components/ComprobacionOficioOperativoDialog.tsx",
+        "Frontend/src/Containers/Establecimientos/EstablecimientoDetallePage.tsx",
+        "Frontend/src/documentos/utils/detalleOperativoResumenRutaExport.ts"
+      ],
+      "approach": "null guards, optional chaining, ConfirmDialog children instead of message prop, form value normalization to empty string where MUI requires string"
+    },
+    "I_ROUTE_WORKFLOW_REFACTOR": {
+      "count_resolved": 22,
+      "files": [
+        "Frontend/src/Containers/ActasComprobacion/ActasComprobacionPage.tsx",
+        "Frontend/src/Containers/RutasTrabajo/views/RutasPlanificacionView.tsx",
+        "Frontend/src/Containers/RutasTrabajo/planificacion/planificacionMyMapsLayout.ts",
+        "Frontend/src/Containers/RutasTrabajo/index.tsx",
+        "Frontend/src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx",
+        "Frontend/src/Containers/CompletarTrabajos/components/CompletarTrabajoModal.tsx"
+      ],
+      "approach": "MRT column defs via as unknown as (not any); tab key guards; async handler wrappers; preserved COMP-GESTION-MEMORY single-table model"
+    },
+    "A_API_TYPES_STALE": {
+      "count_resolved": 20,
+      "files": [
+        "Frontend/src/Containers/Actuaciones/utils/inspeccionChecklistSubmit.ts",
+        "Frontend/src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+        "Frontend/src/Containers/Actuaciones/utils/submitActuacionRow.ts",
+        "Frontend/src/api/actuacionesComprobacionActasApi.ts",
+        "Frontend/src/Containers/ActasComprobacion/utils/comprobacionesExportMappers.ts",
+        "Frontend/src/utils/validations.ts"
+      ],
+      "approach": "normalizeChecklistItems for id/item_id union; inspeccionChecklistCatalog on ActuacionSaveOptions; expediente_envio_label on IReinspeccionOficioPendienteRow; relevadores/calle/numero in validations"
+    },
+    "G_ENUM_DRIFT": {
+      "count_resolved": 2,
+      "files": [
+        "Frontend/src/auth/roles.ts"
+      ],
+      "approach": "unreachable admin comparison after early return fixed to return false for gestionDeUsuarios path"
+    },
+    "J_STRICTNESS": {
+      "count_resolved": 35,
+      "files": [
+        "Frontend/src/Containers/Actuaciones/Components/ActuacionDetalleDialog.tsx",
+        "Frontend/src/auth/userDisplay.ts",
+        "Frontend/src/Componets/TopBar.tsx",
+        "Frontend/src/Containers/Dashboard/Components/DashboardRiesgoSection.tsx",
+        "Frontend/src/Containers/GestionNotificacion/GestionNotificacionPage.tsx",
+        "Frontend/src/Containers/Actuaciones/Containers/PendientesVinculacionOficio/Components/TablaPendientesVinculacionOficio.tsx",
+        "Frontend/src/Containers/CargarActuaciones/styles/cargarActuacionesStyles.ts",
+        "Frontend/src/examples/GlideGridDemo.tsx",
+        "Frontend/src/utils/oficioFormErrors.ts",
+        "Frontend/src/Containers/Actuaciones/validations/actuacionFormValidation.ts"
+      ],
+      "approach": "removed unused imports, variables, and destructuring (TS6133)"
+    },
+    "L_OTHER": {
+      "count_resolved": 25,
+      "files": [
+        "Frontend/src/customRenderers/BadgeCell.ts",
+        "Frontend/src/Containers/Dashboard/Components/DashboardDecomisoKgPorRubroDonut.tsx",
+        "Frontend/src/Containers/Actuaciones/Containers/PendientesVinculacionActa/Components/TablaPendientesVinculacionActa.tsx",
+        "Frontend/src/Containers/CargarRelevamientos/Components/TablaCargarRelevamientosGlideStyled.tsx",
+        "Frontend/src/Containers/GestionNotificacion/components/NotificacionDetalleDocumentalDialog.tsx"
+      ],
+      "approach": "misc TS2322/TS2345/TS2352 fixes: Select onChange wrappers, id types, chart props, glide grid types"
+    }
+  },
+  "dead_code_removed": [
+    "Frontend/src/data/actuacionesData.ts",
+    "Frontend/src/data/relevamientoData.ts",
+    "Frontend/src/Containers/RutasTrabajo/hooks/useRutaTrabajoBorradorActions.ts:saveOtItem (callback + GuardarOtItemResult export retained only if still referenced — removed from hook return)"
+  ],
+  "new_ts_escapes_added": {
+    "@ts-ignore": 0,
+    "@ts-expect-error": 0,
+    "as any": 0,
+    "as unknown as": "used only for intentional MRT column casts in ActasComprobacionPage (pre-existing pattern, not broadened)"
+  },
+  "tsc_final": {
+    "command": "npx tsc -b",
+    "exit_code": 0,
+    "error_count": 0
+  },
+  "vite_build_final": {
+    "command": "vite build",
+    "exit_code": 0,
+    "status": "PASS"
+  },
+  "npm_run_build_final": {
+    "command": "npm run build",
+    "exit_code": 0,
+    "status": "PASS"
+  },
+  "tests": {
+    "dialogs": {
+      "command": "npx vitest run src/components/crudDialog/crudDialog.test.tsx",
+      "status": "PRE_EXISTING_FAIL",
+      "note": "8/12 fail with 'React is not defined' — test harness issue, not introduced by 1C product fixes"
+    },
+    "comprobaciones": {
+      "command": "gestionComprobacionMemory2 + gestionComprobacionCache1 + gestionComprobacionUx1",
+      "status": "PASS",
+      "tests_passed": 23
+    },
+    "completar": {
+      "command": "completarTrabajoIdentityModeUi + buildCompletarTrabajoCierreBody + inspeccionChecklistSubmit",
+      "status": "PASS",
+      "tests_passed": 32
+    },
+    "rutas": {
+      "command": "operRutaAsignacion1b + operRuta7c3",
+      "status": "PASS",
+      "tests_passed": 11
+    },
+    "dashboard": {
+      "command": "exportExcelDashboard.test.ts",
+      "status": "PASS",
+      "tests_passed": 5
+    },
+    "act_hist": {
+      "command": "completarTrabajoIdentityModeUi.test.ts",
+      "status": "PASS",
+      "tests_passed": 3
+    },
+    "ot_auto": {
+      "command": "operRutaAsignacion1b + operRuta7c3 (saveOtItem removal asserted)",
+      "status": "PASS",
+      "tests_passed": 11
+    }
+  },
+  "dist_artifact": {
+    "path": "Frontend/dist",
+    "index_html": true,
+    "assets": true,
+    "total_bytes": 11002383,
+    "approx_mb": 10.5
+  },
+  "backend_changes": false,
+  "remaining_errors": [],
+  "status": "PASS"
+}

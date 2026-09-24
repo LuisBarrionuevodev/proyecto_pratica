@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-import sqlalchemy as sa
 
 from app.database import db
-from app.models.enums import Tipo, ContraEnum
 
 
 class Actuaciones(db.Model):
@@ -16,36 +14,42 @@ class Actuaciones(db.Model):
     anio = db.Column(db.Integer, nullable=False, index=True)
 
     # ✅ Guardar/leer por .value (ej "RATIFICACION DE CLAUSURA")
-    tipo = db.Column(
-        sa.Enum(
-            Tipo,
-            name="tipo_actuacion",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-            native_enum=True,   # MySQL ENUM real (como tu tabla ya tiene)
-        ),
+    tipo = db.Column(db.String(255), nullable=True, index=True)
+
+    contraproducencia = db.Column(db.String(255), nullable=True, index=True)
+
+    # Nombre de fantasía del comercio (acta / UI). Contexto de presentación (ficha vía establecimiento_operativo).
+    nombre_local = db.Column(db.String(255), nullable=True, index=True)
+
+    # Identificador del registro en EpiCollect5 (poblado por integración/import; no canal actas manual).
+    ec5_uuid = db.Column(db.String(36), nullable=True, unique=True, index=True)
+
+    # Resultado explícito para reinspección por oficio (Completar trabajo). Solo válido si el iniciador es REINSPECCION_OFICIO.
+    resultado_cumplimiento_oficio = db.Column(
+        db.Enum("CUMPLE", "NO_CUMPLE", name="resultado_cumplimiento_oficio_enum"),
         nullable=True,
-        default=None,
-        index=True,
     )
 
-    contraproducencia = db.Column(
-        sa.Enum(
-            ContraEnum,
-            name="contraproducencia",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-            native_enum=True,
-        ),
-        nullable=True,
-        default=ContraEnum.NO_HUBO,
+    # Verificar e informar: True/False si realizó nueva inspección; NULL en ratificaciones y casos ambiguos.
+    realizo_nueva_inspeccion = db.Column(db.Boolean, nullable=True)
+
+    # Carga histórica administrativa: solo acta de comprobación (sin OT/domicilio/contribuyente formal).
+    carga_solo_comprobacion = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false(),
         index=True,
     )
+    titular_nombre_historico = db.Column(db.String(128), nullable=True)
+    titular_apellido_historico = db.Column(db.String(128), nullable=True)
+    titular_razon_social_historica = db.Column(db.String(255), nullable=True)
 
     # --- FKs (tal cual tu modelo) ---
     orden_trabajo_id = db.Column(
         db.Integer,
         db.ForeignKey("orden_trabajo.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False,
-        unique=True,
+        nullable=True,
         index=True,
     )
 
@@ -73,6 +77,14 @@ class Actuaciones(db.Model):
         index=True,
     )
 
+    establecimiento_operativo_id = db.Column(
+        db.Integer,
+        db.ForeignKey("establecimiento_operativo.id", ondelete="SET NULL", onupdate="CASCADE"),
+        nullable=True,
+        unique=False,
+        index=True,
+    )
+
     created_at = db.Column(
         db.DateTime, nullable=False, server_default=db.func.current_timestamp()
     )
@@ -88,6 +100,11 @@ class Actuaciones(db.Model):
     orden_trabajo = db.relationship("OrdenTrabajo", back_populates="actuaciones")
     comprobacion = db.relationship("Comprobacion", back_populates="actuaciones")
     domicilio = db.relationship("Domicilio", back_populates="actuaciones")
+    establecimiento_operativo = db.relationship(
+        "EstablecimientoOperativo",
+        back_populates="actuaciones",
+        foreign_keys=[establecimiento_operativo_id],
+    )
 
     clausura = db.relationship(
         "Clausura",
@@ -114,14 +131,23 @@ class Actuaciones(db.Model):
         back_populates="actuaciones",
     )
 
-    
+    actuacion_media_items = db.relationship(
+        "ActuacionMedia",
+        back_populates="actuacion",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    epicollect_detalle = db.relationship(
+        "ActuacionEpicollectDetalle",
+        back_populates="actuacion",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
     db.Index("idx_tipo_mes_anio", "tipo", "mes", "anio"),
-
-    db.UniqueConstraint(
-        "anio", "tipo", "notificacion_id",
-        name="uq_act_anio_tipo_notificacion"
-    ),
+    db.Index("ix_act_anio_tipo_notificacion", "anio", "tipo", "notificacion_id"),
     db.UniqueConstraint(
         "anio", "tipo", "comprobacion_id",
         name="uq_act_anio_tipo_comprobacion"
@@ -130,6 +156,11 @@ class Actuaciones(db.Model):
 
 
     def to_dict(self, include_relations=False):
+        rc = getattr(self, "resultado_cumplimiento_oficio", None)
+        rc_out = None
+        if rc is not None:
+            rc_out = rc.value if hasattr(rc, "value") else str(rc)
+
         data = {
             "id": self.id,
             "fecha": self.fecha.isoformat() if self.fecha else None,
@@ -137,10 +168,17 @@ class Actuaciones(db.Model):
             "anio": self.anio,
             "tipo": self.tipo.value if self.tipo else None,
             "contraproducencia": self.contraproducencia.value if self.contraproducencia else None,
+            "resultado_cumplimiento_oficio": rc_out,
+            "realizo_nueva_inspeccion": getattr(self, "realizo_nueva_inspeccion", None),
+            "carga_solo_comprobacion": bool(getattr(self, "carga_solo_comprobacion", False)),
+            "titular_nombre_historico": getattr(self, "titular_nombre_historico", None),
+            "titular_apellido_historico": getattr(self, "titular_apellido_historico", None),
+            "titular_razon_social_historica": getattr(self, "titular_razon_social_historica", None),
             "orden_trabajo_id": self.orden_trabajo_id,
             "notificacion_id": self.notificacion_id,
             "comprobacion_id": self.comprobacion_id,
             "domicilio_id": self.domicilio_id,
+            "establecimiento_operativo_id": self.establecimiento_operativo_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

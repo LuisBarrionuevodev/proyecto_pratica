@@ -1,0 +1,192 @@
+{
+  "ticket": "OT-AUTO.4",
+  "generated_at": "2026-09-21T23:52:00+00:00",
+  "status": "PASS",
+  "collision_tests": {
+    "suite": "tests/test_ot_auto_4_collision.py",
+    "database": "digitaliza_test",
+    "result": "12/12 PASS",
+    "simple": "PASS — isomorfo 4000/004003: salto único, contador=último+1",
+    "multiple": "PASS — ocupados +1/+2/+4, allocator salta bloque",
+    "first_occupied": "PASS — contador apunta a ocupado, normaliza hacia adelante",
+    "soft_deleted": "PASS — deleted_at consume número",
+    "cross_year": "PASS — numero_acta global, no reutiliza en otro año",
+    "auto_existente": "PASS — numero_secuencia_global + legacy mismo comportamiento",
+    "contiguous_block": "PASS — bloque 5 ocupados, asigna +5/+6",
+    "preview": "PASS — first/last/skipped sin writes ni cambio contador",
+    "preview_vs_publish_race": "PASS — publish recalcula tras consumo intermedio",
+    "rollback": "PASS — fallo post-alloc: 0 OT committed, contador intacto",
+    "concurrent": "PASS — 2 publishes paralelos, legacy intercalado, rangos disjuntos",
+    "patch_occupied_counter": "PASS — admin PATCH normaliza effective >= requested"
+  },
+  "allocator_semantics": {
+    "next_value_meaning": "primer valor desde donde comenzar la búsqueda; NO garantiza el próximo asignable",
+    "occupation_rule": "orden_trabajo.numero_acta == format_ot_display(candidate), cualquier año, incluye soft-deleted y legacy sin secuencia",
+    "forbidden": "MAX(numero_acta)+1 como allocator",
+    "shared_helper": "next_available_candidates (preview + publish)",
+    "counter_after_n": "primer candidato posterior al último inspeccionado/asignado (no start+N)",
+    "preview_no_reserve": true,
+    "lock": "SELECT orden_trabajo_contador FOR UPDATE en publicar y PATCH admin"
+  },
+  "legacy_callers_audit": {
+    "set_orden_trabajo_on_item": {
+      "classification": "RUNTIME_ENDPOINT_BLOCKED",
+      "route": "PATCH /rutas-trabajo/<id>/items/<item_id>/orden-trabajo",
+      "behavior": "RuntimeError inmediato OT-AUTO (código legacy inalcanzable)"
+    },
+    "liberar_orden_trabajo_on_item": {
+      "classification": "RUNTIME_ENDPOINT_BLOCKED",
+      "route": "DELETE /rutas-trabajo/<id>/items/<item_id>/orden-trabajo",
+      "behavior": "RuntimeError inmediato OT-AUTO"
+    },
+    "frontend_saveOtItem": {
+      "classification": "DEAD_CODE",
+      "file": "useRutaTrabajoBorradorActions.ts",
+      "note": "Hook expone saveOtItem pero UI Asignación ya no lo invoca"
+    },
+    "frontend_ModalEditarOrdenTrabajoItem": {
+      "classification": "DEAD_CODE",
+      "note": "Componente legacy con Guardar OT; no referenciado en flujo activo de rutas"
+    },
+    "tests_set_orden_trabajo": {
+      "classification": "TEST",
+      "note": "15+ archivos pytest; migración diferida a OT-AUTO.5",
+      "helper": "tests/helpers/ruta_ot_test.asignar_ot_legacy_en_item para borradores legacy"
+    }
+  },
+  "database": {
+    "name": "digitaliza_sandbox",
+    "uri_masked": "localhost:3306/digitaliza_sandbox"
+  },
+  "backup": {
+    "path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_ot_auto_4_20260921_204808.sql",
+    "timestamp": "20260921_204808",
+    "size_bytes": 13001385,
+    "restore_command": "mysql -h localhost -P 3306 -u root -p digitaliza_sandbox < \"C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\backups\\digitaliza_sandbox_ot_auto_4_20260921_204808.sql\"",
+    "status": "OK"
+  },
+  "alembic_before": "o0p1q2r3s4t5",
+  "alembic_after": "o0p1q2r3s4t5",
+  "migration": {
+    "needed": false,
+    "reason": "Ya aplicada en OT-AUTO.3",
+    "expected_before": "n9o0p1q2r3s4",
+    "expected_after": "o0p1q2r3s4t5"
+  },
+  "seed_revalidation": {
+    "seed_display": "089862",
+    "seed_value": 89862,
+    "089862_occupied": false,
+    "seed_free": true,
+    "max_numero_secuencia_global_before_qa": 89871,
+    "note": "089862 libre; hubo OT operativas auto hasta 089871 en QA previo"
+  },
+  "seed_applied": 89872,
+  "migration_counts": {
+    "pre": {
+      "orden_trabajo": 8831,
+      "actuaciones": 8098,
+      "ruta_trabajo": 2711,
+      "ruta_item": 3703
+    },
+    "post": {
+      "orden_trabajo": 8831,
+      "actuaciones": 8098,
+      "ruta_trabajo": 2711,
+      "ruta_item": 3703
+    },
+    "drift": {
+      "orden_trabajo": 0,
+      "actuaciones": 0,
+      "ruta_trabajo": 0,
+      "ruta_item": 0
+    },
+    "operational_drift": false
+  },
+  "schema_postcheck": {
+    "numero_acta_varchar10": true,
+    "numero_secuencia_global_nullable_unique": true,
+    "orden_trabajo_contador": true,
+    "orden_trabajo_contador_audit": true,
+    "legacy_numero_secuencia_global_null_count": 8829,
+    "historical_numero_acta_unchanged": true
+  },
+  "assignment_ui": {
+    "status": "PASS",
+    "no_input_ot": true,
+    "no_guardar_ot": true,
+    "no_quitar_ot": true,
+    "grupos_inspectores_mover_quitar": true,
+    "verified_by": "PanelGruposRuta.tsx + operRutaAsignacion1b.test.ts (5/5)"
+  },
+  "map_preview": {
+    "status": "PASS",
+    "component": "MapaOtSecuenciaPreview.tsx",
+    "shows_estimated_range": true,
+    "no_ot_per_card_before_publish": true,
+    "admin_counter_edit": true
+  },
+  "preview_no_write": {
+    "status": "PASS",
+    "verified_by": "test_preview_collision_no_writes + allocator read-only"
+  },
+  "publish": {
+    "status": "PASS",
+    "source": "sandbox QA previo OT-AUTO.3",
+    "sandbox_auto_ots_sample": [
+      {"orden_trabajo_id": 12107, "numero_acta": "089870", "numero_secuencia_global": 89870},
+      {"orden_trabajo_id": 12108, "numero_acta": "089871", "numero_secuencia_global": 89871}
+    ],
+    "deterministic_order": "ruta_grupo.id ASC, ruta_item.id ASC",
+    "ordenes_asignadas_source": "backend meta_publicacion (no derivar en frontend)",
+    "next_before": 89862,
+    "next_after": 89872,
+    "skipped_numbers_sandbox": "no artificial collision test en sandbox (per ticket §43)"
+  },
+  "immutability": {
+    "status": "PASS",
+    "manual_patch_blocked": true,
+    "manual_delete_blocked": true,
+    "post_publish_no_edit_ui": true
+  },
+  "no_realizado": {
+    "status": "PASS",
+    "verified_by": "OT-AUTO.3 design + liberar bloqueado; OT conservada"
+  },
+  "retry": {
+    "status": "PASS",
+    "verified_by": "test_ruta_publicar_orden_trabajo_pr11_1 retry nueva OT"
+  },
+  "admin_counter_edit": {
+    "status": "PASS",
+    "sandbox_audits": [
+      {"id": 1, "old_value": 89862, "new_value": 89869, "requested_new_value": 89869},
+      {"id": 2, "old_value": 89869, "new_value": 89870, "requested_new_value": 89870}
+    ],
+    "backward_rejected": "test_patch_contador_reject_backward"
+  },
+  "counter_audit": {
+    "status": "PASS",
+    "table": "orden_trabajo_contador_audit",
+    "fields": ["old_value", "new_value", "requested_new_value", "reason", "user_id"]
+  },
+  "legacy_drafts": {
+    "status": "PASS",
+    "rule": "items con OT manual pre-rollout preservada; auto solo items sin OT",
+    "verified_by": "test_legacy_preasignada_preservada"
+  },
+  "qa_consumed_ot_numbers": ["089870", "089871"],
+  "counter_final": 89872,
+  "frontend_tests": {
+    "operRutaAsignacion1b.test.ts": "5/5 PASS",
+    "rutaPublicarReadiness.test.ts": "3/3 PASS (OT-AUTO.3)"
+  },
+  "backend_tests": {
+    "test_ot_auto_3_secuencia.py": "11/11 PASS",
+    "test_ot_auto_4_collision.py": "12/12 PASS"
+  },
+  "deferred": {
+    "ticket": "OT-AUTO.5",
+    "scope": "Migrar tests viejos que usan set_orden_trabajo_on_item + full suite"
+  }
+}

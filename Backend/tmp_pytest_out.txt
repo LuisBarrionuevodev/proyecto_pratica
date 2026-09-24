@@ -1,0 +1,16 @@
+﻿.............................                                            [100%]
+============================== warnings summary ===============================
+app\domains\actuaciones\schemas\actuacion_patch_in.py:9
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\actuaciones\schemas\actuacion_patch_in.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ActuacionPatchIn(BaseModel):
+
+tests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_sin_params_200
+tests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_explicit_range_200
+tests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_empty_range_200
+tests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_invalid_date_422_not_500
+tests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_desde_gt_hasta_422_not_500
+tests/test_relevamientos_list_filters_500_fix.py::test_get_relevamientos_gestion_operativa_invalid_date_422
+  C:\Users\pablo\OneDrive\Escritorio\proyecto_pratica\Backend\app\domains\usuarios\security\decorators.py:21: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    return User.query.get(int(user_id))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

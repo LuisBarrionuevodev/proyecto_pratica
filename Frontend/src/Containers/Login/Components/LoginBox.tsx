@@ -1,9 +1,17 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
+import { AppButton, AppTextField } from "../../../ui";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
-import Logo from "../assets-login/Logo.svg";
+import LogoSMT from "../../../assets/LogoSMT.svg"
+import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
 import type { JSX } from "react";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { apiClient } from "../../../api/apiClient";
+import { notifyAuthSessionRefresh } from "../../../auth/AppSessionProvider";
+import {
+    consumeSessionEndFeedback,
+    sessionEndUserMessage,
+} from "../../../auth/sessionEndFeedback";
 
 const LoginBox = (): JSX.Element => {
     
@@ -12,12 +20,30 @@ const LoginBox = (): JSX.Element => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [sessionInfo, setSessionInfo] = useState<string | null>(null);
 
-    const handleLogin = () => {
-        if (username === "PeritoMercantil3" && password === "1234") {
+    useEffect(() => {
+        const payload = consumeSessionEndFeedback();
+        if (payload) {
+            setSessionInfo(sessionEndUserMessage(payload.reason));
+        }
+    }, []);
+
+    const handleLogin = async () => {
+        try {
+            const response = await apiClient.post("/api/auth/login", {
+                username,
+                password,
+            });
+            const data = response.data;
+            if (data?.access_token) {
+                localStorage.setItem("access_token", data.access_token);
+            }
             setError("");
+            setSessionInfo(null);
+            notifyAuthSessionRefresh();
             navigate("/inicio");
-        } else {
+        } catch {
             setError("Cuenta inválida");
         }
     };
@@ -26,7 +52,8 @@ const LoginBox = (): JSX.Element => {
         <Box sx={LoginBoxGlobalStyle}>
             <Box sx={LoginBoxStyle}>
                 <Box sx={LoginLogoStyle}>
-                    <img src={Logo} alt="" style={{ width: "100px" }} />
+                    <img src={LogoSMT} alt="" style={{width:"120px"}} />
+                    <img src={TextDigitaliza} alt="" style={{ width: "200px" }} />
                 </Box>
 
                 <Box sx={LoginLogoStyle}>
@@ -36,14 +63,21 @@ const LoginBox = (): JSX.Element => {
                 </Box>
 
                 <Box sx={LoginBoxInputStyles}>
-                    <TextField 
+                    {sessionInfo && (
+                        <Alert severity="info" sx={{ mb: 1.5, textAlign: "left" }} onClose={() => setSessionInfo(null)}>
+                            {sessionInfo}
+                        </Alert>
+                    )}
+                    <AppTextField
+                        appearance="default"
                         sx={InputStyles}
                         placeholder="Usuario"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
 
-                    <TextField 
+                    <AppTextField
+                        appearance="default"
                         sx={InputStyles}
                         placeholder="Contraseña"
                         type="password"
@@ -57,9 +91,18 @@ const LoginBox = (): JSX.Element => {
                         </Typography>
                     )}
 
-                    <Button sx={ButtonStyle} onClick={handleLogin}>
+                    <AppButton
+                        dsVariant="primary"
+                        dsSize="sm"
+                        sx={[ButtonStyle, { minHeight: 25, height: 25, py: 0, boxSizing: "border-box" }]}
+                        onClick={handleLogin}
+                    >
                         Ingresar
-                    </Button>
+                    </AppButton>
+
+                    <Typography mt={2} textAlign={"center"} fontSize={14}  color="#0166FF" fontWeight={500}>¿Has olvidado tu contraseña? 
+                        <Link to={"/recuperarCuenta"} style={{fontWeight:800, textDecoration: "none", color: "#0166FF", }}> Haz click aqui</Link>
+                    </Typography>
                 </Box>
             </Box>
         </Box>

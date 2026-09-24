@@ -1,0 +1,88 @@
+{
+  "ticket": "ACT-HIST.8",
+  "date": "2026-09-21",
+  "status": "PASS",
+  "schema_migration_required": false,
+  "identity_mode_helper": {
+    "module": "app/domains/actuaciones/utils/identity_operativa_mode.py",
+    "modes": ["COMPLETE_HISTORICAL", "COMPLETE_EXISTING"],
+    "resolver": "resolver_modo_identidad_operativa(ini, act_trabajo)",
+    "origin_resolution": "ini.actuacion_id -> actuacion origen; fallback act_trabajo solo para COMPLETE_EXISTING",
+    "historical_criteria": "carga_solo_comprobacion=true + titular snapshot + sin contribuyente formal/documento",
+    "existing_criteria": "contribuyente formal + documento + rubro en origen (o act_trabajo fallback)"
+  },
+  "historical_prefill": {
+    "presenter": "_enrich_identity_verificar_informar",
+    "fields": {
+      "contrib_nombre/apellido/razon_social": "titular_*_historico via resolve_titular_grid_fields",
+      "doc_nro": null,
+      "rubro_nombre": null,
+      "calle/numero": "domicilio historico origen",
+      "identity_mode": "COMPLETE_HISTORICAL"
+    },
+    "test": "test_prefill_historical_presenter"
+  },
+  "normal_prefill": {
+    "fields": "titular + doc + rubro + domicilio desde origen formal",
+    "identity_mode": "COMPLETE_EXISTING",
+    "test": "test_prefill_existing_presenter"
+  },
+  "historical_persistence": {
+    "service": "completar_identidad_operativa_verificar_informar",
+    "integration": "completar_trabajo_cierre_service antes de aplicar_payload_actuacion",
+    "test": "test_e2e_historical_materializa_identidad_y_preserva_origen"
+  },
+  "normal_persistence": {
+    "backend_authority": "identidad_autoridad_desde_origen(ini, act_trabajo)",
+    "test": "test_e2e_existing_preserva_identidad"
+  },
+  "backend_authority": {
+    "COMPLETE_EXISTING": "resolve contribuyente/rubro desde origen; ignora payload cliente salvo tampering check",
+    "COMPLETE_HISTORICAL": "valida titular+doc+rubro en payload; resolve_contribuyente + get_rubro_o_falla"
+  },
+  "tampering_behavior": {
+    "decision": "REJECT explícito",
+    "message": "La identidad enviada en <campo> no coincide con la actuación origen.",
+    "test": "test_tampering_existing_rechaza"
+  },
+  "cow": {
+    "service": "_vincular_domicilio_operativo -> resolver_domicilio_real_desde_completar_trabajo",
+    "origin_domicilio": "intacto (contribuyente_id NULL, rubro_id NULL)",
+    "work_domicilio": "fork con contribuyente y rubro formal",
+    "origin_unchanged": "test_e2e_historical_materializa_identidad_y_preserva_origen"
+  },
+  "contribuyente_created": "resolve_contribuyente canónico en COMPLETE_HISTORICAL",
+  "rubro_materialized": "get_rubro_o_falla en domicilio operativo de actuación de trabajo",
+  "inspection_semantics": {
+    "tipo": "VERIFICAR E INFORMAR",
+    "realizo_nueva_inspeccion": true,
+    "inspeccion_adjunta": true,
+    "no_segunda_actuacion": true
+  },
+  "frontend_behavior": {
+    "COMPLETE_HISTORICAL": "titular/DNI/rubro editables; hint materialización",
+    "COMPLETE_EXISTING": "titular/DNI/rubro read-only; submit omite identidad",
+    "module": "completarTrabajoIdentityModeUi.ts + CompletarTrabajoModal.tsx"
+  },
+  "tests_backend": {
+    "file": "tests/test_act_hist_8_identity_completion.py",
+    "count": 8,
+    "result": "PASS"
+  },
+  "tests_frontend": {
+    "files": [
+      "completarTrabajoIdentityModeUi.test.ts",
+      "completarTrabajoReinspeccionNotificacionUi.test.ts"
+    ],
+    "count": 9,
+    "result": "PASS"
+  },
+  "tests_regression": {
+    "act_hist_1": "PASS",
+    "act_hist_5": "PASS",
+    "act_hist_7": "PASS",
+    "completar_trabajo_verificar_informar_hotfix": "PASS",
+    "completar_trabajo_stab4": "actuacion_id en fixture"
+  },
+  "sandbox_qa": "PENDIENTE — ejecutar manual CASO A/B tras deploy"
+}

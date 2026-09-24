@@ -1,0 +1,196 @@
+{
+  "generated_at": "2026-09-20T18:30:41.922350",
+  "phase": "2E_R_RELEVADOR",
+  "mode": "EXECUTION_MANIFEST_FROZEN",
+  "writes_executed": false,
+  "database": "digitaliza_sandbox",
+  "alembic_revision": "l7m8n9o0p1q2",
+  "source_diag_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\cleanup_catalogs_phase2e_diag_20260920.json",
+  "source_diag_sha256": "d9beb74d93d0280163523b851785e68a2c8307bdfc018f46018027652c5fa4e7",
+  "protected_manifest_path": "C:\\Users\\pablo\\OneDrive\\Escritorio\\proyecto_pratica\\Backend\\scripts\\output\\protected_operational_manifest_20260920.json",
+  "protected_manifest_sha256": "d8a1fda3a10e46dcdb90b22038d73e1e08c76754a59c96dc11cff4377a3b102e",
+  "entities": {
+    "relevador": [
+      2
+    ]
+  },
+  "classification": {
+    "CONFIRMADO_TEST_FK_FREE": 1
+  },
+  "identity_snapshot": [
+    {
+      "id": 2,
+      "nombre": "Otro Relevador QA",
+      "normalized_name": "otro relevador qa",
+      "provenance": [
+        "relevador_id_2_qa_otro",
+        "qa_name_phase1_candidates"
+      ],
+      "classification": "CONFIRMADO_TEST_FK_FREE"
+    }
+  ],
+  "fk_schema": {
+    "relevador": [
+      {
+        "child_table": "relevamiento_relevador",
+        "child_column": "relevador_id",
+        "delete_rule": "RESTRICT",
+        "update_rule": "CASCADE",
+        "physical_refs_total": 525
+      }
+    ]
+  },
+  "fk_validation": {
+    "refs_by_edge": {},
+    "total_refs": 0,
+    "cascade_refs": 0,
+    "set_null_refs": 0,
+    "restrict_refs": 0,
+    "valid_fk_free": true
+  },
+  "expected_effects": {
+    "explicit_delete": 1,
+    "cascade": 0,
+    "set_null": 0,
+    "restrict": 0
+  },
+  "expected_counts_before": {
+    "relevador": 11,
+    "relevamiento_relevador": 525
+  },
+  "expected_counts_after": {
+    "relevador": 10,
+    "relevamiento_relevador": 525
+  },
+  "canonical_survivors": [
+    1,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "canonical_survivor_count": 10,
+  "relevador_id1_preserved": {
+    "id": 1,
+    "nombre": "Fabian Esquivel",
+    "relevamiento_relevador_refs": 525
+  },
+  "protected_intersection": 0,
+  "protected_closure_detail": {
+    "by_entity": {
+      "actuaciones": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1189,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "orden_trabajo": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1176,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "inspeccion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 170,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "notificacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 168,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "comprobacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 56,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "oficio": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "expediente": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      }
+    },
+    "conflicts": [],
+    "valid": true
+  },
+  "excluded": {
+    "canonical_relevadores": [
+      1,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "juzgado_922": "NO_DELETE in 2E-R",
+    "calle_catalogo": "NO_DELETE",
+    "rubro": "NO_DELETE",
+    "users": "NO_DELETE",
+    "operational_data": "NO_DELETE"
+  },
+  "known_test_guards": {
+    "known_test_act_ids_union_count": 816,
+    "known_test_ot_ids_union_count": 832,
+    "known_test_act_ids_remaining": [],
+    "known_test_act_ids_remaining_count": 0,
+    "known_test_ot_ids_remaining": [],
+    "known_test_ot_ids_remaining_count": 0,
+    "guard_ok": true,
+    "admin_graph_safe_remaining": 0,
+    "route_residual_safe_remaining": 0,
+    "safe_users_2d_remaining": 0
+  },
+  "users_effect": {
+    "users_baseline": 1970,
+    "users_affected": 0
+  },
+  "validation": {
+    "entity_set": [
+      2
+    ],
+    "single_table_only": true,
+    "fk_refs_zero": true
+  },
+  "manifest_sha256": "f5c4babd6aeaae73d848de25aaab62329769538e5527b782d7dcf9880d5b62f4"
+}

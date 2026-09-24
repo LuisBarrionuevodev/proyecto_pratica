@@ -1,6 +1,5 @@
 export const LoginBoxGlobalStyle = {
     display: "flex",
-    marginTop: "50px",
     justifyContent: "center",
     alignContent: "center"
 }
@@ -9,7 +8,7 @@ export const LoginBoxStyle = {
     flexDirection: "column",
     alignItems: "center",
     width: "450px",
-    height: "500px",
+    height: "520px",
     borderRadius: "10px",
     background: "#FFFFFF",
     border: "1px solid #353535",
@@ -19,8 +18,10 @@ export const LoginBoxStyle = {
 
 export const LoginLogoStyle = {
     display: "flex", 
+    alignItems:"center",
     justifySelf: "center", 
     flexDirection: "column"
+    
 }
 
 export const LoginBoxInputStyles = {
@@ -57,6 +58,7 @@ export const InputStyles = {
             opacity: 0,
             transition: "opacity 0.3s ease-in-out",
             zIndex: 1,
+            pointerEvents: "none",
         },
 
         '&.Mui-focused': {

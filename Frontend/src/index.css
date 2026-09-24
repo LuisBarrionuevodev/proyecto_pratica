@@ -8,9 +8,6 @@
   outline: none !important;
 }
 
-
-
-
 @font-face {
   font-family: 'Tactic Sans';
   src: url('./assets/fonts/TacticSansExd-Reg.otf') format('opentype');
@@ -50,10 +47,198 @@
   font-family: "Tactic Sans";
 }
 
-body {
+/* Reset para layout Spotify - el body NO scrollea */
+html, body, #root {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-image: url("./assets/BackgroundInicio2.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Para rutas públicas que necesitan scroll (login, inicio, etc.) */
+body.public-route {
+  overflow: auto;
 }
 
 a{
   text-decoration: none;
+}
+
+/* =============================================================================
+   ESTILOS GLOBALES PARA GLIDE DATA GRID - Neo-Brutalismo
+   ============================================================================= */
+
+/* Estilos para el Date Picker de Glide Data Grid */
+.gdg-date-picker-overlay {
+    background-color: #2B2E34 !important;
+    border: 2px solid #000000 !important;
+    box-shadow: 6px 6px 0px #000000 !important;
+    color: #FFFFFF !important;
+}
+
+.gdg-date-picker-overlay input {
+    background-color: #1A1C20 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #3a3d44 !important;
+}
+
+.gdg-date-picker-overlay button {
+    background-color: #0166FF !important;
+    color: #FFFFFF !important;
+    border: 1px solid #000000 !important;
+}
+
+.gdg-date-picker-overlay button:hover {
+    background-color: #0055DD !important;
+}
+
+/* Botón del calendario dentro de la celda */
+.gdg-date-picker-cell-button {
+    background-color: transparent !important;
+    border: 1px solid #3a3d44 !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+}
+
+/* Estilos para el Dropdown de Glide Data Grid */
+.gdg-dropdown-overlay {
+    background-color: #2B2E34 !important;
+    border: 2px solid #000000 !important;
+    box-shadow: 6px 6px 0px #000000 !important;
+    color: #FFFFFF !important;
+}
+
+.gdg-dropdown-overlay .gdg-dropdown-item {
+    color: #FFFFFF !important;
+}
+
+.gdg-dropdown-overlay .gdg-dropdown-item:hover {
+    background-color: #3a3d44 !important;
+}
+
+.gdg-dropdown-overlay .gdg-dropdown-item.selected {
+    background-color: #0166FF !important;
+}
+
+/* Estilos para el input de edición de celda */
+.gdg-input {
+    background-color: #1A1C20 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #3a3d44 !important;
+}
+
+/* Estilos para el scrollbar de Glide */
+.dvn-scroller::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.dvn-scroller::-webkit-scrollbar-track {
+    background: #1E2127;
+}
+
+.dvn-scroller::-webkit-scrollbar-thumb {
+    background-color: #3a3d44;
+    border-radius: 6px;
+    border: 2px solid #1E2127;
+}
+
+.dvn-scroller::-webkit-scrollbar-thumb:hover {
+    background-color: #4a4d54;
+}
+
+/* Estilos para iconos de Glide Data Grid (CargarActuaciones) */
+.gdg-header-icon,
+.gdg-row-marker-icon,
+.gdg-column-menu-button {
+    color: #FFFFFF !important;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.gdg-header-icon:hover,
+.gdg-column-menu-button:hover {
+    color: #0166FF !important;
+    background-color: rgba(1, 102, 255, 0.15) !important;
+}
+
+/* Icono de la fila trailing (agregar fila) siempre azul */
+.gdg-trailing-row-indicator {
+    color: #0166FF !important;
+}
+
+/* Iconos de grupos de columnas - color blanco */
+.gdg-group-header-icon,
+.dvn-group-header svg,
+[data-testid="group-header"] svg {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
+}
+
+/* Texto de hints en trailing row */
+.gdg-trailing-hint,
+.gdg-trailing-row .gdg-cell {
+    color: #0166FF !important;
+}
+
+/* Botón de agregar (+) en trailing row - azul */
+.dvn-trailing-row svg,
+.gdg-add-row-icon {
+    color: #0166FF !important;
+    fill: #0166FF !important;
+}
+
+/* Fix para el padding extra en el scroll */
+.dvn-scroller {
+    padding-bottom: 0 !important;
+}
+
+/* Fix para el overscroll en Glide */
+.gdg-data-editor-container {
+    overflow: hidden !important;
+}
+
+/* =============================================================================
+   ESTILOS GLOBALES PARA MATERIAL REACT TABLE - Optimización
+   ============================================================================= */
+
+/* Deshabilitar TODAS las transiciones en la tabla MRT */
+.MuiTableRow-root,
+.MuiTableCell-root,
+.MuiCheckbox-root {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Banner de alerta - Fondo oscuro sin azul */
+.MuiAlert-root.MuiAlert-standardInfo {
+    background-color: #2B2E34 !important;
+    color: #FFFFFF !important;
+}
+
+.MuiAlert-root.MuiAlert-standardInfo .MuiAlert-icon {
+    color: #FFFFFF !important;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: #2B2E34 !important;
+  box-shadow: none !important;
 }

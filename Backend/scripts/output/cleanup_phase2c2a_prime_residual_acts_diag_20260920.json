@@ -1,0 +1,4949 @@
+{
+  "generated_at": "2026-09-20T15:10:57.004013",
+  "ticket": "PREDEPLOY-CLEANUP.3H-DIAG",
+  "mode": "READ_ONLY_DIAG",
+  "writes_executed": false,
+  "baseline": {
+    "database": "digitaliza_sandbox",
+    "alembic_revision": "l7m8n9o0p1q2",
+    "counts": {
+      "users": 2803,
+      "establecimiento_operativo": 1657,
+      "ruta_trabajo": 2715,
+      "ruta_grupo": 2884,
+      "ruta_grupo_inspector": 5931,
+      "ruta_item": 3697,
+      "ruta_pool_dia": 361,
+      "iniciador_ruta": 8039,
+      "actuaciones": 8112,
+      "denuncia": 417,
+      "relevamiento": 4566,
+      "orden_trabajo": 8848,
+      "inspeccion": 898,
+      "actuaciones_inspector": 4180,
+      "acta_inspeccion_item": 52,
+      "clausura": 69,
+      "decomiso": 25,
+      "relevamiento_relevador": 525
+    },
+    "baseline_ok": true,
+    "drift": [],
+    "users_test_fk_free_post_2c2b": 833
+  },
+  "acts_38": {
+    "ids": [
+      6832,
+      6835,
+      6836,
+      6945,
+      6947,
+      6999,
+      7025,
+      7375,
+      7376,
+      7377,
+      7458,
+      7493,
+      7507,
+      7577,
+      7619,
+      7682,
+      7683,
+      7697,
+      7932,
+      7964,
+      8015,
+      8250,
+      9211,
+      9496,
+      9612,
+      9663,
+      9698,
+      9830,
+      9833,
+      9853,
+      9863,
+      9864,
+      9865,
+      9908,
+      9942,
+      9992,
+      9996,
+      10465
+    ],
+    "present": 38,
+    "family": {
+      "SET_ACT_OLD": [
+        6832,
+        6835,
+        6836,
+        6945,
+        6947,
+        6999,
+        7025,
+        7375,
+        7376,
+        7377,
+        7458,
+        7493,
+        7507,
+        7577,
+        7619,
+        7682,
+        7683,
+        7697,
+        7932,
+        7964,
+        8015,
+        8250,
+        9211,
+        9496,
+        9612,
+        9663,
+        9698,
+        9830,
+        9833,
+        9853,
+        9863,
+        9864,
+        9865,
+        9908,
+        9942,
+        9992,
+        9996,
+        10465
+      ],
+      "SET_ACT_STRUCTURED": [],
+      "SET_ACT_OLD_count": 38,
+      "SET_ACT_STRUCTURED_count": 0
+    },
+    "items": [
+      {
+        "actuacion_id": 6832,
+        "row": {
+          "id": 6832,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-29 12:48:52",
+          "orden_trabajo_id": 7261,
+          "notificacion_id": 1603,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8214,
+          "ot_numero": "B6573B",
+          "ot_created_at": "2026-07-29 12:48:52"
+        },
+        "iniciador_ruta_ids": [
+          7078
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 6835,
+        "row": {
+          "id": 6835,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-29 12:49:03",
+          "orden_trabajo_id": 7264,
+          "notificacion_id": 1606,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8217,
+          "ot_numero": "CBF36B",
+          "ot_created_at": "2026-07-29 12:49:03"
+        },
+        "iniciador_ruta_ids": [
+          7081
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 6836,
+        "row": {
+          "id": 6836,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-29 12:49:03",
+          "orden_trabajo_id": 7265,
+          "notificacion_id": 1607,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8218,
+          "ot_numero": "65403D",
+          "ot_created_at": "2026-07-29 12:49:03"
+        },
+        "iniciador_ruta_ids": [
+          7082
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 6945,
+        "row": {
+          "id": 6945,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-29 12:51:27",
+          "orden_trabajo_id": 7385,
+          "notificacion_id": 1663,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8289,
+          "ot_numero": "948A7E",
+          "ot_created_at": "2026-07-29 12:51:27"
+        },
+        "iniciador_ruta_ids": [
+          7143
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 6947,
+        "row": {
+          "id": 6947,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-29 12:51:28",
+          "orden_trabajo_id": 7387,
+          "notificacion_id": 1665,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8291,
+          "ot_numero": "43F6FE",
+          "ot_created_at": "2026-07-29 12:51:28"
+        },
+        "iniciador_ruta_ids": [
+          7145
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 6999,
+        "row": {
+          "id": 6999,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-29 13:12:31",
+          "orden_trabajo_id": 7448,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8328,
+          "ot_numero": "ACA04E",
+          "ot_created_at": "2026-07-29 13:12:31"
+        },
+        "iniciador_ruta_ids": [
+          7178
+        ],
+        "ruta_item_ids": [
+          5376
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7025,
+        "row": {
+          "id": 7025,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-29 13:14:20",
+          "orden_trabajo_id": 7474,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8356,
+          "ot_numero": "091BBA",
+          "ot_created_at": "2026-07-29 13:14:20"
+        },
+        "iniciador_ruta_ids": [
+          7184
+        ],
+        "ruta_item_ids": [
+          5382
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7375,
+        "row": {
+          "id": 7375,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-30 10:22:13",
+          "orden_trabajo_id": 7829,
+          "notificacion_id": 1785,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8778,
+          "ot_numero": "4979FB",
+          "ot_created_at": "2026-07-30 10:22:13"
+        },
+        "iniciador_ruta_ids": [
+          7440
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7376,
+        "row": {
+          "id": 7376,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-30 10:22:13",
+          "orden_trabajo_id": 7830,
+          "notificacion_id": 1786,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8779,
+          "ot_numero": "93DB6A",
+          "ot_created_at": "2026-07-30 10:22:13"
+        },
+        "iniciador_ruta_ids": [
+          7441
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7377,
+        "row": {
+          "id": 7377,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-30 10:22:13",
+          "orden_trabajo_id": 7831,
+          "notificacion_id": 1787,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8780,
+          "ot_numero": "0D087C",
+          "ot_created_at": "2026-07-30 10:22:13"
+        },
+        "iniciador_ruta_ids": [
+          7442
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7458,
+        "row": {
+          "id": 7458,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-30 10:30:47",
+          "orden_trabajo_id": 7913,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8896,
+          "ot_numero": "1A860C",
+          "ot_created_at": "2026-07-30 10:30:47"
+        },
+        "iniciador_ruta_ids": [
+          7520
+        ],
+        "ruta_item_ids": [
+          5637
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7493,
+        "row": {
+          "id": 7493,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-30 10:58:51",
+          "orden_trabajo_id": 7949,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8975,
+          "ot_numero": "CA538A",
+          "ot_created_at": "2026-07-30 10:58:51"
+        },
+        "iniciador_ruta_ids": [
+          7531
+        ],
+        "ruta_item_ids": [
+          5641
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7507,
+        "row": {
+          "id": 7507,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-30 10:58:54",
+          "orden_trabajo_id": 7963,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 8991,
+          "ot_numero": "734D5F",
+          "ot_created_at": "2026-07-30 10:58:54"
+        },
+        "iniciador_ruta_ids": [
+          7536
+        ],
+        "ruta_item_ids": [
+          5646
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7577,
+        "row": {
+          "id": 7577,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-30 10:59:35",
+          "orden_trabajo_id": 8033,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9094,
+          "ot_numero": "FA75CE",
+          "ot_created_at": "2026-07-30 10:59:35"
+        },
+        "iniciador_ruta_ids": [
+          7605
+        ],
+        "ruta_item_ids": [
+          5686
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7619,
+        "row": {
+          "id": 7619,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-30 10:59:50",
+          "orden_trabajo_id": 8076,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9144,
+          "ot_numero": "E1105C",
+          "ot_created_at": "2026-07-30 10:59:50"
+        },
+        "iniciador_ruta_ids": [
+          7635
+        ],
+        "ruta_item_ids": [
+          5701
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7682,
+        "row": {
+          "id": 7682,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-30 11:00:02",
+          "orden_trabajo_id": 8144,
+          "notificacion_id": 1884,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9207,
+          "ot_numero": "E7339D",
+          "ot_created_at": "2026-07-30 11:00:02"
+        },
+        "iniciador_ruta_ids": [
+          7694
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7683,
+        "row": {
+          "id": 7683,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-30 11:00:02",
+          "orden_trabajo_id": 8145,
+          "notificacion_id": 1885,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9208,
+          "ot_numero": "AD961D",
+          "ot_created_at": "2026-07-30 11:00:02"
+        },
+        "iniciador_ruta_ids": [
+          7695
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7697,
+        "row": {
+          "id": 7697,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-30 11:00:10",
+          "orden_trabajo_id": 8162,
+          "notificacion_id": 1888,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9226,
+          "ot_numero": "BE483A",
+          "ot_created_at": "2026-07-30 11:00:10"
+        },
+        "iniciador_ruta_ids": [
+          7713
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7932,
+        "row": {
+          "id": 7932,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-07-30 12:03:55",
+          "orden_trabajo_id": 8428,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9593,
+          "ot_numero": "06359C",
+          "ot_created_at": "2026-07-30 12:03:55"
+        },
+        "iniciador_ruta_ids": [
+          7969
+        ],
+        "ruta_item_ids": [
+          5970
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 7964,
+        "row": {
+          "id": 7964,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-18",
+          "created_at": "2026-07-30 12:16:58",
+          "orden_trabajo_id": 8460,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9629,
+          "ot_numero": "EF640B",
+          "ot_created_at": "2026-07-30 12:16:58"
+        },
+        "iniciador_ruta_ids": [
+          7979
+        ],
+        "ruta_item_ids": [
+          5980
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 8015,
+        "row": {
+          "id": 8015,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-18",
+          "created_at": "2026-07-31 10:44:32",
+          "orden_trabajo_id": 8511,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9685,
+          "ot_numero": "129EEC",
+          "ot_created_at": "2026-07-31 10:44:32"
+        },
+        "iniciador_ruta_ids": [
+          8004
+        ],
+        "ruta_item_ids": [
+          6003
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 8250,
+        "row": {
+          "id": 8250,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-07-31 11:06:52",
+          "orden_trabajo_id": 8748,
+          "notificacion_id": 2090,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 9850,
+          "ot_numero": "3E7F5D",
+          "ot_created_at": "2026-07-31 11:06:52"
+        },
+        "iniciador_ruta_ids": [
+          8130
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9211,
+        "row": {
+          "id": 9211,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-08-18 10:32:13",
+          "orden_trabajo_id": 9759,
+          "notificacion_id": 2340,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11030,
+          "ot_numero": "403A6C",
+          "ot_created_at": "2026-08-18 10:32:13"
+        },
+        "iniciador_ruta_ids": [
+          9169
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9496,
+        "row": {
+          "id": 9496,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-08-18 10:38:49",
+          "orden_trabajo_id": 10058,
+          "notificacion_id": 2500,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11252,
+          "ot_numero": "6CE62A",
+          "ot_created_at": "2026-08-18 10:38:49"
+        },
+        "iniciador_ruta_ids": [
+          9367
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9612,
+        "row": {
+          "id": 9612,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-08-18 10:53:10",
+          "orden_trabajo_id": 10199,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11362,
+          "ot_numero": "EC8BDA",
+          "ot_created_at": "2026-08-18 10:53:10"
+        },
+        "iniciador_ruta_ids": [
+          9479
+        ],
+        "ruta_item_ids": [
+          6889
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9663,
+        "row": {
+          "id": 9663,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-08-18 10:53:35",
+          "orden_trabajo_id": 10251,
+          "notificacion_id": 2589,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11390,
+          "ot_numero": "BB6ECA",
+          "ot_created_at": "2026-08-18 10:53:34"
+        },
+        "iniciador_ruta_ids": [
+          9506
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9698,
+        "row": {
+          "id": 9698,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 10:55:36",
+          "orden_trabajo_id": 10288,
+          "notificacion_id": 2620,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11444,
+          "ot_numero": "EBFA9D",
+          "ot_created_at": "2026-08-18 10:55:36"
+        },
+        "iniciador_ruta_ids": [
+          9546
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9830,
+        "row": {
+          "id": 9830,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-08-18 10:58:26",
+          "orden_trabajo_id": 10423,
+          "notificacion_id": 2725,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11549,
+          "ot_numero": "2461EE",
+          "ot_created_at": "2026-08-18 10:58:26"
+        },
+        "iniciador_ruta_ids": [
+          9670
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9833,
+        "row": {
+          "id": 9833,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-08-18 10:58:38",
+          "orden_trabajo_id": 10426,
+          "notificacion_id": 2728,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11552,
+          "ot_numero": "E2996E",
+          "ot_created_at": "2026-08-18 10:58:38"
+        },
+        "iniciador_ruta_ids": [
+          9673
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9853,
+        "row": {
+          "id": 9853,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 11:01:03",
+          "orden_trabajo_id": 10447,
+          "notificacion_id": 2744,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11568,
+          "ot_numero": "CF829D",
+          "ot_created_at": "2026-08-18 11:01:03"
+        },
+        "iniciador_ruta_ids": [
+          9684
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9863,
+        "row": {
+          "id": 9863,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 11:01:04",
+          "orden_trabajo_id": 10457,
+          "notificacion_id": 2754,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11578,
+          "ot_numero": "CF856C",
+          "ot_created_at": "2026-08-18 11:01:04"
+        },
+        "iniciador_ruta_ids": [
+          9685
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9864,
+        "row": {
+          "id": 9864,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 11:01:05",
+          "orden_trabajo_id": 10458,
+          "notificacion_id": 2755,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11579,
+          "ot_numero": "CF85AD",
+          "ot_created_at": "2026-08-18 11:01:05"
+        },
+        "iniciador_ruta_ids": [
+          9686
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9865,
+        "row": {
+          "id": 9865,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 11:01:05",
+          "orden_trabajo_id": 10459,
+          "notificacion_id": 2756,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11580,
+          "ot_numero": "CF85ED",
+          "ot_created_at": "2026-08-18 11:01:05"
+        },
+        "iniciador_ruta_ids": [
+          9687
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9908,
+        "row": {
+          "id": 9908,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 11:03:03",
+          "orden_trabajo_id": 10502,
+          "notificacion_id": 2799,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11623,
+          "ot_numero": "24905C",
+          "ot_created_at": "2026-08-18 11:03:03"
+        },
+        "iniciador_ruta_ids": [
+          9733
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9942,
+        "row": {
+          "id": 9942,
+          "tipo": "REINSPECCION",
+          "fecha": "2026-08-10",
+          "created_at": "2026-08-18 11:03:57",
+          "orden_trabajo_id": 10537,
+          "notificacion_id": null,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11652,
+          "ot_numero": "3B6B5A",
+          "ot_created_at": "2026-08-18 11:03:57"
+        },
+        "iniciador_ruta_ids": [
+          9781
+        ],
+        "ruta_item_ids": [
+          6972
+        ],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1",
+          "ruta_item:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9992,
+        "row": {
+          "id": 9992,
+          "tipo": "INSPECCION",
+          "fecha": "2026-06-01",
+          "created_at": "2026-08-18 11:04:15",
+          "orden_trabajo_id": 10588,
+          "notificacion_id": 2856,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11679,
+          "ot_numero": "C664CD",
+          "ot_created_at": "2026-08-18 11:04:15"
+        },
+        "iniciador_ruta_ids": [
+          9807
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 9996,
+        "row": {
+          "id": 9996,
+          "tipo": "INSPECCION",
+          "fecha": "2026-01-02",
+          "created_at": "2026-08-18 11:04:16",
+          "orden_trabajo_id": 10592,
+          "notificacion_id": 2860,
+          "comprobacion_id": null,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 11683,
+          "ot_numero": "C664DD",
+          "ot_created_at": "2026-08-18 11:04:16"
+        },
+        "iniciador_ruta_ids": [
+          9811
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      },
+      {
+        "actuacion_id": 10465,
+        "row": {
+          "id": 10465,
+          "tipo": "INSPECCION",
+          "fecha": "2026-04-05",
+          "created_at": "2026-09-02 11:51:22",
+          "orden_trabajo_id": 11094,
+          "notificacion_id": null,
+          "comprobacion_id": 2289,
+          "establecimiento_operativo_id": null,
+          "domicilio_id": 12862,
+          "ot_numero": "8430AE",
+          "ot_created_at": "2026-09-02 11:51:22"
+        },
+        "iniciador_ruta_ids": [
+          10985
+        ],
+        "ruta_item_ids": [],
+        "ruta_pool_dia_ids": [],
+        "other_incoming_fk": [],
+        "blocking_reasons": [
+          "iniciador_ruta:1"
+        ],
+        "is_blocked": true
+      }
+    ]
+  },
+  "initiators": {
+    "unique_blocker_count": 38,
+    "ids": [
+      7078,
+      7081,
+      7082,
+      7143,
+      7145,
+      7178,
+      7184,
+      7440,
+      7441,
+      7442,
+      7520,
+      7531,
+      7536,
+      7605,
+      7635,
+      7694,
+      7695,
+      7713,
+      7969,
+      7979,
+      8004,
+      8130,
+      9169,
+      9367,
+      9479,
+      9506,
+      9546,
+      9670,
+      9673,
+      9684,
+      9685,
+      9686,
+      9687,
+      9733,
+      9781,
+      9807,
+      9811,
+      10985
+    ],
+    "tipo_counts": {
+      "REINSPECCION_NOTIFICACION": 35,
+      "REINSPECCION_OFICIO": 3
+    },
+    "final_classification_counts": {
+      "SAFE_WRAPPER_AROUND_REAL": 15,
+      "SAFE_TEST_INITIATOR": 23
+    },
+    "items": [
+      {
+        "iniciador_id": 7078,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-29 12:48:52",
+        "source_fk": {
+          "notificacion_id": 1603,
+          "actuacion_id": 6832
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1603,
+            "classification": "INDETERMINADO",
+            "numero_acta": "90CB0A",
+            "created_at": "2026-07-29 12:48:52"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 6832,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1603,
+            "numero_acta": "90CB0A",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-09",
+            "fecha_vencimiento": "2026-08-05",
+            "created_at": "2026-07-29 12:48:52",
+            "updated_at": "2026-07-29 12:48:52",
+            "plazo_dias": 5,
+            "prorroga_dias": 5,
+            "actuaciones_refs": [
+              {
+                "id": 6832,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7261,
+                "domicilio_id": 8214,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "B6573B",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          6832
+        ]
+      },
+      {
+        "iniciador_id": 7081,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-29 12:49:03",
+        "source_fk": {
+          "notificacion_id": 1606,
+          "actuacion_id": 6835
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1606,
+            "classification": "INDETERMINADO",
+            "numero_acta": "E70430",
+            "created_at": "2026-07-29 12:49:03"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 6835,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1606,
+            "numero_acta": "E70430",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-09",
+            "fecha_vencimiento": "2026-07-16",
+            "created_at": "2026-07-29 12:49:03",
+            "updated_at": "2026-07-29 12:49:03",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 6835,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7264,
+                "domicilio_id": 8217,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "CBF36B",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          6835
+        ]
+      },
+      {
+        "iniciador_id": 7082,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-29 12:49:03",
+        "source_fk": {
+          "notificacion_id": 1607,
+          "actuacion_id": 6836
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1607,
+            "classification": "INDETERMINADO",
+            "numero_acta": "7E5371",
+            "created_at": "2026-07-29 12:49:03"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 6836,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1607,
+            "numero_acta": "7E5371",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-09",
+            "fecha_vencimiento": "2026-07-16",
+            "created_at": "2026-07-29 12:49:03",
+            "updated_at": "2026-07-29 12:49:03",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 6836,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7265,
+                "domicilio_id": 8218,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "65403D",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          6836
+        ]
+      },
+      {
+        "iniciador_id": 7143,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-29 12:51:27",
+        "source_fk": {
+          "notificacion_id": 1663,
+          "actuacion_id": 6945
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1663,
+            "classification": "INDETERMINADO",
+            "numero_acta": "9304BD",
+            "created_at": "2026-07-29 12:51:27"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 6945,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1663,
+            "numero_acta": "9304BD",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-09",
+            "fecha_vencimiento": "2026-08-05",
+            "created_at": "2026-07-29 12:51:27",
+            "updated_at": "2026-07-29 12:51:27",
+            "plazo_dias": 5,
+            "prorroga_dias": 5,
+            "actuaciones_refs": [
+              {
+                "id": 6945,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7385,
+                "domicilio_id": 8289,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "948A7E",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          6945
+        ]
+      },
+      {
+        "iniciador_id": 7145,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-29 12:51:28",
+        "source_fk": {
+          "notificacion_id": 1665,
+          "actuacion_id": 6947
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1665,
+            "classification": "INDETERMINADO",
+            "numero_acta": "CB8939",
+            "created_at": "2026-07-29 12:51:28"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 6947,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1665,
+            "numero_acta": "CB8939",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-09",
+            "fecha_vencimiento": "2026-08-19",
+            "created_at": "2026-07-29 12:51:28",
+            "updated_at": "2026-07-29 12:51:28",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 6947,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7387,
+                "domicilio_id": 8291,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "43F6FE",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          6947
+        ]
+      },
+      {
+        "iniciador_id": 7178,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-29 13:12:31",
+        "source_fk": {
+          "actuacion_id": 6999
+        },
+        "ruta_item_refs": [
+          5376
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "actuacion_id",
+            "source_id": 6999,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          6999
+        ]
+      },
+      {
+        "iniciador_id": 7184,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-29 13:14:20",
+        "source_fk": {
+          "actuacion_id": 7025
+        },
+        "ruta_item_refs": [
+          5382
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "actuacion_id",
+            "source_id": 7025,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7025
+        ]
+      },
+      {
+        "iniciador_id": 7440,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-30 10:22:13",
+        "source_fk": {
+          "notificacion_id": 1785,
+          "actuacion_id": 7375
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1785,
+            "classification": "INDETERMINADO",
+            "numero_acta": "692BAE",
+            "created_at": "2026-07-30 10:22:13"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7375,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1785,
+            "numero_acta": "692BAE",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-10",
+            "fecha_vencimiento": "2026-08-06",
+            "created_at": "2026-07-30 10:22:13",
+            "updated_at": "2026-07-30 10:22:13",
+            "plazo_dias": 5,
+            "prorroga_dias": 5,
+            "actuaciones_refs": [
+              {
+                "id": 7375,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7829,
+                "domicilio_id": 8778,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "4979FB",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7375
+        ]
+      },
+      {
+        "iniciador_id": 7441,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-30 10:22:13",
+        "source_fk": {
+          "notificacion_id": 1786,
+          "actuacion_id": 7376
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1786,
+            "classification": "INDETERMINADO",
+            "numero_acta": "B2ABC7",
+            "created_at": "2026-07-30 10:22:13"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7376,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1786,
+            "numero_acta": "B2ABC7",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-10",
+            "fecha_vencimiento": "2026-08-20",
+            "created_at": "2026-07-30 10:22:13",
+            "updated_at": "2026-07-30 10:22:13",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 7376,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7830,
+                "domicilio_id": 8779,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "93DB6A",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7376
+        ]
+      },
+      {
+        "iniciador_id": 7442,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-30 10:22:13",
+        "source_fk": {
+          "notificacion_id": 1787,
+          "actuacion_id": 7377
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1787,
+            "classification": "INDETERMINADO",
+            "numero_acta": "98B295",
+            "created_at": "2026-07-30 10:22:13"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7377,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1787,
+            "numero_acta": "98B295",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-10",
+            "fecha_vencimiento": "2026-08-20",
+            "created_at": "2026-07-30 10:22:13",
+            "updated_at": "2026-07-30 10:22:13",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 7377,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 7831,
+                "domicilio_id": 8780,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "0D087C",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7377
+        ]
+      },
+      {
+        "iniciador_id": 7520,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 10:30:47",
+        "source_fk": {
+          "actuacion_id": 7458
+        },
+        "ruta_item_refs": [
+          5637
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "actuacion_id",
+            "source_id": 7458,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7458
+        ]
+      },
+      {
+        "iniciador_id": 7531,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 10:58:51",
+        "source_fk": {
+          "actuacion_id": 7493
+        },
+        "ruta_item_refs": [
+          5641
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "actuacion_id",
+            "source_id": 7493,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7493
+        ]
+      },
+      {
+        "iniciador_id": 7536,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 10:58:54",
+        "source_fk": {
+          "notificacion_id": 1821,
+          "actuacion_id": 7507
+        },
+        "ruta_item_refs": [
+          5646
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1821,
+            "classification": "INDETERMINADO",
+            "numero_acta": "014C65",
+            "created_at": "2026-07-30 10:58:54"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7507,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1821,
+            "numero_acta": "014C65",
+            "anio": 2026,
+            "mes": 8,
+            "fecha_notificacion": null,
+            "fecha_vencimiento": null,
+            "created_at": "2026-07-30 10:58:54",
+            "updated_at": "2026-07-30 10:58:54",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7507
+        ]
+      },
+      {
+        "iniciador_id": 7605,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 10:59:35",
+        "source_fk": {
+          "actuacion_id": 7577
+        },
+        "ruta_item_refs": [
+          5686
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "actuacion_id",
+            "source_id": 7577,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7577
+        ]
+      },
+      {
+        "iniciador_id": 7635,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 10:59:50",
+        "source_fk": {
+          "notificacion_id": 1856,
+          "actuacion_id": 7619
+        },
+        "ruta_item_refs": [
+          5701
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1856,
+            "classification": "INDETERMINADO",
+            "numero_acta": "C367F7",
+            "created_at": "2026-07-30 10:59:50"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7619,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1856,
+            "numero_acta": "C367F7",
+            "anio": 2026,
+            "mes": 8,
+            "fecha_notificacion": null,
+            "fecha_vencimiento": null,
+            "created_at": "2026-07-30 10:59:50",
+            "updated_at": "2026-07-30 10:59:50",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7619
+        ]
+      },
+      {
+        "iniciador_id": 7694,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-30 11:00:02",
+        "source_fk": {
+          "notificacion_id": 1884,
+          "actuacion_id": 7682
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1884,
+            "classification": "INDETERMINADO",
+            "numero_acta": "A4789B",
+            "created_at": "2026-07-30 11:00:02"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7682,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1884,
+            "numero_acta": "A4789B",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-10",
+            "fecha_vencimiento": "2026-08-20",
+            "created_at": "2026-07-30 11:00:02",
+            "updated_at": "2026-07-30 11:00:02",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 7682,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 8144,
+                "domicilio_id": 9207,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "E7339D",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7682
+        ]
+      },
+      {
+        "iniciador_id": 7695,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-30 11:00:02",
+        "source_fk": {
+          "notificacion_id": 1885,
+          "actuacion_id": 7683
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1885,
+            "classification": "INDETERMINADO",
+            "numero_acta": "AA361F",
+            "created_at": "2026-07-30 11:00:02"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7683,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1885,
+            "numero_acta": "AA361F",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-10",
+            "fecha_vencimiento": "2026-08-20",
+            "created_at": "2026-07-30 11:00:02",
+            "updated_at": "2026-07-30 11:00:02",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 7683,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 8145,
+                "domicilio_id": 9208,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "AD961D",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7683
+        ]
+      },
+      {
+        "iniciador_id": 7713,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 11:00:10",
+        "source_fk": {
+          "notificacion_id": 1888,
+          "actuacion_id": 7697
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 1888,
+            "classification": "INDETERMINADO",
+            "numero_acta": "EC49C2",
+            "created_at": "2026-07-30 11:00:10"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7697,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 1888,
+            "numero_acta": "EC49C2",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-10",
+            "fecha_vencimiento": "2026-07-17",
+            "created_at": "2026-07-30 11:00:10",
+            "updated_at": "2026-07-30 11:00:10",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 7697,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 8162,
+                "domicilio_id": 9226,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "BE483A",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7697
+        ]
+      },
+      {
+        "iniciador_id": 7969,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 12:03:55",
+        "source_fk": {
+          "actuacion_id": 7932
+        },
+        "ruta_item_refs": [
+          5970
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "actuacion_id",
+            "source_id": 7932,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7932
+        ]
+      },
+      {
+        "iniciador_id": 7979,
+        "tipo_iniciador": "REINSPECCION_OFICIO",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-30 12:16:58",
+        "source_fk": {
+          "oficio_id": 1312,
+          "actuacion_id": 7964
+        },
+        "ruta_item_refs": [
+          5980
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "oficio_id",
+            "source_id": 1312,
+            "classification": "INDETERMINADO",
+            "numero_oficio": "1A94CB"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 7964,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_OFICIO",
+          "oficio": {
+            "id": 1312,
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          7964
+        ]
+      },
+      {
+        "iniciador_id": 8004,
+        "tipo_iniciador": "REINSPECCION_OFICIO",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-07-31 10:44:32",
+        "source_fk": {
+          "oficio_id": 1319,
+          "actuacion_id": 8015
+        },
+        "ruta_item_refs": [
+          6003
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "INDETERMINATE",
+        "prior_final_3f1": "OTHER_INDETERMINATE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "oficio_id",
+            "source_id": 1319,
+            "classification": "INDETERMINADO",
+            "numero_oficio": "4FF1A0"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 8015,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_OFICIO",
+          "oficio": {
+            "id": 1319,
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          8015
+        ]
+      },
+      {
+        "iniciador_id": 8130,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-07-31 11:06:52",
+        "source_fk": {
+          "notificacion_id": 2090,
+          "actuacion_id": 8250
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2090,
+            "classification": "INDETERMINADO",
+            "numero_acta": "D9305E",
+            "created_at": "2026-07-31 11:06:52"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 8250,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2090,
+            "numero_acta": "D9305E",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-11",
+            "fecha_vencimiento": "2026-08-21",
+            "created_at": "2026-07-31 11:06:52",
+            "updated_at": "2026-07-31 11:06:52",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 8250,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 8748,
+                "domicilio_id": 9850,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "3E7F5D",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          8250
+        ]
+      },
+      {
+        "iniciador_id": 9169,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-08-18 10:32:13",
+        "source_fk": {
+          "notificacion_id": 2340,
+          "actuacion_id": 9211
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2340,
+            "classification": "INDETERMINADO",
+            "numero_acta": "9B27D0",
+            "created_at": "2026-08-18 10:32:13"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9211,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2340,
+            "numero_acta": "9B27D0",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-29",
+            "fecha_vencimiento": "2026-09-08",
+            "created_at": "2026-08-18 10:32:13",
+            "updated_at": "2026-08-18 10:32:13",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 9211,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 9759,
+                "domicilio_id": 11030,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "403A6C",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9211
+        ]
+      },
+      {
+        "iniciador_id": 9367,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-08-18 10:38:49",
+        "source_fk": {
+          "notificacion_id": 2500,
+          "actuacion_id": 9496
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2500,
+            "classification": "INDETERMINADO",
+            "numero_acta": "9778BD",
+            "created_at": "2026-08-18 10:38:49"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9496,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2500,
+            "numero_acta": "9778BD",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-29",
+            "fecha_vencimiento": "2026-09-08",
+            "created_at": "2026-08-18 10:38:49",
+            "updated_at": "2026-08-18 10:38:49",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 9496,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 10058,
+                "domicilio_id": 11252,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "6CE62A",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9496
+        ]
+      },
+      {
+        "iniciador_id": 9479,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 10:53:10",
+        "source_fk": {
+          "notificacion_id": 2560,
+          "actuacion_id": 9612
+        },
+        "ruta_item_refs": [
+          6889
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2560,
+            "classification": "INDETERMINADO",
+            "numero_acta": "1A763B",
+            "created_at": "2026-08-18 10:53:10"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9612,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2560,
+            "numero_acta": "1A763B",
+            "anio": 2026,
+            "mes": 8,
+            "fecha_notificacion": null,
+            "fecha_vencimiento": null,
+            "created_at": "2026-08-18 10:53:10",
+            "updated_at": "2026-08-18 10:53:10",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9612
+        ]
+      },
+      {
+        "iniciador_id": 9506,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-08-18 10:53:35",
+        "source_fk": {
+          "notificacion_id": 2589,
+          "actuacion_id": 9663
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2589,
+            "classification": "INDETERMINADO",
+            "numero_acta": "26A60D",
+            "created_at": "2026-08-18 10:53:34"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9663,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2589,
+            "numero_acta": "26A60D",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-29",
+            "fecha_vencimiento": "2026-09-08",
+            "created_at": "2026-08-18 10:53:34",
+            "updated_at": "2026-08-18 10:53:35",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 9663,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 10251,
+                "domicilio_id": 11390,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "BB6ECA",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9663
+        ]
+      },
+      {
+        "iniciador_id": 9546,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 10:55:36",
+        "source_fk": {
+          "notificacion_id": 2620,
+          "actuacion_id": 9698
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2620,
+            "classification": "INDETERMINADO",
+            "numero_acta": "F754C5",
+            "created_at": "2026-08-18 10:55:36"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9698,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2620,
+            "numero_acta": "F754C5",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-06-08",
+            "created_at": "2026-08-18 10:55:36",
+            "updated_at": "2026-08-18 10:55:36",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 9698,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10288,
+                "domicilio_id": 11444,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "EBFA9D",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9698
+        ]
+      },
+      {
+        "iniciador_id": 9670,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-08-18 10:58:26",
+        "source_fk": {
+          "notificacion_id": 2725,
+          "actuacion_id": 9830
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2725,
+            "classification": "INDETERMINADO",
+            "numero_acta": "ACCBA6",
+            "created_at": "2026-08-18 10:58:26"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9830,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2725,
+            "numero_acta": "ACCBA6",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-29",
+            "fecha_vencimiento": "2026-09-08",
+            "created_at": "2026-08-18 10:58:26",
+            "updated_at": "2026-08-18 10:58:26",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 9830,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 10423,
+                "domicilio_id": 11549,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "2461EE",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9830
+        ]
+      },
+      {
+        "iniciador_id": 9673,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 10:58:38",
+        "source_fk": {
+          "notificacion_id": 2728,
+          "actuacion_id": 9833
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2728,
+            "classification": "INDETERMINADO",
+            "numero_acta": "5440D4",
+            "created_at": "2026-08-18 10:58:38"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9833,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2728,
+            "numero_acta": "5440D4",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-29",
+            "fecha_vencimiento": "2026-08-05",
+            "created_at": "2026-08-18 10:58:38",
+            "updated_at": "2026-08-18 10:58:38",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 9833,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 10426,
+                "domicilio_id": 11552,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "E2996E",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9833
+        ]
+      },
+      {
+        "iniciador_id": 9684,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 11:01:03",
+        "source_fk": {
+          "notificacion_id": 2744,
+          "actuacion_id": 9853
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2744,
+            "classification": "INDETERMINADO",
+            "numero_acta": "CF82AD",
+            "created_at": "2026-08-18 11:01:03"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9853,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2744,
+            "numero_acta": "CF82AD",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-07-13",
+            "created_at": "2026-08-18 11:01:03",
+            "updated_at": "2026-08-18 11:01:03",
+            "plazo_dias": 5,
+            "prorroga_dias": 10,
+            "actuaciones_refs": [
+              {
+                "id": 9853,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10447,
+                "domicilio_id": 11568,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "CF829D",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9853
+        ]
+      },
+      {
+        "iniciador_id": 9685,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-08-18 11:01:04",
+        "source_fk": {
+          "notificacion_id": 2754,
+          "actuacion_id": 9863
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2754,
+            "classification": "INDETERMINADO",
+            "numero_acta": "CF857C",
+            "created_at": "2026-08-18 11:01:04"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9863,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2754,
+            "numero_acta": "CF857C",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-09-08",
+            "created_at": "2026-08-18 11:01:04",
+            "updated_at": "2026-08-18 11:01:05",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 9863,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10457,
+                "domicilio_id": 11578,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "CF856C",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9863
+        ]
+      },
+      {
+        "iniciador_id": 9686,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 11:01:05",
+        "source_fk": {
+          "notificacion_id": 2755,
+          "actuacion_id": 9864
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2755,
+            "classification": "INDETERMINADO",
+            "numero_acta": "CF85BD",
+            "created_at": "2026-08-18 11:01:05"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9864,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2755,
+            "numero_acta": "CF85BD",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-06-08",
+            "created_at": "2026-08-18 11:01:05",
+            "updated_at": "2026-08-18 11:01:05",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 9864,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10458,
+                "domicilio_id": 11579,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "CF85AD",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9864
+        ]
+      },
+      {
+        "iniciador_id": 9687,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 11:01:05",
+        "source_fk": {
+          "notificacion_id": 2756,
+          "actuacion_id": 9865
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2756,
+            "classification": "INDETERMINADO",
+            "numero_acta": "CF85FD",
+            "created_at": "2026-08-18 11:01:05"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9865,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2756,
+            "numero_acta": "CF85FD",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-06-08",
+            "created_at": "2026-08-18 11:01:05",
+            "updated_at": "2026-08-18 11:01:05",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 9865,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10459,
+                "domicilio_id": 11580,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "CF85ED",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9865
+        ]
+      },
+      {
+        "iniciador_id": 9733,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 11:03:03",
+        "source_fk": {
+          "notificacion_id": 2799,
+          "actuacion_id": 9908
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2799,
+            "classification": "INDETERMINADO",
+            "numero_acta": "24905D",
+            "created_at": "2026-08-18 11:03:03"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9908,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2799,
+            "numero_acta": "24905D",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-06-08",
+            "created_at": "2026-08-18 11:03:03",
+            "updated_at": "2026-08-18 11:03:03",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [
+              {
+                "id": 9908,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10502,
+                "domicilio_id": 11623,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "24905C",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9908
+        ]
+      },
+      {
+        "iniciador_id": 9781,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 11:03:57",
+        "source_fk": {
+          "notificacion_id": 2828,
+          "actuacion_id": 9942
+        },
+        "ruta_item_refs": [
+          6972
+        ],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "SAFE_TEST_WRAPPER",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2828,
+            "classification": "INDETERMINADO",
+            "numero_acta": "991EBF",
+            "created_at": "2026-08-18 11:03:57"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9942,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2828,
+            "numero_acta": "991EBF",
+            "anio": 2026,
+            "mes": 8,
+            "fecha_notificacion": null,
+            "fecha_vencimiento": null,
+            "created_at": "2026-08-18 11:03:57",
+            "updated_at": "2026-08-18 11:03:57",
+            "plazo_dias": 5,
+            "prorroga_dias": 0,
+            "actuaciones_refs": [],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9942
+        ]
+      },
+      {
+        "iniciador_id": 9807,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "",
+        "created_at": "2026-08-18 11:04:15",
+        "source_fk": {
+          "notificacion_id": 2856,
+          "actuacion_id": 9992
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "ot_test_pattern"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2856,
+            "classification": "INDETERMINADO",
+            "numero_acta": "C664CE",
+            "created_at": "2026-08-18 11:04:15"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9992,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2856,
+            "numero_acta": "C664CE",
+            "anio": 2026,
+            "mes": 6,
+            "fecha_notificacion": "2026-06-01",
+            "fecha_vencimiento": "2026-07-13",
+            "created_at": "2026-08-18 11:04:15",
+            "updated_at": "2026-08-18 11:04:15",
+            "plazo_dias": 5,
+            "prorroga_dias": 10,
+            "actuaciones_refs": [
+              {
+                "id": 9992,
+                "tipo": "INSPECCION",
+                "fecha": "2026-06-01",
+                "orden_trabajo_id": 10588,
+                "domicilio_id": 11679,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "C664CD",
+                "calle": "CalleMotor",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9992
+        ]
+      },
+      {
+        "iniciador_id": 9811,
+        "tipo_iniciador": "REINSPECCION_NOTIFICACION",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "[sync notif vencidas] Anulado por reconciliaci\u00f3n: la notificaci\u00f3n asociada ya no est\u00e1 vencida operativa (p. ej. pr\u00f3rroga), fue borrada, no tiene fecha de vencimiento o no existe.",
+        "created_at": "2026-08-18 11:04:16",
+        "source_fk": {
+          "notificacion_id": 2860,
+          "actuacion_id": 9996
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_WRAPPER_AROUND_REAL",
+        "classification_reasons": [
+          "wrapper_on_preserved_notif"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": true,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "notificacion_id",
+            "source_id": 2860,
+            "classification": "INDETERMINADO",
+            "numero_acta": "C664DE",
+            "created_at": "2026-08-18 11:04:16"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 9996,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_NOTIFICACION",
+          "notificacion": {
+            "id": 2860,
+            "numero_acta": "C664DE",
+            "anio": 2026,
+            "mes": 3,
+            "fecha_notificacion": "2026-07-29",
+            "fecha_vencimiento": "2026-09-08",
+            "created_at": "2026-08-18 11:04:16",
+            "updated_at": "2026-08-18 11:04:16",
+            "plazo_dias": 5,
+            "prorroga_dias": 15,
+            "actuaciones_refs": [
+              {
+                "id": 9996,
+                "tipo": "INSPECCION",
+                "fecha": "2026-01-02",
+                "orden_trabajo_id": 10592,
+                "domicilio_id": 11683,
+                "establecimiento_operativo_id": null,
+                "ot_numero": "C664DD",
+                "calle": "CalleProrroga",
+                "dom_numero": "1",
+                "rubro": null
+              }
+            ],
+            "motivos": [],
+            "classification": "INDETERMINATE_DOCUMENT",
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false,
+            "in_source_119": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          9996
+        ]
+      },
+      {
+        "iniciador_id": 10985,
+        "tipo_iniciador": "REINSPECCION_OFICIO",
+        "estado": null,
+        "created_by_user_id": 1,
+        "observaciones": "Derivado autom\u00e1tico desde oficio OF8430/2026 y expediente respuesta 8430B2/2026",
+        "created_at": "2026-09-02 11:51:22",
+        "source_fk": {
+          "comprobacion_id": 2289,
+          "oficio_id": 1662,
+          "actuacion_id": 10465
+        },
+        "ruta_item_refs": [],
+        "ruta_pool_refs": [],
+        "route_wrapper_classification": "NONE",
+        "prior_classification_3f1": "KEEP_SOURCE_INDETERMINATE",
+        "prior_final_3f1": "KEEP_INDETERMINATE_SOURCE",
+        "final_classification": "SAFE_TEST_INITIATOR",
+        "classification_reasons": [
+          "sync_derived"
+        ],
+        "is_sync_derived": false,
+        "is_sync_annulled": false,
+        "created_by_test_user": false,
+        "source_detail": [
+          {
+            "column": "comprobacion_id",
+            "source_id": 2289,
+            "classification": "INDETERMINADO",
+            "numero_acta": "8430AF",
+            "created_at": "2026-09-02 11:51:22"
+          },
+          {
+            "column": "oficio_id",
+            "source_id": 1662,
+            "classification": "INDETERMINADO",
+            "numero_oficio": "OF8430"
+          },
+          {
+            "column": "actuacion_id",
+            "source_id": 10465,
+            "classification": "INDETERMINADO"
+          }
+        ],
+        "source_graph": {
+          "tipo": "REINSPECCION_OFICIO",
+          "comprobacion_chain": {
+            "comprobacion": [
+              {
+                "id": 2289,
+                "numero_acta": "8430AF",
+                "created_at": "2026-09-02 11:51:22"
+              }
+            ],
+            "expedientes": [
+              {
+                "id": 3103,
+                "oficio_id": null
+              },
+              {
+                "id": 3104,
+                "oficio_id": 1662
+              }
+            ],
+            "oficios": [
+              {
+                "id": 1662,
+                "numero_oficio": "OF8430",
+                "comprobacion_id": 2289
+              }
+            ],
+            "iniciadores": [
+              {
+                "id": 10985,
+                "tipo_iniciador": "REINSPECCION_OFICIO",
+                "notificacion_id": null,
+                "comprobacion_id": 2289,
+                "oficio_id": 1662,
+                "actuacion_id": 10465
+              }
+            ]
+          },
+          "comprobacion": {
+            "id": 2289,
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false
+          },
+          "oficio": {
+            "id": 1662,
+            "xlsx": "NO_MATCH_XLSX",
+            "in_protected": false
+          },
+          "graph_classification": "INDETERMINATE",
+          "actuacion_link": "CONFIRMADO_TEST_ACT"
+        },
+        "blocked_actuacion_ids": [
+          10465
+        ]
+      }
+    ]
+  },
+  "sources": {
+    "notificaciones_analyzed": 29,
+    "notificacion_classification": {
+      "2560": {
+        "notificacion_id": 2560,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_INDETERMINATE",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "1665": {
+        "notificacion_id": 1665,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2828": {
+        "notificacion_id": 2828,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_INDETERMINATE",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2589": {
+        "notificacion_id": 2589,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1821": {
+        "notificacion_id": 1821,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_INDETERMINATE",
+        "from_265_preserved_set": false,
+        "test_evidence": [],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2340": {
+        "notificacion_id": 2340,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2725": {
+        "notificacion_id": 2725,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2728": {
+        "notificacion_id": 2728,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2856": {
+        "notificacion_id": 2856,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2090": {
+        "notificacion_id": 2090,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2860": {
+        "notificacion_id": 2860,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2744": {
+        "notificacion_id": 2744,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2620": {
+        "notificacion_id": 2620,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "1856": {
+        "notificacion_id": 1856,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_INDETERMINATE",
+        "from_265_preserved_set": false,
+        "test_evidence": [],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2754": {
+        "notificacion_id": 2754,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1603": {
+        "notificacion_id": 1603,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2500": {
+        "notificacion_id": 2500,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "2755": {
+        "notificacion_id": 2755,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "1606": {
+        "notificacion_id": 1606,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "1607": {
+        "notificacion_id": 1607,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2756": {
+        "notificacion_id": 2756,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "1884": {
+        "notificacion_id": 1884,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1885": {
+        "notificacion_id": 1885,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1888": {
+        "notificacion_id": 1888,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "2799": {
+        "notificacion_id": 2799,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": false
+      },
+      "1785": {
+        "notificacion_id": 1785,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1786": {
+        "notificacion_id": 1786,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1787": {
+        "notificacion_id": 1787,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      },
+      "1663": {
+        "notificacion_id": 1663,
+        "classification": "INDETERMINATE_DOCUMENT",
+        "source_act_classification": "SOURCE_ACT_CONFIRMED_TEST",
+        "from_265_preserved_set": false,
+        "test_evidence": [
+          "numero_acta_ot_test_pattern",
+          "ot_test_pattern_on_act"
+        ],
+        "test_file_hits": [],
+        "in_source_119": true
+      }
+    }
+  },
+  "xlsx_cross": [
+    {
+      "entity": "notificacion",
+      "id": 1603,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7078
+    },
+    {
+      "entity": "notificacion",
+      "id": 1606,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7081
+    },
+    {
+      "entity": "notificacion",
+      "id": 1607,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7082
+    },
+    {
+      "entity": "notificacion",
+      "id": 1663,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7143
+    },
+    {
+      "entity": "notificacion",
+      "id": 1665,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7145
+    },
+    {
+      "entity": "notificacion",
+      "id": 1785,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7440
+    },
+    {
+      "entity": "notificacion",
+      "id": 1786,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7441
+    },
+    {
+      "entity": "notificacion",
+      "id": 1787,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7442
+    },
+    {
+      "entity": "notificacion",
+      "id": 1821,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7536
+    },
+    {
+      "entity": "notificacion",
+      "id": 1856,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7635
+    },
+    {
+      "entity": "notificacion",
+      "id": 1884,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7694
+    },
+    {
+      "entity": "notificacion",
+      "id": 1885,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7695
+    },
+    {
+      "entity": "notificacion",
+      "id": 1888,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 7713
+    },
+    {
+      "entity": "notificacion",
+      "id": 2090,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 8130
+    },
+    {
+      "entity": "notificacion",
+      "id": 2340,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9169
+    },
+    {
+      "entity": "notificacion",
+      "id": 2500,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9367
+    },
+    {
+      "entity": "notificacion",
+      "id": 2560,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9479
+    },
+    {
+      "entity": "notificacion",
+      "id": 2589,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9506
+    },
+    {
+      "entity": "notificacion",
+      "id": 2620,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9546
+    },
+    {
+      "entity": "notificacion",
+      "id": 2725,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9670
+    },
+    {
+      "entity": "notificacion",
+      "id": 2728,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9673
+    },
+    {
+      "entity": "notificacion",
+      "id": 2744,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9684
+    },
+    {
+      "entity": "notificacion",
+      "id": 2754,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9685
+    },
+    {
+      "entity": "notificacion",
+      "id": 2755,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9686
+    },
+    {
+      "entity": "notificacion",
+      "id": 2756,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9687
+    },
+    {
+      "entity": "notificacion",
+      "id": 2799,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9733
+    },
+    {
+      "entity": "notificacion",
+      "id": 2828,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9781
+    },
+    {
+      "entity": "notificacion",
+      "id": 2856,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9807
+    },
+    {
+      "entity": "notificacion",
+      "id": 2860,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 9811
+    },
+    {
+      "entity": "comprobacion",
+      "id": 2289,
+      "xlsx": "NO_MATCH_XLSX",
+      "iniciador_id": 10985
+    }
+  ],
+  "test_provenance": {
+    "test_files_scanned": [
+      "test_hotfix_reinspeccion_notificacion.py",
+      "test_hotfix_reinspeccion_notificacion_qa.py",
+      "test_ruta_publicar_orden_trabajo_pr11_1.py",
+      "test_ruta_publicar_orden_trabajo_pr11_1c.py",
+      "test_gestion_fix_10a.py",
+      "test_gestion_fix_10a_3.py",
+      "test_notificacion_prorroga_motor.py",
+      "test_oper_ruta_6g_asignacion_ruta_turno.py",
+      "test_oper_ruta_6h_pool_ruta_filtro.py"
+    ],
+    "numero_acta_hits": {},
+    "sync_observacion_pattern": "Derivado autom\u00e1tico por vencimiento de notificaci\u00f3n",
+    "admin_fallback_rule": "created_by_user_id=1 NO prueba realidad"
+  },
+  "admin_fallback_analysis": {
+    "sync_derived_count": 0,
+    "admin_creator_count": 38,
+    "test_user_creator_count": 0
+  },
+  "route_refs": {
+    "SAFE_TEST_WRAPPER_iniciadores": [
+      7178,
+      7184,
+      7520,
+      7531,
+      7536,
+      7605,
+      7635,
+      7969,
+      7979,
+      8004,
+      9479,
+      9781
+    ],
+    "KEEP_route_refs": []
+  },
+  "classification": {
+    "initiator_final": {
+      "SAFE_WRAPPER_AROUND_REAL": 15,
+      "SAFE_TEST_INITIATOR": 23
+    },
+    "allowed_labels": [
+      "SAFE_TEST_INITIATOR",
+      "SAFE_WRAPPER_AROUND_REAL",
+      "KEEP_PROTECTED_SOURCE",
+      "KEEP_REAL_SOURCE",
+      "KEEP_INDETERMINATE_SOURCE",
+      "OTHER_INDETERMINATE"
+    ],
+    "sums_to_universe": true
+  },
+  "safe_wrappers": {
+    "SAFE_RUTA_ITEM_2C2A_PRIME": [
+      5376,
+      5382,
+      5637,
+      5641,
+      5646,
+      5686,
+      5701,
+      5970,
+      5980,
+      6003,
+      6889,
+      6972
+    ],
+    "SAFE_RUTA_POOL_2C2A_PRIME": []
+  },
+  "safe_initiators": {
+    "SAFE_INITIATOR_2C2A_PRIME": [
+      7078,
+      7081,
+      7082,
+      7143,
+      7145,
+      7178,
+      7184,
+      7440,
+      7441,
+      7442,
+      7520,
+      7531,
+      7536,
+      7605,
+      7635,
+      7694,
+      7695,
+      7713,
+      7969,
+      7979,
+      8004,
+      8130,
+      9169,
+      9367,
+      9479,
+      9506,
+      9546,
+      9670,
+      9673,
+      9684,
+      9685,
+      9686,
+      9687,
+      9733,
+      9781,
+      9807,
+      9811,
+      10985
+    ],
+    "count": 38
+  },
+  "acts_unlock_simulation": {
+    "UNLOCKED_AFTER_2C2A_PRIME_count": 38,
+    "STILL_BLOCKED_count": 0,
+    "UNLOCKED_ids": [
+      6832,
+      6835,
+      6836,
+      6945,
+      6947,
+      6999,
+      7025,
+      7375,
+      7376,
+      7377,
+      7458,
+      7493,
+      7507,
+      7577,
+      7619,
+      7682,
+      7683,
+      7697,
+      7932,
+      7964,
+      8015,
+      8250,
+      9211,
+      9496,
+      9612,
+      9663,
+      9698,
+      9830,
+      9833,
+      9853,
+      9863,
+      9864,
+      9865,
+      9908,
+      9942,
+      9992,
+      9996,
+      10465
+    ],
+    "STILL_BLOCKED": [],
+    "UNLOCKED_AFTER_2C2A_PRIME_ids": [
+      6832,
+      6835,
+      6836,
+      6945,
+      6947,
+      6999,
+      7025,
+      7375,
+      7376,
+      7377,
+      7458,
+      7493,
+      7507,
+      7577,
+      7619,
+      7682,
+      7683,
+      7697,
+      7932,
+      7964,
+      8015,
+      8250,
+      9211,
+      9496,
+      9612,
+      9663,
+      9698,
+      9830,
+      9833,
+      9853,
+      9863,
+      9864,
+      9865,
+      9908,
+      9942,
+      9992,
+      9996,
+      10465
+    ],
+    "STILL_BLOCKED_ids": [],
+    "UNLOCKED_count": 38,
+    "simulation_includes": [
+      "SAFE_INITIATOR_2C2A_PRIME",
+      "SAFE_RUTA_ITEM_2C2A_PRIME",
+      "SAFE_RUTA_POOL_2C2A_PRIME"
+    ]
+  },
+  "ot_analysis": {
+    "EXCLUSIVE_TEST_count": 38,
+    "SHARED_count": 0,
+    "EXCLUSIVE_OT_ids": [
+      8144,
+      8145,
+      10457,
+      10458,
+      10459,
+      10588,
+      10199,
+      10592,
+      8162,
+      10058,
+      8033,
+      8460,
+      7385,
+      7913,
+      7387,
+      7261,
+      7264,
+      7265,
+      10502,
+      8748,
+      10251,
+      8076,
+      7949,
+      7829,
+      7830,
+      7831,
+      8511,
+      7963,
+      10537,
+      7448,
+      11094,
+      10288,
+      10423,
+      10426,
+      7474,
+      9759,
+      8428,
+      10447
+    ],
+    "SHARED_sample": [],
+    "policy": "EXCLUSIVE_TEST prepara 2C.2B'; no delete en este ticket"
+  },
+  "future_cascades": {
+    "inspeccion": {
+      "physical_rows": 0,
+      "distinct_actuaciones_id": 0,
+      "inspeccion_ids": [],
+      "rows": [],
+      "baseline": 898,
+      "expected_after": 898,
+      "prior_expected": "17/17",
+      "confirmed": false
+    },
+    "actuaciones_inspector": {
+      "physical_rows": 0,
+      "distinct_actuaciones_id": 0,
+      "all_rows": [],
+      "per_actuacion_grouping": [],
+      "resolution_9_vs_18": {
+        "verdict": "C_other_0",
+        "note": "4189-18=4171 del diag 3G fue error de simulaci\u00f3n postcount; usar physical_rows real",
+        "prior_diag_cascade_distinct": 9,
+        "prior_diag_postcount_subtracted": 18
+      },
+      "baseline": 4180,
+      "expected_after": 4180
+    },
+    "clausura": {
+      "physical_rows": 0,
+      "distinct_actuaciones_id": 0,
+      "baseline": 69,
+      "expected_after": 69
+    },
+    "decomiso": {
+      "physical_rows": 0,
+      "distinct_actuaciones_id": 0,
+      "baseline": 25,
+      "expected_after": 25
+    },
+    "acta_inspeccion_item": {
+      "physical_rows": 0,
+      "distinct_inspeccion_ids": 0,
+      "chain": "actuaciones \u2192 inspeccion \u2192 acta_inspeccion_item",
+      "rows": [],
+      "fk_delete_rule": null,
+      "baseline": 52,
+      "expected_after": 52
+    }
+  },
+  "new_orphan_docs": {
+    "NEW_ORPHAN_TEST_DOCUMENTS": {
+      "notificaciones": [
+        1603,
+        1606,
+        1607,
+        1663,
+        1665,
+        1785,
+        1786,
+        1787,
+        1884,
+        1885,
+        1888,
+        2090,
+        2340,
+        2500,
+        2589,
+        2620,
+        2725,
+        2728,
+        2744,
+        2754,
+        2755,
+        2756,
+        2799,
+        2856,
+        2860
+      ],
+      "comprobaciones": [
+        2289
+      ]
+    },
+    "policy": "NO sumar a\u00fan a set 2C.2C"
+  },
+  "reserved_orphan_docs": {
+    "orphan_notificaciones_36": {
+      "expected": 36,
+      "present": 36
+    },
+    "orphan_comprobaciones_20": {
+      "expected": 20,
+      "present": 20
+    },
+    "source_notificaciones_119": {
+      "expected": 119,
+      "present": 119
+    }
+  },
+  "protected_closure": {
+    "by_entity": {
+      "actuaciones": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1189,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "orden_trabajo": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 1176,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "inspeccion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 170,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "notificacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 168,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "comprobacion": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 56,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "oficio": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      },
+      "expediente": {
+        "planned_explicit_ids": 0,
+        "planned_cascade_ids": 0,
+        "protected_ids": 40,
+        "intersection_explicit": 0,
+        "intersection_cascade": 0,
+        "intersection_total": 0,
+        "sample_intersection": []
+      }
+    },
+    "conflicts": [],
+    "valid": true
+  },
+  "protected_comprobacion_regression": {
+    "closure_8_ids": [
+      194,
+      480,
+      481,
+      483,
+      790,
+      889,
+      2268,
+      2497
+    ],
+    "exist_in_db": {
+      "480": true,
+      "2497": true,
+      "481": true,
+      "483": true,
+      "194": true,
+      "790": true,
+      "889": true,
+      "2268": true
+    },
+    "in_expanded_protected": {
+      "480": true,
+      "2497": true,
+      "481": true,
+      "483": true,
+      "194": true,
+      "790": true,
+      "889": true,
+      "2268": true
+    },
+    "all_protected": true
+  },
+  "users_simulation": {
+    "baseline_post_2c2b": 833,
+    "after_2c2a_prime_sim": 833,
+    "after_2c2b_prime_sim": 833,
+    "incremental_prime": 0,
+    "incremental_bprime": 0
+  },
+  "safe_sets": {
+    "SAFE_RUTA_ITEM_2C2A_PRIME": [
+      5376,
+      5382,
+      5637,
+      5641,
+      5646,
+      5686,
+      5701,
+      5970,
+      5980,
+      6003,
+      6889,
+      6972
+    ],
+    "SAFE_RUTA_POOL_2C2A_PRIME": [],
+    "SAFE_INITIATOR_2C2A_PRIME": [
+      7078,
+      7081,
+      7082,
+      7143,
+      7145,
+      7178,
+      7184,
+      7440,
+      7441,
+      7442,
+      7520,
+      7531,
+      7536,
+      7605,
+      7635,
+      7694,
+      7695,
+      7713,
+      7969,
+      7979,
+      8004,
+      8130,
+      9169,
+      9367,
+      9479,
+      9506,
+      9546,
+      9670,
+      9673,
+      9684,
+      9685,
+      9686,
+      9687,
+      9733,
+      9781,
+      9807,
+      9811,
+      10985
+    ],
+    "SAFE_ACTUACIONES_AFTER_PRIME": [
+      6832,
+      6835,
+      6836,
+      6945,
+      6947,
+      6999,
+      7025,
+      7375,
+      7376,
+      7377,
+      7458,
+      7493,
+      7507,
+      7577,
+      7619,
+      7682,
+      7683,
+      7697,
+      7932,
+      7964,
+      8015,
+      8250,
+      9211,
+      9496,
+      9612,
+      9663,
+      9698,
+      9830,
+      9833,
+      9853,
+      9863,
+      9864,
+      9865,
+      9908,
+      9942,
+      9992,
+      9996,
+      10465
+    ],
+    "SAFE_OT_AFTER_PRIME": [
+      8144,
+      8145,
+      10457,
+      10458,
+      10459,
+      10588,
+      10199,
+      10592,
+      8162,
+      10058,
+      8033,
+      8460,
+      7385,
+      7913,
+      7387,
+      7261,
+      7264,
+      7265,
+      10502,
+      8748,
+      10251,
+      8076,
+      7949,
+      7829,
+      7830,
+      7831,
+      8511,
+      7963,
+      10537,
+      7448,
+      11094,
+      10288,
+      10423,
+      10426,
+      7474,
+      9759,
+      8428,
+      10447
+    ],
+    "KEEP_INITIATORS": [],
+    "KEEP_ACTUACIONES": []
+  },
+  "operational_closure_recommendation": "A: 38/38 unlock -> 2C.2A' wrappers/iniciadores -> 2C.2B' acts+OT",
+  "prior_3f1_still_blocked_cross": {
+    "acts_in_prior_still_sample": 20,
+    "note": "38 acts frozen from 2C.2B apply preserved.blocked_acts_38"
+  }
+}

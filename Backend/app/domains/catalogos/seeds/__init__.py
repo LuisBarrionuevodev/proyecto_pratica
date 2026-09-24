@@ -1,0 +1,1 @@
+"""Seeds de catálogos canónicos."""
