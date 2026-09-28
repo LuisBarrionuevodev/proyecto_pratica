@@ -12,6 +12,7 @@ import {
   errorAlertStyles,
 } from "../Actuaciones/styles/filtroStyles";
 import { GLASS_COLORS, glassSecondaryTabsSx, glassTabsSecondaryPanelBarSx } from "../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 
 const RelevamientosContainer = (): JSX.Element => {
   const [slice, setSlice] = useState<RelevamientosBandejaSlice>("pendientes");
@@ -77,7 +78,7 @@ const RelevamientosContainer = (): JSX.Element => {
 
       <Typography
         variant="body2"
-        sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
+        sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}
       >
         {slice === "pendientes"
           ? "Solo relevamientos con iniciador pendiente (editables)."

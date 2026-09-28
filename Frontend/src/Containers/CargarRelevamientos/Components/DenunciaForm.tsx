@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import axios from "axios";
 import { Alert, Box, Stack, Typography } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -18,11 +19,7 @@ import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTo
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppTextField, CardGlass } from "../../../ui";
 import { alertBaseStyles, errorAlertStyles } from "../../Actuaciones/styles/filtroStyles";
-import { DENUNCIA_MODAL_LABELS } from "../../Relevamientos/utils/denunciaModalLabels";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-const denunciaDialogFormGridSx = {
+import { DENUNCIA_MODAL_LABELS } from "../../Relevamientos/utils/denunciaModalLabels";const denunciaDialogFormGridSx = {
   display: "grid",
   gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
   gap: 2,
@@ -144,7 +141,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
       {showTitle && (
         <Typography
           sx={{
-            fontFamily: tactic,
+            fontFamily: FONT_FAMILY_UI,
             fontWeight: 700,
             fontSize: "1.1rem",
             color: GLASS_COLORS.textPrimary,
@@ -180,7 +177,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
           <Box sx={{ minWidth: 0, flex: { sm: "1 1 auto" } }}>
             <Typography
               sx={{
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 fontWeight: 700,
                 fontSize: "1rem",
                 color: GLASS_COLORS.textPrimary,
@@ -191,7 +188,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
             </Typography>
             <Typography
               sx={{
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 mt: 0.5,
                 fontSize: "0.875rem",
                 color: GLASS_COLORS.textMuted,

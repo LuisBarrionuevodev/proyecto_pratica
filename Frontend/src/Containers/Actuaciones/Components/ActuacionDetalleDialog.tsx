@@ -100,6 +100,7 @@ import {
 import { tipoIniciadorDesdeSubtipoActuacionOficio } from "../../../shared/reinspeccionOficio/reinspeccionOficioSubtipo";
 import type { ReinspeccionOficioValidationContextInput } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import { useReinspeccionOficioFormState } from "../../../shared/reinspeccionOficio/useReinspeccionOficioFormState";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import {
   MSG_VERIFICAR_LEGACY_INCONSISTENTE,
   resolveVerificarEstadoFromPersisted,
@@ -124,7 +125,7 @@ const tramiteOrigenLineaSx = {
   lineHeight: 1.5,
   opacity: 0.94,
   m: 0,
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   wordBreak: "break-word" as const,
 };
 
@@ -175,7 +176,7 @@ function opts(strings: string[]) {
 
 const sectionTitleSx = {
   color: DOC_MODAL_TEXT,
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   mb: 1.5,
   display: "block" as const,
@@ -186,7 +187,7 @@ const blockShellSx = {
   borderRadius: 2,
   bgcolor: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.08)",
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
 };
 
 /** Estilo de inputs deshabilitados en edición; referencia estable (no recrear por render). */
@@ -209,7 +210,7 @@ const edicionGrid2ColSx = {
 } as const;
 
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
-const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' } as const;
+const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI } as const;
 
 const actuacionModalChipSx = {
   bgcolor: "rgba(255,255,255,0.12)",

@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Chip, Paper, Stack, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { planificacionPanelSubtitleSx, rutasInstitutionalResumenPaperSx, rutasResumenTitleSx } from "../styles/institutionalVisual";
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-/** Botones de acción en columna (mismo ancho y alto mínimo en los tres slices). */
+import { planificacionPanelSubtitleSx, rutasInstitutionalResumenPaperSx, rutasResumenTitleSx } from "../styles/institutionalVisual";/** Botones de acción en columna (mismo ancho y alto mínimo en los tres slices). */
 export const rutaResumenHeaderAccionesColumnaSx: SxProps<Theme> = {
   width: { xs: "100%", lg: 260 },
   alignSelf: { xs: "stretch", lg: "flex-start" },
@@ -16,7 +13,7 @@ export const rutaResumenHeaderAccionesColumnaSx: SxProps<Theme> = {
 export const rutaResumenHeaderAccionButtonSx: SxProps<Theme> = {
   width: "100%",
   minHeight: 40,
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
 };
 export type RutaResumenHeaderChip = {
   key: string;

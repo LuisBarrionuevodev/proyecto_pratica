@@ -8,6 +8,7 @@ import {
 } from "../styles/formDialogStyles";
 import { AppButton } from "./AppButton";
 import { AppDialog } from "./AppDialog";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 export type ConfirmDialogProps = {
   open: boolean;
@@ -103,7 +104,7 @@ export function ConfirmDialog({
     >
       {children != null ? (
         typeof children === "string" ? (
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", fontFamily: '"Tactic Sans", sans-serif' }}>
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", fontFamily: FONT_FAMILY_UI }}>
             {children}
           </Typography>
         ) : (

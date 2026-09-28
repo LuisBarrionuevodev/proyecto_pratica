@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 type Props = {
   message?: string;
@@ -27,7 +28,7 @@ export function DashboardSectionLoader({ message = "Cargando..." }: Props) {
       <Typography
         variant="body2"
         sx={{
-          fontFamily: '"Tactic Sans", sans-serif',
+          fontFamily: FONT_FAMILY_UI,
           color: GLASS_COLORS.textSecondary,
           fontWeight: 500,
         }}

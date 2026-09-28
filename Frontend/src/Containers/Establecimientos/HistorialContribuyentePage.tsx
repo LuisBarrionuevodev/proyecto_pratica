@@ -34,6 +34,7 @@ import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../styles/functionalP
 import type { IHistorialContribuyenteRow } from "../../api/historialContribuyenteApi";
 import { buildHistorialContribuyenteColumns } from "./historialContribuyenteColumns";
 import { useHistorialContribuyente } from "./hooks/useHistorialContribuyente";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -211,7 +212,7 @@ export default function HistorialContribuyentePage() {
       {hasSearched && !loading && meta && rows.length === 0 && !error ? (
         <Typography
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             fontSize: "14px",
             color: "rgba(255,255,255,0.55)",
             py: 2,

@@ -1,4 +1,5 @@
 import { Alert, Box, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton, AppTextField } from "../../../ui";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
 import LogoSMT from "../../../assets/LogoSMT.svg"
@@ -57,7 +58,7 @@ const LoginBox = (): JSX.Element => {
                 </Box>
 
                 <Box sx={LoginLogoStyle}>
-                    <Typography sx={{ fontFamily: "Tactic Sans", fontWeight: 500, fontSize: "35px" }}>
+                    <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 500, fontSize: "35px" }}>
                         Iniciar Sesión
                     </Typography>
                 </Box>

@@ -1,5 +1,6 @@
 import type { MRT_TableOptions } from "material-react-table";
 import type { SxProps, Theme } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import {
   DATA_TABLE_MRT_GLASS_COLORS,
@@ -48,7 +49,7 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
 export const containerStyles: SxProps<Theme> = {
     width: "100%",
     height: "100%",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
 };
 
 export const wrapperStyles: SxProps<Theme> = {
@@ -64,7 +65,7 @@ export const wrapperStyles: SxProps<Theme> = {
 };
 
 export const titleStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 800,
     fontSize: { xs: "22px", sm: "38px", md: "52px" },
     color: COLORS.white,
@@ -88,7 +89,7 @@ export const exportBoxStyles: SxProps<Theme> = {
 };
 
 export const exportButtonStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 500,
     fontSize: "12px",
     color: COLORS.white,
@@ -115,7 +116,7 @@ export const legendStyles: SxProps<Theme> = {
 };
 
 export const legendTitleStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 700,
     fontSize: "16px",
     marginBottom: "12px",
@@ -123,7 +124,7 @@ export const legendTitleStyles: SxProps<Theme> = {
 };
 
 export const legendTextStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 400,
     fontSize: "14px",
     color: COLORS.white,
@@ -135,7 +136,7 @@ export const kbdStyles: React.CSSProperties = {
     backgroundColor: "#1A1C20",
     border: `1px solid #555`,
     borderRadius: "4px",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 500,
     fontSize: "12px",
     boxShadow: "1px 1px 0 #000",

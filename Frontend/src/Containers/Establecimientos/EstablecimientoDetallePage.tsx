@@ -34,6 +34,7 @@ import {
   type IEstablecimientoOperativoHistorialRow,
 } from "../../api/establecimientosOperativosApi";
 import { formatFechaDateOnlyEsAR } from "../../utils/formatFechaDateOnlyEsAR";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 
 const HIST_PAGE_SIZE = 20;
 
@@ -245,7 +246,7 @@ export default function EstablecimientoDetallePage() {
         >
           Volver al listado
         </AppButton>
-        <Typography sx={{ color: COLORS.white, fontFamily: '"Tactic Sans", sans-serif' }}>
+        <Typography sx={{ color: COLORS.white, fontFamily: FONT_FAMILY_UI }}>
           El identificador de la ficha no es válido. Usá el listado para abrir una ficha por su ID numérico.
         </Typography>
       </Stack>
@@ -314,7 +315,7 @@ export default function EstablecimientoDetallePage() {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               sx={{
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontWeight: 700,
                 fontSize: { xs: "16px", sm: "20px" },
                 color: COLORS.white,
@@ -327,7 +328,7 @@ export default function EstablecimientoDetallePage() {
             <Typography
               sx={{
                 mt: 0.75,
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "12px",
                 fontWeight: 600,
                 color: "rgba(255,255,255,0.75)",
@@ -339,7 +340,7 @@ export default function EstablecimientoDetallePage() {
             <Typography
               sx={{
                 mt: 0.75,
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "12px",
                 fontWeight: 600,
                 color: COLORS.primary,
@@ -381,7 +382,7 @@ export default function EstablecimientoDetallePage() {
         <Stack spacing={1.5}>
           <Typography
             sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "12px",
               fontWeight: 700,
               letterSpacing: "0.08em",

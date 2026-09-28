@@ -1,12 +1,9 @@
 import { Fragment } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Box, Stack, Typography } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-export type RutaFlowStep = 1 | 2 | 3;
+import { GLASS_COLORS } from "../../../styles/GlassStyles";export type RutaFlowStep = 1 | 2 | 3;
 
 const STEPS: { step: RutaFlowStep; label: string }[] = [
   { step: 1, label: "Planificación" },
@@ -80,7 +77,7 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
                 if (!disabled) onStepChange(step);
               }}
               sx={{
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "0.8rem",
                 fontWeight: active ? 700 : 600,
                 letterSpacing: "0.02em",
@@ -136,7 +133,7 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
               <Typography
                 component="span"
                 sx={{
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontSize: "inherit",
                   fontWeight: "inherit",
                   minWidth: 0,

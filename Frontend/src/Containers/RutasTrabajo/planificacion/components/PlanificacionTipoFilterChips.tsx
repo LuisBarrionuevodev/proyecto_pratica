@@ -1,11 +1,8 @@
 import { Chip, Stack, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../../theme/typography";
 
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
-import type { IPlanificacionMetricas, PlanificacionCardKey, UrgentesFiltrosAplicados } from "../types/planificacion.types";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-type ChipDef = {
+import type { IPlanificacionMetricas, PlanificacionCardKey, UrgentesFiltrosAplicados } from "../types/planificacion.types";type ChipDef = {
   key: PlanificacionCardKey;
   label: string;
   valueKey?: keyof IPlanificacionMetricas;
@@ -49,7 +46,7 @@ export type PlanificacionTipoFilterChipsProps = TotalMapaProps | UrgentesProps;
 function chipSx(active: boolean) {
   return {
     height: 24,
-    fontFamily: tactic,
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.6875rem",
     fontWeight: active ? 700 : 600,
     borderRadius: "8px",
@@ -72,7 +69,7 @@ export function PlanificacionTipoFilterChips(props: PlanificacionTipoFilterChips
     <Stack spacing={0.5} sx={{ minWidth: 0 }}>
       <Typography
         sx={{
-          fontFamily: tactic,
+          fontFamily: FONT_FAMILY_UI,
           fontSize: "0.65rem",
           fontWeight: 700,
           letterSpacing: "0.06em",

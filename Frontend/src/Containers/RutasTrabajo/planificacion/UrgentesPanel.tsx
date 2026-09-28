@@ -1,4 +1,5 @@
 import { Box, Chip, CircularProgress, Stack, Tooltip, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -17,11 +18,7 @@ import { PlanificacionIniciadorCompactCard } from "./components/PlanificacionIni
 import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
 import type { UrgentesFiltrosAplicados } from "./types/planificacion.types";
 import { UrgentesFiltroPanel } from "./UrgentesFiltroPanel";
-import { mergeSx } from "../../../utils/muiSx";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-export type UrgentesPanelProps = {
+import { mergeSx } from "../../../utils/muiSx";export type UrgentesPanelProps = {
   /** `embedded`: dentro del sidebar 7C (sin paper ni filtros duplicados). */
   variant?: "standalone" | "embedded";
   rows: IRutaIniciadorPendienteRow[];
@@ -96,7 +93,7 @@ export function UrgentesPanel({
             <CircularProgress size={26} sx={{ color: GLASS_COLORS.primary }} />
           </Box>
         ) : rows.length === 0 ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
             {emptyCopy}
           </Typography>
         ) : (

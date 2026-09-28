@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /**
  * Loader único del dashboard de Indicadores (carga inicial de todos los bloques).
@@ -25,7 +26,7 @@ export function DashboardIndicadoresPageLoader() {
       <Typography
         variant="body2"
         sx={{
-          fontFamily: '"Tactic Sans", sans-serif',
+          fontFamily: FONT_FAMILY_UI,
           color: GLASS_COLORS.textSecondary,
           fontWeight: 500,
         }}

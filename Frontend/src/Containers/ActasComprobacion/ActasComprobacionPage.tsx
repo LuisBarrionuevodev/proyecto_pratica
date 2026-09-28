@@ -176,6 +176,7 @@ import {
 } from "../GestionNotificacion/utils/notificacionEstadoOperativo";
 import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
 import { perfLog, perfTimed } from "../../utils/perfLog";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 import {
   buildClientPaginationSummary,
   DEFAULT_BANDEJA_CLIENT_PAGE_SIZE,
@@ -2156,7 +2157,7 @@ const ActasComprobacionPage = () => {
                       ml: 0,
                       "& .MuiFormControlLabel-label": {
                         color: "rgba(255,255,255,0.85)",
-                        fontFamily: '"Tactic Sans", sans-serif',
+                        fontFamily: FONT_FAMILY_UI,
                         fontSize: "0.85rem",
                       },
                     }}

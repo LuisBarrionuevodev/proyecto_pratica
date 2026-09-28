@@ -5,6 +5,7 @@ import { Box, Grid, Skeleton, Typography } from "@mui/material";
 import { GLASS_COLORS, glassContent } from "../../styles/GlassStyles";
 import { mergeSx } from "../../utils/muiSx";
 import { useAppSession } from "../../auth/AppSessionProvider";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 
 function formatFechaHoy(): string {
   return new Intl.DateTimeFormat("es-AR", {
@@ -81,7 +82,7 @@ const Inicio = (): JSX.Element => {
               <Box sx={{ maxWidth: { sm: "65%", md: "70%" } }}>
                 <Typography
                   sx={{
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontFamily: FONT_FAMILY_UI,
                     fontSize: { xs: "22px", sm: "26px", md: "28px" },
                     fontWeight: 600,
                     color: GLASS_COLORS.textPrimary,
@@ -96,7 +97,7 @@ const Inicio = (): JSX.Element => {
                 </Typography>
                 <Typography
                   sx={{
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontFamily: FONT_FAMILY_UI,
                     fontSize: { xs: "13px", sm: "14px" },
                     fontWeight: 400,
                     color: GLASS_COLORS.textMuted,
@@ -108,7 +109,7 @@ const Inicio = (): JSX.Element => {
               </Box>
               <Typography
                 sx={{
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: FONT_FAMILY_UI,
                   fontSize: { xs: "13px", sm: "14px" },
                   fontWeight: 500,
                   color: GLASS_COLORS.textPrimary,

@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../../theme/typography";
 
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
@@ -8,11 +9,7 @@ import {
   lineaPrincipalPendiente,
   rubroLineaPendiente,
   tipoIniciadorEtiquetaOperativa,
-} from "../utils/iniciadorDisplay";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-/** Ancho fijo liviano para popup de mapa (Leaflet + contenido). */
+} from "../utils/iniciadorDisplay";/** Ancho fijo liviano para popup de mapa (Leaflet + contenido). */
 const MAP_POP_CARD_WIDTH = 236;
 
 export type PlanificacionMapaGeopuntoOperativaCardProps = {
@@ -36,7 +33,7 @@ export function PlanificacionMapaGeopuntoOperativaCard({
   const tipo = tipoIniciadorEtiquetaOperativa(row)?.trim() || "—";
 
   const labelSx = {
-    fontFamily: tactic,
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.58rem",
     fontWeight: 700,
     letterSpacing: "0.04em",
@@ -47,7 +44,7 @@ export function PlanificacionMapaGeopuntoOperativaCard({
   };
 
   const valueSx = {
-    fontFamily: tactic,
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.72rem",
     fontWeight: 600,
     color: GLASS_COLORS.textPrimary,
@@ -126,7 +123,7 @@ export function PlanificacionMapaGeopuntoOperativaCard({
           {yaEnPool ? (
             <Typography
               sx={{
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "0.62rem",
                 color: GLASS_COLORS.textMuted,
                 textAlign: "center",

@@ -1,4 +1,5 @@
 import { keyframes } from "@emotion/react";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 export const TableGeneralStyles = {
     width: { xs: "250px", sm: "500px", md: "900px", lg: "900px", xl: "1200px" },
@@ -12,7 +13,7 @@ export const TableGeneralStyles = {
 }
 
 export const TableTitleStyles = {
-    fontFamily: "tactic sans",
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 800,
     fontSize: { xs: "20px", sm: "35px", md: "50px" }
 }
@@ -25,7 +26,7 @@ export const TableExportBoxStyles = {
 }
 
 export const TableExportButtonStyles = {
-    fontFamily: "Tactic Sans",
+    fontFamily: FONT_FAMILY_UI,
     textTransform: "none",
     fontSize:{xs:"12px",sm:"14px"},
     color: "#0166FF"
@@ -42,7 +43,7 @@ const shadowFade = keyframes`
 
 export const TableLoadingStyles = {
   display: "flex",
-  fontFamily: "Tactic Sans",
+  fontFamily: FONT_FAMILY_UI,
   fontSize: {xs: "25px", md:"32px"},
   fontWeight: 800,
   animation: `${shadowFade} 0.8s ease-in-out infinite alternate`,

@@ -1,5 +1,6 @@
 import { Chip } from "@mui/material";
 import type { ResultadoInspeccionUi } from "../types/establecimientos.types";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 const MAP: Record<ResultadoInspeccionUi, { border: string; color: string; bg: string }> = {
   CONFORME: { border: "#2D9F4B", color: "#6BFF6B", bg: "rgba(45, 159, 75, 0.12)" },
   APROBADO: { border: "#2D9F4B", color: "#6BFF6B", bg: "rgba(45, 159, 75, 0.12)" },
@@ -18,7 +19,7 @@ export function ResultadoInspeccionChip({ resultado }: Props) {
       variant="outlined"
       sx={{
         height: 22,
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontSize: "10px",
         fontWeight: 600,
         borderColor: s.border,

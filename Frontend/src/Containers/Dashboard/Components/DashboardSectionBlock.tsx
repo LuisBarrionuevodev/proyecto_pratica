@@ -7,6 +7,7 @@ import {
   dashboardSectionSurfaceSx,
 } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 type DashboardSectionBlockProps = {
   title: string;
@@ -25,7 +26,7 @@ export function DashboardSectionBlock({ title, subtitle, first = false, children
         <Typography
           component="h2"
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             fontWeight: 700,
             fontSize: "0.8125rem",
             letterSpacing: "0.06em",
@@ -42,7 +43,7 @@ export function DashboardSectionBlock({ title, subtitle, first = false, children
             sx={{
               display: "block",
               mt: 0.35,
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               color: GLASS_COLORS.textMuted,
               fontSize: "0.7rem",
               lineHeight: 1.35,

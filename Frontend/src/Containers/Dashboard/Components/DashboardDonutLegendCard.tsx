@@ -21,6 +21,7 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { formatDashboardCompactCount } from "../utils/formatDashboardNumbers";
 
 import { DashboardAnalyticsChartCard } from "./DashboardAnalyticsChartCard";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 
 
@@ -186,7 +187,7 @@ export function DashboardDonutLegendCard({
 
                 sx={{
 
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: FONT_FAMILY_UI,
 
                   fontWeight: 700,
 
@@ -338,7 +339,7 @@ export function DashboardDonutLegendCard({
 
                         sx={{
 
-                          fontFamily: '"Tactic Sans", sans-serif',
+                          fontFamily: FONT_FAMILY_UI,
 
                           fontWeight: 600,
 

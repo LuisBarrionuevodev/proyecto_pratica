@@ -8,6 +8,7 @@ import { moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { CompletarTrabajoModal } from "../components/CompletarTrabajoModal";
 import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
 import { useCompletarTrabajoCatalogs, useTrabajosDelDia } from "../hooks";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 export type CompletarTrabajosGridViewProps = {
   fecha: string;
@@ -54,7 +55,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
           <Typography
             variant="body1"
             sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               color: COLORS.white,
               fontWeight: 600,
               letterSpacing: "0.02em",
@@ -81,7 +82,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
       {!error && total === 0 && !loading && (
         <Typography
           variant="body2"
-          sx={{ color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' }}
+          sx={{ color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI }}
         >
           No hay trabajos pendientes para el día operativo elegido. Revisá que sea la misma fecha de la ruta (no el día del
           borrador), que la ruta esté publicada y que queden ítems EN_PROCESO.

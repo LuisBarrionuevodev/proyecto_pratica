@@ -1,13 +1,10 @@
 import type { SxProps, Theme } from "@mui/material/styles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { ICompletarTrabajoPendienteDiaResumen } from "../../../api/completarTrabajoApi";
 import { calendarDaysInMonth } from "../../../components/calendar/InstitutionalMonthCalendarGrid";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { toIsoDateLocal } from "../../../utils/dateRange";
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-/** Tono semántico de celda según cantidad de pendientes (0 / 1–5 / 6+). */
+import { toIsoDateLocal } from "../../../utils/dateRange";/** Tono semántico de celda según cantidad de pendientes (0 / 1–5 / 6+). */
 export type CompletarPendienteCeldaTono = "verde" | "amarillo" | "rojo" | "neutral";
 
 /**
@@ -105,7 +102,7 @@ export function completarCeldaTitle(
 
 /** Footer gris secundario bajo el número del día. */
 export const completarPendingFooterSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.62rem",
   fontWeight: 500,
   lineHeight: 1.2,

@@ -7,6 +7,7 @@ import {
   dashboardAnalyticsKpiValueSx,
 } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 export type DashboardKpiAccent = "primary" | "teal" | "amber" | "neutral";
 
@@ -97,7 +98,7 @@ export function DashboardAnalyticsKpiCard({
               <Typography
                 variant="caption"
                 sx={{
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: FONT_FAMILY_UI,
                   color: GLASS_COLORS.textPrimary,
                   fontWeight: 700,
                   fontSize: "0.7rem",
@@ -113,7 +114,7 @@ export function DashboardAnalyticsKpiCard({
               sx={{
                 display: "block",
                 mt: 0.5,
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 color: GLASS_COLORS.textMuted,
                 fontSize: "0.65rem",
               }}

@@ -1,4 +1,5 @@
 import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../../theme/typography";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
@@ -17,11 +18,7 @@ import {
   type PrioridadCat,
 } from "../utils/iniciadorDisplay";
 import { parseIniciadorLatLng } from "../utils/iniciadorCoords";
-import { EstablecimientoSecundarioLine } from "./EstablecimientoSecundarioLine";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-function chipPrioridadSx(cat: PrioridadCat) {
+import { EstablecimientoSecundarioLine } from "./EstablecimientoSecundarioLine";function chipPrioridadSx(cat: PrioridadCat) {
   if (cat === "ALTA") {
     return {
       borderColor: "rgba(255, 138, 128, 0.55)",
@@ -98,7 +95,7 @@ export function PlanificacionIniciadorCompactCard({
         </Stack>
         <Typography
           sx={{
-            fontFamily: tactic,
+            fontFamily: FONT_FAMILY_UI,
             fontWeight: 600,
             fontSize: "0.82rem",
             lineHeight: 1.35,
@@ -117,7 +114,7 @@ export function PlanificacionIniciadorCompactCard({
               <Typography
                 key={line}
                 sx={{
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontSize: "0.68rem",
                   fontWeight: 600,
                   lineHeight: 1.3,
@@ -133,7 +130,7 @@ export function PlanificacionIniciadorCompactCard({
         <Stack spacing={0.25} sx={{ minWidth: 0 }}>
           <Typography
             sx={{
-              fontFamily: tactic,
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "0.74rem",
               fontWeight: 700,
               lineHeight: 1.3,
@@ -146,7 +143,7 @@ export function PlanificacionIniciadorCompactCard({
           <EstablecimientoSecundarioLine item={row} />
           <Typography
             sx={{
-              fontFamily: tactic,
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "0.7rem",
               fontWeight: 500,
               lineHeight: 1.28,
@@ -159,7 +156,7 @@ export function PlanificacionIniciadorCompactCard({
           </Typography>
           {fechaTxt ? (
             <Typography
-              sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textMuted, lineHeight: 1.25 }}
+              sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.68rem", color: GLASS_COLORS.textMuted, lineHeight: 1.25 }}
             >
               {fechaTxt}
             </Typography>

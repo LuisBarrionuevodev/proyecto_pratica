@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Box, Chip, CircularProgress, LinearProgress, Stack, Typography } from "@mui/material";
 import { GeoJSON, MapContainer, Pane, TileLayer } from "react-leaflet";
 import type { Feature, FeatureCollection } from "geojson";
@@ -20,11 +21,7 @@ import type { PlanificacionUsedMarker } from "./utils/buildPlanificacionUsedMark
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-const TUCUMAN_CENTER: [number, number] = [-26.8241, -65.2226];
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-const overlaySx = {
+const TUCUMAN_CENTER: [number, number] = [-26.8241, -65.2226];const overlaySx = {
   ...glassCard,
   p: 1,
   maxWidth: 240,
@@ -161,7 +158,7 @@ export function PlanificacionMapaDistritos({
             height: "100%",
             minHeight: 280,
             "& .leaflet-container": {
-              fontFamily: tactic,
+              fontFamily: FONT_FAMILY_UI,
               background: "#1a1d22",
             },
             "& .leaflet-div-icon.planif-leaflet-pin, & .leaflet-div-icon.planif-leaflet-distrito-num, & .leaflet-div-icon.planif-leaflet-used-pin": {
@@ -249,7 +246,7 @@ export function PlanificacionMapaDistritos({
                   variant={scopeOutsideDistricts ? "filled" : "outlined"}
                   data-testid="planificacion-fuera-distritos-chip"
                   sx={{
-                    fontFamily: tactic,
+                    fontFamily: FONT_FAMILY_UI,
                     fontWeight: 700,
                     backgroundColor: scopeOutsideDistricts
                       ? GLASS_COLORS.primary
@@ -263,7 +260,7 @@ export function PlanificacionMapaDistritos({
             <Box sx={overlaySx}>
               <Typography
                 sx={{
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontSize: "0.62rem",
                   fontWeight: 700,
                   letterSpacing: "0.06em",
@@ -274,18 +271,18 @@ export function PlanificacionMapaDistritos({
                 Distrito
               </Typography>
               {scopeOutsideDistricts ? (
-                <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
+                <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
                   Fuera de distritos
                 </Typography>
               ) : distritoActivoId == null ? (
-                <Typography sx={{ fontFamily: tactic, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
+                <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 700, fontSize: "0.875rem", color: GLASS_COLORS.textPrimary }}>
                   Ninguno
                 </Typography>
               ) : (
                 <>
                   <Typography
                     sx={{
-                      fontFamily: tactic,
+                      fontFamily: FONT_FAMILY_UI,
                       fontWeight: 700,
                       fontSize: "0.875rem",
                       color: GLASS_COLORS.textPrimary,
@@ -297,10 +294,10 @@ export function PlanificacionMapaDistritos({
                   {cantidadActiva != null ? (
                     <Box sx={{ mt: 0.75 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.35 }}>
-                        <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textMuted }}>
+                        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.65rem", color: GLASS_COLORS.textMuted }}>
                           Carga
                         </Typography>
-                        <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", fontWeight: 700, color: GLASS_COLORS.primary }}>
+                        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.7rem", fontWeight: 700, color: GLASS_COLORS.primary }}>
                           {cantidadActiva}
                         </Typography>
                       </Stack>
@@ -316,12 +313,12 @@ export function PlanificacionMapaDistritos({
                           },
                         }}
                       />
-                      <Typography sx={{ fontFamily: tactic, fontSize: "0.62rem", color: GLASS_COLORS.textMuted, mt: 0.25 }}>
+                      <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.62rem", color: GLASS_COLORS.textMuted, mt: 0.25 }}>
                         Máx. {maxCant}
                       </Typography>
                     </Box>
                   ) : (
-                    <Typography sx={{ fontFamily: tactic, fontSize: "0.7rem", color: GLASS_COLORS.textMuted, mt: 0.5 }}>
+                    <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.7rem", color: GLASS_COLORS.textMuted, mt: 0.5 }}>
                       Sin dato.
                     </Typography>
                   )}
@@ -334,7 +331,7 @@ export function PlanificacionMapaDistritos({
                   onSelectDistrito(null);
                 }}
                 sx={{
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontSize: "0.68rem",
                   color: GLASS_COLORS.primary,
                   mt: 0.75,
@@ -354,7 +351,7 @@ export function PlanificacionMapaDistritos({
       )}
       {distritoCatalogo.length === 0 && !loadingCatalogo ? (
         <Box sx={{ mt: 0.75 }}>
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: "warning.light" }}>
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.68rem", color: "warning.light" }}>
             Catálogo de distritos no disponible.
           </Typography>
         </Box>

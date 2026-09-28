@@ -1,16 +1,9 @@
 import { Grid, Paper, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
-import type { IPlanificacionMetricas, PlanificacionCardKey } from "./types/planificacion.types";
-
-
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-
-
-type CardDef = {
+import type { IPlanificacionMetricas, PlanificacionCardKey } from "./types/planificacion.types";type CardDef = {
 
   key: PlanificacionCardKey;
 
@@ -90,7 +83,7 @@ export function PlanificacionSummaryCards({
 
             sx={{
 
-              fontFamily: tactic,
+              fontFamily: FONT_FAMILY_UI,
 
               fontSize: "0.7rem",
 
@@ -160,7 +153,7 @@ export function PlanificacionSummaryCards({
 
                 sx={{
 
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
 
                   fontSize: "0.65rem",
 
@@ -184,7 +177,7 @@ export function PlanificacionSummaryCards({
 
                 sx={{
 
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
 
                   fontWeight: 800,
 

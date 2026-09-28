@@ -1,3 +1,4 @@
+import { FONT_FAMILY_UI } from "../theme/typography";
 export const BoxPerfilStyle = {
     background:
         "linear-gradient(180deg, #3a3d44 0%, #2B2E34 50%, #1A1C20 100%)",
@@ -17,7 +18,7 @@ export const InputCambiarInfoStyle = {
     fontSize: "22px",
     borderRadius: "10px",
     "& .MuiInputBase-input": {
-        fontFamily: "Tactic Sans",
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
         zIndex: 1,
     },
@@ -49,7 +50,7 @@ export const InputCambiarInfoStyle = {
 export const inputDarkStyle = {
     width: "100%",
     "& .MuiInputBase-input": {
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
         color: "#FFFFFF",
         fontSize: "14px",
@@ -78,7 +79,7 @@ export const EditNombreStyle = {
 
     width: "100%",
     input: {
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 800,
         fontSize: {
             xs: "28px",
@@ -91,7 +92,7 @@ export const EditNombreStyle = {
 }
 
 export const InfoPerfilStyle = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "12px",
     color: "#fff",
     textTransform: "uppercase",
@@ -110,7 +111,7 @@ export const AvatarPerfilStye = {
 }
 
 export const NombrePerfilStyle = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 800,
     fontSize: {
         xs: "20px",
@@ -124,7 +125,7 @@ export const NombrePerfilStyle = {
 }
 
 export const RolPerfilStyle = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: {xs:"10px",sm:"14px"},
     color: "rgba(255,255,255,0.7)",
 }
@@ -132,7 +133,7 @@ export const RolPerfilStyle = {
 export const buttonStyle = {
     backgroundColor: "#0166FF",
     color: "#FFFFFF",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: "14px",
     height: "48px",

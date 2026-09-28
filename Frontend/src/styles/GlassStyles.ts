@@ -1,6 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 
 import { color as tokenColor, motion } from "../theme/tokens";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM REUTILIZABLES (optimizado para rendimiento)
@@ -93,7 +94,7 @@ export const glassSecondaryTabsSx: SxProps<Theme> = {
     alignSelf: "stretch",
     marginBottom: 0,
     minHeight: 48,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     "& .MuiTab-root": {
         color: GLASS_COLORS.textSecondary,
         textTransform: "none",
@@ -183,7 +184,7 @@ export const glassPrimaryTabsSx: SxProps<Theme> = {
     width: "100%",
     marginBottom: 0,
     minHeight: 52,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     "& .MuiTab-root": {
         color: GLASS_COLORS.textSecondary,
         textTransform: "none",
@@ -236,7 +237,7 @@ export const glassDivider: SxProps<Theme> = {
 
 // Header de sección en sidebar
 export const glassSectionHeader: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "10px",
     fontWeight: 600,
     letterSpacing: "1.5px",
@@ -249,7 +250,7 @@ export const glassSectionHeader: SxProps<Theme> = {
 
 // Header de contenido (breadcrumb "> Vista")
 export const glassContentHeader: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "13px",
     fontWeight: 500,
     color: GLASS_COLORS.textSecondary,
@@ -279,7 +280,7 @@ export const glassDialogPaperSx: SxProps<Theme> = {
 };
 
 export const glassDialogTitleSx: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "15px",
     fontWeight: 700,
     letterSpacing: "0.06em",

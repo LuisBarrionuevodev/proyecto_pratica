@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import type { IndicadoresActasPorTipo } from "../../../api/indicadoresApi";
 import { dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const ACTA_ITEMS: { key: keyof IndicadoresActasPorTipo; label: string }[] = [
   { key: "inspeccion", label: "Inspección" },
@@ -48,7 +49,7 @@ export function DashboardActasPorTipoMini({ actas, loading }: Props) {
         sx={{
           display: "block",
           mb: 0.75,
-          fontFamily: '"Tactic Sans", sans-serif',
+          fontFamily: FONT_FAMILY_UI,
           fontWeight: 600,
           color: GLASS_COLORS.textMuted,
           textTransform: "uppercase",
@@ -86,14 +87,14 @@ export function DashboardActasPorTipoMini({ actas, loading }: Props) {
                 color: GLASS_COLORS.textMuted,
                 fontSize: "0.65rem",
                 lineHeight: 1.2,
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
               }}
             >
               {label}
             </Typography>
             <Typography
               sx={{
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontWeight: 700,
                 fontSize: "1rem",
                 color: GLASS_COLORS.textPrimary,

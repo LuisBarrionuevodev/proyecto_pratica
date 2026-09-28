@@ -1,4 +1,5 @@
 import { Chip, Stack } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../../theme/typography";
 
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
 import { planificacionActiveFiltersRowSx } from "../planificacionMyMapsLayout";
@@ -6,11 +7,7 @@ import type {
   PlanificacionCardKey,
   PlanificacionFiltrosLista,
   UrgentesFiltrosAplicados,
-} from "../types/planificacion.types";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-const CARD_LABELS: Record<Exclude<PlanificacionCardKey, null>, string> = {
+} from "../types/planificacion.types";const CARD_LABELS: Record<Exclude<PlanificacionCardKey, null>, string> = {
   ALTA_PRIORIDAD: "Alta prioridad",
   OFICIOS_URGENTES: "Oficios urgentes",
   DENUNCIAS: "Denuncias",
@@ -102,7 +99,7 @@ export function PlanificacionActiveFiltersChips({
           variant="outlined"
           sx={{
             height: 22,
-            fontFamily: tactic,
+            fontFamily: FONT_FAMILY_UI,
             fontSize: "0.625rem",
             fontWeight: 600,
             borderColor: GLASS_COLORS.borderMedium,

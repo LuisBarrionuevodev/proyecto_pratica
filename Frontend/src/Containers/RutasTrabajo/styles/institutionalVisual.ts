@@ -3,6 +3,7 @@
  * Misma familia visual que sidebar, content shell y CardGlass.
  */
 import type { SxProps, Theme } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import { glassCard, glassDivider, GLASS_COLORS } from "../../../styles/GlassStyles";
 
@@ -124,14 +125,10 @@ export const rutasInstitutionalItemPaperSx: SxProps<Theme> = {
 
 export const rutasInstitutionalDividerSx: SxProps<Theme> = {
   ...glassDivider,
-};
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-/** Select / AppSelect en filtros de planificación (misma altura y fuente que TextField). */
+};/** Select / AppSelect en filtros de planificación (misma altura y fuente que TextField). */
 export const planificacionFilterSelectSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
-    fontFamily: TACTIC,
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.85rem",
     borderRadius: "10px",
     "& fieldset": { borderColor: GLASS_COLORS.borderLight },
@@ -139,7 +136,7 @@ export const planificacionFilterSelectSx: SxProps<Theme> = {
     "&.Mui-focused fieldset": { borderColor: GLASS_COLORS.primary },
   },
   "& .MuiInputLabel-root": {
-    fontFamily: TACTIC,
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.85rem",
     color: GLASS_COLORS.textSecondary,
   },
@@ -149,7 +146,7 @@ export const planificacionFilterSelectSx: SxProps<Theme> = {
 /** Campo de búsqueda en paneles Planificación (alineado a glass / Digitaliza). */
 export const planificacionTextFieldSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: "10px",
     "& fieldset": { borderColor: GLASS_COLORS.borderLight },
@@ -161,7 +158,7 @@ export const planificacionTextFieldSx: SxProps<Theme> = {
 
 /** Título de panel en Planificación (pendientes, urgentes, pool) — misma jerarquía en todas las columnas. */
 export const planificacionPanelTitleSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "0.9375rem",
   color: GLASS_COLORS.textPrimary,
@@ -171,7 +168,7 @@ export const planificacionPanelTitleSx: SxProps<Theme> = {
 
 /** Subtítulo / línea de contexto bajo el título (muted, legible en dark). */
 export const planificacionPanelSubtitleSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.75rem",
   color: GLASS_COLORS.textMuted,
   lineHeight: 1.45,
@@ -179,7 +176,7 @@ export const planificacionPanelSubtitleSx: SxProps<Theme> = {
 
 /** Línea de paginación / totales al pie de paneles con lista. */
 export const planificacionPanelFooterMetaSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.72rem",
   color: GLASS_COLORS.textMuted,
 };
@@ -189,7 +186,7 @@ export const planificacionPanelFooterMetaSx: SxProps<Theme> = {
  * Alineado a jerarquía de Planificación (ligeramente mayor que título de panel de columna).
  */
 export const rutasResumenTitleSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "1rem",
   color: GLASS_COLORS.textPrimary,
@@ -199,12 +196,12 @@ export const rutasResumenTitleSx: SxProps<Theme> = {
 
 /** Alertas informativas/advertencia en Rutas (glass dark, sin depender de otros módulos). */
 export const rutasInstitutionalAlertBaseSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   borderRadius: "12px",
   backgroundColor: "rgba(255,255,255,0.06)",
   color: GLASS_COLORS.textPrimary,
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
-  "& .MuiAlert-message": { fontFamily: TACTIC },
+  "& .MuiAlert-message": { fontFamily: FONT_FAMILY_UI },
 };
 
 /**
@@ -233,7 +230,7 @@ export const rutasInstitutionalScrollSx: SxProps<Theme> = {
  * Evita outlined/ghost cuando se busca UI sólida sin competir con primary blue.
  */
 export const rutasAsignacionNeutralContainedButtonSx: SxProps<Theme> = {
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   textTransform: "none",
   fontWeight: 600,
   fontSize: "0.8125rem",
@@ -274,7 +271,7 @@ export const asignacionItemOtTextFieldRootSx: SxProps<Theme> = {
     minHeight: asignacionItemControlInputHeight,
     alignItems: "center",
     borderRadius: "10px",
-    fontFamily: TACTIC,
+    fontFamily: FONT_FAMILY_UI,
   },
   "& .MuiInputBase-input": { fontSize: "0.875rem" },
 };
@@ -294,7 +291,7 @@ export const asignacionItemRowNeutralButtonSx: SxProps<Theme> = {
 export const rutasOperativaChipSx: SxProps<Theme> = {
   height: 24,
   maxWidth: "100%",
-  fontFamily: TACTIC,
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.6875rem",
   fontWeight: 700,
   borderRadius: "8px",

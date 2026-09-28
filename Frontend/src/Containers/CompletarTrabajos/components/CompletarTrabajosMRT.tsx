@@ -23,6 +23,7 @@ import {
 } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 function domicilioLinea(row: ICompletarTrabajoPendienteRow): string {
   const t =
@@ -238,7 +239,7 @@ export function CompletarTrabajosMRT({
         <Typography
           variant="caption"
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             color: "rgba(255,255,255,0.55)",
             display: "block",
           }}

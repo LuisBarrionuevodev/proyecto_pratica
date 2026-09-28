@@ -18,6 +18,7 @@ import {
 import { logoutItem } from "../constants/menuItems";
 import { getVisibleMenuSections } from "../auth/accessConfig";
 import { useAppSession } from "../auth/AppSessionProvider";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 interface NavLeftProps {
     onToggle?: (open: boolean) => void;
@@ -106,7 +107,7 @@ const NavLeft: React.FC<NavLeftProps> = ({ onToggle }) => {
                                     transition: "opacity 0.2s ease",
                                     "& .MuiTypography-root": {
                                         color: "#FF6B6B",
-                                        fontFamily: '"Tactic Sans", sans-serif',
+                                        fontFamily: FONT_FAMILY_UI,
                                         fontSize: "13px",
                                         fontWeight: 600,
                                     },

@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import {
   GLASS_COLORS,
@@ -39,37 +40,33 @@ export const mapaOperativoSurfaceSx: SxProps<Theme> = {
 export const mapaOperativoFieldSx: SxProps<Theme> = {
   minWidth: { xs: "100%", sm: 160 },
   "& .MuiInputLabel-root": {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
   },
   "& .MuiOutlinedInput-input": {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
   },
   "& .MuiSelect-select": {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
   },
 };
 
 /** Texto secundario sobre fondos glass. */
 export const mapaOperativoCaptionSx: SxProps<Theme> = {
   color: GLASS_COLORS.textMuted,
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
 };
 
 /** Subcaja dentro del panel lateral (métricas / leyenda): mismo baseline que `moduleHeroCardSx`. */
 export const mapaOperativoInnerCardSx: SxProps<Theme> = {
   ...moduleHeroCardSx,
   p: 1.75,
-};
-
-const tacticFont = '"Tactic Sans", sans-serif';
-
-/** Título principal del panel lateral (Resumen operativo). */
+};/** Título principal del panel lateral (Resumen operativo). */
 export const mapaOperativoPanelTitleSx: SxProps<Theme> = {
   color: "#fff",
   fontWeight: 700,
   fontSize: "1.25rem",
   lineHeight: 1.3,
-  fontFamily: tacticFont,
+  fontFamily: FONT_FAMILY_UI,
   letterSpacing: "0.02em",
 };
 
@@ -79,7 +76,7 @@ export const mapaOperativoCardTitleSx: SxProps<Theme> = {
   fontWeight: 700,
   fontSize: "0.875rem",
   lineHeight: 1.35,
-  fontFamily: tacticFont,
+  fontFamily: FONT_FAMILY_UI,
 };
 
 /** Fila métrica / tipo: contenedor unificado. */
@@ -94,7 +91,7 @@ export const mapaOperativoMetricRowLabelSx: SxProps<Theme> = {
   fontWeight: 500,
   fontSize: "0.875rem",
   lineHeight: 1.35,
-  fontFamily: tacticFont,
+  fontFamily: FONT_FAMILY_UI,
 };
 
 /** Valor numérico de fila (métricas y tipos de iniciador). */
@@ -103,14 +100,14 @@ export const mapaOperativoMetricRowValueSx: SxProps<Theme> = {
   fontWeight: 700,
   fontSize: "0.875rem",
   lineHeight: 1.35,
-  fontFamily: tacticFont,
+  fontFamily: FONT_FAMILY_UI,
 };
 
 /** Total destacado de trabajos operativos. */
 export const mapaOperativoHeroValueSx: SxProps<Theme> = {
   color: "primary.main",
   fontWeight: 700,
-  fontFamily: tacticFont,
+  fontFamily: FONT_FAMILY_UI,
 };
 
 /** Texto de ítems de leyenda (peso normal). */
@@ -119,5 +116,5 @@ export const mapaOperativoLegendLabelSx: SxProps<Theme> = {
   fontWeight: 400,
   fontSize: "0.875rem",
   lineHeight: 1.35,
-  fontFamily: tacticFont,
+  fontFamily: FONT_FAMILY_UI,
 };

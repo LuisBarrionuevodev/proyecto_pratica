@@ -19,6 +19,7 @@ import { AppButton, AppDialog, AppTextField } from "../../../ui";
 import { filterCatalogItemsByQuery } from "../../../utils/filterCatalogByQuery";
 import { MIN_INSPECTORES_POR_GRUPO_PUBLICAR } from "../utils/rutaPublicarReadiness";
 import { rutasAsignacionNeutralContainedButtonSx } from "../styles/institutionalVisual";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /** Transición más corta + sin autofocus agresivo al abrir (menos trabajo en el frame de apertura). */
 const DIALOG_OPEN_PERF = {
@@ -60,7 +61,7 @@ const CHECKBOX_SX = {
 };
 
 const PRIMARY_TYPO = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   color: GLASS_COLORS.textPrimary,
   overflow: "hidden",
@@ -226,7 +227,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
             variant="caption"
             sx={{
               color: GLASS_COLORS.textMuted,
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               display: "block",
               lineHeight: 1.4,
               flexShrink: 0,

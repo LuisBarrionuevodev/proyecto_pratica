@@ -1,3 +1,4 @@
+import { FONT_FAMILY_UI } from "../theme/typography";
 export const InputRecuperarStyles = {
     position: "relative",
     backgroundColor: "#D9D9D9",
@@ -5,7 +6,7 @@ export const InputRecuperarStyles = {
     fontSize: "22px",
     borderRadius: "10px",
     "& .MuiInputBase-input": {
-        fontFamily: "Tactic Sans",
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
         color: "#111111",
         zIndex: 1,

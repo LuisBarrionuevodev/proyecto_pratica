@@ -24,6 +24,7 @@ import {
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
 import { DashboardAnalyticsChartCard } from "./DashboardAnalyticsChartCard";
 import { DashboardSectionBlock } from "./DashboardSectionBlock";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const DEFAULT_PAGE_SIZE = 10;
 const TABLE_MIN_HEIGHT = 220;
@@ -42,7 +43,7 @@ function NumericCell({ value }: { value: number }) {
       sx={{
         display: "block",
         textAlign: "right",
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontSize: "12px",
         fontWeight: 600,
         color: COLORS.white,
@@ -59,7 +60,7 @@ function InspectorCell({ name }: { name: string }) {
     <Typography
       component="span"
       sx={{
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontSize: "12px",
         fontWeight: 600,
         color: COLORS.white,

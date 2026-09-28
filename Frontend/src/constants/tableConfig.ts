@@ -1,3 +1,4 @@
+import { FONT_FAMILY_UI } from "../theme/typography";
 export const BASE_TABLE_CONFIG = {
   enableEditing: true,
   editDisplayMode: "cell" as const,
@@ -17,7 +18,7 @@ export const BASE_TABLE_CONFIG = {
       color: "#0166FF",
       fontWeight: "Bold",
       fontSize: "16px",
-      fontFamily: "tactic sans",
+      fontFamily: FONT_FAMILY_UI,
     },
   },
   muiTableContainerProps: {
@@ -43,7 +44,7 @@ export const TABLE_CREAR_RELEVAMIENTOS = {
       color: "#0166FF",
       fontWeight: "Bold",
       fontSize: "16px",
-      fontFamily: "tactic sans",
+      fontFamily: FONT_FAMILY_UI,
     },
   },
   muiTableContainerProps: {
@@ -68,7 +69,7 @@ export const TABLE_CREAR_ACTUACIONES = {
       color: "#0166FF",
       fontWeight: "Bold",
       fontSize: "16px",
-      fontFamily: "tactic sans",
+      fontFamily: FONT_FAMILY_UI,
     },
   },
   muiTableContainerProps: {

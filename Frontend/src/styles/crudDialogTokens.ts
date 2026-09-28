@@ -3,6 +3,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { formDialogContentStackSx } from "./formDialogStyles";
 import { dashboardAnalyticsCardSx } from "./DashboardStyles";
 import { GLASS_COLORS, glassDialogBackdropSx } from "./GlassStyles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 /** Radio y borde estándar de modales CRUD glass. */
 export const CRUD_DIALOG_BORDER_RADIUS = "18px";
@@ -49,7 +50,7 @@ export const crudDialogBackdropSx = glassDialogBackdropSx;
  * Aplicar en `DialogTitle` vía `titleSx` de `AppDialog`.
  */
 export const crudDialogHeaderSx: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   backgroundColor: CRUD_DIALOG_HEADER_BLUE,
   color: CRUD_DIALOG_TEXT.primary,
   borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -123,7 +124,7 @@ export const crudDialogScrollbarSx: SxProps<Theme> = {
 
 /** Título pequeño de sección (overline). */
 export const crudDialogSectionTitleSx: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "0.7rem",
   letterSpacing: "0.04em",
@@ -185,7 +186,7 @@ export const CRUD_FIELD_HELPER_MIN_HEIGHT_PX = 20;
 /** Label sobre el campo (vista y edición). */
 export const crudFieldSlotLabelSx: SxProps<Theme> = {
   display: "block",
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.8125rem",
   fontWeight: 500,
   color: CRUD_DIALOG_TEXT.primary,

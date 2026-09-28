@@ -2,6 +2,7 @@ import { Box, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import { AppTextField } from "../../../ui";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 type EditorMode = "NUMERO" | "ESQUINA";
 
@@ -101,7 +102,7 @@ export function NumeroEsquinaFreeEditor({
               flexShrink: 0,
               "& .MuiToggleButton-root": {
                 textTransform: "none",
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "0.8125rem",
                 color: "rgba(255,255,255,0.75)",
                 borderColor: "rgba(255,255,255,0.28)",
@@ -172,7 +173,7 @@ export function NumeroEsquinaFreeEditor({
           alignSelf: "flex-start",
           "& .MuiToggleButton-root": {
             textTransform: "none",
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             fontSize: "0.8125rem",
             color: "rgba(255,255,255,0.75)",
             borderColor: "rgba(255,255,255,0.28)",

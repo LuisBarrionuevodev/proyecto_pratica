@@ -3,6 +3,7 @@
  */
 import type { Theme } from "@glideapps/glide-data-grid";
 import { COLORS } from "../styles/cargarActuacionesStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 // =============================================================================
 // TEMA DE LA GRILLA
@@ -46,7 +47,7 @@ export const gridTheme: Partial<Theme> = {
     // Fuentes
     headerFontStyle: "600 12px",
     baseFontStyle: "11px",
-    fontFamily: '"Tactic Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
 };
 
 // =============================================================================

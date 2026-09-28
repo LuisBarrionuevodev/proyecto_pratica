@@ -5,6 +5,7 @@ import { Box } from "@mui/material";
 
 import type { RutaMapaMarker, RutaMapaPolyline } from "../types/rutasTrabajoMapa.types";
 import { MARKER_RING_BOXSHADOW } from "../utils/mapaRutaGrupoTrazado";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /** Misma URL y atribución OSM que el mapa operativo en MapPage. */
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
@@ -76,7 +77,7 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
         minHeight: 320,
         position: "relative",
         "& .leaflet-container": {
-          fontFamily: '"Tactic Sans", sans-serif',
+          fontFamily: FONT_FAMILY_UI,
           background: "#1a1d22",
         },
         "& .ruta-grupo-line-tooltip.leaflet-tooltip": {
@@ -135,7 +136,7 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
             icon={createNumberedDivIcon(m.orden, m.color, m.grupoCodigo, m.grupoStyleIndex)}
           >
             <Popup>
-              <div style={{ minWidth: 200, fontFamily: '"Tactic Sans", sans-serif', color: "#1a1d22" }}>
+              <div style={{ minWidth: 200, fontFamily: FONT_FAMILY_UI, color: "#1a1d22" }}>
                 <div
                   style={{
                     fontSize: 10,

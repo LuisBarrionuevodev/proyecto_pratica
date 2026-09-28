@@ -4,6 +4,7 @@ import { PieChart } from "@mui/x-charts/PieChart";
 import type { IndicadoresDecomisoKgRubroItem } from "../../../api/indicadoresApi";
 import { ChartStyle, dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const CHART_COLORS = [
   GLASS_COLORS.primary,
@@ -76,7 +77,7 @@ export function DashboardDecomisoKgPorRubroDonut({ items, loading }: Props) {
             : { vertical: "middle", horizontal: "end" },
           sx: {
             "& .MuiChartsLegend-label": {
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontSize: 11,
               fill: GLASS_COLORS.textSecondary,
             },
@@ -84,7 +85,7 @@ export function DashboardDecomisoKgPorRubroDonut({ items, loading }: Props) {
         },
         tooltip: {
           sx: {
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             fontSize: "0.8125rem",
           },
         },

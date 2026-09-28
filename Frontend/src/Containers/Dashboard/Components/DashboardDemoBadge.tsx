@@ -1,6 +1,7 @@
 import { Chip } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /** Marca visual para bloques del dashboard sin datos reales conectados (D1b). */
 export function DashboardDemoBadge() {
@@ -11,7 +12,7 @@ export function DashboardDemoBadge() {
       variant="outlined"
       sx={{
         height: 24,
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 700,
         fontSize: "0.7rem",
         letterSpacing: "0.06em",
@@ -27,7 +28,7 @@ export function DashboardDemoBadge() {
 export const dashboardDemoCaptionSx = {
   display: "block",
   mt: 1,
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.75rem",
   color: GLASS_COLORS.textSecondary,
 } as const;

@@ -3,6 +3,7 @@ import { Box, Chip, IconButton, Paper } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 
 import { GLASS_COLORS, glassTabsSecondaryPanelBarSx } from "../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 export type SegmentedFilterChipsOption<T extends string | number = string> = {
   value: T;
@@ -32,7 +33,7 @@ export function segmentedFilterChipSx(selected: boolean): SxProps<Theme> {
   return {
     cursor: "pointer",
     fontWeight: 600,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.9375rem",
     height: 52,
     minHeight: 52,

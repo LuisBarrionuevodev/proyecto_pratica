@@ -1,3 +1,4 @@
+import { FONT_FAMILY_UI } from "../theme/typography";
 export const LoginBoxGlobalStyle = {
     display: "flex",
     justifyContent: "center",
@@ -39,7 +40,7 @@ export const InputStyles = {
     fontSize: "22px",
     borderRadius: "10px",
     "& .MuiInputBase-input": {
-        fontFamily: "Tactic Sans",
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
         color: "#111111",
         zIndex: 1,
@@ -79,7 +80,7 @@ export const ButtonStyle = {
     backgroundColor: "#0166FF",
     width: "350px",
     height: "25px",
-    fontFamily: "Tactic Sans",
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 200,
     color: "white",
     zIndex: 1,

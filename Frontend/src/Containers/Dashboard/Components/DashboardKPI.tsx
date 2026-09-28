@@ -10,6 +10,7 @@ import {
   dashboardKpiValueSx,
 } from "../../../styles/DashboardStyles";
 import type { Periodo } from "../../../types/periodos";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 interface KPIProps {
   title: string;
@@ -72,7 +73,7 @@ const KPI = ({
               sx={{
                 color: isPositive ? "success.main" : "error.main",
                 fontWeight: 600,
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "0.75rem",
               }}
             >

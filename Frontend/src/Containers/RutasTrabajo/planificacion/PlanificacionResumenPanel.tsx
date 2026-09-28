@@ -1,12 +1,9 @@
 import { Stack, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { IRutaPoolDiaRow } from "../../../api/rutaPoolDiaApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { planificacionPanelTitleSx } from "../styles/institutionalVisual";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-export type PlanificacionResumenPanelProps = {
+import { planificacionPanelTitleSx } from "../styles/institutionalVisual";export type PlanificacionResumenPanelProps = {
   poolItems: IRutaPoolDiaRow[];
   candidatosVisibles: number;
   candidatosTotal: number;
@@ -33,7 +30,7 @@ function StatRow({ label, value, hint }: { label: string; value: string | number
       <Stack spacing={0.15} sx={{ minWidth: 0 }}>
         <Typography
           sx={{
-            fontFamily: tactic,
+            fontFamily: FONT_FAMILY_UI,
             fontSize: "0.78rem",
             fontWeight: 700,
             color: GLASS_COLORS.textPrimary,
@@ -42,14 +39,14 @@ function StatRow({ label, value, hint }: { label: string; value: string | number
           {label}
         </Typography>
         {hint ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.65rem", color: GLASS_COLORS.textMuted, lineHeight: 1.35 }}>
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.65rem", color: GLASS_COLORS.textMuted, lineHeight: 1.35 }}>
             {hint}
           </Typography>
         ) : null}
       </Stack>
       <Typography
         sx={{
-          fontFamily: tactic,
+          fontFamily: FONT_FAMILY_UI,
           fontSize: "1rem",
           fontWeight: 800,
           color: GLASS_COLORS.textPrimary,
@@ -78,7 +75,7 @@ export function PlanificacionResumenPanel({
   return (
     <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
       <Typography sx={planificacionPanelTitleSx}>Resumen operativo</Typography>
-      <Typography sx={{ fontFamily: tactic, fontSize: "0.75rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
+      <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.75rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
         {distritoActivoId != null
           ? `Contexto: ${distritoNombre ?? `Distrito ${distritoActivoId}`}. Los grupos se arman en Asignación.`
           : "Elegí un distrito en el mapa para ver candidatos y métricas locales."}

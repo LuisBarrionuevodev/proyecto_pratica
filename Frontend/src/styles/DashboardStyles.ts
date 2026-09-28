@@ -1,4 +1,5 @@
 import { GLASS_COLORS } from "./GlassStyles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 /** Superficie glass compartida para KPI y ChartCard del dashboard (D1b). */
 export const dashboardGlassCardSx = {
@@ -67,7 +68,7 @@ export const dashboardSectionBodySx = {
 } as const;
 
 export const dashboardCardTitleSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "1rem",
   lineHeight: 1.35,
@@ -75,7 +76,7 @@ export const dashboardCardTitleSx = {
 } as const;
 
 export const dashboardKpiValueSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "1.75rem",
   lineHeight: 1.15,
@@ -88,7 +89,7 @@ export const dashboardKpiValueCompactSx = {
 } as const;
 
 export const dashboardKpiLabelSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "0.8125rem",
   color: GLASS_COLORS.textSecondary,
@@ -96,7 +97,7 @@ export const dashboardKpiLabelSx = {
 
 /** KPI analytics (D1d.11): etiqueta superior, número dominante. */
 export const dashboardAnalyticsKpiLabelSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "0.7rem",
   letterSpacing: "0.04em",
@@ -107,7 +108,7 @@ export const dashboardAnalyticsKpiLabelSx = {
 } as const;
 
 export const dashboardAnalyticsKpiValueSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: { xs: "1.65rem", sm: "1.85rem" },
   lineHeight: 1.1,
@@ -115,7 +116,7 @@ export const dashboardAnalyticsKpiValueSx = {
 } as const;
 
 export const dashboardAnalyticsChartTitleSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "0.875rem",
   lineHeight: 1.35,
@@ -125,7 +126,7 @@ export const dashboardAnalyticsChartTitleSx = {
 
 /** Leyendas y etiquetas principales en rankings / donuts. */
 export const dashboardLegendLabelSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "0.75rem",
   color: GLASS_COLORS.textPrimary,
@@ -136,7 +137,7 @@ export const dashboardEmptyStateSx = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.8125rem",
   color: GLASS_COLORS.textSecondary,
   textAlign: "center",
@@ -151,14 +152,14 @@ export const dashboardEmptyStateCompactSx = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.8125rem",
   color: GLASS_COLORS.textSecondary,
   textAlign: "center",
 } as const;
 
 export const ChartStyle = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   "&& .MuiChartsAxis-line": {
     stroke: GLASS_COLORS.borderMedium,
   },
@@ -170,7 +171,7 @@ export const ChartStyle = {
     textOverflow: "unset",
     whiteSpace: "normal",
     overflow: "visible",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.72rem",
     fontWeight: 700,
   },
@@ -182,11 +183,11 @@ export const ChartStyle = {
     color: GLASS_COLORS.textPrimary,
     fontSize: "0.8125rem",
     fontWeight: 500,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
   },
   "&& .MuiBarLabel-root": {
     fill: GLASS_COLORS.textPrimary,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.7rem",
     fontWeight: 600,
   },
@@ -196,7 +197,7 @@ export const dashboardGlassTableSx = {
   "& .MuiTableCell-root": {
     borderColor: GLASS_COLORS.borderLight,
     color: GLASS_COLORS.textPrimary,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.8125rem",
   },
   "& .MuiTableCell-head": {

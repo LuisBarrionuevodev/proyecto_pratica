@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import { dashboardEmptyStateCompactSx, dashboardLegendLabelSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 export type DashboardRankingBarItem = {
   label: string;
@@ -95,7 +96,7 @@ export function DashboardRankingBarList({
           <Typography
             variant="body2"
             sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontWeight: 700,
               fontSize: "0.8125rem",
               color: GLASS_COLORS.textPrimary,

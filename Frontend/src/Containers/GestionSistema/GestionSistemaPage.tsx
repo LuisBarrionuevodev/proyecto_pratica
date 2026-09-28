@@ -21,6 +21,7 @@ import {
   gridContainerStyles,
 } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 
 type CatalogKey = "rubros" | "motivos" | "motivosComprobacion";
 
@@ -177,7 +178,7 @@ export default function GestionSistemaPage() {
         pb: 2,
       }}
     >
-      <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", fontFamily: '"Tactic Sans", sans-serif' }}>
+      <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", fontFamily: FONT_FAMILY_UI }}>
         Consulta de catálogos del sistema. Las altas y modificaciones se habilitarán cuando el backend exponga las
         operaciones correspondientes; aquí solo se listan datos existentes (GET).
       </Typography>
@@ -213,7 +214,7 @@ export default function GestionSistemaPage() {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }} flexWrap="wrap" gap={1}>
           <Typography
             sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "11px",
               fontWeight: 700,
               letterSpacing: "0.12em",
@@ -286,7 +287,7 @@ function CatalogCard({
         </Box>
         <Typography
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             fontSize: "11px",
             fontWeight: 700,
             letterSpacing: "0.1em",

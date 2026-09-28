@@ -14,6 +14,7 @@ import {
   humanizarTipoVisitaRecorrido,
 } from "../../ActasComprobacion/utils/documentalLabelFormat";
 import { alertBaseStyles, COLORS } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const DEFAULT_CENTER: [number, number] = [-26.82, -65.22];
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap contributors";
@@ -267,7 +268,7 @@ export function MapaCanvas({
         height: mapExpanded ? { xs: "70vh", md: "min(92vh, 920px)" } : fillParentHeight ? undefined : 480,
         overflow: "hidden",
         "& .leaflet-container": {
-          fontFamily: '"Tactic Sans", sans-serif',
+          fontFamily: FONT_FAMILY_UI,
           background: COLORS.grayMedium,
         },
       }}

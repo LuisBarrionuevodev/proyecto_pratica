@@ -5,6 +5,7 @@
 
 import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 // =============================================================================
 // PALETA DE COLORES (mantiene compatibilidad + glass)
@@ -37,7 +38,7 @@ export const COLORS = {
 export const containerStyles = {
     width: "100%",
     height: "100%",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
 };
 
 export const wrapperStyles = {
@@ -59,14 +60,14 @@ export const titleStyles = {
 // ESTILOS DE ALERTAS - Sin blur para rendimiento
 // =============================================================================
 export const alertBaseStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     border: `1px solid ${GLASS_COLORS.borderMedium}`,
     borderRadius: "10px",
     marginBottom: "16px",
     backgroundColor: GLASS_COLORS.cardBg,
     color: COLORS.white,
     "& .MuiAlert-icon": { color: COLORS.white },
-    "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
+    "& .MuiAlert-message": { fontFamily: FONT_FAMILY_UI },
 };
 
 // =============================================================================
@@ -86,7 +87,7 @@ export const legendStyles = {
 };
 
 export const legendTitleStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 700,
     fontSize: "16px",
     marginBottom: "12px",
@@ -94,7 +95,7 @@ export const legendTitleStyles = {
 };
 
 export const legendTextStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 400,
     fontSize: "14px",
     color: GLASS_COLORS.textSecondary,
@@ -106,7 +107,7 @@ export const kbdStyles: React.CSSProperties = {
     backgroundColor: "rgba(0, 0, 0, 0.3)",
     border: `1px solid ${GLASS_COLORS.borderMedium}`,
     borderRadius: "6px",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 500,
     fontSize: "12px",
     boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
@@ -131,7 +132,7 @@ export const getStatusBadgeStyles = (bgColor: string, textColor: string): React.
 // BOTÓN MANDAR TODO - Azul cuando activo
 // =============================================================================
 export const buttonMandarTodoStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: "14px",
     textTransform: "none" as const,

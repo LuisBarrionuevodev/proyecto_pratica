@@ -4,6 +4,7 @@ import type { IndicadoresRutaItemsEjecucion } from "../../../api/indicadoresApi"
 import { dashboardDemoCaptionSx } from "./DashboardDemoBadge";
 import { dashboardKpiValueSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 interface Props {
   data: IndicadoresRutaItemsEjecucion;
@@ -39,7 +40,7 @@ const DashboardRutaItemsResumen = ({ data }: Props) => {
             pb: 1,
           }}
         >
-          <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, fontFamily: '"Tactic Sans", sans-serif' }}>
+          <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI }}>
             {r.label}
           </Typography>
           <Typography sx={{ ...dashboardKpiValueSx, fontSize: "1.25rem" }}>{r.value}</Typography>

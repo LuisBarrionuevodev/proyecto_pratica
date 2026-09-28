@@ -4,6 +4,7 @@ import type { MRT_TableOptions } from "material-react-table";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { COLORS, DARK_TABLE_CONFIG } from "../styles/actuacionesTableStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /** Texto de valor en celdas de bandeja (comprobación / notificación / tablas F3.10). */
 export const bandejaValueTextSx = {
@@ -11,7 +12,7 @@ export const bandejaValueTextSx = {
   fontSize: "0.8125rem",
   lineHeight: 1.35,
   color: GLASS_COLORS.textPrimary,
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
 } as const;
 
 /** Alias explícito para renderers custom que no heredan del TableCell (F3.10). */

@@ -1,6 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 import { TRANSITION, GLASS_COLORS } from "./GlassStyles";
 import { layoutShell } from "../theme/tokens";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA NAVLEFT
@@ -76,7 +77,7 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
 
 // Header de sección (CARGA, GESTIÓN, etc.)
 export const StyleSectionHeader = (open: boolean): SxProps<Theme> => ({
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "10px",
     fontWeight: 600,
     letterSpacing: "1.5px",
@@ -154,7 +155,7 @@ export const StyleListItemText = (open: boolean, isActive: boolean = false): SxP
     whiteSpace: "nowrap",
     transition: "opacity 0.15s ease-out, width 0.2s ease-out",
     "& .MuiTypography-root": {
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontSize: "12px",
         fontWeight: isActive ? 600 : 500,
         letterSpacing: "0.2px",

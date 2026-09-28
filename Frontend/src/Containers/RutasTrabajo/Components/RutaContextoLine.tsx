@@ -3,6 +3,7 @@ import { Typography } from "@mui/material";
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { buildRutaContextoLine } from "../utils/rutaResumenLabels";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 export type RutaContextoLineProps = {
   ruta: IRutaTrabajo;
@@ -22,7 +23,7 @@ export function RutaContextoLine({ ruta, suffix, variant = "default" }: RutaCont
       component="span"
       data-testid="ruta-contexto-line"
       sx={{
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         fontSize: variant === "compact" ? "0.72rem" : "0.8125rem",
         fontWeight: 600,
         color: GLASS_COLORS.textSecondary,

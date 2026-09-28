@@ -1,6 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../../styles/functionalPageShell";
 import { GLASS_COLORS, moduleFiltersSurfaceSx } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA FILTROS DE ACTUACIONES
@@ -75,7 +76,7 @@ export const filtroContainerStyles: SxProps<Theme> = {
 };
 
 export const filtroTitleStyles: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "18px",
   color: COLORS.white,
@@ -83,7 +84,7 @@ export const filtroTitleStyles: SxProps<Theme> = {
 };
 
 export const filtroSectionTitleStyles: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "15px",
   color: COLORS.white,
@@ -107,13 +108,13 @@ export const filtroGridStyles: SxProps<Theme> = {
 export const filtroItemStyles: SxProps<Theme> = {
   "& .MuiInputLabel-root": {
     color: COLORS.white,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     "&.Mui-focused": { color: COLORS.primary },
   },
   "& .MuiInputBase-root": {
     backgroundColor: COLORS.rowOdd,
     color: COLORS.white,
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     borderRadius: 3,
     "& input": {
       color: COLORS.white,
@@ -160,7 +161,7 @@ export const filtroButtonsStyles: SxProps<Theme> = {
 export const filterActionsSx = filtroButtonsStyles;
 
 export const filtroButtonPrimaryStyles: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "14px",
   backgroundColor: COLORS.primary,
@@ -177,7 +178,7 @@ export const filtroButtonPrimaryStyles: SxProps<Theme> = {
 };
 
 export const filtroButtonSecondaryStyles: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "14px",
   backgroundColor: "transparent",
@@ -236,7 +237,7 @@ export const metaInfoStyles: SxProps<Theme> = {
 };
 
 export const metaItemStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "13px",
     color: GLASS_COLORS.textSecondary,
     "& strong": {
@@ -251,14 +252,14 @@ export const metaItemStyles: SxProps<Theme> = {
 
 /** Estilo canónico para alertas en fondos dark institucionales (borde alineado a tokens glass). */
 export const alertBaseStyles: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
   borderRadius: "12px",
   mb: 2,
   backgroundColor: GLASS_COLORS.cardBg,
   color: COLORS.white,
   "& .MuiAlert-icon": { color: COLORS.white },
-  "& .MuiAlert-message": { fontFamily: '"Tactic Sans", sans-serif' },
+  "& .MuiAlert-message": { fontFamily: FONT_FAMILY_UI },
 };
 
 export const errorAlertStyles: SxProps<Theme> = {
@@ -271,6 +272,6 @@ export const errorAlertStyles: SxProps<Theme> = {
     color: COLORS.error,
   },
   "& .MuiAlert-message": {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
   },
 };

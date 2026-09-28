@@ -1,15 +1,12 @@
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import { Box, ButtonBase, IconButton, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 
 import { GLASS_COLORS } from "../../styles/GlassStyles";
-import { toIsoDateLocal } from "../../utils/dateRange";
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-export const CALENDAR_WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+import { toIsoDateLocal } from "../../utils/dateRange";export const CALENDAR_WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
 
 export function calendarDaysInMonth(year: number, monthIndex: number): number {
   return new Date(year, monthIndex + 1, 0).getDate();
@@ -96,7 +93,7 @@ export function InstitutionalMonthCalendarGrid({
         </IconButton>
         <Typography
           sx={{
-            fontFamily: TACTIC,
+            fontFamily: FONT_FAMILY_UI,
             fontWeight: 700,
             fontSize: "0.88rem",
             color: "#FFFFFF",
@@ -126,7 +123,7 @@ export function InstitutionalMonthCalendarGrid({
           <Typography
             key={c}
             variant="caption"
-            sx={{ fontFamily: TACTIC, color: "#FFFFFF", fontSize: "0.64rem", fontWeight: 600 }}
+            sx={{ fontFamily: FONT_FAMILY_UI, color: "#FFFFFF", fontSize: "0.64rem", fontWeight: 600 }}
           >
             {c}
           </Typography>
@@ -156,7 +153,7 @@ export function InstitutionalMonthCalendarGrid({
                 position: "relative",
                 minHeight: cellMinHeight,
                 borderRadius: "10px",
-                fontFamily: TACTIC,
+                fontFamily: FONT_FAMILY_UI,
                 fontWeight: ctx.esHoy ? 800 : 700,
                 fontSize: cellMinHeight >= 68 ? "1.05rem" : cellMinHeight >= 52 ? "0.9rem" : "0.8rem",
                 color: "#FFFFFF",

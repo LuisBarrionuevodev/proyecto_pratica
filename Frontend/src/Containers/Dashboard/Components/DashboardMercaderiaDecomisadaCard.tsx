@@ -23,6 +23,7 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { formatDashboardKgCompact } from "../utils/formatDashboardNumbers";
 
 import { DashboardAnalyticsChartCard } from "./DashboardAnalyticsChartCard";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 
 
@@ -130,7 +131,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
                   sx={{
 
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontFamily: FONT_FAMILY_UI,
 
                     fontWeight: 700,
 
@@ -154,7 +155,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
                       ml: 0.5,
 
-                      fontFamily: '"Tactic Sans", sans-serif',
+                      fontFamily: FONT_FAMILY_UI,
 
                       fontWeight: 700,
 
@@ -302,7 +303,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
                             sx={{
 
-                              fontFamily: '"Tactic Sans", sans-serif',
+                              fontFamily: FONT_FAMILY_UI,
 
                               fontWeight: 600,
 
@@ -384,7 +385,7 @@ export function DashboardMercaderiaDecomisadaCard({
 
                   color: GLASS_COLORS.textSecondary,
 
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: FONT_FAMILY_UI,
 
                 }}
 

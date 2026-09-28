@@ -5,6 +5,7 @@ import {
   Typography,
 } from "@mui/material";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -22,11 +23,7 @@ import {
 } from "../styles/institutionalVisual";
 import { planificacionSidebarListViewportSx } from "./planificacionMyMapsLayout";
 import type { PlanificacionFiltrosLista } from "./types/planificacion.types";
-import { mergeSx } from "../../../utils/muiSx";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-/**
+import { mergeSx } from "../../../utils/muiSx";/**
  * Alto máximo del viewport de la lista (solo este bloque hace scroll).
  * Calibrado para ~2 `PlanificacionIniciadorCompactCard` + `Stack.spacing` entre ítems.
  */
@@ -93,7 +90,7 @@ export function PendientesContextoPanel({
             <CircularProgress size={28} sx={{ color: GLASS_COLORS.primary }} />
           </Box>
         ) : rows.length === 0 ? (
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
             {!contextoActivo
               ? "Elegí un distrito en el mapa o Fuera de distritos."
               : "Sin candidatos con los filtros actuales."}
@@ -179,7 +176,7 @@ export function PendientesContextoPanel({
         <Typography sx={{ ...planificacionPanelTitleSx, textAlign: "center" }}>Pendientes del contexto</Typography>
         <Typography
           sx={{
-            fontFamily: tactic,
+            fontFamily: FONT_FAMILY_UI,
             color: GLASS_COLORS.textMuted,
             textAlign: "center",
             maxWidth: 240,

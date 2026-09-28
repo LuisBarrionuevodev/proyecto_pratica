@@ -2,6 +2,7 @@ import { Typography } from "@mui/material";
 
 import { formatOperativoPeriodoLabel } from "../utils/dateRange";
 import { GLASS_COLORS } from "../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 type OperativoPeriodoLabelProps = {
   desde: string;
@@ -17,7 +18,7 @@ export function OperativoPeriodoLabel({ desde, hasta }: OperativoPeriodoLabelPro
       variant="body2"
       sx={{
         color: GLASS_COLORS.textMuted,
-        fontFamily: '"Tactic Sans", sans-serif',
+        fontFamily: FONT_FAMILY_UI,
         letterSpacing: "0.01em",
       }}
     >

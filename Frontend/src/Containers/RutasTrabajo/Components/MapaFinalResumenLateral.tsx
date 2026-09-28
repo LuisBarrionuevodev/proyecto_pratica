@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Box, Button, Chip, Divider, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 
 import type { IRutaGrupoMin, IRutaItemMin } from "../../../api/rutasTrabajoApi";
@@ -51,11 +52,7 @@ function distritosDelGrupo(gv: RutaMapaGrupoVista): string[] {
 function chipLabelInspector(fila: { nombre: string; legajo: string | null }): string {
   if (fila.legajo) return `${fila.nombre} · Leg. ${fila.legajo}`;
   return fila.nombre;
-}
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-type MoverDestinoOption = { id: number; nombre: string };
+}type MoverDestinoOption = { id: number; nombre: string };
 
 /**
  * Selector + botón compacto (misma línea visual que «Equipo») para mover visita a otro grupo.
@@ -91,7 +88,7 @@ const DireccionMoverCompact = memo(function DireccionMoverCompact({
           "& .MuiOutlinedInput-root": {
             minHeight: 28,
             fontSize: "0.75rem",
-            fontFamily: TACTIC,
+            fontFamily: FONT_FAMILY_UI,
             borderRadius: "8px",
           },
           "& .MuiInputLabel-root": { fontSize: "0.7rem" },

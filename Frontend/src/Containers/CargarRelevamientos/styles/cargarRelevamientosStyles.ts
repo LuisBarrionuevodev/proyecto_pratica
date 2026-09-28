@@ -7,6 +7,7 @@ import type { SxProps, Theme } from "@mui/material";
 
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import { GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /**
  * Altura del viewport de la grilla acorde a filas reales (+ header de grupo, fila trailing).
@@ -37,7 +38,7 @@ export const containerStyles = {
     width: "100%",
     minWidth: 0,
     height: "100%",
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
 };
 
 // Sin padding horizontal: el padre (Cargar relevamiento) ya aplica p:{xs:2,sm:3}; evita doble márgen vs el Paper.
@@ -89,7 +90,7 @@ export const validationRailRootSx = {
 // BOTÓN MANDAR TODO - Azul cuando activo
 // =============================================================================
 export const buttonMandarTodoStyles = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: "14px",
     textTransform: "none" as const,

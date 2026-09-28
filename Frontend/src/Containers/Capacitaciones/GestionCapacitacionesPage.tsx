@@ -27,6 +27,7 @@ import { AppButton, AppDialog, AppSelect, AppTextField, CardGlass, ConfirmDialog
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import { getInitialCapacitacionesMock } from "./mocks/capacitacionesMock";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 import type {
   CapacitacionFormValues,
   CapacitacionRow,
@@ -302,7 +303,7 @@ export default function GestionCapacitacionesPage() {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }} flexWrap="wrap" gap={1}>
           <Typography
             sx={{
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "11px",
               fontWeight: 700,
               letterSpacing: "0.1em",
@@ -439,7 +440,7 @@ export default function GestionCapacitacionesPage() {
   });
 
   const modalFieldSx = {
-    "& .MuiInputLabel-root": { fontFamily: '"Tactic Sans", sans-serif', textTransform: "uppercase", fontSize: "11px" },
+    "& .MuiInputLabel-root": { fontFamily: FONT_FAMILY_UI, textTransform: "uppercase", fontSize: "11px" },
   };
 
   return (
@@ -480,13 +481,13 @@ export default function GestionCapacitacionesPage() {
               onChange={(e) => setAnio(Number(e.target.value))}
               options={ANIOS}
             />
-            <Typography sx={{ fontFamily: '"Tactic Sans", sans-serif', fontSize: "13px", color: COLORS.white }}>
+            <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "13px", color: COLORS.white }}>
               <Box component="span" sx={{ color: "rgba(255,255,255,0.55)", mr: 0.5 }}>
                 TOTAL CAPACITACIONES:
               </Box>
               <strong>{filtered.length}</strong>
             </Typography>
-            <Typography sx={{ fontFamily: '"Tactic Sans", sans-serif', fontSize: "13px" }}>
+            <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "13px" }}>
               <Box component="span" sx={{ color: "rgba(255,255,255,0.55)", mr: 0.5 }}>
                 PARTICIPANTES:
               </Box>
@@ -526,7 +527,7 @@ export default function GestionCapacitacionesPage() {
               <Box>
                 <Typography
                   sx={{
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontFamily: FONT_FAMILY_UI,
                     fontSize: "11px",
                     fontWeight: 700,
                     letterSpacing: "0.12em",
@@ -628,7 +629,7 @@ export default function GestionCapacitacionesPage() {
                 px: 1,
                 pt: 0.5,
                 pb: 1,
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "11px",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
@@ -815,7 +816,7 @@ export default function GestionCapacitacionesPage() {
               />
             }
             label={
-              <Typography sx={{ fontSize: "13px", color: COLORS.white, fontFamily: '"Tactic Sans", sans-serif' }}>
+              <Typography sx={{ fontSize: "13px", color: COLORS.white, fontFamily: FONT_FAMILY_UI }}>
                 Examen aprobado
               </Typography>
             }
@@ -838,7 +839,7 @@ export default function GestionCapacitacionesPage() {
         onClose={() => setSnack(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert severity="info" onClose={() => setSnack(null)} sx={{ fontFamily: '"Tactic Sans", sans-serif' }}>
+        <Alert severity="info" onClose={() => setSnack(null)} sx={{ fontFamily: FONT_FAMILY_UI }}>
           {snack}
         </Alert>
       </Snackbar>

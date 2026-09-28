@@ -31,6 +31,7 @@ import {
 import { AppButton } from "./AppButton";
 import { AppDialog } from "./AppDialog";
 import { AppTextField } from "./AppTextField";
+import { FONT_FAMILY_UI } from "../theme/typography";
 import type {
   ExportDataDialogProps,
   ExportFormat,
@@ -43,7 +44,7 @@ const DEFAULT_PERIOD_MODES: ExportPeriodMode[] = ["workweek", "month", "custom"]
 const DEFAULT_FORMATS: ExportFormat[] = ["excel", "pdf"];
 
 const sectionLabelSx = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.75rem",
   fontWeight: 700,
   letterSpacing: "0.08em",
@@ -54,7 +55,7 @@ const sectionLabelSx = {
 
 const radioLabelSx = {
   "& .MuiFormControlLabel-label": {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontSize: "0.92rem",
     fontWeight: 600,
     color: GLASS_COLORS.textPrimary,
@@ -257,7 +258,7 @@ export function ExportDataDialog({
             variant="subtitle1"
             sx={{
               color: GLASS_COLORS.textPrimary,
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontWeight: 600,
               lineHeight: 1.35,
             }}
@@ -271,7 +272,7 @@ export function ExportDataDialog({
             variant="caption"
             sx={{
               color: GLASS_COLORS.textSecondary,
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               display: "block",
               fontWeight: 500,
             }}
@@ -304,7 +305,7 @@ export function ExportDataDialog({
                   mt: 0.75,
                   ml: 4,
                   color: GLASS_COLORS.textPrimary,
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: FONT_FAMILY_UI,
                   fontWeight: 600,
                   fontSize: "0.9rem",
                 }}
@@ -370,7 +371,7 @@ export function ExportDataDialog({
                   mt: 1,
                   ml: { xs: 0, sm: 2 },
                   color: GLASS_COLORS.textPrimary,
-                  fontFamily: '"Tactic Sans", sans-serif',
+                  fontFamily: FONT_FAMILY_UI,
                   fontWeight: 600,
                   fontSize: "0.9rem",
                 }}

@@ -1,15 +1,12 @@
 import type { SxProps, Theme } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Alert, Box, ButtonBase, Stack, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { translateRelevamientoGlobalMessage } from "../utils/relevamientoGridUxMessages";
 import { rutasInstitutionalScrollSx } from "../../RutasTrabajo/styles/institutionalVisual";
 import { validationRailRootSx } from "../styles/cargarRelevamientosStyles";
-import { mergeSx } from "../../../utils/muiSx";
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-export type ValidationRailEntry = {
+import { mergeSx } from "../../../utils/muiSx";export type ValidationRailEntry = {
   rowIndex: number;
   lines: string[];
 };
@@ -43,7 +40,7 @@ export function ValidationErrorsRail({
     <Box sx={mergeSx(validationRailRootSx, rutasInstitutionalScrollSx, sx)}>
       <Typography
         sx={{
-          fontFamily: TACTIC,
+          fontFamily: FONT_FAMILY_UI,
           fontWeight: 700,
           fontSize: "0.8125rem",
           letterSpacing: "0.04em",
@@ -65,7 +62,7 @@ export function ValidationErrorsRail({
         <>
           <Typography
             sx={{
-              fontFamily: TACTIC,
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "0.72rem",
               fontWeight: 600,
               color: GLASS_COLORS.textMuted,
@@ -100,7 +97,7 @@ export function ValidationErrorsRail({
               >
                 <Typography
                   sx={{
-                    fontFamily: TACTIC,
+                    fontFamily: FONT_FAMILY_UI,
                     fontWeight: 700,
                     fontSize: "0.78rem",
                     color: GLASS_COLORS.primary,
@@ -114,7 +111,7 @@ export function ValidationErrorsRail({
                     key={i}
                     component="div"
                     sx={{
-                      fontFamily: TACTIC,
+                      fontFamily: FONT_FAMILY_UI,
                       fontSize: "0.72rem",
                       lineHeight: 1.45,
                       color: GLASS_COLORS.textSecondary,
@@ -130,7 +127,7 @@ export function ValidationErrorsRail({
       ) : null}
 
       {showEmpty ? (
-        <Typography sx={{ fontFamily: TACTIC, fontSize: "0.72rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
+        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.72rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}>
           Sin incidencias en las filas cargadas.
         </Typography>
       ) : null}

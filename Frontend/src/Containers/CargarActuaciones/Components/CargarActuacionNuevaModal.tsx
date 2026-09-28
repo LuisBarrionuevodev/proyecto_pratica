@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import {
   Autocomplete,
   Box,
@@ -54,11 +55,7 @@ import {
   sortCatalogItems,
 } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
-import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-/** Keys Glide (contrato `COLUMN_MAP_ACTUACIONES` / grilla). */
+import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";/** Keys Glide (contrato `COLUMN_MAP_ACTUACIONES` / grilla). */
 const GLIDE_KEYS = [
   "Fecha actuación",
   "Orden de trabajo",
@@ -88,7 +85,7 @@ function emptyTextFields(): Record<GlideTextKey, string> {
 
 /** Misma columna flexible y labels que `CompletarTrabajoModal`. */
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
-const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: tactic } as const;
+const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI } as const;
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
@@ -449,7 +446,7 @@ export function CargarActuacionNuevaModal() {
           <Box sx={{ minWidth: 0, flex: { sm: "1 1 auto" } }}>
             <Typography
               sx={{
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 fontWeight: 700,
                 fontSize: "1rem",
                 color: GLASS_COLORS.textPrimary,
@@ -460,7 +457,7 @@ export function CargarActuacionNuevaModal() {
             </Typography>
             <Typography
               sx={{
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 mt: 0.5,
                 fontSize: "0.875rem",
                 color: GLASS_COLORS.textMuted,
@@ -570,7 +567,7 @@ export function CargarActuacionNuevaModal() {
             alignItems: "flex-start",
             mx: 0,
             color: "rgba(255,255,255,0.88)",
-            "& .MuiFormControlLabel-label": { fontFamily: tactic, fontSize: "0.875rem", lineHeight: 1.45 },
+            "& .MuiFormControlLabel-label": { fontFamily: FONT_FAMILY_UI, fontSize: "0.875rem", lineHeight: 1.45 },
           }}
         />
 
@@ -737,7 +734,7 @@ export function CargarActuacionNuevaModal() {
               "& .MuiToggleButton-root": {
                 flex: 1,
                 textTransform: "none",
-                fontFamily: tactic,
+                fontFamily: FONT_FAMILY_UI,
                 fontSize: "0.8125rem",
                 color: "rgba(255,255,255,0.75)",
                 borderColor: "rgba(255,255,255,0.2)",

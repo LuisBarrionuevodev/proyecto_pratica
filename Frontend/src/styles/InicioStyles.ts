@@ -1,4 +1,5 @@
 import { GLASS_COLORS } from "./GlassStyles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA INICIO
@@ -23,7 +24,7 @@ export const BoxTitulo = {
 export const TitleStyle = {
     color: GLASS_COLORS.textPrimary,
     textShadow: "2px 2px 8px rgba(0, 0, 0, 0.5)",
-    fontFamily: "Tactic Sans",
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 800,
     fontSize: { xs: "28px", sm: "36px", md: "42px" },
 };
@@ -38,7 +39,7 @@ export const ButtonStylesInicio = {
     height: "60px",
     borderRadius: "12px",
     backgroundColor: GLASS_COLORS.cardBg,
-    fontFamily: "Tactic Sans",
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: { xs: "16px", sm: "18px" },
     color: GLASS_COLORS.textPrimary,
@@ -145,7 +146,7 @@ export const StyleBoxTextCard = {
 
 export const StyleTextCard = {
     color: GLASS_COLORS.textPrimary,
-    fontFamily: "Tactic Sans",
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: "16px",
     lineHeight: 1.3,
@@ -153,7 +154,7 @@ export const StyleTextCard = {
 
 export const StyleTextCardSecondary = {
     color: GLASS_COLORS.textMuted,
-    fontFamily: "Tactic Sans",
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 400,
     fontSize: "13px",
     lineHeight: 1.4,
@@ -170,7 +171,7 @@ export const SearchFieldStyles = {
         borderRadius: "50px", // Pill shape como Early Bird
         color: GLASS_COLORS.textPrimary,
         border:`1px solid ${GLASS_COLORS.borderLight}`,
-        fontFamily: "Tactic Sans",
+        fontFamily: FONT_FAMILY_UI,
         boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
         transition: "all 0.2s ease",
         "&:hover": {
@@ -181,7 +182,7 @@ export const SearchFieldStyles = {
         },
     },
     "& .MuiInputBase-input": {
-        fontFamily: "Tactic Sans",
+        fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
         padding: "16px 24px",
         fontSize: "16px",

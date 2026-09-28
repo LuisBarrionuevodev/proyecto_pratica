@@ -1,4 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import {
@@ -27,11 +28,7 @@ import {
   rutasInstitutionalDividerSx,
   rutasInstitutionalResumenPaperSx,
   rutasResumenTitleSx,
-} from "../styles/institutionalVisual";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-/** Misma columna centrada que Completar trabajo (max 1400 px). */
+} from "../styles/institutionalVisual";/** Misma columna centrada que Completar trabajo (max 1400 px). */
 const MODULE_CONTENT_MAX_PX = 1400;
 
 const shellStackSx = {
@@ -117,7 +114,7 @@ const countChipSx = {
   height: 18,
   minWidth: 22,
   fontSize: "0.65rem",
-  fontFamily: tactic,
+  fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   borderColor: GLASS_COLORS.borderActive,
   color: "#FFFFFF",
@@ -206,8 +203,8 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
           variant="fullWidth"
           sx={{ ...moduleSlicesTabsSx, width: "100%" }}
         >
-          <Tab label="Borradores" value="borradores" sx={{ fontFamily: tactic, fontWeight: 600, textTransform: "none" }} />
-          <Tab label="Publicadas" value="publicadas" sx={{ fontFamily: tactic, fontWeight: 600, textTransform: "none" }} />
+          <Tab label="Borradores" value="borradores" sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 600, textTransform: "none" }} />
+          <Tab label="Publicadas" value="publicadas" sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 600, textTransform: "none" }} />
         </Tabs>
       </Paper>
 
@@ -223,7 +220,7 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
           ) : null}
 
           {error ? (
-            <Alert severity="error" variant="outlined" sx={{ borderRadius: 2, fontFamily: tactic }}>
+            <Alert severity="error" variant="outlined" sx={{ borderRadius: 2, fontFamily: FONT_FAMILY_UI }}>
               {error}
               <Box sx={{ mt: 1 }}>
                 <AppButton dsVariant="ghost" dsSize="sm" onClick={() => void cargarMes()}>
@@ -284,7 +281,7 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
                   if (selectedIso) onCrearBorrador({ fecha: selectedIso });
                 }}
                 sx={{
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontWeight: 700,
                   alignSelf: { xs: "stretch", sm: "flex-start" },
                   minWidth: { sm: 280 },
@@ -300,7 +297,7 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
               <Divider sx={rutasInstitutionalDividerSx} />
 
               {rutasDelDiaSeleccionado.length === 0 ? (
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
+                <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
                   {selectedIso == null ? "Seleccioná un día en el calendario." : "Sin rutas para esta fecha."}
                 </Typography>
               ) : (
@@ -314,7 +311,7 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
                       startIcon={tab === "borradores" ? <FolderOpenIcon /> : <PublishedWithChangesIcon />}
                       onClick={() => onAbrirRuta(r.id)}
                       sx={{
-                        fontFamily: tactic,
+                        fontFamily: FONT_FAMILY_UI,
                         fontWeight: 600,
                         justifyContent: "flex-start",
                         textAlign: "left",

@@ -84,6 +84,7 @@ import {
 } from "../../Relevamientos/utils/relevamientoCamposForm";
 import { relevamientoRowMinimumCompleteForVisual } from "../utils/relevamientoGridMinimumFields";
 import { useAppSession } from "../../../auth/AppSessionProvider";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 interface TablaCargarRelevamientosGlideStyledProps {
   showTitle?: boolean;
@@ -779,7 +780,7 @@ const TablaCargarRelevamientosGlideStyled = ({
               onClick={handleCommitBatch}
               disabled={overlayBusy || rowsWithData.length === 0}
               sx={{
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 fontWeight: 600,
                 textTransform: "none",
                 borderRadius: "10px",
@@ -861,7 +862,7 @@ const TablaCargarRelevamientosGlideStyled = ({
                 <CircularProgress size={36} thickness={4} sx={{ color: GLASS_COLORS.primary }} />
                 <Typography
                   sx={{
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontFamily: FONT_FAMILY_UI,
                     fontWeight: 600,
                     fontSize: "0.95rem",
                     color: GLASS_COLORS.textPrimary,

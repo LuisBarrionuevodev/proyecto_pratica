@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { AppButton, AppTextField } from "../../../ui";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { buttonStyle, inputDarkStyle } from "../../../styles/PerfilStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 interface Props {
   onPasswordChange?: (data: {
@@ -64,7 +65,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
         <LockOutlinedIcon sx={{ color: "#0166FF", fontSize: 24 }} />
         <Typography
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             fontSize: { xs: 18, sm: 20 },
             fontWeight: 700,
             color: "#FFFFFF",
@@ -78,7 +79,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
       <Box>
         <Typography
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             ml: 1,
             mb: 1,
             fontSize: 13,
@@ -103,7 +104,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
       <Box>
         <Typography
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             ml: 1,
             mb: 1,
             fontSize: 13,
@@ -128,7 +129,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
       <Box>
         <Typography
           sx={{
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
             ml: 1,
             mb: 1,
             fontSize: 13,

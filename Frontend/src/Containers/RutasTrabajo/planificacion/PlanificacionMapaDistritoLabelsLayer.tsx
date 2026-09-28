@@ -4,11 +4,12 @@ import type { FeatureCollection } from "geojson";
 import L from "leaflet";
 
 import { buildDistritoMapLabels } from "./utils/planificacionMapaGeo";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /** Celeste glass alineado a Digitaliza (#0166FF); legible sobre choropleta sin tapar clics. */
 const DISTRITO_LABEL_INNER_STYLE =
   'font-size:42px;font-weight:800;line-height:1;text-align:center;pointer-events:none;user-select:none;min-width:1ch;' +
-  'font-family:"Tactic Sans",sans-serif;color:#a8e8ff;opacity:0.68;' +
+  `font-family:${FONT_FAMILY_UI};color:#a8e8ff;opacity:0.68;` +
   "text-shadow:0 0 22px rgba(120,210,255,0.62),0 0 10px rgba(1,102,255,0.48),0 2px 12px rgba(0,0,0,0.55);";
 
 function distritoLabelDivIcon(label: string): L.DivIcon {

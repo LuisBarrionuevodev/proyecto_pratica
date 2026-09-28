@@ -1,6 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 import { GLASS_COLORS } from "./GlassStyles";
 import { color as tokenColor, layoutShell } from "../theme/tokens";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA TOPBAR
@@ -65,7 +66,7 @@ export const UserInfoStyles: SxProps<Theme> = {
 
 // Nombre del usuario
 export const UserNameStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: "14px",
     color: GLASS_COLORS.textPrimary,
@@ -74,7 +75,7 @@ export const UserNameStyles: SxProps<Theme> = {
 
 // Badge del rol (pequeño, junto al nombre)
 export const RoleBadgeSmallStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 500,
     fontSize: "10px",
     color: COLORS.primary,
@@ -130,7 +131,7 @@ export const MenuUserInfoStyles: SxProps<Theme> = {
 
 // Nombre grande en el menú
 export const MenuUserNameStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 700,
     fontSize: "16px",
     color: COLORS.white,
@@ -139,7 +140,7 @@ export const MenuUserNameStyles: SxProps<Theme> = {
 
 // Chip del rol con borde simple
 export const RoleChipStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 600,
     fontSize: "11px",
     backgroundColor: COLORS.primary,
@@ -154,7 +155,7 @@ export const RoleChipStyles: SxProps<Theme> = {
 
 // Email del usuario
 export const MenuEmailStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 400,
     fontSize: "13px",
     color: "rgba(255, 255, 255, 0.7)",
@@ -162,7 +163,7 @@ export const MenuEmailStyles: SxProps<Theme> = {
 
 // Items del menú
 export const MenuItemStyles: SxProps<Theme> = {
-    fontFamily: '"Tactic Sans", sans-serif',
+    fontFamily: FONT_FAMILY_UI,
     fontWeight: 500,
     fontSize: "14px",
     color: COLORS.white,

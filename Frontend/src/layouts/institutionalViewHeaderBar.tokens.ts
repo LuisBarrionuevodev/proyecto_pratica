@@ -1,10 +1,7 @@
 import type { SxProps, Theme } from "@mui/material/styles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
-import { GLASS_COLORS } from "../styles/GlassStyles";
-
-const tactic = '"Tactic Sans", sans-serif';
-
-/**
+import { GLASS_COLORS } from "../styles/GlassStyles";/**
  * Tokens del header institucional del shell (F3.8a): vista a la izquierda, fecha del día (YYYY-MM-DD local) a la derecha.
  * Usar siempre el mismo preset para color, padding y tipografía responsive entre vistas.
  */
@@ -27,7 +24,7 @@ export const institutionalViewHeaderTitleRowSx: SxProps<Theme> = {
 };
 
 export const institutionalViewHeaderTitleSx: SxProps<Theme> = {
-  fontFamily: tactic,
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "12px",
   fontWeight: 500,
   color: GLASS_COLORS.textSecondary,
@@ -38,7 +35,7 @@ export const institutionalViewHeaderTitleSx: SxProps<Theme> = {
 };
 
 export const institutionalViewHeaderDateSx: SxProps<Theme> = {
-  fontFamily: tactic,
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "12px",
   fontWeight: 600,
   color: GLASS_COLORS.textSecondary,

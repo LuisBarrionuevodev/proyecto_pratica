@@ -155,6 +155,7 @@ import {
 } from "./utils/notificacionEstadoOperativo";
 import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
 import { perfLog, perfTimed } from "../../utils/perfLog";
+import { FONT_FAMILY_UI } from "../../theme/typography";
 
 /** Operativas primero; `total` = Historial (documental), al final. */
 const PLAZO_TAB_ORDER: PlazoOperativoSlice[] = ["en_plazo", "por_vencer", "vencidas_o_hoy", "total"];
@@ -1467,7 +1468,7 @@ const GestionNotificacionPage = () => {
             disabled={syncLoading || loading || reinspeccionLoading}
             sx={{
               alignSelf: { xs: "stretch", sm: "center" },
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontWeight: 600,
               whiteSpace: { xs: "normal", sm: "nowrap" },
             }}
@@ -1646,7 +1647,7 @@ const GestionNotificacionPage = () => {
                   ml: 0,
                   "& .MuiFormControlLabel-label": {
                     color: "rgba(255,255,255,0.85)",
-                    fontFamily: '"Tactic Sans", sans-serif',
+                    fontFamily: FONT_FAMILY_UI,
                     fontSize: "0.85rem",
                   },
                 }}

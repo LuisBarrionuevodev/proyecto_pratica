@@ -1,12 +1,9 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { IRutaGrupoMin, IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { planificacionPanelSubtitleSx } from "../styles/institutionalVisual";
-
-const TACTIC = '"Tactic Sans", sans-serif' as const;
-
-interface MetricasProps {
+import { planificacionPanelSubtitleSx } from "../styles/institutionalVisual";interface MetricasProps {
   ruta: IRutaTrabajo | null;
   grupos: IRutaGrupoMin[];
   itemsCount: number;
@@ -30,52 +27,52 @@ export function RutaResumenMetricasInline({ ruta, grupos, itemsCount, omitFechaT
       {!omitFechaTurno ? (
         <>
           <Box>
-            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
               Fecha
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textPrimary }}>
               {ruta.fecha}
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
               Turno
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textPrimary }}>
               {ruta.turno}
             </Typography>
           </Box>
         </>
       ) : null}
       <Box>
-        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
           Grupos
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textPrimary }}>
           {grupos.length}
         </Typography>
       </Box>
       <Box>
-        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
           Items
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textPrimary }}>
           {itemsCount}
         </Typography>
       </Box>
       <Box>
-        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
           Inspectores
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: TACTIC, color: GLASS_COLORS.textPrimary }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textPrimary }}>
           {totalInspectores}
         </Typography>
       </Box>
       <Box sx={{ minWidth: 200, flex: 1, maxWidth: 480 }}>
-        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: TACTIC }}>
+        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
           Observaciones
         </Typography>
-        <Typography variant="body2" sx={{ fontFamily: TACTIC, color: GLASS_COLORS.textSecondary, lineHeight: 1.4 }}>
+        <Typography variant="body2" sx={{ fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textSecondary, lineHeight: 1.4 }}>
           {ruta.observaciones?.trim() || "—"}
         </Typography>
       </Box>

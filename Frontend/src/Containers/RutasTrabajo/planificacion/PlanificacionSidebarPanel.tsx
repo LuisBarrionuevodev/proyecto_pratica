@@ -7,6 +7,7 @@ import { PlanificacionFiltrosBar } from "./PlanificacionFiltrosBar";
 import { PendientesContextoPanel } from "./PendientesContextoPanel";
 import { UrgentesPanel } from "./UrgentesPanel";
 import { planificacionSidebarShellSx, planificacionSidebarTabBodySx } from "./planificacionMyMapsLayout";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import type {
   IPlanificacionMetricas,
   PlanificacionCardKey,
@@ -92,7 +93,7 @@ export function PlanificacionSidebarPanel({
     <Stack sx={planificacionSidebarShellSx} data-testid="planificacion-sidebar-panel">
       <Typography
         sx={{
-          fontFamily: '"Tactic Sans", sans-serif',
+          fontFamily: FONT_FAMILY_UI,
           fontWeight: 700,
           fontSize: "0.9375rem",
           color: GLASS_COLORS.textPrimary,

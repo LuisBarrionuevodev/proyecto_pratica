@@ -1,14 +1,11 @@
 import { Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../../theme/typography";
 
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
 import {
   buildEstablecimientoSecundario,
   type EstablecimientoDiscriminadores,
-} from "../utils/iniciadorDisplay";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-export type EstablecimientoSecundarioLineProps = {
+} from "../utils/iniciadorDisplay";export type EstablecimientoSecundarioLineProps = {
   item: EstablecimientoDiscriminadores;
   /** Tamaño de fuente (rem); default compacto para cards. */
   fontSize?: string;
@@ -27,7 +24,7 @@ export function EstablecimientoSecundarioLine({
   return (
     <Typography
       sx={{
-        fontFamily: tactic,
+        fontFamily: FONT_FAMILY_UI,
         fontSize,
         fontWeight: 500,
         lineHeight: 1.28,

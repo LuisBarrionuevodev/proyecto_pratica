@@ -1,8 +1,7 @@
 import { createTheme } from "@mui/material/styles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 import { color as tokenColor } from "../theme/tokens";
-
-const fontStack = `"Tactic Sans", "Roboto", "Arial", sans-serif`;
 
 /**
  * Tema único de la aplicación (modo oscuro + tipografía + primary desde tokens).
@@ -16,7 +15,7 @@ export const appTheme = createTheme({
     },
   },
   typography: {
-    fontFamily: fontStack,
+    fontFamily: FONT_FAMILY_UI,
   },
 });
 

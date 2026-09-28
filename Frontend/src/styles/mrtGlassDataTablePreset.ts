@@ -2,6 +2,7 @@ import type { SxProps, Theme } from "@mui/material";
 import type { MRT_TableOptions } from "material-react-table";
 
 import { GLASS_COLORS } from "./GlassStyles";
+import { FONT_FAMILY_UI } from "../theme/typography";
 
 /**
  * Paleta compartida para tablas MRT estilo glass / institucional (F3.7b).
@@ -28,12 +29,15 @@ export const DATA_TABLE_MRT_GLASS_COLORS = {
 
 const C = DATA_TABLE_MRT_GLASS_COLORS;
 
-/** Fuente institucional compartida (Actuaciones / tablas MRT F3.10). */
-export const MRT_TACTIC_FONT_FAMILY = '"Tactic Sans", sans-serif';
+/** Fuente de producto para tablas MRT (Actuaciones / bandejas). */
+export const MRT_UI_FONT_FAMILY = FONT_FAMILY_UI;
+
+/** @deprecated Use MRT_UI_FONT_FAMILY */
+export const MRT_TACTIC_FONT_FAMILY = MRT_UI_FONT_FAMILY;
 
 /** Tipografía header MRT — referencia Actuaciones (computed: 12px / 600). */
 export const mrtActuacionesHeadCellTypographySx: SxProps<Theme> = {
-  fontFamily: MRT_TACTIC_FONT_FAMILY,
+  fontFamily: MRT_UI_FONT_FAMILY,
   fontSize: "12px",
   fontWeight: 600,
   lineHeight: 1.43,
@@ -43,7 +47,7 @@ export const mrtActuacionesHeadCellTypographySx: SxProps<Theme> = {
 
 /** Tipografía body MRT — referencia Actas Comprobación / bandeja (12px / 600). */
 export const mrtActuacionesBodyCellTypographySx: SxProps<Theme> = {
-  fontFamily: MRT_TACTIC_FONT_FAMILY,
+  fontFamily: MRT_UI_FONT_FAMILY,
   fontSize: "12px",
   fontWeight: 600,
   lineHeight: 1.35,
@@ -56,11 +60,11 @@ export const mrtActuacionesBodyCellTypographySx: SxProps<Theme> = {
  * Aplica fuente/tamaño vía selectores descendientes cuando MRT/MUI pisan `muiTable*CellProps`.
  */
 export const dataTableMrtTypographyScopeSx: SxProps<Theme> = {
-  fontFamily: MRT_TACTIC_FONT_FAMILY,
+  fontFamily: MRT_UI_FONT_FAMILY,
   "& .MuiTableCell-head": mrtActuacionesHeadCellTypographySx,
   "& .MuiTableCell-body": mrtActuacionesBodyCellTypographySx,
   "& .MuiTableCell-root": {
-    fontFamily: MRT_TACTIC_FONT_FAMILY,
+    fontFamily: MRT_UI_FONT_FAMILY,
   },
   "& .MuiTableCell-root .MuiTypography-root": {
     fontFamily: "inherit",
@@ -72,30 +76,30 @@ export const dataTableMrtTypographyScopeSx: SxProps<Theme> = {
   },
   "& .MuiTablePagination-root, & .MuiTablePagination-toolbar, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows, & .MuiTablePagination-select, & .MuiTablePagination-input":
     {
-      fontFamily: MRT_TACTIC_FONT_FAMILY,
+      fontFamily: MRT_UI_FONT_FAMILY,
       fontSize: "12px",
       fontWeight: 400,
       letterSpacing: "normal",
       textTransform: "none",
     },
   "& .MuiToolbar-root": {
-    fontFamily: MRT_TACTIC_FONT_FAMILY,
+    fontFamily: MRT_UI_FONT_FAMILY,
     fontSize: "12px",
     fontWeight: 400,
   },
   "& .MuiInputBase-root, & .MuiInputBase-input, & .MuiInputLabel-root": {
-    fontFamily: MRT_TACTIC_FONT_FAMILY,
+    fontFamily: MRT_UI_FONT_FAMILY,
     fontSize: "12px",
   },
   "& .MuiChip-label": {
-    fontFamily: MRT_TACTIC_FONT_FAMILY,
+    fontFamily: MRT_UI_FONT_FAMILY,
     fontSize: "0.78rem",
     fontWeight: 600,
     letterSpacing: "normal",
     textTransform: "none",
   },
   "& .MuiButton-root": {
-    fontFamily: MRT_TACTIC_FONT_FAMILY,
+    fontFamily: MRT_UI_FONT_FAMILY,
     textTransform: "none",
   },
 };
@@ -152,7 +156,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
     sx: {
       backgroundColor: GLASS_COLORS.cardBg,
       borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-      fontFamily: MRT_TACTIC_FONT_FAMILY,
+      fontFamily: MRT_UI_FONT_FAMILY,
       fontSize: "12px",
       "& .MuiIconButton-root": {
         color: C.white,
@@ -175,7 +179,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
     sx: {
       backgroundColor: GLASS_COLORS.cardBg,
       borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
-      fontFamily: MRT_TACTIC_FONT_FAMILY,
+      fontFamily: MRT_UI_FONT_FAMILY,
       fontSize: "12px",
       "& .MuiTablePagination-root": { color: C.white },
       "& .MuiIconButton-root": {
@@ -295,7 +299,7 @@ export const dataTableMrtLoadingOverlaySx: SxProps<Theme> = {
 
 /** Texto bajo el spinner del overlay de tablas MRT. */
 export const dataTableMrtLoadingOverlayMessageSx: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.8125rem",
   color: "rgba(255,255,255,0.75)",
 };
@@ -313,7 +317,7 @@ export const dataTableMrtContentReadySx: SxProps<Theme> = {
 
 /** Mensaje de carga fuera de la tabla MRT (misma línea visual que Actuaciones). */
 export const dataTableMrtLoadingMessageSx: SxProps<Theme> = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "18px",
   color: DATA_TABLE_MRT_GLASS_COLORS.white,
   textAlign: "center",

@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
 import {
   MaterialReactTable,
@@ -53,7 +54,7 @@ const PRIORIDAD_OPTIONS = [
 ] as const;
 
 const TIPO_TEXT_SX = {
-  fontFamily: '"Tactic Sans", sans-serif',
+  fontFamily: FONT_FAMILY_UI,
   fontSize: "0.8125rem",
   fontWeight: 600,
   lineHeight: 1.35,
@@ -251,7 +252,7 @@ function IniciadoresPoolTableMrt({
               ) : (
                 <Typography
                   variant="caption"
-                  sx={{ color: GLASS_COLORS.textMuted, fontFamily: '"Tactic Sans", sans-serif' }}
+                  sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}
                 >
                   —
                 </Typography>
@@ -278,7 +279,7 @@ function IniciadoresPoolTableMrt({
               variant="caption"
               title={detalle}
               sx={{
-                fontFamily: '"Tactic Sans", sans-serif',
+                fontFamily: FONT_FAMILY_UI,
                 color: GLASS_COLORS.textSecondary,
                 lineHeight: 1.35,
                 display: "-webkit-box",
@@ -299,9 +300,7 @@ function IniciadoresPoolTableMrt({
         size: 240,
         Cell: ({ row }) => {
           const domicilio = domicilioLineaAsignacion(row.original);
-          const rubro = rubroLineaAsignacion(row.original);
-          const tactic = '"Tactic Sans", sans-serif' as const;
-          return (
+          const rubro = rubroLineaAsignacion(row.original);          return (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.35, minWidth: 0, py: 0.125 }}>
               <Typography
                 variant="body2"
@@ -309,7 +308,7 @@ function IniciadoresPoolTableMrt({
                   fontSize: "0.8125rem",
                   lineHeight: 1.35,
                   color: GLASS_COLORS.textPrimary,
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontWeight: 600,
                   wordBreak: "break-word",
                 }}
@@ -320,7 +319,7 @@ function IniciadoresPoolTableMrt({
                 <Typography
                   variant="caption"
                   sx={{
-                    fontFamily: tactic,
+                    fontFamily: FONT_FAMILY_UI,
                     fontSize: "0.7rem",
                     fontWeight: 500,
                     lineHeight: 1.28,
@@ -331,7 +330,7 @@ function IniciadoresPoolTableMrt({
                   {rubro}
                 </Typography>
               ) : (
-                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.22)", fontFamily: tactic }}>
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.22)", fontFamily: FONT_FAMILY_UI }}>
                   —
                 </Typography>
               )}

@@ -105,6 +105,7 @@ import {
 } from "../../../utils/motivosNotificacionSlots";
 import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
 import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
@@ -1117,7 +1118,7 @@ export function CompletarTrabajoModal({
   };
 
   const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
-  const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: '"Tactic Sans", sans-serif' } as const;
+  const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI } as const;
 
   return (
     <CrudGlassDialog
@@ -1179,7 +1180,7 @@ export function CompletarTrabajoModal({
             p: 1.5,
             borderRadius: 2,
             bgcolor: "rgba(255,255,255,0.06)",
-            fontFamily: '"Tactic Sans", sans-serif',
+            fontFamily: FONT_FAMILY_UI,
           }}
         >
           <Typography variant="subtitle2" sx={{ ...detalleLabelSx, mb: 0.25 }}>
@@ -1600,7 +1601,7 @@ export function CompletarTrabajoModal({
             "& .MuiToggleButton-root": {
               flex: 1,
               textTransform: "none",
-              fontFamily: '"Tactic Sans", sans-serif',
+              fontFamily: FONT_FAMILY_UI,
               fontSize: "0.8125rem",
               color: "rgba(255,255,255,0.75)",
               borderColor: "rgba(255,255,255,0.2)",
@@ -1738,7 +1739,7 @@ export function CompletarTrabajoModal({
                       p: 1.5,
                       borderRadius: 2,
                       bgcolor: "rgba(255,255,255,0.06)",
-                      fontFamily: '"Tactic Sans", sans-serif',
+                      fontFamily: FONT_FAMILY_UI,
                     }}
                   >
                     <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>

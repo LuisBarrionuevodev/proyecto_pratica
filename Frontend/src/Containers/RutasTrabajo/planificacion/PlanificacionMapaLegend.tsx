@@ -1,10 +1,7 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
-import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-function LegendDot({ color }: { color: string }) {
+import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";function LegendDot({ color }: { color: string }) {
   return (
     <Box
       sx={{
@@ -39,13 +36,13 @@ export function PlanificacionMapaLegend() {
       <Stack spacing={0.5}>
         <Stack direction="row" spacing={0.75} alignItems="center">
           <LegendDot color="#0166FF" />
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.6875rem", color: GLASS_COLORS.textSecondary }}>
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.6875rem", color: GLASS_COLORS.textSecondary }}>
             Candidato libre
           </Typography>
         </Stack>
         <Stack direction="row" spacing={0.75} alignItems="center">
           <LegendDot color="#d32f2f" />
-          <Typography sx={{ fontFamily: tactic, fontSize: "0.6875rem", color: GLASS_COLORS.textSecondary }}>
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.6875rem", color: GLASS_COLORS.textSecondary }}>
             Ya agregado a esta ruta
           </Typography>
         </Stack>

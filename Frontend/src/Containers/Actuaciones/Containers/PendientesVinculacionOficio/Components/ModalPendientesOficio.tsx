@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { FONT_FAMILY_UI } from "../../../../../theme/typography";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
@@ -39,7 +40,7 @@ const BasicModal = () => {
                         id="modal-modal-description"
                         sx={{
                             fontSize: "20px",
-                            fontFamily: "tactic sans",
+                            fontFamily: FONT_FAMILY_UI,
                             fontWeight: 400
                         }}
                     >

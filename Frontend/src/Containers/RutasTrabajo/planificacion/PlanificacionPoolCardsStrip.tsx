@@ -1,4 +1,5 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -6,11 +7,7 @@ import { AppButton } from "../../../ui";
 import { RutaContextoLine } from "../Components/RutaContextoLine";
 import { RutasOperativaChip } from "../Components/RutasOperativaChip";
 import { planificacionPanelTitleSx, rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
-import type { PlanificacionPoolStripItem } from "./utils/buildPlanificacionPoolStripItems";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-const cardSx = {
+import type { PlanificacionPoolStripItem } from "./utils/buildPlanificacionPoolStripItems";const cardSx = {
   flex: "0 0 auto",
   minWidth: 220,
   maxWidth: 320,
@@ -65,13 +62,13 @@ export function PlanificacionPoolCardsStrip({
       </Stack>
 
       {loading ? (
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
+        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
           Cargando pool…
         </Typography>
       ) : items.length === 0 ? (
         <Typography
           data-testid="planificacion-pool-strip-empty"
-          sx={{ fontFamily: tactic, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}
+          sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted, lineHeight: 1.45 }}
         >
           Todavía no agregaste pendientes al pool.
         </Typography>
@@ -109,7 +106,7 @@ export function PlanificacionPoolCardsStrip({
               </Stack>
               <Typography
                 sx={{
-                  fontFamily: tactic,
+                  fontFamily: FONT_FAMILY_UI,
                   fontSize: "0.78rem",
                   fontWeight: 600,
                   color: GLASS_COLORS.textPrimary,
@@ -124,7 +121,7 @@ export function PlanificacionPoolCardsStrip({
               {item.detalle ? (
                 <Typography
                   sx={{
-                    fontFamily: tactic,
+                    fontFamily: FONT_FAMILY_UI,
                     fontSize: "0.68rem",
                     color: GLASS_COLORS.textMuted,
                     lineHeight: 1.3,
@@ -137,7 +134,7 @@ export function PlanificacionPoolCardsStrip({
                 </Typography>
               ) : null}
               <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={0.5}>
-                <Typography sx={{ fontFamily: tactic, fontSize: "0.68rem", color: GLASS_COLORS.textSecondary }}>
+                <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.68rem", color: GLASS_COLORS.textSecondary }}>
                   {item.distritoLabel}
                   {item.grupoNombre ? ` · ${item.grupoNombre}` : ""}
                 </Typography>

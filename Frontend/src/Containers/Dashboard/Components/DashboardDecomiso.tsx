@@ -4,6 +4,7 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import type { IndicadoresDecomisoKg } from "../../../api/indicadoresApi";
 import { ChartStyle, dashboardEmptyStateCompactSx } from "../../../styles/DashboardStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
@@ -56,7 +57,7 @@ const DecomisoMensualChart = ({ decomisoKg, loading }: Props) => {
 
   return (
     <Box>
-      <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, display: "block", mb: 1, fontFamily: '"Tactic Sans", sans-serif' }}>
+      <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, display: "block", mb: 1, fontFamily: FONT_FAMILY_UI }}>
         Total periodo: <strong style={{ color: GLASS_COLORS.textPrimary }}>{formatKg(decomisoKg.total_kg)} kg</strong>
       </Typography>
       <LineChart

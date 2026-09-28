@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Stack, TextField, Typography } from "@mui/material";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -18,11 +19,7 @@ import type {
   PlanificacionFiltrosLista,
   UrgentesFiltrosAplicados,
 } from "./types/planificacion.types";
-import type { PlanificacionSidebarTab } from "./PlanificacionSidebarPanel";
-
-const tactic = '"Tactic Sans", sans-serif' as const;
-
-export type PlanificacionFiltrosBarProps = {
+import type { PlanificacionSidebarTab } from "./PlanificacionSidebarPanel";export type PlanificacionFiltrosBarProps = {
   distritoActivoId: number | null;
   contextoActivo?: boolean;
   scopeOutsideDistricts?: boolean;
@@ -121,11 +118,11 @@ export function PlanificacionFiltrosBar({
   return (
     <Stack sx={planificacionFiltrosBarSx} spacing={0.75}>
       {!contextoActivo && isTotalMapa ? (
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
+        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
           Elegí un distrito en el mapa o Fuera de distritos
         </Typography>
       ) : scopeOutsideDistricts && isTotalMapa ? (
-        <Typography sx={{ fontFamily: tactic, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
+        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.75rem", color: GLASS_COLORS.textMuted }}>
           Contexto: Fuera de distritos
         </Typography>
       ) : null}
