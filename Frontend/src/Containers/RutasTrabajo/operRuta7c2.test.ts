@@ -64,16 +64,18 @@ describe("OPER-RUTA.7C.2 — header compacto + espacio vertical", () => {
     expect(chips).toContain('data-testid="asignacion-grupos-resumen"');
   });
 
-  it("Mapa final no renderiza Resumen de ruta; Publicar en header e indicadores con contexto", () => {
+  it("Mapa final no renderiza Resumen de ruta; cabecera con contexto y métricas", () => {
     const mapa = read("src/Containers/RutasTrabajo/views/RutasMapaOperativoView.tsx");
     expect(mapa).not.toContain("RutaResumenHeaderCard");
     expect(mapa).not.toContain("Resumen de ruta");
     expect(mapa).not.toContain('data-testid="mapa-final-publicar-action"');
+    expect(mapa).not.toContain("Indicadores (snapshot)");
     expect(mapa).toContain('data-testid="mapa-final-indicadores"');
     expect(mapa).toContain('data-testid="mapa-final-export-actions"');
     expect(mapa).toContain("Descargar resumen (PDF)");
     expect(mapa).not.toContain('<Alert');
     expect(mapa).toContain("RutaContextoLine");
+    expect(mapa).toContain("mapa-final-metricas-territoriales");
     expect(mapa).toContain("useAppFeedback");
     const index = read("src/Containers/RutasTrabajo/index.tsx");
     expect(index).toContain("useAppFeedback");

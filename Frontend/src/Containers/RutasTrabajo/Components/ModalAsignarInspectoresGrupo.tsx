@@ -26,14 +26,12 @@ const DIALOG_OPEN_PERF = {
   disableAutoFocus: true,
 } as const;
 
-/** Altura fija del listado para que el modal no cambie de tamaño al filtrar. */
-const LIST_VIEWPORT_HEIGHT_PX = 320;
-
+/** Altura del listado: scroll interno único; se adapta a viewports bajos (ej. 1366×768). */
 const LIST_VIEWPORT_SX = {
   flex: "0 0 auto",
-  height: LIST_VIEWPORT_HEIGHT_PX,
-  minHeight: LIST_VIEWPORT_HEIGHT_PX,
-  maxHeight: LIST_VIEWPORT_HEIGHT_PX,
+  height: { xs: "min(34vh, 280px)", sm: "clamp(180px, 32vh, 320px)" },
+  minHeight: { xs: 160, sm: 180 },
+  maxHeight: 320,
   overflow: "auto" as const,
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
   borderRadius: "12px",
@@ -201,6 +199,16 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
           >
             Cancelar
           </Button>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            onClick={() => void handleSubmit()}
+            disabled={saving || !grupo}
+            loading={saving}
+            data-testid="modal-inspectores-listo"
+          >
+            Listo
+          </AppButton>
         </Box>
       }
     >
@@ -280,18 +288,6 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
               })}
             </Box>
             )}
-          </Box>
-          <Box sx={{ pt: 0.5, flexShrink: 0 }}>
-            <AppButton
-              dsVariant="primary"
-              fullWidth
-              onClick={handleSubmit}
-              disabled={saving}
-              loading={saving}
-              sx={{ py: 1.25, fontWeight: 700, letterSpacing: "0.06em" }}
-            >
-              Listo
-            </AppButton>
           </Box>
         </>
       ) : null}

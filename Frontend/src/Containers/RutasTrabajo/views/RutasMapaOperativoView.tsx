@@ -19,16 +19,6 @@ import type { RutasMapaOperativoViewProps } from "../types/rutasTrabajoMapa.type
 import { AppButton } from "../../../ui/AppButton";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
-const MAPA_FINAL_SECTION_LABEL_SX = {
-  fontFamily: '"Tactic Sans", sans-serif',
-  fontSize: "0.65rem",
-  fontWeight: 600,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase" as const,
-  color: GLASS_COLORS.textMuted,
-  mb: 0.35,
-};
-
 /**
  * Paso 3 del flujo borrador: mapa, indicadores y documentación.
  * Publicar vive en el header compacto; avisos operativos usan toast global.
@@ -169,25 +159,25 @@ export function RutasMapaOperativoView({
   return (
     <Stack spacing={1.5} sx={{ minWidth: 0 }} data-testid="mapa-final-view" {...(readOnly ? { "data-ruta-historico-preview": "true" } : {})}>
       <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5, px: 2 }} data-testid="mapa-final-indicadores">
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "stretch", md: "flex-start" }}
-          spacing={1}
-          sx={{ mb: 1 }}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) auto" },
+            gap: { xs: 1.5, md: 2 },
+            alignItems: "flex-start",
+            mb: 1,
+          }}
         >
-          <Stack spacing={0.35} sx={{ minWidth: 0 }}>
-            <Typography sx={{ ...MAPA_FINAL_SECTION_LABEL_SX }}>
-              {readOnly ? "Indicadores (snapshot)" : "Indicadores"}
-            </Typography>
+          <Stack spacing={1} sx={{ minWidth: 0 }}>
             {ruta != null ? <RutaContextoLine ruta={ruta} variant="compact" /> : null}
-          </Stack>
-          {exportActions}
-        </Stack>
-
-        <MapaOtSecuenciaPreview itemsCount={rt.totalItems} readOnly={readOnly} />
-
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75} flexWrap="wrap" useFlexGap alignItems={{ sm: "flex-start" }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.75}
+              flexWrap="wrap"
+              useFlexGap
+              alignItems={{ sm: "flex-start" }}
+              data-testid="mapa-final-metricas-territoriales"
+            >
           <Box sx={{ minWidth: 88 }}>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
               Direcciones
@@ -248,7 +238,14 @@ export function RutasMapaOperativoView({
               </Typography>
             </Box>
           )}
-        </Stack>
+            </Stack>
+          </Stack>
+
+          <Stack spacing={1} alignItems={{ xs: "stretch", md: "flex-end" }} sx={{ minWidth: 0 }}>
+            {readOnly ? exportActions : null}
+            <MapaOtSecuenciaPreview itemsCount={rt.totalItems} readOnly={readOnly} />
+          </Stack>
+        </Box>
       </Paper>
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="stretch" sx={{ minHeight: { xs: "auto", md: 420 } }}>

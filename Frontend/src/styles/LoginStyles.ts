@@ -41,7 +41,12 @@ export const InputStyles = {
     "& .MuiInputBase-input": {
         fontFamily: "Tactic Sans",
         fontWeight: 500,
+        color: "#111111",
         zIndex: 1,
+    },
+    "& .MuiInputBase-input::placeholder": {
+        color: "#111111",
+        opacity: 1,
     },
 
     '& .MuiOutlinedInput-root': {

@@ -101,11 +101,16 @@ describe("CIERRE-QA I — Modal asignar inspectores scroll único", () => {
     expect(autoCount).toBe(1);
   });
 
-  it("botón Listo queda fuera del viewport scrolleable", () => {
+  it("botón Listo queda en AppDialog.actions (footer fijo)", () => {
     const modal = read("src/Containers/RutasTrabajo/Components/ModalAsignarInspectoresGrupo.tsx");
+    const actionsStart = modal.indexOf("actions={");
+    const actionsEnd = modal.indexOf("}", modal.indexOf("data-testid=\"modal-inspectores-listo\""));
+    expect(actionsStart).toBeGreaterThan(-1);
+    expect(actionsEnd).toBeGreaterThan(actionsStart);
+    const actionsBlock = modal.slice(actionsStart, actionsEnd + 1);
+    expect(actionsBlock).toContain("Listo");
     const listIdx = modal.indexOf("ref={listParentRef}");
-    const listoIdx = modal.indexOf("Listo");
-    expect(listIdx).toBeGreaterThan(-1);
-    expect(listoIdx).toBeGreaterThan(listIdx);
+    const afterList = modal.slice(listIdx);
+    expect(afterList).not.toContain(">Listo</AppButton>");
   });
 });

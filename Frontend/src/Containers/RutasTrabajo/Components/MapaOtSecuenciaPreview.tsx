@@ -75,34 +75,61 @@ export function MapaOtSecuenciaPreview({ itemsCount, readOnly = false, onRefresh
 
   if (readOnly) return null;
 
+  const showRange =
+    itemsCount > 0 && Boolean(preview?.first_display && preview?.last_display);
+
   return (
-    <Box data-testid="mapa-ot-secuencia-preview" sx={{ mb: 1 }}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "center" }} flexWrap="wrap" useFlexGap>
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
-            Próxima OT (estimado)
+    <Box
+      data-testid="mapa-ot-secuencia-preview"
+      sx={{
+        minWidth: 0,
+        width: { xs: "100%", md: "auto" },
+        textAlign: { xs: "left", md: "right" },
+      }}
+    >
+      <Stack
+        spacing={0.5}
+        alignItems={{ xs: "flex-start", md: "flex-end" }}
+        sx={{ minWidth: { md: 200 } }}
+      >
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
+          Rango OT estimado
+        </Typography>
+        <Typography
+          variant="body1"
+          data-testid="mapa-ot-rango-valor"
+          sx={{
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: GLASS_COLORS.textPrimary,
+            lineHeight: 1.25,
+          }}
+        >
+          {loading
+            ? "…"
+            : showRange
+              ? `${preview!.first_display} → ${preview!.last_display}`
+              : "—"}
+        </Typography>
+        {itemsCount > 0 ? (
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+            {itemsCount} ítem{itemsCount === 1 ? "" : "s"} a publicar
           </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-            {loading ? "…" : preview?.next_display ?? "—"}
+        ) : null}
+        {showRange && preview!.skipped_count > 0 ? (
+          <Typography variant="caption" color="warning.light" sx={{ display: "block", fontSize: "0.65rem" }}>
+            {preview!.skipped_count} número{preview!.skipped_count === 1 ? "" : "s"} existente
+            {preview!.skipped_count === 1 ? "" : "s"} será omitido
           </Typography>
-        </Box>
-        {itemsCount > 0 && preview?.first_display && preview.last_display ? (
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
-              Ítems a publicar: {itemsCount}
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: GLASS_COLORS.textMuted }}>
-              Rango estimado: {preview.first_display} → {preview.last_display}
-            </Typography>
-            {preview.skipped_count > 0 ? (
-              <Typography variant="caption" color="warning.light" sx={{ display: "block", fontSize: "0.65rem" }}>
-                {preview.skipped_count} número{preview.skipped_count === 1 ? "" : "s"} existente{preview.skipped_count === 1 ? "" : "s"} será omitido
-              </Typography>
-            ) : null}
-          </Box>
         ) : null}
         {isAdmin ? (
-          <AppButton dsVariant="secondary" dsSize="sm" disabled={loading} onClick={() => setEditOpen(true)}>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            disabled={loading}
+            onClick={() => setEditOpen(true)}
+            sx={{ mt: 0.5 }}
+          >
             Editar
           </AppButton>
         ) : null}

@@ -149,9 +149,9 @@ describe("RUTA-ASIG.1 UI wiring", () => {
     expect(tabla).toContain("detalleOperativoTexto");
   });
 
-  it("modal inspectores mantiene altura fija del listado", () => {
+  it("modal inspectores mantiene listado con altura responsive", () => {
     const modal = read("src/Containers/RutasTrabajo/Components/ModalAsignarInspectoresGrupo.tsx");
-    expect(modal).toContain("LIST_VIEWPORT_HEIGHT_PX");
+    expect(modal).toContain("clamp(180px, 32vh, 320px)");
     expect(modal).toContain("No hay inspectores que coincidan");
   });
 
