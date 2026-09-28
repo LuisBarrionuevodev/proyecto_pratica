@@ -16,12 +16,29 @@ export const generateRowId = (): string => {
 // HELPERS PARA FILAS
 // =============================================================================
 
+const GRID_ROW_INTERNAL_META_KEYS = new Set([
+    "_rowId",
+    "_state",
+    "_cellErrors",
+    "_rowError",
+    "_normalized",
+    "_validation_history",
+    "_touched",
+    "_needsCommit",
+    "_relevadorIds",
+]);
+
 /**
- * Extrae solo las columnas de datos de una fila (sin metadatos internos)
+ * Extrae solo las columnas de datos de una fila (sin metadatos internos de grilla).
  */
 export const extractDataColumns = (row: GridRow): Partial<GridRow> => {
-    const { _rowId, _state, _cellErrors, _rowError, _normalized, _validation_history, _touched, ...dataColumns } = row as any;
-    return dataColumns;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row as Record<string, unknown>)) {
+        if (!GRID_ROW_INTERNAL_META_KEYS.has(key)) {
+            out[key] = value;
+        }
+    }
+    return out as Partial<GridRow>;
 };
 
 /**

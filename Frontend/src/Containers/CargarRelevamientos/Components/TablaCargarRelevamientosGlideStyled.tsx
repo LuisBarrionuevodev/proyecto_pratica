@@ -49,7 +49,6 @@ import {
   turnoStoredToDropdownLabel,
 } from "../config/relevamientoTurnOptions";
 import {
-  extractDataColumns,
   rowHasData,
   createEmptyRow,
   createEmptyRows,
@@ -66,6 +65,7 @@ import {
   syncRelevadorIdsOnRow,
   syncRelevamientoDraftsAfterGridChange,
   writeRelevamientoDrafts,
+  extractRelevamientoDataColumns,
 } from "../utils/relevamientoDraftSessionStorage";
 import {
   relevamientoDataColGridCell,
@@ -291,7 +291,7 @@ const TablaCargarRelevamientosGlideStyled = ({
 
       const rowsToValidate = rowsWithData.map((row) => ({
         row_id: row._rowId!,
-        row: extractDataColumns(row),
+        row: extractRelevamientoDataColumns(row),
       }));
 
       try {
