@@ -82,6 +82,7 @@ import {
   normalizarNombreFantasiaFrontend,
   relevamientoAnguloEsAplicable,
 } from "../../Relevamientos/utils/relevamientoCamposForm";
+import { relevamientoRowMinimumCompleteForVisual } from "../utils/relevamientoGridMinimumFields";
 import { useAppSession } from "../../../auth/AppSessionProvider";
 
 interface TablaCargarRelevamientosGlideStyledProps {
@@ -90,20 +91,6 @@ interface TablaCargarRelevamientosGlideStyledProps {
 
 const CELL_ERROR_META_KEYS = new Set(["_row", "detail", "_global"]);
 const RELEVAMIENTO_DRAFT_SAVE_DEBOUNCE_MS = 300;
-
-/** Campos mínimos solo para color “lista para enviar” en UI — sin llamadas al backend. */
-const MIN_VISUAL_FIELD_IDS = ["Relevador", "Calle", "Numero", "Rubro"] as const;
-
-/**
- * True si la fila tiene los datos mínimos cargados (sin llamadas al backend).
- */
-function relevamientoRowMinimumCompleteForVisual(row: GridRow): boolean {
-  const strOk = (v: unknown) => {
-    if (v === null || v === undefined) return false;
-    return String(v).trim().length > 0;
-  };
-  return MIN_VISUAL_FIELD_IDS.every((id) => strOk(row[id as keyof GridRow]));
-}
 
 function rowHasBackendWideError(rowData: GridRow, cellErrors: Record<string, string>): boolean {
   if (rowData._state === "ERROR") return true;

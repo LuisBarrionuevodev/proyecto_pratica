@@ -83,13 +83,16 @@ export const validateActuacion = (a: Partial<IActuacion>) => {
 
 export const validateRelevamiento = (r: IRelevamiento) => {
   const errors: Record<string, string | undefined> = {};
-  const fecha = r.fecha ?? "";
+  const fecha =
+    r.fecha === null || r.fecha === undefined ? "" : String(r.fecha).trim();
 
-  if (!isValidDate(fecha))
-    errors.fecha = "Formato de fecha incorrecto (YYYY-MM-DD)";
-
-  if (!isValidRealDate(fecha))
-    errors.fecha = "Fecha inválida";
+  if (fecha) {
+    if (!isValidDate(fecha)) {
+      errors.fecha = "Formato de fecha incorrecto (YYYY-MM-DD)";
+    } else if (!isValidRealDate(fecha)) {
+      errors.fecha = "Fecha inválida";
+    }
+  }
 
   const relevadoresLabel =
     r.relevadores_label ??
