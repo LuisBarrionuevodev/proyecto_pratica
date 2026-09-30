@@ -11,6 +11,13 @@ export const layoutShell = {
   sidebarExpandedPx: 250,
   /** Ancho del drawer lateral colapsado (solo iconos) */
   sidebarCollapsedPx: 72,
+  /**
+   * Breakpoint MUI desde el cual el shell usa sidebar permanente (desktop).
+   * `md` = 900px en el tema MUI por defecto.
+   */
+  desktopMinBreakpoint: "md" as const,
+  /** Margen exterior del área principal (px) */
+  outerMarginPx: 12,
 } as const;
 
 /** Transición sincronizada (sidebar ↔ content) */

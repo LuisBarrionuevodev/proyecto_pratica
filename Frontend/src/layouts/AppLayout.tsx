@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { setBodyAuthenticatedRoute } from "../theme/bodyRouteClass";
 import { Outlet, useLocation } from "react-router-dom";
 import { resolveBreadcrumbLabel } from "../utils/breadcrumbLabel";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { InstitutionalViewHeaderBar } from "./InstitutionalViewHeaderBar";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
@@ -14,18 +14,20 @@ import { layoutShell } from "../theme/tokens";
 const TOPBAR_HEIGHT = layoutShell.topBarHeightPx;
 const SIDEBAR_COLLAPSED = layoutShell.sidebarCollapsedPx;
 const SIDEBAR_EXPANDED = layoutShell.sidebarExpandedPx;
-const OUTER_MARGIN = 12; // Margen exterior uniforme
-// Altura del layout en desktop: 95vh (deja margen abajo como "app window")
-const LAYOUT_HEIGHT = "calc(100vh - 24px)"; // 100vh menos margen arriba y abajo
+const OUTER_MARGIN = layoutShell.outerMarginPx;
+const LAYOUT_HEIGHT = "calc(100vh - 24px)";
 
 /**
  * AppLayout - Layout principal estilo "app window"
- * 
- * En desktop: altura fija ~95vh, centrado con margen exterior
- * NavLeft y ContentShell tienen la misma altura y color
+ *
+ * Desktop (≥ md): sidebar permanente colapsable + ContentShell.
+ * Mobile (< md): sin reserva lateral; menú en drawer temporal desde TopBar.
  */
 const AppLayout = () => {
+    const theme = useTheme();
+    const isDesktopShell = useMediaQuery(theme.breakpoints.up(layoutShell.desktopMinBreakpoint));
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const location = useLocation();
 
     const currentSidebarWidth = sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED;
@@ -36,18 +38,28 @@ const AppLayout = () => {
         return () => setBodyAuthenticatedRoute(false);
     }, []);
 
+    useEffect(() => {
+        setMobileNavOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        if (isDesktopShell) {
+            setMobileNavOpen(false);
+        }
+    }, [isDesktopShell]);
+
     return (
         <Box
             sx={{
                 display: "flex",
                 flexDirection: "column",
                 height: "100vh",
-                width: "100vw",
+                width: "100%",
+                maxWidth: "100%",
                 overflow: "hidden",
                 bgcolor: "transparent",
             }}
         >
-            {/* TopBar fijo arriba */}
             <Box
                 component="header"
                 sx={{
@@ -60,44 +72,59 @@ const AppLayout = () => {
                     bgcolor: "transparent",
                 }}
             >
-                <TopBar sidebarWidth={layoutShell.sidebarCollapsedPx} />
+                <TopBar
+                    sidebarWidth={layoutShell.sidebarCollapsedPx}
+                    showMobileMenuButton={!isDesktopShell}
+                    onMobileMenuOpen={() => setMobileNavOpen(true)}
+                />
             </Box>
 
-            {/* Contenedor principal con altura fija "app window" */}
+            {!isDesktopShell ? (
+                <NavLeft
+                    mobileTemporary={{
+                        open: mobileNavOpen,
+                        onClose: () => setMobileNavOpen(false),
+                    }}
+                />
+            ) : null}
+
             <Box
                 sx={{
                     display: "flex",
                     marginTop: `${TOPBAR_HEIGHT}px`,
-                    height: LAYOUT_HEIGHT,
+                    height: isDesktopShell ? LAYOUT_HEIGHT : `calc(100vh - ${TOPBAR_HEIGHT}px)`,
                     overflow: "hidden",
-                    padding: `${OUTER_MARGIN}px`,
+                    padding: isDesktopShell ? `${OUTER_MARGIN}px` : 1,
                     paddingTop: 0,
+                    boxSizing: "border-box",
+                    width: "100%",
+                    maxWidth: "100%",
                 }}
             >
-                {/* Sidebar - NavLeft */}
-                <Box
-                    component="nav"
-                    sx={{
-                        height: "100%",
-                        flexShrink: 0,
-                        width: currentSidebarWidth,
-                        transition: TRANSITION.css,
-                    }}
-                >
-                    <NavLeft onToggle={(open) => setSidebarOpen(open)} />
-                </Box>
+                {isDesktopShell ? (
+                    <Box
+                        component="nav"
+                        sx={{
+                            height: "100%",
+                            flexShrink: 0,
+                            width: currentSidebarWidth,
+                            transition: TRANSITION.css,
+                        }}
+                    >
+                        <NavLeft onToggle={(open) => setSidebarOpen(open)} />
+                    </Box>
+                ) : null}
 
-                {/* Main Content Area - ContentShell */}
                 <Box
                     component="main"
                     sx={{
                         flex: 1,
-                        marginLeft: "4px",
+                        minWidth: 0,
+                        marginLeft: isDesktopShell ? "4px" : 0,
                         height: "100%",
                         overflow: "hidden",
                     }}
                 >
-                    {/* ContentShell - mismo color que NavLeft */}
                     <Box
                         sx={{
                             ...glassContent,
@@ -108,15 +135,14 @@ const AppLayout = () => {
                             flexDirection: "column",
                         }}
                     >
-                        {/* Header institucional: vista + fecha de hoy (F3.8a) */}
                         <InstitutionalViewHeaderBar title={currentLabel} />
 
-                        {/* Área scrolleable */}
                         <Box
                             sx={{
                                 flex: 1,
+                                minHeight: 0,
                                 overflowY: "auto",
-                                overflowX: "auto",
+                                overflowX: "hidden",
                                 "&::-webkit-scrollbar": {
                                     width: "6px",
                                 },

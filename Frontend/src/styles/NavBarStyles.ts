@@ -52,6 +52,32 @@ export const StyleListItems = (open: boolean): SxProps<Theme> => ({
           }),
 });
 
+/** Drawer temporal móvil (overlay, menú expandido). */
+export const StyleDrawerTemporary: SxProps<Theme> = {
+    "& .MuiDrawer-paper": {
+        ...(glassSidebar as object),
+        width: layoutShell.sidebarExpandedPx,
+        color: GLASS_COLORS.textPrimary,
+        borderRadius: "0 16px 16px 0",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        overflow: "hidden",
+        boxSizing: "border-box",
+    },
+};
+
+export const StyleMobileNavCloseButton: SxProps<Theme> = {
+    color: GLASS_COLORS.textSecondary,
+    alignSelf: "flex-end",
+    mt: 1,
+    mr: 1,
+    "&:hover": {
+        backgroundColor: GLASS_COLORS.hoverBg,
+        color: GLASS_COLORS.textPrimary,
+    },
+};
+
 // Drawer principal - misma altura que ContentShell
 export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
     width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,

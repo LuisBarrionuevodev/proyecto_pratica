@@ -25,14 +25,17 @@ export const BORDER_COLOR = GLASS_COLORS.borderMedium;
 // Contenedor TopBar - Fijo arriba, transparente
 export const TopBarContainerStyles: SxProps<Theme> = {
     width: "100%",
+    maxWidth: "100%",
     bgcolor: "transparent",
     zIndex: 1200,
     height: `${layoutShell.topBarHeightPx}px`,
     position: "relative",
     display: "flex",
     alignItems: "center",
-    paddingX:0,
-    paddingRight: 1.5,
+    paddingX: 0,
+    paddingRight: { xs: 0.75, sm: 1.5 },
+    boxSizing: "border-box",
+    overflow: "hidden",
 };
 
 // Botón del avatar (trigger del menú) - completamente transparente

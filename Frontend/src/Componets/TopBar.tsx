@@ -23,6 +23,8 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
 import LogoutIcon from "@mui/icons-material/Logout";
 
+import MenuIcon from "@mui/icons-material/Menu";
+
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import TextDigitaliza from "../assets/TextDigitaliza.svg"
@@ -60,14 +62,22 @@ import { useNavigate } from "react-router-dom";
 
 
 interface TopBarProps {
-
     sidebarWidth?: number;
-
+    showMobileMenuButton?: boolean;
+    onMobileMenuOpen?: () => void;
 }
 
+const topBarIconButtonSx = {
+    color: "var(--d-text-secondary)",
+    flexShrink: 0,
+    "&:hover": { color: "var(--d-text-primary)", backgroundColor: "var(--d-action-hover)" },
+};
 
-
-const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => {
+const TopBar: React.FC<TopBarProps> = ({
+    sidebarWidth: _sidebarWidth = 72,
+    showMobileMenuButton = false,
+    onMobileMenuOpen,
+}) => {
     const { mode, toggleMode } = useDigitalizaTheme();
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -131,6 +141,18 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => 
     return (
 
         <Box sx={TopBarContainerStyles}>
+            {showMobileMenuButton ? (
+                <Tooltip title="Menú de navegación">
+                    <IconButton
+                        onClick={onMobileMenuOpen}
+                        size="small"
+                        aria-label="Abrir menú de navegación"
+                        sx={{ ...topBarIconButtonSx, ml: 0.5 }}
+                    >
+                        <MenuIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            ) : null}
 
             <Box
                 onClick={handleInicio}
@@ -138,11 +160,12 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => 
                     cursor: "pointer",
                     width: "auto",
                     minWidth: 0,
-                    flexShrink: 0,
+                    flex: { xs: 1, md: "0 1 auto" },
+                    maxWidth: { xs: "calc(100% - 120px)", sm: "none" },
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "flex-start",
-                    ml: { xs: 2, sm: 2.25 },
+                    ml: showMobileMenuButton ? 0.5 : { xs: 2, sm: 2.25 },
                     mt: 1,
                 }}
             >
@@ -162,18 +185,14 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => 
 
             
 
-            <Box sx={{ flex: 1 }} />
+            <Box sx={{ flex: 1, minWidth: 0, display: { xs: "none", md: "block" } }} />
 
             <Tooltip title={mode === "dark" ? "Usar modo claro" : "Usar modo oscuro"}>
                 <IconButton
                     onClick={toggleMode}
                     size="small"
                     aria-label={mode === "dark" ? "Usar modo claro" : "Usar modo oscuro"}
-                    sx={{
-                        color: "var(--d-text-secondary)",
-                        mr: 0.5,
-                        "&:hover": { color: "var(--d-text-primary)", backgroundColor: "var(--d-action-hover)" },
-                    }}
+                    sx={{ ...topBarIconButtonSx, mr: 0.5 }}
                 >
                     {mode === "dark" ? (
                         <LightModeOutlinedIcon fontSize="small" />
@@ -184,11 +203,13 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => 
             </Tooltip>
 
             <Box
-
                 onClick={handleClick}
-
-                sx={AvatarButtonStyles}
-
+                sx={{
+                    ...AvatarButtonStyles,
+                    flexShrink: 0,
+                    padding: { xs: "6px 8px", sm: "8px 12px" },
+                    gap: { xs: 0.75, sm: 1.5 },
+                }}
             >
 
                 {loading ? (
@@ -209,7 +230,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => 
 
                 )}
 
-                <Box sx={UserInfoStyles}>
+                <Box sx={{ ...UserInfoStyles, display: { xs: "none", sm: "flex" } }}>
 
                     {loading ? (
 
@@ -248,15 +269,11 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => 
                 </Box>
 
                 <KeyboardArrowDownIcon
-
                     sx={{
-
                         ...ArrowIconStyles,
-
+                        display: { xs: "none", sm: "block" },
                         transform: open ? "rotate(180deg)" : "rotate(0deg)",
-
                     }}
-
                 />
 
             </Box>

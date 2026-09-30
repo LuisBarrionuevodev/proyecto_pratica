@@ -46,7 +46,7 @@ describe("HOTFIX-UI-LAYOUT — Sidebar scrollbar", () => {
   it("StyleListItems recibe open y oculta scrollbar en collapsed", () => {
     const nav = read("src/Componets/NavLeft.tsx");
     const styles = read("src/styles/NavBarStyles.ts");
-    expect(nav).toContain("StyleListItems(open)");
+    expect(nav).toMatch(/StyleListItems\((open|menuExpanded)\)/);
     expect(styles).toContain("scrollbarWidth: \"none\"");
     expect(styles).toContain("display: \"none\"");
   });
