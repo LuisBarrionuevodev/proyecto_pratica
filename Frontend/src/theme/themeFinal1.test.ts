@@ -57,6 +57,13 @@ describe("THEME-FINAL.1 — modales y Glide", () => {
     expect(crud).not.toContain("closeButtonOnPrimary");
   });
 
+  it("InspeccionChecklistFields usa tokens semánticos, no blanco MUI", () => {
+    const checklist = readSrc("Containers/Actuaciones/Components/InspeccionChecklistFields.tsx");
+    expect(checklist).toContain("GLASS_COLORS.textPrimary");
+    expect(checklist).not.toContain("palette.common.white");
+    expect(checklist).not.toMatch(/rgba\(255,255,255/);
+  });
+
   it("CargarActuacionNuevaModal — sin paleta dark local en chrome UI", () => {
     const modal = readSrc("Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx");
     expect(modal).toContain("GLASS_COLORS.textMuted");

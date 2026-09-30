@@ -1,8 +1,10 @@
 import { memo } from "react";
-import { Box, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
+import { Box, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 
 import type { ChecklistUxValue } from "../utils/inspeccionChecklistSubmit";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 
 export type InspeccionChecklistFieldsProps = {
   catalog: IItemActaInspeccionCatalogItem[];
@@ -39,8 +41,6 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
   readOnly = false,
   errors,
 }: InspeccionChecklistFieldsProps) {
-  const theme = useTheme();
-  const white = theme.palette.common.white;
   const interactionDisabled = disabled || readOnly;
   const dimmed = disabled && !readOnly;
 
@@ -51,8 +51,8 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
   };
 
   const toggleSx = {
-    color: white,
-    borderColor: "rgba(255,255,255,0.35)",
+    color: GLASS_COLORS.textSecondary,
+    borderColor: GLASS_COLORS.borderMedium,
     fontSize: "0.75rem",
     fontWeight: 500,
     letterSpacing: 0.2,
@@ -60,18 +60,19 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
     py: 0.5,
     minWidth: 52,
     whiteSpace: "nowrap",
+    "&:hover": { backgroundColor: GLASS_COLORS.hoverBg },
     "&.Mui-selected": {
-      color: white,
-      backgroundColor: "rgba(255,255,255,0.18)",
-      borderColor: "rgba(255,255,255,0.5)",
+      color: GLASS_COLORS.textPrimary,
+      backgroundColor: `var(${V.actionTabPrimarySelected})`,
+      borderColor: GLASS_COLORS.borderActive,
     },
     "&.Mui-selected:hover": {
-      backgroundColor: "rgba(255,255,255,0.22)",
+      backgroundColor: `var(${V.actionTabPrimarySelectedHover})`,
     },
     "&.Mui-disabled": {
-      color: white,
+      color: GLASS_COLORS.textMuted,
       opacity: readOnly ? 1 : 0.55,
-      borderColor: readOnly ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.2)",
+      borderColor: GLASS_COLORS.borderMedium,
     },
   } as const;
 
@@ -101,7 +102,7 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
       <Typography
         variant="caption"
         sx={{
-          color: white,
+          color: GLASS_COLORS.textMuted,
           fontWeight: 600,
           letterSpacing: 0.4,
           textTransform: "uppercase",
@@ -129,7 +130,7 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
             >
               <Typography
                 sx={{
-                  color: white,
+                  color: GLASS_COLORS.textPrimary,
                   fontSize: "0.9rem",
                   fontWeight: 400,
                   flex: { xs: "1 1 100%", sm: "0 0 auto" },
