@@ -1,5 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
 import { GLASS_COLORS } from "./GlassStyles";
+import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
 import { color as tokenColor, layoutShell } from "../theme/tokens";
 import { FONT_FAMILY_UI } from "../theme/typography";
 
@@ -85,7 +86,7 @@ export const RoleBadgeSmallStyles: SxProps<Theme> = {
 
 // Icono de flecha
 export const ArrowIconStyles: SxProps<Theme> = {
-    color: COLORS.white,
+    color: GLASS_COLORS.textSecondary,
     fontSize: 18,
     transition: "transform 0.2s ease",
 };
@@ -96,10 +97,10 @@ export const ArrowIconStyles: SxProps<Theme> = {
 
 // Paper del menú - alineado con el layout, mismo estilo glass
 export const MenuPaperStyles = {
-    backgroundColor: GLASS_COLORS.sidebarBg,
+    backgroundColor: GLASS_COLORS.cardBg,
     border: `1px solid ${GLASS_COLORS.borderLight}`,
     borderRadius: "12px",
-    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+    boxShadow: `var(${CSS_VAR_NAMES.shadowPanel})`,
     marginTop: "4px",
     marginRight: "4px",
     minWidth: "180px",
@@ -112,7 +113,7 @@ export const MenuHeaderStyles: SxProps<Theme> = {
     alignItems: "center",
     gap: 2,
     padding: "20px 20px 16px 20px",
-    borderBottom: `1px solid rgba(255, 255, 255, 0.15)`,
+    borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
 };
 
 // Avatar grande en el menú
@@ -134,7 +135,7 @@ export const MenuUserNameStyles: SxProps<Theme> = {
     fontFamily: FONT_FAMILY_UI,
     fontWeight: 700,
     fontSize: "16px",
-    color: COLORS.white,
+    color: GLASS_COLORS.textPrimary,
     lineHeight: 1.2,
 };
 
@@ -158,7 +159,7 @@ export const MenuEmailStyles: SxProps<Theme> = {
     fontFamily: FONT_FAMILY_UI,
     fontWeight: 400,
     fontSize: "13px",
-    color: "rgba(255, 255, 255, 0.7)",
+    color: GLASS_COLORS.textSecondary,
 };
 
 // Items del menú
@@ -166,12 +167,12 @@ export const MenuItemStyles: SxProps<Theme> = {
     fontFamily: FONT_FAMILY_UI,
     fontWeight: 500,
     fontSize: "14px",
-    color: COLORS.white,
+    color: GLASS_COLORS.textPrimary,
     padding: "14px 20px",
     gap: 1.5,
     transition: "all 0.15s ease",
     "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: GLASS_COLORS.hoverBg,
     },
     "&:first-of-type": {
         marginTop: "8px",
@@ -181,7 +182,7 @@ export const MenuItemStyles: SxProps<Theme> = {
 // Divider del menú
 export const MenuDividerStyles: SxProps<Theme> = {
     margin: "8px 12px",
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: GLASS_COLORS.borderLight,
 };
 
 // Item de cerrar sesión (rojo)

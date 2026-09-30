@@ -1,11 +1,12 @@
-import { type JSX } from "react";
+import { type JSX, useEffect } from "react";
 import InicioOperacionesGrid from "./Components/InicioOperacionesGrid";
 import TopBar from "../../Componets/TopBar";
 import { Box, Grid, Skeleton, Typography } from "@mui/material";
-import { GLASS_COLORS, glassContent } from "../../styles/GlassStyles";
-import { mergeSx } from "../../utils/muiSx";
+import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { useAppSession } from "../../auth/AppSessionProvider";
 import { FONT_FAMILY_UI } from "../../theme/typography";
+import { setBodyAuthenticatedRoute } from "../../theme/bodyRouteClass";
+import { CSS_VAR_NAMES } from "../../theme/applyCssVariables";
 
 function formatFechaHoy(): string {
   return new Intl.DateTimeFormat("es-AR", {
@@ -25,6 +26,11 @@ const Inicio = (): JSX.Element => {
     session.status === "loading"
       ? null
       : session.displayName ?? session.toolbarPrimary;
+
+  useEffect(() => {
+    setBodyAuthenticatedRoute(true);
+    return () => setBodyAuthenticatedRoute(false);
+  }, []);
 
   return (
     <Box
@@ -49,24 +55,26 @@ const Inicio = (): JSX.Element => {
       </Box>
 
       <Box
-        sx={mergeSx(glassContent, {
+        sx={{
           flex: 1,
           minHeight: 0,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-          borderBottom: "none",
           overflow: "auto",
+          backgroundColor: "transparent",
+          border: "none",
+          boxShadow: "none",
           backdropFilter: "none",
           WebkitBackdropFilter: "none",
-          backgroundColor: GLASS_COLORS.contentBg,
           "&::-webkit-scrollbar": {
             width: "6px",
           },
           "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
+            backgroundColor: `var(${CSS_VAR_NAMES.scrollbarThumb})`,
             borderRadius: "3px",
           },
-        })}
+          "&::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: `var(${CSS_VAR_NAMES.scrollbarThumbHover})`,
+          },
+        }}
       >
         <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             <Box

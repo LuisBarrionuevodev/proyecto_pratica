@@ -51,8 +51,26 @@ const LoginBox = (): JSX.Element => {
     return (
         <Box sx={LoginBoxGlobalStyle}>
             <Box sx={LoginBoxStyle}>
-                <Box sx={{ ...LoginLogoStyle, alignItems: "center", width: "100%" }}>
-                    <img src={TextDigitaliza} alt="Digitaliza" style={{ width: "200px", display: "block", margin: "0 auto" }} />
+                <Box
+                    sx={{
+                        ...LoginLogoStyle,
+                        alignItems: "center",
+                        width: "100%",
+                        pt: 0.5,
+                    }}
+                >
+                    <Box
+                        component="img"
+                        src={TextDigitaliza}
+                        alt="Digitaliza"
+                        sx={{
+                            width: { xs: 210, sm: 240, md: 250 },
+                            height: "auto",
+                            display: "block",
+                            mx: "auto",
+                            objectFit: "contain",
+                        }}
+                    />
                 </Box>
 
                 <Box sx={LoginLogoStyle}>

@@ -82,8 +82,7 @@ body {
   transition: background-color 0.18s ease, background-image 0.18s ease;
 }
 
-[data-theme="dark"] body.authenticated-route,
-[data-theme="dark"] body.public-route {
+[data-theme="dark"] body.authenticated-route {
   background-image: url("./assets/BackgroundInicio2.png");
   background-size: cover;
   background-position: center;
@@ -95,7 +94,7 @@ body {
 [data-theme="light"] body.authenticated-route {
   background-color: var(--d-surface-app);
   background-image:
-    linear-gradient(rgba(245, 248, 252, 0.72), rgba(245, 248, 252, 0.72)),
+    linear-gradient(rgba(245, 248, 252, 0.38), rgba(245, 248, 252, 0.38)),
     url("./assets/BackgroundInicioLight.png");
   background-size: cover;
   background-position: center;
@@ -103,19 +102,15 @@ body {
   background-attachment: fixed;
 }
 
-[data-theme="light"] body.public-route {
-  background-color: var(--d-surface-app);
-  background-image:
-    radial-gradient(ellipse 120% 70% at 50% -15%, rgba(1, 102, 255, 0.07), transparent 58%),
-    linear-gradient(180deg, #f3f6fb 0%, var(--d-surface-app) 42%, #e3eaf3 100%);
-  background-attachment: fixed;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-/* Para rutas públicas que necesitan scroll (login, recuperar, etc.) */
+/* Login / recuperar: siempre BackgroundInicio2, independiente del theme */
 body.public-route {
   overflow: auto;
+  background-image: url("./assets/BackgroundInicio2.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-color: transparent;
 }
 
 a{

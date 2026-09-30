@@ -67,7 +67,7 @@ interface TopBarProps {
 
 
 
-const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
+const TopBar: React.FC<TopBarProps> = ({ sidebarWidth: _sidebarWidth = 72 }) => {
     const { mode, toggleMode } = useDigitalizaTheme();
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -136,12 +136,13 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                 onClick={handleInicio}
                 sx={{
                     cursor: "pointer",
-                    width: sidebarWidth,
+                    width: "auto",
+                    minWidth: 0,
                     flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "flex-start",
-                    pl: { xs: 0.75, sm: 1.25 },
+                    ml: { xs: 2, sm: 2.25 },
                     mt: 1,
                 }}
             >
@@ -150,10 +151,11 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
                     src={TextDigitaliza}
                     alt="Digitaliza"
                     sx={{
-                        width: { xs: 130, sm: 160, lg: 190, xl: 210 },
-                        maxWidth: "100%",
+                        width: { xs: 175, sm: 205, lg: 230, xl: 240 },
+                        height: "auto",
                         objectFit: "contain",
                         objectPosition: "left center",
+                        display: "block",
                     }}
                 />
             </Box>

@@ -66,10 +66,6 @@ describe("FRONT-PROD.3.2 — light visual polish guards", () => {
     expect(css).toMatch(
       /\[data-theme="light"\] body\.authenticated-route[\s\S]*BackgroundInicioLight\.png/
     );
-    const publicLight = css.match(
-      /\[data-theme="light"\] body\.public-route\s*\{[\s\S]*?\}/
-    )?.[0];
-    expect(publicLight).toBeDefined();
-    expect(publicLight).not.toContain("BackgroundInicioLight");
+    expect(css).toMatch(/body\.public-route[\s\S]*BackgroundInicio2\.png/);
   });
 });

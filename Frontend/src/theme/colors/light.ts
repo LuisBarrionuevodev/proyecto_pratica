@@ -7,12 +7,12 @@ import { darkColors } from "./dark";
 export const lightColors = {
   surface: {
     app: "#E9EEF5",
-    sidebar: "rgba(255, 255, 255, 0.90)",
-    content: "rgba(248, 250, 252, 0.93)",
-    panel: "rgba(255, 255, 255, 0.86)",
-    panelSubtle: "rgba(24, 32, 44, 0.035)",
-    panelElevated: "#FFFFFF",
-    input: "#F7F9FC",
+    sidebar: "rgba(255, 255, 255, 0.52)",
+    content: "rgba(248, 250, 252, 0.46)",
+    panel: "rgba(255, 255, 255, 0.52)",
+    panelSubtle: "rgba(255, 255, 255, 0.30)",
+    panelElevated: "rgba(255, 255, 255, 0.80)",
+    input: "rgba(255, 255, 255, 0.84)",
     overlay: "rgba(15, 23, 42, 0.42)",
     dialogTitle: "rgba(255, 255, 255, 0.96)",
     dialogContent: "rgba(255, 255, 255, 0.94)",

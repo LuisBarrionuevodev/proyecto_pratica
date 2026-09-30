@@ -7,7 +7,8 @@ import { InstitutionalViewHeaderBar } from "./InstitutionalViewHeaderBar";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
 import { RoleRouteGuard } from "./RoleRouteGuard";
-import { TRANSITION, GLASS_COLORS } from "../styles/GlassStyles";
+import { TRANSITION, glassContent } from "../styles/GlassStyles";
+import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
 import { layoutShell } from "../theme/tokens";
 
 const TOPBAR_HEIGHT = layoutShell.topBarHeightPx;
@@ -99,10 +100,9 @@ const AppLayout = () => {
                     {/* ContentShell - mismo color que NavLeft */}
                     <Box
                         sx={{
+                            ...glassContent,
                             height: "100%",
-                            backgroundColor: GLASS_COLORS.contentBg,
                             borderRadius: "16px",
-                            border: `1px solid ${GLASS_COLORS.borderLight}`,
                             overflow: "hidden",
                             display: "flex",
                             flexDirection: "column",
@@ -124,11 +124,11 @@ const AppLayout = () => {
                                     background: "transparent",
                                 },
                                 "&::-webkit-scrollbar-thumb": {
-                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                    backgroundColor: `var(${CSS_VAR_NAMES.scrollbarThumb})`,
                                     borderRadius: "3px",
                                 },
                                 "&::-webkit-scrollbar-thumb:hover": {
-                                    backgroundColor: "rgba(255, 255, 255, 0.18)",
+                                    backgroundColor: `var(${CSS_VAR_NAMES.scrollbarThumbHover})`,
                                 },
                             }}
                         >

@@ -1,5 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
-import { TRANSITION, GLASS_COLORS } from "./GlassStyles";
+import { TRANSITION, GLASS_COLORS, glassSidebar } from "./GlassStyles";
+import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
 import { layoutShell } from "../theme/tokens";
 import { FONT_FAMILY_UI } from "../theme/typography";
 
@@ -36,11 +37,11 @@ export const StyleListItems = (open: boolean): SxProps<Theme> => ({
     ...(open
         ? {
               scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255,255,255,0.22) transparent",
+              scrollbarColor: `var(${CSS_VAR_NAMES.scrollbarThumb}) transparent`,
               "&::-webkit-scrollbar": { width: "6px" },
               "&::-webkit-scrollbar-track": { background: "transparent" },
               "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: "rgba(255,255,255,0.22)",
+                  backgroundColor: `var(${CSS_VAR_NAMES.scrollbarThumb})`,
                   borderRadius: "999px",
               },
           }
@@ -56,12 +57,12 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
     width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
+        ...(glassSidebar as object),
         width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
         transition: TRANSITION.css,
         overflow: "hidden",
         overflowX: "hidden",
-        backgroundColor: GLASS_COLORS.sidebarBg,
-        color: "white",
+        color: GLASS_COLORS.textPrimary,
         borderRadius: "16px",
         position: "fixed",
         mt:7,
@@ -71,7 +72,6 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
-        border: `1px solid ${GLASS_COLORS.borderLight}`,
     },
 });
 
